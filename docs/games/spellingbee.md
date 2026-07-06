@@ -77,7 +77,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **`GameOverModal` + terminal indicator** | shipped | Verdict copy: "Genius!" (rank 6) or 'Stopped at rank "<name>"' (rank < 6 — covers both timeout and manual) |
 | **Diverse board-builder** (rare-letter weighting, ING dampening, previous-board overlap cap) | shipped | The only builder; "default" strategy dropped |
 | **Compete mode** (per-player found list, target-rank race, OpponentStrip, RLS-narrowed WordList) | **shipped** | Sibling-manifest pair; both modes live in the consolidated `20260617000000_spellingbee.sql`. See [Compete mode](#compete-mode). |
-| **Custom-letters puzzle** (player-specified 6+1) | **deferred** | Edge-fn parameter unused; setup-form field absent. |
+| **Custom-letters puzzle** (player-specified 6+1) | **shipped** | Optional `setup.custom_center` + `setup.custom_letters` (a center + six other letters). Both empty → the random diverse builder; both set → the edge function builds a board from exactly those letters (no seed sampling, no overlap cap). Works in either mode. See [Custom letters](#custom-letters). |
 | **Click-to-define popover + word-lookup dialog** | **shipped (via common)** | Common feature, not spellingbee-specific. Clicking a `WordList` row opens `common/components/definitions/DefinitionPopover` anchored to that row; the `~` key opens `common/components/definitions/WordLookupDialog` to define any word — and `~` is now an **app-global** shortcut (`common/hooks/input/useAppShortcuts`), not wired here. Both are backed by the `supabase/functions/common-define` edge function. |
 | **Sounds** | out of scope | spellingbee-ws doesn't have them either. |
 | **Mid-session "new board" affordance** | out of scope | PuzPuzPuz path is exit-to-club → start new game. The "End game" menu item is the closest analog. |
@@ -183,6 +183,15 @@ The in-play required band is a **per-game setup choice** (`setup.required`, 1..6
 
 It exists because the obvious-looking pattern — "fetch all legal words, filter the bitmask in JS" — silently truncates against PostgREST's `max_rows = 1000` cap. `common.words` has ~283k rows; the alphabetical first 1000 mostly start with `a` and don't represent the puzzle's candidate space at all, so `required_words_count` ends up below the ≥30 gate and the function returns 500. Pushing the filter into Postgres returns only the ~hundreds of actual candidates in one round-trip, well under any cap. (At spellingbee's selectivity it's a seq-scan-with-filter, ~15 ms — no index, the bitwise subset test isn't sargable anyway.)
 
+### Custom letters
+
+Two OPTIONAL setup fields let a player hand-pick the board instead of getting a random one: **`setup.custom_center`** (the center letter) + **`setup.custom_letters`** (the six other letters). Both empty → the random diverse builder above runs as normal; both set → the edge function **skips seed sampling entirely** and builds a board from exactly those seven letters. Available in **either mode** (coop or compete). The SetupForm surfaces a "Custom letters (optional)" fieldset; the manifest's `validate` (`customLettersError`) gates Start on the same letter rules the server enforces.
+
+- **Letter rules** (FE `customLettersError`, edge-fn `validateCustomLetters`, and `create_game` all agree): exactly one center + six other letters, all seven **distinct** lowercase a–z, and **none may be `s`** (the Spelling Bee rule — an `s` trivializes plurals; `create_game`'s `^[a-rt-z]$` regex already enforced it for random boards).
+- **The ≥30 gate relaxes to ≥1.** The random builder targets ≥30 required words for a rich puzzle; a custom board is whatever the player's letters yield, so `create_game` requires only **≥1 required word** (else the rank ladder is degenerate — Genius at 0 points). If the letters yield zero required words *at the chosen `setup.required` band*, both the edge function (400) and `create_game` (P0001) reject with a "pick different letters or a lower required band" message. The random path keeps the full ≥30 gate — the relaxation keys off `setup.custom_letters` being present.
+- **One-off, not a new default.** `create_game` strips `custom_letters` + `custom_center` from the setup it saves as the club's `clubs_gametypes.default_setup`, so the NEXT game's dialog opens with the custom fields blank (a random board) rather than silently re-pinning the hand-picked letters.
+- **No overlap cap.** The previous-board overlap cap is a diversity heuristic for random boards; a custom board is an explicit choice, so it's skipped.
+
 ### Play states
 
 `common.games.play_state` carries spellingbee's lifecycle enum:
@@ -218,8 +227,9 @@ Called only by the `spellingbee-build-board` edge function in practice (it build
 - `setup.required` (the goal-words band) defaults to 3, range **1..6**; `setup.legal` (the accepted-words band) defaults to 5, range **required..6** (legal must contain required, else P0001). These are the bands the edge function already baked into the board via `candidate_words`; create_game re-checks them as a server-authoritative belt to the FE's `legalError` Start gate. (The board is already built, so this is a guard, not a re-selection.)
 - `setup.timer` delegated to `common.validate_timer`.
 - `board.outer_letters` is exactly 6 distinct lowercase ASCII letters excluding `s`; `board.center_letter` is one lowercase ASCII letter excluding `s` and not present in outer.
-- `board.required_words_count ≥ 30` (mirrors the edge function's gate).
+- `board.required_words_count ≥ 30` (mirrors the edge function's gate) — **EXCEPT** for a custom board (`setup.custom_letters` present), where the player chose the letters and the gate relaxes to **≥ 1** (see [Custom letters](#custom-letters)).
 - `board.required_words` and `board.bonus_words` are arrays.
+- On a custom board, the one-off `setup.custom_letters` + `setup.custom_center` are stripped from the setup saved as the club's default (the next game is random again).
 
 Builds the title (per the formula above), calls `common.create_game` with the `'spellingbee_<mode>'` gametype string, inserts the `spellingbee.games` detail row (with `mode` column), and seeds `common.update_state`. The seeded status shape differs by mode: coop carries `{found_words_score:0, required_words_score, rank_idx:0, found_words_count:0, required_words_count}`; compete carries `{target_rank, required_words_score, required_words_count, leaderboard:[]}` (numeric per-player fields land once the first `submit_word` runs).
 
@@ -263,6 +273,8 @@ The compete-mode counterpart to `end_game`: a per-player "I quit, the others kee
 ## Edge function: `spellingbee-build-board`
 
 [`supabase/functions/spellingbee-build-board/index.ts`](../../supabase/functions/spellingbee-build-board/index.ts) — the FE's `manifest.startGameInClub` invokes this. It runs as the caller (via the JWT in the Authorization header) for all PostgREST calls.
+
+**Custom-letters short-circuit** (before the steps below): if `setup.custom_center` + `setup.custom_letters` are both set, the function validates them (`validateCustomLetters` — a center + six others, seven distinct, no `s`), fetches candidate words for exactly those letters via `candidate_words`, builds the board, and calls `create_game` — **skipping seed sampling, the overlap cap, and the ≥30 gate** (a custom board only needs ≥1 required word). Both fields empty → the random path:
 
 1. Reads `spellingbee.pangrams` in pages of 1000 (paginated to defeat `max_rows`); reads the club's most recent `spellingbee.games` row for the previous-board overlap cap.
 2. Filters the pangram pool by overlap cap (≤4/7 letters shared with previous board).
@@ -402,9 +414,11 @@ src/spellingbee/
                           target-rank radio (Solid..Genius, default Amazing) above
                           the timer. Both modes: a "Word difficulty" fieldset with
                           two shared <DifficultyField>s (Required words: band 1..6;
-                          Legal/bonus words: band required..6) — the manifest's
-                          `validate: legalError` gates Start until legal ≥
-                          required. Custom-letters fields still deferred.
+                          Legal/bonus words: band required..6), then a "Custom
+                          letters (optional)" fieldset (center + six other letters;
+                          blank = random board). The manifest's `validate:
+                          spellingbeeSetupError` gates Start on BOTH the legal ≥
+                          required rule and the custom-letter rules.
     Help.tsx              Rules modal mounted from the common menu's Help item. Built on
                           the shared <FloatingPanel>. Implements the manifest's
                           help: ComponentType<{ onClose }> contract.
@@ -512,6 +526,7 @@ Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Co
 | `tests/spellingbee/schema_test.sql` | Both gametype rows registered, public reference reads, column-grant blocks SELECT of hidden columns, view exposes them conditionally pre/post-terminal. |
 | `tests/spellingbee/rls_test.sql` | Coop branch (everyone sees all in club); outsider sees nothing; INSERT-grant rejections; compete-mode mid-game narrowing (only own rows); compete post-terminal opens reveal. |
 | `tests/spellingbee/create_game_test.sql` | Auth, membership, coop + compete happy paths, gametype-string routing, mode arg validation, setup.mode rejected if present (loud catch for stale FE), target_rank-iff-compete + range + coop-must-omit, compete ≥2-player floor, word-difficulty band validation (required 1..6, legal required..6, plus an explicit non-default required=4/legal=6 happy path), board structure validation, title formula, per-mode status seeding. |
+| `tests/spellingbee/custom_letters_test.sql` | Custom board (`setup.custom_letters` set): a sub-30 board is accepted (≥30 gate relaxes to ≥1), the one-off custom letters are stripped from the saved default (timer preserved), a random board still enforces ≥30, and a zero-required-word custom board is rejected. |
 | `tests/spellingbee/gameplay_test.sql` | Coop `submit_word` result-enum branches incl. pangram +10 bonus (required AND bonus paths), bonus-words-score-normally assertions, soft-reject "no row inserted" check, coop duplicate semantics, coop-has-no-auto-terminal sanity (play_state stays 'playing' past required_words_count; score overshoots required_words_score; rank clamps at Genius), `submit_timeout` (ctid touch + idempotency + post-terminal games_state reveal), `spellingbee.end_game` (ctid touch, status.outcome='manual', auth, idempotency). |
 | `tests/spellingbee/compete_test.sql` | Per-player duplicate rule (bea can re-find ada's word; ada can't re-find her own), mid-game leaderboard shape, first-to-target → won_compete (winner_user_id, {won:true}/{won:false} per-player results, opponents can't submit post-win), submit_timeout in compete (no winner, all {won:false}), end_game in compete (no winner, outcome=manual), RLS branches (a / b / c) per mode + terminal state. |
 
@@ -537,7 +552,7 @@ Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Co
 |---|---|
 | Everything server-side — schema, column grants, RLS, the `games_state` view, `candidate_words`, the RPCs (`create_game` / `submit_word` / `submit_timeout` / `end_game`), `_rank_idx`, the `submit_timeout` Realtime-touch, the `mode` column + mode-aware RLS, and the `spellingbee_coop`/`spellingbee_compete` gametype rows | [`supabase/migrations/20260617000000_spellingbee.sql`](../../supabase/migrations/20260617000000_spellingbee.sql) |
 | Compete-specific FE rendering (OpponentStrip, mode-aware buildOver) | [`src/spellingbee/components/PlayArea.tsx`](../../src/spellingbee/components/PlayArea.tsx) |
-| Target-rank picker + word-difficulty (required/legal band) fields in the setup dialog | [`src/spellingbee/components/SetupForm.tsx`](../../src/spellingbee/components/SetupForm.tsx); the shared dropdown is [`src/common/components/fields/DifficultyField.tsx`](../../src/common/components/fields/DifficultyField.tsx); the `legal ≥ required` Start gate is `legalError` in [`src/spellingbee/lib/setup.ts`](../../src/spellingbee/lib/setup.ts) |
+| Target-rank picker + word-difficulty (required/legal band) fields + custom-letters fields in the setup dialog | [`src/spellingbee/components/SetupForm.tsx`](../../src/spellingbee/components/SetupForm.tsx); the shared dropdown is [`src/common/components/fields/DifficultyField.tsx`](../../src/common/components/fields/DifficultyField.tsx); the combined Start gate (`legal ≥ required` + custom-letter rules) is `spellingbeeSetupError` in [`src/spellingbee/lib/setup.ts`](../../src/spellingbee/lib/setup.ts) |
 | How the word list is populated | `common.words` via [`supabase/scripts/import-words.ts`](../../supabase/scripts/import-words.ts) (read live from `~/src/gamelist/words.tsv`) — see [common.md](../common.md#the-word-list-commonwords) |
 | How the pangram seed pool is built | [`supabase/scripts/import-spellingbee-pangrams.ts`](../../supabase/scripts/import-spellingbee-pangrams.ts) (derives `spellingbee.pangrams` from `common.words`) |
 | The board-builder edge function | [`supabase/functions/spellingbee-build-board/index.ts`](../../supabase/functions/spellingbee-build-board/index.ts) |
@@ -559,5 +574,5 @@ language + helpers live in [docs/pdf.md](../pdf.md).
 
 Tracked in [`deferred.md`](../deferred.md) → spellingbee. Today's open items:
 
-- **Custom-letters puzzle** — edge-function parameter unused; setup-form field absent.
+- ~~**Custom-letters puzzle**~~ **DONE.** `setup.custom_center` + `setup.custom_letters` let a player build a board from their own letters (either mode); see [Custom letters](#custom-letters).
 - ~~**Per-player attribution in the post-terminal reveal**~~ **DONE.** Post-terminal, every found word keeps its **finder's** color (a word more than one player found goes to the first finder by `found_at`); only the never-found required words go grey. (Earlier this merged peers' finds and missed words into one muted "everything that isn't mine" bucket.) A per-player leaderboard panel is still possible on top, but the attribution itself now ships.

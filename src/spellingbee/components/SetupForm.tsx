@@ -1,10 +1,18 @@
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { TimerField } from '../../common/components/fields/TimerField'
+import { cls } from '../../common/lib/util/cls'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { RANKS } from '../lib/ranks'
 import type { SpellingbeeSetup } from '../lib/setup'
 import styles from '../../common/components/fields/setupForm.module.css'
+import local from './SetupForm.module.css'
+
+/** Normalize a letter input: lowercase, drop anything but a–z, cap the length.
+ *  Keeps state canonical (lowercase, letters-only) so validation + the edge
+ *  function agree; the UI uppercases via CSS for the honeycomb look. */
+const cleanLetters = (raw: string, max: number) =>
+  raw.toLowerCase().replace(/[^a-z]/g, '').slice(0, max)
 
 /**
  * Allowed target-rank choices for the compete picker. The full
@@ -87,6 +95,53 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           value={s.legal}
           onChange={(legal) => onChange({ ...s, legal })}
         />
+      </fieldset>
+
+      {/* Optional custom letters. Both blank → a random board (the normal path);
+          fill both to build a board from your own letters. The Start button is
+          gated on `customLettersError` (via the manifest's validate), so an
+          invalid partial entry blocks Start with an inline reason. Cleared inputs
+          store `undefined` so the edge function sees them as absent → random. */}
+      <fieldset className={styles.fieldset}>
+        <legend>Custom letters (optional)</legend>
+        <p className="muted">
+          Leave blank for a random board, or set your own: a center letter plus
+          six other letters. No S, and all seven must be different.
+        </p>
+        <div className={local.customRow}>
+          <label className={local.field}>
+            <span>Center</span>
+            <input
+              type="text"
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              maxLength={1}
+              value={s.custom_center ?? ''}
+              onChange={(e) =>
+                onChange({ ...s, custom_center: cleanLetters(e.target.value, 1) || undefined })
+              }
+              className={cls(local.letterInput, local.centerInput)}
+              aria-label="Center letter"
+            />
+          </label>
+          <label className={local.field}>
+            <span>Other letters</span>
+            <input
+              type="text"
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              maxLength={6}
+              value={s.custom_letters ?? ''}
+              onChange={(e) =>
+                onChange({ ...s, custom_letters: cleanLetters(e.target.value, 6) || undefined })
+              }
+              className={cls(local.letterInput, local.outerInput)}
+              aria-label="Six other letters"
+            />
+          </label>
+        </div>
       </fieldset>
 
       <TimerField

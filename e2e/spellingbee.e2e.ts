@@ -67,3 +67,44 @@ test.describe('spellingbee play loop', () => {
     await ctx.close()
   })
 })
+
+/**
+ * Custom letters (setup): entering a center + six other letters builds a board
+ * from exactly those letters via the real `spellingbee-build-board` edge function
+ * (not a random seed). Drives the actual setup dialog end to end. Uses the
+ * CHARIOT letters (center A + CHIROT) — a real pangramable set with plenty of
+ * words, so it clears the ≥1 required-word floor comfortably.
+ */
+test.describe('spellingbee custom letters', () => {
+  test('a custom center + letters builds a board from exactly those letters', async ({
+    browser,
+  }) => {
+    const club = await createSoloClub('sbcl')
+    const [alice] = club.members
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/c/${club.handle}`)
+
+    // Open the FreeBee coop setup dialog (coop is the enabled button in a solo
+    // club; compete needs a second player).
+    await page.getByRole('button', { name: /FreeBee/ }).first().click()
+
+    // Enter our own letters: center A + the six others C H I R O T.
+    await page.getByRole('textbox', { name: 'Center letter' }).fill('a')
+    await page.getByRole('textbox', { name: 'Six other letters' }).fill('chirot')
+
+    // Start → the edge function builds the board + lands us on the game.
+    await page.getByRole('button', { name: /^Start FreeBee/ }).click()
+
+    // The honeycomb renders with EXACTLY our letters: center A, outers C/H/I/R/O/T.
+    await expect(page.getByRole('button', { name: 'A (center letter)' })).toBeVisible({
+      timeout: 20000,
+    })
+    for (const letter of ['C', 'H', 'I', 'R', 'O', 'T']) {
+      await expect(page.getByRole('button', { name: letter, exact: true })).toBeVisible()
+    }
+
+    await ctx.close()
+  })
+})

@@ -1,0 +1,40 @@
+/* spellingbee-local setup bits — the optional "custom letters" row (a center
+ * input + an "other letters" input). The shared setupForm.module.css owns the
+ * fieldset/legend/paragraph scaffold; only this letter-input layout is
+ * game-specific. */
+
+.customRow {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.field > span {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Letter inputs read like the honeycomb: uppercase, spaced, centered mono. The
+ * stored value stays lowercase (the SetupForm cleans it); text-transform is
+ * display-only. */
+.letterInput {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-family: monospace;
+  text-align: center;
+}
+
+.centerInput {
+  width: 3.5rem;
+}
+
+.outerInput {
+  width: 10rem;
+}

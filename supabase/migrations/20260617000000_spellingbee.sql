@@ -501,7 +501,9 @@ grant execute on function spellingbee.candidate_words(bigint, bigint, int, int) 
 --     (not 's', and not present among outer_letters)
 --   - board.required_words_count must be ≥ 30 (the puzzle-quality gate
 --     the edge function already applies; recheck here so a
---     misbehaving builder can't sneak a degenerate puzzle past)
+--     misbehaving builder can't sneak a degenerate puzzle past) —
+--     EXCEPT for a custom board (setup.custom_letters set), where the
+--     player picked the letters and the gate relaxes to ≥ 1
 --   - board.required_words / board.bonus_words must be arrays
 
 create function spellingbee.create_game(
@@ -527,6 +529,9 @@ declare
   b_required_words_count int;
   game_title text;
   effective_gametype text;
+  -- A player-specified letter set (setup.custom_letters non-empty) — the board was
+  -- built from the player's own letters, not a random seed. Relaxes the ≥30 gate.
+  is_custom_board boolean;
 begin
   perform common.require_club_member(target_club);
 
@@ -640,7 +645,17 @@ begin
 
   b_required_words_score := (board->>'required_words_score')::int;
   b_required_words_count := (board->>'required_words_count')::int;
-  if b_required_words_count < 30 then
+  -- Custom (player-specified) letters skip the ≥30 quality gate — the player
+  -- chose these letters, so we build whatever puzzle they yield. It must still
+  -- have ≥1 required word, or the rank ladder is degenerate (Genius at 0 pts).
+  -- Random boards keep the ≥30 gate the edge function's builder targets.
+  is_custom_board := coalesce(setup->>'custom_letters', '') <> '';
+  if is_custom_board then
+    if b_required_words_count < 1 then
+      raise exception 'those custom letters yield no required words; pick different letters or a lower required band'
+        using errcode = 'P0001';
+    end if;
+  elsif b_required_words_count < 30 then
     raise exception 'board.required_words_count must be ≥ 30 (got %); the edge function''s ≥30 gate must agree',
                     b_required_words_count
       using errcode = 'P0001';
@@ -673,10 +688,13 @@ begin
   --
   -- Saved-default arg: persist the whole setup as the club's
   -- next default. target_rank + timer are all things a friend
-  -- group settles on; no point asking again next time.
+  -- group settles on; no point asking again next time. BUT strip the
+  -- one-off custom letters — a hand-picked board is a one-time choice, so the
+  -- NEXT game should start from a random board again (the SetupForm shows the
+  -- custom fields blank).
   new_id := common.create_game(
     target_club, effective_gametype, player_user_ids, game_title, setup,
-    setup
+    setup - 'custom_letters' - 'custom_center'
   );
 
   -- ─── Insert the per-gametype row, now with mode ──────────

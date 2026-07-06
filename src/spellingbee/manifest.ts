@@ -5,7 +5,7 @@ import { makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/man
 import {
   DEFAULT_SPELLINGBEE_SETUP_COMPETE,
   DEFAULT_SPELLINGBEE_SETUP_COOP,
-  legalError,
+  spellingbeeSetupError,
   type SpellingbeeSetup,
 } from './lib/setup'
 import { RANKS } from './lib/ranks'
@@ -114,7 +114,7 @@ export const spellingbeeCoopGame: GameManifest = {
   setupForm: {
     Component: setupFormLoader,
     defaults: DEFAULT_SPELLINGBEE_SETUP_COOP,
-    validate: (setup) => legalError(setup as SpellingbeeSetup),
+    validate: (setup) => spellingbeeSetupError(setup as SpellingbeeSetup),
   },
 
   startGameInClub: startGameInClubFactory('coop', BRAND),
@@ -167,7 +167,7 @@ export const spellingbeeCompeteGame: GameManifest = {
   setupForm: {
     Component: setupFormLoader,
     defaults: DEFAULT_SPELLINGBEE_SETUP_COMPETE,
-    validate: (setup) => legalError(setup as SpellingbeeSetup),
+    validate: (setup) => spellingbeeSetupError(setup as SpellingbeeSetup),
   },
 
   startGameInClub: startGameInClubFactory('compete', BRAND),

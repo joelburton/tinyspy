@@ -76,6 +76,12 @@ type Setup = {
    *  set; `legal` (required..6, default 5) = the wider accepted set. */
   required?: number
   legal?: number
+  /** Optional custom board — the player's own letters. `custom_center` = the
+   *  center letter, `custom_letters` = the six other letters. When both are set
+   *  (and valid) we build a board from exactly these letters instead of sampling
+   *  a random pangram seed. Both create_game and this function re-validate. */
+  custom_center?: string
+  custom_letters?: string
   timer:
     | { kind: 'none' }
     | { kind: 'countup' }
@@ -305,6 +311,24 @@ function buildBoard(
   }
 }
 
+/** Validate a custom (player-specified) letter set, or null if it's fine.
+ *  Mirrors spellingbee.create_game's letter rules + the FE's `customLettersError`:
+ *  a single center + six OTHER letters, all seven distinct lowercase a–z, none
+ *  being 's' (the Spelling Bee rule). Both inputs are already lowercased/trimmed
+ *  by the caller. */
+function validateCustomLetters(center: string, letters: string): string | null {
+  if (!/^[a-z]$/.test(center) || center === 's') {
+    return 'custom center must be a single letter a–z (not s)'
+  }
+  if (!/^[a-z]{6}$/.test(letters) || letters.includes('s')) {
+    return 'custom letters must be six letters a–z (no s)'
+  }
+  if (new Set(center + letters).size !== 7) {
+    return 'all seven custom letters must be different'
+  }
+  return null
+}
+
 // ───────────────────────────────────────────────────────────
 // PostgREST helpers
 // ───────────────────────────────────────────────────────────
@@ -453,61 +477,102 @@ serve(async (req) => {
 
     const supabase = callerClient(authHeader)
 
-    // ─── 1. Read the previous board (for overlap cap) ─────
-    const previousMask = await fetchPreviousMask(supabase, targetClub)
-    console.log(`previousMask: ${previousMask === null ? 'none' : previousMask.toString()}`)
+    // Optional custom board: the player's own letters. Both fields set → custom
+    // (the FE sends them lowercased/letters-only; we re-normalize defensively).
+    const customCenter =
+      typeof setup.custom_center === 'string' ? setup.custom_center.trim().toLowerCase() : ''
+    const customLetters =
+      typeof setup.custom_letters === 'string' ? setup.custom_letters.trim().toLowerCase() : ''
+    const isCustom = customCenter !== '' || customLetters !== ''
 
-    // ─── 2. Sample a pangram mask ─────────────────────────
-    const allPangrams = await fetchPangrams(supabase)
-    console.log(`fetched ${allPangrams.length} pangram seeds`)
-    const eligible = applyOverlapCap(allPangrams, previousMask)
-    if (eligible.length === 0) {
-      console.log('reject: empty pangram pool after overlap cap')
-      return json(
-        { error: 'no eligible pangram seeds after applying overlap cap' },
-        500,
-      )
-    }
-    const weighted = buildWeightedPool(eligible)
-
-    // ─── 3-4. Sample a seed AND a center that clears the word gate ─────────
-    // A seed's stored `required_words_count` is over its whole 7-letter SET, but the
-    // puzzle only counts words that CONTAIN THE CENTER. So a poorly-chosen
-    // center can land a real board below the ≥30 gate even though the set is
-    // fine — which the old "pick center uniformly, then reject if short" path
-    // surfaced as an error when create_game re-checked the gate. Fix: try the
-    // seed's 7 centers in random order and keep the first that clears the gate;
-    // re-sample the seed only if NONE of its centers do (rare).
     let board: Board | null = null
-    for (
-      let seedAttempt = 0;
-      seedAttempt < MAX_SEED_ATTEMPTS && board === null;
-      seedAttempt++
-    ) {
-      const seed = sampleMask(weighted)
-      const mask = BigInt(seed.mask)
-      const letters = maskLetters(mask)
-      for (const center of shuffled([...letters])) {
-        const centerBit = 1n << BigInt(center.charCodeAt(0) - 97)
-        const candidates = await fetchCandidateWords(supabase, mask, centerBit, requiredBand, legalBand)
-        const cand = buildBoard(letters.replace(center, ''), center, candidates)
-        if (cand.required_words_count >= MIN_REQUIRED_WORDS_COUNT) {
-          board = cand
-          break
-        }
-        console.log(
-          `seed ${letters} center '${center}': ${cand.required_words_count} words`
-          + ` (< ${MIN_REQUIRED_WORDS_COUNT}) — trying another center`,
+
+    if (isCustom) {
+      // ─── Custom board: build from exactly the player's letters ───────────
+      // No random sampling, no previous-board overlap cap, and no ≥30 quality
+      // gate — the player chose these letters, so we build whatever puzzle they
+      // yield. It must still have ≥1 required word (create_game re-checks) or the
+      // rank ladder would be degenerate (Genius at 0 points).
+      const err = validateCustomLetters(customCenter, customLetters)
+      if (err) {
+        console.log(`reject: custom letters invalid — ${err}`)
+        return json({ error: err }, 400)
+      }
+      const mask = letterMask(customLetters + customCenter)
+      const centerBit = 1n << BigInt(customCenter.charCodeAt(0) - 97)
+      const candidates = await fetchCandidateWords(supabase, mask, centerBit, requiredBand, legalBand)
+      board = buildBoard(customLetters, customCenter, candidates)
+      console.log(
+        `custom board: ${customLetters}+${customCenter} → ${board.required_words_count} required words`,
+      )
+      if (board.required_words_count < 1) {
+        console.log('reject: custom letters yield no required words')
+        return json(
+          {
+            error:
+              `those letters yield no required words at difficulty ${requiredBand}`
+              + ` — try a lower required difficulty or different letters`,
+          },
+          400,
         )
       }
-    }
+    } else {
+      // ─── Random board: sample a pangram seed + center ────────────────────
+      // 1. Read the previous board (for overlap cap)
+      const previousMask = await fetchPreviousMask(supabase, targetClub)
+      console.log(`previousMask: ${previousMask === null ? 'none' : previousMask.toString()}`)
 
-    if (board === null) {
-      console.log(`reject: no seed/center cleared the ${MIN_REQUIRED_WORDS_COUNT}-word gate in ${MAX_SEED_ATTEMPTS} seeds`)
-      return json(
-        { error: `could not build a board with ≥${MIN_REQUIRED_WORDS_COUNT} required words` },
-        500,
-      )
+      // 2. Sample a pangram mask
+      const allPangrams = await fetchPangrams(supabase)
+      console.log(`fetched ${allPangrams.length} pangram seeds`)
+      const eligible = applyOverlapCap(allPangrams, previousMask)
+      if (eligible.length === 0) {
+        console.log('reject: empty pangram pool after overlap cap')
+        return json(
+          { error: 'no eligible pangram seeds after applying overlap cap' },
+          500,
+        )
+      }
+      const weighted = buildWeightedPool(eligible)
+
+      // 3-4. Sample a seed AND a center that clears the word gate.
+      // A seed's stored `required_words_count` is over its whole 7-letter SET, but the
+      // puzzle only counts words that CONTAIN THE CENTER. So a poorly-chosen
+      // center can land a real board below the ≥30 gate even though the set is
+      // fine — which the old "pick center uniformly, then reject if short" path
+      // surfaced as an error when create_game re-checked the gate. Fix: try the
+      // seed's 7 centers in random order and keep the first that clears the gate;
+      // re-sample the seed only if NONE of its centers do (rare).
+      for (
+        let seedAttempt = 0;
+        seedAttempt < MAX_SEED_ATTEMPTS && board === null;
+        seedAttempt++
+      ) {
+        const seed = sampleMask(weighted)
+        const mask = BigInt(seed.mask)
+        const letters = maskLetters(mask)
+        for (const center of shuffled([...letters])) {
+          const centerBit = 1n << BigInt(center.charCodeAt(0) - 97)
+          const candidates = await fetchCandidateWords(supabase, mask, centerBit, requiredBand, legalBand)
+          const cand = buildBoard(letters.replace(center, ''), center, candidates)
+          if (cand.required_words_count >= MIN_REQUIRED_WORDS_COUNT) {
+            board = cand
+            break
+          }
+          console.log(
+            `seed ${letters} center '${center}': ${cand.required_words_count} words`
+            + ` (< ${MIN_REQUIRED_WORDS_COUNT}) — trying another center`,
+          )
+        }
+      }
+
+      if (board === null) {
+        console.log(`reject: no seed/center cleared the ${MIN_REQUIRED_WORDS_COUNT}-word gate in ${MAX_SEED_ATTEMPTS} seeds`)
+        return json(
+          { error: `could not build a board with ≥${MIN_REQUIRED_WORDS_COUNT} required words` },
+          500,
+        )
+      }
     }
     console.log(
       `board: outer=${board.outer_letters} center=${board.center_letter}`

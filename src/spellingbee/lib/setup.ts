@@ -27,10 +27,17 @@ import type { TimerMode } from '../../common/lib/games'
  *     board pool is selected at the band-1 floor, so any choice is
  *     solvable; `legal` must contain `required` (see
  *     `legalError`).
- *
- * Deferred fields (designed-in, FE not yet wiring them):
- *   - `custom_letters` + `custom_center` — a player-specified
- *     puzzle override; bypasses the random builder.
+ *   - `custom_center` + `custom_letters` — an OPTIONAL player-
+ *     specified letter set: the center letter + the six other
+ *     letters. When both are set (and valid — see
+ *     `customLettersError`) the edge function builds a board from
+ *     exactly those letters instead of sampling a random pangram
+ *     seed; both empty means a random board. Works in either mode.
+ *     Because the player chose the letters, a custom board skips
+ *     the ≥30-required-words quality gate the random builder
+ *     enforces (it only needs ≥1 required word to be playable), and
+ *     the letters are NOT saved as the club's next default — a
+ *     one-off, not a new baseline.
  */
 export type SpellingbeeSetup = {
   timer: TimerMode
@@ -42,8 +49,11 @@ export type SpellingbeeSetup = {
   required: number
   /** Legal/bonus-words band (required..6). */
   legal: number
-  custom_letters?: string
+  /** Optional custom board: the center letter (1) + the six other letters.
+   *  Both set → custom board; both empty/undefined → random. See the type notes
+   *  and `customLettersError`. */
   custom_center?: string
+  custom_letters?: string
 }
 
 /**
@@ -56,6 +66,42 @@ export function legalError(setup: SpellingbeeSetup): string | null {
     return `Legal words must reach at least the required band (${setup.required}).`
   }
   return null
+}
+
+/**
+ * Why the optional custom-letters override is invalid, or `null` if it's fine
+ * (including the common "left blank" case → a random board).
+ *
+ * Mirrors the letter rules `spellingbee.create_game` enforces server-side, so the
+ * dialog fails fast before the round-trip: if EITHER field is filled, BOTH must
+ * be, and together they must be exactly one center + six OTHER letters, all seven
+ * distinct lowercase a–z, and NONE may be `s` (the Spelling Bee rule — an `s`
+ * would make trivial plurals of every word). Case/whitespace are normalized here
+ * the same way the SetupForm cleans its inputs.
+ */
+export function customLettersError(setup: SpellingbeeSetup): string | null {
+  const center = (setup.custom_center ?? '').trim().toLowerCase()
+  const letters = (setup.custom_letters ?? '').trim().toLowerCase()
+  if (!center && !letters) return null // both blank → random board
+  if (!center || !letters) {
+    return 'Enter a center letter AND six other letters (or leave both blank for a random board).'
+  }
+  if (!/^[a-z]$/.test(center)) return 'The center must be a single letter A–Z.'
+  if (!/^[a-z]{6}$/.test(letters)) return 'Enter exactly six other letters (A–Z).'
+  if (center === 's' || letters.includes('s')) {
+    return "Spelling Bee never uses the letter S — pick different letters."
+  }
+  if (new Set(center + letters).size !== 7) return 'All seven letters must be different.'
+  return null
+}
+
+/**
+ * The single Start-gate validator for both manifests: the legal-band rule OR the
+ * custom-letters rule, whichever fails first (the manifest's `validate` shows the
+ * returned string and disables Start until it's `null`).
+ */
+export function spellingbeeSetupError(setup: SpellingbeeSetup): string | null {
+  return legalError(setup) ?? customLettersError(setup)
 }
 
 /**
