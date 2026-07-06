@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { MAX_REBUS_LEN } from '../lib/types'
 import {
   BORDER_BOTTOM,
@@ -25,6 +25,23 @@ function targetWidthPercent(width: number): number {
   return Math.max(40, Math.min(55, 40 + (width - 15) * (15 / 6)))
 }
 
+// Width of the rebus / peek overlay box, in cell-widths. Wider than one cell
+// (crossplay's REBUS_WIDTH_EM) so a long rebus isn't clipped at the cell edge.
+const REBUS_WIDTH_EM = 3
+
+/** Position the overlay box centered horizontally on the cursor cell, clamped
+ *  to stay within the grid columns. Top = the cursor row, one cell tall. */
+function overlayStyle(row: number, col: number, gridWidth: number): CSSProperties {
+  const idealLeft = col + 0.5 - REBUS_WIDTH_EM / 2
+  const maxLeft = gridWidth - REBUS_WIDTH_EM
+  const left = Math.max(0, Math.min(maxLeft, idealLeft))
+  return { top: `${row}em`, left: `${left}em`, width: `${REBUS_WIDTH_EM}em`, height: '1em' }
+}
+
+/** What to do with the cursor after a rebus commit — Enter advances one cell,
+ *  Tab / Shift+Tab jumps to the next / previous clue (mirrors Tab elsewhere). */
+export type RebusPostCommit = 'advance' | 'jumpNext' | 'jumpPrev'
+
 type Props = {
   meta: PuzzleTemplate
   cells: CellsMap
@@ -35,17 +52,23 @@ type Props = {
   onCellClick: (row: number, col: number) => void
   /** The rebus overlay target (Shift+Enter), or null. */
   rebus: { row: number; col: number; initial: string } | null
-  onRebusCommit: (value: string) => void
+  onRebusCommit: (value: string, post: RebusPostCommit) => void
   onRebusCancel: () => void
+  /** The read-only zoom-peek (Shift+Space): the cell + its fill, or null.
+   *  Mutually exclusive with `rebus` (typing wins over peeking). */
+  peek: { row: number; col: number; value: string } | null
   /** At terminal, the answer grid — used to fill blank cells with the
    *  revealed answer (greyed). Null mid-game (the solution is shielded). */
   solution: (string[] | null)[][] | null
   /** `${row}:${col}` → CSS color, for teammates' cursor frames (coop). */
   peerCells: Map<string, string>
+  /** `${row}:${col}` → CSS color: a teammate JUST filled this cell (coop);
+   *  the fill flashes in their color for a few seconds. */
+  recentFills: Map<string, string>
 }
 
 export function Grid({
-  meta, cells, cursorRow, cursorCol, highlighted, onCellClick, rebus, onRebusCommit, onRebusCancel, solution, peerCells,
+  meta, cells, cursorRow, cursorCol, highlighted, onCellClick, rebus, onRebusCommit, onRebusCancel, peek, solution, peerCells, recentFills,
 }: Props) {
   const { width, height, cells: template } = meta
 
@@ -91,36 +114,46 @@ export function Grid({
               isCursor={r === cursorRow && c === cursorCol}
               isInWord={highlighted.has(key)}
               peerColor={peerCells.get(key)}
+              recentColor={recentFills.get(key) ?? null}
               onCellClick={onCellClick}
             />
           )
         }),
       )}
-      {rebus && (
-        <div
-          className={styles.rebusWrap}
-          style={{ top: `${rebus.row}em`, left: `${rebus.col}em` }}
-        >
+      {rebus ? (
+        <div className={styles.rebusWrap} style={overlayStyle(rebus.row, rebus.col, width)}>
           <RebusInput initial={rebus.initial} onCommit={onRebusCommit} onCancel={onRebusCancel} />
         </div>
+      ) : (
+        // Read-only peek: same box as the rebus input but a non-interactive
+        // div so arrows / letters still reach the window grid handler.
+        peek && (
+          <div className={styles.rebusWrap} style={overlayStyle(peek.row, peek.col, width)}>
+            <div className={cls(styles.rebusInput, styles.rebusReadonly)}>{peek.value}</div>
+          </div>
+        )
       )}
     </div>
   )
 }
 
 /** The rebus (multi-char) entry input, positioned over the cursor cell.
- *  Self-contained: autofocus + select, sanitize to ≤8 uppercase letters,
- *  Enter commits, Esc / blur cancels. Key events are stopped so the window
- *  grid handler doesn't also see them (it bails on inputs anyway). */
+ *  Self-contained: autofocus + select, sanitize to ≤8 uppercase letters.
+ *  Enter commits + advances one cell; Tab / Shift+Tab commits + jumps to the
+ *  next / previous clue (mirrors Tab elsewhere — crossplay's RebusInput); Esc
+ *  / blur cancels. Key events are stopped so the window grid handler doesn't
+ *  also see them (it's suspended while the overlay is open anyway). */
 function RebusInput({
   initial, onCommit, onCancel,
 }: {
   initial: string
-  onCommit: (value: string) => void
+  onCommit: (value: string, post: RebusPostCommit) => void
   onCancel: () => void
 }) {
   const [value, setValue] = useState(initial)
   const ref = useRef<HTMLInputElement>(null)
+  // Enter/Tab → onCommit unmounts this input via parent state, firing blur
+  // during removal. Without this guard onBlur would also fire onCancel.
   const committed = useRef(false)
   useEffect(() => {
     ref.current?.focus()
@@ -131,13 +164,19 @@ function RebusInput({
       ref={ref}
       className={styles.rebusInput}
       value={value}
+      maxLength={MAX_REBUS_LEN}
+      aria-label="Rebus entry"
       onChange={(e) => setValue(e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, MAX_REBUS_LEN))}
       onKeyDown={(e) => {
         e.stopPropagation()
         if (e.key === 'Enter') {
           e.preventDefault()
           committed.current = true
-          onCommit(value)
+          onCommit(value, 'advance')
+        } else if (e.key === 'Tab') {
+          e.preventDefault()
+          committed.current = true
+          onCommit(value, e.shiftKey ? 'jumpPrev' : 'jumpNext')
         } else if (e.key === 'Escape') {
           e.preventDefault()
           onCancel()
@@ -170,6 +209,9 @@ type CellProps =
       isInWord: boolean
       /** A teammate's cursor is here (coop) — draw a frame in their color. */
       peerColor: string | undefined
+      /** A teammate JUST filled this cell (coop) — flash the fill in their
+       *  color for a few seconds. Null otherwise. */
+      recentColor: string | null
       onCellClick: (row: number, col: number) => void
     }
 
@@ -189,16 +231,23 @@ const Cell = memo(function Cell(props: CellProps) {
 
   const {
     row, col, number, fill, given, answerReveal, pencil, revealed, wrong,
-    circled, shaded, isCursor, isInWord, peerColor, onCellClick,
+    circled, shaded, isCursor, isInWord, peerColor, recentColor, onCellClick,
   } = props
 
   const bg = isCursor ? styles.cursor : isInWord ? styles.inWord : ''
 
-  // Rebus: shrink + re-center a multi-char fill.
-  const fillStyle =
+  // Rebus: shrink + re-center a multi-char fill. A recent peer fill (coop)
+  // tints the letter in that teammate's color for a few seconds.
+  const fillStyle: CSSProperties | undefined =
     fill && fill.length > 1
-      ? { fontSize: `max(${REBUS_MIN_EM}em, min(0.62em, ${(0.9 / fill.length).toFixed(3)}em))`, transform: 'none' as const }
-      : undefined
+      ? {
+          fontSize: `max(${REBUS_MIN_EM}em, min(0.62em, ${(0.9 / fill.length).toFixed(3)}em))`,
+          transform: 'none',
+          ...(recentColor ? { color: recentColor } : {}),
+        }
+      : recentColor
+        ? { color: recentColor }
+        : undefined
 
   return (
     <div
@@ -209,6 +258,8 @@ const Cell = memo(function Cell(props: CellProps) {
       data-fill={fill ?? ''}
       data-wrong={wrong ? '' : undefined}
       data-revealed={revealed ? '' : undefined}
+      data-pencil={pencil && fill ? '' : undefined}
+      data-cursor={isCursor ? '' : undefined}
       data-peer={peerColor ? '' : undefined}
       onMouseDown={(e) => {
         e.preventDefault()

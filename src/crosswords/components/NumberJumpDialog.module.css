@@ -1,0 +1,50 @@
+/* The `#` jump-to-number popup. A lightweight centered-near-top modal;
+ * z-index 1500 sits above board content but below the floating chat
+ * (9999/10000), matching the Menu/DefinitionPopover tier. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 1500;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 20vh;
+}
+
+.card {
+  width: min(280px, calc(100% - 2rem));
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  padding: 0.75rem 1rem 0.85rem;
+}
+
+.label {
+  font-size: 0.85rem;
+  color: var(--color-text);
+  margin-bottom: 0.4rem;
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 1.2rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--color-text);
+}
+
+.error {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--color-sys-error-red);
+  min-height: 1.1em;
+}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../../common/lib/supabase/supabase'
 import type { Cursor } from '../lib/cursor'
@@ -6,16 +6,34 @@ import type { Cursor } from '../lib/cursor'
 export type PeerCursor = { row: number; col: number; color: string }
 
 type CursorMsg = { userId: string; row: number; col: number; color: string }
+type FillMsg = { userId: string; row: number; col: number; color: string }
+
+/** How long a peer-fill flash lingers before fading (mirrors crossplay). */
+const RECENT_FILL_MS = 5000
+
+export type PeerCursorsApi = {
+  /** peer userId → their cursor cell + color; the caller draws a frame. */
+  peers: Map<string, PeerCursor>
+  /** `${row}:${col}` → color: a teammate JUST filled this cell — flash it. */
+  recentFills: Map<string, string>
+  /** Announce that I filled `(row, col)` so teammates flash it in my color.
+   *  A no-op in compete (private grids). Call it right after a coop set_cell. */
+  broadcastFill: (row: number, col: number) => void
+}
 
 /**
- * Live peer cursors for the SHARED coop grid — everyone sees where their
- * teammates are (the free-for-all doesn't really work blind). Pure Realtime
- * Broadcast on a stable-name channel (Pattern B), plus Presence so a
- * disconnected peer's frame is dropped. Compete has private grids, so peer
- * cursors don't apply — pass `enabled=false` there.
+ * Live coop presence on the SHARED grid: teammates' cursors AND a short flash
+ * on cells a teammate just filled. Both ride one stable-name Realtime Broadcast
+ * channel (Pattern B), plus Presence so a disconnected peer's cursor frame is
+ * dropped. Compete has private grids, so none of this applies — pass
+ * `enabled=false` there and every returned map stays empty.
  *
- * Returns a map of peer userId → their cursor cell + color; the caller
- * renders a thin frame on those cells.
+ * Why a fill broadcast at all: unlike crossplay's socket (whose fill message
+ * carries the sender's color), our `crosswords.cells` CDC payload has no
+ * "who wrote this" color. So the flash needs its own tiny signal — the writer
+ * announces the cell here, and `useCells` still applies the letter via CDC.
+ * The two are independent: the letter is authoritative (CDC), the flash is
+ * cosmetic (Broadcast, best-effort, self-expiring).
  */
 export function usePeerCursors(
   gameId: string,
@@ -23,14 +41,38 @@ export function usePeerCursors(
   cursor: Cursor | null,
   myId: string,
   myColor: string,
-): Map<string, PeerCursor> {
+): PeerCursorsApi {
   const [peers, setPeers] = useState<Map<string, PeerCursor>>(() => new Map())
+  const [recentFills, setRecentFills] = useState<Map<string, string>>(() => new Map())
   const channelRef = useRef<RealtimeChannel | null>(null)
+  // One expiry timer per flashing cell; cleared/reset on a fresh fill + on unmount.
+  const fillTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+
+  // Flash a cell in `color`, auto-expiring after RECENT_FILL_MS. A repeat fill
+  // of the same cell resets its timer.
+  const trackRecentFill = useCallback((row: number, col: number, color: string) => {
+    const key = `${row}:${col}`
+    const existing = fillTimers.current.get(key)
+    if (existing) clearTimeout(existing)
+    fillTimers.current.set(
+      key,
+      setTimeout(() => {
+        fillTimers.current.delete(key)
+        setRecentFills((prev) => {
+          const next = new Map(prev)
+          next.delete(key)
+          return next
+        })
+      }, RECENT_FILL_MS),
+    )
+    setRecentFills((prev) => new Map(prev).set(key, color))
+  }, [])
 
   useEffect(() => {
     // Compete has private grids — no peer cursors. `enabled` is constant for
-    // a game's lifetime (mode never changes), so peers just stays empty.
+    // a game's lifetime (mode never changes), so the maps just stay empty.
     if (!enabled) return
+    const timers = fillTimers.current
     const ch = supabase.channel(`crosswords:cursors:${gameId}`, {
       config: { presence: { key: myId } },
     })
@@ -42,6 +84,11 @@ export function usePeerCursors(
         next.set(p.userId, { row: p.row, col: p.col, color: p.color })
         return next
       })
+    })
+    ch.on('broadcast', { event: 'fill' }, ({ payload }) => {
+      const p = payload as FillMsg
+      if (p.userId === myId) return // never flash my own fills
+      trackRecentFill(p.row, p.col, p.color)
     })
     // Presence key = the peer's userId; drop their cursor when they leave.
     ch.on('presence', { event: 'leave' }, ({ key }) => {
@@ -59,9 +106,11 @@ export function usePeerCursors(
 
     return () => {
       channelRef.current = null
+      for (const t of timers.values()) clearTimeout(t)
+      timers.clear()
       void supabase.removeChannel(ch)
     }
-  }, [gameId, enabled, myId])
+  }, [gameId, enabled, myId, trackRecentFill])
 
   // Broadcast our own cursor whenever it moves.
   useEffect(() => {
@@ -73,5 +122,17 @@ export function usePeerCursors(
     })
   }, [enabled, cursor, myId, myColor])
 
-  return peers
+  const broadcastFill = useCallback(
+    (row: number, col: number) => {
+      if (!enabled) return
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'fill',
+        payload: { userId: myId, row, col, color: myColor } satisfies FillMsg,
+      })
+    },
+    [enabled, myId, myColor],
+  )
+
+  return { peers, recentFills, broadcastFill }
 }

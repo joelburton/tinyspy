@@ -20,11 +20,21 @@ export function Help({ onClose, brand }: { onClose: () => void; brand: string })
       </p>
       <p>
         <strong>Keys:</strong> letters fill and advance; <kbd>Backspace</kbd> clears
-        (and steps back once the cell is empty); <kbd>Space</kbd> steps forward;{' '}
-        <kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> jump to the next / previous clue;{' '}
-        arrows move (a sideways arrow flips your direction); <kbd>Shift</kbd>+arrow
-        jumps to the end of the word. Click a cell you're already on to switch between
-        across and down.
+        (and steps back once the cell is empty), <kbd>Shift+Backspace</kbd> clears the
+        whole word; <kbd>Space</kbd> steps forward, <kbd>Shift+Space</kbd> zooms the
+        current cell so you can read a squeezed rebus; <kbd>Tab</kbd> /{' '}
+        <kbd>Shift+Tab</kbd> jump to the next / previous clue; arrows move (a sideways
+        arrow flips your direction), <kbd>Shift</kbd>+arrow jumps to the end of the
+        word. Click a cell you're already on to switch between across and down.
+      </p>
+      <p>
+        <strong>More:</strong> <kbd>Shift+Enter</kbd> opens a box for a{' '}
+        <strong>rebus</strong> (several letters in one cell) — <kbd>Enter</kbd> commits
+        and steps on, <kbd>Tab</kbd> commits and jumps to the next clue. Press{' '}
+        <kbd>#</kbd> to jump straight to a clue number. Use the toolbar to switch
+        between pen and <strong>pencil</strong> (a tentative mark), or to{' '}
+        <strong>check</strong> / <strong>reveal</strong> a letter, word, or the whole
+        grid.
       </p>
       <p>
         <strong>Co-op:</strong> the whole club solves one shared grid together —

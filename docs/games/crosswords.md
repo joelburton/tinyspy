@@ -152,15 +152,26 @@ never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
 - **`useCells`** — the documented deviation from `useRealtimeRefetch`: applies
   CDC row payloads **directly** (per-cell `version` "newer wins") with optimistic
   `set_cell` echo + compete owner-drop, refetch only on `SUBSCRIBED`.
-- **`useGridKeyboard`** — letters (fill + advance), Backspace (two-step),
-  Space, arrows / Shift+arrows, Tab / Shift+Tab (jump clue), Shift+Enter (rebus
-  overlay). Bails inside inputs (`isNonGameField`) + on Ctrl/Meta.
+- **`useGridKeyboard`** — the full grid key set (ported from crossplay's
+  PuzzleView): letters (fill + advance), Backspace (two-step) / Shift+Backspace
+  (clear word), Space (advance) / Shift+Space (read-only zoom-peek of a squeezed
+  rebus), arrows / Shift+arrows (word edge), Tab / Shift+Tab (jump clue),
+  Shift+Enter (rebus overlay), `#` (jump-to-number popup). Bails inside inputs
+  (`isNonGameField`), when a modal is `suspended`-ing the board, + on Ctrl/Meta/
+  Alt (except `#`). The `⌥` shell shortcuts + cryptic `|`/`_` marks are out of
+  scope (shell / deferred).
 - **Controls** — pen/pencil toggle + Check and (coop-only) Reveal at
   letter/word/grid scope (scope resolved client-side via `cursor.ts`).
-- **Peer cursors** (coop) — `usePeerCursors` broadcasts the local cursor on a
-  stable-name channel (Pattern B) + Presence for disconnect cleanup; the Grid
-  draws a thin frame in each teammate's color. Compete has private grids, so it's
-  disabled there.
+- **Rebus / peek overlay** — the `Grid` renders a 3-cell-wide box centered +
+  clamped over the cursor cell: an editable `RebusInput` (Enter commits +
+  advances, Tab / Shift+Tab commits + jumps clue, Esc/blur cancels) or, for
+  Shift+Space, a read-only peek of the current fill.
+- **Peer cursors + fills** (coop) — `usePeerCursors` broadcasts the local cursor
+  AND each fill on a stable-name channel (Pattern B) + Presence for disconnect
+  cleanup; the Grid draws a thin frame in each teammate's cursor color and
+  briefly flashes a cell a teammate just filled in their color (the cells CDC
+  carries no writer color, so the flash needs its own tiny signal). Compete has
+  private grids, so all of it is disabled there.
 - **Scratchpad** — the shared `common/` feature (opt-in via the manifest
   `scratchpad` field): shared pad in coop (Broadcast takeover lock), private pad
   per player in compete. See [docs/deferred.md](../deferred.md) → scratchpad.

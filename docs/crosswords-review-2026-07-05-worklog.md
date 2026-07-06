@@ -94,24 +94,30 @@ are the proof the fixes are right. **All gates green: `tsc -b` · eslint · Vite
 
 ---
 
-## Stage 3 — C4 port: the full keyboard/rebus cluster
+## Stage 3 — C4 port: the full keyboard/rebus cluster — ✅ DONE 2026-07-05
 
-Port each against crossplay as the spec (`PuzzleView.tsx`, `Board.tsx`, `RebusInput`). This is
-the largest chunk of new interactive code; keep it its own commit(s).
+Ported each against crossplay as the spec. **Gates green: `tsc -b` · eslint · Vitest 762 · all
+7 crosswords e2e pass (+1 new keyboard test). Rebus box + peek visually verified headless.**
 
-- [ ] **`#` jump-to-number** (plan-required, plan line 78) — the biggest single gap; no handler
-      exists today. (crossplay `PuzzleView.tsx`.)
-- [ ] **Shift+Backspace** — clear the current word (`PuzzleView.tsx:1013`).
-- [ ] **Shift+Space rebus peek** — restores one of the two rebus-legibility mitigations.
-- [ ] **Rebus overlay 1-cell → 3-cell centered/clamped box** (`Board.tsx:74–92`) — the other
-      legibility mitigation; today an 8-char rebus renders at the 0.22em font floor.
-- [ ] **Rebus commit-on-Tab** — crossplay's RebusInput commits on Tab (commit-and-jump); the
-      port only commits on Enter, so Tab silently discards the typed rebus.
-- [ ] **`recentFills` peer-fill flash** — 3s color flash when a teammate fills a cell (the coop
-      "who just typed that?" signal; sibling of the peer cursors we already ship).
-- [ ] `Help.tsx` — add the newly-ported keys (Shift+Enter rebus, pencil, check/reveal, `#`
-      jump) so it actually is the "full keyboard map" `crosswords.md` claims (D5 item).
-- [ ] e2e: rebus entry + pencil + Backspace-two-step (T3 gaps), at least smoke-level.
+- [x] **`#` jump-to-number** — new `NumberJumpDialog.tsx` (+ CSS, repo theme tokens); keyboard
+      `#` handler opens it; `onSubmit` uses `findCellByNumber` → moves the cursor. PlayArea
+      `suspended`s the board keyboard while any modal is open.
+- [x] **Shift+Backspace** — clears every fillable non-given cell in the current word, then drops
+      the cursor on the word's first editable cell (`useGridKeyboard`).
+- [x] **Shift+Space rebus peek** — read-only zoom-peek of the current cell's fill; dismissed by
+      every other handled key (`clearPeek`). Renders in the same overlay box as the input.
+- [x] **Rebus overlay → 3-cell centered/clamped box** — `overlayStyle` (ported `rebusWrapStyle`,
+      `REBUS_WIDTH_EM=3`); the class only carries stacking now. Squeezed committed rebuses stay
+      readable via the peek.
+- [x] **Rebus commit-on-Tab** — `RebusInput` grew a `RebusPostCommit` (`advance`/`jumpNext`/
+      `jumpPrev`); Tab commits + jumps clue, Enter commits + advances, Esc/blur cancels.
+- [x] **`recentFills` peer-fill flash** — `usePeerCursors` now also broadcasts each coop fill on
+      its channel (the cells CDC carries no writer color) → teammates flash the cell in the
+      writer's color for 5s (`RECENT_FILL_MS`, matching crossplay's timer). Self-fills ignored.
+- [x] `Help.tsx` — documents the full key set (Shift+Backspace, Shift+Space, `#`, rebus
+      Enter/Tab, pencil, check/reveal); `crosswords.md` §7 keyboard list updated to match.
+- [x] e2e: new "keyboard: rebus, pencil, backspace two-step, and `#` jump" test (added
+      `data-cursor` + `data-pencil` cell hooks). Coop fill sync already covered.
 
 ---
 

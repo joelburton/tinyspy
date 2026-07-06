@@ -14,6 +14,7 @@ import {
   advanceAfterFill,
   findCellByNumber,
   initialCursor,
+  jumpClue,
   wordCells,
   type Cursor,
 } from '../lib/cursor'
@@ -26,7 +27,8 @@ import { useGame } from '../hooks/useGame'
 import { cellKey, useCells } from '../hooks/useCells'
 import { usePeerCursors } from '../hooks/usePeerCursors'
 import { useGridKeyboard, type GridKeyboard } from '../hooks/useGridKeyboard'
-import { Grid } from './Grid'
+import { Grid, type RebusPostCommit } from './Grid'
+import { NumberJumpDialog } from './NumberJumpDialog'
 import { ClueLists } from './ClueLists'
 import { Controls } from './Controls'
 import { db } from '../db'
@@ -55,6 +57,9 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const [pencil, setPencil] = useState(false)
   const [rebus, setRebus] = useState<{ row: number; col: number } | null>(null)
+  const [numberJumpOpen, setNumberJumpOpen] = useState(false)
+  // The read-only zoom-peek (Shift+Space): the cell + a snapshot of its fill.
+  const [peek, setPeek] = useState<{ row: number; col: number; value: string } | null>(null)
   // The answer grid — shielded mid-game, fetched from games_state at terminal
   // to fill in the blanks (esp. after a coop give-up).
   const [solution, setSolution] = useState<(string[] | null)[][] | null>(null)
@@ -83,15 +88,32 @@ export function PlayArea(ctx: GamePageCtx) {
   const myConceded = players.find((p) => p.user_id === myId)?.conceded ?? false
   const isPlayable = playState === 'playing' && !isTerminal && !myConceded
 
+  // Coop presence on the SHARED grid: teammates' cursors + a short flash on
+  // cells they just filled. All empty in compete (private grids).
+  const myColor = players.find((p) => p.user_id === myId)?.color ?? ''
+  const { peers, recentFills, broadcastFill } = usePeerCursors(
+    gameId,
+    mode === 'coop',
+    cursor,
+    myId,
+    myColor,
+  )
+
   // Write a cell (optimistic) + surface any RPC error. Solved → terminal
   // flow lands via ctx.isTerminal; the terminal pill effect below shows it.
+  // On a coop letter, also announce the fill so teammates flash it in my
+  // color (a no-op in compete — broadcastFill is disabled there).
   const handleSetCell = useCallback(
     async (row: number, col: number, fill: string | null, pencil: boolean) => {
       clearLocalFeedback()
       const res = await setCell(row, col, fill, pencil)
-      if ('error' in res) showLocalFeedback(stickyPill('error', res.error))
+      if ('error' in res) {
+        showLocalFeedback(stickyPill('error', res.error))
+        return
+      }
+      if (fill != null) broadcastFill(row, col)
     },
-    [setCell, showLocalFeedback, clearLocalFeedback],
+    [setCell, showLocalFeedback, clearLocalFeedback, broadcastFill],
   )
 
   // Latest play state for the window keyboard handler (dodges stale
@@ -99,10 +121,17 @@ export function PlayArea(ctx: GamePageCtx) {
   // render — the handler reads `.current` at event time.
   const kbRef = useRef<GridKeyboard | null>(null)
   useEffect(() => {
+    const fillAt = (r: number, c: number) => {
+      const t = grid?.[r]?.[c]
+      if (t?.kind === 'cell' && t.given === true) return t.fill ?? null
+      return cells.get(cellKey(r, c))?.fill ?? null
+    }
     kbRef.current =
       grid && cursor
         ? {
             enabled: isPlayable,
+            // A modal (rebus overlay / number-jump) owns the keyboard.
+            suspended: rebus !== null || numberJumpOpen,
             grid,
             cursor,
             pencil,
@@ -114,16 +143,26 @@ export function PlayArea(ctx: GamePageCtx) {
             },
             setCell: (r, c, fill, pencil) => void handleSetCell(r, c, fill, pencil),
             onRebus: (r, c) => setRebus({ row: r, col: c }),
+            onNumberJump: () => setNumberJumpOpen(true),
+            onPeek: (r, c) => setPeek({ row: r, col: c, value: fillAt(r, c) ?? '' }),
+            clearPeek: () => setPeek(null),
           }
         : null
-  }, [grid, cursor, isPlayable, pencil, cells, handleSetCell])
+  }, [grid, cursor, isPlayable, pencil, cells, handleSetCell, rebus, numberJumpOpen])
   useGridKeyboard(kbRef)
 
   const handleRebusCommit = useCallback(
-    (value: string) => {
+    (value: string, post: RebusPostCommit) => {
       if (!rebus || !grid) return
       void handleSetCell(rebus.row, rebus.col, value || null, pencil)
-      setCursor((cur) => (cur ? advanceAfterFill(grid, cur) : cur))
+      // Enter advances one cell; Tab / Shift+Tab jumps to the next / previous
+      // clue (the cursor sits on the rebus cell, so both operate from there).
+      setCursor((cur) => {
+        if (!cur) return cur
+        if (post === 'jumpNext') return jumpClue(grid, cur, 1)
+        if (post === 'jumpPrev') return jumpClue(grid, cur, -1)
+        return advanceAfterFill(grid, cur)
+      })
       setRebus(null)
     },
     [rebus, grid, handleSetCell, pencil],
@@ -153,14 +192,17 @@ export function PlayArea(ctx: GamePageCtx) {
     [grid],
   )
 
-  // Peer cursors — teammates' positions on the SHARED coop grid.
-  const myColor = players.find((p) => p.user_id === myId)?.color ?? ''
-  const peers = usePeerCursors(gameId, mode === 'coop', cursor, myId, myColor)
+  // Teammates' cursor cells + recently-filled cells → CSS colors for the Grid.
   const peerCells = useMemo(() => {
     const m = new Map<string, string>()
     for (const pc of peers.values()) m.set(cellKey(pc.row, pc.col), colorVarFor(pc.color))
     return m
   }, [peers])
+  const recentFillCells = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const [key, color] of recentFills) m.set(key, colorVarFor(color))
+    return m
+  }, [recentFills])
 
   // "Print board (PDF)" menu item. The grid is snapshotted at click-time via a
   // ref, so the menu item is set once (not rebuilt on every keystroke). The
@@ -287,8 +329,10 @@ export function PlayArea(ctx: GamePageCtx) {
             }
             onRebusCommit={handleRebusCommit}
             onRebusCancel={() => setRebus(null)}
+            peek={peek}
             solution={solution}
             peerCells={peerCells}
+            recentFills={recentFillCells}
           />
         </div>
 
@@ -358,6 +402,20 @@ export function PlayArea(ctx: GamePageCtx) {
           )}
         </div>
       </div>
+
+      {numberJumpOpen && (
+        <NumberJumpDialog
+          onSubmit={(n) => {
+            if (!grid) return false
+            const pos = findCellByNumber(grid, n)
+            if (!pos) return false
+            setCursor((cur) => ({ row: pos.row, col: pos.col, dir: cur?.dir ?? 'across' }))
+            setNumberJumpOpen(false)
+            return true
+          }}
+          onClose={() => setNumberJumpOpen(false)}
+        />
+      )}
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>

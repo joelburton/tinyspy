@@ -205,6 +205,60 @@ test.describe('crosswords play loop', () => {
     )
   })
 
+  // The Stage-3 keyboard/rebus port: rebus entry, pencil, the Backspace
+  // two-step, and the `#` jump-to-number popup — all on the solo 2×2 board.
+  test('keyboard: rebus, pencil, backspace two-step, and # jump', async ({ browser }) => {
+    const club = await createSoloClub('xwkb')
+    const [alice] = club.members
+    const game = await createCrosswordsGame(club)
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+
+    const cell = (r: number, c: number) =>
+      page.locator(`[data-xw-cell][data-row="${r}"][data-col="${c}"]`)
+
+    // Rebus: Shift+Enter opens the overlay; type multiple letters; Enter
+    // commits a multi-char fill into the one cell.
+    await cell(0, 0).click()
+    await page.keyboard.press('Shift+Enter')
+    await page.keyboard.type('xy')
+    await page.keyboard.press('Enter')
+    await expect(cell(0, 0)).toHaveAttribute('data-fill', 'XY', { timeout: 8000 })
+
+    // Pencil: toggle pencil mode, type into an empty cell → the fill is
+    // flagged tentative (data-pencil).
+    await page.getByRole('button', { name: 'Pencil' }).click()
+    await cell(1, 0).click()
+    await page.keyboard.type('t')
+    await expect(cell(1, 0)).toHaveAttribute('data-pencil', '')
+    await expect(cell(1, 0)).toHaveAttribute('data-fill', 'T')
+
+    // Backspace two-step: on an empty cell it retreats AND clears the cell it
+    // lands on. Fill (0,1) — the cursor advances off the across word — then
+    // click back to the now-empty (0,1)... simpler: fill (1,1), which leaves
+    // the cursor past it; click (1,1) filled, Backspace clears it in place.
+    await cell(1, 1).click()
+    await page.keyboard.type('s')
+    await expect(cell(1, 1)).toHaveAttribute('data-fill', 'S')
+    await cell(1, 1).click()
+    await page.keyboard.press('Backspace')
+    await expect(cell(1, 1)).toHaveAttribute('data-fill', '')
+
+    // `#` jump-to-number: opens the popup; entering clue 1 moves the cursor to
+    // that numbered cell (top-left of the 2×2).
+    await cell(1, 0).click()
+    await page.keyboard.press('#')
+    const dialog = page.getByRole('dialog', { name: 'Jump to clue number' })
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole('textbox').fill('1')
+    await page.keyboard.press('Enter')
+    await expect(cell(0, 0)).toHaveAttribute('data-cursor', '', { timeout: 8000 })
+  })
+
   // Regression guard for the layout exception: a full-size grid must fit the
   // viewport — the board fills, the clue lists scroll INTERNALLY, and the
   // page itself never scrolls. (Needs a seeded library; skips if empty.)
