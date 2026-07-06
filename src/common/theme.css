@@ -281,13 +281,14 @@
 
   /* Chrome height that a viewport-bound game PlayArea subtracts from 100vh so
      it fills to the bottom without overflowing. Comprises the body padding
-     (1rem top + 1rem bottom = 2rem), the GamePage header (~3.25rem with its
-     reduced padding), and the 1rem gap between the header and the play area
-     ≈ 6.25rem, set a hair higher to stay off the bottom edge. Centralized so a
-     header/padding change moves one number, not several. See docs/ui.md →
+     (1rem top + 1rem bottom = 2rem), the GamePage header (~2.25rem — now just
+     its intrinsic content height, since the card border/padding was removed),
+     and the 1rem gap between the header and the play area ≈ 5.25rem, set a hair
+     higher to stay off the bottom edge. Centralized so a header/padding change
+     moves one number, not several. See docs/ui.md →
      "Page-height fits the viewport"; consumed by the viewport-bound games'
      PlayArea.module.css. */
-  --game-chrome-height:       6.5rem;
+  --game-chrome-height:       5.5rem;
 
   /* Type. */
   font-family: system-ui, -apple-system, sans-serif;
