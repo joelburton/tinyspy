@@ -708,6 +708,85 @@ revoke execute on function crosswords.reveal_cells(uuid, jsonb) from public;
 grant execute on function crosswords.reveal_cells(uuid, jsonb) to authenticated;
 
 -- ============================================================
+-- reveal_solved_word — leak-safe answer read for the "Explain clue" feature
+-- ============================================================
+-- Returns the answer for a set of cells ONLY IF the caller has already filled
+-- them all in CORRECTLY (per `_matches`, honoring givens). This is the whole
+-- privacy story: the AI clue-explainer needs the canonical answer, but the
+-- answer is shielded — so we only ever hand back letters the caller has
+-- already solved. A player probing cells they haven't solved gets `solved =
+-- false` and no letters, so it leaks nothing (works in compete too: you can
+-- only explain your own correctly-filled word). Also returns the puzzle note
+-- (not secret — the FE has it) so the edge function can pass it to the model
+-- as context in one round trip.
+create function crosswords.reveal_solved_word(target_game uuid, p_cells jsonb)
+returns table(answer text, solved boolean, note text)
+language plpgsql
+security definer
+set search_path = crosswords, common, public, extensions
+as $$
+declare
+  v_caller   uuid;
+  v_mode     text;
+  v_owner    uuid;
+  v_meta     jsonb;
+  v_solution jsonb;
+  v_answer   text := '';
+  v_solved   boolean := true;
+  e          jsonb;
+  r          int;
+  c          int;
+  v_tmpl     jsonb;
+  v_sols     jsonb;
+  v_given    boolean;
+  v_fill     text;
+begin
+  v_caller := common.require_game_player(target_game);
+  select mode, meta, solution into v_mode, v_meta, v_solution
+    from crosswords.games where id = target_game;
+  v_owner := case when v_mode = 'coop' then null else v_caller end;
+  note := v_meta ->> 'note';
+
+  -- Cells arrive in reading order (the FE's word-cell order); jsonb arrays
+  -- preserve order, so the concatenation yields the answer left-to-right.
+  for e in select value from jsonb_array_elements(p_cells) loop
+    r := (e ->> 'row')::int;
+    c := (e ->> 'col')::int;
+    v_tmpl := v_meta -> 'cells' -> r -> c;
+    v_sols := v_solution -> r -> c;
+    if v_tmpl is null or v_tmpl ->> 'kind' <> 'cell' or v_sols is null then
+      v_solved := false;
+      continue;
+    end if;
+    -- Answer = the first accepted solution per cell (Schrödinger primary).
+    v_answer := v_answer || upper(coalesce(v_sols ->> 0, ''));
+    -- The caller's fill: given cells carry theirs on the template; fillable
+    -- cells in the caller's own grid rows.
+    v_given := coalesce((v_tmpl ->> 'given')::boolean, false);
+    if v_given then
+      v_fill := upper(coalesce(v_tmpl ->> 'fill', ''));
+    else
+      select upper(coalesce(cl.fill, '')) into v_fill
+        from crosswords.cells cl
+       where cl.game_id = target_game
+         and cl.owner_id is not distinct from v_owner
+         and cl.row = r and cl.col = c;
+      v_fill := coalesce(v_fill, '');
+    end if;
+    if v_fill = '' or not crosswords._matches(v_fill, v_sols) then
+      v_solved := false;
+    end if;
+  end loop;
+
+  answer := case when v_solved then v_answer else null end;
+  solved := v_solved;
+  return next;
+end;
+$$;
+revoke execute on function crosswords.reveal_solved_word(uuid, jsonb) from public;
+grant execute on function crosswords.reveal_solved_word(uuid, jsonb) to authenticated;
+
+-- ============================================================
 -- end_game (coop manual give-up) / concede (compete) / submit_timeout
 -- ============================================================
 

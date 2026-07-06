@@ -315,6 +315,33 @@ test.describe('crosswords play loop', () => {
     await expect(p2.getByText('Theme: felines everywhere.')).toBeVisible({ timeout: 8000 })
   })
 
+  // "Explain cryptic clue" is gated on the puzzle note (the cryptic proxy),
+  // like crossplay. (The AI call itself needs ANTHROPIC_API_KEY, verified
+  // separately; here we assert the menu gating.)
+  test('menu "Explain cryptic clue" is gated on the puzzle note', async ({ browser }) => {
+    // No note → disabled.
+    const club1 = await createSoloClub('xwex1')
+    const game1 = await createCrosswordsGame(club1)
+    const ctx1 = await browser.newContext()
+    await signIn(ctx1, club1.members[0].session)
+    const p1 = await ctx1.newPage()
+    await p1.goto(`/g/${game1.gametype}/${game1.id}`)
+    await expect(p1.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+    await p1.getByRole('button', { name: 'Game menu' }).click()
+    await expect(p1.getByRole('menuitem', { name: 'Explain cryptic clue' })).toBeDisabled()
+
+    // With a note → enabled.
+    const club2 = await createSoloClub('xwex2')
+    const game2 = await createCrosswordsGame(club2, 'coop', undefined, 'Cryptic — every clue is wordplay.')
+    const ctx2 = await browser.newContext()
+    await signIn(ctx2, club2.members[0].session)
+    const p2 = await ctx2.newPage()
+    await p2.goto(`/g/${game2.gametype}/${game2.id}`)
+    await expect(p2.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+    await p2.getByRole('button', { name: 'Game menu' }).click()
+    await expect(p2.getByRole('menuitem', { name: 'Explain cryptic clue' })).toBeEnabled()
+  })
+
   // Upload flow: the setup form's "Upload file" tab parses a .puz/.ipuz
   // client-side and starts a self-contained game (inline board, no puzzles
   // row). Drives the real setup dialog end to end.

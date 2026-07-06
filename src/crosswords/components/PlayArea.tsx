@@ -32,6 +32,9 @@ import { useGridKeyboard, type GridKeyboard } from '../hooks/useGridKeyboard'
 import { Grid, type RebusPostCommit } from './Grid'
 import { NumberJumpDialog } from './NumberJumpDialog'
 import { NoteDialog } from './NoteDialog'
+import { ExplainDialog, type ExplainState } from './ExplainDialog'
+import { enumerationFor } from '../lib/enumeration'
+import { supabase } from '../../common/lib/supabase/supabase'
 import { ClueLists } from './ClueLists'
 import { Controls } from './Controls'
 import { db } from '../db'
@@ -62,6 +65,10 @@ export function PlayArea(ctx: GamePageCtx) {
   const [rebus, setRebus] = useState<{ row: number; col: number } | null>(null)
   const [numberJumpOpen, setNumberJumpOpen] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
+  // The AI clue-explanation dialog: null = closed. `explainLabel` is the clue
+  // it was opened for (e.g. "12A"), captured at click time.
+  const [explain, setExplain] = useState<ExplainState | null>(null)
+  const [explainLabel, setExplainLabel] = useState('clue')
   // The read-only zoom-peek (Shift+Space): the cell + a snapshot of its fill.
   const [peek, setPeek] = useState<{ row: number; col: number; value: string } | null>(null)
   // The answer grid — shielded mid-game, fetched from games_state at terminal
@@ -231,31 +238,6 @@ export function PlayArea(ctx: GamePageCtx) {
       ? { meta: game.meta, snapshot: { version: 0, cells: buildPrintCells(game.meta, cells) } }
       : null
   })
-  useEffect(() => {
-    if (!game) return
-    const title = game.meta.title || 'crossword'
-    // Some puzzles carry a setter's note (theme hints, constructor remarks);
-    // the menu item opens it, disabled when there's none.
-    const hasNote = (game.meta.note ?? '').trim().length > 0
-    menu.setGameItems([
-      {
-        id: 'note',
-        label: 'Show note',
-        disabled: !hasNote,
-        onClick: () => setNoteOpen(true),
-      },
-      {
-        id: 'print',
-        label: 'Print board (PDF)',
-        onClick: () => {
-          const s = printStateRef.current
-          if (s) void printCrosswordsPdf(s, title)
-        },
-      },
-    ])
-    return () => menu.setGameItems([])
-  }, [menu, game])
-
   // Active word highlight + the two axis clue numbers under the cursor.
   const highlighted = useMemo(
     () =>
@@ -273,6 +255,104 @@ export function PlayArea(ctx: GamePageCtx) {
     const list = game.meta.clues[dir]
     return list.find((c) => c.number === activeNumber)?.text ?? ''
   }, [game, activeNumber, dir])
+
+  // Snapshot of the clue under the cursor, for the "Explain cryptic clue" menu
+  // item (read at click time via a ref, so the menu isn't rebuilt per keystroke).
+  const explainRef = useRef<{
+    label: string
+    cells: CellPos[]
+    clueText: string
+    enumeration: string
+  } | null>(null)
+  useEffect(() => {
+    if (grid && cursor && activeNumber != null && activeClueText) {
+      const word = wordCells(grid, cursor.row, cursor.col, cursor.dir)
+      explainRef.current = {
+        label: `${activeNumber}${dir === 'across' ? 'A' : 'D'}`,
+        cells: word,
+        clueText: activeClueText,
+        enumeration: enumerationFor(word, cells, dir),
+      }
+    } else {
+      explainRef.current = null
+    }
+  })
+
+  // Ask the AI to explain the clue under the cursor. The edge function returns
+  // 409 unless the word is already solved (so it's never a spoiler).
+  const handleExplain = useCallback(async () => {
+    const ctx = explainRef.current
+    if (!ctx) {
+      setExplainLabel('clue')
+      setExplain({ kind: 'error', message: 'Put your cursor on a clue first.' })
+      return
+    }
+    setExplainLabel(ctx.label)
+    setExplain({ kind: 'loading' })
+    const { data, error } = await supabase.functions.invoke('crosswords-explain-clue', {
+      body: { gameId, cells: ctx.cells, clueText: ctx.clueText, enumeration: ctx.enumeration },
+    })
+    if (error || (data as { error?: string } | null)?.error) {
+      // supabase-js reports a non-2xx as its own error; the real body is on
+      // `error.context` (a Response we read once) — a 409 carries `reason`.
+      let reason: string | undefined
+      let serverMsg: string | undefined
+      const resp = (error as { context?: Response } | null)?.context
+      if (resp) {
+        try {
+          const parsed = (await resp.json()) as { reason?: string; error?: string }
+          reason = parsed.reason
+          serverMsg = parsed.error
+        } catch {
+          // not JSON — fall through
+        }
+      }
+      setExplain({
+        kind: 'error',
+        message:
+          reason === 'unsolved'
+            ? 'Solve this clue correctly first, then I can explain it.'
+            : (serverMsg ?? (data as { error?: string } | null)?.error ?? error?.message ?? 'Could not fetch an explanation.'),
+      })
+      return
+    }
+    setExplain({ kind: 'ok', explanation: (data as { explanation: string }).explanation })
+  }, [gameId])
+
+  // Game-menu items. `hasNote` is stable per game, and `handleExplain` reads the
+  // current clue via a ref, so this doesn't rebuild per keystroke.
+  useEffect(() => {
+    if (!game) return
+    const title = game.meta.title || 'crossword'
+    // Some puzzles carry a setter's note (theme hints, constructor remarks);
+    // the menu item opens it, disabled when there's none.
+    const hasNote = (game.meta.note ?? '').trim().length > 0
+    menu.setGameItems([
+      {
+        id: 'note',
+        label: 'Show note',
+        disabled: !hasNote,
+        onClick: () => setNoteOpen(true),
+      },
+      {
+        // The AI clue-explainer is for cryptics; a setter note is the proxy
+        // (crossplay gates it the same way). Enabled off the same `hasNote`.
+        id: 'explain',
+        label: 'Explain cryptic clue',
+        disabled: !hasNote,
+        onClick: () => void handleExplain(),
+      },
+      {
+        id: 'print',
+        label: 'Print board (PDF)',
+        onClick: () => {
+          const s = printStateRef.current
+          if (s) void printCrosswordsPdf(s, title)
+        },
+      },
+    ])
+    return () => menu.setGameItems([])
+  }, [menu, game, handleExplain])
 
   const over: TerminalCopy | null = isTerminal ? buildOver(playState, status, mode, myId) : null
 
@@ -460,6 +540,10 @@ export function PlayArea(ctx: GamePageCtx) {
           note={game.meta.note}
           onClose={() => setNoteOpen(false)}
         />
+      )}
+
+      {explain && (
+        <ExplainDialog clueLabel={explainLabel} state={explain} onClose={() => setExplain(null)} />
       )}
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />

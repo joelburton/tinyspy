@@ -1,0 +1,17 @@
+/* The AI clue-explanation body. pre-wrap keeps the model's line breaks between
+ * the Definition / Wordplay / Indicators lines. */
+.body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+  color: var(--color-text);
+}
+.status {
+  margin: 0;
+  color: var(--color-muted);
+}
+.error {
+  margin: 0;
+  color: var(--color-sys-error-red);
+}

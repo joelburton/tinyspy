@@ -110,6 +110,7 @@ plain RPCs — no edge function needed.
 | `create_game(target_club, setup, player_user_ids, mode, board default null)` | `board` null → library path (copy from `puzzles` by `setup.puzzle_id`); `board = {meta, solution}` → inline path (NYT). Pre-inserts `cells` (per player in compete). |
 | `set_cell(target_game, row, col, fill, pencil)` | The hot path (one call per keystroke; FE echoes optimistically first). Guards: membership, `play_state`, not conceded, cell editable (given cells have no row; **revealed cells ARE editable** — mirror `applyFill`), `char_length ≤ 8`. Returns the bumped `version` + solved state. Solved → terminal per mode; compete first-correct-wins uses a locked `play_state` re-check so only the first solver sets the winner. |
 | `set_mark(target_game, row, col, side, mark)` | Set/clear a cryptic word-break / hyphen mark on the cell's `right` / `bottom` edge (`mark` = `break` / `hyphen` / null). Same guards as `set_cell`; display-only (no solve). Marks live in `cells.mark_right` / `mark_bottom` and sync via the same CDC path. Fillable cells only (givens have no row — plan option A). See `docs/crosswords-marks-plan.md`. |
+| `reveal_solved_word(target_game, cells jsonb)` | **Leak-safe** answer read for the AI "Explain clue" feature: returns the canonical answer for `cells` **only if the caller has already filled them all correctly** (`_matches`, honoring givens) — else `solved = false`, no letters. So it can only surface a word you've already solved (safe in compete too). Also returns the puzzle note (not secret). Consumed by the `crosswords-explain-clue` edge function. |
 | `check_cells(target_game, cells jsonb)` | FE resolves letter/word/puzzle scope via `cursor.ts` and sends coordinates; server sets/clears `wrong` (skipping empty/pencil). Both modes. |
 | `reveal_cells(target_game, cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil. **Coop only** (reveal-all would trivially win the compete race). |
 | `end_game(target_game)` | Coop mutual give-up → neutral `ended` ("finished"), solution revealed in terminal. |
@@ -230,6 +231,32 @@ setter's free-form `meta.note`. It's **disabled when the puzzle has no note**.
   minority of themed puzzles; needs a Deno PNG decoder. Normal dailies unaffected.
 - **NYT dedup** — inline NYT games aren't stored, so re-fetching a date makes a
   new game (fine; NYT was always kept out of the library).
-- **Rebus "collapse" toggle + AI "Explain"** — the remaining cryptic apparatus
-  from crossplay, still deferred. (The **cryptic edge marks** `|`/`_` were
-  shipped — see `set_mark` above + `docs/crosswords-marks-plan.md`.)
+- **Rebus "collapse" toggle** — the last bit of cryptic apparatus from
+  crossplay, still deferred. (The **cryptic edge marks** `|`/`_` shipped — see
+  `set_mark`; the AI **"Explain cryptic clue"** shipped — see §10.)
+
+## 10. AI "Explain cryptic clue"
+
+A game-menu item that asks Claude to **explain** (not solve) how the current
+cryptic clue yields its answer — ported from crossplay's clue-explainer +
+Anthropic prompt, modernized to this repo's edge-function pattern (mirrors
+`codenamesduet-suggest-clue`: `npm:@anthropic-ai/sdk`, native adaptive thinking,
+`[explain-clue] anthropic response:` log kept).
+
+- **Menu gating.** The item is disabled when the puzzle has no note (crossplay's
+  cryptic proxy — a stable-per-game flag, so the menu isn't rebuilt per
+  keystroke). At click time it snapshots the clue under the cursor (cells, text,
+  enumeration) via a ref.
+- **Never a spoiler.** The answer is the shielded solution, so the FE sends the
+  clue's cells and the `reveal_solved_word` RPC hands back the canonical answer
+  **only if the caller has already filled that word correctly** (else the edge
+  function returns 409 → "Solve this clue correctly first"). Safe in compete too.
+- **Flow.** FE → `crosswords-explain-clue` edge fn → `reveal_solved_word`
+  (answer + note) → Claude (system prompt + `{clue, enumeration, answer, note}`)
+  → `{ explanation }` → `ExplainDialog` (on `FloatingPanel`, renders the
+  `**bold**` Definition/Wordplay/Indicators prose).
+- **Enumeration** (`lib/enumeration.ts`) is derived on the FE from the word's
+  cryptic edge marks — `(7)`, `(4,3)`, `(3-2)` — mirroring crossplay.
+- **Needs `ANTHROPIC_API_KEY`** on the edge function (like the NYT path needs
+  `NYT_COOKIE_JAR`); without it the call returns 500, but the whole
+  gate/plumbing (incl. the 409 leak-safety path) works without it.

@@ -1,6 +1,6 @@
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(29);
+select plan(33);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -174,6 +174,25 @@ select throws_ok(
 select throws_ok(
   format('select crosswords.set_mark(%L, 0, 0, %L, %L)', :'gc_id', 'sideways', 'break'),
   'P0001', null, 'set_mark rejects an invalid side');
+reset role;
+
+-- ── reveal_solved_word (leak-safe answer read for Explain) ───────────
+-- gc's across word (0,0),(0,1) is correctly filled (C, A) → the answer comes
+-- back. The down word (0,0),(1,0) has a WRONG (1,0)='Z' (answer T) → solved
+-- false, no answer (never leaks the letter the player hasn't solved).
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(
+  (select solved from crosswords.reveal_solved_word(:'gc_id', '[{"row":0,"col":0},{"row":0,"col":1}]'::jsonb)),
+  true, 'reveal_solved_word: a correctly-filled word is solved');
+select is(
+  (select answer from crosswords.reveal_solved_word(:'gc_id', '[{"row":0,"col":0},{"row":0,"col":1}]'::jsonb)),
+  'CA', 'reveal_solved_word: returns the answer for a solved word');
+select is(
+  (select solved from crosswords.reveal_solved_word(:'gc_id', '[{"row":0,"col":0},{"row":1,"col":0}]'::jsonb)),
+  false, 'reveal_solved_word: a wrong cell → not solved');
+select is(
+  (select answer from crosswords.reveal_solved_word(:'gc_id', '[{"row":0,"col":0},{"row":1,"col":0}]'::jsonb)),
+  null::text, 'reveal_solved_word: an unsolved word leaks no answer');
 reset role;
 
 -- ── _matches (mirror ws.ts fillMatchesSolution) ──────────────────────
