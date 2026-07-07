@@ -18,7 +18,7 @@
  * drops the input row down off the board (1.5rem) — 5rem total. Keep this in sync
  * with `.belowBoard`'s margin-top below. */
 .layout {
-  --info-col-width: 33rem;
+  --info-col-width: 53rem;
   --avail-h: calc(100vh - var(--game-chrome-height) - 5rem);
 }
 

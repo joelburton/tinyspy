@@ -21,7 +21,7 @@
  * (A real defined value rather than a commented-out knob + var() fallback, so the
  * token isn't "phantom" — see src/cssTokens.test.ts.) Relative units (rem). */
 .board {
-  --max-tile-size: 999rem; /* effectively uncapped; lower (e.g. 6rem) to cap */
+  --max-tile-size: 6rem; /* effectively uncapped; lower (e.g. 6rem) to cap */
   --grid-gap: 0.5rem;
   --cols: 5;
   --rows: 5;

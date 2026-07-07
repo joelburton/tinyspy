@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { HEX_POSITIONS } from '../lib/honeycomb'
 import { Letter } from './Letter'
 import styles from './Letters.module.css'
@@ -11,6 +12,11 @@ type Props = {
   /** Called when any letter is clicked. The caller appends the
    *  letter to the typed word. */
   onLetterClick: (letter: string) => void
+  /** A control floated over the hive's top-right (the Shuffle button). Rendered
+   *  inside the shrink-wrapped `.floatAnchor` around the svg, so it hugs the
+   *  VISUAL hive. Anchoring to the column instead would strand it at the
+   *  column's top, which the vertically-centered hive no longer touches. */
+  floatingControl?: ReactNode
 }
 
 /**
@@ -29,21 +35,29 @@ type Props = {
  * word (server validates on submit).
  */
 
-export function Letters({ outerLetters, centerLetter, onLetterClick }: Props) {
+export function Letters({ outerLetters, centerLetter, onLetterClick, floatingControl }: Props) {
   const letters = [centerLetter, ...outerLetters]
   return (
     <div className={styles.board}>
-      <svg className={styles.grid} viewBox="0 0 256 267" role="group" aria-label="Letter honeycomb">
-        {letters.map((letter, i) => (
-          <Letter
-            key={`${letter}-${i}`}
-            letter={letter}
-            isCenter={i === 0}
-            pos={HEX_POSITIONS[i] ?? HEX_POSITIONS[0]}
-            onClick={() => onLetterClick(letter)}
-          />
-        ))}
-      </svg>
+      <div className={styles.floatAnchor}>
+        <svg
+          className={styles.grid}
+          viewBox="0 0 256 267"
+          role="group"
+          aria-label="Letter honeycomb"
+        >
+          {letters.map((letter, i) => (
+            <Letter
+              key={`${letter}-${i}`}
+              letter={letter}
+              isCenter={i === 0}
+              pos={HEX_POSITIONS[i] ?? HEX_POSITIONS[0]}
+              onClick={() => onLetterClick(letter)}
+            />
+          ))}
+        </svg>
+        {floatingControl}
+      </div>
     </div>
   )
 }

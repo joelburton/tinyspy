@@ -14,7 +14,7 @@
  * (the input row / feedback pill min-height 2.75rem + the board column's 0.75rem
  * gap + the .belowBoard margin-top 1.5rem = 5rem). Keep in sync with `.belowBoard`. */
 .layout {
-  --info-col-width: 33rem;
+  --info-col-width: 53rem;
   --avail-h: calc(100vh - var(--game-chrome-height) - 5rem);
 }
 
@@ -31,8 +31,8 @@
  * A real defined value rather than a commented-out knob + var() fallback, so the
  * token isn't "phantom" (see src/cssTokens.test.ts). Relative units (rem). */
 .boardCol {
-  --max-tile-size: 999rem; /* effectively uncapped; lower (e.g. 6rem) to cap */
-  --grid-gap: 6px;
+  --max-tile-size: 6rem; /* effectively uncapped; lower (e.g. 6rem) to cap */
+  --grid-gap: 10px;
   --side: min(
     var(--avail-w),
     var(--avail-h),
@@ -55,6 +55,9 @@
   background: var(--boggle-board-bg);
   border-radius: 12px;
   box-sizing: border-box;
+  /* Anchor for the floating rotate control (rendered inside the grid), so it
+   * hugs the visual board's top-right, not the vertically-centered column's. */
+  position: relative;
 }
 
 .tile {

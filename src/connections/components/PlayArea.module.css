@@ -62,6 +62,11 @@
   max-height: calc(
     var(--rows) * var(--max-tile-height) + (var(--rows) - 1) * var(--grid-gap)
   );
+  /* Anchor for the floating shuffle control (`floatingControl` prop): the board
+   * root tracks the VISUAL board (flex growth stops at the max-height cap), so
+   * the float hugs the board's top-right even when the board is smaller than
+   * the vertically-centered column. */
+  position: relative;
 }
 
 /* The board grid. HUGS: as wide as the tiles+gaps need, capped per tile, never

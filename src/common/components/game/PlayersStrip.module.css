@@ -36,7 +36,7 @@
   width: 0.85rem;
   height: 0.85rem;
   border-radius: 50%;
-  border: 2px solid;
+  border: 2px solid black;
   margin-right: 0.4rem;
   flex-shrink: 0;
 }

@@ -121,14 +121,17 @@ export function BoardCol({
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
         onLetterClick={handleLetterClick}
-      />
-      {/* Shuffle floats over the board's top-right — a fresh visual scan of the SAME
-          board, not a turn action. Always clickable, even when locked (a harmless
-          rearrange). */}
-      <ShuffleButton
-        onShuffle={handleShuffle}
-        label="Shuffle outer letters"
-        className={shared.floatingShuffle}
+        // Shuffle floats over the hive's top-right — a fresh visual scan of the
+        // SAME board, not a turn action. Always clickable, even when locked (a
+        // harmless rearrange). Passed into Letters so it anchors to the visual
+        // hive, not the column.
+        floatingControl={
+          <ShuffleButton
+            onShuffle={handleShuffle}
+            label="Shuffle outer letters"
+            className={shared.floatingShuffle}
+          />
+        }
       />
       {/* The below-board slot — the shared <EntryRow> (icon-only Delete + the EntryBox
           + icon-only Submit + the capture keyboard; Space shuffles via onExtraKey).

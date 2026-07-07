@@ -231,18 +231,21 @@ export function BoardCol({
         viewing={viewing}
         highlightTiles={snap?.highlightTiles}
         highlightOutcome={snap?.outcome}
+        // Shuffle floats over the board's top-right — a fresh visual scan of the
+        // SAME tiles (not a turn action). Only while the grid is shown. Passed
+        // into Board so it anchors to the visual board, not the column.
+        floatingControl={
+          showInput &&
+          !viewing && (
+            <ShuffleButton
+              onShuffle={() => setLocalOrder(shuffleTiles(displayedTiles))}
+              disabled={displayedTiles.length === 0}
+              label="Shuffle tiles"
+              className={shared.floatingShuffle}
+            />
+          )
+        }
       />
-
-      {/* Shuffle floats over the board's top-right — a fresh visual scan of the SAME
-          tiles (not a turn action). Only while the grid is shown. */}
-      {showInput && !viewing && (
-        <ShuffleButton
-          onShuffle={() => setLocalOrder(shuffleTiles(displayedTiles))}
-          disabled={displayedTiles.length === 0}
-          label="Shuffle tiles"
-          className={shared.floatingShuffle}
-        />
-      )}
 
       {/* The slot below the board: the commit row (Clear/Submit + inline mistakes)
           during play, or an own-guess / terminal / eliminated pill — all in the same

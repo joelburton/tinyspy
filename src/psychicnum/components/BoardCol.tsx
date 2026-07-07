@@ -176,14 +176,17 @@ export function BoardCol({
         onPick={canGuess && !viewing ? handleEntryChange : undefined}
         viewing={viewing}
         highlightWord={highlightWord}
-      />
-      {/* Shuffle floats over the board's top-right — purely visual (a fresh scan of
-          the SAME board), not a turn action, so it lives on the board, not in the
-          info-column action row. Always present, even at terminal. */}
-      <ShuffleButton
-        onShuffle={handleShuffle}
-        label="Shuffle the words"
-        className={shared.floatingShuffle}
+        // Shuffle floats over the board's top-right — purely visual (a fresh scan
+        // of the SAME board), not a turn action, so it lives on the board, not in
+        // the info-column action row. Always present, even at terminal. Passed
+        // into Board so it anchors to the visual board, not the column.
+        floatingControl={
+          <ShuffleButton
+            onShuffle={handleShuffle}
+            label="Shuffle the words"
+            className={shared.floatingShuffle}
+          />
+        }
       />
       {/* The below-board slot: one fixed-height slot below the top-anchored board. It
           ALWAYS renders (never null) so it can't collapse and let the flex:1 board

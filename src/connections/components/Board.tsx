@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { Category } from '../lib/board'
 import type { GuessRow, MatchedCategory } from '../hooks/useGame'
@@ -44,6 +45,11 @@ type Props = {
   highlightTiles?: ReadonlySet<string>
   /** Turn-history: the viewed turn's verdict — the tint for `highlightTiles`. */
   highlightOutcome?: GuessRow['result']
+  /** A control floated over the board's top-right (the Shuffle button). Rendered
+   *  INSIDE the board root — the root is the `position: relative` anchor — so it
+   *  hugs the VISUAL board. Anchoring to the column instead would strand it at the
+   *  column's top, which the vertically-centered board no longer touches. */
+  floatingControl?: ReactNode
 }
 
 /**
@@ -74,6 +80,7 @@ export function Board({
   viewing = false,
   highlightTiles = NO_TILES,
   highlightOutcome = 'wrong',
+  floatingControl,
 }: Props) {
   const sortedMatched = [...matched].sort((a, b) => a.rank - b.rank)
   // Total rows = one per band + the tile rows. Always 4 for a standard
@@ -155,6 +162,7 @@ export function Board({
           )
         })}
       </div>
+      {floatingControl}
     </div>
   )
 }

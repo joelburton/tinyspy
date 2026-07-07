@@ -22,12 +22,14 @@
  * viewport"); --game-chrome-height (common/theme.css) is the body-padding +
  * header + gap offset so a header redesign moves one number.
  *
- * The board column FILLS the slack the fixed info column leaves, so the pair
- * always spans the full width; `justify-content: center` is inert in this
- * fill model (kept for the hug model scrabble/boggle will share). The ONLY
- * thing between the columns is the info column's left border (the divider),
- * with symmetric breathing room (the layout gap on the board side, the info
- * column's padding-left on the other) — no card around either column. */
+ * Column placement: the info column sits flush against the RIGHT edge of the
+ * content area, and the board column centers itself (auto margins, see
+ * .boardCol) in the space that remains — the board does NOT hug the divider.
+ * The ONLY thing between the columns is the info column's left border (the
+ * divider), with the info column's padding-left keeping content off it; the
+ * layout gap below is the MINIMUM board↔divider separation, felt only when
+ * the board is at its --avail-w cap and the auto margins have collapsed to
+ * zero — no card around either column. */
 .layout {
   height: calc(100vh - var(--game-chrome-height));
   /* Definite width = the real content area (viewport minus scrollbar minus body
@@ -45,7 +47,6 @@
   width: calc(var(--client-width, 100vw) - 2 * var(--page-padding-x));
   display: flex;
   flex-direction: row;
-  justify-content: center;
   /* The gap between the board column and the info column. Shared (same for every
    * game) but a named token so a game's available-width math can subtract it
    * without re-stating the literal. */
@@ -70,21 +71,31 @@
   --avail-w: calc(var(--client-width, 100vw) - var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding-x));
 }
 
-/* Board column: HUGS its board (`flex: 0 0 auto`). The board grows to fill up to
- * its max tile size and the column is only as wide as that, so the board+info
- * pair centers via the layout's `justify-content: center`. A board with NO max
- * simply grows to the full available width, so this still reads as "fills" for
- * games without a tile cap — fill is just the no-cap case of hug. Each game gives
- * its board a definite width via `min(--avail-w, <caps>)` (see its board module +
- * docs/ui.md → "Board sizing"). Top-aligned, so anything stacked below the board
- * (an entry/commit row, a terminal reveal) follows it. `position: relative` is
- * the positioning context for the floating shuffle button (top-right). */
+/* Board column: HUGS its board (`flex: 0 0 auto`) and CENTERS in the space the
+ * fixed info column leaves. The horizontal auto margins split the layout's free
+ * space equally around the hug-width column (and, as auto margins, they also
+ * make the layout's `justify-content` moot — the info column lands flush
+ * right). Hug is what keeps every game's internal width math intact: children
+ * still stretch to the board's width, a below-board row pinned to the board's
+ * size still matches it. A board with NO max simply grows to the full
+ * available width (margins collapse to zero) — fill is just the no-cap case of
+ * hug. Each game gives its board a definite width via `min(--avail-w, <caps>)`
+ * (see its board module + docs/ui.md → "Board sizing"). The column's content
+ * stack also centers VERTICALLY (`justify-content: center`); for the games
+ * whose grid flex-fills the column height (psychicnum / connections /
+ * codenamesduet) there's no slack and this is inert, while a fixed-height
+ * stack (wordle's board+keyboard) floats to the middle. `position: relative`
+ * makes the column a positioning context; nothing anchors to it TODAY (the
+ * floating shuffle moved inside each game's board root — see .floatingShuffle —
+ * precisely because the column's top-right is no longer the board's). */
 .boardCol {
   flex: 0 0 auto;
+  margin-left: auto;
+  margin-right: auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 0.75rem;
   position: relative;
   /* Debug tint so the board column's bounds (and the gaps between tiles) are
@@ -155,7 +166,14 @@
 
 /* Shuffle floats over the board's top-right corner — purely a fresh visual
  * scan of the SAME board (not a turn action), so it lives on the board, not in
- * the info-column action row. A drop shadow so it reads as hovering above. */
+ * the info-column action row. A drop shadow so it reads as hovering above.
+ *
+ * Anchoring: each game renders this INSIDE its board root (psychicnum's /
+ * connections' `floatingControl` prop, spellingbee's Letters `.floatAnchor`,
+ * boggle's grid), and that root is the `position: relative` containing block.
+ * It must NOT anchor to `.boardCol`: the column spans the full layout height
+ * while the board stack centers vertically within it, so the column's top-right
+ * can sit well above the visual board. */
 .floatingShuffle {
   position: absolute;
   top: 0.5rem;

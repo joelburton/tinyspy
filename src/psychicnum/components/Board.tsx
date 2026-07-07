@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
@@ -24,6 +25,11 @@ type Props = {
   /** Turn-history: the word the viewed turn's guess decided — ring its tile
    *  history-yellow (over its green/red outcome color). Null / omitted when live. */
   highlightWord?: string | null
+  /** A control floated over the board's top-right (the Shuffle button). Rendered
+   *  INSIDE the board root — the root is the `position: relative` anchor — so it
+   *  hugs the VISUAL board. Anchoring to the column instead would strand it at the
+   *  column's top, which the vertically-centered board no longer touches. */
+  floatingControl?: ReactNode
 }
 
 /**
@@ -46,6 +52,7 @@ export function Board({
   onPick,
   viewing = false,
   highlightWord = null,
+  floatingControl,
 }: Props) {
   const cols = Math.ceil(Math.sqrt(words.length))
   const rows = Math.ceil(words.length / cols)
@@ -96,6 +103,7 @@ export function Board({
           )
         })}
       </div>
+      {floatingControl}
     </div>
   )
 }

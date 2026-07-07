@@ -22,6 +22,13 @@
   justify-content: center;
 }
 
+/* Shrink-wraps the hive svg exactly (a flex child hugs its content) and anchors
+ * the floating shuffle control (`floatingControl` prop), so the float hugs the
+ * VISUAL hive's top-right — not `.board`, which stretches to the column width. */
+.floatAnchor {
+  position: relative;
+}
+
 /* The grid: the flower's bounding box, 256 wide × 267 tall in coordinate units,
  * now the <svg> itself. `--u` (one unit) is defined on .boardCol so the below-board
  * input row reads the board width from the same source. `overflow: visible` lets

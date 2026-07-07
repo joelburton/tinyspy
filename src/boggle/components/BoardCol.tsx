@@ -95,15 +95,16 @@ export function BoardCol({
             </div>
           )),
         )}
+        {/* Rotate floats over the board's top-right — a fresh visual scan of the SAME
+            board (letters stay upright), not a turn action. Local to this player in
+            both modes; never persisted, never seen by others. INSIDE the grid (its
+            position anchor) so it hugs the visual board, not the column. */}
+        <ShuffleButton
+          onShuffle={() => setTurns((t) => (t + 1) % 4)}
+          label="Rotate board"
+          className={shared.floatingShuffle}
+        />
       </div>
-      {/* Rotate floats over the board's top-right — a fresh visual scan of the SAME
-          board (letters stay upright), not a turn action. Local to this player in
-          both modes; never persisted, never seen by others. */}
-      <ShuffleButton
-        onShuffle={() => setTurns((t) => (t + 1) % 4)}
-        label="Rotate board"
-        className={shared.floatingShuffle}
-      />
       {/* The below-board slot — the shared <EntryRow> (icon-only Delete + the EntryBox
           + icon-only Submit, plus the capture keyboard). It renders the terminal
           verdict / own-move feedback pill in place of the controls when `pill` is set
