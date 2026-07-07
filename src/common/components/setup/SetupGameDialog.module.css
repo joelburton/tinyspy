@@ -63,6 +63,21 @@
   color: var(--color-sys-error-red);
 }
 
+/* The setup-validation line below the form body — same look as .playerHint,
+ * but it ALWAYS renders (nbsp when valid) so the dialog's height doesn't
+ * change when a message appears; see the JSX comment at the call site.
+ * TRULY fixed at one line: nowrap + ellipsis means even an over-long message
+ * can't wrap and grow the dialog (validators should write messages that fit;
+ * the call site sets `title` so a clipped one is hoverable). */
+.setupHint {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: var(--color-sys-error-red);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* The "(you)" marker on the creator's row — they can't deselect
  * themselves. */
 .playerSelf {

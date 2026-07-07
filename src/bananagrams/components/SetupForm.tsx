@@ -1,6 +1,8 @@
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { TimerField } from '../../common/components/fields/TimerField'
+import { SetupSection } from '../../common/components/setup/SetupSection'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   HAND_SIZE_OPTIONS,
@@ -27,14 +29,15 @@ import styles from './SetupForm.module.css'
  *   - **Dumping a tile** — "Return dumped tiles to the bag": off (default) puts
  *     a dumped tile back in the bunch; on takes it out of play (the game shrinks
  *     by one each dump).
- *   - **Words** — a 3-way `word_check` dictionary check (Off / At win / Every
- *     peel), plus two always-shown DifficultyField pickers (one for 2-letter
- *     words, band 2..6; one for longer words, 1..6, since 2-letter words are a
- *     separate, thinner vocabulary). *Every peel* (strict) refuses a peel whose
- *     board has an invalid word. The bands define what counts as a real word for
- *     the check AND the upcoming opt-in "check board" helper, so they show
- *     regardless of the mode. (Board geography — one connected grid — is always
+ *   - **Check word validity** — a 3-way `word_check` dictionary check (Off /
+ *     At win / Every peel). *Every peel* (strict) refuses a peel whose board
+ *     has an invalid word. (Board geography — one connected grid — is always
  *     required to win, so it's not a knob.)
+ *   - **Dictionaries** — two always-shown DifficultyField pickers (one for
+ *     2-letter words, band 2..6; one for longer words, 1..6, since 2-letter
+ *     words are a separate, thinner vocabulary). The bands define what counts
+ *     as a real word for the check AND the upcoming opt-in "check board"
+ *     helper, so they show regardless of the check mode.
  *   - **Timer** — the shared `TimerField` (none / count-up / countdown
  *     MM:SS). A countdown that runs out ends the race as a loss for
  *     everyone (`bananagrams.submit_timeout`).
@@ -47,20 +50,29 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
   const s = value as BananagramsSetup
   const needed = tilesNeeded(s, playerCount)
 
+  // Disclosure summaries carry the current values so each section reads without
+  // opening (the boggle/scrabble/spellingbee pattern).
+  const handLabel = `Starter tiles per player: ${s.hand_size}`
+  const bunchLabel = `Tiles in bunch: ${Number.isFinite(s.bunch_size) ? s.bunch_size : '—'}`
+  const dumpLabel = `Dumping a tile: ${s.dump_to_bag ? 'to bag' : 'to bunch'}`
+  const checkLabel = `Check word validity: ${
+    WORD_CHECK_OPTIONS.find((o) => o.value === s.word_check)?.label ?? s.word_check
+  }`
+  const dictLabel =
+    `Dictionaries: 2-letter ${difficultyValue(s.dict_2)} / ${difficultyValue(s.dict_3plus)}`
+
   return (
     <div className={form.setup}>
-      <fieldset className={form.fieldset}>
-        <legend>Starter tiles per player</legend>
+      <SetupSection label={handLabel}>
         <RadioRow
           name="hand_size"
           options={HAND_SIZE_OPTIONS.map((n) => ({ value: n, label: n }))}
           value={s.hand_size}
           onChange={(hand_size) => onChange({ ...s, hand_size })}
         />
-      </fieldset>
+      </SetupSection>
 
-      <fieldset className={form.fieldset}>
-        <legend>Tiles in bunch</legend>
+      <SetupSection label={bunchLabel}>
         <p className="muted">
           The full bag is {BANANAGRAMS_BUNCH_MAX}.
           This game deals {needed} ({playerCount} player
@@ -76,10 +88,9 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
           value={Number.isFinite(s.bunch_size) ? s.bunch_size : ''}
           onChange={(e) => onChange({ ...s, bunch_size: e.target.valueAsNumber })}
         />
-      </fieldset>
+      </SetupSection>
 
-      <fieldset className={form.fieldset}>
-        <legend>Dumping a tile</legend>
+      <SetupSection label={dumpLabel}>
         <label className={styles.checkRow}>
           <input
             type="checkbox"
@@ -92,10 +103,9 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
         <p className="muted">
           By default a dumped tile goes back to the bunch. With this, it goes to the bag. You still draw three either way.
         </p>
-      </fieldset>
+      </SetupSection>
 
-      <fieldset className={form.fieldset}>
-        <legend>Words</legend>
+      <SetupSection label={checkLabel}>
         <RadioRow
           name="word_check"
           prefix="Words must be legal"
@@ -103,10 +113,13 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
           value={s.word_check}
           onChange={(word_check) => onChange({ ...s, word_check })}
         />
+      </SetupSection>
+
+      <SetupSection label={dictLabel}>
         {/* The two band pickers are ALWAYS shown — not gated on
-            word_check. They define which words count as "real" both for
-            the word check (when on above) and for the upcoming opt-in
-            "check board" helper a player can run mid-game even when the
+            word_check (its own section above). They define which words count
+            as "real" both for the word check (when on) and for the upcoming
+            opt-in "check board" helper a player can run mid-game even when the
             check is off. 2-letter words are a separate, thinner
             vocabulary, so they get their own band. */}
         <div className={styles.dictRow}>
@@ -127,7 +140,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
             onChange={(dict_3plus) => onChange({ ...s, dict_3plus })}
           />
         </div>
-      </fieldset>
+      </SetupSection>
 
       <TimerField
         value={s.timer}

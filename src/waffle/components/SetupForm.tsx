@@ -1,6 +1,8 @@
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { TimerField } from '../../common/components/fields/TimerField'
+import { SetupSection } from '../../common/components/setup/SetupSection'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { EXTRA_SWAP_OPTIONS, type WaffleSetup } from '../lib/setup'
 import styles from '../../common/components/fields/setupForm.module.css'
@@ -24,10 +26,18 @@ import styles from '../../common/components/fields/setupForm.module.css'
 export function SetupForm({ value, onChange }: SetupBodyProps) {
   const s = value as WaffleSetup
 
+  // Disclosure summaries carry the current values so each section reads without
+  // opening (the boggle/scrabble/spellingbee pattern). Singular "Dictionary" —
+  // waffle has ONE band. The swap summary shows the gloss + the number, e.g.
+  // "Swap budget: Tight +3".
+  const dictLabel = `Dictionary: ${difficultyValue(s.difficulty)}`
+  const swapGloss =
+    EXTRA_SWAP_OPTIONS.find((opt) => opt.value === s.extra_swaps)?.label ?? 'Custom'
+  const swapLabel = `Swap budget: ${swapGloss} +${s.extra_swaps}`
+
   return (
     <div className={styles.setup}>
-      <fieldset className={styles.fieldset}>
-        <legend>Word difficulty</legend>
+      <SetupSection label={dictLabel}>
         <p className="muted">Which vocabulary the puzzle's words come from.</p>
         <DifficultyField
           length={5}
@@ -36,9 +46,8 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           value={s.difficulty}
           onChange={(difficulty) => onChange({ ...s, difficulty })}
         />
-      </fieldset>
-      <fieldset className={styles.fieldset}>
-        <legend>Swap budget</legend>
+      </SetupSection>
+      <SetupSection label={swapLabel}>
         <p className="muted">
           Extra swaps beyond the puzzle's minimum — fewer is harder.
         </p>
@@ -55,7 +64,7 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           value={s.extra_swaps}
           onChange={(extra_swaps) => onChange({ ...s, extra_swaps })}
         />
-      </fieldset>
+      </SetupSection>
       <TimerField
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}

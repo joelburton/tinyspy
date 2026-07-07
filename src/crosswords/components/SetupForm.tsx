@@ -115,8 +115,13 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
         </button>
       </div>
 
-      {source === 'upload' ? (
-        <>
+      {/* All three tab bodies stay MOUNTED, stacked in one grid cell, with the
+          inactive ones visibility-hidden (see .tabStack): the block is always as
+          tall as the tallest tab (the library's 8-row list), so switching tabs
+          never resizes the dialog. Hidden = unfocusable + unclickable, and the
+          library list keeps its scroll position across a tab round-trip. */}
+      <div className={styles.tabStack}>
+        <div className={cls(styles.tabBody, source !== 'upload' && styles.tabHidden)}>
           <p className="muted">Upload a .puz or .ipuz crossword file to play it.</p>
           <input
             ref={fileInputRef}
@@ -164,9 +169,9 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
             )}
           </button>
           {uploadError && <p className={styles.uploadError}>{uploadError}</p>}
-        </>
-      ) : source === 'nyt' ? (
-        <>
+        </div>
+
+        <div className={cls(styles.tabBody, source !== 'nyt' && styles.tabHidden)}>
           <p className="muted">Import a New York Times daily crossword by date.</p>
           <input
             className={styles.search}
@@ -175,10 +180,9 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
             value={s.date ?? ''}
             onChange={(e) => onChange({ ...s, date: e.target.value })}
           />
-        </>
-      ) : (
-        <>
-          <p className="muted">Pick a puzzle from the library.</p>
+        </div>
+
+        <div className={cls(styles.tabBody, source !== 'library' && styles.tabHidden)}>
           <input
             className={styles.search}
             type="text"
@@ -212,8 +216,8 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
               ))
             )}
           </div>
-        </>
-      )}
+        </div>
+      </div>
     </div>
   )
 }

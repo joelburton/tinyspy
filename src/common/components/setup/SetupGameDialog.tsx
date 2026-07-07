@@ -254,8 +254,14 @@ export function SetupGameDialog({
         />
       </Suspense>
       {/* Setup-level guard (e.g. bag too small): blocks Start with a
-          fix-this hint, same muted register as the player-count hint. */}
-      {setupError && <p className={styles.playerHint}>{setupError}</p>}
+          fix-this hint, same register as the player-count hint. The line ALWAYS
+          renders (a non-breaking space when the setup is valid) so it holds one
+          line of height either way — a message appearing/clearing must not
+          grow/shrink the dialog (the no-reflow rule; messages are written to
+          fit one line). */}
+      <p className={styles.setupHint} title={setupError ?? undefined}>
+        {setupError ?? '\u00A0'}
+      </p>
       {error && (
         <p className="error">
           <RichMessage message={error} />

@@ -1,6 +1,8 @@
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { TimerField } from '../../common/components/fields/TimerField'
+import { SetupSection } from '../../common/components/setup/SetupSection'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { answerMaxBand, GUESS_OPTIONS, type WordleSetup } from '../lib/setup'
 import form from '../../common/components/fields/setupForm.module.css'
@@ -22,10 +24,17 @@ import form from '../../common/components/fields/setupForm.module.css'
 export function SetupForm({ value, onChange }: SetupBodyProps) {
   const s = value as WordleSetup
 
+  // Disclosure summaries carry the current values so each section reads without
+  // opening (the boggle/scrabble/spellingbee pattern). Answer source 0 is the
+  // curated Wordle list — not a difficulty band — so it formats as "0 (Wordle)".
+  const guessesLabel = `Guesses: ${s.max_guesses}`
+  const answerValue =
+    s.answer_source === 0 ? '0 (Wordle)' : difficultyValue(s.answer_source)
+  const dictLabel = `Dictionaries: ${answerValue} / ${difficultyValue(s.legal_guess)}`
+
   return (
     <div className={form.setup}>
-      <fieldset className={form.fieldset}>
-        <legend>Guesses</legend>
+      <SetupSection label={guessesLabel}>
         <p className="muted">How many guesses you get (6 is classic).</p>
         <SelectField
           name="max_guesses"
@@ -38,9 +47,8 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
             </option>
           ))}
         </SelectField>
-      </fieldset>
-      <fieldset className={form.fieldset}>
-        <legend>Words</legend>
+      </SetupSection>
+      <SetupSection label={dictLabel}>
         <DifficultyField
           label="Answer source"
           length={5}
@@ -58,7 +66,7 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           value={s.legal_guess}
           onChange={(legal_guess) => onChange({ ...s, legal_guess })}
         />
-      </fieldset>
+      </SetupSection>
       <TimerField
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}

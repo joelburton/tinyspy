@@ -2,6 +2,8 @@ import { TimerField } from '../../common/components/fields/TimerField'
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
+import { SetupSection } from '../../common/components/setup/SetupSection'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import {
   GUESS_OPTIONS,
@@ -40,10 +42,16 @@ import styles from '../../common/components/fields/setupForm.module.css'
 export function SetupForm({ value, onChange }: SetupBodyProps) {
   const s = value as PsychicnumSetup
 
+  // Disclosure summaries carry the current values so each section reads without
+  // opening (the boggle/scrabble/spellingbee pattern). Singular "Dictionary" —
+  // psychicnum has ONE band.
+  const guessesLabel = `Guesses: ${s.guesses}`
+  const wordsLabel = `Words on board: ${s.word_count}`
+  const dictLabel = `Dictionary: ${difficultyValue(s.difficulty)}`
+
   return (
     <div className={styles.setup}>
-      <fieldset className={styles.fieldset}>
-        <legend>Guesses per player</legend>
+      <SetupSection label={guessesLabel}>
         {/* Copy is mode-neutral on purpose — the same SetupForm
             backs both psychicnum_coop and psychicnum_compete
             manifests. In coop this is the shared pool (per-player
@@ -60,9 +68,8 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           value={s.guesses}
           onChange={(guesses) => onChange({ ...s, guesses })}
         />
-      </fieldset>
-      <fieldset className={styles.fieldset}>
-        <legend>Words on the board</legend>
+      </SetupSection>
+      <SetupSection label={wordsLabel}>
         {/* The board shows this many words; three of them are the hidden
             secrets, so a bigger board is more haystack. Same in both modes. */}
         <p className="muted">
@@ -78,9 +85,8 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
             </option>
           ))}
         </SelectField>
-      </fieldset>
-      <fieldset className={styles.fieldset}>
-        <legend>Word difficulty</legend>
+      </SetupSection>
+      <SetupSection label={dictLabel}>
         {/* Dictionary band: board words are drawn from common.words at
             difficulty ≤ this (harder bands add more obscure words). */}
         <p className="muted">
@@ -93,7 +99,7 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           value={s.difficulty}
           onChange={(difficulty) => onChange({ ...s, difficulty })}
         />
-      </fieldset>
+      </SetupSection>
       <TimerField
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}

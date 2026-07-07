@@ -119,7 +119,9 @@ export function bunchSizeError(
   }
   const needed = tilesNeeded(setup, playerCount)
   if (bunch_size < needed) {
-    return `Bunch too small: ${playerCount} player${playerCount === 1 ? '' : 's'} × ${setup.hand_size} tiles = ${needed} to deal. Add tiles or lower the starter hand.`
+    // One line: the dialog's validation slot is single-line (nowrap+ellipsis),
+    // and the bunch section's own hint already spells out the players × hand math.
+    return `Bunch too small: needs ${needed} (${playerCount} × ${setup.hand_size}) — add tiles or lower hands.`
   }
   return null
 }

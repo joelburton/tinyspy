@@ -1,35 +1,16 @@
-/* boggle-specific setup bits. The form scaffold (.setup / .fieldset / legend /
- * .radioRow / .radio) comes from the shared common/components/fields/setupForm.module.css,
- * and the dice-set / ladder dropdowns are the shared <SelectField>; only what's
- * unique to boggle lives here — the collapsible constraints grid (.disclosure/.grid). */
+/* boggle-specific setup bits. The form scaffold (.setup / .radioRow / .radio)
+ * comes from the shared common/components/fields/setupForm.module.css, the
+ * sections are the shared <SetupSection> disclosures, and the dice-set / ladder
+ * dropdowns are the shared <SelectField>; only what's unique to boggle lives
+ * here — the constraints grid + the Scoring row gap. */
 
-/* Collapsible "Board constraints" — the legend is the disclosure toggle. */
-.discHeader {
-  background: transparent;
-  border: 0;
-  font: inherit;
-  font-weight: 600;
-  color: var(--color-text);
-  cursor: pointer;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
+/* Space between the Scoring section's ladder dropdown and the minimum-word-
+ * length row below it. */
+.scoringRowGap {
+  margin-top: 0.75rem;
 }
 
-.disclosure {
-  display: inline-block;
-  width: 1em;
-  color: var(--color-muted);
-}
-
-.active {
-  margin-left: 0.4rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-accent);
-}
-
+/* The "Board constraints" min/max grid. */
 .grid {
   display: grid;
   grid-template-columns: auto 1fr 1fr;

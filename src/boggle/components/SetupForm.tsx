@@ -1,8 +1,9 @@
-import { useState } from 'react'
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { TimerField } from '../../common/components/fields/TimerField'
+import { SetupSection } from '../../common/components/setup/SetupSection'
+import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import type { BoardConstraints } from '../lib/generate'
 import { WIN_PERCENT_OPTIONS, type BoggleSetup } from '../lib/setup'
@@ -32,10 +33,6 @@ const CONSTRAINT_ROWS: ReadonlyArray<{ label: string; min: NumKey; max: NumKey }
   { label: 'Longest', min: 'minLongest', max: 'maxLongest' },
 ]
 
-function constraintsActive(c: BoardConstraints): boolean {
-  return CONSTRAINT_ROWS.some((r) => c[r.min] !== undefined || c[r.max] !== undefined)
-}
-
 /**
  * boggle's per-game setup form. Mode is locked at the gametype level (which
  * Start button you clicked), so there's no mode radio — just mode-flavored copy.
@@ -47,7 +44,6 @@ function constraintsActive(c: BoardConstraints): boolean {
 export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
   const s = value as BoggleSetup
   const c: BoardConstraints = s.constraints ?? {}
-  const [constraintsOpen, setConstraintsOpen] = useState(constraintsActive(c))
 
   function setConstraint(key: NumKey, raw: string) {
     const next: BoardConstraints = { ...c }
@@ -57,6 +53,15 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
     onChange({ ...s, constraints: Object.keys(next).length ? next : undefined })
   }
 
+  // Disclosure summaries carry the current value so each section reads without
+  // opening (the spellingbee pattern — see its SetupForm).
+  const diceLabel = `Dice set: ${DICE_SETS.find((d) => d.name === s.dice_set)?.desc ?? s.dice_set}`
+  const dictLabel = `Dictionaries: ${difficultyValue(s.band)} / ${difficultyValue(s.legal_band)}`
+  const ladderLabel =
+    SCORING_LADDERS.find((l) => l.name === s.scoring_ladder)?.label ?? s.scoring_ladder
+  const scoringLabel = `Scoring: ${ladderLabel} / Min length: ${s.min_word_length}`
+  const winLabel = `Win at: ${s.win_percent === null ? 'None' : `${s.win_percent}%`}`
+
   return (
     <div className={shared.setup}>
       <p className="muted">
@@ -65,8 +70,9 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           : 'Everyone hunts the same board together and the team’s finds pile up into one score.'}
       </p>
 
-      <fieldset className={shared.fieldset}>
-        <legend>Board</legend>
+      {/* "Dice set" — the summary names the chosen set (e.g. "Dice set: 4×4
+          Revised"); expand to change it. */}
+      <SetupSection label={diceLabel}>
         <SelectField
           label="Dice set"
           value={s.dice_set}
@@ -78,10 +84,12 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
             </option>
           ))}
         </SelectField>
-      </fieldset>
+      </SetupSection>
 
-      <fieldset className={shared.fieldset}>
-        <legend>Difficulty</legend>
+      {/* "Dictionaries" — the required/legal word bands, the summary showing the
+          current bands (e.g. "Dictionaries: 3 (Familiar) / 5 (Obscure)"), matching
+          spellingbee's section of the same name. */}
+      <SetupSection label={dictLabel}>
         <p className="muted">
           <strong>Required words</strong> are what the board is built around and
           what the end-of-game reveal lists. <strong>Legal words</strong> set how
@@ -107,10 +115,11 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           value={s.legal_band}
           onChange={(legal_band) => onChange({ ...s, legal_band })}
         />
-      </fieldset>
+      </SetupSection>
 
-      <fieldset className={shared.fieldset}>
-        <legend>Scoring</legend>
+      {/* "Scoring" — the summary shows both picks (e.g. "Ladder: Basic: 1–11 /
+          Min length: 3"). */}
+      <SetupSection label={scoringLabel}>
         <SelectField
           label="Ladder"
           value={s.scoring_ladder}
@@ -122,17 +131,20 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
             </option>
           ))}
         </SelectField>
-        <RadioRow
-          name="min_word_length"
-          prefix="Minimum word length:"
-          options={MIN_WORD_LENGTHS.map((len) => ({ value: len, label: len }))}
-          value={s.min_word_length}
-          onChange={(min_word_length) => onChange({ ...s, min_word_length })}
-        />
-      </fieldset>
+        {/* Breathing room between the ladder dropdown and the min-length row. */}
+        <div className={styles.scoringRowGap}>
+          <RadioRow
+            name="min_word_length"
+            prefix="Minimum word length:"
+            options={MIN_WORD_LENGTHS.map((len) => ({ value: len, label: len }))}
+            value={s.min_word_length}
+            onChange={(min_word_length) => onChange({ ...s, min_word_length })}
+          />
+        </div>
+      </SetupSection>
 
-      <fieldset className={shared.fieldset}>
-        <legend>Winning</legend>
+      {/* "Winning" — the summary shows the current target (e.g. "Win at: 70%"). */}
+      <SetupSection label={winLabel}>
         <p className="muted">
           Win by reaching this share of the required-words score
           {mode === 'compete' ? ' (first player there wins)' : ' (the team wins together)'}
@@ -149,32 +161,20 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
             </option>
           ))}
         </SelectField>
-      </fieldset>
+      </SetupSection>
 
-      <fieldset className={shared.fieldset}>
-        <legend>
-          <button
-            type="button"
-            className={styles.discHeader}
-            onClick={() => setConstraintsOpen((o) => !o)}
-            aria-expanded={constraintsOpen}
-          >
-            <span className={styles.disclosure}>{constraintsOpen ? '▾' : '▸'}</span>
-            Board constraints
-            {!constraintsOpen && constraintsActive(c) && <span className={styles.active}>active</span>}
-          </button>
-        </legend>
-        {constraintsOpen && (
-          <div className={styles.grid}>
-            <span />
-            <span className={styles.colHead}>min</span>
-            <span className={styles.colHead}>max</span>
-            {CONSTRAINT_ROWS.map((row) => (
-              <Row key={row.label} row={row} c={c} onSet={setConstraint} />
-            ))}
-          </div>
-        )}
-      </fieldset>
+      {/* "Board constraints" — the optional min/max grid, in the same disclosure
+          chrome as the sections above. Closed by default like every section. */}
+      <SetupSection label="Board constraints">
+        <div className={styles.grid}>
+          <span />
+          <span className={styles.colHead}>min</span>
+          <span className={styles.colHead}>max</span>
+          {CONSTRAINT_ROWS.map((row) => (
+            <Row key={row.label} row={row} c={c} onSet={setConstraint} />
+          ))}
+        </div>
+      </SetupSection>
 
       <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
     </div>

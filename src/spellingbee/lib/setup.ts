@@ -84,7 +84,9 @@ export function customLettersError(setup: SpellingbeeSetup): string | null {
   const letters = (setup.custom_letters ?? '').trim().toLowerCase()
   if (!center && !letters) return null // both blank → random board
   if (!center || !letters) {
-    return 'Enter a center letter AND six other letters (or leave both blank for a random board).'
+    // One line: the dialog's validation slot is single-line (nowrap+ellipsis);
+    // the section's own copy explains the leave-both-blank-for-random option.
+    return 'Enter a center letter AND six other letters, or leave both blank.'
   }
   if (!/^[a-z]$/.test(center)) return 'The center must be a single letter A–Z.'
   if (!/^[a-z]{6}$/.test(letters)) return 'Enter exactly six other letters (A–Z).'

@@ -30,6 +30,25 @@
   font-weight: 700;
 }
 
+/* All three source-tab bodies stack in ONE grid cell, so the block is always
+ * as tall as the tallest tab — the library's search + 10-row list — no matter
+ * which tab is active. That's what keeps the dialog from resizing when the
+ * player flips between sources. The inactive bodies are visibility-hidden
+ * (unfocusable, unclickable) but stay mounted. */
+.tabStack {
+  display: grid;
+}
+.tabBody {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem; /* match .setup's stack gap */
+  min-height: 0;
+}
+.tabHidden {
+  visibility: hidden;
+}
+
 .search {
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--color-surface-border);
@@ -37,8 +56,13 @@
   font-size: 0.95rem;
 }
 
+/* The library list: FIXED height of exactly eight rows (plus its own border),
+ * not a max-height — it holds its size while filtering shrinks the results,
+ * and it's the height the other two tabs inherit via the .tabStack overlay.
+ * `--row-h` is the one knob; each .item is pinned to it. */
 .list {
-  max-height: 16rem;
+  --row-h: 2.4rem;
+  height: calc(8 * var(--row-h) + 2px);
   overflow-y: auto;
   border: 1px solid var(--color-surface-border);
   border-radius: 6px;
@@ -49,9 +73,10 @@
 .item {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
+  flex: 0 0 var(--row-h);
   gap: 0.75rem;
-  padding: 0.45rem 0.6rem;
+  padding: 0 0.6rem;
   cursor: pointer;
   border: none;
   background: none;
@@ -66,7 +91,14 @@
   background: var(--crosswords-in-word, #d7ebff);
 }
 
-.itemTitle { font-weight: 600; }
+/* One line per row (rows are fixed-height): a long title ellipsizes instead
+ * of wrapping. */
+.itemTitle {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .itemMeta { color: var(--color-muted); font-size: 0.85rem; white-space: nowrap; }
 
 .empty {
@@ -87,6 +119,9 @@
   justify-content: center;
   gap: 0.25rem;
   min-height: 6rem;
+  /* Fill the tab body's fixed height (set by the library tab via .tabStack) —
+   * the whole empty area becomes drop target. */
+  flex: 1;
   padding: 1rem;
   font: inherit;
   text-align: center;

@@ -25,14 +25,16 @@ describe('bunchSizeError', () => {
   })
 
   it('rejects a bunch too small to deal every hand', () => {
-    // 2 players × 21 = 42 needed, bunch holds 40.
+    // 2 players × 21 = 42 needed, bunch holds 40. The message is deliberately
+    // one line (the dialog's validation slot is single-line): the needed total
+    // plus the players × hand math, compactly.
     const err = bunchSizeError(base({ hand_size: 21, bunch_size: 40 }), 2)
-    expect(err).toMatch(/2 players × 21 tiles = 42/)
+    expect(err).toMatch(/needs 42 \(2 × 21\)/)
   })
 
-  it('singularizes the player count', () => {
+  it('shows the single-player math', () => {
     expect(bunchSizeError(base({ hand_size: 21, bunch_size: 10 }), 1)).toMatch(
-      /1 player ×/,
+      /needs 21 \(1 × 21\)/,
     )
   })
 
