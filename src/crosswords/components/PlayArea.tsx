@@ -150,7 +150,12 @@ export function PlayArea(ctx: GamePageCtx) {
     kbRef.current =
       grid && cursor
         ? {
-            enabled: isPlayable,
+            // Terminal keeps the keyboard ALIVE for navigation — walking the
+            // revealed grid with arrows/Tab is part of the post-game — while
+            // readOnly blocks every writing key. (Paused / conceded-mid-race
+            // stay fully disabled, as before.)
+            enabled: isPlayable || isTerminal,
+            readOnly: !isPlayable,
             // A modal (rebus overlay / number-jump) owns the keyboard.
             suspended: rebus !== null || numberJumpOpen,
             grid,
@@ -170,7 +175,7 @@ export function PlayArea(ctx: GamePageCtx) {
             onMark: (r, c, side) => void handleMark(r, c, side),
           }
         : null
-  }, [grid, cursor, isPlayable, pencil, cells, handleSetCell, handleMark, rebus, numberJumpOpen])
+  }, [grid, cursor, isPlayable, isTerminal, pencil, cells, handleSetCell, handleMark, rebus, numberJumpOpen])
   useGridKeyboard(kbRef)
 
   const handleRebusCommit = useCallback(

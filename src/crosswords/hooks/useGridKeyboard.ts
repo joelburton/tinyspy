@@ -16,6 +16,11 @@ import type { Cell } from '../lib/types'
  *  (via a ref, to dodge stale closures). PlayArea rebuilds it every render. */
 export type GridKeyboard = {
   enabled: boolean
+  /** The board is frozen (terminal) but still navigable: movement keys
+   *  (arrows, Tab, Space, `#`, Shift+Space peek) work so the solver can walk
+   *  the revealed grid, while anything that would WRITE (letters, Backspace,
+   *  rebus, edge marks) is ignored. */
+  readOnly: boolean
   /** A modal (rebus overlay / number-jump popup) owns the keyboard — bail
    *  entirely so board keys don't fire in parallel (mirrors crossplay's
    *  `numberJumpOpenRef` guard). */
@@ -64,6 +69,9 @@ const ARROWS = new Set<ArrowKey>(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDo
  * is in an editable field (except Tab, which always navigates clues), and on
  * Ctrl/Meta/Alt chords (except `#`, checked first for Shift+3 layouts). Shift
  * is a play modifier, so it's otherwise allowed through.
+ *
+ * In `readOnly` (terminal), the navigation keys keep working — walking the
+ * revealed grid is part of the post-game — but the writing keys are ignored.
  */
 export function useGridKeyboard(ref: RefObject<GridKeyboard | null>) {
   useEffect(() => {
@@ -114,7 +122,7 @@ export function useGridKeyboard(ref: RefObject<GridKeyboard | null>) {
       // is a no-op (solvers hit it reflexively at a word's end).
       if (e.key === 'Enter') {
         e.preventDefault()
-        if (e.shiftKey && !isGiven(row, col)) onRebus(row, col)
+        if (e.shiftKey && !k.readOnly && !isGiven(row, col)) onRebus(row, col)
         return
       }
 
@@ -132,7 +140,9 @@ export function useGridKeyboard(ref: RefObject<GridKeyboard | null>) {
       }
 
       // Letters: fill + advance. A given cell is immutable — slide off it.
+      // Read-only: the whole gesture is ignored (no fill, no advance).
       if (/^[a-zA-Z]$/.test(e.key)) {
+        if (k.readOnly) return
         e.preventDefault()
         if (!isGiven(row, col)) setCell(row, col, e.key.toUpperCase(), pencil)
         setCursor(advanceAfterFill(grid, cursor))
@@ -144,12 +154,14 @@ export function useGridKeyboard(ref: RefObject<GridKeyboard | null>) {
       // only (plan option A), so a given cell is a no-op. The cursor does not
       // move — you're annotating a boundary, not filling.
       if (e.key === '|' || e.key === '_') {
+        if (k.readOnly) return
         e.preventDefault()
         if (!isGiven(row, col)) onMark(row, col, e.key === '|' ? 'right' : 'bottom')
         return
       }
 
       if (e.key === 'Backspace') {
+        if (k.readOnly) return
         e.preventDefault()
         // Shift+Backspace: clear every fillable, non-given cell in the current
         // word, then drop the cursor on the word's first editable cell so the
