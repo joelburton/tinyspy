@@ -12,7 +12,6 @@ import { turnSnapshot } from '../lib/history'
 import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import type { WordleSetup } from '../lib/setup'
 import { memberById } from '../../common/lib/game/peers'
-import { colorVarFor } from '../../common/lib/color/memberColor'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { cls } from '../../common/lib/util/cls'
@@ -96,7 +95,7 @@ export function PlayArea({
       return {
         tone: 'neutral',
         variant: 'outline',
-        dot: colorVarFor(member?.color),
+        dot: member?.color ?? null,
         text: `${member?.username ?? 'Someone'} guessed ${g.guess.toUpperCase()}`,
         dismiss: { kind: 'timed', ms: 3000 },
       }
@@ -125,7 +124,7 @@ export function PlayArea({
       return {
         tone: 'success',
         variant: 'outline',
-        dot: colorVarFor(member?.color),
+        dot: member?.color ?? null,
         text: `${member?.username ?? 'Someone'} solved it`,
         dismiss: { kind: 'timed', ms: 3000 },
       }

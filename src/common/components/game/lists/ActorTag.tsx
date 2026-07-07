@@ -1,6 +1,6 @@
 import { cls } from '../../../lib/util/cls'
-import { colorVarFor } from '../../../lib/color/memberColor'
 import type { Member } from '../../../lib/games'
+import { Dot } from '../../text/Dot'
 import styles from './ActorTag.module.css'
 
 type Props = {
@@ -16,7 +16,7 @@ type Props = {
 
 /**
  * The shared **actor tag**: a person's name followed by their **identity disc**
- * (a ● in the member color) — the app-wide "who did this" marker (docs/ui.md →
+ * (the shared <Dot> in the member color) — the app-wide "who did this" marker (docs/ui.md →
  * "Player identity = a colored disc"). The disc carries the identity; the name
  * stays plain text, so the two never fight for the color.
  *
@@ -30,13 +30,7 @@ export function ActorTag({ actor, fallback = 'someone', className }: Props) {
   return (
     <span className={cls(styles.actorTag, className)}>
       <span className={styles.name}>{actor?.username ?? fallback}</span>
-      <span
-        className={styles.dot}
-        style={{ color: colorVarFor(actor?.color) }}
-        aria-hidden="true"
-      >
-        ●
-      </span>
+      <Dot color={actor?.color} className={styles.dot} />
     </span>
   )
 }

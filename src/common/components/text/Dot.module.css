@@ -1,0 +1,23 @@
+/* The shared identity disc (see Dot.tsx). Fill + border colors are set inline
+ * by the component (resolved from the member-color tokens); everything
+ * geometric lives here, tunable per site via the three custom properties on a
+ * caller-supplied class:
+ *   --dot-size          diameter (default em-relative: inline dots track text)
+ *   --dot-border-width  ring width (default 1px; bump to 2px on larger dots)
+ *   --dot-ring          hollow-variant ring color (default body text)
+ */
+.dot {
+  display: inline-block;
+  width: var(--dot-size, 0.65em);
+  height: var(--dot-size, 0.65em);
+  border-radius: 50%;
+  border: var(--dot-border-width, 1px) solid;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* The "nobody" ring — transparent center, neutral outline. */
+.hollow {
+  background: transparent;
+  border-color: var(--dot-ring, var(--color-text));
+}

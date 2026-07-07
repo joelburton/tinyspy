@@ -8,6 +8,7 @@ import { useRecentlyFound } from '../../../hooks/game/useRecentlyFound'
 import { colorVarFor } from '../../../lib/color/memberColor'
 import { cls } from '../../../lib/util/cls'
 import type { Member } from '../../../lib/games'
+import { Dot } from '../../text/Dot'
 import styles from './WordList.module.css'
 
 /**
@@ -56,8 +57,8 @@ type Props = {
  * Each row leads with a **circle marker** carrying the attribution; the word text
  * itself is plain body-black, so finder identity reads from the dot, not the text:
  *
- *   - **Found words** lead with a filled ● in their finder's color, word in black.
- *   - **Unfound required words** (the post-terminal reveal) lead with a hollow ○ in
+ *   - **Found words** lead with a filled disc in their finder's color, word in black.
+ *   - **Unfound required words** (the post-terminal reveal) lead with a hollow ring in
  *     grey, word also grey — "here's what the team / field missed."
  *
  * Three flags compose on top: **pangram** (bold), **bonus** (a trailing '•'), and
@@ -67,11 +68,12 @@ type Props = {
  * cell.
  */
 export function WordList({ rows, players, reveal = false, heading = 'Words' }: Props) {
-  // Color lookup by user_id. Players list is small (<10 in realistic clubs) so a
-  // Map+get rather than .find on each row.
+  // Color-NAME lookup by user_id (the shared <Dot> + colorVarFor resolve it).
+  // Players list is small (<10 in realistic clubs) so a Map+get rather than
+  // .find on each row.
   const colorByUser = useMemo(() => {
     const m = new Map<string, string>()
-    for (const p of players) m.set(p.user_id, colorVarFor(p.color))
+    for (const p of players) m.set(p.user_id, p.color)
     return m
   }, [players])
 
@@ -131,13 +133,13 @@ export function WordList({ rows, players, reveal = false, heading = 'Words' }: P
                     key={entry.word}
                     className={cls(styles.row, styles.unfound, entry.isPangram && styles.pangram)}
                   >
-                    <span className={cls(styles.dot, styles.dotUnfound)} aria-hidden="true">{'○'}</span>
+                    <Dot hollow className={cls(styles.dot, styles.dotUnfound)} />
                     <span className={styles.word} {...wordActivation(entry.word)}>{entry.word.toUpperCase()}</span>
                   </li>
                 )
               }
               // A found word — a filled dot in its finder's color, word in black.
-              const color = colorByUser.get(entry.userId) ?? 'var(--color-text)'
+              const colorName = colorByUser.get(entry.userId)
               // Recently-found flash is mid-game only (suppressed under reveal).
               const isRecent = !reveal && recentlyFound.has(entry.word)
               return (
@@ -145,13 +147,13 @@ export function WordList({ rows, players, reveal = false, heading = 'Words' }: P
                   key={entry.word}
                   className={cls(styles.row, entry.isPangram && styles.pangram, isRecent && styles.recent)}
                 >
-                  <span className={styles.dot} style={{ color }} aria-hidden="true">{'●'}</span>
+                  <Dot color={colorName} className={styles.dot} />
                   {/* Word is plain black; only the dot carries finder color. The
                       recent-flash underline is set to the finder color inline (CSS
                       can't know it) — see `.recent .word`. */}
                   <span
                     className={styles.word}
-                    style={isRecent ? { textDecorationColor: color } : undefined}
+                    style={isRecent ? { textDecorationColor: colorVarFor(colorName) } : undefined}
                     {...wordActivation(entry.word)}
                   >
                     {entry.word.toUpperCase()}

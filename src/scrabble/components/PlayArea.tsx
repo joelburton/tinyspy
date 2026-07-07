@@ -5,7 +5,6 @@ import { terminalPill } from '../../common/lib/game/localPills'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
-import { colorVarFor } from '../../common/lib/color/memberColor'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { db } from '../db'
 import type { ScrabbleSetup } from '../lib/setup'
@@ -99,9 +98,10 @@ export function PlayArea({
     (userId: string | null) => players.find((m: Member) => m.user_id === userId)?.username ?? 'someone',
     [players],
   )
-  // Identity-disc color for the share banner's ● (the shared member-color scheme).
+  // Identity-disc color NAME for the share banner's disc (the shared <Dot>
+  // resolves it to the member-color tokens).
   const memberColorOf = useCallback(
-    (userId: string) => colorVarFor(players.find((m: Member) => m.user_id === userId)?.color),
+    (userId: string) => players.find((m: Member) => m.user_id === userId)?.color,
     [players],
   )
   // Show-a-move is a coop, ≥2-player affordance — there's a teammate to show.

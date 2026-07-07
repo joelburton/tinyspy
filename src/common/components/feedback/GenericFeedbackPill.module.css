@@ -38,16 +38,12 @@
   text-overflow: ellipsis;
 }
 
-/* Leading identity disc (the actor's player color), same dimensions as the
- * PlayersStrip dot so the two read as the same convention. The pill's `gap`
- * spaces it from the text. */
+/* Leading identity disc — the shared <Dot>, sized to match the PlayersStrip
+ * dot so the two read as the same convention. The pill's `gap` spaces it from
+ * the text. */
 .dot {
-  box-sizing: border-box;
-  width: 0.85rem;
-  height: 0.85rem;
-  border-radius: 50%;
-  border: 2px solid;
-  flex-shrink: 0;
+  --dot-size: 0.85rem;
+  --dot-border-width: 2px;
 }
 
 .close {

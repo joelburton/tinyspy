@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Member } from '../../lib/games'
-import { colorVarFor } from '../../lib/color/memberColor'
 import { orderSelfFirst } from '../../lib/game/peers'
+import { Dot } from '../text/Dot'
 import styles from './OpponentStrip.module.css'
 
 type Props = {
@@ -55,14 +55,10 @@ export function OpponentStrip({ players, selfId, metricFor, metricLabel, leading
             <span key={p.user_id} className={styles.entry}>
               {i > 0 && <span className={styles.sep}>·</span>}
               {/* Identity rides the DOT, not the name (docs/ui.md → Player
-                  identity = a colored disc): a filled circle in the player's
-                  color, the same "● name" marker the header strip uses; the name
+                  identity = a colored disc): the shared disc in the player's
+                  color, the same marker the header strip uses; the name
                   stays plain text so the two never fight for the color. */}
-              <span
-                className={styles.dot}
-                style={{ background: colorVarFor(p.color), borderColor: colorVarFor(p.color) }}
-                aria-hidden
-              />
+              <Dot color={p.color} className={styles.dot} />
               <strong>{isSelf ? 'You' : p.username}:</strong>
               <span className={styles.metric}>{metricFor(p, isSelf)}</span>
             </span>

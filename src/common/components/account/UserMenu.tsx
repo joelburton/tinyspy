@@ -1,10 +1,10 @@
 import type { Session } from '@supabase/supabase-js'
 import { useProfile } from '../../hooks/session/useProfile'
-import { colorVarFor } from '../../lib/color/memberColor'
 import { supabase } from '../../lib/supabase/supabase'
 import type { MenuSection } from '../../lib/games'
 import { Menu } from '../panels/Menu'
 import { TriggerWithChevron } from '../panels/TriggerWithChevron'
+import { Dot } from '../text/Dot'
 import styles from './UserMenu.module.css'
 
 type Props = {
@@ -74,11 +74,7 @@ export function UserMenu({ session, onEditProfile }: Props) {
                 PlayersStrip / ClubPage member-list dots — the dot IS the
                 whole identity display (no username text; the chip stays
                 tiny so it doesn't crowd the header row it overlaps). */}
-            <span
-              className={styles.dot}
-              style={{ background: colorVarFor(profile?.color) }}
-              aria-hidden
-            />
+            <Dot color={profile?.color} className={styles.dot} />
           </TriggerWithChevron>
         }
         sections={sections}

@@ -7,13 +7,8 @@
   white-space: nowrap;
 }
 
-/* The identity disc — a filled circle in the player's color (set inline),
- * matching the other "● name" markers (docs/ui.md → Player identity). */
+/* The identity disc — the shared <Dot> (fill + paired border ring); this
+ * class only sizes it for the inline message row. */
 .dot {
-  width: 0.6rem;
-  height: 0.6rem;
-  border-radius: 50%;
-  border: 1px solid;
-  box-sizing: border-box;
-  flex-shrink: 0;
+  --dot-size: 0.6rem;
 }

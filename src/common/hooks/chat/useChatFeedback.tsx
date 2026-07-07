@@ -1,6 +1,5 @@
 import { useClubChat } from './useClubChat'
 import { useGlobalFeedback } from '../feedback/useGlobalFeedback'
-import { colorVarFor } from '../../lib/color/memberColor'
 import { memberById } from '../../lib/game/peers'
 import type { GenericFeedbackApi, Member } from '../../lib/games'
 
@@ -64,7 +63,7 @@ export function useChatFeedback({
         variant: 'outline',
         // The leading identity disc in the caller's spec's "()"; omitted (no
         // disc) for an unresolvable sender rather than a misleading default color.
-        dot: member ? colorVarFor(member.color) : undefined,
+        dot: member?.color,
         text: (
           <>
             <strong>{handle}</strong>: {text}

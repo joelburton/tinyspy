@@ -25,20 +25,13 @@
   align-items: center;
 }
 
-/* Per-player dot. The 2px border + background are both set inline
- * by PlayersStrip: present → both the player color (a filled
- * circle); away → transparent fill + a black border (a hollow
- * outline). box-sizing keeps the outer size identical either way,
- * so present↔away doesn't shift the row. */
+/* Per-player dot — the shared <Dot> (present = fill + paired border ring;
+ * away = the hollow variant). Same outer size either way, so present↔away
+ * doesn't shift the row. This class only sizes + spaces it. */
 .dot {
-  display: inline-block;
-  box-sizing: border-box;
-  width: 0.85rem;
-  height: 0.85rem;
-  border-radius: 50%;
-  border: 2px solid black;
+  --dot-size: 0.85rem;
+  --dot-border-width: 2px;
   margin-right: 0.4rem;
-  flex-shrink: 0;
 }
 
 .username {

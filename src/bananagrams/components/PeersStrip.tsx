@@ -1,5 +1,5 @@
 import type { GamePlayer } from '../../common/lib/games'
-import { colorVarFor } from '../../common/lib/color/memberColor'
+import { Dot } from '../../common/components/text/Dot'
 import type { ProgressRow } from '../hooks/useGame'
 import styles from './PeersStrip.module.css'
 
@@ -39,7 +39,7 @@ export function PeersStrip({ players, progress, selfId }: Props) {
         const pr = byUser.get(p.user_id)
         return (
           <div key={p.user_id} className={styles.peer} data-peer={p.user_id}>
-            <span className={styles.dot} style={{ background: colorVarFor(p.color) }} aria-hidden />
+            <Dot color={p.color} className={styles.dot} />
             <span className={styles.name}>{p.username}</span>
             <span className={styles.count} data-count>
               {p.conceded ? 'out' : pr?.done ? 'done!' : (pr?.unplaced ?? '—')}

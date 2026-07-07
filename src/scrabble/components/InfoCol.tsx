@@ -1,6 +1,6 @@
 import { outcomeVerb, type Member, type GamePlayer } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { colorVarFor } from '../../common/lib/color/memberColor'
+import { Dot } from '../../common/components/text/Dot'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
@@ -102,9 +102,7 @@ export function InfoCol({
             ) : (
               <>
                 Turn:{' '}
-                <span style={{ color: colorVarFor(currentMember?.color) }} aria-hidden>
-                  ●
-                </span>{' '}
+                <Dot color={currentMember?.color} />{' '}
                 {currentMember?.username ?? 'someone'}
               </>
             )

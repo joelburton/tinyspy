@@ -76,20 +76,19 @@
   color: var(--color-text);
 }
 
-/* The leading attribution marker: a filled ● in the finder's color (set inline in
- * the TSX) for found words. Shrunk below the word so it reads as a marker, and
- * middle-aligned against the (taller) word text. */
+/* The leading attribution marker: the shared <Dot> in the finder's color.
+ * Shrunk below the word so it reads as a marker (em-sized, so it tracks the
+ * row's text). */
 .dot {
-  font-size: 0.7em;
-  vertical-align: middle;
+  --dot-size: 0.6em;
   margin-right: 7px;
 }
 
-/* Missed words (post-terminal reveal) swap in a hollow ○ — the ring, not the text
- * color, is the "missed" signal. Lighter (divider grey) than the muted word text
- * so the ring reads as a faint marker, not a second emphasis. */
+/* Missed words (post-terminal reveal) swap in the hollow variant — the ring,
+ * not the text color, is the "missed" signal. Lighter (divider grey) than the
+ * muted word text so the ring reads as a faint marker, not a second emphasis. */
 .dotUnfound {
-  color: var(--color-divider);
+  --dot-ring: var(--color-divider);
 }
 
 /* The word text itself — and the ONLY click-to-define target (not the whole

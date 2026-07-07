@@ -3,6 +3,7 @@ import type { GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/g
 import { useFlash } from '../../common/hooks/ui/useFlash'
 import { cls } from '../../common/lib/util/cls'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
+import { Dot } from '../../common/components/text/Dot'
 import { useBoardCursorKeys } from '../../common/hooks/input/useBoardCursorKeys'
 import { useDragGesture, type DragGesture } from '../../common/hooks/ui/useDragGesture'
 import { moveCursor, stepBack } from '../../common/lib/game/gridCursor'
@@ -191,8 +192,8 @@ export function BoardCol({
   onExitViewing: () => void
   /** Username for a user id — for the viewer banners. */
   nameOf: (id: string | null) => string
-  /** Identity-disc color for a user id — for the share banner's disc. */
-  memberColorOf: (id: string) => string
+  /** Identity-disc color NAME for a user id — for the share banner's disc. */
+  memberColorOf: (id: string) => string | undefined
 
   // ── Show-a-move (coop only — see useSharedMove) ──
   /** Coop with ≥2 players — gates the Share button (there's a teammate to show). */
@@ -724,9 +725,7 @@ export function BoardCol({
               <span className={history.bannerLabel}>
                 {viewShared ? (
                   <>
-                    <span style={{ color: memberColorOf(viewShared.sharerId) }} aria-hidden>
-                      ●
-                    </span>{' '}
+                    <Dot color={memberColorOf(viewShared.sharerId)} />{' '}
                     {nameOf(viewShared.sharerId)} showing:{' '}
                     {viewShared.words.length > 0
                       ? `+${viewShared.score} ${viewShared.words.map((w) => w.toUpperCase()).join(', ')}`

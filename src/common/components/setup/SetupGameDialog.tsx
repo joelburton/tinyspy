@@ -1,9 +1,9 @@
 import { Suspense, useState } from 'react'
 import { MODE_LABEL, type GameManifest, type Member, type RichMessage as RichMessageType } from '../../lib/games'
-import { colorVarFor } from '../../lib/color/memberColor'
 import { FloatingPanel } from '../panels/FloatingPanel'
 import { HelpButton } from '../buttons/HelpButton'
 import { RichMessage } from '../text/RichMessage'
+import { Dot } from '../text/Dot'
 import styles from './SetupGameDialog.module.css'
 
 type Props = {
@@ -226,11 +226,7 @@ export function SetupGameDialog({
                   // The creator can't deselect themselves.
                   disabled={busy || isSelf}
                 />
-                <span
-                  className={styles.playerDot}
-                  style={{ background: colorVarFor(m.color) }}
-                  aria-hidden
-                />
+                <Dot color={m.color} className={styles.playerDot} />
                 <span>
                   {m.username}
                   {isSelf && <span className={styles.playerSelf}> (you)</span>}

@@ -1,5 +1,5 @@
 import type { Member } from '../../lib/games'
-import { colorVarFor } from '../../lib/color/memberColor'
+import { Dot } from '../text/Dot'
 import styles from './PlayersStrip.module.css'
 
 type Props = {
@@ -41,15 +41,8 @@ export function PlayersStrip({ players, presentUserIds }: Props) {
   return (
     <div className={styles.strip}>
       {players.map((p) => {
-        const color = colorVarFor(p.color)
         // No presence set → treat everyone as present (filled dot).
         const present = presentUserIds ? presentUserIds.has(p.user_id) : true
-        // Present: filled with the player color. Away: hollow with a
-        // black outline (the color drops out so absence reads at a
-        // glance). Same box-sized dimensions either way.
-        const dotStyle = present
-          ? { background: color, borderColor: color }
-          : { background: 'transparent', borderColor: 'var(--color-text)' }
         return (
           <span
             key={p.user_id}
@@ -62,7 +55,10 @@ export function PlayersStrip({ players, presentUserIds }: Props) {
                 : undefined
             }
           >
-            <span className={styles.dot} style={dotStyle} aria-hidden />
+            {/* Present: the shared disc, filled + ringed in the player color.
+                Away: the disc's hollow variant (the color drops out so absence
+                reads at a glance). Same dimensions either way. */}
+            <Dot color={p.color} hollow={!present} className={styles.dot} />
             <span className={styles.username}>{p.username}</span>
           </span>
         )

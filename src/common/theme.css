@@ -167,25 +167,32 @@
      (chat usernames), dark enough to remain legible as text on
      the white surface. When dark theme lands, define a parallel
      `*-on-dark` variant set (or media-query swap these in place);
-     consumers don't change. */
-  --color-member-red:    #d32f2f;
-  --color-member-orange: #f57c00;
-  --color-member-yellow: #f9a825;
-  --color-member-green:  #388e3c;
-  /* Brown, not teal. The earlier teal (#00897b) read as a second
-     green next to --color-member-green at small dot size — two cool
-     greens crowding the green/blue corner of the palette. Brown is
-     the only warm-neutral here, so it stays unmistakable against the
-     green/blue pair. (The co-op mode pill above is still teal — a
-     different vocabulary: an outlined text chip, not a player dot.) */
-  --color-member-brown:  #6d4c41;
-  --color-member-blue:   #1976d2;
-  --color-member-purple: #7b1fa2;
-  /* A true, lighter-than-red pink. The earlier #c2185b was a dark
-     crimson — darker than --color-member-red, and easily misread as a
-     second red; pink 400 reads unmistakably pink and sits lighter
-     than red, the way a pink should. */
-  --color-member-pink:   #ec407a;
+     consumers don't change.
+
+     Each fill has a PAIRED `-border` token — the ring the shared <Dot>
+     draws around the fill, and what lets a light fill (yellow) stay
+     visible against the white background (a light disc alone would
+     vanish; the dark-gold ring carries it). Borders are derived from
+     the fill in OKLCH — same hue+chroma, lightness clamped to
+     min(0.85 × fillL, 0.55) — so a darkened yellow stays GOLD instead
+     of drifting olive the way HSL darkening does. Seeded
+     algorithmically (scripted, one-off); hand-tune freely, and when a
+     dark theme lands the borders flip LIGHTER than the fills. */
+  --color-member-red:            #d32f2f;
+  --color-member-red-border:     #b30115;
+  --color-member-orange:         #ff9800;
+  --color-member-orange-border:  #a25f01;
+  --color-member-yellow: #ffe05a;
+  --color-member-yellow-border:  #867004;
+  --color-member-green:          #388e3c;
+  --color-member-brown: #735349;
+  --color-member-brown-border:   #593a2f;
+  --color-member-blue:           #1976d2;
+  --color-member-blue-border:    #035dad;
+  --color-member-purple: #9b3ec3;
+  --color-member-purple-border:  #650189;
+  --color-member-pink: #f86194;
+  --color-member-pink-border:    #c9135e;
 
   /* Board-tile palette — the canonical look every game's word / letter tiles
      converge on (psychicnum + connections today; other games adopt it as we

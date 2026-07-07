@@ -13,7 +13,7 @@
   font-weight: 500;
 }
 
-/* The identity disc — a colored ● in the member color (set inline) — the
+/* The identity disc — the shared <Dot> in the member color — the
  * app-wide "this player" marker. See docs/ui.md → "Player identity = a colored
  * disc". */
 .dot {

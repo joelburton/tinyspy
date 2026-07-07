@@ -55,6 +55,19 @@ export function colorVarFor(name: string | null | undefined): string {
 }
 
 /**
+ * The paired BORDER shade for a profile color — the ring the shared `<Dot>`
+ * draws around the fill (theme.css defines a `--color-member-NAME-border`
+ * companion for every fill, OKLCH-darkened so a light fill like yellow stays
+ * visible against the page background). Same fallback contract as
+ * `colorVarFor`: a missing/unknown name gets the body-text color.
+ */
+export function borderVarFor(name: string | null | undefined): string {
+  return name && VALID.has(name)
+    ? `var(--color-member-${name}-border)`
+    : 'var(--color-text)'
+}
+
+/**
  * A deterministic default palette color for a username — what the claim
  * form pre-selects so a new player isn't picking from a blank slate.
  *

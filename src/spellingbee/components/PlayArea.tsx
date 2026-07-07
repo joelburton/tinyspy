@@ -7,7 +7,6 @@ import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/game/useWordSubmit'
-import { colorVarFor } from '../../common/lib/color/memberColor'
 import { memberById } from '../../common/lib/game/peers'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { readLeaderboard } from '../lib/leaderboard'
@@ -247,7 +246,7 @@ export function PlayArea(ctx: GamePageCtx) {
       return {
         tone: 'success',
         variant: 'outline',
-        dot: colorVarFor(member?.color),
+        dot: member?.color ?? null,
         text: r.is_pangram
           ? `${name} found ${wordWithBonusDot(r.word, r.is_bonus)} +${r.points} — pangram! 🐝`
           : `${name} found ${wordWithBonusDot(r.word, r.is_bonus)} +${r.points}`,
@@ -284,7 +283,7 @@ export function PlayArea(ctx: GamePageCtx) {
         globalFeedback.show({
           tone: 'info',
           variant: 'outline',
-          dot: colorVarFor(member?.color),
+          dot: member?.color ?? null,
           text: `${name} reached ${RANKS[row.rank_idx] ?? 'a new rank'}`,
           dismiss: { kind: 'sticky' },
         })

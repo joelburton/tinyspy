@@ -7,7 +7,6 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
-import { colorVarFor } from '../../common/lib/color/memberColor'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { memberById } from '../../common/lib/game/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -143,7 +142,7 @@ export function PlayArea({
       if (g.user_id === session.user.id) return null // mine → local
       const member = memberById(players, g.user_id)
       const name = member?.username ?? 'Someone'
-      const dot = colorVarFor(member?.color)
+      const dot = member?.color ?? null
       // Helper actions (hint / reveal) → amber: important, but neither good nor
       // bad. (A reveal logs the answer word, but we narrate it without naming
       // the word — "revealed a word", not which one.)
@@ -189,7 +188,7 @@ export function PlayArea({
       globalFeedback.show({
         tone: 'success',
         variant: 'outline',
-        dot: colorVarFor(member?.color),
+        dot: member?.color ?? null,
         text: `${name} guessed a secret word`,
         dismiss: { kind: 'timed', ms: 3000 },
       })

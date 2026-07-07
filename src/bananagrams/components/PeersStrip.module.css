@@ -26,11 +26,9 @@
   font-size: 0.85rem;
 }
 
+/* The shared <Dot>, sized for the peer rows. */
 .dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex: 0 0 auto;
+  --dot-size: 10px;
 }
 
 .name {

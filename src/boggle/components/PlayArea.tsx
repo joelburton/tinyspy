@@ -3,7 +3,6 @@ import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
-import { colorVarFor } from '../../common/lib/color/memberColor'
 import { memberById } from '../../common/lib/game/peers'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/game/useWordSubmit'
@@ -232,7 +231,7 @@ export function PlayArea(ctx: GamePageCtx) {
       return {
         tone: 'success',
         variant: 'outline',
-        dot: colorVarFor(member?.color),
+        dot: member?.color ?? null,
         text: wow
           ? `${name} found ${label} +${r.points} — wow!`
           : `${name} found ${label} +${r.points}`,

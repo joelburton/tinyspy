@@ -127,11 +127,13 @@ export type GenericFeedbackMsg = {
    *  can embed an inline icon (e.g. bananagrams' dump pill leads with the
    *  exchange glyph, matching its dump zone). */
   text: ReactNode
-  /** Optional leading identity disc — a player-color CSS value (from
-   *  `colorVarFor`). Renders a small filled circle before the text, the
-   *  identity anchor for group/peer messages ("● leah found APPLE"). See
-   *  docs/ui.md → "Player identity = a colored disc". */
-  dot?: string
+  /** Optional leading identity disc — the actor's profile-color NAME
+   *  ('red' … 'pink'), rendered as the shared `<Dot>` (fill + paired border)
+   *  before the text: the identity anchor for group/peer messages
+   *  ("(disc) leah found APPLE"). `null` still shows a disc (the neutral
+   *  fallback — an unresolvable member); ABSENT shows none. See docs/ui.md →
+   *  "Player identity = a colored disc". */
+  dot?: string | null
   /** Pill style. `'fill'` (default) tints the background by tone — for local
    *  validation. `'outline'` colors only the border (no fill), using the
    *  green/red outcome palette — for identity/peer messages, where a tinted

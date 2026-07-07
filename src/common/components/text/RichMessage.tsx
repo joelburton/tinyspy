@@ -1,5 +1,5 @@
-import { colorVarFor } from '../../lib/color/memberColor'
 import type { RichMessage as RichMessageType } from '../../lib/games'
+import { Dot } from './Dot'
 import styles from './RichMessage.module.css'
 
 type Props = {
@@ -27,11 +27,7 @@ export function RichMessage({ message }: Props) {
           seg
         ) : (
           <span key={i} className={styles.player}>
-            <span
-              className={styles.dot}
-              style={{ background: colorVarFor(seg.player.color), borderColor: colorVarFor(seg.player.color) }}
-              aria-hidden
-            />
+            <Dot color={seg.player.color} className={styles.dot} />
             {seg.player.username}
           </span>
         ),

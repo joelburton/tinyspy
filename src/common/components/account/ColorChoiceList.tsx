@@ -1,5 +1,6 @@
-import { colorVarFor, MEMBER_COLORS } from '../../lib/color/memberColor'
+import { MEMBER_COLORS } from '../../lib/color/memberColor'
 import { cls } from '../../lib/util/cls'
+import { Dot } from '../text/Dot'
 import styles from './ColorChoiceList.module.css'
 
 type Props = {
@@ -29,11 +30,7 @@ export function ColorChoiceList({ value, onChange, disabled }: Props) {
           disabled={disabled}
           aria-pressed={value === name}
         >
-          <span
-            className={styles.dot}
-            style={{ background: colorVarFor(name) }}
-            aria-hidden
-          />
+          <Dot color={name} className={styles.dot} />
           <span className={styles.swatchName}>{name}</span>
         </button>
       ))}

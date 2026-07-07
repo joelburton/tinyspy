@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GenericFeedbackApi, GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
-import { colorVarFor } from '../../common/lib/color/memberColor'
 import { db } from '../db'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
@@ -138,11 +137,11 @@ function useTurnPill(args: {
 
   let text: string | null = null
   let tone: GenericFeedbackTone = 'neutral'
-  // The leading player-color disc for peer-status messages ("● Moth is …"),
-  // via the GenericFeedbackPill's `dot` + outline variant — same identity treatment
-  // psychicnum/connections use for their peer pills. Undefined for sudden death
-  // (a warning, not a peer message).
-  let dot: string | undefined
+  // The leading identity disc for peer-status messages ("(disc) Moth is …"),
+  // via the GenericFeedbackPill's `dot` (the peer's color NAME) + outline
+  // variant — same identity treatment psychicnum/connections use for their
+  // peer pills. Undefined for sudden death (a warning, not a peer message).
+  let dot: string | null | undefined
   if (game && !gameOver) {
     const me = players.find((p) => p.user_id === sessionUserId)
     const peer = players.find((p) => p.user_id !== sessionUserId)
@@ -157,7 +156,7 @@ function useTurnPill(args: {
       text = 'Sudden death — any non-green reveal loses'
       tone = 'error'
     } else {
-      dot = colorVarFor(peer?.color)
+      dot = peer?.color ?? null
       if (!isGuessPhase) {
         // Clue phase — what the peer is doing about the clue.
         text = isClueGiver
@@ -189,7 +188,7 @@ function useTurnPill(args: {
       text,
       // Peer-status pills carry the leading identity disc (outline so the disc
       // isn't fighting a fill); sudden death is a plain filled warning.
-      ...(dot ? { variant: 'outline' as const, dot } : {}),
+      ...(dot !== undefined ? { variant: 'outline' as const, dot } : {}),
       dismiss: { kind: 'sticky' },
     })
   }, [text, tone, dot, feedback])

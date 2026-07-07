@@ -1,5 +1,6 @@
 import { cls } from '../../lib/util/cls'
 import type { GenericFeedbackMsg } from '../../lib/games'
+import { Dot } from '../text/Dot'
 import styles from './GenericFeedbackPill.module.css'
 
 type Props = {
@@ -39,13 +40,9 @@ export function GenericFeedbackPill({ msg, onClose }: Props) {
   const outline = msg.variant === 'outline'
   return (
     <div className={cls(styles.pill, styles[msg.tone], outline && styles.outline)}>
-      {msg.dot && (
-        <span
-          className={styles.dot}
-          style={{ background: msg.dot, borderColor: msg.dot }}
-          aria-hidden
-        />
-      )}
+      {/* `dot` is the actor's color NAME; null still shows the neutral disc
+          (see GenericFeedbackMsg.dot) — only an ABSENT dot renders nothing. */}
+      {msg.dot !== undefined && <Dot color={msg.dot} className={styles.dot} />}
       <span className={styles.text}>{msg.text}</span>
       {msg.dismiss.kind === 'closeable' && (
         <button

@@ -56,15 +56,9 @@
   font-weight: 700;
 }
 
-/* The player's identity disc — a filled circle in their profile color, set
- * inline. The leading "this player" marker, matching the header PlayersStrip's
- * dots (docs/ui.md → Player identity = a colored disc). Sized for this small
- * strip; box-sizing keeps the border inside the box. */
+/* The player's identity disc — the shared <Dot> (fill + paired border ring),
+ * sized for this small strip. The leading "this player" marker, matching the
+ * header PlayersStrip's dots (docs/ui.md → Player identity = a colored disc). */
 .dot {
-  width: 0.6rem;
-  height: 0.6rem;
-  border-radius: 50%;
-  border: 1px solid;
-  box-sizing: border-box;
-  flex-shrink: 0;
+  --dot-size: 0.6rem;
 }

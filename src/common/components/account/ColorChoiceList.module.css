@@ -28,11 +28,11 @@
   outline-offset: -1px;
 }
 
+/* The shared <Dot> as the swatch — at picker size the paired border ring is
+ * doing real work (a light yellow swatch alone would vanish on the surface). */
 .dot {
-  width: 1.1rem;
-  height: 1.1rem;
-  border-radius: 50%;
-  flex: none;
+  --dot-size: 1.1rem;
+  --dot-border-width: 2px;
 }
 
 .swatchName {

@@ -39,18 +39,10 @@
   border-radius: 0;
 }
 
-/* Profile-color dot. Same belt-and-braces ring pattern as
- * PlayersStrip / ClubPage's memberDot — keeps the dot legible
- * on any palette color. The white inner ring blends into the
- * surface background here, but the surface-border outer ring
- * still defines the dot crisply. */
+/* Profile-color dot — the shared <Dot>. Its paired member-color border
+ * replaces the old white-ring + surface-border "belt and braces" (the
+ * per-color ring keeps even a light fill legible on any surface). */
 .dot {
-  display: inline-block;
-  width: 0.6rem;
-  height: 0.6rem;
-  border-radius: 50%;
-  border: 1px solid var(--color-surface);
-  box-shadow: 0 0 0 1px var(--color-surface-border);
-  flex-shrink: 0;
+  --dot-size: 0.6rem;
 }
 
