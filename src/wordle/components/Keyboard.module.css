@@ -9,6 +9,7 @@
  * screen rather than overflowing. `margin: 0 auto` only matters in the unusual
  * case the grid is tinkered WIDER than the keyboard. */
 .keyboard {
+  --kb-gap: 0.3rem;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -19,12 +20,16 @@
 .row {
   display: flex;
   justify-content: center;
-  gap: 0.3rem;
+  gap: var(--kb-gap);
 }
 
+/* Every letter key is exactly one tenth of the keyboard width (less the nine
+ * gaps of the widest row), so keys line up at the same size across all three
+ * rows instead of stretching to fill each row's leftover space — the 9-key
+ * middle row centers with margins rather than growing fatter keys. The
+ * flex-basis percentage resolves against the row, which spans the keyboard. */
 .key {
-  flex: 1 1 auto;
-  min-width: 1.8rem;
+  flex: 0 0 calc((100% - 9 * var(--kb-gap)) / 10);
   height: 3.2rem;
   padding: 0;
   font-size: 0.95rem;
@@ -48,9 +53,12 @@
   opacity: 0.6;
 }
 
-/* Wide Enter / Backspace keys. */
+/* Wide Enter / Backspace keys: the only keys allowed to grow, so the pair
+ * splits whatever the third row's seven letter keys leave over (~1.45× a
+ * letter key each). Basis 0 — not auto — so they split it EQUALLY instead of
+ * each growing from its own content size ("Enter" is wider text than "⌫"). */
 .wide {
-  flex: 1.5 1 auto;
+  flex: 1 1 0;
   font-size: 0.85rem;
 }
 
