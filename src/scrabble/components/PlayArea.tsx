@@ -124,6 +124,13 @@ export function PlayArea({
     },
     [],
   )
+  // The LIVE version, for the response handler — its render closure is stale
+  // by the time the edge function answers, and an answer computed against a
+  // board a teammate has since played on must not be shown.
+  const versionRef = useRef<number | null>(null)
+  useEffect(() => {
+    versionRef.current = game?.version ?? null
+  }, [game?.version])
 
   const handleSuggest = useCallback(async () => {
     setSuggest({ status: 'loading' })
@@ -150,6 +157,12 @@ export function PlayArea({
     const payload = data as { moves?: RankedMove[]; version?: number; error?: string } | null
     if (!payload || payload.error || !Array.isArray(payload.moves) || typeof payload.version !== 'number') {
       setSuggest({ status: 'error', message: payload?.error ?? 'Could not fetch suggestions.' })
+      return
+    }
+    if (payload.version !== versionRef.current) {
+      // A move landed while the request was in flight — these hints answer a
+      // board that no longer exists. Say so rather than show them.
+      setSuggest({ status: 'error', message: 'Board changed — ask again.' })
       return
     }
     setSuggest({ status: 'ready', moves: payload.moves, version: payload.version })
@@ -215,13 +228,14 @@ export function PlayArea({
   if (!game) return <p className={styles.loading}>Game not found.</p>
 
   const scrabbleSetup = setup as unknown as ScrabbleSetup
-  // A ready suggestion list computed against an older board renders as the
-  // staleness message, never as wrong hints. Derived each render — it covers
-  // both races (the response landed after a move, or a move landed while the
-  // list was open) with no clearing effect.
+  // A ready list quietly clears the moment the board moves past it — most
+  // commonly because the player just COMMITTED the suggested move, where a
+  // "board changed" message read as something going wrong. Derived each
+  // render, no clearing effect. (An answer that was stale on ARRIVAL — a
+  // teammate played mid-flight — does get the explicit message, above.)
   const suggestView: SuggestState =
     suggest.status === 'ready' && suggest.version !== game.version
-      ? { status: 'error', message: 'Board changed — ask again.' }
+      ? { status: 'idle' }
       : suggest
   const over = isTerminal ? buildOver({ game, playState, status, selfId: session.user.id, nameOf }) : null
   // The player whose turn it is (compete) — for the "Turn: ● name" state line.

@@ -766,9 +766,10 @@ returns `{board, rack, dict_2, dict_3plus, version}` from one SELECT — an
 atomic snapshot. pgTAP: `get_suggest_context_test.sql`.
 
 **`version` is the staleness currency** (coop has no turns, so a teammate can
-play while a hint is in flight): a `ready` list remembers the version it was
-computed against, and the FE derives "Board changed — ask again." whenever that
-no longer matches the live board. The suggest box is a **reserved fixed-height
+play while a hint is in flight): an answer that arrives already stale reports
+"Board changed — ask again.", and a `ready` list quietly clears (derived at
+render, no message) the moment the board moves past it — most commonly because
+the player just committed the suggested move. The suggest box is a **reserved fixed-height
 slot** in the info column (results arriving must not reflow the column); the
 e2e (`scrabble-suggest.e2e.ts`) checks both invariants against the real edge
 function in a real browser.

@@ -59,6 +59,14 @@ test.describe('scrabble — suggest a move (coop)', () => {
     await rows.nth(0).click()
     await expect(page.getByRole('button', { name: 'Submit' })).toContainText(`+${advertised}`)
 
+    // Commit it. The played move bumps the board version past the open list —
+    // which must QUIETLY clear, never surface the staleness message (a real
+    // regression: "Board changed — ask again." after playing the suggestion).
+    await page.getByRole('button', { name: 'Submit' }).click()
+    await expect(page.getByText(`+${advertised}`).first()).toBeVisible() // the own-move pill
+    await expect(rows).toHaveCount(0)
+    await expect(page.getByText('Board changed — ask again.')).toHaveCount(0)
+
     await ctx.close()
   })
 })
