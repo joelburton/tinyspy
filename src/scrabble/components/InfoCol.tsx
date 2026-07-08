@@ -28,6 +28,10 @@ export type SuggestState =
   | { status: 'ready'; moves: RankedMove[]; version: number }
   | { status: 'error'; message: string }
 
+/** "+15" / "-3" / "+19.5" — a signed rating, decimals only when the leave's
+ *  half-point weights put them there. */
+const signed = (n: number) => `${n >= 0 ? '+' : ''}${Number.isInteger(n) ? n : n.toFixed(1)}`
+
 /**
  * scrabble's info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/design-decisions.md → Info column): turn/score
@@ -229,6 +233,11 @@ export function InfoCol({
                     {move.words.map((w) => w.word).join(', ')}
                   </span>
                   <span className={styles.suggestScore}>+{move.score}</span>
+                  {/* The overall rating — equity = score + the leave heuristic
+                      (how good the kept rack is), the value the list is
+                      actually sorted by. Muted on purpose (Joel's spec): the
+                      score is the headline, this is the "but really" number. */}
+                  <span className={styles.suggestRating}>({signed(move.equity)})</span>
                 </button>
               ))}
           </div>

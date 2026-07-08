@@ -52,6 +52,13 @@
   font-weight: 600;
 }
 
+/* The parenthesized overall rating (equity = score + leave) after the score.
+ * Muted BY JOEL'S SPEC (an exception to the don't-default-to-muted rule): the
+ * score is the headline number, the rating is the aside. */
+.suggestRating {
+  color: var(--color-muted);
+}
+
 .suggestError {
   color: var(--color-sys-error-red);
 }
