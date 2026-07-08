@@ -25,6 +25,7 @@ import { formatTimerSeconds } from '../../hooks/game/useGameTimer'
 import { useClubRoster } from '../../hooks/club/useClubRoster'
 import { useChatFeedback } from '../../hooks/chat/useChatFeedback'
 import { navigate } from '../../lib/routing/router'
+import { Link } from '../../lib/routing/Link'
 import { ChatBubble } from '../chat/ChatBubble'
 import { FloatingChat } from '../chat/FloatingChat'
 import { ScratchpadBubble } from '../panels/ScratchpadBubble'
@@ -274,7 +275,27 @@ export function GamePage({
   const manifest = games.find((g) => g.gametype === gametype)
 
   if (loading) return <div className="card">Loading game…</div>
-  if (!commonGame) return <div className="card">Game not found.</div>
+  // No common.games row for this id. The likely stories: the game was
+  // deleted (someone in the club cleaned it up), or the URL is wrong /
+  // stale. Either way the player has nowhere to go from here except
+  // hand-editing the URL, so give them a real page with an exit —
+  // same shape as ClubPage's couldn't-load card.
+  if (!commonGame) {
+    return (
+      <div className="card">
+        <h1>Game not found</h1>
+        <p>
+          There's no game here. It may have been deleted, or the link
+          you followed might be wrong or out of date.
+        </p>
+        <p>
+          <Link to="/" className="link-button">
+            ← Back home
+          </Link>
+        </p>
+      </div>
+    )
+  }
   if (!manifest) return <div className="card">Unknown game type.</div>
 
   // The gametype's manual end-game dispatcher, if it has one (bananagrams has no
