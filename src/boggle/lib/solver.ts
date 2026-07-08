@@ -14,7 +14,9 @@
  *
  *   1. A flat typed-array **trie** (not a minimised DAWG). A DAWG merges shared
  *      suffixes, so a node can't identify a word; a trie gives every word its own
- *      terminal node, which unlocks choice 2.
+ *      terminal node, which unlocks choice 2. The trie itself lives in
+ *      `common/lib/game/trie.ts` (shared with scrabble's move suggester) and is
+ *      re-exported here — to boggle code, `./solver` is still the surface.
  *   2. Dedup via a **generation stamp** on the terminal node. A board lets you
  *      trace the same word along several paths, so we must dedup — but because a
  *      trie node *is* a word, "seen this word already this board?" is one array
@@ -26,6 +28,13 @@
  * We track used tiles with a small visited byte array rather than a single
  * 32-bit number, since 6×6 = 36 tiles overflows 32 bits.
  */
+
+// The flat trie moved to common (scrabble's move suggester shares it); keep
+// `./solver` as boggle's one-stop import surface. `.ts` extensions because
+// this module is on the Deno import graph (boggle-build-board → here).
+import type { Trie } from '../../common/lib/game/trie.ts'
+export { buildTrie } from '../../common/lib/game/trie.ts'
+export type { Trie }
 
 /** Multiface tiles, encoded in board strings as a digit. Each occupies one tile
  *  but contributes two letters (you can't use half a tile). Matches wsboggle's
@@ -50,43 +59,6 @@ export function scoreFor(len: number, ladder: readonly number[]): number {
 }
 
 const A = 'a'.charCodeAt(0)
-
-/** Flat trie: `children[node * 26 + letter]` is the child node (0 = none; node 0
- *  is the root, which nothing points back to, so 0 is unambiguous). `eow[node]`
- *  marks a word ending. */
-export interface Trie {
-  children: Int32Array
-  eow: Uint8Array
-  nNodes: number
-}
-
-/** Build a trie from a word list. Words are lower-cased; any word with a
- *  non-`a`–`z` character is skipped. */
-export function buildTrie(words: readonly string[]): Trie {
-  let cap = 1 << 16
-  let children = new Int32Array(cap * 26)
-  let eow = new Uint8Array(cap)
-  let n = 1 // node 0 = root
-  const grow = () => {
-    cap *= 2
-    const c = new Int32Array(cap * 26); c.set(children); children = c
-    const e = new Uint8Array(cap); e.set(eow); eow = e
-  }
-  for (const raw of words) {
-    const w = raw.toLowerCase()
-    let node = 0
-    let ok = true
-    for (let i = 0; i < w.length; i++) {
-      const c = w.charCodeAt(i) - A
-      if (c < 0 || c >= 26) { ok = false; break }
-      let nx = children[node * 26 + c]
-      if (nx === 0) { nx = n++; if (n > cap) grow(); children[node * 26 + c] = nx }
-      node = nx
-    }
-    if (ok) eow[node] = 1
-  }
-  return { children, eow, nNodes: n }
-}
 
 /** A board ready to solve. `first`/`second` hold letter indices (0–25) per tile;
  *  `first[cell]` is -1 for a **blank** tile (matches nothing), and `second[cell]`

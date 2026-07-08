@@ -18,8 +18,8 @@
  *     count. Used to enumerate a board's bonus words.
  */
 
-import { buildTrie } from '../../../src/boggle/lib/solver.ts'
-import type { Trie } from '../../../src/boggle/lib/solver.ts'
+import { buildTrie } from '../../../src/common/lib/game/trie.ts'
+import type { Trie } from '../../../src/common/lib/game/trie.ts'
 import { WORDLIST_GZ_B64 } from './wordlist.ts'
 
 // Bands 1..6 (index 0 unused). `clean` = the required-eligible subset; `all`

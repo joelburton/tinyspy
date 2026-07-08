@@ -37,10 +37,12 @@ supabase/snippets
 # Edge Function secrets
 supabase/functions/.env
 
-# Generated boggle dictionary asset — rebuilt from common.words by
-# `npm run boggle:wordlist` (run automatically by `npm run deploy`, and before
-# `supabase functions serve` locally). Not committed; ~1.2 MB.
+# Generated boggle + scrabble dictionary assets — rebuilt from common.words by
+# `npm run boggle:wordlist` / `npm run scrabble:wordlist` (run automatically by
+# `npm run deploy`, and before `supabase functions serve` locally). Not
+# committed; ~1.2 MB each.
 supabase/functions/boggle-build-board/wordlist.ts
+supabase/functions/scrabble-suggest-move/wordlist.ts
 
 # Hosted-Supabase import: the runner (import-to-hosted.sh) is committed;
 # its secrets + per-deployment values live in import-to-hosted.secrets.sh,

@@ -122,7 +122,8 @@ lib/
   routing/       # the hash router + <Link>
       router, Link
   game/          # game-logic helpers (NOT the registry above)
-      gridCursor, pause, terminalCopy, timerLabel, difficulty, peers, gameInvites
+      gridCursor, pause, terminalCopy, timerLabel, difficulty, peers, gameInvites,
+      trie (the flat dictionary trie shared by boggle's solver + scrabble's suggester)
   definitions/   # dictionary-definition parsing
       parseDefinition
   color/         # member/tile color derivation
