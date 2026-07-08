@@ -29,7 +29,10 @@ import {
   premiumAt,
   RACK_SIZE,
   type Cell,
-} from './board'
+  // `.ts` extension: this module is on the Deno import graph (the
+  // scrabble-suggest-move edge function imports it), and Deno requires
+  // explicit extensions on the whole transitive graph.
+} from './board.ts'
 
 /**
  * One new tile a player is placing. `letter` is the uppercase letter it plays
