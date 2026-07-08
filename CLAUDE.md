@@ -13,6 +13,7 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/ui.md](docs/ui.md) | FE design philosophy: desktop-first, theme tokens, global-vs-per-game vocab, consistency goals |
 | [docs/playarea-decomposition-plan.md](docs/playarea-decomposition-plan.md) | The `PlayArea` → `BoardCol` / `InfoCol` decomposition + the shared turn-history viewer (`useHistoryViewer`, per-game `lib/history.ts`): the recipe, prop conventions, and per-game keying |
 | [docs/pdf.md](docs/pdf.md) | Printing game boards to PDF (jsPDF): the clean-printable design language — the three-shade greyscale palette, color-only-for-meaning, white backgrounds, header/Setup conventions; the shared `common/pdf/` helpers (frame + turnLog + wordColumns) and the two body families (turn-log vs word-list games) |
+| [docs/scrabble-ai.md](docs/scrabble-ai.md) | The scrabble move suggester (AI) — design record: the algorithm survey + decisions (A&J flat-trie generator over the shared rated trie, NOT GADDAG; score + hand-rolled-leave ranking; the grant-hidden-bands definer RPC `get_suggest_context`), the brute-force parity test strategy, and the designed-but-deferred strength slider / AI opponent. Shipped architecture summary = games/scrabble.md §12 |
 | [docs/deferred.md](docs/deferred.md) | Things explicitly deferred from code reviews and conversations |
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command + file lookup |
 | [README.md](README.md) | Narrative + stack |

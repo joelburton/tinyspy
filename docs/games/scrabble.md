@@ -410,7 +410,8 @@ computed. **The server trusts those** (per the trust model — players are frien
 we don't defend against cheating) and only does the things it alone can: check
 the words against the dictionary, draw replacement tiles from the hidden bag, and
 keep the books. This is the model Joel chose: simpler SQL, one implementation of
-the hard logic, and the same `lib/play.ts` is reusable by a future AI clue-helper.
+the hard logic, and the same `lib/play.ts` is what the AI move suggester reuses
+([§12](#12-the-move-suggester-ai)).
 
 **Atomicity + races, without re-deriving the move.** The earlier worry — that
 trusting the FE opens a read-then-write TOCTOU, especially in coop's shared rack —
@@ -431,9 +432,9 @@ We accept that under FE-trust; the mitigation is that `lib/play.ts` is the singl
 unit-tested source of those rules. If we ever wanted server authority back, the
 port target is exactly that one tested module — but YAGNI today.
 
-(No edge function anywhere: the dictionary check and bag draw are trivial SQL, and
-edge functions in this repo are only ever *setup-time board generation*, which
-scrabble doesn't have.)
+(No edge function on the *play* path: the dictionary check and bag draw are
+trivial SQL. scrabble's one edge function, `scrabble-suggest-move`, is the
+[§12](#12-the-move-suggester-ai) hint helper — advisory, never a validator.)
 
 ---
 
@@ -712,3 +713,62 @@ All shipped in migration `20260627000000_scrabble.sql` (which registers
   free-form lookup; the shared `DefinitionView` now also shows a word's band /
   dialects / slur-crude flags / wordle-membership (a `common` change across all
   word games).
+
+---
+
+## 12. The move suggester (AI)
+
+**[docs/scrabble-ai.md](../scrabble-ai.md) is the design doc** — the algorithm
+survey, the GADDAG-vs-flat-trie decision, the leave-heuristic weights, the
+strength-slider design, and the staged build plan. This section is the shipped
+architecture at a glance.
+
+Coop's info column has a **Suggest** button (the shared `AIButton`); it returns
+the top-5 legal moves, and clicking one **stages** that move's tiles — the same
+staging state a hand-placed move uses, reviewed and committed through the
+normal play flow. The suggester is advisory: it never submits.
+
+**The engine is pure TS in `src/scrabble/lib/`**, beside the play engine it
+reuses:
+
+- `suggest.ts` — `generateMoves`: complete legal-move enumeration, the Appel &
+  Jacobson 1988 recipe (anchors, cross-check masks, left parts) run across +
+  transposed, over the shared flat trie (`common/lib/game/trie.ts`, whose
+  **rated terminals** carry each word's difficulty 1..6). Its `isLegal` is the
+  band predicate, applied to every formed word — main and cross-words alike:
+  `difficulty ≤ (len = 2 ? dict_2 : dict_3plus)`, matching `play_word`'s SQL by
+  construction. Verified by **exact move-set equality against a brute-force
+  reference generator** in `suggest.test.ts`.
+- `rank.ts` — `rankMoves`: every candidate scored **through `evaluatePlay`**
+  (a hint's score can't disagree with what the game awards), plus a hand-rolled
+  Maven-style **leave** heuristic; sorted by `equity = score + leave`. The
+  strength levers (vocab cap / score fraction / leave off) are in the signature
+  but not yet in the UI.
+
+**The edge function `scrabble-suggest-move`** hosts the engine (the dictionary
+deliberately never ships to the game FE). It builds ONE all-bands rated trie at
+cold start from a bundled word list (`npm run scrabble:wordlist` generates it —
+`play_word`'s exact word universe: len 2..15, american OR british, all bands;
+git-ignored, rebuilt on deploy). Calling shape:
+
+```
+POST /functions/v1/scrabble-suggest-move   { game_id }
+  → { moves: RankedMove[] /* top 5 */, version }     · { error } (400/401/403/500)
+```
+
+**`scrabble.get_suggest_context(uuid)`** is the function's one read — a
+SECURITY DEFINER RPC (the `codenamesduet.get_clue_context` shape), because the
+dictionary bands are **grant-hidden** on `scrabble.games` and this is the one
+sanctioned door. It enforces membership (`require_game_player`), `play_state =
+'playing'`, and **coop only** (in compete the rack is private — the gate is
+also what keeps the suggester from becoming a rack-reading side channel), then
+returns `{board, rack, dict_2, dict_3plus, version}` from one SELECT — an
+atomic snapshot. pgTAP: `get_suggest_context_test.sql`.
+
+**`version` is the staleness currency** (coop has no turns, so a teammate can
+play while a hint is in flight): a `ready` list remembers the version it was
+computed against, and the FE derives "Board changed — ask again." whenever that
+no longer matches the live board. The suggest box is a **reserved fixed-height
+slot** in the info column (results arriving must not reflow the column); the
+e2e (`scrabble-suggest.e2e.ts`) checks both invariants against the real edge
+function in a real browser.

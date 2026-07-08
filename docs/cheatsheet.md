@@ -19,6 +19,7 @@
 | `npm run import` | run every game's importer in sequence (words + spellingbee + connections + stackdown + crosswords). **Run after `db:reset`** — a bare reset leaves `common.words` + the puzzle libraries empty |
 | `npm run words:import` | populate `common.words` (the shared master word list) from `~/src/gamelist/words.tsv` (the word-list project's working copy, read live; override with `WORDS_TSV`). Loads via psql `COPY` (reseed: TRUNCATE + insert) — needs `psql` on PATH; targets `SUPABASE_DB_URL` (default local) |
 | `npm run spellingbee:import` | rebuild `spellingbee.pangrams` (the board-seed pool) from the scoring slice of `common.words`. **Run after `words:import`.** psql `COPY` reseed; needs `psql` |
+| `npm run scrabble:wordlist` | bundle the scrabble move-suggester dictionary (`play_word`'s exact word universe) into the git-ignored `scrabble-suggest-move/wordlist.ts`. Needed before the edge function can serve locally; `deploy` runs it automatically |
 | `npm run deploy` | full prod push: `supabase db push` → `supabase functions deploy` (all functions) → `vite build` → `netlify deploy -p -d dist` |
 | `deno test supabase/functions/waffle-build-board/gen_test.ts` | unit-test waffle's `minSwaps` par (the generation logic lives in the edge function, not under Vitest) |
 

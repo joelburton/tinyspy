@@ -1,11 +1,17 @@
 # Scrabble move suggester (AI) — exploration + plan
 
-Status: **plan fleshed out, implementation-ready — no code yet.** Captured from
-a design conversation on 2026-07-08; same day, the plan was evaluated against
-the actual code and expanded (the "Verified codebase anchors" section + the
-per-stage specs below — including a correction to how the edge function reads
-the dictionary bands). This file is the source of truth for the feature; read
-it first when picking the work up. Companion to
+Status: **SHIPPED — all six stages built 2026-07-08 on branch `scrabble-ai`**
+(S1 trie groundwork `62043bf` · S2 generator `d1ad7a6` · S3 ranking `83ef421` ·
+S4 RPC + edge function `48d9e3b` · S5 FE `5e7e865` · S6 docs). The shipped
+architecture at a glance lives in
+[games/scrabble.md §12](games/scrabble.md#12-the-move-suggester-ai); this file
+remains the **design record** — the algorithm survey, the decisions and their
+rationale, the per-stage specs the build followed, and the
+designed-but-deferred extensions (strength slider, AI opponent, exchange
+suggestions). Captured from a design conversation on 2026-07-08; the same day
+the plan was evaluated against the actual code, expanded (the "Verified
+codebase anchors" section + the per-stage specs — including the correction to
+how the edge function reads the dictionary bands), and then built. Companion to
 [games/scrabble.md](games/scrabble.md) (the game itself) and
 [games/boggle.md](games/boggle.md) (the trie/solver + edge-function patterns
 this reuses).
@@ -232,7 +238,10 @@ const isLegal = (node: number, len: number): boolean => {
 
 - **Decision point first**: extract the trie builder to `common/lib/` (boggle
   migrates onto it; run boggle's solver tests + the C parity oracle) vs. copy
-  into `src/scrabble/lib/`. **Ask Joel.** Concrete diff surface of each:
+  into `src/scrabble/lib/`. **Ask Joel.** → **RESOLVED at build time: extract.**
+  The trie lives at `common/lib/game/trie.ts`; boggle's `solver.ts` re-exports
+  it (so `./solver` stays boggle's import surface) and the C parity oracle
+  stayed green. Concrete diff surface of each:
   - *Extract*: move `Trie`/`buildTrie` (~40 lines) to a `common/lib/` home
     (consult [common-layout.md](common-layout.md) placement rules); boggle's
     `solver.ts` re-exports or imports it; touched boggle surface = one import
