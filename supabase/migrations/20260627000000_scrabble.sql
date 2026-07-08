@@ -1183,3 +1183,64 @@ $$;
 
 revoke execute on function scrabble.end_game(uuid) from public;
 grant execute on function scrabble.end_game(uuid) to authenticated;
+
+-- ============================================================
+-- scrabble.get_suggest_context — read-only RPC for the move suggester
+-- ============================================================
+-- The `scrabble-suggest-move` Edge Function (docs/scrabble-ai.md) needs the
+-- dictionary bands to generate only game-legal moves — but dict_2/dict_3plus
+-- are deliberately EXCLUDED from the column grant on scrabble.games (they're
+-- server-only config; the FE never validates words — §3.3 above). This
+-- SECURITY DEFINER RPC is the one sanctioned door, the exact shape of
+-- codenamesduet.get_clue_context: membership is the authorization, and the
+-- feature gate ("suggestions are a coop feature") lives HERE, not in the
+-- edge function — the client can't ask for hints under the wrong gate.
+--
+-- One SELECT returns an atomic, mutually consistent snapshot: a teammate's
+-- concurrent play can't tear board from rack, and `version` rides along so
+-- the FE can detect a suggestion that went stale in flight (coop has no
+-- turns, so that race is real).
+
+create function scrabble.get_suggest_context(target_game uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = scrabble, common, public, extensions
+as $$
+declare
+  g scrabble.games%rowtype;
+  current_play_state text;
+begin
+  select * into g from scrabble.games where id = target_game;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  perform common.require_game_player(target_game);
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+  if current_play_state <> 'playing' then
+    raise exception 'no suggestions outside of active play' using errcode = 'P0001';
+  end if;
+
+  -- Compete hints are a house-rules question, deliberately deferred
+  -- (docs/scrabble-ai.md "Deferred") — and in compete the rack is private,
+  -- so this gate is also what keeps the suggester from becoming a
+  -- rack-reading side channel.
+  if g.mode <> 'coop' then
+    raise exception 'suggestions are a coop-mode feature' using errcode = 'P0001';
+  end if;
+
+  return jsonb_build_object(
+    'board', g.board,
+    'rack', to_jsonb(g.shared_rack),
+    'dict_2', g.dict_2,
+    'dict_3plus', g.dict_3plus,
+    'version', g.version
+  );
+end;
+$$;
+
+revoke execute on function scrabble.get_suggest_context(uuid) from public;
+grant execute on function scrabble.get_suggest_context(uuid) to authenticated;
