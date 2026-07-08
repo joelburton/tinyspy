@@ -178,7 +178,20 @@ export function InfoCol({
             {isCompete ? (
               <ConcedeGameButton className={shared.helperButton} onClick={onConcede} />
             ) : (
-              <EndGameButton className={shared.helperButton} onClick={onEndGame} />
+              <>
+                <EndGameButton className={shared.helperButton} onClick={onEndGame} />
+                {/* Suggest-a-move (coop) — the AI hint lives with the other
+                    action buttons; its results render in the reserved box
+                    below the help text. */}
+                {suggest && (
+                  <AIButton
+                    label="Suggest"
+                    className={shared.helperButton}
+                    disabled={!canSuggest || suggest.status === 'loading'}
+                    onClick={onSuggest}
+                  />
+                )}
+              </>
             )}
           </div>
         )}
@@ -191,43 +204,33 @@ export function InfoCol({
           </p>
         )}
 
-        {/* Suggest-a-move (coop): the AI button + the top-5 list. The box is a
-            FIXED height in every state (idle / loading / results / error) so a
-            suggestion arriving never shifts the sections below — see the module
-            css. Clicking a row stages that move's tiles on the board for review;
-            the suggester never submits. */}
+        {/* Suggest-a-move results (coop; the button is up in the action row).
+            The box is a FIXED height in every state (idle / loading / results /
+            error) so a suggestion arriving never shifts the sections below —
+            see the module css. Clicking a row stages that move's tiles on the
+            board for review; the suggester never submits. */}
         {suggest && (
           <div className={styles.suggestBox} data-zone="suggest">
-            <div className={shared.infoActions}>
-              <AIButton
-                label="Suggest"
-                className={shared.helperButton}
-                disabled={!canSuggest || suggest.status === 'loading'}
-                onClick={onSuggest}
-              />
-            </div>
-            <div className={styles.suggestBody}>
-              {suggest.status === 'loading' && <p>Thinking…</p>}
-              {suggest.status === 'error' && <p className={styles.suggestError}>{suggest.message}</p>}
-              {suggest.status === 'ready' && suggest.moves.length === 0 && (
-                <p>No legal moves — swap tiles?</p>
-              )}
-              {suggest.status === 'ready' &&
-                suggest.moves.map((move, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    className={styles.suggestRow}
-                    onClick={() => onApplySuggestion(move)}
-                    title="Stage these tiles on the board"
-                  >
-                    <span className={styles.suggestWords}>
-                      {move.words.map((w) => w.word).join(', ')}
-                    </span>
-                    <span className={styles.suggestScore}>+{move.score}</span>
-                  </button>
-                ))}
-            </div>
+            {suggest.status === 'loading' && <p>Thinking…</p>}
+            {suggest.status === 'error' && <p className={styles.suggestError}>{suggest.message}</p>}
+            {suggest.status === 'ready' && suggest.moves.length === 0 && (
+              <p>No legal moves — swap tiles?</p>
+            )}
+            {suggest.status === 'ready' &&
+              suggest.moves.map((move, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={styles.suggestRow}
+                  onClick={() => onApplySuggestion(move)}
+                  title="Stage these tiles on the board"
+                >
+                  <span className={styles.suggestWords}>
+                    {move.words.map((w) => w.word).join(', ')}
+                  </span>
+                  <span className={styles.suggestScore}>+{move.score}</span>
+                </button>
+              ))}
           </div>
         )}
 

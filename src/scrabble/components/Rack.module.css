@@ -11,6 +11,9 @@
      (--rack-tile-size, set on .layout — shrinks the rack on a cramped laptop). */
   box-sizing: border-box;
   width: calc(7 * var(--rack-tile-size) + 6 * 6px + 2 * 8px);
+  /* …and always a full tile-row TALL, so an empty rack (endgame — the bag and
+     rack run dry) still reads as the tray, not a thin brown line. */
+  min-height: calc(var(--rack-tile-size) + 2 * 8px);
 }
 
 .tile {

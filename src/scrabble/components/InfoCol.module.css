@@ -1,29 +1,20 @@
-/* scrabble InfoCol — the coop suggest-a-move box (docs/scrabble-ai.md S5).
- * Everything else in the column comes from the shared PlayArea.module.css. */
+/* scrabble InfoCol — the coop suggest-a-move results box (docs/scrabble-ai.md
+ * S5; the Suggest button itself sits in the shared action row). Everything
+ * else in the column comes from the shared PlayArea.module.css. */
 
 /* The box reserves its FULL height at all times — idle, loading, or holding
  * the top-5 list — so a suggestion arriving never grows the column or shifts
  * the setup disclosure / Moves log below it (the no-reflow rule; fixed
  * `height`, deliberately not a growable `min-height`). The arithmetic:
- * a 2.2rem button row + 0.4rem gap + 5 rows × 1.35rem = 9.35rem, held at
- * 9.75rem for button-height slack; overflow is clipped, never reflowed. */
+ * 5 rows × 1.35rem = 6.75rem; overflow is clipped, never reflowed. */
 .suggestBox {
-  height: 9.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  overflow: hidden;
-}
-
-.suggestBody {
-  flex: 1;
-  min-height: 0;
+  height: 6.75rem;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-.suggestBody p {
+.suggestBox p {
   margin: 0;
   font-size: 0.9rem;
 }

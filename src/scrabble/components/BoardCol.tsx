@@ -799,8 +799,11 @@ export function BoardCol({
                 <Rack tiles={rackTiles} used={usedRackIdx} selected={selected} flashIds={yellowFlash} active={canPlace} onPointerDown={onRackPointerDown} />
                 {/* Shuffle floats over the rack's top-right corner — a quick
                     reshuffle of the RACK (not a turn action), so it sits on the
-                    rack, not in the commit row. */}
-                <ShuffleButton onShuffle={shuffle} label="Shuffle rack" className={styles.rackShuffle} />
+                    rack, not in the commit row. Hidden when the rack is empty
+                    (nothing to shuffle); it floats absolutely, so no reflow. */}
+                {rackTiles.length > 0 && (
+                  <ShuffleButton onShuffle={shuffle} label="Shuffle rack" className={styles.rackShuffle} />
+                )}
               </div>
               <Controls
                 isCompete={isCompete}
