@@ -54,7 +54,7 @@ const DB_URL =
 // The word list's working copy — developed alongside this app, read
 // live so it can never drift from the source. Override with WORDS_TSV.
 const WORDS_PATH =
-  process.env.WORDS_TSV ?? resolve(homedir(), 'src/gamelist/words.tsv')
+  process.env.WORDS_TSV ?? resolve(homedir(), 'src/gamelist/output/words.tsv')
 
 if (!existsSync(WORDS_PATH)) {
   console.error(

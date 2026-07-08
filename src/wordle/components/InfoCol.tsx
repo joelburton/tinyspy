@@ -6,6 +6,7 @@ import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
+import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import type { Member } from '../../common/lib/games'
@@ -108,6 +109,10 @@ export function InfoCol({
   /** Open a turn on the board viewer (click its `#N`). */
   onSelectTurn: (index: number) => void
 }) {
+  // Click-to-define on the revealed answer (the shared DefinitionPopover — same
+  // lookup waffle's SolutionReveal and stackdown's turn log use).
+  const { define, popover } = useDefinePopover()
+
   // The End / Concede button — error-toned (red). Compete uses CONCEDE (drop out of the
   // race → wordle.concede); coop uses the neutral "End" (a mutual "we're done" →
   // end_game). Shared by the playing and the locally-terminal action rows.
@@ -182,8 +187,23 @@ export function InfoCol({
         <div className={shared.terminalExtra}>
           <p className={cls(shared.infoState, styles.answerLine)}>
             The answer was{' '}
-            <strong className={styles.answerReveal}>{solution.toUpperCase()}</strong>
+            <strong
+              className={cls('definable', styles.answerReveal)}
+              role="button"
+              tabIndex={0}
+              title="Click to define"
+              onClick={(e) => define(solution, e.currentTarget)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  define(solution, e.currentTarget)
+                }
+              }}
+            >
+              {solution.toUpperCase()}
+            </strong>
           </p>
+          {popover}
         </div>
       )}
 

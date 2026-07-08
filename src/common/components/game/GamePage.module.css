@@ -4,9 +4,9 @@
  * chat as a floating panel.
  *
  * Header layout per docs/ui.md → "GamePage header":
- *   [logo] [chat] [status-slot]                [pause] [timer-if-set]
+ *   [logo] [chat scratchpad] [status-slot]     [pause] [timer-if-set]
  *
- *   - left: logo + chat-bubble (fixed) + status-slot (flex: 1).
+ *   - left: logo + panel-toggle pair (fixed) + status-slot (flex: 1).
  *   - right: pause-button (fixed) + timer (fixed, when shown).
  *
  * The status-slot's `flex: 1` is what gives feedback pills and
@@ -32,7 +32,7 @@
   padding-bottom: 0.5rem;
 }
 
-/* Left group: logo + chat-bubble + status-slot. `flex: 1` so the
+/* Left group: logo + panel-toggle pair + status-slot. `flex: 1` so the
  * group expands to fill all the space the right-group doesn't
  * claim — that's the room the status-slot has to render its pill
  * / strip. `min-width: 0` lets the inner StatusSlot's children
@@ -60,6 +60,16 @@
   gap: 0.5rem;
   flex-shrink: 0;
   margin-right: 2rem;
+}
+
+/* The floating-panel toggles: chat bubble + (when the manifest opts in)
+ * scratchpad bubble. Grouped in one flex item so the pair sits tighter than
+ * the header's 0.75rem gap — the two are related in purpose (each toggles a
+ * floating panel), and the closeness is what signals that. */
+.panelToggles {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
 }
 
 /* The countdown / count-up display. Tabular-nums so MM:SS digits

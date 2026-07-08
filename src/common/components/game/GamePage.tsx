@@ -333,8 +333,10 @@ export function GamePage({
             sections={sections}
             triggerLabel="Game menu"
           />
-          <ChatBubble />
-          {manifest.scratchpad?.enabled && <ScratchpadBubble />}
+          <div className={styles.panelToggles}>
+            <ChatBubble />
+            {manifest.scratchpad?.enabled && <ScratchpadBubble />}
+          </div>
           <StatusSlot
             players={players}
             globalFeedback={globalFeedback}

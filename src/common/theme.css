@@ -270,8 +270,11 @@
 
   /* The fixed square footprint of an icon-only action button (`.icon-only`).
      One token so the box size is consistent everywhere and tunable in one place,
-     independent of the glyph inside it. */
-  --icon-button-size:         2.4rem;
+     independent of the glyph inside it. Kept equal to the rendered height of a
+     labeled text button (its 0.4rem × 2 padding + one line of text + borders)
+     so the two sit flush in mixed rows like EntryRow — retune this if the
+     button padding in the element resets changes. */
+  --icon-button-size:         2.05rem;
 
   /* The shared <EntryBox> text size (placeholder + entered word). Default here;
      a consumer raises it by re-setting the token on its own EntryBox element
@@ -376,6 +379,11 @@ button {
   border-color: var(--color-accent);
   color: white;
   cursor: pointer;
+  /* Tighter than the inputs/textareas sharing the base rule above: buttons are
+     click targets, not typing surfaces, and don't need the same breathing room.
+     Icon glyphs are unaffected — they're sized by explicit pixel props, not
+     padding. (--icon-button-size tracks the height this produces.) */
+  padding: 0.4rem 0.65rem;
 }
 
 /* No hover effect on the raw <button> element. Too many <button>s are
