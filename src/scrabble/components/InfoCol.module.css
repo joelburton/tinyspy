@@ -1,0 +1,66 @@
+/* scrabble InfoCol — the coop suggest-a-move box (docs/scrabble-ai.md S5).
+ * Everything else in the column comes from the shared PlayArea.module.css. */
+
+/* The box reserves its FULL height at all times — idle, loading, or holding
+ * the top-5 list — so a suggestion arriving never grows the column or shifts
+ * the setup disclosure / Moves log below it (the no-reflow rule; fixed
+ * `height`, deliberately not a growable `min-height`). The arithmetic:
+ * a 2.2rem button row + 0.4rem gap + 5 rows × 1.35rem = 9.35rem, held at
+ * 9.75rem for button-height slack; overflow is clipped, never reflowed. */
+.suggestBox {
+  height: 9.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  overflow: hidden;
+}
+
+.suggestBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.suggestBody p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* One suggested move — a text row that stages the tiles on click. Fixed row
+ * height (part of the box arithmetic above); long cross-word lists ellipsize
+ * rather than wrap (wrapping would break the height math). */
+.suggestRow {
+  height: 1.35rem;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.suggestRow:hover .suggestWords {
+  text-decoration: underline;
+}
+
+.suggestWords {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.suggestScore {
+  font-weight: 600;
+}
+
+.suggestError {
+  color: var(--color-sys-error-red);
+}

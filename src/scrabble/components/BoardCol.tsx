@@ -160,6 +160,7 @@ export function BoardCol({
   canShare,
   shareMove,
   selfId,
+  registerSuggestionApplier,
 }: {
   // ── Game data (the turn machine reads board/version/rack/bag off this) ──
   game: ScrabbleGame
@@ -202,6 +203,13 @@ export function BoardCol({
   shareMove: (payload: SharedMovePayload) => void
   /** My user id — stamped on a broadcast as its `sharerId`. */
   selfId: string
+
+  // ── Suggest-a-move (coop only — see docs/scrabble-ai.md S5) ──
+  /** Register (or, with null, unregister) the "stage this suggested move"
+   *  applier with PlayArea, which calls it from the InfoCol list's click —
+   *  staging lives here, the suggest state there (the menu.setGameItems
+   *  register shape). */
+  registerSuggestionApplier: (fn: ((placements: Placement[]) => void) | null) => void
 }) {
   const [staged, setStaged] = useState<Staged[]>([])
   const [selected, setSelected] = useState<Set<number>>(new Set()) // exchange selection
@@ -331,6 +339,43 @@ export function BoardCol({
     }
     pendingDrawRef.current = 0
   }, [game.version, game.board, rackLen, isCompete, showLocalFeedback, flashYellow, onExitViewing])
+
+  // Apply an accepted AI suggestion (docs/scrabble-ai.md S5): fill the staging
+  // state with the suggested placements — the SAME state a hand-placed move
+  // uses, so the player reviews the ghost tiles on the board and commits
+  // through the normal play flow. The suggester is advisory: it never submits.
+  // Each placement is re-resolved against the live rack (a blank consumes a
+  // '?'), and the whole apply bails with the terse pill if the board or rack
+  // changed under it (a teammate played while the list was open — PlayArea
+  // derives staleness off game.version, but the click can race it). Runs in
+  // the InfoCol list's click handler — PlayArea holds it via the register
+  // prop (an external-registry effect, like menu.setGameItems).
+  const applySuggestedMove = useCallback(
+    (placements: Placement[]) => {
+      if (!canPlaceRef.current) return
+      onExitViewing() // staging happens on the live board, never under a viewer overlay
+      const used = new Set<number>()
+      const next: Staged[] = []
+      for (const p of placements) {
+        const free = boardRef.current[cellIndex(p.x, p.y)] == null
+        const want = p.blank ? BLANK : p.letter
+        const rackIdx = actingRackRef.current.findIndex((g, i) => !used.has(i) && g === want)
+        if (!free || rackIdx < 0) {
+          showLocalFeedback({ tone: 'warning', text: 'Board changed' })
+          return
+        }
+        used.add(rackIdx)
+        next.push({ x: p.x, y: p.y, letter: p.letter, blank: p.blank, rackIdx })
+      }
+      clearLocalFeedback()
+      setStaged(next) // replaces any hand-staged tiles — the player asked for this move
+    },
+    [onExitViewing, showLocalFeedback, clearLocalFeedback],
+  )
+  useEffect(() => {
+    registerSuggestionApplier(applySuggestedMove)
+    return () => registerSuggestionApplier(null)
+  }, [registerSuggestionApplier, applySuggestedMove])
 
   // ─── Cell-state helpers (ref-based; used by stable handlers) ──
   const committedAt = useCallback((x: number, y: number) => !!boardRef.current[cellIndex(x, y)], [])

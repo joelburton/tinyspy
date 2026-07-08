@@ -8,11 +8,25 @@ import { TerminalActionRow } from '../../common/components/game/terminal/Termina
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
+import { AIButton } from '../../common/components/buttons/AIButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { ScrabbleSetup } from '../lib/setup'
+import type { RankedMove } from '../lib/rank'
 import type { PlayerRow, PlayRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
 import shared from '../../common/components/game/PlayArea.module.css'
+import styles from './InfoCol.module.css'
+
+/** The AI suggest-a-move box's state (owned by PlayArea, rendered here —
+ *  the LocalFeedbackMsg convention). `idle` still renders the box: its
+ *  height is reserved whether or not there's anything to show. `ready`
+ *  remembers the board `version` the moves were computed against, so
+ *  PlayArea can derive staleness at render (a teammate may have played). */
+export type SuggestState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ready'; moves: RankedMove[]; version: number }
+  | { status: 'error'; message: string }
 
 /**
  * scrabble's info column — near-zero state, an arrangement of the shared scaffold
@@ -42,6 +56,10 @@ export function InfoCol({
   onEndGame,
   onConcede,
   onBackToClub,
+  suggest,
+  canSuggest,
+  onSuggest,
+  onApplySuggestion,
   setup,
   plays,
   viewingSeq,
@@ -76,6 +94,17 @@ export function InfoCol({
   onEndGame: () => void
   onConcede: () => void
   onBackToClub: () => void
+
+  // ── Suggest-a-move (docs/scrabble-ai.md S5) ──
+  /** The suggest box's state, or null to not render it at all (compete — the
+   *  mode never changes mid-game, so its absence is not a reflow). */
+  suggest: SuggestState | null
+  /** May ask right now (playing, seated, not over) — gates the button only;
+   *  the box itself stays mounted at its reserved height. */
+  canSuggest: boolean
+  onSuggest: () => void
+  /** Stage a suggested move's tiles on the board (BoardCol applies it). */
+  onApplySuggestion: (move: RankedMove) => void
 
   // ── Setup disclosure ──
   setup: ScrabbleSetup
@@ -160,6 +189,46 @@ export function InfoCol({
             Drag tiles onto the board, or tap a square and type. Arrows move the cursor (a sideways
             arrow turns it ↓). Enter plays.
           </p>
+        )}
+
+        {/* Suggest-a-move (coop): the AI button + the top-5 list. The box is a
+            FIXED height in every state (idle / loading / results / error) so a
+            suggestion arriving never shifts the sections below — see the module
+            css. Clicking a row stages that move's tiles on the board for review;
+            the suggester never submits. */}
+        {suggest && (
+          <div className={styles.suggestBox} data-zone="suggest">
+            <div className={shared.infoActions}>
+              <AIButton
+                label="Suggest"
+                className={shared.helperButton}
+                disabled={!canSuggest || suggest.status === 'loading'}
+                onClick={onSuggest}
+              />
+            </div>
+            <div className={styles.suggestBody}>
+              {suggest.status === 'loading' && <p>Thinking…</p>}
+              {suggest.status === 'error' && <p className={styles.suggestError}>{suggest.message}</p>}
+              {suggest.status === 'ready' && suggest.moves.length === 0 && (
+                <p>No legal moves — swap tiles?</p>
+              )}
+              {suggest.status === 'ready' &&
+                suggest.moves.map((move, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className={styles.suggestRow}
+                    onClick={() => onApplySuggestion(move)}
+                    title="Stage these tiles on the board"
+                  >
+                    <span className={styles.suggestWords}>
+                      {move.words.map((w) => w.word).join(', ')}
+                    </span>
+                    <span className={styles.suggestScore}>+{move.score}</span>
+                  </button>
+                ))}
+            </div>
+          </div>
         )}
 
         {/* Setup — LAST before the log, behind a disclosure (closed by default). */}

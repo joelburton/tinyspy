@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { terminalPill } from '../../common/lib/game/localPills'
@@ -6,13 +6,16 @@ import { TerminalModal } from '../../common/components/game/terminal/TerminalMod
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { difficultyValue } from '../../common/lib/game/difficulty'
+import { supabase } from '../../common/lib/supabase/supabase'
 import { db } from '../db'
 import type { ScrabbleSetup } from '../lib/setup'
+import type { Placement } from '../lib/play'
+import type { RankedMove } from '../lib/rank'
 import { useGame, type PlayRow } from '../hooks/useGame'
 import { useSharedMove, type SharedMovePayload } from '../hooks/useSharedMove'
 import { printScrabblePdf } from '../pdf/printScrabblePdf'
 import { BoardCol, type LocalFeedbackMsg, type ViewTarget } from './BoardCol'
-import { InfoCol } from './InfoCol'
+import { InfoCol, type SuggestState } from './InfoCol'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -107,6 +110,55 @@ export function PlayArea({
   // Show-a-move is a coop, ≥2-player affordance — there's a teammate to show.
   const canShare = game?.mode === 'coop' && players.length >= 2
 
+  // ─── Suggest-a-move (coop AI hints — docs/scrabble-ai.md S5) ──────────
+  // State lives here (the coordinator): InfoCol renders the box, BoardCol
+  // registers the "stage these placements" applier the list's click calls.
+  // A `ready` result remembers the board `version` it was computed against;
+  // staleness is DERIVED at render (below), not cleared by an effect — coop
+  // has no turns, so a teammate playing while the list is open is a real race.
+  const [suggest, setSuggest] = useState<SuggestState>({ status: 'idle' })
+  const suggestionApplierRef = useRef<((placements: Placement[]) => void) | null>(null)
+  const registerSuggestionApplier = useCallback(
+    (fn: ((placements: Placement[]) => void) | null) => {
+      suggestionApplierRef.current = fn
+    },
+    [],
+  )
+
+  const handleSuggest = useCallback(async () => {
+    setSuggest({ status: 'loading' })
+    const { data, error } = await supabase.functions.invoke('scrabble-suggest-move', {
+      body: { game_id: gameId },
+    })
+    if (error) {
+      // invoke folds a non-2xx into its own generic message; the real server
+      // error rides on error.context, a Response readable once (the
+      // invokeStartGameEdgeFn unwrap).
+      const ctx = (error as { context?: Response }).context
+      let serverMsg: string | null = null
+      if (ctx) {
+        try {
+          const parsed = (await ctx.json()) as { error?: string }
+          if (typeof parsed?.error === 'string') serverMsg = parsed.error
+        } catch {
+          // body wasn't JSON; fall through to the generic message
+        }
+      }
+      setSuggest({ status: 'error', message: serverMsg ?? error.message })
+      return
+    }
+    const payload = data as { moves?: RankedMove[]; version?: number; error?: string } | null
+    if (!payload || payload.error || !Array.isArray(payload.moves) || typeof payload.version !== 'number') {
+      setSuggest({ status: 'error', message: payload?.error ?? 'Could not fetch suggestions.' })
+      return
+    }
+    setSuggest({ status: 'ready', moves: payload.moves, version: payload.version })
+  }, [gameId])
+
+  const handleApplySuggestion = useCallback((move: RankedMove) => {
+    suggestionApplierRef.current?.(move.placements)
+  }, [])
+
   // SPIKE (branch scrabble-jspdf): a "Print board (PDF)" item in the GamePage menu.
   // Builds the print model from the live state (RLS already scoped it to what I may
   // see — my own rack, my visible moves) and hands it to the jsPDF renderer. Prints
@@ -163,6 +215,14 @@ export function PlayArea({
   if (!game) return <p className={styles.loading}>Game not found.</p>
 
   const scrabbleSetup = setup as unknown as ScrabbleSetup
+  // A ready suggestion list computed against an older board renders as the
+  // staleness message, never as wrong hints. Derived each render — it covers
+  // both races (the response landed after a move, or a move landed while the
+  // list was open) with no clearing effect.
+  const suggestView: SuggestState =
+    suggest.status === 'ready' && suggest.version !== game.version
+      ? { status: 'error', message: 'Board changed — ask again.' }
+      : suggest
   const over = isTerminal ? buildOver({ game, playState, status, selfId: session.user.id, nameOf }) : null
   // The player whose turn it is (compete) — for the "Turn: ● name" state line.
   const currentMember = players.find((m: Member) => m.user_id === game.currentUserId)
@@ -196,6 +256,7 @@ export function PlayArea({
         canShare={canShare}
         shareMove={shareMove}
         selfId={session.user.id}
+        registerSuggestionApplier={registerSuggestionApplier}
       />
 
       <InfoCol
@@ -214,6 +275,10 @@ export function PlayArea({
         onEndGame={() => void handleEndGame()}
         onConcede={() => void handleConcede()}
         onBackToClub={goToClub}
+        suggest={isCompete ? null : suggestView}
+        canSuggest={!isTerminal && !!self}
+        onSuggest={() => void handleSuggest()}
+        onApplySuggestion={handleApplySuggestion}
         setup={scrabbleSetup}
         plays={plays}
         viewingSeq={viewingSeq}
