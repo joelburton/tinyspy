@@ -403,6 +403,23 @@ textarea:focus {
   outline-offset: -1px;
 }
 
+/* iOS focus-zoom floor (docs/mobile.md → Decisions #3). A text field whose font
+   is under 16px makes mobile Safari zoom the page IN when focused — and it never
+   zooms back out, leaving everything wider than the screen. The base rule above
+   is `font: inherit`, so any input inside a container with a sub-1rem font-size
+   silently inherits it (e.g. an input in a 0.9rem card = 14.4px) — a trap with
+   no rule of its own to grep for. On touch, floor every text field at 16px.
+   `max(16px, 1em)` is the key: `1em` resolves to the INHERITED size, so this
+   RAISES anything under 16px while leaving larger fields (which inherit >16px)
+   untouched — and never shrinks. Fields that set their own font-size via a class
+   (higher specificity) are unaffected here and handled at their own rule. */
+@media (--touch) {
+  input,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
 button {
   background: var(--color-accent);
   border-color: var(--color-accent);
