@@ -5,10 +5,10 @@ import styles from './ModePill.module.css'
 type Props = {
   mode: 'coop' | 'compete'
   /** When true (the club's handle starts with '=', i.e. a solo club),
-   *  NO pill renders — neither "Co-op" (no one to cooperate with) nor
-   *  "Compete" (a solo member may have enabled a 2-player game like
-   *  bananagrams, but "Compete" makes no sense with one player). Mode is
-   *  simply noise on a solo club's surfaces. Defaults to false. */
+   *  the "Co-op" pill is suppressed (no one to cooperate with — mode is
+   *  noise). A COMPETE game on a solo club, however, means "vs AI" (scrabble
+   *  seats AI opponents — docs/scrabble-ai-strength.md), so it renders an
+   *  "AI Compete" pill instead of nothing. Defaults to false. */
   soloClub?: boolean
 }
 
@@ -26,7 +26,12 @@ type Props = {
  * See docs/ui.md → "Mode pills".
  */
 export function ModePill({ mode, soloClub = false }: Props) {
-  if (soloClub) return null
+  if (soloClub) {
+    // Solo club: no "Co-op" pill (mode is noise with one member), but a compete
+    // game is a race against AI — label it so, not silently.
+    if (mode !== 'compete') return null
+    return <span className={cls(styles.pill, styles.compete)}>AI Compete</span>
+  }
   return (
     <span className={cls(styles.pill, styles[mode])}>{MODE_LABEL[mode]}</span>
   )
