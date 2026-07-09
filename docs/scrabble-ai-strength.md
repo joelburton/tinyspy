@@ -105,6 +105,26 @@ experience. Not needed to pick the knobs.
    is arguably also part of what makes weak play weak; it's a latent future
    lever. Keep this in mind when calibrating `best` against real players.
 
+## AI players in compete (the opponent build)
+
+The autonomous opponent is built on the `choosePlay` brain. Seating + turns are
+seat-based (`scrabble.games.current_seat`; AI seats live only in
+`scrabble.players` with `user_id` null + `ai_level`, never in
+`common.game_players`/`profiles`). Decisions locked for that build:
+
+- **AI is compete-only**, 0–3 seats, **one skill level for all AIs** (setup:
+  count radio + a single skill selector).
+- **Band rule = the level's `vocabCap`** (beginner 1, casual 2, intermediate 4,
+  strong/best 6 — **strong stays 6**). The game's `dict_2` AND `dict_3plus`
+  must be ≥ that band whenever an AI is present, else the AI can't play at its
+  tuned strength (and, structurally, it can never play a word illegal in the
+  game since it generates against the game's bands).
+- **Setup validation, not auto-adjust.** Changing the AI skill does NOT silently
+  move the dictionary bands — a player might not notice. Instead the setup form
+  shows a validation error ("dictionary must be at least band N for a <level>
+  AI") and blocks Start until the bands are raised. Only fires when `ai_count > 0`.
+  The server (`create_game`) enforces the same rule as the authority.
+
 ## The harness CLI
 
 `npm run scrabble:selfplay` → `supabase/scripts/scrabble-selfplay.ts`. Loads the

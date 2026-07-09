@@ -1871,6 +1871,30 @@ export type Database = {
     Functions: {
       _advance_turn: { Args: { g_id: string }; Returns: undefined }
       _bag_count_for: { Args: { g_id: string }; Returns: number }
+      _commit_exchange: {
+        Args: {
+          base_version: number
+          p_seat: number
+          rack_tiles: string[]
+          target_game: string
+        }
+        Returns: Json
+      }
+      _commit_pass: {
+        Args: { base_version: number; p_seat: number; target_game: string }
+        Returns: Json
+      }
+      _commit_word: {
+        Args: {
+          base_version: number
+          p_placements: Json
+          p_score: number
+          p_seat: number
+          p_words: string[]
+          target_game: string
+        }
+        Returns: Json
+      }
       _finish: {
         Args: { g_id: string; out_seat: number; outcome: string }
         Returns: undefined
@@ -1889,6 +1913,30 @@ export type Database = {
       _status: { Args: { g_id: string }; Returns: Json }
       _tile_value: { Args: { ch: string }; Returns: number }
       _title: { Args: { g_id: string }; Returns: string }
+      ai_exchange: {
+        Args: {
+          base_version: number
+          p_seat: number
+          rack_tiles: string[]
+          target_game: string
+        }
+        Returns: Json
+      }
+      ai_pass: {
+        Args: { base_version: number; p_seat: number; target_game: string }
+        Returns: Json
+      }
+      ai_play_word: {
+        Args: {
+          base_version: number
+          p_seat: number
+          placements: Json
+          score: number
+          target_game: string
+          words: string[]
+        }
+        Returns: Json
+      }
       concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: {
@@ -1908,6 +1956,10 @@ export type Database = {
           rack_tiles: string[]
           target_game: string
         }
+        Returns: Json
+      }
+      get_ai_context: {
+        Args: { target_game: string; target_seat: number }
         Returns: Json
       }
       get_suggest_context: { Args: { target_game: string }; Returns: Json }

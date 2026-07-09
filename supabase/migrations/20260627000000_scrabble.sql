@@ -775,12 +775,13 @@ revoke execute on function scrabble.create_game(text, jsonb, uuid[], text) from 
 grant execute on function scrabble.create_game(text, jsonb, uuid[], text) to authenticated;
 
 -- ============================================================
--- scrabble.play_word — the core move (a trusting commit)
+-- scrabble._commit_word — the core WORD move (a trusting commit)
 -- ============================================================
--- The FE validated geometry + computed `words` and `score` (lib/play.ts).
--- `base_version` = the games.version the FE read; `placements` =
--- [{x,y,letter,blank}] (letter is the played letter — a blank's declared
--- letter). The server: version-CAS → turn check → integrity guards →
+-- The seat-driven heart of a word play, shared by the human RPC (play_word)
+-- and the AI RPC (ai_play_word) below — the caller authorizes the actor and
+-- passes the acting seat `p_seat`; this does the move. The FE (or the AI edge
+-- function) validated geometry + computed `p_words` and `p_score`
+-- (lib/play.ts). The server: version-CAS → turn check → integrity guards →
 -- dictionary check (the only validation it does) → apply + draw + score +
 -- log + advance + end-check.
 --
@@ -788,12 +789,13 @@ grant execute on function scrabble.create_game(text, jsonb, uuid[], text) to aut
 --   { result:'stale',   version }                      -- someone moved first
 --   { result:'invalid', bad_words }                    -- a word fails the band (free reject)
 --   { result:'accepted', drawn, version, terminal }    -- committed
-create function scrabble.play_word(
+create function scrabble._commit_word(
   target_game  uuid,
+  p_seat       int,
   base_version int,
-  placements   jsonb,
-  words        text[],
-  score        int
+  p_placements jsonb,
+  p_words      text[],
+  p_score      int
 )
 returns jsonb
 language plpgsql
@@ -801,11 +803,10 @@ security definer
 set search_path = scrabble, common, public, extensions
 as $$
 declare
-  caller_id    uuid;
-  v_seat       int;      -- the caller's seat (turn key + play attribution)
   g            scrabble.games%rowtype;
+  v_user       uuid;      -- the acting seat's user (null for an AI seat)
   play_state   text;
-  v_rack       text[];   -- the acting rack (compete: caller's; coop: shared)
+  v_rack       text[];   -- the acting rack (compete: the seat's; coop: shared)
   v_board      jsonb;
   v_consumed   text[] := '{}';
   v_nplay      int := 0;
@@ -819,8 +820,7 @@ declare
   v_terminal   boolean := false;
   v_went_out   boolean;
 begin
-  caller_id := common.require_game_player(target_game);
-  v_seat    := scrabble._seat_of(target_game, caller_id);
+  select user_id into v_user from scrabble.players where game_id = target_game and seat = p_seat;
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
@@ -839,23 +839,23 @@ begin
 
   -- ─── Turn check (compete only) ───────────────────────────
   -- By SEAT (current_seat), so the same gate works whoever occupies it.
-  if g.mode = 'compete' and v_seat is distinct from g.current_seat then
+  if g.mode = 'compete' and p_seat is distinct from g.current_seat then
     raise exception 'not your turn' using errcode = 'P0001';
   end if;
 
-  if coalesce(array_length(words, 1), 0) = 0 then
+  if coalesce(array_length(p_words, 1), 0) = 0 then
     raise exception 'a play must form at least one word' using errcode = 'P0001';
   end if;
 
   v_rack  := case when g.mode = 'coop' then g.shared_rack
                   else (select rack from scrabble.players
-                         where game_id = target_game and user_id = caller_id) end;
+                         where game_id = target_game and seat = p_seat) end;
   v_board := g.board;
 
   -- ─── Integrity guards: apply placements to a LOCAL board ──
   -- (in-bounds, on an empty square, no two on the same square) and
   -- collect the consumed tile glyphs. Nothing is persisted yet.
-  for rec in select jsonb_array_elements(placements) loop
+  for rec in select jsonb_array_elements(p_placements) loop
     v_x := (rec->>'x')::int;
     v_y := (rec->>'y')::int;
     v_letter := upper(rec->>'letter');
@@ -882,7 +882,7 @@ begin
   -- (permissive — both `color` and `colour` are legal). Words are stored
   -- lowercase; the FE's words are uppercase board letters.
   select array_agg(w) into bad_words
-    from unnest(words) w
+    from unnest(p_words) w
    where not exists (
      select 1 from common.words cw
       where cw.word = lower(w)
@@ -902,14 +902,14 @@ begin
 
   v_seq := coalesce((select max(seq) from scrabble.plays where game_id = target_game), 0) + 1;
   insert into scrabble.plays (game_id, user_id, seat, seq, kind, placements, words, score)
-  values (target_game, caller_id, v_seat, v_seq, 'word', placements, words, score);
+  values (target_game, v_user, p_seat, v_seq, 'word', p_placements, p_words, p_score);
 
   if g.mode = 'coop' then
     update scrabble.games
        set board = v_board,
            bag = g.bag[v_ndraw+1:],
            shared_rack = v_new_rack,
-           team_score = team_score + play_word.score,
+           team_score = team_score + p_score,
            version = version + 1,
            consecutive_scoreless = 0
      where id = target_game;
@@ -920,11 +920,9 @@ begin
            version = version + 1,
            consecutive_scoreless = 0
      where id = target_game;
-    -- Alias the table so `pl.score` (column) and `play_word.score` (param)
-    -- are both unambiguous.
-    update scrabble.players pl
-       set rack = v_new_rack, score = pl.score + play_word.score
-     where pl.game_id = target_game and pl.user_id = caller_id;
+    update scrabble.players
+       set rack = v_new_rack, score = score + p_score
+     where game_id = target_game and seat = p_seat;
   end if;
 
   -- Title = the first three words played (recognizable in the club list).
@@ -939,7 +937,7 @@ begin
     v_terminal := true;
     perform scrabble._finish(
       target_game, 'complete',
-      case when g.mode = 'compete' then v_seat else null end);
+      case when g.mode = 'compete' then p_seat else null end);
   else
     if g.mode = 'compete' then
       perform scrabble._advance_turn(target_game);
@@ -955,8 +953,68 @@ begin
 end;
 $$;
 
+revoke execute on function scrabble._commit_word(uuid, int, int, jsonb, text[], int) from public;
+
+-- scrabble.play_word — the HUMAN word-move RPC: authorize the caller, resolve
+-- their seat, delegate to the shared core. (Contract as documented on the core.)
+create function scrabble.play_word(
+  target_game  uuid,
+  base_version int,
+  placements   jsonb,
+  words        text[],
+  score        int
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = scrabble, common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  v_seat    int;
+begin
+  caller_id := common.require_game_player(target_game);
+  v_seat    := scrabble._seat_of(target_game, caller_id);
+  if v_seat is null then
+    raise exception 'you are not seated in this game' using errcode = 'P0001';
+  end if;
+  return scrabble._commit_word(target_game, v_seat, base_version, placements, words, score);
+end;
+$$;
+
 revoke execute on function scrabble.play_word(uuid, int, jsonb, text[], int) from public;
 grant execute on function scrabble.play_word(uuid, int, jsonb, text[], int) to authenticated;
+
+-- scrabble.ai_play_word — the AI twin: any game member may drive the move
+-- (trust model — membership is the gate), and `p_seat` must be an AI seat. The
+-- edge function (scrabble-ai-move) computes words+score with the same lib the FE
+-- uses, so the trusting-commit core validates them identically. The core's own
+-- turn check (p_seat = current_seat) prevents playing out of turn / double-play.
+create function scrabble.ai_play_word(
+  target_game  uuid,
+  p_seat       int,
+  base_version int,
+  placements   jsonb,
+  words        text[],
+  score        int
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = scrabble, common, public, extensions
+as $$
+begin
+  perform common.require_game_player(target_game);
+  if not exists (select 1 from scrabble.players
+                  where game_id = target_game and seat = p_seat and ai_level is not null) then
+    raise exception 'seat % is not an AI seat', p_seat using errcode = 'P0001';
+  end if;
+  return scrabble._commit_word(target_game, p_seat, base_version, placements, words, score);
+end;
+$$;
+
+revoke execute on function scrabble.ai_play_word(uuid, int, int, jsonb, text[], int) from public;
+grant execute on function scrabble.ai_play_word(uuid, int, int, jsonb, text[], int) to authenticated;
 
 -- ============================================================
 -- scrabble.exchange_tiles — swap rack tiles back into the bag
@@ -965,8 +1023,10 @@ grant execute on function scrabble.play_word(uuid, int, jsonb, text[], int) to a
 -- redraw the same count. Requires the bag to hold ≥ 7 tiles (standard
 -- rule). Compete: costs the turn + counts as a scoreless turn (toward the
 -- blocked-game end). Coop: just a rack refresh.
-create function scrabble.exchange_tiles(
+-- The seat-driven core, shared by exchange_tiles (human) and ai_exchange (AI).
+create function scrabble._commit_exchange(
   target_game  uuid,
+  p_seat       int,
   base_version int,
   rack_tiles   text[]
 )
@@ -976,8 +1036,7 @@ security definer
 set search_path = scrabble, common, public, extensions
 as $$
 declare
-  caller_id  uuid;
-  v_seat     int;
+  v_user     uuid;
   g          scrabble.games%rowtype;
   play_state text;
   v_rack     text[];
@@ -987,8 +1046,7 @@ declare
   v_seq      int;
   v_terminal boolean := false;
 begin
-  caller_id := common.require_game_player(target_game);
-  v_seat    := scrabble._seat_of(target_game, caller_id);
+  select user_id into v_user from scrabble.players where game_id = target_game and seat = p_seat;
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
@@ -1003,7 +1061,7 @@ begin
   if g.version <> base_version then
     return jsonb_build_object('result', 'stale', 'version', g.version);
   end if;
-  if g.mode = 'compete' and v_seat is distinct from g.current_seat then
+  if g.mode = 'compete' and p_seat is distinct from g.current_seat then
     raise exception 'not your turn' using errcode = 'P0001';
   end if;
 
@@ -1017,7 +1075,7 @@ begin
 
   v_rack := case when g.mode = 'coop' then g.shared_rack
                  else (select rack from scrabble.players
-                        where game_id = target_game and user_id = caller_id) end;
+                        where game_id = target_game and seat = p_seat) end;
 
   -- Remove the chosen tiles (guards they're in the rack), return them to
   -- the bag, reshuffle the whole bag, redraw the same count.
@@ -1030,14 +1088,14 @@ begin
 
   v_seq := coalesce((select max(seq) from scrabble.plays where game_id = target_game), 0) + 1;
   insert into scrabble.plays (game_id, user_id, seat, seq, kind, tile_count)
-  values (target_game, caller_id, v_seat, v_seq, 'exchange', v_n);
+  values (target_game, v_user, p_seat, v_seq, 'exchange', v_n);
 
   if g.mode = 'coop' then
     update scrabble.games set shared_rack = v_rack, bag = v_bag, version = version + 1
      where id = target_game;
   else
     update scrabble.players set rack = v_rack
-     where game_id = target_game and user_id = caller_id;
+     where game_id = target_game and seat = p_seat;
     update scrabble.games
        set bag = v_bag, version = version + 1,
            consecutive_scoreless = consecutive_scoreless + 1
@@ -1060,30 +1118,71 @@ begin
 end;
 $$;
 
-revoke execute on function scrabble.exchange_tiles(uuid, int, text[]) from public;
-grant execute on function scrabble.exchange_tiles(uuid, int, text[]) to authenticated;
+revoke execute on function scrabble._commit_exchange(uuid, int, int, text[]) from public;
 
--- ============================================================
--- scrabble.pass_turn — forfeit a turn (compete only)
--- ============================================================
--- Coop has no turns, so passing is meaningless there (the coop "we're
--- stuck" path is exchange or End game). Counts as a scoreless turn.
-create function scrabble.pass_turn(target_game uuid, base_version int)
+-- scrabble.exchange_tiles — the HUMAN exchange RPC (authorize caller → seat → core).
+create function scrabble.exchange_tiles(target_game uuid, base_version int, rack_tiles text[])
 returns jsonb
 language plpgsql
 security definer
 set search_path = scrabble, common, public, extensions
 as $$
 declare
-  caller_id  uuid;
-  v_seat     int;
+  caller_id uuid;
+  v_seat    int;
+begin
+  caller_id := common.require_game_player(target_game);
+  v_seat    := scrabble._seat_of(target_game, caller_id);
+  if v_seat is null then
+    raise exception 'you are not seated in this game' using errcode = 'P0001';
+  end if;
+  return scrabble._commit_exchange(target_game, v_seat, base_version, rack_tiles);
+end;
+$$;
+
+revoke execute on function scrabble.exchange_tiles(uuid, int, text[]) from public;
+grant execute on function scrabble.exchange_tiles(uuid, int, text[]) to authenticated;
+
+-- scrabble.ai_exchange — the AI twin (any member drives; p_seat must be AI).
+create function scrabble.ai_exchange(target_game uuid, p_seat int, base_version int, rack_tiles text[])
+returns jsonb
+language plpgsql
+security definer
+set search_path = scrabble, common, public, extensions
+as $$
+begin
+  perform common.require_game_player(target_game);
+  if not exists (select 1 from scrabble.players
+                  where game_id = target_game and seat = p_seat and ai_level is not null) then
+    raise exception 'seat % is not an AI seat', p_seat using errcode = 'P0001';
+  end if;
+  return scrabble._commit_exchange(target_game, p_seat, base_version, rack_tiles);
+end;
+$$;
+
+revoke execute on function scrabble.ai_exchange(uuid, int, int, text[]) from public;
+grant execute on function scrabble.ai_exchange(uuid, int, int, text[]) to authenticated;
+
+-- ============================================================
+-- scrabble.pass_turn — forfeit a turn (compete only)
+-- ============================================================
+-- Coop has no turns, so passing is meaningless there (the coop "we're
+-- stuck" path is exchange or End game). Counts as a scoreless turn.
+-- The seat-driven core, shared by pass_turn (human) and ai_pass (AI).
+create function scrabble._commit_pass(target_game uuid, p_seat int, base_version int)
+returns jsonb
+language plpgsql
+security definer
+set search_path = scrabble, common, public, extensions
+as $$
+declare
+  v_user     uuid;
   g          scrabble.games%rowtype;
   play_state text;
   v_seq      int;
   v_terminal boolean := false;
 begin
-  caller_id := common.require_game_player(target_game);
-  v_seat    := scrabble._seat_of(target_game, caller_id);
+  select user_id into v_user from scrabble.players where game_id = target_game and seat = p_seat;
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
@@ -1101,13 +1200,13 @@ begin
   if g.version <> base_version then
     return jsonb_build_object('result', 'stale', 'version', g.version);
   end if;
-  if v_seat is distinct from g.current_seat then
+  if p_seat is distinct from g.current_seat then
     raise exception 'not your turn' using errcode = 'P0001';
   end if;
 
   v_seq := coalesce((select max(seq) from scrabble.plays where game_id = target_game), 0) + 1;
   insert into scrabble.plays (game_id, user_id, seat, seq, kind)
-  values (target_game, caller_id, v_seat, v_seq, 'pass');
+  values (target_game, v_user, p_seat, v_seq, 'pass');
 
   update scrabble.games
      set version = version + 1,
@@ -1127,8 +1226,50 @@ begin
 end;
 $$;
 
+revoke execute on function scrabble._commit_pass(uuid, int, int) from public;
+
+-- scrabble.pass_turn — the HUMAN pass RPC (authorize caller → seat → core).
+create function scrabble.pass_turn(target_game uuid, base_version int)
+returns jsonb
+language plpgsql
+security definer
+set search_path = scrabble, common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  v_seat    int;
+begin
+  caller_id := common.require_game_player(target_game);
+  v_seat    := scrabble._seat_of(target_game, caller_id);
+  if v_seat is null then
+    raise exception 'you are not seated in this game' using errcode = 'P0001';
+  end if;
+  return scrabble._commit_pass(target_game, v_seat, base_version);
+end;
+$$;
+
 revoke execute on function scrabble.pass_turn(uuid, int) from public;
 grant execute on function scrabble.pass_turn(uuid, int) to authenticated;
+
+-- scrabble.ai_pass — the AI twin (any member drives; p_seat must be AI).
+create function scrabble.ai_pass(target_game uuid, p_seat int, base_version int)
+returns jsonb
+language plpgsql
+security definer
+set search_path = scrabble, common, public, extensions
+as $$
+begin
+  perform common.require_game_player(target_game);
+  if not exists (select 1 from scrabble.players
+                  where game_id = target_game and seat = p_seat and ai_level is not null) then
+    raise exception 'seat % is not an AI seat', p_seat using errcode = 'P0001';
+  end if;
+  return scrabble._commit_pass(target_game, p_seat, base_version);
+end;
+$$;
+
+revoke execute on function scrabble.ai_pass(uuid, int, int) from public;
+grant execute on function scrabble.ai_pass(uuid, int, int) to authenticated;
 
 -- ============================================================
 -- scrabble.concede — a player drops out of a compete game
@@ -1363,3 +1504,63 @@ $$;
 
 revoke execute on function scrabble.get_suggest_context(uuid) from public;
 grant execute on function scrabble.get_suggest_context(uuid) to authenticated;
+
+-- ============================================================
+-- scrabble.get_ai_context — the AI opponent's move context (compete)
+-- ============================================================
+-- The twin of get_suggest_context, for the `scrabble-ai-move` Edge Function
+-- (docs/scrabble-ai-strength.md): the SECURITY DEFINER door to an AI seat's
+-- HIDDEN rack + the server-only dictionary bands, returned atomically with the
+-- board + version. Authorization: any game MEMBER may drive the AI (trust
+-- model — a human at the table pokes the bot along), the seat must be an AI
+-- seat, and it must be that seat's turn (so a stale/duplicate poke is a no-op
+-- rejection rather than a move on the wrong board). `ai_level` rides along so
+-- the edge function knows which strength knobs to apply.
+create function scrabble.get_ai_context(target_game uuid, target_seat int)
+returns jsonb
+language plpgsql
+security definer
+set search_path = scrabble, common, public, extensions
+as $$
+declare
+  g          scrabble.games%rowtype;
+  pl         scrabble.players%rowtype;
+  cur_state  text;
+begin
+  perform common.require_game_player(target_game);
+
+  select * into g from scrabble.games where id = target_game;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+  if g.mode <> 'compete' then
+    raise exception 'AI players are a compete-mode feature' using errcode = 'P0001';
+  end if;
+
+  select play_state into cur_state from common.games where id = target_game;
+  if cur_state <> 'playing' then
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  select * into pl from scrabble.players where game_id = target_game and seat = target_seat;
+  if not found or pl.ai_level is null then
+    raise exception 'seat % is not an AI seat', target_seat using errcode = 'P0001';
+  end if;
+  if g.current_seat is distinct from target_seat then
+    raise exception 'not that seat''s turn' using errcode = 'P0001';
+  end if;
+
+  return jsonb_build_object(
+    'board', g.board,
+    'rack', to_jsonb(pl.rack),
+    'dict_2', g.dict_2,
+    'dict_3plus', g.dict_3plus,
+    'ai_level', pl.ai_level,
+    'version', g.version,
+    'bag_count', coalesce(array_length(g.bag, 1), 0)
+  );
+end;
+$$;
+
+revoke execute on function scrabble.get_ai_context(uuid, int) from public;
+grant execute on function scrabble.get_ai_context(uuid, int) to authenticated;
