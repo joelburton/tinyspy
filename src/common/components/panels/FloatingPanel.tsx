@@ -68,6 +68,13 @@ type Props = {
   /** Stacking tier. Defaults to 500 (the modal tier). Chat passes
    *  10000 so it sits above every modal regardless of open order. */
   zIndex?: number
+  /** When true, the full-screen phone sheet reserves space at the
+   *  bottom for the on-screen keyboard (see `--keyboard-reserve`),
+   *  so a panel with a text input (chat) keeps its input + recent
+   *  content above the keyboard — with no reflow when it toggles.
+   *  Phone-only (the reserve lives in the `@media (--phone)` rule);
+   *  a no-op on tablets/desktop. Default false. */
+  reserveKeyboard?: boolean
   /** Panel body content. */
   children: ReactNode
 }
@@ -109,6 +116,7 @@ export function FloatingPanel({
   persistKey,
   zIndex = 500,
   fitContent = false,
+  reserveKeyboard = false,
   children,
 }: Props) {
   // On a touch device (coarse pointer) every panel is forced
@@ -167,6 +175,7 @@ export function FloatingPanel({
         persistKey={persistKey}
         zIndex={zIndex}
         fitContent={fitContent}
+        reserveKeyboard={reserveKeyboard}
       >
         {children}
       </FloatingPanelBody>
@@ -189,6 +198,7 @@ function FloatingPanelBody({
   persistKey,
   zIndex,
   fitContent,
+  reserveKeyboard,
   children,
 }: {
   title: string
@@ -202,6 +212,7 @@ function FloatingPanelBody({
   persistKey: string | undefined
   zIndex: number
   fitContent: boolean
+  reserveKeyboard: boolean
   children: ReactNode
 }) {
   if (persistKey) {
@@ -219,6 +230,7 @@ function FloatingPanelBody({
         minHeight={minHeight}
         persistKey={persistKey}
         zIndex={zIndex}
+        reserveKeyboard={reserveKeyboard}
       >
         {children}
       </PersistedPanel>
@@ -236,6 +248,7 @@ function FloatingPanelBody({
       minHeight={minHeight}
       zIndex={zIndex}
       fitContent={fitContent}
+      reserveKeyboard={reserveKeyboard}
     >
       {children}
     </EphemeralPanel>
@@ -255,6 +268,7 @@ function PersistedPanel({
   minHeight,
   persistKey,
   zIndex,
+  reserveKeyboard,
   children,
 }: {
   title: string
@@ -267,6 +281,7 @@ function PersistedPanel({
   minHeight: number
   persistKey: string
   zIndex: number
+  reserveKeyboard: boolean
   children: ReactNode
 }) {
   const seed = resolveDefaultRect(defaultPosition, defaultSize)
@@ -287,6 +302,7 @@ function PersistedPanel({
       minWidth={minWidth}
       minHeight={minHeight}
       zIndex={zIndex}
+      reserveKeyboard={reserveKeyboard}
     >
       {children}
     </PanelRnd>
@@ -307,6 +323,7 @@ function EphemeralPanel({
   minHeight,
   zIndex,
   fitContent,
+  reserveKeyboard,
   children,
 }: {
   title: string
@@ -319,6 +336,7 @@ function EphemeralPanel({
   minHeight: number
   zIndex: number
   fitContent: boolean
+  reserveKeyboard: boolean
   children: ReactNode
 }) {
   // Lazy initializer computes the seed rect once on mount —
@@ -350,6 +368,7 @@ function EphemeralPanel({
       minHeight={minHeight}
       zIndex={zIndex}
       fitContent={fitContent}
+      reserveKeyboard={reserveKeyboard}
     >
       {children}
     </PanelRnd>
@@ -371,6 +390,7 @@ function PanelRnd({
   minHeight,
   zIndex,
   fitContent = false,
+  reserveKeyboard = false,
   children,
 }: {
   title: string
@@ -383,6 +403,7 @@ function PanelRnd({
   minHeight: number
   zIndex: number
   fitContent?: boolean
+  reserveKeyboard?: boolean
   children: ReactNode
 }) {
   // ── Content-fit (opt-in via `fitContent`) ──────────────────────────────
@@ -448,7 +469,9 @@ function PanelRnd({
     // on for the panel (see the CSS), so the page beneath stays clickable.
     <div className={styles.clipLayer} style={{ zIndex }}>
       <Rnd
-        className={styles.rnd}
+        // `.reserveKeyboard` shrinks the phone sheet up from the bottom by the
+        // assumed keyboard height (CSS, @media (--phone)); a no-op elsewhere.
+        className={reserveKeyboard ? `${styles.rnd} ${styles.reserveKeyboard}` : styles.rnd}
         size={{ width: rect.width, height: rect.height }}
         position={{ x: rect.x, y: rect.y }}
         // Intentionally no `bounds` prop — we want users to be

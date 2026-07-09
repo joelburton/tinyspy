@@ -22,7 +22,7 @@ test.describe('panels on touch', () => {
   // the coarse-pointer + --phone CSS paths both engage.
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
 
-  test('chat opens as a full-screen sheet and the X closes it on tap', async ({
+  test('chat opens as a keyboard-reserving sheet and the X closes it on tap', async ({
     browser,
   }) => {
     const club = await createClubWithMembers(['alice', 'bob'])
@@ -40,20 +40,30 @@ test.describe('panels on touch', () => {
     // Open chat by tapping its bubble (touch input, no click).
     await page.getByRole('button', { name: 'Open chat', exact: true }).tap()
 
-    // The panel's react-rnd root should now fill the viewport — the @media
+    // The panel's react-rnd root becomes a full-screen sheet — the @media
     // (--phone) override cancels react-rnd's floating position/size. On desktop
-    // this same panel is a centered 480-wide card; here it's edge-to-edge.
+    // this same panel is a centered 340-wide card.
     const panel = page.locator('[class*="_rnd_"]')
     await expect(panel).toBeVisible()
     const box = await panel.boundingBox()
     const viewport = page.viewportSize()!
     expect(box).not.toBeNull()
-    // Full-bleed: origin at (0,0), spanning the whole viewport. Safe-area insets
-    // resolve to 0 in headless Chromium, so the sheet is exactly the viewport.
+    // Full-bleed: origin (0,0), spanning the whole viewport (safe-area insets
+    // resolve to 0 in headless Chromium).
     expect(box!.x).toBeLessThanOrEqual(1)
     expect(box!.y).toBeLessThanOrEqual(1)
     expect(box!.width).toBeGreaterThanOrEqual(viewport.width - 1)
     expect(box!.height).toBeGreaterThanOrEqual(viewport.height - 1)
+
+    // The point of `reserveKeyboard`: the sheet fills the screen, but its body is
+    // padded up so the INPUT sits a keyboard-height above the bottom, staying
+    // above where the on-screen keyboard appears. Assert a substantial gap below
+    // the input (qualitative, so tuning var(--keyboard-reserve) doesn't break the
+    // test).
+    const inputBox = await page.getByRole('textbox').boundingBox()
+    expect(inputBox).not.toBeNull()
+    const gapBelowInput = viewport.height - (inputBox!.y + inputBox!.height)
+    expect(gapBelowInput).toBeGreaterThan(200) // keyboard-sized reserve is present
 
     // The bug under guard: tapping the header X (aria-label "Close", distinct
     // from the bubble's "Close chat" toggle) must actually dismiss the panel.

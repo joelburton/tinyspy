@@ -171,6 +171,10 @@ export function FloatingChat({
       defaultSize={{ width: 340, height: 460 }}
       minWidth={260}
       minHeight={240}
+      // On a phone the chat sheet reserves keyboard space at the bottom so the
+      // input + newest messages stay above the on-screen keyboard (read-reply +
+      // type is chat's whole loop) — with no reflow when it toggles.
+      reserveKeyboard
     >
       <ChatBody
         clubHandle={clubHandle}

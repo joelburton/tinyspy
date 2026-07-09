@@ -303,6 +303,19 @@
      PlayArea.module.css. */
   --game-chrome-height:       5rem;
 
+  /* Assumed on-screen-keyboard height, reserved at the bottom of a full-screen
+     phone panel that hosts a text input (chat — via FloatingPanel's
+     `reserveKeyboard`). The keyboard on iOS/Android doesn't shrink a
+     position:fixed sheet, so without this reserve it overlays the input + newest
+     messages (and iOS then auto-scrolls the webview, stranding earlier content
+     off-screen). Reserving the space UNCONDITIONALLY — keyboard up or down —
+     means the sheet's height never changes when the keyboard toggles, so there's
+     zero reflow (the repo's no-reflow-on-state-change rule); the keyboard simply
+     fills the gap that was already there. ~44% of the small viewport height is a
+     generous cover for a portrait phone keyboard (typically ~40% incl. the
+     predictive bar). Tune against real devices. Only consumed under `--phone`. */
+  --keyboard-reserve:         44svh;
+
   /* Type. */
   font-family: system-ui, -apple-system, sans-serif;
 

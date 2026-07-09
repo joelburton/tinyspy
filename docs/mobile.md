@@ -301,9 +301,23 @@ Realizes [decision 1](#decisions--directions). Every [`FloatingPanel`](../src/co
   centered-modal rect (roomy enough), just pinned in place by the coarse-pointer
   rule above.
 
+**Keyboard reserve (chat).** A full-screen sheet with a text input has a problem
+on iOS: the on-screen keyboard doesn't shrink a `position: fixed` sheet, so it
+overlays the input + newest messages — and iOS then auto-scrolls the webview to
+reveal the input, stranding earlier content off-screen even after the keyboard
+closes. The fix is a `reserveKeyboard` prop (chat opts in): on phones the sheet
+still fills the screen, but its body is padded up from the bottom by an assumed
+keyboard height (`--keyboard-reserve`, ~44svh) so the input sits *above* where
+the keyboard appears. Crucially the space is reserved **whether or not the
+keyboard is up**, so toggling it causes **no reflow** — the keyboard just fills
+the already-empty strip below the input (the repo's no-reflow-on-state-change
+rule, applied to the keyboard). The strip is chat-surface-colored, so nothing
+shows through.
+
 Guarded by [`panels-touch.e2e.ts`](../e2e/panels-touch.e2e.ts) (a real browser —
 jsdom has no layout engine or touch synthesis): on a 390px touch viewport the
-chat panel fills the screen and a **tap** on the X closes it.
+chat panel fills the screen, its input keeps a keyboard-sized gap below it, and a
+**tap** on the X closes it.
 
 ### Viewport height — `svh` instead of `vh`
 
