@@ -218,7 +218,7 @@ test.describe('bananagrams dump', () => {
 
     // Full hand (15); the bunch holds 144 − 15 = 129.
     await expect(page.locator('[data-hand-tile]')).toHaveCount(15, { timeout: 15000 })
-    await expect(page.getByText('129 in the bunch')).toBeVisible()
+    await expect(page.getByText('Bunch: 129')).toBeVisible()
 
     // Drag the first hand tile onto the dump slot.
     const tile = page.locator('[data-hand-tile]').first()
@@ -234,7 +234,7 @@ test.describe('bananagrams dump', () => {
 
     // Net +2 tiles in hand, −2 in the bunch.
     await expect(page.locator('[data-hand-tile]')).toHaveCount(17)
-    await expect(page.getByText('127 in the bunch')).toBeVisible()
+    await expect(page.getByText('Bunch: 127')).toBeVisible()
 
     await ctx.close()
   })

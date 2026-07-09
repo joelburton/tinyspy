@@ -195,9 +195,10 @@ export async function createBananagramsGame(
     .schema('bananagrams')
     .rpc('create_game', {
       target_club: club.handle,
-      // bag_size is required by bananagrams.create_game (full 144-tile bag; the
-      // win test drains the pool directly rather than relying on a small bag).
-      setup: { hand_size: 15, bag_size: 144, timer: { kind: 'none' } },
+      // bunch_size is required by bananagrams.create_game (the full 144-tile
+      // bunch in play, no reserve; the win test drains the pool directly rather
+      // than relying on a small bunch).
+      setup: { hand_size: 15, bunch_size: 144, timer: { kind: 'none' } },
       player_user_ids: playerUserIds,
     })
   if (res.error) throw new Error(`bananagrams.create_game: ${res.error.message}`)
@@ -702,11 +703,11 @@ export async function saveBananagramsBoard(
   if (res.error) throw new Error(`save_player_board: ${res.error.message}`)
 }
 
-/** Empty a bananagrams game's bunch so the next peel can't refill the table —
- *  the way to drive a winning peel in a test without draining tile-by-tile.
- *  `bananagrams.pool` is hidden from PostgREST roles (it's a secret column), so
- *  we reach it the same way the import scripts do: psql as the local superuser.
- *  Test-only — no prod grant required. */
+/** Empty a bananagrams game's tile reserves (both the live `bunch` and the
+ *  out-of-play `bag`) so the next peel can't refill the table — the way to drive
+ *  a winning peel in a test without draining tile-by-tile. Both columns are
+ *  hidden from PostgREST roles (they'd leak future draws), so we reach them the
+ *  same way the import scripts do: psql as the local superuser. Test-only. */
 export function drainBananagramsPool(gameId: string): void {
   if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
   execFileSync(
@@ -714,7 +715,7 @@ export function drainBananagramsPool(gameId: string): void {
     [
       'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
       '-v', 'ON_ERROR_STOP=1',
-      '-c', `update bananagrams.games set pool = '' where id = '${gameId}';`,
+      '-c', `update bananagrams.games set bunch = '', bag = '' where id = '${gameId}';`,
     ],
     { stdio: 'pipe' },
   )

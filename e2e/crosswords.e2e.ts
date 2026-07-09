@@ -134,7 +134,7 @@ test.describe('crosswords play loop', () => {
 
     await page.getByRole('button', { name: 'Game menu' }).click()
     const download = page.waitForEvent('download')
-    await page.getByText('Print board (PDF)').click()
+    await page.getByText('Print / Save as PDF').click()
     expect((await download).suggestedFilename()).toMatch(/\.pdf$/)
   })
 

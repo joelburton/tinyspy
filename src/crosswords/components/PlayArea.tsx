@@ -288,7 +288,7 @@ export function PlayArea(ctx: GamePageCtx) {
     return m
   }, [recentFills])
 
-  // "Print board (PDF)" menu item. The grid is snapshotted at click-time via a
+  // "Print / Save as PDF" menu item. The grid is snapshotted at click-time via a
   // ref, so the menu item is set once (not rebuilt on every keystroke). The
   // PDF is a verbatim port of crossplay's — puzzle only, no answer key.
   const printStateRef = useRef<PuzzleState | null>(null)
