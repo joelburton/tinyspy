@@ -7,6 +7,7 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
+import { useIsMobile } from '../../common/hooks/ui/useIsMobile'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { memberById } from '../../common/lib/game/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -64,6 +65,14 @@ export function PlayArea({
 }: GamePageCtx) {
   const { game, players: playerBudgets, guesses, loading } = useGame(gameId)
   const mode = game?.mode
+
+  // Mobile POC (docs/mobile.md): below the breakpoint the board fills the
+  // screen and the whole info column (status line + actions + log) moves into
+  // an off-canvas sheet, opened from a mobile-only "Game info" menu item.
+  // `isMobile` gates that menu item; the sheet's show/hide is otherwise pure
+  // CSS. Desktop is unchanged — the two columns render side by side.
+  const isMobile = useIsMobile()
+  const [infoOpen, setInfoOpen] = useState(false)
 
   // I dropped out of a compete race (a real loss; the others keep racing). Read
   // from the common roster (prop `players`, always present) so it's available
@@ -127,12 +136,18 @@ export function PlayArea({
         onEndGame: () => actionsRef.current?.end(),
         onConcede: () => actionsRef.current?.concede(),
         extra: [
+          // Mobile-only: the info column is off-canvas below the breakpoint, so
+          // this is how you reach it (status line, Hint/Reveal, turn log). On
+          // desktop the column is always visible, so the item is omitted.
+          ...(isMobile
+            ? [{ items: [{ id: 'game-info', label: 'Game info', onClick: () => setInfoOpen(true) }] }]
+            : []),
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printPsychicnumPdf(model) }] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, mode, isTerminal, myConceded, game, guesses, players, brand, title, setup])
+  }, [menu, mode, isTerminal, myConceded, game, guesses, players, brand, title, setup, isMobile])
 
   // Per-opponent secrets-found count we've already announced (compete tension).
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
@@ -351,7 +366,20 @@ export function PlayArea({
         secrets={game.secrets}
         myConceded={myConceded}
       />
-      <InfoCol
+      {/* Info column. On desktop `.infoWrap` is `display: contents` — a no-op
+          wrapper — so InfoCol is the flex child exactly as before, and the
+          close button is hidden. On mobile it becomes an off-canvas sheet
+          slid in by `.infoOpen` (opened from the "Game info" menu item). */}
+      <div className={cls(styles.infoWrap, infoOpen && styles.infoOpen)}>
+        <button
+          type="button"
+          className={styles.infoClose}
+          onClick={() => setInfoOpen(false)}
+          aria-label="Close game info"
+        >
+          ✕
+        </button>
+        <InfoCol
         // ── Mode + phase ──
         isCompete={game.mode === 'compete'}
         over={over}
@@ -382,7 +410,8 @@ export function PlayArea({
         guesses={guesses}
         viewingIndex={viewingId}
         onSelectTurn={selectTurn}
-      />
+        />
+      </div>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
