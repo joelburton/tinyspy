@@ -48,6 +48,17 @@
   color: var(--color-text);
   background: var(--color-bg);
 }
+
+/* iOS focus-zoom floor (docs/mobile.md → Decisions #3): 0.9rem = 14.4px, under
+   the 16px threshold, so focusing the notes textarea would zoom the page in on a
+   phone (and never back out). Pin to 16px on touch; desktop keeps the compact
+   monospace 0.9rem. A class rule, so it needs its own touch override — the global
+   input floor in theme.css can't reach past this class's specificity. */
+@media (--touch) {
+  .textarea {
+    font-size: 16px;
+  }
+}
 .textarea:read-only {
   background: var(--color-surface);
   color: var(--color-muted);
