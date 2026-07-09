@@ -462,9 +462,20 @@ begin
   -- `saved` grid, applied into the template by the parser). Restoring them
   -- here means a half-finished puzzle imports where you left off — the
   -- crossplay behavior (its `saved` round-trip). Uppercased to match set_cell.
-  insert into crosswords.cells (game_id, owner_id, row, col, fill)
+  --
+  -- `mark_right` / `mark_bottom` are likewise seeded from the template cell's
+  -- cryptic edge marks. These are normally player-drawn (set_mark), but a
+  -- template can arrive WITH marks: the NYT overlay-PNG import applies
+  -- author-drawn word-break bars onto `meta.cells` (see nytOverlay.ts). Seeding
+  -- them into the live cells here is what puts them on the display path — the
+  -- board + PDFs read marks from `crosswords.cells`, not from the template — so
+  -- overlay bars render like any other mark. (A player can still clear one with
+  -- `|`/`_`; crossplay accepts the same, an author bar is not immutable.)
+  insert into crosswords.cells (game_id, owner_id, row, col, fill, mark_right, mark_bottom)
   select new_id, o.owner, (rr.ord - 1)::smallint, (cc.ord - 1)::smallint,
-         upper(nullif(cc.cellval ->> 'fill', ''))
+         upper(nullif(cc.cellval ->> 'fill', '')),
+         nullif(cc.cellval ->> 'markRight', ''),
+         nullif(cc.cellval ->> 'markBottom', '')
     from jsonb_array_elements(v_meta -> 'cells') with ordinality as rr(rowval, ord)
     cross join lateral jsonb_array_elements(rr.rowval) with ordinality as cc(cellval, ord)
     cross join unnest(

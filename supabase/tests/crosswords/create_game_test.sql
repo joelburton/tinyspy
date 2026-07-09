@@ -1,6 +1,6 @@
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(24);
+select plan(27);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -120,6 +120,34 @@ select is(
 select is(
   (select fill from crosswords.cells where game_id = :'gsav_id' and owner_id is null and row = 0 and col = 0),
   null, 'cells without a saved fill still import blank');
+
+-- ── Template cryptic marks seed into the live cells ──────────────────
+-- The NYT overlay import applies author word-break bars onto meta.cells;
+-- create_game must seed them into crosswords.cells (mark_right/mark_bottom)
+-- so they render on the board + PDFs (which read marks from the live cells,
+-- not the template). Drive an inline board whose (0,0) carries both marks.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select id as gmk_id from crosswords.create_game(
+  :'club_handle', '{"timer":{"kind":"none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop',
+  jsonb_build_object(
+    'meta', jsonb_set(
+              jsonb_set(pg_temp.xw_meta_2x2(), '{cells,0,0,markRight}', '"break"'),
+              '{cells,0,0,markBottom}', '"hyphen"'),
+    'solution', pg_temp.xw_sol_2x2())) \gset
+reset role;
+select is(
+  (select mark_right from crosswords.cells
+     where game_id = :'gmk_id' and owner_id is null and row = 0 and col = 0),
+  'break', 'template markRight seeds cells.mark_right (overlay/author bars render)');
+select is(
+  (select mark_bottom from crosswords.cells
+     where game_id = :'gmk_id' and owner_id is null and row = 0 and col = 0),
+  'hyphen', 'template markBottom seeds cells.mark_bottom');
+select is(
+  (select mark_right from crosswords.cells
+     where game_id = :'gmk_id' and owner_id is null and row = 1 and col = 1),
+  null, 'a cell without a template mark seeds NULL mark_right');
 
 -- ── Guards ───────────────────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

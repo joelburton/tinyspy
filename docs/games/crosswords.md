@@ -107,7 +107,7 @@ plain RPCs — no edge function needed.
 
 | RPC | behavior |
 |---|---|
-| `create_game(target_club, setup, player_user_ids, mode, board default null)` | `board` null → library path (copy from `puzzles` by `setup.puzzle_id`); `board = {meta, solution}` → inline path (NYT). Pre-inserts `cells` (per player in compete). |
+| `create_game(target_club, setup, player_user_ids, mode, board default null)` | `board` null → library path (copy from `puzzles` by `setup.puzzle_id`); `board = {meta, solution}` → inline path (NYT). Pre-inserts `cells` (per player in compete), seeding each row's `fill` + any template `markRight`/`markBottom` (author / NYT-overlay cryptic bars) so they render on the live path. |
 | `set_cell(target_game, row, col, fill, pencil)` | The hot path (one call per keystroke; FE echoes optimistically first). Guards: membership, `play_state`, not conceded, cell editable (given cells have no row; **revealed cells ARE editable** — mirror `applyFill`), fill = letters only, 1–8 chars (`^[A-Z]{1,8}$`, mirroring crossplay's ws.ts). Returns the bumped `version` + solved state. Solved → terminal per mode; compete first-correct-wins uses a locked `play_state` re-check so only the first solver sets the winner. |
 | `set_mark(target_game, row, col, side, mark)` | Set/clear a cryptic word-break / hyphen mark on the cell's `right` / `bottom` edge (`mark` = `break` / `hyphen` / null). Same guards as `set_cell`; display-only (no solve). Marks live in `cells.mark_right` / `mark_bottom` and sync via the same CDC path. **Fillable cells only** (a mark rides on the *left/upper* cell of a boundary, and givens have no cell row — so a break on a given's own right/bottom edge isn't representable; a rare cryptic-with-givens case, deliberately not supported). Ported from crossplay's edge marks. |
 | `reveal_solved_word(target_game, cells jsonb)` | **Leak-safe** answer read for the AI "Explain clue" feature: returns the canonical answer for `cells` **only if the caller has already filled them all correctly** (`_matches`, honoring givens) — else `solved = false`, no letters. So it can only surface a word you've already solved (safe in compete too). Also returns the puzzle note (not secret). Consumed by the `crosswords-explain-clue` edge function. |
@@ -161,7 +161,11 @@ Upload file):
   minority of themed puzzles) is applied after conversion: the pure detector is
   `src/crosswords/lib/nytOverlay.ts` (`detectOverlayMarkings` + `applyOverlayMarkings`,
   unit-tested against real NYT overlay fixtures), and the edge fn fetches + decodes
-  the overlay PNG (`npm:pngjs`) — a missing/broken overlay is non-fatal. Local cookie setup:
+  the overlay PNG (`npm:pngjs`) — a missing/broken overlay is non-fatal. `applyOverlayMarkings`
+  writes circles onto `meta.cells` (a template-read field, so they render directly) and
+  bars as `markRight`/`markBottom`; because marks are a *live-cell* concept here (board +
+  PDFs read them from `crosswords.cells`, not the template), **`create_game` seeds template
+  marks into the live cells** so the overlay bars render like any player-drawn mark. Local cookie setup:
   put `NYT_COOKIE_JAR=<raw JSON or base64>` in `supabase/functions/.env` and
   `supabase functions serve crosswords-import-nyt --env-file …`.
 
