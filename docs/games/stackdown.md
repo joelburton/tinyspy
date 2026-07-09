@@ -327,7 +327,7 @@ the local pill carries only the results a ring can't.
   depth shading), `letterCorner` (tuck a covered tile's letter into a free
   quadrant). Pure; Vitest in `board.test.ts`.
 - **`lib/history.ts`** — the turn-history replay (pure + unit-tested; stackdown is
-  where this feature was born — see docs/playarea-decomposition-plan.md). Given the
+  where this feature was born — see docs/playarea-decomposition.md). Given the
   submission log and a turn's **position** in it, reconstruct the board *as it was
   about to be played*: the full stack minus tiles cleared by valid words at positions
   **strictly before** it — so the viewed turn's own word is still ON the board (ringed

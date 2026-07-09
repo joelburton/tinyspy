@@ -1,22 +1,20 @@
-# PlayArea decomposition + turn-history — plan
+# PlayArea decomposition + turn-history
 
-Status: **ALL PHASES DONE** (branch `stackdown-turn-history`). Every standard game
-is decomposed into `BoardCol` / `InfoCol` (bananagrams via its own engine-hook +
-views shape — see below); the shared turn-history viewer (`useHistoryViewer` +
-per-game replay helper) ships in the seven games whose board can replay a past
-turn (stackdown, connections, psychicnum, codenamesduet, wordle, waffle via
-`lib/history.ts`; scrabble via `boardUpToSeq` in `lib/play.ts`);
-spellingbee + boggle are decomposed but have no viewer (a `WordList` isn't
-chronological). Written 2026-07-02; updated as the work landed. This file is the
-source of truth for the work; read it first. Phase A shipped the turn-history viewer
-on the still-monolithic stackdown; Phase B decomposed stackdown into the four layers
-as a verified no-op; Phase C rolled both out. **What the prototype taught us** — the
-findings that shaped the rollout — is recorded in its own section below; read it
-before extracting `InfoCol`/`BoardCol` for a new game.
+Every standard game is decomposed into `BoardCol` / `InfoCol` (bananagrams via its
+own engine-hook + views shape — see below). The shared turn-history viewer
+(`useHistoryViewer` + a per-game replay helper) ships in the **seven** games whose
+board can replay a past turn — stackdown, connections, psychicnum, codenamesduet,
+wordle, waffle (each via its own `lib/history.ts`) and scrabble (via `boardUpToSeq`
+in `lib/play.ts`); spellingbee + boggle are decomposed but have **no** viewer (a
+`WordList` isn't chronological).
+
+**Read [What building it taught us](#what-building-it-taught-us) before extracting
+`InfoCol` / `BoardCol` for a new game** — it records where the "target architecture"
+table below was too clean, learned by actually building it.
 
 ## Why
 
-The per-game `PlayArea.tsx` files are large — most 450–900 lines
+The per-game `PlayArea.tsx` files are large — most were 450–900 lines
 (scrabble 892, spellingbee 680, connections 670, …). Per CLAUDE.md's
 "the codebase itself is part of the artifact" priority, a 450+-line React
 component is too big to hold in your head. We want a **consistent, readable
@@ -30,9 +28,9 @@ layout exception — see below):
 
 | layer | owns | interface |
 |---|---|---|
-| **`Board`** | pure presentation of a board state | state **down**, clicks **up**. Already extracted in 9/10 games (scrabble `Board`, waffle `Board`, …); only **boggle** still renders inline. |
+| **`Board`** | pure presentation of a board state | state **down**, clicks **up**. |
 | **`BoardCol`** | the **live input engine** (drag / cursor / keyboard / word-building) + local below-board feedback; renders `Board` | **takes the board-state-to-render** (live *or* a historical snapshot) + a `readOnly` flag **down**; emits **one committed action up** (`onPlayWord` / `onGuess` / `onSubmitWord`). |
-| **`InfoCol`** | almost nothing — arranges the shared pieces (`OpponentStrip`, `TerminalActionRow`, `SetupDisclosure`, `TurnLog`) around a game-specific readout | props **down** + a few named callbacks **up** (`onSelectTurn`, `onHint`, `onEndGame`, `onConcede`, …). Near-zero internal state. **Greenfield** — no game has this today; the prototype defines its shape. |
+| **`InfoCol`** | almost nothing — arranges the shared pieces (`OpponentStrip`, `TerminalActionRow`, `SetupDisclosure`, `TurnLog`) around a game-specific readout | props **down** + a few named callbacks **up** (`onSelectTurn`, `onHint`, `onEndGame`, `onConcede`, …). Near-zero internal state. |
 | **`PlayArea`** | game data (`useGame`), server mutations (RPCs), and **cross-column coordination state** (e.g. `viewingSeq`) | wires `BoardCol` ↔ `InfoCol`. |
 
 ### The load-bearing contract
@@ -43,20 +41,9 @@ I'm editing, given a board handed to me." That's what makes turn-history a drop-
 everywhere: viewing a past turn is just "hand `BoardCol` a historical snapshot +
 `readOnly=true`", no reopening the columns.
 
-### Why this order of extraction
+### Cautions
 
-- **`InfoCol` first, across the standard games** — it's low-state, low-risk, pure
-  consistency/readability win; the callbacks-up interface is short and
-  self-documenting. Prototype it on **stackdown** (below), then roll out.
-- **`BoardCol` where the input engine is heavy** (scrabble, bananagrams, stackdown,
-  spellingbee). For thin-input games (wordle, connections, psychicnum) a `BoardCol`
-  is a ~30-line wrapper — fine for consistency, but not a comprehension win, so it's
-  lower priority.
-- **`Board` for boggle** (the one inline outlier) as part of its pass.
-
-### Cautions (learned the hard way in the §4 review cleanup)
-
-- **The review overclaims uniformity every time.** Always diff all N PlayAreas
+- **A review overclaims uniformity every time.** Always diff all N PlayAreas
   before extracting; the shared core is real, the tail is deliberate per-game
   difference. Extract the core, name it honestly, leave the outlier, document it.
 - **Refactor ≠ feature.** A decomposition step must be a behavior-preserving no-op
@@ -67,131 +54,62 @@ everywhere: viewing a past turn is just "hand `BoardCol` a historical snapshot +
   model, because its input engine spans BOTH columns (the hand tiles are drag SOURCES
   into the board; the dump zone is a drop TARGET during a board drag; the derived hand
   is a function of board state; the keyboard cursor types onto the board but checks the
-  hand). ✅ **DONE via its OWN shape** — the honest analog of "engine + views + thin
+  hand). It's handled via its **OWN shape** — the honest analog of "engine + views + thin
   coordinator": the cross-column engine lifted into a hook **`usePlayerBoard`** (557),
   two thin presentational VIEWS **`BoardArena`** (board column, 137) + **`HandCard`**
   (info column, 125) — deliberately NOT named `BoardCol`/`InfoCol` since they own no
   input — and a now-thin **`PlayerBoard`** (711→183) that lays out the two columns.
-  Note the TWO-LEVEL coordinator: `PlayArea` (298, UNCHANGED) stays the OUTER
+  Note the TWO-LEVEL coordinator: `PlayArea` (298) stays the OUTER
   coordinator (data / peel-dump-concede RPCs / feedback channel / terminal verdict, via
   the `infoTop`/`infoActions`/`localPill` slots) above `PlayerBoard`, the columns'
   coordinator. CSS left INTACT (`PlayerBoard.module.css` imported by all three) — the
   board + hand tiles SHARE `.tile`/`.handTile`/`.lifted`, so a split would duplicate
-  them (same call as connections). Verified NO-OP: bananagrams is OUT of the geometry
-  harness (a fill arena, not a hug board), so the net is the 4 `PlayArea.test.tsx`
-  render tests + the full **`e2e/bananagrams.e2e.ts`** (6 tests: render, keyboard place
-  + reload-persist, peel-win, peel-draw, drag-to-dump, live peer count) — which
-  exercises the whole DOM/data-attr + drag + keyboard contract the extraction had to
-  preserve. Full suite (587). See docs/games/bananagrams.md.
+  them (same call as connections). bananagrams is OUT of the geometry harness (a fill
+  arena, not a hug board), so the no-op net is the 4 `PlayArea.test.tsx` render tests +
+  the full `e2e/bananagrams.e2e.ts`. See docs/games/bananagrams.md.
 
-## The driving feature — stackdown turn-history
+## Per-game history-viewer specifics
 
-Ship this as real product (Joel wants it in stackdown), and use it to validate the
-seam. **Feature-first**: build it on the still-monolithic stackdown, THEN decompose
-stackdown — so the decomposition confronts the real cross-column coordination state.
+The viewer is one shared machine (`useHistoryViewer` + the `#N` handle + the shared
+exit paths — see [What building it taught us](#what-building-it-taught-us)). What
+stays per-game is **snapshot computation** (each game's `lib/history.ts`) and **turn
+identity** (a game-wide ordinal vs a log position). The variations that matter when
+adding a viewer to a new game:
 
-### Mechanics (stackdown-specific)
-
-stackdown clears a word by **removing its tiles**; each valid `submissions` row
-carries the `tile_ids` it cleared. So, for viewing turn `N`:
-
-- **Board snapshot** = full board minus tiles cleared by valid word submissions with
-  `seq < N` (strictly before N) — so **turn N's own word tiles are still present**.
-- **Green highlight** = turn N's `tile_ids` (if it's a valid word) — "this is the
-  word that turn played", the same green scrabble uses for a turn's placements.
-- **Invalid / hint / reveal turns** carry no tiles: snapshot = removed-by-valid `< N`,
-  no green, and a kind-aware description ("entered EBATL — not a word", "requested
-  hint", "revealed LEMON").
-
-A pure `lib/history.ts` function computes this (unit-tested), parallel to scrabble's
-`boardUpToSeq`.
-
-### UX (matches scrabble's history-view for consistency)
-
-- **Enter:** click **any** `TurnLog`/`GameTurnLog` row (not just valid words). The
-  overlay describes the turn per kind.
-- **Exit:** click anywhere / type anywhere (any interaction returns to live), same as
-  scrabble.
-- **While viewing:** tile input disabled; the viewed row highlighted; the board shows
-  the historical stack (fuller) with the played word green.
-- **Works at terminal too** (reviewing the finished stack is a prime use).
-
-## Execution plan
-
-### Phase A — stackdown turn-history (feature, on monolithic stackdown) — ✅ DONE
-
-1. `stackdown/lib/history.ts` → snapshot(submissions, seq) = `{ offBoard: Set,
-   greenTiles: Set, description }`; pure + Vitest.
-2. `PlayArea`: add `viewingSeq` coordination state; when set, feed `Board` the
-   historical `offBoard` + green highlight + `active={false}`.
-3. `GameTurnLog`: rows clickable → `onSelectTurn(seq)`, viewed row highlighted (reuse
-   scrabble GameTurnLog's `viewedRow` pattern); kind-aware description.
-4. Verify: unit test for the snapshot fn; headless check the click→view→exit loop.
-
-### Phase B — decompose stackdown into the four layers — ✅ DONE
-
-- `PlayArea`: `useGame` + submit RPCs + `viewingSeq` (+ the concede/reveal handlers).
-- `BoardCol`: the word-building input (tile clicks, `currentWord`, flash); **takes**
-  the board-to-render (live or snapshot) + `readOnly`; emits `onSubmitWord`.
-- `InfoCol`: `OpponentStrip` + cleared-count readout + `TerminalActionRow` +
-  `SetupDisclosure` + `GameTurnLog`; emits `onSelectTurn` / `onHint` / `onReveal` /
-  `onEndGame` / `onConcede`.
-- `Board`: already exists.
-- Verify: no-op (render tests + geometry harness unchanged); the Phase-A history
-  feature still works through the new seam = proof the contract is right.
-
-### Phase C — roll out — ✅ DONE
-
-- `InfoCol` to the other 7 standard games (waffle, boggle, wordle, connections,
-  psychicnum, spellingbee, codenamesduet). bananagrams excepted.
-- `BoardCol` to the heavy-input games (scrabble ✅). boggle ✅ + spellingbee ✅
-  decomposed (BoardCol/InfoCol, no-op verified) — NO history viewer (no turn log,
-  just a WordList). Both are thin-input: the `useWordSubmit` entry engine stays in the
-  coordinator (its feedback is also written by InfoCol's End/Concede), so the entry
-  primitives pass down; BoardCol owns the board-visual shuffle/rotate + the letter
-  input. boggle's inline tile grid moved into BoardCol (it was the one game whose board
-  wasn't a component).
-- Add turn-history to the games where the board history is meaningful
-  (codenamesduet/tinyspy ✅ done — viewer + **decomposed** (BoardCol/InfoCol, no-op
-  verified); psychicnum ✅ viewer + **decomposed** (BoardCol/InfoCol, no-op verified —
-  the guessed tile shows its green/red outcome color + a yellow ring, keyed by log
-  position; BoardCol owns the guess dispatch + board shuffle, own-move pill builder
-  since unified into `common/lib/game/localPills.ts` `stickyPill`); connections ✅ viewer (the first MUTATING board — a
-  correct guess collapses tiles into a band — so **strictly-before** like stackdown:
-  the viewed turn's 4 tiles stay on the grid, tinted by outcome + ringed; needed a
-  `#N` column added to its two-`<tr>` log) + **decomposed** (BoardCol owns the guess
-  dispatch + shuffle; the tile SELECTION stays in useGame — broadcast-coupled — so it's
-  passed down; own-guess builder since unified into `common/lib/game/localPills.ts`); waffle ✅; wordle ✅ viewer + **decomposed**
-  (BoardCol/InfoCol, no-op verified): ADD-style (like psychicnum), keyed by log position,
-  INCLUSIVE — the snapshot (`src/wordle/lib/history.ts`) is just the first N guess rows,
-  the last ringed history-yellow (`Board` gains `viewing` + `highlightRow`;
-  `.viewedRow` ring). wordle's twist: the log has a **"whose board" picker**, so the `#N`
-  handle is a live control ONLY when the log shows the board that replays (coop team / my
-  own — `boardIsShown = teamView || picked === selfId`); an opponent's revealed log (compete
-  terminal) keeps a plain read-only `#N`. Keystroke-exit rides `useGlobalKeyHandler(exitOnKey)`
-  alongside `useCaptureKeys` (frozen via `disabled: !canGuess || viewing`); the banner overlays
-  the whole below-board region (feedback slot + keyboard). e2e seeds guesses via a new
-  `seedWordleGuesses` fixture (psql reads the hidden target + legal words, then the real RPC).
-  **Decomposition** (617→350): `BoardCol` (261) OWNS the input engine — `current`/`pending`/
-  `submitting` + `submit_guess` (Pattern A, like psychicnum's board-gesture BoardCol) +
-  `useCaptureKeys` + the on-screen keyboard + `keyStates`; it takes the LIVE `rows` + the `snap`
-  and picks live-vs-snapshot itself, derives `viewing = snap !== null`, and computes `canGuess =
-  guessingAllowed && !submitting && !pendingWord` (PlayArea passes only the GAME-STATE half,
-  `guessingAllowed`, so behavior is byte-identical). `InfoCol` (207) is presentational (guess
-  count + OpponentStrip + action row + setup + terminal answer-reveal + GameTurnLog). Feedback
-  channel stays in PlayArea (both columns write it); own-move pill builder since unified into
-  `common/lib/game/localPills.ts` `stickyPill`; the below-board pill is RESOLVED in PlayArea and passed down as
-  `localFeedbackMsg`. CSS split (psychicnum-style): `belowBoard`/`moveArea` → BoardCol.module.css,
-  `answerLine`/`answerReveal` → InfoCol.module.css, only `.layout` left in PlayArea.module.css) —
-  now a drop-in against the contract.
-  codenamesduet keys the viewer by `turn_number` (game-wide ordinal, like scrabble's
-  `seq`, not log position); its snapshot (`src/codenamesduet/lib/history.ts`) folds the
+- **stackdown** — keyed by **log position**; **strictly-before** snapshot: the board
+  minus tiles cleared by valid submissions with `seq < N`, so turn N's own word tiles
+  are still present and greened (the same green scrabble uses for a turn's placements).
+  Invalid / hint / reveal turns carry no tiles → snapshot = removed-by-valid `< N`, no
+  green, a kind-aware description. `lib/history.ts`, pure + unit-tested.
+- **scrabble** — keyed by the stable **`seq`** (game-wide ordinal, not log position);
+  the snapshot is `boardUpToSeq` in `lib/play.ts`. Its fat `BoardCol` runs `boardUpToSeq`
+  itself (the raw `plays` already live there for the live board) rather than being handed
+  a ready board.
+- **connections** — keyed by **log position**; the first **mutating** board (a correct
+  guess collapses four tiles into a band), so **strictly-before** like stackdown: the
+  viewed turn's four tiles stay on the grid, tinted by outcome + ringed. Needed a `#N`
+  column added to its two-`<tr>` log.
+- **wordle** — keyed by **log position**; **inclusive / add-style**: the snapshot
+  (`src/wordle/lib/history.ts`) is the first N guess rows, the last ringed
+  history-yellow (`Board` gains `viewing` + `highlightRow`). Twist: the log has a
+  **"whose board" picker**, so the `#N` handle is a live control ONLY when the log shows
+  the board that replays (coop team / my own — `boardIsShown = teamView || picked ===
+  selfId`); an opponent's revealed log (compete terminal) keeps a plain read-only `#N`.
+- **psychicnum** — keyed by **log position**; add-style; the guessed tile shows its
+  green/red outcome color + a yellow ring.
+- **codenamesduet** — keyed by **`turn_number`** (game-wide ordinal, like scrabble's
+  `seq`, not log position); the snapshot (`src/codenamesduet/lib/history.ts`) folds the
   guess log onto the fixed board (global `revealed_as` + per-seat `neutral_a/b`) and
-  rings that turn's own cells. Its BoardCol owns the **guess** RPC (a two-input game —
-  the guess is a board click; `CluePanel` keeps the clue RPCs); feedback lifts to
-  PlayArea (both columns write the below-board pill).
+  rings that turn's own cells. A two-input game — its `BoardCol` owns the **guess** RPC
+  (the guess is a board click; `CluePanel` keeps the clue RPCs).
+- **waffle** — keyed by **log position**; `highlight` = a viewed swap's neutral cell ring.
 
-### Prop conventions for the columns (decided during the stackdown prototype)
+UX is uniform (and matches across the history games): enter by clicking a turn's `#N`
+handle; the input freezes and the board shows the historical state; any interaction
+(keystroke / click anywhere / the banner ✕) returns to live; works at terminal too
+(reviewing the finished board is a prime use).
+
+## Prop conventions for the columns
 
 These keep the columns legible AND consistent across games — the second is
 load-bearing: a `BoardCol`/`InfoCol` prop that means the same thing in two games
@@ -211,8 +129,7 @@ already knew. Drift here causes real head-scratching.
   to the per-prop docstrings, which document each group); the destructure above is a
   flat list with a short lead comment pointing at them. All six columns
   (stackdown/waffle/scrabble × BoardCol/InfoCol) follow this — don't put the headers
-  in the destructure and leave the type block bare (waffle/scrabble InfoCol drifted
-  that way and were realigned in the game-4 pre-flight review).
+  in the destructure and leave the type block bare.
 - **One vocabulary across all games.** For the same idea, use the same prop name
   everywhere: `readOnly`, `over`, `isTerminal`, `isCompete`, `isPlayer`,
   `viewingDescription`, `onExitViewing`, `onSelectTurn`, `players`, `selfId`,
@@ -220,8 +137,7 @@ already knew. Drift here causes real head-scratching.
   `onConcede`, `onBackToClub`, … When a new game needs a prop that an earlier column
   already has under some name, REUSE that name; only diverge when the meaning truly
   differs, and say so. Treat this list as the seed glossary; grow it as games land.
-  Settled during the 3-game review, and worth calling out because they're easy to
-  re-drift:
+  Easy to re-drift, so worth calling out:
   - **Below-board feedback follows the `useLocalFeedback` hook's own names:** the
     folded pill to render is **`localPill`** (`GenericFeedbackMsg | null` — the hook's
     raw `localFeedback` with the terminal verdict folded in by PlayArea), and the
@@ -247,11 +163,11 @@ already knew. Drift here causes real head-scratching.
 - **A real object only for a genuinely cohesive cluster** that always travels
   together to one child (e.g. the OpponentStrip's inputs) — never to hit a number.
 
-## What the prototype taught us (Phase A + B findings)
+## What building it taught us
 
-Read this before extracting `InfoCol`/`BoardCol` for the next game — these are the
-places the "target architecture" table above was too clean, learned by actually
-building it on stackdown.
+These are the places the "target architecture" table above was too clean — learned by
+actually building the seam on stackdown first, then rolling it out. Read them before
+extracting `InfoCol`/`BoardCol` for the next game.
 
 - **The word-building buffer stays in the data hook, not `BoardCol`.** stackdown's
   `currentWord` / `appendTile` / `retractTo` / `commitWord` live in `useGame`
@@ -263,7 +179,7 @@ building it on stackdown.
   the buffer is entangled with server/realtime state (scrabble's `staged`, etc.).
 
 - **Local below-board feedback lifts to `PlayArea`, NOT `BoardCol`.** The target
-  table put "local below-board feedback" under `BoardCol`; the prototype disproved
+  table put "local below-board feedback" under `BoardCol`; building it disproved
   that for stackdown. The pill has **four** sources and three are outside the board
   column: the terminal verdict (derived), submit results, and — critically — the
   **reveal/hint cheats, which are `InfoCol` actions**. A channel written from both
@@ -287,7 +203,7 @@ building it on stackdown.
   (board-state + `readOnly`) as the table intended.
 
 - **Verify a decomposition step with the geometry harness, not just render tests.**
-  The no-op proof for Phase B was `e2e/board-geometry.e2e.ts`: `BASELINE=1` on the
+  The no-op proof was `e2e/board-geometry.e2e.ts`: `BASELINE=1` on the
   stashed pre-refactor tree, `git stash pop`, re-run → the post-refactor `.boardCol`
   box matched to the pixel across all 8 boards. Render tests + `tsc` + eslint pass
   both before and after a botched CSS-relocation; the geometry diff is what actually
@@ -318,18 +234,15 @@ building it on stackdown.
 - **The turn-viewer affordance is the "#N handle", shared across all history games.**
   A turn is opened on the board viewer by clicking its **`#N` number** (the shared
   `<TurnLogNumber>` in `common/components/game/lists/TurnLog.tsx`), which rings *itself* yellow
-  while that turn is open — NOT by clicking the whole row (the earlier Phase-A/B
-  pattern, since replaced). Why: several games render a turn as multiple `<tr>`s
-  (codenamesduet's clue + guess rows), where a whole-row "viewing" outline draws a
-  broken box and a per-row hover lights only half the turn — a single small handle
-  stays crisp regardless of row count. The yellow "viewing" marker is
-  `historyViewer.module.css → .viewedNumber` (was `.viewedRow`). A history log therefore
-  needs a `#N` cell to hang the handle on (all four current ones had it; a future
-  history game without one must add it). The handle is a **`<span>`, not a
-  `<button>`** — a focused button re-fires its click on Space, so pressing Space to
-  leave the viewer would re-select the turn; a span takes no keystroke, so Space
-  falls through to the exit-on-key handler. (No `outline` on the span for the same
-  reason it isn't needed: `outline` is reserved for the yellow `.viewedNumber` marker.)
+  while that turn is open — NOT by clicking the whole row. Why: several games render a
+  turn as multiple `<tr>`s (codenamesduet's clue + guess rows), where a whole-row
+  "viewing" outline draws a broken box and a per-row hover lights only half the turn —
+  a single small handle stays crisp regardless of row count. The yellow "viewing"
+  marker is `historyViewer.module.css → .viewedNumber`. A history log therefore
+  needs a `#N` cell to hang the handle on (a future history game without one must add
+  it). The handle is a **`<span>`, not a `<button>`** — a focused button re-fires its
+  click on Space, so pressing Space to leave the viewer would re-select the turn; a
+  span takes no keystroke, so Space falls through to the exit-on-key handler.
 
 - **Exiting the viewer is intrinsic to `useHistoryViewer` — no per-game wiring.**
   Three exits, all shared: (1) a **keystroke** — `exitOnKey`, the one path a game
@@ -339,10 +252,8 @@ building it on stackdown.
   the banner **✕**. For the click path to also cover the board, the shared
   `historyViewer.module.css → .frame` sets `pointer-events: none` (a framed board is
   a read-only snapshot), so a board click falls through to the document listener.
-  This replaced the earlier per-game board-column `onClick={viewing ? exitViewing :
-  undefined}` (and codenamesduet's dense-grid `pointer-events` workaround) — deleted
-  from all games. Verified in a real browser (`e2e/codenamesduet-history.e2e.ts`
-  exercises Space, a board click, and an info-column click).
+  Verified in a real browser (`e2e/codenamesduet-history.e2e.ts` exercises Space, a
+  board click, and an info-column click).
 
 ## Resolved along the way
 

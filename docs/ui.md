@@ -620,7 +620,7 @@ CSS; each standard game also *splits* its `PlayArea` into a **`BoardCol`** compo
 component (these readouts + the turn log). The board-vs-info CSS split mirrors the
 component split. See
 [code-conventions.md → PlayArea decomposition](code-conventions.md#playarea-decomposition--boardcol--infocol)
-and [docs/playarea-decomposition-plan.md](playarea-decomposition-plan.md).
+and [docs/playarea-decomposition.md](playarea-decomposition.md).
 
 ### Info-column readouts
 
@@ -923,7 +923,7 @@ board shape and even the boundary differ: an ADD-style board shows the turn's ow
 move *included*, a removal-style board like stackdown/connections shows the fuller
 *pre-move* board) and how a turn is *identified* (a game-wide ordinal like scrabble's
 `seq` or codenamesduet's `turn_number`, vs a log position). See
-[docs/playarea-decomposition-plan.md](playarea-decomposition-plan.md) for the full
+[docs/playarea-decomposition.md](playarea-decomposition.md) for the full
 seam and the per-game keying.
 
 ## Board sizing
