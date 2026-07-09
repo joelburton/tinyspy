@@ -60,10 +60,17 @@ test.describe('panels on touch', () => {
     // above where the on-screen keyboard appears. Assert a substantial gap below
     // the input (qualitative, so tuning var(--keyboard-reserve) doesn't break the
     // test).
-    const inputBox = await page.getByRole('textbox').boundingBox()
+    const input = page.getByRole('textbox')
+    const inputBox = await input.boundingBox()
     expect(inputBox).not.toBeNull()
     const gapBelowInput = viewport.height - (inputBox!.y + inputBox!.height)
     expect(gapBelowInput).toBeGreaterThan(200) // keyboard-sized reserve is present
+
+    // The chat input's font must be >= 16px on touch, or iOS focus-zooms the page
+    // (making the sheet wider than the screen). Guards the regression even though
+    // the zoom itself is iOS-only and unobservable headless.
+    const fontPx = await input.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))
+    expect(fontPx).toBeGreaterThanOrEqual(16)
 
     // The bug under guard: tapping the header X (aria-label "Close", distinct
     // from the bubble's "Close chat" toggle) must actually dismiss the panel.

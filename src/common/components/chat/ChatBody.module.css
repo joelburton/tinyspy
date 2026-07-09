@@ -67,3 +67,16 @@
   width: 100%;
   font-size: 0.9rem;
 }
+
+/* iOS focus-zoom trap (docs/mobile.md → Decisions #3): an <input> whose font is
+   under 16px makes mobile Safari zoom the page IN when the field is focused —
+   and it does NOT zoom back out on blur, so the whole chat sheet ends up wider
+   than the screen until you pinch it down. Pin the FIELD to the 16px floor on
+   touch devices; desktop keeps the compact 0.9rem (it never focus-zooms). The
+   literal `16px` is deliberate — 16px is a fixed iOS constraint, not a design
+   token that should scale with the root font-size. */
+@media (--touch) {
+  .inputRow input {
+    font-size: 16px;
+  }
+}

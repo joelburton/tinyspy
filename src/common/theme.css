@@ -311,10 +311,11 @@
      off-screen). Reserving the space UNCONDITIONALLY — keyboard up or down —
      means the sheet's height never changes when the keyboard toggles, so there's
      zero reflow (the repo's no-reflow-on-state-change rule); the keyboard simply
-     fills the gap that was already there. ~44% of the small viewport height is a
-     generous cover for a portrait phone keyboard (typically ~40% incl. the
-     predictive bar). Tune against real devices. Only consumed under `--phone`. */
-  --keyboard-reserve:         44svh;
+     fills the gap that was already there. ~50% of the small viewport height
+     covers a portrait phone keyboard PLUS Apple's QuickType predictive/suggested-
+     words bar, which adds ~40px on top and pushes the total to ~45–46% on the
+     smallest iPhones. Tune against real devices. Only consumed under `--phone`. */
+  --keyboard-reserve:         50svh;
 
   /* Type. */
   font-family: system-ui, -apple-system, sans-serif;
