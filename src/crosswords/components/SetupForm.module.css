@@ -80,6 +80,11 @@
   cursor: pointer;
   border: none;
   background: none;
+  /* The base <button> rule paints text white (for accent-filled buttons); this
+     is a plain list row on a light surface, so restore the body text color —
+     otherwise the title is white-on-white (only .itemMeta, which sets its own
+     muted color, stays visible). */
+  color: var(--color-text);
   text-align: left;
   border-bottom: 1px solid #eef2f6;
   font: inherit;
