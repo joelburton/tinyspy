@@ -140,3 +140,64 @@
 .title {
   margin: 0;
 }
+
+/* ─── Mobile tab switcher ────────────────────────────────────────────
+ *
+ * This app is desktop-first (docs/ui.md): the desktop layout above is
+ * the default, and mobile is expressed as an *exception* layered on
+ * top via a max-width query — never mobile-first min-width. This is
+ * the first width-based breakpoint in the app, so it sets the
+ * convention: 56.25rem (900px) is the desktop→mobile line. It
+ * comfortably captures phones and portrait tablets while landscape
+ * tablets (≥ ~1024px) keep the two-column desktop layout.
+ *
+ * On desktop the tab bar is hidden and both body columns show side by
+ * side. Below the breakpoint the two columns would be too cramped, so
+ * the body stacks to a single column and this tab bar switches between
+ * the "New game" (.left) and "Completed/shelved" (.right) views — only
+ * one renders at a time, so the page still fits the viewport without
+ * scrolling. */
+.tabs {
+  /* Desktop: no tabs. The mobile query below flips this to flex. */
+  display: none;
+}
+
+@media (max-width: 56.25rem) {
+  .tabs {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0.5rem;
+    /* Center inside the same content well as the title + body. */
+    width: 100%;
+    max-width: 62.5rem;
+    margin-inline: auto;
+  }
+
+  /* Each tab shares the row evenly. The theme's base <button> rule
+   * already paints it accent + white — that IS the selected look, so
+   * we only override the UNselected tab back to the surface treatment. */
+  .tab {
+    flex: 1;
+  }
+
+  .tab[aria-selected='false'] {
+    background: var(--color-surface);
+    border-color: var(--color-surface-border);
+    color: var(--color-text);
+  }
+
+  /* The body becomes a single stacked column; the selected section
+   * fills it (its own flex: 1 from the desktop rules still applies). */
+  .body {
+    flex-direction: column;
+  }
+
+  /* Show exactly one column, chosen by the tab (data-tab on .body). */
+  .body[data-tab='new'] .right {
+    display: none;
+  }
+
+  .body[data-tab='completed'] .left {
+    display: none;
+  }
+}

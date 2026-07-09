@@ -102,6 +102,14 @@ export function ClubPage({ handle, session }: Props) {
   // Whether the club Help modal is mounted — toggled by the menu's "Help" item
   // (the club-page counterpart to each game's Help modal on GamePage).
   const [helpOpen, setHelpOpen] = useState(false)
+  // Which body column is showing on MOBILE (phones + portrait tablets). On
+  // desktop the two columns sit side by side and this is ignored — the tab bar
+  // that drives it is display:none there (see ClubPage.module.css's mobile
+  // breakpoint). Below the breakpoint only one column renders at a time so the
+  // page still fits the viewport; the tabs pick which. 'new' = the left column
+  // (active game + start-a-new-game); 'completed' = the right column
+  // (completed/shelved list).
+  const [mobileTab, setMobileTab] = useState<'new' | 'completed'>('new')
 
   // Club presence: who's in the club orbit right now (this page, or
   // any game page of the club) and which game they're viewing. We
@@ -640,12 +648,41 @@ export function ClubPage({ handle, session }: Props) {
         </h1>
       </div>
 
+      {/* Mobile-only tab switcher (phones + portrait tablets). On
+          desktop this bar is display:none and both columns show side
+          by side; below the breakpoint only the selected column
+          renders, so the page still fits the viewport without
+          scrolling. The count rides on the "Completed/shelved" tab so
+          it's visible even while the "New game" tab is active. */}
+      <div className={styles.tabs} role="tablist" aria-label="Games">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileTab === 'new'}
+          className={styles.tab}
+          onClick={() => setMobileTab('new')}
+        >
+          New game
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileTab === 'completed'}
+          className={styles.tab}
+          onClick={() => setMobileTab('completed')}
+        >
+          Completed/shelved ({otherGames.length})
+        </button>
+      </div>
+
       {/* Two-column body that takes the rest of the viewport height
           (per docs/ui.md → "Page-height fits the viewport"). Left
           column holds the active game card + start-game buttons;
           right column is the "Other games" list as a fixed-size
-          frame with internal overflow-y: auto. */}
-      <main className={styles.body}>
+          frame with internal overflow-y: auto. The `data-tab` attr
+          drives the mobile single-column view (see the CSS); it's
+          inert on desktop where both columns are always shown. */}
+      <main className={styles.body} data-tab={mobileTab}>
         <section className={styles.left}>
           {activeGame && (
             <div>

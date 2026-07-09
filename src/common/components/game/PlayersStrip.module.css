@@ -39,3 +39,28 @@
   color: var(--color-text);
   font-weight: 500;
 }
+
+/* Mobile (phones + portrait tablets): drop to DOTS ONLY. Usernames are
+ * variable-length (and can be long handles) — on a narrow header they'd
+ * overflow and scroll the page. The dot already carries the whole signal
+ * (color = which player, filled/hollow = present/away), so the name is
+ * the droppable half. Desktop is untouched: names show as before.
+ *
+ * 56.25rem (900px) is the app's shared desktop→mobile line — see
+ * ClubPage.module.css, where this breakpoint was first established. */
+@media (max-width: 56.25rem) {
+  .username {
+    display: none;
+  }
+
+  /* The margin existed to separate the dot from its (now-hidden) name;
+   * with dots alone, the strip's own `gap` does the spacing. */
+  .dot {
+    margin-right: 0;
+  }
+
+  /* Dots sit closer together than the name-bearing entries did. */
+  .strip {
+    gap: 0.6rem;
+  }
+}
