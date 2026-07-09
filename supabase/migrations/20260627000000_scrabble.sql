@@ -154,8 +154,9 @@ create table scrabble.games (
   -- Coop-only (null in compete): the shared team rack + score.
   shared_rack text[],
   team_score  int,
-  -- Compete-only (null in coop): whose turn, and the blocked-end counter.
-  current_user_id       uuid references common.profiles(user_id),
+  -- Compete-only (null in coop): whose turn (by SEAT, not user — a seat may be
+  -- an AI, which has no profile), and the blocked-end counter.
+  current_seat          int,
   consecutive_scoreless int not null default 0,
   created_at  timestamptz not null default now()
 );
@@ -168,7 +169,7 @@ create index scrabble_games_club_handle_idx on scrabble.games (club_handle);
 -- view; the FE never validates words.)
 grant select
   (id, club_handle, mode, board, version,
-   shared_rack, team_score, current_user_id, consecutive_scoreless, created_at)
+   shared_rack, team_score, current_seat, consecutive_scoreless, created_at)
   on scrabble.games to authenticated;
 
 alter table scrabble.games enable row level security;
@@ -179,24 +180,34 @@ create policy games_select on scrabble.games
 -- ============================================================
 -- scrabble.players — per-player seat / score / rack
 -- ============================================================
--- `seat` is the turn order (compete). `score` + `rack` are per-player in
--- COMPETE; in COOP they're null (the rack + score live on games). `rack`
--- is HIDDEN: a player sees only their own mid-game, everyone's once the
--- game ends (the leftover-tile reveal). Exposed via players_state +
--- _rack_for / _rack_count_for below.
+-- `seat` is the turn order (compete) AND the identity key — a seat may be an
+-- AI PLAYER (docs/scrabble-ai-strength.md), which has no profile, so `user_id`
+-- is nullable and the PK is (game_id, seat), not (game_id, user_id). Exactly
+-- one of `user_id` / `ai_level` is set: a human seat carries `user_id` (and
+-- `ai_level` null); an AI seat carries `ai_level` (a LEVELS name from policy.ts)
+-- and a null user_id. AI is scrabble-local — it is NOT in common.game_players
+-- or common.profiles, so presence-pause and the club roster naturally ignore
+-- it. `score` + `rack` are per-seat in COMPETE; in COOP they're null (the rack +
+-- score live on games; coop has no AI). `rack` is HIDDEN: a player sees only
+-- their own mid-game, everyone's once the game ends (the leftover-tile reveal).
 create table scrabble.players (
   game_id uuid not null references scrabble.games(id) on delete cascade,
-  user_id uuid not null references common.profiles(user_id) on delete cascade,
+  user_id uuid references common.profiles(user_id) on delete cascade,
   seat    int  not null,
-  score   int,                      -- compete per-player; null in coop
-  rack    text[],                   -- HIDDEN; compete per-player; null in coop
-  primary key (game_id, user_id)
+  score   int,                      -- compete per-seat; null in coop
+  rack    text[],                   -- HIDDEN; compete per-seat; null in coop
+  ai_level text,                    -- AI seat: a LEVELS name; null for a human
+  primary key (game_id, seat),
+  -- Exactly one of user_id / ai_level (a seat is human XOR AI).
+  constraint players_human_xor_ai check ((user_id is null) <> (ai_level is null)),
+  -- A human is seated at most once (nulls — AI seats — are exempt).
+  unique (game_id, user_id)
 );
 
 create index scrabble_players_game_id_idx on scrabble.players (game_id);
 
--- Everything except the hidden `rack`.
-grant select (game_id, user_id, seat, score) on scrabble.players to authenticated;
+-- Everything except the hidden `rack` (ai_level is public — the FE labels AI seats).
+grant select (game_id, user_id, seat, score, ai_level) on scrabble.players to authenticated;
 
 alter table scrabble.players enable row level security;
 create policy players_select on scrabble.players
@@ -220,7 +231,11 @@ create policy players_select on scrabble.players
 -- board, so there's nothing to hide here. Only racks + the bag are secret.
 create table scrabble.plays (
   game_id    uuid not null references scrabble.games(id) on delete cascade,
-  user_id    uuid not null references common.profiles(user_id) on delete cascade,
+  -- The actor: `user_id` for a human seat, null for an AI seat; `seat` is
+  -- always set and is the real attribution key (the FE labels an AI seat
+  -- "AI 1"…). Coop plays are attributed to the acting human (seat 0-based too).
+  user_id    uuid references common.profiles(user_id) on delete cascade,
+  seat       int  not null,
   seq        int  not null,
   kind       text not null check (kind in ('word', 'exchange', 'pass', 'forfeit')),
   placements jsonb,                 -- kind='word'
@@ -272,9 +287,13 @@ $$;
 revoke execute on function scrabble._bag_count_for(uuid) from public;
 grant execute on function scrabble._bag_count_for(uuid) to authenticated;
 
--- A player's rack: revealed to its owner always, to everyone once the game
--- is terminal (the end-of-game leftover-tile reveal), hidden otherwise.
-create function scrabble._rack_for(g_id uuid, p_user uuid)
+-- A seat's rack: revealed to its owner (the human at that seat) always, to
+-- everyone once the game is terminal (the end-of-game leftover-tile reveal),
+-- hidden otherwise. Keyed by SEAT, not user, so an AI seat (null user_id) also
+-- reveals its leftovers at terminal (never to a "self" mid-game — nobody owns
+-- it). `pl.user_id = auth.uid()` is null-safe: an AI seat's null user never
+-- equals the caller, so it stays hidden until is_terminal.
+create function scrabble._rack_for(g_id uuid, p_seat int)
 returns text[]
 language sql
 stable
@@ -282,19 +301,19 @@ security definer
 set search_path = scrabble, common, public, extensions
 as $$
   select case
-           when p_user = auth.uid() or cg.is_terminal then pl.rack
+           when cg.is_terminal or pl.user_id = auth.uid() then pl.rack
            else null
          end
     from scrabble.players pl
     join common.games cg on cg.id = pl.game_id
-   where pl.game_id = g_id and pl.user_id = p_user;
+   where pl.game_id = g_id and pl.seat = p_seat;
 $$;
 
-revoke execute on function scrabble._rack_for(uuid, uuid) from public;
-grant execute on function scrabble._rack_for(uuid, uuid) to authenticated;
+revoke execute on function scrabble._rack_for(uuid, int) from public;
+grant execute on function scrabble._rack_for(uuid, int) to authenticated;
 
--- A player's tile COUNT is always public ("Bea: 7 tiles").
-create function scrabble._rack_count_for(g_id uuid, p_user uuid)
+-- A seat's tile COUNT is always public ("Bea: 7 tiles" / "AI 1: 7 tiles").
+create function scrabble._rack_count_for(g_id uuid, p_seat int)
 returns int
 language sql
 stable
@@ -302,11 +321,25 @@ security definer
 set search_path = scrabble, common, public, extensions
 as $$
   select coalesce(array_length(rack, 1), 0)
-    from scrabble.players where game_id = g_id and user_id = p_user;
+    from scrabble.players where game_id = g_id and seat = p_seat;
 $$;
 
-revoke execute on function scrabble._rack_count_for(uuid, uuid) from public;
-grant execute on function scrabble._rack_count_for(uuid, uuid) to authenticated;
+revoke execute on function scrabble._rack_count_for(uuid, int) from public;
+grant execute on function scrabble._rack_count_for(uuid, int) to authenticated;
+
+-- The seat a human occupies in this game (null if not seated). The turn-check
+-- key: the human move RPCs compare the caller's seat to games.current_seat.
+create function scrabble._seat_of(g_id uuid, p_user uuid)
+returns int
+language sql
+stable
+security definer
+set search_path = scrabble, common, public, extensions
+as $$
+  select seat from scrabble.players where game_id = g_id and user_id = p_user;
+$$;
+
+revoke execute on function scrabble._seat_of(uuid, uuid) from public;
 
 -- games_state: the FE's read shape. Same granted columns + bag_count.
 create view scrabble.games_state with (security_invoker = true) as
@@ -317,7 +350,7 @@ create view scrabble.games_state with (security_invoker = true) as
          g.version,
          g.shared_rack,
          g.team_score,
-         g.current_user_id,
+         g.current_seat,
          g.consecutive_scoreless,
          g.created_at,
          scrabble._bag_count_for(g.id) as bag_count
@@ -325,14 +358,15 @@ create view scrabble.games_state with (security_invoker = true) as
 
 grant select on scrabble.games_state to authenticated;
 
--- players_state: seat/score + conditional rack + always-on rack_count.
+-- players_state: seat/score/ai_level + conditional rack + always-on rack_count.
 create view scrabble.players_state with (security_invoker = true) as
   select p.game_id,
          p.user_id,
          p.seat,
          p.score,
-         scrabble._rack_for(p.game_id, p.user_id)       as rack,
-         scrabble._rack_count_for(p.game_id, p.user_id) as rack_count
+         p.ai_level,
+         scrabble._rack_for(p.game_id, p.seat)       as rack,
+         scrabble._rack_count_for(p.game_id, p.seat) as rack_count
     from scrabble.players p;
 
 grant select on scrabble.players_state to authenticated;
@@ -366,10 +400,12 @@ begin
   else
     return jsonb_build_object(
       'mode', 'compete',
-      'current_user_id', g.current_user_id,
+      'current_seat', g.current_seat,
       'bag_count', coalesce(array_length(g.bag, 1), 0),
       'leaderboard', coalesce((
-        select jsonb_agg(jsonb_build_object('user_id', p.user_id, 'score', p.score)
+        select jsonb_agg(jsonb_build_object(
+                           'seat', p.seat, 'user_id', p.user_id,
+                           'ai_level', p.ai_level, 'score', p.score)
                          order by p.score desc, p.seat)
           from scrabble.players p where p.game_id = g_id
       ), '[]'::jsonb)
@@ -410,44 +446,43 @@ as $$
 declare
   n_players int;
   cur_seat  int;
-  next_user uuid;
+  next_seat int;
   i         int;
 begin
   select count(*) into n_players from scrabble.players where game_id = g_id;
-  select p.seat into cur_seat
-    from scrabble.players p
-    join scrabble.games g on g.id = p.game_id
-   where p.game_id = g_id and p.user_id = g.current_user_id;
-  -- Walk forward to the next seat whose player hasn't CONCEDED — a drop-out is
-  -- skipped in the turn order (with no conceders this is just seat+1). We never
-  -- loop forever: scrabble.concede ends the game before the last active player
-  -- is gone, so at least one non-conceded seat always exists here.
-  next_user := null;
+  select current_seat into cur_seat from scrabble.games where id = g_id;
+  -- Walk forward to the next seat whose occupant hasn't CONCEDED — a drop-out is
+  -- skipped in the turn order (with no conceders this is just seat+1). Humans
+  -- track concede in common.game_players; an AI seat has no game_players row
+  -- (LEFT JOIN → gp null → never conceded, it plays every turn it's dealt). We
+  -- never loop forever: scrabble.concede ends the game before the last active
+  -- player is gone, so at least one non-conceded seat always exists here.
+  next_seat := null;
   for i in 1..n_players loop
-    select p.user_id into next_user
+    select p.seat into next_seat
       from scrabble.players p
-      join common.game_players gp
+      left join common.game_players gp
         on gp.game_id = p.game_id and gp.user_id = p.user_id
      where p.game_id = g_id
        and p.seat = (cur_seat + i) % n_players
-       and not gp.conceded;
-    exit when next_user is not null;
+       and not coalesce(gp.conceded, false);
+    exit when next_seat is not null;
   end loop;
-  if next_user is not null then
-    update scrabble.games set current_user_id = next_user where id = g_id;
+  if next_seat is not null then
+    update scrabble.games set current_seat = next_seat where id = g_id;
   end if;
 end;
 $$;
 
 -- Tally final scores and end the game. `outcome` ∈ complete | timeout |
 -- blocked (NOT manual — manual end is neutral, see scrabble.end_game).
--- `out_user` is the player who emptied their rack (going out), or null;
--- only that player collects the going-out bonus.
+-- `out_seat` is the seat that emptied its rack (going out), or null; only that
+-- seat collects the going-out bonus.
 --   Coop: team_score -= leftover(shared_rack); always a neutral 'won'
 --         (no opponent → never a loss, even on timeout).
 --   Compete: each score -= own leftover; the out-player += everyone's
 --         leftovers; highest score wins ('won_compete'), ties → co-winners.
-create function scrabble._finish(g_id uuid, outcome text, out_user uuid)
+create function scrabble._finish(g_id uuid, outcome text, out_seat int)
 returns void
 language plpgsql
 security definer
@@ -459,7 +494,9 @@ declare
   v_total_left   int;
   v_max          int;
   v_winners      int;
-  v_winner       uuid;
+  v_winner_seat  int;
+  v_winner_user  uuid;
+  v_winner_name  text;
   player_results jsonb;
   v_status       jsonb;
 begin
@@ -489,42 +526,46 @@ begin
                            from unnest(p.rack) t), 0)
      where p.game_id = g_id;
 
-    -- The going-out player collects the sum of everyone's leftover tiles.
+    -- The going-out seat collects the sum of everyone's leftover tiles.
     -- (Their own rack is empty, so this is the opponents' leftovers.)
-    if out_user is not null then
+    if out_seat is not null then
       select coalesce(sum(scrabble._tile_value(t)), 0)
         into v_total_left
         from scrabble.players p, unnest(p.rack) t
        where p.game_id = g_id;
       update scrabble.players
          set score = score + v_total_left
-       where game_id = g_id and user_id = out_user;
+       where game_id = g_id and seat = out_seat;
     end if;
 
-    -- Winner = highest score among NON-conceded players — a drop-out forfeits
-    -- any win regardless of the score they'd banked. v_max is NULL if everyone
-    -- conceded (jsonb comparison below then yields won:false for all).
+    -- Winner = highest score among NON-conceded seats — a drop-out forfeits any
+    -- win regardless of the score they'd banked. Humans track concede in
+    -- game_players; an AI seat has no gp row (LEFT JOIN → never conceded), and
+    -- an AI can win. v_max is NULL if everyone conceded (won:false for all).
     select max(p.score) into v_max
       from scrabble.players p
-      join common.game_players gp
+      left join common.game_players gp
         on gp.game_id = p.game_id and gp.user_id = p.user_id
-     where p.game_id = g_id and not gp.conceded;
+     where p.game_id = g_id and not coalesce(gp.conceded, false);
     select count(*) into v_winners
       from scrabble.players p
-      join common.game_players gp
+      left join common.game_players gp
         on gp.game_id = p.game_id and gp.user_id = p.user_id
-     where p.game_id = g_id and not gp.conceded and p.score = v_max;
-    -- A unique top score names a winner; a tie → co-winners (winner null,
-    -- each top-scorer flagged {won:true} in player_results).
+     where p.game_id = g_id and not coalesce(gp.conceded, false) and p.score = v_max;
+    -- A unique top score names a winner SEAT (human or AI); a tie → co-winners
+    -- (winner_seat null, each top-scorer flagged {won:true}).
     if v_winners = 1 then
-      select p.user_id into v_winner
+      select p.seat, p.user_id into v_winner_seat, v_winner_user
         from scrabble.players p
-        join common.game_players gp
+        left join common.game_players gp
           on gp.game_id = p.game_id and gp.user_id = p.user_id
-       where p.game_id = g_id and not gp.conceded and p.score = v_max;
+       where p.game_id = g_id and not coalesce(gp.conceded, false) and p.score = v_max;
     end if;
 
-    -- A conceder is never a winner even if their banked score ties v_max.
+    -- player_results feeds common.game_players.result — HUMANS ONLY (an AI has
+    -- no game_players row; its outcome rides in the status leaderboard). The
+    -- inner join drops AI seats. A human is {won} iff they hold the top score
+    -- and didn't concede, so a lone AI winner makes every human {won:false}.
     select jsonb_object_agg(
              p.user_id::text,
              jsonb_build_object('won', not gp.conceded and p.score = v_max, 'score', p.score))
@@ -534,12 +575,27 @@ begin
         on gp.game_id = p.game_id and gp.user_id = p.user_id
      where p.game_id = g_id;
 
+    -- The winner's display name (NULL on a tie / all-conceded): a human's
+    -- username, or "AI k" for an AI winner (k = its 1-based position among the
+    -- AI seats, in seat order — matches the FE's AI labels).
+    if v_winner_seat is not null then
+      if v_winner_user is not null then
+        select username into v_winner_name from common.profiles where user_id = v_winner_user;
+      else
+        select 'AI ' || count(*) into v_winner_name
+          from scrabble.players
+         where game_id = g_id and ai_level is not null and seat <= v_winner_seat;
+      end if;
+    end if;
+
     v_status := jsonb_build_object(
-      'mode', 'compete', 'outcome', outcome, 'winner', v_winner,
-      -- The winner's name (NULL on a tie) so the club-list label can show it.
-      'winner_username', (select username from common.profiles where user_id = v_winner),
+      'mode', 'compete', 'outcome', outcome,
+      'winner', v_winner_user,        -- a HUMAN winner's uuid; null if AI won / tie
+      'winner_seat', v_winner_seat,   -- the winning seat (human or AI); null on tie
+      'winner_username', v_winner_name,
       'leaderboard', (select jsonb_agg(
-                               jsonb_build_object('user_id', user_id, 'score', score)
+                               jsonb_build_object('seat', seat, 'user_id', user_id,
+                                                  'ai_level', ai_level, 'score', score)
                                order by score desc, seat)
                         from scrabble.players where game_id = g_id));
 
@@ -592,10 +648,15 @@ declare
   s_dict_3plus  int;
   v_bag         text[];
   v_empty_board jsonb;
-  v_first       uuid;
+  v_first_seat  int;
   uid           uuid;
   v_seat        int := 0;
   v_drawn       text[];
+  v_ai_count    int;
+  v_ai_level    text;
+  v_ai_band     int;
+  v_total       int;
+  v_i           int;
 begin
   perform common.require_club_member(target_club);
   -- Up to 4 players; compete needs at least 2 (a 1-player race is degenerate).
@@ -605,9 +666,6 @@ begin
   end if;
 
   perform common.validate_mode(mode);
-  if mode = 'compete' and array_length(player_user_ids, 1) < 2 then
-    raise exception 'compete mode requires at least 2 players' using errcode = 'P0001';
-  end if;
 
   s_dict_2     := coalesce((setup->>'dict_2')::int, 3);
   s_dict_3plus := coalesce((setup->>'dict_3plus')::int, 3);
@@ -616,6 +674,45 @@ begin
   end if;
   if s_dict_3plus < 1 or s_dict_3plus > 6 then
     raise exception 'setup.dict_3plus must be 1..6 (got %)', s_dict_3plus using errcode = 'P0001';
+  end if;
+
+  -- AI players (compete only; docs/scrabble-ai-strength.md). 0..3 AI seats, all
+  -- at the single `ai_level`; they're scrabble-local (never in
+  -- common.game_players / profiles) and seated AFTER the humans.
+  v_ai_count := coalesce((setup->>'ai_count')::int, 0);
+  if v_ai_count < 0 or v_ai_count > 3 then
+    raise exception 'setup.ai_count must be 0..3 (got %)', v_ai_count using errcode = 'P0001';
+  end if;
+  if v_ai_count > 0 and mode <> 'compete' then
+    raise exception 'AI players are a compete-mode feature' using errcode = 'P0001';
+  end if;
+  if v_ai_count > 0 then
+    v_ai_level := setup->>'ai_level';
+    -- The AI band is the level's vocabCap (policy.ts LEVELS): beginner 1,
+    -- casual 2, intermediate 4, strong/best full (6).
+    v_ai_band := case v_ai_level
+                   when 'beginner' then 1 when 'casual' then 2
+                   when 'intermediate' then 4 when 'strong' then 6 when 'best' then 6
+                   else null end;
+    if v_ai_band is null then
+      raise exception 'unknown ai_level %', coalesce(v_ai_level, '(null)') using errcode = 'P0001';
+    end if;
+    -- The game's dictionary must be at least as wide as the AI knows, else it
+    -- can't play at its tuned strength (docs/scrabble-ai-strength.md band rule).
+    if s_dict_2 < v_ai_band or s_dict_3plus < v_ai_band then
+      raise exception 'dictionary bands must be >= the AI band (% for level %)',
+        v_ai_band, v_ai_level using errcode = 'P0001';
+    end if;
+  end if;
+
+  -- Player counts: >=1 human always (the empty-array guard above); the TOTAL
+  -- (humans + AI) is 2..4 in compete.
+  v_total := array_length(player_user_ids, 1) + v_ai_count;
+  if mode = 'compete' and v_total < 2 then
+    raise exception 'compete mode requires at least 2 players (humans + AI)' using errcode = 'P0001';
+  end if;
+  if v_total > 4 then
+    raise exception 'at most 4 players (humans + AI), got %', v_total using errcode = 'P0001';
   end if;
 
   perform common.validate_timer(setup->'timer');
@@ -631,17 +728,26 @@ begin
     target_club, 'scrabble_' || mode, player_user_ids, 'New game', setup, setup);
 
   if mode = 'compete' then
-    v_first := player_user_ids[1 + floor(random() * array_length(player_user_ids, 1))::int];
+    -- Random first seat among ALL seats (humans 0..h-1, then AI) — an AI may open.
+    v_first_seat := floor(random() * v_total)::int;
     insert into scrabble.games
-      (id, club_handle, mode, dict_2, dict_3plus, board, bag, current_user_id)
-    values (new_id, target_club, mode, s_dict_2, s_dict_3plus, v_empty_board, v_bag, v_first);
+      (id, club_handle, mode, dict_2, dict_3plus, board, bag, current_seat)
+    values (new_id, target_club, mode, s_dict_2, s_dict_3plus, v_empty_board, v_bag, v_first_seat);
 
-    -- Deal 7 tiles to each player, threading the bag down.
+    -- Deal 7 tiles to each human seat (0..h-1), threading the bag down.
     foreach uid in array player_user_ids loop
       v_drawn := v_bag[1:7];
       v_bag   := v_bag[8:];
       insert into scrabble.players (game_id, user_id, seat, score, rack)
       values (new_id, uid, v_seat, 0, v_drawn);
+      v_seat := v_seat + 1;
+    end loop;
+    -- Then the AI seats (h..h+a-1): same 7-tile deal, carrying the level, no user.
+    for v_i in 1..v_ai_count loop
+      v_drawn := v_bag[1:7];
+      v_bag   := v_bag[8:];
+      insert into scrabble.players (game_id, user_id, seat, score, rack, ai_level)
+      values (new_id, null, v_seat, 0, v_drawn, v_ai_level);
       v_seat := v_seat + 1;
     end loop;
     -- Qualify the column: `returns table(id uuid)` puts an `id` in scope too.
@@ -696,6 +802,7 @@ set search_path = scrabble, common, public, extensions
 as $$
 declare
   caller_id    uuid;
+  v_seat       int;      -- the caller's seat (turn key + play attribution)
   g            scrabble.games%rowtype;
   play_state   text;
   v_rack       text[];   -- the acting rack (compete: caller's; coop: shared)
@@ -713,6 +820,7 @@ declare
   v_went_out   boolean;
 begin
   caller_id := common.require_game_player(target_game);
+  v_seat    := scrabble._seat_of(target_game, caller_id);
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
@@ -730,7 +838,8 @@ begin
   end if;
 
   -- ─── Turn check (compete only) ───────────────────────────
-  if g.mode = 'compete' and g.current_user_id <> caller_id then
+  -- By SEAT (current_seat), so the same gate works whoever occupies it.
+  if g.mode = 'compete' and v_seat is distinct from g.current_seat then
     raise exception 'not your turn' using errcode = 'P0001';
   end if;
 
@@ -792,8 +901,8 @@ begin
   v_new_rack := v_rack || v_drawn;
 
   v_seq := coalesce((select max(seq) from scrabble.plays where game_id = target_game), 0) + 1;
-  insert into scrabble.plays (game_id, user_id, seq, kind, placements, words, score)
-  values (target_game, caller_id, v_seq, 'word', placements, words, score);
+  insert into scrabble.plays (game_id, user_id, seat, seq, kind, placements, words, score)
+  values (target_game, caller_id, v_seat, v_seq, 'word', placements, words, score);
 
   if g.mode = 'coop' then
     update scrabble.games
@@ -830,7 +939,7 @@ begin
     v_terminal := true;
     perform scrabble._finish(
       target_game, 'complete',
-      case when g.mode = 'compete' then caller_id else null end);
+      case when g.mode = 'compete' then v_seat else null end);
   else
     if g.mode = 'compete' then
       perform scrabble._advance_turn(target_game);
@@ -868,6 +977,7 @@ set search_path = scrabble, common, public, extensions
 as $$
 declare
   caller_id  uuid;
+  v_seat     int;
   g          scrabble.games%rowtype;
   play_state text;
   v_rack     text[];
@@ -878,6 +988,7 @@ declare
   v_terminal boolean := false;
 begin
   caller_id := common.require_game_player(target_game);
+  v_seat    := scrabble._seat_of(target_game, caller_id);
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
@@ -892,7 +1003,7 @@ begin
   if g.version <> base_version then
     return jsonb_build_object('result', 'stale', 'version', g.version);
   end if;
-  if g.mode = 'compete' and g.current_user_id <> caller_id then
+  if g.mode = 'compete' and v_seat is distinct from g.current_seat then
     raise exception 'not your turn' using errcode = 'P0001';
   end if;
 
@@ -918,8 +1029,8 @@ begin
   v_rack  := v_rack || v_drawn;
 
   v_seq := coalesce((select max(seq) from scrabble.plays where game_id = target_game), 0) + 1;
-  insert into scrabble.plays (game_id, user_id, seq, kind, tile_count)
-  values (target_game, caller_id, v_seq, 'exchange', v_n);
+  insert into scrabble.plays (game_id, user_id, seat, seq, kind, tile_count)
+  values (target_game, caller_id, v_seat, v_seq, 'exchange', v_n);
 
   if g.mode = 'coop' then
     update scrabble.games set shared_rack = v_rack, bag = v_bag, version = version + 1
@@ -965,12 +1076,14 @@ set search_path = scrabble, common, public, extensions
 as $$
 declare
   caller_id  uuid;
+  v_seat     int;
   g          scrabble.games%rowtype;
   play_state text;
   v_seq      int;
   v_terminal boolean := false;
 begin
   caller_id := common.require_game_player(target_game);
+  v_seat    := scrabble._seat_of(target_game, caller_id);
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
@@ -988,13 +1101,13 @@ begin
   if g.version <> base_version then
     return jsonb_build_object('result', 'stale', 'version', g.version);
   end if;
-  if g.current_user_id <> caller_id then
+  if v_seat is distinct from g.current_seat then
     raise exception 'not your turn' using errcode = 'P0001';
   end if;
 
   v_seq := coalesce((select max(seq) from scrabble.plays where game_id = target_game), 0) + 1;
-  insert into scrabble.plays (game_id, user_id, seq, kind)
-  values (target_game, caller_id, v_seq, 'pass');
+  insert into scrabble.plays (game_id, user_id, seat, seq, kind)
+  values (target_game, caller_id, v_seat, v_seq, 'pass');
 
   update scrabble.games
      set version = version + 1,
@@ -1058,8 +1171,8 @@ begin
   end if;
 
   -- Others are still playing. If it was the conceder's turn, hand off to the
-  -- next non-conceded player (else the game would stall on a drop-out).
-  select (current_user_id = caller_id) into is_current
+  -- next non-conceded seat (else the game would stall on a drop-out).
+  select (current_seat = scrabble._seat_of(target_game, caller_id)) into is_current
     from scrabble.games where id = target_game;
   if is_current then
     perform scrabble._advance_turn(target_game);
@@ -1138,6 +1251,7 @@ set search_path = scrabble, common, public, extensions
 as $$
 declare
   caller_id      uuid;
+  v_seat         int;
   g              scrabble.games%rowtype;
   cur_state      text;
   player_results jsonb;
@@ -1145,6 +1259,7 @@ declare
   v_seq          int;
 begin
   caller_id := common.require_game_player(target_game);
+  v_seat    := scrabble._seat_of(target_game, caller_id);
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
@@ -1162,8 +1277,8 @@ begin
                               from unnest(g.shared_rack) t), 0);
     if v_leftover > 0 then
       v_seq := coalesce((select max(seq) from scrabble.plays where game_id = target_game), 0) + 1;
-      insert into scrabble.plays (game_id, user_id, seq, kind, score, tile_count)
-      values (target_game, caller_id, v_seq, 'forfeit', -v_leftover,
+      insert into scrabble.plays (game_id, user_id, seat, seq, kind, score, tile_count)
+      values (target_game, caller_id, v_seat, v_seq, 'forfeit', -v_leftover,
               coalesce(array_length(g.shared_rack, 1), 0));
     end if;
     perform scrabble._finish(target_game, 'manual', null);

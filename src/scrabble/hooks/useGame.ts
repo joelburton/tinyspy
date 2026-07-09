@@ -8,16 +8,21 @@ import type { Cell } from '../lib/board'
  *  always-public tile count. In coop, `score`/`rack` are null (they live
  *  on the game row). */
 export type PlayerRow = {
-  user_id: string
+  /** Null for an AI seat (which has no profile); `ai_level` is set instead. */
+  user_id: string | null
   seat: number
   score: number | null
   rack: string[] | null
   rack_count: number
+  /** An AI seat's strength level (a policy.ts LEVELS name), or null for a human. */
+  ai_level: string | null
 }
 
 /** One row from `scrabble.plays` — the public move log. */
 export type PlayRow = {
-  user_id: string
+  /** Null for an AI seat's play; `seat` is the real attribution key. */
+  user_id: string | null
+  seat: number
   seq: number
   /** 'forfeit' = a coop game ended with tiles in hand; `score` is the
    *  (negative) leftover-tile value lost. */
@@ -42,7 +47,10 @@ export type ScrabbleGame = {
   /** Coop: the shared team rack + score. Null in compete. */
   sharedRack: string[] | null
   teamScore: number | null
-  /** Compete: whose turn it is. Null in coop. */
+  /** Compete: whose SEAT's turn it is. Null in coop. */
+  currentSeat: number | null
+  /** Compete: the user_id at `currentSeat` — null in coop, and also null when
+   *  it's an AI seat's turn (an AI has no user). Derived from the players. */
   currentUserId: string | null
 }
 
@@ -85,17 +93,17 @@ export function useGame(gameId: string): {
         db
           .from('games_state')
           .select(
-            'id, club_handle, mode, board, version, bag_count, shared_rack, team_score, current_user_id',
+            'id, club_handle, mode, board, version, bag_count, shared_rack, team_score, current_seat',
           )
           .eq('id', gameId)
           .maybeSingle(),
         db
           .from('players_state')
-          .select('user_id, seat, score, rack, rack_count')
+          .select('user_id, seat, score, rack, rack_count, ai_level')
           .eq('game_id', gameId),
         db
           .from('plays')
-          .select('user_id, seq, kind, placements, words, score, tile_count, played_at')
+          .select('user_id, seat, seq, kind, placements, words, score, tile_count, played_at')
           .eq('game_id', gameId)
           .order('seq', { ascending: true }),
       ])
@@ -106,6 +114,12 @@ export function useGame(gameId: string): {
         return
       }
       const r = gameRes.data
+      const playerRows = (playersRes.data ?? []) as PlayerRow[]
+      const currentSeat = r.current_seat as number | null
+      // Turns are seat-based; map the current seat back to its user for the
+      // FE's myTurn / "whose turn" checks (null when it's an AI seat's turn).
+      const currentUserId =
+        currentSeat === null ? null : (playerRows.find((p) => p.seat === currentSeat)?.user_id ?? null)
       setGame({
         id: r.id as string,
         club_handle: r.club_handle as string,
@@ -115,9 +129,10 @@ export function useGame(gameId: string): {
         bagCount: (r.bag_count ?? 0) as number,
         sharedRack: r.shared_rack as string[] | null,
         teamScore: r.team_score as number | null,
-        currentUserId: r.current_user_id as string | null,
+        currentSeat,
+        currentUserId,
       })
-      setPlayers((playersRes.data ?? []) as PlayerRow[])
+      setPlayers(playerRows)
       setPlays((playsRes.data ?? []) as PlayRow[])
       setLoading(false)
     },

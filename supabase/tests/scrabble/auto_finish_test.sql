@@ -92,8 +92,8 @@ create temp table gbl on commit drop as
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
 reset role;
 -- One pass away from the 6-scoreless limit; known leftovers.
-update scrabble.games set consecutive_scoreless = 5,
-  current_user_id = 'ada11111-1111-1111-1111-111111111111' where id = (select id from gbl);
+update scrabble.games set consecutive_scoreless = 5 where id = (select id from gbl);
+select pg_temp.sc_turn((select id from gbl), 'ada11111-1111-1111-1111-111111111111');
 update scrabble.players set score = 10, rack = array['A']
   where game_id = (select id from gbl) and user_id = 'ada11111-1111-1111-1111-111111111111';
 update scrabble.players set score = 3, rack = array['Q']
@@ -120,8 +120,8 @@ create temp table gtie on commit drop as
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
 reset role;
-update scrabble.games set consecutive_scoreless = 5,
-  current_user_id = 'ada11111-1111-1111-1111-111111111111' where id = (select id from gtie);
+update scrabble.games set consecutive_scoreless = 5 where id = (select id from gtie);
+select pg_temp.sc_turn((select id from gtie), 'ada11111-1111-1111-1111-111111111111');
 update scrabble.players set score = 5, rack = '{}' where game_id = (select id from gtie);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

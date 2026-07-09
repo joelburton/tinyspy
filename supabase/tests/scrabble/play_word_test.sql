@@ -148,8 +148,8 @@ create temp table cacc on commit drop as
       {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb, array['CAT'], 5) as res;
 reset role;
 select is((select res->>'result' from cacc), 'accepted', 'compete: a valid word is accepted');
-select is((select current_user_id from scrabble.games where id = (select id from gc)),
-  'bea22222-2222-2222-2222-222222222222', 'the turn advances to the next player');
+select is(pg_temp.sc_current_user((select id from gc)),
+  'bea22222-2222-2222-2222-222222222222'::uuid, 'the turn advances to the next player');
 select is((select version from scrabble.games where id = (select id from gc)), 1,
   'compete play bumps version');
 
@@ -158,9 +158,8 @@ select is((select version from scrabble.games where id = (select id from gc)), 1
 -- it. (board now holds CAT at the center, so the second word goes elsewhere —
 -- the server trusts geometry, it only needs empty + in-bounds + in-rack.)
 reset role;
-update scrabble.games set consecutive_scoreless = 3,
-       current_user_id = 'ada11111-1111-1111-1111-111111111111'
-  where id = (select id from gc);
+update scrabble.games set consecutive_scoreless = 3 where id = (select id from gc);
+select pg_temp.sc_turn((select id from gc), 'ada11111-1111-1111-1111-111111111111');
 select pg_temp.sc_rack((select id from gc), 'ada11111-1111-1111-1111-111111111111',
   array['A','T','X','Y','Z','N','M']);
 select pg_temp.sc_bag((select id from gc), array['B','C','D','E','F','G','H']);

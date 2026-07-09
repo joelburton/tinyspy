@@ -35,8 +35,26 @@ returns void language sql as $$
   update scrabble.games set bag = p_bag where id = g;
 $$;
 
--- Force whose turn it is (compete).
+-- Force whose turn it is (compete) — by the user's SEAT (turns are seat-based).
 create function pg_temp.sc_turn(g uuid, p_uid uuid)
 returns void language sql as $$
-  update scrabble.games set current_user_id = p_uid where id = g;
+  update scrabble.games
+     set current_seat = (select seat from scrabble.players where game_id = g and user_id = p_uid)
+   where id = g;
+$$;
+
+-- Force whose turn it is by seat directly (for AI seats, which have no user).
+create function pg_temp.sc_turn_seat(g uuid, p_seat int)
+returns void language sql as $$
+  update scrabble.games set current_seat = p_seat where id = g;
+$$;
+
+-- The user whose turn it currently is (compete) — resolves current_seat back to
+-- a user_id for the seat-based turn assertions. NULL if it's an AI seat's turn.
+create function pg_temp.sc_current_user(g uuid)
+returns uuid language sql as $$
+  select p.user_id
+    from scrabble.players p
+    join scrabble.games gm on gm.id = p.game_id and gm.current_seat = p.seat
+   where gm.id = g;
 $$;

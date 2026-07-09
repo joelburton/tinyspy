@@ -65,13 +65,14 @@ function loadedGame(over: Partial<ScrabbleGame> = {}): ScrabbleGame {
     bagCount: 86,
     sharedRack: RACK,
     teamScore: 0,
+    currentSeat: null,
     currentUserId: null,
     ...over,
   }
 }
 
 function selfPlayer(over: Partial<PlayerRow> = {}): PlayerRow {
-  return { user_id: 'u1', seat: 0, score: null, rack: null, rack_count: 7, ...over }
+  return { user_id: 'u1', seat: 0, score: null, rack: null, rack_count: 7, ai_level: null, ...over }
 }
 
 function loaded(game: ScrabbleGame, players: PlayerRow[], plays: PlayRow[] = []): GameHook {
@@ -82,6 +83,7 @@ function loaded(game: ScrabbleGame, players: PlayerRow[], plays: PlayRow[] = [])
 function wordPlay(over: Partial<PlayRow> = {}): PlayRow {
   return {
     user_id: 'u1',
+    seat: 0,
     seq: 1,
     kind: 'word',
     placements: [{ x: 7, y: 7, letter: 'C', blank: false }, { x: 8, y: 7, letter: 'A', blank: false }, { x: 9, y: 7, letter: 'T', blank: false }],
@@ -123,8 +125,8 @@ beforeEach(() => {
 /** A loaded compete game with two seated players (u1 + u2). */
 function loadedCompete(over: Partial<ScrabbleGame> = {}) {
   return loaded(
-    loadedGame({ mode: 'compete', sharedRack: null, teamScore: null, currentUserId: 'u1', ...over }),
-    [selfPlayer({ score: 0, rack: RACK }), { user_id: 'u2', seat: 1, score: 0, rack: null, rack_count: 7 }],
+    loadedGame({ mode: 'compete', sharedRack: null, teamScore: null, currentSeat: 0, currentUserId: 'u1', ...over }),
+    [selfPlayer({ score: 0, rack: RACK }), { user_id: 'u2', seat: 1, score: 0, rack: null, rack_count: 7, ai_level: null }],
   )
 }
 
@@ -144,7 +146,7 @@ describe('scrabble PlayArea — render smoke', () => {
   it('renders the OpponentStrip (Score) + rack in compete play', () => {
     h.result = loaded(
       loadedGame({ mode: 'compete', sharedRack: null, teamScore: null, currentUserId: 'u1' }),
-      [selfPlayer({ score: 0, rack: RACK }), { user_id: 'u2', seat: 1, score: 0, rack: null, rack_count: 7 }],
+      [selfPlayer({ score: 0, rack: RACK }), { user_id: 'u2', seat: 1, score: 0, rack: null, rack_count: 7, ai_level: null }],
     )
     const { container } = render(<PlayArea {...makeCtx({ players: twoMembers })} />)
     expect(screen.getByText('Score:')).toBeInTheDocument()
@@ -220,8 +222,8 @@ describe('scrabble PlayArea — concede', () => {
       loadedGame({ mode: 'compete', sharedRack: null, teamScore: null, currentUserId: 'u1' }),
       [
         selfPlayer({ score: 5, rack: RACK }), // self → Lost
-        { user_id: 'u2', seat: 1, score: 12, rack: null, rack_count: 7 }, // → Quit
-        { user_id: 'u3', seat: 2, score: 40, rack: null, rack_count: 7 }, // → Won
+        { user_id: 'u2', seat: 1, score: 12, rack: null, rack_count: 7, ai_level: null }, // → Quit
+        { user_id: 'u3', seat: 2, score: 40, rack: null, rack_count: 7, ai_level: null }, // → Won
       ],
     )
     render(

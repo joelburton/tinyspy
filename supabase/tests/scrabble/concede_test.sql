@@ -43,7 +43,9 @@ select is(
   (select is_terminal from common.games where id = (select id from g)),
   false, 'the game continues while bea plays');
 select is(
-  (select current_user_id from scrabble.games where id = (select id from g)),
+  (select p.user_id from scrabble.players p
+     join scrabble.games gm on gm.id = p.game_id and gm.current_seat = p.seat
+    where gm.id = (select id from g)),
   'bea22222-2222-2222-2222-222222222222'::uuid,
   'the turn is a non-conceded player (conceder skipped / handed off)');
 

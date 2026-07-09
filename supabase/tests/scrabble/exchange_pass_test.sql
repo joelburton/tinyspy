@@ -70,8 +70,8 @@ select scrabble.pass_turn((select id from gcp), 0);
 reset role;
 select is((select consecutive_scoreless from scrabble.games where id = (select id from gcp)), 1,
   'pass bumps the scoreless counter');
-select is((select current_user_id from scrabble.games where id = (select id from gcp)),
-  'bea22222-2222-2222-2222-222222222222', 'pass advances the turn');
+select is(pg_temp.sc_current_user((select id from gcp)),
+  'bea22222-2222-2222-2222-222222222222'::uuid, 'pass advances the turn');
 
 -- ─── Coop has no pass ────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

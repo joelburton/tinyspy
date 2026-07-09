@@ -1641,7 +1641,7 @@ export type Database = {
           club_handle: string
           consecutive_scoreless: number
           created_at: string
-          current_user_id: string | null
+          current_seat: number | null
           dict_2: number
           dict_3plus: number
           id: string
@@ -1656,7 +1656,7 @@ export type Database = {
           club_handle: string
           consecutive_scoreless?: number
           created_at?: string
-          current_user_id?: string | null
+          current_seat?: number | null
           dict_2: number
           dict_3plus: number
           id: string
@@ -1671,7 +1671,7 @@ export type Database = {
           club_handle?: string
           consecutive_scoreless?: number
           created_at?: string
-          current_user_id?: string | null
+          current_seat?: number | null
           dict_2?: number
           dict_3plus?: number
           id?: string
@@ -1684,25 +1684,28 @@ export type Database = {
       }
       players: {
         Row: {
+          ai_level: string | null
           game_id: string
           rack: string[] | null
           score: number | null
           seat: number
-          user_id: string
+          user_id: string | null
         }
         Insert: {
+          ai_level?: string | null
           game_id: string
           rack?: string[] | null
           score?: number | null
           seat: number
-          user_id: string
+          user_id?: string | null
         }
         Update: {
+          ai_level?: string | null
           game_id?: string
           rack?: string[] | null
           score?: number | null
           seat?: number
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1728,9 +1731,10 @@ export type Database = {
           placements: Json | null
           played_at: string
           score: number | null
+          seat: number
           seq: number
           tile_count: number | null
-          user_id: string
+          user_id: string | null
           words: string[] | null
         }
         Insert: {
@@ -1739,9 +1743,10 @@ export type Database = {
           placements?: Json | null
           played_at?: string
           score?: number | null
+          seat: number
           seq: number
           tile_count?: number | null
-          user_id: string
+          user_id?: string | null
           words?: string[] | null
         }
         Update: {
@@ -1750,9 +1755,10 @@ export type Database = {
           placements?: Json | null
           played_at?: string
           score?: number | null
+          seat?: number
           seq?: number
           tile_count?: number | null
-          user_id?: string
+          user_id?: string | null
           words?: string[] | null
         }
         Relationships: [
@@ -1781,7 +1787,7 @@ export type Database = {
           club_handle: string | null
           consecutive_scoreless: number | null
           created_at: string | null
-          current_user_id: string | null
+          current_seat: number | null
           id: string | null
           mode: string | null
           shared_rack: string[] | null
@@ -1794,7 +1800,7 @@ export type Database = {
           club_handle?: string | null
           consecutive_scoreless?: number | null
           created_at?: string | null
-          current_user_id?: string | null
+          current_seat?: number | null
           id?: string | null
           mode?: string | null
           shared_rack?: string[] | null
@@ -1807,7 +1813,7 @@ export type Database = {
           club_handle?: string | null
           consecutive_scoreless?: number | null
           created_at?: string | null
-          current_user_id?: string | null
+          current_seat?: number | null
           id?: string | null
           mode?: string | null
           shared_rack?: string[] | null
@@ -1818,6 +1824,7 @@ export type Database = {
       }
       players_state: {
         Row: {
+          ai_level: string | null
           game_id: string | null
           rack: string[] | null
           rack_count: number | null
@@ -1826,6 +1833,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ai_level?: string | null
           game_id?: string | null
           rack?: never
           rack_count?: never
@@ -1834,6 +1842,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ai_level?: string | null
           game_id?: string | null
           rack?: never
           rack_count?: never
@@ -1863,19 +1872,20 @@ export type Database = {
       _advance_turn: { Args: { g_id: string }; Returns: undefined }
       _bag_count_for: { Args: { g_id: string }; Returns: number }
       _finish: {
-        Args: { g_id: string; out_user: string; outcome: string }
+        Args: { g_id: string; out_seat: number; outcome: string }
         Returns: undefined
       }
       _new_bag: { Args: never; Returns: string[] }
       _rack_count_for: {
-        Args: { g_id: string; p_user: string }
+        Args: { g_id: string; p_seat: number }
         Returns: number
       }
-      _rack_for: { Args: { g_id: string; p_user: string }; Returns: string[] }
+      _rack_for: { Args: { g_id: string; p_seat: number }; Returns: string[] }
       _remove_tiles: {
         Args: { p_rack: string[]; p_remove: string[] }
         Returns: string[]
       }
+      _seat_of: { Args: { g_id: string; p_user: string }; Returns: number }
       _status: { Args: { g_id: string }; Returns: Json }
       _tile_value: { Args: { ch: string }; Returns: number }
       _title: { Args: { g_id: string }; Returns: string }
@@ -1900,6 +1910,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_suggest_context: { Args: { target_game: string }; Returns: Json }
       pass_turn: {
         Args: { base_version: number; target_game: string }
         Returns: Json
