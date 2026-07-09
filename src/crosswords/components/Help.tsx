@@ -44,7 +44,7 @@ export function Help({ onClose, brand }: { onClose: () => void; brand: string })
         <strong>Compete:</strong> everyone races the same puzzle on their own private
         grid; the first to finish it correctly wins.
       </p>
-      <p>Desktop &amp; keyboard only — there's no on-screen keyboard.</p>
+      <p>Keyboard required — there's no on-screen keyboard.</p>
     </HelpPanel>
   )
 }

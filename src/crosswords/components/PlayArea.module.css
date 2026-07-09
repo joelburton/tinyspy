@@ -1,5 +1,5 @@
 /* The crosswords play surface — the crossplay layout, a documented v3
- * layout exception (desktop-only, keyboard-required). See
+ * layout exception (keyboard-required). See
  * docs/design-decisions.md. Board on the left spanning full height; the
  * Across|Down clue columns top-right; the active-clue bar (which doubles
  * as the local-feedback slot) beneath them; a slim chrome strip
