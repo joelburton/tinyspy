@@ -30,14 +30,25 @@
  * OR base64-of-JSON; refreshed with crossplay's dump-nyt-cookies tool).
  * SUPABASE_URL / SUPABASE_ANON_KEY are auto-injected.
  *
- * NOT ported (deferred): the overlay-PNG analysis (circles-on-shaded + bars on
- * a minority of themed puzzles). Normal daily puzzles convert fully.
+ * Overlay PNGs: themed puzzles bake circles-on-shaded cells + word-break bars
+ * into a raster overlay the v6 JSON can't express. After conversion we fetch +
+ * decode that PNG (pngjs) and apply the detected markings — the pure detector
+ * lives in `src/crosswords/lib/nytOverlay.ts` (unit-tested against real NYT
+ * overlays). A missing/broken overlay is non-fatal (the puzzle just converts
+ * without the extra decorations).
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
+import { PNG } from 'npm:pngjs'
+import { Buffer } from 'node:buffer'
 import { json, preflight } from '../_shared/http.ts'
 import { callerClient } from '../_shared/startGame.ts'
 import { convertNytPuzzle, type NytPuzzleResponse } from '../../../src/crosswords/lib/nyt.ts'
+import {
+  applyOverlayMarkings,
+  detectOverlayMarkings,
+  type OverlayMarkings,
+} from '../../../src/crosswords/lib/nytOverlay.ts'
 
 // ── NYT fetch (Deno-native; the pure conversion lives in the shared lib) ──
 class NytAuthError extends Error {}
@@ -116,6 +127,38 @@ async function fetchNytPuzzleForDate(cookie: string, date: string): Promise<NytP
   )) as NytPuzzleResponse
 }
 
+const EMPTY_MARKINGS: OverlayMarkings = {
+  circles: new Set(),
+  barsRight: new Set(),
+  barsBottom: new Set(),
+}
+
+/** Fetch + decode a NYT overlay PNG and detect its markings. Overlay data is
+ *  decorative, not load-bearing, so any failure (network, decode) yields empty
+ *  sets rather than failing the whole import. */
+async function fetchOverlayMarkings(
+  uri: string,
+  cookie: string,
+  width: number,
+  height: number,
+): Promise<OverlayMarkings> {
+  let resp: Response
+  try {
+    resp = await fetch(uri, {
+      headers: { Cookie: cookie, 'User-Agent': NYT_UA, Referer: 'https://www.nytimes.com/crosswords' },
+    })
+  } catch {
+    return EMPTY_MARKINGS
+  }
+  if (!resp.ok) return EMPTY_MARKINGS
+  try {
+    const png = PNG.sync.read(Buffer.from(await resp.arrayBuffer()))
+    return detectOverlayMarkings({ width: png.width, height: png.height, data: png.data }, width, height)
+  } catch {
+    return EMPTY_MARKINGS
+  }
+}
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
 serve(async (req) => {
@@ -153,6 +196,16 @@ serve(async (req) => {
     const cookie = cookieHeaderFromEnv()
     const resp = await fetchNytPuzzleForDate(cookie, date)
     const { meta, solution } = convertNytPuzzle(resp)
+    // If the response carries a raster overlay (theme circles on shaded cells,
+    // and/or visual word-break bars), fetch + decode it and apply every
+    // detected marking onto the grid. The asset index is 1-based.
+    const overlayIdx = resp.body?.[0]?.overlays?.beforeStart
+    const overlayUri = overlayIdx ? resp.assets?.[overlayIdx - 1]?.uri : undefined
+    if (overlayUri) {
+      const dims = resp.body![0]!.dimensions
+      const markings = await fetchOverlayMarkings(overlayUri, cookie, dims.width, dims.height)
+      applyOverlayMarkings(meta.cells, markings)
+    }
     board = { meta, solution }
   } catch (e) {
     if (e instanceof NytAuthError) return json({ error: e.message }, 401)

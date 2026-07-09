@@ -6,12 +6,14 @@
  * AND its vitest tests. Uses `.ts` import specifiers so it resolves under
  * Deno too.
  *
- * NOT ported (deferred, per the crosswords plan): the overlay-PNG
- * connected-component analysis. NYT bakes circles-on-shaded cells and
- * word-break bars into a raster overlay the JSON can't express; that only
- * affects a minority of themed puzzles, and bars are purely visual. Plain
- * circles (type 2) and plain shading (type 3) DO come through here, so
- * normal daily puzzles convert fully.
+ * This module stays PURE (no fetch). The overlay-PNG connected-component
+ * analysis — NYT bakes circles-on-shaded cells and word-break bars into a
+ * raster overlay the JSON can't express — lives in `nytOverlay.ts` and is
+ * applied by the `crosswords-import-nyt` edge function AFTER conversion (it
+ * needs to fetch + decode the PNG). The types below expose the overlay's
+ * asset pointer (`body.overlays.beforeStart` → `assets[i].uri`) so the edge
+ * fn can find it. Plain circles (type 2) and plain shading (type 3) still come
+ * through here directly.
  */
 
 import type { Cell, Clue, PuzzleMeta, PuzzleTemplate } from './types.ts'
@@ -32,9 +34,15 @@ export type NytBody = {
   dimensions: { width: number; height: number }
   cells: NytCell[]
   clues: NytClue[]
+  /** Present when the puzzle ships a raster overlay (circles-on-shaded and/or
+   *  word-break bars the per-cell `type` field can't express). `beforeStart`
+   *  is a 1-based index into the response's `assets` array. */
+  overlays?: { beforeStart?: number }
 }
 export type NytPuzzleResponse = {
   body?: NytBody[]
+  /** Raster assets (overlay PNGs); indexed 1-based by `body.overlays`. */
+  assets?: { uri?: string }[]
   title?: string
   publicationDate?: string
   constructors?: string[]
