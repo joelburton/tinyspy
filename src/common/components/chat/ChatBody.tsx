@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { colorVarFor } from '../../lib/color/memberColor'
+import { linkify } from '../../lib/util/linkify'
 import type { ClubMessage } from '../../hooks/chat/useClubChat'
 import styles from './ChatBody.module.css'
 
@@ -110,7 +111,7 @@ export function ChatBody({ clubHandle, members, messages, loading }: Props) {
               <span
                 className={important ? styles.importantContent : undefined}
               >
-                {display}
+                {linkify(display)}
               </span>
             </div>
           )
