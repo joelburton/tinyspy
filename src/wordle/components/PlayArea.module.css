@@ -11,3 +11,75 @@
 .layout {
   --info-col-width: 22rem;
 }
+
+/* ─── Mobile (docs/mobile.md → the psychicnum recipe) ────────────────────────
+ * Desktop-first: everything above is the default; this block is the phone /
+ * portrait-tablet exception. The board + on-screen keyboard fill the screen and
+ * the whole info column moves into an off-canvas sheet reachable from the "Game
+ * info" menu item. Scoped to wordle; the shared scaffold is untouched.
+ *
+ * `.infoWrap` is `display: contents` here so on desktop it generates no box —
+ * InfoCol stays the direct flex child of `.layout` and the layout is
+ * byte-identical to before. The close button is hidden until mobile. */
+.infoWrap {
+  display: contents;
+}
+
+.infoClose {
+  display: none;
+}
+
+@media (--mobile) {
+  /* Hand the board column the full content width: with the info column now
+   * off-canvas (position: fixed, out of the flex row), nothing sits beside it,
+   * so override the shared --avail-w which otherwise reserves --info-col-width.
+   * (The board grid additionally caps ITS width by the leftover height so the
+   * keyboard always fits — see Board.module.css. The keyboard reads --avail-w
+   * directly, so it keeps the full width here.) */
+  .layout {
+    --avail-w: calc(var(--client-width, 100vw) - 2 * var(--page-padding-x));
+    /* --game-chrome-height rounds ~1px short at phone width; trim a pixel to
+     * keep the hard no-scroll invariant (docs/ui.md → page fits the viewport). */
+    height: calc(100svh - var(--game-chrome-height) - 1px);
+  }
+
+  /* The info column as an off-canvas sheet from the right. Closed = slid off
+   * (translateX 100%); `.infoOpen` slides it in. position: fixed takes it out of
+   * the flex row so the board column fills the width. Scrolls internally so the
+   * page itself never scrolls (docs/ui.md → page fits the viewport). */
+  .infoWrap {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(24rem, 100%);
+    z-index: 40;
+    background: var(--color-surface);
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
+    /* Extra top padding leaves room for the absolutely-placed close button. */
+    padding: 2.5rem 1rem 1rem;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 160ms ease;
+  }
+
+  .infoOpen {
+    transform: translateX(0);
+  }
+
+  .infoClose {
+    display: block;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 1;
+    background: transparent;
+    border: none;
+    color: var(--color-text);
+    font-size: 1.5rem;
+    line-height: 1;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+  }
+}

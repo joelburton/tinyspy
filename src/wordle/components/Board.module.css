@@ -40,6 +40,26 @@
   gap: var(--grid-gap);
 }
 
+/* Mobile (docs/mobile.md): on desktop the board hugs its width and the whole
+ * board+keyboard stack centers in the tall column with slack to spare. On a
+ * phone the column is only `100svh - chrome` tall and the keyboard + feedback
+ * slot eat a fixed ~14.65rem of it, so on a SHORT phone the width-hug board can
+ * push the keyboard off-screen. Cap the board by the LEFTOVER height (converted
+ * to a width via the board's own cols/rows aspect ratio) so board + keyboard
+ * always fit — no clip, no page scroll. `max-width` composes with the shared
+ * `hugRectWidth` (the smaller wins) and keeps tiles square via `aspect-ratio`;
+ * it does NOT touch the keyboard, which sizes off `--avail-w` directly. The
+ * ~15rem reserve = keyboard (10.4rem) + feedback slot (2.75rem) + the two
+ * 0.75rem column gaps, rounded up for a hair of slack. On tall phones the
+ * per-tile cap wins instead and this is inert. */
+@media (--mobile) {
+  .grid {
+    max-width: calc(
+      (100svh - var(--game-chrome-height) - 15rem) * var(--cols) / var(--rows)
+    );
+  }
+}
+
 /* Turn-history: the guess row the viewed turn added — a yellow ring around it
  * (mirrors the board `.frame`), applied while inspecting a past turn. The row's
  * tiles keep their g/y/x colors; this just marks WHICH row this turn played. An

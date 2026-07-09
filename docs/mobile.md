@@ -352,6 +352,35 @@ retractable UI), so this is a mobile-only fix with zero desktop effect. Grep
 behavior. (Standalone PWA mode has no toolbar, so this mainly helps the
 in-browser / not-yet-installed path — but it's the correct unit regardless.)
 
+### Per-game conversions — the info-sheet recipe
+
+Each game's mobile pass follows the **psychicnum recipe**: below `--mobile` the
+board fills the screen and the whole info column becomes an off-canvas sheet
+opened from a mobile-only "Game info" menu item. `useIsMobile()` gates the menu
+item; the sheet is otherwise pure CSS — `.infoWrap` is `display: contents` on
+desktop (so InfoCol stays the flex child, byte-identical) and a fixed slide-in
+sheet on mobile, with a close ✕. The `--avail-w` override hands the board the
+full width.
+
+This recipe is currently **copy-pasted per game on purpose** — we're doing two
+conversions before extracting a shared `useInfoSheet()` hook + sheet CSS (rule of
+three), and logging what DIVERGES each time so the extraction is informed by real
+variation rather than psychicnum's assumptions:
+
+- **psychicnum** (the POC / reference) — board is a single grid that flex-fills
+  the column. No divergence; this is the baseline shape.
+- **wordle** — board **+ on-screen keyboard** stacked in the board column (the
+  only game that does this). **Divergence:** the board must cap its height, or on
+  a short phone (e.g. iPhone SE) the keyboard is pushed off-screen. Done with a
+  `@media (--mobile)` `max-width` on the board grid ([`Board.module.css`](../src/wordle/components/Board.module.css))
+  derived from the leftover height (`100svh − chrome − ~15rem` of keyboard +
+  feedback + gaps), converted to a width via the board's own aspect ratio so
+  tiles stay square and the keyboard's own width is untouched. Guarded by
+  [`wordle-mobile.e2e.ts`](../e2e/wordle-mobile.e2e.ts) at a tall + short
+  viewport (no page scroll; whole keyboard on-screen; sheet opens/closes).
+  wordle needs **no keyboard/input machinery** — its on-screen keyboard is taps,
+  and it has no `<input>`, so none of the panel-keyboard/focus-zoom work applies.
+
 ## TODO — not doing now, recorded so we don't lose them
 
 These two caps attack the overflow problem at the *source* rather than papering

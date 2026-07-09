@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
@@ -6,6 +6,7 @@ import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
+import { useIsMobile } from '../../common/hooks/ui/useIsMobile'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -49,6 +50,15 @@ export function PlayArea({
   menu,
 }: GamePageCtx) {
   const { game, players: playerStates, guesses, loading } = useGame(gameId)
+
+  // Mobile (docs/mobile.md → the psychicnum recipe): below the breakpoint the
+  // board + keyboard fill the screen and the whole info column moves into an
+  // off-canvas sheet, opened from a mobile-only "Game info" menu item. `isMobile`
+  // gates that menu item; the sheet's show/hide is otherwise pure CSS. Desktop is
+  // unchanged — the two columns render side by side.
+  const isMobile = useIsMobile()
+  const [infoOpen, setInfoOpen] = useState(false)
+
   // The own-move local feedback pill (soft reject / RPC error), shown in the
   // fixed-height slot between the board and the keyboard. Sticky (localPill): cleared
   // by the player's next edit (in BoardCol), the "next move dismisses it" rule. Lives
@@ -177,10 +187,16 @@ export function PlayArea({
         conceded: myConceded,
         onEndGame: () => actionsRef.current.endGame(),
         onConcede: () => actionsRef.current.concede(),
+        // Mobile-only: the info column is off-canvas below the breakpoint, so
+        // this is how you reach it (guess counter, opponents, setup, turn log).
+        // On desktop the column is always visible, so the item is omitted.
+        extra: isMobile
+          ? [{ items: [{ id: 'game-info', label: 'Game info', onClick: () => setInfoOpen(true) }] }]
+          : [],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, mode, isTerminal, myConceded])
+  }, [menu, mode, isTerminal, myConceded, isMobile])
 
   // Keep the ref's end/concede closures current so the menu effect above never
   // needs the (identity-changing) handlers in its own dep array.
@@ -287,7 +303,20 @@ export function PlayArea({
         // ── Below-board pill ──
         localPill={localPill}
       />
-      <InfoCol
+      {/* Info column. Desktop: `.infoWrap` is `display: contents` — a no-op
+          wrapper — so InfoCol is the flex child exactly as before, close button
+          hidden. Mobile: it becomes an off-canvas sheet slid in by `.infoOpen`
+          (opened from the "Game info" menu item). */}
+      <div className={cls(styles.infoWrap, infoOpen && styles.infoOpen)}>
+        <button
+          type="button"
+          className={styles.infoClose}
+          onClick={() => setInfoOpen(false)}
+          aria-label="Close game info"
+        >
+          ✕
+        </button>
+        <InfoCol
         // ── Mode + phase ──
         isCompete={isCompete}
         isTerminal={isTerminal}
@@ -316,7 +345,8 @@ export function PlayArea({
         mode={game.mode}
         viewingIndex={viewingId}
         onSelectTurn={selectTurn}
-      />
+        />
+      </div>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
