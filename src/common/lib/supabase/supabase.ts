@@ -26,8 +26,47 @@ import type { Database } from '../../../types/db'
  * in prod.
  */
 
-const url = import.meta.env.VITE_SUPABASE_URL
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+
+/**
+ * In dev, when `VITE_SUPABASE_URL` points at a loopback host (127.0.0.1 /
+ * localhost) but the page itself was loaded from a LAN address, rewrite the
+ * Supabase host to match the page's host.
+ *
+ * The motivating case: testing on a phone. You run `npm run dev -- --host` and
+ * open `http://<mac-lan-ip>:5173` on the phone, but the app is still configured
+ * to reach Supabase at `127.0.0.1:54321` — which, on the phone, is the *phone*,
+ * not the Mac, so every request fails ("Load failed"). Local Supabase binds
+ * `0.0.0.0`, so `<mac-lan-ip>:54321` reaches the same stack; pointing the client
+ * at the page's own host makes it Just Work over the LAN without hardcoding the
+ * Mac's IP into `.env.local` (which would break plain `localhost` dev, and
+ * changes every time the DHCP lease does).
+ *
+ * No-op in prod (the configured URL isn't loopback) and when the page is already
+ * on a loopback host (normal laptop dev) — so it only ever engages for the
+ * phone-over-LAN case it's meant for.
+ */
+function resolveSupabaseUrl(configured: string): string {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return configured
+  let parsed: URL
+  try {
+    parsed = new URL(configured)
+  } catch {
+    return configured
+  }
+  const loopback = (host: string) => host === '127.0.0.1' || host === 'localhost'
+  const pageHost = window.location.hostname
+  if (!loopback(parsed.hostname) || loopback(pageHost)) return configured
+  parsed.hostname = pageHost
+  const rebuilt = parsed.toString()
+  // new URL().toString() appends a trailing slash to a bare-origin URL; keep the
+  // configured value's convention so supabase-js doesn't see a doubled slash.
+  return rebuilt.endsWith('/') && !configured.endsWith('/')
+    ? rebuilt.slice(0, -1)
+    : rebuilt
+}
+
+const url = resolveSupabaseUrl(import.meta.env.VITE_SUPABASE_URL)
 
 if (!url || !publishableKey) {
   throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY')

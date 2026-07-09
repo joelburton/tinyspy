@@ -35,8 +35,13 @@ import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
  * in the local stack so you don't need real email delivery while
  * iterating.
  */
+// Dev-only convenience: prefill the email so heavy local iteration (esp. on a
+// phone, where typing is a pain) doesn't mean re-entering it every reload. Empty
+// in prod — the friends type their own.
+const DEV_DEFAULT_EMAIL = import.meta.env.DEV ? 'joel@joelburton.com' : ''
+
 export function LoginScreen() {
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(DEV_DEFAULT_EMAIL)
   const [code, setCode] = useState('')
   const [action, setAction] = useState<'send-link' | 'verify-code'>('send-link')
   const [status, setStatus] = useState<
