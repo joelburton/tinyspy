@@ -180,7 +180,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     expect(items.map((i) => i.id)).toEqual([
       'help',
       'pencil', 'enter-rebus', 'collapse-rebuses',
-      'note', 'explain', 'scratchpad', 'print', 'download-ipuz',
+      'note', 'explain', 'scratchpad', 'print', 'download-ipuz', 'print-solution',
       'check-letter', 'check-word', 'check-puzzle',
       'reveal-letter', 'reveal-word', 'reveal-puzzle',
       'clear-board', 'reveal-board',
@@ -197,6 +197,8 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     // Clear enabled during coop play; Reveal-board terminal-only.
     expect(items.find((i) => i.id === 'clear-board')?.disabled).toBe(false)
     expect(items.find((i) => i.id === 'reveal-board')?.disabled).toBe(true)
+    // Answer-key PDF is always available in coop (even mid-play).
+    expect(items.find((i) => i.id === 'print-solution')?.disabled).toBeFalsy()
   })
 
   it('omits the coop-only Reveal section and shows Concede in compete', () => {
@@ -211,6 +213,27 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     expect(ids).toContain('pencil')
     expect(ids).toContain('concede')
     expect(ids).not.toContain('end-game')
+  })
+
+  it('gates the answer-key PDF in compete: disabled mid-play, enabled at terminal', () => {
+    h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
+    // Mid-play: an answer key would give away the race, so it's disabled.
+    const playing = vi.fn()
+    render(<PlayArea {...makeCtx({ menu: { setGameSections: playing, openHelp: vi.fn(), requestBackToClub: vi.fn() } })} />)
+    expect(lastMenuItems(playing).find((i) => i.id === 'print-solution')?.disabled).toBe(true)
+
+    // Terminal: the game's over, so it's allowed.
+    const done = vi.fn()
+    render(
+      <PlayArea
+        {...makeCtx({
+          isTerminal: true,
+          playState: 'won_compete',
+          menu: { setGameSections: done, openHelp: vi.fn(), requestBackToClub: vi.fn() },
+        })}
+      />,
+    )
+    expect(lastMenuItems(done).find((i) => i.id === 'print-solution')?.disabled).toBeFalsy()
   })
 })
 

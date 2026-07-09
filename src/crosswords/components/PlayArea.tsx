@@ -25,7 +25,7 @@ import {
 import type { CellPos } from '../lib/cursor'
 import type { Cell, Direction, MarkSide, PuzzleState, PuzzleTemplate, Scope } from '../lib/types'
 import { nextMarkState } from '../lib/marks'
-import { printCrosswordsPdf } from '../pdf/printCrosswordsPdf'
+import { printCrosswordsPdf, printCrosswordsSolutionPdf } from '../pdf/printCrosswordsPdf'
 import type { CellsMap } from '../hooks/useCells'
 import { colorVarFor } from '../../common/lib/color/memberColor'
 import { useGame } from '../hooks/useGame'
@@ -421,6 +421,26 @@ export function PlayArea(ctx: GamePageCtx) {
     URL.revokeObjectURL(url)
   }, [gameId, showLocalFeedback])
 
+  // Print the answer-key PDF (crossplay's `generateSolutionPdf`). Like the
+  // .ipuz export it fetches the solution via `solution_for` — the menu gates
+  // WHEN it's offered (coop any time; compete only once the game's over), but
+  // `solution_for` itself isn't terminal-gated, so the gate is UI-only (same
+  // posture as Download-as-.ipuz, tolerated under the friends-only trust model).
+  const handlePrintSolution = useCallback(async () => {
+    const state = printStateRef.current
+    if (!state) return
+    const { data, error } = await db.rpc('solution_for', { target_game: gameId })
+    if (error || !data) {
+      showLocalFeedback(stickyPill('error', `Answer key failed: ${error?.message ?? 'no solution'}`))
+      return
+    }
+    await printCrosswordsSolutionPdf(
+      state,
+      data as unknown as (string[] | null)[][],
+      `${state.meta.id || 'crossword'}-answers`,
+    )
+  }, [gameId, showLocalFeedback])
+
   // Game-menu items. `hasNote` is stable per game, and `handleExplain` reads the
   // current clue via a ref, so this doesn't rebuild per keystroke — only on the
   // one-shot terminal / reveal / playable transitions.
@@ -488,6 +508,15 @@ export function PlayArea(ctx: GamePageCtx) {
                 },
               },
               { id: 'download-ipuz', label: 'Download as .ipuz', onClick: () => void handleDownloadIpuz() },
+              {
+                // Answer-key PDF. Coop: any time. Compete: only once the game
+                // is over — an answer key mid-race is a giveaway. (See
+                // handlePrintSolution: this is a UI gate, not a server one.)
+                id: 'print-solution',
+                label: 'Print answer key (PDF)',
+                disabled: mode === 'compete' && !isTerminal,
+                onClick: () => void handlePrintSolution(),
+              },
             ],
           },
           {
@@ -528,7 +557,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, hasNote, pencil, collapseRebus, mode, myConceded, handleShowNote, handleExplain, handleRevealBoard, handleClear, handleDownloadIpuz, isPlayable, isTerminal, solution])
+  }, [menu, game, hasNote, pencil, collapseRebus, mode, myConceded, handleShowNote, handleExplain, handleRevealBoard, handleClear, handleDownloadIpuz, handlePrintSolution, isPlayable, isTerminal, solution])
 
   const over: TerminalCopy | null = isTerminal ? buildOver(playState, status, mode, myId) : null
 
