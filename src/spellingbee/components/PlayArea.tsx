@@ -15,6 +15,7 @@ import type { SpellingbeeSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { buildDisplayRows } from '../lib/displayRows'
+import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { printSpellingbeePdf } from '../pdf/printSpellingbeePdf'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -54,6 +55,19 @@ export function PlayArea(ctx: GamePageCtx) {
   const { game, foundWords, loading } = useGame(gameId)
 
   const spellingbeeSetup = setup as SpellingbeeSetup
+
+  // The end/concede action handlers, held in a stable ref so the menu effect
+  // needn't list the (later-declared, per-render `useCallback`) handlers in its
+  // deps — that would rebuild the menu every render. Populated by an effect once
+  // handleEndGame/handleConcede exist (below); read at click time. (Crosswords'
+  // `actionsRef` pattern.)
+  const actionsRef = useRef<{ endGame: () => void; concede: () => void } | null>(null)
+
+  // Concede state (from the common roster). A conceder can't submit and sees the
+  // locally-terminal look while the others race; peers show as "out" in the strip.
+  // Declared up here (above the menu effect that greys the Concede item on it).
+  const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
+  const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
   // Score + words-found derived from the FE's view of
   // spellingbee.found_words. The bucket of rows we sum depends on mode:
@@ -129,9 +143,24 @@ export function PlayArea(ctx: GamePageCtx) {
       ],
       words,
     }
-    menu.setGameItems([{ id: 'print', label: 'Print board (PDF)', onClick: () => printSpellingbeePdf(model) }])
-    return () => menu.setGameItems([])
-  }, [menu, game, foundWords, players, brand, title, spellingbeeSetup, isTerminal, foundWordsScore, foundWordsCount])
+    // The FULL spellingbee menu: Help (top) + the Print item + the End/Concede +
+    // Back-to-club tail, all from `buildGameMenu`. End/concede dispatch through the
+    // stable `actionsRef` so this effect needn't depend on the later-declared
+    // handlers. `mode` picks coop's End vs compete's Concede; `myConceded` greys
+    // the compete item once I've dropped out.
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        mode: game.mode,
+        isTerminal,
+        conceded: myConceded,
+        onEndGame: () => actionsRef.current?.endGame(),
+        onConcede: () => actionsRef.current?.concede(),
+        extra: [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printSpellingbeePdf(model) }] }],
+      }),
+    )
+    return () => menu.setGameSections([])
+  }, [menu, game, foundWords, players, brand, title, spellingbeeSetup, isTerminal, myConceded, foundWordsScore, foundWordsCount])
 
   // ─── Allowed-letter set (drives illegal-letter dim) ────
   const allowedLetters = useMemo(() => {
@@ -162,11 +191,6 @@ export function PlayArea(ctx: GamePageCtx) {
     }
     return m
   }, [game?.requiredWords, game?.bonusWords])
-
-  // Concede state (from the common roster). A conceder can't submit and sees the
-  // locally-terminal look while the others race; peers show as "out" in the strip.
-  const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
-  const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
   const center = game?.center_letter.toLowerCase() ?? ''
   const { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback } =
@@ -225,6 +249,12 @@ export function PlayArea(ctx: GamePageCtx) {
       showLocalFeedback('error', `Concede failed: ${error.message}`)
     }
   }, [gameId, isTerminal, myConceded, showLocalFeedback])
+
+  // Keep the menu's end/concede actions current (read by the menu item via the
+  // stable actionsRef, so the menu effect needn't depend on these handlers).
+  useEffect(() => {
+    actionsRef.current = { endGame: () => void handleEndGame(), concede: () => void handleConcede() }
+  }, [handleEndGame, handleConcede])
 
   // Peer/opponent activity → header feedback pills (coop: a peer found a
   // word; compete: an opponent climbed a rank). Self-activity is excluded —

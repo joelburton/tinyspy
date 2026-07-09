@@ -80,7 +80,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     status: null,
     globalFeedback: { show: vi.fn(), clear: vi.fn() },
     goToClub: vi.fn(),
-    menu: { setGameItems: vi.fn() },
+    menu: { setGameSections: vi.fn(), openHelp: vi.fn(), requestBackToClub: vi.fn() },
     ...over,
   } as unknown as GamePageCtx
 }

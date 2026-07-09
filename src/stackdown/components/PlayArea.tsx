@@ -6,6 +6,7 @@ import type {
   GamePageCtx,
 } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { terminalPill } from '../../common/lib/game/localPills'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { db } from '../db'
@@ -63,6 +64,7 @@ export function PlayArea({
   status,
   globalFeedback,
   goToClub,
+  menu,
 }: GamePageCtx) {
   const {
     game,
@@ -255,6 +257,30 @@ export function PlayArea({
     const { error } = await db.rpc('concede', { target_game: gameId })
     if (error) showLocalFeedback(`Concede failed: ${error.message}`, 'error')
   }, [gameId, isTerminal, myConceded, showLocalFeedback])
+
+  // ─── Header menu (every game owns its whole menu now) ─────────
+  // stackdown adds no game-specific actions (its reveal/hint cheats live in the
+  // info-column action row, not the menu), so `extra` is empty: buildGameMenu
+  // gives just Help + the End-game (coop) / Concede (compete) + Back-to-club tail.
+  // Placed after handleEndGame/handleConcede so they're in scope for the deps; all
+  // deps here are stable (the useCallback handlers + primitives), so setGameSections
+  // — a setState — runs only when the mode/terminal/conceded facts actually change,
+  // not every render. `game?.mode` is null until loaded; default to coop so the menu
+  // exists during the loading beat and re-runs once the real mode arrives.
+  const menuMode = game?.mode === 'compete' ? 'compete' : 'coop'
+  useEffect(() => {
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        mode: menuMode,
+        isTerminal,
+        conceded: myConceded,
+        onEndGame: () => void handleEndGame(),
+        onConcede: () => void handleConcede(),
+      }),
+    )
+    return () => menu.setGameSections([])
+  }, [menu, menuMode, isTerminal, myConceded, handleEndGame, handleConcede])
 
   // ─── Coop: narrate teammates' moves ───────────────────────────
   // The player who DIDN'T make a move otherwise saw nothing but the log quietly

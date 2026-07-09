@@ -104,12 +104,12 @@ export type GamePageCtx = {
    *  call when the game is terminal — for non-terminal back-to-
    *  club, use the menu (which fires the suspend-confirm flow). */
   goToClub: () => void
-  /** Imperative API for the per-game section of the GamePage menu
-   *  (the dropdown opened from the game logo). The PlayArea calls
-   *  `menu.setGameItems([...])` to populate its items; the array
-   *  replaces wholesale on each call. See docs/ui.md → GamePage
-   *  menu for the placement + activation contract. Identity is
-   *  stable across renders. */
+  /** Imperative API for the GamePage menu (the dropdown opened from
+   *  the game logo). The PlayArea owns its WHOLE menu — it calls
+   *  `menu.setGameSections([...])` (usually via the `buildGameMenu`
+   *  helper), and uses `menu.openHelp` / `menu.requestBackToClub` for
+   *  the two shell actions. See docs/ui.md → GamePage menu for the
+   *  placement + activation contract. Identity is stable across renders. */
   menu: MenuApi
 }
 
@@ -155,8 +155,8 @@ export type GenericFeedbackApi = {
  *  for the placement + activation contract. */
 export type MenuItem = {
   /** Stable id for React keying. PlayArea-owned values that
-   *  reflect game-state changes are fine — the array is replaced
-   *  wholesale on each `setGameItems` call. */
+   *  reflect game-state changes are fine — the sections are replaced
+   *  wholesale on each `setGameSections` call. */
   id: string
   label: string
   onClick: () => void
@@ -164,6 +164,11 @@ export type MenuItem = {
    *  navigation. Use for state-dependent actions ("Reveal cell"
    *  enabled only when a cell is selected). */
   disabled?: boolean
+  /** Optional keyboard-shortcut hint shown right-aligned + muted on
+   *  the item (e.g. "⌥C"), matching how desktop apps annotate menu
+   *  entries. Display only — the actual binding lives in the game's
+   *  keyboard hook; this just advertises it. */
+  shortcut?: string
 }
 
 /** A group of items rendered together in the menu popover.
@@ -174,10 +179,22 @@ export type MenuSection = {
 }
 
 export type MenuApi = {
-  /** Replace the per-game section's items wholesale. Pass `[]`
-   *  to clear (the section disappears and the divider above it
-   *  drops). Identity is stable across GamePage renders. */
-  setGameItems: (items: MenuItem[]) => void
+  /** Replace the game's ENTIRE header menu. Every game owns its whole
+   *  menu — the shell no longer injects a common Help / Back-to-club
+   *  section — so the game supplies all sections (dividers appear
+   *  between them). Use the `buildGameMenu` helper (common/lib/game/
+   *  gameMenu.ts) to get the standard Help + End/Concede + Back-to-club
+   *  framing. Pass `[]` to clear (on unmount). Identity is stable across
+   *  GamePage renders. */
+  setGameSections: (sections: MenuSection[]) => void
+  /** Open this game's Help modal (the manifest `help` component). Wire
+   *  it into your menu's Help item. Stable identity. */
+  openHelp: () => void
+  /** "Back to club": navigates directly for a terminal game, or opens
+   *  the suspend-confirm modal mid-game (the same logic the old shell
+   *  menu item ran). Wire it into your menu's Back-to-club item. The
+   *  shell also binds ⇧< to it globally. Stable identity. */
+  requestBackToClub: () => void
 }
 
 /**

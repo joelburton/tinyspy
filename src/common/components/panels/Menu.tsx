@@ -44,6 +44,15 @@ type Props = {
    *  side of the screen (the UserMenu in the top-right corner),
    *  so the popover doesn't overflow off-screen to the right. */
   popoverAlign?: 'left' | 'right'
+  /** Whether closing the menu returns focus to the trigger button.
+   *  Default `true` (standard menu a11y — Esc restores focus for
+   *  Tab users). Set `false` where the trigger retaining focus
+   *  fights a page-level keyboard handler: the crosswords game menu
+   *  sits over a board that reads `window` keydowns for cursor
+   *  movement, so a focused trigger would swallow arrows / reopen the
+   *  menu. With `false` the trigger blurs on close and focus falls to
+   *  `<body>`, so the board's keyboard resumes immediately. */
+  returnFocusOnClose?: boolean
 }
 
 /**
@@ -82,6 +91,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   triggerLabel = 'Menu',
   triggerClassName,
   popoverAlign = 'left',
+  returnFocusOnClose = true,
 }, ref) {
   const [open, setOpen] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(0)
@@ -111,8 +121,14 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
 
   const closeMenu = useCallback(() => {
     setOpen(false)
-    triggerRef.current?.focus()
-  }, [])
+    // Restore focus to the trigger (standard menu a11y), UNLESS the caller
+    // opted out — then blur it so focus falls to <body> and a page-level
+    // keyboard handler (the crosswords board) isn't shadowed by a focused
+    // trigger. `blur()` also covers the click-to-toggle-close case, where the
+    // mousedown had just focused the trigger.
+    if (returnFocusOnClose) triggerRef.current?.focus()
+    else triggerRef.current?.blur()
+  }, [returnFocusOnClose])
 
   const openMenu = useCallback(() => {
     const firstEnabled = flatItems.findIndex((it) => !it.disabled)
@@ -157,6 +173,10 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   }, [open])
 
   function onPopoverKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    // While the menu is open it OWNS the keyboard — stop keys from also
+    // reaching a page-level `window` keydown handler (e.g. the crosswords
+    // board would otherwise move its cursor as you arrow through the menu).
+    e.stopPropagation()
     if (e.key === 'Escape') {
       e.preventDefault()
       closeMenu()
@@ -181,6 +201,11 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   }
 
   function onTriggerKeyDown(e: KeyboardEvent<HTMLButtonElement>) {
+    // While the trigger has focus it owns its keys — don't let them fall
+    // through to a page-level `window` keydown handler (the crosswords board
+    // would otherwise open the rebus overlay on Enter, jump a clue on Tab, or
+    // move the cursor on ArrowDown at the same time as opening the menu).
+    e.stopPropagation()
     // ArrowDown on the trigger is the conventional "step into the
     // menu" gesture. Enter and Space already fire the button's
     // click handler (browser default), so they don't need their
@@ -231,7 +256,8 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
           tabIndex={-1}
           onClick={() => activate(item)}
         >
-          {item.label}
+          <span className={styles.itemLabel}>{item.label}</span>
+          {item.shortcut && <span className={styles.itemShortcut}>{item.shortcut}</span>}
         </button>,
       )
     })

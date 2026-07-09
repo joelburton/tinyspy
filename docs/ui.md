@@ -306,25 +306,24 @@ A layout-static row that every game shares. Same shape, same affordances, same p
 
 The logo is a menu trigger. Click opens a dropdown anchored below it; same trigger across games, same dropdown chrome, different items inside.
 
+**Each game owns its WHOLE menu.** The shell no longer injects a fixed common section — a rich game like crosswords needs Help at the top, several divided game sections, and Back-to-club at the bottom, which the old "one common section + one game slot" model couldn't express. Instead the `<PlayArea>` pushes the entire section list via `ctx.menu.setGameSections([...])`, and the shell exposes the two actions a game can't build itself — `ctx.menu.openHelp()` and `ctx.menu.requestBackToClub()` (the terminal-vs-suspend "Back to club" logic).
+
 ```
 [logo ▼]   ← click
     │
     └─→  ┌──────────────────────┐
-         │ Help                 │  ← common section
-         │ Back to club         │
-         ├──────────────────────┤  ← divider
-         │ Hints                │  ← per-game items (connections)
+         │ Help                 │
+         ├──────────────────────┤
+         │ …game sections…      │
+         ├──────────────────────┤
+         │ End game / Concede ⌥⌫│
+         │ Back to club       ⇧<│
          └──────────────────────┘
 ```
 
-**Common section (top, always present):**
+**The `buildGameMenu` helper** ([common/lib/game/gameMenu.ts](../src/common/lib/game/gameMenu.ts)) assembles the standard framing so games don't duplicate it: a **Help** section at the top, the game's own `extra` sections in the middle, and a tail with **End game** (coop) / **Concede game** (compete, id `concede`) + **Back to club**. The end/concede item dispatches through the game's own handler (each game's `db` is schema-typed, so the RPC stays at the call site); Help/Back use the shell actions. Most games call it in one line with `extra: [{ items: [printItem] }]` (or `[]`); crosswords passes its full check/reveal/clear section list.
 
-- **Help** — opens the per-game `manifest.help` modal.
-- **Back to club** — single-click for terminal games; modal-then-suspend for non-terminal (the [`<SuspendConfirmDialog>`](../src/common/components/game/SuspendConfirmDialog.tsx) flow).
-
-**Per-game section (below divider, dynamic):**
-
-Items pushed by the per-gametype `<PlayArea>` via `ctx.menu.setGameItems([...])` — same pattern as `ctx.feedback`. Items can carry a state-dependent `disabled` flag ("Reveal cell" enabled only when a cell is selected); the array is replaced wholesale on each call. State lives in `<GamePage>`; PlayArea-unmount on pause clears the array, so during a pause the menu shows only the common section.
+**Shortcut hints.** A `MenuItem` may carry an optional `shortcut` string (e.g. `'⌥C'`) rendered right-aligned + muted. Two are shell-global (work on any game, dispatching to the game's own menu items / actions): **⌥⌫** fires End/Concede (finds the `end-game`/`concede` item and clicks it), **⇧<** fires Back to club. Both bail inside any editable field, so ⌥Backspace stays "delete word" while typing.
 
 API on `GamePageCtx`:
 
@@ -334,16 +333,26 @@ type MenuItem = {
   label: string
   onClick: () => void
   disabled?: boolean
+  shortcut?: string // right-aligned hint, e.g. "⌥C" (display only)
 }
+type MenuSection = { items: MenuItem[] }
 
 menu: {
-  setGameItems: (items: MenuItem[]) => void
+  setGameSections: (sections: MenuSection[]) => void
+  openHelp: () => void      // opens the manifest Help modal
+  requestBackToClub: () => void   // Back to club (terminal-nav or suspend-confirm)
 }
 ```
 
-**Pause behavior.** The menu is openable while paused (common items work normally — leaving to the club, reading the rules). Game-specific items vanish because PlayArea unmounts on pause; the cleanup return on the PlayArea's `setGameItems` effect clears them.
+**Stability.** `setGameSections` is a `setState`, so a PlayArea's menu-building effect must NOT re-run every render (that loops). Keep its deps to stable values; route any late-declared or unstable item handlers (typically End/Concede) through a stable ref populated in a separate effect — the crosswords `actionsRef` pattern. The shell's menu actions (`openHelp` / `requestBackToClub`) have stable identity.
 
-**Keyboard.** Enter / Space on the logo opens the menu and focuses the first enabled item. Arrow up / down navigate; Enter or Space activates; Esc closes and returns focus to the logo. Tab while the menu is open closes it and advances focus normally. Disabled items are skipped by arrow navigation.
+**Focus.** The game menu is given `returnFocusOnClose={false}` (Menu.tsx), so closing it blurs the trigger and lets focus fall to `<body>` — a keyboard-first board (crosswords) resumes reading arrows instead of a focused logo swallowing them / reopening the menu. `Menu` also `stopPropagation`s its own keydowns so arrowing through the menu never doubles as a board move. Non-game menus (UserMenu) keep the standard Esc-restores-focus a11y.
+
+**Overflow.** A long menu (crosswords lists ~20 items) never grows the page: the popover is capped at `max-height: calc(100vh - 5rem)` and scrolls internally.
+
+**Pause behavior.** The menu is openable while paused. Game sections vanish because PlayArea unmounts on pause; the cleanup return on the PlayArea's `setGameSections` effect clears them (`setGameSections([])`), so a paused menu is empty until resume.
+
+**Keyboard.** Enter / Space on the logo opens the menu and focuses the first enabled item. Arrow up / down navigate; Enter or Space activates; Esc closes. Tab while the menu is open closes it and advances focus normally. Disabled items are skipped by arrow navigation.
 
 **Z-index.** Menu sits at ~1500 — above the 500-tier modals (suspend-confirm, hint, setup; so a menu click can open one of these) and below chat at 10000 (chat stays available for "what does this option do?" Q&A during play).
 

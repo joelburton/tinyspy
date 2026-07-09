@@ -63,6 +63,10 @@
   padding: 0.3rem 0;
   display: flex;
   flex-direction: column;
+  /* A long game menu (crosswords lists ~20 items) must never grow the page:
+     cap the popover to the viewport below the trigger and let IT scroll. */
+  max-height: calc(100vh - 5rem);
+  overflow-y: auto;
 }
 
 /* Right-aligned variant: opt in via `popoverAlign="right"` for
@@ -88,10 +92,24 @@
   font-size: 0.95rem;
   font-weight: 500;
   text-align: left;
-  display: block;
+  /* Flex so an optional shortcut hint sits right-aligned on the same row;
+     the gap keeps the label and hint from touching on narrow items. */
+  display: flex;
+  align-items: baseline;
+  gap: 1.5rem;
   width: 100%;
   border-radius: 0;
   transition: background 80ms ease;
+}
+
+/* The shortcut hint (e.g. "⌥C") — pushed to the right edge, de-emphasized
+   (it's an annotation, not the action). */
+.itemShortcut {
+  margin-left: auto;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .item:hover:not(:disabled),

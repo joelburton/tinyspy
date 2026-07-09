@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx } from '../../common/lib/games'
 import type { PsychicnumSetup } from '../lib/setup'
@@ -10,6 +10,7 @@ import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandle
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { memberById } from '../../common/lib/game/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { printPsychicnumPdf } from '../pdf/printPsychicnumPdf'
@@ -64,9 +65,24 @@ export function PlayArea({
   const { game, players: playerBudgets, guesses, loading } = useGame(gameId)
   const mode = game?.mode
 
-  // "Print board (PDF)" GamePage menu item. Builds the print model from the live
-  // state (RLS already scoped `guesses`/`results` to what I may see) and hands it to
-  // the jsPDF renderer. A snapshot at click time — works mid-game or at the end.
+  // I dropped out of a compete race (a real loss; the others keep racing). Read
+  // from the common roster (prop `players`, always present) so it's available
+  // here — above the early returns — for the game-menu effect. (The board/strip
+  // recompute it below where the other conceded-set derivations live.)
+  const myConceded = players.find((p) => p.user_id === session.user.id)?.conceded ?? false
+
+  // The End / Concede action handlers, held in a stable ref so the game-menu
+  // effect's onClick closures can call them without depending on the concrete
+  // handlers (whose closures change each render). Populated by the effect just
+  // below `useGlobalKeyHandler`, like the crosswords `actionsRef` pattern.
+  const actionsRef = useRef<{ end: () => void; concede: () => void } | null>(null)
+
+  // The FULL psychicnum game menu (Help + Print + End/Concede + Back to club).
+  // `buildGameMenu` supplies the framing; `extra` is our one Print item. Print
+  // builds its model from the live state (RLS already scoped `guesses`/`results`
+  // to what I may see) and hands it to the jsPDF renderer — a snapshot at click
+  // time, so it works mid-game or at the end. End/Concede dispatch through the
+  // stable `actionsRef` so this effect needn't depend on the later handlers.
   useEffect(() => {
     if (!game) return
     // Board results: fold the 'guess' turns into word → was-a-secret (the same
@@ -102,11 +118,21 @@ export function PlayArea({
         { label: 'Guesses', value: String(s.guesses) },
       ],
     }
-    menu.setGameItems([
-      { id: 'print', label: 'Print board (PDF)', onClick: () => printPsychicnumPdf(model) },
-    ])
-    return () => menu.setGameItems([])
-  }, [menu, game, guesses, players, brand, title, setup])
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        mode: mode ?? 'coop',
+        isTerminal,
+        conceded: myConceded,
+        onEndGame: () => actionsRef.current?.end(),
+        onConcede: () => actionsRef.current?.concede(),
+        extra: [
+          { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printPsychicnumPdf(model) }] },
+        ],
+      }),
+    )
+    return () => menu.setGameSections([])
+  }, [menu, mode, isTerminal, myConceded, game, guesses, players, brand, title, setup])
 
   // Per-opponent secrets-found count we've already announced (compete tension).
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
@@ -205,6 +231,27 @@ export function PlayArea({
     useHistoryViewer<number>()
   useGlobalKeyHandler(exitOnKey)
 
+  // Keep the End / Concede handlers current in the stable ref the game-menu
+  // effect's onClick closures read (so that effect needn't depend on these,
+  // and so it lives above the early returns without a Rules-of-Hooks snag).
+  // The menu (⌥⌫ + the End/Concede item) and InfoCol's buttons share ONE pair
+  // of handlers — hoisted above the early returns as useCallbacks so the ref
+  // can list them in its deps. (The crosswords `actionsRef` pattern.)
+  const endGame = useCallback(async () => {
+    if (!window.confirm("End the game now? You can't undo this.")) return
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
+  }, [gameId, showLocalFeedback])
+  const handleConcede = useCallback(async () => {
+    if (isTerminal || myConceded) return
+    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
+    const { error } = await db.rpc('concede', { target_game: gameId })
+    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
+  }, [isTerminal, myConceded, gameId, showLocalFeedback])
+  useEffect(() => {
+    actionsRef.current = { end: () => void endGame(), concede: () => void handleConcede() }
+  }, [endGame, handleConcede])
+
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
 
@@ -215,10 +262,9 @@ export function PlayArea({
     playerBudgets.find((p) => p.user_id === session.user.id)?.secrets_found ?? 0
 
   // Concede lives on the common roster (ctx `players` = GamePlayer[]), NOT on
-  // psychicnum.players (the budget rows). `myConceded` = I dropped out of a
-  // compete race (a real loss; the others keep racing). `concededIds` marks the
-  // players who've bowed out, for the opponent strip's "out" cell.
-  const myConceded = players.find((p) => p.user_id === session.user.id)?.conceded ?? false
+  // psychicnum.players (the budget rows). `myConceded` is derived above (the menu
+  // effect needs it before the early returns). `concededIds` marks the players
+  // who've bowed out, for the opponent strip's "out" cell.
   const concededIds = new Set(players.filter((p) => p.conceded).map((p) => p.user_id))
 
   // Per-status modal + indicator copy. Mode-aware so compete-mode
@@ -280,25 +326,8 @@ export function PlayArea({
     if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
   }
 
-  // Manual end — the friends agreeing they're done (neutral terminal, nobody
-  // wins/loses). Confirmed because it's irreversible. Coop only — a compete race
-  // ends per-player via concede, not by one player ending it for everyone.
-  const endGame = async () => {
-    if (!window.confirm("End the game now? You can't undo this.")) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
-  }
-
-  // Concede — drop out of a compete race (a real loss; the others keep racing).
-  // Distinct from End: psychicnum.concede flips MY shared conceded flag then
-  // re-runs the compete terminal check (which now counts me as done), so it
-  // never ends the game for the rest — the opposite of the whole-table end_game.
-  const handleConcede = async () => {
-    if (isTerminal || myConceded) return
-    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
-    const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
-  }
+  // (endGame / handleConcede are hoisted above the early returns — see the
+  // actionsRef block — so the menu, ⌥⌫, and InfoCol's buttons share one pair.)
 
   return (
     <div className={cls(shared.layout, styles.layout)}>

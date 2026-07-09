@@ -39,7 +39,7 @@ import type { MenuSection } from '../../lib/games'
 
 function renderMenu(
   sections: MenuSection[],
-  opts: { triggerLabel?: string } = {},
+  opts: { triggerLabel?: string; returnFocusOnClose?: boolean } = {},
 ) {
   return render(
     <>
@@ -47,6 +47,7 @@ function renderMenu(
         trigger="☰"
         sections={sections}
         triggerLabel={opts.triggerLabel ?? 'Test menu'}
+        returnFocusOnClose={opts.returnFocusOnClose}
       />
       {/* A focusable element after the menu so we can test
        *  Tab-closes-and-advances-focus. */}
@@ -56,7 +57,13 @@ function renderMenu(
 }
 
 function singleSection(
-  items: Array<{ id: string; label: string; disabled?: boolean; onClick?: () => void }>,
+  items: Array<{
+    id: string
+    label: string
+    disabled?: boolean
+    onClick?: () => void
+    shortcut?: string
+  }>,
 ): MenuSection[] {
   return [
     {
@@ -65,6 +72,7 @@ function singleSection(
         label: it.label,
         disabled: it.disabled,
         onClick: it.onClick ?? (() => {}),
+        shortcut: it.shortcut,
       })),
     },
   ]
@@ -312,9 +320,75 @@ describe('Menu — activation', () => {
       ]),
     )
     await user.click(screen.getByRole('button', { name: 'Test menu' }))
-    const beta = screen.getByText('Beta')
+    // The label lives in a <span> inside the menuitem button; assert on the
+    // button (which carries aria-disabled / disabled).
+    const beta = screen.getByRole('menuitem', { name: 'Beta' })
     expect(beta).toHaveAttribute('aria-disabled', 'true')
     expect(beta).toBeDisabled()
+  })
+
+  it('renders a shortcut hint on an item that carries one', async () => {
+    const user = userEvent.setup()
+    renderMenu(singleSection([{ id: 'a', label: 'Check word', shortcut: '⌥C' }]))
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    const item = screen.getByRole('menuitem', { name: /Check word/ })
+    expect(within(item).getByText('⌥C')).toBeInTheDocument()
+  })
+})
+
+describe('Menu — key isolation (no leak to a page-level window handler)', () => {
+  it('swallows keys while the popover is open (arrow nav does not reach window)', async () => {
+    const user = userEvent.setup()
+    const windowSpy = vi.fn()
+    window.addEventListener('keydown', windowSpy)
+    try {
+      renderMenu(singleSection([{ id: 'a', label: 'Alpha' }, { id: 'b', label: 'Beta' }]))
+      await user.click(screen.getByRole('button', { name: 'Test menu' }))
+      windowSpy.mockClear()
+      await user.keyboard('{ArrowDown}')
+      // The crosswords board reads window keydowns for cursor movement — an open
+      // menu must not let its own arrow nav double as a board move.
+      expect(windowSpy).not.toHaveBeenCalled()
+    } finally {
+      window.removeEventListener('keydown', windowSpy)
+    }
+  })
+
+  it('swallows keys on the focused trigger (opening via ⌄ does not reach window)', async () => {
+    const user = userEvent.setup()
+    const windowSpy = vi.fn()
+    window.addEventListener('keydown', windowSpy)
+    try {
+      renderMenu(singleSection([{ id: 'a', label: 'Alpha' }]))
+      screen.getByRole('button', { name: 'Test menu' }).focus()
+      windowSpy.mockClear()
+      await user.keyboard('{ArrowDown}')
+      expect(windowSpy).not.toHaveBeenCalled()
+    } finally {
+      window.removeEventListener('keydown', windowSpy)
+    }
+  })
+})
+
+describe('Menu — returnFocusOnClose', () => {
+  it('returns focus to the trigger on Esc by default', async () => {
+    const user = userEvent.setup()
+    renderMenu(singleSection([{ id: 'a', label: 'Alpha' }]))
+    const trigger = screen.getByRole('button', { name: 'Test menu' })
+    await user.click(trigger)
+    await user.keyboard('{Escape}')
+    expect(trigger).toHaveFocus()
+  })
+
+  it('does NOT keep focus on the trigger when returnFocusOnClose is false', async () => {
+    const user = userEvent.setup()
+    renderMenu(singleSection([{ id: 'a', label: 'Alpha' }]), { returnFocusOnClose: false })
+    const trigger = screen.getByRole('button', { name: 'Test menu' })
+    await user.click(trigger)
+    await user.keyboard('{Escape}')
+    // Focus falls to <body> so a page-level board keyboard resumes; the
+    // trigger must not swallow subsequent arrow keys.
+    expect(trigger).not.toHaveFocus()
   })
 })
 

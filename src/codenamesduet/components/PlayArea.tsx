@@ -7,6 +7,7 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
+import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import type { ClueRow } from '../hooks/useClues'
 import type { Player } from '../hooks/useGame'
@@ -202,6 +203,7 @@ export function PlayArea({
   setup,
   globalFeedback,
   goToClub,
+  menu,
 }: GamePageCtx) {
   // Per-game setup blob — opaque on GamePageCtx, cast to codenamesduet's
   // shape here. Read-only at this layer; the only field we read
@@ -276,6 +278,26 @@ export function PlayArea({
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) showLocalFeedback(ownAction('error', `End game failed: ${error.message}`))
   }, [gameId, isTerminal, showLocalFeedback])
+
+  // ─── Header menu (each game owns its whole menu now) ────
+  // codenamesduet is coop-only (fixed 2 seats, no compete sibling), so the menu
+  // is Help + End game + Back to club — no `extra` sections. `buildGameMenu`
+  // renders the End-game item (⌥⌫, disabled at terminal) wired to the same
+  // `handleEndGame` the info-column button uses. `handleEndGame` is a stable
+  // useCallback and `menu` is stable, so this effect re-runs only when
+  // `isTerminal` flips — no setState loop. Placed above the loading early-return
+  // to keep hook order stable.
+  useEffect(() => {
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        mode: 'coop',
+        isTerminal,
+        onEndGame: () => void handleEndGame(),
+      }),
+    )
+    return () => menu.setGameSections([])
+  }, [menu, isTerminal, handleEndGame])
 
   // Announce turn-state changes in the header feedback pill — it's easy to miss
   // "the other player ended their turn, it's your turn now" otherwise. Called

@@ -207,7 +207,7 @@ export function BoardCol({
   // ── Suggest-a-move (coop only — see docs/scrabble-ai.md S5) ──
   /** Register (or, with null, unregister) the "stage this suggested move"
    *  applier with PlayArea, which calls it from the InfoCol list's click —
-   *  staging lives here, the suggest state there (the menu.setGameItems
+   *  staging lives here, the suggest state there (the menu.setGameSections
    *  register shape). */
   registerSuggestionApplier: (fn: ((placements: Placement[]) => void) | null) => void
 }) {
@@ -349,7 +349,7 @@ export function BoardCol({
   // changed under it (a teammate played while the list was open — PlayArea
   // derives staleness off game.version, but the click can race it). Runs in
   // the InfoCol list's click handler — PlayArea holds it via the register
-  // prop (an external-registry effect, like menu.setGameItems).
+  // prop (an external-registry effect, like menu.setGameSections).
   const applySuggestedMove = useCallback(
     (placements: Placement[]) => {
       if (!canPlaceRef.current) return

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
+import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { memberById } from '../../common/lib/game/peers'
@@ -74,6 +75,14 @@ export function PlayArea(ctx: GamePageCtx) {
   // locally-terminal look while the others race; peers show as "out" in the strip.
   const myConceded = players.find((m) => m.user_id === myId)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
+
+  // The End/Concede handlers are declared BELOW the menu effect (they depend on
+  // the move-entry hook, declared later). Hold them in a stable ref — populated
+  // by its own effect once they exist — so the menu effect can call them without
+  // listing them in its deps and re-running on every render (the crosswords
+  // `actionsRef` pattern; setGameSections is a setState, so a per-render re-run
+  // would loop).
+  const actionsRef = useRef<{ endGame: () => void; concede: () => void } | null>(null)
 
   const { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback } =
     useWordSubmit({
@@ -179,11 +188,24 @@ export function PlayArea(ctx: GamePageCtx) {
       // Alphabetical — the 5-column list renders them column-major.
       words,
     }
-    menu.setGameItems([
-      { id: 'print', label: 'Print board (PDF)', onClick: () => printBogglePdf(model) },
-    ])
-    return () => menu.setGameItems([])
-  }, [menu, game, foundWords, players, brand, title, boggleSetup, ladder, isTerminal, myCount, myScore])
+    // The FULL boggle menu: Help (top) + our Print item + the End/Concede +
+    // Back-to-club tail. The End/Concede handlers dispatch through the stable
+    // `actionsRef` so this effect needn't depend on them (they're declared below).
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        mode: game.mode,
+        isTerminal,
+        conceded: myConceded,
+        onEndGame: () => actionsRef.current?.endGame(),
+        onConcede: () => actionsRef.current?.concede(),
+        extra: [
+          { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printBogglePdf(model) }] },
+        ],
+      }),
+    )
+    return () => menu.setGameSections([])
+  }, [menu, game, foundWords, players, brand, title, boggleSetup, ladder, isTerminal, myConceded, myCount, myScore])
 
   // Every visible found word (used for the missed-words reveal; in compete this
   // is self-only mid-game and everyone's post-terminal — exactly "words nobody
@@ -210,6 +232,15 @@ export function PlayArea(ctx: GamePageCtx) {
     const { error } = await db.rpc('concede', { target_game: gameId })
     if (error) showLocalFeedback('error', `Concede failed: ${error.message}`)
   }, [gameId, isTerminal, myConceded, showLocalFeedback])
+
+  // Keep the End/Concede handlers current for the game menu (read via the stable
+  // actionsRef, so the menu effect above never re-runs to pick up a new closure).
+  useEffect(() => {
+    actionsRef.current = {
+      endGame: () => void handleEndGame(),
+      concede: () => void handleConcede(),
+    }
+  }, [handleEndGame, handleConcede])
 
   // ─── Coop peer-word narration (global header) ──────────────────
   // coop's `found_words` is club-wide, so a teammate's accepted word arrives in

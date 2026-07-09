@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
+import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
@@ -45,6 +46,7 @@ export function PlayArea({
   status,
   globalFeedback,
   goToClub,
+  menu,
 }: GamePageCtx) {
   const { game, players: playerStates, guesses, loading } = useGame(gameId)
   // The own-move local feedback pill (soft reject / RPC error), shown in the
@@ -132,6 +134,63 @@ export function PlayArea({
     globalFeedback,
   })
 
+  // Manual end — the friends agreeing to stop (a neutral terminal). Confirmed because
+  // it's irreversible; an RPC failure flashes in the local feedback slot. `useCallback`
+  // so the ref-populate effect below re-runs only when its real inputs change.
+  const handleEndGame = useCallback(async () => {
+    if (isTerminal) return
+    if (!window.confirm("End the game now? You can't undo this.")) return
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) showLocalFeedback(stickyPill('error', error.message))
+  }, [isTerminal, gameId, showLocalFeedback])
+
+  // Concede — drop out of a compete race (a real loss; the others keep racing). Distinct
+  // from End: wordle.concede flips the shared conceded flag then re-runs the compete
+  // terminal check (which now counts me as done).
+  const handleConcede = useCallback(async () => {
+    if (isTerminal || myConceded) return
+    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
+    const { error } = await db.rpc('concede', { target_game: gameId })
+    if (error) showLocalFeedback(stickyPill('error', error.message))
+  }, [isTerminal, myConceded, gameId, showLocalFeedback])
+
+  // ─── Header menu (each game owns its whole menu) ───────────────
+  // wordle isn't printable and adds no game-specific items, so the menu is just
+  // the shared frame: Help / End-or-Concede / Back to club. End/Concede dispatch
+  // through a stable `actionsRef` so this effect's deps stay stable values only
+  // (menu, mode, isTerminal, myConceded) — it must NOT re-run per render, since
+  // `setGameSections` is a setState (a fresh handler identity each render would
+  // loop). The handlers themselves are defined below the loading guard; the ref
+  // is repopulated with the current closures in a second effect.
+  const actionsRef = useRef<{ endGame: () => void; concede: () => void }>({
+    endGame: () => {},
+    concede: () => {},
+  })
+  const mode = game?.mode
+  useEffect(() => {
+    if (!mode) return // wait for the game to load before there's a real menu
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        mode,
+        isTerminal,
+        conceded: myConceded,
+        onEndGame: () => actionsRef.current.endGame(),
+        onConcede: () => actionsRef.current.concede(),
+      }),
+    )
+    return () => menu.setGameSections([])
+  }, [menu, mode, isTerminal, myConceded])
+
+  // Keep the ref's end/concede closures current so the menu effect above never
+  // needs the (identity-changing) handlers in its own dep array.
+  useEffect(() => {
+    actionsRef.current = {
+      endGame: () => void handleEndGame(),
+      concede: () => void handleConcede(),
+    }
+  }, [handleEndGame, handleConcede])
+
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
 
@@ -192,25 +251,6 @@ export function PlayArea({
     !self || isTerminal || mySolved || myConceded || guessesUsed >= maxGuesses
 
   const wordleSetup = setup as WordleSetup
-
-  // Manual end — the friends agreeing to stop (a neutral terminal). Confirmed because
-  // it's irreversible; an RPC failure flashes in the local feedback slot.
-  const handleEndGame = async () => {
-    if (isTerminal) return
-    if (!window.confirm("End the game now? You can't undo this.")) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', error.message))
-  }
-
-  // Concede — drop out of a compete race (a real loss; the others keep racing). Distinct
-  // from End: wordle.concede flips the shared conceded flag then re-runs the compete
-  // terminal check (which now counts me as done).
-  const handleConcede = async () => {
-    if (isTerminal || myConceded) return
-    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
-    const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', error.message))
-  }
 
   // ─── The below-board pill (terminal / locally-terminal / own-move) ─────
   // The fixed-height feedback slot under the board shows exactly one pill, chosen here

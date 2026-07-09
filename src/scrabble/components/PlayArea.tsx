@@ -6,6 +6,7 @@ import { TerminalModal } from '../../common/components/game/terminal/TerminalMod
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { difficultyValue } from '../../common/lib/game/difficulty'
+import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { colorVarFor } from '../../common/lib/color/memberColor'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { unwrapEdgeFnError } from '../../common/lib/supabase/edgeFnError'
@@ -241,6 +242,15 @@ export function PlayArea({
     suggestionApplierRef.current?.(move.placements)
   }, [])
 
+  // The End/Concede handlers are declared BELOW the menu effect (they read
+  // `isTerminal` and the local-feedback channel), so the menu effect can't list
+  // them in its deps without either re-running per render or going stale. Route
+  // them through a stable ref (the crosswords `actionsRef` pattern): the menu's
+  // End/Concede items call `actionsRef.current?.…` at click time, and a separate
+  // effect keeps the ref current. This keeps the menu effect's deps stable so
+  // `setGameSections` (a setState) doesn't loop.
+  const actionsRef = useRef<{ endGame: () => void; concede: () => void } | null>(null)
+
   // SPIKE (branch scrabble-jspdf): a "Print board (PDF)" item in the GamePage menu.
   // Builds the print model from the live state (RLS already scoped it to what I may
   // see — my own rack, my visible moves) and hands it to the jsPDF renderer. Prints
@@ -270,11 +280,25 @@ export function PlayArea({
         { label: 'Longer words (3+)', value: band(s.dict_3plus) },
       ],
     }
-    menu.setGameItems([
-      { id: 'print', label: 'Print board (PDF)', onClick: () => printScrabblePdf(model) },
-    ])
-    return () => menu.setGameItems([])
-  }, [menu, game, plays, self, isCompete, nameOf, setup, brand, title])
+    // The FULL scrabble menu: Help (top) + the Print item + the End/Concede +
+    // Back-to-club tail, all from `buildGameMenu`. End/Concede dispatch through
+    // the stable `actionsRef` so this effect needn't depend on the (later-declared)
+    // handlers. ⌥⌫ / ⇧< are wired globally by the shell — no shortcuts here.
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        mode: isCompete ? 'compete' : 'coop',
+        isTerminal,
+        conceded: myConceded,
+        onEndGame: () => actionsRef.current?.endGame(),
+        onConcede: () => actionsRef.current?.concede(),
+        extra: [
+          { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printScrabblePdf(model) }] },
+        ],
+      }),
+    )
+    return () => menu.setGameSections([])
+  }, [menu, game, plays, self, isCompete, isTerminal, myConceded, nameOf, setup, brand, title])
 
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
@@ -292,6 +316,16 @@ export function PlayArea({
     const { error } = await db.rpc('concede', { target_game: gameId })
     if (error) showLocalFeedback({ tone: 'error', text: `Concede failed: ${error.message}` })
   }, [gameId, isTerminal, showLocalFeedback])
+
+  // Keep the menu's End/Concede dispatch current (read via the stable actionsRef
+  // by the menu items above). Separate from the menu effect so those handlers'
+  // changing identity doesn't rebuild the menu each time.
+  useEffect(() => {
+    actionsRef.current = {
+      endGame: () => void handleEndGame(),
+      concede: () => void handleConcede(),
+    }
+  }, [handleEndGame, handleConcede])
 
   if (loading) return <p className={styles.loading}>Loading game…</p>
   if (!game) return <p className={styles.loading}>Game not found.</p>

@@ -11,6 +11,7 @@ import { difficultyValue } from '../../common/lib/game/difficulty'
 import { IconExchange } from '../../common/components/icons'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { stickyPill, terminalPill } from '../../common/lib/game/localPills'
+import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
 import { useGame, useProgress } from '../hooks/useGame'
@@ -171,6 +172,22 @@ export function PlayArea(ctx: GamePageCtx) {
     }
   }, [gameId, isTerminal, showLocalFeedback])
 
+  // The concede thunk the game menu fires, held in a stable ref so the menu
+  // effect (a `setGameSections` setState) needn't list `handleConcede` in its
+  // deps and re-run every time that callback's identity changes. Same pattern
+  // as crosswords' `actionsRef`: populated by an effect after render, read at
+  // click time.
+  const concedeRef = useRef<() => void>(() => {})
+  useEffect(() => {
+    concedeRef.current = () => void handleConcede()
+  }, [handleConcede])
+
+  // My conceded flag off the shared roster (common.game_players), for the menu's
+  // greyed-out Concede item. The stronger `isConceded` (below the loading guard)
+  // also ANDs `!isTerminal` for the frozen-board LOOK; the menu just needs the
+  // raw flag, which `buildGameMenu` already disables at terminal itself.
+  const myConceded = !!ctx.players.find((p) => p.user_id === ctx.session.user.id)?.conceded
+
   // ─── "Print board (PDF)" GamePage menu item ─────────────────────────────
   // A snapshot of the caller's own board — works mid-game or at the end (see
   // docs/pdf.md). The board is read from `boardRef` at CLICK time (not baked into
@@ -206,9 +223,21 @@ export function PlayArea(ctx: GamePageCtx) {
         words,
       })
     }
-    menu.setGameItems([{ id: 'print', label: 'Print board (PDF)', onClick: doPrint }])
-    return () => menu.setGameItems([])
-  }, [menu, brand, title, ctx.setup, loading, initialBoard])
+    // bananagrams is compete-only (no coop, no end_game): the tail item is
+    // always Concede. The concede thunk dispatches through the stable ref so
+    // this effect needn't depend on `handleConcede`'s identity.
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        mode: 'compete',
+        isTerminal,
+        conceded: myConceded,
+        onConcede: () => concedeRef.current(),
+        extra: [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: doPrint }] }],
+      }),
+    )
+    return () => menu.setGameSections([])
+  }, [menu, brand, title, ctx.setup, loading, initialBoard, isTerminal, myConceded])
 
   if (loading || initialBoard === null) return <p className="muted">Dealing tiles…</p>
 

@@ -14,9 +14,9 @@ import type {
   GenericFeedbackMsg,
   GamePageCtx,
   MenuApi,
-  MenuItem,
   MenuSection,
 } from '../../lib/games'
+import { END_OR_CONCEDE_IDS } from '../../lib/game/gameMenu'
 import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
 import { useClubPresence } from '../../hooks/realtime/useClubPresence'
 import { useClubSetupPresence } from '../../hooks/realtime/useClubSetupPresence'
@@ -82,11 +82,12 @@ type Props = {
  * at fixed slot height so neighbors don't move.
  *
  * The logo is a menu trigger (see docs/ui.md → "GamePage menu"):
- * click opens a dropdown with two sections. The common section
- * is built here (Help + Back to club); the per-game section is
- * pushed by PlayArea via `ctx.menu.setGameItems([...])`. Items
- * disappear during pause because PlayArea unmounts and its
- * `setGameItems` cleanup clears them — common items keep working.
+ * click opens a dropdown. Each game owns its WHOLE menu — the
+ * PlayArea pushes every section via `ctx.menu.setGameSections([...])`
+ * (usually via the `buildGameMenu` helper, which frames Help +
+ * End/Concede + Back-to-club around the game's own items). The whole
+ * menu disappears during pause because PlayArea unmounts and its
+ * `setGameSections([])` cleanup clears it.
  *
  * Help is a per-game contract on the manifest. Every game declares
  * `help: ComponentType<{ onClose: () => void }>`; the menu's Help
@@ -165,12 +166,18 @@ export function GamePage({
   // The currently-active feedback message, or null when the
   // StatusSlot should show its default (`<PlayersStrip>`).
   const [globalFeedback, setGlobalFeedback] = useState<GenericFeedbackMsg | null>(null)
-  // The per-game menu items the current PlayArea has pushed via
-  // `ctx.menu.setGameItems`. Reset to [] on PlayArea unmount
-  // (cleanup return on PlayArea's effect) — so during a pause the
-  // game-specific section disappears and only the common section
-  // shows. The common section is built fresh on each render below.
-  const [gameMenuItems, setGameMenuItems] = useState<MenuItem[]>([])
+  // The current PlayArea's ENTIRE header menu, pushed via
+  // `ctx.menu.setGameSections`. Each game owns its whole menu (Help +
+  // its own items + End/Concede + Back-to-club — usually assembled with
+  // `buildGameMenu`); the shell no longer injects a common section. Reset
+  // to [] on PlayArea unmount so a pause empties the menu.
+  const [gameSections, setGameSections] = useState<MenuSection[]>([])
+  // A ref mirror so the global ⌥⌫ shortcut listener (registered once) can
+  // read the latest sections to find the end/concede item.
+  const gameSectionsRef = useRef<MenuSection[]>([])
+  useEffect(() => {
+    gameSectionsRef.current = gameSections
+  }, [gameSections])
 
   // Edge-trigger timeout-loss when countdown hits 0. The
   // submittedTimeoutRef gate prevents double-firing within this
@@ -230,29 +237,65 @@ export function GamePage({
     [globalFeedbackShow, globalFeedbackClear],
   )
 
-  // Stable identity for the menu API exposed to PlayArea. The
-  // PlayArea calls setGameItems in an effect; the cleanup return
-  // calls setGameItems([]) so unmount clears the per-game section.
-  const setGameItems = useCallback((items: MenuItem[]) => {
-    setGameMenuItems(items)
+  // Stable identity for the menu API exposed to PlayArea. The PlayArea
+  // calls setGameSections in an effect; its cleanup return calls
+  // setGameSections([]) so unmount empties the menu.
+  const setGameSectionsApi = useCallback((sections: MenuSection[]) => {
+    setGameSections(sections)
   }, [])
+  const openHelp = useCallback(() => setHelpOpen(true), [])
+  // Club handle + terminal flag drive both "Back to club" affordances. Derived
+  // from `commonGame` here (before the early returns) so the menu API can be
+  // assembled; the primitives (not the `commonGame` object) are the callback
+  // deps, so identities only change on the rare club-load / terminal flip — not
+  // on every realtime `commonGame` update.
+  const clubHandle = commonGame?.club_handle ?? ''
+  const isGameOver = commonGame?.ended_at != null
+  // Direct-nav to the club page — the terminal branch. Exposed via ctx so the
+  // GameOverModal button + each PlayArea's terminal indicator can call it
+  // without re-deriving the URL.
+  const goToClub = useCallback(() => {
+    if (clubHandle) navigate(`/c/${clubHandle}`)
+  }, [clubHandle])
+  // "Back to club" for the menu + ⇧< shortcut: terminal navigates directly,
+  // mid-game opens the suspend-confirm modal.
+  const requestBackToClub = useCallback(() => {
+    if (!clubHandle) return
+    if (isGameOver) navigate(`/c/${clubHandle}`)
+    else setConfirmingSuspend(true)
+  }, [clubHandle, isGameOver])
   const menuApi = useMemo<MenuApi>(
-    () => ({ setGameItems }),
-    [setGameItems],
+    () => ({ setGameSections: setGameSectionsApi, openHelp, requestBackToClub }),
+    [setGameSectionsApi, openHelp, requestBackToClub],
   )
 
-  // Direct-nav back to the club page — the terminal-game branch
-  // that the GamePage menu's "Back to club" item already does.
-  // Exposed to PlayArea via ctx so the GameOverModal's button and
-  // each game's PlayArea terminal indicator can call it without
-  // re-deriving the URL. Identity tied to the club_handle so a
-  // mid-session club rename (rare/impossible today) would refresh
-  // the closure.
-  const clubHandle = commonGame?.club_handle ?? ''
-  const goToClub = useCallback(() => {
-    if (!clubHandle) return
-    navigate(`/c/${clubHandle}`)
-  }, [clubHandle])
+  // Global game-menu shortcuts (work on any game, dispatching to the game's
+  // own menu items): ⇧< → Back to club; ⌥⌫ → End / Concede game. Both bail
+  // inside any editable field (so ⌥Backspace stays "delete word" while typing
+  // a clue). The menu itself stopPropagations its keys, so an open menu won't
+  // reach here. See docs/ui.md → GamePage menu.
+  useEffect(function globalMenuShortcuts() {
+    function onKeyDown(e: KeyboardEvent) {
+      const t = e.target
+      const editable =
+        t instanceof HTMLElement &&
+        (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
+      if (editable) return
+      if (e.metaKey || e.ctrlKey) return
+      if (e.key === '<' && !e.altKey) {
+        e.preventDefault()
+        requestBackToClub()
+      } else if (e.altKey && e.code === 'Backspace') {
+        e.preventDefault()
+        const item = gameSectionsRef.current
+          .flatMap((s) => s.items)
+          .find((i) => END_OR_CONCEDE_IDS.includes(i.id as (typeof END_OR_CONCEDE_IDS)[number]))
+        if (item && !item.disabled) item.onClick()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [requestBackToClub])
 
   // The FULL club roster (not just this game's players) — chat is club-wide, so
   // naming a sender (chat window + the feedback pill) needs every member. Empty
@@ -308,37 +351,10 @@ export function GamePage({
   const gameOver = commonGame.ended_at !== null
   const HelpComponent = manifest.help
 
-  // Build the menu's common section. Help opens the help modal;
-  // Back to club fires the same terminal vs non-terminal logic the
-  // old logo-click did — direct navigation for terminal games,
-  // suspend-confirm modal for non-terminal.
-  const commonSection: MenuSection = {
-    items: [
-      {
-        id: 'help',
-        label: 'Help',
-        onClick: () => setHelpOpen(true),
-      },
-      {
-        id: 'back',
-        label: 'Back to club',
-        onClick: () => {
-          if (gameOver) {
-            // Terminal: navigate directly. The last-viewer cleanup
-            // will fire unset_current_view via useCommonGame's
-            // unmount on the route change.
-            navigate(`/c/${commonGame.club_handle}`)
-          } else {
-            setConfirmingSuspend(true)
-          }
-        },
-      },
-    ],
-  }
-  const sections: MenuSection[] = [
-    commonSection,
-    { items: gameMenuItems },
-  ]
+  // The whole menu is owned by the current PlayArea (via setGameSections /
+  // buildGameMenu). Help + Back-to-club are wired through the menuApi actions
+  // above; the shell no longer prepends a common section.
+  const sections: MenuSection[] = gameSections
 
   return (
     <div className={styles.frame}>
@@ -353,6 +369,10 @@ export function GamePage({
             }
             sections={sections}
             triggerLabel="Game menu"
+            // The game menu sits over boards that read window keydowns for play
+            // (crosswords' cursor). A focused trigger would swallow those keys /
+            // reopen the menu, so let focus fall back to the board on close.
+            returnFocusOnClose={false}
           />
           <div className={styles.panelToggles}>
             <ChatBubble />

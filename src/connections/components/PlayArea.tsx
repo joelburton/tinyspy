@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap, colorVarFor } from '../../common/lib/color/memberColor'
@@ -10,6 +10,7 @@ import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { memberById } from '../../common/lib/game/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import type { ConnectionsSetup } from '../lib/setup'
@@ -83,6 +84,7 @@ export function PlayArea({
   setup,
   globalFeedback,
   goToClub,
+  menu,
 }: GamePageCtx) {
   const {
     game,
@@ -187,6 +189,63 @@ export function PlayArea({
     }
   }, [gameId, isTerminal, showLocalFeedback])
 
+  // Concede — drop out of a compete race (a real loss; the others keep racing).
+  // Distinct from End: connections.concede flips the caller's conceded flag then
+  // re-runs the compete terminal check (which now counts them as done). Reads
+  // `myConceded` (derived just below, from the common roster) — a useCallback so
+  // the menu / ref-populate effects can depend on a stable identity. An RPC
+  // failure flashes in the local commit slot.
+  //
+  // Concede lives on the common roster (ctx `players` = GamePlayer[]), not
+  // connections.players; `myConceded` also folds into the locally-terminal
+  // branch below (same treatment as a 4-mistake elimination).
+  const myConceded =
+    players.find((p) => p.user_id === session.user.id)?.conceded ?? false
+  const handleConcede = useCallback(async () => {
+    if (isTerminal || myConceded) return
+    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
+    const { error } = await db.rpc('concede', { target_game: gameId })
+    if (error) showLocalFeedback(stickyPill('error', `Concede failed: ${error.message}`))
+  }, [gameId, isTerminal, myConceded, showLocalFeedback])
+
+  // ─── Header menu ("each game owns its whole menu") ─────
+  // The shell no longer injects a common Help / Back-to-club section; connections
+  // builds its FULL menu via buildGameMenu. connections has no game-specific menu
+  // actions (Hints + End live as info-column buttons), so `extra` is empty — the
+  // menu is just Help + the End(coop)/Concede(compete) + Back-to-club tail.
+  //
+  // The end/concede handlers dispatch through a stable `actionsRef` so this
+  // effect can depend on STABLE values only (setGameSections is a setState — a
+  // handler in the deps would re-run it every render → loop). The ref is
+  // repopulated in the effect below whenever a handler identity changes. Mode is
+  // read off the loaded game; before it loads we default to coop, then the effect
+  // re-runs once `game` arrives. Placed above the early returns so hook order is
+  // stable.
+  const mode: 'coop' | 'compete' = game?.mode ?? 'coop'
+  const actionsRef = useRef<{ endGame: () => void; concede: () => void }>({
+    endGame: () => {},
+    concede: () => {},
+  })
+  useEffect(() => {
+    actionsRef.current = {
+      endGame: () => void handleEndGame(),
+      concede: () => void handleConcede(),
+    }
+  }, [handleEndGame, handleConcede])
+  useEffect(() => {
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        mode,
+        isTerminal,
+        conceded: myConceded,
+        onEndGame: () => actionsRef.current.endGame(),
+        onConcede: () => actionsRef.current.concede(),
+      }),
+    )
+    return () => menu.setGameSections([])
+  }, [menu, mode, isTerminal, myConceded])
+
   // Hints + End now live in the info-column action row (buttons), not the
   // GamePage menu — see the .infoActions block below. Hints opens the HintModal
   // (disabled once the caller can't submit); End fires handleEndGame.
@@ -197,12 +256,8 @@ export function PlayArea({
   if (loading) return <p>Loading board…</p>
   if (!game) return <p>Game not found.</p>
 
-  // Concede lives on the common roster (ctx `players` = GamePlayer[]), not
-  // connections.players. `myConceded` folds into the locally-terminal branch
-  // below (same treatment as a 4-mistake elimination); `concededIds` marks a
-  // dropped-out opponent 'out' in the strip.
-  const myConceded =
-    players.find((p) => p.user_id === session.user.id)?.conceded ?? false
+  // `concededIds` marks a dropped-out opponent 'out' in the strip. (`myConceded`
+  // is derived above the early returns so the header-menu effect can read it.)
   const concededIds = new Set(
     players.filter((p) => p.conceded).map((p) => p.user_id),
   )
@@ -260,19 +315,6 @@ export function PlayArea({
 
   const connSetup = setup as ConnectionsSetup
   const found = matchedCategories.length
-
-  // Concede — drop out of a compete race (a real loss; the others keep racing).
-  // Distinct from End: connections.concede flips the caller's conceded flag then
-  // re-runs the compete terminal check (which now counts them as done). A plain
-  // function (not the useCallback handleEndGame is) because it reads `myConceded`,
-  // which is derived after the hooks/loading guard. An RPC failure flashes in the
-  // local commit slot.
-  const handleConcede = async () => {
-    if (isTerminal || myConceded) return
-    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
-    const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', `Concede failed: ${error.message}`))
-  }
 
   return (
     <div className={cls(shared.layout, styles.layout)}>

@@ -6,6 +6,7 @@ import { colorVarFor } from '../../common/lib/color/memberColor'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
+import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
@@ -198,24 +199,57 @@ export function PlayArea({
     clearLocalFeedback()
   }, [gameId, showLocalFeedback, clearLocalFeedback, exitViewing])
 
-  // Game menu: "Replay board" (both modes, any state) + "Reveal answer". Reveal ENDS
-  // the game, so it's only offered while a game is in progress and the caller actually
-  // holds the solution — disabled at terminal (already over) and whenever the solution
-  // isn't on the client (compete *during play*; the shield only lifts post-terminal).
-  // In practice that's coop-in-progress. No leak: you can't reveal what wasn't sent.
+  // Game menu: waffle now owns its FULL menu (Help + its own items + End/Concede +
+  // Back to club) via `buildGameMenu`. Its two own items are "Replay board" (both
+  // modes, any state) + "Reveal answer". Reveal ENDS the game, so it's only offered
+  // while a game is in progress and the caller actually holds the solution — disabled
+  // at terminal (already over) and whenever the solution isn't on the client (compete
+  // *during play*; the shield only lifts post-terminal). In practice that's
+  // coop-in-progress. No leak: you can't reveal what wasn't sent.
+  //
+  // mode/myConceded are derived up here (not the below-guard copies) so the effect can
+  // pick coop End vs compete Concede. Every handler in the deps is a stable useCallback
+  // (or a one-shot transition value like `isTerminal`), so this effect only re-runs on
+  // real menu-affecting changes — never every render — keeping the setState loop-free.
   const solutionKnown = game?.solution != null
+  const menuMode: 'coop' | 'compete' = game?.mode === 'compete' ? 'compete' : 'coop'
+  const menuConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   useEffect(() => {
-    menu.setGameItems([
-      { id: 'replay', label: 'Replay board', onClick: () => void handleReplay() },
-      {
-        id: 'reveal',
-        label: 'Reveal answer',
-        disabled: isTerminal || !solutionKnown,
-        onClick: () => void handleRevealAnswer(),
-      },
-    ])
-    return () => menu.setGameItems([])
-  }, [menu, handleReplay, handleRevealAnswer, isTerminal, solutionKnown])
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        mode: menuMode,
+        isTerminal,
+        conceded: menuConceded,
+        onEndGame: () => void handleEndGame(),
+        onConcede: () => void handleConcede(),
+        extra: [
+          {
+            items: [
+              { id: 'replay', label: 'Replay board', onClick: () => void handleReplay() },
+              {
+                id: 'reveal',
+                label: 'Reveal answer',
+                disabled: isTerminal || !solutionKnown,
+                onClick: () => void handleRevealAnswer(),
+              },
+            ],
+          },
+        ],
+      }),
+    )
+    return () => menu.setGameSections([])
+  }, [
+    menu,
+    menuMode,
+    menuConceded,
+    handleEndGame,
+    handleConcede,
+    handleReplay,
+    handleRevealAnswer,
+    isTerminal,
+    solutionKnown,
+  ])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
