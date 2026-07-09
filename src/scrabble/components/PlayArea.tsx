@@ -21,6 +21,10 @@ import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
+/** Disc colors for AI seats (up to 3), kept distinct from the common
+ *  member-color palette's usual first picks so a bot reads as "not one of us". */
+const AI_DISC_COLORS = ['brown', 'purple', 'pink']
+
 /**
  * scrabble's play surface (coop + compete). PlayArea is the **coordinator**: it holds
  * the game data (`useGame`), the board-viewer coordination (`useHistoryViewer`, whose
@@ -110,6 +114,44 @@ export function PlayArea({
   )
   // Show-a-move is a coop, ≥2-player affordance — there's a teammate to show.
   const canShare = game?.mode === 'coop' && players.length >= 2
+
+  // ─── AI opponents (compete; docs/scrabble-ai-strength.md) ──────────
+  // AI seats live in the per-seat state (user_id null + ai_level), NOT in the
+  // common roster (`players`) — so we build their display identity here:
+  // numbered "AI 1".."AI 3" in seat order, each a distinct disc color. Used by
+  // the turn line, the Moves log, and the compact AI score strip.
+  const aiRoster = playerStates
+    .filter((p) => p.ai_level != null)
+    .sort((a, b) => a.seat - b.seat)
+    .map((p, i) => ({
+      seat: p.seat,
+      name: `AI ${i + 1}`,
+      color: AI_DISC_COLORS[i % AI_DISC_COLORS.length],
+      score: p.score ?? 0,
+    }))
+  // A synthetic Member for an AI seat (the turn line + Moves log resolve identity
+  // through Member, keyed on the disc color + name).
+  const aiMemberOfSeat = (seat: number | null): Member | undefined => {
+    if (seat == null) return undefined
+    const ai = aiRoster.find((a) => a.seat === seat)
+    return ai ? ({ user_id: `ai:${seat}`, username: ai.name, color: ai.color } as Member) : undefined
+  }
+
+  // Drive the AI opponent: when the turn lands on an AI seat, poke the
+  // scrabble-ai-move edge function — it plays the AI seat(s) forward until a
+  // human's turn. Any connected client may fire it (the RPCs it calls are
+  // seat+version guarded, so a duplicate poke is a harmless no-op). Fire once per
+  // board `version` so we don't spam while the bot is thinking; a real move bumps
+  // the version and re-arms this.
+  const currentSeatIsAi =
+    isCompete && game != null && game.currentUserId == null && aiRoster.some((a) => a.seat === game.currentSeat)
+  const aiPokeVersionRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (!currentSeatIsAi || !game || isTerminal) return
+    if (aiPokeVersionRef.current === game.version) return
+    aiPokeVersionRef.current = game.version
+    void supabase.functions.invoke('scrabble-ai-move', { body: { game_id: gameId } })
+  }, [currentSeatIsAi, game, gameId, isTerminal])
 
   // ─── Suggest-a-move (coop AI hints — docs/scrabble-ai.md S5) ──────────
   // State lives here (the coordinator): InfoCol renders the box, BoardCol
@@ -225,7 +267,10 @@ export function PlayArea({
       : suggest
   const over = isTerminal ? buildOver({ game, playState, status, selfId: session.user.id, nameOf }) : null
   // The player whose turn it is (compete) — for the "Turn: ● name" state line.
-  const currentMember = players.find((m: Member) => m.user_id === game.currentUserId)
+  // A human (by currentUserId) or, when it's an AI seat's turn, the synthetic
+  // "AI n" member.
+  const currentMember =
+    players.find((m: Member) => m.user_id === game.currentUserId) ?? aiMemberOfSeat(game.currentSeat)
 
   // The commit-slot pill: the terminal verdict (permanent fill) takes precedence,
   // else the sticky own-move result (transient outline), else nothing (the commit
@@ -280,6 +325,8 @@ export function PlayArea({
         onSuggest={() => void handleSuggest()}
         onApplySuggestion={handleApplySuggestion}
         setup={scrabbleSetup}
+        aiSeats={aiRoster}
+        aiMemberOfSeat={aiMemberOfSeat}
         plays={plays}
         viewingSeq={viewingSeq}
         onSelectTurn={(seq: number) => select({ kind: 'turn', seq })}
@@ -335,5 +382,12 @@ function buildOver({
   const winner = status?.winner as string | null | undefined
   if (winner === selfId) return { outcome: 'won', verdict: 'You won the game! 🎉', message: 'You won!', tone: 'won' }
   if (winner) return { outcome: 'lost', verdict: `${nameOf(winner)} won.`, message: `${nameOf(winner)} won`, tone: 'lost' }
+  // An AI winner: no human `winner` uuid, but `winner_seat` names the seat and
+  // `winner_username` carries its "AI n" label (from scrabble._finish).
+  const winnerSeat = status?.winner_seat as number | null | undefined
+  if (winnerSeat != null) {
+    const name = (status?.winner_username as string | undefined) ?? 'The AI'
+    return { outcome: 'lost', verdict: `${name} won.`, message: `${name} won`, tone: 'lost' }
+  }
   return { outcome: 'won', verdict: "It's a tie — co-winners!", message: 'Tie', tone: 'neutral' }
 }

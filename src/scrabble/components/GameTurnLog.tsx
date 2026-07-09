@@ -25,11 +25,14 @@ import styles from './GameTurnLog.module.css'
 export function GameTurnLog({
   plays,
   players,
+  aiMemberOfSeat,
   viewingSeq,
   onSelectTurn,
 }: {
   plays: PlayRow[]
   players: Member[]
+  /** Resolve an AI seat's play (user_id null) to its "AI n" actor. */
+  aiMemberOfSeat: (seat: number | null) => Member | undefined
   /** The turn currently open in the board viewer (highlights its row), or null. */
   viewingSeq: number | null
   /** Open a turn in the board viewer (click a row). */
@@ -94,7 +97,10 @@ export function GameTurnLog({
               </>
             )}
           </td>
-          <TurnLogActor actor={players.find((m) => m.user_id === p.user_id)} fallback="someone" />
+          <TurnLogActor
+            actor={p.user_id ? players.find((m) => m.user_id === p.user_id) : aiMemberOfSeat(p.seat)}
+            fallback="someone"
+          />
         </tr>
       ))}
     </TurnLog>

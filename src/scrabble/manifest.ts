@@ -2,7 +2,7 @@ import { lazy } from 'react'
 import type { CommonGameListRow, GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
-import { DEFAULT_SCRABBLE_SETUP, type ScrabbleSetup } from './lib/setup'
+import { DEFAULT_SCRABBLE_SETUP, validateScrabbleSetup, type ScrabbleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -116,10 +116,14 @@ export const scrabbleCompeteGame: GameManifest = {
   shortDescription: 'Race for the highest score',
   logoUrl,
   help: helpLoader,
-  // Compete needs an opposing player. 2–4; the RPC enforces the floor.
-  numberOfPlayers: [2, 4],
+  // Compete needs an opposing player — but an AI counts, so the HUMAN floor is
+  // 1 (solo vs AI). The real "≥2 total (humans + AI)" floor is enforced by the
+  // setup `validate` below + the RPC. Max 4 total.
+  numberOfPlayers: [1, 4],
   PlayArea: playAreaLoader,
-  setupForm: { Component: setupFormLoader, defaults: DEFAULT_SCRABBLE_SETUP },
+  // `validate` blocks Start when an AI is present and the dictionary is too
+  // narrow for its level, or the head-count doesn't fit (docs/scrabble-ai-strength.md).
+  setupForm: { Component: setupFormLoader, defaults: DEFAULT_SCRABBLE_SETUP, validate: validateScrabbleSetup },
   startGameInClub: startGameInClubFactory('compete', BRAND),
   labelFor: labelFor('compete'),
   submitTimeout,

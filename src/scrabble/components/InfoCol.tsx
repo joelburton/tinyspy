@@ -66,6 +66,8 @@ export function InfoCol({
   onSuggest,
   onApplySuggestion,
   setup,
+  aiSeats,
+  aiMemberOfSeat,
   plays,
   viewingSeq,
   onSelectTurn,
@@ -113,6 +115,12 @@ export function InfoCol({
 
   // ── Setup disclosure ──
   setup: ScrabbleSetup
+
+  // ── AI opponents (compete; docs/scrabble-ai-strength.md) ──
+  /** The AI seats' display rows (name + disc color + live score), or empty. */
+  aiSeats: { seat: number; name: string; color: string; score: number }[]
+  /** Resolve an AI seat to a synthetic Member (for the Moves log actor tag). */
+  aiMemberOfSeat: (seat: number | null) => Member | undefined
 
   // ── Turn-history log (Moves) ──
   plays: PlayRow[]
@@ -167,6 +175,21 @@ export function InfoCol({
               return `${outcomeVerb(gpm)} · ${score}`
             }}
           />
+        )}
+
+        {/* AI opponents' scores (compete) — the bots aren't in the common roster
+            (OpponentStrip), so their live scores get their own compact line, same
+            disc-then-score shape. Only shown when the game has AI seats. */}
+        {isCompete && aiSeats.length > 0 && (
+          <p className={shared.infoState}>
+            Score:{' '}
+            {aiSeats.map((ai, i) => (
+              <span key={ai.seat}>
+                {i > 0 && ' · '}
+                <Dot color={ai.color} /> {ai.name}: <strong>{ai.score}</strong>
+              </span>
+            ))}
+          </p>
         )}
 
         {/* Action row — End (coop) / Concede (compete) during play; the "You
@@ -257,7 +280,13 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      <GameTurnLog plays={plays} players={players} viewingSeq={viewingSeq} onSelectTurn={onSelectTurn} />
+      <GameTurnLog
+        plays={plays}
+        players={players}
+        aiMemberOfSeat={aiMemberOfSeat}
+        viewingSeq={viewingSeq}
+        onSelectTurn={onSelectTurn}
+      />
     </div>
   )
 }
