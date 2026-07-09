@@ -1509,14 +1509,18 @@ grant execute on function scrabble.get_suggest_context(uuid) to authenticated;
 -- scrabble.get_ai_context — the AI opponent's move context (compete)
 -- ============================================================
 -- The twin of get_suggest_context, for the `scrabble-ai-move` Edge Function
--- (docs/scrabble-ai-strength.md): the SECURITY DEFINER door to an AI seat's
--- HIDDEN rack + the server-only dictionary bands, returned atomically with the
--- board + version. Authorization: any game MEMBER may drive the AI (trust
--- model — a human at the table pokes the bot along), the seat must be an AI
--- seat, and it must be that seat's turn (so a stale/duplicate poke is a no-op
--- rejection rather than a move on the wrong board). `ai_level` rides along so
--- the edge function knows which strength knobs to apply.
-create function scrabble.get_ai_context(target_game uuid, target_seat int)
+-- (docs/scrabble-ai-strength.md): the SECURITY DEFINER door to the CURRENT AI
+-- seat's HIDDEN rack + the server-only dictionary bands, returned atomically
+-- with the board + version + seat. Authorization: any game MEMBER may drive the
+-- AI (trust model — a human at the table pokes the bot along).
+--
+-- Seat-less by design: it inspects `current_seat` and returns that seat's AI
+-- context IF it's an AI seat's turn, else `{ "done": true }` (a human's turn,
+-- terminal, or coop). So the edge function just loops "get context → play →
+-- repeat until done", which also walks a chain of consecutive AI seats. It
+-- never raises for the ordinary stop cases (only for a missing game), so a
+-- stale/duplicate poke resolves to `done`.
+create function scrabble.get_ai_context(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1533,24 +1537,20 @@ begin
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
-  if g.mode <> 'compete' then
-    raise exception 'AI players are a compete-mode feature' using errcode = 'P0001';
-  end if;
 
   select play_state into cur_state from common.games where id = target_game;
-  if cur_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+  -- Not an AI's turn to move → nothing for the bot to do.
+  if g.mode <> 'compete' or cur_state <> 'playing' or g.current_seat is null then
+    return jsonb_build_object('done', true);
   end if;
 
-  select * into pl from scrabble.players where game_id = target_game and seat = target_seat;
-  if not found or pl.ai_level is null then
-    raise exception 'seat % is not an AI seat', target_seat using errcode = 'P0001';
-  end if;
-  if g.current_seat is distinct from target_seat then
-    raise exception 'not that seat''s turn' using errcode = 'P0001';
+  select * into pl from scrabble.players where game_id = target_game and seat = g.current_seat;
+  if pl.ai_level is null then
+    return jsonb_build_object('done', true); -- a human seat holds the turn
   end if;
 
   return jsonb_build_object(
+    'seat', g.current_seat,
     'board', g.board,
     'rack', to_jsonb(pl.rack),
     'dict_2', g.dict_2,
@@ -1562,5 +1562,5 @@ begin
 end;
 $$;
 
-revoke execute on function scrabble.get_ai_context(uuid, int) from public;
-grant execute on function scrabble.get_ai_context(uuid, int) to authenticated;
+revoke execute on function scrabble.get_ai_context(uuid) from public;
+grant execute on function scrabble.get_ai_context(uuid) to authenticated;

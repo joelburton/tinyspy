@@ -1958,10 +1958,7 @@ export type Database = {
         }
         Returns: Json
       }
-      get_ai_context: {
-        Args: { target_game: string; target_seat: number }
-        Returns: Json
-      }
+      get_ai_context: { Args: { target_game: string }; Returns: Json }
       get_suggest_context: { Args: { target_game: string }; Returns: Json }
       pass_turn: {
         Args: { base_version: number; target_game: string }

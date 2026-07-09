@@ -66,22 +66,17 @@ update scrabble.players set rack = array['C','A','T','S','E','R','D']
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ctx on commit drop as
-  select scrabble.get_ai_context((select id from gai), 1) as c;
+  select scrabble.get_ai_context((select id from gai)) as c;
 reset role;
-select is((select jsonb_array_length(c->'rack') from ctx), 7, 'context returns the AI seat rack');
+select is((select jsonb_array_length(c->'rack') from ctx), 7, 'context returns the current AI seat rack');
 select is((select c->>'ai_level' from ctx), 'best', 'context carries the level');
+select is((select (c->>'seat')::int from ctx), 1, 'context names the current AI seat');
 
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select scrabble.get_ai_context(%L, 0) $$, (select id from gai)),
-  'P0001', NULL, 'get_ai_context on a human seat is rejected');
--- Not the AI's turn (hand it to the human seat) → rejected.
-reset role;
+-- A human seat holds the turn → the bot has nothing to do (done, not an error).
 select pg_temp.sc_turn_seat((select id from gai), 0);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select throws_ok(
-  format($$ select scrabble.get_ai_context(%L, 1) $$, (select id from gai)),
-  'P0001', NULL, 'get_ai_context off-turn is rejected');
+select is((select scrabble.get_ai_context((select id from gai)) ->> 'done'), 'true',
+  'get_ai_context returns done when a human holds the turn');
 reset role;
 
 -- ─── ai_play_word ─────────────────────────────────────────
