@@ -292,7 +292,7 @@
   --page-padding-x:           1rem;
   --page-padding-y:           0.5rem;
 
-  /* Chrome height that a viewport-bound game PlayArea subtracts from 100vh so
+  /* Chrome height that a viewport-bound game PlayArea subtracts from 100svh so
      it fills to the bottom without overflowing. Comprises the body padding
      (0.5rem top + 0.5rem bottom = 1rem), the GamePage header (~2.25rem
      intrinsic content height + its 0.5rem padding-bottom + the 1px rule),
@@ -327,8 +327,8 @@
 /* ---------- Element resets ---------- */
 
 /* Universal border-box so padding doesn't get added on top of widths
-   and heights — without this `body { min-height: 100vh; padding: 1rem }`
-   totals to `100vh + 32px` and the page scrolls even when content fits. */
+   and heights — without this `body { min-height: 100svh; padding: 1rem }`
+   totals to `100svh + 32px` and the page scrolls even when content fits. */
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -346,7 +346,16 @@ html {
 
 body {
   margin: 0;
-  min-height: 100vh;
+  /* `svh` (small viewport height), NOT `vh`: on mobile Safari `100vh` is the
+     toolbar-HIDDEN height (taller than what's visible), so a `100vh` page runs
+     under the toolbar and forces a scroll — fatal for our never-scroll pages,
+     which never scroll and so never let the toolbar retract. `100svh` is the
+     toolbar-SHOWN height = exactly the visible box, and stays stable. Identical
+     to `vh` on desktop (no retractable UI), so this is a mobile-only fix with no
+     desktop effect. Every full-height calc (game PlayAreas, the club page, the
+     menu sheet) uses `svh` for the same reason — grep `svh` to find them; flip
+     all to `dvh` together if we ever want the dynamic behavior. */
+  min-height: 100svh;
   padding: var(--page-padding-y) var(--page-padding-x);
   display: grid;
   place-items: start center;

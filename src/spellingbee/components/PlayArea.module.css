@@ -19,7 +19,7 @@
  * with `.belowBoard`'s margin-top below. */
 .layout {
   --info-col-width: 53rem;
-  --avail-h: calc(100vh - var(--game-chrome-height) - 5rem);
+  --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
 }
 
 /* The board column. Defines `--u` (one honeycomb coordinate unit) and the derived

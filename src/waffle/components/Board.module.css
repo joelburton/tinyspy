@@ -30,7 +30,7 @@
    * 2.75rem + the board column's 0.75rem gap = 3.5rem). Waffle needs this because
    * a square is bounded by height too — the rectangular games flex-fill height
    * and don't. */
-  --avail-h: calc(100vh - var(--game-chrome-height) - 3.5rem);
+  --avail-h: calc(100svh - var(--game-chrome-height) - 3.5rem);
 
   flex: 0 0 auto;
 }

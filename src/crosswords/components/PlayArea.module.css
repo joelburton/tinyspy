@@ -11,7 +11,7 @@
   /* Fixed to the viewport (like the shared .layout) so the min-height:0 chain
    * below can bound — the board fills, the clue lists scroll internally, and
    * the page itself never scrolls. */
-  height: calc(100vh - var(--game-chrome-height));
+  height: calc(100svh - var(--game-chrome-height));
   min-height: 0;
   overflow: hidden;
 }

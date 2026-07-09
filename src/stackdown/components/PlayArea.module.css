@@ -12,5 +12,5 @@
  *     WordEntry row + the local-feedback slot + the gaps) plus the chrome. */
 .layout {
   --info-col-width: 22rem;
-  --avail-h: calc(100vh - var(--game-chrome-height) - 8.5rem);
+  --avail-h: calc(100svh - var(--game-chrome-height) - 8.5rem);
 }

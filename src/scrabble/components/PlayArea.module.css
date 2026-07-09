@@ -12,7 +12,7 @@
  * BoardCol.module.css `.belowBoard`. */
 .layout {
   --info-col-width: 25rem;
-  --avail-h: calc(100vh - var(--game-chrome-height) - 4.4rem);
+  --avail-h: calc(100svh - var(--game-chrome-height) - 4.4rem);
   /* Rack tile size — tied to the board's available space (≈ --side) so the rack
    * shrinks on a cramped laptop and the rack + action row keep fitting on one line.
    * Defined on .layout (not .boardCol) so the floating drag ghost can read it too. */

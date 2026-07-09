@@ -5,6 +5,7 @@ import {
   useDraggablePanel,
   type PanelRect,
 } from '../../hooks/ui/useDraggablePanel'
+import { useCoarsePointer } from '../../hooks/ui/useCoarsePointer'
 import styles from './FloatingPanel.module.css'
 // (Below: a 'hard'/'soft' literal is passed to clampToViewport
 // per-call. See the ClampMode type in useDraggablePanel.)
@@ -110,6 +111,19 @@ export function FloatingPanel({
   fitContent = false,
   children,
 }: Props) {
+  // On a touch device (coarse pointer) every panel is forced
+  // non-draggable and non-resizable — dragging/resizing a floating
+  // box is a mouse affordance, and (crucially) removing the drag
+  // binding is what fixes the close-button bug: react-draggable
+  // preventDefault()s the header touchstart, which cancels the
+  // synthesized click so the X's onClick never fires. No drag
+  // handle → the X works. The full-screen-sheet geometry on phones
+  // is handled in CSS (@media (--phone)); tablets keep the centered
+  // rect, just pinned in place. See docs/mobile.md → "Panels on touch".
+  const coarse = useCoarsePointer()
+  const effectiveDraggable = draggable && !coarse
+  const effectiveResizable = resizable && !coarse
+
   // ESC handler. Window-level so it works regardless of where
   // focus lives inside the panel body. Skipped when closeOnEsc
   // is false (chat / scratchpad).
@@ -146,8 +160,8 @@ export function FloatingPanel({
         onClose={onClose}
         defaultPosition={defaultPosition}
         defaultSize={defaultSize}
-        draggable={draggable}
-        resizable={resizable}
+        draggable={effectiveDraggable}
+        resizable={effectiveResizable}
         minWidth={minWidth}
         minHeight={minHeight}
         persistKey={persistKey}

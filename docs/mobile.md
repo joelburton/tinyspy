@@ -148,7 +148,9 @@ portrait.
 
 ### Decisions / directions
 
-1. **Panels on touch:** non-draggable + non-resizable; **full-viewport on
+1. **Panels on touch:** *(Done — see [What's been
+   done](#panels-on-touch--full-screen-sheets--the-close-button-fix).)*
+   non-draggable + non-resizable; **full-viewport on
    phones**, centered modal on tablets. Gate on `(pointer: coarse)`, not width.
    This is *also* the fix for the X-won't-close-on-touch bug — react-draggable
    `preventDefault()`s the touchstart on the header (the drag handle), which
@@ -156,7 +158,9 @@ portrait.
    remove the handle and the X just works. `FloatingPanel` already has the
    `draggable`/`resizable` props, so forcing them off on coarse pointers fixes
    chat, scratchpad, setup, and help in one place.
-2. **Viewport height:** use `svh` (or `dvh`) instead of `vh` in the full-height
+2. **Viewport height:** *(Done — `svh` chosen; see [What's been
+   done](#viewport-height--svh-instead-of-vh).)*
+   use `svh` (or `dvh`) instead of `vh` in the full-height
    calcs, so content fits the *visible* viewport with the mobile-Safari toolbar
    present (our never-scroll pages never let it retract, so `100vh` — the
    toolbar-hidden height — runs too tall and hides content). To actually
@@ -273,6 +277,48 @@ the hair-tight padding only earns its keep on a phone). Verified in a production
 build: `@media (--phone)` compiles to
 `(width<=34rem),(orientation:landscape) and (height<=27.5rem)` and body padding
 resolves to 4px on a phone vs 16/8px on tablet + desktop.
+
+### Panels on touch — full-screen sheets + the close-button fix
+
+Realizes [decision 1](#decisions--directions). Every [`FloatingPanel`](../src/common/components/panels/FloatingPanel.tsx)
+(chat, scratchpad, Setup, Help, the modals) now adapts to touch:
+
+- **Non-draggable + non-resizable on any coarse pointer.** A new
+  [`useCoarsePointer`](../src/common/hooks/ui/useCoarsePointer.ts) hook (the JS
+  mirror of the `--touch` custom-media, like `useIsMobile` mirrors `--mobile`)
+  forces `draggable`/`resizable` off when `(pointer: coarse)`. Dragging a
+  floating box is a mouse affordance; more importantly this is the **fix for the
+  X-won't-close-on-touch bug** — react-draggable `preventDefault()`s the header
+  touchstart (the drag handle), which cancels the synthesized `click`, so the
+  close button's `onClick` never fired. No drag binding → the X works. One hook
+  fixes it for every panel at once.
+- **Full-screen sheet on phones.** Below `--phone`, a CSS override in
+  [`FloatingPanel.module.css`](../src/common/components/panels/FloatingPanel.module.css)
+  cancels react-rnd's inline position/size (`!important` — only that beats an
+  inline style) so the panel fills the viewport instead of floating. Insets use
+  `env(safe-area-inset-*)` so the header clears a notch / status bar in
+  standalone PWA mode. **Tablets are deliberately excluded** — they keep the
+  centered-modal rect (roomy enough), just pinned in place by the coarse-pointer
+  rule above.
+
+Guarded by [`panels-touch.e2e.ts`](../e2e/panels-touch.e2e.ts) (a real browser —
+jsdom has no layout engine or touch synthesis): on a 390px touch viewport the
+chat panel fills the screen and a **tap** on the X closes it.
+
+### Viewport height — `svh` instead of `vh`
+
+Realizes [decision 2](#decisions--directions). Every full-height calc — the body
+`min-height`, each game's `PlayArea` height / `--avail-h`, the club-page frame,
+the menu sheet, the toast host — now uses **`100svh`** (small viewport height),
+not `100vh`. On mobile Safari `100vh` is the toolbar-*hidden* height, so a
+`100vh` page runs taller than what's visible and forces a scroll — fatal for our
+[never-scroll pages](ui.md#page-height-fits-the-viewport), which never scroll and
+so never let the toolbar retract. `svh` is the toolbar-*shown* height = exactly
+the visible box, and stays stable. It's identical to `vh` on desktop (no
+retractable UI), so this is a mobile-only fix with zero desktop effect. Grep
+`svh` to find them all; flip together to `dvh` if we ever want the dynamic
+behavior. (Standalone PWA mode has no toolbar, so this mainly helps the
+in-browser / not-yet-installed path — but it's the correct unit regardless.)
 
 ## TODO — not doing now, recorded so we don't lose them
 

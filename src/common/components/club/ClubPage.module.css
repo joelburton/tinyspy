@@ -2,7 +2,7 @@
  *
  * Per docs/ui.md → "Page-height fits the viewport", the page
  * fills the viewport vertically and doesn't scroll. The body's
- * 2rem padding (in theme.css) means we subtract 4rem from 100vh
+ * 2rem padding (in theme.css) means we subtract 4rem from 100svh
  * to compute the frame's height. The header is auto-sized; the
  * two-column body takes the rest. The right column's games-list
  * frame absorbs growth via overflow-y: auto.
@@ -19,7 +19,7 @@
    * (defined in common/theme.css's body rule). Without this,
    * .body's flex: 1 has no upper bound, and the .gamesList
    * overflow-y: auto inside it never triggers. */
-  height: calc(100vh - 2 * var(--page-padding-y));
+  height: calc(100svh - 2 * var(--page-padding-y));
   display: flex;
   flex-direction: column;
   gap: 1rem;

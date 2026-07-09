@@ -140,6 +140,39 @@
   padding: 0.4rem 0.5rem;
 }
 
+/* ── Phones: full-screen sheet ──────────────────────────────────────────────
+ * On a phone a floating, draggable card is the wrong shape — the panel becomes
+ * a full-viewport sheet instead (docs/mobile.md → "Panels on touch"). The panel
+ * is already non-draggable + non-resizable on any coarse pointer (forced in
+ * FloatingPanel.tsx), so its geometry can't be moved; here we just override
+ * react-rnd's inline position/size to fill the visible viewport. Tablets are
+ * deliberately excluded — they keep the centered-modal rect (roomy enough), just
+ * pinned in place. The `!important`s are required: react-rnd inlines
+ * transform/width/height on the .rnd element, and only !important beats an
+ * inline style.
+ *
+ * Insets use env(safe-area-inset-*) so the header clears a notch / status bar in
+ * standalone (home-screen) PWA mode; on devices without safe areas the env()
+ * values resolve to 0 and the sheet is edge-to-edge. */
+@media (--phone) {
+  .rnd {
+    position: absolute !important;
+    inset:
+      env(safe-area-inset-top) env(safe-area-inset-right)
+      env(safe-area-inset-bottom) env(safe-area-inset-left) !important;
+    /* auto width/height + all-four insets stretches the box to fill the clip
+       layer (the fixed, inset:0 viewport box the panel lives in). */
+    width: auto !important;
+    height: auto !important;
+    transform: none !important;
+  }
+  /* Edge-to-edge: drop the floating card's rounded corners so it reads as a
+     sheet, not a card cropped at the screen edge. */
+  .shell {
+    border-radius: 0;
+  }
+}
+
 /* Backdrop layer — fixed-position dim that catches pointer
  * events on the page underneath but doesn't catch anything
  * happening above its z-index (chat at 10000 is unaffected).

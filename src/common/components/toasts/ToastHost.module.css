@@ -16,7 +16,7 @@
   flex-direction: column;
   gap: 0.6rem;
   width: min(24rem, calc(100vw - 2rem));
-  max-height: calc(100vh - 2rem);
+  max-height: calc(100svh - 2rem);
   overflow-y: auto;
   pointer-events: none;
 }

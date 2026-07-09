@@ -31,7 +31,7 @@
  * the board is at its --avail-w cap and the auto margins have collapsed to
  * zero — no card around either column. */
 .layout {
-  height: calc(100vh - var(--game-chrome-height));
+  height: calc(100svh - var(--game-chrome-height));
   /* Definite width = the real content area (viewport minus scrollbar minus body
    * padding), NOT shrink-to-fit. This is load-bearing: `body` uses
    * `place-items: start center`, which sizes its grid item to its content's

@@ -40,7 +40,7 @@
      * padding lump; at phone width it rounds ~1px short, so the full-height board
      * column pushes the page 1px past the viewport. Trim a pixel to keep the hard
      * no-scroll invariant (docs/ui.md → page fits the viewport). POC-local. */
-    height: calc(100vh - var(--game-chrome-height) - 1px);
+    height: calc(100svh - var(--game-chrome-height) - 1px);
   }
 
   /* The info column as an off-canvas sheet from the right. Closed = slid off

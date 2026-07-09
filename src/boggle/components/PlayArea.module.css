@@ -15,7 +15,7 @@
  * gap + the .belowBoard margin-top 1.5rem = 5rem). Keep in sync with `.belowBoard`. */
 .layout {
   --info-col-width: 53rem;
-  --avail-h: calc(100vh - var(--game-chrome-height) - 5rem);
+  --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
 }
 
 /* The board column. Computes `--side` — the largest square that fits — HERE
