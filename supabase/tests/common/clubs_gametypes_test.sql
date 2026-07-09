@@ -59,7 +59,9 @@ select is(
 -- solo club — same shape for every persona by construction.
 
 -- A solo club only enrolls in solo-playable gametypes (min_players
--- <= 1): the coop/solo variants, not the two-player games.
+-- <= 1): the coop/solo variants — plus scrabble_compete, which is
+-- solo-playable because you can race an AI opponent alone
+-- (docs/scrabble-ai-strength.md).
 select is(
   (
     select count(*)
@@ -67,8 +69,8 @@ select is(
     join common.clubs c on c.handle = k.club_handle
     where c.handle = '=ada'
   ),
-  10::bigint,
-  'claim_username populated 10 (solo-playable) clubs_gametypes rows for ada''s solo club'
+  11::bigint,
+  'claim_username populated 11 (solo-playable) clubs_gametypes rows for ada''s solo club'
 );
 
 select is(
@@ -78,8 +80,8 @@ select is(
     join common.clubs c on c.handle = k.club_handle
     where c.handle = '=ada'
   ),
-  array['bananagrams','boggle_coop','connections_coop','crosswords_coop','psychicnum_coop','scrabble_coop','spellingbee_coop','stackdown_coop','waffle_coop','wordle_coop'],
-  'ada''s solo club has m2m rows for the ten solo-playable gametypes'
+  array['bananagrams','boggle_coop','connections_coop','crosswords_coop','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_coop','stackdown_coop','waffle_coop','wordle_coop'],
+  'ada''s solo club has m2m rows for the eleven solo-playable gametypes (incl. scrabble_compete vs AI)'
 );
 
 -- ============================================================

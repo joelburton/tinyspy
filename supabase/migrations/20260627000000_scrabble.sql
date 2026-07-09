@@ -617,9 +617,12 @@ $$;
 -- ============================================================
 -- Register the gametypes
 -- ============================================================
+-- compete's floor is 1 HUMAN (solo vs AI) — the ≥2-total rule (humans + AI)
+-- lives in create_game. min_players 1 makes it solo-playable, so a solo club
+-- gets the compete Start button too (mirrors manifest numberOfPlayers [1,4]).
 insert into common.gametypes (gametype, min_players) values
   ('scrabble_coop', 1),
-  ('scrabble_compete', 2)
+  ('scrabble_compete', 1)
 on conflict do nothing;
 
 -- ============================================================

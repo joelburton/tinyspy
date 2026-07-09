@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { terminalPill } from '../../common/lib/game/localPills'
@@ -6,6 +6,7 @@ import { TerminalModal } from '../../common/components/game/terminal/TerminalMod
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { difficultyValue } from '../../common/lib/game/difficulty'
+import { colorVarFor } from '../../common/lib/color/memberColor'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { unwrapEdgeFnError } from '../../common/lib/supabase/edgeFnError'
 import { db } from '../db'
@@ -56,6 +57,7 @@ export function PlayArea({
   menu,
   brand,
   title,
+  globalFeedback,
 }: GamePageCtx) {
   const { game, players: playerStates, plays, loading } = useGame(gameId)
 
@@ -120,22 +122,30 @@ export function PlayArea({
   // common roster (`players`) — so we build their display identity here:
   // numbered "AI 1".."AI 3" in seat order, each a distinct disc color. Used by
   // the turn line, the Moves log, and the compact AI score strip.
-  const aiRoster = playerStates
-    .filter((p) => p.ai_level != null)
-    .sort((a, b) => a.seat - b.seat)
-    .map((p, i) => ({
-      seat: p.seat,
-      name: `AI ${i + 1}`,
-      color: AI_DISC_COLORS[i % AI_DISC_COLORS.length],
-      score: p.score ?? 0,
-    }))
+  const aiRoster = useMemo(
+    () =>
+      playerStates
+        .filter((p) => p.ai_level != null)
+        .sort((a, b) => a.seat - b.seat)
+        .map((p, i) => ({
+          seat: p.seat,
+          name: `AI ${i + 1}`,
+          color: AI_DISC_COLORS[i % AI_DISC_COLORS.length],
+          score: p.score ?? 0,
+        })),
+    [playerStates],
+  )
   // A synthetic Member for an AI seat (the turn line + Moves log resolve identity
-  // through Member, keyed on the disc color + name).
-  const aiMemberOfSeat = (seat: number | null): Member | undefined => {
-    if (seat == null) return undefined
-    const ai = aiRoster.find((a) => a.seat === seat)
-    return ai ? ({ user_id: `ai:${seat}`, username: ai.name, color: ai.color } as Member) : undefined
-  }
+  // through Member, keyed on the disc color + name). Memoized so the peer-news
+  // effect below doesn't re-fire every render.
+  const aiMemberOfSeat = useCallback(
+    (seat: number | null): Member | undefined => {
+      if (seat == null) return undefined
+      const ai = aiRoster.find((a) => a.seat === seat)
+      return ai ? ({ user_id: `ai:${seat}`, username: ai.name, color: ai.color } as Member) : undefined
+    },
+    [aiRoster],
+  )
 
   // Drive the AI opponent: when the turn lands on an AI seat, poke the
   // scrabble-ai-move edge function — it plays the AI seat(s) forward until a
@@ -152,6 +162,39 @@ export function PlayArea({
     aiPokeVersionRef.current = game.version
     void supabase.functions.invoke('scrabble-ai-move', { body: { game_id: gameId } })
   }, [currentSeatIsAi, game, gameId, isTerminal])
+
+  // Peer-move news → the GLOBAL header (the peer-news channel; my own move goes
+  // to the below-board pill — docs/code-conventions.md → Feedback naming).
+  // Compete only: announce each OPPONENT's committed move (human OR AI), so a
+  // move that lands while I'm looking elsewhere — especially an AI's, which has
+  // no visible human actor — gets noticed. Seeded to the current tail on the
+  // first run so the existing log isn't replayed. `globalFeedback.show` is a
+  // prop callback, so there's no local setState in this effect.
+  const announcedSeqRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (!game || !isCompete) return
+    const tailSeq = plays.length ? plays[plays.length - 1].seq : 0
+    if (announcedSeqRef.current === null) {
+      announcedSeqRef.current = tailSeq // seed once — don't announce prior history
+      return
+    }
+    if (tailSeq <= announcedSeqRef.current) return
+    const fresh = plays.filter((p) => p.seq > (announcedSeqRef.current ?? 0))
+    announcedSeqRef.current = tailSeq
+    // The newest OPPONENT move in this batch (mine already showed in the commit slot).
+    const latest = fresh.filter((p) => p.user_id !== session.user.id).at(-1)
+    if (!latest) return
+    const actor = latest.user_id
+      ? players.find((m) => m.user_id === latest.user_id)
+      : aiMemberOfSeat(latest.seat)
+    globalFeedback.show({
+      tone: latest.kind === 'word' ? 'success' : 'neutral',
+      variant: 'outline',
+      dot: colorVarFor(actor?.color),
+      text: peerMoveText(actor?.username ?? 'Someone', latest),
+      dismiss: { kind: 'timed', ms: 3000 },
+    })
+  }, [plays, game, isCompete, session.user.id, players, aiMemberOfSeat, globalFeedback])
 
   // ─── Suggest-a-move (coop AI hints — docs/scrabble-ai.md S5) ──────────
   // State lives here (the coordinator): InfoCol renders the box, BoardCol
@@ -335,6 +378,17 @@ export function PlayArea({
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
   )
+}
+
+/** One opponent move as a terse peer-news line for the global header. */
+function peerMoveText(name: string, p: PlayRow): string {
+  if (p.kind === 'word') {
+    const w = (p.words ?? [])[0]?.toUpperCase() ?? ''
+    return `${name} played ${w} (+${p.score ?? 0})`
+  }
+  if (p.kind === 'exchange') return `${name} exchanged ${p.tile_count} tiles`
+  if (p.kind === 'pass') return `${name} passed`
+  return `${name} ended the game`
 }
 
 /** SPIKE: format one play for the print moves table (mirrors BoardCol's turnSummary). */

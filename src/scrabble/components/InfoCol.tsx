@@ -10,7 +10,7 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { AIButton } from '../../common/components/buttons/AIButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
-import type { ScrabbleSetup } from '../lib/setup'
+import { AI_LEVEL_LABEL, type ScrabbleSetup } from '../lib/setup'
 import type { RankedMove } from '../lib/rank'
 import type { PlayerRow, PlayRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
@@ -277,6 +277,11 @@ export function InfoCol({
           <li>Dictionary (2-letter): {difficultyValue(setup.dict_2)}</li>
           <li>Dictionary (longer): {difficultyValue(setup.dict_3plus)}</li>
           <li>Timer: {timerLabel(setup.timer)}</li>
+          {isCompete && setup.ai_count > 0 && (
+            <li>
+              AI players: {setup.ai_count} × {AI_LEVEL_LABEL[setup.ai_level]}
+            </li>
+          )}
         </SetupDisclosure>
       </div>
 
