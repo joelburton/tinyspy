@@ -44,6 +44,14 @@ import { db } from '../db'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
+/** Timed info pill shown after a Check whose scope contained pencilled cells —
+ *  Check skips them (see `handleCheck`), so this flags that they weren't tested. */
+const PENCIL_SKIPPED_MSG: GenericFeedbackMsg = {
+  tone: 'info',
+  text: 'Check skips pencil marks.',
+  dismiss: { kind: 'timed' },
+}
+
 /**
  * The crosswords coordinator: owns the cursor, wires the keyboard, merges
  * the immutable template (`useGame`) with the live fills (`useCells`), and
@@ -571,9 +579,21 @@ export function PlayArea(ctx: GamePageCtx) {
       if (target.length === 0) return
       clearLocalFeedback()
       const { error } = await db.rpc('check_cells', { target_game: gameId, p_cells: target })
-      if (error) showLocalFeedback(stickyPill('error', `Check failed: ${error.message}`))
+      if (error) {
+        showLocalFeedback(stickyPill('error', `Check failed: ${error.message}`))
+        return
+      }
+      // Check deliberately skips pencil cells (a pencilled letter is a guess, not
+      // a committed answer — mirror `_check_cells` / crossplay's `applyCheck`). So
+      // if the checked scope held any pencilled fill, it went un-flagged; a timed
+      // info pill says so, so an unmarked pencil cell doesn't read as "correct."
+      const skippedPencil = target.some((p) => {
+        const c = cells.get(cellKey(p.row, p.col))
+        return Boolean(c?.pencil && c.fill)
+      })
+      if (skippedPencil) showLocalFeedback(PENCIL_SKIPPED_MSG)
     },
-    [scopeCells, gameId, showLocalFeedback, clearLocalFeedback],
+    [scopeCells, gameId, cells, showLocalFeedback, clearLocalFeedback],
   )
 
   const handleReveal = useCallback(

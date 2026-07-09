@@ -14,7 +14,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
 import type { CrosswordsGame } from '../hooks/useGame'
-import type { CellsMap } from '../hooks/useCells'
+import type { CellsMap, CellState } from '../hooks/useCells'
 import type { PuzzleTemplate } from '../lib/types'
 import { PlayArea } from './PlayArea'
 
@@ -137,6 +137,32 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     // The play-time action row is gone at terminal.
     expect(screen.queryByRole('button', { name: /^end$/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /check word/i })).not.toBeInTheDocument()
+  })
+
+  /** A CellState with the given overrides (defaults = empty writable cell). */
+  function cellState(over: Partial<CellState> = {}): CellState {
+    return {
+      fill: null, pencil: false, revealed: false, wrong: false,
+      markRight: null, markBottom: null, version: 1, ...over,
+    }
+  }
+
+  it('flags that Check skips pencil when the checked scope holds a pencil mark', async () => {
+    // Cursor starts at 0,0; a pencilled fill there is in every scope (letter +
+    // whichever word direction), so Check word surfaces the notice.
+    h.cells = new Map([['0:0', cellState({ fill: 'C', pencil: true })]])
+    render(<PlayArea {...makeCtx()} />)
+    fireEvent.click(screen.getByRole('button', { name: /check word/i }))
+    expect(await screen.findByText('Check skips pencil marks.')).toBeInTheDocument()
+    expect(rpcNames()).toContain('check_cells')
+  })
+
+  it('does NOT flag pencil when the checked scope has only committed (pen) fills', async () => {
+    h.cells = new Map([['0:0', cellState({ fill: 'C', pencil: false })]])
+    render(<PlayArea {...makeCtx()} />)
+    fireEvent.click(screen.getByRole('button', { name: /check word/i }))
+    await waitFor(() => expect(rpcNames()).toContain('check_cells'))
+    expect(screen.queryByText('Check skips pencil marks.')).not.toBeInTheDocument()
   })
 
   /** Flatten the last setGameSections call into a flat item array. */
