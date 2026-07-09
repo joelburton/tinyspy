@@ -105,12 +105,16 @@ experience. Not needed to pick the knobs.
    is arguably also part of what makes weak play weak; it's a latent future
    lever. Keep this in mind when calibrating `best` against real players.
 
-## AI players in compete (the opponent build)
+## AI players in compete (the opponent build) — BUILT
 
 The autonomous opponent is built on the `choosePlay` brain. Seating + turns are
 seat-based (`scrabble.games.current_seat`; AI seats live only in
 `scrabble.players` with `user_id` null + `ai_level`, never in
-`common.game_players`/`profiles`). Decisions locked for that build:
+`common.game_players`/`profiles`). Shipped in 8 stages (S1–S8): seat schema +
+turn/finish conversion, create_game seating + band validation, the shared
+`_commit_*` cores + `ai_*` RPCs + `get_ai_context`, `scrabble-ai-move` edge
+function, setup UI, FE roster/log/terminal + the move trigger, and pgTAP +
+a human-vs-AI e2e. Decisions locked for that build:
 
 - **AI is compete-only**, 0–3 seats, **one skill level for all AIs** (setup:
   count radio + a single skill selector).

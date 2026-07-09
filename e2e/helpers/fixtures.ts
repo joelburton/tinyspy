@@ -455,24 +455,45 @@ export async function seedWordleGuesses(
   return words.map((w) => w.toUpperCase())
 }
 
-/** Start a scrabble game (coop by default). Returns id + gametype for the URL. */
+/** Start a scrabble game (coop by default). Returns id + gametype for the URL.
+ *  `setup` overrides the default (timer only) — e.g. AI-player fields
+ *  (ai_count/ai_level + wider dictionaries) for the human-vs-AI e2e. */
 export async function createScrabbleGame(
   club: E2EClub,
   mode: 'coop' | 'compete' = 'coop',
   playerUserIds: string[] = club.members.map((m) => m.userId),
+  setup: Record<string, unknown> = { timer: { kind: 'none' } },
 ): Promise<{ id: string; gametype: string }> {
   const creator = club.members[0]
   const res = await asUser(creator.session.access_token)
     .schema('scrabble')
     .rpc('create_game', {
       target_club: club.handle,
-      setup: { timer: { kind: 'none' } },
+      setup,
       player_user_ids: playerUserIds,
       mode,
     })
   if (res.error) throw new Error(`scrabble.create_game: ${res.error.message}`)
   const row = Array.isArray(res.data) ? res.data[0] : res.data
   return { id: (row as { id: string }).id, gametype: `scrabble_${mode}` }
+}
+
+/** Pin one compete seat's rack + force it to be that seat's turn (superuser psql),
+ *  so a test can drive a deterministic AI or human move. */
+export function pinScrabbleSeat(gameId: string, seat: number, rack: string[]): void {
+  if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
+  if (!Number.isInteger(seat) || seat < 0 || seat > 3) throw new Error(`bad seat: ${seat}`)
+  if (!rack.every((t) => /^[A-Z?]$/.test(t))) throw new Error(`bad rack: ${rack}`)
+  execFileSync(
+    'psql',
+    [
+      'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
+      '-v', 'ON_ERROR_STOP=1',
+      '-c', `update scrabble.players set rack = '{${rack.join(',')}}' where game_id = '${gameId}' and seat = ${seat};`,
+      '-c', `update scrabble.games set current_seat = ${seat} where id = '${gameId}';`,
+    ],
+    { stdio: 'pipe' },
+  )
 }
 
 /** Pin a scrabble game's COOP shared rack to a known set, so a test can type a
