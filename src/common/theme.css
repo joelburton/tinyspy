@@ -310,6 +310,20 @@
   color-scheme: light;
 }
 
+/* PHONES ONLY (not tablets): tighten the page padding to a hair so the board /
+ * card content claims nearly the whole tiny screen. Tablets + desktop keep the
+ * roomier default above — a tablet has the width to spare, and the tight padding
+ * only earns its keep on a phone. `--phone` is the union breakpoint (portrait +
+ * landscape phones) from src/common/breakpoints.css. Feeds through everything
+ * keyed off the tokens: body padding, each game's --avail-w board math, and the
+ * club/card frame heights. */
+@media (--phone) {
+  :root {
+    --page-padding-x: 0.25rem;
+    --page-padding-y: 0.25rem;
+  }
+}
+
 /* ---------- Element resets ---------- */
 
 /* Universal border-box so padding doesn't get added on top of widths
@@ -348,6 +362,12 @@ body {
 
 h1 {
   margin-top: 0;
+  /* Smaller than the browser default (2rem). Every h1 is a page title on a
+   * card/shell screen (home "Welcome, …", the club "Club: <name>", the claim
+   * + create-club screens) — the game play surface has no h1. A gentler title
+   * size reads better and leaves breathing room for long club names /
+   * usernames before they wrap, which matters most on a narrow (phone) card. */
+  font-size: 1.5rem;
 }
 
 form {
@@ -434,11 +454,10 @@ a {
   overflow-wrap: anywhere;
 }
 
-/* Mobile (phones + portrait tablets): the 2rem card padding eats too much
- * of a narrow screen, so trim it. The app is desktop-first — this is an
- * override layered on the rule above. 56.25rem (900px) is the shared
- * desktop->mobile line (first established in ClubPage.module.css). */
-@media (max-width: 56.25rem) {
+/* Mobile (phones + portrait tablets): the 2rem card padding eats too much of a
+ * narrow screen, so trim it. Desktop-first — an override on the rule above.
+ * `--mobile` is the shared collapse breakpoint (src/common/breakpoints.css). */
+@media (--mobile) {
   .card {
     padding: 1.5rem 1.25rem;
   }

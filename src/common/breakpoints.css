@@ -1,0 +1,47 @@
+/* Shared responsive breakpoints — the single source of truth for the device
+ * classes in docs/mobile.md. Injected into every CSS file by PostCSS
+ * (see postcss.config.js + @csstools/postcss-global-data), so any module can
+ * write `@media (--phone) { … }` without re-typing the raw condition.
+ *
+ * This file is NOT imported anywhere as a stylesheet — it holds only
+ * `@custom-media` declarations, which produce no CSS output. Editing a value
+ * here changes it everywhere at once.
+ *
+ * Why this instead of CSS custom properties: `var()` can't be used inside a
+ * `@media` condition (media is evaluated before the cascade), and several
+ * classes below are COMPOUND (width + orientation/height) rather than a single
+ * threshold — so a plain variable couldn't express them anyway.
+ *
+ * Desktop is the default (no query); everything here is a mobile/touch
+ * EXCEPTION layered on top (desktop-first — see docs/mobile.md).
+ *
+ * NOTE: the JS side keeps its own copy of the `--mobile` line
+ * (src/common/hooks/ui/useIsMobile.ts) — `var()`/custom-media aren't reachable
+ * from matchMedia, so those two must be kept in sync by hand.
+ *
+ * Thresholds are a first pass — tune against real devices. */
+
+/* Touch device (phone OR tablet) — the signal for "no precise pointer": disable
+ * dragging, favor bigger tap targets. NOT width-based; a touch tablet is touch. */
+@custom-media --touch (pointer: coarse);
+
+/* The layout-collapse line: below this the two-column play/club layouts fold to
+ * a single column (+ the info-column sheet). Covers phones AND portrait tablets
+ * — one mobile treatment. 56.25rem = 900px. Mirrored in useIsMobile.ts. */
+@custom-media --mobile (max-width: 56.25rem);
+
+/* Phones only (portrait OR landscape) — the tightest devices, distinct from
+ * tablets. `--phone` is the union used by phone-only tweaks (e.g. the ultra-tight
+ * page padding). 34rem = 544px catches every phone width in portrait but not an
+ * iPad (768); the landscape arm keys off a short viewport (a phone on its side),
+ * which excludes landscape tablets (height ≫ 27.5rem). */
+@custom-media --phone-p (max-width: 34rem);
+@custom-media --phone-l (orientation: landscape) and (max-height: 27.5rem);
+@custom-media --phone (max-width: 34rem), (orientation: landscape) and (max-height: 27.5rem);
+
+/* Tablets — roomy touch devices; mostly inherit the desktop layout with less
+ * width. Split by orientation for the occasional per-mode tweak. tablet-l is
+ * distinguished from desktop by `pointer: coarse` (a landscape tablet is
+ * desktop-width but touch). */
+@custom-media --tablet-p (min-width: 34.0625rem) and (max-width: 56.25rem) and (orientation: portrait);
+@custom-media --tablet-l (orientation: landscape) and (min-height: 27.5625rem) and (pointer: coarse);

@@ -652,8 +652,8 @@ export function ClubPage({ handle, session }: Props) {
           desktop this bar is display:none and both columns show side
           by side; below the breakpoint only the selected column
           renders, so the page still fits the viewport without
-          scrolling. The count rides on the "Completed/shelved" tab so
-          it's visible even while the "New game" tab is active. */}
+          scrolling. Labels are kept short + count-free — the section
+          headings (which carried the count) are hidden on mobile. */}
       <div className={styles.tabs} role="tablist" aria-label="Games">
         <button
           type="button"
@@ -671,7 +671,7 @@ export function ClubPage({ handle, session }: Props) {
           className={styles.tab}
           onClick={() => setMobileTab('completed')}
         >
-          Completed/shelved ({otherGames.length})
+          Your games
         </button>
       </div>
 
@@ -701,7 +701,7 @@ export function ClubPage({ handle, session }: Props) {
           )}
 
           <div className={styles.startBlock}>
-            <h3>Start a new game</h3>
+            <h3 className={styles.sectionHeading}>Start a new game</h3>
             {/* The scrolling card: the heading above stays put; only the
                 button list inside this frame scrolls (mirrors the right
                 column's heading + gamesList split). */}
@@ -731,7 +731,7 @@ export function ClubPage({ handle, session }: Props) {
         </section>
 
         <section className={styles.right}>
-          <h3>Completed/shelved games ({otherGames.length})</h3>
+          <h3 className={styles.sectionHeading}>Completed/shelved games ({otherGames.length})</h3>
           {/* Fixed-size frame with internal scroll. The frame has
               flex: 1 inside the column, which has its own flex: 1
               inside the body, which is bounded by the .frame's

@@ -145,11 +145,10 @@
  *
  * This app is desktop-first (docs/ui.md): the desktop layout above is
  * the default, and mobile is expressed as an *exception* layered on
- * top via a max-width query — never mobile-first min-width. This is
- * the first width-based breakpoint in the app, so it sets the
- * convention: 56.25rem (900px) is the desktop→mobile line. It
- * comfortably captures phones and portrait tablets while landscape
- * tablets (≥ ~1024px) keep the two-column desktop layout.
+ * top — never mobile-first min-width. `--mobile` is the shared
+ * collapse breakpoint (src/common/breakpoints.css): 900px, capturing
+ * phones and portrait tablets while landscape tablets (≥ ~1024px)
+ * keep the two-column desktop layout.
  *
  * On desktop the tab bar is hidden and both body columns show side by
  * side. Below the breakpoint the two columns would be too cramped, so
@@ -162,7 +161,7 @@
   display: none;
 }
 
-@media (max-width: 56.25rem) {
+@media (--mobile) {
   .tabs {
     display: flex;
     flex-shrink: 0;
@@ -198,6 +197,16 @@
   }
 
   .body[data-tab='completed'] .left {
+    display: none;
+  }
+
+  /* Drop the per-section h3s ("Start a new game" / "Completed/shelved
+   * games (N)") — the tab above already names the view, so the heading
+   * just repeats it and costs vertical space. Desktop keeps them (they
+   * label the two side-by-side columns). The "Join the active game" h3
+   * is NOT a .sectionHeading, so it stays — it's a live call to action,
+   * not a column label. */
+  .sectionHeading {
     display: none;
   }
 }

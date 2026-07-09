@@ -48,7 +48,7 @@
  *
  * 56.25rem (900px) is the app's shared desktop→mobile line — see
  * ClubPage.module.css, where this breakpoint was first established. */
-@media (max-width: 56.25rem) {
+@media (--mobile) {
   .username {
     display: none;
   }

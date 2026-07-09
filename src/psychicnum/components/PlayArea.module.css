@@ -30,7 +30,7 @@
   display: none;
 }
 
-@media (max-width: 56.25rem) {
+@media (--mobile) {
   /* Hand the board the full content width: with the info column now off-canvas
    * (position: fixed, out of the flex row), nothing sits beside the board, so
    * override the shared --avail-w which otherwise reserves --info-col-width. */
