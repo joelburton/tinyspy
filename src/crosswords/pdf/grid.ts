@@ -8,7 +8,7 @@
  * ink/pencil room to overwrite them on paper). `circled`, `shaded`,
  * `given`, `number`, `fill`, and the cryptic edge marks (`markRight` /
  * `markBottom`) are all preserved. The edge marks were ported per
- * `docs/crosswords-marks-plan.md` — a break renders as a thick bar on the
+ * `docs/games/crosswords.md` — a break renders as a thick bar on the
  * boundary, a hyphen as a short dash across it.
  */
 

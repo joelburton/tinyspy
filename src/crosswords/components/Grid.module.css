@@ -153,7 +153,7 @@
   user-select: none;
 }
 
-/* Cryptic edge marks (docs/crosswords-marks-plan.md) — player-drawn
+/* Cryptic edge marks (docs/games/crosswords.md) — player-drawn
  * word-break / hyphen annotations on a cell boundary. Ported from
  * crossplay's Cell.module.css. Em-sized so they scale with the cell;
  * pointer-events:none so they never absorb a click meant for the cell. */

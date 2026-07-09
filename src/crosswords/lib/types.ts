@@ -16,7 +16,7 @@
  *
  * The cryptic edge marks (`markRight` / `markBottom` + `MarkSide` /
  * `MarkType`) WERE dropped initially, then ported per
- * `docs/crosswords-marks-plan.md`: they persist on `crosswords.cells`
+ * `docs/games/crosswords.md`: they persist on `crosswords.cells`
  * (two columns) and sync through the same `useCells` CDC path as fills.
  */
 

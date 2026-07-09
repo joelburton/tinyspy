@@ -79,37 +79,13 @@ No outstanding deferred items today.
 
 ## crosswords (crosswords)
 
-Deferred from the crosswords build + its 2026-07-05 and 2026-07-06 reviews. (The
-game doc's §9 also lists NYT overlay-PNG analysis + NYT dedup; those live there.)
-
-- **⌥M menu shortcut.** Crossplay's ⌥-letter set is now fully ported EXCEPT ⌥M
-  (open the game menu). ⌥P/C/⇧C/R/⇧R/N/X **and ⌥S (scratchpad, via the
-  `scratchpadOpenStore` setter)** all shipped — see `crosswords.md` §7. ⌥M stays
-  out because the shell exposes no programmatic "open the menu" to a PlayArea
-  (`MenuApi` has no `openMenu`); low value (the logo click + `?` already open
-  it). From the 2026-07-06 review (M2).
-- ~~**FE "upload your own `.puz`/`.ipuz`."**~~ **SHIPPED 2026-07-05** — the setup
-  form's "Upload file" tab (drop zone + file chooser) parses the file client-side
-  (`lib/importFile.ts` → the relocated `lib/parse/`) and starts a self-contained
-  game via `create_game`'s inline `board` arg. See `crosswords.md` §5.
-- ~~**Cryptic apparatus.**~~ **SHIPPED.** The full crossplay set is ported: cryptic
-  edge marks `|`/`_` (`set_mark`), the AI "Explain cryptic clue" helper
-  (`crosswords.md` §10), AND the rebus-"collapse" display toggle (`crosswords.md`
-  §9 menu — a per-browser preference that shows multi-char rebus fills as their
-  first letter).
-- **`fetch-nyt-range` bulk CLI** (review M5) — download a date range of NYT
-  dailies into the library. Deferred: blocked on the `NYT_COOKIE_JAR` secret
-  (same as the live NYT fetch). Crossplay's OTHER author tools shipped
-  (`crosswords:puz-to-ipuz` / `crosswords:set-note`, review M7).
-- **Scratchpad lock races C3b / C3c** (review 2026-07-05; C3a — the holder-guard
-  — was fixed). Both self-heal within seconds and can't corrupt the DB, so
-  they're deferred: **C3b** — two clients' simultaneous first keystrokes each
-  adopt the *other's* claim (both read-only for ~STALE_MS) and the loser's
-  in-flight flush still lands (no server lock check); **C3c** — a late joiner
-  sees no lock state for ≤1s (Broadcast has no history / no snapshot-on-join),
-  so typing in that window can steal the lock from an active holder. Crossplay's
-  server arbitrated both; our serverless design would need a claim tiebreak +
-  a snapshot-on-join. Low priority at friend scale.
+The crosswords deferred register now lives in its game doc:
+[docs/games/crosswords.md → §9 Deferred / future](games/crosswords.md#9-deferred--future).
+The build-plan + code-review docs were retired into that file, so §9 is the single
+home for crosswords deferrals — ⌥M, `fetch-nyt-range`, NYT dedup, the scratchpad
+lock races (C3b/C3c), the standing schema/migration flags (vestigial `'nyt'`
+constraint, dead `crosswords.games` realtime touches, half-frozen terminal cursor),
+and the known unpinned tests.
 
 ## Wordlist markers (spellingbee + boggle)
 

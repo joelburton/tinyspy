@@ -9,7 +9,7 @@ export type CellState = {
   pencil: boolean
   revealed: boolean
   wrong: boolean
-  /** Cryptic edge marks (docs/crosswords-marks-plan.md) — display-only,
+  /** Cryptic edge marks (docs/games/crosswords.md) — display-only,
    *  synced on the cell row like the fill. */
   markRight: MarkType | null
   markBottom: MarkType | null

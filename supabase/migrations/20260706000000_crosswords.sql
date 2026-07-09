@@ -115,7 +115,7 @@ create table crosswords.cells (
   pencil   boolean not null default false,
   revealed boolean not null default false,
   wrong    boolean not null default false,
-  -- Cryptic edge marks (docs/crosswords-marks-plan.md): a player-drawn
+  -- Cryptic edge marks (docs/games/crosswords.md): a player-drawn
   -- word-break / hyphen on the cell's right / bottom edge. Display-only
   -- (ignored by solve/check/reveal); they ride on the cell row and sync
   -- through the same useCells CDC path as fills. Only fillable cells get

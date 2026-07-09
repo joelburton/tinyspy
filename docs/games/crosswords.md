@@ -8,8 +8,9 @@ the game does*, and this doc is the Supabase + React fit.
 > **Brand ≠ codename.** The user-facing brand is **CrossPlay** (it lives only in
 > the manifest `BRAND` const — see [docs/naming.md](../naming.md) and
 > [[feedback_codename_brand_naming]]). Everywhere in *code / DB / schema / tests*
-> the codename is `crosswords`. The build plan (all decisions resolved) is
-> [docs/crosswords-plan.md](../crosswords-plan.md).
+> the codename is `crosswords`. **This doc is the canonical reference** — the
+> build plan + the 2026-07-05 / -07-06 code-review docs it was built from have
+> been retired into this file (see §9 for the deferred register they left behind).
 
 ## 1. The game
 
@@ -308,12 +309,75 @@ non-game menus keep standard Esc-restores-focus a11y.)
 
 ## 9. Deferred / future
 
-- **NYT dedup** — inline NYT games aren't stored, so re-fetching a date makes a
-  new game (fine; NYT was always kept out of the library).
-- **`fetch-nyt-range` bulk CLI** (review M5) — a Node script to download a date
-  range of NYT dailies into the library; still deferred (blocked on the
-  `NYT_COOKIE_JAR` secret, same as the live NYT fetch). Workaround: run
-  crossplay's script, then `crosswords:import`.
+This is the **canonical deferred register** for crosswords — distilled from the
+(now-retired) build plan + the 2026-07-05 / -07-06 review docs.
+
+### Deferred features
+- **First-visit help auto-open** (review M3) — crossplay opened Help on first board
+  load (dismissal remembered per browser); the rebus chords (⇧Enter / ⇧Space) are
+  otherwise undiscoverable. Not ported — `?` / the menu open Help on demand. Could
+  become a common-shell feature.
+- **`fetch-nyt-range` bulk CLI** (review M5) — a Node script to download a date range
+  of NYT dailies into the library; blocked on the `NYT_COOKIE_JAR` secret (same as
+  the live NYT fetch). Workaround: run crossplay's script, then `crosswords:import`.
+- **⌥M "open the menu" shortcut** (review M2) — the rest of crossplay's ⌥-set is
+  ported (§7); ⌥M stays out because the shell exposes no programmatic menu-open to a
+  PlayArea, and `?` / the logo already open it.
+- **NYT dedup** — inline NYT games aren't stored, so re-fetching a date makes a new
+  game (fine; NYT was always kept out of the library).
+- **Scratchpad lock races C3b / C3c** (review 2026-07-05) — simultaneous first
+  keystrokes from two clients can each adopt the *other's* claim (both read-only for
+  ~`STALE_MS`, and the loser's in-flight flush still lands); a late joiner sees no
+  lock state for ≤1s (Broadcast has no snapshot-on-join). Both self-heal within
+  seconds and can't corrupt the DB (crossplay's server arbitrated both). Low
+  priority at friend scale.
+
+### Deliberate leaves / standing flags
+Recorded decisions, not bugs — surfaced in the reviews and left as-is for a possible
+future cleanup pass:
+- **Vestigial `'nyt'` in `crosswords.puzzles.source`'s check constraint.** Nothing
+  writes `'nyt'` anymore (NYT games are self-contained — no `puzzles` row; the CLI
+  only writes `'library'`). A harmless spare; drop it from the constraint if you want
+  the schema to state the truth (a schema change, hence not done as a comment fix).
+- **Dead `crosswords.games` Realtime wiring.** The migration publishes
+  `crosswords.games` + does four no-op "Realtime touch" self-updates in the terminal
+  RPCs to wake FE subscribers — but nothing subscribes (`useGame` is one-shot; status
+  flows through `common.games`). Latent no-ops; drop the touches + the publication
+  line to lean the migration, or keep them as ready-made wiring.
+- **Terminal cursor navigation is half-frozen.** At terminal the keyboard is disabled
+  but a mouse click still moves the cursor (`onCellClick` isn't gated on
+  `isPlayable`). Inconsistent, not a bug — decide fully-freeze vs fully-allow
+  (re-enable arrow/Tab so you can read the solution by keyboard).
+- **Compete terminal never shows opponents' grids** (decision C5). The compete RLS
+  *opens* opponents' rows at terminal (pinned in `rls_test.sql`), but `useCells` stays
+  filtered to the caller and PlayArea draws one grid — deliberately-unused surface,
+  not a delivered feature (see §2 + `design-decisions.md`).
+- **Answer-key PDF gate is UI-only** (§7) — `solution_for` hands any member the grid
+  at any time (like Download-as-.ipuz), so the compete "terminal-only" gate on the
+  menu item is a UI gate, not server-enforced. Acceptable under the friends-only
+  trust model.
+- **`content_hash` is unique across BOTH sources** — an NYT fetch that content-collides
+  with a `library` row would reuse it (then listable), mildly contradicting "NYT stays
+  out of the listing." Very low probability, and largely moot now that NYT games are
+  inline. Left as a known edge case.
+- **Coop read-committed solve races** (nit, friend-scale ≈ 0) — two players filling
+  the last two cells at once can each miss the solved state (a re-type heals it); a
+  fill + concurrent clear can terminate a not-actually-complete grid. Crossplay
+  avoided both by being single-threaded; not worth guarding here.
+
+### Known limits & unpinned tests
+- **No keystroke debounce** — every fill is an UPDATE + CDC fanout to all peers (the
+  debounce was correctly dropped; the FE needs each keystroke live). Fine at friend
+  scale; 4 people speed-solving is the case to watch (row-update rates + Supabase
+  Realtime message quotas).
+- **Unpinned tests** (low-value / deferred from the reviews): Schrödinger + rebus
+  solve end-to-end in pgTAP (a fixture with a multi-char / multi-candidate solution
+  driving `set_cell → _is_solved → win`); inline-board missing-meta/solution
+  rejection; fill-clear-resets-pencil; the player-max guard; `reveal_solved_word`
+  expansion (a given cell, compete non-solver, non-player throw, note round-trip,
+  empty `p_cells`); `importFile` error paths + `meta.id` slugification;
+  `enumerationFor` mixed break+hyphen; `games_select` / `puzzles_select` row-RLS
+  (only `cells` RLS is pinned today); and the concede-flow / terminal-copy e2e.
 
 The crossplay apparatus is otherwise **fully ported**: cryptic edge marks
 (`|`/`_`, `set_mark`), the AI **"Explain cryptic clue"** (§10), the **rebus
