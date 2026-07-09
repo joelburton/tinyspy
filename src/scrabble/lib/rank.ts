@@ -90,7 +90,7 @@ export function leaveValue(tiles: readonly string[]): number {
   let consonants = 0
   for (const [glyph, n] of counts) {
     if (glyph === 'S') {
-      value += 8 + LEAVE_EXTRA_S * (n - 1)
+      value += LEAVE_TILE.S + LEAVE_EXTRA_S * (n - 1)
     } else {
       value += (LEAVE_TILE[glyph] ?? 0) * n
       if (glyph !== BLANK) value += LEAVE_DUP * (n - 1)
@@ -171,5 +171,23 @@ export function rankMoves(
         Math.abs(a.equity - target) - Math.abs(b.equity - target) || b.equity - a.equity,
     )
   }
-  return ranked.slice(0, topN)
+
+  // Presentation dedup (docs/scrabble-ai.md fixes §1). The generator keeps an
+  // opening play's across form and its vertical transpose as distinct moves
+  // (S2 point 6 — correct for generation), and positional shifts of the same
+  // word often score identically too — so the sorted head can hold several
+  // rows a player reads as one suggestion (same formed words, same score).
+  // Collapse those for DISPLAY, keeping the first (best-ranked) of each key,
+  // and keep filling until `topN` DISTINCT rows (or the list runs out). The
+  // returned move list is presentation-trimmed; generation stays exhaustive.
+  const seen = new Set<string>()
+  const distinct: RankedMove[] = []
+  for (const m of ranked) {
+    const key = [...m.words.map((w) => w.word)].sort().join(',') + `|${m.score}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    distinct.push(m)
+    if (distinct.length >= topN) break
+  }
+  return distinct
 }

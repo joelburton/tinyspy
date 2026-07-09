@@ -58,6 +58,14 @@ describe('rankMoves', () => {
     { x: 8, y: 7, letter: 'T', blank: false },
   ]
   const CATS: Placement[] = [...CAT, { x: 10, y: 7, letter: 'S', blank: false }]
+  // CAT played DOWN through the center — the opening transpose the generator
+  // rightly keeps as a distinct move, but identical to a reader: same word,
+  // same score (the center star is DW either orientation).
+  const CAT_DOWN: Placement[] = [
+    { x: 7, y: 7, letter: 'C', blank: false },
+    { x: 7, y: 8, letter: 'A', blank: false },
+    { x: 7, y: 9, letter: 'T', blank: false },
+  ]
   const board = emptyBoard()
   const anyDifficulty = () => 1
 
@@ -107,6 +115,58 @@ describe('rankMoves', () => {
   it('throws on a geometrically invalid move — a generator bug must be loud', () => {
     const floating: Placement[] = [{ x: 0, y: 0, letter: 'A', blank: false }]
     expect(() => rankMoves(board, [floating], ['A'], anyDifficulty)).toThrow(/invalid play/)
+  })
+
+  it('collapses duplicate word+score rows for display (fixes §1)', () => {
+    // CAT and CAT_DOWN are the same word at the same score (the opening
+    // transpose): one belongs on the list, not both. CATS is genuinely
+    // different, so it fills the freed slot.
+    const rack = ['C', 'A', 'T', 'S']
+    const ranked = rankMoves(board, [CAT, CAT_DOWN, CATS], rack, anyDifficulty)
+    const keyOf = (m: (typeof ranked)[number]) =>
+      [...m.words.map((w) => w.word)].sort().join(',') + `|${m.score}`
+    const keys = ranked.map(keyOf)
+    expect(new Set(keys).size).toBe(keys.length) // every shown row is distinct
+    expect(keys).toContain('CAT|10')
+    expect(keys).toContain('CATS|12')
+    expect(ranked).toHaveLength(2) // the two CATs collapsed to one
+  })
+
+  it('a first move never shows the same word+score twice (CATSERO repro)', () => {
+    // The review's empirical repro: a full rack on the opening produced a
+    // top-5 of COATS, COATS, TACO, TACO, TACO — 2 distinct plays wearing 5
+    // rows. Every opening word generates an across form AND its transpose at
+    // an identical score, so raw generation is riddled with display dupes;
+    // the top-5 the player sees must be distinct.
+    const WORDS: [string, number][] = [
+      ['at', 1], ['as', 1], ['re', 1], ['oe', 3], ['ar', 3], ['os', 3], ['to', 1], ['so', 1], ['or', 1], ['ta', 3],
+      ['cat', 1], ['oat', 1], ['oar', 2], ['ore', 2], ['are', 1], ['ear', 1], ['era', 2], ['ace', 1], ['arc', 2],
+      ['car', 1], ['rat', 1], ['tar', 1], ['sat', 1], ['set', 1], ['toe', 1], ['cot', 2], ['roe', 2], ['sea', 1],
+      ['coat', 1], ['taco', 2], ['cats', 1], ['oats', 1], ['care', 1], ['race', 1], ['core', 1], ['acre', 2],
+      ['cast', 1], ['scat', 3], ['orca', 3], ['sore', 1], ['rose', 1], ['rate', 1], ['tear', 1], ['tare', 3],
+      ['coats', 2], ['tacos', 2], ['cores', 2], ['cares', 2], ['races', 2], ['scare', 2], ['coast', 2], ['actor', 2],
+      ['caster', 3], ['castor', 4], ['costar', 4], ['coaster', 3],
+    ]
+    const trie = buildTrie(WORDS.map(([w]) => w), WORDS.map(([, r]) => r))
+    const bands: Bands = { dict2: 6, dict3plus: 6 }
+    const rack = ['C', 'A', 'T', 'S', 'E', 'R', 'O']
+    const first = emptyBoard()
+    const moves = generateMoves(first, rack, trie, bands)
+    const wordDifficulty = (word: string) => trie.eow[walkWord(trie, word.toLowerCase())]
+    const keyOf = (words: { word: string }[], score: number) =>
+      [...words.map((w) => w.word)].sort().join(',') + `|${score}`
+
+    const ranked = rankMoves(first, moves, rack, wordDifficulty) // default top 5
+    const shownKeys = ranked.map((m) => keyOf(m.words, m.score))
+    expect(new Set(shownKeys).size).toBe(shownKeys.length) // the displayed rows are distinct
+
+    // Prove the guarantee bites: raw generation really did contain dupes.
+    const rawKeys = moves.map((placements) => {
+      const ev = evaluatePlay(first, placements)
+      if (!ev.valid) throw new Error('fixture generated an invalid move')
+      return keyOf(ev.words, ev.score)
+    })
+    expect(rawKeys.length).toBeGreaterThan(new Set(rawKeys).size)
   })
 
   it('ranks generateMoves output end-to-end', () => {

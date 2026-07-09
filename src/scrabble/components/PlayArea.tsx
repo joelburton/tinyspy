@@ -7,6 +7,7 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { supabase } from '../../common/lib/supabase/supabase'
+import { unwrapEdgeFnError } from '../../common/lib/supabase/edgeFnError'
 import { db } from '../db'
 import type { ScrabbleSetup } from '../lib/setup'
 import type { Placement } from '../lib/play'
@@ -124,14 +125,6 @@ export function PlayArea({
     },
     [],
   )
-  // The LIVE version, for the response handler — its render closure is stale
-  // by the time the edge function answers, and an answer computed against a
-  // board a teammate has since played on must not be shown.
-  const versionRef = useRef<number | null>(null)
-  useEffect(() => {
-    versionRef.current = game?.version ?? null
-  }, [game?.version])
-
   const handleSuggest = useCallback(async () => {
     setSuggest({ status: 'loading' })
     const { data, error } = await supabase.functions.invoke('scrabble-suggest-move', {
@@ -139,19 +132,9 @@ export function PlayArea({
     })
     if (error) {
       // invoke folds a non-2xx into its own generic message; the real server
-      // error rides on error.context, a Response readable once (the
-      // invokeStartGameEdgeFn unwrap).
-      const ctx = (error as { context?: Response }).context
-      let serverMsg: string | null = null
-      if (ctx) {
-        try {
-          const parsed = (await ctx.json()) as { error?: string }
-          if (typeof parsed?.error === 'string') serverMsg = parsed.error
-        } catch {
-          // body wasn't JSON; fall through to the generic message
-        }
-      }
-      setSuggest({ status: 'error', message: serverMsg ?? error.message })
+      // error rides on error.context, a Response readable once (the shared
+      // unwrap, also used by invokeStartGameEdgeFn).
+      setSuggest({ status: 'error', message: (await unwrapEdgeFnError(error)) ?? error.message })
       return
     }
     const payload = data as { moves?: RankedMove[]; version?: number; error?: string } | null
@@ -159,12 +142,13 @@ export function PlayArea({
       setSuggest({ status: 'error', message: payload?.error ?? 'Could not fetch suggestions.' })
       return
     }
-    if (payload.version !== versionRef.current) {
-      // A move landed while the request was in flight — these hints answer a
-      // board that no longer exists. Say so rather than show them.
-      setSuggest({ status: 'error', message: 'Board changed — ask again.' })
-      return
-    }
+    // We do NOT reject a version mismatch here. The response's version is the
+    // DB's fresh snapshot; the FE's realtime copy can still LAG behind it, in
+    // which case the hints answer the board the FE is about to catch up to —
+    // rejecting would lie ("Board changed") and loop until the CDC lands. The
+    // render-derived `suggestView` (below) is the single staleness authority:
+    // it shows the list exactly when `suggest.version === game.version` and
+    // hides it otherwise, so a genuinely superseded answer never surfaces.
     setSuggest({ status: 'ready', moves: payload.moves, version: payload.version })
   }, [gameId])
 
@@ -230,11 +214,13 @@ export function PlayArea({
   const scrabbleSetup = setup as unknown as ScrabbleSetup
   // A ready list quietly clears the moment the board moves past it — most
   // commonly because the player just COMMITTED the suggested move, where a
-  // "board changed" message read as something going wrong. Derived each
-  // render, no clearing effect. (An answer that was stale on ARRIVAL — a
-  // teammate played mid-flight — does get the explicit message, above.)
+  // "board changed" message read as something going wrong. Also clears once
+  // the game is over (`end_game` never bumps `version`, so the version test
+  // alone would leave zombie "stage these tiles" rows on the terminal
+  // screen). Derived each render, no clearing effect (the no-setState-in-
+  // effects rule) — this is the single staleness authority for the hints.
   const suggestView: SuggestState =
-    suggest.status === 'ready' && suggest.version !== game.version
+    suggest.status === 'ready' && (isTerminal || suggest.version !== game.version)
       ? { status: 'idle' }
       : suggest
   const over = isTerminal ? buildOver({ game, playState, status, selfId: session.user.id, nameOf }) : null

@@ -1211,12 +1211,16 @@ declare
   g scrabble.games%rowtype;
   current_play_state text;
 begin
+  -- Membership is the FIRST gate: a non-member gets the same "not your game"
+  -- regardless of whether the game exists, so they can't probe game IDs. (Moot
+  -- under the friends trust model, but membership-is-the-first-gate is the
+  -- house convention — docs/scrabble-ai-fixes.md §8.)
+  perform common.require_game_player(target_game);
+
   select * into g from scrabble.games where id = target_game;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
-
-  perform common.require_game_player(target_game);
 
   select play_state into current_play_state
     from common.games where id = target_game;

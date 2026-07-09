@@ -31,6 +31,19 @@ describe('buildTrie', () => {
     expect(walkWord(trie, 'don')).toBeGreaterThan(0) // partial insert before the bail…
     expect(trie.eow[walkWord(trie, 'don')]).toBe(0)  // …but no terminal anywhere on it
   })
+
+  it('throws when a supplied rating is missing or outside 1..255 (§7 guard)', () => {
+    // The terminal is a Uint8Array cell whose truthiness IS "is a word", so a
+    // missing rating (short array), a 0, or a value that wraps mod 256 would
+    // silently erase an accepted word. Reject at build time instead.
+    expect(() => buildTrie(['at', 'cat'], [1])).toThrow(/rating for "cat"/) // undefined
+    expect(() => buildTrie(['at'], [0])).toThrow(/1\.\.255/)
+    expect(() => buildTrie(['at'], [256])).toThrow(/1\.\.255/)
+    expect(() => buildTrie(['at'], [2.5])).toThrow(/1\.\.255/)
+    // A word skipped for non-a–z chars never writes a terminal, so its rating
+    // is never consulted and never validated.
+    expect(() => buildTrie(["don't"], [0])).not.toThrow()
+  })
 })
 
 describe('walkWord', () => {

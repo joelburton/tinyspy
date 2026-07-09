@@ -9,6 +9,7 @@
  */
 
 import { supabase } from '../supabase/supabase'
+import { unwrapEdgeFnError } from '../supabase/edgeFnError'
 
 /** The manifest contract's dispatcher result: an optional error message. */
 export type RpcResult = { error?: string }
@@ -61,15 +62,11 @@ export type StartGameBody = {
 
 /**
  * Invoke a `<game>-build-board` edge function and normalize its result to the
- * manifest's `{ id } | { error }` union. Owns the **subtle** part that boggle,
- * spellingbee, and waffle each copied verbatim:
- *
- * `supabase.functions.invoke` reports a 4xx/5xx as its own generic
- * "Edge Function returned a non-2xx status code" message — the *real* server
- * error sits on `error.context`, a `Response` we can read **once**. So on error
- * we read `context.json()` and surface its `{ error }` field, falling back to
- * the generic message if the body isn't the JSON shape we expect. On success we
- * still guard the `{ id }` payload (a 200 with an `{ error }` body is possible).
+ * manifest's `{ id } | { error }` union. The **subtle** part boggle, spellingbee,
+ * and waffle each copied verbatim — reading the real server error off the
+ * read-once `error.context` — now lives in `unwrapEdgeFnError`. On success we
+ * still guard the `{ id }` payload here (a 200 with an `{ error }` body is
+ * possible).
  *
  * `brand` + `mode` only feed the last-resort "failed to start …" message.
  */
@@ -80,17 +77,7 @@ export async function invokeStartGameEdgeFn(
 ): Promise<{ id: string } | { error: string }> {
   const { data, error } = await supabase.functions.invoke(fnName, { body })
   if (error) {
-    const ctx = (error as { context?: Response }).context
-    let serverMsg: string | null = null
-    if (ctx) {
-      try {
-        const parsed = (await ctx.json()) as { error?: string }
-        if (parsed && typeof parsed.error === 'string') serverMsg = parsed.error
-      } catch {
-        // body wasn't JSON; fall through to the generic message
-      }
-    }
-    return { error: serverMsg ?? error.message }
+    return { error: (await unwrapEdgeFnError(error)) ?? error.message }
   }
   const payload = data as { id?: string; error?: string } | null
   if (!payload || payload.error || !payload.id) {

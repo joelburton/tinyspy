@@ -32,7 +32,14 @@ export interface Trie {
 /** Build a trie from a word list. Words are lower-cased; any word with a
  *  non-`a`–`z` character is skipped. `ratings`, if given, is parallel to
  *  `words` and becomes the terminal value (see "rated terminals" above);
- *  otherwise terminals are `1`. */
+ *  otherwise terminals are `1`.
+ *
+ *  A supplied rating MUST be an integer in `1..255` — the terminal is a
+ *  `Uint8Array` cell whose truthiness IS "this is a word", so a missing
+ *  rating (short array → `undefined`), a `0`, or a value that wraps mod 256
+ *  would silently turn an accepted word into a non-word and desync a
+ *  consumer's legality check from the real dictionary. We throw instead of
+ *  storing a self-erasing terminal (docs/scrabble-ai-fixes.md §7). */
 export function buildTrie(words: readonly string[], ratings?: readonly number[]): Trie {
   let cap = 1 << 16
   let children = new Int32Array(cap * 26)
@@ -54,7 +61,16 @@ export function buildTrie(words: readonly string[], ratings?: readonly number[])
       if (nx === 0) { nx = n++; if (n > cap) grow(); children[node * 26 + c] = nx }
       node = nx
     }
-    if (ok) eow[node] = ratings ? ratings[i] : 1
+    if (ok) {
+      if (ratings) {
+        const r = ratings[i]
+        if (!Number.isInteger(r) || r < 1 || r > 255)
+          throw new Error(`buildTrie: rating for "${w}" must be an integer 1..255, got ${r}`)
+        eow[node] = r
+      } else {
+        eow[node] = 1
+      }
+    }
   }
   return { children, eow, nNodes: n }
 }

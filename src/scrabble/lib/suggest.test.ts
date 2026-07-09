@@ -3,6 +3,7 @@
 // allocation-heavy enough that skipping jsdom is a real speedup)
 import { describe, expect, it } from 'vitest'
 import { buildTrie, walkWord } from '../../common/lib/game/trie'
+import { mulberry32 } from '../../common/lib/util/mulberry32'
 import { CENTER, cellIndex, inBounds, type Cell } from './board'
 import { evaluatePlay, type Placement } from './play'
 import { generateMoves, isLegal, type Bands } from './suggest'
@@ -336,17 +337,8 @@ describe('generateMoves — randomized parity vs brute force', () => {
   const trie = buildTrie(DICT.map(([w]) => w), DICT.map(([, r]) => r))
   const POOL = 'aetosrndci'
 
-  // Seeded PRNG (mulberry32) — the seed is in the test name and every assert
-  // label, so a failure is reproducible verbatim.
-  const mulberry32 = (seed: number) => {
-    let a = seed >>> 0
-    return () => {
-      a = (a + 0x6d2b79f5) | 0
-      let t = Math.imul(a ^ (a >>> 15), 1 | a)
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-    }
-  }
+  // Seeded PRNG (the shared mulberry32) — the seed is in the test name and
+  // every assert label, so a failure is reproducible verbatim.
 
   // Random connected tile soup. Existing runs need NOT be real words: neither
   // generator revalidates untouched runs (matching play_word, which only
