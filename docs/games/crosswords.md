@@ -157,8 +157,11 @@ Upload file):
   (list-by-date → first `Normal` puzzle → v6 JSON; browser User-Agent +
   `NYT_COOKIE_JAR` cookie secret **mandatory**), converts via the pure
   `src/crosswords/lib/nyt.ts` (unit-tested), then `create_game(board=…)` as the
-  caller. Overlay-PNG analysis (circles-on-shaded + bars on a minority of themed
-  puzzles) is **deferred** — normal dailies convert fully. Local cookie setup:
+  caller. **Overlay-PNG analysis** (circles-on-shaded + word-break bars on a
+  minority of themed puzzles) is applied after conversion: the pure detector is
+  `src/crosswords/lib/nytOverlay.ts` (`detectOverlayMarkings` + `applyOverlayMarkings`,
+  unit-tested against real NYT overlay fixtures), and the edge fn fetches + decodes
+  the overlay PNG (`npm:pngjs`) — a missing/broken overlay is non-fatal. Local cookie setup:
   put `NYT_COOKIE_JAR=<raw JSON or base64>` in `supabase/functions/.env` and
   `supabase functions serve crosswords-import-nyt --env-file …`.
 
@@ -246,9 +249,13 @@ never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
 `src/crosswords/pdf/` is a **verbatim port** of crossplay's own jsPDF printer
 (its 12-unit layout grid, clue pagination, cell renderer), NOT the shared
 `common/pdf` frame — it keeps crossplay's title block and adds no Setup section
-(plan decision 7). The answer-key generator (`generateSolutionPdf`) is dropped
-(the FE has no solution). Exposed as the "Print / Save as PDF" game-menu item
-(one of the `setGameSections` items); the grid is snapshotted at click-time. See
+(plan decision 7). The **answer-key generator (`generateSolutionPdf`)** is also
+ported (`pdf/solution.ts`): a solved-grid PDF (every open cell filled with the
+canonical answer, the note flowed through the clue regions), driven by a "Print
+answer key (PDF)" menu item that fetches the grid via `solution_for` — coop any
+time, compete only at terminal (a UI gate; `solution_for` itself isn't
+terminal-gated, same as Download-as-.ipuz). Both PDFs are exposed as
+`setGameSections` menu items; the grid is snapshotted at click-time. See
 [docs/pdf.md](../pdf.md) → the grid-plus-clue-columns body family.
 
 **The game menu** is the fullest in the app — crosswords builds its whole menu
@@ -256,7 +263,7 @@ via `ctx.menu.setGameSections` + the shared `buildGameMenu` helper (see
 [ui.md → GamePage menu](../ui.md#gamepage-menu)), reproducing crossplay's
 single-column layout in order: **Help** · pencil (⌥P) / Enter rebus (⇧↵) /
 Collapse rebuses · Show note (⌥N) / Explain cryptic clue (⌥X) / Scratchpad (⌥S)
-/ Print (⌥ none) / Download as .ipuz · Check letter (⌥C) / word (⌥⇧C) / puzzle ·
+/ Print (⌥ none) / Download as .ipuz / Print answer key (PDF) · Check letter (⌥C) / word (⌥⇧C) / puzzle ·
 Reveal letter (⌥R) / word (⌥⇧R) / puzzle *(whole section coop-only)* · Clear
 board / Reveal board · **End game / Concede game** (⌥⌫) · **Back to club** (⇧<).
 The play actions dispatch through the stable `actionsRef`. Notables: **Collapse
@@ -297,22 +304,21 @@ non-game menus keep standard Esc-restores-focus a11y.)
 
 ## 9. Deferred / future
 
-- **NYT overlay-PNG analysis** — circles-on-shaded + word-break bars on a
-  minority of themed puzzles; needs a Deno PNG decoder. Normal dailies unaffected.
 - **NYT dedup** — inline NYT games aren't stored, so re-fetching a date makes a
   new game (fine; NYT was always kept out of the library).
 - **`fetch-nyt-range` bulk CLI** (review M5) — a Node script to download a date
   range of NYT dailies into the library; still deferred (blocked on the
   `NYT_COOKIE_JAR` secret, same as the live NYT fetch). Workaround: run
-  crossplay's script, then `crosswords:import`. Crossplay's other author tools
-  **did** ship — see §11.
-- **`generateSolutionPdf` (answer-key PDF)** — not ported. Now cheap given the
-  `solution_for` RPC (M4) hands the FE the answer grid on demand; do it if wanted.
+  crossplay's script, then `crosswords:import`.
 
 The crossplay apparatus is otherwise **fully ported**: cryptic edge marks
 (`|`/`_`, `set_mark`), the AI **"Explain cryptic clue"** (§10), the **rebus
-collapse** toggle (§9 menu), **Download as .ipuz** (M4), the **saved-fill
-restore** on import (§6), and chat **URL linkify** (a common feature now).
+collapse** toggle (§9 menu), **Download as .ipuz** (M4), the **answer-key PDF**
+(`generateSolutionPdf`, §7), the **NYT overlay-PNG analysis** (circles + bars,
+`nytOverlay.ts`, §5), the **saved-fill restore** on import (§6), and chat
+**URL linkify** (a common feature now). The **`make-sunday-fixture`** generator
+is also ported (`npm run crosswords:make-fixture` — emits the .puz + .ipuz
+feature-sampler fixtures).
 
 ## 10. AI "Explain cryptic clue"
 

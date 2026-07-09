@@ -97,11 +97,6 @@ game doc's §9 also lists NYT overlay-PNG analysis + NYT dedup; those live there
   (`crosswords.md` §10), AND the rebus-"collapse" display toggle (`crosswords.md`
   §9 menu — a per-browser preference that shows multi-char rebus fills as their
   first letter).
-- **`generateSolutionPdf` (answer-key PDF).** Print ports the puzzle generator
-  only; the answer-key variant needs the solution. Now **cheap** — the
-  `solution_for` RPC (added for the .ipuz export, review M4) hands the FE the
-  answer grid on demand — so this is a small follow-up if wanted, no longer
-  blocked on shielding.
 - **`fetch-nyt-range` bulk CLI** (review M5) — download a date range of NYT
   dailies into the library. Deferred: blocked on the `NYT_COOKIE_JAR` secret
   (same as the live NYT fetch). Crossplay's OTHER author tools shipped
