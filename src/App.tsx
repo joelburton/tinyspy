@@ -11,6 +11,7 @@ import { EditProfileDialog } from './common/components/account/EditProfileDialog
 import { GameInvitations } from './common/components/game/GameInvitations'
 import { ToastHost } from './common/components/toasts/ToastHost'
 import { useRealtimeReconnect } from './common/hooks/realtime/useRealtimeReconnect'
+import { useBacktickEscape } from './common/hooks/input/useBacktickEscape'
 import { usePath } from './common/lib/routing/router'
 import { games } from './games'
 
@@ -62,6 +63,9 @@ export default function App() {
   // returns, so a slept-then-resumed session re-establishes presence instead of
   // sitting wedged in a game's pause overlay until a refresh. See the hook.
   useRealtimeReconnect()
+  // Let `` ` `` stand in for Escape app-wide (keyboards without a physical
+  // Esc key). Window-level, so it's mounted here at the root — see the hook.
+  useBacktickEscape()
   // Edit-profile popup, opened from the UserMenu. Held here (not in the
   // menu) so the dialog is a sibling of the page — the popup coexists
   // with chat / invitations rather than replacing the current screen.
