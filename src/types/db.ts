@@ -1353,6 +1353,7 @@ export type Database = {
         Args: { p_cells: Json; target_game: string }
         Returns: undefined
       }
+      clear_board: { Args: { target_game: string }; Returns: undefined }
       concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: {

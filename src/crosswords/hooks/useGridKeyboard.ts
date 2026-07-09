@@ -45,6 +45,17 @@ export type GridKeyboard = {
   /** Cycle the cryptic edge mark on one side of a cell (`|` = right,
    *  `_` = bottom). The consumer reads the current mark + advances it. */
   onMark: (row: number, col: number, side: 'right' | 'bottom') => void
+  /** ⌥-letter shortcuts (crossplay parity — the port's identity is
+   *  keyboard-first). Each mirrors a Controls-bar / game-menu action; the
+   *  hook keys them on `e.code` (so Mac ⌥ dead-keys don't matter) and only
+   *  fires them while the board is writable (not terminal / conceded).
+   *  A null callback = that action isn't available here (reveal in compete,
+   *  note/explain when the puzzle carries no setter note). */
+  onTogglePencil: () => void
+  onCheck: (scope: 'word' | 'puzzle') => void
+  onReveal: ((scope: 'word' | 'puzzle') => void) | null
+  onShowNote: (() => void) | null
+  onExplain: (() => void) | null
 }
 
 const ARROWS = new Set<ArrowKey>(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'])
@@ -86,6 +97,7 @@ export function useGridKeyboard(ref: RefObject<GridKeyboard | null>) {
       const {
         grid, cursor, pencil, setCursor, fillAt, isGiven, setCell,
         onRebus, onNumberJump, onPeek, clearPeek, onMark,
+        onTogglePencil, onCheck, onReveal, onShowNote, onExplain,
       } = k
       const { row, col } = cursor
 
@@ -95,6 +107,35 @@ export function useGridKeyboard(ref: RefObject<GridKeyboard | null>) {
         e.preventDefault()
         onNumberJump()
         return
+      }
+
+      // ⌥-letter shortcuts (mirror the Controls bar + game menu). Handled
+      // BEFORE the generic Ctrl/Meta/Alt bail below, and keyed on `e.code`
+      // (physical key) so Mac ⌥ dead-keys — ⌥C = ç, ⌥N = ˜ — don't matter.
+      // Shift widens check/reveal from the word to the whole grid.
+      if (e.altKey && !e.metaKey && !e.ctrlKey) {
+        // Check / reveal / pencil are writes — inert once the board is
+        // read-only (terminal). Note / explain are fine any time.
+        const writable = !k.readOnly
+        switch (e.code) {
+          case 'KeyP':
+            if (writable) { e.preventDefault(); onTogglePencil() }
+            return
+          case 'KeyC':
+            if (writable) { e.preventDefault(); onCheck(e.shiftKey ? 'puzzle' : 'word') }
+            return
+          case 'KeyR':
+            if (writable && onReveal) { e.preventDefault(); onReveal(e.shiftKey ? 'puzzle' : 'word') }
+            return
+          case 'KeyN':
+            if (onShowNote) { e.preventDefault(); onShowNote() }
+            return
+          case 'KeyX':
+            if (onExplain) { e.preventDefault(); onExplain() }
+            return
+          default:
+            return // any other ⌥ combo: bail, as before
+        }
       }
 
       if (e.metaKey || e.ctrlKey || e.altKey) return

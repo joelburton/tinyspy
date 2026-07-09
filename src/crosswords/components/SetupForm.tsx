@@ -93,7 +93,10 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           type="button"
           className={cls(styles.segBtn, source === 'library' && styles.segOn)}
           aria-pressed={source === 'library'}
-          onClick={() => onChange({ ...s, source: 'library' })}
+          // Drop any parsed upload board/filename when leaving the Upload tab so
+          // a stale solution grid can't ride along in `setup` (belt-and-braces
+          // with the unconditional strip in manifest + the create_game backstop).
+          onClick={() => onChange({ ...s, source: 'library', board: undefined, filename: undefined })}
         >
           Library
         </button>
@@ -101,7 +104,15 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           type="button"
           className={cls(styles.segBtn, source === 'nyt' && styles.segOn)}
           aria-pressed={source === 'nyt'}
-          onClick={() => onChange({ ...s, source: 'nyt', date: s.date || todayStr() })}
+          onClick={() =>
+            onChange({
+              ...s,
+              source: 'nyt',
+              date: s.date || todayStr(),
+              board: undefined,
+              filename: undefined,
+            })
+          }
         >
           NYT by date
         </button>

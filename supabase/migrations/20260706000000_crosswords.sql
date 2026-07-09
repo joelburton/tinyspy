@@ -14,8 +14,12 @@
 -- Match semantics (solve / check / reveal) are mirrored from crossplay's
 -- `ws.ts` (`fillMatchesSolution`, `isPuzzleSolved`, `applyCheck`,
 -- `applyReveal`), NOT from prose — the two subtleties that bite:
---   * the bare-first-letter answer is accepted ONLY for Schrödinger cells
---     (a solution array of length > 1); a normal rebus needs the full string.
+--   * the bare-first-letter answer is accepted for any multi-CHARACTER
+--     candidate (keyed on the candidate string's length, `length(ans) > 1`) —
+--     NOT on the number of candidates. So a normal rebus ("HEART") accepts
+--     "H"; a Schrödinger cell whose candidates are all single letters does not.
+--     (See the `_matches` docstring below — this header used to state the
+--     inverted rule the C1 remediation fixed.)
 --   * *solve* does NOT skip pencil cells (a correct pencil cell counts —
 --     pencil is a confidence marker); only *check* skips pencil.
 -- ============================================================
@@ -406,6 +410,12 @@ begin
   if setup ? 'mode' then
     raise exception 'mode is a top-level arg, not a setup field' using errcode = 'P0001';
   end if;
+  -- Backstop the FE's strip: the inline puzzle rides as the separate `board`
+  -- arg, so `board`/`filename` never belong in the persisted setup. Dropping
+  -- them here keeps a stale upload (e.g. a parsed board left in the setup after
+  -- a source tab-switch) from leaking the solution grid into the unshielded
+  -- status jsonb and the club's saved default. See docs/games/crosswords.md §5.
+  setup := setup - 'board' - 'filename';
 
   if board is not null then
     -- Inline (NYT): trust the caller's puzzle data; no library row.
@@ -706,6 +716,49 @@ end;
 $$;
 revoke execute on function crosswords.reveal_cells(uuid, jsonb) from public;
 grant execute on function crosswords.reveal_cells(uuid, jsonb) to authenticated;
+
+-- Clear board — restore the caller's grid to its initial (post-import) state:
+-- blank every fillable cell and drop its per-cell flags (pencil / wrong /
+-- revealed) and cryptic edge marks. Givens live on the template, not in the
+-- cells table, so they're preserved automatically; the answer is untouched.
+-- Works in both modes on the appropriate grid (the shared grid in coop, the
+-- caller's own in compete) — a "start over" gesture, mirroring crossplay's
+-- Clear menu item. Clearing can only ever REMOVE fills, so no solve check.
+create function crosswords.clear_board(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = crosswords, common, public, extensions
+as $$
+declare
+  v_caller    uuid;
+  v_mode      text;
+  v_playstate text;
+  v_owner     uuid;
+begin
+  v_caller := common.require_game_player(target_game);
+  select mode into v_mode from crosswords.games where id = target_game;
+  select play_state into v_playstate from common.games where id = target_game;
+  if v_playstate is distinct from 'playing' then
+    raise exception 'game is not in play' using errcode = 'P0001';
+  end if;
+  -- A conceded compete player is out — their grid is frozen (same guard as
+  -- set_cell / check_cells).
+  if (select conceded from common.game_players
+        where game_id = target_game and user_id = v_caller) then
+    raise exception 'you have conceded' using errcode = 'P0001';
+  end if;
+  v_owner := case when v_mode = 'coop' then null else v_caller end;
+
+  update crosswords.cells c
+     set fill = null, pencil = false, wrong = false, revealed = false,
+         mark_right = null, mark_bottom = null
+   where c.game_id = target_game
+     and c.owner_id is not distinct from v_owner;
+end;
+$$;
+revoke execute on function crosswords.clear_board(uuid) from public;
+grant execute on function crosswords.clear_board(uuid) to authenticated;
 
 -- ============================================================
 -- reveal_solved_word — leak-safe answer read for the "Explain clue" feature

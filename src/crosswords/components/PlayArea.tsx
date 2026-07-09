@@ -99,12 +99,14 @@ export function PlayArea(ctx: GamePageCtx) {
   // Coop presence on the SHARED grid: teammates' cursors + a short flash on
   // cells they just filled. All empty in compete (private grids).
   const myColor = players.find((p) => p.user_id === myId)?.color ?? ''
-  const { peers, recentFills, broadcastFill } = usePeerCursors(
+  const { peers, recentFills, broadcastFill, broadcastFills, broadcastNote } = usePeerCursors(
     gameId,
     mode === 'coop',
     cursor,
     myId,
     myColor,
+    // A teammate hit "Show note" — open the setter's note here too (coop).
+    () => setNoteOpen(true),
   )
 
   // Write a cell (optimistic) + surface any RPC error. Solved → terminal
@@ -136,6 +138,22 @@ export function PlayArea(ctx: GamePageCtx) {
     },
     [cells, setMark, showLocalFeedback],
   )
+
+  // Does the puzzle carry a setter's note? Gates the Show-note / Explain menu
+  // items AND their ⌥N / ⌥X keyboard shortcuts.
+  const hasNote = (game?.meta.note ?? '').trim().length > 0
+
+  // The ⌥-shortcut action handlers, held in a stable ref so the keyboard's
+  // kbRef can call them without listing the (later-declared) handlers in its
+  // deps. Populated by an effect once handleCheck/handleReveal/handleExplain
+  // exist (below); read at key-event time, like kbRef itself.
+  const actionsRef = useRef<{
+    togglePencil: () => void
+    check: (scope: Scope) => void
+    reveal: (scope: Scope) => void
+    showNote: () => void
+    explain: () => void
+  } | null>(null)
 
   // Latest play state for the window keyboard handler (dodges stale
   // closures). Written in an effect (runs after every render), not during
@@ -173,9 +191,17 @@ export function PlayArea(ctx: GamePageCtx) {
             onPeek: (r, c) => setPeek({ row: r, col: c, value: fillAt(r, c) ?? '' }),
             clearPeek: () => setPeek(null),
             onMark: (r, c, side) => void handleMark(r, c, side),
+            // ⌥-shortcut actions dispatch through the stable actionsRef.
+            // Nullability mirrors the Controls bar / menu: no reveal in
+            // compete, no note/explain without a setter note.
+            onTogglePencil: () => actionsRef.current?.togglePencil(),
+            onCheck: (scope) => actionsRef.current?.check(scope),
+            onReveal: mode === 'coop' ? (scope) => actionsRef.current?.reveal(scope) : null,
+            onShowNote: hasNote ? () => actionsRef.current?.showNote() : null,
+            onExplain: hasNote ? () => actionsRef.current?.explain() : null,
           }
         : null
-  }, [grid, cursor, isPlayable, isTerminal, pencil, cells, handleSetCell, handleMark, rebus, numberJumpOpen])
+  }, [grid, cursor, isPlayable, isTerminal, pencil, cells, handleSetCell, handleMark, rebus, numberJumpOpen, mode, hasNote])
   useGridKeyboard(kbRef)
 
   const handleRebusCommit = useCallback(
@@ -321,21 +347,41 @@ export function PlayArea(ctx: GamePageCtx) {
     setExplain({ kind: 'ok', explanation: (data as { explanation: string }).explanation })
   }, [gameId])
 
+  // Clear board — a destructive "start over" (blanks my grid, keeps givens +
+  // the answer). Confirm first (window.confirm, like GamePage's End action);
+  // the server restores the grid to its initial state and the CDC stream
+  // repaints. In coop this clears the SHARED grid for everyone. Declared here
+  // (above the menu effect that lists it) so it's in scope for the effect.
+  const handleClear = useCallback(async () => {
+    const shared = mode === 'coop' ? ' This clears the shared grid for everyone.' : ''
+    if (!window.confirm(`Clear the board?${shared} You can't undo this.`)) return
+    clearLocalFeedback()
+    const { error } = await db.rpc('clear_board', { target_game: gameId })
+    if (error) showLocalFeedback(stickyPill('error', `Clear failed: ${error.message}`))
+  }, [mode, gameId, showLocalFeedback, clearLocalFeedback])
+
+  // Show note — open the setter's note locally AND (in coop) broadcast so
+  // teammates open it too ("read it together", crossplay's showNotes). A no-op
+  // broadcast in compete, where the peer channel is disabled.
+  const handleShowNote = useCallback(() => {
+    setNoteOpen(true)
+    broadcastNote()
+  }, [broadcastNote])
+
   // Game-menu items. `hasNote` is stable per game, and `handleExplain` reads the
   // current clue via a ref, so this doesn't rebuild per keystroke — only on the
-  // one-shot terminal / reveal transitions.
+  // one-shot terminal / reveal / playable transitions.
   useEffect(() => {
     if (!game) return
     const title = game.meta.title || 'crossword'
-    // Some puzzles carry a setter's note (theme hints, constructor remarks);
-    // the menu item opens it, disabled when there's none.
-    const hasNote = (game.meta.note ?? '').trim().length > 0
+    // `hasNote` (hoisted above) gates the Show-note / Explain items — some
+    // puzzles carry a setter's note (theme hints, constructor remarks).
     menu.setGameItems([
       {
         id: 'note',
         label: 'Show note',
         disabled: !hasNote,
-        onClick: () => setNoteOpen(true),
+        onClick: handleShowNote,
       },
       {
         // The AI clue-explainer is for cryptics; a setter note is the proxy
@@ -344,6 +390,14 @@ export function PlayArea(ctx: GamePageCtx) {
         label: 'Explain cryptic clue',
         disabled: !hasNote,
         onClick: () => void handleExplain(),
+      },
+      {
+        // Destructive "start over": blank my grid (givens + answer kept).
+        // Only while the game is actually playable (not terminal / conceded).
+        id: 'clear-board',
+        label: 'Clear board',
+        disabled: !isPlayable,
+        onClick: () => void handleClear(),
       },
       {
         // Post-game answer key. Disabled mid-game because the server only
@@ -364,7 +418,7 @@ export function PlayArea(ctx: GamePageCtx) {
       },
     ])
     return () => menu.setGameItems([])
-  }, [menu, game, handleExplain, handleRevealBoard, isTerminal, solution])
+  }, [menu, game, hasNote, handleShowNote, handleExplain, handleRevealBoard, handleClear, isPlayable, isTerminal, solution])
 
   const over: TerminalCopy | null = isTerminal ? buildOver(playState, status, mode, myId) : null
 
@@ -426,10 +480,28 @@ export function PlayArea(ctx: GamePageCtx) {
       if (target.length === 0) return
       clearLocalFeedback()
       const { error } = await db.rpc('reveal_cells', { target_game: gameId, p_cells: target })
-      if (error) showLocalFeedback(stickyPill('error', `Reveal failed: ${error.message}`))
+      if (error) {
+        showLocalFeedback(stickyPill('error', `Reveal failed: ${error.message}`))
+        return
+      }
+      // Flash the revealed cells on teammates' grids in my color — the reveal's
+      // CDC arrives colorless (like a typed fill), so it needs its own signal.
+      broadcastFills(target)
     },
-    [scopeCells, gameId, showLocalFeedback, clearLocalFeedback],
+    [scopeCells, gameId, showLocalFeedback, clearLocalFeedback, broadcastFills],
   )
+
+  // Keep the ⌥-shortcut action handlers current (read by the keyboard's kbRef
+  // via the stable actionsRef). setPencil / setNoteOpen are stable setters.
+  useEffect(() => {
+    actionsRef.current = {
+      togglePencil: () => setPencil((p) => !p),
+      check: handleCheck,
+      reveal: handleReveal,
+      showNote: handleShowNote,
+      explain: () => void handleExplain(),
+    }
+  }, [handleCheck, handleReveal, handleShowNote, handleExplain])
 
   if (!game || !cursor) {
     return (

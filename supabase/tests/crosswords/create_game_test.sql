@@ -1,6 +1,6 @@
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(18);
+select plan(21);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -125,6 +125,33 @@ select throws_ok(
          'dee44444-4444-4444-4444-444444444444', 'coop'),
   '42501', null, 'non-member cannot create a game in the club');
 reset role;
+
+-- ── Setup-strip backstop (finding 1.1) ───────────────────────────────
+-- A `board` (+ `filename`) can linger in the setup blob after an upload →
+-- tab-switch. create_game must strip both from what it persists (the
+-- unshielded status jsonb + the club's saved default), or an uploaded
+-- solution grid leaks + self-perpetuates. Drive a library create whose
+-- setup carries a bogus board and assert neither destination keeps it.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select id as gl_id from crosswords.create_game(
+  :'club_handle',
+  pg_temp.xw_setup(:'pz_id')
+    || jsonb_build_object(
+         'board', jsonb_build_object('meta', '{}'::jsonb, 'solution', '["LEAK"]'::jsonb),
+         'filename', 'secret.puz'),
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') \gset
+reset role;
+
+select ok(
+  not ((select setup from common.games where id = :'gl_id') ? 'board'),
+  'create_game strips `board` from the persisted (unshielded) setup');
+select ok(
+  not ((select setup from common.games where id = :'gl_id') ? 'filename'),
+  'create_game strips `filename` from the persisted setup');
+select ok(
+  not ((select default_setup from common.clubs_gametypes
+         where club_handle = :'club_handle' and gametype = 'crosswords_coop') ? 'board'),
+  'the club saved-default (default_setup) also carries no `board`');
 
 -- ── Solution shielding ───────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

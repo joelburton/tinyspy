@@ -47,16 +47,19 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
         brand,
       )
     }
-    // Upload: pass the parsed board inline; strip it (+ filename) from the
-    // setup that create_game stores as status / saved-default.
-    let board: CrosswordsSetup['board'] | undefined
-    let setupToStore: CrosswordsSetup = s
-    if (s.source === 'upload') {
-      board = s.board
-      setupToStore = { ...s }
-      delete setupToStore.board
-      delete setupToStore.filename
-    }
+    // Upload: pass the parsed board inline (create_game's `board` arg). The
+    // board + filename are stripped from the setup that create_game stores as
+    // status / saved-default — UNCONDITIONALLY, not just on the upload tab. A
+    // parsed board can linger in `s` after a tab-switch (the SetupForm segment
+    // buttons spread the prior setup: `onChange({ ...s, source: 'library' })`),
+    // so a library/NYT start could otherwise persist a stale solution grid into
+    // the unshielded `setup`, whence it self-perpetuates through the club's
+    // saved default. See docs/games/crosswords.md §5 and the server backstop in
+    // create_game (`setup - 'board' - 'filename'`).
+    const board = s.source === 'upload' ? s.board : undefined
+    const setupToStore: CrosswordsSetup = { ...s }
+    delete setupToStore.board
+    delete setupToStore.filename
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,

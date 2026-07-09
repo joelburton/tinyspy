@@ -34,4 +34,23 @@ describe('enumerationFor', () => {
     const cells: CellsMap = new Map([[cellKey(1, 0), cell({ markBottom: 'break' })]])
     expect(enumerationFor(down, cells, 'down')).toBe('(2,2)')
   })
+
+  it('mixes break + hyphen in one word (exercises the separator index)', () => {
+    // 7 cells: a break after cell 1, a hyphen after cell 4 → (2,3-2). The
+    // separators array must line up with segments 1 and 2 respectively — the
+    // likeliest off-by-one in the join loop.
+    const cells: CellsMap = new Map([
+      [cellKey(0, 1), cell({ markRight: 'break' })],
+      [cellKey(0, 4), cell({ markRight: 'hyphen' })],
+    ])
+    expect(enumerationFor(word(7), cells, 'across')).toBe('(2,3-2)')
+  })
+
+  it('counts a given cell (absent from the cells map) toward the length', () => {
+    // Cell (0,3) is a given → no entry in the map → its mark reads undefined
+    // (no spurious split), but it still adds 1 to the running segment length.
+    // Only the real break at (0,1) splits: (2,3).
+    const cells: CellsMap = new Map([[cellKey(0, 1), cell({ markRight: 'break' })]])
+    expect(enumerationFor(word(5), cells, 'across')).toBe('(2,3)')
+  })
 })

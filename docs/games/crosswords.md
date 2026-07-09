@@ -112,7 +112,8 @@ plain RPCs — no edge function needed.
 | `set_mark(target_game, row, col, side, mark)` | Set/clear a cryptic word-break / hyphen mark on the cell's `right` / `bottom` edge (`mark` = `break` / `hyphen` / null). Same guards as `set_cell`; display-only (no solve). Marks live in `cells.mark_right` / `mark_bottom` and sync via the same CDC path. **Fillable cells only** (a mark rides on the *left/upper* cell of a boundary, and givens have no cell row — so a break on a given's own right/bottom edge isn't representable; a rare cryptic-with-givens case, deliberately not supported). Ported from crossplay's edge marks. |
 | `reveal_solved_word(target_game, cells jsonb)` | **Leak-safe** answer read for the AI "Explain clue" feature: returns the canonical answer for `cells` **only if the caller has already filled them all correctly** (`_matches`, honoring givens) — else `solved = false`, no letters. So it can only surface a word you've already solved (safe in compete too). Also returns the puzzle note (not secret). Consumed by the `crosswords-explain-clue` edge function. |
 | `check_cells(target_game, cells jsonb)` | FE resolves letter/word/puzzle scope via `cursor.ts` and sends coordinates; server sets/clears `wrong` (skipping empty/pencil). Both modes. |
-| `reveal_cells(target_game, cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil. **Coop only** (reveal-all would trivially win the compete race). |
+| `reveal_cells(target_game, cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil. **Coop only** (reveal-all would trivially win the compete race). On success the FE broadcasts the revealed coords on the peer channel so teammates flash them in the actor's color (the CDC arrives colorless). |
+| `clear_board(target_game)` | Destructive "start over" (crossplay parity): blanks every fillable cell on the caller's grid (the shared grid in coop, own in compete) and drops its `pencil` / `wrong` / `revealed` flags + cryptic edge marks. Givens live on the template, so they're preserved; the answer is untouched. Guards: membership, `play_state = playing`, not conceded. No solve check (clearing only removes fills). FE surfaces it as a **confirmed** game-menu item. |
 | `end_game(target_game)` | Coop mutual give-up → neutral `ended` ("finished"). Terminal unshields the solution (`games_state`), but the FE only shows it on demand — the "Reveal board" menu item (§7 → Terminal). |
 | `concede` / `submit_timeout` | Standard. Crosswords has **no timer** (timerMode none), so `submit_timeout` is never invoked in practice. |
 
@@ -133,7 +134,14 @@ Upload file):
   the browser) into the inline board, then `create_game(board=…)` directly — a
   self-contained game, no `puzzles` row (like NYT). The parsed board rides in the
   FE-only `setup.board` and is **stripped** before create_game stores the setup,
-  so the solution never lands in the unshielded status / saved-default.
+  so the solution never lands in the unshielded status / saved-default. The strip
+  is **belt-and-braces** across three layers, because a parsed board can linger
+  in `setup` after a source tab-switch (the SetupForm segment buttons spread the
+  prior setup): `startGameInClub` deletes `board`/`filename` *unconditionally*
+  (not just on the upload tab), the tab buttons clear them when leaving Upload,
+  and `create_game` itself runs `setup := setup - 'board' - 'filename'` as a
+  server backstop — the real inline puzzle always rides as the separate `board`
+  arg, so it's never wanted in the persisted setup regardless of what the FE sends.
 - **`crosswords-import-nyt`** edge function — fetches an NYT daily by date
   (list-by-date → first `Normal` puzzle → v6 JSON; browser User-Agent +
   `NYT_COOKIE_JAR` cookie secret **mandatory**), converts via the pure
@@ -178,8 +186,17 @@ never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
   rebus), arrows / Shift+arrows (word edge), Tab / Shift+Tab (jump clue),
   Shift+Enter (rebus overlay), `#` (jump-to-number popup), `|` / `_` (cycle the
   right / bottom cryptic edge mark → `set_mark`). Bails inside inputs
-  (`isNonGameField`), when a modal is `suspended`-ing the board, + on Ctrl/Meta/
-  Alt (except `#`). The `⌥` shell shortcuts stay with the shell.
+  (`isNonGameField`), when a modal is `suspended`-ing the board, + on Ctrl/Meta.
+  - **⌥-letter shortcuts** (crossplay parity — the port's identity is
+    keyboard-first): **⌥P** pen/pencil, **⌥C** / **⌥⇧C** check word / grid,
+    **⌥R** / **⌥⇧R** reveal word / grid (coop only), **⌥N** show note, **⌥X**
+    explain cryptic clue. Handled before the Ctrl/Meta/Alt bail and keyed on
+    `e.code` (physical key) so Mac ⌥ dead-keys (⌥C = ç, ⌥N = ˜) don't matter;
+    the write actions are inert once the board is read-only (terminal). They
+    dispatch through a stable `actionsRef` so the keyboard hook needn't list the
+    (later-declared) Controls/menu handlers in its deps. **⌥S scratchpad / ⌥M
+    menu are NOT wired** — the shell exposes no programmatic open for either
+    (would need new ctx APIs); noted in [deferred.md](../deferred.md).
 - **Controls** — pen/pencil toggle + Check and (coop-only) Reveal at
   letter/word/grid scope (scope resolved client-side via `cursor.ts`).
 - **Rebus / peek overlay** — the `Grid` renders a 3-cell-wide box centered +
@@ -190,8 +207,13 @@ never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
   AND each fill on a stable-name channel (Pattern B) + Presence for disconnect
   cleanup; the Grid draws a thin frame in each teammate's cursor color and
   briefly flashes a cell a teammate just filled in their color (the cells CDC
-  carries no writer color, so the flash needs its own tiny signal). Compete has
-  private grids, so all of it is disabled there.
+  carries no writer color, so the flash needs its own tiny signal). A **coop
+  reveal** flashes too — the FE batch-broadcasts the revealed coords (`fills`
+  event) after a successful `reveal_cells`, since that RPC's CDC is also
+  colorless. The channel additionally carries a **`showNotes`** event: "Show
+  note" opens the setter's note locally AND asks teammates to open it too
+  ("read it together", crossplay parity). Compete has private grids, so all of
+  it is disabled there.
 - **Scratchpad** — the shared `common/` feature (opt-in via the manifest
   `scratchpad` field): shared pad in coop (Broadcast takeover lock), private pad
   per player in compete. See [docs/common.md](../common.md) → "The shared
@@ -213,9 +235,12 @@ never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
 [docs/pdf.md](../pdf.md) → the grid-plus-clue-columns body family.
 
 The game menu also carries a **"Show note"** item (`NoteDialog` on a
-`FloatingPanel`, ported from crossplay minus its broadcast sync) that opens the
-setter's free-form `meta.note`. It's **disabled when the puzzle has no note**.
-And a **"Reveal board"** item — the post-game answer key described under
+`FloatingPanel`, ported from crossplay) that opens the setter's free-form
+`meta.note` and (in coop) broadcasts a `showNotes` event so teammates open it
+too. It's **disabled when the puzzle has no note**. A **"Clear board"** item
+(the destructive `clear_board` "start over", `window.confirm`-gated like
+GamePage's End) restores the caller's grid to its initial state. And a
+**"Reveal board"** item — the post-game answer key described under
 *Terminal* above.
 
 ## 8. Tests

@@ -79,9 +79,16 @@ No outstanding deferred items today.
 
 ## crosswords (crosswords)
 
-Deferred from the crosswords build + its 2026-07-05 review. (The game doc's §9
-also lists NYT overlay-PNG analysis + NYT dedup; those live there.)
+Deferred from the crosswords build + its 2026-07-05 and 2026-07-06 reviews. (The
+game doc's §9 also lists NYT overlay-PNG analysis + NYT dedup; those live there.)
 
+- **⌥S scratchpad / ⌥M menu shortcuts.** The rest of crossplay's ⌥-letter set
+  shipped (⌥P/C/R/N/X — see `crosswords.md` §7), but these two open shell
+  surfaces (the common scratchpad, the GamePage menu) that expose no
+  programmatic "open" to a PlayArea — `MenuApi` is `setGameItems` only, and the
+  scratchpad toggle lives in `scratchpadOpenStore`. Wiring them cleanly means
+  adding ctx APIs (an `openScratchpad()` / `openMenu()` on the shell); deferred
+  until that plumbing is worth it. From the 2026-07-06 review (M2).
 - ~~**FE "upload your own `.puz`/`.ipuz`."**~~ **SHIPPED 2026-07-05** — the setup
   form's "Upload file" tab (drop zone + file chooser) parses the file client-side
   (`lib/importFile.ts` → the relocated `lib/parse/`) and starts a self-contained

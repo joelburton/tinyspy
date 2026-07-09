@@ -7,6 +7,12 @@ export type PeerCursor = { row: number; col: number; color: string }
 
 type CursorMsg = { userId: string; row: number; col: number; color: string }
 type FillMsg = { userId: string; row: number; col: number; color: string }
+/** A batch fill flash — one message for a whole reveal (word / grid), so a
+ *  Reveal doesn't fan out into one Broadcast per cell. */
+type FillsMsg = { userId: string; color: string; cells: { row: number; col: number }[] }
+/** "Read the setter's note together" — crossplay's `showNotes`. Carries only
+ *  the sender so a peer ignores its own echo. */
+type ShowNoteMsg = { userId: string }
 
 /** How long a peer-fill flash lingers before fading (mirrors crossplay). */
 const RECENT_FILL_MS = 5000
@@ -23,6 +29,13 @@ export type PeerCursorsApi = {
   /** Announce that I filled `(row, col)` so teammates flash it in my color.
    *  A no-op in compete (private grids). Call it right after a coop set_cell. */
   broadcastFill: (row: number, col: number) => void
+  /** Announce a whole reveal (many cells at once) so teammates flash them in
+   *  my color — the reveal RPC's CDC arrives colorless, like a typed fill.
+   *  A no-op in compete. Call it after a successful coop `reveal_cells`. */
+  broadcastFills: (cells: { row: number; col: number }[]) => void
+  /** Ask teammates to open the setter's note ("read it together"), mirroring
+   *  crossplay's `showNotes`. A no-op in compete. */
+  broadcastNote: () => void
 }
 
 /**
@@ -45,10 +58,21 @@ export function usePeerCursors(
   cursor: Cursor | null,
   myId: string,
   myColor: string,
+  /** Called when a teammate broadcasts "open the note" (crossplay's showNotes).
+   *  PlayArea wires this to open its NoteDialog. Read via a ref so a changing
+   *  callback identity doesn't re-subscribe the channel. */
+  onPeerShowNote?: () => void,
 ): PeerCursorsApi {
   const [peers, setPeers] = useState<Map<string, PeerCursor>>(() => new Map())
   const [recentFills, setRecentFills] = useState<Map<string, string>>(() => new Map())
   const channelRef = useRef<RealtimeChannel | null>(null)
+  // Latest onPeerShowNote, so the broadcast handler below stays out of the
+  // subscribe effect's deps (changing it must not tear down the channel).
+  // Synced in an effect (not during render — refs are write-after-commit).
+  const onPeerShowNoteRef = useRef(onPeerShowNote)
+  useEffect(() => {
+    onPeerShowNoteRef.current = onPeerShowNote
+  }, [onPeerShowNote])
   // One expiry timer per flashing cell; cleared/reset on a fresh fill + on unmount.
   const fillTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   // Cursor-broadcast throttle bookkeeping (leading + trailing edge).
@@ -98,6 +122,16 @@ export function usePeerCursors(
       const p = payload as FillMsg
       if (p.userId === myId) return // never flash my own fills
       trackRecentFill(p.row, p.col, p.color)
+    })
+    ch.on('broadcast', { event: 'fills' }, ({ payload }) => {
+      const p = payload as FillsMsg
+      if (p.userId === myId) return
+      for (const c of p.cells) trackRecentFill(c.row, c.col, p.color)
+    })
+    ch.on('broadcast', { event: 'showNotes' }, ({ payload }) => {
+      const p = payload as ShowNoteMsg
+      if (p.userId === myId) return // don't reopen my own note broadcast
+      onPeerShowNoteRef.current?.()
     })
     // Presence key = the peer's userId; drop their cursor when they leave.
     ch.on('presence', { event: 'leave' }, ({ key }) => {
@@ -164,5 +198,26 @@ export function usePeerCursors(
     [enabled, myId, myColor],
   )
 
-  return { peers, recentFills, broadcastFill }
+  const broadcastFills = useCallback(
+    (cells: { row: number; col: number }[]) => {
+      if (!enabled || cells.length === 0) return
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'fills',
+        payload: { userId: myId, color: myColor, cells } satisfies FillsMsg,
+      })
+    },
+    [enabled, myId, myColor],
+  )
+
+  const broadcastNote = useCallback(() => {
+    if (!enabled) return
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'showNotes',
+      payload: { userId: myId } satisfies ShowNoteMsg,
+    })
+  }, [enabled, myId])
+
+  return { peers, recentFills, broadcastFill, broadcastFills, broadcastNote }
 }

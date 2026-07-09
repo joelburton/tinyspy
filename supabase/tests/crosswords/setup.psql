@@ -70,6 +70,33 @@ returns jsonb language sql as $$
     jsonb_build_array(jsonb_build_array('T'), jsonb_build_array('S')));
 $$;
 
+--   xw_meta_rebus / xw_sol_rebus — a 1×2 all-open grid whose (0,0) is a
+--     multi-char REBUS ("HEART") and (0,1) is "S" (across 1 = "HEARTS").
+--     Exercises the first-letter shortcut end-to-end: both the full string
+--     "HEART" and the bare "H" complete a solve (see _matches), which no
+--     other fixture puzzle covers at the game level.
+create function pg_temp.xw_meta_rebus()
+returns jsonb language sql as $$
+  select jsonb_build_object(
+    'id', 'reb', 'title', 'Rebus', 'author', 'T', 'copyright', '', 'note', '',
+    'width', 2, 'height', 1,
+    'clues', jsonb_build_object(
+      'across', jsonb_build_array(jsonb_build_object('number', 1, 'text', '1a')),
+      'down', '[]'::jsonb),
+    'cells', jsonb_build_array(
+      jsonb_build_array(
+        jsonb_build_object('kind', 'cell', 'number', 1, 'fill', null),
+        jsonb_build_object('kind', 'cell', 'number', null, 'fill', null)))
+  );
+$$;
+
+create function pg_temp.xw_sol_rebus()
+returns jsonb language sql as $$
+  -- (0,0) is a rebus answer "HEART"; (0,1) is "S".
+  select jsonb_build_array(
+    jsonb_build_array(jsonb_build_array('HEART'), jsonb_build_array('S')));
+$$;
+
 create function pg_temp.xw_insert_puzzle(
   p_hash text, p_meta jsonb, p_solution jsonb, p_source text default 'library'
 )

@@ -15,6 +15,12 @@ function fileOf(name: string): File {
   return new File([readFileSync(resolve(FIXTURES, name))], name)
 }
 
+/** Same bytes, but under an arbitrary filename — for exercising the filename →
+ *  `meta.id` slug independently of the fixture's own name. */
+function renamed(fixture: string, as: string): File {
+  return new File([readFileSync(resolve(FIXTURES, fixture))], as)
+}
+
 describe('importCrosswordFile', () => {
   it('parses a .puz upload into an inline board', async () => {
     const board = await importCrosswordFile(fileOf('sunday-sample.puz'))
@@ -30,5 +36,22 @@ describe('importCrosswordFile', () => {
     const board = await importCrosswordFile(fileOf('sunday-sample.ipuz'))
     expect(board.meta.width).toBeGreaterThan(0)
     expect(board.solution.length).toBe(board.meta.height)
+  })
+
+  it('slugifies the filename into meta.id (drops the extension + punctuation)', async () => {
+    const board = await importCrosswordFile(renamed('sunday-sample.puz', 'My Puzzle (1).puz'))
+    expect(board.meta.id).toBe('my-puzzle-1')
+  })
+
+  it('falls back to "puzzle" when the filename has no alphanumerics', async () => {
+    const board = await importCrosswordFile(renamed('sunday-sample.puz', '.puz'))
+    expect(board.meta.id).toBe('puzzle')
+  })
+
+  it('rejects an unsupported .ipuz with the parser’s message (SetupForm’s catch contract)', async () => {
+    // Valid JSON, but no `kind` → IpuzUnsupportedError. The dropzone shows the
+    // thrown message verbatim, so the contract is "rejects with a real reason".
+    const bad = new File(['{}'], 'broken.ipuz')
+    await expect(importCrosswordFile(bad)).rejects.toThrow(/kind/i)
   })
 })

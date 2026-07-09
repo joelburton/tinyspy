@@ -1,6 +1,6 @@
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(13);
+select plan(17);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -93,6 +93,45 @@ reset role;
 select is(
   (select status ->> 'winner_username' from common.games where id = :'gp_id'),
   'ada', 'compete: a late solver cannot overwrite the winner');
+
+-- ── Rebus end-to-end: full string AND bare first letter both solve ───
+-- _matches is unit-tested directly, but no fixture puzzle exercised a
+-- multi-char solution through set_cell → _is_solved → win. Two games off
+-- the rebus puzzle (across 1 = "HEART" + "S"): one solved by typing the
+-- whole rebus, one by the bare first letter (the NYT shortcut).
+select pg_temp.xw_insert_puzzle('h-rebus', pg_temp.xw_meta_rebus(), pg_temp.xw_sol_rebus())
+  as pzr_id \gset
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select id as gr_full from crosswords.create_game(
+  :'club_handle', pg_temp.xw_setup(:'pzr_id'),
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') \gset
+select id as gr_first from crosswords.create_game(
+  :'club_handle', pg_temp.xw_setup(:'pzr_id'),
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') \gset
+
+-- Full-string rebus fill: "HEART" in (0,0), "S" in (0,1).
+select set_cell from crosswords.set_cell(:'gr_full', 0, 0, 'heart', false);
+select solved as s_rebus_full from crosswords.set_cell(:'gr_full', 0, 1, 's', false) \gset
+select is(:'s_rebus_full'::boolean, true, 'rebus: the full-string fill completes the solve');
+reset role;
+select is((select play_state from common.games where id = :'gr_full'), 'won',
+  'rebus full-string solve → play_state won');
+
+-- Bare first-letter fill: "H" alone stands in for "HEART"; "S" in (0,1).
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select set_cell from crosswords.set_cell(:'gr_first', 0, 0, 'h', false);
+-- check_cells on the lone "H": it's a CORRECT first-letter fill for the rebus,
+-- so the check must NOT flag it wrong.
+select crosswords.check_cells(:'gr_first', '[{"row":0,"col":0}]'::jsonb);
+reset role;
+select is((select wrong from crosswords.cells
+             where game_id = :'gr_first' and owner_id is null and row = 0 and col = 0),
+  false, 'rebus: check does not flag a correct bare first-letter fill');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select solved as s_rebus_first from crosswords.set_cell(:'gr_first', 0, 1, 's', false) \gset
+select is(:'s_rebus_first'::boolean, true, 'rebus: the bare first-letter fill also completes the solve');
+reset role;
 
 select * from finish();
 rollback;
