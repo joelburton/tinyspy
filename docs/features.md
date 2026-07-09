@@ -1,90 +1,145 @@
-PN PsychicNum
-FB FreeBee
-TS TinySpy
-WK WordKnit
-MC MothCubes
-RA RackAttack
-SD StackDown
-WH WaffleHouse
-MG MonkeyGrams
+This doc categorizes our games by their features — some are code-features, some
+are general about-the-game qualities.
 
-Word Finding as core play:
-MC MG
+Two kinds of category:
+- **Dimensions** — every game has exactly one value; a dimension should list all
+  11 games (a game missing from one is a gap to notice).
+- **Tags** — a game either has the feature or not.
 
-Free-for-all co-op:
-PN FB WK MC RA SD WH
+`*` = a future / possible feature (not built).
 
-Turn-based co-op:
-TS
 
-No co-op (compete only):
-MG
+Games (code = brand):
+PN PsychicNum   (psychicnum)
+FB FreeBee      (spellingbee)
+TS TinySpy      (codenamesduet)
+WK WordKnit     (connections)
+MC MothCubes    (boggle)
+RA RackAttack   (scrabble)
+SD StackDown    (stackdown)
+SS SyrupSwap    (waffle)
+MG MonkeyGrams  (bananagrams)
+WN WordNerd     (wordle)
+CP CrossPlay    (crosswords)
 
-Can zoom board:
-MG
 
-Pre-generated puzzle library:
-WK SD
+# Dimensions
 
-Board is generated at start:
-PN FB TS MC WH
+## Modes offered
+Coop + compete pair:  PN FB WK MC RA SD SS WN CP
+Coop only (no compete):  TS
+Compete only (no coop):  MG
 
-Board is open grid at start:
-MG RA
+## Co-op interaction (games that have coop)
+Free-for-all (shared board, everyone acts anytime):  PN FB WK MC RA SD SS WN CP
+Turn-based (fixed seats, alternating):  TS
 
-Hints:
-PN SD WK
-WH* RA* FB*(could provide hint for pangram) MC*(could provide first 2 letters?)
+## Board origin
+Generated fresh at start:  PN FB TS MC SS WN
+Pre-generated puzzle library:  WK SD
+Open/empty grid you build on:  MG RA
+Multi-source (library OR NYT-generated OR uploaded):  CP
 
-AI:
-TS
+## Board change during play
+Unchanged — you just find words in it:  MC FB
+Fill / annotate — fixed cells, contents change:  PN TS SS WN CP
+Shrinks — tiles removed/collapsed as you solve:  SD WK
+Grows — you add tiles to it:  RA MG
 
-Mobile could work well:
-PN FB WK MC SD WH
+## Primary input
+Type a word (keyboard grab):  FB MC
+Type a number (keyboard grab):  PN
+Type free text (a clue field):  TS
+Type / click a letter into a slot:  RA SD SS WN CP
+Click tiles to select:  WK
+Drag tiles to place:  MG
+(TS also clicks board cells when guessing; CP/WN are keyboard-first.)
 
-Mobile could work just-ok:
-TS(need to enter clue with keyboard, board cramped) RA(board cramped)
+## Solution & trust model — where the answer lives, who validates
+Hidden server-side solution, revealed at terminal:  PN TS WK SD SS WN CP
+FE holds the full word list, self-scores ("trusting-commit"):  MC FB
+No fixed answer — server just validates each move's legality:  RA MG
 
-Mobile would never work:
-MG(too fiddly dragging/moving, board would be cramped)
+## Win / score metric shape
+Points accumulation (high score wins; FB via a rank ladder):  RA MC FB
+Binary solve (you finished the puzzle, or didn't):  TS WK SS WN CP
+Count to a target:  PN (find N secrets)  SD (clear 6 words)
+Race to empty your hand:  MG
 
-TurnLog:
-PN TS WK RA SD WH
+## Seat & information model
+Variable N players (1–8), full shared info in coop:  PN FB WK MC RA SD SS WN CP MG
+Fixed 2 seats, asymmetric info (each partner sees a different key):  TS
 
-WordList:
+## History log in the info column
+TurnLog (chronological turns):  PN TS WK RA SD SS WN
+WordList (alphabetical finds):  MC FB
+Neither:  MG CP
+
+## Realtime sync
+Standard refetch-on-change (`useRealtimeRefetch`):  everyone below not called out
+Per-cell CDC direct-apply + peer cursors:  CP
+Broadcast-coupled peer tile-selection:  WK
+(RA + CP also broadcast a coop "show my move / peer flash"; scratchpad is broadcast where enabled.)
+
+
+# Tags
+
+## Word-finding as core play
 MC FB
 
-No turnlog or wordlist:
+## Hints
+PN SD WK RA CP
+SS* FB*(hint for the pangram) MC*(first 2 letters?)
+
+## AI
+TS (clue suggester)  RA (suggester + opponent)  CP (explain-cryptic-clue)
+
+## Can zoom the board
 MG
 
-Enter-a-word with keyboard grab:
-FB MC PN
+## Leans on the shared dictionary (`common.words`)
+MC FB RA MG
 
-Enter a move with traditional input:
-TS(writing a clue)
+## Reveal-at-terminal (shows the hidden answer when done)
+PN TS WK SD SS WN CP
 
-Enter a letter with keyboard/click:
-RA SD WH*(can type letter; if ambiguous refuse, like SD) MG
+## Turn-history replay (`useHistoryViewer`)
+TS WK PN RA SD SS WN
 
-Enter a letter only with clikc:
-FB MC
+## Print to PDF
+RA PN MC FB MG CP
+Deliberately excluded (turn-by-turn progressions): SS WN
+Candidates, not built: TS* WK* SD*
 
-Only mouse:
-WK TS(when guessing)
+## Player-tunable difficulty
+SS (band)  MC (band)  FB (custom letters)
+(library games WK/SD/CP pick a puzzle instead)
 
-Can win after concede:
-MC*(on  score) FB*(on score)
+## Timer
+Optional at setup for most games (a scored tiebreak on timeout: MC RA SD FB PN MG).
+Never timed: CP.
 
-Can win as tiebreak after timeout:
-MC RA SD FB PN MG
+## Can win after conceding
+MC*(on score)  FB*(on score)
 
-Clear win condition in compete:
+
+# Mobile suitability
+No game is CSS-optimized for mobile yet — this is how well each *could* work once we do.
+Could work well:  PN FB WK MC SD SS WN
+Could work well WITH a hardware keyboard:  CP (the board fits an iPad nicely; the on-screen keyboard is too fiddly, so it wants a real keyboard — but it's not desktop-only)
+Just OK:  TS (clue needs the keyboard; board cramped)  RA (board cramped)
+Never:  MG (too fiddly dragging; board too cramped)
+
+
+# Clear win condition in compete
+(TS is coop-only, so it has none.)
 - PN: guessed all secrets (race ends)
-- FB: first to reach rank (race continues)
-- WN: first to find categories (race ends)
-- MC*: reached % of required-words (race continues)
-- RA: no more plays (passes)
-- SD: first to clear (race ends)
-- WH: first to place all correct (race ends)
-- MG: first to place all w/legal (race ends)
-
+- FB: first to reach the target rank (race continues)
+- WK: first to find all categories (race ends)
+- MC: reached % of required words (race continues)
+- RA: highest score when the bag empties / all pass (game ends)
+- SD: first to clear the stack (race ends)
+- SS: first to place all correct (race ends)
+- MG: first to place all tiles legally (race ends)
+- WN: fewest guesses to solve (race continues)
+- CP: first fully-correct grid wins (race ends)

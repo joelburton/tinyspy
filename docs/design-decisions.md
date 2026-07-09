@@ -278,9 +278,11 @@ narrow/mobile screen that drops the info column can still play the game.
 > no turn log / word list. This is a one-game carve-out; every other game follows
 > the order below. See [`docs/games/bananagrams.md`](games/bananagrams.md).
 
-> **crosswords is the second documented layout exception.** Also desktop-only /
-> keyboard-required (the ported crossplay play surface explicitly scopes out
-> touch), it drops the BoardCol/InfoCol split entirely for crossplay's own
+> **crosswords is the second documented layout exception.** It's
+> **keyboard-required** (the ported crossplay play surface has no on-screen
+> keyboard) — not strictly desktop-only: the board fits a tablet fine, it just
+> wants a hardware keyboard, and it's not touch-optimized yet (no game is). It
+> drops the BoardCol/InfoCol split entirely for crossplay's own
 > layout: a CSS grid with the **board on the left spanning full height**, the
 > **Across | Down clue columns top-right** (scrolling internally so the page
 > never scrolls), a **3-line active-clue bar** beneath them — which does double

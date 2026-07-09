@@ -22,8 +22,10 @@ irregular **hidden** blocks, and **Schrödinger** cells (a solution array with
 more than one accepted answer). The solution is **server-only** — check / reveal
 run server-side; the client never sees the answers until terminal.
 
-Desktop-only / keyboard-required (crossplay explicitly scopes out touch — there
-is no on-screen keyboard). This is a **documented v3 layout exception** (see §7).
+**Keyboard-required** (crossplay explicitly scopes out touch — there is no
+on-screen keyboard, so it wants a hardware keyboard). Not strictly desktop-only:
+the board fits a tablet fine; it's just not touch-optimized yet (no game is).
+This is a **documented v3 layout exception** (see §7).
 
 ### Modes (sibling-manifest pair)
 
