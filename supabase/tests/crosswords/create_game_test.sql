@@ -1,6 +1,6 @@
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(21);
+select plan(24);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -99,6 +99,27 @@ select is(
 select is(
   (select count(*)::int from crosswords.cells where game_id = :'gb_id'),
   4, 'inline board pre-inserts the fillable cells');
+select is(
+  (select fill from crosswords.cells where game_id = :'gb_id' and owner_id is null and row = 0 and col = 0),
+  null, 'a blank template seeds cells with NULL fill');
+
+-- Partially-solved upload (finding 1.3): a non-given cell carrying a saved
+-- `fill` in the template imports WITH that progress restored (crossplay's
+-- ipuz `saved` round-trip). Set (0,1)'s fill to 'a' on the 2x2 meta.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select id as gsav_id from crosswords.create_game(
+  :'club_handle', '{"timer":{"kind":"none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop',
+  jsonb_build_object(
+    'meta', jsonb_set(pg_temp.xw_meta_2x2(), '{cells,0,1,fill}', '"a"'),
+    'solution', pg_temp.xw_sol_2x2())) \gset
+reset role;
+select is(
+  (select fill from crosswords.cells where game_id = :'gsav_id' and owner_id is null and row = 0 and col = 1),
+  'A', 'a partial upload restores the saved fill (uppercased) on import');
+select is(
+  (select fill from crosswords.cells where game_id = :'gsav_id' and owner_id is null and row = 0 and col = 0),
+  null, 'cells without a saved fill still import blank');
 
 -- ── Guards ───────────────────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

@@ -1,9 +1,10 @@
 /**
  * Read the .ipuz crossword format (http://www.ipuz.org/) into the
  * `{ state, solution }` shape the crosswords import pipeline uses.
- * Ported from crossplay's `ipuz.ts`; the write side (`writeIpuz`) is
- * dropped — we store `meta` + `solution` as jsonb, not a re-serialized
- * ipuz blob.
+ * Ported from crossplay's `ipuz.ts`. Storage keeps `meta` + `solution` as
+ * jsonb (not a re-serialized ipuz blob), but the write side (`writeIpuz`) is
+ * ALSO ported — it backs the "Download as .ipuz" menu item (review M4), which
+ * emits the current board (fills included) as a standard ipuz file.
  *
  * ipuz is the modern, JSON-based, unencumbered counterpart to the legacy
  * binary `.puz` format. Scope is the standard-crossword subset plus basic
@@ -398,4 +399,89 @@ export function parseIpuzBuffer(id: string, buffer: Uint8Array): ParseResult {
 
   const snapshot: GridSnapshot = { version: 0, cells }
   return { state: { meta, snapshot }, solution }
+}
+
+/**
+ * Emit ipuz JSON for a puzzle. The output is the standard-crossword subset:
+ * integer cell numbers, single-letter (or Schrödinger-alternate) solutions,
+ * two clue lists, basic circle/shade styling. Round-trips cleanly through
+ * `parseIpuzBuffer`.
+ *
+ * If any cells in the snapshot carry a `fill`, they're emitted as the ipuz
+ * `saved` grid so a downloaded mid-game file can be re-uploaded and continued
+ * (the counterpart to the parser's `saved`-restore — see `create_game`). The
+ * `revealed` / `wrong` / `pencil` flags do NOT round-trip: ipuz has no standard
+ * place for them and we don't squat on a custom extension.
+ *
+ * Ported verbatim from crossplay's `writeIpuz`; backs the "Download as .ipuz"
+ * menu item. `solution` is the (server-side) answer grid — letters or null.
+ */
+export function writeIpuz(state: PuzzleState, solution: (string[] | null)[][]): string {
+  const { meta, snapshot } = state
+
+  // Decorations (circle / shading) and givens need the object form so they
+  // survive the round-trip — a flat-number representation would erase them.
+  const puzzle = snapshot.cells.map((row) =>
+    row.map((cell): null | string | number | Record<string, unknown> => {
+      if (cell.kind === 'block') return cell.hidden ? null : '#'
+      const value = cell.number ?? 0
+      const style: Record<string, unknown> = {}
+      if (cell.circled) style.shapebg = 'circle'
+      if (cell.shaded) style.color = '#dddddd'
+      const hasStyle = Object.keys(style).length > 0
+      if (!hasStyle && !cell.given) return value
+      const obj: Record<string, unknown> = { cell: value }
+      if (hasStyle) obj.style = style
+      if (cell.given && cell.fill) obj.value = cell.fill.toUpperCase()
+      return obj
+    }),
+  )
+
+  // Solution: walk in parallel with the snapshot so hidden blocks emit `null`
+  // (matching the puzzle grid) while visible blocks emit "#".
+  const sol = solution.map((row, r) =>
+    row.map((answers, c): null | string | number | Record<string, unknown> => {
+      if (answers === null) {
+        const cell = snapshot.cells[r]?.[c]
+        return cell?.kind === 'block' && cell.hidden ? null : '#'
+      }
+      const primary = answers[0]!.toUpperCase()
+      if (answers.length === 1) return primary
+      return { value: primary, alternates: answers.slice(1).map((a) => a.toUpperCase()) }
+    }),
+  )
+
+  // Only emit `saved` for player typing — given letters are template, not
+  // user state (they round-trip through `value` on the puzzle grid above).
+  const hasFills = snapshot.cells.some((row) =>
+    row.some((cell) => cell.kind === 'cell' && !cell.given && cell.fill != null && cell.fill !== ''),
+  )
+  const saved = hasFills
+    ? snapshot.cells.map((row) =>
+        row.map((cell): string | number => {
+          if (cell.kind === 'block') return 0
+          if (cell.given) return 0
+          return cell.fill ? cell.fill.toUpperCase() : 0
+        }),
+      )
+    : undefined
+
+  const out: Record<string, unknown> = {
+    version: 'http://ipuz.org/v2',
+    kind: ['http://ipuz.org/crossword#1'],
+  }
+  if (meta.title) out.title = meta.title
+  if (meta.author) out.author = meta.author
+  if (meta.copyright) out.copyright = meta.copyright
+  if (meta.note) out.notes = meta.note
+  out.dimensions = { width: meta.width, height: meta.height }
+  out.puzzle = puzzle
+  out.solution = sol
+  if (saved) out.saved = saved
+  out.clues = {
+    Across: meta.clues.across.map((c) => [c.number, c.text]),
+    Down: meta.clues.down.map((c) => [c.number, c.text]),
+  }
+
+  return JSON.stringify(out, null, 2)
 }

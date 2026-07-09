@@ -90,7 +90,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     status: null,
     globalFeedback: { show: vi.fn(), clear: vi.fn() },
     goToClub: vi.fn(),
-    menu: { setGameItems: vi.fn() },
+    menu: { setGameSections: vi.fn(), openHelp: vi.fn(), requestBackToClub: vi.fn() },
     ...over,
   }
 }
@@ -139,14 +139,52 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     expect(screen.queryByRole('button', { name: /check word/i })).not.toBeInTheDocument()
   })
 
-  it('populates the game menu (Show note / Explain / Clear / Reveal board / Print)', () => {
-    const setGameItems = vi.fn()
-    render(<PlayArea {...makeCtx({ menu: { setGameItems } })} />)
-    const items = setGameItems.mock.calls.at(-1)?.[0] as Array<{ id: string; disabled?: boolean }>
-    expect(items.map((i) => i.id)).toEqual(['note', 'explain', 'clear-board', 'reveal-board', 'print'])
-    // Clear is enabled during coop play; Reveal-board is terminal-only.
+  /** Flatten the last setGameSections call into a flat item array. */
+  function lastMenuItems(setGameSections: ReturnType<typeof vi.fn>) {
+    const sections = setGameSections.mock.calls.at(-1)?.[0] as Array<{
+      items: Array<{ id: string; disabled?: boolean; shortcut?: string }>
+    }>
+    return sections.flatMap((s) => s.items)
+  }
+
+  it('populates the full crossplay-order menu with shortcut hints (coop)', () => {
+    const setGameSections = vi.fn()
+    render(<PlayArea {...makeCtx({ menu: { setGameSections, openHelp: vi.fn(), requestBackToClub: vi.fn() } })} />)
+    const items = lastMenuItems(setGameSections)
+    expect(items.map((i) => i.id)).toEqual([
+      'help',
+      'pencil', 'enter-rebus', 'collapse-rebuses',
+      'note', 'explain', 'scratchpad', 'print', 'download-ipuz',
+      'check-letter', 'check-word', 'check-puzzle',
+      'reveal-letter', 'reveal-word', 'reveal-puzzle',
+      'clear-board', 'reveal-board',
+      'end-game', 'back',
+    ])
+    // Corrected shortcut hints: ⌥C = check letter, ⌥⇧C = check word.
+    expect(items.find((i) => i.id === 'check-letter')?.shortcut).toBe('⌥C')
+    expect(items.find((i) => i.id === 'check-word')?.shortcut).toBe('⌥⇧C')
+    expect(items.find((i) => i.id === 'back')?.shortcut).toBe('⇧<')
+    expect(items.find((i) => i.id === 'end-game')?.shortcut).toBe('⌥⌫')
+    // All the former placeholders are now wired (enabled).
+    expect(items.find((i) => i.id === 'collapse-rebuses')?.disabled).toBeFalsy()
+    expect(items.find((i) => i.id === 'download-ipuz')?.disabled).toBeFalsy()
+    // Clear enabled during coop play; Reveal-board terminal-only.
     expect(items.find((i) => i.id === 'clear-board')?.disabled).toBe(false)
     expect(items.find((i) => i.id === 'reveal-board')?.disabled).toBe(true)
+  })
+
+  it('omits the coop-only Reveal section and shows Concede in compete', () => {
+    h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
+    const setGameSections = vi.fn()
+    render(<PlayArea {...makeCtx({ menu: { setGameSections, openHelp: vi.fn(), requestBackToClub: vi.fn() } })} />)
+    const ids = lastMenuItems(setGameSections).map((i) => i.id)
+    expect(ids).not.toContain('reveal-letter')
+    expect(ids).not.toContain('reveal-word')
+    // Check + pencil still present; compete shows Concede (not End game).
+    expect(ids).toContain('check-letter')
+    expect(ids).toContain('pencil')
+    expect(ids).toContain('concede')
+    expect(ids).not.toContain('end-game')
   })
 })
 
@@ -170,18 +208,18 @@ describe('crosswords PlayArea — keyboard hook wiring (isNonGameField)', () => 
 })
 
 describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)', () => {
-  it('⌥C checks the word; ⌥⇧C checks the whole grid', () => {
+  it('⌥C checks the letter; ⌥⇧C checks the word', () => {
     render(<PlayArea {...makeCtx()} />)
     fireEvent.keyDown(document.body, { code: 'KeyC', key: 'ç', altKey: true })
     expect(rpcNames()).toContain('check_cells')
-    // Word scope = just the cursor's word (2 cells here); grid scope = all 4.
-    const wordCall = h.rpc.mock.calls.find((c) => c[0] === 'check_cells')
-    expect((wordCall?.[1] as { p_cells: unknown[] }).p_cells.length).toBe(2)
+    // ⌥C = letter scope = just the cursor cell (1); ⌥⇧C = word scope (2 here).
+    const letterCall = h.rpc.mock.calls.find((c) => c[0] === 'check_cells')
+    expect((letterCall?.[1] as { p_cells: unknown[] }).p_cells.length).toBe(1)
 
     h.rpc.mockClear()
     fireEvent.keyDown(document.body, { code: 'KeyC', key: 'Ç', altKey: true, shiftKey: true })
-    const gridCall = h.rpc.mock.calls.find((c) => c[0] === 'check_cells')
-    expect((gridCall?.[1] as { p_cells: unknown[] }).p_cells.length).toBe(4)
+    const wordCall = h.rpc.mock.calls.find((c) => c[0] === 'check_cells')
+    expect((wordCall?.[1] as { p_cells: unknown[] }).p_cells.length).toBe(2)
   })
 
   it('⌥R reveals in coop', () => {
@@ -224,7 +262,7 @@ describe('crosswords PlayArea — peer broadcasts (note + reveal flash)', () => 
     fireEvent.keyDown(document.body, { code: 'KeyR', key: '®', altKey: true })
     // handleReveal awaits the RPC, then broadcasts the revealed coords.
     await waitFor(() => expect(h.broadcastFills).toHaveBeenCalled())
-    expect(h.broadcastFills.mock.calls[0]?.[0]).toHaveLength(2) // the cursor's word
+    expect(h.broadcastFills.mock.calls[0]?.[0]).toHaveLength(1) // ⌥R = reveal letter (cursor cell)
   })
 
   it('a failed reveal does not broadcast a flash', async () => {

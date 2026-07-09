@@ -6,6 +6,9 @@ import { BackToClubButton } from '../../common/components/buttons/BackToClubButt
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
+import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { setScratchpadOpen } from '../../common/lib/scratchpad/scratchpadOpenStore'
+import { writeIpuz } from '../lib/parse/ipuz'
 import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -65,6 +68,22 @@ export function PlayArea(ctx: GamePageCtx) {
   const [rebus, setRebus] = useState<{ row: number; col: number } | null>(null)
   const [numberJumpOpen, setNumberJumpOpen] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
+  // Display-only "collapse rebuses" preference (crossplay parity), persisted
+  // per browser. When on, multi-char rebus fills show only their first letter.
+  const [collapseRebus, setCollapseRebus] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('crosswords:collapseRebus') === '1'
+    } catch {
+      return false
+    }
+  })
+  useEffect(() => {
+    try {
+      localStorage.setItem('crosswords:collapseRebus', collapseRebus ? '1' : '0')
+    } catch {
+      // localStorage unavailable (private mode) — in-memory state still works.
+    }
+  }, [collapseRebus])
   // The AI clue-explanation dialog: null = closed. `explainLabel` is the clue
   // it was opened for (e.g. "12A"), captured at click time.
   const [explain, setExplain] = useState<ExplainState | null>(null)
@@ -151,8 +170,11 @@ export function PlayArea(ctx: GamePageCtx) {
     togglePencil: () => void
     check: (scope: Scope) => void
     reveal: (scope: Scope) => void
+    enterRebus: () => void
     showNote: () => void
     explain: () => void
+    endGame: () => void
+    concede: () => void
   } | null>(null)
 
   // Latest play state for the window keyboard handler (dodges stale
@@ -199,6 +221,7 @@ export function PlayArea(ctx: GamePageCtx) {
             onReveal: mode === 'coop' ? (scope) => actionsRef.current?.reveal(scope) : null,
             onShowNote: hasNote ? () => actionsRef.current?.showNote() : null,
             onExplain: hasNote ? () => actionsRef.current?.explain() : null,
+            onScratchpad: () => setScratchpadOpen(true),
           }
         : null
   }, [grid, cursor, isPlayable, isTerminal, pencil, cells, handleSetCell, handleMark, rebus, numberJumpOpen, mode, hasNote])
@@ -368,57 +391,136 @@ export function PlayArea(ctx: GamePageCtx) {
     broadcastNote()
   }, [broadcastNote])
 
+  // Download the current board as a standard `.ipuz` file (review M4) — the
+  // template + current fills (from the click-time `printStateRef` snapshot) +
+  // the answer grid, fetched via `solution_for` (the export gets the solution
+  // any time, unlike the terminal-gated reveal). Re-uploadable to continue.
+  const handleDownloadIpuz = useCallback(async () => {
+    const state = printStateRef.current
+    if (!state) return
+    const { data, error } = await db.rpc('solution_for', { target_game: gameId })
+    if (error || !data) {
+      showLocalFeedback(stickyPill('error', `Download failed: ${error?.message ?? 'no solution'}`))
+      return
+    }
+    const ipuz = writeIpuz(state, data as unknown as (string[] | null)[][])
+    const blob = new Blob([ipuz], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${state.meta.id || 'crossword'}.ipuz`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [gameId, showLocalFeedback])
+
   // Game-menu items. `hasNote` is stable per game, and `handleExplain` reads the
   // current clue via a ref, so this doesn't rebuild per keystroke — only on the
   // one-shot terminal / reveal / playable transitions.
   useEffect(() => {
     if (!game) return
     const title = game.meta.title || 'crossword'
-    // `hasNote` (hoisted above) gates the Show-note / Explain items — some
-    // puzzles carry a setter's note (theme hints, constructor remarks).
-    menu.setGameItems([
-      {
-        id: 'note',
-        label: 'Show note',
-        disabled: !hasNote,
-        onClick: handleShowNote,
-      },
-      {
-        // The AI clue-explainer is for cryptics; a setter note is the proxy
-        // (crossplay gates it the same way). Enabled off the same `hasNote`.
-        id: 'explain',
-        label: 'Explain cryptic clue',
-        disabled: !hasNote,
-        onClick: () => void handleExplain(),
-      },
-      {
-        // Destructive "start over": blank my grid (givens + answer kept).
-        // Only while the game is actually playable (not terminal / conceded).
-        id: 'clear-board',
-        label: 'Clear board',
-        disabled: !isPlayable,
-        onClick: () => void handleClear(),
-      },
-      {
-        // Post-game answer key. Disabled mid-game because the server only
-        // unshields the solution at terminal (games_state returns NULL before
-        // that); once revealed it stays revealed, so the item disables itself.
-        id: 'reveal-board',
-        label: 'Reveal board',
-        disabled: !isTerminal || solution !== null,
-        onClick: () => void handleRevealBoard(),
-      },
-      {
-        id: 'print',
-        label: 'Print board (PDF)',
-        onClick: () => {
-          const s = printStateRef.current
-          if (s) void printCrosswordsPdf(s, title)
-        },
-      },
-    ])
-    return () => menu.setGameItems([])
-  }, [menu, game, hasNote, handleShowNote, handleExplain, handleRevealBoard, handleClear, isPlayable, isTerminal, solution])
+    // The FULL crosswords menu (crossplay order, single column): the play
+    // actions ALSO live here with their ⌥-shortcut hints (crossplay advertised
+    // them in the menu). Play actions dispatch through the stable `actionsRef`
+    // so this effect needn't depend on the later-declared handlers. Help + the
+    // End/Concede + Back-to-club tail come from `buildGameMenu`.
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        mode,
+        isTerminal,
+        conceded: myConceded,
+        onEndGame: () => actionsRef.current?.endGame(),
+        onConcede: () => actionsRef.current?.concede(),
+        extra: [
+          {
+            items: [
+              {
+                id: 'pencil',
+                label: pencil ? 'Switch to pen' : 'Switch to pencil',
+                shortcut: '⌥P',
+                disabled: !isPlayable,
+                onClick: () => actionsRef.current?.togglePencil(),
+              },
+              {
+                id: 'enter-rebus',
+                label: 'Enter rebus',
+                shortcut: '⇧↵',
+                disabled: !isPlayable,
+                onClick: () => actionsRef.current?.enterRebus(),
+              },
+              {
+                // Display-only toggle: collapse multi-char rebuses to their
+                // first letter (persisted per browser).
+                id: 'collapse-rebuses',
+                label: collapseRebus ? 'Expand rebuses' : 'Collapse rebuses',
+                onClick: () => setCollapseRebus((v) => !v),
+              },
+            ],
+          },
+          {
+            items: [
+              { id: 'note', label: 'Show note', shortcut: '⌥N', disabled: !hasNote, onClick: handleShowNote },
+              {
+                // The AI clue-explainer is for cryptics; a setter note is the
+                // proxy (crossplay gates it the same way).
+                id: 'explain',
+                label: 'Explain cryptic clue',
+                shortcut: '⌥X',
+                disabled: !hasNote,
+                onClick: () => void handleExplain(),
+              },
+              { id: 'scratchpad', label: 'Scratchpad', shortcut: '⌥S', onClick: () => setScratchpadOpen(true) },
+              {
+                id: 'print',
+                label: 'Print / Save as PDF',
+                onClick: () => {
+                  const s = printStateRef.current
+                  if (s) void printCrosswordsPdf(s, title)
+                },
+              },
+              { id: 'download-ipuz', label: 'Download as .ipuz', onClick: () => void handleDownloadIpuz() },
+            ],
+          },
+          {
+            items: [
+              { id: 'check-letter', label: 'Check letter', shortcut: '⌥C', disabled: !isPlayable, onClick: () => actionsRef.current?.check('letter') },
+              { id: 'check-word', label: 'Check word', shortcut: '⌥⇧C', disabled: !isPlayable, onClick: () => actionsRef.current?.check('word') },
+              { id: 'check-puzzle', label: 'Check puzzle', disabled: !isPlayable, onClick: () => actionsRef.current?.check('puzzle') },
+            ],
+          },
+          // Reveal is coop-only (revealing your own grid would trivially win a
+          // compete race) — the whole section is omitted in compete.
+          ...(mode === 'coop'
+            ? [
+                {
+                  items: [
+                    { id: 'reveal-letter', label: 'Reveal letter', shortcut: '⌥R', disabled: !isPlayable, onClick: () => actionsRef.current?.reveal('letter') },
+                    { id: 'reveal-word', label: 'Reveal word', shortcut: '⌥⇧R', disabled: !isPlayable, onClick: () => actionsRef.current?.reveal('word') },
+                    { id: 'reveal-puzzle', label: 'Reveal puzzle', disabled: !isPlayable, onClick: () => actionsRef.current?.reveal('puzzle') },
+                  ],
+                },
+              ]
+            : []),
+          {
+            items: [
+              // Destructive "start over": blank my grid (givens + answer kept).
+              { id: 'clear-board', label: 'Clear board', disabled: !isPlayable, onClick: () => void handleClear() },
+              {
+                // Post-game answer key — disabled until terminal (the server
+                // only unshields the solution then); disables itself once shown.
+                id: 'reveal-board',
+                label: 'Reveal board',
+                disabled: !isTerminal || solution !== null,
+                onClick: () => void handleRevealBoard(),
+              },
+            ],
+          },
+        ],
+      }),
+    )
+    return () => menu.setGameSections([])
+  }, [menu, game, hasNote, pencil, collapseRebus, mode, myConceded, handleShowNote, handleExplain, handleRevealBoard, handleClear, handleDownloadIpuz, isPlayable, isTerminal, solution])
 
   const over: TerminalCopy | null = isTerminal ? buildOver(playState, status, mode, myId) : null
 
@@ -498,10 +600,13 @@ export function PlayArea(ctx: GamePageCtx) {
       togglePencil: () => setPencil((p) => !p),
       check: handleCheck,
       reveal: handleReveal,
+      enterRebus: () => cursor && setRebus({ row: cursor.row, col: cursor.col }),
       showNote: handleShowNote,
       explain: () => void handleExplain(),
+      endGame: () => void handleEndGame(),
+      concede: () => void handleConcede(),
     }
-  }, [handleCheck, handleReveal, handleShowNote, handleExplain])
+  }, [handleCheck, handleReveal, handleShowNote, handleExplain, handleEndGame, handleConcede, cursor])
 
   if (!game || !cursor) {
     return (
@@ -531,6 +636,7 @@ export function PlayArea(ctx: GamePageCtx) {
             solution={solution}
             peerCells={peerCells}
             recentFills={recentFillCells}
+            collapseRebus={collapseRebus}
           />
         </div>
 

@@ -82,23 +82,30 @@ No outstanding deferred items today.
 Deferred from the crosswords build + its 2026-07-05 and 2026-07-06 reviews. (The
 game doc's §9 also lists NYT overlay-PNG analysis + NYT dedup; those live there.)
 
-- **⌥S scratchpad / ⌥M menu shortcuts.** The rest of crossplay's ⌥-letter set
-  shipped (⌥P/C/R/N/X — see `crosswords.md` §7), but these two open shell
-  surfaces (the common scratchpad, the GamePage menu) that expose no
-  programmatic "open" to a PlayArea — `MenuApi` is `setGameItems` only, and the
-  scratchpad toggle lives in `scratchpadOpenStore`. Wiring them cleanly means
-  adding ctx APIs (an `openScratchpad()` / `openMenu()` on the shell); deferred
-  until that plumbing is worth it. From the 2026-07-06 review (M2).
+- **⌥M menu shortcut.** Crossplay's ⌥-letter set is now fully ported EXCEPT ⌥M
+  (open the game menu). ⌥P/C/⇧C/R/⇧R/N/X **and ⌥S (scratchpad, via the
+  `scratchpadOpenStore` setter)** all shipped — see `crosswords.md` §7. ⌥M stays
+  out because the shell exposes no programmatic "open the menu" to a PlayArea
+  (`MenuApi` has no `openMenu`); low value (the logo click + `?` already open
+  it). From the 2026-07-06 review (M2).
 - ~~**FE "upload your own `.puz`/`.ipuz`."**~~ **SHIPPED 2026-07-05** — the setup
   form's "Upload file" tab (drop zone + file chooser) parses the file client-side
   (`lib/importFile.ts` → the relocated `lib/parse/`) and starts a self-contained
   game via `create_game`'s inline `board` arg. See `crosswords.md` §5.
-- **Cryptic apparatus** — the rebus-"collapse" toggle + the AI "Explain this
-  clue" helper from crossplay, still deferred. (The **cryptic edge marks**
-  `|`/`_` shipped — see `set_mark` in `crosswords.md` §6.)
+- ~~**Cryptic apparatus.**~~ **SHIPPED.** The full crossplay set is ported: cryptic
+  edge marks `|`/`_` (`set_mark`), the AI "Explain cryptic clue" helper
+  (`crosswords.md` §10), AND the rebus-"collapse" display toggle (`crosswords.md`
+  §9 menu — a per-browser preference that shows multi-char rebus fills as their
+  first letter).
 - **`generateSolutionPdf` (answer-key PDF).** Print ports the puzzle generator
-  only; the answer-key variant needs the shielded solution and was dropped for
-  v1 — could be terminal-gated later (the solution is readable then).
+  only; the answer-key variant needs the solution. Now **cheap** — the
+  `solution_for` RPC (added for the .ipuz export, review M4) hands the FE the
+  answer grid on demand — so this is a small follow-up if wanted, no longer
+  blocked on shielding.
+- **`fetch-nyt-range` bulk CLI** (review M5) — download a date range of NYT
+  dailies into the library. Deferred: blocked on the `NYT_COOKIE_JAR` secret
+  (same as the live NYT fetch). Crossplay's OTHER author tools shipped
+  (`crosswords:puz-to-ipuz` / `crosswords:set-note`, review M7).
 - **Scratchpad lock races C3b / C3c** (review 2026-07-05; C3a — the holder-guard
   — was fixed). Both self-heal within seconds and can't corrupt the DB, so
   they're deferred: **C3b** — two clients' simultaneous first keystrokes each

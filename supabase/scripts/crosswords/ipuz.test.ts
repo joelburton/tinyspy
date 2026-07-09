@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { IpuzUnsupportedError, parseIpuzBuffer } from '../../../src/crosswords/lib/parse/ipuz'
+import { IpuzUnsupportedError, parseIpuzBuffer, writeIpuz } from '../../../src/crosswords/lib/parse/ipuz'
 import { parsePuzBuffer } from '../../../src/crosswords/lib/parse/puz'
 
 const FIXTURE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), 'fixtures')
@@ -287,5 +287,34 @@ describe('parseIpuzBuffer (rejections + feature acceptance)', () => {
       [0, 0, 0],
     ]
     expectReject(obj, /saved grid must have 3 rows/)
+  })
+})
+
+describe('writeIpuz (round-trips through parseIpuzBuffer — review M4)', () => {
+  it('re-parses to the same solution, dimensions, and clues', () => {
+    const { state, solution } = parseIpuzBuffer('toy', ipuzOf(MINIMAL_IPUZ))
+    const out = parseIpuzBuffer('toy2', Buffer.from(writeIpuz(state, solution), 'utf8'))
+    expect(out.solution).toEqual(solution)
+    expect(out.state.meta.width).toBe(state.meta.width)
+    expect(out.state.meta.height).toBe(state.meta.height)
+    expect(out.state.meta.clues.across).toEqual(state.meta.clues.across)
+    expect(out.state.meta.clues.down).toEqual(state.meta.clues.down)
+  })
+
+  it('emits player fills as `saved` so a mid-game download re-imports its progress', () => {
+    const { state, solution } = parseIpuzBuffer('toy', ipuzOf(MINIMAL_IPUZ))
+    // Type a fill into a non-given cell (0,0) and export.
+    const cell = state.snapshot.cells[0]![0]!
+    if (cell.kind !== 'cell') throw new Error('fixture (0,0) should be a fillable cell')
+    cell.fill = 'X'
+    const out = parseIpuzBuffer('toy2', Buffer.from(writeIpuz(state, solution), 'utf8'))
+    const back = out.state.snapshot.cells[0]![0]!
+    expect(back.kind === 'cell' && back.fill).toBe('X')
+  })
+
+  it('does not emit `saved` when the board is blank', () => {
+    const { state, solution } = parseIpuzBuffer('toy', ipuzOf(MINIMAL_IPUZ))
+    const json = JSON.parse(writeIpuz(state, solution)) as Record<string, unknown>
+    expect(json.saved).toBeUndefined()
   })
 })

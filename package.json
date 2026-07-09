@@ -24,6 +24,8 @@
     "stackdown:gen": "npx tsx supabase/scripts/generate-stackdown-boards.ts",
     "stackdown:import": "npx tsx supabase/scripts/import-stackdown-boards.ts",
     "crosswords:import": "npx tsx supabase/scripts/import-crosswords-puzzles.ts",
+    "crosswords:puz-to-ipuz": "npx tsx supabase/scripts/crosswords/puz-to-ipuz.ts",
+    "crosswords:set-note": "node supabase/scripts/crosswords/set-puz-note.mjs",
     "import": "npm run words:import && npm run spellingbee:import && npm run connections:import && npm run stackdown:import && npm run crosswords:import",
     "deploy": "npm run boggle:wordlist && npm run scrabble:wordlist && supabase db push && supabase functions deploy && npm run build && netlify deploy -p -d dist",
     "test:e2e": "playwright test"

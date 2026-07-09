@@ -66,10 +66,14 @@ type Props = {
   /** `${row}:${col}` → CSS color: a teammate JUST filled this cell (coop);
    *  the fill flashes in their color for a few seconds. */
   recentFills: Map<string, string>
+  /** Display-only preference: when true, a multi-char rebus fill renders as
+   *  just its first letter (the underlying fill is unchanged). Crossplay's
+   *  "collapse rebuses" toggle — keeps a dense grid legible at rest. */
+  collapseRebus: boolean
 }
 
 export function Grid({
-  meta, cells, cursorRow, cursorCol, highlighted, onCellClick, rebus, onRebusCommit, onRebusCancel, peek, solution, peerCells, recentFills,
+  meta, cells, cursorRow, cursorCol, highlighted, onCellClick, rebus, onRebusCommit, onRebusCancel, peek, solution, peerCells, recentFills, collapseRebus,
 }: Props) {
   const { width, height, cells: template } = meta
 
@@ -118,6 +122,7 @@ export function Grid({
               recentColor={recentFills.get(key) ?? null}
               markRight={live?.markRight ?? null}
               markBottom={live?.markBottom ?? null}
+              collapseRebus={collapseRebus}
               onCellClick={onCellClick}
             />
           )
@@ -218,6 +223,8 @@ type CellProps =
       /** Cryptic word-break / hyphen marks on the right / bottom edge. */
       markRight: 'break' | 'hyphen' | null
       markBottom: 'break' | 'hyphen' | null
+      /** Collapse a multi-char rebus fill to its first letter (display only). */
+      collapseRebus: boolean
       onCellClick: (row: number, col: number) => void
     }
 
@@ -238,17 +245,22 @@ const Cell = memo(function Cell(props: CellProps) {
   const {
     row, col, number, fill, given, answerReveal, pencil, revealed, wrong,
     circled, shaded, isCursor, isInWord, peerColor, recentColor,
-    markRight, markBottom, onCellClick,
+    markRight, markBottom, collapseRebus, onCellClick,
   } = props
 
   const bg = isCursor ? styles.cursor : isInWord ? styles.inWord : ''
 
+  // The letter(s) actually shown. `collapseRebus` renders a multi-char rebus
+  // as just its first letter (display only — `data-fill` keeps the full fill).
+  const displayFill = fill && collapseRebus && fill.length > 1 ? fill[0]! : fill
+
   // Rebus: shrink + re-center a multi-char fill. A recent peer fill (coop)
-  // tints the letter in that teammate's color for a few seconds.
+  // tints the letter in that teammate's color for a few seconds. Keyed on the
+  // DISPLAYED length, so a collapsed rebus renders at full single-cell size.
   const fillStyle: CSSProperties | undefined =
-    fill && fill.length > 1
+    displayFill && displayFill.length > 1
       ? {
-          fontSize: `max(${REBUS_MIN_EM}em, min(0.62em, ${(0.9 / fill.length).toFixed(3)}em))`,
+          fontSize: `max(${REBUS_MIN_EM}em, min(0.62em, ${(0.9 / displayFill.length).toFixed(3)}em))`,
           transform: 'none',
           ...(recentColor ? { color: recentColor } : {}),
         }

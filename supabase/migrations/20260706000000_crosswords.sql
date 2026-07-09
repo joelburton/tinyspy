@@ -455,8 +455,16 @@ begin
   -- Pre-insert the fillable, non-given cells: one shared grid (owner null)
   -- for coop, one grid per player for compete. `with ordinality` gives
   -- 1-based indices; subtract 1 for 0-based (row, col).
-  insert into crosswords.cells (game_id, owner_id, row, col)
-  select new_id, o.owner, (rr.ord - 1)::smallint, (cc.ord - 1)::smallint
+  --
+  -- `fill` is seeded from the template cell's `fill` when present — normally
+  -- NULL (a blank library / NYT template), but an uploaded PARTIALLY-SOLVED
+  -- `.ipuz` carries the solver's saved fills on its non-given cells (the ipuz
+  -- `saved` grid, applied into the template by the parser). Restoring them
+  -- here means a half-finished puzzle imports where you left off — the
+  -- crossplay behavior (its `saved` round-trip). Uppercased to match set_cell.
+  insert into crosswords.cells (game_id, owner_id, row, col, fill)
+  select new_id, o.owner, (rr.ord - 1)::smallint, (cc.ord - 1)::smallint,
+         upper(nullif(cc.cellval ->> 'fill', ''))
     from jsonb_array_elements(v_meta -> 'cells') with ordinality as rr(rowval, ord)
     cross join lateral jsonb_array_elements(rr.rowval) with ordinality as cc(cellval, ord)
     cross join unnest(
@@ -838,6 +846,26 @@ end;
 $$;
 revoke execute on function crosswords.reveal_solved_word(uuid, jsonb) from public;
 grant execute on function crosswords.reveal_solved_word(uuid, jsonb) to authenticated;
+
+-- solution_for — the full answer grid for the "Download as .ipuz" export
+-- (review M4). Unlike `games_state` (which gates the solution to terminal),
+-- export needs the whole grid at ANY time so a downloaded file carries real
+-- answers. Handing the solution to the client on demand relaxes the shielding,
+-- which the friends-only trust model tolerates (see CLAUDE.md → trust model);
+-- it's a deliberate, member-gated exception, not the solving path.
+create function crosswords.solution_for(target_game uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = crosswords, common, public, extensions
+as $$
+begin
+  perform common.require_game_player(target_game);
+  return (select solution from crosswords.games where id = target_game);
+end;
+$$;
+revoke execute on function crosswords.solution_for(uuid) from public;
+grant execute on function crosswords.solution_for(uuid) to authenticated;
 
 -- ============================================================
 -- end_game (coop manual give-up) / concede (compete) / submit_timeout

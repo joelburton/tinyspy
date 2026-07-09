@@ -128,6 +128,17 @@ Upload file):
   folder (Joel keeps his own puzzle files; nothing committed). After `db:reset`
   the library is empty until re-run — same posture as the other library games.
   The parsers themselves live in **`src/crosswords/lib/parse/`** (see §6).
+  Author-side companions (ported from crossplay): **`crosswords:puz-to-ipuz`**
+  (convert a `.puz` → `.ipuz` via `parsePuzBuffer` + `writeIpuz`) and
+  **`crosswords:set-note`** (patch a `note` into a note-less `.puz` — relevant
+  because the cryptic gating keys off "puzzle has a note").
+- **Saved-fill restore** — a partially-solved `.ipuz` (whether imported or
+  uploaded) carries the solver's in-progress fills as its ipuz `saved` grid; the
+  parser applies them onto the non-given template cells, and `create_game` seeds
+  `crosswords.cells.fill` from them (uppercased). So a half-finished puzzle
+  imports where you left off — crossplay's `saved` round-trip, the counterpart to
+  **Download as .ipuz** (§9). Blank library/NYT templates carry no fills, so this
+  is a no-op there.
 - **In-app upload** — the setup form's "Upload file" tab parses a dropped /
   chosen `.puz` / `.ipuz` **entirely client-side** (`lib/importFile.ts` →
   `lib/parse/`; puzjs is a dependency-free `Uint8Array` reader, so it bundles in
@@ -188,17 +199,23 @@ never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
   right / bottom cryptic edge mark → `set_mark`). Bails inside inputs
   (`isNonGameField`), when a modal is `suspended`-ing the board, + on Ctrl/Meta.
   - **⌥-letter shortcuts** (crossplay parity — the port's identity is
-    keyboard-first): **⌥P** pen/pencil, **⌥C** / **⌥⇧C** check word / grid,
-    **⌥R** / **⌥⇧R** reveal word / grid (coop only), **⌥N** show note, **⌥X**
-    explain cryptic clue. Handled before the Ctrl/Meta/Alt bail and keyed on
-    `e.code` (physical key) so Mac ⌥ dead-keys (⌥C = ç, ⌥N = ˜) don't matter;
-    the write actions are inert once the board is read-only (terminal). They
-    dispatch through a stable `actionsRef` so the keyboard hook needn't list the
-    (later-declared) Controls/menu handlers in its deps. **⌥S scratchpad / ⌥M
-    menu are NOT wired** — the shell exposes no programmatic open for either
-    (would need new ctx APIs); noted in [deferred.md](../deferred.md).
+    keyboard-first): **⌥P** pen/pencil, **⌥C** / **⌥⇧C** check letter / word,
+    **⌥R** / **⌥⇧R** reveal letter / word (coop only), **⌥N** show note, **⌥X**
+    explain cryptic clue, **⌥S** scratchpad. Handled before the Ctrl/Meta/Alt
+    bail and keyed on `e.code` (physical key) so Mac ⌥ dead-keys (⌥C = ç,
+    ⌥N = ˜) don't matter; the write actions are inert once the board is
+    read-only (terminal). They dispatch through a stable `actionsRef` so the
+    keyboard hook needn't list the (later-declared) Controls/menu handlers in
+    its deps. **⌥M menu is NOT wired** (the shell exposes no programmatic menu
+    open); note the check/reveal *puzzle* scope has no shortcut (menu-only),
+    matching crossplay. Two more shortcuts are shell-global (any game): **⌥⌫**
+    End/Concede, **⇧<** Back to club — see [ui.md → GamePage menu](../ui.md#gamepage-menu).
 - **Controls** — pen/pencil toggle + Check and (coop-only) Reveal at
-  letter/word/grid scope (scope resolved client-side via `cursor.ts`).
+  letter/word/grid scope (scope resolved client-side via `cursor.ts`). The
+  **same actions are ALSO listed in the game menu** with their ⌥-shortcut hints
+  (`MenuItem.shortcut`) — crossplay advertised them there, and the menu is where
+  a mouse user discovers the shortcut. Both surfaces dispatch through the shared
+  `actionsRef`, so there's one binding, two entry points.
 - **Rebus / peek overlay** — the `Grid` renders a 3-cell-wide box centered +
   clamped over the cursor cell: an editable `RebusInput` (Enter commits +
   advances, Tab / Shift+Tab commits + jumps clue, Esc/blur cancels) or, for
@@ -230,18 +247,36 @@ never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
 (its 12-unit layout grid, clue pagination, cell renderer), NOT the shared
 `common/pdf` frame — it keeps crossplay's title block and adds no Setup section
 (plan decision 7). The answer-key generator (`generateSolutionPdf`) is dropped
-(the FE has no solution). Exposed as the standard "Print board (PDF)"
-`menu.setGameItems` item; the grid is snapshotted at click-time. See
+(the FE has no solution). Exposed as the "Print / Save as PDF" game-menu item
+(one of the `setGameSections` items); the grid is snapshotted at click-time. See
 [docs/pdf.md](../pdf.md) → the grid-plus-clue-columns body family.
 
-The game menu also carries a **"Show note"** item (`NoteDialog` on a
-`FloatingPanel`, ported from crossplay) that opens the setter's free-form
-`meta.note` and (in coop) broadcasts a `showNotes` event so teammates open it
-too. It's **disabled when the puzzle has no note**. A **"Clear board"** item
-(the destructive `clear_board` "start over", `window.confirm`-gated like
-GamePage's End) restores the caller's grid to its initial state. And a
-**"Reveal board"** item — the post-game answer key described under
-*Terminal* above.
+**The game menu** is the fullest in the app — crosswords builds its whole menu
+via `ctx.menu.setGameSections` + the shared `buildGameMenu` helper (see
+[ui.md → GamePage menu](../ui.md#gamepage-menu)), reproducing crossplay's
+single-column layout in order: **Help** · pencil (⌥P) / Enter rebus (⇧↵) /
+Collapse rebuses · Show note (⌥N) / Explain cryptic clue (⌥X) / Scratchpad (⌥S)
+/ Print (⌥ none) / Download as .ipuz · Check letter (⌥C) / word (⌥⇧C) / puzzle ·
+Reveal letter (⌥R) / word (⌥⇧R) / puzzle *(whole section coop-only)* · Clear
+board / Reveal board · **End game / Concede game** (⌥⌫) · **Back to club** (⇧<).
+The play actions dispatch through the stable `actionsRef`. Notables: **Collapse
+rebuses** is a display-only toggle (persisted per browser) that shows multi-char
+rebus fills as just their first letter; **Download as .ipuz** emits the current
+board — template + fills + the answer grid (fetched via the `solution_for` RPC,
+which relaxes the shielding on demand) — via the ported `writeIpuz`, re-uploadable
+to continue; **Show note** (`NoteDialog`) also
+broadcasts a `showNotes` event in coop so teammates open it together;
+**Clear board** is the destructive `clear_board` "start over" (`window.confirm`
+-gated); **Reveal board** is the terminal-only answer key (see *Terminal*
+above). The menu is long, so the popover scrolls — the page never does.
+
+Because the board reads `window` keydowns for cursor movement, the shared
+`Menu` is given **`returnFocusOnClose={false}`** by GamePage: on close the
+trigger blurs (focus falls to `<body>`) instead of retaining focus, so arrows
+resume moving the cursor rather than reopening the menu; and `Menu` now
+`stopPropagation`s keydowns on its trigger + popover so arrowing through the
+menu never doubles as a board move. (See `Menu.tsx` — the behavior is opt-in so
+non-game menus keep standard Esc-restores-focus a11y.)
 
 ## 8. Tests
 
@@ -266,9 +301,18 @@ GamePage's End) restores the caller's grid to its initial state. And a
   minority of themed puzzles; needs a Deno PNG decoder. Normal dailies unaffected.
 - **NYT dedup** — inline NYT games aren't stored, so re-fetching a date makes a
   new game (fine; NYT was always kept out of the library).
-- **Rebus "collapse" toggle** — the last bit of cryptic apparatus from
-  crossplay, still deferred. (The **cryptic edge marks** `|`/`_` shipped — see
-  `set_mark`; the AI **"Explain cryptic clue"** shipped — see §10.)
+- **`fetch-nyt-range` bulk CLI** (review M5) — a Node script to download a date
+  range of NYT dailies into the library; still deferred (blocked on the
+  `NYT_COOKIE_JAR` secret, same as the live NYT fetch). Workaround: run
+  crossplay's script, then `crosswords:import`. Crossplay's other author tools
+  **did** ship — see §11.
+- **`generateSolutionPdf` (answer-key PDF)** — not ported. Now cheap given the
+  `solution_for` RPC (M4) hands the FE the answer grid on demand; do it if wanted.
+
+The crossplay apparatus is otherwise **fully ported**: cryptic edge marks
+(`|`/`_`, `set_mark`), the AI **"Explain cryptic clue"** (§10), the **rebus
+collapse** toggle (§9 menu), **Download as .ipuz** (M4), the **saved-fill
+restore** on import (§6), and chat **URL linkify** (a common feature now).
 
 ## 10. AI "Explain cryptic clue"
 

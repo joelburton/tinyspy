@@ -52,10 +52,11 @@ export type GridKeyboard = {
    *  A null callback = that action isn't available here (reveal in compete,
    *  note/explain when the puzzle carries no setter note). */
   onTogglePencil: () => void
-  onCheck: (scope: 'word' | 'puzzle') => void
-  onReveal: ((scope: 'word' | 'puzzle') => void) | null
+  onCheck: (scope: 'letter' | 'word' | 'puzzle') => void
+  onReveal: ((scope: 'letter' | 'word' | 'puzzle') => void) | null
   onShowNote: (() => void) | null
   onExplain: (() => void) | null
+  onScratchpad: () => void
 }
 
 const ARROWS = new Set<ArrowKey>(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'])
@@ -97,7 +98,7 @@ export function useGridKeyboard(ref: RefObject<GridKeyboard | null>) {
       const {
         grid, cursor, pencil, setCursor, fillAt, isGiven, setCell,
         onRebus, onNumberJump, onPeek, clearPeek, onMark,
-        onTogglePencil, onCheck, onReveal, onShowNote, onExplain,
+        onTogglePencil, onCheck, onReveal, onShowNote, onExplain, onScratchpad,
       } = k
       const { row, col } = cursor
 
@@ -122,16 +123,22 @@ export function useGridKeyboard(ref: RefObject<GridKeyboard | null>) {
             if (writable) { e.preventDefault(); onTogglePencil() }
             return
           case 'KeyC':
-            if (writable) { e.preventDefault(); onCheck(e.shiftKey ? 'puzzle' : 'word') }
+            // ⌥C = check letter, ⌥⇧C = check word (crossplay bindings). Check
+            // puzzle has no shortcut — it's a menu-only action.
+            if (writable) { e.preventDefault(); onCheck(e.shiftKey ? 'word' : 'letter') }
             return
           case 'KeyR':
-            if (writable && onReveal) { e.preventDefault(); onReveal(e.shiftKey ? 'puzzle' : 'word') }
+            // ⌥R = reveal letter, ⌥⇧R = reveal word (coop only).
+            if (writable && onReveal) { e.preventDefault(); onReveal(e.shiftKey ? 'word' : 'letter') }
             return
           case 'KeyN':
             if (onShowNote) { e.preventDefault(); onShowNote() }
             return
           case 'KeyX':
             if (onExplain) { e.preventDefault(); onExplain() }
+            return
+          case 'KeyS':
+            e.preventDefault(); onScratchpad()
             return
           default:
             return // any other ⌥ combo: bail, as before

@@ -1405,6 +1405,7 @@ export type Database = {
           version: number
         }[]
       }
+      solution_for: { Args: { target_game: string }; Returns: Json }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
     }
     Enums: {
