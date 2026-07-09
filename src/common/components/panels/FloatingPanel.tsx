@@ -6,6 +6,8 @@ import {
   type PanelRect,
 } from '../../hooks/ui/useDraggablePanel'
 import { useCoarsePointer } from '../../hooks/ui/useCoarsePointer'
+import { usePhone } from '../../hooks/ui/usePhone'
+import { useVisualViewport } from '../../hooks/ui/useVisualViewport'
 import styles from './FloatingPanel.module.css'
 // (Below: a 'hard'/'soft' literal is passed to clampToViewport
 // per-call. See the ClampMode type in useDraggablePanel.)
@@ -68,12 +70,13 @@ type Props = {
   /** Stacking tier. Defaults to 500 (the modal tier). Chat passes
    *  10000 so it sits above every modal regardless of open order. */
   zIndex?: number
-  /** When true, the full-screen phone sheet reserves space at the
-   *  bottom for the on-screen keyboard (see `--keyboard-reserve`),
-   *  so a panel with a text input (chat) keeps its input + recent
-   *  content above the keyboard — with no reflow when it toggles.
-   *  Phone-only (the reserve lives in the `@media (--phone)` rule);
-   *  a no-op on tablets/desktop. Default false. */
+  /** When true, a full-screen phone sheet stays clear of the
+   *  on-screen keyboard: it's sized to the measured visual viewport
+   *  (which shrinks by the keyboard), so a panel with a text input
+   *  (chat) keeps its input + content above the keyboard with
+   *  nothing hidden behind it. Phone-only; inert on tablets/desktop
+   *  (no soft keyboard → visual viewport == layout viewport).
+   *  Default false. */
   reserveKeyboard?: boolean
   /** Panel body content. */
   children: ReactNode
@@ -406,6 +409,22 @@ function PanelRnd({
   reserveKeyboard?: boolean
   children: ReactNode
 }) {
+  // ── Keyboard-aware clamp (opt-in via `reserveKeyboard`, phones only) ────
+  // A full-screen phone sheet with a text input (chat) must not extend behind
+  // the on-screen keyboard — otherwise the webview scrolls to the hidden part
+  // (and iOS auto-scrolls there on focus/send). We can't know the keyboard's
+  // height (and there's no way to hide iOS's QuickType bar), so instead of
+  // guessing we size the sheet to the MEASURED visible region: clamp the fixed
+  // clip layer to the visual viewport, which shrinks exactly by the keyboard.
+  // The sheet then ends at the keyboard's top edge; the input rides it, and
+  // there's nothing behind it to scroll to. Phone-only: only there does the
+  // sheet fill the clip layer (elsewhere it's a floating/centered panel, so
+  // shrinking the layer would just clip it). Off a phone the hooks are inert
+  // (no soft keyboard → visual viewport == layout viewport).
+  const isPhone = usePhone()
+  const viewport = useVisualViewport()
+  const clampToKeyboard = reserveKeyboard && isPhone
+
   // ── Content-fit (opt-in via `fitContent`) ──────────────────────────────
   // Grow the panel on open so its natural content is fully visible, capped to
   // the viewport (past which the body scrolls). We measure the CONTENT wrapper
@@ -467,11 +486,24 @@ function PanelRnd({
     // no). It also makes react-rnd's absolute coords viewport-relative, matching
     // the `clampToViewport` math. `pointer-events` are off on the layer and back
     // on for the panel (see the CSS), so the page beneath stays clickable.
-    <div className={styles.clipLayer} style={{ zIndex }}>
+    <div
+      className={styles.clipLayer}
+      style={
+        clampToKeyboard
+          ? // Pin the layer to the visible region (above the keyboard). `top`
+            // tracks offsetTop so it follows any iOS focus-scroll; `bottom: auto`
+            // lets `height` win over the CSS `inset: 0`.
+            {
+              zIndex,
+              top: viewport.offsetTop,
+              height: viewport.height,
+              bottom: 'auto',
+            }
+          : { zIndex }
+      }
+    >
       <Rnd
-        // `.reserveKeyboard` shrinks the phone sheet up from the bottom by the
-        // assumed keyboard height (CSS, @media (--phone)); a no-op elsewhere.
-        className={reserveKeyboard ? `${styles.rnd} ${styles.reserveKeyboard}` : styles.rnd}
+        className={styles.rnd}
         size={{ width: rect.width, height: rect.height }}
         position={{ x: rect.x, y: rect.y }}
         // Intentionally no `bounds` prop — we want users to be

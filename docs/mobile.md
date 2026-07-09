@@ -301,23 +301,41 @@ Realizes [decision 1](#decisions--directions). Every [`FloatingPanel`](../src/co
   centered-modal rect (roomy enough), just pinned in place by the coarse-pointer
   rule above.
 
-**Keyboard reserve (chat).** A full-screen sheet with a text input has a problem
-on iOS: the on-screen keyboard doesn't shrink a `position: fixed` sheet, so it
-overlays the input + newest messages — and iOS then auto-scrolls the webview to
-reveal the input, stranding earlier content off-screen even after the keyboard
-closes. The fix is a `reserveKeyboard` prop (chat opts in): on phones the sheet
-still fills the screen, but its body is padded up from the bottom by an assumed
-keyboard height (`--keyboard-reserve`, ~44svh) so the input sits *above* where
-the keyboard appears. Crucially the space is reserved **whether or not the
-keyboard is up**, so toggling it causes **no reflow** — the keyboard just fills
-the already-empty strip below the input (the repo's no-reflow-on-state-change
-rule, applied to the keyboard). The strip is chat-surface-colored, so nothing
-shows through.
+**Keyboard-aware sizing (chat).** A full-screen sheet with a text input has a
+problem on iOS: the on-screen keyboard doesn't shrink a `position: fixed` sheet,
+so it overlays the input + newest messages — and iOS then auto-scrolls the
+webview to reveal the input, stranding earlier content off-screen. You can't fix
+this by *guessing* the keyboard height: it varies by device, and Apple's
+QuickType predictive bar (which **can't be hidden** from web content) makes it
+taller still. So the sheet is sized to the **measured visual viewport** instead:
+a `reserveKeyboard` prop (chat opts in) drives the fixed clip layer's `height` /
+`top` from [`useVisualViewport`](../src/common/hooks/ui/useVisualViewport.ts) —
+the visible region, which shrinks by exactly the keyboard. The sheet then ends at
+the keyboard's top edge: the input rides the keyboard, nothing is hidden behind
+it, and there's nothing to scroll to. Phone-only (gated by
+[`usePhone`](../src/common/hooks/ui/usePhone.ts)); off a phone the hooks are
+inert (no soft keyboard → visual viewport == layout viewport). This *does* resize
+the sheet when the keyboard toggles — but that's the expected native-chat
+behavior (the input bar riding the keyboard), and it's the chat sheet only, not
+the game board the no-reflow rule protects.
+
+*(An earlier attempt reserved a fixed `~44–50svh` strip statically to avoid any
+reflow. It couldn't win: too small and the keyboard covered the input; too big
+and it wasted space; and the full-height fixed sheet still extended behind the
+keyboard, so the webview stayed scrollable. Measuring beats guessing.)*
+
+The chat input also needed the **16px font floor** — it was `0.9rem` (14.4px),
+under iOS's focus-zoom threshold, so tapping it zoomed the page *in* (and never
+back out), leaving the sheet wider than the screen. `@media (--touch)` pins the
+field to 16px; desktop keeps 0.9rem. This is the exact trap
+[Decisions #3](#decisions--directions) warned about; other sub-16px inputs across
+the app still have it (a future sweep).
 
 Guarded by [`panels-touch.e2e.ts`](../e2e/panels-touch.e2e.ts) (a real browser —
-jsdom has no layout engine or touch synthesis): on a 390px touch viewport the
-chat panel fills the screen, its input keeps a keyboard-sized gap below it, and a
-**tap** on the X closes it.
+jsdom has no layout engine, touch synthesis, or visualViewport): the chat sheet
+fills the screen, its input meets the 16px floor, a **tap** on the X closes it,
+and — with a mocked-shrunk visual viewport — the sheet clamps to the visible
+region with the input never behind the keyboard.
 
 ### Viewport height — `svh` instead of `vh`
 

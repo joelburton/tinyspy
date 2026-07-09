@@ -171,20 +171,14 @@
   .shell {
     border-radius: 0;
   }
-
-  /* Opt-in (FloatingPanel `reserveKeyboard`, used by chat): the sheet still
-     fills the whole screen (its own background, no page peeking through), but
-     its body is padded up from the bottom by the assumed keyboard height, so the
-     input row + newest messages sit above where the on-screen keyboard appears.
-     The padded strip below the input is chat-surface-colored; the keyboard
-     covers exactly that strip when it opens. Reserved whether or not the
-     keyboard is actually up → toggling it causes NO reflow (the input never
-     moves). The `0.4rem` matches `.body`'s base bottom padding — we're adding
-     the reserve on top of it. */
-  .reserveKeyboard .body {
-    padding-bottom: calc(0.4rem + var(--keyboard-reserve));
-  }
 }
+
+/* Keyboard-aware sizing (FloatingPanel `reserveKeyboard`, used by chat) is NOT a
+ * static CSS reserve — the on-screen keyboard's height is unknowable (and iOS's
+ * QuickType bar can't be hidden), so guessing it always over- or under-shoots.
+ * Instead the clip layer's height/top are driven from the VISUAL viewport in JS
+ * (see FloatingPanel.tsx), so the sheet ends exactly at the keyboard's top edge.
+ * No CSS rule is needed here; this note marks where the old static reserve was. */
 
 /* Backdrop layer — fixed-position dim that catches pointer
  * events on the page underneath but doesn't catch anything
