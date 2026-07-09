@@ -241,6 +241,14 @@ otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
+# Custom magic-link email (local dev only). The stock default renders only the
+# clickable link — no code — which leaves the app's code-entry sign-in path with
+# nothing to show. This template also renders {{ .Token }}, so you can read the
+# code in Mailpit on one device and type it on another (e.g. laptop → phone).
+[auth.email.template.magic_link]
+subject = "Your sign-in link and code"
+content_path = "./supabase/templates/magic_link.html"
+
 # Use a production-ready SMTP server
 # [auth.email.smtp]
 # enabled = true

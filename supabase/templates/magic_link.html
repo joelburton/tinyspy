@@ -1,0 +1,19 @@
+<!--
+  Local-dev magic-link email (wired up via [auth.email.template.magic_link] in
+  supabase/config.toml). The stock GoTrue default renders ONLY the clickable
+  link ({{ .ConfirmationURL }}) — no numeric code — which breaks the app's
+  code-entry sign-in path (LoginScreen's "I have a code already": verifyOtp needs
+  the {{ .Token }} OTP). This template renders BOTH so either path works, which
+  is what makes cross-device sign-in possible: read the code in Mailpit on the
+  laptop, type it into the phone.
+
+  This file only affects LOCAL dev; the deployed project's templates are managed
+  separately in the Supabase dashboard.
+-->
+<h2>Your sign-in link</h2>
+
+<p>Follow the link below to sign in. This link expires shortly and can only be used once.</p>
+<p><a href="{{ .ConfirmationURL }}">Sign in</a></p>
+
+<p>Or enter this code:</p>
+<p style="font-size: 1.5rem; font-weight: bold; letter-spacing: 0.15em;">{{ .Token }}</p>
