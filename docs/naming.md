@@ -221,6 +221,20 @@ When two games have a concept that *is the same thing*, they MUST use the same n
 
 When a third game adopts a term that's standard in two others, that term graduates to the "cross-game canonical names" list below. That's also the moment to verify the pre-existing two are already using it the same way (often the catalyst for a small rename).
 
+### …but deliberately-distinct names are the flip side — don't unify a name that encodes a real difference
+
+The corollary to the rule above: when a cross-game name difference encodes a *real* mechanical, shape, or signature difference, **keep it**. Forcing a shared name for surface consistency would *hide* the distinction. These look like drift but correctly aren't (recorded so a future consistency pass doesn't "fix" them):
+
+- **Cheat verbs** — psychicnum `request_hint` / `request_reveal` (secrets are *unordered* — pick an unfound one at random) vs stackdown `reveal_next_hint` / `reveal_next_word` (6 *ordered* solution words — you reveal the *next* one). The `_next_` is load-bearing.
+- **`result` numeric key** — scrabble `score` (points) vs stackdown `found` (a 0–6 words-cleared count). Different metrics, not one concept under two names.
+- **boggle `play_state = 'ended'`** for a normal finish — boggle has no win-threshold state (the winner is *derived* from most-points when the timer / manual End fires), so `'ended'` is its only terminal; `'won_compete'` would invent a state its model doesn't have.
+- **`onSubmitWord(tileIds)` (stackdown)** vs argument-less `onSubmit()` (boggle / spellingbee) — different signatures (stackdown carries the specific tile set spelled off the exposed stack); the self-describing name is deliberate.
+- **Board-gate FE props** — connections `showInput` / psychicnum `canGuess` stay distinct from the shared `readOnly`: they're cross-column input-*phase* flags that show/hide the input UI, not a board-only "visible-but-inert" `readOnly`.
+- **Per-player metric props** — the three same-shaped `ReadonlyMap<string, number>` props were unified on `metricByUser`, but `playerStates` / `playerBudgets` (a *rows* shape) stayed distinct — different shapes, not different names for one thing.
+- **`_maybe_finish_compete`** (connections / waffle / wordle) vs `_finish` / `_finalize` — a genuinely different function: it returns `boolean` and early-returns if the game *isn't* over, where `_finish` returns `void` and unconditionally finalizes.
+
+The test: would a shared name *hide* a difference the reader needs? If yes, keep them distinct and let the name carry the distinction.
+
 ### Qualify when the name will be read in isolation; stay bare when the scope owner is right there
 
 Inside `board.categories[].rank`, bare `rank` is unambiguous — the surrounding object IS a category. As a column on `connections.guesses`, the same idea needs `matched_category_rank` because at the column level the name is read globally (PostgREST, generated TS types, the FE's `Database` type) with no surrounding context.
