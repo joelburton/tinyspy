@@ -28,8 +28,7 @@ type Props = {
  *
  * **Currently unwired.** It's the shared "you won!" celebration a game's
  * terminal flow can adopt on top of (or instead of) the plain
- * `<GameOverModal>`; kept here ready for a first consumer. See
- * docs/crossplay-missing.md item G1.
+ * `<GameOverModal>`; kept here ready for a first consumer.
  *
  * Focus moves to the primary (or close) button on mount so a keyboard
  * player can Enter through it; Esc dismisses. The jingle is best-effort —
