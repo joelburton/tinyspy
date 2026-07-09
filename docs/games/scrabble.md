@@ -718,11 +718,6 @@ All shipped in migration `20260627000000_scrabble.sql` (which registers
 
 ## 12. The move suggester (AI)
 
-**[docs/scrabble-ai.md](../scrabble-ai.md) is the design doc** — the algorithm
-survey, the GADDAG-vs-flat-trie decision, the leave-heuristic weights, the
-strength-slider design, and the staged build plan. This section is the shipped
-architecture at a glance.
-
 Coop's info column has a **Suggest** button (the shared `AIButton`); it returns
 the top-5 legal moves, and clicking one **stages** that move's tiles — the same
 staging state a hand-placed move uses, reviewed and committed through the
@@ -766,10 +761,77 @@ returns `{board, rack, dict_2, dict_3plus, version}` from one SELECT — an
 atomic snapshot. pgTAP: `get_suggest_context_test.sql`.
 
 **`version` is the staleness currency** (coop has no turns, so a teammate can
-play while a hint is in flight): an answer that arrives already stale reports
-"Board changed — ask again.", and a `ready` list quietly clears (derived at
-render, no message) the moment the board moves past it — most commonly because
-the player just committed the suggested move. The suggest box is a **reserved fixed-height
-slot** in the info column (results arriving must not reflow the column); the
-e2e (`scrabble-suggest.e2e.ts`) checks both invariants against the real edge
+play while a hint is in flight). Staleness is **derived at render**, never
+messaged: a `ready` list shows exactly while `suggest.version === game.version`
+and hides otherwise — so it quietly clears the moment the board moves past it
+(most commonly because the player just committed the suggested move), and a hint
+whose DB-fresh version is *ahead* of a lagging FE simply appears once the FE
+catches up (no false "board changed" alarm). The suggest box **claims no space
+when idle** and snaps to a **fixed height** once it holds content (loading /
+results / error), so an arriving list never reflows the column below it. The
+e2e (`scrabble-suggest.e2e.ts`) checks these invariants against the real edge
 function in a real browser.
+
+## 13. The AI opponent (compete)
+
+Distinct from the always-best suggester above: an autonomous **AI player** you
+can seat in a **compete** game — 0–3 of them, all at one chosen skill level —
+built on the same engine.
+
+**Seat-based, scrabble-local.** Turns key on `scrabble.games.current_seat` (an
+int), not a user id, so a seat can be an AI. AI seats are rows in
+`scrabble.players` with a null `user_id` + an `ai_level`, and are **not** in
+`common.game_players` / `common.profiles` — so presence-pause and the club
+roster ignore them for free. `create_game` seats humans then AI; `_advance_turn`
+/ `_finish` / the turn checks all rotate + resolve by seat (an AI can win — the
+terminal reads "AI 1"). The human move RPCs (`play_word` / `exchange_tiles` /
+`pass_turn`) and the AI twins (`ai_play_word` / `ai_exchange` / `ai_pass`) share
+one seat-driven core (`_commit_word` / `_commit_exchange` / `_commit_pass`), so
+there's no second copy of the trusting-commit logic.
+
+**The brain is `src/scrabble/lib/policy.ts`.** `choosePlay(board, rack, trie,
+bands, knobs, rng)` picks one move (or an exchange) — pure + deterministic given
+`rng` — by generating every legal move, ranking it under the knobs, then
+applying two human-fallibility filters. Five preset **levels** (`LEVELS`):
+beginner / casual / intermediate / strong / best. The knobs:
+
+| knob | effect | source |
+|---|---|---|
+| `vocabCap` | the AI only *plays* words at/below a difficulty band | `rankMoves` lever |
+| `scoreFraction` | aim the pick at a fraction of the best equity | `rankMoves` lever |
+| `useLeave` | include the leave heuristic (off → greedy; the rack degrades over a game) | `rankMoves` lever |
+| `bingoMissProb` | probability of "not seeing" an otherwise-best bingo (anagramming is hard) | fallibility |
+| `equityNoise` | Gaussian jitter on equity before the argmax (doesn't reliably *find* the best) | fallibility |
+
+**Orchestration** — a client-invoked edge function `scrabble-ai-move` loops
+`get_ai_context` (seat-less: returns the *current* seat's AI context, or
+`{done}` when it's a human's turn / terminal) → `choosePlay` → the matching
+`ai_*` RPC, walking a chain of consecutive AI seats in one invocation until a
+human's turn. Any connected client may poke it (a move that hands off to an AI,
+or game load on an AI turn); the RPCs are seat + version guarded, so a
+duplicate/concurrent poke resolves to a `stale` no-op. `get_ai_context` is the
+`SECURITY DEFINER` door to the AI seat's hidden rack + the grant-hidden bands —
+the twin of `get_suggest_context`.
+
+**The band rule.** Whenever an AI is present, the game's `dict_2` AND
+`dict_3plus` must be ≥ the level's band (its `vocabCap`: beginner 1, casual 2,
+intermediate 4, strong/best 6). The setup form **validates** this as a blocking
+error and never silently raises the dictionary (a hidden change would be a
+trap); `create_game` re-checks as the authority. Because the AI generates
+against the game's own bands, it can never play a word illegal in the game — the
+rule only stops it from playing *below* its tuned strength.
+
+**Tuning + measurement.** The level presets were tuned with a headless self-play
+harness — `npm run scrabble:selfplay` (`supabase/scripts/scrabble-selfplay.ts`
+over `policy.ts`'s `playSelfGame`), which self-plays coop games over **paired
+bag seeds** (common random numbers) so a modest sample resolves each knob's
+effect against tile-luck variance. The shipped ladder averages ≈ **450 / 582 /
+720 / 844 / 906** points per coop game (beginner → best). Known simplification:
+no *strategic* exchange — the AI only swaps when it has no legal play at all.
+
+**Surfacing.** Solo clubs get the compete Start button (`scrabble_compete`'s
+`min_players` is 1 — you race the AI alone), badged **"AI Compete"** by
+`ModePill`. Each opponent's committed move (human OR AI) is announced in the
+global peer-news header ("AI 1 played COATS (+18)"); an AI seat's score shows in
+a compact strip in the info column. pgTAP: `ai_players_test.sql`; e2e:
+`scrabble-ai-player.e2e.ts` (a human-vs-AI game against the real edge function).

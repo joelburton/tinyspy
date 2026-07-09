@@ -88,7 +88,7 @@ also lists NYT overlay-PNG analysis + NYT dedup; those live there.)
   game via `create_game`'s inline `board` arg. See `crosswords.md` §5.
 - **Cryptic apparatus** — the rebus-"collapse" toggle + the AI "Explain this
   clue" helper from crossplay, still deferred. (The **cryptic edge marks**
-  `|`/`_` shipped — `set_mark` + `docs/crosswords-marks-plan.md`.)
+  `|`/`_` shipped — see `set_mark` in `crosswords.md` §6.)
 - **`generateSolutionPdf` (answer-key PDF).** Print ports the puzzle generator
   only; the answer-key variant needs the shielded solution and was dropped for
   v1 — could be terminal-gated later (the solution is readable then).

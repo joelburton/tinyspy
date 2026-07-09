@@ -627,7 +627,7 @@ today, so none blocks play. They're recorded here so they don't get silently for
    (re-enable the arrow/Tab navigation keys at terminal so you can read the solution by keyboard).
    Left as-is pending that call.
 
-**Shipped since the review (2026-07-05):** the cryptic **edge marks** (`docs/crosswords-marks-plan.md`)
+**Shipped since the review (2026-07-05):** the cryptic **edge marks** (`crosswords.md` §6 → `set_mark`)
 and the **FE `.puz`/`.ipuz` upload** path (setup form "Upload file" tab → client-side parse →
 inline `board`). **Still deferred (see `deferred.md` → crosswords):** the rest of the cryptic
 apparatus (rebus collapse / AI "Explain"), the answer-key PDF, and the two self-healing scratchpad
