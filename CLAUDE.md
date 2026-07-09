@@ -11,6 +11,7 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/states.md](docs/states.md) | View-state / play-state vocabulary, suspend / current / pause concepts |
 | [docs/testing.md](docs/testing.md) | Test theory, persona conventions, pgTAP + Vitest patterns |
 | [docs/ui.md](docs/ui.md) | FE design philosophy: desktop-first, theme tokens, global-vs-per-game vocab, consistency goals |
+| [docs/mobile.md](docs/mobile.md) | The mobile-appearance pass: the desktop-first rules for it, the single `56.25rem` desktop→mobile breakpoint, what's been mobile-ready'd so far (club-page tabs, dots-only player strip, the `.card` shell pages), and recorded TODOs (cap handles at 10 / club names at 20) |
 | [docs/playarea-decomposition.md](docs/playarea-decomposition.md) | The `PlayArea` → `BoardCol` / `InfoCol` decomposition + the shared turn-history viewer (`useHistoryViewer`, per-game `lib/history.ts`): the recipe, prop conventions, and per-game keying |
 | [docs/pdf.md](docs/pdf.md) | Printing game boards to PDF (jsPDF): the clean-printable design language — the three-shade greyscale palette, color-only-for-meaning, white backgrounds, header/Setup conventions; the shared `common/pdf/` helpers (frame + turnLog + wordColumns) and the two body families (turn-log vs word-list games) |
 | [docs/deferred.md](docs/deferred.md) | Things explicitly deferred from code reviews and conversations |

@@ -16,7 +16,7 @@ The play surface is a laptop or desktop browser. Some games are awkward on mobil
 
 - **Default styles are written for desktop.** Use `@media (max-width: …)` to add mobile adjustments only when something genuinely breaks. The opposite — mobile-first authoring with `@media (min-width: 1024px)` overlays — shipped some of the existing code ([`PlayArea.module.css`](../src/codenamesduet/components/PlayArea.module.css)'s three-column layout); fine to leave alone, but new code should be desktop-first.
 - **Mobile gets graceful degradation, not engineering.** Phone users should be able to read the page and use the app; we don't chase pixel-perfect mobile layouts.
-- **A real mobile pass is a future project.** When the games stabilize visually, we'll do one. Locking it in now forces complexity on every component while we're still noodling shared chrome.
+- **The real mobile pass has begun.** It proceeds one screen at a time and is recorded in [`mobile.md`](mobile.md) — the single `56.25rem` (900px) desktop→mobile breakpoint, what's been made phone-safe so far, and how to verify no-scroll headless. Still desktop-first: mobile is a `max-width` exception that never changes the desktop layout.
 
 ## Layout stability
 
