@@ -20,6 +20,16 @@
   --entrybox-font-size: 2rem;
 }
 
+/* On a phone the board fills the screen and 2rem reads oversized, so dial the
+ * enlargement back toward the default. Safe below the 16px iOS floor because the
+ * EntryBox is a display <div>, not a focusable <input> — it never raises the
+ * keyboard, so it can't trigger focus-zoom. Phones only; tablets/desktop keep 2rem. */
+@media (--phone) {
+  .bigEntry {
+    --entrybox-font-size: 1.5rem;
+  }
+}
+
 /* Turn-history: while a past turn is open in the viewer, the below-board banner
  * (historyViewer.module.css `.banner`, `inset: 0`) overlays the swap box — so make
  * that box a positioning context. Applied only while viewing; inert otherwise (the
