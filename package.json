@@ -20,6 +20,7 @@
     "words:import": "npx tsx supabase/scripts/import-words.ts",
     "boggle:wordlist": "npx tsx supabase/scripts/generate-boggle-wordlist.ts",
     "scrabble:wordlist": "npx tsx supabase/scripts/generate-scrabble-wordlist.ts",
+    "scrabble:selfplay": "npx tsx supabase/scripts/scrabble-selfplay.ts",
     "stackdown:gen": "npx tsx supabase/scripts/generate-stackdown-boards.ts",
     "stackdown:import": "npx tsx supabase/scripts/import-stackdown-boards.ts",
     "crosswords:import": "npx tsx supabase/scripts/import-crosswords-puzzles.ts",

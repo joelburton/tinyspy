@@ -544,8 +544,11 @@ column and shift the board.
 
 ### Deferred (explicitly out of scope for the first build)
 
-- Strength slider (designed above; ranking signature ready for it).
-- AI opponent (would sit on the same edge fn + a turn-taking loop).
+- Strength slider + **AI opponent** — now under active design/measurement in
+  [scrabble-ai-strength.md](scrabble-ai-strength.md): the `choosePlay` policy
+  brain, the five strength knobs, and the self-play harness that tunes them
+  (`npm run scrabble:selfplay`). The in-game UI plumbing is still deferred, but
+  the strength model is being built + measured there.
 - Compete-mode "hints allowed" setup toggle.
 - LLM coaching explanations for suggested moves.
 - Suggesting an **exchange** (or pass) when the best play's equity is poor and
