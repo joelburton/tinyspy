@@ -425,6 +425,23 @@ a {
   padding: 2rem;
   max-width: 480px;
   margin: 0 auto;
+  /* Break long unbreakable tokens (a 30-char username in the "Welcome"
+   * heading, a long email, a solo club's `=handle`) instead of letting
+   * them force the card wider than its column and scroll the page. Only
+   * bites when a word genuinely can't fit the line — normal prose is
+   * untouched, so this is invisible on desktop and just keeps the narrow
+   * (phone) card within the viewport. */
+  overflow-wrap: anywhere;
+}
+
+/* Mobile (phones + portrait tablets): the 2rem card padding eats too much
+ * of a narrow screen, so trim it. The app is desktop-first — this is an
+ * override layered on the rule above. 56.25rem (900px) is the shared
+ * desktop->mobile line (first established in ClubPage.module.css). */
+@media (max-width: 56.25rem) {
+  .card {
+    padding: 1.5rem 1.25rem;
+  }
 }
 
 /* The icon-and-label button look: a Lucide icon + a text label on one centered

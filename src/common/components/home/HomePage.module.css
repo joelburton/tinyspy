@@ -119,4 +119,7 @@
   padding: 0.1rem 0.45rem;
   border-radius: 999px;
   line-height: 1.2;
+  /* A pill label is a single unit — never let the card's overflow-wrap
+   * break "SOLO" into "SOL / O" when a long club name squeezes the row. */
+  white-space: nowrap;
 }
