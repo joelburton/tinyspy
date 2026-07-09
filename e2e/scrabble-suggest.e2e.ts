@@ -10,8 +10,10 @@ import { signIn } from './helpers/session'
  *
  * Two invariants only a real browser can check ride along (the
  * codenamesduet.e2e.ts layout-guard exception):
- *   - the suggest box is a RESERVED height — results arriving must not
- *     change it (no-reflow), and all five rows must actually fit inside it;
+ *   - the box claims NO space when idle (the deliberate exception to the
+ *     pre-claim rule), and once it holds the top-5 list it's a fixed height
+ *     with all five rows fitting inside (no overflow / reflow among the shown
+ *     states); playing the move collapses it back to nothing;
  *   - clicking a row stages the move: the Submit preview shows exactly the
  *     score the row advertised. The suggester's score and evaluatePlay's
  *     agree by construction (rankMoves scores THROUGH evaluatePlay); this
@@ -36,8 +38,9 @@ test.describe('scrabble — suggest a move (coop)', () => {
     await expect(page.locator('[data-zone="rack"] [data-rack-tile]')).toHaveCount(7, { timeout: 20_000 })
 
     const box = page.locator('[data-zone="suggest"]')
-    await expect(box).toBeVisible()
-    const before = (await box.boundingBox())!
+    // Idle: the box claims NO space — it isn't in the tree until there's
+    // something to show (the deliberate exception to the pre-claim rule).
+    await expect(box).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Suggest' }).click()
     const rows = box.locator('button[title="Stage these tiles on the board"]')
@@ -45,12 +48,12 @@ test.describe('scrabble — suggest a move (coop)', () => {
       timeout: 20_000,
     })
 
-    // Reserved height: identical before/after, and the last row fits inside it.
-    const after = (await box.boundingBox())!
-    expect(Math.abs(after.height - before.height), 'box height must not change').toBeLessThanOrEqual(1)
+    // Once shown, the box is a fixed height and all five rows fit inside it
+    // (no overflow / reflow among the shown states).
+    const shown = (await box.boundingBox())!
     const lastRow = (await rows.nth(4).boundingBox())!
-    expect(lastRow.y + lastRow.height, 'row 5 fits inside the reserved box').toBeLessThanOrEqual(
-      after.y + after.height + 1,
+    expect(lastRow.y + lastRow.height, 'row 5 fits inside the box').toBeLessThanOrEqual(
+      shown.y + shown.height + 1,
     )
 
     // Apply the top suggestion → its tiles stage on the board, and the Submit
@@ -60,11 +63,11 @@ test.describe('scrabble — suggest a move (coop)', () => {
     await expect(page.getByRole('button', { name: 'Submit' })).toContainText(`+${advertised}`)
 
     // Commit it. The played move bumps the board version past the open list —
-    // which must QUIETLY clear, never surface the staleness message (a real
-    // regression: "Board changed — ask again." after playing the suggestion).
+    // which must QUIETLY clear (the box collapses back to nothing), never
+    // surface a staleness message after playing the suggestion.
     await page.getByRole('button', { name: 'Submit' }).click()
     await expect(page.getByText(`+${advertised}`).first()).toBeVisible() // the own-move pill
-    await expect(rows).toHaveCount(0)
+    await expect(box, 'the box collapses back to no-space on quiet-clear').toHaveCount(0)
     await expect(page.getByText('Board changed — ask again.')).toHaveCount(0)
 
     await ctx.close()

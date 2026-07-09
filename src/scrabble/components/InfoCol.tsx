@@ -18,10 +18,11 @@ import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './InfoCol.module.css'
 
 /** The AI suggest-a-move box's state (owned by PlayArea, rendered here —
- *  the LocalFeedbackMsg convention). `idle` still renders the box: its
- *  height is reserved whether or not there's anything to show. `ready`
- *  remembers the board `version` the moves were computed against, so
- *  PlayArea can derive staleness at render (a teammate may have played). */
+ *  the LocalFeedbackMsg convention). `idle` renders NOTHING — the box claims
+ *  no space until there's something to show (a deliberate exception to the
+ *  pre-claim-space rule; see the render site). `ready` remembers the board
+ *  `version` the moves were computed against, so PlayArea can derive
+ *  staleness at render (a teammate may have played). */
 export type SuggestState =
   | { status: 'idle' }
   | { status: 'loading' }
@@ -104,7 +105,7 @@ export function InfoCol({
    *  mode never changes mid-game, so its absence is not a reflow). */
   suggest: SuggestState | null
   /** May ask right now (playing, seated, not over) — gates the button only;
-   *  the box itself stays mounted at its reserved height. */
+   *  the box collapses entirely when idle (nothing to show). */
   canSuggest: boolean
   onSuggest: () => void
   /** Stage a suggested move's tiles on the board (BoardCol applies it). */
@@ -209,11 +210,16 @@ export function InfoCol({
         )}
 
         {/* Suggest-a-move results (coop; the button is up in the action row).
-            The box is a FIXED height in every state (idle / loading / results /
-            error) so a suggestion arriving never shifts the sections below —
-            see the module css. Clicking a row stages that move's tiles on the
-            board for review; the suggester never submits. */}
-        {suggest && (
+            When idle the box renders NOTHING and claims no space — a deliberate
+            exception to the pre-claim-space rule (Joel's call): an empty
+            reserved gap below the help text read as clutter. Once it holds
+            content (loading / results / error) it snaps to a FIXED height so a
+            suggestion arriving never shifts the sections BELOW it relative to
+            "Thinking…" — see the module css. The one accepted shift is
+            idle→shown, which the player triggers by clicking Suggest. Clicking
+            a row stages that move's tiles on the board; the suggester never
+            submits. */}
+        {suggest && suggest.status !== 'idle' && (
           <div className={styles.suggestBox} data-zone="suggest">
             {suggest.status === 'loading' && <p>Thinking…</p>}
             {suggest.status === 'error' && <p className={styles.suggestError}>{suggest.message}</p>}
