@@ -7,6 +7,10 @@ type Props = {
    *  `display: contents` and the child is always the visible info column. */
   open: boolean
   onClose: () => void
+  /** Make the mobile sheet the FULL device width instead of the default 24rem —
+   *  for games whose info column needs the room (spellingbee/boggle's WordList).
+   *  No effect on desktop. */
+  wide?: boolean
   /** The game's `<InfoCol>`. */
   children: ReactNode
 }
@@ -23,10 +27,10 @@ type Props = {
  * open/close state + the "Game info" menu item) and the shared `.mobileFill`
  * class on the game's `.layout` (which hands the board the full width).
  */
-export function InfoSheet({ open, onClose, children }: Props) {
+export function InfoSheet({ open, onClose, wide = false, children }: Props) {
   return (
     // data-info-sheet: a stable hook for e2e (the class name is hashed).
-    <div className={cls(styles.wrap, open && styles.open)} data-info-sheet>
+    <div className={cls(styles.wrap, open && styles.open, wide && styles.wide)} data-info-sheet>
       <button
         type="button"
         className={styles.close}

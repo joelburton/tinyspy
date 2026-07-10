@@ -35,6 +35,24 @@
     transition: transform 160ms ease;
   }
 
+  /* Opt-in (the `wide` prop): full device width instead of 24rem — for a game
+   * whose info column needs the room (spellingbee/boggle's WordList). Also a flex
+   * column so the info column STRETCHES to the sheet's full height (the base 24rem
+   * sheets are plain `block` + sheet-scroll; only here does the WordList want to
+   * fill the height and scroll internally). The ✕ is `position: absolute`, out of
+   * flow, so it isn't a flex item. */
+  .wide {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  /* The in-flow child (the game's InfoCol) fills the sheet height — so its
+   * WordList grows tall (a couple of columns) instead of collapsing to one row. */
+  .wide > :not(.close) {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
   .open {
     transform: translateX(0);
   }

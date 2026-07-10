@@ -17,6 +17,8 @@ import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { buildDisplayRows } from '../lib/displayRows'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { printSpellingbeePdf } from '../pdf/printSpellingbeePdf'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -56,6 +58,13 @@ export function PlayArea(ctx: GamePageCtx) {
   const { game, foundWords, loading } = useGame(gameId)
 
   const spellingbeeSetup = setup as SpellingbeeSetup
+
+  // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the hive
+  // fills the screen and the info column moves into an off-canvas <InfoSheet>,
+  // opened from the hook's "Game info" menu item. The sheet is `wide` (full device
+  // width) so the WordList has room — the rem-width columns side-scroll. Desktop
+  // is unchanged. No board divergence — input is letter taps (no keyboard).
+  const infoSheet = useInfoSheet()
 
   // The end/concede action handlers, held in a stable ref so the menu effect
   // needn't list the (later-declared, per-render `useCallback`) handlers in its
@@ -157,11 +166,15 @@ export function PlayArea(ctx: GamePageCtx) {
         conceded: myConceded,
         onEndGame: () => actionsRef.current?.endGame(),
         onConcede: () => actionsRef.current?.concede(),
-        extra: [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printSpellingbeePdf(model) }] }],
+        extra: [
+          // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
+          ...infoSheet.menuSections,
+          { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printSpellingbeePdf(model) }] },
+        ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, spellingbeeSetup, isTerminal, myConceded, foundWordsScore, foundWordsCount])
+  }, [menu, game, foundWords, players, brand, title, spellingbeeSetup, isTerminal, myConceded, foundWordsScore, foundWordsCount, infoSheet.menuSections])
 
   // ─── Allowed-letter set (drives illegal-letter dim) ────
   const allowedLetters = useMemo(() => {
@@ -391,7 +404,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const wordRows = buildDisplayRows(foundWords, isTerminal ? game.requiredWords : null)
 
   return (
-    <div className={cls(shared.layout, styles.layout)}>
+    <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         // ── Board to render ──
         outerLetters={game.outer_letters}
@@ -417,8 +430,10 @@ export function PlayArea(ctx: GamePageCtx) {
           (docs/design-decisions.md → Info column), with two spellingbee picks:
           the RankBar + Stats are ONE "state" unit and lead (the thing you watch),
           and there's no help line — the honeycomb makes the move obvious. The
-          WordList fills the rest. */}
-      <InfoCol
+          WordList fills the rest. Off-canvas full-width sheet on mobile, flex
+          child on desktop. */}
+      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close} wide>
+        <InfoCol
         // ── Mode + phase ──
         isCompete={isCompete}
         isTerminal={isTerminal}
@@ -445,7 +460,8 @@ export function PlayArea(ctx: GamePageCtx) {
         // ── Found-words list ──
         wordRows={wordRows}
         reveal={isTerminal}
-      />
+        />
+      </InfoSheet>
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>
   )

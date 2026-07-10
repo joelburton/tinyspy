@@ -57,10 +57,12 @@
   /* As many rows as fit the fixed height; columns then flow rightward. */
   grid-template-rows: repeat(auto-fill, var(--wl-row-height));
   grid-auto-flow: column;
-  /* Each column is exactly a third of the visible width (minus the two 16px gaps
-   * between three columns), so three fit and the rest scroll. */
-  /*grid-auto-columns: calc((100% - 2 * 16px) / 3);*/
-  grid-auto-columns: calc((100% - 2 * 16px) / 5);
+  /* Each column is a fixed rem WIDTH (not a fraction of the box), so a column is
+   * always the same readable size and you get as many columns as the words need,
+   * side-scrolling past the visible ones. On the wide desktop box this is ~5
+   * columns (≈ the old box/5); in the narrow mobile sheet the columns stay
+   * readable (instead of box/5 cramped) and scroll. */
+  grid-auto-columns: var(--wl-col-width, 10.5rem);
   column-gap: 16px;
   overflow-x: auto;
   overflow-y: hidden;
