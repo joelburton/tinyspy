@@ -8,6 +8,9 @@ type Props = {
   /** Top-left of this hex's box, in the flower's coordinate units. */
   pos: { left: number; top: number }
   onClick: () => void
+  /** A bumping counter that flashes this tile on click (0 = never clicked). Used
+   *  as the flash overlay's `key`, so re-clicking the SAME tile replays it. */
+  flashNonce: number
 }
 
 /**
@@ -22,7 +25,7 @@ type Props = {
  * typed-word input (same reason as the old button — the next keystroke must still
  * reach the input). SVG `<text>` ignores `text-transform`, so we uppercase here.
  */
-export function Letter({ letter, isCenter, pos, onClick }: Props) {
+export function Letter({ letter, isCenter, pos, onClick, flashNonce }: Props) {
   const up = letter.toUpperCase()
   const points = HEX_VERTS.map(([fx, fy]) => {
     const sx = 0.5 + (fx - 0.5) * HEX_SHRINK
@@ -47,6 +50,11 @@ export function Letter({ letter, isCenter, pos, onClick }: Props) {
       onMouseDown={(e) => e.preventDefault()}
     >
       <polygon className={styles.hexShape} points={points} />
+      {/* Click-flash overlay — keyed by the nonce so each click replays it; sits
+          above the shape but below the text (letter stays readable). */}
+      {flashNonce > 0 && (
+        <polygon key={flashNonce} className={styles.hexFlash} points={points} />
+      )}
       <text className={styles.hexText} x={cx} y={cy}>
         {up}
       </text>

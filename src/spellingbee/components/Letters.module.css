@@ -49,15 +49,46 @@
   transform-box: fill-box;
   transform-origin: center;
   transition: transform 80ms ease, filter 80ms ease;
+  /* Suppress the mobile browser's default tap-highlight — it paints a grey box
+   * over the hex's (square) BOUNDING BOX, which both looks wrong on a hexagon and
+   * hides our own hex-shaped flash below. */
+  -webkit-tap-highlight-color: transparent;
 }
 .hex:hover {
   filter: brightness(0.96);
 }
 .hex:active {
-  transform: scale(0.96);
+  transform: scale(0.9);
 }
 .hex:focus {
   outline: none;
+}
+
+/* Click/tap feedback: a brief bright overlay on the tapped hex (in addition to
+ * the `:active` press, which is too quick to notice on a fast tap). Driven from
+ * Letter.tsx — the overlay is keyed by a bumping nonce so re-tapping the SAME
+ * tile replays it. Base opacity 0 so it's invisible between taps; the one-shot
+ * animation fades from bright to that 0 (no `forwards` needed, since it ends at
+ * the base). */
+.hexFlash {
+  fill: #fff;
+  opacity: 0;
+  pointer-events: none;
+  animation: hexFlash 260ms ease-out;
+}
+@keyframes hexFlash {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hexFlash {
+    animation: none;
+  }
 }
 
 /* The hex shape — the real fill + border. Outer hexes: warm tile-2 with its OWN

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { HEX_POSITIONS } from '../lib/honeycomb'
 import { Letter } from './Letter'
 import styles from './Letters.module.css'
@@ -37,6 +37,9 @@ type Props = {
 
 export function Letters({ outerLetters, centerLetter, onLetterClick, floatingControl }: Props) {
   const letters = [centerLetter, ...outerLetters]
+  // Which tile to flash on click + a bumping nonce so re-tapping the same tile
+  // replays the flash (see Letter.tsx). Purely visual — doesn't gate the click.
+  const [flash, setFlash] = useState<{ i: number; n: number } | null>(null)
   return (
     <div className={styles.board}>
       <div className={styles.floatAnchor}>
@@ -52,7 +55,11 @@ export function Letters({ outerLetters, centerLetter, onLetterClick, floatingCon
               letter={letter}
               isCenter={i === 0}
               pos={HEX_POSITIONS[i] ?? HEX_POSITIONS[0]}
-              onClick={() => onLetterClick(letter)}
+              flashNonce={flash?.i === i ? flash.n : 0}
+              onClick={() => {
+                setFlash((f) => ({ i, n: (f?.n ?? 0) + 1 }))
+                onLetterClick(letter)
+              }}
             />
           ))}
         </svg>
