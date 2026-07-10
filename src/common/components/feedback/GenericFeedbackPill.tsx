@@ -10,7 +10,7 @@ type Props = {
 
 /**
  * The shared feedback pill — the "what just happened" display. It serves BOTH
- * feedback areas (docs/design-decisions.md → Terms): the GLOBAL one (the header
+ * feedback areas (docs/ui.md → Feedback pill): the GLOBAL one (the header
  * `<StatusSlot>`, via `ctx.globalFeedback.show()`, left-justified, for peer/opponent
  * messages) and the LOCAL one (a below-board slot a game renders directly,
  * centered, for the player's own move). See docs/ui.md → "Feedback pill" for the
@@ -28,8 +28,8 @@ type Props = {
  * pill looks like a codenamesduet "clue invalid" pill looks like a future Boggle
  * "not a word" pill.
  *
- * `msg.variant` is the transient-vs-permanent axis (docs/design-decisions.md →
- * Feedback):
+ * `msg.variant` is the transient-vs-permanent axis (docs/ui.md →
+ * Feedback pill):
  *   - `'outline'` → TRANSIENT: white background, tone-colored border.
  *   - omitted / `'fill'` → PERMANENT: a lightened-tone background + border, so it
  *     reads *more* like its tone (a terminal message, an end-game mode).

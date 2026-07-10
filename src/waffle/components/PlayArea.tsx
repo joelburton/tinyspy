@@ -112,7 +112,7 @@ export function PlayArea({
         const member = players.find((m) => m.user_id === ps.user_id)
         if (ps.solved && !prev.solved) {
           // A solve is a GOOD outcome → success (green) — the same green a found word
-          // reads as in both modes (docs/design-decisions.md → Tone follows the
+          // reads as in both modes (docs/ui.md → Feedback pill: tone follows the
           // event). Adverse to me in compete, but the tone names the event, not my stake.
           globalFeedback.show({
             tone: 'success',

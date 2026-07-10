@@ -39,7 +39,7 @@ const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
  * width, in board order — kept as the FE stored them, so the row matches what the
  * players were looking at). Real table cells, not a flexbox sub-line inside one
  * cell (that throws away the column alignment the table exists for — see
- * design-decisions.md → Conversion gotchas). `.turnLogDivider` on row 1 draws the
+ * playarea.md → Turn log (conversion gotchas)). `.turnLogDivider` on row 1 draws the
  * between-turns line. The verdict names the matched
  * category on a correct guess ("Matched: Colors"), so "the row that solved the
  * blue band" is legible at a glance; the other two outcomes carry the

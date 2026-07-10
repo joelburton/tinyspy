@@ -10,7 +10,7 @@
  *
  * The colors are the SAME palette the feedback pills use, so a `warning` button
  * is the exact dark amber of a `warning` pill, an `error` button the dark red of
- * an `error` pill, etc. (docs/design-decisions.md → Action buttons). `neutral`
+ * an `error` pill, etc. (docs/ui.md → Button iconography). `neutral`
  * needs no class — it's the plain secondary outline.
  */
 
@@ -36,7 +36,7 @@
 }
 
 /* near (one-away) shares warning's amber for now — a distinct name, same color
- * (docs/design-decisions.md → Tones). */
+ * (docs/ui.md → Feedback pill). */
 .near {
   --color-control-border-2: var(--color-outcome-near-strong);
   --color-control-text-2: var(--color-outcome-near-strong);

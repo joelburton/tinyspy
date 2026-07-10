@@ -19,7 +19,7 @@ type Props = {
  * waffle's turn log — the shared swap history rendered with the common
  * `<TurnLog>` table (same chrome psychicnum / connections / codenamesduet use).
  * waffle renders its OWN `<tr>` rows (the shared layer no longer owns row shape;
- * `<TurnLogItem>` is retired — docs/design-decisions.md → Turn log), composing the
+ * `<TurnLogItem>` is retired — docs/playarea.md → Turn log), composing the
  * shared `<TurnLogBar>` + content classes. A swap has no win/lose verdict, so
  * every row's outcome bar is `neutral` (grey, like psychicnum's hint rows).
  *

@@ -31,7 +31,7 @@ const NO_TILES: ReadonlySet<number> = new Set()
 
 /**
  * stackdown's play surface, shared by the coop and compete manifests, on the
- * shared two-column scaffold (docs/design-decisions.md → PlayArea layout).
+ * shared two-column scaffold (docs/playarea.md → PlayArea layout).
  * PlayArea is the **coordinator**: it holds the game data (`useGame`), the server
  * mutations (submit / reveal / hint / end / concede RPCs), and the cross-column
  * coordination state (the turn-history `viewingIndex`, the local + word-slot
@@ -94,7 +94,7 @@ export function PlayArea({
   // ─── Local own-move feedback (the below-board pill) ──────────────
   // The player's OWN move results — a rejected word, a keystroke that matched no
   // exposed tile (or too many), a reveal's answer, an RPC error — show as a centered
-  // <GenericFeedbackPill> in BoardCol's below-board slot (docs/design-decisions.md →
+  // <GenericFeedbackPill> in BoardCol's below-board slot (docs/ui.md → Feedback pill:
   // local feedback area). Sticky: it persists until the player's NEXT action
   // dismisses it. Peer narration goes to the GLOBAL header instead (useGlobalFeedback).
   // This channel lives in PlayArea because it has triggers in BOTH columns (the

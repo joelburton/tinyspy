@@ -2,7 +2,7 @@ import { useGlobalKeyHandler } from '../input/useGlobalKeyHandler'
 
 /**
  * Dismiss the game's local feedback on ANY key — the "your next keystroke is your
- * next move" rule (docs/design-decisions.md → Dismissal modes), made universal so
+ * next move" rule (docs/ui.md → Feedback pill (dismissal modes)), made universal so
  * even games with **no keyboard capture** (waffle, connections, codenamesduet
  * when not clueing) clear their own-move pill on a keypress, the same way the
  * capture games do.

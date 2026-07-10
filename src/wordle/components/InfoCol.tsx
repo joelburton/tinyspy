@@ -23,7 +23,7 @@ const answerSourceLabel = (n: number): string =>
 
 /**
  * wordle's info column — near-zero state, an arrangement of the shared scaffold pieces
- * in the fixed order (docs/design-decisions.md → Info column): state (guess count) →
+ * in the fixed order (docs/playarea.md → Info-column readouts): state (guess count) →
  * OpponentStrip (compete) → action row → help → setup disclosure → terminal answer
  * reveal → the turn log. Every mutation is a named callback up (`onEndGame` /
  * `onConcede` / `onBackToClub` / `onSelectTurn`); PlayArea owns the RPCs + the history

@@ -5,7 +5,7 @@
  * caret's `1.15em` height tracks this font-size.) Per-game appearance (how it
  * sits in a row, its width) comes from a `className` the consumer appends; the
  * *entered-text* look — bold, uppercase, lightly letter-spaced — is common here,
- * so it's uniform across every consumer (docs/design-decisions.md → WordInput /
+ * so it's uniform across every consumer (docs/playarea.md → Text entry — WordInput /
  * EntryBox). Shared by psychicnum + spellingbee + boggle — change here flows to all. */
 .box {
   display: flex;

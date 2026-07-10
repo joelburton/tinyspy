@@ -15,7 +15,7 @@ import shared from '../../common/components/game/PlayArea.module.css'
 
 /**
  * boggle's info column — near-zero state, an arrangement of the shared scaffold
- * pieces in the fixed order (docs/design-decisions.md → Info column): word/score
+ * pieces in the fixed order (docs/playarea.md → Info-column readouts): word/score
  * readout → OpponentStrip (compete) → action row → help → setup disclosure → the
  * found-words `<WordList>`. Every mutation is a named callback up (`onEndGame` /
  * `onConcede`); PlayArea owns the RPCs + coordination. Prop names match the other
@@ -90,7 +90,7 @@ export function InfoCol({
   return (
     <div className={shared.infoCol}>
       <div className={shared.actionSlot}>
-        {/* InfoCol order is FIXED (docs/design-decisions.md → Info column):
+        {/* InfoCol order is FIXED (docs/playarea.md → Info-column readouts):
             state → opponent strip → action row → help → setup disclosure → list. */}
 
         {/* State — the 4-cell grid: Words · Score · Bonus Words · Bonus Score. */}

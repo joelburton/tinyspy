@@ -15,7 +15,7 @@ import shared from '../../common/components/game/PlayArea.module.css'
 
 /**
  * psychicnum's info column — near-zero state, an arrangement of the shared scaffold
- * pieces in the fixed order (docs/design-decisions.md → Info column): state readout →
+ * pieces in the fixed order (docs/playarea.md → Info-column readouts): state readout →
  * OpponentStrip (compete) → action row → help → setup disclosure → turn log. Every
  * mutation is a named callback up (`onHint`/`onReveal`/`onEndGame`/`onConcede`/
  * `onSelectTurn`); PlayArea owns the RPCs + coordination. Shared between coop and
@@ -111,7 +111,7 @@ export function InfoCol({
   return (
     <div className={shared.infoCol}>
       {/* The non-log info column — the shared named readouts, in the canonical order
-          (docs/design-decisions.md → Info column): STATE → OpponentStrip (compete) →
+          (docs/playarea.md → Info-column readouts): STATE → OpponentStrip (compete) →
           ACTIONS → HELP → SETUP disclosure, then the turn log below. */}
       <div className={shared.actionSlot}>
         {/* State — shown in both play and terminal. */}
@@ -170,7 +170,7 @@ export function InfoCol({
         {canGuess && <p className={shared.infoHelp}>Click on or type a word and hit submit.</p>}
 
         {/* Setup — shown in BOTH states, behind a disclosure, LAST before the turn log
-            (docs/design-decisions.md → InfoCol order). Open, it grows (which we
+            (docs/playarea.md → Info-column readouts). Open, it grows (which we
             normally avoid), but it's closable so it reclaims the space. */}
         <SetupDisclosure>
           <li>Tiles: {wordCount}</li>

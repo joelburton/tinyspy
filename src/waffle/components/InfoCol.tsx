@@ -16,7 +16,7 @@ import shared from '../../common/components/game/PlayArea.module.css'
 
 /**
  * waffle's info column — near-zero state, an arrangement of the shared scaffold
- * pieces in the fixed order (docs/design-decisions.md → Info column): swap-state
+ * pieces in the fixed order (docs/playarea.md → Info-column readouts): swap-state
  * readout → progressive answer reveal → OpponentStrip → action row → help → setup
  * disclosure → swap log. Every mutation is a named callback up
  * (`onEndGame`/`onConcede`/`onSelectTurn`); PlayArea owns the RPCs + coordination.
@@ -101,7 +101,7 @@ export function InfoCol({
   // The End / Concede button — error-toned (red), shared by the "playing" and the
   // "locally terminal" action rows (you can bow out either way). compete CONCEDES
   // ("I give up, you keep racing"); coop ENDS (a neutral mutual "we're done"). Two
-  // components for two semantically distinct actions (docs/design-decisions.md →
+  // components for two semantically distinct actions (docs/ui.md → Button iconography,
   // End vs Concede).
   //
   // Concede is disabled once you've SOLVED: _maybe_finish_compete excludes
@@ -121,7 +121,7 @@ export function InfoCol({
   return (
     <div className={shared.infoCol}>
       <div className={shared.actionSlot}>
-        {/* InfoCol order is FIXED (docs/design-decisions.md → InfoCol order):
+        {/* InfoCol order is FIXED (docs/playarea.md → Info-column readouts):
             state → opponent strip → action row → help → setup disclosure → log. */}
 
         {/* State — shown in both play and terminal. */}

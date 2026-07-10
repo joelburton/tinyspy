@@ -19,6 +19,7 @@ as follows:
 | Turn log / Conversion gotchas | [playarea.md → Turn log](playarea.md#turn-log) |
 | Reconciliation with the code | done — every reconciliation item landed during the v3 sweep |
 
-> Note for a future cleanup: the code comments under `src/` still say
-> `docs/design-decisions.md → …`. They resolve here (this map) for now; repoint them
-> to the sections above when a code pass next touches those files.
+> The `src/` code comments that used to cite `docs/design-decisions.md → …` have
+> been repointed to the ui.md / playarea.md sections above. This stub remains only
+> as a redirect for any older external reference; it can be deleted once nothing
+> points here.

@@ -19,7 +19,7 @@ import styles from './InfoCol.module.css'
 
 /**
  * stackdown's info column — near-zero state, just an arrangement of the shared
- * scaffold pieces in the fixed order (docs/design-decisions.md → Info column):
+ * scaffold pieces in the fixed order (docs/playarea.md → Info-column readouts):
  * state readout → OpponentStrip → action row → help → setup disclosure → terminal
  * words reveal → GameTurnLog log. Every mutation is a named callback up
  * (`onHint`/`onReveal`/`onEndGame`/`onConcede`/`onSelectTurn`); PlayArea owns the
@@ -105,7 +105,7 @@ export function InfoCol({
   return (
     <div className={shared.infoCol}>
       <div className={shared.actionSlot}>
-        {/* InfoCol order is FIXED (docs/design-decisions.md → Info column):
+        {/* InfoCol order is FIXED (docs/playarea.md → Info-column readouts):
             state → opponent strip → action row → help → setup disclosure → log. */}
 
         {/* State — words cleared out of six, plus the cheat tallies (hints /

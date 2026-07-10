@@ -168,7 +168,7 @@ export function BoardCol({
         highlight={highlight}
       />
       {/* The below-board slot — codenamesduet's move-input zone
-          (docs/design-decisions.md → BoardCol → belowBoard). Three states, all in the
+          (docs/playarea.md → Board sizing). Three states, all in the
           same fixed-height slot so the top-anchored board never shifts as it swaps:
             - terminal → a PERMANENT (fill, outcome-colored) <GenericFeedbackPill>
               carrying the verdict — the terminal state always also lands as local

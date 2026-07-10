@@ -427,7 +427,7 @@ export function PlayArea(ctx: GamePageCtx) {
           codenamesduet / waffle): a fixed-height block so the WordList below it
           doesn't shift when the action row swaps play↔terminal (docs/ui.md →
           Layout stability). Order follows the canonical info-column sequence
-          (docs/design-decisions.md → Info column), with two spellingbee picks:
+          (docs/playarea.md → Info-column readouts), with two spellingbee picks:
           the RankBar + Stats are ONE "state" unit and lead (the thing you watch),
           and there's no help line — the honeycomb makes the move obvious. The
           WordList fills the rest. Off-canvas full-width sheet on mobile, flex

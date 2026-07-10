@@ -146,7 +146,7 @@
 
 /* The LOCAL feedback area — centers a lone <GenericFeedbackPill> (or terminal message)
  * in the below-board slot, the universal "local feedback is centered" look
- * (docs/design-decisions.md → Terms / Feedback; the global header pill is
+ * (docs/ui.md → Feedback pill; the global header pill is
  * left-justified instead). `flex: 1` fills its slot so it centers regardless of
  * whether that slot is a column (psychicnum's belowBoard) or a row (connections'
  * commit row); a game's entry/commit CONTROLS don't use this — only the lone

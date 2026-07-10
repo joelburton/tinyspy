@@ -72,7 +72,7 @@ export function useLocalFeedback({ locked = false }: LocalFeedbackOptions = {}):
     setLocalFeedback(msg)
     cancelTimer()
     // Only a `timed` message auto-clears; sticky/closeable persist until the host
-    // clears it (docs/design-decisions.md → Dismissal modes).
+    // clears it (docs/ui.md → Feedback pill (dismissal modes)).
     if (msg.dismiss.kind === 'timed') {
       const ms = msg.dismiss.ms ?? LOCAL_FEEDBACK_DISMISS_MS
       timerRef.current = setTimeout(() => {

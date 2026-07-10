@@ -123,7 +123,7 @@ export function PlayArea({
   // In compete, RLS hides opponents' guesses, so the only peer event we can surface is
   // a SOLVE (the public `players.solved` flag flips): "● moth solved it". SUCCESS-toned
   // (green) — a solve is a solve regardless of whose it is; tone follows the event, not
-  // my competitive stake (docs/design-decisions.md → "Tone follows the event"). My own
+  // my competitive stake (docs/ui.md → Feedback pill ("tone follows the event")). My own
   // solve is excluded (covered by the terminal feedback). `solvedIds` is memoized so
   // the hook re-runs only when it changes.
   const solvedIds = useMemo(

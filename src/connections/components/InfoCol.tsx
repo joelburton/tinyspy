@@ -27,7 +27,7 @@ function formatPuzzleDate(d: string | null): string {
 
 /**
  * connections's info column — near-zero state, an arrangement of the shared scaffold
- * pieces in the fixed order (docs/design-decisions.md → Info column): state readout →
+ * pieces in the fixed order (docs/playarea.md → Info-column readouts): state readout →
  * OpponentStrip (compete) → action row → help → setup disclosure → turn log. Shared
  * between coop and compete: `isCompete` picks the OpponentStrip + Concede (vs End).
  * Every mutation is a named callback up (`onHints`/`onEndGame`/`onConcede`/

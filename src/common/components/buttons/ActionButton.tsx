@@ -9,7 +9,7 @@ import styles from './ActionButton.module.css'
 export type ButtonWeight = 'primary' | 'secondary'
 
 /** A button's semantic TONE — the SAME vocabulary + palette as the feedback
- *  pills (docs/design-decisions.md → Action buttons / Tones), coloring a
+ *  pills (docs/ui.md → Button iconography), coloring a
  *  secondary (outline) button's border + text + icon. `neutral` is the plain
  *  outline; `warning` = dark amber (Hint / Reveal), `error` = dark red (End),
  *  etc. Tone is meaningful only for secondary weight — a `primary` button is the

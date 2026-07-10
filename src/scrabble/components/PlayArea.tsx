@@ -63,7 +63,7 @@ export function PlayArea({
   const { game, players: playerStates, plays, loading } = useGame(gameId)
 
   // The player's own-move result — a sticky pill in the commit slot (the local
-  // feedback area; docs/design-decisions.md → Feedback). Lifted to the coordinator
+  // feedback area; docs/ui.md → Feedback pill). Lifted to the coordinator
   // because BOTH columns write it: BoardCol's turn machine (played/rejected/…) AND
   // InfoCol's End/Concede failures. The thin builder keeps the terse `{ tone, text }`
   // call sites (own-move results are outline + sticky — the next move dismisses them).

@@ -17,7 +17,7 @@ import shared from '../../common/components/game/PlayArea.module.css'
 
 /**
  * spellingbee's info column — near-zero state, an arrangement of the shared scaffold
- * pieces in the fixed order (docs/design-decisions.md → Info column) with two
+ * pieces in the fixed order (docs/playarea.md → Info-column readouts) with two
  * spellingbee picks: the RankBar + Stats are ONE "state" unit and lead (the thing you
  * watch), and there's no help line (the honeycomb makes the move obvious). Order:
  * state (RankBar + Stats) → OpponentStrip (compete) → action row → setup disclosure →

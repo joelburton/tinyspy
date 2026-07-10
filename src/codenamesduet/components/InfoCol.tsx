@@ -14,7 +14,7 @@ import styles from './InfoCol.module.css'
 
 /**
  * codenamesduet's info column — near-zero state, an arrangement of the shared
- * scaffold pieces in the fixed order (docs/design-decisions.md → Info column):
+ * scaffold pieces in the fixed order (docs/playarea.md → Info-column readouts):
  * agent/turn state readout → finished-player banners → action row → help → setup
  * disclosure → turn log. codenamesduet has NO opponent strip (peer status rides the
  * GamePage header pill) and its finished-player banners sit right under the state
@@ -86,8 +86,8 @@ export function InfoCol({
 }) {
   return (
     <div className={shared.infoCol}>
-      {/* Info-column readouts in the shared canonical order (docs/design-decisions.md
-          → Info column): STATE → [no opponent strip — peer status rides the header
+      {/* Info-column readouts in the shared canonical order (docs/playarea.md
+          → Info-column readouts): STATE → [no opponent strip — peer status rides the header
           pill] → ACTIONS → HELP → SETUP disclosure, then the turn log below.
           codenamesduet's finished-player banners are a loud live-state announcement,
           so they sit right under the state line. */}

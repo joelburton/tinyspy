@@ -35,7 +35,7 @@ const rating = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1))
 
 /**
  * scrabble's info column — near-zero state, an arrangement of the shared scaffold
- * pieces in the fixed order (docs/design-decisions.md → Info column): turn/score
+ * pieces in the fixed order (docs/playarea.md → Info-column readouts): turn/score
  * readout → OpponentStrip → action row → help → setup disclosure → Moves log. Every
  * mutation is a named callback up (`onEndGame`/`onConcede`/`onSelectTurn`); PlayArea
  * owns the RPCs + coordination. Prop names match the other games' columns for the
@@ -131,7 +131,7 @@ export function InfoCol({
   return (
     <div className={shared.infoCol}>
       <div className={shared.actionSlot}>
-        {/* InfoCol order is FIXED (docs/design-decisions.md → Info column):
+        {/* InfoCol order is FIXED (docs/playarea.md → Info-column readouts):
             state → opponent strip → action row → help → setup disclosure → log. */}
 
         {/* State — whose turn (compete) / team score (coop) + the bag count. The

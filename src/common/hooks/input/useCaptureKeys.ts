@@ -39,7 +39,7 @@ export type CaptureKeysOptions = {
   /**
    * Dismiss sticky local feedback. Called on ANY key the game sees (after the
    * modifier bail, before dispatch) — the player's next keystroke is their next
-   * move (docs/design-decisions.md → Dismissal modes). Optional; tile/letter
+   * move (docs/ui.md → Feedback pill (dismissal modes)). Optional; tile/letter
    * clicks dismiss via their own handlers, not this.
    */
   onAnyKey?: () => void
@@ -71,7 +71,7 @@ export type CaptureKeysOptions = {
  * field like chat) and turns them into edits on a pending value, so there's no
  * `<input>` to lose focus when the player clicks a board tile.
  *
- * It owns the **universal** capture plumbing — the bits docs/design-decisions.md
+ * It owns the **universal** capture plumbing — the bits docs/playarea.md
  * → "Move entry" / "Text entry" mandate for *every* such game, so they stay
  * identical and can't drift:
  *
