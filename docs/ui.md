@@ -144,6 +144,8 @@ The FloatingPanel title bar is always `"Game over"`. The `verdict` is the center
 
 The per-game PlayArea picks the right verdict per status (play_state + timer.expired + game data) and passes it down.
 
+**The celebration variant.** `common/components/game/CelebrationDialog.tsx` (confetti glyphs + optional jingle, ported from crossplay) is the festive alternative a game can pop **instead of** the GameOverModal for a win. Its trigger contract is the *inverse* of the GameOverModal's: the `useCelebration` hook pops it **only when the win lands mid-session** (the `playState` flip arriving via realtime — so the whole group celebrates together), never on mounting an already-won game (that's review, not winning), and it re-arms if the game un-terminals (replay-board). **Waffle and wordle** take this treatment — each skips the GameOverModal entirely (the verdict is carried in-page by the below-board pill + the action-row outcome line) and celebrates coop solves. Gate it on `playState === 'won'` alone — synchronously available from ctx and coop-only by the states vocabulary; gating on async-loaded game data fakes a mid-session flip on every mount of a won game. The wider adoption plan is [celebration-ideas.md](celebration-ideas.md).
+
 ### Dialog buttons
 
 macOS-style placement, consistent across every dialog / modal / confirm: the action row is **right-justified** (`justify-content: flex-end`), with the **default/primary action rightmost** and Cancel (the `secondary` button) to its left — so Cancel comes *first* in the DOM, the primary button *last*. Single-button dialogs (Help's "Got it", GameOverModal's "Back to club") right-justify the lone button. Each dialog owns a small `.actions` / `.buttonRow` flex rule, all sharing `gap: 0.75rem` and `min-width: 6rem` on the buttons. `PauseOverlay` is the deliberate exception — it's a page-context banner, not a modal, so its buttons center.
@@ -402,7 +404,7 @@ Same principle, applied to components.
 
 **The game-mechanic UI is per-game.** The board, rules display, input affordance (clue form vs number input vs guess box) — each game owns these. That's what the per-game `components/` directory is for.
 
-**Game-end UI** — `common/components/game/terminal/GameOverModal.tsx` is the shared component every game renders at terminal. Per-game PlayArea passes title + detail + outcome; `<GamePage>` provides `goToClub` for the "Back to club" button. Each game also renders a small "Game over: `<status>` [Back to club]" indicator in the slot where input/action UI lived during play, so the terminal state stays visible after the modal closes. See [Modals for terminal results](#modals-for-terminal-results) above for the full contract.
+**Game-end UI** — `common/components/game/terminal/GameOverModal.tsx` is the shared component games render at terminal (waffle and wordle opt out — they carry the verdict in-page and celebrate coop solves with `CelebrationDialog`; see [Modals for terminal results](#modals-for-terminal-results)). Per-game PlayArea passes title + detail + outcome; `<GamePage>` provides `goToClub` for the "Back to club" button. Each game also renders a small "Game over: `<status>` [Back to club]" indicator in the slot where input/action UI lived during play, so the terminal state stays visible after the modal closes. See [Modals for terminal results](#modals-for-terminal-results) above for the full contract.
 
 ## Player identity = a colored disc
 
@@ -623,6 +625,7 @@ icon buttons).
 | Get answer / reveal | `Eye` | Peel | `Banana` (`IconPeel`) |
 | End game | `Flag` | Zoom to fit | `Fullscreen` (`IconZoomFit`) |
 | Clear selection | `Eraser` | Help / rules | `CircleQuestionMark` (`IconHelp`) |
+| Restart board | `SkipBack` (`IconRestart`) | | |
 
 **Conventions:**
 

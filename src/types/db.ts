@@ -2823,6 +2823,8 @@ export type Database = {
         }[]
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
+      reveal_answer: { Args: { target_game: string }; Returns: undefined }
       submit_guess: {
         Args: { guess: string; target_game: string }
         Returns: Json

@@ -26,9 +26,10 @@ type Props = {
  * scale-up card, plus an optional jingle. Ported from crossplay's
  * `SolvedDialog`, themed to this repo's tokens and made game-agnostic.
  *
- * **Currently unwired.** It's the shared "you won!" celebration a game's
- * terminal flow can adopt on top of (or instead of) the plain
- * `<GameOverModal>`; kept here ready for a first consumer.
+ * The shared "you won!" celebration a game's terminal flow can adopt on top
+ * of (or instead of) the plain `<GameOverModal>`. Waffle's coop solve is the
+ * first consumer (INSTEAD of GameOverModal, popped at the moment of the win
+ * via `useCelebration` — never when opening an already-won game).
  *
  * Focus moves to the primary (or close) button on mount so a keyboard
  * player can Enter through it; Esc dismisses. The jingle is best-effort —

@@ -5,6 +5,7 @@ import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTer
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
+import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import { difficultyValue } from '../../common/lib/game/difficulty'
@@ -49,6 +50,7 @@ export function InfoCol({
   // ── Action row ──
   onEndGame,
   onConcede,
+  onRestart,
   onBackToClub,
   // ── Setup disclosure ──
   setup,
@@ -89,15 +91,20 @@ export function InfoCol({
   // ── Action row ──
   onEndGame: () => void
   onConcede: () => void
+  /** Restart THIS game — same word — from scratch (the menu's replay-board,
+   *  unconfirmed at terminal since there's no progress left to lose). */
+  onRestart: () => void
   onBackToClub: () => void
 
   // ── Setup disclosure ──
   setup: WordleSetup
 
   // ── Terminal answer reveal ──
-  /** The hidden answer, revealed once terminal (else null). Prop is `solution`
-   *  (the glossary term for the terminal-reveal slot, matching waffle/stackdown);
-   *  the value comes from the DB-blessed `game.target` column. */
+  /** The answer to DISPLAY at terminal, or null while it stays hidden — which
+   *  now includes a loss / manual end (PlayArea gates on win-or-explicit-reveal;
+   *  the losers' path to the word is the "Reveal answer" menu item). Prop is
+   *  `solution` (the glossary term for the terminal-reveal slot, matching
+   *  waffle/stackdown); the value comes from the DB-blessed `game.target`. */
   solution: string | null
 
   // ── Turn log ──
@@ -156,7 +163,11 @@ export function InfoCol({
             "Waiting for others" + Concede. Playing: just End/Concede (wordle has no
             hint/reveal). */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} />
+          <TerminalActionRow over={over} onBackToClub={onBackToClub}>
+            {/* Restart sits left of Back-to-Club (the waffle arrangement): "play
+                this word again" is the stay-here option, Club is the leave option. */}
+            <RestartButton onClick={onRestart} />
+          </TerminalActionRow>
         ) : isLocallyDone ? (
           <LocalTerminalRow label={myConceded ? 'You conceded' : 'Waiting for others'}>
             {endButton}

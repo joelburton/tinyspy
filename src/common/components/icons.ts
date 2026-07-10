@@ -44,6 +44,10 @@ export {
   // node-graph glyph is the near-universal "send this to others" idiom.
   Share as IconShare,
   ChevronLeft as IconBack, // back to club
+  // restart THIS board from scratch (waffle's replay-board). The skip-back
+  // "jump to the start" transport glyph: it rewinds to the beginning of the
+  // same board, distinct from IconShuffle's rotate (rearrange, new look).
+  SkipBack as IconRestart,
   // open the game's rules/help — the "?" the setup dialog's HelpButton shows.
   // The circled question mark is the near-universal "help / what is this?" idiom.
   CircleQuestionMark as IconHelp,

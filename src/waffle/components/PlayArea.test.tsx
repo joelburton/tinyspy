@@ -108,10 +108,24 @@ describe('waffle PlayArea — render smoke', () => {
     expect(screen.getByRole('grid', { name: /waffle board/i })).toBeInTheDocument()
   })
 
-  it('renders the terminal state without crashing', () => {
-    h.result = loaded({ ...coopGame, solution: ['crane', 'octal', 'slate', 'basin', 'rounds'].join('') })
+  it('renders the coop win with the golf-style par verdict', () => {
+    // 11 swaps against par 9 → "Par +2", shown in BOTH terminal spots: the
+    // below-board pill (verdict) and the info-column outcome line (message).
+    h.result = loaded(
+      { ...coopGame, solution: ['crane', 'octal', 'slate', 'basin', 'rounds'].join('') },
+      [{ ...me, swaps_used: 11, solved: true }],
+    )
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
-    expect(screen.getByText('Solved!')).toBeInTheDocument()
+    expect(screen.getAllByText('Par +2')).toHaveLength(2)
+  })
+
+  it('renders an even-par coop win as "Par!"', () => {
+    h.result = loaded(
+      { ...coopGame, solution: ['crane', 'octal', 'slate', 'basin', 'rounds'].join('') },
+      [{ ...me, swaps_used: 9, solved: true }],
+    )
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    expect(screen.getAllByText('Par!')).toHaveLength(2)
   })
 })
 
@@ -155,6 +169,70 @@ describe('waffle PlayArea — concede', () => {
     // The bold action-row status (exact) — the below-board pill carries the
     // longer "You conceded — the rest are still racing." variant.
     expect(screen.getByText('You conceded')).toBeInTheDocument()
+  })
+})
+
+/**
+ * Terminal flow. Waffle deliberately skips the shared GameOverModal: the
+ * verdict is carried in-page, the action row gains a Restart button (the
+ * menu's replay-board, unconfirmed at terminal), and a coop solve pops the
+ * CelebrationDialog — but ONLY at the moment of the win (the playState flip),
+ * never when mounting an already-won game.
+ */
+describe('waffle PlayArea — terminal flow', () => {
+  const solvedCoop: WaffleGame = {
+    ...coopGame,
+    solution: ['crane', 'octal', 'slate', 'basin', 'rounds'].join(''),
+  }
+
+  it('shows Restart (left of Club) and no GameOverModal at terminal', () => {
+    h.result = loaded(solvedCoop)
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+
+    const restart = screen.getByRole('button', { name: 'Restart' })
+    const club = screen.getByRole('button', { name: /club/i })
+    // Restart precedes Back-to-Club in the row.
+    expect(restart.compareDocumentPosition(club) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // No GameOverModal ("Game over" is its FloatingPanel title) — and no
+    // celebration either: mounting an already-won game is review, not a win.
+    expect(screen.queryByText('Game over')).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('Restart at terminal calls replay_board WITHOUT confirming', async () => {
+    // Clear first: the concede tests above spied confirm too, and spy call
+    // history persists across tests in this file.
+    const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
+    const user = userEvent.setup()
+    h.result = loaded(solvedCoop)
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+
+    await user.click(screen.getByRole('button', { name: 'Restart' }))
+    // confirm returned false — the RPC firing anyway proves it was skipped.
+    expect(confirm).not.toHaveBeenCalled()
+    expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' })
+  })
+
+  it('pops the celebration when the coop win lands mid-session', () => {
+    h.result = loaded(solvedCoop)
+    const { rerender } = render(<PlayArea {...makeCtx()} />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    // The winning swap arrives: playState flips to won via the realtime refetch.
+    rerender(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    expect(screen.getByRole('dialog', { name: 'Solved it! 🧇' })).toBeInTheDocument()
+  })
+
+  it('does not celebrate a compete win', () => {
+    h.result = loaded(competeGame, [me, moth])
+    const ctx = { players: twoMembers, status: { winner: 'u1' } }
+    const { rerender } = render(<PlayArea {...makeCtx(ctx)} />)
+
+    rerender(
+      <PlayArea {...makeCtx({ ...ctx, isTerminal: true, playState: 'won_compete' })} />,
+    )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByText('You won!')).toBeInTheDocument()
   })
 })
 

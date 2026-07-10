@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
-import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
+import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
@@ -75,6 +76,31 @@ export function PlayArea({
   const { viewing, viewingId, select: selectTurn, exitViewing, exitOnKey } =
     useHistoryViewer<number>()
   useGlobalKeyHandler(exitOnKey)
+
+  // ─── Coop-win celebration ──────────────────────────────
+  // Confetti at the MOMENT the team solves it (the winning guess flips
+  // playState to 'won' on every connected client via realtime); opening an
+  // already-won game stays quiet (useCelebration never pops on mount). Gated on
+  // playState ALONE — it's coop-only by the states vocabulary (compete writes
+  // 'won_compete') and, unlike anything read from useGame, correct from the
+  // very first render (the waffle loading-race lesson).
+  const celebration = useCelebration(playState === 'won')
+
+  // ─── The hidden word stays hidden on a loss ────────────
+  // The word is DISPLAYED at terminal only when it was earned or asked for:
+  // a win (either mode — coop guessed it; compete's winner row shows in the
+  // opened-up turn log anyway), an explicit reveal (the mid-game give-up RPC
+  // tags status.outcome='revealed'), or this client's post-game "Reveal
+  // answer" menu click (answerRevealed — FE-local: the target is already on
+  // the client post-terminal, so showing it is a display decision, per the
+  // friends trust model). A plain loss / manual end keeps it hidden so
+  // "Replay board" stays a genuine second try (docs/celebration-ideas.md).
+  const [answerRevealed, setAnswerRevealed] = useState(false)
+  const answerShown =
+    playState === 'won' ||
+    playState === 'won_compete' ||
+    (status?.outcome as string | undefined) === 'revealed' ||
+    answerRevealed
 
   // ─── Derived (null-safe; real values after the loading guard) ──
   const self = playerStates.find((p) => p.user_id === session.user.id)
@@ -171,17 +197,64 @@ export function PlayArea({
     if (error) showLocalFeedback(stickyPill('error', error.message))
   }, [isTerminal, myConceded, gameId, showLocalFeedback])
 
+  // Replay board — restart THIS game (same word) from scratch for everyone:
+  // clears every guess and un-terminals the game. Confirmed MID-GAME only (it
+  // wipes the group's progress); at terminal there's nothing left to lose
+  // (waffle's replay behavior). The reset arrives via the realtime refetch;
+  // we leave any open history view, clear the pill, and re-hide a locally
+  // revealed answer so the new run starts blind.
+  const handleReplay = useCallback(async () => {
+    if (
+      !isTerminal &&
+      !window.confirm("Replay board? This clears everyone's guesses and restarts with the same word.")
+    )
+      return
+    const { error } = await db.rpc('replay_board', { target_game: gameId })
+    if (error) {
+      showLocalFeedback(stickyPill('error', `Replay failed: ${error.message}`))
+      return
+    }
+    exitViewing()
+    clearLocalFeedback()
+    setAnswerRevealed(false)
+  }, [isTerminal, gameId, showLocalFeedback, clearLocalFeedback, exitViewing])
+
+  // Reveal answer — two shapes behind one menu item:
+  //   MID-GAME: a group give-up — ends the game for everyone (confirmed,
+  //   irreversible), tagged status.outcome='revealed' so the word displays.
+  //   AT TERMINAL (a loss / manual end left the word hidden): just show it to
+  //   THIS client — no RPC, no confirm; the target is already here, this is
+  //   purely "okay, what was it?".
+  const handleReveal = useCallback(async () => {
+    if (isTerminal) {
+      setAnswerRevealed(true)
+      return
+    }
+    if (!window.confirm('Reveal the answer? This ends the game for everyone.')) return
+    const { error } = await db.rpc('reveal_answer', { target_game: gameId })
+    if (error) showLocalFeedback(stickyPill('error', `Reveal failed: ${error.message}`))
+  }, [isTerminal, gameId, showLocalFeedback])
+
   // ─── Header menu (each game owns its whole menu) ───────────────
-  // wordle isn't printable and adds no game-specific items, so the menu is just
-  // the shared frame: Help / End-or-Concede / Back to club. End/Concede dispatch
-  // through a stable `actionsRef` so this effect's deps stay stable values only
-  // (menu, mode, isTerminal, myConceded) — it must NOT re-run per render, since
-  // `setGameSections` is a setState (a fresh handler identity each render would
-  // loop). The handlers themselves are defined below the loading guard; the ref
-  // is repopulated with the current closures in a second effect.
-  const actionsRef = useRef<{ endGame: () => void; concede: () => void }>({
+  // The shared frame (Help / End-or-Concede / Back to club) plus wordle's two
+  // own items, "Replay board" (both modes, any state) and "Reveal answer"
+  // (disabled once the word is already showing — a win, a prior reveal). All
+  // four actions dispatch through a stable `actionsRef` so this effect's deps
+  // stay stable values only (menu, mode, isTerminal, myConceded, answerShown)
+  // — it must NOT re-run per render, since `setGameSections` is a setState (a
+  // fresh handler identity each render would loop). The handlers themselves
+  // are defined above; the ref is repopulated with the current closures in a
+  // second effect.
+  const actionsRef = useRef<{
+    endGame: () => void
+    concede: () => void
+    replay: () => void
+    reveal: () => void
+  }>({
     endGame: () => {},
     concede: () => {},
+    replay: () => {},
+    reveal: () => {},
   })
   const mode = game?.mode
   useEffect(() => {
@@ -194,22 +267,37 @@ export function PlayArea({
         conceded: myConceded,
         onEndGame: () => actionsRef.current.endGame(),
         onConcede: () => actionsRef.current.concede(),
-        // Mobile-only "Game info" item (reaches the off-canvas info column); empty
-        // on desktop where the column is always visible.
-        extra: infoSheet.menuSections,
+        extra: [
+          // Mobile-only "Game info" item (reaches the off-canvas info column);
+          // empty on desktop where the column is always visible.
+          ...infoSheet.menuSections,
+          {
+            items: [
+              { id: 'replay', label: 'Replay board', onClick: () => actionsRef.current.replay() },
+              {
+                id: 'reveal',
+                label: 'Reveal answer',
+                disabled: answerShown,
+                onClick: () => actionsRef.current.reveal(),
+              },
+            ],
+          },
+        ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, mode, isTerminal, myConceded, infoSheet.menuSections])
+  }, [menu, mode, isTerminal, myConceded, answerShown, infoSheet.menuSections])
 
-  // Keep the ref's end/concede closures current so the menu effect above never
+  // Keep the ref's action closures current so the menu effect above never
   // needs the (identity-changing) handlers in its own dep array.
   useEffect(() => {
     actionsRef.current = {
       endGame: () => void handleEndGame(),
       concede: () => void handleConcede(),
+      replay: () => void handleReplay(),
+      reveal: () => void handleReveal(),
     }
-  }, [handleEndGame, handleConcede])
+  }, [handleEndGame, handleConcede, handleReplay, handleReveal])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -281,8 +369,12 @@ export function PlayArea({
   //     out" pill (the target isn't revealed until the whole game ends);
   //   - otherwise → the own-move soft-reject / error pill (localFeedback, or nothing).
   // Kept short ("Answer: CRANE.") so the terminal pill stays on one line — the info
-  // column's terminalExtra carries the fuller "The answer was …" sentence.
-  const answerSuffix = game.target ? `Answer: ${game.target.toUpperCase()}.` : ''
+  // column's terminalExtra carries the fuller "The answer was …" sentence. Gated on
+  // `answerShown` (win / explicit reveal), NOT on target availability: post-terminal
+  // the target is always on the client, but a loss keeps it hidden (see the
+  // answerShown block above).
+  const answerSuffix =
+    answerShown && game.target ? `Answer: ${game.target.toUpperCase()}.` : ''
   const localPill: GenericFeedbackMsg | null = over
     ? terminalPill(over.tone, answerSuffix ? `${over.verdict} ${answerSuffix}` : over.verdict)
     : isLocallyDone
@@ -328,11 +420,12 @@ export function PlayArea({
         // ── Action row ──
         onEndGame={() => void handleEndGame()}
         onConcede={() => void handleConcede()}
+        onRestart={() => void handleReplay()}
         onBackToClub={goToClub}
         // ── Setup disclosure ──
         setup={wordleSetup}
-        // ── Terminal answer reveal ──
-        solution={game.target}
+        // ── Terminal answer reveal (null while hidden — incl. on a loss) ──
+        solution={answerShown ? game.target : null}
         // ── Turn log ──
         guesses={guesses}
         mode={game.mode}
@@ -341,15 +434,22 @@ export function PlayArea({
         />
       </InfoSheet>
 
-      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {/* Wordle skips the shared GameOverModal (the waffle treatment —
+          docs/celebration-ideas.md): the verdict is carried in-page by the
+          below-board pill + the action-row outcome line, and a coop solve
+          gets the celebration instead. */}
+      {celebration.show && <CelebrationDialog title="Solved! 🎉" onClose={celebration.close} />}
     </div>
   )
 }
 
 /**
- * Per-status terminal copy. `outcome` + `verdict` drive the `<GameOverModal>`;
- * `message` + `tone` drive the short, color-coded info-column outcome line (the shared
- * `TerminalCopy` shape, like psychicnum / connections). Mode- and (compete) self-aware.
+ * Per-status terminal copy (the shared `TerminalCopy` shape). `tone` + `verdict`
+ * drive the below-board terminal pill; `tone` + `message` drive the short,
+ * color-coded info-column outcome line. `outcome` was the GameOverModal's field —
+ * wordle no longer renders that modal (the coop celebration + the in-page verdict
+ * replaced it) — but the shared shape still requires it. Mode- and (compete)
+ * self-aware.
  */
 function buildOver({
   mode,

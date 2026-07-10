@@ -4,7 +4,8 @@ import { cls } from '../../common/lib/util/cls'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
+import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
@@ -94,6 +95,18 @@ export function PlayArea({
   // 22rem readout + swap log, no multi-column word list. Desktop is untouched.
   const infoSheet = useInfoSheet()
 
+  // ─── Coop-win celebration ──────────────────────────────
+  // Confetti at the MOMENT the group solves it — the winning swap flips
+  // playState to 'won' on every connected client via the realtime refetch, so
+  // everyone celebrates together; opening an already-won game stays quiet
+  // (useCelebration never pops on mount). Gated on playState ALONE, which is
+  // both the coop-only guard ('won' is coop's win; compete writes
+  // 'won_compete') and — unlike `game.mode`, which is null until useGame's
+  // async fetch lands and would fake a mid-session flip on every mount of a
+  // won game — correct from the very first render. NOT over.outcome either
+  // (manual-end reuses outcome:'won' for styling).
+  const celebration = useCelebration(playState === 'won')
+
   // ─── Compete peer news (header pill) ───────────────────
   // When an opponent's public state ticks — they solved the puzzle, or they ran out
   // of swaps — narrate it in the header (tension; compete has no swap log to show
@@ -173,12 +186,14 @@ export function PlayArea({
 
   // Replay board — restart THIS board (same scramble/setup) from scratch for
   // everyone: clears the turn log + all progress and un-terminals the game.
-  // Available mid-game or after game-over; confirmed since it wipes progress
-  // for the whole group. The board/log/terminal reset arrives via the realtime
-  // refetch (useGame + useCommonGame); we just leave any open history view +
-  // clear the local pill.
+  // Available mid-game or after game-over. Confirmed MID-GAME only (it wipes
+  // the group's in-progress work); at terminal the game is already over, so
+  // there's nothing to lose and the confirm would just be noise. The
+  // board/log/terminal reset arrives via the realtime refetch (useGame +
+  // useCommonGame); we just leave any open history view + clear the local pill.
   const handleReplay = useCallback(async () => {
     if (
+      !isTerminal &&
       !window.confirm(
         "Replay board? This clears everyone's progress and the turn log, and restarts from the original scramble.",
       )
@@ -191,7 +206,7 @@ export function PlayArea({
     }
     exitViewing()
     clearLocalFeedback()
-  }, [gameId, showLocalFeedback, clearLocalFeedback, exitViewing])
+  }, [gameId, isTerminal, showLocalFeedback, clearLocalFeedback, exitViewing])
 
   // Reveal answer — give up: fill every board with the solution and END the game.
   // Server-side `reveal_answer` overwrites `waffle.players.board` with the solution
@@ -303,8 +318,18 @@ export function PlayArea({
   const remaining = Math.max(0, game.max_swaps - swapsUsed)
 
   const selfWon = (status?.winner as string | undefined) === session.user.id
+  // Coop swaps for the win-vs-par verdict: coop rows are kept in lock-step, so
+  // any row carries the group's count — falling back to row 0 keeps the label
+  // honest for a non-player watcher (whose `self` is undefined).
+  const coopSwapsUsed = (self ?? playerStates[0])?.swaps_used ?? 0
   const over = isTerminal
-    ? buildOver({ mode: game.mode, playState, timerExpired: timer.expired, selfWon })
+    ? buildOver({
+        mode: game.mode,
+        playState,
+        timerExpired: timer.expired,
+        selfWon,
+        swapsOverPar: coopSwapsUsed - game.par_swaps,
+      })
     : null
 
   // LOCALLY TERMINAL (compete only): the game continues but *I* can't act — I've
@@ -358,6 +383,7 @@ export function PlayArea({
         concededIds={concededIds}
         onEndGame={() => void handleEndGame()}
         onConcede={() => void handleConcede()}
+        onRestart={() => void handleReplay()}
         onBackToClub={goToClub}
         setup={waffleSetup}
         answerWords={answerWords}
@@ -367,31 +393,40 @@ export function PlayArea({
       />
       </InfoSheet>
 
-      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {/* Waffle skips the shared GameOverModal: the terminal verdict is already
+          carried in-page (the below-board pill + the outcome line in the action
+          row, now with Restart right there), and a coop solve gets the
+          celebration instead. */}
+      {celebration.show && <CelebrationDialog title="Solved it! 🧇" onClose={celebration.close} />}
     </div>
   )
 }
 
 /**
  * Per-status terminal copy (the shared `TerminalCopy`), mode- and (compete)
- * self-aware. `outcome` + `verdict` drive the GameOverModal; `message` + `tone` drive
- * the short bold info-column line (won = green, lost = red, manual end = neutral).
+ * self-aware. `tone` + `verdict` drive the below-board terminal pill; `tone` +
+ * `message` drive the short bold info-column line (won = green, lost = red,
+ * manual end = neutral). `outcome` was the GameOverModal's field — waffle no
+ * longer renders that modal (the coop celebration + the in-page verdict
+ * replaced it) — but the shared `TerminalCopy` shape still requires it.
  */
 function buildOver({
   mode,
   playState,
   timerExpired,
   selfWon,
+  swapsOverPar,
 }: {
   mode: 'coop' | 'compete'
   playState: string
   timerExpired: boolean
   selfWon: boolean
+  /** Swaps used minus par — the coop win verdict is golf-style ("Par +2"). */
+  swapsOverPar: number
 }): TerminalCopy {
   // Manual end (waffle.end_game) → 'ended' in either mode. Neutral result: nobody
-  // won or lost. GameOverModal's 'won' outcome is reused purely for its non-red
-  // styling; tone:'neutral' keeps the info-column line plain. Handled first so an
-  // 'ended' game never falls through to a loss verdict.
+  // won or lost; tone:'neutral' keeps the info-column line plain. Handled first so
+  // an 'ended' game never falls through to a loss verdict.
   if (playState === 'ended') {
     return {
       outcome: 'won',
@@ -402,7 +437,13 @@ function buildOver({
   }
   if (mode === 'coop') {
     if (playState === 'won') {
-      return { outcome: 'won', verdict: 'Solved it! 🧇', message: 'Solved!', tone: 'won' }
+      // Golf-style verdict: how the solve measured against par, not a generic
+      // "Solved!" (the celebration dialog carries that moment). Par is the
+      // generator's MINIMUM, so over-par is the norm and matching it is the
+      // flex — "Par!". Under par can't happen; rendered honestly if it ever does.
+      const parVerdict =
+        swapsOverPar === 0 ? 'Par!' : swapsOverPar > 0 ? `Par +${swapsOverPar}` : `Par −${-swapsOverPar}`
+      return { outcome: 'won', verdict: parVerdict, message: parVerdict, tone: 'won' }
     }
     return {
       outcome: 'lost',

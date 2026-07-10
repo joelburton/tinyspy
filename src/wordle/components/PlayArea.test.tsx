@@ -11,9 +11,9 @@
  * component tree mounts.
  *
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
- * needed; everything else — the grid, keyboard, lists, modal — renders for real.
+ * needed; everything else — the grid, keyboard, lists, dialogs — renders for real.
  */
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -110,6 +110,144 @@ describe('wordle PlayArea — render smoke', () => {
     // terminalExtra region and the below-board pill).
     expect(screen.getByText('Solved it!')).toBeInTheDocument()
     expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
+  })
+})
+
+/**
+ * Terminal flow (the waffle treatment — docs/celebration-ideas.md). Wordle
+ * skips the shared GameOverModal; a coop solve pops the CelebrationDialog at
+ * the MOMENT of the win (the playState flip), never on mounting an
+ * already-won game. And the word stays HIDDEN on a loss — displayed only on
+ * a win or an explicit reveal (the menu item, which at terminal is a local
+ * "show me" with no RPC).
+ */
+describe('wordle PlayArea — terminal flow', () => {
+  /** The game sections most recently pushed to the menu, flattened to items. */
+  const menuItems = (ctx: GamePageCtx) => {
+    const calls = (ctx.menu.setGameSections as ReturnType<typeof vi.fn>).mock.calls
+    const sections = calls.at(-1)![0] as { items: { id: string; label: string; disabled?: boolean; onClick: () => void }[] }[]
+    return sections.flatMap((s) => s.items)
+  }
+
+  it('hides the word on a coop loss (no GameOverModal either)', () => {
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    expect(screen.getByText('Out of guesses')).toBeInTheDocument()
+    // The target is on the client (post-terminal shield-lift) but NOT displayed.
+    expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Game over')).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('"Reveal answer" at a lost terminal shows the word locally, with no RPC and no confirm', () => {
+    const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
+    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+    render(<PlayArea {...ctx} />)
+
+    const reveal = menuItems(ctx).find((i) => i.id === 'reveal')!
+    expect(reveal.disabled).toBeFalsy() // word hidden → reveal is offered
+    act(() => reveal.onClick())
+    expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
+    expect(confirm).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('"Reveal answer" is disabled once the word is showing (a win)', () => {
+    const ctx = makeCtx({ isTerminal: true, playState: 'won' })
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+    render(<PlayArea {...ctx} />)
+    expect(menuItems(ctx).find((i) => i.id === 'reveal')!.disabled).toBe(true)
+  })
+
+  it('"Replay board" at terminal calls replay_board WITHOUT confirming', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
+    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+    render(<PlayArea {...ctx} />)
+
+    act(() => menuItems(ctx).find((i) => i.id === 'replay')!.onClick())
+    // confirm returned false — the RPC firing anyway proves it was skipped.
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    expect(confirm).not.toHaveBeenCalled()
+  })
+
+  it('offers Restart in the terminal row (left of Club), calling replay_board unconfirmed', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
+    const user = userEvent.setup()
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+
+    const restart = screen.getByRole('button', { name: 'Restart' })
+    const club = screen.getByRole('button', { name: /club/i })
+    expect(restart.compareDocumentPosition(club) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await user.click(restart)
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    expect(confirm).not.toHaveBeenCalled()
+  })
+
+  it('replay resets the board fully — no stale pending row from the finished run', async () => {
+    // The bug: BoardCol's `pending` (the submitted word held on the board through
+    // the RPC round-trip) lingered after its row landed; when replay reset `rows`
+    // to empty, the stale word resurrected as an uncolored top row AND held
+    // `canGuess` false. Rows shrinking must clear it.
+    rpc.mockResolvedValue({ data: { result: 'incorrect' }, error: null })
+    const game = { id: 'g1', mode: 'coop' as const, max_guesses: 6, target: null }
+    h.result = loaded(game)
+    const { rerender } = render(<PlayArea {...makeCtx()} />)
+
+    // Submit "crane" — BoardCol holds it as the pending row...
+    for (const key of ['c', 'r', 'a', 'n', 'e']) fireEvent.keyDown(window, { key })
+    fireEvent.keyDown(window, { key: 'Enter' })
+    await waitFor(() => expect(rpc).toHaveBeenCalled())
+    // ...its colored server row lands...
+    h.result = loaded(game, [
+      { user_id: 'u1', seq: 1, guess: 'crane', colors: 'xxxxx', is_correct: false },
+    ])
+    rerender(<PlayArea {...makeCtx()} />)
+    // ...then replay wipes the guesses (rows shrink to empty).
+    h.result = loaded(game, [])
+    rerender(<PlayArea {...makeCtx()} />)
+
+    // Entirely blank board, and input is live again.
+    const grid = screen.getByRole('grid', { name: /board/i })
+    expect(grid.textContent?.trim()).toBe('')
+    expect(screen.getByRole('button', { name: /^a$/i })).toBeEnabled()
+  })
+
+  it('pops the celebration when the coop win lands mid-session, not on mount', () => {
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+    const { rerender } = render(<PlayArea {...makeCtx()} />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    // The winning guess arrives: playState flips to won via realtime.
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+    rerender(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    expect(screen.getByRole('dialog', { name: 'Solved! 🎉' })).toBeInTheDocument()
+  })
+
+  it('does not celebrate when mounted into an already-won game', () => {
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('does not celebrate a compete win', () => {
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
+    const base = { players: twoMembers }
+    const { rerender } = render(<PlayArea {...makeCtx(base)} />)
+
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: 'crane' }, [], [
+      { ...me, solved: true },
+      moth,
+    ])
+    rerender(
+      <PlayArea
+        {...makeCtx({ ...base, isTerminal: true, playState: 'won_compete', status: { winner: 'u1' } })}
+      />,
+    )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByText('You won!')).toBeInTheDocument()
   })
 })
 

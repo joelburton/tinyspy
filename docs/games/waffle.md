@@ -194,9 +194,12 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   (solution/scramble/par/max_swaps/mode) is untouched. Any game player may call
   it. No realtime touch needed — the `players` update + `swaps` delete wake
   `useGame`, and `reset_game`'s `common.games` write wakes `useCommonGame`, so
-  the board, turn log, and terminal state reset **live for every player**. The
-  FE menu item confirms first (it wipes the whole group's progress). pgTAP:
-  `replay_test.sql`.
+  the board, turn log, and terminal state reset **live for every player**. Two
+  FE entry points, one handler: the game-menu item (any state) and the terminal
+  action row's **`RestartButton`** (`SkipBack` glyph, `info` tone, left of
+  Back-to-Club). Mid-game it confirms first (it wipes the whole group's
+  progress); at terminal it fires unconfirmed — the game is over, there's
+  nothing left to lose. pgTAP: `replay_test.sql`.
 - **`end_game(game)`** — the manual "End" action-row button in the info column
   (**coop**; compete shows Concede instead). A
   *neutral* terminal: writes the uniform `play_state='ended'` (not waffle's
@@ -204,10 +207,10 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   `status = {outcome:'manual', mode}`. Any game player can call it; idempotent
   (a second call raises `P0001 'game is not in progress'`, swallowed by the FE).
   Same "realtime touch" tail as `submit_timeout` so the FE refetches and reveals
-  the solution. The FE renders a neutral green "Game ended" card (it reuses
-  `GameOverModal` `outcome:'won'` purely for the green styling — the verdict copy
-  says there's no winner). `buildOver` / `labelFor` both branch on `'ended'`
-  before their win/lose branches. Modeled exactly on `spellingbee.end_game`.
+  the solution. The FE renders a plain "Game ended" outcome line
+  (`tone:'neutral'` — no win green, no loss red; the copy says there's no
+  winner). `buildOver` / `labelFor` both branch on `'ended'` before their
+  win/lose branches. Modeled exactly on `spellingbee.end_game`.
 - **`reveal_answer(game)`** — the **"Reveal answer"** game-menu item: give up,
   **show the solution, end the game**. Where `end_game` leaves each board as-is,
   this overwrites every `waffle.players.board` with `games.solution` and *then*
@@ -370,7 +373,9 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   during play). The six slots (word or em dash) are always present, so it's a fixed
   height — no info-column reflow as words come in. Revealed words are click-to-define. The action row is the semantic
   `EndGameButton` / `ConcedeGameButton` during play; the terminal/locally-terminal
-  look (a bold status line + compact back-to-club or Concede) otherwise.
+  look (a bold status line + compact back-to-club or Concede) otherwise — and at
+  terminal the row also carries the **`RestartButton`** ("play this board again"
+  stays; Club leaves), via `TerminalActionRow`'s children slot.
   `GameTurnLog` renders its own `<tr>` rows on the shared `<TurnLog>` table — the
   outcome bar (`neutral`) + "#N" + "A (A1) ↔ B (C2)" (letters prominent,
   coordinates small/light) + the swapper's `<ActorTag>`; coop only. Compete shows
@@ -380,6 +385,23 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   below the board; the header pill carries **peer** news (compete: an opponent
   solved or ran out of swaps; coop needs none — the swap log shows every move).
 - `SetupForm` (timer + the extra-swaps difficulty knob) and `Help` round it out.
+
+**Terminal flow — no GameOverModal.** Waffle deliberately skips the shared
+`GameOverModal` (see [ui.md → Modals for terminal results](../ui.md#modals-for-terminal-results)):
+the verdict is already carried in-page (the below-board terminal pill + the
+action-row outcome line), and the terminal action row offers Restart right
+there. Instead, a **coop solve** pops the shared **`CelebrationDialog`**
+(confetti + jingle) via the `useCelebration` hook — **only at the moment of the
+win** (the `playState → 'won'` flip lands on every connected client via the
+realtime refetch, so the group celebrates together); opening an already-won
+game shows nothing, and a replay-board → second solve celebrates again. Gated
+on `playState === 'won'`, not `over.outcome` (manual-end reuses
+`outcome:'won'` for styling), and coop-only — a compete win is one player's,
+carried by the pill/action row. The coop win's in-page verdict (pill + outcome
+line) is **golf-style against par** — "Par +2", or "Par!" for matching it (par
+is the generator's minimum, so under-par can't happen) — rather than a generic
+"Solved!": the celebration dialog carries the solved moment; the lasting
+verdict carries the score.
 
 Presence-pause is inherited free via `<GamePage>` + `useCommonGame`. Live
 drag-preview via Broadcast (connections's peer-selection trick) is a deferred

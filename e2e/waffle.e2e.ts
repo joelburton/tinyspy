@@ -53,8 +53,9 @@ test.describe('waffle replay board', () => {
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'Reveal answer' }).click()
 
-    // The game ends (neutral terminal) → the "Game ended." verdict shows (in both the
-    // modal and the below-board pill — hence `.first()`)...
+    // The game ends (neutral terminal) → the "Game ended." verdict shows in the
+    // below-board pill (waffle renders no GameOverModal; `.first()` kept in case
+    // the copy ever appears twice)...
     await expect(page.getByText('Game ended.').first()).toBeVisible({ timeout: 8000 })
     // ...AND the board is now the solution — so the previously-hidden across word a0
     // (ABCDE) now appears in the info-column answer list.

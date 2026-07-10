@@ -748,3 +748,117 @@ $$;
 
 revoke execute on function wordle.end_game(uuid) from public;
 grant execute on function wordle.end_game(uuid) to authenticated;
+
+-- ============================================================
+-- wordle.reveal_answer — give up: end the game, reveal the word
+-- ============================================================
+-- The "Reveal answer" game-menu item, mid-game. Unlike waffle (which
+-- must overwrite boards with the solution), wordle needs no state
+-- rewrite: the target's reveal is intrinsic — _target_for / games_state
+-- expose it the moment the game is terminal. So this is end_game with
+-- the INTENT made legible: the same uniform neutral 'ended' terminal,
+-- everyone {"won": false}, but status.outcome = 'revealed' (vs
+-- 'manual') — which the FE keys on: a loss or a manual end no longer
+-- displays the word; only a win or an explicit reveal does. Any game
+-- player may fire it; idempotent on the play_state check (a second
+-- click raises P0001, swallowed by the FE).
+create function wordle.reveal_answer(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = wordle, common, public, extensions
+as $$
+declare
+  current_play_state text;
+  player_results     jsonb;
+begin
+  if not exists (select 1 from wordle.games where id = target_game) then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  perform common.require_game_player(target_game);
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+  if current_play_state <> 'playing' then
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  -- A give-up — nobody won.
+  select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
+    into player_results
+    from common.game_players
+   where game_id = target_game;
+  perform common.end_game(
+    target_game, 'ended',
+    jsonb_build_object('outcome', 'revealed'),
+    player_results
+  );
+
+  -- Realtime touch (see submit_timeout) — wakes useGame so games_state
+  -- refetches and the now-unshielded target lands on every client.
+  update wordle.games set club_handle = club_handle where id = target_game;
+end;
+$$;
+
+revoke execute on function wordle.reveal_answer(uuid) from public;
+grant execute on function wordle.reveal_answer(uuid) to authenticated;
+
+-- ============================================================
+-- wordle.replay_board — restart this game from scratch
+-- ============================================================
+-- The "Replay board" game-menu item: reset the working state on the
+-- SAME game row. The frozen puzzle (target / max_guesses / legal_guess
+-- / mode) stays — the same word, played again; everything the players
+-- did is wiped. Any game player may call it, from a finished game OR
+-- mid-game (no play_state guard — it's a restart). Both modes reset
+-- ALL players (a group "run it back", per the friends trust model).
+--
+-- Resets the wordle-specific working state (players zeroed + unsolved,
+-- the guess log cleared), then hands the common-layer reset to
+-- common.reset_game (un-terminal, fresh initial status matching
+-- create_game's, clear per-player results + concede). The target
+-- re-hides on its own: _target_for gates on common.games.is_terminal,
+-- which reset_game clears.
+--
+-- No realtime touch needed: the players update + guesses delete wake
+-- useGame (subscribed to wordle.{games,players,guesses}), and
+-- reset_game's common.games write wakes useCommonGame — the board,
+-- log, and terminal state all reset live for every player.
+create function wordle.replay_board(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = wordle, common, public, extensions
+as $$
+declare
+  g_row wordle.games;
+begin
+  perform common.require_game_player(target_game);
+  select * into g_row from wordle.games where id = target_game;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  update wordle.players
+     set guesses_used = 0,
+         solved = false,
+         solved_at = null
+   where game_id = target_game;
+
+  delete from wordle.guesses where game_id = target_game;
+
+  perform common.reset_game(
+    target_game,
+    jsonb_build_object(
+      'mode', g_row.mode,
+      'max_guesses', g_row.max_guesses,
+      'guesses_used', 0,
+      'solved', false
+    )
+  );
+end;
+$$;
+
+revoke execute on function wordle.replay_board(uuid) from public;
+grant execute on function wordle.replay_board(uuid) to authenticated;

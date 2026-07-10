@@ -7,6 +7,7 @@ import { TerminalActionRow } from '../../common/components/game/terminal/Termina
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
+import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { WaffleSetup } from '../lib/setup'
 import type { WafflePlayerState, SwapRow } from '../hooks/useGame'
@@ -44,6 +45,7 @@ export function InfoCol({
   concededIds,
   onEndGame,
   onConcede,
+  onRestart,
   onBackToClub,
   setup,
   answerWords,
@@ -80,9 +82,12 @@ export function InfoCol({
   playerStates: WafflePlayerState[]
   concededIds: Set<string>
 
-  // ── Action row (End/Concede, back-to-club at terminal) ──
+  // ── Action row (End/Concede; Restart + back-to-club at terminal) ──
   onEndGame: () => void
   onConcede: () => void
+  /** Restart THIS board from scratch (the menu's replay-board, unconfirmed at
+   *  terminal since there's no progress left to lose). */
+  onRestart: () => void
   onBackToClub: () => void
 
   // ── Setup disclosure + answer reveal ──
@@ -168,7 +173,11 @@ export function InfoCol({
             terminal LOOK — a bold status + Concede. PLAYING: just End/Concede.
             WATCHING (not in the game): a bold note, no button. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} />
+          <TerminalActionRow over={over} onBackToClub={onBackToClub}>
+            {/* Restart sits left of Back-to-Club: "play this board again" is the
+                stay-here option, Club is the leave option. */}
+            <RestartButton onClick={onRestart} />
+          </TerminalActionRow>
         ) : selfDone ? (
           <LocalTerminalRow
             label={myConceded ? 'You conceded' : selfSolved ? 'Solved — waiting' : 'Out of swaps'}

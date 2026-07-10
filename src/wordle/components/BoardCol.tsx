@@ -96,11 +96,29 @@ export function BoardCol({
   // Viewing a past turn ⟺ a snapshot is open (PlayArea sets `snap` only then).
   const viewing = snap !== null
 
+  // Replay-board resets the live rows. A `pending` left over from the finished
+  // run would then resurrect (its row is no longer in `rows`, so the "landed"
+  // check below stops absorbing it): the old word reappears as an uncolored top
+  // row AND blocks input via `canGuess`. Rows can only SHRINK on a reset —
+  // guesses are append-only otherwise — so drop the stale pending right there.
+  // Adjusted DURING render behind a transition guard (the endorsed
+  // previous-render pattern, same as useCelebration) — not an effect.
+  const [prevRowCount, setPrevRowCount] = useState(rows.length)
+  if (rows.length !== prevRowCount) {
+    setPrevRowCount(rows.length)
+    if (rows.length < prevRowCount) {
+      // "Replay should start entirely blank": drop the stale in-flight word AND
+      // any half-typed buffer from the previous run.
+      if (pending !== null) setPending(null)
+      if (current !== '') setCurrent('')
+    }
+  }
+
   // The pending word, shown until its colored server row actually lands. Once it's in
   // the live `rows` we stop showing it (the real row flips in its place) — `pending`
   // state may linger stale, but `pendingWord` is the value everything reads, so that's
-  // harmless. Deriving it (vs. clearing `pending` in an effect) also dodges a one-frame
-  // double-render.
+  // harmless while rows only grow (the reset case is handled above). Deriving it (vs.
+  // clearing `pending` in an effect) also dodges a one-frame double-render.
   const pendingLanded = pending != null && rows.some((r) => r.guess === pending)
   const pendingWord = pending && !pendingLanded ? pending : ''
   // The live gate: the game permits guessing (PlayArea) AND I'm not mid-submit / with a

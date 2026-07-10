@@ -37,7 +37,8 @@
 }
 
 /* Confetti row above the title. Each emoji bounces in with a small stagger
-   (animationDelay set inline) plus a continuous wiggle. */
+   (animationDelay set inline) plus a continuous JUMP — the per-piece stagger
+   turns the shared keyframes into a rolling wave across the row. */
 .confetti {
   display: flex;
   justify-content: center;
@@ -45,7 +46,8 @@
   font-size: 2.4rem;
   line-height: 1;
   margin-bottom: 0.4rem;
-  /* Keeps tall emoji descenders from cropping the card padding. */
+  /* Keeps tall emoji descenders from cropping the card padding. The jump
+     rises ABOVE this box (no overflow clipping anywhere up the card). */
   height: 2.6rem;
 }
 
@@ -53,7 +55,7 @@
   display: inline-block;
   animation:
     pieceIn 0.5s cubic-bezier(0.18, 1.4, 0.5, 1) both,
-    pieceWiggle 2.4s ease-in-out 0.6s infinite;
+    pieceJump 1.4s ease-in-out 0.6s infinite;
 }
 
 @keyframes pieceIn {
@@ -62,9 +64,14 @@
   100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
 }
 
-@keyframes pieceWiggle {
-  0%, 100% { transform: translateY(0) rotate(-6deg); }
-  50%      { transform: translateY(-0.15em) rotate(6deg); }
+/* A real hop, not a shimmer: over half an em of travel with a snappy period.
+   The ground time (0/25/100%) makes it read as jumping rather than floating.
+   (The original ±0.15em "wiggle" was too subtle to notice at a glance.) */
+@keyframes pieceJump {
+  0%, 100% { transform: translateY(0) rotate(-8deg); }
+  25%      { transform: translateY(0) rotate(-8deg); }
+  55%      { transform: translateY(-0.6em) rotate(9deg); }
+  80%      { transform: translateY(0) rotate(-4deg); }
 }
 
 .title {
