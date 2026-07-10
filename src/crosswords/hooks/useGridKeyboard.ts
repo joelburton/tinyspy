@@ -90,8 +90,17 @@ export function useGridKeyboard(ref: RefObject<GridKeyboard | null>) {
     function onKeyDown(e: KeyboardEvent) {
       const k = ref.current
       if (!k || !k.enabled) return
-      // A modal owns the keyboard — bail entirely (rebus input / number-jump).
+      // A crosswords-OWN modal owns the keyboard — bail entirely (rebus input /
+      // number-jump, which set `suspended`).
       if (k.suspended) return
+      // A shared floating panel / modal (the Back-to-club suspend confirm, Help,
+      // Setup…) likewise owns the keyboard while focus is inside it — bail so its
+      // Enter (confirm) and Tab (move between buttons) reach its OWN controls
+      // instead of this grid handler eating them (it preventDefaults both below).
+      // Mirrors the same `[data-floating-panel]` guard in the shared
+      // useGlobalKeyHandler; crosswords has its own window listener, so it needs
+      // the guard too. These panels don't flip `suspended`.
+      if (e.target instanceof Element && e.target.closest('[data-floating-panel]')) return
       // Tab still navigates clues even from a field; everything else bails.
       if (isNonGameField(e.target) && e.key !== 'Tab') return
 

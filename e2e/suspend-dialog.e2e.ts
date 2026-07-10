@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { createSoloClub, createBoggleGame } from './helpers/fixtures'
+import { createSoloClub, createBoggleGame, createCrosswordsGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
@@ -74,6 +74,42 @@ test.describe('suspend confirm dialog — keyboard', () => {
     // The ring includes both action buttons (proves Tab moves between them).
     expect(seen).toContain('Suspend')
     expect(seen).toContain('Keep playing')
+
+    await ctx.close()
+  })
+
+  // crosswords has its OWN window keydown listener (useGridKeyboard, for cursor
+  // movement / rebus / Tab-navigates-clues) rather than the shared
+  // useGlobalKeyHandler, so it needs the same `[data-floating-panel]` bail — else
+  // the grid handler eats the dialog's Enter/Tab. Regression for that.
+  test('crosswords (own keyboard handler): Enter confirms, Tab stays in the dialog', async ({ browser }) => {
+    const club = await createSoloClub('xw')
+    const game = await createCrosswordsGame(club)
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+
+    async function openDialog() {
+      await page.goto(`/g/${game.gametype}/${game.id}`)
+      await page.getByRole('button', { name: 'Game menu' }).click()
+      await page.getByRole('menuitem', { name: /back to club/i }).click()
+      await expect(page.getByText('Suspend this game?')).toBeVisible({ timeout: 15000 })
+    }
+
+    // Tab keeps focus inside the panel (crosswords' Tab otherwise jumps clues).
+    await openDialog()
+    for (let i = 0; i < 3; i++) {
+      const inPanel = await page.evaluate(
+        () => !!(document.activeElement as HTMLElement | null)?.closest('[data-floating-panel]'),
+      )
+      expect(inPanel).toBe(true)
+      await page.keyboard.press('Tab')
+    }
+
+    // Enter (on the autofocused Suspend button) confirms → navigate to the club.
+    await openDialog()
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(/\/c\//, { timeout: 10000 })
 
     await ctx.close()
   })
