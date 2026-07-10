@@ -40,4 +40,53 @@ test.describe('boggle play loop', () => {
 
     await ctx.close()
   })
+
+  // Tap-to-trace (mobile-first, but works with a mouse too): build a word by
+  // tapping tiles along a Boggle path. The fixture board is `C A T R` across the
+  // top row (indices 0/1/2/3), so tapping tiles 0→1→2 traces "CAT".
+  test('tap-tracing a path builds and submits a word; adjacency + backtrack hold', async ({
+    browser,
+  }) => {
+    const club = await createSoloClub('alice')
+    const [alice] = club.members
+    const game = await createBoggleGame(club)
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+
+    const tiles = page.locator('[data-boggle-tile]')
+    await expect(tiles).toHaveCount(16, { timeout: 15000 })
+    // Highlighted path tiles carry the (hashed) `.selected` class.
+    const selected = page.locator('[data-boggle-tile][class*="selected"]')
+
+    // Trace C(0) → A(1) → T(2): three adjacent tiles along the top row.
+    await tiles.nth(0).click()
+    await tiles.nth(1).click()
+    await tiles.nth(2).click()
+    await expect(selected).toHaveCount(3)
+
+    // Adjacency guard: tile 6 (row 1, col 2) is NOT king-adjacent to T at (0,2)
+    // via (0,1)… actually T→(1,2) IS adjacent; use a clearly-distant tile instead.
+    // Tile 15 (bottom-right corner) is far from the top row — tapping it is ignored.
+    await tiles.nth(15).click()
+    await expect(selected).toHaveCount(3)
+
+    // Backtrack: re-tapping an on-path tile drops it and everything after. Tapping
+    // T (the last, tile 2) steps back to just C→A.
+    await tiles.nth(2).click()
+    await expect(selected).toHaveCount(2)
+
+    // Re-extend and submit: tap T again → C A T, then the icon-only Submit button
+    // (a tap user's commit path — pressing Enter here would land on the focused
+    // tile's own key handler, not the word submit). The word lands; path clears.
+    await tiles.nth(2).click()
+    await expect(selected).toHaveCount(3)
+    await page.getByRole('button', { name: 'Submit' }).click()
+    await expect(page.getByRole('button', { name: 'CAT' })).toBeVisible({ timeout: 10000 })
+    await expect(selected).toHaveCount(0)
+
+    await ctx.close()
+  })
 })

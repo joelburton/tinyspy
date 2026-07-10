@@ -120,6 +120,26 @@ describe('useWordSubmit', () => {
     expect(cfg.commit).toHaveBeenCalledTimes(1)
   })
 
+  it('submits the word set in the SAME batch (fast tap-then-Submit, no effect flush)', async () => {
+    // Regression: the tap-to-trace flow sets the word (setWord) and then the
+    // player taps Submit. A Submit button's onClick is committed synchronously,
+    // but if `submit` read the word from a ref synced in a PASSIVE effect, a tap
+    // in the commit→paint gap would read a stale word — "tapped 3 tiles, submitted
+    // 2 letters". Set + submit in ONE act (React hasn't flushed passive effects
+    // between them) must still commit the full word. `setWord` keeps the ref
+    // current synchronously, so it does.
+    const cfg = makeCfg()
+    const { result } = setup(cfg)
+
+    await act(async () => {
+      result.current.setWord('apple')
+      result.current.submit()
+    })
+
+    expect(cfg.commit).toHaveBeenCalledTimes(1)
+    expect(cfg.commit).toHaveBeenCalledWith(APPLE)
+  })
+
   it('coop dedups across players; compete dedups per player', async () => {
     // A teammate already found 'apple'.
     const found = [{ word: 'apple', user_id: 'u2' }]

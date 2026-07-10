@@ -69,6 +69,10 @@
   border-radius: 8px;
   min-width: 0;
   min-height: 0;
+  /* Tap-to-trace (BoardCol): each tile is a button. Smooth the state changes and
+   * kill the mobile tap-highlight (it paints a grey box that fights the tile). */
+  transition: transform 80ms ease, background 80ms ease, color 80ms ease;
+  -webkit-tap-highlight-color: transparent;
   /* A sizing container so the letter scales with the tile (cqmin below), staying
    * proportional whether the board is a roomy 4×4 or a dense 6×6 — n-agnostic,
    * which is why boggle keeps this rather than waffle's column-count-tuned
@@ -88,6 +92,24 @@
 /* A blank tile (face 0) renders a faint "?", matching scrabble's blank. */
 .blank {
   opacity: 0.4;
+}
+
+/* A clickable tile presses on tap — immediate "you hit it" feedback (a blank
+ * isn't interactive, so scope to the button role). */
+.tile[role='button'] {
+  cursor: pointer;
+}
+.tile[role='button']:active {
+  transform: scale(0.92);
+}
+
+/* A tile on the current traced path: accent fill + a light ring so the word's
+ * route reads at a glance and lifts off the neighbouring tiles. Overrides the
+ * resting `.tile` fill/text (placed after it, equal specificity). */
+.selected {
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--color-accent);
 }
 
 /* The below-board REGION (universal). Board-matched width (a long typed word

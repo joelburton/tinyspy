@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { memberById } from '../../common/lib/game/peers'
@@ -47,6 +49,13 @@ import '../theme.css'
 export function PlayArea(ctx: GamePageCtx) {
   const { gameId, players, isTerminal, setup, goToClub, session, status, globalFeedback, menu, brand, title } = ctx
   const { game, foundWords, loading } = useGame(gameId)
+
+  // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
+  // fills the screen and the info column moves into a full-width off-canvas
+  // <InfoSheet> (wide, like spellingbee — its WordList wants the room). The board
+  // fills for free (a square sized min(--avail-w, --avail-h, …)); input is tile
+  // taps (path-tracing, see BoardCol). Desktop is unchanged.
+  const infoSheet = useInfoSheet()
   const myId = session.user.id
 
   // `setup` is typed `Record<string, unknown>`; BoggleSetup is an `interface`,
@@ -201,12 +210,14 @@ export function PlayArea(ctx: GamePageCtx) {
         onEndGame: () => actionsRef.current?.endGame(),
         onConcede: () => actionsRef.current?.concede(),
         extra: [
+          // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
+          ...infoSheet.menuSections,
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printBogglePdf(model) }] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, boggleSetup, ladder, isTerminal, myConceded, myCount, myScore])
+  }, [menu, game, foundWords, players, brand, title, boggleSetup, ladder, isTerminal, myConceded, myCount, myScore, infoSheet.menuSections])
 
   // Every visible found word (used for the missed-words reveal; in compete this
   // is self-only mid-game and everyone's post-terminal — exactly "words nobody
@@ -311,7 +322,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const diceLabel = DICE_BY_NAME[boggleSetup.dice_set]?.desc ?? `${game.n}×${game.n}`
 
   return (
-    <div className={cls(shared.layout, styles.layout)}>
+    <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         // ── Board to render ──
         grid={grid}
@@ -328,7 +339,9 @@ export function PlayArea(ctx: GamePageCtx) {
         localPill={localFeedback}
       />
 
-      <InfoCol
+      {/* Info column — off-canvas full-width sheet on mobile, flex child on desktop. */}
+      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close} wide>
+        <InfoCol
         // ── Mode + phase ──
         isCompete={isCompete}
         isTerminal={isTerminal}
@@ -363,7 +376,8 @@ export function PlayArea(ctx: GamePageCtx) {
         // ── Found-words list ──
         wordRows={wordRows}
         reveal={revealWords !== null}
-      />
+        />
+      </InfoSheet>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>

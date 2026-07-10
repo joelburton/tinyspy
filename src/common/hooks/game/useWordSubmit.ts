@@ -116,25 +116,42 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
   const [lastWord, setLastWord] = useState('')
   const { localFeedback, showLocalFeedback: showPill, clearLocalFeedback } = useLocalFeedback({ locked: cfg.isTerminal })
 
-  // Latest config + word held in refs so `submit`/`setWord` stay referentially
-  // stable across renders while still reading current values. Synced in a passive
-  // effect — never written during render (react-hooks/refs forbids that); React
-  // flushes passive effects before the next discrete event, so `submit` (fired by
-  // Enter/click) always reads the latest typed word. The same-tick double-Enter
-  // safety is unchanged: `submit` blanks `wordRef` synchronously (below) before a
-  // second call can run.
+  // Latest config held in a ref so `submit` can stay a STABLE callback (deps
+  // `[showPill]`) without listing every cfg field. Synced in a passive effect —
+  // never written during render (react-hooks/refs forbids that). A one-render lag
+  // here is harmless: the only race-sensitive cfg use is the `foundWords` dedup,
+  // which `pendingRef` already closes synchronously.
   const cfgRef = useRef(cfg)
-  const wordRef = useRef(word)
   useEffect(() => {
     cfgRef.current = cfg
-    wordRef.current = word
   })
+
+  // The typed word ALSO shadowed in a ref, so stable `submit` reads the latest
+  // value. Unlike `cfgRef` this ref is kept in sync **synchronously** — written
+  // inside `setWord` (an event-handler call, NOT render, so it's lint-legal) so it
+  // never lags a keystroke. This is what makes **tap-to-submit** correct: a player
+  // builds a word by tapping (board tiles in boggle, hive letters in spellingbee —
+  // each an `onChange`/`setWord`), then taps the Submit button. A passive-effect
+  // sync updates only after paint, so a fast Submit tap in the commit→paint gap
+  // would read a one-tap-stale word ("tapped 3 tiles, submitted 2 letters"); a
+  // synchronous write closes that window. (An earlier attempt made `submit` close
+  // over `word` directly, but that coupled Enter to `useGlobalKeyHandler`'s own
+  // passive ref-sync and made fast typing flaky — the ref keeps `submit` stable.)
+  const wordRef = useRef(word)
 
   // Words accepted this session but whose `found_words` row may not have arrived
   // via realtime yet — dedup against these too, so a fast re-submit during the
   // propagation lag doesn't double-commit. A word leaves the set only if its
   // commit fails (so a retry is allowed); on success the realtime row supersedes it.
   const pendingRef = useRef<Set<string>>(new Set())
+
+  // The exposed setter updates the ref eagerly (event time, not render) so
+  // `wordRef` and the `word` state move together. The updater form resolves
+  // against the ref's current value, which the induction above keeps === state.
+  const setWord = useCallback<Dispatch<SetStateAction<string>>>((v) => {
+    wordRef.current = typeof v === 'function' ? v(wordRef.current) : v
+    setWordState(v)
+  }, [])
 
   const showLocalFeedback = useCallback(
     (tone: GenericFeedbackTone, text: string) => showPill(stickyPill(tone, text)),
@@ -147,8 +164,9 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     const w = raw.trim().toLowerCase()
     if (w === '' || c.isTerminal) return
 
-    // Consume the input up front: record it for recall, clear the box (so the
-    // pill can reclaim the slot) and blank the ref synchronously.
+    // Consume the input up front: record it for recall, clear the box (so the pill
+    // can reclaim the slot), and blank the ref synchronously — a same-tick second
+    // submit then sees an empty word and bails before it can double-fire.
     setLastWord(raw)
     setWordState('')
     wordRef.current = ''
@@ -198,5 +216,5 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     )
   }, [showPill])
 
-  return { word, setWord: setWordState, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback }
+  return { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback }
 }

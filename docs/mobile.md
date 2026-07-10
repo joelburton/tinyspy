@@ -120,8 +120,8 @@ Principles that fall out:
 
 - **Tap-only — no keyboard, strong on phones:** connections, waffle, wordle
   (its in-game keyboard *is* taps), psychicnum (tap a tile to guess), spellingbee
-  (tap letters), boggle (tap adjacent tiles — **needs adding**; the current build
-  types/traces). *Verified end-to-end via a touch-only e2e (`.tap()`, no
+  (tap letters), boggle (tap adjacent tiles to trace a path, or type). *Verified
+  end-to-end via a touch-only e2e (`.tap()`, no
   keystroke): psychicnum tap-tile → Submit locks the tile; spellingbee
   tap-letters → Submit accepts the word.*
 - **Transient native keyboard, acceptable:** codenames duet / tinyspy (clue
@@ -186,8 +186,6 @@ portrait.
 - Does the **transient native keyboard** actually feel fine in phone-p / phone-l
   for codenames duet? Worth a quick prototype — it's the one remaining
   keyboard-raising path.
-- **boggle** needs a tap-to-select-adjacent-tiles path added for its touch story.
-
 ## The rules of this pass
 
 - **Desktop-first, always.** Mobile styles are `@media (max-width: …)` overrides
@@ -454,8 +452,47 @@ own; input is tile taps (no keyboard). The whole conversion was `useInfoSheet()`
 [`stackdown-mobile.e2e.ts`](../e2e/stackdown-mobile.e2e.ts) (tall + short: board
 fills, no scroll, sheet works).
 
-**Next up: connections, waffle, spellingbee, boggle** — each now a quick
-conversion (check each board fills sensibly; none has a keyboard).
+**spellingbee + boggle** are the **wide-sheet pair** — the two games whose info
+column is a multi-column **WordList** that wants real width. The plain recipe's
+sheet is only as wide as its content, which crushed the word columns to one row
+each on a phone. The fix is a **`wide` variant of `<InfoSheet>`** (`wide` prop):
+below `--mobile` the sheet is `width: 100%` and a flex column whose non-✕ child
+(the `<InfoCol>`) stretches to full height (`flex: 1 1 auto; min-height: 0`), so
+the WordList fills the sheet and its columns get their natural height. The
+columns themselves are now **rem-width** (`--wl-col-width`, default `10.5rem`) via
+`grid-auto-columns` instead of the old `calc((100% − gaps)/5)` five-column split —
+so the count of columns is driven by the word count and they **side-scroll**
+horizontally (as they already did on desktop) rather than being squeezed. Desktop
+is unaffected: the rem width matches what five columns used to be on a normal
+info column, so a desktop board shows the same column count it always did.
+
+- **spellingbee** — board is the 7-hex honeycomb (SVG, scales with the column via
+  `--u`); the recipe fits it on a phone unchanged. Added **click feedback on a
+  hive tile**: a one-shot hex-shaped white flash (`.hexFlash`, keyed by a bumping
+  nonce so re-tapping the SAME tile replays it) on top of the `:active` press —
+  and `-webkit-tap-highlight-color: transparent` on the `<g>`, since the browser's
+  default tap-highlight paints a grey box over the hex's square bounding box that
+  both looks wrong and hid our flash. Guarded by
+  [`spellingbee-mobile.e2e.ts`](../e2e/spellingbee-mobile.e2e.ts).
+- **boggle** — the square tile grid fills the phone (`mobileFill`'s `--avail-w`;
+  `--avail-h` already reserves the below-board input row). Its touch story is
+  **tap-to-trace a word**: tap tiles along a Boggle path (king-move / 8-way
+  adjacency) and each letter appends to the shared `word`, so submit + validation
+  (`traceableStr`) are unchanged; the path lives in `BoardCol` as tile coords in
+  the *displayed* (possibly-rotated) view, so **rotating clears it** (the coords
+  would point at different letters). Tapping a selected tile backtracks to it (tap
+  the last to step back one, an earlier one to undo to it); tapping a non-adjacent
+  unused tile is ignored; **typing or Delete clears the path** (you switched to the
+  keyboard). Visual feedback: a traced tile gets an **accent fill + ring**
+  (`.selected`), plus the same `:active` press-scale + tap-highlight suppression as
+  spellingbee. The EntryBox placeholder is now "Type or tap letters". Path-tracing
+  works with a mouse too, so it's a desktop affordance as well. Guarded by
+  [`boggle.e2e.ts`](../e2e/boggle.e2e.ts) (trace C→A→T, adjacency guard, backtrack,
+  submit-via-button-then-path-clears — Enter would land on the focused tile's own
+  key handler, so a tap user commits with the Submit button).
+
+**Next up: connections, waffle** — each now a quick conversion (check each board
+fills sensibly; neither has a keyboard).
 
 ## TODO — not doing now, recorded so we don't lose them
 

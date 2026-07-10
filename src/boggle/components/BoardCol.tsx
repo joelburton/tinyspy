@@ -16,6 +16,26 @@ function rotateCW(g: string[][]): string[][] {
   return g.map((_, i) => g.map((_, j) => g[n - 1 - j][i]))
 }
 
+/** A tile position in the (displayed, possibly-rotated) grid. */
+type Cell = { y: number; x: number }
+
+/** The letters a tile contributes to the word: its display string (a multiface
+ *  tile like "Qu" gives two), uppercased — except a blank ("?"), which matches no
+ *  letter, so it can't be part of a word. */
+function tileLetters(cell: string): string {
+  return cell === '?' ? '' : cell.toUpperCase()
+}
+
+/** King-move adjacency (8-way), the Boggle path rule. */
+function adjacent(a: Cell, b: Cell): boolean {
+  return Math.abs(a.y - b.y) <= 1 && Math.abs(a.x - b.x) <= 1 && !(a.y === b.y && a.x === b.x)
+}
+
+/** The word spelled by a path of tiles through the current view. */
+function pathWord(path: Cell[], view: string[][]): string {
+  return path.map((c) => tileLetters(view[c.y][c.x])).join('')
+}
+
 /**
  * boggle's board column — the square tile grid, a floating Rotate control over its
  * top-right, and the below-board slot (the shared `<EntryRow>` — the typed-word input
@@ -81,6 +101,42 @@ export function BoardCol({
     return g
   }, [grid, turns])
 
+  // ── Tap-to-trace a word (docs/mobile.md) ──────────────────────────────────
+  // Build a word by tapping tiles along a Boggle path — the touch input, and a
+  // fine desktop affordance too. `path` is the selected tiles (in VIEW coords, so
+  // it's cleared on rotate below, since the coords would no longer point at the
+  // same letters). The traced word drives the shared `word`/`onChange` engine, so
+  // submit + validation (traceableStr) are unchanged. Typing clears the path (you
+  // switched to the keyboard); submitting clears it (fresh word).
+  const [path, setPath] = useState<Cell[]>([])
+  const handleTap = (y: number, x: number) => {
+    if (readOnly || view[y][x] === '?') return // frozen, or a blank (matches nothing)
+    const idx = path.findIndex((c) => c.y === y && c.x === x)
+    let next: Cell[]
+    if (idx >= 0) {
+      // Tapping a selected tile deselects it AND everything after — tap the last
+      // to step back one, tap an earlier one to undo back to it, tap the first to
+      // clear.
+      next = path.slice(0, idx)
+    } else if (path.length === 0 || adjacent(path[path.length - 1], { y, x })) {
+      next = [...path, { y, x }] // start, or extend along an adjacent tile
+    } else {
+      return // an unused, non-adjacent tile — not a legal next step; ignore
+    }
+    setPath(next)
+    onChange(pathWord(next, view))
+  }
+  // Typing / the Delete key edits the word directly — the traced path no longer
+  // matches it, so drop the highlight (and its coords).
+  const handleTyping = (next: string) => {
+    setPath([])
+    onChange(next)
+  }
+  const handleSubmit = () => {
+    setPath([])
+    onSubmit()
+  }
+
   return (
     <div
       className={cls(shared.boardCol, styles.boardCol)}
@@ -88,19 +144,47 @@ export function BoardCol({
     >
       <div className={styles.grid}>
         {view.flatMap((row, y) =>
-          row.map((cell, x) => (
-            <div key={`${y}-${x}`} className={styles.tile} data-boggle-tile>
-              {/* a blank tile (face 0) shows a faint "?", like a scrabble blank */}
-              <span className={cell === '?' ? styles.blank : undefined}>{cell}</span>
-            </div>
-          )),
+          row.map((cell, x) => {
+            const isBlank = cell === '?'
+            const step = path.findIndex((c) => c.y === y && c.x === x) // -1 if not on the path
+            return (
+              <div
+                key={`${y}-${x}`}
+                className={cls(styles.tile, step >= 0 && styles.selected)}
+                data-boggle-tile
+                // A blank isn't part of any word, so it isn't interactive.
+                role={isBlank ? undefined : 'button'}
+                tabIndex={isBlank || readOnly ? undefined : 0}
+                aria-label={isBlank ? undefined : cell}
+                aria-pressed={step >= 0 || undefined}
+                onClick={isBlank ? undefined : () => handleTap(y, x)}
+                onKeyDown={
+                  isBlank
+                    ? undefined
+                    : (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          handleTap(y, x)
+                        }
+                      }
+                }
+              >
+                {/* a blank tile (face 0) shows a faint "?", like a scrabble blank */}
+                <span className={isBlank ? styles.blank : undefined}>{cell}</span>
+              </div>
+            )
+          }),
         )}
         {/* Rotate floats over the board's top-right — a fresh visual scan of the SAME
             board (letters stay upright), not a turn action. Local to this player in
             both modes; never persisted, never seen by others. INSIDE the grid (its
-            position anchor) so it hugs the visual board, not the column. */}
+            position anchor) so it hugs the visual board, not the column. Rotating
+            invalidates the traced path's coords, so clear it. */}
         <ShuffleButton
-          onShuffle={() => setTurns((t) => (t + 1) % 4)}
+          onShuffle={() => {
+            setTurns((t) => (t + 1) % 4)
+            setPath([])
+          }}
           label="Rotate board"
           className={shared.floatingShuffle}
         />
@@ -114,9 +198,9 @@ export function BoardCol({
         <div className={shared.moveAreaOrLocalFeedback}>
           <EntryRow
             value={word}
-            onChange={onChange}
-            onSubmit={onSubmit}
-            placeholder="Type a word"
+            onChange={handleTyping}
+            onSubmit={handleSubmit}
+            placeholder="Type or tap letters"
             disabled={readOnly}
             onAnyKey={onAnyKey}
             charFor={asciiLetters('upper')}
