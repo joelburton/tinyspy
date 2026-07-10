@@ -7,6 +7,8 @@ import type {
 } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { terminalPill } from '../../common/lib/game/localPills'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { db } from '../db'
@@ -259,14 +261,22 @@ export function PlayArea({
   }, [gameId, isTerminal, myConceded, showLocalFeedback])
 
   // ─── Header menu (every game owns its whole menu now) ─────────
+  // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
+  // fills the screen and the info column moves into an off-canvas <InfoSheet>,
+  // opened from the hook's "Game info" menu item. stackdown needs no board
+  // divergence — its square board is min(--avail-w, --avail-h, 620px), so it
+  // fits a phone on its own; the input is tile taps (no keyboard).
+  const infoSheet = useInfoSheet()
+
   // stackdown adds no game-specific actions (its reveal/hint cheats live in the
-  // info-column action row, not the menu), so `extra` is empty: buildGameMenu
-  // gives just Help + the End-game (coop) / Concede (compete) + Back-to-club tail.
+  // info-column action row, not the menu); the only `extra` is the mobile-only
+  // "Game info" item that opens the off-canvas info column (empty on desktop).
   // Placed after handleEndGame/handleConcede so they're in scope for the deps; all
-  // deps here are stable (the useCallback handlers + primitives), so setGameSections
-  // — a setState — runs only when the mode/terminal/conceded facts actually change,
-  // not every render. `game?.mode` is null until loaded; default to coop so the menu
-  // exists during the loading beat and re-runs once the real mode arrives.
+  // deps here are stable (the useCallback handlers + primitives + the memoized
+  // menuSections), so setGameSections — a setState — runs only when the
+  // mode/terminal/conceded facts actually change, not every render. `game?.mode`
+  // is null until loaded; default to coop so the menu exists during the loading
+  // beat and re-runs once the real mode arrives.
   const menuMode = game?.mode === 'compete' ? 'compete' : 'coop'
   useEffect(() => {
     menu.setGameSections(
@@ -277,10 +287,11 @@ export function PlayArea({
         conceded: myConceded,
         onEndGame: () => void handleEndGame(),
         onConcede: () => void handleConcede(),
+        extra: infoSheet.menuSections,
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, menuMode, isTerminal, myConceded, handleEndGame, handleConcede])
+  }, [menu, menuMode, isTerminal, myConceded, handleEndGame, handleConcede, infoSheet.menuSections])
 
   // ─── Coop: narrate teammates' moves ───────────────────────────
   // The player who DIDN'T make a move otherwise saw nothing but the log quietly
@@ -369,7 +380,7 @@ export function PlayArea({
     : localFeedback
 
   return (
-    <div className={cls(shared.layout, styles.layout)}>
+    <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         tiles={game.tiles}
         offBoard={snap ? snap.offBoard : offBoard}
@@ -388,9 +399,11 @@ export function PlayArea({
         clearFlash={clearFlash}
       />
 
-      {/* Props grouped to match InfoCol's own grouping (mode+phase → state readout →
+      {/* Info column — off-canvas sheet on mobile, flex child on desktop.
+          Props grouped to match InfoCol's own grouping (mode+phase → state readout →
           players → action row → setup+reveal → log). */}
-      <InfoCol
+      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
+        <InfoCol
         isCompete={isCompete}
         isTerminal={isTerminal}
         over={over}
@@ -414,7 +427,8 @@ export function PlayArea({
         showWho={!isCompete}
         viewingIndex={viewingIndex}
         onSelectTurn={setViewingIndex}
-      />
+        />
+      </InfoSheet>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>

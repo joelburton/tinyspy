@@ -443,8 +443,19 @@ styles.layout)`, and `<InfoSheet>{<InfoCol/>}</InfoSheet>` — ~5 lines, no CSS.
 psychicnum / wordle / codenamesduet were refactored onto it (net line removal,
 desktop unchanged, e2e green). What stays PER-GAME is the board's own mobile
 SIZING — psychicnum flex-fills, wordle caps by leftover height for its keyboard,
-codenamesduet keeps a full board + scroll. **Next up: the four remaining tap-only
-games — connections, waffle, spellingbee, boggle — each now a quick conversion.**
+codenamesduet keeps a full board + scroll.
+
+**stackdown** was then the first *new* conversion on the extracted recipe — and
+it proved the payoff: pure recipe, **no board divergence**. Its square board is
+`min(--avail-w, --avail-h, 620px)`, so `mobileFill`'s full-width `--avail-w` (with
+`--avail-h` already reserving the below-board WordEntry) fits it on a phone on its
+own; input is tile taps (no keyboard). The whole conversion was `useInfoSheet()` +
+`shared.mobileFill` + `<InfoSheet>` and nothing else, guarded by
+[`stackdown-mobile.e2e.ts`](../e2e/stackdown-mobile.e2e.ts) (tall + short: board
+fills, no scroll, sheet works).
+
+**Next up: connections, waffle, spellingbee, boggle** — each now a quick
+conversion (check each board fills sensibly; none has a keyboard).
 
 ## TODO — not doing now, recorded so we don't lose them
 
