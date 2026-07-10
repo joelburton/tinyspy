@@ -7,6 +7,8 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
+import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { memberById } from '../../common/lib/game/peers'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
@@ -104,6 +106,12 @@ export function PlayArea({
   // BoardCol (it's about the board). (The guess dispatch, the local tile shuffle, and
   // the wrong-guess shake all moved into BoardCol.)
   const [hintsOpen, setHintsOpen] = useState(false)
+
+  // Mobile: below --mobile the board fills the screen and the info column slides in
+  // as an off-canvas sheet from a "Game info" menu item (the shared recipe —
+  // docs/mobile.md). Plain (not `wide`): the info column is a narrow 22rem readout
+  // + turn log, no multi-column word list. Desktop is untouched.
+  const infoSheet = useInfoSheet()
 
   // ─── Commit-slot flash (own-action feedback, local) ─────
   // A transient message shown *in place of the commit buttons* for the
@@ -248,10 +256,11 @@ export function PlayArea({
         conceded: myConceded,
         onEndGame: () => actionsRef.current.endGame(),
         onConcede: () => actionsRef.current.concede(),
+        extra: infoSheet.menuSections,
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, mode, isTerminal, myConceded])
+  }, [menu, mode, isTerminal, myConceded, infoSheet.menuSections])
 
   // Hints + End now live in the info-column action row (buttons), not the
   // GamePage menu — see the .infoActions block below. Hints opens the HintModal
@@ -324,7 +333,7 @@ export function PlayArea({
   const found = matchedCategories.length
 
   return (
-    <div className={cls(shared.layout, styles.layout)}>
+    <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         // ── Board to render (live OR the historical snapshot via `snap`) ──
         game={game}
@@ -359,6 +368,7 @@ export function PlayArea({
         onCloseHints={() => setHintsOpen(false)}
       />
 
+      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
       <InfoCol
         // ── Mode + phase ──
         isCompete={game.mode === 'compete'}
@@ -390,6 +400,7 @@ export function PlayArea({
         viewingIndex={viewingId}
         onSelectTurn={selectTurn}
       />
+      </InfoSheet>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>

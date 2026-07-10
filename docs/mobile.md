@@ -507,7 +507,30 @@ visibility fix, so it applies on desktop too. Guarded by
 [`waffle-mobile.e2e.ts`](../e2e/waffle-mobile.e2e.ts) (tall + short: board fills,
 no scroll, sheet works; drag off on touch; a tap-swap commits).
 
-**Next up: connections** — a quick conversion (board fills sensibly; no keyboard).
+**connections** was the plain recipe plus a couple of below-board tweaks. The board
+is one grid that fills `--avail-w`, so `mobileFill` fills the phone (no divergence,
+like psychicnum); input is tap-a-tile (touch-native), no keyboard/drag; the info
+column (mistakes/turn-log/Hints/End, no WordList) uses the **plain** sheet. Unlike
+the pure-board games it has a below-board **commit row** (mistakes readout +
+Clear/Submit), which is tight on a phone, so — same treatment as codenamesduet's
+action row — the **buttons go icon-only** (`iconOnly={usePhone()}` + a `@media
+(--phone)` drop of their text-era `min-width`) and the **label shortens to
+"Mistakes"** (the strike dots already carry "lose at 4"). One tile-text tweak:
+connections is the only game with multi-letter WORD tiles, and on a narrow phone
+tile a long word (DIAMOND) hit the shared `--tile-font-min` floor and wrapped, so a
+`@media (--phone)` rule lowers that floor on connections' grid (letting the
+auto-fit shrink it to one line). Guarded by
+[`connections-mobile.e2e.ts`](../e2e/connections-mobile.e2e.ts) (tall + short:
+board fills, no scroll, sheet works; a tapped 4-tile guess commits).
+
+**The pass is complete for every recipe-eligible game.** Eight games now follow the
+info-sheet recipe: the wide-sheet pair **spellingbee / boggle**, and the plain-sheet
+games **psychicnum / wordle / codenamesduet / stackdown / waffle / connections**. The
+remaining three — **bananagrams / scrabble / crosswords** — keep their *documented
+desktop-only board layouts* (dense grids / racks / clue columns that assume a
+keyboard and pointer; see each game's doc), so they aren't phone-converted by design.
+The app *chrome* (the `.card` shell pages, club page, header/player strip, chat,
+panels) is mobile-ready for all of them regardless.
 
 ## TODO — not doing now, recorded so we don't lose them
 

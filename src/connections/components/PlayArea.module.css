@@ -232,3 +232,21 @@
 .inputButton {
   min-width: 7rem;
 }
+
+@media (--phone) {
+  /* On a phone the Clear/Submit buttons go icon-only (BoardCol passes
+   * `iconOnly`), so drop the text-era floor width — they shrink to the icon and
+   * the tight commit row (mistakes readout + both buttons) fits a narrow screen. */
+  .inputButton {
+    min-width: 0;
+  }
+
+  /* Narrow phone tiles: a long word (DIAMOND, BANANA) can't shrink past the shared
+   * tileWord font floor (0.95rem) and wraps mid-word. connections is the only game
+   * with multi-letter WORD tiles (the others are single letters / numbers), so lower
+   * the floor HERE — that lets the auto-fit middle term win and the word fits on one
+   * line. Set on the grid; the token cascades into every `.tileWord` below it. */
+  .grid {
+    --tile-font-min: 0.7rem;
+  }
+}

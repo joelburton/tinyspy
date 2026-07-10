@@ -8,6 +8,7 @@ import { SubmitButton } from '../../common/components/buttons/SubmitButton'
 import { ClearButton } from '../../common/components/buttons/ClearButton'
 import { StrikeMarks } from '../../common/components/game/StrikeMarks'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
+import { usePhone } from '../../common/hooks/ui/usePhone'
 import { db } from '../db'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
@@ -129,6 +130,11 @@ export function BoardCol({
   onCloseHints: () => void
 }) {
   const [submitting, setSubmitting] = useState(false)
+  // On a phone the below-board commit row is tight: the Clear/Submit buttons go
+  // icon-only (the shared buttons support it) and the mistakes label shortens to
+  // "Mistakes" (the strike dots already carry "lose at 4"). Desktop keeps the full
+  // labels. (docs/mobile.md — same phone treatment as codenamesduet's action row.)
+  const phone = usePhone()
   // Per-player local tile order. NULL = use `remainingTiles` as-is (the create_game
   // shuffle, same for every player). A permutation gives this client its own view;
   // doesn't broadcast.
@@ -282,17 +288,20 @@ export function BoardCol({
                     coop, personal in compete). margin-right:auto pushes the buttons
                     right. */}
                 <div className={styles.mistakesInline}>
-                  Mistakes (lose at 4) <StrikeMarks used={mistakeCount} total={mistakeBudget} />
+                  {phone ? 'Mistakes' : 'Mistakes (lose at 4)'}{' '}
+                  <StrikeMarks used={mistakeCount} total={mistakeBudget} />
                 </div>
                 <ClearButton
                   onClick={sendClear}
                   disabled={unionTiles.length === 0}
+                  iconOnly={phone}
                   className={styles.inputButton}
                 />
                 <SubmitButton
                   label={submitting ? 'Submitting…' : 'Submit'}
                   onClick={handleSubmit}
                   disabled={!canSubmit}
+                  iconOnly={phone}
                   className={styles.inputButton}
                 />
               </div>
