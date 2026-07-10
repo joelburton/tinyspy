@@ -16,10 +16,10 @@ boggle is a **coop / compete sibling pair** (`boggle_coop`, `boggle_compete`) an
 inherits the shared chrome — timer, chat, presence-pause, manual "End game" —
 through `<GamePage>` + `useCommonGame`, like every other multiplayer gametype.
 
-> **Status: live.** boggle is the **10th** game (its `boggle_coop` / `boggle_compete`
-> are the gametypes), built end-to-end
-> (solver, generator edge function, migration, RPCs, FE) and shipping. Design
-> forks are recorded in [§11](#11-resolved-decisions).
+> **Status: live.** boggle (its `boggle_coop` / `boggle_compete` are the
+> gametypes) is built end-to-end
+> (solver, generator edge function, migration, RPCs, FE) and shipping. The design
+> forks are documented in place across §§2–8.
 
 ---
 
@@ -66,7 +66,7 @@ minimum length.
   independently. You see only your **own** words until the game ends; an
   `OpponentStrip` shows peers' live scores (not their words or counts). Most
   points wins. Scoring is **independent per player** — no classic dupes-cancel
-  (deferred, [§12](#12-deferred--future)).
+  (deferred, [§11](#11-deferred--future)).
 
 ---
 
@@ -215,7 +215,7 @@ rather than queried at cold start:
   88k–267k rows, network-independent, and no Postgres load on every isolate
   spin-up. The dictionary is stable, so "redeploy to update it" costs nothing
   today. (The Supabase Storage middle-ground, if staleness ever bites, is in
-  [§12](#12-deferred--future).)
+  [§11](#11-deferred--future).)
 
 ---
 
@@ -339,8 +339,10 @@ board), swapped in for spellingbee's hex flower.
     `<EntryBox>` display, same as spellingbee): window key-capture, letters stored
     UPPERCASE, the icon-only `DeleteButton` + `SubmitButton` flanking the box. Enter
     submits; **Up arrow** recalls the last submitted word for editing, **Down arrow**
-    clears (the universal `useCaptureKeys` last-move history). Typed only —
-    no click-to-trace. Own-move results show as a **local sticky `<FeedbackPill>`**
+    clears (the universal `useCaptureKeys` last-move history). Words can also be built
+    by **tap-to-trace** — tapping tiles along a Boggle path (the touch input; see
+    [mobile.md](../mobile.md)); the traced word drives the same `word`/`onChange` engine,
+    and typing clears the path. Own-move results show as a **local sticky `<FeedbackPill>`**
     (required `+N` / bonus / too-short / off-board / not-a-word), dismissed by the
     next keystroke — not the GamePage header feedback channel.
 - **Info column** (the canonical v3 order — see design-decisions.md → Info column):
@@ -360,8 +362,10 @@ board), swapped in for spellingbee's hex flower.
     builds its rows via `lib/displayRows` → `WordListRow[]` (the live count moved to
     the info-column state line, so the list header is just a label now).
 
-**End game** is an info-column action-row button (off the GamePage menu); the
-terminal copy comes from a unified `buildOver` (`{outcome, verdict, message, tone}`)
+**End game** is surfaced in both places per the common convention (see
+[common.md → Manual end](../common.md#manual-end--every-gametypes-end_gametarget_game)):
+an info-column action-row button *and* a GamePage menu item wired through `buildGameMenu`.
+The terminal copy comes from a unified `buildOver` (`{outcome, verdict, message, tone}`)
 driving the below-board pill, the action-row line, and the `GameOverModal`. Without
 a win target, coop is a neutral shared hunt and compete picks the highest score;
 **with** one (`setup.win_percent`), reaching the score bar is a real win
@@ -436,32 +440,7 @@ paths regenerate it first:
 
 ---
 
-## 11. Resolved decisions
-
-Settled forks, recorded as fact (this is what shipped):
-
-- **On-demand generation, no library.** Boards are rolled + solved at game-start
-  by `boggle-build-board`, not pre-generated — player-selectable constraints would
-  make a pre-generated set multiply combinatorially (the waffle rationale).
-- **Pure-TS solver, no WASM** — the algorithm (flat trie + gen-stamp dedup) is
-  the win, not the language ([§3](#3-the-solver-libsolverts)).
-- **Both word lists are shipped to the FE, not hidden** — the trust model makes
-  hiding them pointless and shipping them simpler ([§6](#6-schema-boggle)).
-- **Trusting commit** — validation + classification + scoring are FE-side and
-  trusted (against the shipped lists); `submit_word` only dedups + records, no
-  `common.words` lookup ([§7](#7-rpcs-all-security-definer)).
-- **Two difficulty bands** — a clean required band and a difficulty-only legal
-  band, independently picked with `legal_band ≥ band`
-  ([§2](#2-required--legal--bonus-words--the-core-model)).
-- **All dice sets ship**, including 6×6 — which forced the 64-bit used-tile mask.
-- **Rotate is cosmetic and local** to each player, never persisted.
-- **Compete scoring is independent** per player (dupes-cancel deferred).
-- **Missed-words reveal** lists the **required** words nobody found; bonus words
-  are never listed when unfound.
-
----
-
-## 12. Deferred / future
+## 11. Deferred / future
 
 - **Word-list freshness via Supabase Storage.** The bundled list is frozen at
   deploy; updating the dictionary means redeploying the function. Since
@@ -471,5 +450,5 @@ Settled forks, recorded as fact (this is what shipped):
   "bundle": fastest/stale, and "query the DB at startup": always-fresh/slowest.
   Measured cold-start floors: bundled ~21 ms required / ~76 ms full; DB query
   ~48 ms / ~128 ms local, more on hosted.)
-- **Compete classic dupes-cancel** scoring as an opt-in.
+- **Compete classic dupes-cancel** scoring as an opt-in — full entry (the ⦻ marker + the scoring-mode change) in [`deferred.md → Wordlist markers`](../deferred.md#wordlist-markers-spellingbee--boggle).
 - **A "check board" / hint helper** (cf. MonkeyGrams' planned one).

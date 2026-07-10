@@ -1,12 +1,12 @@
 # spellingbee
 
-A NYT-Spelling-Bee-style word-finding game. The fourth registered gametype in this monorepo, ported from the standalone `~/spellingbee-ws` codebase (websocket + Node backend, rich React FE). The port preserves the gameplay loop and the honeycomb-board visual layout; the websocket / session / chat / presence machinery is replaced by Supabase Realtime + the PuzPuzPuz common shell.
+A NYT-Spelling-Bee-style word-finding game, ported from the standalone `~/spellingbee-ws` codebase (websocket + Node backend, rich React FE). The port preserves the gameplay loop and the honeycomb-board visual layout; the websocket / session / chat / presence machinery is replaced by Supabase Realtime + the PuzPuzPuz common shell.
 
 "spellingbee" is the codename. User-facing copy is "spellingbee"; folder / schema / RPC names are all `spellingbee`.
 
 For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](../common.md). For testing conventions + persona shapes see [`testing.md`](../testing.md). For per-gametype comparisons see [`codenamesduet.md`](codenamesduet.md), [`psychicnum.md`](psychicnum.md), and [`connections.md`](connections.md).
 
-**Manifest declarations.** Two-manifest family (sibling-pattern) — `spellingbeeCoopGame` (`gametype: 'spellingbee_coop'`, `mode: 'coop'`, `numberOfPlayers: [1, 6]`) and `spellingbeeCompeteGame` (`gametype: 'spellingbee_compete'`, `mode: 'compete'`, `numberOfPlayers: [2, 6]`). Both share `baseGametype: 'spellingbee'`, one schema, and one PlayArea / SetupForm / Help / useGame; the mode branches at render time on `game.mode` (denormalized from the gametype string at create_game time). See [Compete mode](#compete-mode) below for the per-mode behavior and [`psychicnum.md → The sibling-manifest pattern`](psychicnum.md#the-sibling-manifest-pattern) for the canonical pattern write-up.
+**Manifest declarations.** Two-manifest family (sibling-pattern) — `spellingbeeCoopGame` (`gametype: 'spellingbee_coop'`, `mode: 'coop'`, `numberOfPlayers: [1, 6]`) and `spellingbeeCompeteGame` (`gametype: 'spellingbee_compete'`, `mode: 'compete'`, `numberOfPlayers: [2, 6]`). Both share `baseGametype: 'spellingbee'`, one schema, and one PlayArea / SetupForm / Help / useGame; the mode branches at render time on `game.mode` (denormalized from the gametype string at create_game time). See [Compete mode](#compete-mode) below for the per-mode behavior and [`common.md → The sibling-manifest pattern`](../common.md#the-sibling-manifest-pattern) for the canonical pattern write-up.
 
 ## What the game is
 
@@ -57,7 +57,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **found words** | The words you (coop: your team) have found — required *and* bonus. `found_words_count` / `found_words_score` are the live "X" numerators and can exceed the required "Y" denominators. |
 | **rank** | The player's tier on the 7-step Start..Genius ladder, derived from `found_words_score / required_words_score` via `currentRankIndex`. Genius unlocks at 70% (`GENIUS_AT`). Same word `connections` uses for category difficulty, but the underlying concept is different and the scope (puzzle-wide vs per-category) disambiguates in context. |
 | **letter mask** | A 26-bit integer encoding which letters a word/puzzle uses. Same encoding everywhere (TS, SQL, the generated `common.words.letter_mask` column): bit `n` is set iff letter `'a' + n` is present. Used for fast subset-of-puzzle checks (`(wordMask & ~puzzleMask) === 0`) instead of per-character scans. |
-| **outcome** | The `status.outcome` enum value for terminal spellingbee games: `'timeout'` (countdown expired), `'manual'` (any player clicked the End-game menu item), `'won_compete'` (compete: a player hit `target_rank`), `'lost_compete'` (compete: timer / manual end with no winner — but actually this port writes `'timeout'`/`'manual'` with `mode='compete'` in the status to distinguish). The corresponding `play_state` is `'ended'` for everything except `'won_compete'` which uses `play_state='won_compete'`. |
+| **outcome** | The `status.outcome` enum value for terminal spellingbee games: `'timeout'` (countdown expired), `'manual'` (any player clicked the End-game menu item), `'won_compete'` (compete: a player hit `target_rank`). A compete game that ends with no winner (timer / manual end) writes `'timeout'` / `'manual'` with `mode='compete'` in the status rather than a distinct `'lost_compete'` value. The corresponding `play_state` is `'ended'` for everything except `'won_compete'`, which uses `play_state='won_compete'`. |
 
 ## Scope: shipped vs. deferred
 
@@ -110,33 +110,9 @@ Both manifests share the same `PlayArea`, `SetupForm`, `Help`, and `useGame`. Th
 - **Post-terminal reveal**: at `isTerminal` the WordList interleaves the required words nobody found (from the always-present `games_state.required_words`, computed FE-side as `required − found`) into the alphabetical list, rendered **medium grey**. Found words keep their **finder's** color throughout — and a word more than one player found (compete, once the `found_words` RLS `is_terminal` branch exposes every player's rows) is colored by the **first finder** (earliest `found_at`); `buildDisplayRows` dedups it to one row. The caller's own score/rank/stats stay caller-only across the terminal transition (`PlayArea` filters `found_words` to the caller in compete rather than leaning on the now-relaxed RLS).
 - **Word lists shipped, not hidden**: both `required_words` + `bonus_words` ship to the FE from game start (the FE validates locally); the compete reveal of *peers' finds* is still gated by the `found_words` RLS `is_terminal` branch.
 
-### Schema deltas (vs. the baseline coop-only setup)
+### Mode is denormalized onto the game row
 
-The `spellingbee_compete` rework (folded into the single `20260617000000_spellingbee.sql` baseline, per the alpha "edit baseline migrations" convention — there is no separate compete migration file):
-
-- Cascade-deletes the old `'spellingbee'` row from `common.gametypes` and inserts `'spellingbee_coop'` + `'spellingbee_compete'`; backfills `common.clubs_gametypes` for existing clubs.
-- Adds `spellingbee.games.mode text not null check (mode in ('coop','compete'))` — denormalized from the gametype string. The column grant extends to include `mode` so the `security_invoker` view + the mode-aware RLS policy on `found_words` can read it.
-- Re-exposes `spellingbee.games_state` with a `mode` column so the FE has the value on the same row it already reads.
-- Recreates `found_words_select` to read mode off `spellingbee.games.mode` instead of `common.games.setup->>'mode'` (one fewer cross-schema reach per visibility check):
-  ```sql
-  using (
-    exists (
-      select 1 from spellingbee.games fg
-       join common.games cg on cg.id = fg.id
-       where fg.id = found_words.game_id
-         and common.is_club_member(fg.club_handle)
-         and (
-               fg.mode = 'coop'
-            or found_words.user_id = auth.uid()
-            or cg.is_terminal
-             )
-    )
-  )
-  ```
-- Rewrites `spellingbee.create_game` with a new positional `mode text` arg (slotted between `player_user_ids` and `board`). The new signature is `(target_club, setup, player_user_ids, mode, board)`. Setup is rejected with P0001 if it carries a `mode` field (catches stale FE deploys loudly).
-- `spellingbee.submit_word` / `spellingbee.submit_timeout` / `spellingbee.end_game` all read mode off the just-locked `spellingbee.games` row instead of joining to `common.games.setup` — the branch logic itself was already in place from the original "designed for compete" phase.
-
-The edge function `spellingbee-build-board` accepts `mode` as a top-level body field (falls back to the legacy `setup.mode` for one release of overlap) and forwards it to the new positional RPC arg. It also strips `setup.mode` from the forwarded payload as belt-and-braces.
+Both siblings share one schema; `spellingbee.games.mode` (`'coop'`/`'compete'`, denormalized from the gametype string at create-time) is what the mode-aware `found_words` RLS and the `games_state` view branch on, so a visibility check never reaches across to `common.games.setup`. The current shapes live in §Schema, §RLS (below), and the `create_game` RPC section — this note just flags the denormalization. The edge function `spellingbee-build-board` requires `mode` as a top-level body field (`'coop' | 'compete'`, validated server-side; `setup` carries no `mode` field) and forwards it to the positional RPC arg.
 
 ## Schema: `spellingbee.*`
 
@@ -152,7 +128,7 @@ The word list itself is **not** a spellingbee table — it's the shared `common.
 
 `required_words` + `bonus_words` are the board's answer key, and both ship to the FE from game start — the FE validates + scores every guess against required ∪ bonus locally (via the shared `useWordSubmit` hook) and submits trusting-commit. Per [CLAUDE.md → Trust model](../../CLAUDE.md) we don't withhold them (friends, not anti-cheat), so there's no column-grant gate and no `SECURITY DEFINER` reveal helper: the FE reads both lists straight off `games_state`, and the missed-words reveal is a **client-side** `required − found` computed at `isTerminal` (bonus words are never shown in the reveal — a FE display choice, not a server gate).
 
-This is a deliberate convergence with boggle (which always shipped its lists). It replaced the earlier hidden-wordlist apparatus — a column-grant that omitted the two columns + a terminal-gated `_required_words_for` helper + a per-terminal "realtime touch" write to wake the FE. All of that is gone: `games_state` just selects both lists, and the FE's `useGame` loads the immutable header once (nothing to re-reveal). `candidate_words` stays a `SECURITY DEFINER`-free helper the edge-function builder uses at board-build time.
+This is a deliberate convergence with boggle (which also ships its lists): `games_state` selects both lists unconditionally, and the FE's `useGame` loads the immutable header once (nothing to re-reveal). `candidate_words` is a `SECURITY DEFINER`-free helper the edge-function builder uses at board-build time.
 
 The `games_state` view remains (the FE's read path, `security_invoker = true` so `games_select` RLS still gates row visibility) — it just exposes `required_words` + `bonus_words` unconditionally now.
 
@@ -253,7 +229,7 @@ Server-side on the trusted commit: inserts `found_words` row, recomputes team/pl
 
 Countdown-expiry handler. Calls `common.end_game(target_game, 'ended', {outcome:'timeout', ...}, player_results)`. Idempotent — second call raises `P0001 'game is not in progress'`, which the FE swallows.
 
-**Realtime touch at the tail**: `update spellingbee.games set club_handle = club_handle where id = target_game`. `submit_timeout` would otherwise never write to any `spellingbee` table (no word was submitted; `common.end_game` only writes to `common.games`), so the FE's `useGame` subscription on `spellingbee.games` would never wake up to refetch and reveal the wordlists. The self-set writes a WAL entry that Realtime picks up. See the "realtime touch" notes in [`20260617000000_spellingbee.sql`](../../supabase/migrations/20260617000000_spellingbee.sql) for the bug history.
+**Realtime touch at the tail**: a no-op self-write on `spellingbee.games` (`set club_handle = club_handle`) — `submit_timeout` writes no `spellingbee` table otherwise, so this wakes the FE's schema-scoped `useGame` subscription to the terminal transition. The uniform trick at [common.md → Manual end, step 6](../common.md#manual-end--every-gametypes-end_gametarget_game); the migration's "realtime touch" notes carry the bug history.
 
 ### `spellingbee.end_game(target_game uuid) → void`
 
@@ -515,7 +491,7 @@ See [`code-conventions.md` → Realtime data hooks](../code-conventions.md#realt
 
 ### Code-splitting
 
-Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Component`, and `help` are all `React.lazy`. Three chunks ship under spellingbee; users who only play other games never download them.
+Standard — spellingbee's `PlayArea`, `setupForm.Component`, and `help` all ship as their own lazily-loaded chunks. See [common.md → Code-splitting](../common.md#code-splitting).
 
 ## Tests
 
@@ -523,7 +499,7 @@ Same pattern as the other gametypes — the manifest's `PlayArea`, `setupForm.Co
 
 | file | covers |
 |---|---|
-| `tests/spellingbee/schema_test.sql` | Both gametype rows registered, public reference reads, column-grant blocks SELECT of hidden columns, view exposes them conditionally pre/post-terminal. |
+| `tests/spellingbee/schema_test.sql` | Both gametype rows registered, public reference reads (pangrams table), and that the word lists are **NOT** hidden — `required_words` + `bonus_words` are readable directly by `authenticated` (the FE validates guesses against them locally; the trust model doesn't withhold). |
 | `tests/spellingbee/rls_test.sql` | Coop branch (everyone sees all in club); outsider sees nothing; INSERT-grant rejections; compete-mode mid-game narrowing (only own rows); compete post-terminal opens reveal. |
 | `tests/spellingbee/create_game_test.sql` | Auth, membership, coop + compete happy paths, gametype-string routing, mode arg validation, setup.mode rejected if present (loud catch for stale FE), target_rank-iff-compete + range + coop-must-omit, compete ≥2-player floor, word-difficulty band validation (required 1..6, legal required..6, plus an explicit non-default required=4/legal=6 happy path), board structure validation, title formula, per-mode status seeding. |
 | `tests/spellingbee/custom_letters_test.sql` | Custom board (`setup.custom_letters` set): a sub-30 board is accepted (≥30 gate relaxes to ≥1), the one-off custom letters are stripped from the saved default (timer preserved), a random board still enforces ≥30, and a zero-required-word custom board is rejected. |

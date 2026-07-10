@@ -1,6 +1,6 @@
 # codenamesduet
 
-Cooperative Codenames Duet for two club members. The first registered gametype in this monorepo, and the most schema-rich. Read this file before touching anything in `codenamesduet/` or `supabase/migrations/*_codenamesduet_*.sql`.
+Cooperative Codenames Duet for two club members — the most schema-rich gametype in the roster. Read this file before touching anything in `codenamesduet/` or `supabase/migrations/*_codenamesduet_*.sql`.
 
 For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](../common.md). For testing theory + persona conventions see [`testing.md`](../testing.md).
 
@@ -151,7 +151,7 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `codenamesduet.create_game(target_club text, setup jsonb, player_user_ids uuid[]) → table(id uuid)`
 
-The one entry point. Verifies caller is in a 2-member club, seats both, validates `setup.turns` + `setup.firstClueGiverUserId` + `setup.timer` shape (the timer shape is shared validation via `common.validate_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (`"<seatA-username>-v-<seatB-username>: <4 picked words alphabetically, comma-separated>"`), calls `common.create_game(target_club, 'codenamesduet', player_user_ids, title, setup)` which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`, vacating any prior current-view game in the club), then inserts the codenamesduet detail row. Finally calls `common.update_state(new_id, 'playing', jsonb_build_object(...))` to seed `common.games.status` with the initial label payload (turn_number, turns_remaining, greens_found). One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
+The one entry point. Verifies caller is in a 2-member club, seats both, validates `setup.turns` + `setup.firstClueGiverUserId` + `setup.timer` shape (the timer shape is shared validation via `common.validate_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (`"<seatA-username>-v-<seatB-username>: <4 picked words alphabetically, comma-separated>"`), calls `common.create_game(target_club, 'codenamesduet', player_user_ids, title, setup)` for the common header half (see [common.md → Game-RPC helpers](../common.md#game-rpc-helpers-called-by-per-game-rpcs)), then inserts the codenamesduet detail row. Finally calls `common.update_state(new_id, 'playing', jsonb_build_object(...))` to seed `common.games.status` with the initial label payload (turn_number, turns_remaining, greens_found). One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
 
 Reject reasons: not authenticated; non-member; club doesn't have exactly 2 members; bad `setup.timer` shape (see [Timer](#timer-server-authoritative-ticks)).
 
@@ -215,7 +215,7 @@ Same shape as `submit_timeout` — accepts both active states (`playing` / `sudd
 
 The terminal renders **neutral**, not as a loss: `buildOver('ended')` returns `outcome:'won'` (the non-red `GameOverModal` coloring) with the verdict "Game ended.", and `manifest.STATUS_LABEL.ended = 'ended'`.
 
-**Realtime touch at the tail**: `update codenamesduet.games set turn_number = turn_number where id = target_game`. `common.end_game` writes only to `common.games`, but the FE's `useGame` subscribes to the `codenamesduet` schema — without a write on `codenamesduet.games` it would never wake up to refetch and flip into review mode. The self-set is a semantic no-op that produces a WAL entry Realtime picks up (the same trick `submit_timeout`'s `current_clue_giver = null` write incidentally provides). Tested in `tests/codenamesduet/end_game_test.sql`.
+**Realtime touch at the tail**: a no-op self-write on `codenamesduet.games` (`set turn_number = turn_number`) so the FE's schema-scoped `useGame` subscription wakes to refetch and flip into review mode — the uniform trick documented at [common.md → Manual end, step 6](../common.md#manual-end--every-gametypes-end_gametarget_game). (`submit_timeout`'s `current_clue_giver = null` write provides the same wake incidentally.) Tested in `tests/codenamesduet/end_game_test.sql`.
 
 ### `codenamesduet.get_clue_context(target_game uuid) → jsonb`
 
@@ -239,7 +239,7 @@ Every `codenamesduet.*` table has RLS enabled. SELECT policies all gate on `comm
 
 ## Timer (server-authoritative ticks)
 
-Standard `<TimerField>` + `useGameTimer` setup — see [`connections.md → Timer`](connections.md#timer-server-authoritative-ticks) for the design rationale and drift bounds.
+Standard `<TimerField>` + `useGameTimer` setup — see [`common.md → Idle accounting`](../common.md#idle-accounting-timer-state-preservation) for the design rationale and drift bounds.
 
 **Distinct from the rulebook's turn budget.** Duet has its own clock (the 9 starting turns, decremented at turn-end); that's the `turns_remaining` column and `lost_clock` terminal status. The wall-clock countdown is an *additional* opt-in pressure mechanism — a per-game setup choice on `setup.timer`. Per terminal status:
 
@@ -452,7 +452,7 @@ The implementation detail worth knowing: `peerKey` is a **derived value**, not a
 
 ### Code-splitting
 
-The manifest's `PlayArea` is lazy-loaded (`React.lazy(() => import('./components/PlayArea'))`). The Vite build emits codenamesduet's JS + CSS as separate chunks; the main bundle ships only the shell + common + manifest constants. First navigation to `/g/codenamesduet/<id>` fetches the chunk.
+Standard — codenamesduet's `PlayArea` / `help` ship as their own lazily-loaded chunks. See [common.md → Code-splitting](../common.md#code-splitting).
 
 ## codenamesduet testing
 
@@ -509,7 +509,7 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 Deferred or sketched but not built:
 
 - **Mission / campaign mode.** Variable starting turn counts per the rulebook's mission maps. Schema isn't built — `games.turns_remaining` would just take a non-9 default at create_game time, controlled by a new mission parameter. Worth doing when there's real demand.
-- **Tile `aria-label` for screen readers.** Board tiles in `Board.tsx` carry only `aria-hidden` — a screen-reader user hears the word but not whether it's revealed, and as what role. Adding an `aria-label` like `${word}, revealed as green agent` would need a narrow `'G' | 'N' | 'A' → 'green agent' | 'neutral' | 'assassin'` helper. The prior `labels.ts → labelName` was deleted with the turn-log rewrite (colored words don't need text labels); a narrower helper would come back for this.
+- **Tile `aria-label` for screen readers.** Board tiles in `Board.tsx` carry only `aria-hidden` — a screen-reader user hears the word but not whether it's revealed, and as what role. Adding an `aria-label` like `${word}, revealed as green agent` would need a narrow `'G' | 'N' | 'A' → 'green agent' | 'neutral' | 'assassin'` helper — there's none today (colored words don't need text labels on the visual surface), so one would be added for this.
 
 ## File locations
 

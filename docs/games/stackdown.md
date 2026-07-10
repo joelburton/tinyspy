@@ -5,10 +5,11 @@ tiles are selectable; the player clears the board by finding six 5-letter
 words in sequence, each found word permanently removing its tiles and exposing
 the ones beneath.
 
-> **Brand = codename here.** User-facing name is **stackdown**; the identifier
-> everywhere in code / DB / schema is `stackdown`. (Unlike waffle/`waffle`
-> and wordle/`wordle`, the two happen to be the same word — only the casing
-> differs.)
+> **Brand ≈ codename here.** User-facing brand is **StackDown**; the identifier
+> everywhere in code / DB / schema is the codename `stackdown`. (Unlike
+> waffle/SyrupSwap, wordle/WordNerd, or scrabble/RackAttack — where brand and
+> codename are genuinely different words — here the two are the same word, only
+> the casing differs.)
 
 stackdown is a **coop / compete sibling pair** like the other multiplayer
 games (`stackdown_coop`, `stackdown_compete`), and inherits the shared chrome
@@ -143,8 +144,8 @@ holds), and `create_game` claims a random board **of the chosen band**.
 (`solution[cleared + 1]`, the same cleared-count math as `reveal_next_word`).
 Even if a stray board ever slipped a non-solution legal word past the generator,
 we'd never want to accept it — so there's nothing to gain from a dictionary
-lookup, and the old "pin runtime to the same list or get phantom forks" coupling
-is simply gone. (`_is_word` was removed.)
+lookup, and adding one would only couple runtime validation to the generator's
+exact word list ("pin runtime to the same list or get phantom forks") for no benefit.
 
 **Word case.** Words are stored **lowercase** everywhere — `boards.words`,
 `games.solution`, and the logged `submissions.word` — matching `common.words`
@@ -225,11 +226,7 @@ on a per-gametype `stackdown` schema. Migration: `supabase/migrations/2026062600
 | `stackdown.players` | `(game_id, user_id)` → `found_count` (public tally), `solved` / `solved_at` (compete winner) | club members |
 | `stackdown.submissions` | the durable game log, `(game_id, user_id, seq)`. `kind`: `'word'` (a played word → `word` / `tile_ids` / `valid`) or `'hint'` / `'reveal'` (a logged cheat request → `for_word_index`, plus the revealed text in `word`: the hint clue or the revealed word, for the log to show). | coop: all; compete: own (until terminal) |
 
-The hidden-solution pattern is the same as the other answer-hiding games (waffle,
-wordle): a column-grant excludes `solution`, and the `games_state`
-`security_invoker` view exposes it via `_solution_for(id)`, which returns NULL
-until `common.games.is_terminal`. The FE reads `games_state`, never the base
-table, so it can read one shape and only ever sees the words once the game ends.
+The hidden-solution pattern is the standard [SECURITY DEFINER helper + security_invoker view](../code-conventions.md#security-definer-helper--security_invoker-view) shared with the other answer-hiding games (waffle, wordle): a column-grant excludes `solution`, and the `games_state` view exposes it via `_solution_for(id)`, which returns NULL until `common.games.is_terminal`. The FE reads `games_state`, never the base table.
 
 `board_id` is `on delete set null` — **retiring a board does not delete games
 built from it**. A game copies the board's `tiles` / `words` / `band` at
@@ -336,8 +333,8 @@ the local pill carries only the results a ring can't.
   scrabble's `boardUpToSeq`; keyed by **log position** (the `#N` the log shows), not
   `submissions.seq`, because the per-submitter `seq` is ambiguous and non-chronological
   across a shared coop log. Clicking a `GameTurnLog` row's `#N` opens that turn on the
-  board via the shared viewer (`historyViewer.module.css` frame + banner; a keystroke /
-  click / ✕ returns to live) — the same viewer scrabble/waffle use.
+  board via the shared viewer (the same one scrabble/waffle use — frame + banner +
+  keystroke/click/✕ exits documented in [ui.md → Turn-history viewer](../ui.md#turn-history-viewer)).
 - **`hooks/useGame.ts`** — the realtime hook: one channel carrying
   postgres-changes on `games_state` / `players` / `submissions` (no Broadcast).
   The board the player sees is `game.tiles` minus `removedTileIds`

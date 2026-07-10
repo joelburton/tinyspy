@@ -83,6 +83,12 @@ While we're still building (no real deploys yet), each schema is **squashed to a
 20260615000003_connections.sql
 20260617000000_spellingbee.sql
 20260623000000_bananagrams.sql
+20260624000000_waffle.sql
+20260625000000_wordle.sql
+20260626000000_stackdown.sql
+20260627000000_scrabble.sql
+20260628000000_boggle.sql
+20260706000000_crosswords.sql
 ```
 
 These get re-squashed in place as a schema evolves (alpha — `db reset` re-runs everything from scratch, so there's no migration history to preserve). Once we deploy for real, new changes become append-only topic deltas instead:
@@ -100,7 +106,7 @@ Cross-schema FKs (game → common) need `common.*` to exist first, which timesta
 Each gametype's supported player-count range is declared in **two places**:
 
 - The TypeScript manifest's `numberOfPlayers: [min, max]` field (consumed by the shell to decide whether a "Start X" button is enabled/disabled/hidden for a given club). Both ends required; `null` upper bounds aren't allowed — every game gets a hard cap so the FE rendering, realtime channel load, and chat surface stay bounded.
-- The `create_game` RPC's member-count check (the hard server-side gate that rejects mismatched calls). The three open-N games (connections, psychicnum, spellingbee) share `common.require_player_count_max(player_user_ids, max)`; codenamesduet keeps its inline exactly-2 check.
+- The `create_game` RPC's member-count check (the hard server-side gate that rejects mismatched calls). Every open-N game shares `common.require_player_count_max(player_user_ids, max)` — that's all of them except codenamesduet, which is fixed at exactly 2 and keeps its inline check.
 
 These two declarations **must agree** by convention. There's no automated sync — adding a lookup table or a code-gen step is overbuild for the scale this project operates at (rare new-game events, both files edited in the same PR). What we do instead:
 
@@ -287,7 +293,7 @@ Two-rule heuristic for deciding where a piece of UI / logic lives:
 
 2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `GameTurnLog`, `Help`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`CodenamesduetPlayArea`, `ConnectionsSetupForm`) — the folder already says which game.
 
-The reason both rules matter: this codebase is shaped to host ~7–8 games, most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the connections version of the same thing codenamesduet does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
+The reason both rules matter: this codebase is shaped to host a roster of games (the original ~7–8 target has since been exceeded — eleven are live), most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the connections version of the same thing codenamesduet does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
 
 #### Per-game `useGame` shape — pick the right template
 

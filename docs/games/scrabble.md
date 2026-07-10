@@ -6,23 +6,24 @@ by letter values × board premiums. The first game in the roster that is
 **turn-based with a shared, contended resource** (one board, one bag) — which is
 where almost all of its novelty lives.
 
-> **Brand ≠ codename.** User-facing name is **scrabble**; the identifier
-> everywhere in code / DB / schema / tests is `scrabble` — the codename keeps the
-> link to the original game obvious in source, the same call waffle/`waffle`
-> and wordle/`wordle` make. ("Scrabble" is a trademark, so it can't be the
-> brand, but as an internal codename it's the clearest possible name.)
+> **Brand ≠ codename.** User-facing brand is **RackAttack** (the manifest
+> `title`); the identifier everywhere in code / DB / schema / tests is the
+> codename `scrabble` — it keeps the link to the original game obvious in source,
+> the same brand/codename split waffle (SyrupSwap) and wordle (WordNerd) make.
+> ("Scrabble" is a trademark, so it can't be the public brand, but as an internal
+> codename it's the clearest possible name.)
 
 scrabble is a **coop / compete sibling pair** (`scrabble_coop`,
 `scrabble_compete`) and inherits the shared chrome — timer, chat, presence-pause,
 manual "End game" — through `<GamePage>` + `useCommonGame`, like every other
 multiplayer gametype.
 
-> **Status: live.** scrabble is the **9th** registered gametype — built
-> end-to-end (engine, migration, RPCs, FE) and shipping. Design forks settled in
-> §11. A few choices landed *after* the initial build, from playtesting, and are
-> reflected throughout: two difficulty bands by word length ([§3.3](#33-the-dictionary-difficulty-bands-by-word-length)),
-> the coop "tiles unplayed" forfeit ([§2.7](#27-ending-the-game)), and the
-> title/label shapes ([§8](#8-title-formula), [§9](#9-status-jsonb--labels)).
+> **Status: live.** scrabble is built end-to-end (engine, migration, RPCs, FE)
+> and shipping. The design forks — difficulty bands by word length
+> ([§3.3](#33-the-dictionary-difficulty-bands-by-word-length)), endgame rules
+> ([§2.7](#27-ending-the-game)), the coop "tiles unplayed" forfeit, and the
+> title/label shapes ([§8](#8-title-formula), [§9](#9-status-jsonb--labels)) — are
+> documented in place across §§2–9.
 
 > **Keyboard-required, NOT desktop-only.** Placing a word on the 15×15 board is a
 > drag-or-type gesture, and we won't build touch-drag or an in-game keyboard for
@@ -121,9 +122,11 @@ Standard Scrabble scoring:
 
 ### 2.4 Coop vs compete
 
-- **Compete** (`scrabble_compete`, 2–4 players): classic Scrabble. **Turn-based**
+- **Compete** (`scrabble_compete`, 1–4 players): classic Scrabble. **Turn-based**
   — a rotating order, only the active player may play / exchange / pass. Private
-  per-player racks, per-player scores. Highest final score wins.
+  per-player racks, per-player scores. Highest final score wins. Unusually for a
+  compete manifest, its floor is **1**, not 2: a lone player can race the
+  autonomous AI opponent (see §12), which fills the other seat.
 - **Coop** (`scrabble_coop`, 1–4 players, solo-capable): **one shared rack, one
   shared board, one shared bag, one shared score.** There is **no turn rotation**
   — *any* player may attempt a word at any time; players coordinate over chat to
@@ -311,7 +314,7 @@ The FE reads `games_state` / `players_state`, never the base tables.
 
 ### 5.1 `create_game(target_club, setup, player_user_ids, mode)`
 
-Club-member + player-count (compete 2–4, coop 1–4) + timer validation, reads
+Club-member + player-count (compete 1–4, coop 1–4) + timer validation, reads
 `setup.dict_2` / `setup.dict_3plus` (each 1–6, default 3), then:
 
 - Builds the 100-tile bag and **shuffles** it (`order by random()`); the shuffle
@@ -420,7 +423,7 @@ we don't defend against cheating) and only does the things it alone can: check
 the words against the dictionary, draw replacement tiles from the hidden bag, and
 keep the books. This is the model Joel chose: simpler SQL, one implementation of
 the hard logic, and the same `lib/play.ts` is what the AI move suggester reuses
-([§12](#12-the-move-suggester-ai)).
+([§11](#11-the-move-suggester-ai)).
 
 **Atomicity + races, without re-deriving the move.** The earlier worry — that
 trusting the FE opens a read-then-write TOCTOU, especially in coop's shared rack —
@@ -443,7 +446,7 @@ port target is exactly that one tested module — but YAGNI today.
 
 (No edge function on the *play* path: the dictionary check and bag draw are
 trivial SQL. scrabble's one edge function, `scrabble-suggest-move`, is the
-[§12](#12-the-move-suggester-ai) hint helper — advisory, never a validator.)
+[§11](#11-the-move-suggester-ai) hint helper — advisory, never a validator.)
 
 ---
 
@@ -500,24 +503,22 @@ Pass is disabled (you have a move pending). Coop is unchanged — no turns, and 
 teammate's commit still resets your in-progress staging (the stackdown-style "first
 commit wins").
 
-**Turn viewer.** Click any Moves-log row to inspect that turn on the board: the
-board swaps to the **replayed historical state** (`boardUpToSeq` in `lib/play.ts` —
-a pure fold of every word play's `placements` with `seq ≤ target`; no per-turn
-snapshot stored, since the board *is* the accumulation of placements). The tiles
-*that turn placed* take the **placed-tile yellow** face (the same "staged, not
-committed" color) plus a **success-green outline** (they really were the turn's good
-words — so only word turns light up, not a pass). That same **yellow** (a single
-`--scrabble-viewer` = `--scrabble-tile-tentative`) outlines the whole board, the
-selected log row, and the banner overlaying the input area — a terse "#12 Bea: +54
-JUKEBOX" (non-word turns read "#5 Bea passed" / "exchanged N"), plain surface fill +
-normal text, with a `✕` at its far right. Yellow, not green, for the frame/row/banner:
-it's a neutral "you're looking at history" marker, and green would wrongly imply the
-*whole* turn was a success (a pass isn't).
-The rack stays mounted *underneath* the banner, so `staged` (your pre-play) is
-preserved and restored on exit. **Navigate by clicking rows** (no arrows); the `✕`, a
-click anywhere on the banner or board, any key, or an opponent's move all **exit
-cleanly** to the live board. It's a local view-only state (like the board rotation) —
-never shared, never persisted, doesn't pause.
+**Turn viewer.** scrabble uses the shared turn-history viewer — the `#N`
+`<TurnLogNumber>` handle (not the whole row), the history frame + banner, and the
+✕ / click / any-key / opponent-move exits are all common mechanics, documented in
+[ui.md → Turn-history viewer](../ui.md#turn-history-viewer) + [playarea-decomposition.md](../playarea-decomposition.md).
+scrabble's snapshot semantics: the board swaps to the **replayed historical state**
+(`boardUpToSeq` in `lib/play.ts` — a pure fold of every word play's `placements`
+with `seq ≤ target`; no per-turn snapshot stored, since the board *is* the
+accumulation of placements). The tiles *that turn placed* take the **placed-tile
+yellow** face plus a **success-green outline** (only word turns light up, not a
+pass); the same `--scrabble-viewer` (= `--scrabble-tile-tentative`) yellow rings the
+board, the selected log row, and the banner (a terse "#12 Bea: +54 JUKEBOX";
+non-word turns read "#5 Bea passed" / "exchanged N") — yellow not green, since it's
+a neutral "looking at history" marker and green would wrongly imply the whole turn
+succeeded (a pass didn't). The rack stays mounted *underneath* the banner, so your
+`staged` pre-play is preserved and restored on exit. Local view-only state (like the
+board rotation) — never shared, never persisted, doesn't pause.
 
 - **`lib/board.ts`** — premium grid, tile values, distribution constants. Pure;
   Vitest (layout symmetry, distribution sums to 100).
@@ -685,47 +686,7 @@ the single source of truth for geometry + scoring.)
 
 ---
 
-## 11. Resolved decisions
-
-Every design fork below was settled before building (and is what shipped):
-
-- **Shared coop rack, no coop turns** — one rack/board/bag/score; any player
-  commits anytime; private staging → shared on commit.
-- **Blanks in** — letter declared on commit, permanent ([§2.5](#25-blank-tiles)).
-- **Rejected word costs nothing** — free bounce, no turn lost, not logged
-  ([§2.2](#22-a-play-placing-a-word)).
-- **Difficulty bands are the acceptance gate** (not the roster-default "accept
-  all 1–6"): two bands by word length — `dict_2` (2-letter) and `dict_3plus`
-  (3+), each legal iff `difficulty ≤ band`; the form offers all six for each,
-  default 3 ([§3.3](#33-the-dictionary-difficulty-bands-by-word-length)).
-- **Endgame** — full Scrabble rules in compete (leftover subtraction + going-out
-  bonus); **coop ends only on going-out or End game** (no blocked-end);
-  **compete ties → co-winners**; **compete first turn is random**
-  ([§2.7](#27-ending-the-game), [§5.1](#51-create_gametarget_club-setup-player_user_ids-mode)).
-- **Coop countdown expiry** is a gentle "time's up — here's your score," not a
-  loss ([§2.7](#27-ending-the-game)).
-
-All shipped in migration `20260627000000_scrabble.sql` (which registers
-`scrabble_coop` min 1 + `scrabble_compete` min 2 in `common.gametypes`), the
-`src/scrabble/` manifest pair in `src/games.ts`, and the CLAUDE.md doc-table line.
-
-### Post-build additions (from playtesting)
-
-- **Two difficulty bands** by word length, not one — `dict_2` (2-letter) /
-  `dict_3plus` (3+), the bananagrams split ([§3.3](#33-the-dictionary-difficulty-bands-by-word-length)).
-- **Coop manual end forfeits** the leftover-tile value (a `forfeit` log row,
-  red "−N tiles unplayed") instead of the uniform neutral stop — it nudges a
-  solo/coop team to play its last tiles ([§2.7](#27-ending-the-game), [§5.5](#55-end_game--concede--submit_timeout)).
-- **Title = first three words played** ([§8](#8-title-formula)); the label adds
-  tiles-left mid-game and names the winner / "tie" at terminal ([§9](#9-status-jsonb--labels)).
-- **Word definitions** — click a word in the move log, or press `~` for the
-  free-form lookup; the shared `DefinitionView` now also shows a word's band /
-  dialects / slur-crude flags / wordle-membership (a `common` change across all
-  word games).
-
----
-
-## 12. The move suggester (AI)
+## 11. The move suggester (AI)
 
 Coop's info column has a **Suggest** button (the shared `AIButton`); it returns
 the top-5 legal moves, and clicking one **stages** that move's tiles — the same
@@ -781,7 +742,7 @@ results / error), so an arriving list never reflows the column below it. The
 e2e (`scrabble-suggest.e2e.ts`) checks these invariants against the real edge
 function in a real browser.
 
-## 13. The AI opponent (compete)
+## 12. The AI opponent (compete)
 
 Distinct from the always-best suggester above: an autonomous **AI player** you
 can seat in a **compete** game — 0–3 of them, all at one chosen skill level —

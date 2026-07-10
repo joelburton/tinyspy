@@ -35,7 +35,6 @@ The grey zone is **business logic at the boundary**: things like "if the game ju
 
 These are deliberate gaps:
 
-- **End-to-end browser tests** (Playwright, Cypress, etc.). We rely on manual smoke testing instead. The cost of an E2E harness against a live Supabase stack is high; the value at this stage is low. If a regression keeps slipping past pgTAP + Vitest + smoke, that's the signal to add E2E.
 - **Performance / load tests.** Friends-only audience; not a concern yet.
 - **Specific error message wording in the FE.** We assert on error *codes* and *categories*, not on the exact human-readable string. Wording changes shouldn't break tests.
 - **CSS / visual regression.** Manual.
@@ -149,9 +148,9 @@ Our RPCs raise three SQLSTATEs:
 
 Tests usually assert on the code, not the wording. When a test *does* pin the message (e.g. to prove which of several `P0001` branches fired — see `waffle/validation_test.sql`), remember the match is exact: pass the full string, or stay loose with `null` / `throws_like`.
 
-## Per-gametype test setup (future)
+## Per-gametype test setup
 
-`_shared/setup.psql` covers what every test in the suite needs. As games grow more complex, there'll be helpers that are useful within a gametype but not across — e.g., a boggle test might want `pg_temp.assert_board_has_word(g uuid, w text)`, which has no analog in psychicnum or codenamesduet.
+`_shared/setup.psql` covers what every test in the suite needs. On top of it, most games have accumulated helpers that are useful within a gametype but not across — e.g., a boggle test wants a board-has-word assertion that has no analog in psychicnum. This is now the norm: nine games carry a per-gametype `setup.psql` (boggle, codenamesduet, connections, crosswords, scrabble, spellingbee, stackdown, waffle, wordle); only psychicnum and bananagrams stay below the promotion threshold.
 
 The pattern in use:
 
@@ -172,7 +171,7 @@ We import both explicitly, rather than chaining the shared include from inside t
 
 **Don't pre-emptively create per-gametype setup files.** Wait until the duplication is real and the helpers have stabilized — extracting too early invites a mini-framework whose shape doesn't match what the next game actually needs.
 
-Today's state: **codenamesduet** has a per-gametype `setup.psql` (three helpers: `find_position`, `find_position_set`, `codenamesduet_setup`). **psychicnum**'s only helper is inline target-pinning at one site — still below the promotion threshold.
+Example: **codenamesduet**'s per-gametype `setup.psql` carries three helpers (`find_position`, `find_position_set`, `codenamesduet_setup`). At the other end, **psychicnum**'s only helper is inline target-pinning at one site — still below the promotion threshold, which is why it (and bananagrams) has no file.
 
 ## Frontend testing
 
@@ -227,6 +226,8 @@ npm run test:e2e       # needs the local Supabase stack running; auto-starts the
 ```
 
 Deliberately **not** part of `npm test` — it's slower and flakier (real realtime timing), so run it before a push/deploy, not on every save. It accumulates suffixed test users/clubs in the local DB; `npm run db:reset` clears them. If the local Supabase URL ever changes, recompute the storage key via `createClient(url, key).auth.storageKey`.
+
+The **WebKit + Firefox engines are installed** (`npx playwright install webkit firefox`), so cross-engine (Safari / Firefox) layout repro is available beyond the default Chromium run.
 
 ## Running the suites
 

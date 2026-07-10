@@ -1,29 +1,20 @@
 # psychicnum
 
-A tiny word-guessing game with two modes: **psychicnum_coop** (team plays together with a shared budget) and **psychicnum_compete** (players race independently). The second gametype family registered, kept as the minimal surface for exercising the multi-game architecture — now also the minimal surface for exercising the **coop/compete sibling-manifest pattern** that connections and spellingbee will follow. Read this file before touching anything in `psychicnum/` or `supabase/migrations/*_psychicnum_*.sql`.
+A tiny word-guessing game with two modes: **psychicnum_coop** (team plays together with a shared budget) and **psychicnum_compete** (players race independently). The reference minimal surface for exercising the multi-game architecture — and the first to exercise the **coop/compete sibling-manifest pattern** that every multiplayer game now follows. Read this file before touching anything in `psychicnum/` or `supabase/migrations/*_psychicnum_*.sql`.
 
 For the shared layer see [`common.md`](../common.md). For testing theory + persona conventions see [`testing.md`](../testing.md). For comparison with the richer-shape gametype see [`codenamesduet.md`](codenamesduet.md).
 
 ## The sibling-manifest pattern
 
-psychicnum exports two manifest entries from one folder:
+psychicnum is a coop/compete sibling pair — the full pattern (two `common.gametypes` rows + two `src/games.ts` manifests over one folder, one schema, one `create_game(target_club, setup, player_user_ids, mode)` RPC, RLS branching on a denormalized `mode` column, why-per-variant-not-a-radio) is documented once in [common.md → The sibling-manifest pattern](../common.md#the-sibling-manifest-pattern), which uses psychicnum as its worked example. psychicnum's specifics:
 
-| field                | `psychicnumCoopGame`     | `psychicnumCompeteGame`     |
-|----------------------|--------------------------|------------------------------|
-| `gametype`           | `psychicnum_coop`         | `psychicnum_compete`          |
-| `schema`             | `psychicnum`              | `psychicnum`                  |
-| `baseGametype`       | `psychicnum`              | `psychicnum`                  |
-| `mode`               | `'coop'`                  | `'compete'`                   |
-| `name`               | `psychicnum`              | `psychicnum`                  |
-| `numberOfPlayers`    | `[1, 6]`                  | `[2, 6]`                      |
+| field             | `psychicnumCoopGame` | `psychicnumCompeteGame` |
+|-------------------|----------------------|-------------------------|
+| `gametype`        | `psychicnum_coop`    | `psychicnum_compete`    |
+| `mode`            | `'coop'`             | `'compete'`             |
+| `numberOfPlayers` | `[1, 6]`             | `[2, 6]`                |
 
-The two siblings share the same `name` — the coop/compete distinction is shown at presentation time via the `<ModePill>` (read from `mode`), not baked into the name string. See [ui.md → Mode pills](../ui.md#mode-pills).
-
-Both ship the same `PlayArea`, `SetupForm`, `Help`, `useGame`, `theme.css`, and `logo.svg`. The mode branches at render time (`game.mode === 'coop'` vs `'compete'`). The DB inserts **two rows in `common.gametypes`** but a **single set of psychicnum tables** — the `psychicnum.games.mode` column is denormalized for RLS branching, and one `psychicnum.create_game(target_club, setup, player_user_ids, mode)` RPC routes both manifests' Start clicks.
-
-`baseGametype: 'psychicnum'` is the family key — anywhere code wants "treat these as siblings" (docs lookup, future ClubPage side-by-side rendering), it filters on this field. See [`src/common/lib/games.ts`](../../src/common/lib/games.ts) → `GameManifest.baseGametype` + `mode`.
-
-A timer that runs out is NOT what makes a game "compete" — compete needs an opposing PLAYER. Solo clubs (1 player) get only the coop button, but coop can still carry a countdown timer (where running out loses the game). The compete manifest's lower bound (2 players) hides it server-side too.
+Both siblings share the same `name` (`psychicnum`); the coop/compete distinction shows at presentation time via the `<ModePill>` (see [ui.md → Mode pills](../ui.md#mode-pills)). A timer that runs out is NOT what makes a game "compete" — compete needs an opposing PLAYER, which is why the compete manifest's `[2, 6]` floor hides it in solo clubs (coop can still carry a countdown timer there).
 
 ## The rules
 
@@ -66,7 +57,7 @@ A timer that runs out is NOT what makes a game "compete" — compete needs an op
 
 - **Not a turn-based game.** Any player can guess at any time. The server serializes simultaneous guesses via `SELECT ... FOR UPDATE` on the game row.
 - **Not strategic.** There's no skill in the spec — it's "guess a random number." The "fun" parameter is left at zero.
-- **Slated for removal after beta** — once the roster has filled in (Boggle, crosswords, etc.), the toy stops earning its keep. The removal will validate the **removability-in-three-actions** invariant for real: `rm -rf src/psychicnum/`, drop the two entries from `src/games.ts` AND drop the two `common.gametypes` rows from the schema, drop the migration file. If anything else breaks, the architecture leaked.
+- **Slated for removal after beta** — the roster has filled in, so the toy no longer earns its keep. The removal will validate the **removability-in-three-actions** invariant for real: `rm -rf src/psychicnum/`, drop the two entries from `src/games.ts` AND drop the two `common.gametypes` rows from the schema, drop the migration file. If anything else breaks, the architecture leaked.
 
 ## Schema: `psychicnum.*`
 
@@ -207,7 +198,7 @@ Caller must be a club member. **One RPC for both modes** — the `mode` paramete
 
 Each FE manifest's `startGameInClub` passes its own per-manifest mode constant — the caller doesn't pick mode interactively.
 
-After validation, samples `word_count` distinct board words from `common.words` (clean + american + non-slang + `difficulty ≤ band`), then three of those as the secrets, then calls `common.create_game(...)` — which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`), then inserts the psychicnum.games row (`words` + `secrets`), then inserts one `psychicnum.players` row per player_user_ids entry with `guesses_remaining` seeded from `setup.guesses`.
+After validation, samples `word_count` distinct board words from `common.words` (clean + american + non-slang + `difficulty ≤ band`), then three of those as the secrets, then calls `common.create_game(...)` for the common header half (see [common.md → Game-RPC helpers](../common.md#game-rpc-helpers-called-by-per-game-rpcs)), then inserts the psychicnum.games row (`words` + `secrets`), then inserts one `psychicnum.players` row per player_user_ids entry with `guesses_remaining` seeded from `setup.guesses`.
 
 **Player-count gates:**
 - Coop: `common.require_player_count_max(player_user_ids, 6)`. Matches `numberOfPlayers: [1, 6]`.
@@ -279,11 +270,11 @@ Reject reasons: not authenticated; not a game player; game not found; game statu
 
 ### `psychicnum.end_game(target_game uuid)`
 
-The **End** button in the info-column action row (both modes) fires this, behind a `window.confirm`. It's the explicit manual stop — any current game player can decide the group is done. (Unlike most games, which put end-game on the GamePage menu via `useEndGameMenu`, psychicnum surfaces it as a visible button — so it does NOT register a per-game menu item.)
+The **End** button in the info-column action row (coop; compete shows **Concede** instead — see the play-states above) fires this, behind a `window.confirm`. It's the explicit manual stop — any current game player can decide the group is done. Like every game, it's surfaced in **both** the action row and the GamePage menu — the latter wired through `buildGameMenu` (see [common.md → Manual end](../common.md#manual-end--every-gametypes-end_gametarget_game)).
 
 Unlike `submit_timeout`, a manual stop is **neither a win nor a loss**, so it writes the uniform terminal `play_state = 'ended'` with `status = {outcome:'manual', mode}` and `result = {won: false}` for every player (psychicnum tracks no per-player score, so there's nothing richer to record). Same shape across both modes. The FE renders `'ended'` neutrally — green "Game ended" copy, not the red loss treatment.
 
-Idempotent on the terminal-state guard: a second concurrent call raises `P0001 'game is not in progress'`, which the FE swallows. **Realtime touch at the tail** (`update psychicnum.games set club_handle = club_handle …`) — same trick as `submit_timeout`: `common.end_game` only writes `common.games`, so the no-op self-set produces the WAL entry that wakes the FE's `psychicnum.games` subscription to refetch and reveal the secrets.
+Idempotent on the terminal-state guard: a second concurrent call raises `P0001 'game is not in progress'`, which the FE swallows. **Realtime touch at the tail** — a no-op self-write on `psychicnum.games` (`set club_handle = club_handle`) wakes the FE's schema-scoped subscription to refetch and reveal the secrets — the uniform trick at [common.md → Manual end, step 6](../common.md#manual-end--every-gametypes-end_gametarget_game).
 
 Reject reasons: not authenticated; not a game player; game not found; game status ≠ playing.
 
@@ -302,7 +293,7 @@ The FE side: `src/psychicnum/lib/setup.ts` (the `PsychicnumSetup` type) and `src
 
 ## Timer (server-authoritative ticks)
 
-Standard `<TimerField>` + `useGameTimer` setup — same as connections; see [`connections.md → Timer`](connections.md#timer-server-authoritative-ticks) for the design rationale and drift bounds. Psychic-num-specific: countdown expiry calls `psychicnum.submit_timeout`, which flips `play_state` to `lost`.
+Standard `<TimerField>` + `useGameTimer` setup — see [`common.md → Idle accounting`](../common.md#idle-accounting-timer-state-preservation) for the design rationale and drift bounds. Psychic-num-specific: countdown expiry calls `psychicnum.submit_timeout`, which flips `play_state` to `lost`.
 
 ## Pause-on-disconnect
 
@@ -438,7 +429,7 @@ The `members` array used by `GameTurnLog` for "[ada] guessed 7" attribution come
 
 ### Code-splitting
 
-Same pattern as codenamesduet — the manifest's `PlayArea` is lazy-loaded. The build emits psychicnum's JS as its own chunk (~4 KB gzipped); users who only play codenamesduet never download it.
+Standard — psychicnum's `PlayArea` ships as its own lazily-loaded chunk (~4 KB gzipped). See [common.md → Code-splitting](../common.md#code-splitting).
 
 ## Psychic-num testing
 

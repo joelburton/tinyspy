@@ -1,21 +1,18 @@
 # bananagrams
 
-> **Status: v3 (the shared-layout redesign).** The bank loop (v1 schema +
-> dealing + interactive player board + snapshot persistence; v2 derived hand
-> [`board` + `tiles` split], ⟲ shuffle, **peel**, **dump**) sits on the shared
-> two-column scaffold now (`common/components/game/PlayArea.module.css`) with the v3
-> info-column chrome. bananagrams is the roster's **documented exception** to
+> **Status: live (v3).** The bank loop — deal, the derived hand (the `board` +
+> `tiles` split), ⟲ shuffle, **peel**, **dump**, and snapshot persistence — sits on
+> the shared two-column scaffold (`common/components/game/PlayArea.module.css`) with
+> the v3 info-column chrome. bananagrams is the roster's **documented exception** to
 > "everything needed to make a move lives in the board column": the board is a
-> zoom/scroll arena that FILLS the left column, and the hand + peel + dump live
-> in the RIGHT (info) column — deliberate for this desktop-only game. It also
-> has **no turn log and no word list** (nothing to log). The old whole-table
-> `end_game` is gone; a player now **concedes** (a per-player drop-out — a real
-> loss, since the game is compete — that leaves the others racing; the last one
-> out ends the game). A winning board must always be **one connected grid**
-> (geography is structural); requiring its words to be **real** is opt-in
-> ("Require real words to win") — off by default, we trust players on the
-> dictionary. The throwaway UX prototype in `bananagrams-ui/` (gitignored) is
-> where the board feel settled.
+> zoom/scroll arena that FILLS the left column, and the hand + peel + dump live in
+> the RIGHT (info) column — deliberate for this desktop-only game. It also has **no
+> turn log and no word list** (nothing to log). There is no whole-table `end_game`;
+> a player **concedes** instead (a per-player drop-out — a real loss, since the game
+> is compete — that leaves the others racing; the last one out ends the game). A
+> winning board must always be **one connected grid** (geography is structural);
+> requiring its words to be **real** is opt-in ("Require real words to win") — off by
+> default, we trust players on the dictionary.
 
 bananagrams is a **Bananagrams** clone: a real-time, simultaneous,
 **competitive** word-tile race. Each player builds their own **player board**
@@ -250,17 +247,14 @@ The board lives in the `usePlayerBoard` engine, but the menu lives in `PlayArea`
 `ctx.menu` is), so PlayArea hands the engine a `reportBoardRef` it keeps pointed at the
 live board; the print's onClick snapshots it at click time (works mid-game or at the end).
 
-### From v1 to v2 — what held, what changed
+### Why the bunch is explicit and the hand is derived
 
-v1 was built to make the bank loop a small addition. Two foundations held as
-planned; two predictions were revised once peel/dump were real:
+Two schema shapes exist for specific reasons the bank loop forces:
 
-| v1 foundation | v2 outcome |
-|---|---|
-| fixed 25×25 board as a char array | **held** — a future validator is still just a scan / flood-fill over the array |
-| `progress.unplaced` peer signal already live | **held** — peel/dump just recompute it; the strip needed no change |
-| `seed` stored, "peel reads the next letter via a draw cursor" | **revised** — dump *returns* tiles to the bunch, which a fixed seed can't describe, so v2 materializes an explicit (hidden, mutable) `bunch` instead |
-| hand stored as a string, "peel appends to it" | **revised** — peel must grow *every* player's hand at once without colliding with live FE placement, so the hand became **derived** (`board`/`tiles` split); the hand-empty win gate now lives inside `peel` |
+- **The bunch is an explicit (hidden, mutable) table**, not a fixed `seed` + draw cursor: dump *returns* tiles to the bunch, which a fixed seed can't describe.
+- **The hand is derived** (the `board`/`tiles` split), not stored as a string: peel must grow *every* player's hand at once without colliding with live FE placement, so the hand-empty win gate lives inside `peel`.
+
+The rest is a plain char array: the fixed 25×25 board stays a char array (a future validator is just a scan / flood-fill over it), and the `progress.unplaced` peer signal drives the strip directly (peel/dump just recompute it).
 
 ## Resolved decisions
 
@@ -271,19 +265,10 @@ planned; two predictions were revised once peel/dump were real:
 - **Tiles have no ids:** board + hand are letter strings (tiles are interchangeable by letter).
 - **Touch input:** explicit **non-goal** — desktop-only, cursor-typing needs a keyboard.
 
-## The UX prototype (`bananagrams-ui/`)
+## The board-feel prototype
 
-A standalone, **pure-FE** Vite + React app at top-level `bananagrams-ui/`
-(gitignored, intentionally *not* wired to Supabase or the real app). Its job was
-to let Joel *feel* the board before building it for real — and it earned its
-keep: we tried a growing/recentering board there, found it complex and fiddly,
-and settled on the **fixed 25×25 arena + zoom/scroll** that shipped. No sharing,
-persistence, peers, bank, or validation — just a board and a hand.
-
-Run it:
-
-```
-cd bananagrams-ui
-npm install
-npm run dev
-```
+The fixed 25×25 arena + zoom/scroll shipped after a growing/recentering board was
+tried and found complex and fiddly — that comparison was made in a standalone
+pure-FE prototype (`bananagrams-ui/`, gitignored, never wired to Supabase). The
+durable takeaway is captured above (Resolved decisions → Board); the prototype
+itself is throwaway.

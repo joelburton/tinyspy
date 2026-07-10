@@ -1,19 +1,17 @@
 # waffle
 
-**Status: BUILT** — coop + compete, server + frontend. This began as the
-scoping doc and the design below still holds; it's now implemented in migration
-`20260624000000_waffle.sql`, the `src/waffle/` frontend, and the pgTAP
+**Status: live** — coop + compete, server + frontend, shipping. Implemented in
+migration `20260624000000_waffle.sql`, the `src/waffle/` frontend, and the pgTAP
 (`supabase/tests/waffle/`) + Vitest (`src/waffle/lib/*.test.ts`) suites.
-Remaining polish is minor (recently-swapped tile flash).
 
-**Brand name vs codename.** The user-facing brand is **waffle** — it's the
+**Brand name vs codename.** The user-facing brand is **SyrupSwap** — it's the
 manifest `title` and the wording in any end-user copy (game listing, help,
 messages). Everywhere in *code* the codename is **`waffle`**: the SQL schema,
 the `src/waffle/` folder, component names, table/column names, variables, test
-files, gametype strings (`waffle_coop` / `waffle_compete`). waffle is a
-mouthful to type, and "waffle" keeps the link to the original game obvious in
-the source — so brand and codename deliberately diverge here (the other games
-happen to share one word for both).
+files, gametype strings (`waffle_coop` / `waffle_compete`). "waffle" keeps the
+link to the original game (wafflegame.net) obvious in the source, while
+SyrupSwap is the playful public name — so brand and codename deliberately
+diverge here.
 
 ## The game
 
@@ -48,9 +46,9 @@ presence-pause, friends-on-a-Zoom-call model.
 
 ## Modes (sibling-manifest pair)
 
-Ships as `waffle_coop` + `waffle_compete`, the same pattern psychicnum /
-connections / spellingbee follow (a `mode` column on `waffle.games`, a `mode` arg on
-`create_game`, mode-aware RLS). Per [Joel, 2026-06-20]:
+Ships as `waffle_coop` + `waffle_compete`, the same sibling-manifest pattern the
+other multiplayer games follow (a `mode` column on `waffle.games`, a `mode` arg on
+`create_game`, mode-aware RLS):
 
 - **Coop** — one shared board, one shared swap budget; **either player can
   swap** and everyone sees it. "Like connections coop" — players' working rows
@@ -81,7 +79,7 @@ Row-major positions 0–24; holes at **6, 8, 16, 18**.
 Boards are a **25-char string**, holes = `.`. One helper module
 (`src/waffle/lib/waffle.ts`) owns the filled-position list and each cell's word
 membership; the SQL side mirrors the same constants. This geometry is shared by
-the generator, the server swap/color logic, and the FE — build it first.
+the generator, the server swap/color logic, and the FE.
 
 ## Color feedback — the tricky bit
 
@@ -101,9 +99,9 @@ response (instant feedback for the swapper) and exposed in the read view (so the
 peer / a refetch sees it).
 
 Waffle's exact duplicate rule is subtle (which direction a yellow "points,"
-double-counting across the two words of an intersection). **Build this
-test-first** against known Waffle states — it's the highest-correctness-risk
-piece in the game.
+double-counting across the two words of an intersection) — the
+highest-correctness-risk piece in the game, so it's covered test-first against
+known Waffle states (`src/waffle/lib/*.test.ts`).
 
 ## Schema: `waffle.*`
 
@@ -305,26 +303,22 @@ can't drift). `minSwaps` is covered by `gen_test.ts` (`deno test`).
 
 ## Frontend (`src/waffle/`)
 
-> **v3 (2026-06-30).** The FE was converted to the v3 conventions (see
-> [`design-decisions.md`](../design-decisions.md)): local own-move feedback, the
-> locally-terminal "waiting" message, and the terminal verdict are all the shared
-> `<FeedbackPill>` in the renamed `.belowBoard` slot (transient outline error /
-> sticky neutral waiting / permanent fill verdict — not the old `<ResultFlash>`
-> bar, which waffle was the last renderer of); the action row uses the semantic
-> `EndGameButton` (coop) / `ConcedeGameButton` (compete) instead of a hand-rolled
-> `<button>`; a **locally-terminal** state (compete: solved or out of swaps while
-> others race on) reuses the terminal look (a bold status line + Concede) and
-> disables the grid; the `.infoCol` is reordered to the canonical **state →
-> opponent strip → action row → help → setup → log**; the `OpponentStrip` carries
-> a `metricLabel="Swaps"`; and the turn log renders its **own `<tr>` rows** (the
-> legacy `<TurnLogItem>` wrapper was deleted — waffle was its last caller). An
-> opponent solving now reads as `success` (green), the same green a found word
-> always reads as (tone follows the event, not the viewer's stake).
+The FE follows the v3 conventions (see [ui.md](../ui.md)): local own-move feedback,
+the locally-terminal "waiting" message, and the terminal verdict are all the shared
+`<FeedbackPill>` in the `.belowBoard` slot (transient outline error / sticky neutral
+waiting / permanent fill verdict); the action row uses the semantic `EndGameButton`
+(coop) / `ConcedeGameButton` (compete); a **locally-terminal** state (compete: solved
+or out of swaps while others race on) reuses the terminal look (a bold status line +
+Concede) and disables the grid; the `.infoCol` follows the canonical **state →
+opponent strip → action row → help → setup → log** order; the `OpponentStrip` carries
+a `metricLabel="Swaps"`; and the turn log renders its own `<tr>` rows. An opponent
+solving reads as `success` (green), the same green a found word always reads as (tone
+follows the event, not the viewer's stake).
 
 Mirrors the other game folders:
 
 - `manifest.ts` — the `waffle_coop` + `waffle_compete` sibling pair (gametype
-  strings stay codenamed; the manifest `title` is the brand **waffle**).
+  strings stay codenamed; the manifest `title` is the brand **SyrupSwap**).
 - `db.ts` — `supabase.schema('waffle')`.
 - `hooks/useGame.ts` — projects `games_state` + `players_state` + the `swaps`
   log; three-table realtime subscription on `waffle.{games, players, swaps}`.
@@ -388,8 +382,8 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../ui.md#playarea-layout
 - `SetupForm` (timer + the extra-swaps difficulty knob) and `Help` round it out.
 
 Presence-pause is inherited free via `<GamePage>` + `useCommonGame`. Live
-drag-preview via Broadcast (connections's peer-selection trick) is a nice-to-have —
-defer.
+drag-preview via Broadcast (connections's peer-selection trick) is a deferred
+nice-to-have, not shipped.
 
 ## Testing
 
@@ -404,17 +398,14 @@ defer.
   generator's `minSwaps` par lives in the edge function, covered by
   `deno test supabase/functions/waffle-build-board/gen_test.ts`.
 
-## Decisions (settled 2026-06-21)
+## Design notes — two choices worth remembering
 
-- **Name:** brand **waffle**, codename **`waffle`** (see the header).
-- **Coop working-state:** **(A)** one uniform `waffle.players` table for both
-  modes, coop rows kept in lock-step (matches connections). The rejected
-  alternative — a single shared board on `waffle.games` for coop — is described
-  in the schema note above; flip to it only if the per-row redundancy ever bites.
-- **`max_swaps`:** default `par + 5`, **configurable in `SetupForm`** (`extra_swaps`).
-- **Compete tie-break:** equal swap counts → earliest `solved_at` (least time)
-  wins. The finite budget means the game always terminates, timer or not.
-- **Puzzles:** **generated on demand** by the `waffle-build-board` edge function
-  (see [Board generation](#board-generation-waffle-build-board-edge-function)).
-  This superseded the original vendored-library approach once player-selectable
-  word filters made a pre-generated set multiply combinatorially.
+- **Coop working-state uses one uniform `waffle.players` table** for both modes,
+  coop rows kept in lock-step (matches connections). The rejected alternative — a
+  single shared board on `waffle.games` for coop — is described in the schema note
+  above; flip to it only if the per-row redundancy ever bites.
+- **Puzzles are generated on demand** by the `waffle-build-board` edge function
+  (see [Board generation](#board-generation-waffle-build-board-edge-function)),
+  not vendored from a pre-built library: once player-selectable word filters made a
+  pre-generated set multiply combinatorially, on-demand generation became the only
+  tractable shape.

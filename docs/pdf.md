@@ -145,10 +145,15 @@ title block above it (title left, author/copyright stacked right — **not** `fr
 with continuation pages when they overflow. The cell renderer preserves blocks, circles
 (8% inset), shading, given underlines, pencil-as-italic-grey, and current fills;
 `revealed`/`wrong` are ignored ("print shows the puzzle, not grading"). The answer-key
-generator (`generateSolutionPdf`) is **dropped** — the FE never holds the shielded
-solution. It already went through crossplay's own design process
-(`crossplay/docs/print-design.md`) and is already greyscale, so it lands within the
-*spirit* of this doc without adopting its letterforms or `frame`/`Setup` conventions.
+generator (`generateSolutionPdf`, `src/crosswords/pdf/solution.ts`) was **ported too**:
+it shares the puzzle printer's title + grid geometry but fills every open cell with the
+canonical solution letter. Unlike the puzzle printer (which the FE builds offline from
+the template it already holds), the answer key needs the shielded solution, so the caller
+fetches it via the `crosswords.solution_for` RPC and passes it in — fine under the
+friends-only trust model (see [crosswords.md §7](games/crosswords.md)). It already went
+through crossplay's own design process (`crossplay/docs/print-design.md`) and is already
+greyscale, so it lands within the *spirit* of this doc without adopting its letterforms or
+`frame`/`Setup` conventions.
 
 This is a documented **deliberate difference**, not drift: a future consistency pass must
 NOT "fix" it onto the shared frame (per [docs/ui.md](ui.md) → surface deliberate

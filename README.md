@@ -2,7 +2,7 @@
 
 A monorepo for online collaborative games among groups of friends. The shell, auth, clubs, and chat are common; each game lives in its own folder + Postgres schema + lazy chunk. Adding or removing a game is a folder-and-one-line operation; the architecture's removability is the structural integrity check (enforced by ESLint).
 
-The flagship game is **codenamesduet** — an online implementation of [Codenames Duet](https://czechgames.com/en/codenames-duet/), the cooperative variant where two players give clues to each other to find 15 agents before the timer runs out. **connections** is a Connections-style word-grouping puzzle. A tiny third game (**psychicnum**) exists to exercise the multi-game wiring with a game small enough that the architectural patterns dominate, not the game logic — it'll be removed after beta. **spellingbee** (a Spelling-Bee-style word finder), **bananagrams** (Bananagrams-style), **waffle** (a Waffle-style swap-to-solve puzzle), **wordle** (a Wordle-style guess-the-word game), **stackdown** (a mahjong-style word game — clear a stack of lettered tiles by spelling words off the exposed ones), **scrabble** (a Scrabble-style game on the standard 15×15 premium board), and **boggle** (a Boggle-style find-words-in-a-grid game) round out today's roster. Crosswords and other games slot in next; most are ports of games already implemented in other stacks (so the rules / problem-space are well understood, and the porting work focuses on fitting them cleanly into the Supabase + React shell).
+The flagship game is **codenamesduet** — an online implementation of [Codenames Duet](https://czechgames.com/en/codenames-duet/), the cooperative variant where two players give clues to each other to find 15 agents before the timer runs out. **connections** is a Connections-style word-grouping puzzle. A tiny third game (**psychicnum**) exists to exercise the multi-game wiring with a game small enough that the architectural patterns dominate, not the game logic — it'll be removed after beta. **spellingbee** (a Spelling-Bee-style word finder), **bananagrams** (Bananagrams-style), **waffle** (a Waffle-style swap-to-solve puzzle), **wordle** (a Wordle-style guess-the-word game), **stackdown** (a mahjong-style word game — clear a stack of lettered tiles by spelling words off the exposed ones), **scrabble** (a Scrabble-style game on the standard 15×15 premium board), **boggle** (a Boggle-style find-words-in-a-grid game), and **crosswords** (a collaborative/competitive crossword) round out today's roster of eleven. The planned roster is essentially complete; any further game slots into the same shape — most are ports of games already implemented in other stacks (so the rules / problem-space are well understood, and the porting work focuses on fitting them cleanly into the Supabase + React shell).
 
 Built as a learning exercise around Supabase (row-level security, Postgres RPCs, Realtime, Edge Functions) with all game logic enforced server-side. Frontend is React + Vite + TypeScript, no router library — a ~40-line hand-rolled router covers the flat route set.
 
@@ -36,7 +36,7 @@ src/
   codenamesduet/                  # Codenames Duet
   psychicnum/                     # toy game; exercises multi-game wiring
   connections/  spellingbee/  bananagrams/  waffle/  wordle/
-  stackdown/  scrabble/  boggle/   # the other live games (one folder each)
+  stackdown/  scrabble/  boggle/  crosswords/   # the other live games (one folder each)
 
 supabase/
   config.toml, seed.sql
@@ -60,7 +60,8 @@ git clone <this repo>
 cd codenames
 npm install
 supabase start             # pulls Docker images on first run (~slow); ~30s after
-npm run db:reset           # applies migrations + seeds the word list
+npm run db:reset           # applies migrations (does NOT seed data)
+npm run import             # populates common.words + the puzzle libraries (required after every reset)
 npm run types:gen          # generates src/types/db.ts from the live schema
 npm run dev                # http://localhost:5173
 ```
@@ -82,7 +83,7 @@ npm run db:reset     # wipe local DB, replay migrations + seed
 npm run db:diff      # show schema drift vs migrations
 npm run db:lint      # supabase db lint --level warning
 npm run types:gen    # regenerate src/types/db.ts from local DB
-npm run deploy       # db push + functions deploy + build + Netlify deploy
+npm run deploy       # boggle/scrabble wordlists → db push + functions deploy + build + Netlify deploy
 ```
 
 `types:gen` and `db:lint` set `SUPABASE_ACCESS_TOKEN=local` as a workaround for a CLI 2.x regression that requires a token even for `--local`.
@@ -108,7 +109,7 @@ Redeploy in one command:
 npm run deploy
 ```
 
-That runs `supabase db push && supabase functions deploy && npm run build && netlify deploy -p -d dist`. Order matters: schema and functions first so the FE never references a column, RPC, or function the prod backend doesn't have yet. Both `db push` and `functions deploy` are idempotent — when nothing's pending they're quick no-ops, so the script is safe to run on every deploy.
+That runs `npm run boggle:wordlist && npm run scrabble:wordlist && supabase db push && supabase functions deploy && npm run build && netlify deploy -p -d dist`. The two `wordlist` prebuilds regenerate the git-ignored boggle/scrabble word bundles the edge functions need. Order matters: schema and functions first so the FE never references a column, RPC, or function the prod backend doesn't have yet. Both `db push` and `functions deploy` are idempotent — when nothing's pending they're quick no-ops, so the script is safe to run on every deploy.
 
 Manual breakdown:
 
@@ -131,22 +132,10 @@ A few hosted-project settings can only be configured in the dashboard (not via `
 
 ## Documentation
 
-The detail behind everything above lives in `docs/`. Read these by need, not in order:
-
-| file | what's there |
-|---|---|
-| [CLAUDE.md](CLAUDE.md) | Project priors for AI assistants and contributors. Read first. |
-| [docs/naming.md](docs/naming.md) | Terminology glossary (gametype, game, board, club, member, persona) — short. |
-| [docs/code-conventions.md](docs/code-conventions.md) | How we write code: DB conventions, FE conventions, code clarity, naming rules, "Avoid SELECT *", `useEffect` commenting, known gotchas. |
-| [docs/common.md](docs/common.md) | The architectural layer: clubs, profiles, the games registry, removability invariant, routing, the FE shell. |
-| [docs/games/codenamesduet.md](docs/games/codenamesduet.md) | Codenames Duet rules + codenamesduet schema, RPCs, RLS, FE components, Edge Function, tests. |
-| [docs/games/psychicnum.md](docs/games/psychicnum.md) | psychicnum rules + schema, the hidden-secrets column-grant pattern, FE, tests. |
-| [docs/testing.md](docs/testing.md) | Test theory (pgTAP vs Vitest), persona conventions, common helpers, FE testing patterns. |
-| [docs/deferred.md](docs/deferred.md) | Things explicitly deferred from code reviews and conversations. |
-| [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen lookup for commands, table inventory, RPC summaries, key files. |
+The detail behind everything above lives in `docs/`. **[CLAUDE.md](CLAUDE.md) carries the full, current documentation map** — it indexes every doc (project priors, the architectural layer, each per-game doc, testing, conventions, and more). Start there and read by need, not in order.
 
 ## Status
 
-Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). Ten games are live — codenamesduet, psychicnum, connections, spellingbee, bananagrams, waffle, wordle, stackdown, scrabble, boggle (every multiplayer one a coop + compete sibling pair); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest (slated for removal after beta). Further games slot into the same shape — one new folder under `src/`, one new line in `src/games.ts`, one new Postgres schema.
+Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). Eleven games are live — codenamesduet, psychicnum, connections, spellingbee, bananagrams, waffle, wordle, stackdown, scrabble, boggle, crosswords (every multiplayer one a coop + compete sibling pair); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest (slated for removal after beta). Further games slot into the same shape — one new folder under `src/`, one new line in `src/games.ts`, one new Postgres schema.
 
 Known cosmetic gaps and deferred work are in [`docs/deferred.md`](docs/deferred.md).

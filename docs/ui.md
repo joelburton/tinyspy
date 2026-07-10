@@ -190,7 +190,7 @@ Future targets:
 
 ## Theme: one global theme today
 
-The current theme is dark, with tokens at `:root` in [`common/theme.css`](../src/common/theme.css). Most games add a per-game theme file ([`codenamesduet/theme.css`](../src/codenamesduet/theme.css), [`wordle/theme.css`](../src/wordle/theme.css) the letter-feedback palette, [`stackdown/theme.css`](../src/stackdown/theme.css) the felt + tile ink, …) declaring additional tokens scoped to that game's gameplay surface.
+The current theme is light (`color-scheme: light`, `--color-bg: #fafafa` / `--color-surface: #ffffff`), with tokens at `:root` in [`common/theme.css`](../src/common/theme.css). Most games add a per-game theme file ([`codenamesduet/theme.css`](../src/codenamesduet/theme.css), [`wordle/theme.css`](../src/wordle/theme.css) the letter-feedback palette, [`stackdown/theme.css`](../src/stackdown/theme.css) the felt + tile ink, …) declaring additional tokens scoped to that game's gameplay surface.
 
 ### Tokens are semantic, not literal
 
@@ -212,9 +212,9 @@ Reference tokens as `var(--color-surface)`, never `var(--color-surface, #fff)`. 
 
 The safety net is build-time, not a fallback: [`src/cssTokens.test.ts`](../src/cssTokens.test.ts) fails if any `var(--x)` references a token that isn't defined in a stylesheet or set inline from a component. That's the "make missing tokens obnoxious-pink" instinct done one better — it screams in CI before the bug can ship, instead of hoping someone looks at the affected pixel. A missing token is always a bug here; treat the test going red as a real failure, not noise.
 
-### Light-mode pass (planned, not done)
+### Light theme is the default
 
-The current dark theme is the test-pattern while visual direction is still moving. **Switch to light-mode as the default before adding the next non-toy game** — roughly one afternoon's work: invert the surface tokens in `common/theme.css`, retune `codenamesduet/theme.css` against the new background, drop `color-scheme: dark`. Doing this *before* a new game lands means the new game's palette is tuned against the real background from day one rather than being re-tuned later.
+The theme is light: `common/theme.css` sets the surface tokens light and declares `color-scheme: light`, and each game's palette is tuned against that background. A dark theme is not a separate near-term task — it folds into the user-selectable-themes work below (dark becomes one selectable option, not a global re-swap).
 
 ### User-selectable themes (deferred)
 
@@ -554,7 +554,7 @@ tile's size.
 
 ## PlayArea layout
 
-The shape every game's play surface takes — **all ten games** are on it. The
+The shape every game's play surface takes — **all eleven games** are on it. The
 scaffold + readout classes live in
 [`common/components/game/PlayArea.module.css`](../src/common/components/game/PlayArea.module.css)
 (a CSS-only module imported the way `setupForm.module.css` is, composed with a thin
@@ -767,7 +767,7 @@ The pill is driven by the shared **`useLocalFeedback`** hook (holds one
 `GenericFeedbackMsg`, auto-clears on the next move / any key via
 `useDismissLocalFeedbackOnKey`, and is permanent at terminal — see [Terminal local
 feedback is permanent](#text-entry--capture-not-input) above). The slot reserves its
-height so swapping the pill in for the move controls never reflows the board. All ten
+height so swapping the pill in for the move controls never reflows the board. All eleven
 games share this; the earlier per-game full-width `<ResultFlash>` bar has been
 removed.
 
@@ -1124,7 +1124,7 @@ the same exchange glyph as scrabble's tile swap, in both the dump zone and the
 dump feedback pill (`FeedbackMsg.text` is a `ReactNode`, so a pill can lead with
 an inline icon).
 
-**Rollout.** Complete — **all ten games are v3**, so every game-move / end /
+**Rollout.** Complete — **all eleven games are v3**, so every game-move / end /
 hint / reveal / concede is now a semantic component from
 `common/components/buttons/`, and **End (or Concede)** is an info-column
 action-row *button*, never a GamePage-menu item. The roster of semantic buttons:
@@ -1148,10 +1148,12 @@ chat bubble, the `×` close, and the `✓`/`✗` marks.
   (`flex: 1 1 0; min-height: 0; display: flex; flex-direction: column`) and a
   near-identical `.grid` base (the per-game bits being the track definition + the
   `--tile-font-*` knobs). Tempting to share now, but both current boards are the
-  same shape (a grid of equal tiles filling the column) — so the "shared" shape
-  would just be *these two*, and a genuinely different board (scrabble's 15×15
-  premium board, boggle's dice grid, a future crossword) is what reveals the real
-  abstraction. **Defer until a structurally different board exists**, then extract
-  what's actually common rather than guessing. (The per-game `.board` comments
-  already name this as the future single place a framed board would live.)
+  same shape (a grid of equal tiles filling the column). The deferral condition —
+  "wait until a structurally different board exists" — **has since been met**:
+  scrabble's 15×15 premium board, boggle's dice grid, and crosswords' grid are all
+  live and genuinely different shapes. So this is now a **judgment call, not a
+  blocked item**: the promotion could be done, extracting what's actually common
+  across the real range of boards rather than guessing — but it hasn't been, and
+  there's no forcing reason to. (The per-game `.board` comments already name this
+  as the future single place a framed board would live.)
 - **Per-game UI testing** beyond what already exists. Manual smoke is the bar for now.

@@ -70,7 +70,7 @@ Each manifest declares two fields connecting these pieces:
 - **labelFor / Help copy** — coop "we won together" vs compete "you won the race" gets distinct copy per-manifest without `if (mode === 'coop')` inside the function bodies.
 - **Per-club opt-out** — `clubs_gametypes` is per (club, gametype); a club could disable compete without disabling coop.
 
-**Solo-club handling.** A compete manifest declares `numberOfPlayers: [2, max]`, so the Start button hides in 1-player solo clubs (`playerCountFits` filter on the ClubPage). The corresponding create_game RPC also enforces the floor server-side — `compete mode requires at least 2 players` is raised P0001 if anyone bypasses the FE gate. A coop manifest's `[1, max]` allows solo play, with the countdown timer (if set) doing the "lose if time runs out" job a compete opponent would otherwise do.
+**Solo-club handling.** A compete manifest declares `numberOfPlayers: [2, max]`, so the Start button hides in 1-player solo clubs (`playerCountFits` filter on the ClubPage). The corresponding create_game RPC also enforces the floor server-side — `compete mode requires at least 2 players` is raised P0001 if anyone bypasses the FE gate. A coop manifest's `[1, max]` allows solo play, with the countdown timer (if set) doing the "lose if time runs out" job a compete opponent would otherwise do. **The one exception is `scrabble_compete`, which declares `[1, 4]`:** a lone player can start it to race scrabble's autonomous AI opponent, which fills the empty seat (see [scrabble.md §12](games/scrabble.md)).
 
 **Removing a family.** Drop the folder, drop **all** the manifest's lines in `src/games.ts`, drop the schema. The removability invariant still holds — siblings are removed together.
 
@@ -130,7 +130,7 @@ The flip is the club's durable "current game" pointer: it drives the ClubPage's 
 
 ### Idle accounting (timer-state preservation)
 
-The game clock is **`common.timers (game_id, ticks, last_tick)`** — its own table (not a column on `common.games`, so the per-second tick UPDATE doesn't churn the games realtime stream). `ticks` is an **additive** count of whole seconds of *active play*. Every actively-playing client calls **`common.tick_timer`** once a second; its conditional (`now() - last_tick >= 1 second`) advances `ticks` by at most 1 per real second — which dedupes across players (concurrent same-second calls no-op) and makes a pause/idle gap cost **+1 on resume, not the gap**. The FE (`useGameTimer`) derives the display from `ticks`: countdown shows `max(0, duration - ticks)`, countup shows `ticks`. Pause and "nobody viewing" need no bookkeeping at all — they're just seconds where nobody calls tick_timer, so the clock stops. (This replaced a subtractive `idle_since`/`total_idle_seconds` accumulator that had to fold idle windows on every view transition.)
+The game clock is **`common.timers (game_id, ticks, last_tick)`** — its own table (not a column on `common.games`, so the per-second tick UPDATE doesn't churn the games realtime stream). `ticks` is an **additive** count of whole seconds of *active play*. Every actively-playing client calls **`common.tick_timer`** once a second; its conditional (`now() - last_tick >= 1 second`) advances `ticks` by at most 1 per real second — which dedupes across players (concurrent same-second calls no-op) and makes a pause/idle gap cost **+1 on resume, not the gap**. The FE (`useGameTimer`) derives the display from `ticks`: countdown shows `max(0, duration - ticks)`, countup shows `ticks`. Pause and "nobody viewing" need no bookkeeping at all — they're just seconds where nobody calls tick_timer, so the clock stops. (This replaced a subtractive `idle_since`/`total_idle_seconds` accumulator that had to fold idle windows on every view transition.) **Robust by construction:** because the count only moves while someone is actively ticking, a navigate-away / crash / tab-kill just stops it — there's no "remember to record the gap" write to miss. A pause costs ±~1s (the resume tick is `+1`, not the gap), and the display second-flips carry network latency as jitter — invisible for friendly word games; local interpolation between ticks is an easy add if perfectly-smooth display ever matters.
 
 The known leak: tab-kill / browser-crash / network-loss don't fire the FE cleanup, so `unset_current_view` doesn't run and that gap is counted as wall-clock time. See `docs/deferred.md` → "Timer-state preservation" for the mitigation options (sendBeacon on beforeunload, mount-time heuristic).
 
@@ -404,11 +404,15 @@ Routes the shell knows about:
 
 The `/g/<gametype>/<gameId>` shape is what makes multi-game routing work: App.tsx mounts `<GamePage>` directly with the manifest's lazy `PlayArea` as its render-prop child, keyed by `gameId` so navigation between games remounts cleanly (fresh state, no leaked subscriptions).
 
-`<GamePage>` is the route-level shell — it owns the cross-cutting chrome (header / timer / Pause / Back-to-club, `<PauseBoundary>`, `<FloatingChat>`, `<SuspendConfirmDialog>`) and calls `useCommonGame` for the cross-cutting state. The per-game `PlayArea` receives `{ session, gameId, members, playState, isTerminal, timer }` (the `GamePageCtx` type exported from `src/common/lib/games.ts`) as props through the render prop. `playState` mirrors `common.games.play_state` (gametype-specific string); `isTerminal` mirrors `common.games.is_terminal`. The per-game `useGame` is just the postgres-changes subscription for that gametype's own tables — `play_state` lives on `common.games` and arrives via ctx, not on the per-gametype row.
+`<GamePage>` is the route-level shell — it owns the cross-cutting chrome (header / timer / Pause / Back-to-club, `<PauseBoundary>`, `<FloatingChat>`, `<SuspendConfirmDialog>`) and calls `useCommonGame` for the cross-cutting state. The per-game `PlayArea` receives a `GamePageCtx` (the type exported from `src/common/lib/games.ts` — read it there for the authoritative, doc-commented shape) as props through the render prop. Today it carries `session`, `gameId`, `brand`, `title`, `players`, `playState`, `isTerminal`, `timer`, `setup`, `status`, and the imperative handles `globalFeedback`, `menu`, `goToClub`. `playState` mirrors `common.games.play_state` (gametype-specific string); `isTerminal` mirrors `common.games.is_terminal`. The per-game `useGame` is just the postgres-changes subscription for that gametype's own tables — `play_state` lives on `common.games` and arrives via ctx, not on the per-gametype row.
 
 **"Should this survive a pause?" is the rule that decides where state lives.** Because `PauseBoundary` unmounts its children on pause, anything inside the per-game `PlayArea` (component state, `useGame`-local state, form input) resets every time the game pauses. That's deliberate UX — clean slate on resume. State that *must* survive a pause goes either in the DB or in `useCommonGame` above the boundary (members, presence, the timer's pause-accumulator). State that's specifically transient (connections's shared-tile selections, an in-flight submit form) lives in PlayArea and clears naturally on unmount.
 
 Why hand-rolled instead of react-router: the app has five routes, flat structure, no need for loaders or nested layouts. react-router adds 30–50 KB and a learning curve for what we'd write in ~40 lines.
+
+### Code-splitting
+
+Every game ships as its own lazily-loaded chunk, and this falls out of the registry + lazy-manifest shape for free — no per-game wiring. A manifest's `PlayArea`, `setupForm.Component`, and `help` are all `React.lazy`, and each game's `theme.css` is imported from its `PlayArea.tsx`, so Vite emits each game's JS + CSS as separate chunks; the main bundle carries only the shell + `common/` + the manifest constants. First navigation to `/g/<gametype>/<id>` fetches that game's chunk — a player who only ever opens codenamesduet never downloads any other game's code.
 
 ### The game registry
 
@@ -474,7 +478,7 @@ Conventions live in [`code-conventions.md`](code-conventions.md); the short vers
 
 - **CSS Modules**, one `*.module.css` per component, co-located with the `.tsx`.
 - **Design tokens at `:root`** in [`src/common/theme.css`](../src/common/theme.css) — colors, spacing, font stack, radii. All other CSS references these via `var(--token-name)`.
-- **Per-game themes are optional.** Each game may have its own `theme.css` that overrides tokens for that gametype's palette. codenamesduet has one (greens, reds, neutrals). Psychic-num doesn't (deliberately styling-free).
+- **Per-game themes are optional**, though every game currently ships one for structural parity. Each game's `theme.css` overrides tokens for that gametype's palette — codenamesduet's has greens/reds/neutrals; psychicnum's is a near-empty placeholder that piggybacks entirely on the global tokens (the toy game has no palette of its own yet, but the file exists so every game folder has the same shape).
 - **Utility classes** in `common/theme.css` for the things every screen needs: `.card`, `.muted`, `.error`, `.actions`, `.link-button`. No CSS framework.
 
 `cls()` (in [`src/common/lib/util/cls.ts`](../src/common/lib/util/cls.ts)) is a tiny hand-rolled `clsx` equivalent for combining conditional class names. ~10 lines; no dependency.
@@ -496,7 +500,7 @@ On first sign-in, the user lands on `<ClaimHandleScreen>` and picks a username t
 
 ## The word list (`common.words`)
 
-The master playable-word list, shared by every word game (spellingbee today; Boggle, bananagrams board-validation, crosswords later). One row per playable word — a single categorized source each game filters to its own taste, instead of vendoring a per-game list. ~283k rows.
+The master playable-word list, read by every game that needs a dictionary: spellingbee, wordle, boggle, scrabble, stackdown, bananagrams (board-validation), and psychicnum (its word board). One row per playable word — a single categorized source each game filters to its own taste, instead of vendoring a per-game list. ~283k rows. (Puzzle-based games — connections, crosswords — bring their own answers and don't touch it.)
 
 **Why `common`, not per-game.** Most upcoming games are word games, and the removability invariant forbids one game owning data another reads. A shared list in `common` is the natural home — `spellingbee` reads it, nothing in `common` reads back.
 
@@ -546,11 +550,11 @@ See [`testing.md`](testing.md) for the full theory. Common-layer specifics:
 - **`supabase/tests/common/clubs_test.sql`** — exercises slugify, `create_club`'s reject paths, solo-club auto-creation, and the RLS hide-from-non-member check. Touches everything in this layer.
 - **`supabase/tests/common/chat_test.sql`** — exercises `send_message` and the messages RLS, standalone (no game). Validates that the chat plumbing works regardless of which game is being played.
 
-There are no FE tests covering routing as a whole (no E2E in this project), but the router's own contract is unit-tested in [`src/common/lib/routing/router.test.ts`](../src/common/lib/routing/router.test.ts) — `usePath` reacts to `navigate()` and to native back/forward; `navigate(to)` pushes; `navigate(to, true)` replaces.
+No dedicated E2E spec exercises routing as a whole (the `e2e/` Playwright suite covers per-game flows — see [testing.md → E2E](testing.md#e2e-smoke-tests-playwright)), but the router's own contract is unit-tested in [`src/common/lib/routing/router.test.ts`](../src/common/lib/routing/router.test.ts) — `usePath` reacts to `navigate()` and to native back/forward; `navigate(to)` pushes; `navigate(to, true)` replaces.
 
 ## Deferred / open
 
 See also [`deferred.md`](deferred.md) for the aggregated cross-feature register.
 
 - **Per-club stats.** Solo clubs are the planned anchor for per-user stats. Schema not built; no UI surface yet.
-- **Auto-propagating a new gametype to existing clubs.** Club enrollment in `common.clubs_gametypes` is seeded at creation (`common.default_gametypes_for_club`) and editable afterward via the "Edit club" dialog (`common.set_club_gametypes`). Still open: a gametype registered *after* a club exists doesn't auto-add to that club — a per-game backfill migration (bananagrams does this) or the editor covers it, and under the alpha prior neither is load-bearing. See `deferred.md`.
+- **Auto-propagating a new gametype to existing clubs.** Club enrollment in `common.clubs_gametypes` is seeded at creation (`common.default_gametypes_for_club`) and editable afterward via the "Edit club" dialog (`common.set_club_gametypes`). Still open: a gametype registered *after* a club exists doesn't auto-add to that club — a per-game backfill migration (bananagrams does this) or the editor covers it, and under the alpha prior neither is load-bearing.

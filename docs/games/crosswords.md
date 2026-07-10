@@ -69,7 +69,7 @@ definer `_solution_for`) exposes `solution` **only at terminal**.
 `crosswords.cells` — the live per-cell fills. **Only fillable, NON-given cells
 get a row** (blocks / numbering / decorations / givens are static in
 `games.meta`); one shared grid for coop (`owner_id` null), one grid **per
-player** for compete. Notable shapes (see the plan's pressure-test):
+player** for compete. Notable shapes:
 
 - **Surrogate `id uuid` PK** even though the logical key is
   `(game_id, owner_id, row, col)` — a realtime-published table with no valid
@@ -84,15 +84,13 @@ player** for compete. Notable shapes (see the plan's pressure-test):
   (this repo does not rely on Realtime to withhold rows; see `psychicnum.md`).
   Note the compete RLS *opens* opponents' rows at terminal, but the **FE never
   renders them** — `useCells` stays filtered to the caller's own owner and
-  PlayArea draws one grid (decision C5, `design-decisions.md`). The terminal
-  opening is deliberately-unused surface, not a delivered feature.
+  PlayArea draws one grid (**decision C5** — the canonical write-up is in §9).
 
 ## 3. Match semantics (mirror `ws.ts`, not prose)
 
 The fill-vs-solution comparison + the solve/check treatment of pencil, empty,
 and given cells are mirrored **from crossplay's `ws.ts`** (`fillMatchesSolution`,
-`isPuzzleSolved`, `applyCheck`) — the plan's prose was subtly off in two ways,
-pinned in pgTAP:
+`isPuzzleSolved`, `applyCheck`) — with two subtleties worth pinning in pgTAP:
 
 - **First-letter acceptance is keyed on the candidate's length (a rebus), not
   on the number of candidates.** `_matches` accepts a bare first letter for any
@@ -100,8 +98,7 @@ pinned in pgTAP:
   — a long-standing NYT typing shortcut. This mirrors `fillMatchesSolution`'s
   per-candidate `sol.length > 1` check. So a single-candidate rebus DOES accept
   its first letter; a Schrödinger cell whose candidates are all single letters
-  does not. (The plan's amendment #13 misread `sol.length` as the array length
-  and framed this as "Schrödinger-only" — corrected here and in the migration.)
+  does not.
 - **Solve does NOT skip pencil.** `_is_solved` counts a pencil cell whose letter
   is right (pencil is a confidence marker). Only *check* skips pencil. An empty
   cell blocks solve.
@@ -120,6 +117,7 @@ plain RPCs — no edge function needed.
 | `set_cell(target_game, row, col, fill, pencil)` | The hot path (one call per keystroke; FE echoes optimistically first). Guards: membership, `play_state`, not conceded, cell editable (given cells have no row; **revealed cells ARE editable** — mirror `applyFill`), fill = letters only, 1–8 chars (`^[A-Z]{1,8}$`, mirroring crossplay's ws.ts). Returns the bumped `version` + solved state. Solved → terminal per mode; compete first-correct-wins uses a locked `play_state` re-check so only the first solver sets the winner. |
 | `set_mark(target_game, row, col, side, mark)` | Set/clear a cryptic word-break / hyphen mark on the cell's `right` / `bottom` edge (`mark` = `break` / `hyphen` / null). Same guards as `set_cell`; display-only (no solve). Marks live in `cells.mark_right` / `mark_bottom` and sync via the same CDC path. **Fillable cells only** (a mark rides on the *left/upper* cell of a boundary, and givens have no cell row — so a break on a given's own right/bottom edge isn't representable; a rare cryptic-with-givens case, deliberately not supported). Ported from crossplay's edge marks. |
 | `reveal_solved_word(target_game, cells jsonb)` | **Leak-safe** answer read for the AI "Explain clue" feature: returns the canonical answer for `cells` **only if the caller has already filled them all correctly** (`_matches`, honoring givens) — else `solved = false`, no letters. So it can only surface a word you've already solved (safe in compete too). Also returns the puzzle note (not secret). Consumed by the `crosswords-explain-clue` edge function. |
+| `solution_for(target_game)` | **Member-gated full-solution read** (definer; `require_game_player`), available at **any** time — unlike `games_state`, which gates the solution to terminal. Feeds the "Download as .ipuz" export and the answer-key PDF (§7, §9), both of which need real answers before the game ends. Handing the solution to the client on demand relaxes the shielding, which the friends-only trust model tolerates (see [CLAUDE.md → trust model](../../CLAUDE.md)); a deliberate, member-gated exception, not the solving path. |
 | `check_cells(target_game, cells jsonb)` | FE resolves letter/word/puzzle scope via `cursor.ts` and sends coordinates; server sets/clears `wrong` (skipping empty/pencil). Both modes. |
 | `reveal_cells(target_game, cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil. **Coop only** (reveal-all would trivially win the compete race). On success the FE broadcasts the revealed coords on the peer channel so teammates flash them in the actor's color (the CDC arrives colorless). |
 | `clear_board(target_game)` | Destructive "start over" (crossplay parity): blanks every fillable cell on the caller's grid (the shared grid in coop, own in compete) and drops its `pencil` / `wrong` / `revealed` flags + cryptic edge marks. Givens live on the template, so they're preserved; the answer is untouched. Guards: membership, `play_state = playing`, not conceded. No solve check (clearing only removes fills). FE surfaces it as a **confirmed** game-menu item. |
@@ -269,8 +267,8 @@ never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
 
 `src/crosswords/pdf/` is a **verbatim port** of crossplay's own jsPDF printer
 (its 12-unit layout grid, clue pagination, cell renderer), NOT the shared
-`common/pdf` frame — it keeps crossplay's title block and adds no Setup section
-(plan decision 7). The **answer-key generator (`generateSolutionPdf`)** is also
+`common/pdf` frame — it keeps crossplay's title block and adds no Setup section.
+The **answer-key generator (`generateSolutionPdf`)** is also
 ported (`pdf/solution.ts`): a solved-grid PDF (every open cell filled with the
 canonical answer, the note flowed through the clue regions), driven by a "Print
 answer key (PDF)" menu item that fetches the grid via `solution_for` — coop any
@@ -329,14 +327,14 @@ This is the **canonical deferred register** for crosswords — distilled from th
 (now-retired) build plan + the 2026-07-05 / -07-06 review docs.
 
 ### Deferred features
-- **First-visit help auto-open** (review M3) — crossplay opened Help on first board
+- **First-visit help auto-open** — crossplay opened Help on first board
   load (dismissal remembered per browser); the rebus chords (⇧Enter / ⇧Space) are
   otherwise undiscoverable. Not ported — `?` / the menu open Help on demand. Could
   become a common-shell feature.
-- **`fetch-nyt-range` bulk CLI** (review M5) — a Node script to download a date range
+- **`fetch-nyt-range` bulk CLI** — a Node script to download a date range
   of NYT dailies into the library; blocked on the `NYT_COOKIE_JAR` secret (same as
   the live NYT fetch). Workaround: run crossplay's script, then `crosswords:import`.
-- **⌥M "open the menu" shortcut** (review M2) — the rest of crossplay's ⌥-set is
+- **⌥M "open the menu" shortcut** — the rest of crossplay's ⌥-set is
   ported (§7); ⌥M stays out because the shell exposes no programmatic menu-open to a
   PlayArea, and `?` / the logo already open it.
 - **NYT dedup** — inline NYT games aren't stored, so re-fetching a date makes a new
@@ -397,7 +395,7 @@ future cleanup pass:
 
 The crossplay apparatus is otherwise **fully ported**: cryptic edge marks
 (`|`/`_`, `set_mark`), the AI **"Explain cryptic clue"** (§10), the **rebus
-collapse** toggle (§9 menu), **Download as .ipuz** (M4), the **answer-key PDF**
+collapse** toggle (§9 menu), **Download as .ipuz**, the **answer-key PDF**
 (`generateSolutionPdf`, §7), the **NYT overlay-PNG analysis** (circles + bars,
 `nytOverlay.ts`, §5), the **saved-fill restore** on import (§6), and chat
 **URL linkify** (a common feature now). The **`make-sunday-fixture`** generator

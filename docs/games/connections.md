@@ -25,7 +25,7 @@ The two siblings share the same `name` — the coop/compete distinction is shown
 
 Both ship the same `PlayArea`, `SetupForm`, `Help`, `useGame`, `theme.css`, and `logo.svg`. The mode branches at render time (`game.mode === 'coop'` vs `'compete'`) — the FE-level analog of `connections.games.mode`, denormalized for RLS branching. The DB inserts **two rows in `common.gametypes`** but a **single set of connections tables**; one `connections.create_game(target_club, setup, players, mode)` RPC routes both manifests' Start clicks.
 
-The canonical write-up of this pattern lives in [`psychicnum.md → The sibling-manifest pattern`](psychicnum.md#the-sibling-manifest-pattern); the two implementations are intentional structural twins so a reader of either understands both.
+The canonical write-up of this pattern lives in [`common.md → The sibling-manifest pattern`](../common.md#the-sibling-manifest-pattern).
 
 ## What the game is
 
@@ -55,7 +55,7 @@ The schema and FE use a small, deliberate set of terms; the in-codebase glossary
 
 ## Scope (current state)
 
-Ported from an existing personal project ([`../connections`](https://github.com/joelburton/...)). Plays the real NYT Connections archive — every puzzle from 2023-06-12 onward, imported from [Eyefyre/NYT-Connections-Answers](https://github.com/Eyefyre/NYT-Connections-Answers) via the `npm run connections:import` script. The setup dialog has a date picker; create_game copies the chosen puzzle into a fresh `connections.games` row.
+Ported from an existing personal project (`~/src/connections`). Plays the real NYT Connections archive — every puzzle from 2023-06-12 onward, imported from [Eyefyre/NYT-Connections-Answers](https://github.com/Eyefyre/NYT-Connections-Answers) via the `npm run connections:import` script. The setup dialog has a date picker; create_game copies the chosen puzzle into a fresh `connections.games` row.
 
 In scope today:
 - Both **coop** and **compete** modes (sibling-manifest pair — see [The sibling-manifest pattern](#the-sibling-manifest-pattern))
@@ -72,7 +72,7 @@ In scope today:
 - Common chat (the floating, draggable, resizable `<FloatingChat>` panel)
 
 Deliberately deferred:
-- Scratchpad (the connections repo's collaborative-editor takeover-lock thing) — tracked under common/architecture, not connections-specific
+- Scratchpad (the connections repo's collaborative-editor takeover-lock thing) — the scratchpad now ships as a common opt-in feature (`GameManifest.scratchpad`, used by crosswords); connections simply hasn't opted in
 - Per-tile rise-and-fade animations on category match
 - Scheduled / automated puzzle import (today: manual `npm run connections:import`; eventually a GitHub Action or a Supabase scheduled Edge Function)
 - "Play next puzzle" affordances
@@ -179,7 +179,7 @@ The one entry point. **One RPC for both modes** — the `mode` parameter:
 - Triggers the player-count check (compete requires ≥2).
 - Drives the per-mode terminal-state vocabulary that `submit_guess` writes later.
 
-Verifies caller is a club member, validates `setup.puzzleId` (must be a uuid that exists in `connections.puzzles`) and `setup.timer` shape (see [Timer](#timer-server-authoritative-ticks)), loads the puzzle's categories, shuffles the 16 tiles into `board.tileOrder`, builds the title as `"#<source_id> <nyt_date> (<TILE1>/<TILE2>)"` where TILE1/TILE2 are the first 2 alphabetical tiles across all 16. Calls `common.create_game(target_club, 'connections_<mode>', player_user_ids, title, setup, setup)` which inserts the `common.games` header (`is_current_view=true`, `play_state='playing'`, with `setup` persisted on `common.games.setup`), then inserts the `connections.games` row with `mode`, `puzzle_id`, and the frozen `puzzle_date` (a copy of the puzzle's `nyt_date`), then inserts one `connections.players` row per player_user_ids entry with `mistake_count=0`. The board is a copy of the puzzle's categories + this game's shuffled tileOrder; on a correct guess `submit_guess` bumps the caller's `matched_count`. Everything the game needs is copied onto the row — the puzzle row stays pristine and is a soft, deletable provenance link (see [common.md → Library-puzzle games](../common.md#library-puzzle-games-provenance-not-dependency)).
+Verifies caller is a club member, validates `setup.puzzleId` (must be a uuid that exists in `connections.puzzles`) and `setup.timer` shape (see [Timer](#timer)), loads the puzzle's categories, shuffles the 16 tiles into `board.tileOrder`, builds the title as `"#<source_id> <nyt_date> (<TILE1>/<TILE2>)"` where TILE1/TILE2 are the first 2 alphabetical tiles across all 16. Calls `common.create_game(target_club, 'connections_<mode>', player_user_ids, title, setup, setup)` for the common header half (see [common.md → Game-RPC helpers](../common.md#game-rpc-helpers-called-by-per-game-rpcs)), then inserts the `connections.games` row with `mode`, `puzzle_id`, and the frozen `puzzle_date` (a copy of the puzzle's `nyt_date`), then inserts one `connections.players` row per player_user_ids entry with `mistake_count=0`. The board is a copy of the puzzle's categories + this game's shuffled tileOrder; on a correct guess `submit_guess` bumps the caller's `matched_count`. Everything the game needs is copied onto the row — the puzzle row stays pristine and is a soft, deletable provenance link (see [common.md → Library-puzzle games](../common.md#library-puzzle-games-provenance-not-dependency)).
 
 Reject reasons: not authenticated; not a member; `mode` not in `{coop, compete}`; compete with <2 players; >6 players; missing/malformed `setup.puzzleId`; `setup.puzzleId` doesn't reference a known puzzle (P0002 `'puzzle not found'`); bad `setup.timer` shape.
 
@@ -210,7 +210,7 @@ Fires when the countdown timer expires. Mode-aware terminal:
 - Coop: `play_state='lost'`, status `{outcome: 'lost_timeout', mistake_count, matched_count}`.
 - Compete: `play_state='lost_compete'`, status `{outcome: 'lost_compete_timeout'}`. Everyone `{won: false}` — the race ended without a winner; that's a collective loss.
 
-Idempotent — a second concurrent call on the already-terminal game raises `P0001 "game is not in progress"`, which the FE swallows. See [Timer](#timer-server-authoritative-ticks).
+Idempotent — a second concurrent call on the already-terminal game raises `P0001 "game is not in progress"`, which the FE swallows. See [Timer](#timer).
 
 ### `connections.end_game(target_game uuid) → void`
 
@@ -218,7 +218,7 @@ The **End button** in the info-column action row fires this — the manual, **ne
 
 **`connections.concede(target_game)`** is the compete counterpart: a per-player "I quit, the others keep going". connections is an **elimination** game (a player is out at 4 mistakes without the table ending), so concede can't use the generic `common.concede` — it calls `common._set_conceded` then re-runs `connections._maybe_finish_compete`, which counts a conceder as "not alive" alongside the eliminated (the game ends when nobody's alive; a conceder forfeits). The FE shows `<ConcedeGameButton>` in compete, marks a conceder "out" in the OpponentStrip, and folds them into the existing "eliminated, others race" locally-terminal look. Full mechanism: [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.
 
-Same shape as `submit_timeout` but with one extra wrinkle: a **Realtime touch** at the tail (`update connections.games set club_handle = club_handle where id = target_game`). `submit_guess`/`submit_timeout` each also write a `connections` table on their way to `common.end_game`, so the FE's `useGame` subscription (postgres_changes on `connections.{games,guesses,players}`) wakes naturally. `end_game` writes *only* `common.games` via `common.end_game`, so without the self-set WAL entry the FE would never refetch and the modal would never pop until a reload. Same trick `spellingbee.end_game`/`spellingbee.submit_timeout` use. Idempotent — a second call raises `P0001 "game is not in progress"`, which the FE swallows.
+Same shape as `submit_timeout`, plus the **Realtime touch** at the tail — a no-op self-write on `connections.games` (`set club_handle = club_handle`) so the FE's schema-scoped `useGame` subscription (postgres_changes on `connections.{games,guesses,players}`) wakes and the modal pops without a reload. (`submit_guess`/`submit_timeout` each touch a `connections` table on their way through, so they wake naturally; `end_game` writes only `common.games`, hence the explicit self-set.) This is the uniform trick at [common.md → Manual end, step 6](../common.md#manual-end--every-gametypes-end_gametarget_game). Idempotent — a second call raises `P0001 "game is not in progress"`, which the FE swallows.
 
 Terminal transitions in `submit_guess`, `submit_timeout`, and `end_game` write `common.games.play_state` + `is_terminal=true` + the `status` jsonb via `common.end_game`. They do **not** clear `is_current_view` — a terminal game stays in the club's current slot until the last viewer leaves (review-the-final-state is a legitimate use case for the current view).
 
@@ -284,18 +284,14 @@ For v1 this script is run manually. It graduates to a scheduled job (GitHub Acti
 
 ## Frontend
 
-> **v3 (2026-06-29).** The FE was converted to the v3 conventions (see
-> [`design-decisions.md`](../design-decisions.md)): local own-move feedback +
-> the terminal/eliminated message are the shared `<FeedbackPill>` (sticky,
-> dismissed on the next tile click — not the old `<ResultFlash>` bar); action
-> buttons are the semantic components (`HintButton` / `ClearButton` /
-> `SubmitButton` / `EndGameButton` / `ConcedeGameButton`); mistakes render as
-> `<StrikeMarks>` (red square-X filling left-to-right, "Mistakes (lose at 4)");
-> compete shows a **Found** opponent strip in the info column; a wrong/one-away
-> guess now clears the selection. The setup dialog also surfaces a
-> rich roster-mismatch error (`<RichMessage>`) when a puzzle already has a game
-> with a different roster. The structural subsections below predate the conversion
-> in places — trust `design-decisions.md` for the current UI rules.
+The FE follows the v3 conventions (see [ui.md](../ui.md)): local own-move feedback +
+the terminal/eliminated message are the shared `<FeedbackPill>` (sticky, dismissed on
+the next tile click); action buttons are the semantic components (`HintButton` /
+`ClearButton` / `SubmitButton` / `EndGameButton` / `ConcedeGameButton`); mistakes
+render as `<StrikeMarks>` (red square-X filling left-to-right, "Mistakes (lose at 4)");
+compete shows a **Found** opponent strip in the info column; a wrong/one-away guess
+clears the selection. The setup dialog surfaces a rich roster-mismatch error
+(`<RichMessage>`) when a puzzle already has a game with a different roster.
 
 ### Folder layout
 
@@ -450,53 +446,22 @@ connections is the first place in this codebase that uses Realtime Broadcast and
 
 ### Pause (presence-driven + manual)
 
-The game has a single `paused` flag with two trigger sources, both treated identically by the UX layer. The flag is the union of:
+Pause is common machinery — the presence/manual trigger sources, the overlay, `PauseBoundary`'s unmount-on-pause, and the manual-pause re-broadcast all live in the shared shell and are documented once in [states.md → paused](../states.md#paused). Two connections-specific notes:
 
-- **Presence-pause**: derived from `computePause(presentUserIds, members)`. True when some expected club member isn't on the channel.
-- **Manual-pause**: any player clicks the Pause button in the header → broadcasts a `manualPause` event with their `user_id` → all clients (including self) set `manuallyPausedById`. Any player can click Resume in the overlay → broadcasts `manualUnpause`. No privileged "original pauser" check; we're friends, not cutthroat competitors.
+**Clean-by-unmount.** connections's shared-tile selections live in component-local state inside `useGame` (the per-tab map of `tile → contributorId`). Because `PauseBoundary` unmounts the PlayArea on pause, that state disappears with it — no explicit `sendClear`-on-pause-transition wiring needed, and reconnecting peers see a clean grid. This is the canonical example of the "should this survive a pause?" rule: selections are *intrinsically* pause-transient, so they sit in PlayArea-local state and the unmount handles cleanup for free. `sendClear` (still on `useGame`) is now only used for the explicit Clear button and the post-submit clear after a **correct** guess resolves (a wrong / one-away guess keeps the selection for tweak-and-resubmit).
 
-When `paused` is true (from either source), the `PauseBoundary` (`common/components/game/PauseBoundary.tsx`) — mounted by `<GamePage>` around the PlayArea — **conditionally renders**: the PlayArea unmounts entirely and `PauseOverlay` (`common/components/game/PauseOverlay.tsx`) renders in its place. The overlay's copy adapts to the source:
+**One caveat in connections compete:** an eliminated player is still in `members`, so leaving their tab drops their Presence and pauses the game for survivors. Annoying but tolerable for v1 — see `deferred.md` / the next-session pickup memory for the planned fix.
 
-| source | overlay copy | Resume button? |
-|---|---|---|
-| presence-only | "Waiting for Bea to reconnect…" | no — resolves when Bea's Presence rejoins |
-| manual-only | "Bea paused the game" | yes — any player can click |
-| both | both messages stacked | yes — clearing manual leaves presence-pause still active |
+### Timer
 
-**Clean-by-unmount.** connections's shared-tile selections live in component-local state inside `useGame` (the per-tab map of `tile → contributorId`). Because `PauseBoundary` unmounts the PlayArea on pause, that state disappears with it — no explicit `sendClear`-on-pause-transition wiring needed. Reconnecting peers see a clean grid. This is the canonical example of the "should this survive a pause?" rule from [`common.md`](../common.md): selections are *intrinsically* pause-transient, so they sit in PlayArea-local state and the unmount handles cleanup for free. `sendClear` (still on `useGame`) is now only used for the explicit Clear button and the post-submit clear after a **correct** guess resolves (a wrong / one-away guess keeps the selection for tweak-and-resubmit).
+The additive server-authoritative tick model (`common.timers.ticks`, `tick_timer`, `useGameTimer`, the idempotent `submit_timeout`) is common machinery, documented once in [common.md → Idle accounting](../common.md#idle-accounting-timer-state-preservation). connections's specifics:
 
-**Manual-pause persistence across mid-game peer reconnects:** if Bea is in a manually-paused game, then Ada drops + reconnects, Ada's local state would otherwise not know about the manual pause. The hook handles this by **re-broadcasting active manual-pause on every Presence change** — any client that observes a manual pause rebroadcasts when a peer joins. Idempotent receivers + broadcast-is-cheap make "everyone re-broadcasts on every presence change" the simplest robust shape. Lives in `useCommonGame.ts` now (alongside the rest of the presence + manual-pause plumbing).
-
-**Paused vs suspended** — code-level terminology distinction worth knowing:
-
-- **Paused** (this overlay + the `PauseBoundary` wrapper + `computePause` helper): the transient gameplay-pause state — same UX as a video player's pause: clock stops, no moves accepted, overlay shows. Triggers: presence-disconnect or manual Pause button (both shipped). Resolves automatically when presence comes back, or when anyone clicks Resume.
-- **Suspended** (club-level concept in `common.md`): persistent, "this game's `common.games.is_current_view` is false but it isn't terminal either." Caused by another game being started in the club, or by the last viewer leaving via the suspend-confirm modal. Resolves when someone navigates back to the game (which fires `common.set_current_view` and re-flips it to current).
-
-The two never coexist on the same game — a suspended game isn't being looked at by anyone, so there's no Presence channel to track pauses for it.
-
-**Rollout status:** every registered gametype (both connections modes, both psychicnum modes, codenamesduet, spellingbee) inherits pause for free via `<GamePage>` + `useCommonGame` — the `computePause` helper + `PauseOverlay` + `PauseBoundary` machinery runs uniformly under every gametype that mounts the common shell. No per-gametype wiring is required. **One caveat in connections compete:** an eliminated player is still in `members`, so leaving their tab drops their Presence and pauses the game for survivors. Annoying but tolerable for v1 — see `deferred.md` / the next-session pickup memory for the planned fix.
-
-### Timer (server-authoritative ticks)
-
-The timer is a **per-game setup choice**, not a manifest-level constant. The setup dialog renders a None / Up / Down radio + an MM:SS input for the count-down case (1 second to 60 minutes); the choice lives on `common.games.setup.timer` and is server-side validated in `create_game`. The default is countdown 10:00. When a count-down hits 0, the FE fires `connections.submit_timeout` and the game's play_state flips to the mode-appropriate terminal value — `lost` in coop, `lost_compete` in compete.
-
-**An additive tick count, not wall-clock-minus-gaps.** The clock is one integer — `common.timers.ticks`, the number of whole seconds of *active play* (see [common.md → Idle accounting](../common.md#idle-accounting-timer-state-preservation)). Every actively-playing client calls `common.tick_timer` once a second; its conditional (`now() - last_tick >= 1 second`) advances `ticks` by at most 1 per real second. The FE derives the display: countdown shows `max(0, duration - ticks)`, countup shows `ticks`.
-
-**Why additive.** Pause and "nobody viewing" need *no tracking* — when the game is paused, or no one is on the page, nobody calls `tick_timer`, so the clock simply stops. A second with no tick is, by construction, a second that didn't count. This replaced a subtractive `now - startedAt - pause - idle` computation that needed a server idle accumulator (folded on every view transition) *and* a client pause accumulator — both gone.
-
-**Robust by construction.** Because the count only moves while someone is actively ticking, a navigate-away / browser crash / tab kill just stops it — there's no "remember to record the gap" write to miss. (This is what retired the old "leaving the page doesn't pause the timer" bug + the idle-accumulator leak.) The server's `now()` is the authority, so a client's clock skew or a throttled background-tab `setInterval` can only *trigger* an attempt, not move the count.
-
-**Accuracy + smoothness.** A pause costs ±~1s (the resume tick is `+1`, not the gap). The display updates once per `tick_timer` round-trip, so the second-flip carries the network latency as jitter — invisible for friendly word games. If perfectly-smooth display ever matters, local interpolation between ticks is an easy add; we deliberately kept it simple.
-
-**The `useGameTimer` hook** (`src/common/hooks/game/useGameTimer.ts`) implements this: a one-time read of `ticks` to seed the display, then a 1Hz driver that calls `tick_timer` while the game is live, not paused, and timed (stopping the driver *is* the pause/idle mechanism). `ticks` only moves forward locally (`Math.max`), so an out-of-order response can't rewind the display.
-
-**Timeout-loss firing.** When `useGameTimer` (inside `useCommonGame`) reports `expired: true`, GamePage dispatches the connections manifest's `submitTimeout`, which calls `connections.submit_timeout(target_game)`. The RPC is idempotent: it raises `P0001 "game is not in progress"` if the game has already ended, which can happen if two clients race the expiry. The FE swallows that specific error silently — realtime propagates the loss state to all clients within ~200ms.
-
-**Where the mode comes from.** Per-game (like connections) lives in `common.games.setup.timer`; `useCommonGame` reads it and drives `useGameTimer`, surfacing the result via GamePage. Per-gametype (a hypothetical Boggle with a fixed-3-minute round) would set `timerMode` on the manifest and skip a per-game choice. Both shapes are supported. Each game writes its own timeout-loss RPC (since the loss semantics differ — boggle would end the round, codenamesduet might enter sudden-death, etc.) and exposes it through its manifest's `submitTimeout`, which GamePage fires on countdown expiry.
+- The timer is a **per-game setup choice** (the shared `<TimerField>`: None / Up / Down radio + MM:SS for countdown, 1s–60min), stored on `common.games.setup.timer` and validated in `create_game`. **Default: countdown 10:00.**
+- On countdown expiry the FE fires `connections.submit_timeout`, flipping play_state to the mode-appropriate terminal value — `lost` in coop, `lost_compete` in compete.
 
 ### Code-splitting
 
-Same pattern as codenamesduet and psychicnum — the manifest's `PlayArea` is lazy-loaded (`React.lazy(() => import('./components/PlayArea'))`). The Vite build emits connections's JS + CSS as separate chunks; users who only play codenamesduet never download it. The lazy boundary for the SetupForm is separate (also lazy via the manifest's `setupForm.Component` field) so the form lands in connections's chunk too.
+Standard — connections's `PlayArea` + `setupForm.Component` ship as their own lazily-loaded chunks. See [common.md → Code-splitting](../common.md#code-splitting).
 
 ## Tests
 

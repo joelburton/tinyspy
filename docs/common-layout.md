@@ -115,8 +115,10 @@ hooks/
 
 ```
 lib/
-  games.ts       # the game REGISTRY (manifests + GameManifest type) — kept at the
-                 #   root because it's the central, heavily-imported entry point
+  games.ts       # the GameManifest type + registry helpers (MODE_LABEL,
+                 #   playerCountFits, GamePageCtx) — NOT the manifest list itself,
+                 #   which lives in src/games.ts (the one file allowed to import
+                 #   games). Kept at the lib root as a heavily-imported entry point
   supabase/      # the supabase client + realtime channel-name helper
       supabase, channelDedup
   routing/       # the hash router + <Link>

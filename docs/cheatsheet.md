@@ -10,6 +10,7 @@
 | `npm test` | run **all** tests — FE first, then DB |
 | `npm run test:fe` | Vitest only; add `-- --watch` for the dev loop |
 | `npm run test:db` | pgTAP only (needs Docker + the local Supabase stack) |
+| `npm run test:e2e` | Playwright realtime smoke tests (needs the local stack running) |
 | `npm run db:reset` | wipe the local DB and replay every migration + seed |
 | `npm run db:diff` | show what the local schema has that migrations don't |
 | `npm run db:lint` | Supabase's schema linter — warnings + errors |
@@ -19,8 +20,11 @@
 | `npm run import` | run every game's importer in sequence (words + spellingbee + connections + stackdown + crosswords). **Run after `db:reset`** — a bare reset leaves `common.words` + the puzzle libraries empty |
 | `npm run words:import` | populate `common.words` (the shared master word list) from `~/src/gamelist/words.tsv` (the word-list project's working copy, read live; override with `WORDS_TSV`). Loads via psql `COPY` (reseed: TRUNCATE + insert) — needs `psql` on PATH; targets `SUPABASE_DB_URL` (default local) |
 | `npm run spellingbee:import` | rebuild `spellingbee.pangrams` (the board-seed pool) from the scoring slice of `common.words`. **Run after `words:import`.** psql `COPY` reseed; needs `psql` |
+| `npm run stackdown:import` | populate the pre-generated `stackdown.boards` library (part of the `import` chain; `stackdown:gen` regenerates the board file it loads) |
+| `npm run boggle:wordlist` | bundle boggle's solver dictionary into the git-ignored `boggle-build-board/wordlist.ts`. Needed before the edge function can serve locally; `deploy` runs it automatically |
 | `npm run scrabble:wordlist` | bundle the scrabble move-suggester dictionary (`play_word`'s exact word universe) into the git-ignored `scrabble-suggest-move/wordlist.ts`. Needed before the edge function can serve locally; `deploy` runs it automatically |
-| `npm run deploy` | full prod push: `supabase db push` → `supabase functions deploy` (all functions) → `vite build` → `netlify deploy -p -d dist` |
+| `npm run scrabble:selfplay` | run the AI-vs-AI self-play tuning harness (calibrates the compete opponent's strength levels — see scrabble.md §12) |
+| `npm run deploy` | full prod push: `boggle:wordlist` + `scrabble:wordlist` (regenerate the git-ignored edge-function word bundles) → `supabase db push` → `supabase functions deploy` (all functions) → `vite build` → `netlify deploy -p -d dist` |
 | `deno test supabase/functions/waffle-build-board/gen_test.ts` | unit-test waffle's `minSwaps` par (the generation logic lives in the edge function, not under Vitest) |
 
 ## `supabase …`
@@ -106,14 +110,11 @@ rollback;
 
 ### Assertions
 
-| function | meaning |
-|---|---|
-| `select plan(N)` | Declare you'll run N assertions. pgTAP errors if the actual count differs — catches dropped/extra asserts. |
-| `select is(actual, expected, description)` | `actual = expected`, NULL-safe. The everyday assertion. |
-| `select ok(boolean, description)` | The expression is true. Use when there's no obvious "expected value." |
-| `select throws_ok($$ <sql> $$, sqlstate,` `message_substring, description)` | The wrapped SQL raises an exception matching SQLSTATE and (substring of) message. Pass `null` for the message to match any. |
-| `select lives_ok($$ <sql> $$, description)` | The wrapped SQL doesn't raise. The "no error" partner of `throws_ok`. |
-| `select * from finish()` | Closing TAP footer. Always immediately before `rollback`. |
+The assertion vocabulary (`plan` / `is` / `ok` / `throws_ok` — incl. the EXACT
+message-match gotcha — / `lives_ok` / `finish`) lives in one place:
+[`testing.md → pgTAP assertion functions`](testing.md#pgtap-assertion-functions). Don't re-copy the
+semantics here (it's where a `throws_ok` substring-vs-exact contradiction once
+crept in from duplication).
 
 ### Acting as a user
 

@@ -10,7 +10,7 @@ For code-style and convention details (table naming, RPC patterns, CSS, imports,
 
 Game-name prefixes (`BoggleScoreReport`, `codenamesduet_words`) are the smell. The folder or schema already carries that information; repeating it in the name is noise.
 
-The practical effect: when you swap from working on codenamesduet to working on a hypothetical boggle, the names you reach for don't change. The `Board` is still `Board`, the `useGame` is still `useGame` — just in a different folder.
+The practical effect: when you swap from working on codenamesduet to working on boggle, the names you reach for don't change. The `Board` is still `Board`, the `useGame` is still `useGame` — just in a different folder.
 
 ## Terminology lexicon
 
@@ -20,7 +20,7 @@ The load-bearing words and what they each mean. Internalize these; mixing them u
 
 The *registered entry* representing a game (or game variant) in the registry. One row in `common.gametypes`, one TS manifest in `src/games.ts`, one URL prefix. Treated as one word (like `username`), not `game_type` or `gameKind`. In code: `gametype text` columns, `gametype: string` TS fields.
 
-Examples: `codenamesduet`, `psychicnum_coop`, `psychicnum_compete`, `connections_coop`, `connections_compete`, `spellingbee_coop`, `spellingbee_compete`, `bananagrams`, `waffle_coop`, `waffle_compete`, `wordle_coop`, `wordle_compete`, `stackdown_coop`, `stackdown_compete`, `scrabble_coop`, `scrabble_compete`.
+Examples: `codenamesduet`, `psychicnum_coop`, `psychicnum_compete`, `connections_coop`, `connections_compete`, `spellingbee_coop`, `spellingbee_compete`, `bananagrams`, `waffle_coop`, `waffle_compete`, `wordle_coop`, `wordle_compete`, `stackdown_coop`, `stackdown_compete`, `scrabble_coop`, `scrabble_compete`, `boggle_coop`, `boggle_compete`, `crosswords_coop`, `crosswords_compete`.
 
 The gametype string is the second segment of `/g/<gametype>/<gameId>` URLs and the key the FE uses to dispatch manifest behavior (rendering, RPC routing). It is NOT always identical to the folder/schema name — sibling gametypes share a single folder and a single schema. See [`baseGametype`](#basegametype) below.
 
@@ -41,7 +41,7 @@ See [`common.md` → The sibling-manifest pattern](common.md#the-sibling-manifes
 
 Every game has two names:
 
-- The **codename** — the lowercase word used *everywhere in code*: the Postgres schema, the `src/<codename>/` folder, the `<codename>_coop` / `<codename>_compete` gametype strings, table/column/variable/component names, and the test files. Codenames are the **recognizable** name of the game they descend from, so the source stays legible to a newcomer: `connections`, `spellingbee`, `bananagrams`, `codenamesduet`, `wordle`, `scrabble`, `waffle`, `stackdown`, `psychicnum`, `boggle`.
+- The **codename** — the lowercase word used *everywhere in code*: the Postgres schema, the `src/<codename>/` folder, the `<codename>_coop` / `<codename>_compete` gametype strings, table/column/variable/component names, and the test files. Codenames are the **recognizable** name of the game they descend from, so the source stays legible to a newcomer: `connections`, `spellingbee`, `bananagrams`, `codenamesduet`, `wordle`, `scrabble`, `waffle`, `stackdown`, `psychicnum`, `boggle`, `crosswords`.
 - The **brand** — the custom, user-facing display name, the only thing players ever see. It lives in **exactly one place**: a `const BRAND` at the top of each game's `manifest.ts`, which `name` and any user-facing string (e.g. the start-game error) read. A fork rebrands a game by editing that one line.
 
 | codename | brand | | codename | brand |
@@ -51,6 +51,7 @@ Every game has two names:
 | `spellingbee` | FreeBee | | `scrabble` | RackAttack |
 | `bananagrams` | MonkeyGrams | | `stackdown` | StackDown |
 | `psychicnum` | PsychicNum | | `boggle` | MothCubes |
+| `crosswords` | CrossPlay | | | |
 
 The brand and codename coincide as a word only for `stackdown`/StackDown and `psychicnum`/PsychicNum (and even there the codename is lowercase, the brand is the display-cased token).
 
@@ -84,14 +85,14 @@ The split lets the source stay pristine across multiple plays (a club can replay
 
 Two kinds of gametype shake out from this:
 
-- **Generated-board games** (spellingbee, codenamesduet, psychicnum, future boggle): each game gets a fresh board synthesized by `create_game` from random draws of a word pool / random number. No puzzles, no `<game>.puzzles` table. The setup form has no puzzle picker.
-- **Puzzle-based games** (connections, future crosswords): puzzles exist as prewritten rows in `<game>.puzzles`, imported from external archives. `create_game` accepts a `puzzleId` and copies the chosen puzzle's content into the new board. The setup form has a picker.
+- **Generated-board games** (spellingbee, codenamesduet, psychicnum, boggle): each game gets a fresh board synthesized by `create_game` from random draws of a word pool / random number. No puzzles, no `<game>.puzzles` table. The setup form has no puzzle picker.
+- **Puzzle-based games** (connections, crosswords): puzzles exist as prewritten rows in `<game>.puzzles`, imported from external archives. `create_game` accepts a `puzzleId` and copies the chosen puzzle's content into the new board. The setup form has a picker. (crosswords also supports an inline NYT-by-date source alongside its curated library.)
 
 Per-gametype `puzzles` tables stay narrow (different shapes for Connections vs. crosswords) rather than collapsing into a common `puzzle` table with a generic `content jsonb`. Cross-cutting "which puzzles a club has played" lives on the per-game `<game>.games.puzzle_id` FK.
 
 ### club
 
-A fixed-membership room formed by one creator. The cross-game social primitive: a club might play codenamesduet on Monday and a hypothetical boggle on Friday, and the same friendship/conversation persists across both.
+A fixed-membership room formed by one creator. The cross-game social primitive: a club might play codenamesduet on Monday and boggle on Friday, and the same friendship/conversation persists across both.
 
 Clubs live in `common.clubs`. They span gametypes; gametypes reference clubs (`<schema>.games.club_handle → common.clubs.id`), never the reverse.
 
@@ -247,7 +248,7 @@ Names that recur across gametypes and MUST be identical when the underlying conc
 
 | name | what it is |
 |---|---|
-| `gametype` | The registered-entry string (`codenamesduet` / `psychicnum_coop` / `psychicnum_compete` / `connections_coop` / `connections_compete` / `spellingbee_coop` / `spellingbee_compete` / `bananagrams` / `waffle_coop` / `waffle_compete` / `wordle_coop` / `wordle_compete` / `stackdown_coop` / `stackdown_compete` / `scrabble_coop` / `scrabble_compete`). Column on `common.games` + `common.gametypes`; second URL segment. NOT always identical to folder / schema name — see `baseGametype` below. |
+| `gametype` | The registered-entry string (`codenamesduet` / `psychicnum_coop` / `psychicnum_compete` / `connections_coop` / `connections_compete` / `spellingbee_coop` / `spellingbee_compete` / `bananagrams` / `waffle_coop` / `waffle_compete` / `wordle_coop` / `wordle_compete` / `stackdown_coop` / `stackdown_compete` / `scrabble_coop` / `scrabble_compete` / `boggle_coop` / `boggle_compete` / `crosswords_coop` / `crosswords_compete`). Column on `common.games` + `common.gametypes`; second URL segment. NOT always identical to folder / schema name — see `baseGametype` below. |
 | `baseGametype` | The shared family root for sibling gametypes. Folder under `src/`; Postgres schema name. For single-mode games, equals `gametype`. For coop/compete pairs, both manifests share the baseGametype (`psychicnum_coop` and `psychicnum_compete` both → `psychicnum`). See [naming → baseGametype](#basegametype). |
 | `mode` | The interaction-axis declaration on a manifest (`'coop'` \| `'compete'`). Also denormalized as a column on per-game `games` tables (e.g. `psychicnum.games.mode`) so RLS can branch without joining to `common.games`. |
 | `play_state` | The `text` column on `common.games` carrying each gametype's mid-game/terminal enum. The column NAME is always `play_state`; values differ per gametype. Common coop terminal values: `'won'` / `'lost'`. Common compete terminal values: `'won_compete'` / `'lost_compete'`. **No gametype uses `'active'` as a value** — "active" overloads view-state and play-state, so reusing it would relitigate the confusion the vocabulary exists to prevent. Companion column `is_terminal boolean` is materialized in the same RPCs that write `play_state`. See [`states.md`](states.md). |
@@ -283,15 +284,4 @@ These show up as smells when they leak into wide-visibility names (columns, top-
 
 ## What's in the rest of `docs/`
 
-| file | what's there |
-|---|---|
-| [`common.md`](common.md) | The architectural layer: clubs, profiles, registry, routing, removability invariant, the FE shell |
-| [`states.md`](states.md) | The view-state / play-state vocabulary and how the suspend / current / pause concepts compose |
-| [`codenamesduet.md`](games/codenamesduet.md) | Codenames Duet rules + codenamesduet schema, RPCs, FE, Edge Function, tests |
-| [`psychicnum.md`](games/psychicnum.md) | psychicnum rules + schema, the hidden-secrets pattern, FE, tests |
-| [`connections.md`](games/connections.md) | connections (Connections-style) rules + schema, the FE-knows decision, the pause + timer patterns |
-| [`spellingbee.md`](games/spellingbee.md) | spellingbee (Spelling-Bee-style) rules + schema, hidden-wordlist reveal, edge-function board builder, rank ladder |
-| [`testing.md`](testing.md) | Test theory, persona conventions, pgTAP + Vitest patterns |
-| [`code-conventions.md`](code-conventions.md) | How we write code: DB conventions, FE conventions, naming rules, known gotchas |
-| [`deferred.md`](deferred.md) | Things explicitly deferred from code reviews and conversations |
-| [`cheatsheet.md`](cheatsheet.md) | One-screen command + file lookup |
+See [CLAUDE.md](../CLAUDE.md)'s documentation table for the full, current index of every doc.
