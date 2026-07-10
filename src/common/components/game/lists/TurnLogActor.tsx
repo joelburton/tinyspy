@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react'
-import { ActorTag } from './ActorTag'
+import { ActorTag } from './ActorMention'
 import styles from './TurnLog.module.css'
 
 /**

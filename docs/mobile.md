@@ -243,6 +243,26 @@ Below the breakpoint the strip **drops to dots only** — the dot already carrie
 the whole signal (color = which player, filled/hollow = present/away), so the
 name is the droppable half. Desktop still shows names.
 
+### Actor mentions in feedback — drop the name to a dot on phones
+
+The same "the dot IS the identity, the name is droppable" idea, extended to
+**feedback**. A shared pair of widgets in
+[`ActorMention.tsx`](../src/common/components/game/lists/ActorMention.tsx) —
+`ActorTag` (name-then-dot, "moth ●") and `ActorDot` (dot-then-name, "● moth") —
+render the name in a real `.name` span rather than baking it into the message
+string. A `show` prop (`auto` / `both` / `name` / `dot` / `none`) controls it;
+`auto` (the feedback default) hides the name under `@media (--phone)` via one
+rule, so a long username can't overflow a tight header or below-board pill —
+"● moth is writing a clue" becomes "● is writing a clue". Turn logs keep their
+names (`TurnLogActor` → `show="both"`).
+
+This required the feedback message's `text` to hold the **widget** instead of a
+string — fine because `GenericFeedbackMsg.text` is already `ReactNode`; the pill
+dedups on a separate string key. **Migrated so far: codenamesduet** (its local
+"Waiting for ● to guess" + the header turn-pill). The other games' feedback
+builders still bake `${name}` into text — a mechanical rollout still to do (this
+was the rule-of-three "do one game first" step).
+
 ### The `.card` shell pages — home / login / claim-username
 
 The three shell screens ([`HomePage`](../src/common/components/home/HomePage.tsx),
@@ -380,6 +400,32 @@ variation rather than psychicnum's assumptions:
   viewport (no page scroll; whole keyboard on-screen; sheet opens/closes).
   wordle needs **no keyboard/input machinery** — its on-screen keyboard is taps,
   and it has no `<input>`, so none of the panel-keyboard/focus-zoom work applies.
+- **codenamesduet** — the guesser taps tiles (no keyboard), but the **clue-giver
+  types a clue in a below-board `<input>`**, which raises the OS keyboard, and the
+  clue-giver needs the board's key-card colors visible *while* composing (the
+  doc's earlier "they've already read the board" assumption was wrong). **Divergence
+  — resolved by NOT fighting the keyboard:** the board stays full-size and, when
+  the keyboard pushes the below-board clue field down, the page scrolls — the
+  giver scrolls up to read the board, down to the field. (An earlier attempt
+  *shrank* the board to the visual viewport to fit above the keyboard; it crunched
+  the board too small and scrolled badly — a full board you scroll reads better.)
+  So there's **no special layout code** — just the standard board-fills recipe.
+  Two mobile tweaks: the clue inputs are already ≥16px (no focus-zoom), and the
+  below-board action buttons (Submit / AI / Pass) go **icon-only on a phone**
+  (`iconOnly={usePhone()}` — the shared buttons already support it) so the tight
+  clue row fits. Guarded by
+  [`codenamesduet-mobile.e2e.ts`](../e2e/codenamesduet-mobile.e2e.ts) (board
+  fills, no scroll at rest, collapsed sheet, buttons icon-only). The
+  scroll-when-keyboard feel is an on-device check.
+
+**Three conversions done (psychicnum, wordle, codenamesduet) → the recipe is now
+ready to extract** (rule of three). The stable common core to pull out: the
+`useIsMobile`-gated "Game info" menu item + `infoOpen` state, and the
+`.infoWrap`/`.infoClose` off-canvas-sheet CSS (byte-identical across all three).
+What stays PER-GAME is the board sizing — psychicnum flex-fills, wordle caps by
+leftover height for its keyboard, codenamesduet clamps to the visual viewport
+during clue-writing — so the extraction is the *sheet + menu-item* plumbing only,
+not the board layout.
 
 ## TODO — not doing now, recorded so we don't lose them
 

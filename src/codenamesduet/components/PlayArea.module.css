@@ -11,3 +11,76 @@
 .layout {
   --info-col-width: 22rem;
 }
+
+/* ─── Mobile (docs/mobile.md → the psychicnum recipe) ────────────────────────
+ * Desktop-first: everything above is the default; this block is the phone /
+ * portrait-tablet exception. The board fills the screen and the info column moves
+ * into an off-canvas sheet reachable from the "Game info" menu item. Scoped to
+ * codenamesduet; the shared scaffold is untouched.
+ *
+ * `.infoWrap` is `display: contents` here so on desktop it generates no box —
+ * InfoCol stays the direct flex child of `.layout` and the layout is
+ * byte-identical. The close button is hidden until mobile.
+ *
+ * The clue-giver's keyboard is handled by NOT fighting it: the board stays
+ * full-size and (only when the OS keyboard pushes the below-board clue input
+ * down) the page scrolls, so the giver scrolls up to read the board and down to
+ * the clue field. Nothing special here — just the standard board-fills layout. */
+.infoWrap {
+  display: contents;
+}
+
+.infoClose {
+  display: none;
+}
+
+@media (--mobile) {
+  /* Hand the board the full content width: with the info column off-canvas
+   * (position: fixed, out of the flex row), nothing sits beside it. */
+  .layout {
+    --avail-w: calc(var(--client-width, 100vw) - 2 * var(--page-padding-x));
+    /* --game-chrome-height rounds ~1px short at phone width; trim a pixel to keep
+     * the hard no-scroll invariant (docs/ui.md → page fits the viewport). During
+     * clue-writing an inline height from PlayArea.tsx overrides this (visual
+     * viewport). */
+    height: calc(100svh - var(--game-chrome-height) - 1px);
+  }
+
+  /* The info column as an off-canvas sheet from the right (closed = slid off;
+   * `.infoOpen` slides it in). position: fixed takes it out of the flex row so
+   * the board fills the width; scrolls internally so the page never scrolls. */
+  .infoWrap {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(24rem, 100%);
+    z-index: 40;
+    background: var(--color-surface);
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
+    padding: 2.5rem 1rem 1rem;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 160ms ease;
+  }
+
+  .infoOpen {
+    transform: translateX(0);
+  }
+
+  .infoClose {
+    display: block;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 1;
+    background: transparent;
+    border: none;
+    color: var(--color-text);
+    font-size: 1.5rem;
+    line-height: 1;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+  }
+}

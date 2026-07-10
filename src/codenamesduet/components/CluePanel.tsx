@@ -1,11 +1,12 @@
 import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent } from 'react'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { cls } from '../../common/lib/util/cls'
-import { ActorTag } from '../../common/components/game/lists/ActorTag'
+import { ActorTag } from '../../common/components/game/lists/ActorMention'
 import { FloatingPanel } from '../../common/components/panels/FloatingPanel'
 import { SubmitButton } from '../../common/components/buttons/SubmitButton'
 import { AIButton } from '../../common/components/buttons/AIButton'
 import { EndTurnButton } from '../../common/components/buttons/EndTurnButton'
+import { usePhone } from '../../common/hooks/ui/usePhone'
 import { db } from '../db'
 import type { Player } from '../hooks/useGame'
 import styles from './CluePanel.module.css'
@@ -125,7 +126,9 @@ function PeerWaiting({
 }) {
   return (
     <span className={cls('muted', styles.waiting)}>
-      Waiting for <ActorTag actor={peer} fallback="your partner" /> to {action}…
+      {/* show="auto": on a phone the name drops to just the dot ("Waiting for ● to
+          guess…") so a long username can't overflow this tight below-board row. */}
+      Waiting for <ActorTag actor={peer} fallback="your partner" show="auto" /> to {action}…
     </span>
   )
 }
@@ -173,6 +176,9 @@ function ClueForm({
   // STATE itself lives in PlayArea (via onSuggestionChange) so the panel renders
   // high in the tree where react-rnd positions it on-screen.
   const [suggesting, setSuggesting] = useState(false)
+  // On a phone the below-board row is tight, so the Submit + AI buttons go
+  // icon-only (label → aria-label/title). Desktop/tablet keep the labels.
+  const isPhone = usePhone()
 
   // Keep Tab INSIDE the clue form: it toggles between the count and word inputs and
   // goes nowhere else — not the turn-log #N handles, page links, or the browser
@@ -286,6 +292,7 @@ function ClueForm({
         <SubmitButton
           type="submit"
           label={busy ? 'Submitting…' : 'Submit'}
+          iconOnly={isPhone}
           disabled={eitherBusy || !submittable}
           className={styles.submitBtn}
         />
@@ -294,6 +301,7 @@ function ClueForm({
             "hint". Shows "Thinking…" while the edge function runs. */}
         <AIButton
           label={suggesting ? 'Thinking…' : 'AI'}
+          iconOnly={isPhone}
           onClick={onSuggest}
           disabled={eitherBusy}
           className={styles.aiBtn}
@@ -363,9 +371,12 @@ function PassButton({
   onError: (message: string) => void
 }) {
   const [busy, setBusy] = useState(false)
+  // Icon-only on a phone (the below-board row is tight); label → aria-label/title.
+  const isPhone = usePhone()
   return (
     <EndTurnButton
       label="Pass & End Turn"
+      iconOnly={isPhone}
       disabled={busy}
       onClick={async () => {
         setBusy(true)

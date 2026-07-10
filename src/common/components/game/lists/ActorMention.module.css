@@ -1,0 +1,35 @@
+/* Actor mention — a player's name + identity disc, in either order. Backs the two
+ * widgets in ActorMention.tsx (ActorTag = name-then-dot, ActorDot = dot-then-name).
+ * The disc carries the identity; the name stays plain text so the two never fight
+ * for the color (docs/ui.md → "Player identity = a colored disc"). */
+.mention {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* The name — plain text (weight 500). */
+.name {
+  font-weight: 500;
+}
+
+/* `show="auto"` (the feedback default): the name is DROPPED on a phone, leaving
+ * just the identity dot — the dot already says which player, and the name is the
+ * droppable half (docs/mobile.md → dots-only on mobile). Feedback pills are tight
+ * on a narrow header/below-board row, so this keeps them fitting a long username.
+ * Turn logs pass `show="both"` and keep their names. */
+@media (--phone) {
+  .namePhoneHidden {
+    display: none;
+  }
+}
+
+/* Gap between name and dot — the margin sits on the dot, on whichever side the
+ * name is. (When the name is hidden on a phone, this is the dot's gap from the
+ * surrounding sentence text, which reads fine.) */
+.dotAfter {
+  margin-left: 0.4rem;
+}
+.dotBefore {
+  margin-right: 0.4rem;
+}

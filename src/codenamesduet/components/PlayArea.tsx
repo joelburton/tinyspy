@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { GenericFeedbackApi, GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx } from '../../common/lib/games'
+import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
@@ -7,6 +8,7 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
+import { useIsMobile } from '../../common/hooks/ui/useIsMobile'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import type { ClueRow } from '../hooks/useClues'
@@ -136,17 +138,19 @@ function useTurnPill(args: {
 }) {
   const { game, players, clues, playState, gameOver, sessionUserId, feedback } = args
 
-  let text: string | null = null
+  // `key` is a stable STRING used only to dedup (fire the pill on real changes);
+  // `node` is what's actually shown. Splitting them lets the peer's identity be an
+  // <ActorDot> WIDGET in the text (dot-then-name) rather than a baked-in name — so
+  // on a phone it collapses to just the dot, and a long username can't blow out
+  // the header pill. (Previously the name was interpolated into the string and the
+  // disc came from the pill's separate `dot` prop.)
+  let key: string | null = null
+  let node: ReactNode = null
   let tone: GenericFeedbackTone = 'neutral'
-  // The leading identity disc for peer-status messages ("(disc) Moth is …"),
-  // via the GenericFeedbackPill's `dot` (the peer's color NAME) + outline
-  // variant — same identity treatment psychicnum/connections use for their
-  // peer pills. Undefined for sudden death (a warning, not a peer message).
-  let dot: string | null | undefined
+  let outline = false // peer-status pills are transient/outline; sudden death is a filled warning
   if (game && !gameOver) {
     const me = players.find((p) => p.user_id === sessionUserId)
     const peer = players.find((p) => p.user_id !== sessionUserId)
-    const peerName = peer?.username ?? 'your partner'
     const { isGuessPhase, isClueGiver, inSuddenDeath } = derivePhase({
       status: playState as GameStatus,
       currentClueGiver: game.current_clue_giver as Seat | null,
@@ -154,45 +158,49 @@ function useTurnPill(args: {
       hasCurrentTurnClue: clues.some((c) => c.turn_number === game.turn_number),
     })
     if (inSuddenDeath) {
-      text = 'Sudden death — any non-green reveal loses'
+      key = 'sudden-death'
+      node = 'Sudden death — any non-green reveal loses'
       tone = 'error'
     } else {
-      dot = peer?.color ?? null
-      if (!isGuessPhase) {
-        // Clue phase — what the peer is doing about the clue.
-        text = isClueGiver
-          ? `${peerName} is waiting for your clue`
-          : `${peerName} is writing a clue`
-      } else {
-        // Guess phase — the guesser is the NON-clue-giver, so if I'm the
-        // clue-giver the peer is guessing; otherwise the peer is waiting on me.
-        text = isClueGiver
-          ? `${peerName} is making guesses`
-          : `${peerName} is waiting for your turn to complete`
-      }
+      outline = true
+      // What the peer is doing — the sentence WITHOUT their name (the ActorDot
+      // supplies "● moth" ahead of it).
+      const rest = !isGuessPhase
+        ? isClueGiver
+          ? 'is waiting for your clue'
+          : 'is writing a clue'
+        : isClueGiver
+          ? 'is making guesses'
+          : 'is waiting for your turn to complete'
+      key = `${peer?.user_id ?? 'partner'}:${rest}`
+      node = (
+        <>
+          <ActorDot actor={peer} fallback="Your partner" /> {rest}
+        </>
+      )
     }
   }
 
   // Fire only on an actual change (the ref also absorbs StrictMode's double
-  // effect-invoke). Clearing when there's no state (game over / loading) tidies
-  // up the pill. Every message is sticky — it's an ongoing state, not a nudge.
-  const prev = useRef<string | null | undefined>(undefined)
+  // effect-invoke). Dedup on `key` (a string); `node` is a fresh element each
+  // render, so the early-return on an unchanged key is what prevents a re-show
+  // loop. Clearing when there's no state (game over / loading) tidies the pill.
+  // Every message is sticky — it's an ongoing state, not a nudge.
+  const prev = useRef<string | null>(null)
   useEffect(() => {
-    if (text === prev.current) return
-    prev.current = text
-    if (text === null) {
+    if (key === prev.current) return
+    prev.current = key
+    if (key === null) {
       feedback.clear()
       return
     }
     feedback.show({
       tone,
-      text,
-      // Peer-status pills carry the leading identity disc (outline so the disc
-      // isn't fighting a fill); sudden death is a plain filled warning.
-      ...(dot !== undefined ? { variant: 'outline' as const, dot } : {}),
+      text: node,
+      ...(outline ? { variant: 'outline' as const } : {}),
       dismiss: { kind: 'sticky' },
     })
-  }, [text, tone, dot, feedback])
+  }, [key, tone, node, outline, feedback])
 }
 
 export function PlayArea({
@@ -210,6 +218,19 @@ export function PlayArea({
   // today is `turns` for the "X/Y turns" status counter.
   const codenamesduetSetup = setup as CodenamesduetSetup
   const { game, players } = useGame(gameId)
+
+  // Mobile (docs/mobile.md → the psychicnum recipe): below the breakpoint the
+  // board fills the screen and the info column moves into an off-canvas sheet
+  // opened from a mobile-only "Game info" menu item. `isMobile` gates that item.
+  // The clue-giver's divergence — the below-board clue input raises the OS
+  // keyboard, and the clue-giver needs the board's key colors visible while
+  // composing — is handled by NOT fighting the keyboard: the board stays
+  // full-size and the page scrolls, so the giver scrolls up to read the board and
+  // down to the clue field. (An earlier attempt SHRANK the board to fit above the
+  // keyboard; it crunched the board too small and scrolled badly — scrolling a
+  // full board reads better.)
+  const isMobile = useIsMobile()
+  const [infoOpen, setInfoOpen] = useState(false)
   // `gameOver` mirrors common.games.is_terminal — derived early so
   // we can pass `revealPeer` into useBoard. `playState` carries the
   // gametype-specific value ('playing', 'sudden_death', 'won', ...)
@@ -294,10 +315,16 @@ export function PlayArea({
         mode: 'coop',
         isTerminal,
         onEndGame: () => void handleEndGame(),
+        // Mobile-only: the info column is off-canvas below the breakpoint, so
+        // this reaches it (agent/turn state, setup, clue log). Omitted on desktop
+        // where the column is always visible.
+        extra: isMobile
+          ? [{ items: [{ id: 'game-info', label: 'Game info', onClick: () => setInfoOpen(true) }] }]
+          : [],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, isTerminal, handleEndGame])
+  }, [menu, isTerminal, handleEndGame, isMobile])
 
   // Announce turn-state changes in the header feedback pill — it's easy to miss
   // "the other player ended their turn, it's your turn now" otherwise. Called
@@ -408,7 +435,20 @@ export function PlayArea({
         onSuggestionChange={setClueSuggestion}
       />
 
-      <InfoCol
+      {/* Info column. Desktop: `.infoWrap` is `display: contents` — a no-op
+          wrapper — so InfoCol is the flex child exactly as before, close button
+          hidden. Mobile: an off-canvas sheet slid in by `.infoOpen` (opened from
+          the "Game info" menu item). */}
+      <div className={cls(styles.infoWrap, infoOpen && styles.infoOpen)}>
+        <button
+          type="button"
+          className={styles.infoClose}
+          onClick={() => setInfoOpen(false)}
+          aria-label="Close game info"
+        >
+          ✕
+        </button>
+        <InfoCol
         // ── Mode + phase ──
         over={over}
         inSuddenDeath={inSuddenDeath}
@@ -432,7 +472,8 @@ export function PlayArea({
         gameOver={gameOver}
         viewingSeq={viewingId}
         onSelectTurn={selectTurn}
-      />
+        />
+      </div>
 
       {/* The AI clue-suggestion dialog. Rendered HERE — a child of `.layout`
           (a flex row), like GameOverModal — so react-rnd places it on-screen.
