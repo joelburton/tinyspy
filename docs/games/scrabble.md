@@ -24,6 +24,15 @@ multiplayer gametype.
 > the coop "tiles unplayed" forfeit ([§2.7](#27-ending-the-game)), and the
 > title/label shapes ([§8](#8-title-formula), [§9](#9-status-jsonb--labels)).
 
+> **Keyboard-required, NOT desktop-only.** Placing a word on the 15×15 board is a
+> drag-or-type gesture, and we won't build touch-drag or an in-game keyboard for
+> it — so scrabble wants a hardware keyboard. That's *not* the same as
+> desktop-only: the board fits a tablet **with** a keyboard fine. So it's
+> hard-blocked on *phone* widths only (tablets allowed — a keyboard may be
+> attached, which the browser can't detect), not on all touch. Contrast
+> bananagrams, which is genuinely desktop-only. See [docs/mobile.md](../mobile.md)
+> → "Where each game plays".
+
 ---
 
 ## 1. The shape of the novelty

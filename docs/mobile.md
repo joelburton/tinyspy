@@ -261,9 +261,9 @@ string — fine because `GenericFeedbackMsg.text` is already `ReactNode`; the pi
 psychicnum, connections, waffle, wordle, spellingbee, boggle, stackdown. Two
 deliberate exclusions: (1) **chat** feedback keeps its sender name — the chat
 pill has no size constraint the game feedback areas have, and knowing *who*
-messaged matters more there; (2) the **desktop-only / keyboard-required** games
-(scrabble, crosswords, bananagrams) are hard-blocked on phones, so their feedback
-never shows on a phone — not worth the churn. Unit tests that asserted the pill
+messaged matters more there; (2) the **keyboard-required** games (scrabble,
+crosswords) and the **desktop-only** one (bananagrams) are hard-blocked on phones,
+so their feedback never shows on a phone — not worth the churn. Unit tests that asserted the pill
 `text` as a string now render the node and read its text (`nodeText` helper).
 
 ### The `.card` shell pages — home / login / claim-username
@@ -526,11 +526,29 @@ board fills, no scroll, sheet works; a tapped 4-tile guess commits).
 **The pass is complete for every recipe-eligible game.** Eight games now follow the
 info-sheet recipe: the wide-sheet pair **spellingbee / boggle**, and the plain-sheet
 games **psychicnum / wordle / codenamesduet / stackdown / waffle / connections**. The
-remaining three — **bananagrams / scrabble / crosswords** — keep their *documented
-desktop-only board layouts* (dense grids / racks / clue columns that assume a
-keyboard and pointer; see each game's doc), so they aren't phone-converted by design.
+remaining three are *not* phone-converted, but for two different reasons (see the
+input taxonomy above — don't collapse them into one bucket):
+
+- **scrabble** and **crosswords** are **keyboard-required, NOT desktop-only.** Their
+  boards (a 15×15 rack-and-tiles arena; a crossword grid + clue columns) need a
+  hardware keyboard for entry, but they fit a tablet *with* a keyboard fine — so
+  they're hard-blocked on *phone* widths, allowed on tablets. Not a desktop machine
+  requirement.
+- **bananagrams** is genuinely **desktop-only** (a large 25×25 drag-heavy arena,
+  unpleasant even on a keyboard tablet) — blocked on *all* touch.
+
 The app *chrome* (the `.card` shell pages, club page, header/player strip, chat,
 panels) is mobile-ready for all of them regardless.
+
+> **Future direction — crosswords on a phone (recorded, not built).** If/when we
+> DO give crosswords a phone treatment, the plan: **hide the Across | Down clue
+> panel** (there's no room for the clue columns beside the grid on a phone) and
+> instead **show the single clue the cursor is currently on, in a bar UNDER the
+> grid.** The active-clue bar already exists in the desktop layout (a 3-line bar
+> beneath the clue columns; see [crosswords.md](games/crosswords.md) §7) — the
+> mobile move is to relocate it below the board and drop the full list. The cursor
+> already tracks which clue is active, so the content is in hand; it's a layout
+> reflow, not new state.
 
 ## TODO — not doing now, recorded so we don't lose them
 

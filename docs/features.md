@@ -126,9 +126,9 @@ MC*(on score)  FB*(on score)
 # Mobile suitability
 No game is CSS-optimized for mobile yet — this is how well each *could* work once we do.
 Could work well:  PN FB WK MC SD SS WN
-Could work well WITH a hardware keyboard:  CP (the board fits an iPad nicely; the on-screen keyboard is too fiddly, so it wants a real keyboard — but it's not desktop-only)
-Just OK:  TS (clue needs the keyboard; board cramped)  RA (board cramped)
-Never:  MG (too fiddly dragging; board too cramped)
+Could work well WITH a hardware keyboard (keyboard-required, NOT desktop-only — fits a tablet):  CP (board fits an iPad nicely; the on-screen keyboard is too fiddly, so it wants a real keyboard)  RA (tile placement is drag-or-type, so it wants a real keyboard)
+Just OK:  TS (clue needs the keyboard; board cramped)
+Never (desktop-only):  MG (too fiddly dragging; board too cramped, even on a keyboard tablet)
 
 
 # Clear win condition in compete

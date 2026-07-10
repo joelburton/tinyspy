@@ -27,6 +27,12 @@ on-screen keyboard, so it wants a hardware keyboard). Not strictly desktop-only:
 the board fits a tablet fine; it's just not touch-optimized yet (no game is).
 This is a **documented v3 layout exception** (see §7).
 
+> **Future direction — phone layout (recorded, not built).** For an eventual phone
+> treatment: hide the Across | Down clue panel (no room beside the grid) and show
+> only the cursor's current clue in a bar *under* the grid — relocating the
+> existing active-clue bar (§7) below the board and dropping the full list. See
+> [docs/mobile.md](../mobile.md) → the crosswords future-direction note.
+
 ### Modes (sibling-manifest pair)
 
 - **`crosswords_coop`** (`[1, 8]`) — one **shared** grid; everyone's keystrokes
