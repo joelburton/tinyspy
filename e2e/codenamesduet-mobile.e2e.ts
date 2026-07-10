@@ -61,7 +61,7 @@ test.describe('codenamesduet mobile', () => {
 
     // The info column is the collapsed off-canvas sheet (present, slid off-right);
     // the slide-in/close mechanism is identical CSS to wordle, guarded there.
-    const wrap = page.locator('[class*="infoWrap"]')
+    const wrap = page.locator('[data-info-sheet]')
     expect((await wrap.boundingBox())!.x).toBeGreaterThanOrEqual(m.iw - 1)
     await page.getByRole('button', { name: 'Game menu' }).click()
     await expect(page.getByText('Game info', { exact: true })).toBeVisible()

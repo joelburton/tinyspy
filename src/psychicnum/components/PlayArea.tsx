@@ -7,7 +7,8 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
-import { useIsMobile } from '../../common/hooks/ui/useIsMobile'
+import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { memberById } from '../../common/lib/game/peers'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
@@ -67,13 +68,10 @@ export function PlayArea({
   const { game, players: playerBudgets, guesses, loading } = useGame(gameId)
   const mode = game?.mode
 
-  // Mobile POC (docs/mobile.md): below the breakpoint the board fills the
-  // screen and the whole info column (status line + actions + log) moves into
-  // an off-canvas sheet, opened from a mobile-only "Game info" menu item.
-  // `isMobile` gates that menu item; the sheet's show/hide is otherwise pure
-  // CSS. Desktop is unchanged — the two columns render side by side.
-  const isMobile = useIsMobile()
-  const [infoOpen, setInfoOpen] = useState(false)
+  // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
+  // fills the screen and the info column moves into an off-canvas <InfoSheet>,
+  // opened from the hook's "Game info" menu item. Desktop is unchanged.
+  const infoSheet = useInfoSheet()
 
   // I dropped out of a compete race (a real loss; the others keep racing). Read
   // from the common roster (prop `players`, always present) so it's available
@@ -137,18 +135,14 @@ export function PlayArea({
         onEndGame: () => actionsRef.current?.end(),
         onConcede: () => actionsRef.current?.concede(),
         extra: [
-          // Mobile-only: the info column is off-canvas below the breakpoint, so
-          // this is how you reach it (status line, Hint/Reveal, turn log). On
-          // desktop the column is always visible, so the item is omitted.
-          ...(isMobile
-            ? [{ items: [{ id: 'game-info', label: 'Game info', onClick: () => setInfoOpen(true) }] }]
-            : []),
+          // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
+          ...infoSheet.menuSections,
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printPsychicnumPdf(model) }] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, mode, isTerminal, myConceded, game, guesses, players, brand, title, setup, isMobile])
+  }, [menu, mode, isTerminal, myConceded, game, guesses, players, brand, title, setup, infoSheet.menuSections])
 
   // Per-opponent secrets-found count we've already announced (compete tension).
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
@@ -356,7 +350,7 @@ export function PlayArea({
   // actionsRef block — so the menu, ⌥⌫, and InfoCol's buttons share one pair.)
 
   return (
-    <div className={cls(shared.layout, styles.layout)}>
+    <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         // ── Board to render (live OR the historical snapshot — picked here) ──
         words={game.words}
@@ -377,19 +371,8 @@ export function PlayArea({
         secrets={game.secrets}
         myConceded={myConceded}
       />
-      {/* Info column. On desktop `.infoWrap` is `display: contents` — a no-op
-          wrapper — so InfoCol is the flex child exactly as before, and the
-          close button is hidden. On mobile it becomes an off-canvas sheet
-          slid in by `.infoOpen` (opened from the "Game info" menu item). */}
-      <div className={cls(styles.infoWrap, infoOpen && styles.infoOpen)}>
-        <button
-          type="button"
-          className={styles.infoClose}
-          onClick={() => setInfoOpen(false)}
-          aria-label="Close game info"
-        >
-          ✕
-        </button>
+      {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}
+      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
         // ── Mode + phase ──
         isCompete={game.mode === 'compete'}
@@ -422,7 +405,7 @@ export function PlayArea({
         viewingIndex={viewingId}
         onSelectTurn={selectTurn}
         />
-      </div>
+      </InfoSheet>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>

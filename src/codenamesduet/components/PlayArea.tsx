@@ -8,7 +8,8 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
-import { useIsMobile } from '../../common/hooks/ui/useIsMobile'
+import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import type { ClueRow } from '../hooks/useClues'
@@ -219,18 +220,15 @@ export function PlayArea({
   const codenamesduetSetup = setup as CodenamesduetSetup
   const { game, players } = useGame(gameId)
 
-  // Mobile (docs/mobile.md → the psychicnum recipe): below the breakpoint the
-  // board fills the screen and the info column moves into an off-canvas sheet
-  // opened from a mobile-only "Game info" menu item. `isMobile` gates that item.
-  // The clue-giver's divergence — the below-board clue input raises the OS
-  // keyboard, and the clue-giver needs the board's key colors visible while
-  // composing — is handled by NOT fighting the keyboard: the board stays
-  // full-size and the page scrolls, so the giver scrolls up to read the board and
-  // down to the clue field. (An earlier attempt SHRANK the board to fit above the
-  // keyboard; it crunched the board too small and scrolled badly — scrolling a
-  // full board reads better.)
-  const isMobile = useIsMobile()
-  const [infoOpen, setInfoOpen] = useState(false)
+  // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
+  // fills the screen and the info column moves into an off-canvas <InfoSheet>,
+  // opened from the hook's "Game info" menu item. The clue-giver's divergence —
+  // the below-board clue input raises the OS keyboard, and the giver needs the
+  // board's key colors visible while composing — is handled by NOT fighting it:
+  // the board stays full-size and the page scrolls (scroll up to read the board,
+  // down to the clue field). (An earlier attempt SHRANK the board to fit above
+  // the keyboard; it crunched the board too small and scrolled badly.)
+  const infoSheet = useInfoSheet()
   // `gameOver` mirrors common.games.is_terminal — derived early so
   // we can pass `revealPeer` into useBoard. `playState` carries the
   // gametype-specific value ('playing', 'sudden_death', 'won', ...)
@@ -315,16 +313,12 @@ export function PlayArea({
         mode: 'coop',
         isTerminal,
         onEndGame: () => void handleEndGame(),
-        // Mobile-only: the info column is off-canvas below the breakpoint, so
-        // this reaches it (agent/turn state, setup, clue log). Omitted on desktop
-        // where the column is always visible.
-        extra: isMobile
-          ? [{ items: [{ id: 'game-info', label: 'Game info', onClick: () => setInfoOpen(true) }] }]
-          : [],
+        // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
+        extra: infoSheet.menuSections,
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, isTerminal, handleEndGame, isMobile])
+  }, [menu, isTerminal, handleEndGame, infoSheet.menuSections])
 
   // Announce turn-state changes in the header feedback pill — it's easy to miss
   // "the other player ended their turn, it's your turn now" otherwise. Called
@@ -405,7 +399,7 @@ export function PlayArea({
   const peerFinished = bannerEligible && peerAgentsDone
 
   return (
-    <div className={cls(shared.layout, styles.layout)}>
+    <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         // ── Board to render (live OR the historical snapshot — picked here) ──
         words={snap ? snap.words : words}
@@ -435,19 +429,8 @@ export function PlayArea({
         onSuggestionChange={setClueSuggestion}
       />
 
-      {/* Info column. Desktop: `.infoWrap` is `display: contents` — a no-op
-          wrapper — so InfoCol is the flex child exactly as before, close button
-          hidden. Mobile: an off-canvas sheet slid in by `.infoOpen` (opened from
-          the "Game info" menu item). */}
-      <div className={cls(styles.infoWrap, infoOpen && styles.infoOpen)}>
-        <button
-          type="button"
-          className={styles.infoClose}
-          onClick={() => setInfoOpen(false)}
-          aria-label="Close game info"
-        >
-          ✕
-        </button>
+      {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}
+      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
         // ── Mode + phase ──
         over={over}
@@ -473,7 +456,7 @@ export function PlayArea({
         viewingSeq={viewingId}
         onSelectTurn={selectTurn}
         />
-      </div>
+      </InfoSheet>
 
       {/* The AI clue-suggestion dialog. Rendered HERE — a child of `.layout`
           (a flex row), like GameOverModal — so react-rnd places it on-screen.

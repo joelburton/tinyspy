@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
@@ -6,7 +6,8 @@ import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
-import { useIsMobile } from '../../common/hooks/ui/useIsMobile'
+import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { db } from '../db'
@@ -53,12 +54,11 @@ export function PlayArea({
   const { game, players: playerStates, guesses, loading } = useGame(gameId)
 
   // Mobile (docs/mobile.md → the psychicnum recipe): below the breakpoint the
-  // board + keyboard fill the screen and the whole info column moves into an
-  // off-canvas sheet, opened from a mobile-only "Game info" menu item. `isMobile`
-  // gates that menu item; the sheet's show/hide is otherwise pure CSS. Desktop is
-  // unchanged — the two columns render side by side.
-  const isMobile = useIsMobile()
-  const [infoOpen, setInfoOpen] = useState(false)
+  // board + keyboard fill the screen and the info column moves into an off-canvas
+  // <InfoSheet>, opened from the hook's "Game info" menu item. Desktop is
+  // unchanged. wordle's one divergence — the board caps its height so the
+  // keyboard always fits — lives in Board.module.css, not here.
+  const infoSheet = useInfoSheet()
 
   // The own-move local feedback pill (soft reject / RPC error), shown in the
   // fixed-height slot between the board and the keyboard. Sticky (localPill): cleared
@@ -194,16 +194,13 @@ export function PlayArea({
         conceded: myConceded,
         onEndGame: () => actionsRef.current.endGame(),
         onConcede: () => actionsRef.current.concede(),
-        // Mobile-only: the info column is off-canvas below the breakpoint, so
-        // this is how you reach it (guess counter, opponents, setup, turn log).
-        // On desktop the column is always visible, so the item is omitted.
-        extra: isMobile
-          ? [{ items: [{ id: 'game-info', label: 'Game info', onClick: () => setInfoOpen(true) }] }]
-          : [],
+        // Mobile-only "Game info" item (reaches the off-canvas info column); empty
+        // on desktop where the column is always visible.
+        extra: infoSheet.menuSections,
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, mode, isTerminal, myConceded, isMobile])
+  }, [menu, mode, isTerminal, myConceded, infoSheet.menuSections])
 
   // Keep the ref's end/concede closures current so the menu effect above never
   // needs the (identity-changing) handlers in its own dep array.
@@ -293,7 +290,7 @@ export function PlayArea({
       : localFeedback
 
   return (
-    <div className={cls(shared.layout, styles.layout)}>
+    <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         // ── Board to render (live rows + the history snapshot) ──
         rows={rows}
@@ -310,19 +307,8 @@ export function PlayArea({
         // ── Below-board pill ──
         localPill={localPill}
       />
-      {/* Info column. Desktop: `.infoWrap` is `display: contents` — a no-op
-          wrapper — so InfoCol is the flex child exactly as before, close button
-          hidden. Mobile: it becomes an off-canvas sheet slid in by `.infoOpen`
-          (opened from the "Game info" menu item). */}
-      <div className={cls(styles.infoWrap, infoOpen && styles.infoOpen)}>
-        <button
-          type="button"
-          className={styles.infoClose}
-          onClick={() => setInfoOpen(false)}
-          aria-label="Close game info"
-        >
-          ✕
-        </button>
+      {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}
+      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
         // ── Mode + phase ──
         isCompete={isCompete}
@@ -353,7 +339,7 @@ export function PlayArea({
         viewingIndex={viewingId}
         onSelectTurn={selectTurn}
         />
-      </div>
+      </InfoSheet>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>

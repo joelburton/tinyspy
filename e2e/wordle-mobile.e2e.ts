@@ -53,7 +53,7 @@ test.describe('wordle mobile', () => {
 
       // Info sheet: closed = off the right edge; opening from the menu slides it
       // in; the X slides it back off.
-      const wrap = page.locator('[class*="infoWrap"]')
+      const wrap = page.locator('[data-info-sheet]')
       const xClosed = (await wrap.boundingBox())!.x
       await page.getByRole('button', { name: 'Game menu' }).click()
       await page.getByText('Game info', { exact: true }).click()

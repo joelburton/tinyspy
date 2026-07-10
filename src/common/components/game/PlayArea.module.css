@@ -71,6 +71,25 @@
   --avail-w: calc(var(--client-width, 100vw) - var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding-x));
 }
 
+/* Opt-in mobile layout (docs/mobile.md → the psychicnum recipe). A game that has
+ * had its mobile pass composes this on its `.layout` — `cls(shared.layout,
+ * shared.mobileFill, styles.layout)` — alongside a `<InfoSheet>` around its
+ * InfoCol. Below `--mobile`, with the info column off-canvas (the InfoSheet is
+ * position: fixed, out of the flex row), nothing sits beside the board, so hand
+ * it the FULL content width — override the base `--avail-w`, which otherwise
+ * reserves `--info-col-width`. Placed right after `.layout` so it wins the
+ * (equal-specificity) cascade under `--mobile`. Unconverted / desktop-only games
+ * simply don't compose it. The board's own mobile SIZING (e.g. wordle capping by
+ * the leftover height for its keyboard) stays in that game's board module. */
+@media (--mobile) {
+  .mobileFill {
+    --avail-w: calc(var(--client-width, 100vw) - 2 * var(--page-padding-x));
+    /* --game-chrome-height rounds ~1px short at phone width; trim a pixel to keep
+     * the hard no-scroll invariant (docs/ui.md → page fits the viewport). */
+    height: calc(100svh - var(--game-chrome-height) - 1px);
+  }
+}
+
 /* Board column: HUGS its board (`flex: 0 0 auto`) and CENTERS in the space the
  * fixed info column leaves. The horizontal auto margins split the layout's free
  * space equally around the hug-width column (and, as auto margins, they also

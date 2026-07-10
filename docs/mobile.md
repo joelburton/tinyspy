@@ -423,14 +423,28 @@ variation rather than psychicnum's assumptions:
   fills, no scroll at rest, collapsed sheet, buttons icon-only). The
   scroll-when-keyboard feel is an on-device check.
 
-**Three conversions done (psychicnum, wordle, codenamesduet) → the recipe is now
-ready to extract** (rule of three). The stable common core to pull out: the
-`useIsMobile`-gated "Game info" menu item + `infoOpen` state, and the
-`.infoWrap`/`.infoClose` off-canvas-sheet CSS (byte-identical across all three).
-What stays PER-GAME is the board sizing — psychicnum flex-fills, wordle caps by
-leftover height for its keyboard, codenamesduet clamps to the visual viewport
-during clue-writing — so the extraction is the *sheet + menu-item* plumbing only,
-not the board layout.
+**The recipe is now EXTRACTED** (after the psychicnum/wordle/codenamesduet trio
+proved it byte-identical — rule of three). Three shared pieces, and a game's
+mobile pass is now composing them, not copy-paste:
+
+- [`useInfoSheet()`](../src/common/hooks/game/useInfoSheet.ts) — the `useIsMobile`
+  gate + open/close state + the "Game info" `menuSections` (spread into
+  `buildGameMenu`'s `extra`; empty on desktop; stable identity so it's safe in
+  the menu effect's deps).
+- [`<InfoSheet>`](../src/common/components/game/InfoSheet.tsx) — the off-canvas
+  wrapper around the game's `<InfoCol>` (`display: contents` on desktop → fixed
+  slide-in sheet on mobile + the ✕), owning the sheet CSS.
+- **`shared.mobileFill`** on `.layout` (in the scaffold
+  [`PlayArea.module.css`](../src/common/components/game/PlayArea.module.css)) —
+  the `@media (--mobile)` full-width `--avail-w` + height override.
+
+A converted game is now: `useInfoSheet()`, `cls(shared.layout, shared.mobileFill,
+styles.layout)`, and `<InfoSheet>{<InfoCol/>}</InfoSheet>` — ~5 lines, no CSS.
+psychicnum / wordle / codenamesduet were refactored onto it (net line removal,
+desktop unchanged, e2e green). What stays PER-GAME is the board's own mobile
+SIZING — psychicnum flex-fills, wordle caps by leftover height for its keyboard,
+codenamesduet keeps a full board + scroll. **Next up: the four remaining tap-only
+games — connections, waffle, spellingbee, boggle — each now a quick conversion.**
 
 ## TODO — not doing now, recorded so we don't lose them
 
