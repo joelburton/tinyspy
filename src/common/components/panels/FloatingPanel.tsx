@@ -543,7 +543,11 @@ function PanelRnd({
             what lets the body's flex: 1 1 auto + min-height: 0
             chain work for chat's scrollable region. Pattern
             mirrors ../connections' ChatPanel.module.css. */}
-        <div className={styles.shell}>
+        {/* `data-floating-panel` marks this subtree as "a panel owns the keyboard
+            here": the game's window-level key capture (useGlobalKeyHandler) bails
+            for events whose focus is inside it, so Enter activates a modal button
+            and Tab moves between its controls instead of being swallowed. */}
+        <div className={styles.shell} data-floating-panel>
           <header
             className={`${styles.header} ${draggable ? styles.dragHandle : ''}`}
           >

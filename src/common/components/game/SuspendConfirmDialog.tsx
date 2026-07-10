@@ -1,4 +1,6 @@
+import { useRef } from 'react'
 import { FloatingPanel } from '../panels/FloatingPanel'
+import { useFocusTrap } from '../../hooks/ui/useFocusTrap'
 import actionRow from '../panels/modalActions.module.css'
 
 type Props = {
@@ -29,6 +31,14 @@ type Props = {
  * floating-panel family.
  */
 export function SuspendConfirmDialog({ title, onSuspend, onCancel }: Props) {
+  // Cycle Tab within the panel (the anchor lets the hook find the enclosing
+  // panel). Enter-to-confirm and Esc-to-cancel don't need wiring here: the
+  // Suspend button `autoFocus`es so Enter activates it, and FloatingPanel owns
+  // Esc. (The game's window key-capture used to swallow Enter/Tab over a word
+  // game; useGlobalKeyHandler now bails inside `[data-floating-panel]`.)
+  const anchorRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(anchorRef)
+
   return (
     <FloatingPanel
       title="Suspend this game?"
@@ -39,18 +49,20 @@ export function SuspendConfirmDialog({ title, onSuspend, onCancel }: Props) {
       minWidth={320}
       minHeight={200}
     >
-      <p>
-        <strong>{title}</strong> will be moved out of the active slot.
-        Everyone in this game will return to the club page; you can
-        resume from there later.
-      </p>
-      <div className={actionRow.modalActions}>
-        <button type="button" className="secondary" onClick={onCancel}>
-          Keep playing
-        </button>
-        <button type="button" onClick={onSuspend} autoFocus>
-          Suspend
-        </button>
+      <div ref={anchorRef}>
+        <p>
+          <strong>{title}</strong> will be moved out of the active slot.
+          Everyone in this game will return to the club page; you can
+          resume from there later.
+        </p>
+        <div className={actionRow.modalActions}>
+          <button type="button" className="secondary" onClick={onCancel}>
+            Keep playing
+          </button>
+          <button type="button" onClick={onSuspend} autoFocus>
+            Suspend
+          </button>
+        </div>
       </div>
     </FloatingPanel>
   )

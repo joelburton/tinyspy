@@ -57,6 +57,14 @@ export function useGlobalKeyHandler(handler: (e: KeyboardEvent) => void): void {
       ) {
         return
       }
+      // Likewise, when focus is inside a floating panel / modal (a suspend confirm,
+      // Setup, Help…), that panel owns the keyboard: Enter should activate its
+      // focused button and Tab should move between its controls. The game's capture
+      // otherwise `preventDefault()`s Enter and Tab (see useCaptureKeys), which
+      // deadens them inside the modal. `data-floating-panel` marks the panel shell.
+      // `closest` is optional-chained: a window/document target (some dispatch
+      // paths) has no such method — treat it as "not in a panel".
+      if (t?.closest?.('[data-floating-panel]')) return
       ref.current(e)
     }
     window.addEventListener('keydown', dispatch)
