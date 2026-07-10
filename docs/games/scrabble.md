@@ -454,7 +454,7 @@ trivial SQL. scrabble's one edge function, `scrabble-suggest-move`, is the
 
 Shared `PlayArea` / `SetupForm` / `Help` / `useGame`, mode-branched at render on
 `game.mode`. **v3 layout** (the shared two-column scaffold — see
-[docs/design-decisions.md](../design-decisions.md)): the **board column** holds
+[playarea.md → PlayArea layout](../playarea.md#playarea-layout)): the **board column** holds
 the 15×15 board (the square *hug* model — `--side = min(--avail-w, --avail-h)`,
 the largest square that fits, like waffle/boggle) and, directly below it,
 scrabble's **GameEntryArea**: the **rack + action row** (the rack *is* the input,
@@ -506,7 +506,7 @@ commit wins").
 **Turn viewer.** scrabble uses the shared turn-history viewer — the `#N`
 `<TurnLogNumber>` handle (not the whole row), the history frame + banner, and the
 ✕ / click / any-key / opponent-move exits are all common mechanics, documented in
-[ui.md → Turn-history viewer](../ui.md#turn-history-viewer) + [playarea-decomposition.md](../playarea-decomposition.md).
+[playarea.md → Turn-history viewer](../playarea.md#turn-history-viewer).
 scrabble's snapshot semantics: the board swaps to the **replayed historical state**
 (`boardUpToSeq` in `lib/play.ts` — a pure fold of every word play's `placements`
 with `seq ≤ target`; no per-turn snapshot stored, since the board *is* the

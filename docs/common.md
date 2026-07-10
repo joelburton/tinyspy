@@ -190,7 +190,7 @@ The uniform `end_game` contract (mirror this when adding a gametype):
 6. **Realtime touch.** `common.end_game` writes only `common.games`. A game whose FE `useGame` subscribes to `<schema>.*` tables (most of them) won't see that write, so `end_game` must also do a no-op self-write on a subscribed `<schema>` row (e.g. `update <schema>.games set club_handle = club_handle where id = target_game;`) to produce a WAL entry the subscription wakes on. The terminal *modal* itself rides `useCommonGame`'s `common.games` subscription regardless, but board/progress refetches (and post-terminal reveals like Waffle's solution) need the touch.
 7. `revoke execute … from public; grant execute … to authenticated;`
 
-**FE side.** End game is a player action the PlayArea wires up: `window.confirm` then `db.rpc('end_game', { target_game: gameId })`. It's surfaced in **two** places, both driven by the same handler: an **info-column action-row button** (the shared [`<EndGameButton>`](../src/common/components/buttons/EndGameButton.tsx), disabled at terminal; see [ui.md → Info-column readouts](../ui.md#info-column-readouts)) AND a **header-menu item** (`{ id: 'end-game', … }`, shortcut ⌥⌫) — every game's menu carries it via the [`buildGameMenu`](../src/common/lib/game/gameMenu.ts) helper (compete shows `Concede game` / id `concede` instead). See [ui.md → GamePage menu](../ui.md#gamepage-menu). Either way the terminal rendering (`buildOver` + `manifest.labelFor`) must treat `play_state === 'ended'` / `status.outcome === 'manual'` as a **neutral** result — green "Game ended" copy via `GameOverModal`'s `outcome: 'won'` styling, never the red "you lost" branch. (GameOverModal only has won/lost coloring today; manual end reuses the green one with neutral copy.)
+**FE side.** End game is a player action the PlayArea wires up: `window.confirm` then `db.rpc('end_game', { target_game: gameId })`. It's surfaced in **two** places, both driven by the same handler: an **info-column action-row button** (the shared [`<EndGameButton>`](../src/common/components/buttons/EndGameButton.tsx), disabled at terminal; see [ui.md → Info-column readouts](../playarea.md#info-column-readouts)) AND a **header-menu item** (`{ id: 'end-game', … }`, shortcut ⌥⌫) — every game's menu carries it via the [`buildGameMenu`](../src/common/lib/game/gameMenu.ts) helper (compete shows `Concede game` / id `concede` instead). See [ui.md → GamePage menu](../ui.md#gamepage-menu). Either way the terminal rendering (`buildOver` + `manifest.labelFor`) must treat `play_state === 'ended'` / `status.outcome === 'manual'` as a **neutral** result — green "Game ended" copy via `GameOverModal`'s `outcome: 'won'` styling, never the red "you lost" branch. (GameOverModal only has won/lost coloring today; manual end reuses the green one with neutral copy.)
 
 ### Concede — per-player drop-out
 
@@ -385,7 +385,7 @@ src/
 
 The `common/{components,hooks,lib}` internals — the feature-folder taxonomy + the PURPOSE of
 each subfolder (and a "where does a new file go?" guide) — live in
-**[common-layout.md](common-layout.md)** (the single source of truth; this file no longer
+**[common-folders.md](common-folders.md)** (the single source of truth; this file no longer
 inlines a per-file tree, which went stale on the first reorg).
 
 ### URL routing

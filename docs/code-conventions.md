@@ -324,7 +324,7 @@ viewer a drop-in. **bananagrams is the exception** (its input engine spans both
 columns, so it uses an engine-hook + two views instead — `usePlayerBoard` /
 `BoardArena` / `HandCard`). The full recipe, the prop conventions (one shared
 vocabulary across games), and the per-game deviations live in
-[docs/playarea-decomposition.md](playarea-decomposition.md).
+[docs/playarea.md](playarea.md).
 
 ### Import-direction rules
 

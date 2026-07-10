@@ -340,7 +340,7 @@ Mirrors the other game folders:
 
 The PlayArea sits on the **shared two-column scaffold**
 (`common/components/game/PlayArea.module.css` — the same one psychicnum / connections /
-codenamesduet use; see [docs/ui.md → PlayArea layout](../ui.md#playarea-layout)):
+codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-layout)):
 
 - **Board column** — `Board` (the 5×5 lattice, tap-A-then-tap-B or
   drag-to-swap) in a no-chrome `.board` wrapper. Unlike the other games' boards,

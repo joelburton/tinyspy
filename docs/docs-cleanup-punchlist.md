@@ -5,15 +5,20 @@ conflicts, duplication, staleness, and residue below. This file is the execution
 punch list — work through it phase by phase, checking items off (`[x]`) as you go.
 Delete this file when everything is done.
 
-> **STATUS (2026-07-10): Phases A–F are COMPLETE.** All flat contradictions,
-> the ten→eleven sweep, the canonical-home/dedup moves, the plan-residue
-> rewrites, and the deferred.md tidy have been applied to the working tree
-> (uncommitted). Phase F is a no-op (`states-audit.md` left untouched). **Only
-> Phase G remains** — Joel asked to stop before it and wants the FULL version
-> (the ui.md → playarea.md split, not just the minimal two renames). Note during
-> A–F: the old scrabble §11 "Resolved decisions" + boggle §11 were deleted and
-> the following sections renumbered (scrabble suggester/opponent are now §11/§12;
-> boggle "Deferred/future" is now §11) with all inbound refs fixed.
+> **STATUS (2026-07-10): ALL PHASES A–G ARE COMPLETE.** A–F were committed as
+> `7218f7e`; Phase G (this reorg) is done in the working tree. Phase F is a no-op
+> (`states-audit.md` untouched). **This file can now be deleted.**
+>
+> Phase G outcomes: `common-layout.md`→`common-folders.md`;
+> `playarea-decomposition.md`→**`playarea.md`** (now THE play-surface doc,
+> absorbing ui.md's §PlayArea layout / Info-column readouts / Text entry / Turn
+> log / Turn-history viewer / Board sizing; tiles stayed in ui.md as visual
+> language); `design-decisions.md` **retired to a redirect stub** (unique rules
+> merged into ui.md/playarea.md; Reconciliation items 2/3/5 verified done in
+> code). **Docs-only leftover:** ~30 `src/` code comments still cite
+> `design-decisions.md → X` — not edited (docs-only task); they resolve via the
+> stub's mapping table. Also from A–F: scrabble suggester/opponent are now
+> §11/§12; boggle "Deferred/future" is now §11.
 
 ## Ground rules (read first)
 

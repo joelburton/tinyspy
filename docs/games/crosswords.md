@@ -192,7 +192,7 @@ function does **not** hash — it creates a self-contained inline game (no
 ## 7. Frontend (`src/crosswords/`)
 
 The play surface ports crossplay's `PuzzleView` layout — **a documented v3
-layout exception** (see [docs/design-decisions.md → Info column](../design-decisions.md)):
+layout exception** (see [playarea.md → Info-column readouts](../playarea.md#info-column-readouts)):
 a CSS grid with the board on the left spanning full height, the **Across | Down**
 clue columns top-right (scrolling internally), a **3-line active-clue bar** that
 doubles as the local-feedback slot, and a slim chrome strip (the action row).
@@ -365,7 +365,7 @@ future cleanup pass:
 - **Compete terminal never shows opponents' grids** (decision C5). The compete RLS
   *opens* opponents' rows at terminal (pinned in `rls_test.sql`), but `useCells` stays
   filtered to the caller and PlayArea draws one grid — deliberately-unused surface,
-  not a delivered feature (see §2 + `design-decisions.md`).
+  not a delivered feature (see §2).
 - **Answer-key PDF gate is UI-only** (§7) — `solution_for` hands any member the grid
   at any time (like Download-as-.ipuz), so the compete "terminal-only" gate on the
   menu item is a UI gate, not server-enforced. Acceptable under the friends-only

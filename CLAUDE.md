@@ -6,13 +6,13 @@ Context for AI assistants and contributors working on this repo. These are proje
 |---|---|
 | [docs/naming.md](docs/naming.md) | Terminology glossary (gametype, game, board, club, member, persona) |
 | [docs/code-conventions.md](docs/code-conventions.md) | How we write code: DB conventions, FE conventions, code clarity, known gotchas |
-| [docs/common-layout.md](docs/common-layout.md) | How `src/common/` is organized: the folder taxonomy + PURPOSE of each folder for components/hooks/lib, placement rules ("where does a new file go?"), and a retrospective on how the reorg was applied |
-| [docs/common.md](docs/common.md) | The architectural layer: clubs, profiles, registry, routing, removability invariant |
+| [docs/common-folders.md](docs/common-folders.md) | How `src/common/` is organized: the folder taxonomy + PURPOSE of each folder for components/hooks/lib, placement rules ("where does a new file go?"), and a retrospective on how the reorg was applied |
+| [docs/common.md](docs/common.md) | The **architecture** layer (not UI): clubs/profiles/games schema, the game-RPC helpers (`create_game` / `end_game` / manual-end / concede / timers), RLS, routing + the FE shell/registry, the sibling-manifest + code-splitting patterns, the removability invariant |
 | [docs/states.md](docs/states.md) | View-state / play-state vocabulary, suspend / current / pause concepts |
 | [docs/testing.md](docs/testing.md) | Test theory, persona conventions, pgTAP + Vitest patterns |
-| [docs/ui.md](docs/ui.md) | FE design philosophy: desktop-first, theme tokens, global-vs-per-game vocab, consistency goals |
+| [docs/ui.md](docs/ui.md) | FE **visual language**: desktop-first, layout stability, theme tokens + two-vocabularies, the feedback pill (tones, tone-follows-the-event), page chrome (GamePage/ClubPage), modals/dialogs/toasts, tiles + the warm ramp, mode pills, button iconography, the v1→v3 versioning note |
 | [docs/mobile.md](docs/mobile.md) | The mobile-appearance pass: the desktop-first rules for it, the single `56.25rem` desktop→mobile breakpoint, what's been mobile-ready'd so far (club-page tabs, dots-only player strip, the `.card` shell pages), and recorded TODOs (cap handles at 10 / club names at 20) |
-| [docs/playarea-decomposition.md](docs/playarea-decomposition.md) | The `PlayArea` → `BoardCol` / `InfoCol` decomposition + the shared turn-history viewer (`useHistoryViewer`, per-game `lib/history.ts`): the recipe, prop conventions, and per-game keying |
+| [docs/playarea.md](docs/playarea.md) | THE **play-surface** doc: the two-column PlayArea layout, info-column readouts (+ the canonical order, OpponentStrip rules, locally-terminal look), text entry (capture), the turn log, the turn-history viewer, board sizing — plus the `PlayArea` → `BoardCol` / `InfoCol` decomposition (`useHistoryViewer`, per-game `lib/history.ts`) |
 | [docs/pdf.md](docs/pdf.md) | Printing game boards to PDF (jsPDF): the clean-printable design language — the three-shade greyscale palette, color-only-for-meaning, white backgrounds, header/Setup conventions; the shared `common/pdf/` helpers (frame + turnLog + wordColumns + `wordListBody`) and the three body families (turn-log, word-list, and crosswords' whole-cloth ported printer) |
 | [docs/features.md](docs/features.md) | Games categorized by feature: dimensions (every game has exactly one value — a game missing from one is a gap to notice) vs tags (a game has the feature or not) |
 | [docs/deferred.md](docs/deferred.md) | Things explicitly deferred from code reviews and conversations |

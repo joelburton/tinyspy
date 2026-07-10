@@ -414,7 +414,7 @@ src/codenamesduet/
     history.test.ts       Unit tests for the fold + per-seat neutral handling + inclusive boundary.
 ```
 
-**Terminal state.** PlayArea owns a `showModal` flag initialized to `isTerminal` plus an effect that pops it true when `isTerminal` flips during play. Renders the shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) with a per-status verdict — "You win!" / "You lost: assassin revealed" / "You lost: out of turns" / "You lost: out of time." After the modal closes the result stays visible the shared way: the info-column action row swaps the End button for a bold outcome-colored line + a compact back-to-club button ([ui.md → Info-column readouts](../ui.md#info-column-readouts)), and the below-board slot echoes the verdict where the clue UI was.
+**Terminal state.** PlayArea owns a `showModal` flag initialized to `isTerminal` plus an effect that pops it true when `isTerminal` flips during play. Renders the shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) with a per-status verdict — "You win!" / "You lost: assassin revealed" / "You lost: out of turns" / "You lost: out of time." After the modal closes the result stays visible the shared way: the info-column action row swaps the End button for a bold outcome-colored line + a compact back-to-club button ([ui.md → Info-column readouts](../playarea.md#info-column-readouts)), and the below-board slot echoes the verdict where the clue UI was.
 
 ### Board tile colors
 

@@ -306,7 +306,7 @@ prettier title here.
 
 ### 5.3 Frontend (`src/stackdown/`)
 
-stackdown is a **v3** game (`docs/design-decisions.md`): it renders on the shared
+stackdown is a **v3** game ([ui.md → Game versions](../ui.md#game-versions-v1--v3)): it renders on the shared
 two-column PlayArea scaffold (`common/components/game/PlayArea.module.css` — `.layout` /
 `.boardCol` / `.infoCol` / `.actionSlot`). The board column holds the stacked-tile
 board, the five-slot `WordEntry`, and a fixed-height **local feedback slot**; the
@@ -324,7 +324,7 @@ the local pill carries only the results a ring can't.
   depth shading), `letterCorner` (tuck a covered tile's letter into a free
   quadrant). Pure; Vitest in `board.test.ts`.
 - **`lib/history.ts`** — the turn-history replay (pure + unit-tested; stackdown is
-  where this feature was born — see docs/playarea-decomposition.md). Given the
+  where this feature was born — see docs/playarea.md). Given the
   submission log and a turn's **position** in it, reconstruct the board *as it was
   about to be played*: the full stack minus tiles cleared by valid words at positions
   **strictly before** it — so the viewed turn's own word is still ON the board (ringed
@@ -334,7 +334,7 @@ the local pill carries only the results a ring can't.
   `submissions.seq`, because the per-submitter `seq` is ambiguous and non-chronological
   across a shared coop log. Clicking a `GameTurnLog` row's `#N` opens that turn on the
   board via the shared viewer (the same one scrabble/waffle use — frame + banner +
-  keystroke/click/✕ exits documented in [ui.md → Turn-history viewer](../ui.md#turn-history-viewer)).
+  keystroke/click/✕ exits documented in [ui.md → Turn-history viewer](../playarea.md#turn-history-viewer)).
 - **`hooks/useGame.ts`** — the realtime hook: one channel carrying
   postgres-changes on `games_state` / `players` / `submissions` (no Broadcast).
   The board the player sees is `game.tiles` minus `removedTileIds`

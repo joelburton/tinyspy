@@ -55,7 +55,7 @@ The other exempt case is **loading state**: "Loading game…" doesn't have to oc
 
 A uniformly-styled component that carries every game's transient and permanent feedback ("Invalid move," "Good guess!," "Waiting for clue from peer," "Tip: try yellow first"). One visual register across games — a connections "wrong guess" should look like a codenamesduet "clue invalid" should look like a future Boggle "not a word."
 
-The **same pill serves both feedback areas** (see [design-decisions.md → Terms](design-decisions.md#terms)): the **global feedback area** — `<StatusSlot>` in the GamePage header (see [GamePage header](#gamepage-header) below), left-justified, for peer/opponent/chat feedback — and the **local feedback area** — a fixed-height slot in the `belowBoard` region, centered, for the player's own move. In the header, an active pill replaces the default `<PlayersStrip>` content; when cleared, the strip reappears.
+The **same pill serves both feedback areas** — two role phrases we use consistently, naming *where feedback appears*: the **global feedback area** — `<StatusSlot>` in the GamePage header (see [GamePage header](#gamepage-header) below), left-justified, for peer/opponent/chat feedback (not the player's own moves) — and the **local feedback area** — a fixed-height slot in the `belowBoard` region, centered, for feedback about the player's *own* move. In the header, an active pill replaces the default `<PlayersStrip>` content; when cleared, the strip reappears.
 
 **API on `GamePageCtx`:**
 
@@ -92,9 +92,9 @@ feedback: {
 - **`sticky`** for state-driven info the game itself will clear. codenamesduet's "Waiting for clue from peer" persists until the clue arrives, at which point the per-game hook calls `show()` again with new content (or `clear()`) — caller-controlled lifetime.
 - **`closeable`** for user-acknowledged content. Persistent tips, instructional banners, warnings the player should see-and-dismiss. Renders a `×` button on the pill.
 
-**Transient vs permanent (`variant`).** Every pill's **whole border is the tone color** (saturated `--color-outcome-*-strong`) — a thick **left bar** (like the turn-log outcome bars) plus thin sides in the *same* color, uniform width on every pill. (A pale-grey side border read as no border, so the sides carry the tone too; `neutral` has no tone, so its border is a visible dark grey.) The `variant` axis only changes the **background**: most feedback is *transient* and uses the default `outline` — a plain white background. *Permanent* feedback — the terminal message, or an end-game mode like codenamesduet's sudden death — uses `fill`: a **lightened-tone background**, so a permanent `error` (light-red fill) reads as *more* emphatically "error" than a transient one (white fill). The fill is the permanence signal. **Peer identity is independent of this axis:** a message about another player ("● leah found APPLE") carries a leading `dot` in their player color regardless of fill/outline — the dot, never the fill, says *who* (the `dot`-carries-identity rule from [Player identity = a colored disc](#player-identity--a-colored-disc)). See [design-decisions.md → Feedback](design-decisions.md#feedback).
+**Transient vs permanent (`variant`).** Every pill's **whole border is the tone color** (saturated `--color-outcome-*-strong`) — a thick **left bar** (like the turn-log outcome bars) plus thin sides in the *same* color, uniform width on every pill. (A pale-grey side border read as no border, so the sides carry the tone too; `neutral` has no tone, so its border is a visible dark grey.) The `variant` axis only changes the **background**: most feedback is *transient* and uses the default `outline` — a plain white background. *Permanent* feedback — the terminal message, or an end-game mode like codenamesduet's sudden death — uses `fill`: a **lightened-tone background**, so a permanent `error` (light-red fill) reads as *more* emphatically "error" than a transient one (white fill). The fill is the permanence signal. **Peer identity is independent of this axis:** a message about another player ("● leah found APPLE") carries a leading `dot` in their player color regardless of fill/outline — the dot, never the fill, says *who* (the `dot`-carries-identity rule from [Player identity = a colored disc](#player-identity--a-colored-disc)).
 
-> **Note — this repurposes `variant`.** It previously meant *local-validation (`fill`) vs peer-identity (`outline`)*; it now means *permanent (`fill`) vs transient (`outline`)*, with peer identity moved entirely onto the `dot`. Updating the code to this meaning is tracked in [design-decisions.md → Reconciliation](design-decisions.md#reconciliation-with-the-code).
+**Tone follows the event, not the viewer's stake.** One event reads as **one tone everywhere**, regardless of whether it helps or hurts the viewer. A *found word is green* in **both** modes: coop (a teammate found one) and compete (an opponent found one — adverse to me, but still "they found a word"). We do **not** recolor by competitive stake. Otherwise the player maintains two color-meanings for the same event — green-means-found in coop, something-else in compete — which is hard to learn and easy to misread; the identity `dot` already says *who*, so the tone is free to say only *what happened*.
 
 **Semantics:**
 
@@ -107,7 +107,7 @@ feedback: {
 
 A **toast** is a bottom-right **announcement** — a *different surface* from the feedback pill above, for a different job. Feedback is about *your* action, near your eyes (the input, or the header for peer moves); a toast is a *club/game event you should notice wherever you are on the page* — a friend added you to a game, a friend is setting up the next one. Toasts **stack vertically** (newest nearest the corner), sit **above everything including the chat panel** (z-index 12000), and each carries an **✕** plus an optional single **action button** (e.g. "Join"). There are no validity tones here — a toast is neutral chrome with a tone accent stripe; it's an announcement, not a verdict.
 
-One shared store + one host: any code calls `showToast(spec)` / `dismissToast(id)` (`lib/toast/toastStore.ts`), and the single `<ToastHost>` (`components/toasts/`, portaled to `<body>`, mounted once in `App.tsx`) renders the stack. The host is capped to the viewport and scrolls internally, so a flood of toasts never scrolls the *page* (the [page-never-scrolls](#page-height-fits-the-viewport) invariant). Consumers today: game invitations (`useGameInvitations`, now headless) and the "…is setting up a new … game" club heads-up (`useClubSetupPresence`). See [common-layout.md](common-layout.md) for the file homes.
+One shared store + one host: any code calls `showToast(spec)` / `dismissToast(id)` (`lib/toast/toastStore.ts`), and the single `<ToastHost>` (`components/toasts/`, portaled to `<body>`, mounted once in `App.tsx`) renders the stack. The host is capped to the viewport and scrolls internally, so a flood of toasts never scrolls the *page* (the [page-never-scrolls](#page-height-fits-the-viewport) invariant). Consumers today: game invitations (`useGameInvitations`, now headless) and the "…is setting up a new … game" club heads-up (`useClubSetupPresence`). See [common-folders.md](common-folders.md) for the file homes.
 
 ### Modals for terminal results
 
@@ -552,491 +552,25 @@ content doesn't go cartoonish (the band between is where length differences
 inline-size` is font-fitting infrastructure, layout-safe — it doesn't change the
 tile's size.
 
-## PlayArea layout
+## The play surface → playarea.md
 
-The shape every game's play surface takes — **all eleven games** are on it. The
-scaffold + readout classes live in
-[`common/components/game/PlayArea.module.css`](../src/common/components/game/PlayArea.module.css)
-(a CSS-only module imported the way `setupForm.module.css` is, composed with a thin
-per-game module via `cls()`). It was validated on **psychicnum**, then **connections**,
-then stress-tested on **codenamesduet** — the structural odd-one-out (turn-based, one
-clue then several guesses, per-viewer keycard overlays, a real free-text `<input>`
-rather than capture-entry) — proving the pieces are general, not just "what the two
-similar games happened to share"; the rest of the roster followed.
+The play-surface reference — the two-column PlayArea layout, the info-column
+readouts, text entry (capture, not `<input>`), the turn log, the turn-history
+viewer, and board sizing — lives in **[playarea.md](playarea.md)**, which also
+documents how each game's PlayArea is decomposed into `BoardCol` / `InfoCol`. This
+doc keeps the visual language around it: theme/tokens, tiles + the warm ramp, page
+chrome, modals/dialogs/toasts, mode pills, and iconography.
 
-**The contract:**
+### Game versions (v1 → v3)
 
-- **No whole-page scroll.** The play area fills the viewport —
-  `height: calc(100vh - var(--game-chrome-height))` — and only inner regions
-  (the turn log / word list, chat) scroll. The chrome token covers the body
-  padding (1rem) + the header + the header→play-area gap; see [Page-height fits the viewport](#page-height-fits-the-viewport).
-- **Two columns, no chrome around them.** A **board column** (`.boardCol`, left)
-  and an **info column** (`.infoCol`, right). No border / margin / padding around
-  the play area or around either column — the *only* thing between them is a
-  single thin **divider**: a `border-left` (`--color-divider`) on the info
-  column's inner edge, with symmetric breathing room (the layout `gap` on the
-  board side, the info column's `padding-left` on the other).
-- **Info column = fixed width, never grows during play** (the *one* fixed column;
-  the board grows, this doesn't). Holds the four **info readouts** (see
-  [Info-column readouts](#info-column-readouts) below) above the **turn log**
-  (chronological, one entry per turn) or **word list** (alphabetical found-words;
-  boggle/spellingbee). It's the **mobile-secondary** column — on small screens it
-  may collapse to a popup — so anything *critical to playing* goes in the board
-  column instead. (That's why the word/number **entry** lives below the board,
-  not here — and it's the capture model, not an `<input>`; see
-  [Text entry](#text-entry--capture-not-input).)
-- **Board column HUGS its board.** Every board-grid game shares one model:
-  `.boardCol` is `flex: 0 0 auto` and only as wide as its board, which grows to fill
-  *up to* a per-game max tile size (see [Board sizing](#board-sizing)). **Fill is the
-  no-cap case** — with no cap the board grows to the full available width, so a
-  capless game still reads as "fills." The column is **top-aligned**
-  (`justify-content: flex-start`) — the board at the top — and anything stacked below
-  (the entry row, or the terminal reveal) stretches to the board width. (bananagrams
-  is the exception — a fixed 25×25 arena that FILLS its column, documented in
-  docs/games/bananagrams.md.)
-- **`align-items: stretch`** makes both columns full-height (the divider spans;
-  the log scrolls inside). The board-column + info-column pair is narrower than the
-  play area, so `justify-content: center` centers them with equal outer margins.
-
-**Locked names:** board column / `.boardCol`, info column / `.infoCol`, the
-divider, **turn log** (`<TurnLog>` — chronological, outcome-bar entries) vs
-**word list** (`<WordList>` — alphabetical, circle markers). Tiles follow
-[Interactive tile states](#interactive-tile-states); identity uses
-[a colored disc](#player-identity--a-colored-disc); feedback splits
-[local vs group](deferred.md#feedback-channels-local-vs-group).
-
-**Shared vs per-game:** the shell + readout classes now live in the shared
-`common/components/game/PlayArea.module.css` (a CSS-only scaffold, like
-`setupForm.module.css` — no behavior, so a stylesheet rather than a component).
-What stays in each game's own module: the board **grid** (psychicnum grows tiles
-to fill; connections fixes their height — same purpose, different behavior), any
-result/semantic tile fills, the board tray frame, and game-specific readout
-copy. `<TurnLog>` *is* a shared component (it has behavior); the two-column shell
-is just shared CSS. The shared **`.tile`** chrome lives in the same module.
-
-**Two columns, two components.** The `.boardCol` / `.infoCol` regions here are the
-CSS; each standard game also *splits* its `PlayArea` into a **`BoardCol`** component
-(the input engine + below-board feedback, renders the `Board`) and an **`InfoCol`**
-component (these readouts + the turn log). The board-vs-info CSS split mirrors the
-component split. See
-[code-conventions.md → PlayArea decomposition](code-conventions.md#playarea-decomposition--boardcol--infocol)
-and [docs/playarea-decomposition.md](playarea-decomposition.md).
-
-### Info-column readouts
-
-The non-log part of the info column converges on **four recurring kinds of
-info**, each a **named class** (not raw `muted`) so it reads the same across
-games and can promote to a common stylesheet. Validated on psychicnum; reuse
-these names when a new game's info column needs the same.
-
-| class | what it is | style | terminal? |
-|---|---|---|---|
-| **`.infoSetup`** | the choices made at game *creation* (psychicnum: tiles / secrets / difficulty) | full text color; behind a `<details>` disclosure ("Setup options"), collapsed by default | **shown** (still useful in review) |
-| **`.infoState`** | the important *live* state (psychicnum: "0/3 found · 2/9 guesses used") | full text color, bold figures | **shown** |
-| **`.infoHelp`** | UI instructions ("Click or type a word and hit submit") | **muted** | **hidden** |
-| **`.infoActions`** | the action-button row | — | **swaps** (see below) |
-| **`.terminalExtra`** | extra info shown **only at game over** (waffle: the answer reveal) | a content-height block below the action slot | **terminal-only** (absent during play) |
-
-- **Setup is the one allowed growth-during-play.** It's a closable `<details>`,
-  so opening it grows the column but it *reclaims* the space — the rationale
-  that earns the exception to [Layout stability](#layout-stability): "what did I
-  pick at setup? — but I don't want it taking room the whole game."
-- **Action row = turn/game-altering actions only.** Hint, Reveal, End (all
-  change the game/turn). A control that's *purely visual and about the board
-  itself* does **not** go here — psychicnum's **Shuffle** (reorders the same
-  tiles, changes nothing about the game) **floats over the board** (top-right)
-  instead, and stays live even at terminal ("could I have found that with a
-  reshuffle?"). The test: changes game state/turn → action row; board-only view
-  aid → on the board.
-- **Terminal swap.** Setup + state stay; help hides; the action row replaces the
-  play buttons with a **bold, outcome-colored result line** (won = green / lost =
-  red / manual-end = neutral, via the `--color-outcome-*-strong` tones) + a
-  **compact** back-to-club button (`<BackToClubButton compact>` → just "‹ Club").
-- **`.terminalExtra` — the one allowed growth on the play→terminal transition.**
-  A region that appears *only* at game over, for terminal content too big for the
-  below-board slot — waffle's multi-line answer reveal, which there would overflow
-  the viewport and scroll the page (a hard no). It **grows the info column** when
-  the game ends: a deliberate exception to [Layout stability](#layout-stability),
-  allowed because the play surface is done, the **board doesn't move**, and the
-  scrolling turn log below gives way so the *page* never scrolls (`flex-shrink: 0`
-  on it; the log's `flex: 1` + `min-height: 0` absorbs it). waffle is the first
-  user; reuse it when a game needs an end-of-game readout that doesn't fit below
-  the board.
-
-Shared in `common/components/game/PlayArea.module.css` — `.infoSetup` / `.infoState` / `.infoHelp` /
-`.infoActions` / `.terminalActions` / `.helperButton` / `.outcome_*` /
-`.terminalExtra`. connections
-fills them with: setup = puzzle words / categories / mistakes / timer; state =
-"N/4 categories found"; help = "Pick 4 tiles…"; actions = **Hints** + **End**
-buttons (both moved off the GamePage menu into the action row). codenamesduet
-fills them with: setup = turn cap + first clue-giver; state = "{green}/15 agents ·
-turn {n}/{cap}"; help = the current phase instruction — and in **sudden death** a
-leading red **SUDDEN DEATH:** before the explanation; actions = **End** (also off
-the menu). codenamesduet's *move* controls are deliberately **not** here — the
-clue form / active clue + Pass / waiting line live in the below-board input row
-(critical-to-playing belongs in the board column; see
-[Text entry](#text-entry--capture-not-input)).
-
-## Text entry — capture, not `<input>`
-
-For **single-token entry** (a word, a number — psychicnum, and the path
-boggle/spellingbee should converge on), the play surface does **not** use a real
-`<input>`. These are board-first games: the board is where the eyes and clicks
-go, and a focused `<input>` loses focus the instant you click a board tile, so
-typing silently stops. Instead we **capture keystrokes off the window** (the
-shared **`useCaptureKeys`** hook, built on `useGlobalKeyHandler`) and show the
-pending value in a read-only display box (the shared **`<EntryBox>`**), so there's
-no focus to lose — typing and tile-clicks both feed one pending value, and clicking
-anywhere never interrupts entry.
-
-Every such game renders the shared **`<EntryRow>`** (`common/components/game/entry/EntryRow.tsx`):
-one component bundling the whole entry control so it looks + behaves identically
-everywhere — an icon-only `<DeleteButton>` + the `<EntryBox>` (which flex-fills the
-row) + an icon-only `<SubmitButton>`, the `useCaptureKeys` keyboard, and the
-**pill swap** (pass a `pill` and it renders that `<FeedbackPill>` in place of the
-controls — the own-move result / terminal verdict — without unmounting, so a
-keystroke still dismisses it). The host owns only the below-board *slot* (its
-board-matched width + reserved height) and which `pill` to show. A new word game
-gets the entire entry for free.
-
-**Free-text / phrase entry** (codenamesduet's clue — arbitrary words, spaces,
-mid-string editing) is the exception: it stays a real `<input data-game-input>`,
-where native cursor/selection/editing earns its keep. The rule: *single token →
-capture; free text → `<input>`.*
-
-The contract for the capture model:
-
-- **Simulated caret = honesty.** `<EntryBox>` draws a blinking caret to say "type
-  here" (recovering the one thing a real input's cursor gave). It blinks **only
-  while the game owns the keyboard *and* something's been typed** — keyboard
-  ownership is gated on `useGameHasKeyboard` (no
-  `<input>`/`<textarea>`/`<select>`/contenteditable focused), the *same*
-  condition under which `useGlobalKeyHandler` routes keys to the game. So **caret
-  visible ⟺ keyboard-owned AND non-empty**: an empty box shows only its grey
-  placeholder (which already says "type here"), and the caret never duels with the
-  chat box's cursor. The non-empty gate lives in the shared `<EntryBox>`, so it's
-  uniform, not a per-game choice.
-- **No tabbing between controls.** While the entry is live, `Tab` is swallowed —
-  these games are navigated by clicks + typing, not by tabbing focus between
-  buttons, and a caret blinking on the board while focus sits on some button reads
-  as two cursors. (Focused text fields like chat keep their own `Tab`.)
-- **Modified keystrokes pass through.** Bail before capturing anything when a
-  `metaKey`/`ctrlKey`/`altKey` modifier is held, so `Cmd-R`, `Ctrl-Tab`, etc. stay
-  the browser's.
-- **What can be entered is per-game; the rest is shared, in two layers.** The
-  GENERIC key-capture **core** is `useCaptureKeys` (`common/hooks/input/useCaptureKeys.ts`):
-  the modifier bail, the `Tab` swallow, the next-move feedback dismissal (`onAnyKey`),
-  Backspace / Enter (Enter only when non-empty), and the ~16-char cap — identical
-  for every key-capture game. The **last-move history** — `ArrowUp` recalls the
-  `recall` value, `ArrowDown` clears — is a SEPARATE layer, `useArrowHistory`,
-  which `<EntryRow>` composes on top of the core; it's specific to the single-word
-  EntryBox, so it applies to those games and **only** them. A game supplies *what
-  may be entered* — `charFor` (letters vs digits + the stored case; the exported
-  `asciiLetters('lower' | 'upper')` covers the word games) — plus any extra keys via
-  `onExtraKey` (spellingbee's `Space` = shuffle), the `recall` value (for the
-  ArrowUp layer), and the `disabled` (loading / terminal) / `busy` (mid-submit)
-  gates. **spellingbee, boggle, psychicnum** are the EntryBox games (core + arrows,
-  via `<EntryRow>`). **wordle uses the core ALONE** — its letters land on the
-  Board, not an EntryBox, so it gets the shared guards / letter / dismiss but
-  **no arrow behavior**. The board-cursor games (bananagrams, scrabble) are a
-  different capture shape again — a 2-D cursor where arrows *move* it — with their
-  own shared hook, **`useBoardCursorKeys`** (also on `useGlobalKeyHandler`): it
-  owns the arrows→cursor / letter / Backspace / Enter dispatch + the skip-Enter-
-  when-a-button-is-focused, and each game supplies the per-cell edit rule
-  (bananagrams overwrites any tile; scrabble locks committed ones) and what a
-  letter / Enter does (place-from-hand + peel vs stage + play word).
-- **Terminal local feedback is permanent.** `clearLocalFeedback` is a no-op once
-  the game is over (`useLocalFeedback`'s `locked: isTerminal`), so no key, click,
-  or future entry method can dismiss a verdict — the permanence lives in the one
-  function that removes feedback, not re-checked at each dismissal site. During
-  play, the shared `useDismissLocalFeedbackOnKey` makes "any key clears the
-  own-move pill" universal (even games with no keyboard capture, like waffle /
-  connections), while the focused-input guard keeps a chat keystroke from wiping a
-  game's feedback.
-
-**Local own-result feedback.** The player's own last move shows a result for the
-*local* half of the feedback split (the *group* half is the header pill, [Feedback
-pill](#feedback-pill) above): "Correct!" / "Incorrect" / "One away!" or a
-validation error, in the green/red/amber outcome palette.
-
-**How it renders.** It's the same **`<GenericFeedbackPill>`** as the header/global
-area — identical CSS, centered, in the fixed-height **local feedback area**
-(`.localFeedback`) in the `belowBoard` region — so local and global feedback read as
-one register (see [design-decisions.md → Feedback](design-decisions.md#feedback)).
-The pill is driven by the shared **`useLocalFeedback`** hook (holds one
-`GenericFeedbackMsg`, auto-clears on the next move / any key via
-`useDismissLocalFeedbackOnKey`, and is permanent at terminal — see [Terminal local
-feedback is permanent](#text-entry--capture-not-input) above). The slot reserves its
-height so swapping the pill in for the move controls never reflows the board. All eleven
-games share this; the earlier per-game full-width `<ResultFlash>` bar has been
-removed.
-
-**Terminal reveal goes where the entry was.** When the game ends, render the
-reveal ("The words were …") in the slot the entry vacated — *below* the
-top-anchored board, never as a heading above it (a heading shifts the board down
-on state change — [Layout stability](#layout-stability)). It lands where the
-player was already looking and explains why the entry is gone.
-
-**Locked names for the input row.** The row below the board and its parts use
-one vocabulary across games (each still in the game's *own* module — same names,
-not yet a shared stylesheet): **`.inputRow`** (the reserved-height row that holds
-the move controls — psychicnum's word entry + Submit, connections' Clear /
-Submit), **`.inputButton`** (a Lucide-icon + label button in it; `min-width:
-7rem`, centered), and **`.inputMessage`** (what fills the row when the controls
-are gone — the terminal reveal, or an "out of guesses / you're out" waiting
-line). Reuse these when a new game grows the same row. The **`.inputMessage`**
-text presentation is canonical across games — **muted, `1.15rem`, normal weight**
-(`<strong>` rises to full text color for key tokens) — a *calm, secondary* line,
-since the loud verdict lives in the GameOverModal + the bold info-column
-`.outcome`. (Its box differs by placement: a padded board-column child in
-psychicnum, a `flex: 1` span in the `.inputRow` in connections — same text, the
-box fits where it sits.)
-
-## Turn log
-
-The shared **`<TurnLog>`** (`common/components/game/lists/TurnLog.tsx`) is a game's per-turn
-history — one **item** per turn (= per guess for most games; a TinySpy turn can
-span a clue + several guesses, so an item is a "turn", never a "guess" in the
-shared vocabulary). It's the chronological counterpart to the alphabetical
-`<WordList>` (spellingbee/boggle); a game has whichever fits.
-
-**The game owns its rows.** `<TurnLog>` is the **panel only** — heading, scroll
-box, `<table>` — and makes **no** assumption about row shape, because row anatomy
-genuinely differs game to game: a one-row three-column guess, a two-`<tr>`
-clue-then-guesses turn, a row with an inline mini-board. So a game renders its
-**own `<tr>`s** inside `<TurnLog>` (its children *are* the rows). The only shared
-contract is *"a turn-log item is a `<tr>` in this table."* Even the column count
-isn't shared — psychicnum's one-guess row and a future five-column stat row are
-both valid. (Trying to parameterize one row shape into a shared `<TurnLogItem>`
-was overfitting — it grows a prop per game-shape; see [design-decisions.md →
-Reconciliation #7](design-decisions.md#reconciliation-with-the-code).)
-
-What *is* shared is **vocabulary a game composes into its own rows**, so logs look
-consistent without imposing structure:
-
-- **It's a `<table>`,** so when a game *does* use the same columns across its
-  rows, they line up (number column, who column, …) — a flex/grid-of-rows can't.
-  **Use that structure: give each distinct piece its own `<td>`** (and put a
-  second line on a second `<tr>` with a `rowSpan`ned bar — *not* a stacked div in
-  one cell). **Don't** collapse a row into one `<td>` and rebuild the columns with
-  flexbox/grid inside it, and **don't** stack two lines in one cell — both throw
-  away the alignment the table exists for (the codenamesduet *and* connections
-  conversion bugs: connections first kept its tiles + a `verdict | who` flex
-  sub-line in a single cell; it's now a two-`<tr>` turn). A lone `<td>` (often
-  `colSpan`) is right only when the row's content is genuinely **one piece** — a
-  phrase like psychicnum's hint row (`Hint: <clue>`) or a single joined string —
-  never a way to fit two pieces (a verdict *and* an actor) side by side. Default
-  cell padding/size lives on `:where(.turnLogTable) td` (held at single-*element*
-  specificity by `:where()`, so any game cell class or the bar atom overrides it
-  without a fight).
-- **`<TurnLogBar outcome rowSpan?>`** — the colored outcome-bar **cell**, the one
-  row piece common to most logs. It's *optional* (a game's row needn't include
-  it) and self-contained (its CSS doesn't depend on the `<tr>` carrying any
-  class), so a game drops it into whatever row it builds. `outcome` is `good` /
-  `bad` / `partial` / `neutral` → the shared `--color-outcome-*` palette, so a
-  "bad" turn reads the same everywhere; `rowSpan` lets a multi-row turn have the
-  bar cover the whole turn (codenamesduet). The bar is a real `<span>`, not a
-  styled empty cell (**an empty table cell collapses — its `width` is ignored —
-  and has no content box to paint**); a zero-height `::before` spacer reserves the
-  column width so a content-rich row can't squeeze the bar to nothing. The cell's
-  padding sets the spacing; the span is absolutely positioned + inset top/bottom
-  so it tracks the (possibly multi-row) cell height and adjacent bars read as
-  individual segments.
-- **`.turnLogDivider`** — the between-turns **divider line**. A game puts it on
-  the **first `<tr>` of each turn** (it alone knows where a turn starts — one row
-  or several). It's a *top* border, so a multi-row turn gets **no** mid-turn line;
-  `:first-child` suppresses it on the very first turn, so a game applies it to
-  every turn-start row unconditionally. Full width, reaching the left edge (over
-  the bar column too). Flat rows, no per-row card border, no vertical borders.
-- **Multi-row hug (`.entryHead` / `.entryCont`).** When a turn is several `<tr>`s,
-  the game tags the **first** row `.entryHead` and each **continuation** row
-  `.entryCont`; the shared CSS trims the facing padding so the rows read as one
-  entry, not several. Explicit classes (the component knows the row kind) rather
-  than a structural `:has()` selector — readability over cleverness. Single-row
-  turns carry neither.
-- **Column-sizing classes** — a small model for a row's cells: an optional
-  `<TurnLogBar>` (col 0), an optional **`.meta`** (a turn number — muted, shrinks,
-  space-free so it never wraps), one or more content columns, and **`.who`**
-  (right-aligned, shrinks to the actor's "name ●"). Exactly **one** content column
-  is **`.main`** (`width: 100%` — it absorbs the row's slack so it's least likely
-  to wrap; put it where the gap should land, typically the last content cell
-  before `.who`); any other content columns are **`.other`** (sized to fit, one
-  line). These carry **sizing only, no emphasis** — compose a look on top (e.g.
-  `cls(turnLog.other, turnLog.primary)` for a bold word). The slack lives in
-  `.main`, **not** `.who` — a `width: 100%` on `.who` would steal it and wrap a
-  sibling (the connections "Not a match" bug).
-- **Emphasis class** — `.primary` (the bold lead value) — plus the shared
-  [`<ActorTag>`](#player-identity--a-colored-disc) for the actor (name + identity
-  disc). Bare names, read as `turnLog.primary` (namespaced by the import alias).
-  Reach for an existing class/component before inventing one.
-- **Scroll box.** Heading over an *evident* bordered, fixed-height box (a 2px
-  frame, not a hairline) that stays the same height whether empty or full and
-  auto-snaps to the newest row; the table scrolls inside it.
-
-psychicnum, connections, and codenamesduet each render their own rows:
-psychicnum's is a single `<tr>` (number / word / result / who columns);
-connections's is a **two-`<tr>`** turn — row 1 `verdict | who` columns, row 2 the
-four guessed tiles spanning beneath; **codenamesduet's is the multi-guess case**
-the "item, not guess" vocabulary was named for — a **two-`<tr>`** turn (the bar
-`rowSpan`s both) with real `# | clue | clue-giver` columns on row 1 and the turn's
-guesses spanning beneath on row 2 (its per-turn outcome derived in
-`codenamesduet/lib/turnOutcome.ts`).
-
-**`<TurnLogItem>` has been deleted.** It was a thin legacy single-row wrapper
-(one `<tr>` = `<TurnLogBar>` + `.turnLogDivider` + the game's cells) kept only for
-games not yet converted; **waffle** was the last caller, and converting it to its
-own `<tr>` (a single-row swap entry: bar + `#N` + the move in `.main` + the
-swapper in `.who`) left no callers, so the wrapper is gone. A new game renders its
-own `<tr>` rows the same way — there's no wrapper to fall back on. (The older
-`HistoryPanel` predecessor this whole system replaced was already **deleted** —
-scrabble's framed `GameTurnLog` is separate and unaffected.)
-
-## Turn-history viewer
-
-Every game whose board can replay past turns (scrabble, stackdown, connections,
-psychicnum, codenamesduet, wordle, waffle) lets you **click a past turn to see the
-board as it was then**. The affordance is shared and looks identical everywhere:
-
-- **The `#N` handle** (`<TurnLogNumber>` in `common/components/game/lists/TurnLog.tsx`) — each
-  turn's number cell is the click target; clicking it opens that turn on the board.
-  **Not** the whole row: several games render a turn as multiple `<tr>`s
-  (codenamesduet's clue + guesses), where a row-wide "viewing" outline draws a broken
-  box — a single small handle stays crisp regardless. It's a `<span>`, not a
-  `<button>` (a focused button re-fires its click on Space, and Space is a viewer
-  exit), and it carries `data-turn-number` so the click-to-exit handler can tell
-  "select a turn" from "click away."
-- **The framed board.** While viewing, the board wears the shared
-  `historyViewer.module.css → .frame` (a yellow "viewing" outline + banner, input
-  frozen) and the open turn's `#N` wears `.viewedNumber` (the matching yellow ring).
-  `.frame` also sets `pointer-events: none`, so a board click falls through to the
-  exit handler — a viewed board is a read-only snapshot.
-- **Three exits, all shared:** a keystroke, a click anywhere (except another `#N`
-  handle, which switches turns), or the banner **✕**. Two are intrinsic to the hook;
-  only the keystroke path is wired per game (it must cooperate with the game's own
-  key handler).
-
-The coordination — which turn is open + the enter/exit affordances — is the shared
-**`useHistoryViewer`** hook (`common/hooks/game/useHistoryViewer.ts`); the `PlayArea`
-holds it as its one cross-column "am I viewing" state. What stays **per-game** is how
-a snapshot is *computed* from the viewed turn (each game's **`lib/history.ts`** — the
-board shape and even the boundary differ: an ADD-style board shows the turn's own
-move *included*, a removal-style board like stackdown/connections shows the fuller
-*pre-move* board) and how a turn is *identified* (a game-wide ordinal like scrabble's
-`seq` or codenamesduet's `turn_number`, vs a log position). See
-[docs/playarea-decomposition.md](playarea-decomposition.md) for the full
-seam and the per-game keying.
-
-## Board sizing
-
-A game board grows as large as the space allows. **Every board-grid game shares one
-model: the board column HUGS its board.** The column is only as wide as the board,
-and the board+info pair centers (`justify-content: center` on `.layout`). **"Fill" is
-just the no-cap case of hug** — with no max tile size the board grows to the full
-available width, so a capless game reads exactly like the old fill model. (Each game
-exposes a max-tile-size knob; psychicnum caps, most ship uncapped today — so they
-still *look* like they fill, but they're on the hug structure.) The **square boards**
-(waffle, scrabble, boggle) compute a single **`--side`** bounded by BOTH the width
-left beside the info column (`--avail-w`) AND the height above their input/rack row
-(`--avail-h`); the non-square boards hug width alone. (bananagrams is the one FILL
-exception — a fixed 25×25 arena; see docs/games/bananagrams.md.)
-
-### The shared scaffold
-
-In `common/components/game/PlayArea.module.css`:
-- **`.boardCol { flex: 0 0 auto }`** — hugs its board (was `flex: 1` fill).
-- **`.layout`** defines **`--avail-w`** = `calc(var(--client-width, 100vw) -
-  var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding-x))` — the
-  width left beside the fixed info column, built from shared tokens (so a change to
-  the info-column width, the layout gap, or the page padding flows through to every
-  board automatically). This is the *input* to each game's board width — see [Why
-  the width is computed](#why-the-width-is-computed) for why it can't just flex.
-  `.layout` also carries an explicit `width` (the content area) — see below.
-
-**Two things had to be right for the board+info pair to stop drifting off the
-right edge at the game-over `WordList` reveal (a big list forces the info column
-tall/wide):**
-
-1. **`.layout` has a definite `width`, not shrink-to-fit** (`calc(var(--client-width, 100vw) - 2 * var(--page-padding-x))`).
-   `body` is `place-items: start center`, which sizes its grid item to its content's
-   *max-content* width. The shared `WordList`'s column-major grid has an enormous
-   max-content (every column laid out) at the reveal, and **WebKit (Safari) leaks
-   that up through the grid's `overflow` clamp into the shrink-to-fit sizing** —
-   ballooning the whole frame to ~9500px and shoving the board+info pair
-   off-screen. Blink (Chrome) bounds it, so it only showed in Safari/Firefox.
-   Pinning `.layout`'s width breaks the cycle: the list's intrinsic width can't
-   inflate a fixed-width layout, and `justify-content: center` still centers the
-   pair. **Verified in the Playwright WebKit + Firefox engines** (Chromium never
-   reproduced it — see [layout verification](#) note in the memory).
-2. **`--client-width`, not `100vw`, for the width math.** `100vw` *includes* the
-   vertical scrollbar; the content box doesn't. On classic (space-taking)
-   scrollbars (macOS "always show", most Windows) that overstates the width by
-   ~15px and the board overflows right — invisible with overlay scrollbars (0px),
-   so headless can't see it. `--client-width` (`document.documentElement.clientWidth`)
-   excludes the scrollbar in every engine; it's measured and kept current with a
-   **ResizeObserver** (`common/lib/util/layoutWidth.ts`) so a *content-driven* scrollbar
-   (the reveal) updates it — a `resize` listener misses that. `html {
-   scrollbar-gutter: stable }` (theme.css) additionally avoids a cosmetic
-   board-resize when the scrollbar toggles, where supported.
-
-### Each game's board
-
-A board computes a **definite width** and hugs it; its **height flex-fills** the
-column, capped:
-
-```css
-.grid  { width: min(var(--avail-w),
-                     calc(var(--cols) * var(--max-tile-width, 999rem)
-                          + (var(--cols) - 1) * var(--grid-gap))); }
-.board { flex: 1 1 0;            /* fills the column height; grid's 1fr rows fill it */
-         max-height: calc(var(--rows) * var(--max-tile-height, 999rem)
-                          + (var(--rows) - 1) * var(--grid-gap)); }
-```
-
-The grid is `repeat(var(--cols), 1fr) / repeat(var(--rows), 1fr)` with a fixed
-`var(--grid-gap)`, so tiles divide the definite size evenly with **constant gaps**
-(capping a tile no longer stretches the spacing). `--cols`/`--rows` are per game —
-static in CSS where the board shape is fixed (codenamesduet/waffle 5×5), or set
-inline where they vary (psychicnum `ceil(√N)`; connections `bands + tile-rows`,
-set on `.board` in `Board.tsx`).
-
-**The tinker knobs.** Each game's board module carries a `─── TINKER HERE ───`
-block with **`--max-tile-width`**, **`--max-tile-height`**, and **`--grid-gap`**
-(rem). **Comment a cap line out → that axis is uncapped** (the `999rem` fallback
-wins, so the board fills the available space on that axis). The knob lives
-wherever the game keeps its board CSS — psychicnum `Board.module.css`,
-connections `PlayArea.module.css`, codenamesduet `Board.module.css`, waffle
-`Board.module.css` (a known inconsistency — consolidating them onto `.layout`
-is a possible follow-up).
-
-**`--info-col-width` is game-specific** — set per game on its `.layout` (the
-shared scaffold has **no default**, so each game must declare it), since the right
-column's needs differ (psychicnum narrow; spellingbee wide when it converts). It
-feeds both the shared `.infoCol` width and `--avail-w`. The value is a **rem**:
-"fixed-width" means `flex: 0 0` (never grows/shrinks), *not* a pixel lock.
-
-**Waffle is the square variant.** A square is bounded by *both* dimensions, so it
-can't size by width alone: `side = min(var(--avail-w), var(--avail-h), <cap>)`,
-where **`--avail-h`** = `calc(100vh - var(--game-chrome-height) - <its
-below-board slot>)` is the vertical counterpart of `--avail-w` (only waffle needs
-it — the rectangular games flex-fill height). Its `.board` is `flex: 0 0 auto`
-(the grid is definite in both dims) and its tinker knob is a single
-**`--max-tile-size`** (square → one cap, not separate width/height). A solved
-connections category is still **"one long tile"** (`grid-column: 1 / -1`) — a band
-spanning all columns at the same row height/padding/depth as a tile.
-
-### Why the width is computed
-
-A shrink-wrapped flex column can only hug a child whose width is *already known*.
-A square's width comes from its height; a `flex:1` / `container-type: size`
-board's width comes from the column — both circular, so the column **collapses**.
-Computing the width from the viewport (`--avail-w`, plus `--avail-h` for the square
-boards — waffle, scrabble, boggle) breaks the cycle. (This is exactly why the
-container-query square waffle used before couldn't be hugged: the size container
-collapsed in a hugging column.)
-
-**Single-glyph vs word tiles** is unchanged: scale a single glyph (a digit, an
-A-game letter) with the tile via `cqmin`/`cqi`; multi-char content auto-fits via
-`cqi` + `--len` (see [Tile content](#tile-content-letter-vs-word-a-vs-b-games)).
+**v3 is the current standard — the full rule set this doc + playarea.md define**
+(semantic buttons + tones, the feedback-pill tone border + bar, opponent-strip
+identity discs + metric labels, the terminal look for locally-terminal states,
+sticky local feedback, natural-width action buttons). v1 was the original per-game
+layout; v2 the intermediate shared-layout scaffold. **The sweep is complete — all
+eleven games are v3**, with bananagrams and crosswords the two documented layout
+exceptions (their own board layouts; see their game docs). There is no v4. A game
+doc calling a game "v3" means "conforms to this standard."
 
 ## Mode pills
 
@@ -1134,6 +668,24 @@ action-row *button*, never a GamePage-menu item. The roster of semantic buttons:
 `PeelButton` · plus the label-less pills `ShuffleButton` / `PauseButton` /
 `BackToClubButton` / `ZoomFitButton`. Still on their old glyphs / pending: the
 chat bubble, the `×` close, and the `✓`/`✗` marks.
+
+**Two axes + natural width.** A semantic button composes from `ActionButton`'s two
+axes: **weight** (`primary` = the filled-accent main action like Submit; `secondary`
+= the outline everything else builds on) and **tone** (the same `neutral | success |
+error | warning | info | near` vocabulary + palette as the feedback pills — a
+`warning` button is the exact amber of a `warning` pill). Today: Hint / Reveal =
+`warning`, End = `error`, Submit = `primary`, Clear / Delete = `neutral`. Action-row
+buttons size to their **own icon + label** (`flex: 0 0 auto`), left-aligned — they do
+**not** stretch to equal widths or the column's right edge: equalizing widths clipped
+a longer label's icon, and unequal widths actually *aid* recognition ("Hint is the
+short one"). Need a button with no semantic component yet? **Create one** (a one-line
+wrapper around `<ActionButton>`) — never hand-roll a one-off `<button>` in a game.
+
+**End vs Concede** are distinct components for distinct actions: **End**
+(`EndGameButton`) is the neutral mutual "we're done" for solo / coop; **Concede**
+(`ConcedeGameButton`) is "I give up, you win" for compete. Same flag glyph + `error`
+tone today, kept separate so they can diverge later (a concede should hand the
+opponent the win).
 
 ## Explicitly deferred
 

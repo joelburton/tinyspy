@@ -316,7 +316,7 @@ dedups. Exactly the scrabble/spellingbee trusting-commit model.
 
 **v3 layout** — the shared two-column scaffold (`common/components/game/PlayArea.module.css`,
 imported as `shared`): a board column + a fixed info column, no full-page scroll
-(per [docs/ui.md](../ui.md) and [docs/design-decisions.md](../design-decisions.md)).
+(per [docs/ui.md](../ui.md) and [docs/playarea.md](../playarea.md)).
 boggle is spellingbee's structural twin (hunt words → typed entry → found-words
 `<WordList>` → compete `OpponentStrip` → client-side missed-words reveal); the one
 difference is the **square tile grid** (sized like waffle's, the other square
@@ -345,7 +345,7 @@ board), swapped in for spellingbee's hex flower.
     and typing clears the path. Own-move results show as a **local sticky `<FeedbackPill>`**
     (required `+N` / bonus / too-short / off-board / not-a-word), dismissed by the
     next keystroke — not the GamePage header feedback channel.
-- **Info column** (the canonical v3 order — see design-decisions.md → Info column):
+- **Info column** (the canonical v3 order — see [playarea.md → Info-column readouts](../playarea.md#info-column-readouts)):
   the live **`<Stats>` grid** — a 4-cell two-line readout (label over value, the
   spellingbee `<Stats>` idiom), every cell `found / total`: **Words** (required
   found / required on board) · **Score** (required-found score / required total) ·
