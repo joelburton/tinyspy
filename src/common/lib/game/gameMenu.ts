@@ -1,4 +1,4 @@
-import type { MenuApi, MenuItem, MenuSection } from '../games'
+import type { MenuApi, MenuHeader, MenuItem, MenuSection } from '../games'
 
 /**
  * Assemble a game's FULL header menu. Every game owns its own menu now (the
@@ -26,8 +26,12 @@ export function buildGameMenu(opts: {
   onConcede?: () => void
   /** The game's own sections, inserted between Help and the End/Back tail. */
   extra?: MenuSection[]
+  /** Optional info block pinned at the VERY TOP of the menu (above Help) — a
+   *  non-clickable title + credit lines. crosswords passes the loaded puzzle's
+   *  title / author / copyright, matching crossplay's menu. */
+  header?: MenuHeader
 }): MenuSection[] {
-  const { menu, mode, isTerminal, conceded, onEndGame, onConcede, extra = [] } = opts
+  const { menu, mode, isTerminal, conceded, onEndGame, onConcede, extra = [], header } = opts
 
   const endOrConcede: MenuItem =
     mode === 'compete'
@@ -47,6 +51,8 @@ export function buildGameMenu(opts: {
         }
 
   return [
+    // A header-only section (no items) at the very top when a header is given.
+    ...(header ? [{ header, items: [] }] : []),
     { items: [{ id: 'help', label: 'Help', onClick: menu.openHelp }] },
     ...extra,
     {

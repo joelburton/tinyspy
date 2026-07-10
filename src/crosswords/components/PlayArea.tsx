@@ -447,6 +447,15 @@ export function PlayArea(ctx: GamePageCtx) {
   useEffect(() => {
     if (!game) return
     const title = game.meta.title || 'crossword'
+    // The puzzle title + credits, pinned at the top of the menu — crossplay shows
+    // this "title / by author / copyright" block in its menu. Empty fields drop out.
+    const menuHeader = {
+      title: game.meta.title || 'Untitled',
+      lines: [
+        game.meta.author ? `by ${game.meta.author}` : null,
+        game.meta.copyright || null,
+      ].filter((line): line is string => line !== null),
+    }
     // The FULL crosswords menu (crossplay order, single column): the play
     // actions ALSO live here with their ⌥-shortcut hints (crossplay advertised
     // them in the menu). Play actions dispatch through the stable `actionsRef`
@@ -458,6 +467,7 @@ export function PlayArea(ctx: GamePageCtx) {
         mode,
         isTerminal,
         conceded: myConceded,
+        header: menuHeader,
         onEndGame: () => actionsRef.current?.endGame(),
         onConcede: () => actionsRef.current?.concede(),
         extra: [

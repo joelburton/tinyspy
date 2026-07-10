@@ -444,8 +444,13 @@ begin
   -- club preference — the setup dialog picks a puzzle each time; persisting one
   -- as the club default would silently re-pick a specific (possibly already
   -- played) puzzle.
+  -- Game title = the PUZZLE's own title (from its meta), like crossplay names a
+  -- game after the loaded puzzle — e.g. "NYT Sat 1/1/22: <theme>" or a library
+  -- puzzle's embedded title — instead of a generic "New crossword". Falls back to
+  -- "Crossword" for an untitled puzzle. Shown in the club game list + the header.
   new_id := common.create_game(
-    target_club, 'crosswords_' || mode, player_user_ids, 'New crossword', setup,
+    target_club, 'crosswords_' || mode, player_user_ids,
+    coalesce(nullif(btrim(v_meta ->> 'title'), ''), 'Crossword'), setup,
     setup - 'puzzle_id'
   );
 

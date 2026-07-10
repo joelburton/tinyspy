@@ -224,7 +224,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   const renderedItems: ReactNode[] = []
   let flatIdx = 0
   sections.forEach((section, sectionIdx) => {
-    if (section.items.length === 0) return
+    if (section.items.length === 0 && !section.header) return
     if (renderedItems.length > 0) {
       renderedItems.push(
         <div
@@ -232,6 +232,21 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
           className={styles.divider}
           role="separator"
         />,
+      )
+    }
+    // A non-clickable info header (crosswords puzzle title + credits). Not a
+    // menuitem — no keyboard-nav index, no ref registration; the popover's arrow
+    // navigation walks only the real `.item` buttons.
+    if (section.header) {
+      renderedItems.push(
+        <div key={`hdr-${sectionIdx}`} className={styles.header} role="presentation">
+          <div className={styles.headerTitle}>{section.header.title}</div>
+          {(section.header.lines ?? []).map((line, i) => (
+            <div key={i} className={styles.headerLine}>
+              {line}
+            </div>
+          ))}
+        </div>,
       )
     }
     section.items.forEach((item) => {

@@ -443,4 +443,30 @@ describe('Menu — sections + dividers', () => {
     const popover = screen.getByRole('menu')
     expect(within(popover).queryAllByRole('separator')).toHaveLength(0)
   })
+
+  it('renders a section header (title + credit lines) as non-clickable info', async () => {
+    const user = userEvent.setup()
+    render(
+      <Menu
+        trigger="☰"
+        triggerLabel="Test menu"
+        sections={[
+          // A header-only section (no items) — the crosswords puzzle-info block.
+          { header: { title: 'Sunday Special', lines: ['by A. Constructor', '© 2026'] }, items: [] },
+          { items: [{ id: 'help', label: 'Help', onClick: () => {} }] },
+        ]}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    const popover = screen.getByRole('menu')
+    // The header text shows…
+    expect(within(popover).getByText('Sunday Special')).toBeInTheDocument()
+    expect(within(popover).getByText('by A. Constructor')).toBeInTheDocument()
+    expect(within(popover).getByText('© 2026')).toBeInTheDocument()
+    // …but it is NOT a menuitem (the title isn't a clickable button)…
+    expect(within(popover).queryByRole('menuitem', { name: 'Sunday Special' })).toBeNull()
+    // …and a header-only section still counts for divider placement (one divider
+    // between the header block and the Help item below it).
+    expect(within(popover).getAllByRole('separator')).toHaveLength(1)
+  })
 })

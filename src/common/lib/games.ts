@@ -175,7 +175,19 @@ export type MenuItem = {
  *  Sections are separated by a thin divider. Empty sections drop
  *  out — no leading or trailing dividers around them. */
 export type MenuSection = {
+  /** Optional non-clickable header shown ABOVE the section's items — a bold
+   *  `title` plus muted `lines` (e.g. "by Author", a copyright). crosswords uses
+   *  it to show the loaded puzzle's title + credits at the top of its menu, the
+   *  way crossplay's menu does. A section may be header-only (no `items`). */
+  header?: MenuHeader
   items: MenuItem[]
+}
+
+export type MenuHeader = {
+  title: string
+  /** Muted sub-lines under the title (author, copyright). Empty/omitted lines
+   *  are the caller's to filter out. */
+  lines?: string[]
 }
 
 export type MenuApi = {

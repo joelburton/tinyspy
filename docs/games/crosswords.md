@@ -232,6 +232,14 @@ never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
   (`MenuItem.shortcut`) — crossplay advertised them there, and the menu is where
   a mouse user discovers the shortcut. Both surfaces dispatch through the shared
   `actionsRef`, so there's one binding, two entry points.
+- **Puzzle-info menu header** — the game menu opens with the loaded puzzle's
+  **title + credits** (`title`, `by {author}`, `copyright`), a non-clickable block
+  pinned above Help — crossplay's menu shows the same. It rides the shared menu's
+  new `MenuSection.header` / `buildGameMenu({ header })` (empty credit fields drop
+  out). The puzzle title is *also* the game's `common.games.title` now: `create_game`
+  names the game after the puzzle (`v_meta ->> 'title'`, e.g. "NYT Sat 1/1/22: …"
+  or a library puzzle's embedded title) rather than a generic "New crossword", the
+  way crossplay names a game after its puzzle.
 - **Rebus / peek overlay** — the `Grid` renders a 3-cell-wide box centered +
   clamped over the cursor cell: an editable `RebusInput` (Enter commits +
   advances, Tab / Shift+Tab commits + jumps clue, Esc/blur cancels) or, for

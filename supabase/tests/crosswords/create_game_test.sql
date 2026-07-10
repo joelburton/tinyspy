@@ -1,6 +1,6 @@
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(27);
+select plan(28);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -47,6 +47,12 @@ select ok(
 select is(
   (select meta -> 'title' from crosswords.games where id = :'gc_id'),
   '"Toy"'::jsonb, 'meta is copied from the puzzle');
+
+-- The game's human title is the PUZZLE's title (like crossplay names a game after
+-- the loaded puzzle), not a generic "New crossword".
+select is(
+  (select title from common.games where id = :'gc_id'),
+  'Toy', 'common.games title is the puzzle title');
 
 -- ── Compete: one grid per player ─────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
