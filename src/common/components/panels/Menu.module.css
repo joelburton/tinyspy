@@ -55,7 +55,19 @@
   top: calc(100% + 0.35rem);
   left: 0;
   z-index: 1500;
+  /* Size to the WIDEST item on one line, so labels like "Print answer key (PDF)"
+   * don't wrap. The popover is absolutely positioned inside the narrow
+   * inline-block `.menu`, so plain shrink-to-fit would clamp to that tiny
+   * containing block and wrap every long label; `max-content` ignores the clamp
+   * and takes the content's natural (unwrapped) width. `min-width` keeps a short
+   * menu from getting cramped. `max-width` caps it to the viewport (minus the page
+   * padding) so it never overflows the screen — on a phone, where the content is
+   * wider than that cap, the popover clamps to the cap and items wrap (acceptable
+   * there). Normal `white-space` on the labels (no `nowrap`) is what lets them
+   * wrap once clamped, rather than overflowing. */
+  width: max-content;
   min-width: 12rem;
+  max-width: calc(100vw - 2 * var(--page-padding-x));
   background: var(--color-surface);
   border: 1px solid var(--color-surface-border);
   border-radius: var(--radius-md);
