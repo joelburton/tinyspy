@@ -2,10 +2,16 @@
  * waffle (codename `waffle`) theme tokens. The per-tile feedback palette is
  * the shared "Wordle colors" in common/theme.css
  * (`--wordle-green/yellow/gray/blank`) — waffle paints its tiles with those.
- * Only waffle's own pickup affordance lives here: the warm ring drawn on a
- * tile that's been tapped and is waiting for its swap partner. Imported by
- * the PlayArea (which mounts the grid).
+ * Only waffle's own pickup affordance lives here: the ring drawn on a tile
+ * that's been tapped and is waiting for its swap partner. It's the app's
+ * attention yellow (`--color-history-viewer`, the same bright yellow the
+ * history viewer frames a board with) — a picked-up tile is exactly an
+ * "attention, act here next" state, and yellow pops off the green/gray/gold
+ * feedback tiles far better than the old faint brown did. No confusion with the
+ * history frame: you can't pick up a tile while viewing a past turn (the board
+ * is read-only then), so the two yellows never appear at once. Imported by the
+ * PlayArea (which mounts the grid).
  */
 :root {
-  --waffle-select-ring: rgba(120, 90, 40, 0.35);
+  --waffle-select-ring: var(--color-history-viewer);
 }

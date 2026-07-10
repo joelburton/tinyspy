@@ -491,8 +491,23 @@ info column, so a desktop board shows the same column count it always did.
   submit-via-button-then-path-clears — Enter would land on the focused tile's own
   key handler, so a tap user commits with the Submit button).
 
-**Next up: connections, waffle** — each now a quick conversion (check each board
-fills sensibly; neither has a keyboard).
+**waffle** was a pure plain-recipe conversion (like stackdown) plus two touch
+tweaks. Its square board is `min(--avail-w, --avail-h, cap)`, so `mobileFill`'s
+full width fits it on a phone with no board divergence; the info column (a narrow
+22rem swap-state readout + swap log, no WordList) uses the **plain** 24rem sheet,
+not `wide`. Two input tweaks: (1) the move is already **tap-two-tiles-to-swap** —
+tap one tile to pick it up, a second to swap, the same again to cancel — so touch
+needs no new model; the *drag* path (HTML5 DnD, a desktop mouse affordance) is
+turned **off on a coarse pointer** (`draggable={!disabled && !coarse}`) so a phone
+gets the tap model cleanly (no long-press drag-ghost). (2) The picked-up tile's
+ring was a faint brown (`--waffle-select-ring`) — too subtle; it's now the app's
+**attention yellow** (`--color-history-viewer`, thicker at 4px), which the
+`outline-offset` gap keeps legible even on a yellow feedback tile. That's a
+visibility fix, so it applies on desktop too. Guarded by
+[`waffle-mobile.e2e.ts`](../e2e/waffle-mobile.e2e.ts) (tall + short: board fills,
+no scroll, sheet works; drag off on touch; a tap-swap commits).
+
+**Next up: connections** — a quick conversion (board fills sensibly; no keyboard).
 
 ## TODO — not doing now, recorded so we don't lose them
 

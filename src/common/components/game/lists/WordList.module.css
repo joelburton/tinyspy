@@ -53,6 +53,10 @@
   /* --wl-row-height is referenced by the row-style below; keeping it a token
    * means the row count is derived from it + the box height. */
   --wl-row-height: 26px;
+  /* Column WIDTH as a real defined token (not a `var(--x, fallback)`, which
+   * src/cssTokens.test.ts flags as phantom — see Board.module.css's same note): a
+   * game/layout can override it, but the default lives here as a concrete value. */
+  --wl-col-width: 10.5rem;
   display: grid;
   /* As many rows as fit the fixed height; columns then flow rightward. */
   grid-template-rows: repeat(auto-fill, var(--wl-row-height));
@@ -62,7 +66,7 @@
    * side-scrolling past the visible ones. On the wide desktop box this is ~5
    * columns (≈ the old box/5); in the narrow mobile sheet the columns stay
    * readable (instead of box/5 cramped) and scroll. */
-  grid-auto-columns: var(--wl-col-width, 10.5rem);
+  grid-auto-columns: var(--wl-col-width);
   column-gap: 16px;
   overflow-x: auto;
   overflow-y: hidden;

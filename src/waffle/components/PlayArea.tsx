@@ -10,6 +10,8 @@ import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
+import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { turnSnapshot } from '../lib/history'
@@ -85,6 +87,12 @@ export function PlayArea({
   const { viewingId: viewingIndex, viewing, select: setViewingIndex, exitViewing, exitOnKey } =
     useHistoryViewer()
   useGlobalKeyHandler(exitOnKey)
+
+  // Mobile: below --mobile the board fills the screen and the whole info column
+  // slides in as an off-canvas sheet from a "Game info" menu item (the shared
+  // recipe — docs/mobile.md). Plain (not `wide`): waffle's info column is a narrow
+  // 22rem readout + swap log, no multi-column word list. Desktop is untouched.
+  const infoSheet = useInfoSheet()
 
   // ─── Compete peer news (header pill) ───────────────────
   // When an opponent's public state ticks — they solved the puzzle, or they ran out
@@ -228,6 +236,7 @@ export function PlayArea({
         onEndGame: () => void handleEndGame(),
         onConcede: () => void handleConcede(),
         extra: [
+          ...infoSheet.menuSections,
           {
             items: [
               { id: 'replay', label: 'Replay board', onClick: () => void handleReplay() },
@@ -253,6 +262,7 @@ export function PlayArea({
     handleRevealAnswer,
     isTerminal,
     solutionKnown,
+    infoSheet.menuSections,
   ])
 
   if (loading) return <p>Loading game…</p>
@@ -318,7 +328,7 @@ export function PlayArea({
       : localFeedback
 
   return (
-    <div className={cls(shared.layout, styles.layout)}>
+    <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         board={board}
         colors={colors}
@@ -330,6 +340,7 @@ export function PlayArea({
         localPill={localPill}
       />
 
+      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
       <InfoCol
         isCompete={isCompete}
         over={over}
@@ -354,6 +365,7 @@ export function PlayArea({
         viewingIndex={viewingIndex}
         onSelectTurn={setViewingIndex}
       />
+      </InfoSheet>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
     </div>

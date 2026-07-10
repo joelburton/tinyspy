@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import { tileColor } from '../../common/lib/color/tileColor'
+import { useCoarsePointer } from '../../common/hooks/ui/useCoarsePointer'
 import { CELLS, isHole } from '../lib/waffle'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
@@ -37,7 +38,11 @@ type Props = {
  */
 export function Board({ board, colors, disabled, viewing = false, highlight, onSwap }: Props) {
   const [selected, setSelected] = useState<number | null>(null)
-  // Drag source (HTML5 drag-and-drop, the desktop alternative to tap).
+  // Drag source (HTML5 drag-and-drop, the desktop alternative to tap). Drag is a
+  // MOUSE affordance: on a touch device it's off (HTML5 DnD doesn't fire on touch
+  // anyway, and a `draggable` tile there just invites a long-press drag-ghost),
+  // leaving the tap-two-tiles model — which works everywhere — as the sole input.
+  const coarse = useCoarsePointer()
   const dragFrom = useRef<number | null>(null)
 
   // Recently-swapped tile flash: when the board changes, the two cells whose
@@ -128,7 +133,7 @@ export function Board({ board, colors, disabled, viewing = false, highlight, onS
               aria-label={`${letter.toUpperCase()} (${color})`}
               aria-pressed={selected === pos}
               disabled={disabled}
-              draggable={!disabled}
+              draggable={!disabled && !coarse}
               onClick={() => activate(pos)}
               onDragStart={(e) => {
                 dragFrom.current = pos

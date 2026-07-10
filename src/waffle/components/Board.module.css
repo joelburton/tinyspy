@@ -99,11 +99,15 @@
 }
 
 /* Picked-up tile, waiting for its swap partner. NOT the shared dark `.selected`
- * fill (that would bury the tile's Wordle color) — instead a warm ring + a small
- * lift. Drawn with `outline` (which the shared `.tile` never sets) so it's
- * order-independent, unlike a box-shadow override. */
+ * fill (that would bury the tile's Wordle color) — instead a bold attention-yellow
+ * ring + a small lift. Drawn with `outline` (which the shared `.tile` never sets)
+ * so it's order-independent, unlike a box-shadow override (a box-shadow would also
+ * clobber the shared `.tile`'s own drop shadow). The `outline-offset` gap shows the
+ * board background between tile and ring, so the yellow reads even on a yellow
+ * feedback tile. Thicker than the old faint-brown ring (4px) so the pickup is
+ * unmistakable at a glance. */
 .selected {
-  outline: 3px solid var(--waffle-select-ring);
+  outline: 4px solid var(--waffle-select-ring);
   outline-offset: 2px;
   transform: translateY(-2px);
 }
