@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx } from '../../common/lib/games'
-import { colorByUserIdMap, colorVarFor } from '../../common/lib/color/memberColor'
+import { colorByUserIdMap } from '../../common/lib/color/memberColor'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
@@ -9,6 +9,7 @@ import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { memberById } from '../../common/lib/game/peers'
+import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { db } from '../db'
@@ -149,8 +150,6 @@ export function PlayArea({
     messageFor: (g) => {
       if (g.user_id === session.user.id) return null // mine → local commit flash
       const member = memberById(players, g.user_id)
-      const name = member?.username ?? 'Someone'
-      const dot = colorVarFor(member?.color)
       if (g.result === 'correct') {
         // Name the solved category — coop reveals its band to everyone anyway,
         // so there's nothing to hide.
@@ -158,16 +157,24 @@ export function PlayArea({
         return {
           tone: 'success',
           variant: 'outline',
-          dot,
-          text: cat ? `${name} found ${cat.name.toUpperCase()}!` : `${name} found a category!`,
+          text: (
+            <>
+              <ActorDot actor={member} fallback="Someone" />{' '}
+              {cat ? `found ${cat.name.toUpperCase()}!` : 'found a category!'}
+            </>
+          ),
           dismiss: { kind: 'timed', ms: 3000 },
         }
       }
       return {
         tone: g.result === 'oneAway' ? 'near' : 'error',
         variant: 'outline',
-        dot,
-        text: g.result === 'oneAway' ? `${name} was one away` : `${name} guessed wrong`,
+        text: (
+          <>
+            <ActorDot actor={member} fallback="Someone" />{' '}
+            {g.result === 'oneAway' ? 'was one away' : 'guessed wrong'}
+          </>
+        ),
         dismiss: { kind: 'timed', ms: 3000 },
       }
     },

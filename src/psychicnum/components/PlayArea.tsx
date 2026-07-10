@@ -10,6 +10,7 @@ import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandle
 import { useIsMobile } from '../../common/hooks/ui/useIsMobile'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { memberById } from '../../common/lib/game/peers'
+import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { db } from '../db'
@@ -182,8 +183,6 @@ export function PlayArea({
     messageFor: (g) => {
       if (g.user_id === session.user.id) return null // mine → local
       const member = memberById(players, g.user_id)
-      const name = member?.username ?? 'Someone'
-      const dot = member?.color ?? null
       // Helper actions (hint / reveal) → amber: important, but neither good nor
       // bad. (A reveal logs the answer word, but we narrate it without naming
       // the word — "revealed a word", not which one.)
@@ -191,18 +190,28 @@ export function PlayArea({
         return {
           tone: 'warning',
           variant: 'outline',
-          dot,
-          text: g.kind === 'hint' ? `${name} asked for a hint` : `${name} revealed a word`,
+          text: (
+            <>
+              <ActorDot actor={member} fallback="Someone" />{' '}
+              {g.kind === 'hint' ? 'asked for a hint' : 'revealed a word'}
+            </>
+          ),
           dismiss: { kind: 'timed', ms: 3000 },
         }
       }
       return {
         tone: g.was_correct ? 'success' : 'error',
         variant: 'outline',
-        dot,
-        text: g.was_correct
-          ? `${name} found a secret — ${g.word.toUpperCase()}!`
-          : `${name} guessed ${g.word.toUpperCase()} — not it`,
+        text: g.was_correct ? (
+          <>
+            <ActorDot actor={member} fallback="Someone" /> found a secret —{' '}
+            {g.word.toUpperCase()}!
+          </>
+        ) : (
+          <>
+            <ActorDot actor={member} fallback="Someone" /> guessed {g.word.toUpperCase()} — not it
+          </>
+        ),
         dismiss: { kind: 'timed', ms: 3000 },
       }
     },
@@ -225,12 +234,14 @@ export function PlayArea({
       if (prev === undefined) continue  // first sighting — seed, don't announce
       if (p.secrets_found <= prev) continue
       const member = memberById(players, p.user_id)
-      const name = member?.username ?? 'Someone'
       globalFeedback.show({
         tone: 'success',
         variant: 'outline',
-        dot: member?.color ?? null,
-        text: `${name} guessed a secret word`,
+        text: (
+          <>
+            <ActorDot actor={member} fallback="Someone" /> guessed a secret word
+          </>
+        ),
         dismiss: { kind: 'timed', ms: 3000 },
       })
     }

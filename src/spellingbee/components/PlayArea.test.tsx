@@ -19,11 +19,16 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ReactNode } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
 import type { SpellingbeeGame, FoundWordRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
+
+// Feedback `text` is now a ReactNode (an <ActorDot> widget + sentence) rather
+// than a string — render it and read the plain text to assert on the wording.
+const nodeText = (node: ReactNode) => render(<>{node}</>).container.textContent ?? ''
 
 type GameHook = {
   game: SpellingbeeGame | null
@@ -184,9 +189,9 @@ describe('spellingbee PlayArea — coop peer narration (global header)', () => {
     const { rerender } = render(<PlayArea {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ word: 'bead', points: 1 })])
     rerender(<PlayArea {...ctx} />)
-    expect(ctx.globalFeedback.show).toHaveBeenCalledWith(
-      expect.objectContaining({ text: 'moth found BEAD +1', tone: 'success' }),
-    )
+    const msg = vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0]
+    expect(nodeText(msg.text)).toBe('moth found BEAD +1')
+    expect(msg.tone).toBe('success')
   })
 
   it('adds the pangram flourish for a peer pangram', () => {
@@ -194,8 +199,8 @@ describe('spellingbee PlayArea — coop peer narration (global header)', () => {
     const { rerender } = render(<PlayArea {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ word: 'abcdefg', points: 17, is_pangram: true })])
     rerender(<PlayArea {...ctx} />)
-    expect(ctx.globalFeedback.show).toHaveBeenCalledWith(
-      expect.objectContaining({ text: 'moth found ABCDEFG +17 — pangram! 🐝' }),
+    expect(nodeText(vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0].text)).toBe(
+      'moth found ABCDEFG +17 — pangram! 🐝',
     )
   })
 
@@ -204,8 +209,8 @@ describe('spellingbee PlayArea — coop peer narration (global header)', () => {
     const { rerender } = render(<PlayArea {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ word: 'bcdfge', points: 6, is_bonus: true })])
     rerender(<PlayArea {...ctx} />)
-    expect(ctx.globalFeedback.show).toHaveBeenCalledWith(
-      expect.objectContaining({ text: 'moth found BCDFGE • +6' }),
+    expect(nodeText(vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0].text)).toBe(
+      'moth found BCDFGE • +6',
     )
   })
 
@@ -244,12 +249,9 @@ describe('spellingbee PlayArea — compete opponent rank climb', () => {
     const { rerender } = render(<PlayArea {...props} />)
     // Same globalFeedback + players, new leaderboard with u2 climbing 1 → 2.
     rerender(<PlayArea {...props} status={{ leaderboard: [entry(2)] }} />)
-    expect(gf.show).toHaveBeenCalledWith(
-      expect.objectContaining({
-        text: expect.stringMatching(/^moth reached /),
-        dismiss: { kind: 'sticky' },
-      }),
-    )
+    const rankMsg = vi.mocked(gf.show).mock.calls.at(-1)![0]
+    expect(nodeText(rankMsg.text)).toMatch(/^moth reached /)
+    expect(rankMsg.dismiss).toEqual({ kind: 'sticky' })
   })
 })
 

@@ -5,6 +5,7 @@ import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { memberById } from '../../common/lib/game/peers'
+import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/game/useWordSubmit'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
@@ -256,16 +257,20 @@ export function PlayArea(ctx: GamePageCtx) {
     messageFor: (r) => {
       if (r.user_id === myId) return null // own word → in-body pill
       const member = players.find((p) => p.user_id === r.user_id)
-      const name = member?.username ?? 'A teammate'
       const wow = r.word.length >= 7
       const label = wordWithBonusDot(r.word, r.is_bonus)
       return {
         tone: 'success',
         variant: 'outline',
-        dot: member?.color ?? null,
-        text: wow
-          ? `${name} found ${label} +${r.points} — wow!`
-          : `${name} found ${label} +${r.points}`,
+        text: wow ? (
+          <>
+            <ActorDot actor={member} fallback="A teammate" /> found {label} +{r.points} — wow!
+          </>
+        ) : (
+          <>
+            <ActorDot actor={member} fallback="A teammate" /> found {label} +{r.points}
+          </>
+        ),
         dismiss: { kind: 'timed' },
       }
     },

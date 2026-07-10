@@ -15,12 +15,17 @@
  */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
 import type { WordleGame, WordlePlayerState, GuessRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
+
+// Feedback `text` is now a ReactNode (an <ActorDot> widget + sentence) rather
+// than a string — render it and read the plain text to assert on the wording.
+const nodeText = (node: ReactNode) => render(<>{node}</>).container.textContent ?? ''
 
 type GameHook = {
   game: WordleGame | null
@@ -149,7 +154,7 @@ describe('wordle PlayArea — peer narration (global header)', () => {
     ])
     rerender(<PlayArea {...ctx} />)
     expect(feedback.show).toHaveBeenCalledTimes(1)
-    expect(feedback.show.mock.calls[0][0].text).toBe('moth guessed CRANE')
+    expect(nodeText(feedback.show.mock.calls[0][0].text)).toBe('moth guessed CRANE')
   })
 
   it('does not narrate my own guess', () => {
@@ -179,7 +184,7 @@ describe('wordle PlayArea — peer narration (global header)', () => {
     ])
     rerender(<PlayArea {...ctx} />)
     expect(feedback.show).toHaveBeenCalledTimes(1)
-    expect(feedback.show.mock.calls[0][0].text).toBe('moth solved it')
+    expect(nodeText(feedback.show.mock.calls[0][0].text)).toBe('moth solved it')
     // Green — a solve is a solve regardless of whose (tone follows the event).
     expect(feedback.show.mock.calls[0][0].tone).toBe('success')
   })

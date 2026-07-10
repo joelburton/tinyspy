@@ -258,10 +258,15 @@ names (`TurnLogActor` → `show="both"`).
 
 This required the feedback message's `text` to hold the **widget** instead of a
 string — fine because `GenericFeedbackMsg.text` is already `ReactNode`; the pill
-dedups on a separate string key. **Migrated so far: codenamesduet** (its local
-"Waiting for ● to guess" + the header turn-pill). The other games' feedback
-builders still bake `${name}` into text — a mechanical rollout still to do (this
-was the rule-of-three "do one game first" step).
+(and `useGlobalFeedback`) dedup on a separate string key, not the text.
+**Migrated: every mobile game's peer/opponent feedback** — codenamesduet,
+psychicnum, connections, waffle, wordle, spellingbee, boggle, stackdown. Two
+deliberate exclusions: (1) **chat** feedback keeps its sender name — the chat
+pill has no size constraint the game feedback areas have, and knowing *who*
+messaged matters more there; (2) the **desktop-only / keyboard-required** games
+(scrabble, crosswords, bananagrams) are hard-blocked on phones, so their feedback
+never shows on a phone — not worth the churn. Unit tests that asserted the pill
+`text` as a string now render the node and read its text (`nodeText` helper).
 
 ### The `.card` shell pages — home / login / claim-username
 
@@ -447,3 +452,10 @@ mobile and tightens the rosters, chat, and club lists everywhere.
   and appears in the home clubs list. A 20-char ceiling keeps the title on one
   line on a phone. Enforced at `create_club` (and wherever a rename lands, once
   that exists).
+- [ ] **Audit local/global feedback message COPY for length.** Dropping the name
+  to a dot (the actor-mention widgets) handles the *name* half, but some messages
+  are just wordy — "is waiting for your turn to complete", "guessed a secret word
+  — not it". On a narrow header pill / below-board row a long sentence still
+  wraps or crowds. Pass over every game's feedback strings and shorten where the
+  meaning survives (the dot already names the actor; the tone/color already
+  carries good/bad), so they read tight on a phone without a per-length hack.

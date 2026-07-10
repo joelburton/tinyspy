@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
-import { colorVarFor } from '../../common/lib/color/memberColor'
+import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
@@ -102,8 +102,6 @@ export function PlayArea({
         seenOpponentRef.current.set(ps.user_id, { solved: ps.solved, out })
         if (prev === undefined) continue // first sighting — seed, don't announce
         const member = players.find((m) => m.user_id === ps.user_id)
-        const name = member?.username ?? 'Someone'
-        const dot = colorVarFor(member?.color)
         if (ps.solved && !prev.solved) {
           // A solve is a GOOD outcome → success (green) — the same green a found word
           // reads as in both modes (docs/design-decisions.md → Tone follows the
@@ -111,8 +109,11 @@ export function PlayArea({
           globalFeedback.show({
             tone: 'success',
             variant: 'outline',
-            dot,
-            text: `${name} solved it`,
+            text: (
+              <>
+                <ActorDot actor={member} fallback="Someone" /> solved it
+              </>
+            ),
             dismiss: { kind: 'timed', ms: 3000 },
           })
         } else if (out && !prev.out) {
@@ -120,8 +121,11 @@ export function PlayArea({
           globalFeedback.show({
             tone: 'warning',
             variant: 'outline',
-            dot,
-            text: `${name} is out of swaps`,
+            text: (
+              <>
+                <ActorDot actor={member} fallback="Someone" /> is out of swaps
+              </>
+            ),
             dismiss: { kind: 'timed', ms: 3000 },
           })
         }

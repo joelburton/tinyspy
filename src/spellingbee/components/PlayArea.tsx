@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
+import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { db } from '../db'
@@ -272,14 +273,20 @@ export function PlayArea(ctx: GamePageCtx) {
     messageFor: (r) => {
       if (r.user_id === session.user.id) return null // own word → in-body pill
       const member = players.find((p) => p.user_id === r.user_id)
-      const name = member?.username ?? 'A teammate'
       return {
         tone: 'success',
         variant: 'outline',
-        dot: member?.color ?? null,
-        text: r.is_pangram
-          ? `${name} found ${wordWithBonusDot(r.word, r.is_bonus)} +${r.points} — pangram! 🐝`
-          : `${name} found ${wordWithBonusDot(r.word, r.is_bonus)} +${r.points}`,
+        text: r.is_pangram ? (
+          <>
+            <ActorDot actor={member} fallback="A teammate" /> found{' '}
+            {wordWithBonusDot(r.word, r.is_bonus)} +{r.points} — pangram! 🐝
+          </>
+        ) : (
+          <>
+            <ActorDot actor={member} fallback="A teammate" /> found{' '}
+            {wordWithBonusDot(r.word, r.is_bonus)} +{r.points}
+          </>
+        ),
         dismiss: { kind: 'timed' },
       }
     },
@@ -309,12 +316,15 @@ export function PlayArea(ctx: GamePageCtx) {
       if (row.user_id === session.user.id) continue // own rank → RankBar
       if (row.rank_idx > was) {
         const member = players.find((p) => p.user_id === row.user_id)
-        const name = member?.username ?? 'An opponent'
         globalFeedback.show({
           tone: 'info',
           variant: 'outline',
-          dot: member?.color ?? null,
-          text: `${name} reached ${RANKS[row.rank_idx] ?? 'a new rank'}`,
+          text: (
+            <>
+              <ActorDot actor={member} fallback="An opponent" /> reached{' '}
+              {RANKS[row.rank_idx] ?? 'a new rank'}
+            </>
+          ),
           dismiss: { kind: 'sticky' },
         })
       }

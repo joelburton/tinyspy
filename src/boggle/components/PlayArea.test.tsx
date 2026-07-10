@@ -15,11 +15,16 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ReactNode } from 'react'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
 import type { BoggleGame, FoundWordRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
+
+// Feedback `text` is now a ReactNode (an <ActorDot> widget + sentence) rather
+// than a string — render it and read the plain text to assert on the wording.
+const nodeText = (node: ReactNode) => render(<>{node}</>).container.textContent ?? ''
 
 type GameHook = {
   game: BoggleGame | null
@@ -249,9 +254,9 @@ describe('boggle PlayArea — coop peer narration (global header)', () => {
     const { rerender } = render(<PlayArea {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ word: 'dog', points: 2 })])
     rerender(<PlayArea {...ctx} />)
-    expect(ctx.globalFeedback.show).toHaveBeenCalledWith(
-      expect.objectContaining({ text: 'moth found DOG +2', tone: 'success' }),
-    )
+    const msg = vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0]
+    expect(nodeText(msg.text)).toBe('moth found DOG +2')
+    expect(msg.tone).toBe('success')
   })
 
   it('flags a long (7+ letter) find with "wow!"', () => {
@@ -259,8 +264,8 @@ describe('boggle PlayArea — coop peer narration (global header)', () => {
     const { rerender } = render(<PlayArea {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ word: 'jackpot', points: 9 })])
     rerender(<PlayArea {...ctx} />)
-    expect(ctx.globalFeedback.show).toHaveBeenCalledWith(
-      expect.objectContaining({ text: 'moth found JACKPOT +9 — wow!' }),
+    expect(nodeText(vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0].text)).toBe(
+      'moth found JACKPOT +9 — wow!',
     )
   })
 
@@ -269,8 +274,8 @@ describe('boggle PlayArea — coop peer narration (global header)', () => {
     const { rerender } = render(<PlayArea {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ word: 'dog', points: 2, is_bonus: true })])
     rerender(<PlayArea {...ctx} />)
-    expect(ctx.globalFeedback.show).toHaveBeenCalledWith(
-      expect.objectContaining({ text: 'moth found DOG • +2' }),
+    expect(nodeText(vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0].text)).toBe(
+      'moth found DOG • +2',
     )
   })
 

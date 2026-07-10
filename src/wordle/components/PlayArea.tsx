@@ -7,6 +7,7 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useIsMobile } from '../../common/hooks/ui/useIsMobile'
+import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -107,8 +108,11 @@ export function PlayArea({
       return {
         tone: 'neutral',
         variant: 'outline',
-        dot: member?.color ?? null,
-        text: `${member?.username ?? 'Someone'} guessed ${g.guess.toUpperCase()}`,
+        text: (
+          <>
+            <ActorDot actor={member} fallback="Someone" /> guessed {g.guess.toUpperCase()}
+          </>
+        ),
         dismiss: { kind: 'timed', ms: 3000 },
       }
     },
@@ -136,8 +140,11 @@ export function PlayArea({
       return {
         tone: 'success',
         variant: 'outline',
-        dot: member?.color ?? null,
-        text: `${member?.username ?? 'Someone'} solved it`,
+        text: (
+          <>
+            <ActorDot actor={member} fallback="Someone" /> solved it
+          </>
+        ),
         dismiss: { kind: 'timed', ms: 3000 },
       }
     },

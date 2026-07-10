@@ -16,7 +16,7 @@ import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
-import { colorVarFor } from '../../common/lib/color/memberColor'
+import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { type WordFlash } from './WordEntry'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -294,12 +294,11 @@ export function PlayArea({
     messageFor: (s) => {
       if (s.user_id === session.user.id) return null // own → own local pill / flash
       const member = players.find((p) => p.user_id === s.user_id)
-      const name = member?.username ?? 'A teammate'
-      const dot = colorVarFor(member?.color)
+      const who = <ActorDot actor={member} fallback="A teammate" />
       if (s.kind === 'hint')
-        return { tone: 'warning', dot, text: `${name} revealed a hint`, dismiss: { kind: 'timed' } }
+        return { tone: 'warning', text: <>{who} revealed a hint</>, dismiss: { kind: 'timed' } }
       if (s.kind === 'reveal')
-        return { tone: 'warning', dot, text: `${name} revealed a word`, dismiss: { kind: 'timed' } }
+        return { tone: 'warning', text: <>{who} revealed a word</>, dismiss: { kind: 'timed' } }
       // kind === 'word': ALSO flash the letters green/red in the WordEntry ring (an
       // ambient cue, not the pill). Safe to fire here — the hook calls messageFor
       // exactly once per NEW peer submission, mirroring the one pill.
@@ -307,8 +306,8 @@ export function PlayArea({
       const valid = s.valid === true
       onPeerWord([...word], valid)
       return valid
-        ? { tone: 'success', dot, text: `${name} found ${word}`, dismiss: { kind: 'timed' } }
-        : { tone: 'error', dot, text: `${name} tried ${word} — not a word`, dismiss: { kind: 'timed' } }
+        ? { tone: 'success', text: <>{who} found {word}</>, dismiss: { kind: 'timed' } }
+        : { tone: 'error', text: <>{who} tried {word} — not a word</>, dismiss: { kind: 'timed' } }
     },
     globalFeedback,
   })
