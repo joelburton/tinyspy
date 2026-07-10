@@ -157,6 +157,14 @@ export function BoardCol({
                 tabIndex={isBlank || readOnly ? undefined : 0}
                 aria-label={isBlank ? undefined : cell}
                 aria-pressed={step >= 0 || undefined}
+                // Don't let a pointer tap FOCUS the tile (same guard as spellingbee's
+                // hex Letter). Word entry is the window-level capture keyboard, so a
+                // focused tile would hijack the player's next Enter — pressing Enter to
+                // submit a typed word would instead fire this tile's onKeyDown and trace
+                // the tile onto the word ("submitted 2 letters / a stray last tile").
+                // preventDefault on mousedown keeps focus where it is (touch on iOS
+                // never focuses a div, but desktop/other browsers do).
+                onMouseDown={isBlank ? undefined : (e) => e.preventDefault()}
                 onClick={isBlank ? undefined : () => handleTap(y, x)}
                 onKeyDown={
                   isBlank

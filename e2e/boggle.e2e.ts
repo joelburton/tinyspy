@@ -89,4 +89,44 @@ test.describe('boggle play loop', () => {
 
     await ctx.close()
   })
+
+  // Regression: after tapping a word, the last-tapped tile must NOT keep keyboard
+  // focus — otherwise the player's next Enter (submitting a TYPED word) is hijacked
+  // by that tile's key handler, which traces the tile onto the word. The classic
+  // symptom was: tap C-A-T, submit; then type another word and press Enter, and the
+  // game submits just the stray "T" ("too short"). A pointer tap must leave focus
+  // alone (onMouseDown preventDefault), so Enter reaches the word-submit.
+  test('a tapped tile does not steal focus: a later typed word + Enter submits that word', async ({
+    browser,
+  }) => {
+    const club = await createSoloClub('alice')
+    const [alice] = club.members
+    const game = await createBoggleGame(club)
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+
+    const tiles = page.locator('[data-boggle-tile]')
+    await expect(tiles).toHaveCount(16, { timeout: 15000 })
+
+    // Word 1: trace C(0) A(1) T(2) and submit via the button → lands.
+    await tiles.nth(0).click()
+    await tiles.nth(1).click()
+    await tiles.nth(2).click()
+    await page.getByRole('button', { name: 'Submit' }).click()
+    await expect(page.getByRole('button', { name: 'CAT' })).toBeVisible({ timeout: 10000 })
+
+    // Word 2: TYPE "cat" and press Enter. Before the fix, the still-focused T tile
+    // grabbed Enter and traced "T", so the submit saw "T — too short". Now Enter
+    // submits the typed word: "cat" is a duplicate → "already found", never "too short".
+    await page.keyboard.type('cat')
+    await page.keyboard.press('Enter')
+    const pill = page.locator('[class*="belowBoard"]').first()
+    await expect(pill).toContainText(/already found/i, { timeout: 10000 })
+    await expect(pill).not.toContainText(/too short/i)
+
+    await ctx.close()
+  })
 })
