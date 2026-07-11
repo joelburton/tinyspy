@@ -46,6 +46,7 @@ const GUARDIAN_UA =
 const SERIES = new Set([
   'quick',
   'cryptic',
+  'quick-cryptic',
   'everyman',
   'speedy',
   'quiptic',

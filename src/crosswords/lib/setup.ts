@@ -55,6 +55,7 @@ export const CROSSWORDS_DEFAULTS: CrosswordsSetup = {
 export const GUARDIAN_SERIES: { slug: string; label: string }[] = [
   { slug: 'quick', label: 'Quick' },
   { slug: 'cryptic', label: 'Cryptic' },
+  { slug: 'quick-cryptic', label: 'Quick cryptic' },
   { slug: 'everyman', label: 'Everyman' },
   { slug: 'speedy', label: 'Speedy' },
   { slug: 'quiptic', label: 'Quiptic' },

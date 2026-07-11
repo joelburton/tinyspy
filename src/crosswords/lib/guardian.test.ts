@@ -90,6 +90,17 @@ describe('convertGuardianPuzzle — clues', () => {
     expect(meta.clues.across[0]!.text).toBe('Fruit & nuts (3)') // &amp; → &
     expect(meta.clues.down.map((c) => c.number)).toEqual([2])
   })
+
+  it('strips clue HTML TAGS and keeps italic emphasis (Guardian quick-cryptic)', () => {
+    // Real quick-cryptic shape: clue text carries <span>/<i> markup.
+    const { meta } = convertGuardianPuzzle(
+      makeData({
+        entries: [across(1, 0, 0, 'HAPPY', '<span>Jaunty singer of </span><i>Heigh-Ho</i><span>?</span> (5)')],
+        cols: 5,
+      }),
+    )
+    expect(meta.clues.across[0]!.text).toBe('Jaunty singer of _Heigh-Ho_? (5)')
+  })
 })
 
 describe('convertGuardianPuzzle — meta', () => {

@@ -58,3 +58,4 @@ import-to-hosted.secrets.sh
 
 # Crosswords puzzle library — Joel keeps his own .puz/.ipuz files here, never committed.
 supabase/data/crosswords/
+deno.lock
