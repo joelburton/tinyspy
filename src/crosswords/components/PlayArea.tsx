@@ -42,6 +42,7 @@ import { ExplainDialog, type ExplainState } from './ExplainDialog'
 import { enumerationFor } from '../lib/enumeration'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { ClueLists } from './ClueLists'
+import { ClueText } from './ClueText'
 import { Controls } from './Controls'
 import { db } from '../db'
 import styles from './PlayArea.module.css'
@@ -737,7 +738,9 @@ export function PlayArea(ctx: GamePageCtx) {
                   {activeNumber}
                   {dir === 'across' ? 'A' : 'D'}
                 </span>
-                <span className={styles.activeClueText}>{activeClueText}</span>
+                <span className={styles.activeClueText}>
+                  <ClueText text={activeClueText} />
+                </span>
               </>
             )
           )}

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { Clue, Direction } from '../lib/types'
 import { cls } from '../../common/lib/util/cls'
+import { ClueText } from './ClueText'
 import styles from './ClueLists.module.css'
 
 type ListProps = {
@@ -43,7 +44,9 @@ function ClueList({
               }}
             >
               <span className={styles.num}>{c.number}</span>
-              <span className={styles.text}>{c.text}</span>
+              <span className={styles.text}>
+                <ClueText text={c.text} />
+              </span>
             </li>
           )
         })}
