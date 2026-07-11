@@ -1,0 +1,43 @@
+# Daily NYT-Connections puzzle import (docs/deferred.md → the connections
+# import cron). Runs the EXISTING supabase/scripts/import-connections-puzzles.ts
+# verbatim against the hosted project — the script is idempotent (upsert on
+# source_id), so a day with no new puzzle is a no-op and a missed day catches
+# up on the next run. Chosen over Supabase pg_cron for the free tier: an
+# external API call each day is also exactly the "activity" that stops the
+# project's 7-day inactivity auto-pause, so the import doubles as a keep-alive.
+#
+# Needs two repo Actions secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_URL               https://<project-ref>.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY  dashboard → Project Settings → API
+#
+# Caveats worth remembering:
+#   - GitHub cron is UTC and best-effort (runs can lag minutes to ~an hour).
+#     10:00 UTC = well after NYT's midnight-ET rollover + Eyefyre's scraper.
+#   - GitHub DISABLES schedules in repos with no activity for 60 days and
+#     emails you a re-enable link — an occasional push resets the clock.
+#   - Scheduled workflows run from the DEFAULT branch on GitHub; local-only
+#     commits don't count until pushed.
+name: Import Connections puzzles
+
+on:
+  schedule:
+    - cron: '0 10 * * *'
+  # Manual "Run workflow" button in the Actions tab — for testing the setup
+  # and for one-off catch-up runs.
+  workflow_dispatch:
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Import puzzles
+        run: npm run connections:import
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
