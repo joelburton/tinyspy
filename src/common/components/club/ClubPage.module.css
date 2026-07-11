@@ -124,6 +124,17 @@
   padding: 1rem;
 }
 
+/* The two lists are the page's ONLY keyboard tab stops (see ClubPage's
+ * kb-nav block): the focused list's border warms to the accent, and the
+ * item cursor inside it (StartGameButtons/.kbCursor, ClubGameCard/.kbCursor)
+ * marks what Enter would do. No default focus ring — the border IS the
+ * focus indicator, and the browser's outline doubles up with the item ring. */
+.startList:focus,
+.gamesList:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
 .gamesList {
   display: flex;
   flex-direction: column;

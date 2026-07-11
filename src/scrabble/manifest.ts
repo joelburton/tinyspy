@@ -112,6 +112,9 @@ export const scrabbleCompeteGame: GameManifest = {
   schema: 'scrabble',
   baseGametype: 'scrabble',
   mode: 'compete',
+  // Solo play seats an autonomous AI opponent (§12), so a solo club's mode
+  // pill says "AI Compete" (vs bananagrams' pill-less "compete for 1").
+  aiOpponent: true,
   name: BRAND,
   shortDescription: 'Race for the highest score',
   logoUrl,

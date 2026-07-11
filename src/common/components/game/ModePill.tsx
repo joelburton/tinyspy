@@ -5,11 +5,15 @@ import styles from './ModePill.module.css'
 type Props = {
   mode: 'coop' | 'compete'
   /** When true (the club's handle starts with '=', i.e. a solo club),
-   *  the "Co-op" pill is suppressed (no one to cooperate with — mode is
-   *  noise). A COMPETE game on a solo club, however, means "vs AI" (scrabble
-   *  seats AI opponents — docs/scrabble-ai-strength.md), so it renders an
-   *  "AI Compete" pill instead of nothing. Defaults to false. */
+   *  the mode pill is suppressed (mode is noise with one member) — EXCEPT
+   *  for a compete game that seats an AI opponent (see `aiOpponent`),
+   *  which renders "AI Compete". Defaults to false. */
   soloClub?: boolean
+  /** The manifest's `aiOpponent` flag: this compete variant plays against
+   *  an autonomous AI when solo (scrabble), vs a bare "compete for 1"
+   *  (bananagrams), which reads as coop and gets no solo pill. Only
+   *  consulted for solo clubs. */
+  aiOpponent?: boolean
 }
 
 /**
@@ -25,11 +29,13 @@ type Props = {
  *
  * See docs/ui.md → "Mode pills".
  */
-export function ModePill({ mode, soloClub = false }: Props) {
+export function ModePill({ mode, soloClub = false, aiOpponent = false }: Props) {
   if (soloClub) {
-    // Solo club: no "Co-op" pill (mode is noise with one member), but a compete
-    // game is a race against AI — label it so, not silently.
-    if (mode !== 'compete') return null
+    // Solo club: no mode pill (noise with one member) — unless this compete
+    // variant actually seats an AI opponent, which is worth labeling. A
+    // compete WITHOUT an AI is "compete for 1" (a race with nobody to beat):
+    // effectively coop, so it stays pill-less like coop does.
+    if (mode !== 'compete' || !aiOpponent) return null
     return <span className={cls(styles.pill, styles.compete)}>AI Compete</span>
   }
   return (

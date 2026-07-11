@@ -6,12 +6,15 @@ import {
 } from '../../lib/games'
 import { GameLogo } from '../branding/GameLogo'
 import { ModePill } from '../game/ModePill'
+import { cls } from '../../lib/util/cls'
 import styles from './StartGameButtons.module.css'
 
 type Props = {
-  /** The gametypes to render buttons for. The caller pre-filters
-   *  (ClubPage by the club's allowed-gametype m2m). This
-   *  component doesn't apply its own filtering on top. */
+  /** The gametypes to render buttons for, in DISPLAY order. The caller
+   *  pre-filters AND pre-sorts (ClubPage: the allowed-gametype m2m,
+   *  alphabetical by brand) — hoisted there so its keyboard cursor
+   *  indexes the same order these buttons render in. This component
+   *  applies no filtering or ordering of its own. */
   games: GameManifest[]
   /** Member count used to derive each button's disabled state via
    *  the manifest's numberOfPlayers range. ClubPage passes the
@@ -36,6 +39,9 @@ type Props = {
    *  to <ModePill> so the "Co-op" pill is suppressed — mode is noise
    *  when there's only one player. */
   soloClub: boolean
+  /** The keyboard cursor's index into `games` (ClubPage's list-nav — the
+   *  ring marking which button Enter would press), or -1 for none. */
+  cursor?: number
 }
 
 /**
@@ -65,21 +71,19 @@ export function StartGameButtons({
   memberCount,
   onStartSetup,
   soloClub,
+  cursor = -1,
 }: Props) {
-  // Alphabetical by brand name, not registry order — the registry is ordered
-  // by when each game was built, which means nothing to a player scanning for
-  // a game. A coop/compete sibling pair shares one brand; the stable sort
-  // keeps their registry order (coop first) within the tie.
-  const ordered = [...games].sort((a, b) => a.name.localeCompare(b.name))
   return (
     <div className={styles.list}>
-      {ordered.map((g) => {
+      {games.map((g, i) => {
         const fits = playerCountFits(g.numberOfPlayers, memberCount)
         return (
           <button
             key={g.gametype}
             type="button"
-            className={styles.button}
+            className={cls(styles.button, i === cursor && styles.kbCursor)}
+            // Keep the keyboard cursor's button in the scrolled frame's view.
+            ref={i === cursor ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
             onClick={() => onStartSetup(g.gametype)}
             disabled={!fits}
             // Tooltip only when the button is disabled — explains
@@ -92,7 +96,7 @@ export function StartGameButtons({
             <span className={styles.content}>
               <span className={styles.titleRow}>
                 <span className={styles.title}>{g.name}</span>
-                <ModePill mode={g.mode} soloClub={soloClub} />
+                <ModePill mode={g.mode} soloClub={soloClub} aiOpponent={g.aiOpponent} />
               </span>
               <span className={styles.meta}>
                 {g.shortDescription}

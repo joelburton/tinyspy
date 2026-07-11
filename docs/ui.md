@@ -388,6 +388,27 @@ The club page wears the same chrome the game page does. Same "no title in the he
 
 The body Members list and the `/c/<handle>` URL line are gone — the header's `<PlayersStrip>` carries identity, and the URL is in the browser address bar already.
 
+**Keyboard navigation.** The page has exactly TWO keyboard tab stops: the
+start-a-new-game list and the completed/shelved list (the containers
+themselves, `tabIndex=0`). **Focus starts on the start list on load** (no
+first Tab needed), and a window-level handler swallows every other Tab on
+the page — focus toggles between the two lists and can't wander into other
+controls, which are deliberately mouse-only. Within the focused list, Up/Down
+move a per-list cursor (clamped at the ends, no wrap; kept scrolled into the
+frame's view) and Enter acts on the item under it: a start button opens its
+SetupGameDialog (a doesn't-fit gametype no-ops, like a click), a game card
+navigates into the game. Visuals: the focused list's border warms to the
+accent and the cursor item wears a 2px accent ring; the ring hides when the
+list isn't focused. Overlays keep native keys — a text field, the menu
+dropdown (`role="menu"`), or any floating panel (`data-floating-panel`) is
+exempt from the Tab-swallow, and while one of ClubPage's dialogs is up the
+list handlers go inert — and the global shortcuts (`/`, `?`, `~`) work
+unchanged. The active-game card is mouse-only for now (it's not one of the
+two lists) — and for that reason its prominence border is a dark NEUTRAL,
+not the accent: since this feature, a blue ring means "the keyboard cursor
+is here", and the active card must not impersonate it. Guarded by
+[`club-keyboard.e2e.ts`](../e2e/club-keyboard.e2e.ts).
+
 ### Components
 
 Same principle, applied to components.
@@ -582,7 +603,7 @@ Rules:
 
 - **Spelling.** The DB, code, and gametype strings spell it `coop`; the **UI says "Co-op"** (and "Compete"). The one place the FE text differs from the stored value — `MODE_LABEL` in [`lib/games.ts`](../src/common/lib/games.ts) owns the mapping.
 - **Look.** An outlined chip — transparent background, with the border and text both in the mode color: co-op = teal, compete = purple (`--color-mode-*-text` in `theme.css`). Deliberately outside the won/lost/active outcome palette so a mode pill never reads as a result.
-- **Solo clubs.** In a solo club (handle starts with `=`, one player) **no pill renders at all** — neither "Co-op" (no one to cooperate with) nor "Compete" (a solo member may have *enabled* a 2-player game like bananagrams, but "Compete" is meaningless with one player). Pass `soloClub` to `<ModePill>`; it returns `null`.
+- **Solo clubs.** In a solo club (handle starts with `=`, one player) **no pill renders** — neither "Co-op" (no one to cooperate with) nor "Compete" — **with one exception**: a compete variant whose manifest declares **`aiOpponent: true`** (scrabble — solo play seats an autonomous AI opponent) shows an **"AI Compete"** pill, because there IS someone to beat. A compete variant *without* an AI (bananagrams) is "compete for 1" — a race with nobody to beat, effectively coop — so it stays pill-less. The flag lives on the manifest so the club UI never has to know about specific games (the removability invariant); pass `soloClub` + the manifest's `aiOpponent` to `<ModePill>`.
 - **Where it shows.** Anywhere a gametype name appears next to its mode: the per-gametype Start buttons (`StartGameButtons`), the club's games list (`ClubGameCard`), and the club editor (`EditClubDialog`). The Start buttons + games list pass `soloClub` (so solo clubs show no pill); the editor **never** passes it, so it always shows the pill — it lists both siblings, and the pill is the only thing distinguishing two now-identically-named rows. The setup dialog confirms the mode in its title via `MODE_LABEL` (dropped in a solo club, matching the suppression).
 
 Because the pill carries the mode, the per-game `labelFor` status strings (shown on the same card) **do not** repeat it: they're bare (`solved`, `ada won the race`, `racing…`), never `coop · …` / `compete · …`. When adding a game, keep mode out of `labelFor`.

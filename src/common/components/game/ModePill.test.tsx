@@ -15,8 +15,15 @@ describe('ModePill', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('labels a solo club compete game "AI Compete" (a race vs the bot)', () => {
-    render(<ModePill mode="compete" soloClub />)
+  it('labels a solo club compete game "AI Compete" ONLY when the manifest seats an AI', () => {
+    // scrabble: solo compete = a race vs the bot → labeled.
+    render(<ModePill mode="compete" soloClub aiOpponent />)
     expect(screen.getByText('AI Compete')).toBeInTheDocument()
+  })
+
+  it('suppresses the pill for a solo club compete game WITHOUT an AI ("compete for 1")', () => {
+    // bananagrams: nobody to beat when solo — reads as coop, so no pill.
+    const { container } = render(<ModePill mode="compete" soloClub />)
+    expect(container).toBeEmptyDOMElement()
   })
 })

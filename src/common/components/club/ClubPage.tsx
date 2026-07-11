@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
 import { supabase } from '../../lib/supabase/supabase'
 import { Link } from '../../lib/routing/Link'
 import { navigate } from '../../lib/routing/router'
 import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
-import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
+import { useAppShortcuts, isNonGameField } from '../../hooks/input/useAppShortcuts'
+import { playerCountFits } from '../../lib/games'
 import { useClubPresence } from '../../hooks/realtime/useClubPresence'
 import { useClubSetupPresence } from '../../hooks/realtime/useClubSetupPresence'
 import { ChatBubble } from '../chat/ChatBubble'
@@ -246,6 +247,79 @@ export function ClubPage({ handle, session }: Props) {
   // Stable identity for the StatusSlot's onCloseGlobalFeedback prop
   // so passing it into props doesn't restage downstream effects.
   const clearGlobalFeedback = useCallback(() => setGlobalFeedback(null), [])
+
+  // ─── Keyboard navigation ────────────────────────────────
+  // Tab toggles focus between the page's TWO lists (start-a-new-game /
+  // completed-shelved); Up/Down move a per-list cursor (no wrap); Enter
+  // starts/opens the game under the cursor. Everything else on the page is
+  // deliberately mouse-only — the window handler below swallows Tab so focus
+  // can never wander into other controls — while overlays keep native keys
+  // (text fields, the menu dropdown, any floating panel: chat / setup /
+  // help / lookup), and the global shortcuts (/, ?, ~) are untouched.
+  const startListRef = useRef<HTMLDivElement | null>(null)
+  const gamesListRef = useRef<HTMLDivElement | null>(null)
+  const [startCursor, setStartCursor] = useState(0)
+  const [gamesCursor, setGamesCursor] = useState(0)
+  // Which list shows its cursor ring — set on container-proper focus only
+  // (not a bubbled child focus, so a mouse click on an item doesn't paint a
+  // stale ring elsewhere in the list).
+  const [focusedList, setFocusedList] = useState<'start' | 'games' | null>(null)
+
+  // The startable games in DISPLAY order — alphabetical by brand (registry
+  // order means nothing to a player scanning for a game; the stable sort
+  // keeps a coop/compete sibling pair coop-first within the brand tie).
+  // Hoisted from StartGameButtons so the keyboard cursor indexes the same
+  // order the buttons render in.
+  const startableGames = useMemo(
+    () =>
+      games
+        .filter((g) => allowedGametypes.has(g.gametype))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [allowedGametypes],
+  )
+
+  useEffect(function tabTogglesBetweenLists() {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return
+      // Overlays own their keys: a text field (chat box, setup form), the
+      // menu dropdown, or any floating panel keeps native Tab behavior.
+      const t = e.target instanceof Element ? e.target : null
+      if (isNonGameField(e.target)) return
+      if (t?.closest('[data-floating-panel], [role="menu"], [role="dialog"]')) return
+      e.preventDefault()
+      const first = startListRef.current
+      const second = gamesListRef.current
+      const active = document.activeElement
+      // Toggle lists; from anywhere else the first Tab lands on the start
+      // list. If the target list is hidden (the mobile one-column tabs show
+      // only one at a time), fall back to the visible one.
+      const next = active === first ? second : first
+      const visible = (el: HTMLDivElement | null): el is HTMLDivElement =>
+        el !== null && el.offsetParent !== null
+      if (visible(next)) next.focus()
+      else if (visible(next === first ? second : first)) (next === first ? second : first)!.focus()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  // Keyboard focus STARTS on the start list — arrows/Enter work immediately,
+  // no first Tab needed. Runs once the load gate opens (the list doesn't
+  // exist before that); skipped if something else already took focus, or on
+  // the mobile one-column layout when the list is hidden. preventScroll: the
+  // list is at the top anyway, and a focus-scroll would fight the layout.
+  useEffect(
+    function focusStartListOnLoad() {
+      if (loading) return
+      const el = startListRef.current
+      const idle =
+        document.activeElement === null || document.activeElement === document.body
+      if (el && el.offsetParent !== null && idle) {
+        el.focus({ preventScroll: true })
+      }
+    },
+    [loading],
+  )
 
   // The show/clear API over the single feedback slot (ClubPage sets the state
   // directly for its own toasts; this wraps it for hook consumers like chat).
@@ -562,6 +636,47 @@ export function ClubPage({ handle, session }: Props) {
     : null
   const otherGames = allGames.filter((g) => g.gameId !== activeGameId)
 
+  // ─── Keyboard navigation: the list containers' key handling ──────
+  // (State + the Tab toggler live above the loading guard; these handlers
+  // need `otherGames`, so they live here.) The CONTAINERS are the only tab
+  // stops; items are reached by the cursor, never focused. While one of our
+  // dialogs is up, it owns Enter/arrows (focus may still sit on a container,
+  // since a dialog opened by Enter never stole it).
+  const kbDialogUp = pendingSetup !== null || editing || helpOpen
+  const listKeyDown = (list: 'start' | 'games') => (e: ReactKeyboardEvent) => {
+    if (kbDialogUp) return
+    const len = list === 'start' ? startableGames.length : otherGames.length
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault() // don't ALSO scroll the list's frame
+      const delta = e.key === 'ArrowDown' ? 1 : -1
+      const set = list === 'start' ? setStartCursor : setGamesCursor
+      // Clamp to the ends — deliberately no wrap-around.
+      set((c) => Math.max(0, Math.min(len - 1, Math.min(c, len - 1) + delta)))
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (list === 'start') {
+        const g = startableGames[Math.min(startCursor, startableGames.length - 1)]
+        // A doesn't-fit gametype renders disabled — Enter no-ops like a click.
+        if (g && playerCountFits(g.numberOfPlayers, members.length)) {
+          handleStartSetup(g.gametype)
+        }
+      } else {
+        const g = otherGames[Math.min(gamesCursor, otherGames.length - 1)]
+        if (g) navigate(`/g/${g.gametype}/${g.gameId}`)
+      }
+    }
+  }
+  // The cursor each list SHOWS: clamped to the (live-updating) list length,
+  // and hidden entirely while the list isn't the focused one.
+  const startKbCursor =
+    focusedList === 'start' && startableGames.length > 0
+      ? Math.min(startCursor, startableGames.length - 1)
+      : -1
+  const gamesKbCursor =
+    focusedList === 'games' && otherGames.length > 0
+      ? Math.min(gamesCursor, otherGames.length - 1)
+      : -1
+
   // Menu sections for the club logo's dropdown. Mirrors the
   // GamePage menu shape (a single common section, no per-game
   // dynamic section because there's no PlayArea here to push
@@ -704,20 +819,37 @@ export function ClubPage({ handle, session }: Props) {
             <h3 className={styles.sectionHeading}>Start a new game</h3>
             {/* The scrolling card: the heading above stays put; only the
                 button list inside this frame scrolls (mirrors the right
-                column's heading + gamesList split). */}
-            <div className={styles.startList}>
-              {/* Filter the registry by the club's allowed-gametype m2m
-                  (one button per gametype this club may play) and let
-                  StartGameButtons handle the rendering, in-flight state,
-                  and disabled-for-doesn't-fit tooltip. ClubPage stays
+                column's heading + gamesList split). Also one of the page's
+                two KEYBOARD tab stops (see the kb-nav block above): the
+                container takes focus, arrows move the cursor, Enter starts. */}
+            <div
+              ref={startListRef}
+              className={styles.startList}
+              tabIndex={0}
+              role="group"
+              aria-label="Start a new game"
+              onKeyDown={listKeyDown('start')}
+              onFocus={(e) => {
+                if (e.target === e.currentTarget) setFocusedList('start')
+              }}
+              onBlur={(e) => {
+                if (e.target === e.currentTarget)
+                  setFocusedList((f) => (f === 'start' ? null : f))
+              }}
+            >
+              {/* startableGames = the registry filtered by the club's
+                  allowed-gametype m2m, in display order (see the kb-nav
+                  block); StartGameButtons handles the rendering, in-flight
+                  state, and disabled-for-doesn't-fit tooltip. ClubPage stays
                   game-agnostic; the RPC call lives inside the manifest.
                   Add boggle later and (assuming the m2m is populated for
                   this club) a button appears here automatically. */}
               <StartGameButtons
-                games={games.filter((g) => allowedGametypes.has(g.gametype))}
+                games={startableGames}
                 memberCount={members.length}
                 onStartSetup={handleStartSetup}
                 soloClub={soloClub}
+                cursor={startKbCursor}
               />
             </div>
             {activeGame && (
@@ -738,11 +870,27 @@ export function ClubPage({ handle, session }: Props) {
               calc(100vh - body padding) height. Each step of the
               flex chain needs min-height: 0 so overflow-y: auto
               actually kicks in. */}
-          <div className={styles.gamesList}>
+          {/* The page's other KEYBOARD tab stop — same contract as the
+              start list: focus the container, arrows move, Enter opens. */}
+          <div
+            ref={gamesListRef}
+            className={styles.gamesList}
+            tabIndex={0}
+            role="group"
+            aria-label="Completed and shelved games"
+            onKeyDown={listKeyDown('games')}
+            onFocus={(e) => {
+              if (e.target === e.currentTarget) setFocusedList('games')
+            }}
+            onBlur={(e) => {
+              if (e.target === e.currentTarget)
+                setFocusedList((f) => (f === 'games' ? null : f))
+            }}
+          >
             {otherGames.length === 0 ? (
               <p className="muted">No other games yet.</p>
             ) : (
-              otherGames.map((g) => (
+              otherGames.map((g, i) => (
                 <ClubGameCard
                   key={g.gameId}
                   gameId={g.gameId}
@@ -753,6 +901,7 @@ export function ClubPage({ handle, session }: Props) {
                   state={g.isTerminal ? 'completed' : 'suspended'}
                   soloClub={soloClub}
                   onDelete={() => handleDelete(g.gameId, false)}
+                  kbCursor={i === gamesKbCursor}
                 />
               ))
             )}

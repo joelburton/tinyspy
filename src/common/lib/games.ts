@@ -427,6 +427,15 @@ export type GameManifest = {
    */
   mode: 'coop' | 'compete'
 
+  /** This compete variant seats an autonomous AI OPPONENT when played
+   *  solo (scrabble's compete AI — docs/games/scrabble.md §12), so a solo
+   *  club's pill says "AI Compete". Absent/false, compete-in-a-solo-club
+   *  is just a race with nobody to beat ("compete for 1" — bananagrams),
+   *  which reads as coop and gets NO pill there. Manifest-declared so the
+   *  club UI never has to know about specific games (the removability
+   *  invariant — docs/common.md). */
+  aiOpponent?: boolean
+
   /** Human-readable name shown in pickers and titles. */
   name: string
 

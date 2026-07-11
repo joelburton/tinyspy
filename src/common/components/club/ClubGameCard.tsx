@@ -41,6 +41,10 @@ type Props = {
   /** Whether this card's club is a solo club (handle starts with '=').
    *  Forwarded to <ModePill> so the "Co-op" pill is suppressed there. */
   soloClub: boolean
+  /** ClubPage's keyboard list-nav cursor sits on this card (the ring
+   *  marking which game Enter would open). Also keeps the card scrolled
+   *  into the list frame's view. */
+  kbCursor?: boolean
 }
 
 /**
@@ -94,6 +98,7 @@ export function ClubGameCard({
   state,
   onDelete,
   soloClub,
+  kbCursor = false,
 }: Props) {
   const manifest = games.find((g) => g.gametype === gametype)
   // Friendly relative date — see friendlyDate.ts. Doesn't tick;
@@ -137,7 +142,11 @@ export function ClubGameCard({
   }
 
   return (
-    <div className={styles.wrapper}>
+    <div
+      className={cls(styles.wrapper, kbCursor && styles.kbCursor)}
+      // Keep the keyboard cursor's card in the scrolled frame's view.
+      ref={kbCursor ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
+    >
       <Link to={`/g/${gametype}/${gameId}`} className={styles.link}>
         <div className={cls(styles.card, styles[state])}>
           {state === 'suspended' && (
@@ -171,7 +180,7 @@ export function ClubGameCard({
               <div className={styles.titleRow}>
                 {title && <span className={styles.title}>{title}</span>}
                 {manifest && (
-                  <ModePill mode={manifest.mode} soloClub={soloClub} />
+                  <ModePill mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
                 )}
               </div>
               <div className={styles.meta}>

@@ -105,3 +105,11 @@
   font-size: 0.85rem;
   line-height: 1.3;
 }
+
+/* ClubPage's keyboard list-nav cursor — the ring marking which button
+ * Enter would press (the LIST container holds the actual focus). Accent
+ * ring inset so it doesn't clip against the scrolled frame's edges. */
+.kbCursor {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}

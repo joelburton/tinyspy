@@ -99,10 +99,13 @@
 
 /* ─── State-specific treatments ────────────────────────────── */
 
-/* Active: this is the game the user is in right now. Bigger
- * title, accent border for prominence in the page. */
+/* Active: this is the game the user is in right now. Bigger title +
+ * thicker border for prominence — but NOT the accent blue: since the
+ * keyboard list-nav arrived, a blue ring means "the keyboard cursor is
+ * here / Enter acts on this", and the active card isn't keyboard-reachable.
+ * A dark neutral border keeps the prominence without lying about that. */
 .active {
-  border-color: var(--color-accent);
+  border-color: var(--color-text);
   border-width: 2px;
   padding: 1rem 1.25rem;
 }
@@ -248,4 +251,14 @@
   /* Slight darken on hover so the user sees the confirm tap
      register. */
   filter: brightness(0.96);
+}
+
+/* ClubPage's keyboard list-nav cursor — the ring marking which game Enter
+ * would open (the LIST container holds the actual focus). On the wrapper
+ * (not the card) so it also rings a corner-flagged suspended card; radius
+ * matches the card's so the ring hugs it. */
+.kbCursor {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+  border-radius: var(--radius-md);
 }
