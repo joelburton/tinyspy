@@ -8,7 +8,8 @@ type Props = {
    *  shuffling is harmless, so even a locked/terminal game can leave it on
    *  as a post-game fidget. */
   disabled?: boolean
-  /** Accessible label + tooltip. Defaults to "Shuffle". */
+  /** Accessible label + styled tooltip (the TooltipHost `data-tooltip` bubble).
+   *  Defaults to "Shuffle". */
   label?: string
   /** Extra class for the caller's layout (margins/placement). */
   className?: string
@@ -41,7 +42,7 @@ export function ShuffleButton({ onShuffle, disabled, label = 'Shuffle', classNam
       onMouseDown={(e) => e.preventDefault()}
       disabled={disabled}
       aria-label={label}
-      title={label}
+      data-tooltip={label}
     >
       {/* The glyph spins on hover via the .glyph span (rotating the button
        *  would spin the whole pill). IconShuffle is the rotate glyph — chosen

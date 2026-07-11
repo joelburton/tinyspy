@@ -625,12 +625,32 @@ icon buttons).
 | Get answer / reveal | `Eye` | Peel | `Banana` (`IconPeel`) |
 | End game | `Flag` | Zoom to fit | `Fullscreen` (`IconZoomFit`) |
 | Clear selection | `Eraser` | Help / rules | `CircleQuestionMark` (`IconHelp`) |
-| Restart board | `SkipBack` (`IconRestart`) | | |
+| Restart board | `SkipBack` (`IconRestart`) | New game (fresh board + id) | `SquarePlus` (`IconNewGame`) |
 
 **Conventions:**
 
 - **The icon is decorative; the button carries the label** (visible text, or
-  `aria-label`/`title` on icon-only buttons). So the icon is `aria-hidden`.
+  `aria-label` on icon-only buttons). So the icon is `aria-hidden`.
+- **Styled tooltips, not the native `title`.** Some browsers delay the native
+  bubble so long users never see it, so buttons carry a `data-tooltip`
+  attribute and the single **`<TooltipHost>`**
+  (`common/components/tooltips/`, mounted once in App.tsx like ToastHost)
+  draws a small dark bubble after a ~400ms beat (about a third of the native
+  delay; also on `:focus-visible` keyboard focus; hover is gated on
+  `(hover: hover)` so a touch tap doesn't leave a stuck bubble; hides
+  instantly on leave/blur/press/scroll). `ActionButton` wires
+  `tooltip ?? label` automatically — every purpose button has a tooltip by
+  default, and a caller passes `tooltip` to say something richer than the
+  label; ShuffleButton / PauseButton / BackToClubButton carry theirs
+  directly. The attribute is usable on ANY element as other spots want
+  tooltips later. The host measures and **clamps the bubble to the
+  viewport** — above the anchor by default, flipped below near the top edge
+  (no per-button placement flags), x pinned inside the edges — and the body
+  portal escapes `overflow: hidden` ancestors. (An earlier pure-CSS `::after`
+  version couldn't see the viewport and clipped at the edges; that's why this
+  is a JS host.) The bubble is `aria-hidden` — the accessible name stays on
+  the button itself. One known trade: disabled buttons don't fire mouse
+  events, so their tooltips don't show.
 - **Sizing:** ~`size={15-16}` for an icon beside a text label, ~`size={20-24}`
   for an icon-only pill.
 - **The icon-and-label shape is the global `.icon-button` class** (`theme.css`):

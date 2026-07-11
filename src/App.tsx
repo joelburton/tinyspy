@@ -10,6 +10,7 @@ import { UserMenu } from './common/components/account/UserMenu'
 import { EditProfileDialog } from './common/components/account/EditProfileDialog'
 import { GameInvitations } from './common/components/game/GameInvitations'
 import { ToastHost } from './common/components/toasts/ToastHost'
+import { TooltipHost } from './common/components/tooltips/TooltipHost'
 import { useRealtimeReconnect } from './common/hooks/realtime/useRealtimeReconnect'
 import { useBacktickEscape } from './common/hooks/input/useBacktickEscape'
 import { usePath } from './common/lib/routing/router'
@@ -164,6 +165,9 @@ export default function App() {
           above everything, portaled to <body>). */}
       <GameInvitations session={session} />
       <ToastHost />
+      {/* The styled-tooltip renderer for every `data-tooltip` element
+          (buttons' hover bubbles) — one delegated host, viewport-clamped. */}
+      <TooltipHost />
     </>
   )
 }

@@ -48,6 +48,10 @@ export {
   // "jump to the start" transport glyph: it rewinds to the beginning of the
   // same board, distinct from IconShuffle's rotate (rearrange, new look).
   SkipBack as IconRestart,
+  // start a FRESH follow-up game (same setup, new board + id — waffle's
+  // "New game"). The square-plus "create new" glyph: adds a NEW thing,
+  // distinct from IconRestart's rewind-the-same-thing.
+  SquarePlus as IconNewGame,
   // open the game's rules/help — the "?" the setup dialog's HelpButton shows.
   // The circled question mark is the near-universal "help / what is this?" idiom.
   CircleQuestionMark as IconHelp,

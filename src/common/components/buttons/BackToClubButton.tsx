@@ -12,6 +12,10 @@ type Props = {
   /** Short form — renders "Club" instead of "Back to club" (the chevron makes
    *  the meaning clear). For tight spots like an in-column terminal row. */
   compact?: boolean
+  /** Icon-only square (the shared `icon-only` box) — just the chevron; the
+   *  label moves to the aria-label + the styled tooltip. For the icon-only
+   *  action rows (waffle's experiment). Wins over `compact`. */
+  iconOnly?: boolean
   autoFocus?: boolean
   /** Override the visible text — e.g. "Suspend and return to club" on the pause
    *  overlay, where leaving *shelves* the game. Defaults to "Back to club"
@@ -40,6 +44,7 @@ export function BackToClubButton({
   onClick,
   variant = 'secondary',
   compact,
+  iconOnly,
   autoFocus,
   label,
 }: Props) {
@@ -47,15 +52,18 @@ export function BackToClubButton({
   return (
     <button
       type="button"
-      className={cls('icon-button', variant === 'secondary' && 'secondary')}
+      className={cls('icon-button', variant === 'secondary' && 'secondary', iconOnly && 'icon-only')}
       onClick={onClick}
-      // Compact hides the word "club" behind the chevron, so keep an accessible
-      // label — unless a full custom label already spells it out.
-      aria-label={compact && !label ? 'Back to club' : undefined}
+      // Compact/icon-only hide some or all of the words behind the chevron, so
+      // keep an accessible label — unless a full custom label spells it out.
+      aria-label={(iconOnly || compact) && !label ? 'Back to club' : undefined}
+      // The styled hover bubble (theme.css) — same default-to-the-label
+      // behavior as ActionButton.
+      data-tooltip={label ?? 'Back to club'}
       autoFocus={autoFocus}
     >
-      <IconBack size={16} aria-hidden />
-      {text}
+      <IconBack size={iconOnly ? 20 : 16} aria-hidden />
+      {!iconOnly && text}
     </button>
   )
 }

@@ -8,6 +8,9 @@ import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTer
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { RestartButton } from '../../common/components/buttons/RestartButton'
+import { RevealButton } from '../../common/components/buttons/RevealButton'
+import { NewGameButton } from '../../common/components/buttons/NewGameButton'
+import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { WaffleSetup } from '../lib/setup'
 import type { WafflePlayerState, SwapRow } from '../hooks/useGame'
@@ -46,7 +49,11 @@ export function InfoCol({
   onEndGame,
   onConcede,
   onRestart,
+  onRevealAnswer,
+  revealDisabled,
+  onNewGame,
   onBackToClub,
+  onRequestBackToClub,
   setup,
   answerWords,
   swaps,
@@ -82,13 +89,28 @@ export function InfoCol({
   playerStates: WafflePlayerState[]
   concededIds: Set<string>
 
-  // ── Action row (End/Concede; Restart + back-to-club at terminal) ──
+  // ── Action row (ICON-ONLY buttons — waffle's experiment; tooltips carry
+  //    the labels. Playing: End/Concede + back-to-club. Terminal: Restart +
+  //    Reveal + New game + back-to-club.) ──
   onEndGame: () => void
   onConcede: () => void
   /** Restart THIS board from scratch (the menu's replay-board, unconfirmed at
    *  terminal since there's no progress left to lose). */
   onRestart: () => void
+  /** Show the answer (the terminal-local reveal — no RPC; see PlayArea's
+   *  handleRevealAnswer). Rendered only in the terminal row. */
+  onRevealAnswer: () => void
+  /** The answer is already showing (won / give-up reveal / clicked) —
+   *  disables the terminal RevealButton + the matching menu item. */
+  revealDisabled: boolean
+  /** Start a fresh follow-up game — same setup, new board + id. */
+  onNewGame: () => void
+  /** Direct navigation to the club — terminal only (nothing to lose). */
   onBackToClub: () => void
+  /** Mid-game back-to-club: routes through the shell's suspend-confirm flow
+   *  (menu.requestBackToClub), NOT direct navigation — leaving a live game
+   *  shelves it. */
+  onRequestBackToClub: () => void
 
   // ── Setup disclosure + answer reveal ──
   setup: WaffleSetup
@@ -113,14 +135,16 @@ export function InfoCol({
   // conceded players from the winner query, so a solved-and-waiting player who
   // clicked Concede ("I'm done waiting") would silently forfeit a win they may
   // have already banked. A solved player waits it out via Back-to-club instead.
+  // Icon-only (the waffle experiment): the styled tooltip carries the label.
   const endButton = isCompete ? (
     <ConcedeGameButton
       onClick={onConcede}
+      iconOnly
       className={shared.helperButton}
       disabled={myConceded || selfSolved}
     />
   ) : (
-    <EndGameButton onClick={onEndGame} className={shared.helperButton} />
+    <EndGameButton onClick={onEndGame} iconOnly className={shared.helperButton} />
   )
 
   return (
@@ -168,15 +192,25 @@ export function InfoCol({
           />
         )}
 
-        {/* Action row — four states. TERMINAL: the bold outcome line + back-to-club.
-            LOCALLY TERMINAL (compete: solved / out of swaps, the rest race on): the
-            terminal LOOK — a bold status + Concede. PLAYING: just End/Concede.
-            WATCHING (not in the game): a bold note, no button. */}
+        {/* Action row — four states, all ICON-ONLY (the waffle experiment;
+            tooltips carry the labels). TERMINAL: the bold outcome line +
+            Restart / Reveal / New game / back-to-club (primary). LOCALLY
+            TERMINAL (compete: solved / out of swaps, the rest race on): the
+            terminal LOOK — a bold status + Concede. PLAYING: End/Concede +
+            back-to-club (secondary, via the suspend-confirm flow). WATCHING
+            (not in the game): a bold note, no button. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub}>
-            {/* Restart sits left of Back-to-Club: "play this board again" is the
-                stay-here option, Club is the leave option. */}
-            <RestartButton onClick={onRestart} />
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
+            {/* Stay-here options left of the leave option (Club): replay this
+                board, see the answer, or spin up the next game. */}
+            <RestartButton iconOnly onClick={onRestart} />
+            <RevealButton
+              iconOnly
+              label="Reveal answer"
+              disabled={revealDisabled}
+              onClick={onRevealAnswer}
+            />
+            <NewGameButton iconOnly onClick={onNewGame} />
           </TerminalActionRow>
         ) : selfDone ? (
           <LocalTerminalRow
@@ -185,7 +219,10 @@ export function InfoCol({
             {endButton}
           </LocalTerminalRow>
         ) : isPlayer ? (
-          <div className={shared.infoActions}>{endButton}</div>
+          <div className={shared.infoActions}>
+            {endButton}
+            <BackToClubButton iconOnly onClick={onRequestBackToClub} />
+          </div>
         ) : (
           <LocalTerminalRow label="Watching — not in this game" />
         )}

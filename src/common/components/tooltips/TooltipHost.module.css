@@ -1,0 +1,27 @@
+/* The styled-tooltip bubble (see TooltipHost.tsx). Fixed + body-portaled so
+ * it clamps to the VIEWPORT and escapes overflow-hidden ancestors; the host
+ * sets left/top imperatively after measuring. Above the chat panel (10000)
+ * and level with toasts (12000) — a tooltip should never sit under anything. */
+.bubble {
+  position: fixed;
+  z-index: 12000;
+  background: var(--color-text);
+  color: var(--color-surface);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: tooltipIn 120ms ease;
+}
+
+@keyframes tooltipIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

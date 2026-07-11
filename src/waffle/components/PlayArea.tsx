@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
@@ -17,6 +17,7 @@ import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { turnSnapshot } from '../lib/history'
+import { computeColors } from '../lib/colors'
 import { solvedWords } from '../lib/waffle'
 import type { WaffleSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
@@ -188,6 +189,11 @@ export function PlayArea({
     if (error) showLocalFeedback(ownAction('error', `Concede failed: ${error.message}`))
   }, [gameId, isTerminal, showLocalFeedback])
 
+  // Post-game local answer reveal — set by the TERMINAL branch of
+  // handleRevealAnswer (below), cleared by replay. Swaps the DISPLAYED board
+  // for the solution; see the derivation past the loading guard.
+  const [revealedLocally, setRevealedLocally] = useState(false)
+
   // Replay board — restart THIS board (same scramble/setup) from scratch for
   // everyone: clears the turn log + all progress and un-terminals the game.
   // Available mid-game or after game-over. Confirmed MID-GAME only (it wipes
@@ -210,6 +216,7 @@ export function PlayArea({
     }
     exitViewing()
     clearLocalFeedback()
+    setRevealedLocally(false) // the new run starts blind again
   }, [gameId, isTerminal, showLocalFeedback, clearLocalFeedback, exitViewing])
 
   // New game — a FRESH game (new id, new randomly-built board) with THIS
@@ -252,13 +259,24 @@ export function PlayArea({
     goToGame(`waffle_${gameMode}`, res.id)
   }, [gameMode, clubHandle, brand, goToGame, showLocalFeedback])
 
-  // Reveal answer — give up: fill every board with the solution and END the game.
-  // Server-side `reveal_answer` overwrites `waffle.players.board` with the solution
-  // (so the board the players are looking at literally becomes the answer, all green)
-  // then ends the game as a neutral give-up (nobody wins). Confirmed since it ends the
-  // game for the whole group + wipes progress. The answer board + terminal state arrive
-  // via the realtime refetch; we just leave any open history view + clear the pill.
+  // Reveal answer — two shapes behind one action (the wordle pattern,
+  // docs/celebration-ideas.md):
+  //   MID-GAME: give up — server-side `reveal_answer` overwrites every
+  //   `waffle.players.board` with the solution (the board the players are
+  //   looking at literally becomes the answer, all green) then ends the game
+  //   as a neutral give-up (nobody wins). Confirmed since it ends the game for
+  //   the whole group + wipes progress; the answer board + terminal state
+  //   arrive via the realtime refetch.
+  //   AT TERMINAL (a loss / manual end left words hidden): show THIS client
+  //   the solution — no RPC, no confirm; post-terminal the solution is already
+  //   on the client (coop always, compete unshields), so it's purely a display
+  //   decision. Sets `revealedLocally` (declared above handleReplay, which
+  //   clears it), which swaps the DISPLAYED board below.
   const handleRevealAnswer = useCallback(async () => {
+    if (isTerminal) {
+      setRevealedLocally(true)
+      return
+    }
     if (!window.confirm('Reveal the answer? This ends the game and fills the board with the solution.'))
       return
     const { error } = await db.rpc('reveal_answer', { target_game: gameId })
@@ -268,22 +286,26 @@ export function PlayArea({
     }
     exitViewing()
     clearLocalFeedback()
-  }, [gameId, showLocalFeedback, clearLocalFeedback, exitViewing])
+  }, [isTerminal, gameId, showLocalFeedback, clearLocalFeedback, exitViewing])
 
   // Game menu: waffle now owns its FULL menu (Help + its own items + End/Concede +
   // Back to club) via `buildGameMenu`. Its own items are "Replay board" (both
   // modes, any state), "New game" (same setup, fresh board + id — see
-  // handleNewGame), and "Reveal answer". Reveal ENDS the game, so it's only offered
-  // while a game is in progress and the caller actually holds the solution — disabled
-  // at terminal (already over) and whenever the solution isn't on the client (compete
-  // *during play*; the shield only lifts post-terminal). In practice that's
-  // coop-in-progress. No leak: you can't reveal what wasn't sent.
+  // handleNewGame), and "Reveal answer". Reveal is offered MID-GAME only while
+  // the caller actually holds the solution (compete shields it during play —
+  // no leak: you can't reveal what wasn't sent; in practice coop-in-progress),
+  // and AT TERMINAL until the answer is already showing (a win's board IS the
+  // solution; the give-up RPC tagged status.outcome='revealed'; or this client
+  // already clicked it).
   //
   // mode/myConceded are derived up here (not the below-guard copies) so the effect can
   // pick coop End vs compete Concede. Every handler in the deps is a stable useCallback
   // (or a one-shot transition value like `isTerminal`), so this effect only re-runs on
   // real menu-affecting changes — never every render — keeping the setState loop-free.
   const solutionKnown = game?.solution != null
+  const answerShown =
+    revealedLocally || playState === 'won' || (status?.outcome as string | undefined) === 'revealed'
+  const revealDisabled = isTerminal ? answerShown : !solutionKnown
   const menuMode: 'coop' | 'compete' = game?.mode === 'compete' ? 'compete' : 'coop'
   const menuConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   useEffect(() => {
@@ -305,7 +327,7 @@ export function PlayArea({
               {
                 id: 'reveal',
                 label: 'Reveal answer',
-                disabled: isTerminal || !solutionKnown,
+                disabled: revealDisabled,
                 onClick: () => void handleRevealAnswer(),
               },
             ],
@@ -324,7 +346,7 @@ export function PlayArea({
     handleNewGame,
     handleRevealAnswer,
     isTerminal,
-    solutionKnown,
+    revealDisabled,
     infoSheet.menuSections,
   ])
 
@@ -349,18 +371,29 @@ export function PlayArea({
     viewingIndex !== null ? turnSnapshot(game.scramble, game.solution, swaps, viewingIndex) : null
 
   // The grid shows the caller's own board + live colors (including at game-over) — OR,
-  // while viewing, the historical snapshot. After "Reveal answer" the caller's own
-  // board IS the solution (the RPC overwrote it), so this needs no special case — it
-  // renders the all-green answer for free. The info-column word list is derived below.
-  const board = snap ? snap.board : (self?.board ?? game.scramble)
-  const colors = snap ? snap.colors : (self?.colors ?? null)
+  // while viewing, the historical snapshot. After the MID-GAME "Reveal answer" the
+  // caller's own board IS the solution (the RPC overwrote it), so that needs no
+  // special case. The TERMINAL reveal is display-only: `revealedLocally` swaps the
+  // shown board for the (post-terminal, unshielded) solution, colored all-green by
+  // the same FE colorizer the history viewer uses — waffle.players is untouched.
+  const revealSolution = revealedLocally && isTerminal ? game.solution : null
+  const board = snap ? snap.board : (revealSolution ?? self?.board ?? game.scramble)
+  const colors = snap
+    ? snap.colors
+    : revealSolution
+      ? computeColors(revealSolution, revealSolution)
+      : (self?.colors ?? null)
 
   // The answer reveal (info column) reads the caller's OWN live board + colors —
-  // never the history snapshot, and never the shielded solution. A word all of
-  // whose cells are green is already on the caller's screen, so revealing it leaks
+  // never the history snapshot, and mid-game never the shielded solution. A word all
+  // of whose cells are green is already on the caller's screen, so revealing it leaks
   // nothing; unsolved words stay hidden (em dashes). A non-player watcher (no
-  // colors) sees all-hidden.
-  const answerWords = solvedWords(self?.board ?? game.scramble, self?.colors ?? null)
+  // colors) sees all-hidden. The terminal local reveal swaps in the solution here
+  // too, so all six words fill in together with the board.
+  const answerWords = solvedWords(
+    revealSolution ?? self?.board ?? game.scramble,
+    revealSolution ? computeColors(revealSolution, revealSolution) : (self?.colors ?? null),
+  )
 
   const swapsUsed = self?.swaps_used ?? 0
   const remaining = Math.max(0, game.max_swaps - swapsUsed)
@@ -432,7 +465,11 @@ export function PlayArea({
         onEndGame={() => void handleEndGame()}
         onConcede={() => void handleConcede()}
         onRestart={() => void handleReplay()}
+        onRevealAnswer={() => void handleRevealAnswer()}
+        revealDisabled={revealDisabled}
+        onNewGame={() => void handleNewGame()}
         onBackToClub={goToClub}
+        onRequestBackToClub={menu.requestBackToClub}
         setup={waffleSetup}
         answerWords={answerWords}
         swaps={swaps}

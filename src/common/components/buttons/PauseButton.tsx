@@ -27,7 +27,7 @@ export function PauseButton({ paused, onPause }: Props) {
       onClick={onPause}
       disabled={paused}
       aria-label={paused ? 'Game paused' : 'Pause game'}
-      title={paused ? 'Game paused' : 'Pause game'}
+      data-tooltip={paused ? 'Game paused' : 'Pause game'}
     >
       {/* Pause glyph — inherits `currentColor` from the button. The button
        *  carries the label, so the icon is decorative. */}

@@ -29,8 +29,13 @@ export type PurposeButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
    *  default (SubmitButton → "Submit"), so you only pass this to deviate. */
   label?: string
   /** Render just the icon (no visible text); `label` becomes the aria-label +
-   *  title so the control stays accessible. */
+   *  tooltip so the control stays accessible. */
   iconOnly?: boolean
+  /** The styled hover tooltip (the fast `data-tooltip` bubble — see TooltipHost;
+   *  the native `title` was too slow to appear in some browsers). Defaults to
+   *  the label, so every button has one; pass this to say something richer
+   *  than the label ("End the game for everyone"). */
+  tooltip?: string
 }
 
 type ActionButtonProps = PurposeButtonProps & {
@@ -67,6 +72,7 @@ export function ActionButton({
   iconSize = 18,
   weight = 'secondary',
   tone = 'neutral',
+  tooltip,
   className,
   ...rest
 }: ActionButtonProps) {
@@ -83,7 +89,9 @@ export function ActionButton({
         className,
       )}
       aria-label={iconOnly ? label : undefined}
-      title={iconOnly ? label : undefined}
+      // The styled hover bubble (TooltipHost, via [data-tooltip]) — replaces the
+      // native `title`, which some browsers delay past noticing.
+      data-tooltip={tooltip ?? label}
       // Suppress focus-steal on mouse click: the capture-input games (spellingbee)
       // read keystrokes off the window, so a clicked button must not grab focus
       // or the next typed letter goes nowhere. Harmless everywhere else (onClick

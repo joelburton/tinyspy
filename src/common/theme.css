@@ -525,6 +525,13 @@ a {
   padding: 0;
 }
 
+/* Styled tooltips: any element with a `data-tooltip` attribute gets the fast
+   dark bubble — rendered by the single <TooltipHost> (mounted in App.tsx, like
+   ToastHost), which measures and CLAMPS the bubble to the viewport (above the
+   anchor, flipped below near the top edge). No CSS here on purpose: an earlier
+   pure-CSS ::after version overflowed at viewport edges and clipped under
+   overflow-hidden ancestors. See common/components/tooltips/TooltipHost.tsx. */
+
 .muted {
   color: var(--color-muted);
   font-size: 0.9rem;

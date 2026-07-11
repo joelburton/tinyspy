@@ -230,6 +230,62 @@ describe('waffle PlayArea — new game (menu)', () => {
 })
 
 /**
+ * The icon-only action rows (waffle's experiment — labels live in tooltips):
+ * PLAYING = End/Concede + Back-to-club (via the shell's suspend-confirm flow,
+ * NOT direct navigation); TERMINAL = Restart + Reveal answer + New game +
+ * Back-to-club. The terminal Reveal is LOCAL (no RPC, no confirm — the
+ * solution is already on the client post-terminal) and disables once the
+ * answer is showing.
+ */
+describe('waffle PlayArea — icon-only action rows', () => {
+  // A hole-correct solution (the pgTAP/e2e fixture shape): across words are
+  // ABCDE / IJKLM / QRSTU — what SolutionReveal shows once revealed.
+  const FIXTURE_SOLUTION = 'abcdef.g.hijklmn.o.pqrstu'
+
+  it('playing row offers Back-to-club through the suspend-confirm flow', async () => {
+    const user = userEvent.setup()
+    h.result = loaded(coopGame)
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    await user.click(screen.getByRole('button', { name: 'Back to club' }))
+    expect(ctx.menu.requestBackToClub).toHaveBeenCalled()
+    expect(ctx.goToClub).not.toHaveBeenCalled() // mid-game never direct-navigates
+  })
+
+  it('terminal "Reveal answer" shows the solution locally — no RPC, no confirm', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
+    const user = userEvent.setup()
+    h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION })
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+
+    // The loss keeps the answer hidden (em dashes)…
+    expect(screen.queryByText('ABCDE')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Reveal answer' }))
+    // …the local reveal fills in the words, with no server call and no confirm.
+    expect(screen.getByText('ABCDE')).toBeInTheDocument()
+    expect(screen.getByText('QRSTU')).toBeInTheDocument()
+    expect(confirm).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('terminal Reveal is disabled once the answer is showing (a win)', () => {
+    h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION }, [{ ...me, solved: true }])
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeDisabled()
+  })
+
+  it('terminal "New game" button starts the follow-up game', async () => {
+    startEdgeFn.mockResolvedValue({ id: 'next-game-id' })
+    const user = userEvent.setup()
+    h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION })
+    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
+    render(<PlayArea {...ctx} />)
+    await user.click(screen.getByRole('button', { name: 'New game' }))
+    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('waffle_coop', 'next-game-id'))
+  })
+})
+
+/**
  * Terminal flow. Waffle deliberately skips the shared GameOverModal: the
  * verdict is carried in-page, the action row gains a Restart button (the
  * menu's replay-board, unconfirmed at terminal), and a coop solve pops the
