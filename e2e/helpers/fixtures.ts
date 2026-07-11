@@ -315,6 +315,79 @@ export async function createCrosswordsGame(
 }
 
 /**
+ * Start a crosswords game on a generated full-size N×N grid (no blocks, all
+ * answers 'A') — for layout tests that need a REAL board width (the 2×2
+ * fixture caps out at max cell size, so it can't exercise width-bound
+ * sizing) without depending on an imported library. Standard numbering for
+ * a blockless grid: row 0 numbers every cell (each starts a down word;
+ * (0,0) also starts an across), later rows number only column 0 (across
+ * starts). The 1-across clue is deliberately LONG so the active-clue bar's
+ * line-clamp has something to clamp.
+ */
+export async function createCrosswordsGameSized(
+  club: E2EClub,
+  size = 15,
+): Promise<{ id: string; gametype: string }> {
+  type CellSpec = { kind: 'cell'; number: number | null; fill: null }
+  const cells: CellSpec[][] = []
+  const across: { number: number; text: string }[] = []
+  const down: { number: number; text: string }[] = []
+  let num = 0
+  for (let r = 0; r < size; r++) {
+    const row: CellSpec[] = []
+    for (let c = 0; c < size; c++) {
+      const startsAcross = c === 0
+      const startsDown = r === 0
+      const number = startsAcross || startsDown ? ++num : null
+      row.push({ kind: 'cell', number, fill: null })
+      if (startsAcross && number != null) {
+        across.push({
+          number,
+          text:
+            number === 1
+              ? `A deliberately long-winded clue whose text should need clamping in the narrow active-clue bar under the grid on a small screen (${size})`
+              : `Row of A's, the ${r + 1}th (${size})`,
+        })
+      }
+      if (startsDown && number != null) down.push({ number, text: `Column of A's (${size})` })
+    }
+    cells.push(row)
+  }
+  const meta = {
+    id: 'e2e-sized',
+    title: 'E2E Sized Puzzle',
+    author: 'Tester',
+    copyright: '',
+    note: '',
+    width: size,
+    height: size,
+    clues: { across, down },
+    cells,
+  }
+  const solution = cells.map((row) => row.map(() => ['A']))
+  const ins = await admin
+    .schema('crosswords')
+    .from('puzzles')
+    .insert({ content_hash: `e2e-sized-${randomUUID()}`, source: 'library', meta, solution })
+    .select('id')
+    .single()
+  if (ins.error || !ins.data) throw new Error(`crosswords puzzle insert: ${ins.error?.message}`)
+
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('crosswords')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: { timer: { kind: 'none' }, puzzle_id: ins.data.id },
+      player_user_ids: club.members.map((m) => m.userId),
+      mode: 'coop',
+    })
+  if (res.error) throw new Error(`crosswords.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: 'crosswords_coop' }
+}
+
+/**
  * Start a crosswords game on the LARGEST already-imported library puzzle
  * (for exercising a real full-size grid + long clue lists). Requires the
  * library to be seeded (`npm run crosswords:import`); throws if empty.

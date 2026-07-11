@@ -13,10 +13,17 @@ import { cls } from '../../common/lib/util/cls'
 import styles from './Grid.module.css'
 
 // Board sizing — a single computed cell size, everything else in `em`.
-// Keyboard-required (the layout exception); no narrow branch. The vertical
-// reserve covers the game chrome (--game-chrome-height, ~6.5rem) so the
-// board never exceeds the layout height and push the page into scrolling.
+// TWO formulas, picked by the CSS breakpoint (Grid.module.css): desktop
+// shares the width with the clue columns (targetWidthPercent); below
+// --mobile the clue lists are off-canvas, so the grid takes the full
+// viewport width instead. The vertical reserves cover what sits above/below
+// the board (the game chrome; on mobile also the active-clue bar) so the
+// board never exceeds the layout height and pushes the page into scrolling.
 const VERTICAL_OVERHEAD_PX = 112
+// Mobile: chrome (~80px) + the reserved active-clue bar (≤3 lines ≈ 73px) +
+// layout gap + page padding. Width usually binds on a portrait device, so
+// this only needs to be safe, not tight.
+const MOBILE_VERTICAL_OVERHEAD_PX = 180
 const MAX_CELL_PX = 60
 const REBUS_MIN_EM = 0.22
 
@@ -83,12 +90,20 @@ export function Grid({
     return grid.map((row, r) => row.map((_, c) => computeBorderMask(grid, r, c)))
   }, [template])
 
+  // Both breakpoints' cell sizes ride along as custom properties; the CSS
+  // module picks one per breakpoint (`.board { font-size: var(…) }`), so the
+  // desktop formula is untouched and there's no JS media query here.
   const cellSize = `min(calc(${targetWidthPercent(width)}vw / ${width}), calc((100dvh - ${VERTICAL_OVERHEAD_PX}px) / ${height}), ${MAX_CELL_PX}px)`
+  const cellSizeMobile = `min(calc((100vw - 2 * var(--page-padding-x)) / ${width}), calc((100svh - ${MOBILE_VERTICAL_OVERHEAD_PX}px) / ${height}), ${MAX_CELL_PX}px)`
 
   return (
     <div
       className={styles.board}
-      style={{ fontSize: cellSize, gridTemplateColumns: `repeat(${width}, 1em)` }}
+      style={{
+        ['--cw-cell' as string]: cellSize,
+        ['--cw-cell-mobile' as string]: cellSizeMobile,
+        gridTemplateColumns: `repeat(${width}, 1em)`,
+      }}
     >
       {template.map((row, r) =>
         row.map((t, c) => {

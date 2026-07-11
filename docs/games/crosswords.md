@@ -200,6 +200,20 @@ doubles as the local-feedback slot, and a slim chrome strip (the action row).
 `min-height: 0` chain engages — the board fills, the clue lists scroll, the page
 never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
 
+**Mobile** (below `--mobile`; [mobile.md](../mobile.md)): the grid + the
+active-clue bar ARE the main view — the grid takes the full viewport width
+(`--cw-cell-mobile`, the second inline cell-size formula picked by the
+breakpoint in `Grid.module.css`), with the bar hugging its bottom edge (2
+reserved/clamped lines on a tablet, 3 on a phone — narrower wraps more); the
+clue lists + the Controls strip move into the **wide** off-canvas "Game info"
+sheet (the shared `useInfoSheet` / `<InfoSheet wide>` recipe; `.sheetContent`
+is `display: contents` on desktop so `.clues`/`.strip` stay grid items,
+byte-identical). **Keyboard-required still holds** — this is the layout for a
+tablet (or phone) *with* a keyboard, not a touch-entry mode. Guarded by
+`e2e/crosswords-mobile.e2e.ts` on a generated full-size board
+(`createCrosswordsGameSized` — the 2×2 fixture can't exercise width-bound
+sizing).
+
 - **`lib/cursor.ts`** — the pure navigation module, ported **verbatim** (36
   tests). Reads only `kind`/`number`, so it runs on the static template grid.
 - **`useCells`** — the documented deviation from `useRealtimeRefetch`: applies

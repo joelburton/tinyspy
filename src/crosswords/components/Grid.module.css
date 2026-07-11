@@ -7,7 +7,17 @@
   gap: 0;
   width: max-content;
   align-self: start;
-  /* font-size (the cell size) + grid-template-columns are set inline. */
+  /* The cell size: Grid.tsx computes BOTH breakpoints' formulas inline as
+   * custom properties (--cw-cell shares width with the clue columns;
+   * --cw-cell-mobile takes the full viewport width, clue lists off-canvas);
+   * this picks per breakpoint. grid-template-columns is set inline. */
+  font-size: var(--cw-cell);
+}
+
+@media (--mobile) {
+  .board {
+    font-size: var(--cw-cell-mobile);
+  }
 }
 
 .cell {

@@ -523,32 +523,41 @@ auto-fit shrink it to one line). Guarded by
 [`connections-mobile.e2e.ts`](../e2e/connections-mobile.e2e.ts) (tall + short:
 board fills, no scroll, sheet works; a tapped 4-tile guess commits).
 
-**The pass is complete for every recipe-eligible game.** Eight games now follow the
-info-sheet recipe: the wide-sheet pair **spellingbee / boggle**, and the plain-sheet
-games **psychicnum / wordle / codenamesduet / stackdown / waffle / connections**. The
-remaining three are *not* phone-converted, but for two different reasons (see the
-input taxonomy above — don't collapse them into one bucket):
+**crosswords** got the recorded "clue bar under the grid" treatment (it was this
+doc's future-direction note; now built). Below `--mobile` the grid + the
+active-clue bar are the whole main view — the grid takes the full viewport width
+(a second inline cell-size formula, picked by the breakpoint in
+`Grid.module.css`; the desktop formula shares width with the clue columns and is
+untouched), and the bar hugs the grid's bottom edge showing the one clue the
+cursor is on: **2 reserved/clamped lines on a tablet, 3 on a phone** (narrower
+wraps more). The Across | Down lists AND the check/reveal Controls strip move
+into the **wide** info sheet (the shared recipe; a `display: contents`
+`.sheetContent` wrapper keeps them grid items on desktop, byte-identical).
+**Keyboard-required still holds** — this is the layout for a tablet (or phone)
+*with* a hardware keyboard, not a touch-entry mode; entry is still typed.
+Guarded by [`crosswords-mobile.e2e.ts`](../e2e/crosswords-mobile.e2e.ts) at
+tablet-p + phone on a generated full-size 15×15 board
+(`createCrosswordsGameSized` — the 2×2 e2e fixture caps at max cell size, so it
+can't exercise width-bound sizing): no page scroll, width-bound grid, the bar
+under the grid at its reserved height, the sheet round-trip, typed entry.
 
-- **scrabble** and **crosswords** are **keyboard-required, NOT desktop-only.** Their
-  boards (a 15×15 rack-and-tiles arena; a crossword grid + clue columns) need a
-  hardware keyboard for entry, but they fit a tablet *with* a keyboard fine — so
-  they're hard-blocked on *phone* widths, allowed on tablets. Not a desktop machine
-  requirement.
+**The pass now covers every game except two.** Nine games follow the info-sheet
+recipe: the wide-sheet trio **spellingbee / boggle / crosswords**, and the
+plain-sheet games **psychicnum / wordle / codenamesduet / stackdown / waffle /
+connections**. The remaining two are *not* phone-converted, for two different
+reasons (see the input taxonomy above — don't collapse them into one bucket):
+
+- **scrabble** is **keyboard-required, NOT desktop-only.** Its board (a 15×15
+  rack-and-tiles arena) needs a hardware keyboard for entry, but it fits a tablet
+  *with* a keyboard fine — so it's hard-blocked on *phone* widths, allowed on
+  tablets. Not a desktop machine requirement. (crosswords is ALSO
+  keyboard-required — its conversion above is a layout for keyboard-attached
+  devices, not a touch-entry mode.)
 - **bananagrams** is genuinely **desktop-only** (a large 25×25 drag-heavy arena,
   unpleasant even on a keyboard tablet) — blocked on *all* touch.
 
 The app *chrome* (the `.card` shell pages, club page, header/player strip, chat,
 panels) is mobile-ready for all of them regardless.
-
-> **Future direction — crosswords on a phone (recorded, not built).** If/when we
-> DO give crosswords a phone treatment, the plan: **hide the Across | Down clue
-> panel** (there's no room for the clue columns beside the grid on a phone) and
-> instead **show the single clue the cursor is currently on, in a bar UNDER the
-> grid.** The active-clue bar already exists in the desktop layout (a 3-line bar
-> beneath the clue columns; see [crosswords.md](games/crosswords.md) §7) — the
-> mobile move is to relocate it below the board and drop the full list. The cursor
-> already tracks which clue is active, so the content is in hand; it's a layout
-> reflow, not new state.
 
 ## TODO — not doing now, recorded so we don't lose them
 

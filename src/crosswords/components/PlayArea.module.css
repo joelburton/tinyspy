@@ -111,3 +111,61 @@
   align-items: center;
   justify-content: center;
 }
+
+/* Desktop: the sheet wrapper chain (InfoSheet .wrap → .sheetContent) generates
+ * no boxes, so .clues / .strip stay grid items of .layout exactly as before. */
+.sheetContent {
+  display: contents;
+}
+
+/* ─── Mobile (docs/mobile.md) ────────────────────────────────
+ * The grid + the active-clue bar ARE the main view: grid maximized, the bar
+ * right under it (the one clue readout — move, enter, read). The clue lists
+ * + the check/reveal controls live in the off-canvas "Game info" sheet.
+ * Keyboard-required still holds; this is the tablet/phone-with-a-keyboard
+ * layout, not a touch-entry mode. */
+@media (--mobile) {
+  .layout {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  /* No flex-grow: the active-clue bar hugs the grid's bottom edge (the eyes
+   * stay on the cursor ↔ clue pair); leftover height falls below the bar. */
+  .boardSlot {
+    flex: 0 1 auto;
+    min-height: 0;
+    justify-content: center;
+  }
+  /* 2 reserved lines on a tablet (wide enough that a clamped clue is rare)… */
+  .activeClue {
+    min-height: calc(2 * 1.35em + 0.3rem);
+  }
+  .activeClueText {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+  /* The sheet interior: a real column — the clue lists fill + scroll
+   * internally, the controls strip sits below them. */
+  .sheetContent {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: 0;
+  }
+  .clues {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+/* …3 reserved lines on a phone (narrower → the same clue wraps more). */
+@media (--phone) {
+  .activeClue {
+    min-height: calc(3 * 1.35em + 0.3rem);
+  }
+  .activeClueText {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+}

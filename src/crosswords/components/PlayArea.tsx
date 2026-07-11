@@ -6,6 +6,8 @@ import { BackToClubButton } from '../../common/components/buttons/BackToClubButt
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
+import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setScratchpadOpen } from '../../common/lib/scratchpad/scratchpadOpenStore'
 import { writeIpuz } from '../lib/parse/ipuz'
@@ -71,6 +73,14 @@ export function PlayArea(ctx: GamePageCtx) {
   const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({
     locked: isTerminal,
   })
+
+  // Mobile (docs/mobile.md): below --mobile the grid + the active-clue bar ARE
+  // the main view (grid maximized; the bar is how you read the clue you're on),
+  // and the clue lists + the check/reveal controls move into the off-canvas
+  // "Game info" sheet. Keyboard-REQUIRED still holds — this is the layout for a
+  // tablet (or phone) WITH a keyboard, not a touch-entry mode. `wide`: the
+  // Across|Down columns want the full device width, like the WordList games.
+  const infoSheet = useInfoSheet()
 
   const [pencil, setPencil] = useState(false)
   const [rebus, setRebus] = useState<{ row: number; col: number } | null>(null)
@@ -471,6 +481,9 @@ export function PlayArea(ctx: GamePageCtx) {
         onEndGame: () => actionsRef.current?.endGame(),
         onConcede: () => actionsRef.current?.concede(),
         extra: [
+          // Mobile-only "Game info" item (opens the clue-lists + controls sheet);
+          // empty on desktop where the clue columns are always visible.
+          ...infoSheet.menuSections,
           {
             items: [
               {
@@ -567,7 +580,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, hasNote, pencil, collapseRebus, mode, myConceded, handleShowNote, handleExplain, handleRevealBoard, handleClear, handleDownloadIpuz, handlePrintSolution, isPlayable, isTerminal, solution])
+  }, [menu, game, hasNote, pencil, collapseRebus, mode, myConceded, handleShowNote, handleExplain, handleRevealBoard, handleClear, handleDownloadIpuz, handlePrintSolution, isPlayable, isTerminal, solution, infoSheet.menuSections])
 
   const over: TerminalCopy | null = isTerminal ? buildOver(playState, status, mode, myId) : null
 
@@ -699,22 +712,15 @@ export function PlayArea(ctx: GamePageCtx) {
           />
         </div>
 
-        <div className={styles.clues}>
-          <ClueLists
-            across={game.meta.clues.across}
-            down={game.meta.clues.down}
-            acrossNumber={acrossNumber}
-            downNumber={downNumber}
-            dir={dir}
-            onClueClick={onClueClick}
-          />
-        </div>
-
         {/* Active-clue bar — doubles as the local-feedback slot. Priority:
             an active local pill (own move / terminal verdict), else the
             "you conceded, others race on" indicator for a conceded compete
-            player, else the active clue. */}
-        <div className={styles.activeClue}>
+            player, else the active clue. Desktop: mid-right column. Mobile:
+            directly under the grid — the ONE clue readout on the main view
+            (the full lists are in the sheet). DOM order differs from the
+            desktop visual order; the grid placements position it. */}
+        {/* data-active-clue: a stable e2e hook (the class name is hashed). */}
+        <div className={styles.activeClue} data-active-clue>
           {slotPill ? (
             <GenericFeedbackPill msg={slotPill} onClose={clearLocalFeedback} />
           ) : (
@@ -730,43 +736,62 @@ export function PlayArea(ctx: GamePageCtx) {
           )}
         </div>
 
-        {/* Chrome strip: the action row (End / Concede; back-to-club at
-            terminal). The state readout + setup recap are deliberately
-            omitted for now — to be reintroduced elsewhere on the page. */}
-        <div className={styles.strip}>
-          {!isTerminal && (
-            <div className={styles.toolRow}>
-              <Controls
-                mode={mode}
-                pencil={pencil}
-                onPencilChange={setPencil}
-                onCheck={(scope) => void handleCheck(scope)}
-                onReveal={(scope) => void handleReveal(scope)}
-                disabled={!isPlayable}
+        {/* The clue lists + the controls strip. Desktop: `display: contents`
+            all the way down (InfoSheet wrap + .sheetContent), so .clues and
+            .strip stay grid items of .layout, byte-identical to before.
+            Mobile: the whole block is the off-canvas "Game info" sheet. */}
+        <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close} wide>
+          <div className={styles.sheetContent}>
+            <div className={styles.clues}>
+              <ClueLists
+                across={game.meta.clues.across}
+                down={game.meta.clues.down}
+                acrossNumber={acrossNumber}
+                downNumber={downNumber}
+                dir={dir}
+                onClueClick={onClueClick}
               />
-              {isPlayable && (
-                <div className={styles.actionRight}>
-                  {mode === 'compete' ? (
-                    <ConcedeGameButton
-                      className={styles.compactAction}
-                      onClick={() => void handleConcede()}
-                    />
-                  ) : (
-                    <EndGameButton
-                      className={styles.compactAction}
-                      onClick={() => void handleEndGame()}
-                    />
+            </div>
+
+            {/* Chrome strip: the action row (End / Concede; back-to-club at
+                terminal). The state readout + setup recap are deliberately
+                omitted for now — to be reintroduced elsewhere on the page. */}
+            <div className={styles.strip}>
+              {!isTerminal && (
+                <div className={styles.toolRow}>
+                  <Controls
+                    mode={mode}
+                    pencil={pencil}
+                    onPencilChange={setPencil}
+                    onCheck={(scope) => void handleCheck(scope)}
+                    onReveal={(scope) => void handleReveal(scope)}
+                    disabled={!isPlayable}
+                  />
+                  {isPlayable && (
+                    <div className={styles.actionRight}>
+                      {mode === 'compete' ? (
+                        <ConcedeGameButton
+                          className={styles.compactAction}
+                          onClick={() => void handleConcede()}
+                        />
+                      ) : (
+                        <EndGameButton
+                          className={styles.compactAction}
+                          onClick={() => void handleEndGame()}
+                        />
+                      )}
+                    </div>
                   )}
                 </div>
               )}
+              {isTerminal && (
+                <div className={styles.actions}>
+                  <BackToClubButton onClick={goToClub} />
+                </div>
+              )}
             </div>
-          )}
-          {isTerminal && (
-            <div className={styles.actions}>
-              <BackToClubButton onClick={goToClub} />
-            </div>
-          )}
-        </div>
+          </div>
+        </InfoSheet>
       </div>
 
       {numberJumpOpen && (
