@@ -27,9 +27,11 @@ const MOBILE_VERTICAL_OVERHEAD_PX = 180
 const MAX_CELL_PX = 60
 const REBUS_MIN_EM = 0.22
 
-/** Board takes 40% of viewport width at 15 cols, ramping to 55% at 21. */
+/** Board takes ~half the viewport width (50% at 15 cols, ramping to 55% at
+ *  21) — roomy enough that on a typical desktop the HEIGHT term of the min()
+ *  binds instead, i.e. the grid grows to the full available height. */
 function targetWidthPercent(width: number): number {
-  return Math.max(40, Math.min(55, 40 + (width - 15) * (15 / 6)))
+  return Math.max(50, Math.min(55, 50 + (width - 15) * (5 / 6)))
 }
 
 // Width of the rebus / peek overlay box, in cell-widths. Wider than one cell

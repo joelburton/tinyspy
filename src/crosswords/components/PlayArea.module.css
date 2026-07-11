@@ -56,7 +56,10 @@
   align-items: baseline;
   gap: 0.4rem;
   padding: 0.3rem 0.1rem 0;
-  font-size: 1.05rem;
+  /* Desktop reads the clue from further away (the bar sits across the page
+   * from the cursor) — bigger than the mobile 1.05rem, which the --mobile
+   * block restores. The reserved min-height is in em, so it scales along. */
+  font-size: 1.2rem;
   line-height: 1.35;
   color: var(--color-text);
   min-height: calc(3 * 1.35em + 0.3rem);
@@ -137,8 +140,10 @@
     min-height: 0;
     justify-content: center;
   }
-  /* 2 reserved lines on a tablet (wide enough that a clamped clue is rare)… */
+  /* 2 reserved lines on a tablet (wide enough that a clamped clue is rare),
+   * back at the compact size (the bar sits right under the grid here). */
   .activeClue {
+    font-size: 1.05rem;
     min-height: calc(2 * 1.35em + 0.3rem);
   }
   .activeClueText {
