@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
@@ -47,7 +48,7 @@ import '../theme.css'
  * `<EntryBox>` display), the same as spellingbee — boggle's structural twin.
  */
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, setup, goToClub, session, status, globalFeedback, menu, brand, title } = ctx
+  const { gameId, players, isTerminal, setup, goToClub, clubHandle, goToGame, session, status, globalFeedback, menu, brand, title } = ctx
   const { game, foundWords, loading } = useGame(gameId)
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
@@ -92,7 +93,12 @@ export function PlayArea(ctx: GamePageCtx) {
   // listing them in its deps and re-running on every render (the crosswords
   // `actionsRef` pattern; setGameSections is a setState, so a per-render re-run
   // would loop).
-  const actionsRef = useRef<{ endGame: () => void; concede: () => void } | null>(null)
+  const actionsRef = useRef<{
+    endGame: () => void
+    concede: () => void
+    replay: () => void
+    newGame: () => void
+  } | null>(null)
 
   const { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback } =
     useWordSubmit({
@@ -213,6 +219,13 @@ export function PlayArea(ctx: GamePageCtx) {
           // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
           ...infoSheet.menuSections,
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printBogglePdf(model) }] },
+          {
+            items: [
+              // Same board, wiped finds / same setup, fresh board + id.
+              { id: 'replay', label: 'Replay board', onClick: () => actionsRef.current?.replay() },
+              { id: 'new-game', label: 'New game', onClick: () => actionsRef.current?.newGame() },
+            ],
+          },
         ],
       }),
     )
@@ -245,14 +258,56 @@ export function PlayArea(ctx: GamePageCtx) {
     if (error) showLocalFeedback('error', `Concede failed: ${error.message}`)
   }, [gameId, isTerminal, myConceded, showLocalFeedback])
 
-  // Keep the End/Concede handlers current for the game menu (read via the stable
-  // actionsRef, so the menu effect above never re-runs to pick up a new closure).
+  // ─── Replay board — restart THIS board (same faces + word lists) ──
+  // Clears everyone's found words and un-terminals the game (the waffle
+  // feature — see boggle.replay_board). Confirmed MID-GAME only (it wipes
+  // the group's finds); at terminal there's nothing left to lose. The reset
+  // arrives via the realtime refetch (the RPC's games touch).
+  const handleReplay = useCallback(async () => {
+    if (
+      !isTerminal &&
+      !window.confirm("Replay board? This clears everyone's found words and restarts the board.")
+    )
+      return
+    const { error } = await db.rpc('replay_board', { target_game: gameId })
+    if (error) showLocalFeedback('error', `Replay failed: ${error.message}`)
+  }, [isTerminal, gameId, showLocalFeedback])
+
+  // ─── New game — a FRESH game (new id, new board) with THIS game's setup ──
+  // Same roster + mode, in the same club, via the same boggle-build-board edge
+  // function the manifest's startGameInClub uses. Non-destructive (this game
+  // un-currents into the club list), so no confirm; the creator jumps in via
+  // ctx.goToGame, peers arrive via the game-invitation toast.
+  const gameMode = game?.mode
+  const handleNewGame = useCallback(async () => {
+    if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
+    const res = await invokeStartGameEdgeFn(
+      'boggle-build-board',
+      {
+        target_club: clubHandle,
+        setup,
+        player_user_ids: players.map((p) => p.user_id),
+        mode: gameMode,
+      },
+      brand,
+    )
+    if ('error' in res) {
+      showLocalFeedback('error', `New game failed: ${res.error}`)
+      return
+    }
+    goToGame(`boggle_${gameMode}`, res.id)
+  }, [gameMode, clubHandle, setup, players, brand, goToGame, showLocalFeedback])
+
+  // Keep the menu's actions current (read via the stable actionsRef, so the
+  // menu effect above never re-runs to pick up a new closure).
   useEffect(() => {
     actionsRef.current = {
       endGame: () => void handleEndGame(),
       concede: () => void handleConcede(),
+      replay: () => void handleReplay(),
+      newGame: () => void handleNewGame(),
     }
-  }, [handleEndGame, handleConcede])
+  }, [handleEndGame, handleConcede, handleReplay, handleNewGame])
 
   // ─── Coop peer-word narration (global header) ──────────────────
   // coop's `found_words` is club-wide, so a teammate's accepted word arrives in
@@ -367,7 +422,10 @@ export function PlayArea(ctx: GamePageCtx) {
         // ── Action row ──
         onEndGame={() => void handleEndGame()}
         onConcede={() => void handleConcede()}
+        onRestart={() => void handleReplay()}
+        onNewGame={() => void handleNewGame()}
         onBackToClub={goToClub}
+        onRequestBackToClub={menu.requestBackToClub}
         // ── Setup disclosure ──
         setup={boggleSetup}
         diceLabel={diceLabel}

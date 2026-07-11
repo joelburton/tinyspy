@@ -251,6 +251,7 @@ export type Database = {
         }[]
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
       submit_word: {
         Args: {
@@ -2160,6 +2161,7 @@ export type Database = {
         }[]
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
       submit_word: {
         Args: {

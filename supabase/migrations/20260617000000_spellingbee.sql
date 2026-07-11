@@ -1312,6 +1312,74 @@ revoke execute on function spellingbee.end_game(uuid) from public;
 grant execute on function spellingbee.end_game(uuid) to authenticated;
 
 -- ============================================================
+-- spellingbee.replay_board — restart this board from scratch
+-- ============================================================
+-- The "Replay board" game-menu item / terminal RestartButton (the waffle
+-- feature — docs/celebration-ideas.md). Restarts the SAME board — same
+-- letters + word lists — for everyone: the found-words log (the game's
+-- only working state) is cleared, and common.reset_game un-terminals the
+-- row with the same initial status create_game seeds (mode-branched; the
+-- compete target_rank re-read from the frozen common.games.setup) and
+-- zeroes the shared clock. Any game player may call it, mid-game or after
+-- game-over (no play_state guard — it's a restart).
+--
+-- The realtime touch at the end is LOAD-BEARING here (unlike waffle,
+-- whose players UPDATE wakes its hook for free): replay only DELETEs
+-- found_words rows, and realtime filters don't reliably match DELETE
+-- events — so useGame also subscribes to spellingbee.games, and this
+-- no-op write is what wakes every client to refetch the now-empty list.
+create function spellingbee.replay_board(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = spellingbee, common, public, extensions
+as $$
+declare
+  g_row spellingbee.games;
+  s_target_rank int;
+  new_status jsonb;
+begin
+  perform common.require_game_player(target_game);
+  select * into g_row from spellingbee.games where id = target_game;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  delete from spellingbee.found_words where game_id = target_game;
+
+  -- The fresh initial status — the exact shapes create_game seeds.
+  if g_row.mode = 'coop' then
+    new_status := jsonb_build_object(
+      'mode', 'coop',
+      'found_words_score', 0,
+      'required_words_score', g_row.required_words_score,
+      'rank_idx', 0,
+      'found_words_count', 0,
+      'required_words_count', g_row.required_words_count
+    );
+  else
+    select (setup->>'target_rank')::int into s_target_rank
+      from common.games where id = target_game;
+    new_status := jsonb_build_object(
+      'mode', 'compete',
+      'target_rank', s_target_rank,
+      'required_words_score', g_row.required_words_score,
+      'required_words_count', g_row.required_words_count,
+      'leaderboard', '[]'::jsonb
+    );
+  end if;
+
+  perform common.reset_game(target_game, new_status);
+
+  -- Realtime touch (see the header) — wakes useGame's games subscription.
+  update spellingbee.games set club_handle = club_handle where id = target_game;
+end;
+$$;
+
+revoke execute on function spellingbee.replay_board(uuid) from public;
+grant execute on function spellingbee.replay_board(uuid) to authenticated;
+
+-- ============================================================
 -- spellingbee.concede — a player drops out of a compete race
 -- ============================================================
 -- spellingbee has NO independent per-player "eliminated" state (a

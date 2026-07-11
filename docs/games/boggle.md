@@ -294,6 +294,22 @@ game is terminal, then all.
   conceder "out" in the OpponentStrip, "You conceded" locally-terminal look. See
   [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP:
   `concede_test.sql`.
+- **`replay_board`** — the **"Replay board"** menu item + terminal
+  `RestartButton` (spellingbee's twin — [celebration-ideas.md](../celebration-ideas.md)):
+  restart the SAME board (same faces + word lists) for everyone. Clears
+  `boggle.found_words` (the only working state), then `common.reset_game`
+  un-terminals with the exact initial status `create_game` seeds and zeroes the
+  shared clock. Confirmed mid-game; unconfirmed at terminal. **The realtime
+  touch is LOAD-BEARING**: replay only DELETEs rows and realtime filters don't
+  reliably match DELETE events, so `useGame` also subscribes to `boggle.games`
+  and the RPC's no-op games write wakes the refetch. pgTAP: `replay_test.sql`.
+- **"New game"** (menu item + terminal `NewGameButton`, FE-only): a fresh game —
+  new id, new board — with THIS game's setup + roster + mode via the same
+  `boggle-build-board` edge function the manifest uses; the creator jumps in
+  via `ctx.goToGame`. The action rows are **icon-only** (the waffle
+  arrangement — tooltips carry the labels): playing = End/Concede +
+  back-to-club via the suspend-confirm flow; terminal = the outcome line +
+  Restart / New game / primary back-to-club.
 
 ### Where validation lives
 

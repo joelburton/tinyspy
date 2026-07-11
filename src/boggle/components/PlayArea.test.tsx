@@ -12,7 +12,7 @@
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else — the grid, entry row, word list, modal — renders real.
  */
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
@@ -20,6 +20,7 @@ import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
 import type { BoggleGame, FoundWordRow } from '../hooks/useGame'
 import { db } from '../db'
+import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { PlayArea } from './PlayArea'
 
 // Feedback `text` is now a ReactNode (an <ActorDot> widget + sentence) rather
@@ -37,8 +38,12 @@ type GameHook = {
 const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
 vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
+// PlayArea's "New game" calls the start-game edge function directly (the same
+// helper the manifest uses); mocked so no edge runtime is needed.
+vi.mock('../../common/lib/game/manifestRpcs', () => ({ invokeStartGameEdgeFn: vi.fn() }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
+const startEdgeFn = invokeStartGameEdgeFn as unknown as ReturnType<typeof vi.fn>
 
 /** A loaded 4×4 game header; override the mode + required list per test. */
 function loadedGame(over: Partial<BoggleGame> = {}): BoggleGame {
@@ -194,6 +199,58 @@ describe('boggle PlayArea — render smoke', () => {
     await user.keyboard('zzz{Enter}')
     expect(screen.getByText(/not on board/i)).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * The icon-only action rows (the waffle arrangement — labels live in
+ * tooltips): PLAYING = End/Concede + Back-to-club (the shell's
+ * suspend-confirm flow); TERMINAL = Restart + New game + Back-to-club.
+ * Restart = boggle.replay_board (unconfirmed at terminal); New game = the
+ * boggle-build-board edge function with THIS game's setup/roster/mode,
+ * then ctx.goToGame.
+ */
+describe('boggle PlayArea — icon-only action rows', () => {
+  it('playing row offers Back-to-club through the suspend-confirm flow', async () => {
+    const user = userEvent.setup()
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    await user.click(screen.getByRole('button', { name: 'Back to club' }))
+    expect(ctx.menu.requestBackToClub).toHaveBeenCalled()
+    expect(ctx.goToClub).not.toHaveBeenCalled() // mid-game never direct-navigates
+  })
+
+  it('terminal Restart calls replay_board WITHOUT confirming', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
+    const user = userEvent.setup()
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
+    await user.click(screen.getByRole('button', { name: 'Restart' }))
+    // confirm returned false — the RPC firing anyway proves it was skipped.
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    expect(confirm).not.toHaveBeenCalled()
+  })
+
+  it('terminal "New game" starts a fresh game with this setup/roster/mode', async () => {
+    startEdgeFn.mockResolvedValue({ id: 'fresh-game-id' })
+    const user = userEvent.setup()
+    const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
+    render(<PlayArea {...ctx} />)
+    await user.click(screen.getByRole('button', { name: 'New game' }))
+    await waitFor(() =>
+      expect(startEdgeFn).toHaveBeenCalledWith(
+        'boggle-build-board',
+        {
+          target_club: 'testclub',
+          setup: ctx.setup,
+          player_user_ids: ['u1'],
+          mode: 'coop',
+        },
+        'MothCubes',
+      ),
+    )
+    await waitFor(() =>
+      expect(ctx.goToGame).toHaveBeenCalledWith('boggle_coop', 'fresh-game-id'),
+    )
   })
 })
 

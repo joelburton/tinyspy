@@ -98,7 +98,15 @@ export function useGame(gameId: string): {
   }, [gameId])
 
   useRealtimeRefetch({
-    tables: [{ schema: 'boggle', table: 'found_words', filter: `game_id=eq.${gameId}` }],
+    tables: [
+      { schema: 'boggle', table: 'found_words', filter: `game_id=eq.${gameId}` },
+      // The games row never changes mid-play (the header loads once above) —
+      // this subscription exists for replay_board's realtime TOUCH: replay
+      // only DELETEs found_words rows, and realtime filters don't reliably
+      // match DELETE events, so the RPC's no-op games write is what wakes
+      // every client to refetch the now-empty found list.
+      { schema: 'boggle', table: 'games', filter: `id=eq.${gameId}` },
+    ],
     channelPrefix: 'boggle',
     id: gameId,
     load: async ({ mounted }) => {

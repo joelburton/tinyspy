@@ -570,6 +570,65 @@ revoke execute on function boggle.end_game(uuid) from public;
 grant execute on function boggle.end_game(uuid) to authenticated;
 
 -- ============================================================
+-- boggle.replay_board — restart this board from scratch
+-- ============================================================
+-- The "Replay board" game-menu item / terminal RestartButton (the waffle
+-- feature — docs/celebration-ideas.md; spellingbee's twin). Restarts the
+-- SAME board — same faces + word lists — for everyone: the found-words
+-- log (the game's only working state) is cleared, and common.reset_game
+-- un-terminals the row with the same initial status create_game seeds
+-- (mode-branched) and zeroes the shared clock. Any game player may call
+-- it, mid-game or after game-over (no play_state guard — it's a restart).
+--
+-- The realtime touch at the end is LOAD-BEARING (same as spellingbee's
+-- replay): replay only DELETEs found_words rows, and realtime filters
+-- don't reliably match DELETE events — so useGame also subscribes to
+-- boggle.games, and this no-op write is what wakes every client to
+-- refetch the now-empty found list.
+create function boggle.replay_board(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = boggle, common, public, extensions
+as $$
+declare
+  g_row boggle.games;
+  new_status jsonb;
+begin
+  perform common.require_game_player(target_game);
+  select * into g_row from boggle.games where id = target_game;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  delete from boggle.found_words where game_id = target_game;
+
+  -- The fresh initial status — the exact shapes create_game seeds.
+  if g_row.mode = 'coop' then
+    new_status := jsonb_build_object(
+      'mode', 'coop', 'found_words_count', 0, 'score', 0,
+      'required_words_count', g_row.required_words_count,
+      'required_words_score', g_row.required_words_score
+    );
+  else
+    new_status := jsonb_build_object(
+      'mode', 'compete', 'leaderboard', '[]'::jsonb,
+      'required_words_count', g_row.required_words_count,
+      'required_words_score', g_row.required_words_score
+    );
+  end if;
+
+  perform common.reset_game(target_game, new_status);
+
+  -- Realtime touch (see the header) — wakes useGame's games subscription.
+  update boggle.games set club_handle = club_handle where id = target_game;
+end;
+$$;
+
+revoke execute on function boggle.replay_board(uuid) from public;
+grant execute on function boggle.replay_board(uuid) to authenticated;
+
+-- ============================================================
 -- boggle.concede — a player drops out of a compete race
 -- ============================================================
 -- boggle compete is a timed hunt (no per-player "eliminated" state —

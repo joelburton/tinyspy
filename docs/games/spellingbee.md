@@ -237,6 +237,14 @@ The "End game" menu item fires this. Same shape as `submit_timeout` but with `st
 
 The Realtime-touch pattern repeats — see `submit_timeout` above. Tested via the `ctid` change in `gameplay_test.sql`.
 
+### `spellingbee.replay_board(target_game uuid) → void`
+
+The **"Replay board"** game-menu item + the terminal action row's `RestartButton` (the waffle feature — [celebration-ideas.md](../celebration-ideas.md)). Restarts the SAME board — same letters + word lists — for everyone: clears `spellingbee.found_words` (the game's only working state), then `common.reset_game` un-terminals the row with the exact initial status `create_game` seeds (mode-branched; compete's `target_rank` re-read from the frozen setup) and zeroes the shared clock. Any game player, mid-game (confirmed) or post-terminal (unconfirmed — nothing left to lose).
+
+**The realtime touch here is LOAD-BEARING** (not just uniform habit): replay only DELETEs `found_words` rows, and realtime filters don't reliably match DELETE events — so `useGame` now also subscribes to `spellingbee.games`, and the RPC's no-op games write is what wakes every client to refetch the now-empty found list. pgTAP: `replay_test.sql`.
+
+**"New game"** (menu item + terminal `NewGameButton`, FE-only — no spellingbee RPC): a fresh game — new id, new board — with THIS game's setup + roster + mode, via the same `spellingbee-build-board` edge function the manifest's `startGameInClub` uses; the creator jumps in via `ctx.goToGame`, peers arrive via the game-invitation toast, and this game un-currents into the club list. The action rows are **icon-only** (the waffle arrangement — tooltips carry the labels): playing = End/Concede + back-to-club via the suspend-confirm flow; terminal = the outcome line + Restart / New game / primary back-to-club.
+
 ### `spellingbee.concede(target_game uuid) → void`
 
 The compete-mode counterpart to `end_game`: a per-player "I quit, the others keep racing". spellingbee has no per-player elimination (you're only ever done by winning — first to `target_rank` — or by conceding), so this is a **thin wrapper over `common.concede`** with a compete-only guard: it marks the caller out and ends the game as a collective loss only when the last racer drops. The FE shows `<ConcedeGameButton>` in compete and `<EndGameButton>` in coop; the OpponentStrip marks a conceder "out" mid-game and reads "Quit at \<rank\>" vs "Lost at \<rank\>" vs "Won at \<rank\>" at terminal (via `playerOutcome` over `ctx.players[].conceded`/`result`). Full mechanism: [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.

@@ -17,6 +17,7 @@ import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { buildDisplayRows } from '../lib/displayRows'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { printSpellingbeePdf } from '../pdf/printSpellingbeePdf'
@@ -49,7 +50,7 @@ import '../theme.css'
 export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
-    setup, goToClub, menu, brand, title,
+    setup, goToClub, clubHandle, goToGame, menu, brand, title,
     // The COMMON header slot (peer/opponent events, via useGlobalFeedback + the compete rank effect) — as
     // opposed to the local in-body `localFeedback` state below, which carries
     // the player's own word result. Two different surfaces.
@@ -71,7 +72,12 @@ export function PlayArea(ctx: GamePageCtx) {
   // deps — that would rebuild the menu every render. Populated by an effect once
   // handleEndGame/handleConcede exist (below); read at click time. (Crosswords'
   // `actionsRef` pattern.)
-  const actionsRef = useRef<{ endGame: () => void; concede: () => void } | null>(null)
+  const actionsRef = useRef<{
+    endGame: () => void
+    concede: () => void
+    replay: () => void
+    newGame: () => void
+  } | null>(null)
 
   // Concede state (from the common roster). A conceder can't submit and sees the
   // locally-terminal look while the others race; peers show as "out" in the strip.
@@ -170,6 +176,13 @@ export function PlayArea(ctx: GamePageCtx) {
           // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
           ...infoSheet.menuSections,
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printSpellingbeePdf(model) }] },
+          {
+            items: [
+              // Same board, wiped finds / same setup, fresh board + id.
+              { id: 'replay', label: 'Replay board', onClick: () => actionsRef.current?.replay() },
+              { id: 'new-game', label: 'New game', onClick: () => actionsRef.current?.newGame() },
+            ],
+          },
         ],
       }),
     )
@@ -264,11 +277,56 @@ export function PlayArea(ctx: GamePageCtx) {
     }
   }, [gameId, isTerminal, myConceded, showLocalFeedback])
 
-  // Keep the menu's end/concede actions current (read by the menu item via the
-  // stable actionsRef, so the menu effect needn't depend on these handlers).
+  // ─── Replay board — restart THIS board (same letters + word lists) ──
+  // Clears everyone's found words and un-terminals the game (the waffle
+  // feature — see spellingbee.replay_board). Confirmed MID-GAME only (it
+  // wipes the group's finds); at terminal there's nothing left to lose. The
+  // reset arrives via the realtime refetch (the RPC's games touch).
+  const handleReplay = useCallback(async () => {
+    if (
+      !isTerminal &&
+      !window.confirm("Replay board? This clears everyone's found words and restarts the board.")
+    )
+      return
+    const { error } = await db.rpc('replay_board', { target_game: gameId })
+    if (error) showLocalFeedback('error', `Replay failed: ${error.message}`)
+  }, [isTerminal, gameId, showLocalFeedback])
+
+  // ─── New game — a FRESH game (new id, new board) with THIS game's setup ──
+  // Same roster + mode, in the same club, via the same spellingbee-build-board
+  // edge function the manifest's startGameInClub uses. Non-destructive (this
+  // game un-currents into the club list), so no confirm; the creator jumps in
+  // via ctx.goToGame, peers arrive via the game-invitation toast.
+  const gameMode = game?.mode
+  const handleNewGame = useCallback(async () => {
+    if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
+    const res = await invokeStartGameEdgeFn(
+      'spellingbee-build-board',
+      {
+        target_club: clubHandle,
+        setup,
+        player_user_ids: players.map((p) => p.user_id),
+        mode: gameMode,
+      },
+      brand,
+    )
+    if ('error' in res) {
+      showLocalFeedback('error', `New game failed: ${res.error}`)
+      return
+    }
+    goToGame(`spellingbee_${gameMode}`, res.id)
+  }, [gameMode, clubHandle, setup, players, brand, goToGame, showLocalFeedback])
+
+  // Keep the menu's actions current (read by the menu items via the stable
+  // actionsRef, so the menu effect needn't depend on these handlers).
   useEffect(() => {
-    actionsRef.current = { endGame: () => void handleEndGame(), concede: () => void handleConcede() }
-  }, [handleEndGame, handleConcede])
+    actionsRef.current = {
+      endGame: () => void handleEndGame(),
+      concede: () => void handleConcede(),
+      replay: () => void handleReplay(),
+      newGame: () => void handleNewGame(),
+    }
+  }, [handleEndGame, handleConcede, handleReplay, handleNewGame])
 
   // Peer/opponent activity → header feedback pills (coop: a peer found a
   // word; compete: an opponent climbed a rank). Self-activity is excluded —
@@ -454,7 +512,10 @@ export function PlayArea(ctx: GamePageCtx) {
         // ── Action row ──
         onEndGame={() => void handleEndGame()}
         onConcede={() => void handleConcede()}
+        onRestart={() => void handleReplay()}
+        onNewGame={() => void handleNewGame()}
         onBackToClub={goToClub}
+        onRequestBackToClub={menu.requestBackToClub}
         // ── Setup disclosure ──
         setup={spellingbeeSetup}
         // ── Found-words list ──

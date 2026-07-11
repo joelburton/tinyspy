@@ -7,6 +7,9 @@ import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTer
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
+import { RestartButton } from '../../common/components/buttons/RestartButton'
+import { NewGameButton } from '../../common/components/buttons/NewGameButton'
+import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { WordList, type WordListRow } from '../../common/components/game/lists/WordList'
 import { RANKS } from '../lib/ranks'
@@ -46,7 +49,10 @@ export function InfoCol({
   concededIds,
   onEndGame,
   onConcede,
+  onRestart,
+  onNewGame,
   onBackToClub,
+  onRequestBackToClub,
   setup,
   wordRows,
   reveal,
@@ -78,10 +84,22 @@ export function InfoCol({
   /** Who has conceded (drives the OpponentStrip "out" mid-game). */
   concededIds: Set<string>
 
-  // ── Action row (End/Concede, back-to-club at terminal) ──
+  // ── Action row (ICON-ONLY buttons — the waffle arrangement; tooltips
+  //    carry the labels. Playing: End/Concede + back-to-club. Terminal:
+  //    Restart + New game + back-to-club.) ──
   onEndGame: () => void
   onConcede: () => void
+  /** Restart THIS board — same letters, finds wiped (the menu's
+   *  replay-board, unconfirmed at terminal since there's nothing to lose). */
+  onRestart: () => void
+  /** Start a fresh follow-up game — same setup, new board + id. */
+  onNewGame: () => void
+  /** Direct navigation to the club — terminal only (nothing to lose). */
   onBackToClub: () => void
+  /** Mid-game back-to-club: routes through the shell's suspend-confirm flow
+   *  (menu.requestBackToClub), NOT direct navigation — leaving a live game
+   *  shelves it. */
+  onRequestBackToClub: () => void
 
   // ── Setup disclosure ──
   setup: SpellingbeeSetup
@@ -130,23 +148,30 @@ export function InfoCol({
           />
         )}
 
-        {/* Action row: the End-game button during play; at terminal the bold,
-            outcome-colored result line + a compact back-to-club button. */}
+        {/* Action row — ICON-ONLY (the waffle arrangement; the styled tooltips
+            carry the labels). TERMINAL: the bold outcome line + Restart /
+            New game / back-to-club (primary). CONCEDED (the others race on):
+            the terminal LOOK — a status line + the now-disabled Concede.
+            PLAYING: End/Concede + back-to-club (via the suspend-confirm flow). */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} />
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
+            {/* Stay-here options left of the leave option (Club): run this
+                board back, or spin up the next one. */}
+            <RestartButton iconOnly onClick={onRestart} />
+            <NewGameButton iconOnly onClick={onNewGame} />
+          </TerminalActionRow>
         ) : isLocallyDone ? (
-          // I conceded; the others race on. Terminal LOOK (a status line + the
-          // now-disabled Concede) so the state change reads loudly.
           <LocalTerminalRow label="You conceded">
-            <ConcedeGameButton className={shared.helperButton} disabled />
+            <ConcedeGameButton iconOnly className={shared.helperButton} disabled />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
             {isCompete ? (
-              <ConcedeGameButton className={shared.helperButton} onClick={onConcede} />
+              <ConcedeGameButton iconOnly className={shared.helperButton} onClick={onConcede} />
             ) : (
-              <EndGameButton className={shared.helperButton} onClick={onEndGame} />
+              <EndGameButton iconOnly className={shared.helperButton} onClick={onEndGame} />
             )}
+            <BackToClubButton iconOnly onClick={onRequestBackToClub} />
           </div>
         )}
 
