@@ -1,4 +1,4 @@
-import { useState, type SubmitEvent } from 'react'
+import { useEffect, useState, type SubmitEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
 import { navigate } from '../../lib/routing/router'
@@ -85,6 +85,25 @@ export function CreateClubPage({ session: _session }: Props) {
   const [usernamesInput, setUsernamesInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Escape cancels — the keyboard twin of the Cancel button. The page reads
+  // as a modal (a lone card over nothing), so Escape-to-dismiss is the
+  // expected key; this is what the FloatingPanel dialogs do natively, but
+  // this is a routed PAGE, so it wires its own. Window-level so it works
+  // from inside the form fields too (typed text is cheap to lose — same
+  // judgment as the Cancel button, which doesn't confirm). Inert while the
+  // create RPC is in flight, matching Cancel's disabled={busy}.
+  useEffect(
+    function escapeCancels() {
+      if (busy) return
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') navigate('/')
+      }
+      window.addEventListener('keydown', onKey)
+      return () => window.removeEventListener('keydown', onKey)
+    },
+    [busy],
+  )
 
   // The handle the current name would slugify to. Shown discreetly in
   // the "Club name" label so the validation (which is really about the
