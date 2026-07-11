@@ -126,8 +126,8 @@ plain RPCs — no edge function needed.
 
 ## 5. Puzzle sourcing
 
-Three sources, exposed as three tabs in the setup form (Library / NYT by date /
-Upload file):
+Four sources, exposed as four tabs in the setup form (Library / NYT by date /
+Guardian / Upload file):
 
 - **`crosswords:import`** (CLI, `supabase/scripts/`) — bulk-imports crossplay's
   `.puz` / `.ipuz` files + the `content_hash` dedup into the curated
@@ -175,6 +175,27 @@ Upload file):
   marks into the live cells** so the overlay bars render like any player-drawn mark. Local cookie setup:
   put `NYT_COOKIE_JAR=<raw JSON or base64>` in `supabase/functions/.env` and
   `supabase functions serve crosswords-import-nyt --env-file …`.
+- **`crosswords-import-guardian`** edge function — fetches **today's** Guardian
+  crossword in a chosen `series` (Quick / Cryptic / Everyman / Speedy / Quiptic
+  / Prize / Weekend), converts via the pure `src/crosswords/lib/guardian.ts`
+  (unit-tested), then `create_game(board=…)` as the caller — the same
+  self-contained shape as NYT. **No auth** (Guardian crosswords are public — no
+  secret to configure), and the conversion is simpler than NYT's: the Guardian
+  data is *entry*-based (each clue carries its start position, direction,
+  length, number, and answer), so the grid + numbering + split clue lists fall
+  out directly, with none of NYT's cell-type enum or overlay-PNG step. The one
+  wrinkle is the fetch: the puzzle JSON is embedded in the solver page inside a
+  `<gu-island name="CrosswordComponent" props="…escaped JSON…">` web-component
+  tag, which the edge fn scrapes + entity-un-escapes (mirroring the Python
+  xword-dl downloader this was ported from). `find latest` reads the series
+  index page for the first `/crosswords/<type>/<id>` link. **Caveats:** a *Prize*
+  or *Weekend* puzzle withholds its answers until a reveal date, so a same-day
+  start of those may 422 (`convertGuardianPuzzle` throws when `solutionAvailable`
+  is false rather than seed an unsolvable board — our check/reveal/terminal flow
+  needs the answer key); and the cryptic **enumeration bars** (`separatorLocations`
+  → grid word-break marks) are *not* ported in v1 (the enumeration is already in
+  each clue's text, e.g. "(6,5)"). The clue-HTML→text helper is now shared
+  (`src/crosswords/lib/clueHtml.ts`, used by both `nyt.ts` and `guardian.ts`).
 
 ## 6. Server surface + parsers (the shared-code seam)
 

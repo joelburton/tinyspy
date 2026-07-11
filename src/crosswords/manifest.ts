@@ -40,9 +40,12 @@ const setupFormLoader = lazy(() =>
 function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
   return async (clubHandle: string, setup: unknown, playerUserIds: string[]) => {
     const s = setup as CrosswordsSetup
-    if (s.source === 'nyt') {
+    // NYT (by date) and Guardian (today's, by series) both fetch server-side
+    // and create the game from the imported puzzle — the edge function owns
+    // the error-context unwrap via invokeStartGameEdgeFn.
+    if (s.source === 'nyt' || s.source === 'guardian') {
       return invokeStartGameEdgeFn(
-        'crosswords-import-nyt',
+        s.source === 'nyt' ? 'crosswords-import-nyt' : 'crosswords-import-guardian',
         { target_club: clubHandle, setup: s, player_user_ids: playerUserIds, mode },
         brand,
       )
@@ -82,6 +85,7 @@ const endGame = makeRpcDispatcher(db, 'end_game')
 const validate = (setup: unknown): string | null => {
   const s = setup as CrosswordsSetup
   if (s.source === 'nyt') return s.date ? null : 'Pick a date.'
+  if (s.source === 'guardian') return s.series ? null : 'Pick a Guardian series.'
   if (s.source === 'upload') return s.board ? null : 'Choose a .puz or .ipuz file.'
   return s.puzzle_id ? null : 'Pick a puzzle to start.'
 }

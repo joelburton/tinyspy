@@ -17,6 +17,7 @@
  */
 
 import type { Cell, Clue, PuzzleMeta, PuzzleTemplate } from './types.ts'
+import { htmlToText } from './clueHtml.ts'
 
 // ── NYT v6 response shape (only the fields the converter reads) ──────────
 export type NytCell = {
@@ -181,29 +182,4 @@ function clueText(text: unknown): string {
   if (raw && typeof raw === 'object') raw = (raw as { plain?: string }).plain ?? ''
   if (typeof raw !== 'string') return ''
   return htmlToText(raw)
-}
-
-/** Minimal HTML→text for clue markup, ported from crossplay's `htmlToText`
- *  (order matters). UTF-8 output (the Latin-1 transliteration table is
- *  intentionally not ported). */
-function htmlToText(html: string): string {
-  return html
-    .replace(/<i>(.*?)<\/i>/gi, '_$1_')
-    .replace(/<em>(.*?)<\/em>/gi, '_$1_')
-    .replace(/<sub>(.*?)<\/sub>/gi, '$1')
-    .replace(/<sup>([\d\s]+)<\/sup>/gi, '^$1')
-    .replace(/<sup>(.*?)<\/sup>/gi, '$1')
-    .replace(/<br\s*\/?>/gi, ' / ')
-    .replace(/<s>(.*?)<\/s>/gi, '[*cross out* $1]')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&quot;/g, '"')
-    .replace(/&mdash;/g, '—')
-    .replace(/&amp;/g, '&')
-    .replace(/&vert;/g, '|')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&bull;/g, '*')
-    .replace(/&#(\d+);/g, (_, n: string) => String.fromCharCode(Number(n)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, h: string) => String.fromCharCode(parseInt(h, 16)))
 }

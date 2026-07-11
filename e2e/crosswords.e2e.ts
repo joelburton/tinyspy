@@ -79,6 +79,8 @@ test.describe('crosswords play loop', () => {
     // answers wait behind the "Reveal board" menu item.
     const cell11 = page.locator('[data-xw-cell][data-row="1"][data-col="1"]')
     await page.getByRole('button', { name: /^End$/ }).click()
+    // End now confirms through the shared modal (docs/ui.md → Confirm modals).
+    await page.getByRole('button', { name: 'End game' }).click()
     await expect(page.getByText('Game over').first()).toBeVisible({ timeout: 8000 })
     await expect(cell11).toHaveAttribute('data-fill', '')
 

@@ -3,6 +3,7 @@ import type { SetupBodyProps } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
 import type { CrosswordsSetup } from '../lib/setup'
+import { GUARDIAN_SERIES } from '../lib/setup'
 import { importCrosswordFile } from '../lib/importFile'
 import type { PuzzleMeta } from '../lib/types'
 import styles from './SetupForm.module.css'
@@ -16,10 +17,11 @@ function todayStr(): string {
 }
 
 /**
- * The crosswords setup form: pick a puzzle from the curated library, OR an
- * NYT daily by date. The choice is written into `setup` (`source` +
- * `puzzle_id` / `date`); library → `create_game` RPC, NYT → the
- * `crosswords-import-nyt` edge function.
+ * The crosswords setup form: pick a puzzle from the curated library, an NYT
+ * daily by date, today's Guardian by series, or an uploaded file. The choice
+ * is written into `setup` (`source` + `puzzle_id` / `date` / `series` /
+ * `board`); library → `create_game` RPC, NYT + Guardian → their import edge
+ * functions, upload → the FE-parsed inline board.
  */
 export function SetupForm({ value, onChange }: SetupBodyProps) {
   const s = value as CrosswordsSetup
@@ -118,6 +120,22 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
         </button>
         <button
           type="button"
+          className={cls(styles.segBtn, source === 'guardian' && styles.segOn)}
+          aria-pressed={source === 'guardian'}
+          onClick={() =>
+            onChange({
+              ...s,
+              source: 'guardian',
+              series: s.series || GUARDIAN_SERIES[0]!.slug,
+              board: undefined,
+              filename: undefined,
+            })
+          }
+        >
+          Guardian
+        </button>
+        <button
+          type="button"
           className={cls(styles.segBtn, source === 'upload' && styles.segOn)}
           aria-pressed={source === 'upload'}
           onClick={() => onChange({ ...s, source: 'upload' })}
@@ -191,6 +209,22 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
             value={s.date ?? ''}
             onChange={(e) => onChange({ ...s, date: e.target.value })}
           />
+        </div>
+
+        <div className={cls(styles.tabBody, source !== 'guardian' && styles.tabHidden)}>
+          <p className="muted">Load today&rsquo;s Guardian crossword in the chosen series.</p>
+          <select
+            className={styles.search}
+            aria-label="Guardian series"
+            value={s.series ?? GUARDIAN_SERIES[0]!.slug}
+            onChange={(e) => onChange({ ...s, series: e.target.value })}
+          >
+            {GUARDIAN_SERIES.map((g) => (
+              <option key={g.slug} value={g.slug}>
+                {g.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className={cls(styles.tabBody, source !== 'library' && styles.tabHidden)}>
