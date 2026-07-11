@@ -34,6 +34,29 @@ test.describe('waffle replay board', () => {
     await expect(page.getByText('#1', { exact: true })).toHaveCount(0, { timeout: 8000 })
   })
 
+  test('menu "New game" starts a FRESH game (new id, same setup) via the edge fn', async ({
+    browser,
+  }) => {
+    const club = await createSoloClub('wfng')
+    const game = await createWaffleGame(club)
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.getByRole('button', { name: /^B \(/ })).toBeVisible({ timeout: 15000 })
+
+    // "New game" → the REAL waffle-build-board edge function builds a fresh
+    // board for the same setup band and we land on a DIFFERENT game id.
+    await page.getByRole('button', { name: 'Game menu' }).click()
+    await page.getByRole('menuitem', { name: 'New game' }).click()
+    await expect(page).not.toHaveURL(new RegExp(game.id), { timeout: 20000 })
+    await expect(page).toHaveURL(/\/g\/waffle_coop\//)
+    // The fresh game renders: a board with an empty swap log (the new board's
+    // par — and so its swap budget — is whatever the generator found).
+    await expect(page.getByRole('grid', { name: /waffle board/i })).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('No swaps yet.')).toBeVisible()
+  })
+
   test('coop: "Reveal answer" ends the game and fills the board with the solution', async ({
     browser,
   }) => {

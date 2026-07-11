@@ -257,6 +257,12 @@ export function GamePage({
   const goToClub = useCallback(() => {
     if (clubHandle) navigate(`/c/${clubHandle}`)
   }, [clubHandle])
+  // Jump to another game's page — for a PlayArea that just started a
+  // follow-up game (waffle's "New game"). Kept here beside goToClub so
+  // per-game code never touches the router or re-derives URL shapes.
+  const goToGame = useCallback((gametype: string, gameId: string) => {
+    navigate(`/g/${gametype}/${gameId}`)
+  }, [])
   // "Back to club" for the menu + ⇧< shortcut: terminal navigates directly,
   // mid-game opens the suspend-confirm modal.
   const requestBackToClub = useCallback(() => {
@@ -437,6 +443,8 @@ export function GamePage({
           setup: commonGame.setup,
           status: commonGame.status,
           goToClub,
+          clubHandle: commonGame.club_handle,
+          goToGame,
           globalFeedback: globalFeedbackApi,
           menu: menuApi,
         })}

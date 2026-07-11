@@ -78,6 +78,8 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     status: { bunch_remaining: 100, bag_remaining: 0 },
     globalFeedback: { show: vi.fn(), clear: vi.fn() },
     goToClub: vi.fn(),
+    clubHandle: 'testclub',
+    goToGame: vi.fn(),
     menu: { setGameSections: vi.fn(), openHelp: vi.fn(), requestBackToClub: vi.fn() },
     ...over,
   }

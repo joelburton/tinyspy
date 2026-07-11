@@ -14,13 +14,14 @@
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else — the grid, strips, action row — renders for real.
  */
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
 import type { WaffleGame, WafflePlayerState, SwapRow } from '../hooks/useGame'
 import { db } from '../db'
+import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { PlayArea } from './PlayArea'
 
 type GameHook = {
@@ -36,8 +37,12 @@ type GameHook = {
 const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
 vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
+// PlayArea's "New game" calls the start-game edge function directly (the same
+// helper the manifest uses); mocked so no edge runtime is needed.
+vi.mock('../../common/lib/game/manifestRpcs', () => ({ invokeStartGameEdgeFn: vi.fn() }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
+const startEdgeFn = invokeStartGameEdgeFn as unknown as ReturnType<typeof vi.fn>
 
 // A 25-char board (holes at 6/8/16/18); the exact letters don't matter for these
 // mount-level tests — holes render as gaps regardless of what sits there.
@@ -85,6 +90,8 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     status: null,
     globalFeedback: { show: vi.fn(), clear: vi.fn() },
     goToClub: vi.fn(),
+    clubHandle: 'testclub',
+    goToGame: vi.fn(),
     menu: { setGameSections: vi.fn(), openHelp: vi.fn(), requestBackToClub: vi.fn() },
     ...over,
   }
@@ -169,6 +176,56 @@ describe('waffle PlayArea — concede', () => {
     // The bold action-row status (exact) — the below-board pill carries the
     // longer "You conceded — the rest are still racing." variant.
     expect(screen.getByText('You conceded')).toBeInTheDocument()
+  })
+})
+
+/**
+ * "New game" (menu): a FRESH game — new id, same setup/roster/mode — via the
+ * same waffle-build-board edge function the manifest's startGameInClub uses,
+ * then a jump into it (ctx.goToGame). The pinned request body is the feature's
+ * contract: the CURRENT game's setup verbatim, every ctx player, this mode.
+ */
+describe('waffle PlayArea — new game (menu)', () => {
+  /** The game sections most recently pushed to the menu, flattened to items. */
+  const menuItems = (ctx: GamePageCtx) => {
+    const calls = (ctx.menu.setGameSections as ReturnType<typeof vi.fn>).mock.calls
+    const sections = calls.at(-1)![0] as { items: { id: string; onClick: () => void }[] }[]
+    return sections.flatMap((s) => s.items)
+  }
+
+  it('starts a fresh game with this game\'s setup + roster + mode, then navigates', async () => {
+    startEdgeFn.mockResolvedValue({ id: 'fresh-game-id' })
+    h.result = loaded(coopGame, [me, moth])
+    const ctx = makeCtx({ players: twoMembers })
+    render(<PlayArea {...ctx} />)
+
+    act(() => menuItems(ctx).find((i) => i.id === 'new-game')!.onClick())
+    await waitFor(() =>
+      expect(startEdgeFn).toHaveBeenCalledWith(
+        'waffle-build-board',
+        {
+          target_club: 'testclub',
+          setup: ctx.setup,
+          player_user_ids: ['u1', 'u2'],
+          mode: 'coop',
+        },
+        'SyrupSwap',
+      ),
+    )
+    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('waffle_coop', 'fresh-game-id'))
+  })
+
+  it('surfaces an edge-function error in the local pill (no navigation)', async () => {
+    startEdgeFn.mockResolvedValue({ error: 'no words for that band' })
+    h.result = loaded(coopGame)
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+
+    act(() => menuItems(ctx).find((i) => i.id === 'new-game')!.onClick())
+    await waitFor(() =>
+      expect(screen.getByText('New game failed: no words for that band')).toBeInTheDocument(),
+    )
+    expect(ctx.goToGame).not.toHaveBeenCalled()
   })
 })
 

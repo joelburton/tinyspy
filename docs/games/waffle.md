@@ -211,6 +211,15 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   (`tone:'neutral'` — no win green, no loss red; the copy says there's no
   winner). `buildOver` / `labelFor` both branch on `'ended'` before their
   win/lose branches. Modeled exactly on `spellingbee.end_game`.
+- **"New game"** (game-menu item, FE-only — no waffle RPC): start a **fresh
+  game** — new id, new randomly-built board — with THIS game's setup + roster +
+  mode, in the same club. Calls the same `waffle-build-board` edge function the
+  manifest's `startGameInClub` uses (via `invokeStartGameEdgeFn`), then jumps
+  the creator in via the new `ctx.goToGame`; peers arrive via the game-invitation
+  toast, and this game un-currents into the club's games list (resumable), so
+  there's no confirm. `clubHandle` + `goToGame` are new `GamePageCtx` fields
+  (see [common.md](../common.md)) so any game can adopt the same "same again!"
+  item later.
 - **`reveal_answer(game)`** — the **"Reveal answer"** game-menu item: give up,
   **show the solution, end the game**. Where `end_game` leaves each board as-is,
   this overwrites every `waffle.players.board` with `games.solution` and *then*

@@ -104,6 +104,17 @@ export type GamePageCtx = {
    *  call when the game is terminal — for non-terminal back-to-
    *  club, use the menu (which fires the suspend-confirm flow). */
   goToClub: () => void
+  /** The club this game belongs to (`common.games.club_handle`) —
+   *  so a PlayArea can start a FOLLOW-UP game in the same club
+   *  (waffle's "New game" menu item: same setup, fresh board,
+   *  new game id). */
+  clubHandle: string
+  /** Navigate to another game's page (`/g/<gametype>/<gameId>`) —
+   *  the follow-up-game companion to `goToClub`: after a PlayArea
+   *  starts a new game (see `clubHandle`), this jumps the creator
+   *  into it. Peers arrive via the game-invitation toast, as with
+   *  any new game. Identity is stable across renders. */
+  goToGame: (gametype: string, gameId: string) => void
   /** Imperative API for the GamePage menu (the dropdown opened from
    *  the game logo). The PlayArea owns its WHOLE menu — it calls
    *  `menu.setGameSections([...])` (usually via the `buildGameMenu`

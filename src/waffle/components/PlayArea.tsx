@@ -8,6 +8,7 @@ import { CelebrationDialog } from '../../common/components/game/CelebrationDialo
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
@@ -60,6 +61,7 @@ const ownAction = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg 
 export function PlayArea({
   session,
   gameId,
+  brand,
   players,
   playState,
   isTerminal,
@@ -68,6 +70,8 @@ export function PlayArea({
   status,
   globalFeedback,
   goToClub,
+  clubHandle,
+  goToGame,
   menu,
 }: GamePageCtx) {
   const { game, players: playerStates, swaps, loading } = useGame(gameId)
@@ -208,6 +212,46 @@ export function PlayArea({
     clearLocalFeedback()
   }, [gameId, isTerminal, showLocalFeedback, clearLocalFeedback, exitViewing])
 
+  // New game — a FRESH game (new id, new randomly-built board) with THIS
+  // game's setup + roster + mode, in the same club: the "same again!" action
+  // after a solve, without a trip through the club page's setup dialog. Goes
+  // through the same `waffle-build-board` edge function the manifest's
+  // startGameInClub uses (it builds a board for the band and calls
+  // create_game). Non-destructive — common.create_game un-currents THIS game
+  // (it shelves into the club's games list, resumable) — so no confirm. The
+  // creator jumps straight in; peers arrive via the game-invitation toast.
+  //
+  // `setup` + `players` arrive as fresh identities on every realtime refetch,
+  // so the handler reads them via a click-time ref — keeping its own identity
+  // (and therefore the menu effect below) stable across refetches.
+  const gameMode = game?.mode
+  const newGameArgsRef = useRef<{ setup: Record<string, unknown>; playerIds: string[] }>({
+    setup,
+    playerIds: [],
+  })
+  useEffect(() => {
+    newGameArgsRef.current = { setup, playerIds: players.map((p) => p.user_id) }
+  })
+  const handleNewGame = useCallback(async () => {
+    if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
+    const args = newGameArgsRef.current
+    const res = await invokeStartGameEdgeFn(
+      'waffle-build-board',
+      {
+        target_club: clubHandle,
+        setup: args.setup,
+        player_user_ids: args.playerIds,
+        mode: gameMode,
+      },
+      brand,
+    )
+    if ('error' in res) {
+      showLocalFeedback(ownAction('error', `New game failed: ${res.error}`))
+      return
+    }
+    goToGame(`waffle_${gameMode}`, res.id)
+  }, [gameMode, clubHandle, brand, goToGame, showLocalFeedback])
+
   // Reveal answer — give up: fill every board with the solution and END the game.
   // Server-side `reveal_answer` overwrites `waffle.players.board` with the solution
   // (so the board the players are looking at literally becomes the answer, all green)
@@ -227,8 +271,9 @@ export function PlayArea({
   }, [gameId, showLocalFeedback, clearLocalFeedback, exitViewing])
 
   // Game menu: waffle now owns its FULL menu (Help + its own items + End/Concede +
-  // Back to club) via `buildGameMenu`. Its two own items are "Replay board" (both
-  // modes, any state) + "Reveal answer". Reveal ENDS the game, so it's only offered
+  // Back to club) via `buildGameMenu`. Its own items are "Replay board" (both
+  // modes, any state), "New game" (same setup, fresh board + id — see
+  // handleNewGame), and "Reveal answer". Reveal ENDS the game, so it's only offered
   // while a game is in progress and the caller actually holds the solution — disabled
   // at terminal (already over) and whenever the solution isn't on the client (compete
   // *during play*; the shield only lifts post-terminal). In practice that's
@@ -255,6 +300,8 @@ export function PlayArea({
           {
             items: [
               { id: 'replay', label: 'Replay board', onClick: () => void handleReplay() },
+              // Same setup + roster, a fresh randomly-built board, a NEW game id.
+              { id: 'new-game', label: 'New game', onClick: () => void handleNewGame() },
               {
                 id: 'reveal',
                 label: 'Reveal answer',
@@ -274,6 +321,7 @@ export function PlayArea({
     handleEndGame,
     handleConcede,
     handleReplay,
+    handleNewGame,
     handleRevealAnswer,
     isTerminal,
     solutionKnown,
