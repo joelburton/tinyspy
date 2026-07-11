@@ -216,7 +216,7 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
         </div>
 
         <div className={cls(styles.tabBody, source !== 'guardian' && styles.tabHidden)}>
-          <p className="muted">
+          <p className={styles.lead}>
             Load today&rsquo;s Guardian crossword. <strong>Quick</strong> and{' '}
             <strong>Speedy</strong> are plain-definition puzzles; the rest are{' '}
             <strong>cryptics</strong> (each clue is wordplay + a definition).
@@ -234,8 +234,9 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
             ))}
           </select>
           {/* A one-line character hint for the chosen series (research-backed —
-              helps a solver pick by difficulty). */}
-          <p className={cls('muted', styles.guardianHint)}>{selectedGuardian.hint}</p>
+              helps a solver pick by difficulty). Full-color real text; the
+              understatement is size + italic, not dimming. */}
+          <p className={styles.guardianHint}>{selectedGuardian.hint}</p>
         </div>
 
         <div className={cls(styles.tabBody, source !== 'library' && styles.tabHidden)}>

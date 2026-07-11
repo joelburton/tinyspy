@@ -56,8 +56,12 @@
   font-size: 0.95rem;
 }
 
-/* The Guardian series character hint, under its picker. Small + spaced from
- * the select; italic to read as an aside, not another control label. */
+/* The Guardian tab's instructional lead + the per-series character hint are
+ * REAL help text, so they stay full --color-text (never muted): the
+ * understatement comes from size / italic / placement, not dimming. */
+.lead {
+  margin: 0 0 0.75rem;
+}
 .guardianHint {
   margin-top: 0.5rem;
   font-size: 0.85rem;
