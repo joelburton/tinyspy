@@ -124,13 +124,17 @@ Both cases use the same machinery (last-viewer-leaves write); the difference is 
 
 ### Leaving the game page — terminal vs non-terminal
 
-The UI bar for "leaving" depends on play state:
+The UI bar for "leaving" depends on play state — three shapes (GamePage's `requestBackToClub`):
 
-- **Terminal**. Trivial to leave. Members are reviewing the endgame (the matched bands, the revealed key cards, the post-game summary); the Back-to-club is just a single click. No confirm. When the last reviewer leaves, the game stops being current.
+- **Terminal**. Trivial to leave. Members are reviewing the endgame (the matched bands, the revealed key cards, the post-game summary); the Back-to-club is just a single click. No confirm, no broadcast — other reviewers stay put. When the last reviewer leaves, the game stops being current.
 
-- **Non-terminal**. Higher UI bar. A confirm dialog: *"Suspend this game to finish later?"* On accept, ALL viewing members (not just the leaver) move to the club page and the game stops being current.
+- **Non-terminal, SOLO**. Also no confirm — Back-to-club suspends immediately. Suspending isn't dangerous by itself (the game shelves into the club list, resumable); the confirm exists to warn about dragging PEERS off the game, and a solo game has none to surprise.
 
-The asymmetry: terminal games have no "lose progress" risk, so navigation is cheap. Non-terminal games are an in-flight effort that everyone should agree to suspend together (otherwise one player accidentally drags the whole club off the puzzle).
+- **Non-terminal, MULTIPLAYER**. The suspend-confirm MODAL (a real modal: backdrop-blocked board, dialog-owned keyboard — `SuspendConfirmDialog`, a wrapper over the shared `ConfirmDialog`). On accept, ALL viewing members (not just the leaver) move to the club page and the game stops being current.
+
+The asymmetry: the confirm is about the *social* surprise, not the act. Suspending loses nothing; what needs a beat of consideration is yanking the rest of the group off the puzzle mid-flight.
+
+Contrast **ending** a game (the End button / menu item / pause-overlay escape hatch), which IS destructive — terminal for the whole group, irreversible — and therefore always asks through the shared `ConfirmDialog` ("End this game?"), even in a solo or coop game.
 
 ## Exiting a club page (separate concern)
 

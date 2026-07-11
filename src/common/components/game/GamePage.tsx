@@ -21,6 +21,7 @@ import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
 import { useClubPresence } from '../../hooks/realtime/useClubPresence'
 import { useClubSetupPresence } from '../../hooks/realtime/useClubSetupPresence'
 import { useCommonGame } from '../../hooks/game/useCommonGame'
+import { useConfirmDialog, END_GAME_CONFIRM } from '../../hooks/ui/useConfirmDialog'
 import { formatTimerSeconds } from '../../hooks/game/useGameTimer'
 import { useClubRoster } from '../../hooks/club/useClubRoster'
 import { useChatFeedback } from '../../hooks/chat/useChatFeedback'
@@ -157,6 +158,10 @@ export function GamePage({
     announce: null,
   })
 
+  // The shared confirm modal (the pause overlay's End game asks through it;
+  // per-game PlayAreas own their own instances for their End buttons).
+  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+
   // Open/closed state for the suspend-confirm modal (fired from
   // the menu's "Back to club" item for non-terminal games).
   const [confirmingSuspend, setConfirmingSuspend] = useState(false)
@@ -268,13 +273,20 @@ export function GamePage({
   const goToGame = useCallback((gametype: string, gameId: string) => {
     navigate(`/g/${gametype}/${gameId}`)
   }, [])
-  // "Back to club" for the menu + ⇧< shortcut: terminal navigates directly,
-  // mid-game opens the suspend-confirm modal.
+  // "Back to club" for the menu + ⇧< shortcut. Three shapes:
+  //   - TERMINAL: direct navigation, no dialog, no broadcast — the game is
+  //     over, leaving affects nobody else.
+  //   - SOLO mid-game: suspend immediately, no dialog — the confirm exists
+  //     to warn that peers get dragged back to the club, and a solo game
+  //     has no peers to surprise. (sendSuspend's broadcast lands on nobody;
+  //     it shelves the game + navigates self.)
+  //   - MULTIPLAYER mid-game: the suspend-confirm modal.
   const requestBackToClub = useCallback(() => {
     if (!clubHandle) return
     if (isGameOver) navigate(`/c/${clubHandle}`)
+    else if (players.length <= 1) sendSuspend()
     else setConfirmingSuspend(true)
-  }, [clubHandle, isGameOver])
+  }, [clubHandle, isGameOver, players.length, sendSuspend])
   const menuApi = useMemo<MenuApi>(
     () => ({ setGameSections: setGameSectionsApi, openHelp, requestBackToClub }),
     [setGameSectionsApi, openHelp, requestBackToClub],
@@ -423,7 +435,9 @@ export function GamePage({
         onEndGame={
           endGameFn
             ? async () => {
-                if (!window.confirm("End the game now? You can't undo this.")) return
+                // The shared end-game confirm modal (never window.confirm —
+                // docs/ui.md → Modals). Same copy every game's own End uses.
+                if (!(await confirmAction(END_GAME_CONFIRM))) return
                 const { error } = await endGameFn(gameId)
                 if (error) {
                   setGlobalFeedback({
@@ -517,6 +531,9 @@ export function GamePage({
           }}
         />
       )}
+
+      {/* The pause overlay's End-game confirm (see onEndGame above). */}
+      {confirmDialog}
     </div>
   )
 }

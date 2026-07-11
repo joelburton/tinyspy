@@ -146,6 +146,36 @@ The per-game PlayArea picks the right verdict per status (play_state + timer.exp
 
 **The celebration variant.** `common/components/game/CelebrationDialog.tsx` (confetti glyphs + optional jingle, ported from crossplay) is the festive alternative a game can pop **instead of** the GameOverModal for a win. Its trigger contract is the *inverse* of the GameOverModal's: the `useCelebration` hook pops it **only when the win lands mid-session** (the `playState` flip arriving via realtime — so the whole group celebrates together), never on mounting an already-won game (that's review, not winning), and it re-arms if the game un-terminals (replay-board). **Waffle and wordle** take this treatment — each skips the GameOverModal entirely (the verdict is carried in-page by the below-board pill + the action-row outcome line) and celebrates coop solves. Gate it on `playState === 'won'` alone — synchronously available from ctx and coop-only by the states vocabulary; gating on async-loaded game data fakes a mid-session flip on every mount of a won game. The wider adoption plan is [celebration-ideas.md](celebration-ideas.md).
 
+### Confirm modals — never `window.confirm`
+
+In-game confirmations go through the shared
+[`<ConfirmDialog>`](../src/common/components/panels/ConfirmDialog.tsx) — a
+true MODAL on the FloatingPanel shell: `backdrop` blocks every pointer action
+on the board underneath, focus is trapped, the confirm button autoFocuses
+(Enter confirms), Esc cancels, and the game key-captures bail inside
+`[data-floating-panel]`. The confirm button always **names the act** ("End
+game", "Suspend") — never a bare "OK". For the imperative form handlers want,
+[`useConfirmDialog`](../src/common/hooks/ui/useConfirmDialog.tsx) is
+`window.confirm` with a promise: `if (!(await confirm({...}))) return`, plus a
+`{confirmDialog}` node to render.
+
+Two standing users:
+
+- **End game** — ALWAYS confirmed, in every game and every entry point (the
+  info-row button, the menu item, the pause overlay's escape hatch), even
+  solo/coop: ending is terminal for the whole group and irreversible. One
+  canonical copy object (`END_GAME_CONFIRM`) so the question reads identically
+  everywhere.
+- **Suspend / Back-to-club** — confirmed only when there are PEERS to
+  surprise. Three shapes (see
+  [states.md → Leaving the game page](states.md#leaving-the-game-page--terminal-vs-non-terminal)):
+  terminal → direct navigation, no dialog, no broadcast; solo mid-game →
+  suspend immediately, no dialog; multiplayer mid-game → the
+  `SuspendConfirmDialog` (a wrapper over ConfirmDialog).
+
+The window.confirm calls still in the codebase (concede, replay mid-game,
+reveal mid-game, clear board) predate this and migrate as they're touched.
+
 ### Dialog buttons
 
 macOS-style placement, consistent across every dialog / modal / confirm: the action row is **right-justified** (`justify-content: flex-end`), with the **default/primary action rightmost** and Cancel (the `secondary` button) to its left — so Cancel comes *first* in the DOM, the primary button *last*. Single-button dialogs (Help's "Got it", GameOverModal's "Back to club") right-justify the lone button. Each dialog owns a small `.actions` / `.buttonRow` flex rule, all sharing `gap: 0.75rem` and `min-width: 6rem` on the buttons. `PauseOverlay` is the deliberate exception — it's a page-context banner, not a modal, so its buttons center.

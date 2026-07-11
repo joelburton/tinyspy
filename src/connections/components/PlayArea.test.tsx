@@ -8,7 +8,7 @@
  * mounts and that the concede wiring (compete → connections.concede; coop → End)
  * is correct.
  */
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
@@ -126,13 +126,13 @@ describe('connections PlayArea — concede', () => {
   })
 
   it('coop shows End (not Concede) and calls end_game', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     h.result = loaded({ game: game('coop') })
     render(<PlayArea {...makeCtx()} />)
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^end$/i }))
-    expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' })
+    await user.click(await screen.findByRole('button', { name: 'End game' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
   })
 
   it('marks a conceded opponent "out" in the strip', () => {

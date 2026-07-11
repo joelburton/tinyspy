@@ -8,6 +8,7 @@ import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { memberById } from '../../common/lib/game/peers'
@@ -72,6 +73,10 @@ export function PlayArea({
   // fills the screen and the info column moves into an off-canvas <InfoSheet>,
   // opened from the hook's "Game info" menu item. Desktop is unchanged.
   const infoSheet = useInfoSheet()
+
+  // The shared end-game confirm modal (replaces window.confirm — a true
+  // modal: backdrop-blocked board, dialog-owned keyboard).
+  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
 
   // I dropped out of a compete race (a real loss; the others keep racing). Read
   // from the common roster (prop `players`, always present) so it's available
@@ -258,10 +263,10 @@ export function PlayArea({
   // of handlers — hoisted above the early returns as useCallbacks so the ref
   // can list them in its deps. (The crosswords `actionsRef` pattern.)
   const endGame = useCallback(async () => {
-    if (!window.confirm("End the game now? You can't undo this.")) return
+    if (!(await confirmAction(END_GAME_CONFIRM))) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
-  }, [gameId, showLocalFeedback])
+  }, [gameId, showLocalFeedback, confirmAction])
   const handleConcede = useCallback(async () => {
     if (isTerminal || myConceded) return
     if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
@@ -408,6 +413,7 @@ export function PlayArea({
       </InfoSheet>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {confirmDialog}
     </div>
   )
 }

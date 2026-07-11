@@ -19,6 +19,7 @@ import { buildDisplayRows } from '../lib/displayRows'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { printSpellingbeePdf } from '../pdf/printSpellingbeePdf'
 import shared from '../../common/components/game/PlayArea.module.css'
@@ -66,6 +67,10 @@ export function PlayArea(ctx: GamePageCtx) {
   // width) so the WordList has room — the rem-width columns side-scroll. Desktop
   // is unchanged. No board divergence — input is letter taps (no keyboard).
   const infoSheet = useInfoSheet()
+
+  // The shared end-game confirm modal (replaces window.confirm — a true
+  // modal: backdrop-blocked board, dialog-owned keyboard).
+  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
 
   // The end/concede action handlers, held in a stable ref so the menu effect
   // needn't list the (later-declared, per-render `useCallback`) handlers in its
@@ -254,16 +259,17 @@ export function PlayArea(ctx: GamePageCtx) {
   // The manual "we're done" stop — an info-column action-row button now (like
   // psychicnum / waffle), off the GamePage menu. Available in both modes; in
   // compete it terminates the race with everyone {won:false} — friends agreeing
-  // to stop is a valid outcome, not a "you lose" punishment. Confirmed (it's
-  // irreversible); a failure flashes the local feedback.
+  // to stop is a valid outcome, not a "you lose" punishment. Always confirmed
+  // via the shared modal (ending is harmful for the whole group, even
+  // coop/solo); it's irreversible; a failure flashes the local feedback.
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
-    if (!window.confirm('End the game now? You can\'t undo this.')) return
+    if (!(await confirmAction(END_GAME_CONFIRM))) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) {
       showLocalFeedback('error', `End game failed: ${error.message}`)
     }
-  }, [gameId, isTerminal, showLocalFeedback])
+  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
 
   // ─── Concede (compete) — drop out of the race ──────────
   // A real loss for the conceder; the others keep racing (spellingbee.concede →
@@ -524,6 +530,7 @@ export function PlayArea(ctx: GamePageCtx) {
         />
       </InfoSheet>
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {confirmDialog}
     </div>
   )
 }

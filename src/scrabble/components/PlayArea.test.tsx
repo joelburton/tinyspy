@@ -13,7 +13,7 @@
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else — the board, rack, controls, log, modal — renders real.
  */
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
@@ -188,12 +188,12 @@ describe('scrabble PlayArea — concede', () => {
   })
 
   it('coop shows End (not Concede) and calls end_game', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^end$/i }))
-    expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' })
+    await user.click(await screen.findByRole('button', { name: 'End game' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
   })
 
   it('marks a conceded opponent "out" in the strip', () => {

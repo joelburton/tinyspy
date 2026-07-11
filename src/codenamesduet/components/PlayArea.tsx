@@ -9,6 +9,7 @@ import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDis
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -229,6 +230,10 @@ export function PlayArea({
   // down to the clue field). (An earlier attempt SHRANK the board to fit above
   // the keyboard; it crunched the board too small and scrolled badly.)
   const infoSheet = useInfoSheet()
+
+  // The shared end-game confirm modal (replaces window.confirm — a true
+  // modal: backdrop-blocked board, dialog-owned keyboard).
+  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
   // `gameOver` mirrors common.games.is_terminal — derived early so
   // we can pass `revealPeer` into useBoard. `playState` carries the
   // gametype-specific value ('playing', 'sudden_death', 'won', ...)
@@ -289,14 +294,16 @@ export function PlayArea({
   // psychicnum/connections) rather than a GamePage menu item. codenamesduet has
   // automatic terminals (won / lost_*), but this lets them abandon an in-progress
   // game early — fires codenamesduet.end_game, a neutral terminal
-  // (play_state='ended', everyone {won:false}). Confirmed; it's irreversible. An
-  // error is an own-action error → the same local flash as a rejected guess.
+  // (play_state='ended', everyone {won:false}). Always confirmed via the shared
+  // modal (ending is harmful for the whole group, even coop/solo); it's
+  // irreversible. An error is an own-action error → the same local flash as a
+  // rejected guess.
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
-    if (!window.confirm("End the game now? You can't undo this.")) return
+    if (!(await confirmAction(END_GAME_CONFIRM))) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) showLocalFeedback(ownAction('error', `End game failed: ${error.message}`))
-  }, [gameId, isTerminal, showLocalFeedback])
+  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
 
   // ─── Header menu (each game owns its whole menu now) ────
   // codenamesduet is coop-only (fixed 2 seats, no compete sibling), so the menu
@@ -469,6 +476,7 @@ export function PlayArea({
       )}
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {confirmDialog}
     </div>
   )
 }

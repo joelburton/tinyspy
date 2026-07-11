@@ -4,6 +4,7 @@ import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
@@ -57,6 +58,10 @@ export function PlayArea(ctx: GamePageCtx) {
   // fills for free (a square sized min(--avail-w, --avail-h, …)); input is tile
   // taps (path-tracing, see BoardCol). Desktop is unchanged.
   const infoSheet = useInfoSheet()
+
+  // The shared end-game confirm modal (replaces window.confirm — a true
+  // modal: backdrop-blocked board, dialog-owned keyboard).
+  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
   const myId = session.user.id
 
   // `setup` is typed `Record<string, unknown>`; BoggleSetup is an `interface`,
@@ -238,14 +243,16 @@ export function PlayArea(ctx: GamePageCtx) {
   const foundSet = useMemo(() => new Set(foundWords.map((f) => f.word)), [foundWords])
 
   // Manual end — an info-column action-row button now (like the other converged
-  // games), off the GamePage menu. Confirmed; it's irreversible. Its error shares
-  // the same below-board pill as a word submit (via the hook's showLocalFeedback).
+  // games), off the GamePage menu. Always confirmed via the shared modal (ending
+  // is harmful for the whole group, even coop/solo); it's irreversible. Its error
+  // shares the same below-board pill as a word submit (via the hook's
+  // showLocalFeedback).
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
-    if (!window.confirm("End the game now? You can't undo this.")) return
+    if (!(await confirmAction(END_GAME_CONFIRM))) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) showLocalFeedback('error', `End game failed: ${error.message}`)
-  }, [gameId, isTerminal, showLocalFeedback])
+  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
 
   // ─── Concede (compete) — drop out of the race ──────────
   // A real loss for the conceder; the others keep racing (boggle.concede →
@@ -438,6 +445,7 @@ export function PlayArea(ctx: GamePageCtx) {
       </InfoSheet>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {confirmDialog}
     </div>
   )
 }

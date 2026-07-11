@@ -7,6 +7,7 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setScratchpadOpen } from '../../common/lib/scratchpad/scratchpadOpenStore'
@@ -73,6 +74,10 @@ export function PlayArea(ctx: GamePageCtx) {
   const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback({
     locked: isTerminal,
   })
+
+  // The shared end-game confirm modal (replaces window.confirm — a true
+  // modal: backdrop-blocked board, dialog-owned keyboard).
+  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
 
   // Mobile (docs/mobile.md): below --mobile the grid + the active-clue bar ARE
   // the main view (grid maximized; the bar is how you read the clue you're on),
@@ -598,10 +603,12 @@ export function PlayArea(ctx: GamePageCtx) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTerminal, over?.verdict])
 
+  // Always confirmed via the shared modal — crosswords previously ended unconfirmed.
   const handleEndGame = useCallback(async () => {
+    if (!(await confirmAction(END_GAME_CONFIRM))) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) showLocalFeedback(stickyPill('error', `End game failed: ${error.message}`))
-  }, [gameId, showLocalFeedback])
+  }, [gameId, showLocalFeedback, confirmAction])
 
   const handleConcede = useCallback(async () => {
     const { error } = await db.rpc('concede', { target_game: gameId })
@@ -821,6 +828,7 @@ export function PlayArea(ctx: GamePageCtx) {
       )}
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {confirmDialog}
     </div>
   )
 }

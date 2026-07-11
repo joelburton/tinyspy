@@ -8,6 +8,7 @@ import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDis
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { memberById } from '../../common/lib/game/peers'
@@ -113,6 +114,10 @@ export function PlayArea({
   // + turn log, no multi-column word list. Desktop is untouched.
   const infoSheet = useInfoSheet()
 
+  // The shared end-game confirm modal (replaces window.confirm — a true
+  // modal: backdrop-blocked board, dialog-owned keyboard).
+  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+
   // ─── Commit-slot flash (own-action feedback, local) ─────
   // A transient message shown *in place of the commit buttons* for the
   // player's own guess: "Correct!" (green) / "One away!" (amber) /
@@ -197,12 +202,12 @@ export function PlayArea({
   // psychicnum), not a GamePage-menu item.
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
-    if (!window.confirm('End the game now? You can\'t undo this.')) return
+    if (!(await confirmAction(END_GAME_CONFIRM))) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) {
       showLocalFeedback(stickyPill('error', `End game failed: ${error.message}`))
     }
-  }, [gameId, isTerminal, showLocalFeedback])
+  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
 
   // Concede — drop out of a compete race (a real loss; the others keep racing).
   // Distinct from End: connections.concede flips the caller's conceded flag then
@@ -403,6 +408,7 @@ export function PlayArea({
       </InfoSheet>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {confirmDialog}
     </div>
   )
 }

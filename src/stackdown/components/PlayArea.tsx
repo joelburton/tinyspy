@@ -8,6 +8,7 @@ import type {
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { terminalPill } from '../../common/lib/game/localPills'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
@@ -101,6 +102,10 @@ export function PlayArea({
   // keyboard input engine in BoardCol; the reveal/hint cheats in InfoCol) plus the
   // terminal verdict — so the coordinator owns it and both columns write through it.
   const { localFeedback, showLocalFeedback: showMsg, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
+
+  // The shared end-game confirm modal (replaces window.confirm — a true
+  // modal: backdrop-blocked board, dialog-owned keyboard).
+  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
   const showLocalFeedback = useCallback(
     (text: string, tone: GenericFeedbackTone, dismiss: GenericFeedbackMsg['dismiss'] = { kind: 'sticky' }) =>
       showMsg({ tone, text, variant: 'outline', dismiss }),
@@ -241,14 +246,16 @@ export function PlayArea({
   }, [gameId, showLocalFeedback])
 
   // ─── End (coop) — an info-column action-row button ────────────
-  // Manual end (stackdown.end_game) → a neutral whole-table stop. Confirmed;
-  // irreversible. Coop's answer to "we're done"; compete uses Concede instead.
+  // Manual end (stackdown.end_game) → a neutral whole-table stop. Always
+  // confirmed via the shared modal (ending is harmful for the whole group, even
+  // coop/solo); irreversible. Coop's answer to "we're done"; compete uses
+  // Concede instead.
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
-    if (!window.confirm("End the game now? You can't undo this.")) return
+    if (!(await confirmAction(END_GAME_CONFIRM))) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) showLocalFeedback(`End game failed: ${error.message}`, 'error')
-  }, [gameId, isTerminal, showLocalFeedback])
+  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
 
   // ─── Concede (compete) — drop out of the race ─────────────────
   // A real loss for the conceder; the others keep racing (stackdown.concede →
@@ -431,6 +438,7 @@ export function PlayArea({
       </InfoSheet>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {confirmDialog}
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { terminalPill } from '../../common/lib/game/localPills'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
+import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { colorVarFor } from '../../common/lib/color/memberColor'
@@ -68,6 +69,10 @@ export function PlayArea({
   // InfoCol's End/Concede failures. The thin builder keeps the terse `{ tone, text }`
   // call sites (own-move results are outline + sticky — the next move dismisses them).
   const { localFeedback, showLocalFeedback: showMsg, clearLocalFeedback } = useLocalFeedback({ locked: isTerminal })
+
+  // The shared end-game confirm modal (replaces window.confirm — a true
+  // modal: backdrop-blocked board, dialog-owned keyboard).
+  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
   const showLocalFeedback = useCallback(
     (m: LocalFeedbackMsg) => showMsg({ ...m, variant: 'outline', dismiss: { kind: 'sticky' } }),
     [showMsg],
@@ -300,12 +305,14 @@ export function PlayArea({
     return () => menu.setGameSections([])
   }, [menu, game, plays, self, isCompete, isTerminal, myConceded, nameOf, setup, brand, title])
 
+  // Always confirmed via the shared modal (ending is harmful for the whole
+  // group, even coop/solo); it's irreversible.
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
-    if (!window.confirm("End the game now? You can't undo this.")) return
+    if (!(await confirmAction(END_GAME_CONFIRM))) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) showLocalFeedback({ tone: 'error', text: `End game failed: ${error.message}` })
-  }, [gameId, isTerminal, showLocalFeedback])
+  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
 
   // Concede (compete) — drop out of the race. Turn-based, so the server hands off the
   // turn / ends the game (scrabble.concede); the conceder forfeits any win. Distinct
@@ -410,6 +417,7 @@ export function PlayArea({
       />
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {confirmDialog}
     </div>
   )
 }

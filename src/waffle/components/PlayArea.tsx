@@ -13,6 +13,7 @@ import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDis
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -100,6 +101,10 @@ export function PlayArea({
   // 22rem readout + swap log, no multi-column word list. Desktop is untouched.
   const infoSheet = useInfoSheet()
 
+  // The shared end-game confirm modal (replaces window.confirm — a true
+  // modal: backdrop-blocked board, dialog-owned keyboard).
+  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the group solves it — the winning swap flips
   // playState to 'won' on every connected client via the realtime refetch, so
@@ -171,13 +176,14 @@ export function PlayArea({
   )
 
   // Manual end — the friends agreeing they're done (neutral terminal, nobody
-  // wins/loses). Confirmed; it's irreversible.
+  // wins/loses). Always confirmed via the shared modal (ending is harmful for
+  // the whole group, even coop/solo); it's irreversible.
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
-    if (!window.confirm("End the game now? You can't undo this.")) return
+    if (!(await confirmAction(END_GAME_CONFIRM))) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) showLocalFeedback(ownAction('error', `End game failed: ${error.message}`))
-  }, [gameId, isTerminal, showLocalFeedback])
+  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
 
   // Concede — drop out of a compete race (a real loss; the rest keep racing).
   // Distinct from End: waffle.concede flips the shared conceded flag then re-runs the
@@ -483,6 +489,7 @@ export function PlayArea({
           row, now with Restart right there), and a coop solve gets the
           celebration instead. */}
       {celebration.show && <CelebrationDialog title="Solved it! 🧇" onClose={celebration.close} />}
+      {confirmDialog}
     </div>
   )
 }

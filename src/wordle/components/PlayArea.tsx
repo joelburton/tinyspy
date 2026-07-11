@@ -8,6 +8,7 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -62,6 +63,10 @@ export function PlayArea({
   // unchanged. wordle's one divergence — the board caps its height so the
   // keyboard always fits — lives in Board.module.css, not here.
   const infoSheet = useInfoSheet()
+
+  // The shared end-game confirm modal (replaces window.confirm — a true
+  // modal: backdrop-blocked board, dialog-owned keyboard).
+  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
 
   // The own-move local feedback pill (soft reject / RPC error), shown in the
   // fixed-height slot between the board and the keyboard. Sticky (localPill): cleared
@@ -179,15 +184,17 @@ export function PlayArea({
     globalFeedback,
   })
 
-  // Manual end — the friends agreeing to stop (a neutral terminal). Confirmed because
-  // it's irreversible; an RPC failure flashes in the local feedback slot. `useCallback`
-  // so the ref-populate effect below re-runs only when its real inputs change.
+  // Manual end — the friends agreeing to stop (a neutral terminal). Always
+  // confirmed via the shared modal (ending is harmful for the whole group, even
+  // coop/solo); it's irreversible; an RPC failure flashes in the local feedback
+  // slot. `useCallback` so the ref-populate effect below re-runs only when its
+  // real inputs change.
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
-    if (!window.confirm("End the game now? You can't undo this.")) return
+    if (!(await confirmAction(END_GAME_CONFIRM))) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) showLocalFeedback(stickyPill('error', error.message))
-  }, [isTerminal, gameId, showLocalFeedback])
+  }, [isTerminal, gameId, showLocalFeedback, confirmAction])
 
   // Concede — drop out of a compete race (a real loss; the others keep racing). Distinct
   // from End: wordle.concede flips the shared conceded flag then re-runs the compete
@@ -478,6 +485,7 @@ export function PlayArea({
           below-board pill + the action-row outcome line, and a coop solve
           gets the celebration instead. */}
       {celebration.show && <CelebrationDialog title="Solved! 🎉" onClose={celebration.close} />}
+      {confirmDialog}
     </div>
   )
 }

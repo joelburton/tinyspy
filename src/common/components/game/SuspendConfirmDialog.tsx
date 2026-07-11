@@ -1,7 +1,4 @@
-import { useRef } from 'react'
-import { FloatingPanel } from '../panels/FloatingPanel'
-import { useFocusTrap } from '../../hooks/ui/useFocusTrap'
-import actionRow from '../panels/modalActions.module.css'
+import { ConfirmDialog } from '../panels/ConfirmDialog'
 
 type Props = {
   /** The game's user-facing title, woven into the modal copy
@@ -18,52 +15,34 @@ type Props = {
 
 /**
  * Confirm modal shown when a member clicks Back-to-club on a
- * non-terminal game. Per docs/states.md → "Leaving the game
- * page — terminal vs non-terminal": a higher UI bar for non-
- * terminal nav-away, because suspending the game drags every
- * viewing peer back to the club page too.
+ * non-terminal MULTIPLAYER game. Per docs/states.md → "Leaving the
+ * game page — terminal vs non-terminal": suspending isn't dangerous
+ * by itself, but it drags every viewing peer back to the club page —
+ * that surprise is what earns the confirm. GamePage therefore skips
+ * this dialog entirely for a SOLO game (nobody to surprise) and for
+ * a terminal game (direct navigation, no broadcast).
  *
- * Uses the shared `<FloatingPanel>` shell. Different from the
- * other modals in that it's NOT draggable — this is a one-second
- * decision, and a draggable header would add weight without
- * payoff. Stays centered, narrow, no resize. Header still shows
- * the title + close X for consistency with the rest of the
- * floating-panel family.
+ * A thin wrapper over the shared `<ConfirmDialog>`, which supplies
+ * the modal behavior: a pointer-blocking backdrop (no background
+ * board actions), trapped focus, autoFocused confirm (Enter),
+ * Esc-to-cancel, and the game key-captures bailing inside
+ * `[data-floating-panel]`.
  */
 export function SuspendConfirmDialog({ title, onSuspend, onCancel }: Props) {
-  // Cycle Tab within the panel (the anchor lets the hook find the enclosing
-  // panel). Enter-to-confirm and Esc-to-cancel don't need wiring here: the
-  // Suspend button `autoFocus`es so Enter activates it, and FloatingPanel owns
-  // Esc. (The game's window key-capture used to swallow Enter/Tab over a word
-  // game; useGlobalKeyHandler now bails inside `[data-floating-panel]`.)
-  const anchorRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(anchorRef)
-
   return (
-    <FloatingPanel
+    <ConfirmDialog
       title="Suspend this game?"
-      onClose={onCancel}
-      draggable={false}
-      resizable={false}
-      defaultSize={{ width: 420, height: 240 }}
-      minWidth={320}
-      minHeight={200}
-    >
-      <div ref={anchorRef}>
-        <p>
+      message={
+        <>
           <strong>{title}</strong> will be moved out of the active slot.
           Everyone in this game will return to the club page; you can
           resume from there later.
-        </p>
-        <div className={actionRow.modalActions}>
-          <button type="button" className="secondary" onClick={onCancel}>
-            Keep playing
-          </button>
-          <button type="button" onClick={onSuspend} autoFocus>
-            Suspend
-          </button>
-        </div>
-      </div>
-    </FloatingPanel>
+        </>
+      }
+      confirmLabel="Suspend"
+      cancelLabel="Keep playing"
+      onConfirm={onSuspend}
+      onCancel={onCancel}
+    />
   )
 }
