@@ -78,6 +78,10 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
   }, [])
 
   const source = s.source ?? 'library'
+  // The Guardian series currently chosen (falls back to the first) — drives
+  // both the <select> value and the character hint below it.
+  const selectedGuardian =
+    GUARDIAN_SERIES.find((g) => g.slug === s.series) ?? GUARDIAN_SERIES[0]!
 
   const filtered = useMemo(() => {
     if (!puzzles) return null
@@ -212,11 +216,15 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
         </div>
 
         <div className={cls(styles.tabBody, source !== 'guardian' && styles.tabHidden)}>
-          <p className="muted">Load today&rsquo;s Guardian crossword in the chosen series.</p>
+          <p className="muted">
+            Load today&rsquo;s Guardian crossword. <strong>Quick</strong> and{' '}
+            <strong>Speedy</strong> are plain-definition puzzles; the rest are{' '}
+            <strong>cryptics</strong> (each clue is wordplay + a definition).
+          </p>
           <select
             className={styles.search}
             aria-label="Guardian series"
-            value={s.series ?? GUARDIAN_SERIES[0]!.slug}
+            value={selectedGuardian.slug}
             onChange={(e) => onChange({ ...s, series: e.target.value })}
           >
             {GUARDIAN_SERIES.map((g) => (
@@ -225,6 +233,9 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
               </option>
             ))}
           </select>
+          {/* A one-line character hint for the chosen series (research-backed —
+              helps a solver pick by difficulty). */}
+          <p className={cls('muted', styles.guardianHint)}>{selectedGuardian.hint}</p>
         </div>
 
         <div className={cls(styles.tabBody, source !== 'library' && styles.tabHidden)}>

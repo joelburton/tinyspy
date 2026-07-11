@@ -176,11 +176,18 @@ Guardian / Upload file):
   put `NYT_COOKIE_JAR=<raw JSON or base64>` in `supabase/functions/.env` and
   `supabase functions serve crosswords-import-nyt --env-file …`.
 - **`crosswords-import-guardian`** edge function — fetches **today's** Guardian
-  crossword in a chosen `series` (Quick / Cryptic / Quick cryptic / Everyman /
-  Speedy / Quiptic / Prize / Weekend — every series shares one entry-based JSON
-  shape, so adding one is a one-line allowlist + dropdown entry; quick-cryptic
+  crossword in a chosen `series`. Every series shares one entry-based JSON
+  shape, so adding one is a one-line allowlist + dropdown entry (quick-cryptic
   clues carry `<span>`/`<i>` tags, which the shared `htmlToText` already
-  strips), converts via the pure `src/crosswords/lib/guardian.ts`
+  strips). The edge fn's `SERIES` allowlist accepts eight (Quick, Cryptic,
+  Quick cryptic, Everyman, Speedy, Quiptic, Prize, Weekend); the FE picker
+  (`GUARDIAN_SERIES` in `lib/setup.ts`) currently shows **six** — Prize and
+  Weekend are **omitted from the dropdown** (their answers are withheld until a
+  reveal date, so a same-day start would 422) but stay in the server allowlist
+  as a one-line re-add. Each visible series carries a one-line character hint
+  shown under the picker (Quick/Speedy are plain-definition; the rest are
+  cryptics of graded difficulty). It converts via the pure
+  `src/crosswords/lib/guardian.ts`
   (unit-tested), then `create_game(board=…)` as the caller — the same
   self-contained shape as NYT. **No auth** (Guardian crosswords are public — no
   secret to configure), and the conversion is simpler than NYT's: the Guardian

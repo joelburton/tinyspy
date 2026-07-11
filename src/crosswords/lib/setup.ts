@@ -47,18 +47,26 @@ export const CROSSWORDS_DEFAULTS: CrosswordsSetup = {
   puzzle_id: '',
 }
 
-/** The Guardian series the import offers, slug → display label. Kept in FE +
- *  edge-fn agreement (the edge fn's own allowlist is the authority; this is
- *  the picker's copy). Quick/Cryptic/etc publish answers same-day; Prize and
- *  Weekend withhold them until a reveal date, so a same-day start of those may
- *  fail with "answers aren't published yet". */
-export const GUARDIAN_SERIES: { slug: string; label: string }[] = [
-  { slug: 'quick', label: 'Quick' },
-  { slug: 'cryptic', label: 'Cryptic' },
-  { slug: 'quick-cryptic', label: 'Quick cryptic' },
-  { slug: 'everyman', label: 'Everyman' },
-  { slug: 'speedy', label: 'Speedy' },
-  { slug: 'quiptic', label: 'Quiptic' },
-  { slug: 'prize', label: 'Prize (answers reveal later)' },
-  { slug: 'weekend-crossword', label: 'Weekend (answers reveal later)' },
+/** The Guardian series the setup form offers, slug → display label + a one-line
+ *  hint at its character (shown under the picker). This is the FE's PICKER list;
+ *  the edge function's own `SERIES` allowlist is the authority on what may be
+ *  imported. **Prize and Weekend are deliberately omitted here** — they withhold
+ *  their answers until a reveal date, so a same-day start would fail
+ *  ("answers aren't published yet") — but the edge function still accepts them,
+ *  so they're a one-line re-add when we want them.
+ *
+ *  Two families: **Quick and Speedy** are plain-definition puzzles (no
+ *  wordplay); everything else is a **cryptic** (each clue is wordplay + a
+ *  definition), ordered here roughly gentlest-cryptic-first. */
+export const GUARDIAN_SERIES: { slug: string; label: string; hint: string }[] = [
+  { slug: 'quick', label: 'Quick', hint: 'Straight definitions, no wordplay — the gentlest start.' },
+  { slug: 'speedy', label: 'Speedy', hint: 'A bigger definitions-only puzzle (the Sunday quick).' },
+  {
+    slug: 'quick-cryptic',
+    label: 'Quick cryptic',
+    hint: 'An easier cryptic in everyday vocabulary — a good first cryptic.',
+  },
+  { slug: 'quiptic', label: 'Quiptic', hint: 'A gentle cryptic “for beginners or those in a hurry”.' },
+  { slug: 'everyman', label: 'Everyman', hint: 'A fair, accessible cryptic (the Observer’s).' },
+  { slug: 'cryptic', label: 'Cryptic', hint: 'The full daily cryptic: wordplay + definition. The hardest.' },
 ]

@@ -56,6 +56,14 @@
   font-size: 0.95rem;
 }
 
+/* The Guardian series character hint, under its picker. Small + spaced from
+ * the select; italic to read as an aside, not another control label. */
+.guardianHint {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
 /* The library list: FIXED height of exactly eight rows (plus its own border),
  * not a max-height — it holds its size while filtering shrinks the results,
  * and it's the height the other two tabs inherit via the .tabStack overlay.
