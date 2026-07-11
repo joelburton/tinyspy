@@ -179,23 +179,28 @@ export function GamePage({
     gameSectionsRef.current = gameSections
   }, [gameSections])
 
-  // Edge-trigger timeout-loss when countdown hits 0. The
-  // submittedTimeoutRef gate prevents double-firing within this
-  // tab; the RPC itself is server-side idempotent for the
-  // multi-peer race case.
-  const submittedTimeoutRef = useRef(false)
+  // Fire the timeout-loss when the countdown hits 0 — on the expired
+  // TRANSITION (false → true), not the level. A true EDGE (prevExpiredRef)
+  // rather than the old one-way "already submitted" latch, because
+  // replay-board un-terminals a timed-out game while `expired` is still
+  // momentarily true (the tick-merge rewinds a beat later): a level trigger
+  // would instantly re-end the fresh game from any tab that hadn't fired
+  // yet, and the old latch would ALSO have blocked a genuine second timeout
+  // after the replay. Edge-triggering handles both: the stale-true carries
+  // no edge, and once the clock rewinds the trigger is re-armed. The RPC is
+  // server-side idempotent for the multi-peer race case.
+  const prevExpiredRef = useRef(false)
   useEffect(function fireTimeoutOnExpiry() {
-    if (!timer.expired) return
-    // No moves while paused — including this one. In practice the timer
-    // freezes `ticks` on pause so `expired` can't flip true mid-pause,
-    // but gating here makes "the play surface accepts no moves while
-    // paused" hold for the timeout path too, without leaning on the
-    // timer hook's internals. A timeout that comes due exactly as a
-    // pause engages defers and resolves on resume (expired stays true).
+    // No moves while paused — including this one. Returning BEFORE the edge
+    // is recorded keeps the defer contract: a timeout that comes due exactly
+    // as a pause engages resolves on resume (the edge is still unconsumed).
     if (paused) return
-    if (submittedTimeoutRef.current) return
-    if (!commonGame || commonGame.ended_at !== null) return
-    submittedTimeoutRef.current = true
+    // Not loaded yet — don't consume an edge we can't act on.
+    if (!commonGame) return
+    const wasExpired = prevExpiredRef.current
+    prevExpiredRef.current = timer.expired
+    if (!timer.expired || wasExpired) return
+    if (commonGame.ended_at !== null) return // a peer already ended it
     const manifest = games.find((g) => g.gametype === gametype)
     if (!manifest) return
     manifest.submitTimeout(gameId).then((result) => {

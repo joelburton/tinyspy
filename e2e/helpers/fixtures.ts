@@ -645,13 +645,16 @@ export async function createWaffleGame(
   club: E2EClub,
   mode: 'coop' | 'compete' = 'coop',
   playerUserIds: string[] = club.members.map((m) => m.userId),
+  /** The setup timer — pass a countdown to exercise timed flows (the
+   *  replay-resets-the-clock behavior). Defaults untimed. */
+  timer: { kind: string; seconds?: number } = { kind: 'none' },
 ): Promise<{ id: string; gametype: string }> {
   const creator = club.members[0]
   const res = await asUser(creator.session.access_token)
     .schema('waffle')
     .rpc('create_game', {
       target_club: club.handle,
-      setup: { difficulty: 2, extra_swaps: 5, timer: { kind: 'none' } },
+      setup: { difficulty: 2, extra_swaps: 5, timer },
       player_user_ids: playerUserIds,
       mode,
       board: {

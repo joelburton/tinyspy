@@ -189,9 +189,12 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   `waffle.players` row to the scramble (`swaps_used=0`, unsolved), clears the
   coop `waffle.swaps` log, and hands the common-layer reset to the new
   `common.reset_game` helper (the inverse of `end_game` — `play_state='playing'`,
-  `is_terminal=false`, `ended_at=null`, fresh initial `status`, and clears every
-  `game_players.{result, conceded, conceded_at}`). The frozen puzzle/setup
-  (solution/scramble/par/max_swaps/mode) is untouched. Any game player may call
+  `is_terminal=false`, `ended_at=null`, fresh initial `status`, clears every
+  `game_players.{result, conceded, conceded_at}`, and **zeroes the shared
+  clock** — a timed game restarts from the full countdown; the FE's tick-merge
+  accepts the big backward jump as a deliberate reset, and the timeout fires
+  on the expired *edge* so a stale flag can't re-end the fresh game). The
+  frozen puzzle/setup (solution/scramble/par/max_swaps/mode) is untouched. Any game player may call
   it. No realtime touch needed — the `players` update + `swaps` delete wake
   `useGame`, and `reset_game`'s `common.games` write wakes `useCommonGame`, so
   the board, turn log, and terminal state reset **live for every player**. Two
@@ -230,10 +233,17 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   guard + `P0001` idempotency as `end_game`; any game player may call it. **No
   realtime touch needed** (unlike `end_game`): the `waffle.players` board rewrite
   already wakes `useGame`, and `common.end_game`'s `common.games` write wakes
-  `useCommonGame`. The FE only offers it while a game is **in progress AND the
-  solution is on the client** — disabled at terminal and in compete-during-play
-  (the shield lifts only post-terminal), so in practice it's a coop action; you
-  can't reveal what the server never sent. pgTAP: `reveal_test.sql`.
+  `useCommonGame`. Mid-game the FE only offers it while the **solution is on
+  the client** — compete shields it during play, so in practice it's a coop
+  action; you can't reveal what the server never sent. **At terminal the same
+  action is FE-local instead** (the wordle pattern): no RPC, no confirm — the
+  solution unshields post-terminal in both modes, so `revealedLocally` just
+  swaps the DISPLAYED board for it (colored all-green by the FE `lib/colors`
+  port; `waffle.players` untouched) and fills the answer list. Disabled once
+  the answer is already showing (a win's board IS the solution / the give-up
+  tagged `outcome='revealed'` / already clicked); replay clears it (the new
+  run starts blind). Offered from the game menu AND the terminal action row's
+  `RevealButton`. pgTAP: `reveal_test.sql`.
 
 ### Terminal logic
 
@@ -380,11 +390,16 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   `solvedWords(board, colors)` reads the revealed letters off the caller's OWN
   board + `colors` (identical, and safe, in compete where the solution isn't sent
   during play). The six slots (word or em dash) are always present, so it's a fixed
-  height — no info-column reflow as words come in. Revealed words are click-to-define. The action row is the semantic
-  `EndGameButton` / `ConcedeGameButton` during play; the terminal/locally-terminal
-  look (a bold status line + compact back-to-club or Concede) otherwise — and at
-  terminal the row also carries the **`RestartButton`** ("play this board again"
-  stays; Club leaves), via `TerminalActionRow`'s children slot.
+  height — no info-column reflow as words come in. Revealed words are click-to-define. The action row is **ICON-ONLY** (waffle's
+  experiment — the styled tooltips carry the labels; see
+  [ui.md → Button iconography](../ui.md#button-iconography)): during play the
+  semantic `EndGameButton` / `ConcedeGameButton` plus an icon-only
+  `BackToClubButton` (routed through the shell's **suspend-confirm** flow,
+  `menu.requestBackToClub` — leaving a live game shelves it, unlike terminal's
+  direct `goToClub`); at terminal the bold outcome line +
+  `RestartButton` / `RevealButton` (the terminal-local reveal) /
+  `NewGameButton` / primary back-to-club, via `TerminalActionRow`'s children
+  slot + its `iconOnly` prop. Stay-here options sit left of the leave option.
   `GameTurnLog` renders its own `<tr>` rows on the shared `<TurnLog>` table — the
   outcome bar (`neutral`) + "#N" + "A (A1) ↔ B (C2)" (letters prominent,
   coordinates small/light) + the swapper's `<ActorTag>`; coop only. Compete shows

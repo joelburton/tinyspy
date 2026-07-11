@@ -120,6 +120,22 @@ describe('useGameTimer', () => {
     })
     expect(result.current.displaySeconds).toBe(5) // held by Math.max
   })
+
+  it('accepts a LARGE backward jump — the server clock was reset (replay-board)', async () => {
+    rpcMock
+      .mockResolvedValueOnce({ data: 70, error: null }) // past the duration → expired
+      .mockResolvedValue({ data: 1, error: null }) // common.reset_game zeroed the clock
+    const { result } = renderHook(() =>
+      useGameTimer({ gameId: 'g', mode: { kind: 'countdown', seconds: 60 }, paused: false, running: true }),
+    )
+    await flush()
+    expect(result.current.expired).toBe(true) // the game timed out…
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000) // …then a replay reset the clock
+    })
+    expect(result.current.displaySeconds).toBe(59) // followed the reset down
+    expect(result.current.expired).toBe(false) // a fresh countdown, not a re-loss
+  })
 })
 
 describe('formatTimerSeconds', () => {

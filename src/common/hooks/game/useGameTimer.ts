@@ -29,9 +29,12 @@ import type { TimerMode } from '../../lib/games'
  * pause, which is fine for friendly word games.
  *
  * The same `tick_timer` call that advances the clock returns the
- * current value, so driving and reading are one round-trip. `ticks`
- * only ever moves forward locally (`Math.max`), so an out-of-order
- * response can't rewind the display.
+ * current value, so driving and reading are one round-trip. Locally
+ * `ticks` merges forward-only against small backward values (an
+ * out-of-order response can't rewind the display) — but a LARGE
+ * backward jump is accepted: that's not reordering, it's
+ * `common.reset_game` zeroing the shared clock (replay-board), and
+ * the display must follow it back to a fresh countdown/countup.
  *
  * Returns:
  *   - `displaySeconds` — countup: `ticks`; countdown:
@@ -39,6 +42,17 @@ import type { TimerMode } from '../../lib/games'
  *   - `expired` — true once a countdown reaches 0 (fires the
  *     timeout-loss RPC). Always false for countup / none.
  */
+/** Merge a server-reported tick count into local state. Concurrent players'
+ *  in-flight responses can land out of order, differing by a tick or two —
+ *  those stay forward-only (`Math.max`). A drop bigger than that isn't
+ *  reordering: it's the server clock being RESET (`common.reset_game` on
+ *  replay-board), and the display follows it down. (If a stale high response
+ *  lands right after a reset, the next 1s round-trip re-detects the drop —
+ *  self-healing.) */
+function mergeTicks(prev: number, server: number): number {
+  return server < prev - 2 ? server : Math.max(prev, server)
+}
+
 export function useGameTimer({
   gameId,
   mode,
@@ -66,7 +80,7 @@ export function useGameTimer({
       .eq('game_id', gameId)
       .maybeSingle()
       .then(({ data }) => {
-        if (!cancelled && data) setTicks((t) => Math.max(t, data.ticks))
+        if (!cancelled && data) setTicks((t) => mergeTicks(t, data.ticks))
       })
     return () => {
       cancelled = true
@@ -85,7 +99,7 @@ export function useGameTimer({
         .rpc('tick_timer', { target_game: gameId })
         .then(({ data, error }) => {
           if (cancelled || error || typeof data !== 'number') return
-          setTicks((t) => Math.max(t, data))
+          setTicks((t) => mergeTicks(t, data))
         })
     }
     drive() // immediately, then once a second

@@ -14,7 +14,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(13);
+select plan(14);
 
 -- ── Coop: solve, then replay → fully reset + un-terminal ────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -39,6 +39,10 @@ reset role;
 select is(
   (select is_terminal from common.games where id = (select id from g1)),
   true, 'coop: precondition — solved game is terminal');
+
+-- Age the shared clock (as if a timed game had been running a while) so the
+-- replay's clock-zeroing is observable.
+update common.timers set ticks = 99 where game_id = (select id from g1);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select waffle.replay_board((select id from g1));
@@ -69,6 +73,9 @@ select is(
   (select count(*) from common.game_players
      where game_id = (select id from g1) and result is null and not conceded),
   2::bigint, 'coop: replay → per-player results + concede cleared');
+select is(
+  (select ticks from common.timers where game_id = (select id from g1)),
+  0, 'coop: replay → the shared clock is zeroed (a timed game restarts full)');
 
 -- ── Compete: solve + concede → terminal, then replay resets all ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

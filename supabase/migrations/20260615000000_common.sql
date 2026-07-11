@@ -1466,6 +1466,10 @@ revoke execute on function common.end_game(uuid, text, jsonb, jsonb) from public
 --                                 create_game seeds)
 --   - common.game_players.{result, conceded, conceded_at} cleared
 --     for every player (undoes win/lose results + any concede)
+--   - common.timers.ticks      = 0 — fresh start ⇒ fresh clock: a
+--     countdown replays from the full duration, a countup from
+--     0:00. (The FE's tick-merge accepts the big backward jump as
+--     the deliberate reset it is — see useGameTimer.)
 --
 -- The gametype's OWN working-state reset (its per-game tables +
 -- turn log) happens in the calling RPC; this helper only owns the
@@ -1494,6 +1498,13 @@ begin
      set result = null,
          conceded = false,
          conceded_at = null
+   where game_id = target_game;
+
+  -- Fresh start ⇒ fresh clock (see the header comment). last_tick renews so
+  -- the next tick_timer call can't instantly advance off a stale anchor.
+  update common.timers
+     set ticks = 0,
+         last_tick = now()
    where game_id = target_game;
 end;
 $$;
