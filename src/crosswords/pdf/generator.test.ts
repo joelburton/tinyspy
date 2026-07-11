@@ -114,9 +114,12 @@ describe('generateCrosswordPdf', () => {
     const texts = calls.filter((c) => c.fn === 'text').map((c) => c.args[0])
     expect(texts).toContain('Smoke Test')
 
-    // All clue texts present.
-    expect(texts).toContain('first across clue')
-    expect(texts).toContain('first down clue')
+    // All clue texts present. Clues now draw per word-SEGMENT (so `_…_` runs
+    // can print italic — pdf/clues.ts), so a clue's words arrive as separate
+    // consecutive text() calls; join to check the whole clue rendered.
+    const joined = texts.join('')
+    expect(joined).toContain('first across clue')
+    expect(joined).toContain('first down clue')
 
     // Headings emitted.
     expect(texts).toContain('ACROSS')

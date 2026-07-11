@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { parseClueRuns } from '../lib/clueRuns'
 
 /**
  * Render a clue string, turning the `_emphasis_` markers back into real
@@ -9,16 +10,14 @@ import { Fragment } from 'react'
  * italics the way the source does, not literal underscores.
  *
  * Display-only: the stored `Clue.text` is untouched, so export/AI-explain keep
- * the plaintext form. Splits on the paired `_…_` runs (crossword clue text
- * never contains a lone underscore, so this is unambiguous); an unpaired
- * underscore just renders literally.
+ * the plaintext form. Shares `parseClueRuns` with the PDF (pdf/clues.ts), which
+ * italicizes the same runs on the printed page.
  */
 export function ClueText({ text }: { text: string }) {
-  const parts = text.split(/(_[^_]+_)/)
   return (
     <>
-      {parts.map((p, i) =>
-        /^_[^_]+_$/.test(p) ? <em key={i}>{p.slice(1, -1)}</em> : <Fragment key={i}>{p}</Fragment>,
+      {parseClueRuns(text).map((seg, i) =>
+        seg.italic ? <em key={i}>{seg.text}</em> : <Fragment key={i}>{seg.text}</Fragment>,
       )}
     </>
   )

@@ -12,6 +12,7 @@
 
 import type { jsPDF } from 'jspdf'
 import type { Clue } from '../lib/types'
+import { type ClueSeg, parseClueRuns, wrapClueRuns } from '../lib/clueRuns'
 import type { Rect } from './layout'
 import { continuationRegions } from './layout'
 import {
@@ -51,8 +52,13 @@ export function buildItems(clues: ClueItems): Item[] {
 /** Wrapped representation of a single item, ready to be drawn. */
 export type LaidOutItem = {
   item: Item
-  /** Wrapped body lines (single string for heading; clue text for clue). */
+  /** Wrapped body lines as PLAIN strings (single string for a heading; the
+   *  emphasis-stripped clue text for a clue). Kept for the line COUNT (→
+   *  height) and as the draw fallback; `styled` carries the italics. */
   lines: string[]
+  /** Clue only: each wrapped line as styled runs (`_…_` → italic), drawn
+   *  segment-by-segment so `<i>`/`<em>` clue markup prints as real italics. */
+  styled?: ClueSeg[][]
   /** Total vertical space the item takes including bottom margin. */
   height: number
 }
@@ -75,14 +81,22 @@ export function measureItems(doc: jsPDF, items: Item[], regionWidth: number): La
       })
       continue
     }
-    doc.setFont(FONT_SERIF, 'normal')
     doc.setFontSize(CLUE_SIZE)
-    const wrapped = doc.splitTextToSize(item.text, textWidth) as string[]
-    const lines = wrapped.length > 0 ? wrapped : ['']
+    // Styled word-wrap (via jsPDF metrics) so `_…_` runs print italic and a
+    // hyphenated emphasized word (Guardian's "Heigh-Ho") never orphans a
+    // fragment across a line break. `lines` is the plain-string projection —
+    // used only for the line COUNT (height) and the no-italics draw fallback.
+    const measure = (text: string, italic: boolean) => {
+      doc.setFont(FONT_SERIF, italic ? 'italic' : 'normal')
+      return doc.getTextWidth(text)
+    }
+    const styled = wrapClueRuns(parseClueRuns(item.text), textWidth, measure)
+    const lines = styled.map((line) => line.map((s) => s.text).join(''))
     out.push({
       item,
       lines,
-      height: lines.length * CLUE_LINE_HEIGHT + CLUE_BOTTOM_MARGIN,
+      styled,
+      height: styled.length * CLUE_LINE_HEIGHT + CLUE_BOTTOM_MARGIN,
     })
   }
   return out
@@ -205,12 +219,27 @@ function drawItem(doc: jsPDF, p: Placement): void {
   const firstBaseline = region.y + y + CLUE_SIZE
   doc.text(numText, region.x + CLUE_NUM_GUTTER - 2, firstBaseline, { align: 'right' })
 
-  doc.setFont(FONT_SERIF, 'normal')
   doc.setFontSize(CLUE_SIZE)
   const textX = region.x + CLUE_NUM_GUTTER
   let lineBaseline = firstBaseline
-  for (const line of item.lines) {
-    doc.text(line, textX, lineBaseline)
-    lineBaseline += CLUE_LINE_HEIGHT
+  if (item.styled) {
+    // Draw each line segment-by-segment, switching the font style per run so
+    // the `_…_` emphasis prints as real italics (jsPDF draws one style per
+    // `text()` call). x advances by each segment's measured width.
+    for (const line of item.styled) {
+      let cx = textX
+      for (const seg of line) {
+        doc.setFont(FONT_SERIF, seg.italic ? 'italic' : 'normal')
+        doc.text(seg.text, cx, lineBaseline)
+        cx += doc.getTextWidth(seg.text)
+      }
+      lineBaseline += CLUE_LINE_HEIGHT
+    }
+  } else {
+    doc.setFont(FONT_SERIF, 'normal')
+    for (const line of item.lines) {
+      doc.text(line, textX, lineBaseline)
+      lineBaseline += CLUE_LINE_HEIGHT
+    }
   }
 }
