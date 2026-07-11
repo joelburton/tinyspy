@@ -5,6 +5,9 @@ import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTer
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
+import { RevealButton } from '../../common/components/buttons/RevealButton'
+import { NewGameButton } from '../../common/components/buttons/NewGameButton'
+import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
 import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
@@ -51,7 +54,11 @@ export function InfoCol({
   onEndGame,
   onConcede,
   onRestart,
+  onRevealAnswer,
+  revealDisabled,
+  onNewGame,
   onBackToClub,
+  onRequestBackToClub,
   // ── Setup disclosure ──
   setup,
   // ── Terminal answer reveal ──
@@ -88,13 +95,28 @@ export function InfoCol({
   /** Who has conceded (drives the strip's "out" cell). */
   concededIds: Set<string>
 
-  // ── Action row ──
+  // ── Action row (ICON-ONLY buttons — the waffle arrangement; tooltips
+  //    carry the labels. Playing: End/Concede + back-to-club. Terminal:
+  //    Restart + Reveal + New game + back-to-club.) ──
   onEndGame: () => void
   onConcede: () => void
   /** Restart THIS game — same word — from scratch (the menu's replay-board,
    *  unconfirmed at terminal since there's no progress left to lose). */
   onRestart: () => void
+  /** Show the word (the terminal-local reveal — no RPC; see PlayArea's
+   *  handleReveal). Rendered only in the terminal row. */
+  onRevealAnswer: () => void
+  /** The word is already showing (won / explicit reveal / clicked) — disables
+   *  the terminal RevealButton, matching the menu item. */
+  revealDisabled: boolean
+  /** Start a fresh follow-up game — same setup, new target + id. */
+  onNewGame: () => void
+  /** Direct navigation to the club — terminal only (nothing to lose). */
   onBackToClub: () => void
+  /** Mid-game back-to-club: routes through the shell's suspend-confirm flow
+   *  (menu.requestBackToClub), NOT direct navigation — leaving a live game
+   *  shelves it. */
+  onRequestBackToClub: () => void
 
   // ── Setup disclosure ──
   setup: WordleSetup
@@ -123,10 +145,16 @@ export function InfoCol({
   // The End / Concede button — error-toned (red). Compete uses CONCEDE (drop out of the
   // race → wordle.concede); coop uses the neutral "End" (a mutual "we're done" →
   // end_game). Shared by the playing and the locally-terminal action rows.
+  // Icon-only (the waffle arrangement): the styled tooltip carries the label.
   const endButton = isCompete ? (
-    <ConcedeGameButton onClick={onConcede} className={shared.helperButton} disabled={myConceded} />
+    <ConcedeGameButton
+      onClick={onConcede}
+      iconOnly
+      className={shared.helperButton}
+      disabled={myConceded}
+    />
   ) : (
-    <EndGameButton onClick={onEndGame} className={shared.helperButton} />
+    <EndGameButton onClick={onEndGame} iconOnly className={shared.helperButton} />
   )
 
   return (
@@ -163,17 +191,27 @@ export function InfoCol({
             "Waiting for others" + Concede. Playing: just End/Concede (wordle has no
             hint/reveal). */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub}>
-            {/* Restart sits left of Back-to-Club (the waffle arrangement): "play
-                this word again" is the stay-here option, Club is the leave option. */}
-            <RestartButton onClick={onRestart} />
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
+            {/* Stay-here options left of the leave option (Club): replay this
+                word, see the answer, or spin up the next game. */}
+            <RestartButton iconOnly onClick={onRestart} />
+            <RevealButton
+              iconOnly
+              label="Reveal answer"
+              disabled={revealDisabled}
+              onClick={onRevealAnswer}
+            />
+            <NewGameButton iconOnly onClick={onNewGame} />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           <LocalTerminalRow label={myConceded ? 'You conceded' : 'Waiting for others'}>
             {endButton}
           </LocalTerminalRow>
         ) : (
-          <div className={shared.infoActions}>{endButton}</div>
+          <div className={shared.infoActions}>
+            {endButton}
+            <BackToClubButton iconOnly onClick={onRequestBackToClub} />
+          </div>
         )}
 
         {/* Help — only while you can act (never a silent swap; the locally-done state is

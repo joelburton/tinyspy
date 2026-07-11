@@ -116,6 +116,70 @@ describe('wordle PlayArea — render smoke', () => {
 })
 
 /**
+ * The icon-only action rows (the waffle arrangement — labels live in
+ * tooltips): PLAYING = End/Concede + Back-to-club (via the shell's
+ * suspend-confirm flow, NOT direct navigation); TERMINAL = Restart + Reveal
+ * answer + New game + Back-to-club. New game = a fresh create_game with THIS
+ * game's setup/roster/mode (direct RPC — wordle has no edge function), then
+ * ctx.goToGame.
+ */
+describe('wordle PlayArea — icon-only action rows', () => {
+  it('playing row offers Back-to-club through the suspend-confirm flow', async () => {
+    const user = userEvent.setup()
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    await user.click(screen.getByRole('button', { name: 'Back to club' }))
+    expect(ctx.menu.requestBackToClub).toHaveBeenCalled()
+    expect(ctx.goToClub).not.toHaveBeenCalled() // mid-game never direct-navigates
+  })
+
+  it('terminal "Reveal answer" button shows the word locally — no RPC, no confirm', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
+    const user = userEvent.setup()
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+
+    expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Reveal answer' }))
+    expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
+    expect(confirm).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('terminal Reveal button is disabled once the word is showing (a win)', () => {
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeDisabled()
+  })
+
+  it('terminal "New game" button starts a fresh game with this setup/roster/mode', async () => {
+    // handleNewGame calls db.rpc('create_game', …).single() — give the mock
+    // that shape for this call only.
+    rpc.mockImplementation((name: string) =>
+      name === 'create_game'
+        ? { single: () => Promise.resolve({ data: { id: 'next-game-id' }, error: null }) }
+        : Promise.resolve({ error: null }),
+    )
+    const user = userEvent.setup()
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
+    render(<PlayArea {...ctx} />)
+
+    await user.click(screen.getByRole('button', { name: 'New game' }))
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith('create_game', {
+        target_club: 'testclub',
+        setup: ctx.setup,
+        player_user_ids: ['u1'],
+        mode: 'coop',
+      }),
+    )
+    await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('wordle_coop', 'next-game-id'))
+  })
+})
+
+/**
  * Terminal flow (the waffle treatment — docs/celebration-ideas.md). Wordle
  * skips the shared GameOverModal; a coop solve pops the CelebrationDialog at
  * the MOMENT of the win (the playState flip), never on mounting an

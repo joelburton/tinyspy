@@ -50,6 +50,8 @@ export function PlayArea({
   status,
   globalFeedback,
   goToClub,
+  clubHandle,
+  goToGame,
   menu,
 }: GamePageCtx) {
   const { game, players: playerStates, guesses, loading } = useGame(gameId)
@@ -219,6 +221,34 @@ export function PlayArea({
     setAnswerRevealed(false)
   }, [isTerminal, gameId, showLocalFeedback, clearLocalFeedback, exitViewing])
 
+  // New game — a FRESH game (new id, new random target) with THIS game's
+  // setup + roster + mode, in the same club (waffle's "same again!" feature).
+  // wordle's create_game is a direct RPC — no edge function; picking a random
+  // target is one SQL line — so this mirrors the manifest's startGameInClub.
+  // Non-destructive (common.create_game un-currents this game into the club
+  // list), so no confirm; the creator jumps in via ctx.goToGame, peers arrive
+  // via the game-invitation toast.
+  const gameMode = game?.mode
+  const handleNewGame = useCallback(async () => {
+    if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
+    const { data, error } = await db
+      .rpc('create_game', {
+        target_club: clubHandle,
+        // ctx.setup is Record<string,unknown> at the shell level; this game's
+        // rows were created from a WordleSetup, so the cast is the usual
+        // per-game narrowing (docs/common.md → GamePageCtx.setup).
+        setup: setup as WordleSetup,
+        player_user_ids: members.map((m) => m.user_id),
+        mode: gameMode,
+      })
+      .single()
+    if (error || !data) {
+      showLocalFeedback(stickyPill('error', `New game failed: ${error?.message ?? 'unknown'}`))
+      return
+    }
+    goToGame(`wordle_${gameMode}`, (data as { id: string }).id)
+  }, [gameMode, clubHandle, setup, members, goToGame, showLocalFeedback])
+
   // Reveal answer — two shapes behind one menu item:
   //   MID-GAME: a group give-up — ends the game for everyone (confirmed,
   //   irreversible), tagged status.outcome='revealed' so the word displays.
@@ -250,11 +280,13 @@ export function PlayArea({
     concede: () => void
     replay: () => void
     reveal: () => void
+    newGame: () => void
   }>({
     endGame: () => {},
     concede: () => {},
     replay: () => {},
     reveal: () => {},
+    newGame: () => {},
   })
   const mode = game?.mode
   useEffect(() => {
@@ -274,6 +306,8 @@ export function PlayArea({
           {
             items: [
               { id: 'replay', label: 'Replay board', onClick: () => actionsRef.current.replay() },
+              // Same setup + roster, a fresh random target, a NEW game id.
+              { id: 'new-game', label: 'New game', onClick: () => actionsRef.current.newGame() },
               {
                 id: 'reveal',
                 label: 'Reveal answer',
@@ -296,8 +330,9 @@ export function PlayArea({
       concede: () => void handleConcede(),
       replay: () => void handleReplay(),
       reveal: () => void handleReveal(),
+      newGame: () => void handleNewGame(),
     }
-  }, [handleEndGame, handleConcede, handleReplay, handleReveal])
+  }, [handleEndGame, handleConcede, handleReplay, handleReveal, handleNewGame])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -421,7 +456,11 @@ export function PlayArea({
         onEndGame={() => void handleEndGame()}
         onConcede={() => void handleConcede()}
         onRestart={() => void handleReplay()}
+        onRevealAnswer={() => void handleReveal()}
+        revealDisabled={answerShown}
+        onNewGame={() => void handleNewGame()}
         onBackToClub={goToClub}
+        onRequestBackToClub={menu.requestBackToClub}
         // ── Setup disclosure ──
         setup={wordleSetup}
         // ── Terminal answer reveal (null while hidden — incl. on a loss) ──
