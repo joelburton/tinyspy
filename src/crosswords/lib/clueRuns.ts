@@ -1,10 +1,14 @@
 /**
- * Parse + wrap a clue's `_emphasis_` markers — the shared home of the
- * underscore convention `htmlToText` (clueHtml.ts) emits for a clue's
- * `<i>`/`<em>` tags. The stored `Clue.text` keeps that plaintext form (it
- * round-trips to the plaintext PDF / .ipuz export); this reconstitutes the
- * emphasis for RENDERING — real `<em>` on screen (ClueText) and italic runs in
- * the board PDF (pdf/clues.ts).
+ * Parse + wrap a clue's `<em>` emphasis — the shared home of the `<em>…</em>`
+ * tags `htmlToText` (clueHtml.ts) keeps for a clue's `<i>`/`<em>` markup. The
+ * stored `Clue.text` keeps those tags; this reconstitutes the emphasis for
+ * RENDERING — real `<em>` on screen (ClueText) and italic runs in the board PDF
+ * (pdf/clues.ts). The raw-text consumers (AI explain-clue prompt, .ipuz export)
+ * strip the tags via `stripClueEmphasis`.
+ *
+ * We match the source's own tag rather than an underscore stand-in because
+ * underscores collide with literal ones — NYT fill-in clues like `A_P_E` would
+ * be misread as emphasis; `<em>` never appears in real clue prose.
  *
  * Pure — no React, no jsPDF. `wrapClueRuns` takes a `measure` callback so the
  * PDF can drive it with jsPDF text metrics while a test drives it with a fake.
@@ -12,17 +16,25 @@
 
 export type ClueSeg = { text: string; italic: boolean }
 
-/** Split a clue string into styled runs; the `_…_` markers become italic runs
- *  (markers stripped). Crossword clue text never contains a lone underscore,
- *  so paired `_…_` is unambiguous; an unpaired underscore stays literal. */
+/** Split a clue string into styled runs; each `<em>…</em>` span becomes an
+ *  italic run (tags stripped). Everything else — including literal underscores
+ *  (NYT fill-in blanks) and stray `<`/`>` — stays roman. */
 export function parseClueRuns(text: string): ClueSeg[] {
   const segs: ClueSeg[] = []
-  for (const part of text.split(/(_[^_]+_)/)) {
+  for (const part of text.split(/(<em>.*?<\/em>)/i)) {
     if (part === '') continue
-    if (/^_[^_]+_$/.test(part)) segs.push({ text: part.slice(1, -1), italic: true })
+    const m = /^<em>(.*)<\/em>$/i.exec(part)
+    if (m) segs.push({ text: m[1], italic: true })
     else segs.push({ text: part, italic: false })
   }
   return segs
+}
+
+/** Drop the `<em>` emphasis tags, leaving plain text — for the consumers that
+ *  want the raw clue without markup (the AI explain-clue prompt, the .ipuz
+ *  export). Leaves all other characters (including literal underscores) intact. */
+export function stripClueEmphasis(text: string): string {
+  return text.replace(/<\/?em>/gi, '')
 }
 
 /** Split styled runs into WORDS (whitespace-delimited). A run boundary that

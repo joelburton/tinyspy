@@ -56,7 +56,7 @@ export type LaidOutItem = {
    *  emphasis-stripped clue text for a clue). Kept for the line COUNT (→
    *  height) and as the draw fallback; `styled` carries the italics. */
   lines: string[]
-  /** Clue only: each wrapped line as styled runs (`_…_` → italic), drawn
+  /** Clue only: each wrapped line as styled runs (`<em>…</em>` → italic), drawn
    *  segment-by-segment so `<i>`/`<em>` clue markup prints as real italics. */
   styled?: ClueSeg[][]
   /** Total vertical space the item takes including bottom margin. */
@@ -82,7 +82,7 @@ export function measureItems(doc: jsPDF, items: Item[], regionWidth: number): La
       continue
     }
     doc.setFontSize(CLUE_SIZE)
-    // Styled word-wrap (via jsPDF metrics) so `_…_` runs print italic and a
+    // Styled word-wrap (via jsPDF metrics) so `<em>…</em>` runs print italic and a
     // hyphenated emphasized word (Guardian's "Heigh-Ho") never orphans a
     // fragment across a line break. `lines` is the plain-string projection —
     // used only for the line COUNT (height) and the no-italics draw fallback.
@@ -224,7 +224,7 @@ function drawItem(doc: jsPDF, p: Placement): void {
   let lineBaseline = firstBaseline
   if (item.styled) {
     // Draw each line segment-by-segment, switching the font style per run so
-    // the `_…_` emphasis prints as real italics (jsPDF draws one style per
+    // the `<em>…</em>` emphasis prints as real italics (jsPDF draws one style per
     // `text()` call). x advances by each segment's measured width.
     for (const line of item.styled) {
       let cx = textX

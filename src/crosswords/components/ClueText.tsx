@@ -2,16 +2,15 @@ import { Fragment } from 'react'
 import { parseClueRuns } from '../lib/clueRuns'
 
 /**
- * Render a clue string, turning the `_emphasis_` markers back into real
- * italics. Those underscores are `htmlToText`'s (clueHtml.ts) plaintext
- * stand-in for a clue's `<i>` / `<em>` tags — the right STORED form (it
- * round-trips cleanly to the plaintext PDF / .ipuz export), but on screen a
- * Guardian clue like "singer of _Heigh-Ho_?" should show *Heigh-Ho* in
- * italics the way the source does, not literal underscores.
+ * Render a clue string, turning its `<em>…</em>` emphasis into real italics.
+ * `htmlToText` (clueHtml.ts) keeps those tags from the source's `<i>` / `<em>`
+ * markup, so a Guardian clue like "singer of <em>Heigh-Ho</em>?" shows
+ * *Heigh-Ho* in italics the way the source does — while an NYT fill-in clue's
+ * literal underscores (`A_P_E`) stay literal, not misread as emphasis.
  *
- * Display-only: the stored `Clue.text` is untouched, so export/AI-explain keep
- * the plaintext form. Shares `parseClueRuns` with the PDF (pdf/clues.ts), which
- * italicizes the same runs on the printed page.
+ * Display-only: the stored `Clue.text` is untouched. The raw-text consumers
+ * (AI-explain, .ipuz export) drop the tags via `stripClueEmphasis`. Shares
+ * `parseClueRuns` with the PDF (pdf/clues.ts), which italicizes the same runs.
  */
 export function ClueText({ text }: { text: string }) {
   return (

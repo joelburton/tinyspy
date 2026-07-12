@@ -43,6 +43,7 @@ import { enumerationFor } from '../lib/enumeration'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { ClueLists } from './ClueLists'
 import { ClueText } from './ClueText'
+import { stripClueEmphasis } from '../lib/clueRuns'
 import { Controls } from './Controls'
 import { db } from '../db'
 import styles from './PlayArea.module.css'
@@ -345,7 +346,8 @@ export function PlayArea(ctx: GamePageCtx) {
       explainRef.current = {
         label: `${activeNumber}${dir === 'across' ? 'A' : 'D'}`,
         cells: word,
-        clueText: activeClueText,
+        // Strip <em> tags — the AI wants the plain clue, not markup.
+        clueText: stripClueEmphasis(activeClueText),
         enumeration: enumerationFor(word, cells, dir),
       }
     } else {

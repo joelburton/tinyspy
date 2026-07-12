@@ -29,6 +29,7 @@ import {
   type PuzzleMeta,
   type PuzzleState,
 } from '../types'
+import { stripClueEmphasis } from '../clueRuns'
 
 export { MAX_REBUS_LEN }
 
@@ -478,9 +479,11 @@ export function writeIpuz(state: PuzzleState, solution: (string[] | null)[][]): 
   out.puzzle = puzzle
   out.solution = sol
   if (saved) out.saved = saved
+  // Strip <em> emphasis tags — the exported .ipuz reads as clean text (and
+  // interops with other apps), not our internal markup.
   out.clues = {
-    Across: meta.clues.across.map((c) => [c.number, c.text]),
-    Down: meta.clues.down.map((c) => [c.number, c.text]),
+    Across: meta.clues.across.map((c) => [c.number, stripClueEmphasis(c.text)]),
+    Down: meta.clues.down.map((c) => [c.number, stripClueEmphasis(c.text)]),
   }
 
   return JSON.stringify(out, null, 2)

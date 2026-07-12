@@ -99,7 +99,7 @@ describe('convertGuardianPuzzle — clues', () => {
         cols: 5,
       }),
     )
-    expect(meta.clues.across[0]!.text).toBe('Jaunty singer of _Heigh-Ho_? (5)')
+    expect(meta.clues.across[0]!.text).toBe('Jaunty singer of <em>Heigh-Ho</em>? (5)')
   })
 })
 

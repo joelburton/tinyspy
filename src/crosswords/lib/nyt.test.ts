@@ -139,7 +139,7 @@ describe('convertNytPuzzle — clues + html', () => {
         ],
       }),
     )
-    expect(meta.clues.across[0]!.text).toBe('_Tilted_: KNO3 — A')
+    expect(meta.clues.across[0]!.text).toBe('<em>Tilted</em>: KNO3 — A')
   })
 
   it('unwraps array / {plain} clue text shapes', () => {
