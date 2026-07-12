@@ -62,15 +62,25 @@
   outline: none;
 }
 
-/* A used tile (its letter is already in the word) — inert + dimmed. Word wheel
- * uses each tile once, so once you've used a letter its tile can't be clicked
- * again. `pointer-events: none` makes it fully non-interactive (no hover, no
- * press, no click); the reduced opacity is the visual cue. The tile re-enables
- * the moment the letter leaves the word (backspace / new word). */
+/* A used tile (its letter is already in the word) — inert. Word wheel uses each
+ * tile once, so once you've used a letter its tile can't be clicked again.
+ * `pointer-events: none` makes it fully non-interactive (no hover, no press, no
+ * click). The visual cue is a DARKENED BACKGROUND only (see `.tileShape` below) —
+ * the gold border + the letter stay put, so the tile reads as "spent" rather than
+ * greyed out. The tile re-enables the moment the letter leaves the word. */
 .tile.disabled {
-  opacity: 0.4;
   cursor: default;
   pointer-events: none;
+}
+/* Darken only the fill (not the stroke): outer tiles → a darker tan, the centre
+ * → a darker red. The `.center.disabled` rule outspecifies both `.center .tileShape`
+ * (which sets the resting red) and the plain `.disabled` rule, so a used centre
+ * gets the darker red rather than the outer tan. */
+.tile.disabled .tileShape {
+  fill: var(--wordwheel-tile-used);
+}
+.tile.center.disabled .tileShape {
+  fill: var(--wordwheel-accent-used);
 }
 
 /* Click/tap feedback: a brief bright overlay on the tapped tile (in addition to

@@ -16,6 +16,11 @@
  *                            against a white track without a near-black outline.
  *   --wordwheel-center-text  White glyph on the red centre tile (black would
  *                            fight the saturated fill).
+ *   --wordwheel-tile-used    A used (already-in-the-word) outer tile's darkened
+ *                            FILL. We darken only the background — the gold border
+ *                            + the letter stay put — so a used tile reads as
+ *                            "spent" without dimming the whole tile.
+ *   --wordwheel-accent-used  The centre tile's darkened fill, same idea.
  *
  * Two-vocabularies rule (see docs/ui.md): tokens use semantic
  * names tied to wordwheel's vocabulary (`tile`, `accent`) rather
@@ -30,4 +35,9 @@
   --wordwheel-accent:        #d6494f;
   --wordwheel-accent-edge:   #9e2c31;
   --wordwheel-center-text:   #ffffff;
+
+  /* Used-tile fills: a couple of steps darker than the resting fills. Applied to
+   * the tile background only (not the border / letter) to mark a spent letter. */
+  --wordwheel-tile-used:     #d8c79c;
+  --wordwheel-accent-used:   #a83c41;
 }

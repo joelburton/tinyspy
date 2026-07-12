@@ -34,7 +34,8 @@
 #   6. supabase functions deploy  — push all edge functions.
 #   7. Wait for PostgREST's schema-cache reload.
 #   8. Run the data imports via `npm run import` (common.words master
-#      list → spellingbee pangram seeds → connections puzzles → stackdown boards).
+#      list → spellingbee pangram seeds → wordwheel pangram seeds →
+#      connections puzzles → stackdown boards).
 #   9. (when DEPLOY_FE=true) Write .env.production.local with the
 #      new project's URL + publishable key, then npm run build,
 #      then netlify deploy -p -d dist.
@@ -137,7 +138,7 @@ SUPABASE_URL="https://${PROJECT_REF}.supabase.co"
 # Schemas to expose via the Data API. `public` + `graphql_public`
 # are Supabase defaults that we keep so other features that read
 # from them don't break.
-EXPOSED_SCHEMAS="public,graphql_public,common,codenamesduet,psychicnum,connections,spellingbee,bananagrams,waffle,wordle,stackdown,scrabble,boggle,crosswords"
+EXPOSED_SCHEMAS="public,graphql_public,common,codenamesduet,psychicnum,connections,spellingbee,wordwheel,bananagrams,waffle,wordle,stackdown,scrabble,boggle,crosswords"
 
 # Extra search path. Strictly speaking we don't NEED this (every
 # common.* reference in our RLS and RPCs is fully qualified — see
@@ -567,8 +568,8 @@ echo
 # ════════════════════════════════════════════════════════════════
 # `supabase functions deploy` with no args pushes every function under
 # supabase/functions/ (codenamesduet-suggest-clue, define, and the
-# *-build-board generators for spellingbee, waffle, and boggle), so new
-# ones are picked up automatically — nothing to edit here when adding a
+# *-build-board generators for spellingbee, wordwheel, waffle, and boggle), so
+# new ones are picked up automatically — nothing to edit here when adding a
 # function. (define needs no extra secret: SUPABASE_URL / ANON /
 # SERVICE_ROLE keys are auto-injected by the Edge Runtime, and it
 # calls the public Wiktionary API with no key.)
@@ -616,14 +617,14 @@ echo
 # 8. Run data imports (`npm run import`)
 # ════════════════════════════════════════════════════════════════
 # `npm run import` runs every game's data import, in order:
-#   words → spellingbee → connections → stackdown.
+#   words → spellingbee → wordwheel → connections → stackdown.
 # It inherits the env exported above (SUPABASE_DB_URL for the psql-COPY
 # loaders, SUPABASE_URL + SERVICE_ROLE_KEY for the PostgREST one), so it
 # behaves identically here to running each script directly.
 #
 # Two transports:
-#   - common.words + spellingbee pangrams bulk-load via psql COPY over
-#     SUPABASE_DB_URL — fast, and immune to the PostgREST/HTTP keep-alive
+#   - common.words + spellingbee/wordwheel pangrams bulk-load via psql COPY
+#     over SUPABASE_DB_URL — fast, and immune to the PostgREST/HTTP keep-alive
 #     drops that made batched API upserts fail mid-import against hosted.
 #     These reseed (TRUNCATE + insert).
 #   - connections upserts through PostgREST (SUPABASE_URL + SERVICE_ROLE_KEY);
@@ -645,9 +646,9 @@ echo
 # migrated (step 2) and exposed (step 3). (boggle's edge function does need
 # its bundled wordlist asset, which step 6 regenerates before deploy.)
 #
-# ORDER MATTERS: common.words is the shared master word list, and the
-# spellingbee pangram seeds are DERIVED from it — so the word list (which
-# `npm run import` runs first) must load before spellingbee. (Word definitions
+# ORDER MATTERS: common.words is the shared master word list, and both the
+# spellingbee AND wordwheel pangram seeds are DERIVED from it — so the word
+# list (which `npm run import` runs first) must load before either. (Word definitions
 # now ship INSIDE common.words, seeded straight from the word list, so
 # there's no separate definitions import.) The rest are independent.
 

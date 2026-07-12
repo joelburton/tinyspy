@@ -30,7 +30,7 @@ begin;
 
 set search_path = spellingbee, common, public, extensions;
 
-select plan(8);
+select plan(10);
 
 \ir ../_shared/setup.psql
 
@@ -197,6 +197,31 @@ select is(
   '[{"word":"acedone","points":17,"is_pangram":true},
     {"word":"bead","points":1,"is_pangram":false}]'::jsonb,
   'games_state.required_words remains exposed post-terminal'
+);
+
+-- ============================================================
+-- Realtime publication membership (LIVE-play invariant)
+-- ============================================================
+-- BOTH found_words AND games must be in supabase_realtime. useGame subscribes to
+-- postgres_changes on each (found_words for submissions, games for
+-- replay_board's realtime touch), and Realtime rejects a channel's ENTIRE
+-- postgres_changes subscription if any bound table is unpublished — so a missing
+-- games line silently kills found_words delivery too (writes persist, only a
+-- manual refresh shows them). This regressed live updates once the Realtime image
+-- began enforcing that rule; these assertions guard both lines.
+
+reset role;
+select is(
+  (select count(*)::int from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'spellingbee' and tablename = 'found_words'),
+  1,
+  'spellingbee.found_words is published to supabase_realtime (live score/word-list updates)'
+);
+select is(
+  (select count(*)::int from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'spellingbee' and tablename = 'games'),
+  1,
+  'spellingbee.games is published to supabase_realtime (replay touch; keeps the whole channel valid)'
 );
 
 -- ============================================================

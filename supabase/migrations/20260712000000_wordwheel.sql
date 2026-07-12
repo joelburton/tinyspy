@@ -325,13 +325,23 @@ grant select on wordwheel.games_state to authenticated;
 -- ============================================================
 -- Realtime publication
 -- ============================================================
--- Only found_words is published: it's the sole thing that changes during play
--- (every accepted submission appends a row that peers' useGame hooks refetch on).
--- wordwheel.games is immutable for the life of the game — the header + word
--- lists never change and the terminal flip lives on common.games (already
--- published, and the FE's isTerminal flows from there) — so useGame loads it
--- once and there's nothing to subscribe to.
+-- BOTH found_words and games are published, and BOTH must be — useGame
+-- subscribes to postgres_changes on each:
+--   - found_words is the live data: every accepted submission appends a row that
+--     peers' useGame hooks refetch on.
+--   - games carries no mid-play column changes, BUT replay_board does a no-op
+--     UPDATE on it as a realtime "touch": replay only DELETEs found_words rows,
+--     and postgres_changes filters don't reliably match DELETEs, so the games
+--     write is what wakes every client to refetch the now-empty list.
+--
+-- Publishing games is NOT optional cleanup: Realtime authorizes a channel's
+-- postgres_changes bindings at JOIN time and rejects the WHOLE subscription if
+-- ANY bound table isn't in the publication. So a games subscription against an
+-- unpublished games table kills found_words delivery too — live updates die
+-- silently (writes persist, only a manual refresh shows them). wordwheel's
+-- schema_test asserts both memberships to guard against a dropped line.
 
+alter publication supabase_realtime add table wordwheel.games;
 alter publication supabase_realtime add table wordwheel.found_words;
 
 -- ============================================================

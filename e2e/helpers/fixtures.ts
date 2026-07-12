@@ -461,6 +461,49 @@ export async function createSpellingbeeGame(
   return { id: (row as { id: string }).id, gametype: `spellingbee_${mode}` }
 }
 
+/**
+ * Start a wordwheel game (coop by default) on a fixed synthetic board:
+ * outer `abcdfghi` + center `e`, 16 required ISOGRAM words (clearing the ≥15
+ * gate) — 10 four-letter + 5 five-letter + the 9-letter pangram `abcdefghi`
+ * (+15) — plus one bonus word (`cadge`). Every word uses each of its letters
+ * once and includes the centre `e`. Mirrors the pgTAP fixture. Returns id +
+ * gametype for the URL.
+ */
+export async function createWordwheelGame(
+  club: E2EClub,
+  mode: 'coop' | 'compete' = 'coop',
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+): Promise<{ id: string; gametype: string }> {
+  const four = ['bead', 'face', 'fade', 'cafe', 'deaf', 'abed', 'chef', 'dice', 'hade', 'bice']
+  const five = ['beach', 'chafe', 'fiche', 'abide', 'ached']
+  const pangram = 'abcdefghi'
+  const required = [
+    ...four.map((w) => ({ word: w, points: 1, is_pangram: false })),
+    ...five.map((w) => ({ word: w, points: 5, is_pangram: false })),
+    { word: pangram, points: pangram.length + 15, is_pangram: true }, // 9 + 15 = 24
+  ]
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('wordwheel')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: { timer: { kind: 'none' }, required: 3, legal: 5 },
+      player_user_ids: playerUserIds,
+      mode,
+      board: {
+        outer_letters: 'abcdfghi',
+        center_letter: 'e',
+        required_words_score: required.reduce((s, r) => s + r.points, 0),
+        required_words_count: required.length,
+        required_words: required,
+        bonus_words: [{ word: 'cadge', points: 5, is_pangram: false }],
+      },
+    })
+  if (res.error) throw new Error(`wordwheel.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: `wordwheel_${mode}` }
+}
+
 /** Start a wordle game (coop by default). Returns id + gametype for the URL. */
 export async function createWordleGame(
   club: E2EClub,
