@@ -1,0 +1,128 @@
+/* The word wheel: 9 circular tiles — 1 centre (bigger, red) + 8 outer (warm
+ * tile-2) evenly spaced on a ring, clockwise from the top. The centre tile is
+ * used in every word, so it's the visual hub: larger radius (from the geometry)
+ * and a saturated-red fill.
+ *
+ * Rendered as ONE inline <svg> (Wheel.tsx), viewBox 0 0 300 300 — the wheel's
+ * coordinate units. The svg is sized in --u (set on .boardCol in
+ * PlayArea.module.css) so the whole wheel SCALES with the board — one unit = one
+ * `--u`, and the below-board input row reads the board width from the same source.
+ *
+ * Each tile is an SVG <circle> — a real fill + stroke, so the tiles get a proper
+ * BORDER. The letter is an SVG <text>. Only wordwheel uses this wheel, so it stays
+ * local; the vector shapes are also shared with the PDF export. */
+
+/* The board wrapper: no tray (no border/background) — the tiles carry their own
+ * shape — just the structural element between .boardCol and the .grid, centering
+ * the grid horizontally. */
+.board {
+  display: flex;
+  justify-content: center;
+}
+
+/* Shrink-wraps the wheel svg exactly (a flex child hugs its content) and anchors
+ * the floating shuffle control (`floatingControl` prop), so the float hugs the
+ * VISUAL wheel's top-right — not `.board`, which stretches to the column width. */
+.floatAnchor {
+  position: relative;
+}
+
+/* The grid: the wheel's bounding box, 300 × 300 coordinate units, now the <svg>
+ * itself. `--u` (one unit) is defined on .boardCol so the below-board input row
+ * reads the board width from the same source. `overflow: visible` lets the
+ * outermost tiles' strokes / focus rings paint past the viewBox edge. */
+.grid {
+  display: block;
+  width: calc(300 * var(--u));
+  height: calc(300 * var(--u));
+  overflow: visible;
+}
+
+/* One tile = a clickable group (button semantics live in Tile.tsx via
+ * role/tabindex/keydown). Hover dims the whole tile; press scales it about its OWN
+ * centre — transform-box/-origin, since an SVG transform is otherwise about the
+ * viewBox origin. */
+.tile {
+  cursor: pointer;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 80ms ease, filter 80ms ease;
+  /* Suppress the mobile browser's default tap-highlight — it paints a grey box
+   * over the tile's (square) BOUNDING BOX, which both looks wrong on a circle and
+   * hides our own circular flash below. */
+  -webkit-tap-highlight-color: transparent;
+}
+.tile:hover {
+  filter: brightness(0.96);
+}
+.tile:active {
+  transform: scale(0.9);
+}
+.tile:focus {
+  outline: none;
+}
+
+/* Click/tap feedback: a brief bright overlay on the tapped tile (in addition to
+ * the `:active` press, which is too quick to notice on a fast tap). Driven from
+ * Tile.tsx — the overlay is keyed by a bumping nonce so re-tapping the SAME tile
+ * replays it. Base opacity 0 so it's invisible between taps; the one-shot
+ * animation fades from bright to that 0 (no `forwards` needed, since it ends at
+ * the base). */
+.tileFlash {
+  fill: #fff;
+  opacity: 0;
+  pointer-events: none;
+  animation: tileFlash 260ms ease-out;
+}
+@keyframes tileFlash {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tileFlash {
+    animation: none;
+  }
+}
+
+/* The tile shape — the real fill + border. Outer tiles: warm tile-2 with its OWN
+ * matching tile-family border (--tile-2-border), so the border tracks the fill if
+ * the shade changes; the centre is the saturated red with a darker-red edge. */
+.tileShape {
+  fill: var(--wordwheel-tile);
+  stroke: var(--tile-2-border);
+  stroke-width: 1.5;
+  transition: fill 80ms ease;
+}
+.center .tileShape {
+  fill: var(--wordwheel-accent);
+  stroke: var(--wordwheel-accent-edge);
+  stroke-width: 2;
+}
+
+/* Focus ring: recolor + thicken the tile border (reliable in SVG, unlike an
+ * outline on a <g>). */
+.tile:focus-visible .tileShape {
+  stroke: var(--color-accent);
+  stroke-width: 4;
+}
+
+.tileText {
+  fill: var(--wordwheel-tile-text);
+  font-size: 34px; /* wheel coordinate units (scaled by --u) */
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: central;
+  user-select: none;
+  pointer-events: none; /* clicks land on the circle/group, not the glyph */
+}
+/* The centre letter sits on the saturated-red fill — white reads cleanly where
+ * black would fight the colour; the centre tile is also bigger, so bump the glyph. */
+.center .tileText {
+  fill: var(--wordwheel-center-text);
+  font-size: 40px;
+}

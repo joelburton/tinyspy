@@ -1,0 +1,131 @@
+-- ============================================================
+-- Per-test-file wordwheel fixtures
+-- ============================================================
+--
+-- Loaded by every wordwheel/*_test.sql via:
+--   \ir setup.psql
+--
+-- Provides:
+--   pg_temp.wordwheel_board()       — Builds a valid `board` jsonb
+--                                   (the shape wordwheel.create_game
+--                                   accepts) suitable for tests.
+--                                   19 required entries + 3 bonus
+--                                   entries; all words are ISOGRAMS
+--                                   (each tile used once — the word
+--                                   wheel rule) drawn from the test
+--                                   puzzle's NINE letters
+--                                   {a,b,c,d,e,f,g,h,i} with center 'e'.
+--   pg_temp.wordwheel_setup()       — Builds a default coop `setup`
+--                                   jsonb. Tests override via
+--                                   `setup || jsonb_build_object(...)`
+--                                   when they need a specific field
+--                                   exercised.
+--
+-- The "test board" is deliberately small but valid. THE FORK FROM
+-- spellingbee: a wordwheel board is NINE letters (8 outer + 1 center),
+-- each tile used ONCE per word, so every fixture word is an isogram
+-- (all-distinct letters) that is a subset of the nine puzzle letters
+-- AND contains the center 'e'. 's' is allowed everywhere (used-once
+-- means it can't pluralize explosively); this board just doesn't
+-- happen to include it.
+--   - Letters: outer = 'abcdfghi' (8 distinct), center = 'e'.
+--     Puzzle letters = {a,b,c,d,e,f,g,h,i}.
+--   - 13 four-letter entries (1pt each).
+--   - 5 five-letter entries (5pt each).
+--   - 1 NINE-letter pangram 'abcdefghi' (9 + 15 pangram bonus = 24pt;
+--     synthetic — the create_game RPC doesn't dictionary-check the
+--     wordlist content, only the structure).
+--   - 3 bonus entries (legal − required), also isograms of the letters
+--     incl. 'e', one of them a bonus-pangram.
+-- Total required: 13·1 + 5·5 + 24 = 62 points across 19 words.
+--
+-- Scoring (mirrors the edge builder + wordwheel._rank_idx):
+--   points = (len == 4 ? 1 : len == 9 pangram ? len + 15 : len)
+--   rank_idx(score, total) = LEAST(6, floor(score * 60 / (total * 7)))
+--
+-- Rank thresholds for required_words_score = 62 (score needed to
+-- UNLOCK each rank; derived: score >= ceil(i * total * 7 / 60)):
+--   Start   ≥ 0
+--   Good    ≥ 8
+--   Solid   ≥ 15
+--   Nice    ≥ 22
+--   Great   ≥ 29
+--   Amazing ≥ 37
+--   Genius  ≥ 44
+--
+-- Every fixture word is letter-valid for the puzzle (an isogram
+-- using only {a,b,c,d,e,f,g,h,i} and containing 'e'), so submit_word
+-- accepts every entry (submit_word is trusting-commit: it does not
+-- re-validate letters/center/length/dictionary — it reads `points`
+-- straight off the shipped entry). Some are real English (bead, face,
+-- beach, …), some are synthetic (bice, hade, …). The synthetic ones
+-- earn the points their length dictates — trusting-commit doesn't
+-- consult a dictionary.
+
+create function pg_temp.wordwheel_board()
+returns jsonb
+language plpgsql
+as $$
+declare
+  required jsonb := '[]'::jsonb;
+  -- bonus holds the bonus set (legal − required), same
+  -- { word, points, is_pangram } shape as required (the FE scores bonus
+  -- words locally). 'ihgfedcba' is a synthetic 9-distinct-letter isogram
+  -- covering the bonus-pangram path (length 9 + 15 pangram bonus = 24).
+  bonus jsonb := jsonb_build_array(
+    jsonb_build_object('word', 'cadge',     'points', 5,  'is_pangram', false),
+    jsonb_build_object('word', 'gibed',     'points', 5,  'is_pangram', false),
+    jsonb_build_object('word', 'ihgfedcba', 'points', 24, 'is_pangram', true)
+  );
+  -- 13 four-letter + 5 five-letter + 1 nine-letter pangram, in that
+  -- order. Every entry is an isogram of {a,b,c,d,e,f,g,h,i} incl. 'e'.
+  syn_words text[] := array[
+    'bead','face','fade','cafe','deaf','abed','chef','dice',
+    'hade','bice','ache','iced','gaed',
+    'beach','chafe','fiche','abide','ached',
+    'abcdefghi'
+  ];
+  w text;
+  pt int;
+  is_pang bool;
+  total int := 0;
+begin
+  foreach w in array syn_words loop
+    is_pang := (length(w) = 9);
+    pt := case
+            when length(w) = 4 then 1
+            when is_pang then length(w) + 15  -- 9 + 15 pangram bonus = 24
+            else length(w)                    -- 5+: length-based
+          end;
+    required := required || jsonb_build_array(
+      jsonb_build_object('word', w, 'points', pt, 'is_pangram', is_pang)
+    );
+    total := total + pt;
+  end loop;
+  return jsonb_build_object(
+    'outer_letters',        'abcdfghi',
+    'center_letter',        'e',
+    'required_words_score', total,
+    'required_words_count', jsonb_array_length(required),
+    'required_words',       required,
+    'bonus_words',          bonus
+  );
+end;
+$$;
+
+-- Default setup: no timer. Mode is a positional RPC arg
+-- (sibling-manifest split — the gametype string carries the mode);
+-- wordwheel.create_game REJECTS a `mode` field on setup so a stale FE
+-- fails fast. Tests that exercise compete-mode setup shape
+-- (target_rank validation) override via jsonb concatenation:
+--   pg_temp.wordwheel_setup() || '{"target_rank": 3}'::jsonb
+-- and pass 'compete' as the create_game `mode` arg.
+
+create function pg_temp.wordwheel_setup()
+returns jsonb
+language sql
+as $$
+  select jsonb_build_object(
+    'timer', jsonb_build_object('kind', 'none')
+  );
+$$;

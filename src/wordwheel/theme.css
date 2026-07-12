@@ -1,0 +1,33 @@
+/* wordwheel's color tokens. Loaded with this game's chunk
+ * (imported from PlayArea.tsx) so they only ship when wordwheel
+ * is being played.
+ *
+ * Word wheel's visual identity is the wheel: a saturated-red centre tile (the
+ * letter used in EVERY word) ringed by warm neutral outer tiles.
+ *
+ *   --wordwheel-tile         The resting outer-tile fill. Soft warm neutral
+ *                            (the shared tile-2 ramp).
+ *   --wordwheel-tile-text    Near-black glyph on the light outer tiles.
+ *   --wordwheel-accent       The centre tile fill — a moderately-saturated red,
+ *                            the single "used in every word" cue. Also the
+ *                            achieved-tier fill on the RankBar.
+ *   --wordwheel-accent-edge  A darker-red border for the centre tile + the
+ *                            achieved RankBar tier, so the red square reads
+ *                            against a white track without a near-black outline.
+ *   --wordwheel-center-text  White glyph on the red centre tile (black would
+ *                            fight the saturated fill).
+ *
+ * Two-vocabularies rule (see docs/ui.md): tokens use semantic
+ * names tied to wordwheel's vocabulary (`tile`, `accent`) rather
+ * than literal colors. A future palette tweak doesn't have to
+ * walk every consumer.
+ */
+:root {
+  --wordwheel-tile:          var(--tile-2); /* the shared warm ramp */
+  --wordwheel-tile-text:     #1a1a1a;
+
+  /* Moderately-saturated red — the centre tile + the RankBar's achieved tier. */
+  --wordwheel-accent:        #d6494f;
+  --wordwheel-accent-edge:   #9e2c31;
+  --wordwheel-center-text:   #ffffff;
+}

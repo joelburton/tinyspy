@@ -2840,6 +2840,204 @@ export type Database = {
       [_ in never]: never
     }
   }
+  wordwheel: {
+    Tables: {
+      found_words: {
+        Row: {
+          found_at: string
+          game_id: string
+          is_bonus: boolean
+          is_pangram: boolean
+          points: number
+          user_id: string
+          word: string
+        }
+        Insert: {
+          found_at?: string
+          game_id: string
+          is_bonus: boolean
+          is_pangram: boolean
+          points: number
+          user_id: string
+          word: string
+        }
+        Update: {
+          found_at?: string
+          game_id?: string
+          is_bonus?: boolean
+          is_pangram?: boolean
+          points?: number
+          user_id?: string
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "found_words_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "found_words_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          bonus_words: Json
+          center_letter: string
+          club_handle: string
+          created_at: string
+          id: string
+          mode: string
+          outer_letters: string
+          required_words: Json
+          required_words_count: number
+          required_words_score: number
+        }
+        Insert: {
+          bonus_words: Json
+          center_letter: string
+          club_handle: string
+          created_at?: string
+          id: string
+          mode: string
+          outer_letters: string
+          required_words: Json
+          required_words_count: number
+          required_words_score: number
+        }
+        Update: {
+          bonus_words?: Json
+          center_letter?: string
+          club_handle?: string
+          created_at?: string
+          id?: string
+          mode?: string
+          outer_letters?: string
+          required_words?: Json
+          required_words_count?: number
+          required_words_score?: number
+        }
+        Relationships: []
+      }
+      pangrams: {
+        Row: {
+          difficulty: number
+          has_rare_letters: boolean
+          mask: number
+          word_counts: Json
+        }
+        Insert: {
+          difficulty: number
+          has_rare_letters: boolean
+          mask: number
+          word_counts: Json
+        }
+        Update: {
+          difficulty?: number
+          has_rare_letters?: boolean
+          mask?: number
+          word_counts?: Json
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      games_state: {
+        Row: {
+          bonus_words: Json | null
+          center_letter: string | null
+          club_handle: string | null
+          created_at: string | null
+          id: string | null
+          mode: string | null
+          outer_letters: string | null
+          required_words: Json | null
+          required_words_count: number | null
+          required_words_score: number | null
+        }
+        Insert: {
+          bonus_words?: Json | null
+          center_letter?: string | null
+          club_handle?: string | null
+          created_at?: string | null
+          id?: string | null
+          mode?: string | null
+          outer_letters?: string | null
+          required_words?: Json | null
+          required_words_count?: number | null
+          required_words_score?: number | null
+        }
+        Update: {
+          bonus_words?: Json | null
+          center_letter?: string | null
+          club_handle?: string | null
+          created_at?: string | null
+          id?: string | null
+          mode?: string | null
+          outer_letters?: string | null
+          required_words?: Json | null
+          required_words_count?: number | null
+          required_words_score?: number | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      _rank_idx: { Args: { score: number; total: number }; Returns: number }
+      candidate_words: {
+        Args: {
+          center_bit: number
+          legal_band: number
+          puzzle_mask: number
+          required_band: number
+        }
+        Returns: {
+          is_required: boolean
+          letter_mask: number
+          word: string
+        }[]
+      }
+      concede: { Args: { target_game: string }; Returns: undefined }
+      create_game: {
+        Args: {
+          board: Json
+          mode: string
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      end_game: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_word: {
+        Args: {
+          is_bonus: boolean
+          is_pangram: boolean
+          points: number
+          target_game: string
+          word: string
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
@@ -3000,6 +3198,9 @@ export const Constants = {
     Enums: {},
   },
   wordle: {
+    Enums: {},
+  },
+  wordwheel: {
     Enums: {},
   },
 } as const

@@ -12,6 +12,10 @@ import {
   spellingbeeCoopGame,
   spellingbeeCompeteGame,
 } from './spellingbee/manifest'
+import {
+  wordwheelCoopGame,
+  wordwheelCompeteGame,
+} from './wordwheel/manifest'
 import { bananagramsGame } from './bananagrams/manifest'
 import { waffleCoopGame, waffleCompeteGame } from './waffle/manifest'
 import { wordleCoopGame, wordleCompeteGame } from './wordle/manifest'
@@ -58,6 +62,8 @@ export const games: GameManifest[] = [
   connectionsCompeteGame,
   spellingbeeCoopGame,
   spellingbeeCompeteGame,
+  wordwheelCoopGame,
+  wordwheelCompeteGame,
   bananagramsGame,
   waffleCoopGame,
   waffleCompeteGame,

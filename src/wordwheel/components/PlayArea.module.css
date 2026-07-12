@@ -1,0 +1,75 @@
+/* wordwheel play surface, now on the shared two-column scaffold
+ * (common/components/game/PlayArea.module.css, imported as `shared`) — the same
+ * .layout / .boardCol / .infoCol psychicnum / connections / codenamesduet /
+ * waffle use. This module holds only wordwheel's own bits: the per-game layout
+ * vars, the board-size derivation, the below-board input region (the typed-word
+ * display + Delete/Enter on one line, with the local feedback / terminal pill
+ * swapping into the same slot), and the leftover loading styles. The info
+ * column's readouts use the shared `.actionSlot` + readout classes; own-move and
+ * terminal feedback render as the shared `<GenericFeedbackPill>` in `.localFeedback`.
+ */
+
+/* Per-game layout vars the shared scaffold reads. The info column runs wider than
+ * the other games' — the word list wants room for several columns — so start at
+ * 33rem and tune. --avail-h is the vertical space left for the wheel board (bounded
+ * by height too, like waffle's square): viewport − chrome − the single below-board
+ * slot (the input row / feedback pill / terminal status, ~2.75rem), the board
+ * column's gap above it (~0.75rem), and the extra `.belowBoard` margin-top that
+ * drops the input row down off the board (1.5rem) — 5rem total. Keep this in sync
+ * with `.belowBoard`'s margin-top below. */
+.layout {
+  --info-col-width: 53rem;
+  --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
+}
+
+/* The board column. Defines `--u` (one wheel coordinate unit) and the derived
+ * `--board-width` HERE — rather than on the grid — so the below-board input row can
+ * match the board's width from the same source.
+ *
+ * ─── Board size cap — TINKER HERE ────────────────────────────────────────────
+ * The wheel's bounding box is 300 × 300 coordinate units (see Wheel.module.css).
+ * `--u` sizes it to fill the SMALLER of the width left beside the info column
+ * (--avail-w, the shared scaffold token) and the height left above the input row
+ * (--avail-h), capped by --max-wheel-board-size — expressed as the 300-unit board
+ * edge. Raise/lower the cap to taste; to REMOVE it, SET it to 999rem (don't comment
+ * the knob OUT: the token must stay defined, or the cssTokens guard trips on the
+ * now-undefined var() reference — see the passing games). */
+.boardCol {
+  --max-wheel-board-size: 30rem;
+  --u: min(
+    calc(var(--avail-w) / 300),
+    calc(var(--avail-h) / 300),
+    calc(var(--max-wheel-board-size) / 300)
+  );
+  --board-width: calc(300 * var(--u));
+}
+
+/* The below-board slot — holds exactly ONE of: the input row, the own-action
+ * feedback pill, or the terminal status (they replace each other, the same swap
+ * the other redesigned games do). A reserved min-height (the input row's) keeps
+ * the top-anchored board from shifting as they swap. Width pinned to the board
+ * width so a long typed word can't widen the column and shift the centered board.
+ * `margin-top` drops the row down off the board for breathing room (on top of the
+ * board column's 0.75rem gap) — counted into `--avail-h` above. */
+/* The below-board REGION (universal). Board-matched width + the gap off the
+ * board; the fixed-height reservation now lives on the `shared.moveAreaOrLocalFeedback`
+ * swap box inside it. Column so that box STRETCHES to the full board width (so
+ * the input row spans the board and its EntryBox flex-fills between the buttons). */
+.belowBoard {
+  width: var(--board-width);
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* (The input row + its EntryBox/Delete/Submit live in the shared
+ * common/components/game/entry/EntryRow now; only the below-board slot wrapper is here.) */
+
+.loading,
+.empty {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--color-muted);
+  grid-column: 1 / -1;
+}
+
