@@ -349,6 +349,10 @@ async function fetchPangrams(supabase: SupabaseClient): Promise<PangramRow[]> {
       .schema('spellingbee')
       .from('pangrams')
       .select('mask, required_words_count, has_rare_letters')
+      // Order by the primary key so successive .range() windows are stable
+      // pages of ONE ordering (without it Postgres gives no cross-statement
+      // order guarantee — rows could be skipped or double-counted across pages).
+      .order('mask', { ascending: true })
       .range(from, from + PAGE_SIZE - 1)
     if (error) throw new Error(`fetchPangrams page ${from}: ${error.message}`)
     const page = (data ?? []) as PangramRow[]

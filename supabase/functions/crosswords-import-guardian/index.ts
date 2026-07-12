@@ -102,8 +102,12 @@ function extractGuardianData(html: string): GuardianData {
 async function fetchLatestGuardian(series: string): Promise<GuardianData> {
   const landing = `https://www.theguardian.com/crosswords/series/${series}`
   const listHtml = await fetchText(landing)
-  // The first /crosswords/<type>/<id> link on a series index is its latest.
-  const link = listHtml.match(/\/crosswords\/[a-z-]+\/\d+/)?.[0]
+  // The first /crosswords/<series>/<id> link on the index is its latest. Anchor
+  // to the REQUESTED series slug (the URL's type segment IS the series) — a bare
+  // /crosswords/<any>/<id> match could grab a crossword-blog, nav, or other-
+  // series link that appears earlier on the page, fetching the wrong puzzle.
+  const esc = series.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const link = listHtml.match(new RegExp(`/crosswords/${esc}/\\d+`))?.[0]
   if (!link) throw new GuardianFetchError(`No ${series} crossword found.`)
   const solverHtml = await fetchText(`https://www.theguardian.com${link}`)
   return extractGuardianData(solverHtml)

@@ -46,8 +46,11 @@ There is no scalar "final score", so compete is a **lexicographic comparator**, 
    the player who completed their five guesses in less elapsed time).
 4. Still tied → **co-winners** (all tied-at-top marked won).
 
-The comparator is **authoritative in the RPC**; the FE mirrors it for live display (the
-FE copy is documented as "must match the server").
+The comparator is **authoritative in the RPC**. `src/wordiply/lib/scoring.ts` carries a
+parallel `compareCompetitors` — a **parity reference** pinned to the server order by its
+Vitest, not wired to any live display (the FE reads the server-resolved `winner_user_id` /
+`leaderboard`). It exists so a future client-side ordering has a ready, tested match; if
+that never lands, it stays as executable documentation of the tiebreak order.
 
 ---
 

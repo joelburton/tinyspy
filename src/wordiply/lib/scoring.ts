@@ -36,7 +36,12 @@ export type Competitor = {
 
 /**
  * The lexicographic comparator — returns <0 when `a` ranks ABOVE `b` (so
- * `Array.prototype.sort` puts the leader first). MUST match the ordering
+ * `Array.prototype.sort` puts the leader first).
+ *
+ * NOT wired to any live display today: the FE renders the server-resolved
+ * `winner_user_id` / `leaderboard`. This is a **parity reference**, pinned to
+ * the server order by its Vitest, kept ready for a future client-side ordering
+ * (and as executable documentation of the tiebreak). It MUST match the ordering
  * in `wordiply._finish_compete`:
  *   1. higher length score wins
  *   2. tie → higher letter count wins

@@ -163,7 +163,12 @@ export function FloatingPanel({
           style={{ zIndex: zIndex - 1 }}
           aria-hidden="true"
           // No onClick — backdrop click is intentionally a no-op
-          // (see Props.backdrop docstring).
+          // (see Props.backdrop docstring). preventDefault on mousedown so the
+          // click doesn't BLUR the panel's focused control to <body>: otherwise
+          // a focus-trapped modal (e.g. an End/suspend confirm) leaks subsequent
+          // keystrokes to whatever window listener sits behind it (the crossword
+          // grid). Non-backdrop panels (the scratchpad) are unaffected.
+          onMouseDown={(e) => e.preventDefault()}
         />
       )}
       <FloatingPanelBody

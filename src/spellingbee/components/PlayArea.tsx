@@ -306,11 +306,17 @@ export function PlayArea(ctx: GamePageCtx) {
   const gameMode = game?.mode
   const handleNewGame = useCallback(async () => {
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
+    // A hand-picked custom board is a ONE-OFF (docs/games/spellingbee.md): a
+    // "new game" should get a fresh RANDOM board, not silently rebuild the
+    // identical letters (which would carry everyone's answer knowledge over).
+    // create_game already strips these from the saved club default; strip them
+    // here too so the edge fn takes the random path.
+    const freshSetup = { ...setup, custom_center: undefined, custom_letters: undefined }
     const res = await invokeStartGameEdgeFn(
       'spellingbee-build-board',
       {
         target_club: clubHandle,
-        setup,
+        setup: freshSetup,
         player_user_ids: players.map((p) => p.user_id),
         mode: gameMode,
       },

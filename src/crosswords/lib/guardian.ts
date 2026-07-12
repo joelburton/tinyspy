@@ -126,7 +126,18 @@ export function convertGuardianPuzzle(data: GuardianData): {
       // a crossing entry starts there (handled when THAT entry's loop hits i=0).
       const cellNumber = i === 0 ? num : existing.kind === 'cell' ? existing.number : null
       cells[y]![x] = { kind: 'cell', number: cellNumber, fill: null }
-      solution[y]![x] = [answer[i]!]
+      // A crossing cell must agree between its across + down entries. If a
+      // (corrupt) feed disagrees, fail loudly at import — silently keeping the
+      // later write would ship a puzzle that check() marks wrong and no one can
+      // solve.
+      const prevSolution = solution[y]![x]
+      const letter = answer[i]!
+      if (prevSolution && prevSolution[0] !== letter) {
+        throw new GuardianConvertError(
+          `crossing conflict at (${x},${y}): "${prevSolution[0]}" vs "${letter}" (entry ${e.number})`,
+        )
+      }
+      solution[y]![x] = [letter]
     }
 
     const clue: Clue = { number: num ?? 0, text: htmlToText(e.clue ?? '') }

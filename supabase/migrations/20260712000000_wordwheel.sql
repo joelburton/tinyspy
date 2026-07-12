@@ -118,9 +118,9 @@ grant usage on schema wordwheel to service_role;
 -- + docs/games/wordwheel.md.
 --
 -- has_rare_letters drives the "diverse" builder's weighting: wheels
--- containing any of {j, q, x, z} (very rare) or {k, v, w, y}
--- (somewhat rare) get duplicated in the sampler so rare letters get
--- fair representation. Precomputed once at import time.
+-- containing any of {j, q, x, z, k, v, w, y, b, f, h} (the rare + somewhat-rare
+-- letters — see import-wordwheel-pangrams.ts) get duplicated in the sampler so
+-- rare letters get fair representation. Precomputed once at import time.
 
 create table wordwheel.pangrams (
   -- The wheel's nine letters as a SORTED lowercase string — the
@@ -588,7 +588,7 @@ declare
   game_title text;
   effective_gametype text;
   -- A player-specified letter set (setup.custom_letters non-empty) — the board was
-  -- built from the player's own letters, not a random seed. Relaxes the ≥30 gate.
+  -- built from the player's own letters, not a random seed. Relaxes the ≥15 gate.
   is_custom_board boolean;
 begin
   perform common.require_club_member(target_club);

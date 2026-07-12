@@ -63,7 +63,7 @@
  *
  * Calling shape (from the FE):
  *   POST /functions/v1/wordwheel-build-board
- *   { target_club: uuid,
+ *   { target_club: text,           // the club HANDLE, not a uuid
  *     setup: jsonb,                 // {timer, required?, legal?, target_rank?}, NO mode field
  *     player_user_ids: uuid[],
  *     mode: 'coop' | 'compete' }
@@ -372,6 +372,11 @@ async function fetchPangrams(
       .from('pangrams')
       .select('letters, mask, difficulty, has_rare_letters')
       .lte('difficulty', requiredBand)
+      // Order by the primary key so successive .range() windows are stable
+      // pages of ONE ordering — without it Postgres gives no cross-statement
+      // order guarantee, so rows could be skipped or double-counted across the
+      // ~37 pages (a sampling-distribution skew, not a wrong board).
+      .order('letters', { ascending: true })
       .range(from, from + PAGE_SIZE - 1)
     if (error) throw new Error(`fetchPangrams page ${from}: ${error.message}`)
     const page = (data ?? []) as PangramRow[]

@@ -57,6 +57,13 @@ const PENCIL_SKIPPED_MSG: GenericFeedbackMsg = {
   dismiss: { kind: 'timed' },
 }
 
+/** A download-safe filename stem from a puzzle id. Library ids are plain, but
+ *  Guardian ids are slugs with slashes ("crosswords/quick/123"); collapse
+ *  anything but word chars / dot / dash to '_'. */
+function fileStem(id: string | undefined): string {
+  return (id || 'crossword').replace(/[^\w.-]/g, '_')
+}
+
 /**
  * The crosswords coordinator: owns the cursor, wires the keyboard, merges
  * the immutable template (`useGame`) with the live fills (`useCells`), and
@@ -434,7 +441,9 @@ export function PlayArea(ctx: GamePageCtx) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${state.meta.id || 'crossword'}.ipuz`
+    // Guardian ids carry slashes (e.g. "crosswords/quick/123"); sanitize so the
+    // download gets a clean name instead of a browser-mangled one.
+    a.download = `${fileStem(state.meta.id)}.ipuz`
     a.click()
     URL.revokeObjectURL(url)
   }, [gameId, showLocalFeedback])
@@ -455,7 +464,7 @@ export function PlayArea(ctx: GamePageCtx) {
     await printCrosswordsSolutionPdf(
       state,
       data as unknown as (string[] | null)[][],
-      `${state.meta.id || 'crossword'}-answers`,
+      `${fileStem(state.meta.id)}-answers`,
     )
   }, [gameId, showLocalFeedback])
 

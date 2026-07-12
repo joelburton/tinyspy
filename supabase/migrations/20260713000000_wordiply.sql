@@ -1023,7 +1023,11 @@ declare
   new_status jsonb;
 begin
   perform common.require_game_player(target_game);
-  select * into g_row from wordiply.games where id = target_game;
+  -- Lock the games row (as every other mutating RPC does) so a concurrent
+  -- submit_guess can't interleave: without it, a submit committing during the
+  -- delete→reset window could strand a guess on the "fresh" board (a row with
+  -- guesses_used claiming 0). The lock serializes them.
+  select * into g_row from wordiply.games where id = target_game for update;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
