@@ -31,6 +31,20 @@ export function useInfoSheet(): InfoSheetApi {
   const [isOpen, setIsOpen] = useState(false)
   const open = useCallback(() => setIsOpen(true), [])
   const close = useCallback(() => setIsOpen(false), [])
+
+  // Close the sheet when the viewport crosses from mobile up to desktop. Without
+  // this the `isOpen` bit is sticky: open the sheet on mobile, widen to desktop
+  // (where the CSS ignores `isOpen` and shows the info column inline), then
+  // narrow back — and the sheet reappears already-open, a stale surprise. We
+  // adjust state DURING RENDER (React's sanctioned "reset state when a value
+  // changes" pattern, tracking the previous `isMobile`), not in an effect: the
+  // repo lints against setState-in-effect, and an effect would also flash the
+  // stale-open sheet for one frame before closing it.
+  const [wasMobile, setWasMobile] = useState(isMobile)
+  if (wasMobile !== isMobile) {
+    setWasMobile(isMobile)
+    if (!isMobile && isOpen) setIsOpen(false)
+  }
   const menuSections = useMemo<MenuSection[]>(
     () =>
       isMobile

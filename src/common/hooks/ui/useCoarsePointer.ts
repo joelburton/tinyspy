@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useMediaQuery } from './useMediaQuery'
 
 /**
  * The touch-device signal (docs/mobile.md → "Input is the primary axis"): a
@@ -13,25 +13,6 @@ import { useSyncExternalStore } from 'react'
  */
 const COARSE_QUERY = '(pointer: coarse)'
 
-function subscribe(callback: () => void): () => void {
-  // jsdom (the vitest env) has a window but no matchMedia — treat as a precise
-  // pointer (mouse/desktop) and never notify. Real browsers always have it.
-  if (typeof window.matchMedia !== 'function') return () => {}
-  const mql = window.matchMedia(COARSE_QUERY)
-  mql.addEventListener('change', callback)
-  return () => mql.removeEventListener('change', callback)
-}
-
-function getSnapshot(): boolean {
-  if (typeof window.matchMedia !== 'function') return false
-  return window.matchMedia(COARSE_QUERY).matches
-}
-
-// Desktop-first: with no window (SSR/test snapshot), assume a precise pointer.
-function getServerSnapshot(): boolean {
-  return false
-}
-
 /**
  * `true` when the primary pointer is coarse (a touchscreen — phone or tablet).
  *
@@ -42,10 +23,10 @@ function getServerSnapshot(): boolean {
  * (react-draggable `preventDefault`s the header touchstart, killing the
  * synthesized click on the X — remove the drag binding and the X works).
  *
- * Re-renders on a pointer change (e.g. plugging a mouse into a tablet) via
- * `useSyncExternalStore` — no setState-in-effect, so it's clean under the
+ * Re-renders on a pointer change (e.g. plugging a mouse into a tablet) via the
+ * shared `useMediaQuery` engine — no setState-in-effect, so it's clean under the
  * repo's lint rule.
  */
 export function useCoarsePointer(): boolean {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  return useMediaQuery(COARSE_QUERY)
 }

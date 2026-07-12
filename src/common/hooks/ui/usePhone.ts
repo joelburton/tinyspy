@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useMediaQuery } from './useMediaQuery'
 
 /**
  * `true` on a phone-sized viewport — the JS mirror of the `--phone` custom-media
@@ -16,23 +16,6 @@ import { useSyncExternalStore } from 'react'
 const PHONE_QUERY =
   '(max-width: 34rem), (orientation: landscape) and (max-height: 27.5rem)'
 
-function subscribe(callback: () => void): () => void {
-  if (typeof window.matchMedia !== 'function') return () => {}
-  const mql = window.matchMedia(PHONE_QUERY)
-  mql.addEventListener('change', callback)
-  return () => mql.removeEventListener('change', callback)
-}
-
-function getSnapshot(): boolean {
-  if (typeof window.matchMedia !== 'function') return false
-  return window.matchMedia(PHONE_QUERY).matches
-}
-
-// Desktop-first: with no window (SSR/test snapshot), assume not-a-phone.
-function getServerSnapshot(): boolean {
-  return false
-}
-
 export function usePhone(): boolean {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  return useMediaQuery(PHONE_QUERY)
 }
