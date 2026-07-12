@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { cls } from '../../lib/util/cls'
 import styles from './InfoSheet.module.css'
 
@@ -28,9 +28,37 @@ type Props = {
  * class on the game's `.layout` (which hands the board the full width).
  */
 export function InfoSheet({ open, onClose, wide = false, children }: Props) {
+  // Escape closes the open sheet — the keyboard-tablet expectation (a supported
+  // class). This is the CHEAP HALF of dialog behaviour; the full treatment
+  // (move focus into the sheet on open + restore on close, trap Tab, dismiss by
+  // tapping outside) is deliberately deferred — see docs/code-review-mobile.md
+  // finding 5. The listener is bound only while open, so it never competes with
+  // a game's own key handling when the sheet is shut.
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
   return (
     // data-info-sheet: a stable hook for e2e (the class name is hashed).
-    <div className={cls(styles.wrap, open && styles.open, wide && styles.wide)} data-info-sheet>
+    //
+    // Dialog semantics are applied ONLY when `open` — which is only ever true on
+    // mobile, where the wrapper is a real off-canvas sheet. On desktop the
+    // wrapper is `display: contents` and `open` is always false, so the
+    // always-visible info column is NOT (mis)announced as a modal dialog. We
+    // stop at role + aria-modal + a label (the honest "this is a modal" hint);
+    // we don't yet make outside content `inert`, matching the deferred cut above.
+    <div
+      className={cls(styles.wrap, open && styles.open, wide && styles.wide)}
+      data-info-sheet
+      role={open ? 'dialog' : undefined}
+      aria-modal={open ? true : undefined}
+      aria-label={open ? 'Game info' : undefined}
+    >
       <button
         type="button"
         className={styles.close}
