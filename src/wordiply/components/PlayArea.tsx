@@ -100,6 +100,24 @@ export function PlayArea(ctx: GamePageCtx) {
   const longest = boardRows.reduce((m, g) => Math.max(m, g.length), 0)
   const letters = boardRows.reduce((s, g) => s + g.length, 0)
 
+  // Compete terminal reveal — each opponent's words. Mid-game their rows are
+  // RLS-hidden so `guesses` holds only mine; at terminal the RLS opens them,
+  // so group the now-visible non-self rows by player (in play order — useGame
+  // orders by created_at). Empty in coop / mid-game → the reveal renders null.
+  const opponentReveal = useMemo(() => {
+    if (game?.mode !== 'compete' || !isTerminal) return []
+    const byUser = new Map<string, { word: string; length: number }[]>()
+    for (const g of guesses) {
+      if (g.user_id === session.user.id) continue
+      const rows = byUser.get(g.user_id) ?? []
+      rows.push({ word: g.word, length: g.length })
+      byUser.set(g.user_id, rows)
+    }
+    return players
+      .filter((p) => p.user_id !== session.user.id)
+      .map((player) => ({ player, guesses: byUser.get(player.user_id) ?? [] }))
+  }, [guesses, game?.mode, isTerminal, players, session.user.id])
+
   const base = game?.base ?? ''
 
   // ─── Move entry + own-move feedback (shared engine) ────
@@ -285,6 +303,8 @@ export function PlayArea(ctx: GamePageCtx) {
           letters={letters}
           maxWordLength={game.max_word_length}
           longestWord={game.longestWords[0] ?? null}
+          base={base}
+          opponentReveal={opponentReveal}
           players={players}
           selfId={session.user.id}
           guessesByUser={guessesByUser}

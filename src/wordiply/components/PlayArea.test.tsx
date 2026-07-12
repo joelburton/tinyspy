@@ -142,4 +142,39 @@ describe('wordiply PlayArea — terminal reveal', () => {
     expect(screen.getByText(/Best possible word/)).toBeInTheDocument()
     expect(screen.getByText(/HANGARS/)).toBeInTheDocument()
   })
+
+  it('compete terminal reveals opponents’ words but keeps my board to my own', () => {
+    // I (u1) played 'bar'; my opponent moth (u2) played 'stars' + 'cart'. At
+    // terminal the RLS opens moth's rows, so they arrive in `guesses`.
+    h.result = {
+      game: loadedGame({ mode: 'compete' }),
+      guesses: [guess('bar', 1, 'u1'), guess('stars', 1, 'u2'), guess('cart', 2, 'u2')],
+      loading: false,
+    }
+    render(
+      <PlayArea
+        {...makeCtx({
+          players: twoMembers,
+          isTerminal: true,
+          playState: 'won_compete',
+          status: {
+            winner_user_id: 'u2',
+            leaderboard: [
+              { user_id: 'u2', won: true, length_score: 71 },
+              { user_id: 'u1', won: false, length_score: 43 },
+            ],
+          },
+        })}
+      />,
+    )
+    // The opponent reveal section: moth + their two words (DimmedBaseWord
+    // fragments each word across spans, so read the section's textContent).
+    const section = screen.getByRole('heading', { name: /Opponents’ words/i }).closest('section')!
+    expect(section.textContent).toContain('moth')
+    expect(section.textContent).toContain('STARS')
+    expect(section.textContent).toContain('CART')
+    // Self is excluded from the reveal — my own word never appears there (it's
+    // on my board instead).
+    expect(section.textContent).not.toContain('BAR')
+  })
 })

@@ -1,0 +1,74 @@
+/* Compete terminal reveal of opponents' words. Sits below the "best possible
+ * word" reveal in the info column; a plain list (no card) — this is real
+ * information, not a boxed aside, matching the .reveal treatment. */
+.reveal {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.heading {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.opponents {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.opponent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--wordiply-accent);
+}
+
+.none {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+/* Each opponent's words: compact rows echoing the board (dimmed base + a teal
+ * length number), just without the boxed row outline. */
+.words {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.word {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.wordText {
+  flex: 1;
+  min-width: 0;
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  flex: 0 0 auto;
+  color: var(--wordiply-accent);
+  font-weight: 800;
+  font-size: 0.9rem;
+}

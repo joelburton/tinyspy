@@ -13,6 +13,7 @@ import { BackToClubButton } from '../../common/components/buttons/BackToClubButt
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { MAX_GUESSES } from './GuessBoard'
 import { LengthScoreBar } from './LengthScoreBar'
+import { OpponentReveal, type OpponentReveals } from './OpponentReveal'
 import type { WordiplySetup } from '../lib/setup'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -38,6 +39,8 @@ export function InfoCol({
   letters,
   maxWordLength,
   longestWord,
+  base,
+  opponentReveal,
   // ── Opponent strip (compete) ──
   players,
   selfId,
@@ -69,6 +72,10 @@ export function InfoCol({
   maxWordLength: number
   /** The longest possible word — the terminal reveal. */
   longestWord: string | null
+  /** The base fragment — for dimming it inside opponents' revealed words. */
+  base: string
+  /** Compete terminal: each opponent's revealed words (empty otherwise). */
+  opponentReveal: OpponentReveals
 
   // ── Opponent strip (compete) ──
   players: GamePlayer[]
@@ -170,6 +177,10 @@ export function InfoCol({
           <span className={styles.revealWord}>{longestWord.toUpperCase()}</span>
         </div>
       )}
+
+      {/* Compete terminal reveal — opponents' actual words, hidden all game.
+          Renders null in coop / mid-game (opponentReveal is empty). */}
+      {isTerminal && <OpponentReveal base={base} opponents={opponentReveal} />}
     </div>
   )
 }
