@@ -329,9 +329,14 @@ Realizes [decision 1](#decisions--directions). Every [`FloatingPanel`](../src/co
   cancels react-rnd's inline position/size (`!important` — only that beats an
   inline style) so the panel fills the viewport instead of floating. Insets use
   `env(safe-area-inset-*)` so the header clears a notch / status bar in
-  standalone PWA mode. **Tablets are deliberately excluded** — they keep the
-  centered-modal rect (roomy enough), just pinned in place by the coarse-pointer
-  rule above.
+  standalone PWA mode — live because [`index.html`](../index.html)'s viewport
+  meta sets **`viewport-fit=cover`** (without it the browser letterboxes content
+  itself and every `env()` inset resolves to 0, so the code was inert). The
+  flip-side: with `cover`, *every* full-bleed surface owns its own safe-area
+  padding, so it wants an on-device pass on a notched phone (recorded in
+  [deferred.md](deferred.md)). **Tablets are deliberately excluded** — they keep
+  the centered-modal rect (roomy enough), just pinned in place by the
+  coarse-pointer rule above.
 
 **Keyboard-aware sizing (chat).** A full-screen sheet with a text input has a
 problem on iOS: the on-screen keyboard doesn't shrink a `position: fixed` sheet,
@@ -444,7 +449,17 @@ mobile pass is now composing them, not copy-paste:
   the menu effect's deps).
 - [`<InfoSheet>`](../src/common/components/game/InfoSheet.tsx) — the off-canvas
   wrapper around the game's `<InfoCol>` (`display: contents` on desktop → fixed
-  slide-in sheet on mobile + the ✕), owning the sheet CSS.
+  slide-in sheet on mobile + the ✕), owning the sheet CSS. **Accessibility:** the
+  *closed* mobile sheet is `visibility: hidden` (not just slid off-canvas), so a
+  keyboard user can't Tab into the invisible info column; the *open* one is a
+  `role="dialog"` + `aria-modal` that **Escape** dismisses — the cheap half of
+  dialog behaviour (focus-trap + tap-outside are a recorded cut, see
+  [deferred.md](deferred.md)). The dialog role is gated on `open`, which is only
+  ever true on mobile, so desktop's always-visible info column is never
+  mis-announced as a modal. `useInfoSheet` also **resets `isOpen` when the
+  viewport crosses up to desktop** (adjust-state-during-render, not an effect),
+  so a sheet opened on mobile doesn't reappear already-open after a round trip
+  through a wide layout.
 - **`shared.mobileFill`** on `.layout` (in the scaffold
   [`PlayArea.module.css`](../src/common/components/game/PlayArea.module.css)) —
   the `@media (--mobile)` full-width `--avail-w` + height override.
@@ -553,6 +568,28 @@ tablet-p + phone on a generated full-size 15×15 board
 (`createCrosswordsGameSized` — the 2×2 e2e fixture caps at max cell size, so it
 can't exercise width-bound sizing): no page scroll, width-bound grid, the bar
 under the grid at its reserved height, the sheet round-trip, typed entry.
+
+### Tap feedback — one canonical treatment
+
+spellingbee + boggle grew bespoke tap feedback first (grey-flash suppression + an
+`:active` press on their own tiles); that treatment is now **canonical on the
+shared surfaces**, so every tap game matches instead of a handful. The shared
+`.tile` (in [`PlayArea.module.css`](../src/common/components/game/PlayArea.module.css)
+— psychicnum / connections / waffle / codenamesduet) and the shared
+on-screen-keyboard `.key` (in [`GuessKeyboard.module.css`](../src/common/components/game/entry/GuessKeyboard.module.css)
+— wordle + wordiply) each carry three things:
+
+- `-webkit-tap-highlight-color: transparent` — kill the browser's default grey
+  tap box, which paints a rectangle that fights the tile fill;
+- a **designed press** — tiles scale down (`:active` → `scale(0.96)`), keys
+  *darken* instead (a scale would jitter on gap-tight keys);
+- **`touch-action: manipulation`** — opt out of iOS Safari's double-tap-to-zoom
+  and its ~300ms tap delay, so rapid taps (path-tracing, fast typing) stay crisp.
+
+stackdown's bespoke mahjong `.tile` and boggle/spellingbee's own tiles carry the
+same three (they're not the shared `.tile`, so they replicate it locally). The
+zoom-suppression *feel* is an on-device check — Playwright can't reproduce
+Safari's gesture heuristics (recorded in [deferred.md](deferred.md)).
 
 **The pass now covers every game except two.** Nine games follow the info-sheet
 recipe: the wide-sheet trio **spellingbee / boggle / crosswords**, and the

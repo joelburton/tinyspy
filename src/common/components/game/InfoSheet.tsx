@@ -31,8 +31,8 @@ export function InfoSheet({ open, onClose, wide = false, children }: Props) {
   // Escape closes the open sheet — the keyboard-tablet expectation (a supported
   // class). This is the CHEAP HALF of dialog behaviour; the full treatment
   // (move focus into the sheet on open + restore on close, trap Tab, dismiss by
-  // tapping outside) is deliberately deferred — see docs/code-review-mobile.md
-  // finding 5. The listener is bound only while open, so it never competes with
+  // tapping outside) is deliberately deferred — see docs/deferred.md → Mobile.
+  // The listener is bound only while open, so it never competes with
   // a game's own key handling when the sheet is shut.
   useEffect(() => {
     if (!open) return
