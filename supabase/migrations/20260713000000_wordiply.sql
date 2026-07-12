@@ -1057,11 +1057,14 @@ grant execute on function wordiply.replay_board(uuid) to authenticated;
 -- ============================================================
 -- wordiply.concede — a player drops out of a compete race
 -- ============================================================
--- wordiply has no independent per-player "eliminated" state (a player is
--- done by finishing their 5 guesses or by conceding), so the active set is
--- exactly "not conceded" and generic common.concede handles everything:
--- mark the caller out; if that was the last racer, end the game as a
--- collective loss. Gated to compete — coop is a team (it ends via the
+-- wordiply has no independent per-player "eliminated" state: a player leaves
+-- the race by conceding OR by spending all 5 of their guesses. common.concede
+-- marks the caller out and, if that was the last NON-CONCEDED player, ends the
+-- game as a collective loss — but it counts a finished-but-not-conceded player
+-- as "still active". So a concede can leave every remaining active player out
+-- of guesses with nobody able to submit and re-fire submit_guess's end check,
+-- hanging the game in `playing` forever. We therefore repeat that end check
+-- here after conceding. Gated to compete — coop is a team (it ends via the
 -- shared End, never a concede).
 create function wordiply.concede(target_game uuid)
 returns void
@@ -1073,9 +1076,28 @@ begin
   perform common.require_compete((select mode from wordiply.games where id = target_game));
   perform common.concede(target_game);
 
-  -- If that was the last racer, common.concede ended the game — wake the
-  -- guesses subscription so remaining clients refetch the now-visible
-  -- opponents' guesses (common.* writes only common.games).
+  -- If common.concede didn't end the game (the conceder wasn't the last
+  -- active player), the remaining active players may nonetheless ALL be out
+  -- of guesses now — the same terminal condition submit_guess checks after a
+  -- 5th guess. Re-run it here so the race resolves (picking a winner among the
+  -- finishers) instead of stalling with no one left able to act.
+  if (select play_state from common.games where id = target_game) = 'playing'
+     and coalesce((
+       select bool_and(used >= 5) from (
+         select (select count(*) from wordiply.guesses gg
+                  where gg.game_id = target_game and gg.user_id = gp.user_id) as used
+           from common.game_players gp
+          where gp.game_id = target_game and not gp.conceded
+       ) t
+     ), false)
+  then
+    perform wordiply._finish_compete(target_game, 'complete', true);
+  end if;
+
+  -- If the game is now terminal — via common.concede's last-racer path OR the
+  -- all-finishers check above — wake the guesses subscription so remaining
+  -- clients refetch the now-visible opponents' guesses (common.* and
+  -- _finish_compete both write only common.games, not wordiply.guesses).
   if (select play_state from common.games where id = target_game) <> 'playing' then
     update wordiply.guesses set user_id = user_id where game_id = target_game;
   end if;

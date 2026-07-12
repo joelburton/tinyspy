@@ -10,6 +10,9 @@
 --   3. replay_board wipes guesses, un-terminals the row, reseeds status.
 --   4. Concede (compete): the caller is flagged conceded; the last racer's
 --      concede ends the game as a collective loss.
+--   5. Concede (compete) when every OTHER active player has already spent all
+--      5 guesses: the concede must resolve the race (winner picked among the
+--      finishers), not hang the game in `playing`.
 --
 -- Guesses are synthetic strings containing 'ar', longer than the base
 -- (trusting-commit). max_word_length 7 → length_score(7)=100.
@@ -18,7 +21,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(15);
+select plan(19);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -194,6 +197,71 @@ select is(
   (select is_terminal from common.games where id = (select id from con_g)),
   true,
   'concede: the last racer conceding ends the game'
+);
+
+-- ============================================================
+-- (5) Concede when the other active player is already out of guesses
+-- ============================================================
+-- Untimed compete (the bug's home: no timeout to bail the game out). ada
+-- spends all 5 guesses — the game stays `playing` because bea is still active
+-- with < 5. bea then concedes. bea isn't the last active player (ada is a
+-- non-conceded finisher), so common.concede returns without ending the game;
+-- concede's own end check must then see "every active player has spent 5" and
+-- resolve the race — ada wins. Without the fix the game hangs in `playing`.
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table done_g on commit drop as
+select * from wordiply.create_game(
+  (select handle from club),
+  pg_temp.wordiply_setup(),                 -- untimed
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'compete',
+  pg_temp.wordiply_board()
+);
+
+-- ada spends all 5 guesses (distinct, each contains 'ar', longest 7 → 100%).
+select wordiply.submit_guess((select id from done_g), 'arxxxxx');  -- 7
+select wordiply.submit_guess((select id from done_g), 'arxxxx');   -- 6
+select wordiply.submit_guess((select id from done_g), 'arxxx');    -- 5
+select wordiply.submit_guess((select id from done_g), 'arxx');     -- 4
+select wordiply.submit_guess((select id from done_g), 'arx');      -- 3
+
+-- Still playing: bea (active) hasn't spent her guesses yet.
+reset role;
+select is(
+  (select play_state from common.games where id = (select id from done_g)),
+  'playing',
+  'concede-after-finish: game still playing while bea is active with < 5 guesses'
+);
+
+-- bea concedes → not the last active player, but ada (active) is out of
+-- guesses, so the race must resolve here.
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select wordiply.concede((select id from done_g));
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select is(
+  (select play_state from common.games where id = (select id from done_g)),
+  'won_compete',
+  'concede-after-finish: the concede resolves the race (won_compete, not a hang)'
+);
+
+select is(
+  (select status->>'winner_user_id' from common.games where id = (select id from done_g)),
+  'ada11111-1111-1111-1111-111111111111',
+  'concede-after-finish: ada (the lone finisher) is picked as the winner'
+);
+
+select is(
+  (
+    select (result->>'won')::boolean from common.game_players
+     where game_id = (select id from done_g)
+       and user_id = 'bea22222-2222-2222-2222-222222222222'
+  ),
+  false,
+  'concede-after-finish: the conceder is a loser (won = false)'
 );
 
 -- ============================================================
