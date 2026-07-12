@@ -1,0 +1,73 @@
+/* The shared on-screen keyboard. Its width is a DEFINITE size (not 100%),
+ * because in the games that use it the keyboard is the widest board-column
+ * child and drives the column width — 100% would collapse to the narrower
+ * grid's hugged width. ~30rem, capped by `--avail-w` (the scaffold token =
+ * width beside the info column) so it shrinks on a narrow screen. */
+.keyboard {
+  --kb-gap: 0.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: min(var(--avail-w), 30rem);
+  margin: 0 auto;
+}
+
+.row {
+  display: flex;
+  justify-content: center;
+  gap: var(--kb-gap);
+}
+
+/* Every letter key is exactly one tenth of the keyboard width (less the nine
+ * gaps of the widest row), so keys line up at the same size across rows
+ * instead of stretching to fill each row's leftover space. */
+.key {
+  flex: 0 0 calc((100% - 9 * var(--kb-gap)) / 10);
+  height: 3.2rem;
+  padding: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--color-text);
+  /* Resting key background — the standard Wordle keyboard grey by default
+   * (so every consumer looks like wordle); a game may override `--kbd-key-bg`. */
+  background: var(--kbd-key-bg, #d3d6da);
+  /* Override the global button hover/accent treatment. */
+  transition: filter 0.1s ease;
+}
+
+.key:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.key:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* Wide Enter / Backspace keys: the only keys allowed to grow, splitting the
+ * bottom row's leftover EQUALLY (basis 0, not auto — "Enter" is wider than
+ * "⌫" but they stay the same size). */
+.wide {
+  flex: 1 1 0;
+  font-size: 0.85rem;
+}
+
+/* Per-letter feedback tints (white text on colour). Colours are CSS
+ * variables so a game can theme them; the defaults are the standard Wordle
+ * palette. */
+.correct {
+  background: var(--kbd-correct, #6aaa64);
+  color: #fff;
+}
+.present {
+  background: var(--kbd-present, #c9b458);
+  color: #fff;
+}
+.absent {
+  background: var(--kbd-absent, #787c7e);
+  color: #fff;
+}

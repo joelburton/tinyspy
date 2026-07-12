@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- wordiply (brand WordWire) logo: a comic-book "explosion" starburst in the
+     brand teal, nearly filling the square (like the other framed square
+     logos), with a bold white "WW" (WordWire) at the centre. The 12-point
+     burst is a star polygon (alternating outer/inner radius) around (1000,1000);
+     colours are inlined from the theme (wordiply-accent fill, wordiply-accent-edge
+     stroke) since SVG files can't read CSS custom properties. -->
+<svg
+   role="img"
+   aria-label="WordWire"
+   viewBox="0 0 2000 2000"
+   version="1.1"
+   xmlns="http://www.w3.org/2000/svg">
+  <polygon
+     points="1960,1000 1628,1168 1831,1480 1460,1460 1480,1831 1168,1628 1000,1960 832,1628 520,1831 540,1460 169,1480 372,1168 40,1000 372,832 169,520 540,540 520,169 832,372 1000,40 1168,372 1480,169 1460,540 1831,520 1628,832"
+     fill="#2f9e8f"
+     stroke="#1f7a6e"
+     stroke-width="26"
+     stroke-linejoin="round" />
+  <text
+     x="1000"
+     y="1050"
+     text-anchor="middle"
+     dominant-baseline="middle"
+     font-family="Arial, Helvetica, sans-serif"
+     font-size="620"
+     font-weight="900"
+     letter-spacing="-30"
+     fill="#ffffff">WW</text>
+</svg>

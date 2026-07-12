@@ -504,6 +504,37 @@ export async function createWordwheelGame(
   return { id: (row as { id: string }).id, gametype: `wordwheel_${mode}` }
 }
 
+/**
+ * Start a wordiply (WordWire) game (coop by default) with a SYNTHETIC board
+ * on base 'ar' — deterministic, no dictionary dependence (create_game is
+ * trusting-commit and doesn't check legal_words against the dictionary).
+ * Returns id + gametype for the URL.
+ */
+export async function createWordiplyGame(
+  club: E2EClub,
+  mode: 'coop' | 'compete' = 'coop',
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+): Promise<{ id: string; gametype: string }> {
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('wordiply')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: { timer: { kind: 'none' }, difficulty: 5 },
+      player_user_ids: playerUserIds,
+      mode,
+      board: {
+        base: 'ar',
+        max_word_length: 7,
+        longest_words: ['hangars'],
+        legal_words: ['bar', 'car', 'arc', 'arts', 'cars', 'scar', 'stars', 'hangars'],
+      },
+    })
+  if (res.error) throw new Error(`wordiply.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: `wordiply_${mode}` }
+}
+
 /** Start a wordle game (coop by default). Returns id + gametype for the URL. */
 export async function createWordleGame(
   club: E2EClub,

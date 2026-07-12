@@ -1,0 +1,126 @@
+/* wordiply's own layout bits — the two-column scaffold (.layout, .boardCol,
+ * .infoCol, .actionSlot, …) lives in the shared game/PlayArea.module.css;
+ * this module holds the base heading, the fixed entry area, the state
+ * readout, and the terminal reveal. */
+
+.layout {
+  /* THE fix for the shifting info column: the shared `.infoCol` is
+   * `flex: 0 0 var(--info-col-width)`, so without a value it falls back to a
+   * content-sized (shifting) width. Pin it — wordiply's info column is just
+   * readouts + the reveal, so 22rem (the no-WordList width the sibling games
+   * use) is plenty and NEVER changes during play. */
+  --info-col-width: 22rem;
+}
+
+/* The board column: stack the base, the five-row grid, and the on-screen
+ * keyboard, centered. The grid width matches the keyboard (~30rem) so they
+ * read as one unit; a ~20-letter word still fits at the grid's font size. */
+.boardCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(var(--avail-w), 30rem);
+}
+
+/* The base (starter), shown plainly above the grid — no "Starter" label. */
+.starterWord {
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--wordiply-accent);
+}
+
+/* The input area below the grid — the on-screen keyboard, which doubles as
+ * the feedback area (a soft-reject line above the keys; the terminal verdict
+ * replaces the keyboard). It CLAIMS the keyboard's full height (a fixed
+ * min-height ≈ the feedback line + the 3 key rows) so the grid above it does
+ * NOT shift when the keyboard gives way to the verdict at terminal. */
+.inputArea {
+  width: 100%;
+  min-height: 12.8rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+/* A thin reserved line above the keyboard for a soft-reject pill — reserved
+ * height so showing/hiding it doesn't shift the keys. */
+.kbFeedback {
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* At terminal the keyboard is gone; the verdict fills its place. */
+.verdictSlot {
+  min-height: 3.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The info-column "state" region — reserved height so the mid-game
+ * "guesses n/5" ↔ terminal score-bar swap doesn't jump the rows below. */
+.stateBlock {
+  min-height: 4.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.guessCount {
+  font-size: 1.1rem;
+  color: var(--color-text);
+}
+
+.guessCount strong {
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+.guessCountOf {
+  color: var(--color-muted);
+}
+
+.letterStat {
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+/* Terminal reveal — the longest possible word. NO card: it's critical
+ * information, so it reads as plain full-colour text, not a boxed aside. */
+.reveal {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.revealLabel {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.revealWord {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.revealLen {
+  color: var(--wordiply-accent);
+}
+
+.loading,
+.empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-muted);
+}

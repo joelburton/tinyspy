@@ -2663,6 +2663,200 @@ export type Database = {
       [_ in never]: never
     }
   }
+  wordiply: {
+    Tables: {
+      games: {
+        Row: {
+          base: string
+          club_handle: string
+          created_at: string
+          difficulty: number
+          id: string
+          legal_words: Json
+          longest_words: Json
+          max_word_length: number
+          mode: string
+        }
+        Insert: {
+          base: string
+          club_handle: string
+          created_at?: string
+          difficulty: number
+          id: string
+          legal_words: Json
+          longest_words: Json
+          max_word_length: number
+          mode: string
+        }
+        Update: {
+          base?: string
+          club_handle?: string
+          created_at?: string
+          difficulty?: number
+          id?: string
+          legal_words?: Json
+          longest_words?: Json
+          max_word_length?: number
+          mode?: string
+        }
+        Relationships: []
+      }
+      guesses: {
+        Row: {
+          created_at: string
+          game_id: string
+          guess_index: number
+          id: number
+          length: number
+          user_id: string
+          word: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          guess_index: number
+          id?: never
+          length: number
+          user_id: string
+          word: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          guess_index?: number
+          id?: never
+          length?: number
+          user_id?: string
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guesses_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guesses_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      games_state: {
+        Row: {
+          base: string | null
+          club_handle: string | null
+          created_at: string | null
+          difficulty: number | null
+          id: string | null
+          legal_words: Json | null
+          longest_words: Json | null
+          max_word_length: number | null
+          mode: string | null
+        }
+        Insert: {
+          base?: string | null
+          club_handle?: string | null
+          created_at?: string | null
+          difficulty?: number | null
+          id?: string | null
+          legal_words?: Json | null
+          longest_words?: Json | null
+          max_word_length?: number | null
+          mode?: string | null
+        }
+        Update: {
+          base?: string | null
+          club_handle?: string | null
+          created_at?: string | null
+          difficulty?: number | null
+          id?: string | null
+          legal_words?: Json | null
+          longest_words?: Json | null
+          max_word_length?: number | null
+          mode?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      _finish_compete: {
+        Args: {
+          outcome_label: string
+          pick_winner: boolean
+          target_game: string
+        }
+        Returns: undefined
+      }
+      _finish_coop: {
+        Args: { outcome_label: string; target_game: string }
+        Returns: undefined
+      }
+      _length_score: {
+        Args: { longest: number; max_len: number }
+        Returns: number
+      }
+      candidate_bases: {
+        Args: { n: number; source_band: number }
+        Returns: {
+          base: string
+        }[]
+      }
+      concede: { Args: { target_game: string }; Returns: undefined }
+      create_game: {
+        Args: {
+          board: Json
+          mode: string
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      end_game: { Args: { target_game: string }; Returns: undefined }
+      matching_words: {
+        Args: { base: string; legal_band: number }
+        Returns: {
+          len: number
+          word: string
+        }[]
+      }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
+      submit_guess: {
+        Args: { target_game: string; word: string }
+        Returns: Json
+      }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      try_base: {
+        Args: {
+          base: string
+          legal_band: number
+          max_children: number
+          min_children: number
+          min_headroom: number
+        }
+        Returns: {
+          legal_words: Json
+          longest_words: Json
+          max_word_length: number
+        }[]
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   wordle: {
     Tables: {
       games: {
@@ -3198,6 +3392,9 @@ export const Constants = {
     Enums: {},
   },
   waffle: {
+    Enums: {},
+  },
+  wordiply: {
     Enums: {},
   },
   wordle: {

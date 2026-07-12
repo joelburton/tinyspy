@@ -22,4 +22,11 @@
  * naming wrapper generates no box — the keyboard keeps its exact place. */
 .moveArea {
   display: contents;
+  /* Theme the shared <GuessKeyboard> with wordle's exact palette (custom
+   * properties cascade through display:contents). Preserves the tinted-key
+   * look the local Keyboard had before the extraction. */
+  --kbd-key-bg: var(--wordle-key-bg);
+  --kbd-correct: var(--wordle-green);
+  --kbd-present: var(--wordle-yellow);
+  --kbd-absent: var(--wordle-gray);
 }

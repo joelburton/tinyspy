@@ -1,0 +1,85 @@
+-- ============================================================
+-- Per-test-file wordiply fixtures
+-- ============================================================
+--
+-- Loaded by every wordiply/*_test.sql via:
+--   \ir setup.psql
+--
+-- Provides:
+--   pg_temp.wordiply_board()          — a SYNTHETIC `board` jsonb (the
+--                                     shape wordiply.create_game accepts).
+--                                     Deterministic, NO dictionary
+--                                     dependence: base 'ar', max_word_length
+--                                     7, a longest word 'hangars', and a
+--                                     small legal_words list.
+--   pg_temp.wordiply_setup()          — a default coop/compete `setup`
+--                                     jsonb (difficulty 5, no timer). Mode is
+--                                     a positional RPC arg, NOT a setup field.
+--   pg_temp.wordiply_setup_timed()    — the same setup with a countdown
+--                                     timer, for the timed-tiebreak +
+--                                     submit_timeout paths.
+--
+-- ─── Why synthetic + why it doesn't matter ───────────────────
+-- wordiply.submit_guess is TRUSTING-COMMIT: it never consults a dictionary.
+-- A guess is accepted iff it (a) is LONGER than the base and (b) CONTAINS
+-- the base as a contiguous substring (position(base in word) > 0). So the
+-- fixtures — and every test guess — use plain letter-strings that satisfy
+-- those two guards; they need NOT be real words. The board's legal_words /
+-- longest_words are stored but never re-validated by the RPCs (the FE
+-- validates against the shipped list; the server trusts it). That lets
+-- these fixtures be fully deterministic and independent of common.words.
+--
+-- ─── The scoring the tests count on (max_word_length = 7) ────
+-- A guess of char-length L contributes:
+--   length_score(L) = round(100 * L / 7)   -- clamped to [0,100]
+-- so length_score(7)=100, (6)=86, (5)=71, (4)=57, (3)=43.
+-- letter_count = the SUM of every guess's length (the whole track).
+-- The winner_test builds its length-score / letter-count ties off these.
+
+create function pg_temp.wordiply_board()
+returns jsonb
+language sql
+as $$
+  select jsonb_build_object(
+    'base',            'ar',
+    'max_word_length', 7,
+    -- The longest legal word(s) — stored, revealed only at terminal by the
+    -- FE. 'hangars' is 7 letters and contains 'ar' (its own length is what
+    -- max_word_length asserts). Synthetic-as-far-as-the-server-cares.
+    'longest_words',   jsonb_build_array('hangars'),
+    -- The full shipped legal list. Every entry contains 'ar'. Never
+    -- re-validated server-side (trusting-commit), so its exact membership is
+    -- irrelevant to the RPC tests — it only has to be a non-empty array.
+    'legal_words',     jsonb_build_array(
+      'bar', 'car', 'arc', 'arts', 'cars', 'scar', 'stars', 'hangars')
+  );
+$$;
+
+-- Default setup: no timer. Mode is a positional create_game arg
+-- (sibling-manifest split — the gametype string carries the mode);
+-- wordiply.create_game REJECTS a `mode` field on setup (and a `target_rank`
+-- field — wordiply is not a race-to-rank) so a stale FE fails fast. Tests
+-- that need those rejections build the bad setup inline via jsonb concat.
+create function pg_temp.wordiply_setup()
+returns jsonb
+language sql
+as $$
+  select jsonb_build_object(
+    'difficulty', 5,
+    'timer',      jsonb_build_object('kind', 'none')
+  );
+$$;
+
+-- Timed variant: a 60-second countdown. Needed by the timed compete
+-- tiebreak (equal length_score AND letter_count → earlier finisher wins,
+-- a branch _finish_compete only takes when the game is timed) and by the
+-- submit_timeout paths.
+create function pg_temp.wordiply_setup_timed()
+returns jsonb
+language sql
+as $$
+  select jsonb_build_object(
+    'difficulty', 5,
+    'timer',      jsonb_build_object('kind', 'countdown', 'seconds', 60)
+  );
+$$;

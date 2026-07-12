@@ -1,0 +1,38 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.pct {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+.anchor {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.track {
+  height: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-control-bg);
+  border: 1px solid var(--color-control-border);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background: var(--wordiply-accent);
+  border-radius: 0.5rem 0 0 0.5rem;
+  transition: width 240ms ease;
+}

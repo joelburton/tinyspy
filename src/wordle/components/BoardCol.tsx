@@ -7,7 +7,7 @@ import { stickyPill } from '../../common/lib/game/localPills'
 import { colorRank, tileColor, type TileColor } from '../lib/colors'
 import type { SnapshotRow, TurnSnapshot } from '../lib/history'
 import { Board } from './Board'
-import { Keyboard } from './Keyboard'
+import { GuessKeyboard, type KeyTone } from '../../common/components/game/entry/GuessKeyboard'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
@@ -135,6 +135,15 @@ export function BoardCol({
       const prev = keyStates.get(ch)
       if (!prev || colorRank(col) > colorRank(prev)) keyStates.set(ch, col)
     }
+  }
+  // Map wordle's TileColor → the shared keyboard's generic tone vocabulary
+  // (the `.boardCol` CSS sets --kbd-* to wordle's palette, so the tint is
+  // unchanged). 'blank' has no tone.
+  const keyTones = new Map<string, KeyTone>()
+  for (const [ch, col] of keyStates) {
+    const tone: KeyTone | undefined =
+      col === 'green' ? 'correct' : col === 'yellow' ? 'present' : col === 'gray' ? 'absent' : undefined
+    if (tone) keyTones.set(ch, tone)
   }
 
   // ─── Edit the active row (dismisses any sticky local pill) ─────
@@ -265,8 +274,8 @@ export function BoardCol({
           {localPill && <GenericFeedbackPill msg={localPill} onClose={noop} />}
         </div>
         <div className={styles.moveArea}>
-          <Keyboard
-            keyStates={keyStates}
+          <GuessKeyboard
+            keyStates={keyTones}
             onKey={typeLetter}
             onEnter={() => void doSubmit(current)}
             onBackspace={deleteLetter}

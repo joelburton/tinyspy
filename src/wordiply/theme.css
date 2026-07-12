@@ -1,0 +1,29 @@
+/* wordiply's (WordWire's) colour tokens. Loaded with this game's chunk
+ * (imported from PlayArea.tsx) so they only ship when wordiply is played.
+ *
+ * WordWire's identity is a teal "wire" the word threads onto — a colour
+ * distinct from its word-game siblings (wordwheel red, spellingbee gold,
+ * boggle blue).
+ *
+ *   --wordiply-accent       The teal wire / length-bar fill + the base-tile
+ *                           accent in the logo. The one "brand" colour.
+ *   --wordiply-accent-edge  A darker teal border for the filled bar / badge.
+ *   --wordiply-badge-text   Glyph colour on the teal length badge.
+ *   --wordiply-base-dim     The dimmed colour of the BASE inside a guess
+ *                           (DimmedBaseWord) — present but understated so
+ *                           the player's added letters stand out.
+ *   --wordiply-row          The resting background of a completed guess row.
+ *   --wordiply-row-empty    A future (unfilled) guess row — fainter.
+ *
+ * Two-vocabularies rule (docs/ui.md): tokens are named by wordiply's
+ * vocabulary (`accent`, `base`, `row`) rather than literal colours.
+ */
+:root {
+  --wordiply-accent:      #2f9e8f;
+  --wordiply-accent-edge: #1f7a6e;
+  --wordiply-accent-dim:  #9cc9c1; /* a softer teal — the in-progress badge */
+  --wordiply-badge-text:  #ffffff;
+  --wordiply-base-dim:    var(--color-muted);
+  --wordiply-row:         var(--color-surface);
+  --wordiply-row-empty:   var(--color-control-bg);
+}
