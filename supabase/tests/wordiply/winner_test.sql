@@ -8,8 +8,9 @@
 --   2. tie → higher letter_count wins  (letter_count = sum of guess lengths)
 --   3. still tied AND timed → earlier finish wins  (min max(created_at))
 --   4. still tied (untimed, or timed-and-simultaneous) → co-winners
--- Terminal state 'won_compete'; status.winner_user_id set to one winner;
--- common.game_players.result->>'won' true for every winner.
+-- Terminal state 'won_compete'; common.game_players.result->>'won' true for
+-- every winner. status.winner_user_id names the winner when there is exactly
+-- ONE, and is null on co-winners (the FE then reads its own won flag).
 --
 -- All guesses are synthetic strings containing 'ar', longer than the base
 -- (trusting-commit — no dictionary). With max_word_length 7:
@@ -25,7 +26,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(8);
+select plan(9);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -232,6 +233,12 @@ select is(
   ),
   2::bigint,
   'co-winners: fully equal + untimed → BOTH players marked won'
+);
+
+select is(
+  (select status->>'winner_user_id' from common.games where id = (select id from g4)),
+  null::text,
+  'co-winners: winner_user_id is null (no single winner to name)'
 );
 
 -- ============================================================

@@ -106,9 +106,11 @@ function competeLabel(row: { play_state: string; status?: unknown }): string {
   const outcome = s.outcome as string | undefined
   if (outcome === 'conceded') return 'all conceded'
   if (row.play_state === 'won_compete') {
-    const winner = leaderboard.find((e) => e.won)
-    const ls = winner?.length_score ?? 0
-    return `winner · ${ls}%`
+    // Ties leave every tied player flagged won (winner_user_id is null), so
+    // count the winners rather than name one — they share the same score.
+    const winners = leaderboard.filter((e) => e.won)
+    const ls = winners[0]?.length_score ?? 0
+    return winners.length > 1 ? `co-winners · ${ls}%` : `winner · ${ls}%`
   }
   return 'ended · no winner'
 }

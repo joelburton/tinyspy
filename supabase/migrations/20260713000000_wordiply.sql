@@ -707,7 +707,13 @@ begin
       'length_score', length_score,
       'letter_count', letter_count
     )), '{}'::jsonb),
-    (select f.user_id from flagged f where f.won order by f.finished_at nulls last limit 1)
+    -- winner_user_id names a SINGLE winner; on co-winners (a tie the timed
+    -- tiebreak didn't resolve, or an untimed tie) it is null — every tied
+    -- player is already marked won=true in the leaderboard + player_results,
+    -- and the FE reads its own won flag for the co-winner banner. Picking one
+    -- arbitrary tied player here would tell the others they lost.
+    (select case when count(*) = 1 then (array_agg(f.user_id))[1] end
+       from flagged f where f.won)
   into status_leaderboard, player_results, winner_uid
   from flagged;
 

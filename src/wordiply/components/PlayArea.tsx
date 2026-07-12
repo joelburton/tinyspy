@@ -339,24 +339,33 @@ function buildOver({
 }): TerminalCopy & { indicator: string } {
   if (mode === 'compete') {
     if (playState === 'won_compete') {
+      // winner_user_id is null on co-winners (a tie the server didn't break);
+      // every tied player is flagged won in the leaderboard, so I read my own
+      // row rather than trust a single-winner id. The winners share one score
+      // (they tied on it), so any winner row gives the % to show.
       const winnerId = (status?.winner_user_id as string | undefined) ?? null
-      const winnerRow = leaderboard.find((e) => e.user_id === winnerId)
-      const winnerPct = winnerRow?.length_score ?? 0
-      if (winnerId === selfId) {
+      const winners = leaderboard.filter((e) => e.won)
+      const iWon = winnerId === selfId || (winnerId === null && winners.some((e) => e.user_id === selfId))
+      const pct = winners[0]?.length_score ?? 0
+      const shared = winners.length > 1
+      if (iWon) {
         return {
           outcome: 'won',
-          verdict: `You won — ${winnerPct}%!`,
-          indicator: `you won at ${winnerPct}%`,
-          message: 'You won!',
+          verdict: shared ? `You tied for the win — ${pct}%!` : `You won — ${pct}%!`,
+          indicator: shared ? `you tied for the win at ${pct}%` : `you won at ${pct}%`,
+          message: shared ? 'You tied for the win!' : 'You won!',
           tone: 'won',
         }
       }
-      const winnerName = players.find((p) => p.user_id === winnerId)?.username ?? 'someone'
+      const nameOf = (id?: string) => players.find((p) => p.user_id === id)?.username ?? 'someone'
+      const winnerLabel = shared
+        ? winners.map((e) => nameOf(e.user_id)).join(' & ')
+        : nameOf(winners[0]?.user_id ?? winnerId ?? undefined)
       return {
         outcome: 'lost',
-        verdict: `${winnerName} won with ${winnerPct}%.`,
-        indicator: `${winnerName} won at ${winnerPct}%`,
-        message: `${winnerName} won`,
+        verdict: shared ? `${winnerLabel} tied for the win — ${pct}%.` : `${winnerLabel} won with ${pct}%.`,
+        indicator: shared ? `${winnerLabel} tied at ${pct}%` : `${winnerLabel} won at ${pct}%`,
+        message: shared ? `${winnerLabel} tied` : `${winnerLabel} won`,
         tone: 'lost',
       }
     }
