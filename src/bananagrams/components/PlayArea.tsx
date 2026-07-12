@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
+import { DeviceBlockNotice } from '../../common/components/game/DeviceBlockNotice'
+import { useCoarsePointer } from '../../common/hooks/ui/useCoarsePointer'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
@@ -58,6 +60,15 @@ const noop = () => {}
 export function PlayArea(ctx: GamePageCtx) {
   const { initialBoard, tiles, loading } = useGame(ctx.gameId)
   const progress = useProgress(ctx.gameId)
+
+  // bananagrams is DESKTOP-ONLY (docs/mobile.md → "Where each game plays"): the
+  // board is a drag-heavy 25×25 arena that's unpleasant even on a keyboard
+  // tablet, so it's hard-blocked on *all* touch — a phone or tablet gets the
+  // block screen instead of a broken two-column layout to limp through. The gate
+  // keys off the pointer (not width): a touch tablet is desktop-width but still
+  // has no mouse to drag with. (scrabble/crossplay are keyboard-required, NOT
+  // desktop-only, and are deliberately left un-gated — see docs/mobile.md.)
+  const isTouch = useCoarsePointer()
 
   const { gameId, isTerminal, menu, brand, title } = ctx
 
@@ -238,6 +249,20 @@ export function PlayArea(ctx: GamePageCtx) {
     )
     return () => menu.setGameSections([])
   }, [menu, brand, title, ctx.setup, loading, initialBoard, isTerminal, myConceded])
+
+  // Desktop-only block (see `isTouch` above). Rendered AFTER every hook so the
+  // Rules of Hooks hold, and in place of the whole play surface so the drag
+  // arena never mounts on touch. GamePage's chrome (header menu, Back to club)
+  // still wraps this, and the notice carries its own exit.
+  if (isTouch) {
+    return (
+      <DeviceBlockNotice title="Bananagrams needs a desktop" onBackToClub={ctx.goToClub}>
+        You play by dragging tiles around a big board — that wants a mouse and a
+        full-size screen, so it&rsquo;s not available on phones or tablets. Open
+        this game on a computer to play.
+      </DeviceBlockNotice>
+    )
+  }
 
   if (loading || initialBoard === null) return <p className="muted">Dealing tiles…</p>
 

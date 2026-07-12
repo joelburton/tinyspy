@@ -95,7 +95,12 @@ export function Grid({
   // Both breakpoints' cell sizes ride along as custom properties; the CSS
   // module picks one per breakpoint (`.board { font-size: var(…) }`), so the
   // desktop formula is untouched and there's no JS media query here.
-  const cellSize = `min(calc(${targetWidthPercent(width)}vw / ${width}), calc((100dvh - ${VERTICAL_OVERHEAD_PX}px) / ${height}), ${MAX_CELL_PX}px)`
+  // `svh` (not `dvh`) to match the rest of the app — the game's own
+  // PlayArea.module.css sizes the play area with `100svh`, and a game shouldn't
+  // disagree with itself about which viewport unit it uses. On desktop the two
+  // resolve identically (no retracting mobile toolbar); the choice only shows on
+  // a mobile browser, where `svh` is the app-wide convention (docs/mobile.md).
+  const cellSize = `min(calc(${targetWidthPercent(width)}vw / ${width}), calc((100svh - ${VERTICAL_OVERHEAD_PX}px) / ${height}), ${MAX_CELL_PX}px)`
   const cellSizeMobile = `min(calc((100vw - 2 * var(--page-padding-x)) / ${width}), calc((100svh - ${MOBILE_VERTICAL_OVERHEAD_PX}px) / ${height}), ${MAX_CELL_PX}px)`
 
   return (
