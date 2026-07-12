@@ -39,6 +39,14 @@ type Props = {
   disabled?: boolean
   /** Mid-submit: capture blocks edits/submit and the Submit button is disabled. */
   busy?: boolean
+  /**
+   * The current value can't be submitted, but editing stays live — Enter is a
+   * no-op and the Submit button is disabled, while typing/Delete keep working so
+   * the player can fix it. Distinct from `disabled`/`busy` (which freeze the
+   * whole row): this is a per-value veto. wordwheel uses it so a word that can't
+   * be spelled from the wheel's tiles never submits + reads as "not a word".
+   */
+  submitDisabled?: boolean
   /** Dismiss sticky local feedback on any move — passed to the capture hook (any
    *  keystroke) and called on a Delete click too, so the two dismiss identically. */
   onAnyKey?: () => void
@@ -80,6 +88,7 @@ export function EntryRow({
   pill,
   disabled = false,
   busy = false,
+  submitDisabled = false,
   onAnyKey,
   charFor,
   onExtraKey,
@@ -92,7 +101,14 @@ export function EntryRow({
   // useCaptureKeys handles letters/Backspace/Enter; useArrowHistory adds the
   // ArrowUp-recall / ArrowDown-clear that's specific to the EntryBox (an
   // EntryRow IS the EntryBox). They gate together: no arrows while disabled/busy.
-  useCaptureKeys({ value, onChange, onSubmit, disabled, busy, onAnyKey, charFor, onExtraKey })
+  //
+  // `submitDisabled` vetoes only the submit, not editing: Enter routes to `noop`
+  // so it can't fire (matching the disabled Submit button below), while typing +
+  // Delete stay live so the player can fix the value.
+  useCaptureKeys({
+    value, onChange, onSubmit: submitDisabled ? noop : onSubmit,
+    disabled, busy, onAnyKey, charFor, onExtraKey,
+  })
   useArrowHistory({ recall, onChange, enabled: !disabled && !busy })
 
   if (pill) {
@@ -115,7 +131,7 @@ export function EntryRow({
       <EntryBox value={value} placeholder={placeholder}>
         {children}
       </EntryBox>
-      <SubmitButton iconOnly onClick={onSubmit} disabled={empty || disabled || busy} />
+      <SubmitButton iconOnly onClick={onSubmit} disabled={empty || disabled || busy || submitDisabled} />
     </div>
   )
 }

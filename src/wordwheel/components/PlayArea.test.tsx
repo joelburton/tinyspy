@@ -9,7 +9,7 @@
  * These prove the tree mounts in every mode AND that the wordwheel-specific
  * glue works: the local lookup accepts a required/bonus/pangram word (optimistic
  * pill + `submit_word` call) and rejects a non-legal one with the right reason.
- * Deep game logic still lives in pgTAP + the lib Vitest suites (ranks / pangram /
+ * Deep game logic still lives in pgTAP + the lib Vitest suites (ranks /
  * letterMask / displayRows); here we cover the composition.
  *
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
@@ -207,23 +207,36 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
     expect(rpc).toHaveBeenCalledWith('submit_word', expect.objectContaining({ is_pangram: true }))
   })
 
-  it('rejects a non-legal word with a reason and no submit_word call', async () => {
+  it('blocks submitting a word with an off-wheel letter (inert, not a reject)', async () => {
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
-    await user.keyboard('zzzz{Enter}') // z is not a puzzle letter
-    expect(screen.getByText(/bad letters/i)).toBeInTheDocument()
+    await user.keyboard('zzzz{Enter}') // z isn't a puzzle letter — the wheel can't spell it
+    // The submit is vetoed, not rejected: no RPC, and crucially NO misleading
+    // "not a word" pill (which read as "ZZZZ isn't in the dictionary").
     expect(rpc).not.toHaveBeenCalled()
+    expect(screen.queryByText(/not a word|bad letters/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Submit' })).toBeDisabled()
   })
 
-  it('names the missing center letter', async () => {
+  it('names the missing center letter (a fitting word still submits + rejects)', async () => {
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
-    await user.keyboard('bcdf{Enter}') // valid letters, but no center 'e'
+    await user.keyboard('bcdf{Enter}') // valid tiles, but no center 'e' — fits the wheel, so it submits
     expect(screen.getByText(/missing center letter/i)).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('disables a wheel tile once its letter is in the word (used-once rule)', async () => {
+  it('blocks submitting a word that over-uses a tile (two e, one e-tile)', async () => {
+    const user = userEvent.setup()
+    render(<PlayArea {...makeCtx()} />)
+    await user.keyboard('beed{Enter}') // two e's, but the wheel has one e-tile
+    // Over-count = can't be spelled from the tiles, so submit is inert (no pill).
+    expect(rpc).not.toHaveBeenCalled()
+    expect(screen.queryByText(/not a word|not enough tiles/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Submit' })).toBeDisabled()
+  })
+
+  it('dims a wheel tile once its letter is in the word (tile-spend rule)', async () => {
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
     // Before typing: the 'B' tile + the centre 'E' tile are enabled.
@@ -231,7 +244,7 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
     expect(screen.getByRole('button', { name: /E \(center letter\)/ })).not.toHaveAttribute(
       'aria-disabled',
     )
-    // Type 'be' → both used → both tiles disabled; an untyped tile ('C') stays enabled.
+    // Type 'be' → both spent → both tiles disabled; an untyped tile ('C') stays enabled.
     await user.keyboard('be')
     expect(screen.getByRole('button', { name: 'B' })).toHaveAttribute('aria-disabled', 'true')
     expect(screen.getByRole('button', { name: /E \(center letter\)/ })).toHaveAttribute(
@@ -244,6 +257,32 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
     expect(screen.getByRole('button', { name: /E \(center letter\)/ })).not.toHaveAttribute(
       'aria-disabled',
     )
+  })
+
+  it('spends duplicate tiles one per occurrence, the centre first', async () => {
+    const user = userEvent.setup()
+    // A wheel where the CENTER letter 'e' is duplicated on an outer tile:
+    // typing one 'e' must spend the centre (the mandatory-use tile), leaving
+    // its outer twin clickable; a second 'e' spends the twin too.
+    h.result = loaded(loadedGame({ outer_letters: 'bacdfghe' }))
+    render(<PlayArea {...makeCtx()} />)
+    const centerE = () => screen.getByRole('button', { name: /E \(center letter\)/ })
+    const outerE = () => screen.getByRole('button', { name: 'E' })
+    expect(centerE()).not.toHaveAttribute('aria-disabled')
+    expect(outerE()).not.toHaveAttribute('aria-disabled')
+    // First 'e': centre spent FIRST, the outer twin still available.
+    await user.keyboard('e')
+    expect(centerE()).toHaveAttribute('aria-disabled', 'true')
+    expect(outerE()).not.toHaveAttribute('aria-disabled')
+    // Second 'e': both e-tiles spent.
+    await user.keyboard('e')
+    expect(centerE()).toHaveAttribute('aria-disabled', 'true')
+    expect(outerE()).toHaveAttribute('aria-disabled', 'true')
+    // Backspace frees one occurrence → the outer twin re-enables, the centre
+    // stays spent (it's first in the spend order).
+    await user.keyboard('{Backspace}')
+    expect(centerE()).toHaveAttribute('aria-disabled', 'true')
+    expect(outerE()).not.toHaveAttribute('aria-disabled')
   })
 })
 

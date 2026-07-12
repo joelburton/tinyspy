@@ -3,6 +3,19 @@
  * fieldset/legend/paragraph scaffold; only this letter-input layout is
  * game-specific. */
 
+/* The "unique letters only" toggle in the Board-constraints section — a
+ * checkbox inline with its label (mirrors bananagrams's checkRow). */
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.checkRow input {
+  margin: 0;
+}
+
 .customRow {
   display: flex;
   gap: 1rem;

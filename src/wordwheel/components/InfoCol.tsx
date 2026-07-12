@@ -181,6 +181,7 @@ export function InfoCol({
           <li>Dictionary (required): {difficultyValue(setup.required)}</li>
           <li>Dictionary (legal): {difficultyValue(setup.legal)}</li>
           {isCompete && targetRankIdx !== null && <li>Target rank: {RANKS[targetRankIdx]}</li>}
+          {setup.unique_letters && <li>Unique letters only</li>}
           <li>Timer: {timerLabel(setup.timer)}</li>
         </SetupDisclosure>
       </div>

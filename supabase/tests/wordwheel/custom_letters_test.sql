@@ -15,15 +15,17 @@
 --      rejected — the gate only relaxes for custom.
 --   4. A custom board with ZERO required words is rejected (the ≥1
 --      playability floor).
+--   5. DUPLICATE custom letters are accepted — the wheel is a multiset,
+--      so a player may repeat a letter (even the center).
 --
 -- THE FORK: custom_letters is now 8 outer letters (word wheel's wheel is
--- nine letters — 8 outer + 1 center).
+-- nine tiles — 8 outer + 1 center).
 
 begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(6);
+select plan(7);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -111,6 +113,28 @@ select throws_ok(
   ),
   'P0001', NULL,
   'a custom board with ZERO required words is rejected (≥1 playability floor)');
+
+-- ── (5) DUPLICATE custom letters are accepted (multiset wheel) ─
+-- Outer 'abcdefgg' repeats 'g' AND carries an 'e' duplicating the center;
+-- the word list includes a repeat-letter word ('edge' spends both e-tiles).
+create temp table dupg on commit drop as
+select * from wordwheel.create_game(
+  (select handle from club),
+  pg_temp.wordwheel_setup()
+    || '{"custom_letters":"abcdefgg","custom_center":"e"}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'coop',
+  jsonb_build_object(
+    'outer_letters','abcdefgg','center_letter','e',
+    'required_words_score',2,'required_words_count',2,
+    'required_words', jsonb_build_array(
+      jsonb_build_object('word', 'edge', 'points', 1, 'is_pangram', false),
+      jsonb_build_object('word', 'face', 'points', 1, 'is_pangram', false)),
+    'bonus_words','[]'::jsonb)
+);
+select isnt((select id from dupg), null,
+  'custom board with duplicate letters (repeated outer + center twin) is accepted');
 
 select * from finish();
 rollback;

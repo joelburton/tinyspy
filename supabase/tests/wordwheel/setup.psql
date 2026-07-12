@@ -22,12 +22,16 @@
 --                                   exercised.
 --
 -- The "test board" is deliberately small but valid. THE FORK FROM
--- spellingbee: a wordwheel board is NINE letters (8 outer + 1 center),
--- each tile used ONCE per word, so every fixture word is an isogram
--- (all-distinct letters) that is a subset of the nine puzzle letters
--- AND contains the center 'e'. 's' is allowed everywhere (used-once
--- means it can't pluralize explosively); this board just doesn't
--- happen to include it.
+-- spellingbee: a wordwheel board is NINE tiles (8 outer + 1 center) —
+-- a MULTISET, duplicates allowed — and each tile is spent once per
+-- word (a word may use a letter as many times as it has tiles). This
+-- main fixture happens to be all-distinct letters (a perfectly valid
+-- multiset), so every fixture word is an isogram that is a subset of
+-- the nine puzzle letters AND contains the center 'e'; the
+-- DUPLICATE-tile rules are exercised by pg_temp.wordwheel_dup_board()
+-- below. 's' is allowed everywhere (tile-spending means it can't
+-- pluralize explosively); this board just doesn't happen to include
+-- it.
 --   - Letters: outer = 'abcdfghi' (8 distinct), center = 'e'.
 --     Puzzle letters = {a,b,c,d,e,f,g,h,i}.
 --   - 13 four-letter entries (1pt each).
@@ -104,6 +108,69 @@ begin
   end loop;
   return jsonb_build_object(
     'outer_letters',        'abcdfghi',
+    'center_letter',        'e',
+    'required_words_score', total,
+    'required_words_count', jsonb_array_length(required),
+    'required_words',       required,
+    'bonus_words',          bonus
+  );
+end;
+$$;
+
+-- ============================================================
+-- pg_temp.wordwheel_dup_board() — a DUPLICATE-letter board
+-- ============================================================
+-- The multiset fixture: wheel = {a,b,c,d,e,e,f,g,g} with center 'e' —
+-- the center letter is DUPLICATED on an outer tile (outer_letters
+-- 'abcdefgg' contains an 'e'), and 'g' sits on two outer tiles. This
+-- exercises the rules the all-distinct board can't:
+--   - create_game accepts duplicate outers + a center that repeats an
+--     outer (title 'E·ABCDEFGG');
+--   - repeat-letter words are ordinary entries: 'edge'/'cede'/'feed'
+--     use both e-tiles, 'gage' both g-tiles, 'egged' both of each;
+--   - the pangram uses all nine TILES: the synthetic 'abcdeefgg'
+--     (9 + 15 = 24 pts).
+-- 13 four-letter (1pt) + 2 five-letter (5pt) + the pangram (24) =
+-- 16 required words, 47 points — clears the ≥15 random-board gate.
+-- One bonus entry covers the bonus path.
+
+create function pg_temp.wordwheel_dup_board()
+returns jsonb
+language plpgsql
+as $$
+declare
+  required jsonb := '[]'::jsonb;
+  bonus jsonb := jsonb_build_array(
+    jsonb_build_object('word', 'gadge', 'points', 5, 'is_pangram', false)
+  );
+  -- 13 four-letter + 2 five-letter + 1 nine-letter pangram, in that
+  -- order. Every entry FITS the multiset {a,b,c,d,e,e,f,g,g} (per-letter
+  -- counts <= tile counts) and contains 'e'.
+  syn_words text[] := array[
+    'face','fade','cafe','deaf','abed','bead','cage','gage',
+    'edge','aged','gaed','cede','feed',
+    'egged','badge',
+    'abcdeefgg'
+  ];
+  w text;
+  pt int;
+  is_pang bool;
+  total int := 0;
+begin
+  foreach w in array syn_words loop
+    is_pang := (length(w) = 9);
+    pt := case
+            when length(w) = 4 then 1
+            when is_pang then length(w) + 15  -- 9 + 15 pangram bonus = 24
+            else length(w)                    -- 5+: length-based
+          end;
+    required := required || jsonb_build_array(
+      jsonb_build_object('word', w, 'points', pt, 'is_pangram', is_pang)
+    );
+    total := total + pt;
+  end loop;
+  return jsonb_build_object(
+    'outer_letters',        'abcdefgg',
     'center_letter',        'e',
     'required_words_score', total,
     'required_words_count', jsonb_array_length(required),

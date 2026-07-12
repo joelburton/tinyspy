@@ -10,13 +10,13 @@
  *
  *   (wordMask & ~puzzleMask) === 0    // word ⊆ puzzle
  *
- * The FE uses this for two things:
- *   1. Per-letter illegal-letter dimming in <TypedWord> — the
- *      current typed word renders character-by-character, gray
- *      for letters not in the puzzle.
- *   2. Pre-flight pangram check in the FE (the synthetic
- *      pangram is whatever word uses all 9 puzzle letters; we
- *      reuse this for the +15 bonus visual hint when typing).
+ * NOTE the multiset caveat: the wheel's tiles can DUPLICATE a letter,
+ * and a mask collapses multiplicity — so masks answer set questions
+ * only. The FE's actual game checks (tile spending in <Wheel>, the
+ * per-character dim in <TypedWord>, explainReject) therefore count
+ * letters instead of masking them; these helpers are kept as the
+ * FE twin of the edge function's mask helpers (which still use the
+ * subset test to pre-filter candidates before the count check).
  *
  * JavaScript numbers are 53-bit safe integers, which is plenty
  * for our 26-bit masks — no BigInt needed FE-side (the edge
@@ -38,8 +38,8 @@ export function letterMask(s: string): number {
   return mask
 }
 
-/** Population count for a 26-bit mask. Used by isPangram and by
- *  any "is this letter set complete?" check. */
+/** Population count for a 26-bit mask — the "how many distinct
+ *  letters?" question. */
 export function popcount26(mask: number): number {
   let m = mask
   let count = 0

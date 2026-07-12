@@ -6,6 +6,7 @@ import { terminalPill } from '../../common/lib/game/localPills'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { EntryRow } from '../../common/components/game/entry/EntryRow'
 import { asciiLetters } from '../../common/hooks/input/useCaptureKeys'
+import { wordFitsWheel } from '../lib/tiles'
 import { Wheel } from './Wheel'
 import { TypedWord } from './TypedWord'
 import shared from '../../common/components/game/PlayArea.module.css'
@@ -40,7 +41,7 @@ export function BoardCol({
   // ── Board to render ──
   outerLetters,
   centerLetter,
-  allowedLetters,
+  letterCounts,
   // ── Word entry (engine in PlayArea; rendered here) ──
   word,
   onChange,
@@ -56,8 +57,10 @@ export function BoardCol({
   /** The board's outer letters (a string) — the local shuffle rearranges this. */
   outerLetters: string
   centerLetter: string
-  /** The center + outer letters, lower-cased — drives `<TypedWord>`'s illegal dim. */
-  allowedLetters: Set<string>
+  /** Per-letter tile counts of the whole wheel (centre + outers), lower-cased —
+   *  the wheel is a multiset, so `<TypedWord>`'s illegal dim needs counts, not a
+   *  set (a letter is legal as many times as it has tiles). */
+  letterCounts: Map<string, number>
 
   // ── Word entry ──
   /** The pending typed word. */
@@ -101,9 +104,14 @@ export function BoardCol({
     [clearLocalFeedback, onChange],
   )
 
-  // Letters already in the typed word (lower-cased). Each tile is used ONCE per
-  // word, so the wheel disables a tile once its letter appears here.
-  const usedLetters = useMemo(() => new Set(word.toLowerCase()), [word])
+  // Per-letter counts of the typed word (lower-cased). Each tile is SPENT per
+  // use, so the wheel dims one same-letter tile per occurrence typed (the
+  // centre first — see Wheel's spend order).
+  const typedCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const ch of word.toLowerCase()) m.set(ch, (m.get(ch) ?? 0) + 1)
+    return m
+  }, [word])
 
   // Space shuffles the outer letters — wordwheel's one capture-entry extra key (the
   // shared <EntryRow> owns the rest of the keyboard).
@@ -125,7 +133,7 @@ export function BoardCol({
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
         onLetterClick={handleLetterClick}
-        usedLetters={usedLetters}
+        typedCounts={typedCounts}
         // Shuffle floats over the wheel's top-right — a fresh visual scan of the
         // SAME board, not a turn action. Always clickable, even when locked (a
         // harmless rearrange). Passed into Wheel so it anchors to the visual
@@ -156,6 +164,14 @@ export function BoardCol({
             charFor={asciiLetters('upper')}
             onExtraKey={handleEntryExtraKey}
             recall={lastWord}
+            // Veto submit when the typed word can't be spelled from the wheel's
+            // tiles (an off-wheel letter, or a letter used more times than it has
+            // tiles — the same characters <TypedWord> dims). Editing stays live;
+            // only Submit + Enter are inert, so "FOOD" on a wheel without F/O
+            // can't submit and read as "not a word". A word that DOES fit but is
+            // missing the centre / isn't in the list stays submittable — that
+            // reject carries a genuinely useful reason.
+            submitDisabled={!wordFitsWheel(word, letterCounts)}
             pill={
               isTerminal && over
                 ? terminalPill(over.tone, `Game over — ${over.indicator}`)
@@ -164,7 +180,7 @@ export function BoardCol({
                   : null
             }
           >
-            <TypedWord word={word} allowedLetters={allowedLetters} />
+            <TypedWord word={word} letterCounts={letterCounts} />
           </EntryRow>
         </div>
       </div>

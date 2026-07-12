@@ -5,28 +5,29 @@
  * A near-twin of spellingbee-build-board. Word wheel is a targeted fork of
  * spellingbee; this file differs in exactly the ways the game does:
  *
- *   • NINE distinct letters (one centre + eight outer), not seven.
- *   • Each tile is used ONCE per word — so the puzzle only admits
- *     ISOGRAMS (all-distinct-letter words). candidate_words returns the
- *     pure subset set (letter-set ⊆ wheel + contains centre); we
- *     post-filter to isograms here (popcount(letter_mask) === word.length).
- *     See docs/games/wordwheel-plan.md §2a.
- *   • The pangram bonus is +15 (spellingbee's is +10).
+ *   • NINE letters (one centre + eight outer), not seven — and the wheel
+ *     is a MULTISET: the same letter may sit on two tiles.
+ *   • Each tile is SPENT per use — a word may use a letter only as many
+ *     times as it has tiles. candidate_words returns the pure subset set
+ *     (letter-SET ⊆ wheel + contains centre); we post-filter here to
+ *     words whose per-letter counts FIT the wheel's tile counts.
+ *     See docs/games/wordwheel.md.
+ *   • The pangram bonus is +15 (spellingbee's is +10). A pangram uses
+ *     all nine tiles, so any 9-letter word that fits IS one.
  *   • The seed pool is difficulty-tagged: we sample only seeds whose
  *     `difficulty <= required_band`, so the pool scales with the game's
- *     required band instead of being stuck at the ~400 band-1 9-letter
- *     isograms. See docs/games/wordwheel-plan.md §3.
- *   • 's' is allowed (used-once makes it an ordinary letter), so there
- *     is no 's' exclusion anywhere.
- *   • No ING dampening: spellingbee damps -ing because letter REUSE lets
- *     -ing attach to almost anything; used-once removes that explosion,
- *     so the skew isn't worth a special case.
+ *     required band. See docs/games/wordwheel.md.
+ *   • 's' is allowed (a tile per use means 's' pluralizes at most once
+ *     per 's' tile), so there is no 's' exclusion anywhere.
+ *   • No ING dampening: spellingbee damps -ing because unbounded letter
+ *     REUSE lets -ing attach to almost anything; tile-spending removes
+ *     that explosion, so the skew isn't worth a special case.
  *
  * Why edge (not PL/pgSQL): the diverse-builder strategy needs weighted
  * random sampling over the pangram seeds, a previous-letters overlap
  * cap, and a subset-mask join against the word list (common.words, via
- * the candidate_words RPC) plus the isogram post-filter. All much easier
- * to express + maintain in TypeScript than in plpgsql.
+ * the candidate_words RPC) plus the multiset-fit post-filter. All much
+ * easier to express + maintain in TypeScript than in plpgsql.
  *
  * Architecture:
  *   1. Verify the caller's JWT, read the inputs.
@@ -35,15 +36,16 @@
  *        - the club's most-recent wordwheel.games row (overlap cap)
  *   3. Run the diverse-builder strategy in-process:
  *        a. Filter seeds by overlap cap against the previous board
- *           (≤5 of 9 letters shared).
- *        b. Weighted sample: rare-letter masks (has_rare_letters) get a
+ *           (≤5 distinct letters shared).
+ *        b. Weighted sample: rare-letter seeds (has_rare_letters) get a
  *           3× weight boost for fair representation.
- *   4. Pick the centre letter from the 9 in the mask (uniform), trying
- *      centres until one clears the word gate.
+ *   4. Pick the centre letter uniformly from the seed's DISTINCT letters
+ *      (two duplicate tiles as centre would make the identical board),
+ *      trying centres until one clears the word gate.
  *   5. Query common.words (via candidate_words) for every legal word
- *      whose mask is a subset of the puzzle mask AND uses the centre;
- *      post-filter to isograms; compute points (length score + 15 if
- *      pangram).
+ *      whose letter-set is a subset of the puzzle mask AND uses the
+ *      centre; post-filter to words fitting the wheel's tile counts;
+ *      compute points (length score + 15 if pangram).
  *   6. Call wordwheel.create_game(...) — the RPC validates end-to-end
  *      and returns the new id.
  *   7. Return { id } to the FE.
@@ -92,6 +94,9 @@ type Setup = {
    *  a random pangram seed. Both create_game and this function re-validate. */
   custom_center?: string
   custom_letters?: string
+  /** Board constraint (random boards only): when true, sample only from seeds
+   *  whose nine letters are all distinct. Ignored for a custom board. */
+  unique_letters?: boolean
   timer:
     | { kind: 'none' }
     | { kind: 'countup' }
@@ -114,10 +119,16 @@ type Board = {
 }
 
 type PangramRow = {
-  mask: string                // bigint comes through PostgREST as string
-  /** The min difficulty band of a 9-letter isogram with this mask — we
-   *  fetch only rows with difficulty <= required_band, so the pool scales
-   *  with the game's difficulty. Kept for logging. */
+  /** The wheel's nine letters as a sorted lowercase string (the PK), e.g.
+   *  'aabcdeghi' — a MULTISET, so a letter may appear twice. */
+  letters: string
+  /** The distinct-letter set of `letters` (generated column), for the
+   *  overlap cap + the candidate_words subset pre-filter. bigint comes
+   *  through PostgREST as string. */
+  mask: string
+  /** The min difficulty band of a required-quality 9-letter word with this
+   *  multiset — we fetch only rows with difficulty <= required_band, so the
+   *  pool scales with the game's difficulty. Kept for logging. */
   difficulty: number
   /**
    * Whether the seed's 9 letters include a rare one — {j, q, x, z}
@@ -131,7 +142,6 @@ type PangramRow = {
 
 type CandidateRow = {
   word: string
-  letter_mask: string
   /** In the required set (difficulty ≤ required_band, american, no slang, clean:
    *  slur 0 + crude 0) — counts toward the goal. */
   is_required: boolean
@@ -152,12 +162,13 @@ const MAX_PREVIOUS_OVERLAP = 5
 /** Weighting boost for has_rare_letters masks. */
 const RARE_LETTER_WEIGHT = 3
 /** Sanity gate that must agree with the RPC's same gate. PROVISIONAL 15 —
- *  lower than spellingbee's 30 because used-once yields fewer words. */
+ *  lower than spellingbee's 30 because spending a tile per use yields fewer
+ *  words than unbounded reuse. */
 const MIN_REQUIRED_WORDS_COUNT = 15
 /** How many seeds to try when a sampled seed has NO centre that clears the
  *  word gate. A seed is gated at import to ≥15 required words centre-agnostically
  *  at its own difficulty, but a specific centre can fall short; re-sample the
- *  seed only if none of its nine centres clear the gate. */
+ *  seed only if none of its (distinct) centres clear the gate. */
 const MAX_SEED_ATTEMPTS = 25
 
 // ───────────────────────────────────────────────────────────
@@ -183,15 +194,29 @@ function popcount26(mask: bigint): number {
   return count
 }
 
-/** Letters in the mask, as a lowercase string ('a' = bit 0). */
-function maskLetters(mask: bigint): string {
-  let out = ''
-  for (let i = 0; i < 26; i++) {
-    if ((mask & (1n << BigInt(i))) !== 0n) {
-      out += String.fromCharCode(97 + i)
-    }
+/** Per-letter tile counts of a letter string, indexed 0..25 ('a' = 0). The
+ *  multiset twin of letterMask — this is what the fit check compares against,
+ *  since the mask alone collapses duplicate tiles. */
+function tileCounts(letters: string): Uint8Array {
+  const counts = new Uint8Array(26)
+  for (let i = 0; i < letters.length; i++) {
+    const code = letters.charCodeAt(i) - 97
+    if (code >= 0 && code < 26) counts[code]++
   }
-  return out
+  return counts
+}
+
+/** The tile-spend rule: a word fits the wheel iff each letter occurs no more
+ *  times than the wheel has tiles for it. (Containing the centre is checked
+ *  upstream by candidate_words.) */
+function fitsTiles(word: string, wheel: Uint8Array): boolean {
+  const used = new Uint8Array(26)
+  for (let i = 0; i < word.length; i++) {
+    const code = word.charCodeAt(i) - 97
+    if (code < 0 || code >= 26) return false
+    if (++used[code] > wheel[code]) return false
+  }
+  return true
 }
 
 // ───────────────────────────────────────────────────────────
@@ -257,35 +282,35 @@ function lengthScore(word: string): number {
   return word.length === 4 ? 1 : word.length
 }
 
-/** Given the puzzle mask + centre, partition the candidate words into the
+/** Given the wheel letters + centre, partition the candidate words into the
  *  required set + the bonus set (legal − required) and tally the required
  *  totals.
  *
- *  This is also where the "each tile once" rule is enforced: candidate_words
- *  returns the pure subset set, which includes words that REUSE a wheel letter
- *  (e.g. "sees" on a wheel with s+e). We drop any word whose distinct-letter
- *  count differs from its length — i.e. keep only isograms. See §2a of the
- *  plan; the FE membership check mirrors this so submit_word can keep trusting
- *  the shipped list. */
+ *  This is also where the tile-spend rule is enforced: candidate_words
+ *  returns the pure subset set, which includes words demanding more of a
+ *  letter than the wheel has tiles (e.g. "seeded" on a wheel with one 'e').
+ *  We drop any word whose per-letter counts don't FIT the wheel's tile
+ *  counts. The FE membership check mirrors this so submit_word can keep
+ *  trusting the shipped list. */
 function buildBoard(
   outerLetters: string,
   centerLetter: string,
   candidateWords: CandidateRow[],
 ): Board {
-  const puzzleMask = letterMask(outerLetters + centerLetter)
+  const wheel = tileCounts(outerLetters + centerLetter)
   const required: Board['required_words'] = []
   const bonus: Board['bonus_words'] = []
   let requiredWordsScore = 0
   let requiredWordsCount = 0
 
   for (const row of candidateWords) {
-    const wMask = BigInt(row.letter_mask)
-    // Used-once: keep only isograms. A repeated letter makes popcount < length.
-    if (popcount26(wMask) !== row.word.length) continue
+    // Tile-spend: each letter used no more times than it has tiles.
+    if (!fitsTiles(row.word, wheel)) continue
     // Same length + pangram scoring for both sets; the FE reads points off the
     // shipped entry, so bonus words must carry them too. A wordwheel pangram
-    // uses all nine letters once → its mask equals the full puzzle mask.
-    const isPangram = wMask === puzzleMask
+    // uses all nine tiles — and a 9-letter word that FITS nine tiles must use
+    // every one of them, so length alone decides it.
+    const isPangram = row.word.length === WHEEL_SIZE
     const points = lengthScore(row.word) + (isPangram ? 15 : 0)
     if (row.is_required) {
       required.push({ word: row.word, points, is_pangram: isPangram })
@@ -308,18 +333,17 @@ function buildBoard(
 
 /** Validate a custom (player-specified) letter set, or null if it's fine.
  *  Mirrors wordwheel.create_game's letter rules: a single centre + eight
- *  OTHER letters, all nine distinct lowercase a–z. Unlike spellingbee, 's'
- *  is allowed (used-once makes it ordinary). Both inputs are already
- *  lowercased/trimmed by the caller. */
+ *  outer letters, lowercase a–z — DUPLICATES ALLOWED (the wheel is a
+ *  multiset; a repeated letter just means two tiles carry it, and the
+ *  centre may repeat an outer). Unlike spellingbee, 's' is allowed (a tile
+ *  per use makes it ordinary). Both inputs are already lowercased/trimmed
+ *  by the caller. */
 function validateCustomLetters(center: string, letters: string): string | null {
   if (!/^[a-z]$/.test(center)) {
     return 'custom center must be a single letter a–z'
   }
   if (!/^[a-z]{8}$/.test(letters)) {
     return 'custom letters must be eight letters a–z'
-  }
-  if (new Set(center + letters).size !== WHEEL_SIZE) {
-    return 'all nine custom letters must be different'
   }
   return null
 }
@@ -335,7 +359,7 @@ const PAGE_SIZE = 1000
 /** Fetches the pangram seeds eligible for this game — those whose pangram is
  *  gettable at the required band (difficulty <= required_band). The
  *  difficulty tag is what lets the pool grow with the game's difficulty
- *  (docs/games/wordwheel-plan.md §3). The loop terminates when a page comes
+ *  (docs/games/wordwheel.md). The loop terminates when a page comes
  *  back shorter than PAGE_SIZE. */
 async function fetchPangrams(
   supabase: SupabaseClient,
@@ -346,7 +370,7 @@ async function fetchPangrams(
     const { data, error } = await supabase
       .schema('wordwheel')
       .from('pangrams')
-      .select('mask, difficulty, has_rare_letters')
+      .select('letters, mask, difficulty, has_rare_letters')
       .lte('difficulty', requiredBand)
       .range(from, from + PAGE_SIZE - 1)
     if (error) throw new Error(`fetchPangrams page ${from}: ${error.message}`)
@@ -383,8 +407,8 @@ async function fetchPreviousMask(
  *  server-side, so the response is only the matching rows (well under
  *  max_rows). One round-trip per centre tried.
  *
- *  This is the pure SUBSET set — it still contains letter-reusing words;
- *  buildBoard() drops the non-isograms. */
+ *  This is the pure SUBSET set — it still contains words demanding more of a
+ *  letter than the wheel has tiles; buildBoard() drops those. */
 async function fetchCandidateWords(
   supabase: SupabaseClient,
   puzzleMask: bigint,
@@ -404,13 +428,13 @@ async function fetchCandidateWords(
   if (error) throw new Error(`fetchCandidateWords: ${error.message}`)
   // The RPC returns (word, letter_mask, is_required); is_legal isn't on the
   // row because the function pre-filters on it. Synthesize is_legal=true.
+  // letter_mask is dropped — the fit check counts the word's letters
+  // directly, since a mask can't carry multiplicity.
   return ((data ?? []) as Array<{
     word: string
-    letter_mask: string | number
     is_required: boolean
   }>).map((row) => ({
     word: row.word,
-    letter_mask: String(row.letter_mask),
     is_required: row.is_required,
     is_legal: true,
   }))
@@ -521,7 +545,25 @@ serve(async (req) => {
           500,
         )
       }
-      const eligible = applyOverlapCap(allPangrams, previousMask)
+      // Board constraint: "unique letters only" keeps just the seeds whose nine
+      // letters are all distinct (a seed's `letters` is the sorted 9-char
+      // multiset, so distinct ⟺ every character differs). Applied before the
+      // overlap cap so both filters compose. If it empties the pool, say so
+      // specifically — the friend can drop the constraint or the difficulty.
+      const constrained = setup.unique_letters
+        ? allPangrams.filter((row) => new Set(row.letters).size === WHEEL_SIZE)
+        : allPangrams
+      if (setup.unique_letters) {
+        console.log(`unique-letters constraint: ${constrained.length}/${allPangrams.length} seeds all-distinct`)
+      }
+      if (constrained.length === 0) {
+        console.log('reject: no all-distinct pangram seeds at this required band')
+        return json(
+          { error: `no unique-letter boards at required difficulty ${requiredBand} — try a higher difficulty or turn off "unique letters only"` },
+          500,
+        )
+      }
+      const eligible = applyOverlapCap(constrained, previousMask)
       if (eligible.length === 0) {
         console.log('reject: empty pangram pool after overlap cap')
         return json(
@@ -532,11 +574,16 @@ serve(async (req) => {
       const weighted = buildWeightedPool(eligible)
 
       // 3-4. Sample a seed AND a centre that clears the word gate.
-      // A seed's import-time gate is over its whole 9-letter SET, but the
+      // A seed's import-time gate is over its whole 9-tile multiset, but the
       // puzzle only counts words that CONTAIN THE CENTRE. So a poorly-chosen
-      // centre can land a real board below the ≥15 gate even though the set is
-      // fine. Fix: try the seed's 9 centres in random order and keep the first
-      // that clears the gate; re-sample the seed only if NONE of its centres do.
+      // centre can land a real board below the ≥15 gate even though the
+      // multiset is fine. Fix: try the seed's centres in random order and keep
+      // the first that clears the gate; re-sample the seed only if NONE do.
+      // Centres are the seed's DISTINCT letters: picking either of two
+      // duplicate tiles as centre makes the identical board (same centre
+      // letter, same outer multiset), so trying both would be wasted work —
+      // and sampling tile-uniformly would bias centres toward duplicated
+      // letters for no gameplay payoff.
       for (
         let seedAttempt = 0;
         seedAttempt < MAX_SEED_ATTEMPTS && board === null;
@@ -544,10 +591,12 @@ serve(async (req) => {
       ) {
         const seed = sampleMask(weighted)
         const mask = BigInt(seed.mask)
-        const letters = maskLetters(mask)
-        for (const center of shuffled([...letters])) {
+        const letters = seed.letters
+        for (const center of shuffled([...new Set(letters)])) {
           const centerBit = 1n << BigInt(center.charCodeAt(0) - 97)
           const candidates = await fetchCandidateWords(supabase, mask, centerBit, requiredBand, legalBand)
+          // replace() removes exactly ONE occurrence — a duplicated centre
+          // leaves its twin among the outer tiles, as it should.
           const cand = buildBoard(letters.replace(center, ''), center, candidates)
           if (cand.required_words_count >= MIN_REQUIRED_WORDS_COUNT) {
             board = cand

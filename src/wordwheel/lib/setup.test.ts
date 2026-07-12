@@ -43,21 +43,18 @@ describe('customLettersError', () => {
     )
   })
 
-  it("allows the letter 's' in either field (word wheel uses each tile once)", () => {
+  it("allows the letter 's' in either field (word wheel spends a tile per use)", () => {
     // Unlike spellingbee, 's' is an ordinary letter here.
     expect(customLettersError({ ...base, custom_center: 's', custom_letters: 'abcdfghi' })).toBeNull()
     expect(customLettersError({ ...base, custom_center: 'e', custom_letters: 'abcdfghs' })).toBeNull()
   })
 
-  it('rejects a repeated letter (center in the outer set, or a dup outer)', () => {
-    // center 'a' also appears in the outer letters → only 8 distinct of 9.
-    expect(customLettersError({ ...base, custom_center: 'a', custom_letters: 'abcdfghi' })).toMatch(
-      /different/i,
-    )
-    // 'a' repeated in the outer letters.
-    expect(customLettersError({ ...base, custom_center: 'e', custom_letters: 'aabcdfgh' })).toMatch(
-      /different/i,
-    )
+  it('accepts repeated letters (the wheel is a multiset)', () => {
+    // center 'a' also appears in the outer letters → a wheel with two a-tiles,
+    // one of them the center.
+    expect(customLettersError({ ...base, custom_center: 'a', custom_letters: 'abcdfghi' })).toBeNull()
+    // 'a' repeated in the outer letters → two outer a-tiles.
+    expect(customLettersError({ ...base, custom_center: 'e', custom_letters: 'aabcdfgh' })).toBeNull()
   })
 })
 

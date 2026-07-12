@@ -8,8 +8,8 @@
 -- is_pangram, is_bonus), trusts them, and only enforces the live-game
 -- check, dedups, records, and recomputes aggregates / the compete win.
 -- It does NOT validate word content (no tooShort/badLetters/
--- missingCenter/notAWord — the "each tile once" isogram rule lives in
--- the edge function, not here). It returns { result, points }
+-- missingCenter/notAWord — the tile-multiplicity rule lives in the edge
+-- function's multiset-fit filter, not here). It returns { result, points }
 -- (result = pangram / bonus / accepted / alreadyFound) mostly for tests.
 --
 -- THE FORK numbers: the fixture pangram 'abcdefghi' is a 9-letter word
@@ -31,7 +31,7 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(45);
+select plan(47);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -476,6 +476,38 @@ select throws_ok(
   '42501',
   null,
   'end_game: non-player (dee, outsider) is rejected with 42501'
+);
+
+-- ============================================================
+-- (10) DUPLICATE-letter board smoke: repeat-letter words are ordinary
+-- ============================================================
+-- A game on the multiset fixture (wheel {a,b,c,d,e,e,f,g,g}). 'egged'
+-- spends both e-tiles AND both g-tiles; submit_word is trusting-commit,
+-- so it lands exactly like any shipped word — proving nothing in the
+-- RPC path re-checks (or trips over) letter multiplicity.
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table dup_g on commit drop as
+select * from wordwheel.create_game(
+  (select common.create_club('Dup gameplay', array['ada','bea']) as handle),
+  pg_temp.wordwheel_setup(),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'coop',
+  pg_temp.wordwheel_dup_board()
+);
+
+select is(
+  (select wordwheel.submit_word((select id from dup_g), 'egged', 5, false, false) ->> 'result'),
+  'accepted',
+  'submit_word: a repeat-letter word ("egged", both e-tiles + both g-tiles) → "accepted"'
+);
+
+select is(
+  (select count(*) from wordwheel.found_words
+    where game_id = (select id from dup_g) and word = 'egged'),
+  1::bigint,
+  'submit_word: the repeat-letter word inserts one found_words row'
 );
 
 -- ============================================================

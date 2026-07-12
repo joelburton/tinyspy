@@ -55,6 +55,12 @@ export type WordwheelSetup = {
    *  and `customLettersError`. */
   custom_center?: string
   custom_letters?: string
+  /** Board constraint (random boards only): when true, sample only from seeds
+   *  whose nine letters are ALL DISTINCT — no wheel with a doubled tile. Off
+   *  (undefined/false) is the default: the pool includes multiset seeds. Ignored
+   *  for a custom board, where the player's own letters stand as chosen. The
+   *  edge function enforces it by filtering the pangram pool. */
+  unique_letters?: boolean
 }
 
 /**
@@ -75,10 +81,12 @@ export function legalError(setup: WordwheelSetup): string | null {
  *
  * Mirrors the letter rules `wordwheel.create_game` enforces server-side, so the
  * dialog fails fast before the round-trip: if EITHER field is filled, BOTH must
- * be, and together they must be exactly one center + eight OTHER letters, all nine
- * distinct lowercase a–z. Unlike spellingbee, 's' IS allowed — word wheel uses
- * each tile once, so 's' can't pluralize explosively. Case/whitespace are
- * normalized here the same way the SetupForm cleans its inputs.
+ * be, and together they must be exactly one center + eight other letters,
+ * lowercase a–z. DUPLICATES ARE ALLOWED — the wheel is a multiset, so a repeated
+ * letter just means two tiles carry it (and the centre may repeat an outer).
+ * Unlike spellingbee, 's' IS allowed — word wheel spends a tile per use, so 's'
+ * can't pluralize explosively. Case/whitespace are normalized here the same way
+ * the SetupForm cleans its inputs.
  */
 export function customLettersError(setup: WordwheelSetup): string | null {
   const center = (setup.custom_center ?? '').trim().toLowerCase()
@@ -91,7 +99,6 @@ export function customLettersError(setup: WordwheelSetup): string | null {
   }
   if (!/^[a-z]$/.test(center)) return 'The center must be a single letter A–Z.'
   if (!/^[a-z]{8}$/.test(letters)) return 'Enter exactly eight other letters (A–Z).'
-  if (new Set(center + letters).size !== 9) return 'All nine letters must be different.'
   return null
 }
 

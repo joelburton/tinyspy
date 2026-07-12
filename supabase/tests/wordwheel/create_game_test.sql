@@ -14,12 +14,14 @@
 --   4. mode arg validation: invalid value; setup.mode field rejected;
 --      compete with <2 players; target_rank required iff compete;
 --      target_rank range.
---   5. Board validation: outer_letters length (NOW 8) / alphabet /
---      distinctness; center; center-not-in-outer;
---      required_words_count ≥ 15 gate (NOT 30 — the wordwheel fork).
---   6. THE FORK: 's' is ALLOWED in outer_letters (each tile used once,
---      so 's' can't pluralize explosively — spellingbee bans it, wordwheel
---      does not).
+--   5. Board validation: outer_letters length (NOW 8) / alphabet;
+--      center shape; DUPLICATES ACCEPTED (the wheel is a multiset —
+--      repeated outers + a center repeating an outer are ordinary
+--      boards); required_words_count ≥ 15 gate (NOT 30 — the
+--      wordwheel fork).
+--   6. THE FORK: 's' is ALLOWED in outer_letters (a tile is spent per
+--      use, so 's' can't pluralize explosively — spellingbee bans it,
+--      wordwheel does not).
 --   7. Title formula: "<CENTER>·<OUTER-SORTED>".
 --   8. Player-count upper bound: 7+ entries rejected.
 --
@@ -29,7 +31,7 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(34);
+select plan(35);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -396,17 +398,30 @@ select isnt(
 -- (19)-(22) Board validation
 -- ============================================================
 
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L, pg_temp.wordwheel_setup(),
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.wordwheel_board() || '{"outer_letters": "abcdefgh"}'::jsonb) $$,
-    (select handle from club)
-  ),
-  'P0001',
+-- The MULTISET acceptance: the dup fixture's outer letters 'abcdefgg' repeat
+-- 'g' on two tiles AND carry an 'e' that duplicates the center — both were
+-- rejections under the old nine-distinct rule, both are ordinary boards now.
+create temp table dup_g on commit drop as
+select id from wordwheel.create_game(
+  (select common.create_club('Dup letters ok', array['ada','bea']) as handle),
+  pg_temp.wordwheel_setup(),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'coop',
+  pg_temp.wordwheel_dup_board()
+);
+
+select isnt(
+  (select id from dup_g),
   null,
-  'rejects board where center_letter (e) appears in outer_letters'
+  'ACCEPTS duplicate outer letters + a center repeating an outer (the wheel is a multiset)'
+);
+
+-- The title formula needs no dedup — duplicates simply appear twice, sorted.
+select is(
+  (select title from common.games where id = (select id from dup_g)),
+  'E·ABCDEFGG',
+  'duplicate-letter title: <CENTER>·<OUTER-SORTED> keeps both twins'
 );
 
 select throws_ok(
@@ -426,10 +441,10 @@ select throws_ok(
 -- (21) THE FORK: 's' is ALLOWED in outer_letters
 -- ============================================================
 -- spellingbee REJECTS an 's' in the board letters (each tile is reusable
--- there, so 's' would pluralize almost anything). word wheel uses each
--- tile ONCE, so 's' is just one more ordinary letter — the board builder
--- may place it. Swap 'a'→'s' in the outer set (still 8 distinct, no 'e');
--- the fixture's word list is irrelevant to this structural check (the
+-- there, so 's' would pluralize almost anything). word wheel spends a
+-- tile per use, so 's' is just one more ordinary letter — the board
+-- builder may place it. Swap 'a'→'s' in the outer set (no 'e'); the
+-- fixture's word list is irrelevant to this structural check (the
 -- ≥15 count gate is what create_game enforces, and the fixture clears it).
 
 select isnt(
@@ -444,7 +459,7 @@ select isnt(
     )
   ),
   null,
-  'ACCEPTS outer_letters containing "s" (the wordwheel fork — used-once means no s-ban)'
+  'ACCEPTS outer_letters containing "s" (the wordwheel fork — tile-spending means no s-ban)'
 );
 
 select throws_ok(

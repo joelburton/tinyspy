@@ -194,13 +194,18 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => menu.setGameSections([])
   }, [menu, game, foundWords, players, brand, title, wordwheelSetup, isTerminal, myConceded, foundWordsScore, foundWordsCount, infoSheet.menuSections])
 
-  // ─── Allowed-letter set (drives illegal-letter dim) ────
-  const allowedLetters = useMemo(() => {
-    if (!game) return new Set<string>()
-    const s = new Set<string>()
-    for (const ch of game.outer_letters) s.add(ch.toLowerCase())
-    s.add(game.center_letter.toLowerCase())
-    return s
+  // ─── Wheel tile counts (drive the illegal-letter dim + tile spending) ────
+  // The wheel is a MULTISET — the same letter may sit on two tiles — so the
+  // "can I type this letter?" question is a per-letter tile COUNT, not set
+  // membership: a word may use a letter as many times as it has tiles.
+  const letterCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    if (!game) return m
+    for (const ch of game.outer_letters + game.center_letter) {
+      const lower = ch.toLowerCase()
+      m.set(lower, (m.get(lower) ?? 0) + 1)
+    }
+    return m
   }, [game])
 
   // (The local outer-letter shuffle + the letter-click / Space-shuffle input moved
@@ -243,13 +248,12 @@ export function PlayArea(ctx: GamePageCtx) {
         })
         return { error }
       },
-      // A miss at/above min length: name why (a letter off the board, or the
-      // center letter missing) else it's simply not a word. The hook wraps the
-      // reason as `WORD — reason`.
+      // A miss at/above min length. Words that don't fit the wheel's tiles (an
+      // off-wheel letter, or a letter over its tile count) can't reach here —
+      // BoardCol's `submitDisabled` gate vetoes their submit — so the only
+      // reasons left are the missing centre or simply not-a-word. The hook wraps
+      // the reason as `WORD — reason`.
       explainReject: (w) => {
-        for (const ch of w) {
-          if (!allowedLetters.has(ch)) return 'bad letters'
-        }
         if (center && !w.includes(center)) return 'missing center letter'
         return 'not a word'
       },
@@ -473,7 +477,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // ── Board to render ──
         outerLetters={game.outer_letters}
         centerLetter={game.center_letter}
-        allowedLetters={allowedLetters}
+        letterCounts={letterCounts}
         // ── Word entry (engine here; rendered in BoardCol) ──
         word={word}
         onChange={setWord}

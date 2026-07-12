@@ -2930,19 +2930,22 @@ export type Database = {
         Row: {
           difficulty: number
           has_rare_letters: boolean
-          mask: number
+          letters: string
+          mask: number | null
           word_counts: Json
         }
         Insert: {
           difficulty: number
           has_rare_letters: boolean
-          mask: number
+          letters: string
+          mask?: number | null
           word_counts: Json
         }
         Update: {
           difficulty?: number
           has_rare_letters?: boolean
-          mask?: number
+          letters?: string
+          mask?: number | null
           word_counts?: Json
         }
         Relationships: []

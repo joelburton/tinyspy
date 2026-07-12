@@ -2,11 +2,16 @@
 -- wordwheel — Guardian-Word-Wheel-style word finder (MooseWheel)
 -- ============================================================
 --
--- A wheel of NINE distinct letters (1 centre + 8 outer); players
--- form words from those letters, EACH TILE USED ONCE (the key
--- difference from spellingbee, which allows letter reuse), and every
--- word must include the centre. The pangram — a word using all nine —
--- earns a +15 bonus. The word list is common.words (the categorized
+-- A wheel of NINE letters (1 centre + 8 outer) — a MULTISET, so the
+-- same letter may appear on two tiles. Players form words from the
+-- tiles, each tile SPENDABLE ONCE per word (a word may use a letter
+-- as many times as there are tiles carrying it — the key difference
+-- from spellingbee, which allows unbounded reuse), and every word
+-- must use the centre tile (⇒ contain the centre letter; "the centre
+-- is spent first" is an FE display convention, not a separate rule).
+-- The pangram — a word using all nine tiles, i.e. any 9-letter word
+-- that fits the multiset — earns a +15 bonus. The word list is
+-- common.words (the categorized
 -- master list shared across games); wordwheel filters it into a
 -- smaller REQUIRED set (the goal shown to players: difficulty band
 -- <= 3, american, no slang, no slurs) and a larger LEGAL set (band
@@ -14,7 +19,7 @@
 -- BONUS: accepted and scored, but not part of the displayed goal.
 --
 -- This is a targeted FORK of spellingbee (see spellingbee.sql +
--- docs/games/wordwheel-plan.md). The "used once" rule lives entirely
+-- docs/games/wordwheel.md). The tile-multiplicity rule lives entirely
 -- in the board builder (which words ship) + the FE's membership check
 -- — submit_word here TRUSTS the shipped list, exactly as spellingbee
 -- does. So most of this file is a rename-port; the real changes are:
@@ -75,43 +80,59 @@ grant usage on schema wordwheel to service_role;
 -- ============================================================
 -- wordwheel.pangrams — the board-seed pool
 -- ============================================================
--- A valid wordwheel board is a set of NINE distinct letters that
--- contains a pangram — a word using all nine, each once (the wheel's
--- own "target" word). Random 9-letter sets almost never have such a
--- word, so — like spellingbee — we seed from KNOWN nine-letter
--- isograms (all-distinct-letter words) rather than reject-loop.
+-- A valid wordwheel board is a MULTISET of nine letters (duplicates
+-- allowed — two `b` tiles is a legal wheel) that contains a pangram —
+-- a word using all nine tiles (the wheel's own "target" word). Random
+-- 9-letter multisets almost never have such a word, so — like
+-- spellingbee — we seed from KNOWN nine-letter words rather than
+-- reject-loop: any 9-letter word's letters ARE a pangram-bearing
+-- wheel.
 --
--- The import scans common.words for every 9-letter isogram
--- (len == popcount(letter_mask)), dedupes by letter-mask (anagrams
--- share a mask ⇒ one board), and stores each mask here.
+-- The import scans common.words for every 9-letter word and dedupes
+-- by sorted-letter string (anagrams share a multiset ⇒ one board).
+-- The multiset is the identity, so `letters` (the sorted string,
+-- e.g. 'aabcdeghi') is the PK — a bitmask can't be, because masks
+-- collapse multiplicity (e.g. 'aabcdeghi' and 'abbcdeghi' differ as
+-- wheels but could share a mask with other multisets over the same
+-- 8 distinct letters). `mask` is kept as a GENERATED column (the
+-- distinct-letter set) because two consumers still want set
+-- semantics: the builder's previous-board overlap cap and the
+-- candidate_words subset pre-filter.
 --
 -- WHERE THIS DIFFERS FROM spellingbee: spellingbee forces a BAND-1
--- pangram so it's always gettable, which leaves word wheel only ~400
--- nine-letter isograms — too few. Instead we tag each seed with its
--- `difficulty` (the min difficulty band of any isogram with this
--- mask) and let the builder pick a seed matching the game's REQUIRED
--- band (difficulty <= required_band). Harder games draw from a larger
--- pool; the pangram stays gettable at the chosen difficulty.
+-- pangram so it's always gettable. Instead we tag each seed with its
+-- `difficulty` (the min difficulty band of any required-quality
+-- 9-letter word with this multiset) and let the builder pick a seed
+-- matching the game's REQUIRED band (difficulty <= required_band).
+-- Harder games draw from a larger pool; the pangram stays gettable
+-- at the chosen difficulty.
 --
 -- `word_counts` is a read-only precompute: a 6-element jsonb array
 -- [n1..n6] where nk = the number of REQUIRED-quality words (american,
--- not slang, slur 0, crude 0) at difficulty EXACTLY band k that are
--- findable on this wheel — CENTRE-AGNOSTIC (every all-distinct
--- sub-word of the nine letters, len >= 4; a real board fixes one
--- centre, so this slightly over-counts, but it's a richness proxy).
--- A future "board must have >= N words" gate can filter seeds on this
--- with no build-time rescan. See import-wordwheel-pangrams.ts +
--- docs/games/wordwheel-plan.md.
+-- not slang, slur 0, crude 0) at difficulty EXACTLY band k whose
+-- per-letter counts FIT this multiset (each letter used no more times
+-- than it has tiles), len >= 4 — CENTRE-AGNOSTIC (a real board fixes
+-- one centre, so this slightly over-counts, but it's a richness
+-- proxy). A future "board must have >= N words" gate can filter seeds
+-- on this with no build-time rescan. See import-wordwheel-pangrams.ts
+-- + docs/games/wordwheel.md.
 --
--- has_rare_letters drives the "diverse" builder's weighting: masks
+-- has_rare_letters drives the "diverse" builder's weighting: wheels
 -- containing any of {j, q, x, z} (very rare) or {k, v, w, y}
 -- (somewhat rare) get duplicated in the sampler so rare letters get
 -- fair representation. Precomputed once at import time.
 
 create table wordwheel.pangrams (
-  mask             bigint primary key,   -- 9 bits set; the wheel's letter set
-  difficulty       int not null,         -- min difficulty band of a 9-letter isogram with this mask
-  word_counts      jsonb not null,       -- [n1..n6]: required words findable at each band (centre-agnostic)
+  -- The wheel's nine letters as a SORTED lowercase string — the
+  -- canonical multiset key (e.g. 'aabcdeghi').
+  letters          char(9) primary key,
+  -- The distinct-letter set of `letters`, for the two set-semantics
+  -- consumers (overlap cap + candidate_words). Generated so it can
+  -- never drift from `letters`; same helper that powers
+  -- common.words.letter_mask.
+  mask             bigint generated always as (common.word_letter_mask(letters)) stored,
+  difficulty       int not null,         -- min band of a required-quality 9-letter word with this multiset
+  word_counts      jsonb not null,       -- [n1..n6]: required words fitting the multiset at each band (centre-agnostic)
   has_rare_letters boolean not null      -- weighting tier for the diverse builder
 );
 
@@ -159,13 +180,15 @@ grant select on wordwheel.pangrams to authenticated;
 create table wordwheel.games (
   id uuid primary key references common.games(id) on delete cascade,
   club_handle text not null references common.clubs(handle) on delete cascade,
-  -- 8 distinct lowercase outer letters, no order significance
-  -- on the SQL side (the FE shuffles for display). char(8) is
-  -- a width assertion — wider/narrower strings raise a type
-  -- error at insert time, catching bad input early.
+  -- 8 lowercase outer letters — duplicates allowed (the wheel is a
+  -- multiset; the same letter may sit on two tiles, and may also
+  -- repeat the centre). No order significance on the SQL side (the
+  -- FE shuffles for display). char(8) is a width assertion —
+  -- wider/narrower strings raise a type error at insert time,
+  -- catching bad input early.
   outer_letters char(8) not null,
   -- The mandatory center letter (the red centre circle). Single
-  -- lowercase character.
+  -- lowercase character; may also appear among outer_letters.
   center_letter char(1) not null,
   -- Cached at create-game time from the wordlists. Pure
   -- function of the puzzle so we could recompute, but caching
@@ -423,17 +446,21 @@ grant execute on function wordwheel._rank_idx(int, int) to authenticated;
 --                count toward the required goal.
 --   - length     len >= 4  (the Spelling-Bee minimum)
 --
--- Unlike spellingbee, wordwheel does NOT special-case 's': each tile
--- is used ONCE per word, so 's' can't pluralize explosively the way it
--- does when letters may repeat. A board can contain 's', and 's'-words
--- are ordinary candidates — no exclusion here.
+-- Unlike spellingbee, wordwheel does NOT special-case 's': a tile is
+-- spendable ONCE per word, so 's' can only pluralize as many words as
+-- there are 's' tiles (usually one), not explosively the way it does
+-- when letters may repeat freely. A board can contain 's', and
+-- 's'-words are ordinary candidates — no exclusion here.
 --
--- Note this returns the pure SUBSET set (word letters ⊆ puzzle
--- letters + centre). It does NOT enforce the "each tile once"
--- (isogram) rule — that post-filter (popcount(letter_mask) = len)
--- lives in the edge function, where the mask popcount is cheap. A
--- word like "sees" is a subset of a wheel containing s + e but reuses
--- letters, so the edge builder drops it. See wordwheel-build-board.
+-- Note this returns the pure SUBSET set (word letter-SET ⊆ puzzle
+-- letter-set + centre) — `puzzle_mask` is the wheel's DISTINCT-letter
+-- mask, so this is a superset of the true answer key. It does NOT
+-- enforce tile multiplicity — that post-filter (per-letter counts of
+-- the word <= the wheel's tile counts) lives in the edge function,
+-- where the counts are cheap to compare in TS. A word like "seeded"
+-- is a subset of a wheel containing s+e+d but may demand more e/d
+-- tiles than the wheel carries, so the edge builder drops it. See
+-- wordwheel-build-board.
 --
 -- The function is `security invoker` + `stable`:
 --   - invoker so it runs with the caller's access to common.words
@@ -494,7 +521,7 @@ grant execute on function wordwheel.candidate_words(bigint, bigint, int, int) to
 --
 -- Board shape (built by the wordwheel-build-board edge function):
 --   {
---     "outer_letters": "abcdefgh",          -- 8 distinct lowercase
+--     "outer_letters": "abbcdefg",          -- 8 lowercase (duplicates allowed)
 --     "center_letter": "i",                 -- 1 lowercase
 --     "required_words_score":   int,
 --     "required_words_count":   int,
@@ -525,10 +552,11 @@ grant execute on function wordwheel.candidate_words(bigint, bigint, int, int) to
 --   - setup.target_rank is required when mode='compete' /
 --     must be 0..6 / only allowed when mode='compete'
 --   - timer shape errors (delegated to common.validate_timer)
---   - board.outer_letters must be 8 distinct lowercase ASCII
---     letters ('s' is allowed — see the candidate_words note)
---   - board.center_letter must be 1 lowercase ASCII letter
---     (not present among outer_letters; 's' is allowed)
+--   - board.outer_letters must be 8 lowercase ASCII letters
+--     (duplicates allowed — the wheel is a multiset; 's' is allowed
+--     — see the candidate_words note)
+--   - board.center_letter must be 1 lowercase ASCII letter (it may
+--     also appear among outer_letters; 's' is allowed)
 --   - board.required_words_count must be ≥ 15 (the puzzle-quality gate
 --     the edge function already applies; recheck here so a
 --     misbehaving builder can't sneak a degenerate puzzle past) —
@@ -645,18 +673,14 @@ begin
                     coalesce(length(b_outer)::text, 'null')
       using errcode = 'P0001';
   end if;
-  -- Any 8 lowercase ASCII letters. Unlike spellingbee, word wheel does NOT
-  -- exclude 's': spellingbee bars it because 's' is always reusable there and
-  -- would let you pluralize almost any word; word wheel uses each tile ONCE,
-  -- so 's' is just one more ordinary letter (as the classic wheel has it).
+  -- Any 8 lowercase ASCII letters — duplicates allowed (the wheel is a
+  -- multiset; a wheel with two 'b' tiles is a legal, ordinary board).
+  -- Unlike spellingbee, word wheel does NOT exclude 's': spellingbee bars it
+  -- because 's' is always reusable there and would let you pluralize almost
+  -- any word; word wheel spends a tile per use, so 's' pluralizes at most
+  -- once per 's' tile (as the classic wheel has it).
   if b_outer !~ '^[a-z]{8}$' then
     raise exception 'board.outer_letters must be 8 lowercase ASCII letters'
-      using errcode = 'P0001';
-  end if;
-  -- 8 DISTINCT: cardinality of the deduplicated character set.
-  if cardinality(string_to_array(b_outer, null)) <>
-     cardinality(array(select distinct unnest(string_to_array(b_outer, null)))) then
-    raise exception 'board.outer_letters must be 8 distinct letters'
       using errcode = 'P0001';
   end if;
 
@@ -664,12 +688,10 @@ begin
     raise exception 'board.center_letter must be 1 character'
       using errcode = 'P0001';
   end if;
+  -- The centre MAY also appear among the outer letters — that's just a wheel
+  -- with two tiles carrying the same letter, one of them the centre.
   if b_center !~ '^[a-z]$' then
     raise exception 'board.center_letter must be a lowercase ASCII letter'
-      using errcode = 'P0001';
-  end if;
-  if position(b_center in b_outer) > 0 then
-    raise exception 'board.center_letter must not appear in board.outer_letters'
       using errcode = 'P0001';
   end if;
 
@@ -686,11 +708,11 @@ begin
         using errcode = 'P0001';
     end if;
   elsif b_required_words_count < 15 then
-    -- PROVISIONAL threshold: a 9-letter wheel with each tile used ONCE yields
-    -- far fewer words than a spellingbee board (which allows reuse), so the
-    -- ≥15 floor is lower than spellingbee's ≥30. Tune against the seed data's
-    -- word_counts once the import has run; the edge function's builder must
-    -- target the same number.
+    -- PROVISIONAL threshold: a 9-tile wheel where each tile is spent per use
+    -- yields far fewer words than a spellingbee board (which allows unbounded
+    -- reuse), so the ≥15 floor is lower than spellingbee's ≥30. Tune against
+    -- the seed data's word_counts once the import has run; the edge function's
+    -- builder must target the same number.
     raise exception 'board.required_words_count must be ≥ 15 (got %); the edge function''s gate must agree',
                     b_required_words_count
       using errcode = 'P0001';

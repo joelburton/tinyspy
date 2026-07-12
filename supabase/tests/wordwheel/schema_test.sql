@@ -36,7 +36,7 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(10);
+select plan(11);
 
 \ir ../_shared/setup.psql
 
@@ -61,15 +61,26 @@ select is(
 -- now lives in common.words, not wordwheel — only the wordwheel-specific
 -- pangram seed pool is checked here.
 reset role;
-insert into wordwheel.pangrams (mask, difficulty, word_counts, has_rare_letters)
-values (1::bigint, 1, '[0,0,0,0,0,0]'::jsonb, false);
+-- A duplicate-letter multiset seed ('a' ×3) — `letters` is the PK; `mask` is
+-- GENERATED from it (the distinct-letter set), so it isn't in the column list.
+insert into wordwheel.pangrams (letters, difficulty, word_counts, has_rare_letters)
+values ('aaabcdefg', 1, '[0,0,0,0,0,0]'::jsonb, false);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 select is(
-  (select count(*) from wordwheel.pangrams where mask = 1::bigint),
+  (select count(*) from wordwheel.pangrams where letters = 'aaabcdefg'),
   1::bigint,
   'authenticated can SELECT from wordwheel.pangrams'
+);
+
+-- The generated mask is the distinct-letter set of `letters` — the educational
+-- guard on the generated column: it must agree with the same helper that
+-- powers common.words.letter_mask.
+select is(
+  (select mask from wordwheel.pangrams where letters = 'aaabcdefg'),
+  common.word_letter_mask('abcdefg'),
+  'pangrams.mask is generated as the distinct-letter set of letters'
 );
 
 -- ============================================================

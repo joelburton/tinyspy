@@ -9,25 +9,30 @@
 -- ~puzzle_mask = 0) AND that contains the center (letter_mask & center_bit
 -- <> 0), of length >= 4 within the legal band.
 --
--- Crucially, it does NOT enforce the "each tile used ONCE" (isogram)
--- rule — a word may reuse a letter (popcount(letter_mask) < length(word))
--- and still come back. That multiset post-filter (popcount = len) lives
--- in the edge function (wordwheel-build-board), where the mask popcount is
--- cheap; the SQL layer stays a pure subset test. This file pins that
--- boundary so a future "optimization" that folds the isogram check into
--- candidate_words (breaking the edge function's contract) trips a test.
+-- Crucially, it does NOT enforce the tile-multiplicity rule (each tile
+-- spent once per word) — a word may demand a letter MORE times than the
+-- wheel has tiles (popcount(letter_mask) < length(word) flags a repeat)
+-- and still come back. That multiset-fit post-filter (per-letter counts
+-- of the word <= the wheel's tile counts) lives in the edge function
+-- (wordwheel-build-board), where counting letters is cheap; the SQL
+-- layer stays a pure subset test over the DISTINCT-letter mask. This
+-- file pins that boundary so a future "optimization" that folds the fit
+-- check into candidate_words (breaking the edge function's contract)
+-- trips a test.
 --
--- Fixture: a REAL wheel from the seeded wordwheel.pangrams — mask 3391,
--- whose nine letters are {a,b,c,d,e,f,i,k,l} ('abcdefikl'). Center 'e'
--- (bit 1<<4 = 16). We query the real common.words data, so the specific
--- rows depend on the imported word list — assertions use robust
--- EXISTS/count checks against a couple of known-stable dictionary words,
--- not brittle exact-list matches.
+-- Fixture: a REAL wheel from the seeded wordwheel.pangrams — letters
+-- 'abcdefikl' (all-distinct, so its generated mask 3391 is the nine
+-- letters {a,b,c,d,e,f,i,k,l}). Center 'e' (bit 1<<4 = 16). We query
+-- the real common.words data, so the specific rows depend on the
+-- imported word list — assertions use robust EXISTS/count checks
+-- against a couple of known-stable dictionary words, not brittle
+-- exact-list matches.
 --
 -- The popcount of a letter_mask (its distinct-letter count) is computed
 -- as length(replace(letter_mask::bit(64)::text, '0', '')) — the number
--- of set bits. A word is an isogram on this wheel iff that equals
--- length(word); a reuse word iff it's strictly less.
+-- of set bits. A word repeats some letter iff that is strictly less
+-- than length(word) (on this all-distinct wheel, exactly the words the
+-- edge fn's fit check would drop).
 
 begin;
 
@@ -39,12 +44,12 @@ select plan(6);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
--- Sanity: mask 3391 is a seeded wheel (imported); its letters are
--- 'abcdefikl'. If this fails, the pangram import didn't run — see
--- MEMORY: `db reset needs import`.
+-- Sanity: 'abcdefikl' is a seeded wheel (imported; its generated
+-- distinct-letter mask is 3391). If this fails, the pangram import
+-- didn't run — see MEMORY: `db reset needs import`.
 select ok(
-  exists (select 1 from wordwheel.pangrams where mask = 3391),
-  'fixture wheel (mask 3391 = abcdefikl) is present in the seeded wordwheel.pangrams'
+  exists (select 1 from wordwheel.pangrams where letters = 'abcdefikl' and mask = 3391),
+  'fixture wheel (letters abcdefikl, mask 3391) is present in the seeded wordwheel.pangrams'
 );
 
 -- ============================================================
@@ -65,10 +70,11 @@ select ok(
 -- (2) A letter-REUSING (non-isogram) word is ALSO returned
 -- ============================================================
 -- 'accede' — letters {a,c,e,d} distinct but length 6 (c + e repeat), so
--- it reuses tiles. It's a letter-SUBSET of the wheel and contains 'e',
--- so candidate_words returns it: PROOF the isogram rule is NOT enforced
--- here (it lives in the edge function's popcount(letter_mask) = len post-
--- filter). This is the load-bearing assertion of the file.
+-- on this one-tile-each wheel it demands more tiles than exist. It's a
+-- letter-SUBSET of the wheel and contains 'e', so candidate_words returns
+-- it: PROOF the multiplicity rule is NOT enforced here (it lives in the
+-- edge function's multiset-fit post-filter). This is the load-bearing
+-- assertion of the file.
 
 select ok(
   exists (

@@ -56,6 +56,9 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
     customCenter && customOuter
       ? `Custom letters: ${customCenter}-${customOuter}`
       : 'Custom letters (optional)'
+  const constraintsLabel = s.unique_letters
+    ? 'Board constraints: unique letters only'
+    : 'Board constraints (optional)'
 
   return (
     <div className={styles.setup}>
@@ -110,6 +113,28 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
         />
       </SetupSection>
 
+      {/* Board constraints — optional rules that narrow which RANDOM board gets
+          sampled. Just "unique letters only" today (all nine tiles distinct);
+          the section exists so future constraints have a home. Ignored when
+          custom letters are set (those letters stand as the player chose them).
+          The summary shows the active constraint or "(optional)" when none. */}
+      <SetupSection label={constraintsLabel}>
+        <label className={local.checkRow}>
+          <input
+            type="checkbox"
+            name="unique_letters"
+            checked={s.unique_letters ?? false}
+            onChange={(e) => onChange({ ...s, unique_letters: e.target.checked || undefined })}
+          />
+          Unique letters only
+        </label>
+        <p className="muted">
+          Pick only boards whose nine tiles are all different letters — no wheel
+          with a doubled tile. Applies to random boards; a custom board keeps the
+          letters you enter below.
+        </p>
+      </SetupSection>
+
       {/* Optional custom letters, behind a disclosure whose summary shows the
           chosen letters (e.g. "Custom letters: A-CHIROT") or "(optional)" when
           blank. Both blank → a random board (the normal path); fill both to build
@@ -120,7 +145,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       <SetupSection label={customLabel}>
         <p className="muted">
           Leave blank for a random board, or set your own: a center letter plus
-          eight other letters. All nine must be different.
+          eight other letters. Repeats are fine — each tile is one use.
         </p>
         <div className={local.customRow}>
           <label className={local.field}>

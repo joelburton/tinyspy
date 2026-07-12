@@ -28,8 +28,9 @@ export function Help({ onClose, brand }: Props) {
           Include the <strong>center letter</strong> (the red one).
         </li>
         <li>
-          Use each tile <strong>at most once</strong> — no letter repeats within
-          a word, unless it appears on two different tiles.
+          Use each tile <strong>at most once</strong> — the same letter can
+          appear on two tiles (even the center), and then a word may use it
+          twice, but never more times than it has tiles.
         </li>
       </ul>
       <p>Scoring:</p>
@@ -37,7 +38,7 @@ export function Help({ onClose, brand }: Props) {
         <li>4-letter word: 1 point.</li>
         <li>5+-letter word: 1 point per letter.</li>
         <li>
-          A word that uses <strong>all 9</strong> letters is a{' '}
+          A word that uses <strong>all 9</strong> tiles is a{' '}
           <strong>pangram</strong> — bonus +15 on top of the length score. Every
           board has at least one.
         </li>
