@@ -37,10 +37,23 @@
   background: var(--kbd-key-bg, #d3d6da);
   /* Override the global button hover/accent treatment. */
   transition: filter 0.1s ease;
+  /* Touch (docs/mobile.md → tap-press feedback): the keyboard is the tap-heaviest
+   * surface in wordle/wordiply, so kill the grey tap-flash and opt out of
+   * double-tap-zoom + its tap delay (rapid typing must stay crisp). The designed
+   * press below darkens the key instead. */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .key:hover:not(:disabled) {
   filter: brightness(0.95);
+}
+
+/* Press feedback — darken the key on tap/click (the Wordle-keyboard idiom;
+ * reuses the existing filter transition). A darken rather than the tiles'
+ * scale-down, because keys sit gap-tight and a scale would look jittery. */
+.key:active:not(:disabled) {
+  filter: brightness(0.85);
 }
 
 .key:disabled {

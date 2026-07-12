@@ -73,6 +73,9 @@
    * kill the mobile tap-highlight (it paints a grey box that fights the tile). */
   transition: transform 80ms ease, background 80ms ease, color 80ms ease;
   -webkit-tap-highlight-color: transparent;
+  /* Path-tracing is rapid repeated taps on adjacent tiles — exactly the gesture
+   * iOS Safari reads as double-tap-to-zoom. Opt out of it + the tap delay. */
+  touch-action: manipulation;
   /* A sizing container so the letter scales with the tile (cqmin below), staying
    * proportional whether the board is a roomy 4×4 or a dense 6×6 — n-agnostic,
    * which is why boggle keeps this rather than waffle's column-count-tuned

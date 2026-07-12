@@ -366,6 +366,18 @@
    * .tileWord. Font-fitting infrastructure; layout-safe (doesn't resize the
    * tile). */
   container-type: inline-size;
+  /* Touch behaviour, canonical for every shared-tile game (psychicnum,
+   * connections, waffle, codenamesduet — docs/mobile.md → tap-press feedback):
+   *   - kill the browser's default grey tap-flash, which paints a rectangle
+   *     that fights the tile fill (previously only boggle/spellingbee did this,
+   *     on their bespoke tiles — this makes it uniform);
+   *   - `touch-action: manipulation` opts out of double-tap-to-zoom and its
+   *     ~300ms tap delay, so rapid repeated taps stay crisp;
+   *   - the `:active` press-scale below replaces the removed flash with the same
+   *     designed feedback boggle/spellingbee already give. */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 80ms ease;
 }
 
 /* The tile's label. Auto-fit to the tile WIDTH via one shared clamp formula;
@@ -397,6 +409,13 @@
  * order. */
 .tile:hover:not(:disabled) {
   box-shadow: 0 0 0 2px var(--tile-selected-bg), var(--tile-shadow);
+}
+
+/* Press feedback — a brief scale-down on tap/click, matching boggle's tiles and
+ * spellingbee's hive so a tap reads the same everywhere. Scoped to interactive
+ * tiles (a decided/locked tile is :disabled and shouldn't react). */
+.tile:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .tile:disabled {

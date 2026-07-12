@@ -36,6 +36,19 @@
   box-shadow: 0 0.4cqi 0.8cqi rgba(0, 0, 0, 0.28);
   padding: 1.4cqi;
   line-height: 1;
+  /* Touch (docs/mobile.md → tap-press feedback): stackdown's mahjong tiles are a
+   * bespoke `.tile` (absolutely positioned, per-tile background), not the shared
+   * one — so they carry the same canonical treatment here: no grey tap-flash, no
+   * double-tap-zoom/tap-delay, and the `:active` press-scale below. */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 80ms ease;
+}
+
+/* Press feedback — a brief scale-down on tap of an exposed (interactive) tile,
+ * matching the shared tile + boggle/spellingbee. Covered tiles are :disabled. */
+.tile:not(:disabled):active {
+  transform: scale(0.94);
 }
 
 /* Brief red outline shown when a typed letter is ambiguous (more than one

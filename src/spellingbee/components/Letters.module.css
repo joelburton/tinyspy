@@ -53,6 +53,9 @@
    * over the hex's (square) BOUNDING BOX, which both looks wrong on a hexagon and
    * hides our own hex-shaped flash below. */
   -webkit-tap-highlight-color: transparent;
+  /* Spelling out a word is rapid taps around the hive — opt out of iOS Safari's
+   * double-tap-to-zoom + the residual tap delay so the taps stay crisp. */
+  touch-action: manipulation;
 }
 .hex:hover {
   filter: brightness(0.96);
