@@ -10,6 +10,10 @@ type Props = {
   /** A bumping counter that flashes this tile on click (0 = never clicked). Used
    *  as the flash overlay's `key`, so re-clicking the SAME tile replays it. */
   flashNonce: number
+  /** True once this tile's letter is already in the typed word. Word wheel uses
+   *  each tile ONCE per word, so a used tile is inert — dimmed, not focusable,
+   *  and clicks/keys do nothing. */
+  disabled?: boolean
 }
 
 /**
@@ -25,17 +29,18 @@ type Props = {
  * typed-word input (the next keystroke must still reach the input). SVG `<text>`
  * ignores `text-transform`, so we uppercase here.
  */
-export function Tile({ letter, isCenter, pos, onClick, flashNonce }: Props) {
+export function Tile({ letter, isCenter, pos, onClick, flashNonce, disabled }: Props) {
   const up = letter.toUpperCase()
   return (
     <g
-      className={cls(styles.tile, isCenter && styles.center)}
+      className={cls(styles.tile, isCenter && styles.center, disabled && styles.disabled)}
       role="button"
-      tabIndex={0}
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled || undefined}
       aria-label={isCenter ? `${up} (center letter)` : up}
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
           e.preventDefault()
           onClick()
         }

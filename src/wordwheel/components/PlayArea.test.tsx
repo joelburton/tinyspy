@@ -222,6 +222,29 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
     expect(screen.getByText(/missing center letter/i)).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
   })
+
+  it('disables a wheel tile once its letter is in the word (used-once rule)', async () => {
+    const user = userEvent.setup()
+    render(<PlayArea {...makeCtx()} />)
+    // Before typing: the 'B' tile + the centre 'E' tile are enabled.
+    expect(screen.getByRole('button', { name: 'B' })).not.toHaveAttribute('aria-disabled')
+    expect(screen.getByRole('button', { name: /E \(center letter\)/ })).not.toHaveAttribute(
+      'aria-disabled',
+    )
+    // Type 'be' → both used → both tiles disabled; an untyped tile ('C') stays enabled.
+    await user.keyboard('be')
+    expect(screen.getByRole('button', { name: 'B' })).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('button', { name: /E \(center letter\)/ })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
+    expect(screen.getByRole('button', { name: 'C' })).not.toHaveAttribute('aria-disabled')
+    // Backspace re-enables the freed tile.
+    await user.keyboard('{Backspace}') // removes 'e'
+    expect(screen.getByRole('button', { name: /E \(center letter\)/ })).not.toHaveAttribute(
+      'aria-disabled',
+    )
+  })
 })
 
 describe('wordwheel PlayArea — coop peer narration (global header)', () => {

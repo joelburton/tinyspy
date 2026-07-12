@@ -12,6 +12,9 @@ type Props = {
   /** Called when any letter is clicked. The caller appends the
    *  letter to the typed word. */
   onLetterClick: (letter: string) => void
+  /** Letters already in the typed word, lower-cased. A tile whose letter is in
+   *  here is disabled (used-once rule) — dimmed + inert. */
+  usedLetters: Set<string>
   /** A control floated over the wheel's top-right (the Shuffle button). Rendered
    *  inside the shrink-wrapped `.floatAnchor` around the svg, so it hugs the
    *  VISUAL wheel. Anchoring to the column instead would strand it at the
@@ -34,7 +37,7 @@ type Props = {
  * word (server validates on submit).
  */
 
-export function Wheel({ outerLetters, centerLetter, onLetterClick, floatingControl }: Props) {
+export function Wheel({ outerLetters, centerLetter, onLetterClick, usedLetters, floatingControl }: Props) {
   const letters = [centerLetter, ...outerLetters]
   // Which tile to flash on click + a bumping nonce so re-tapping the same tile
   // replays the flash (see Tile.tsx). Purely visual — doesn't gate the click.
@@ -55,6 +58,7 @@ export function Wheel({ outerLetters, centerLetter, onLetterClick, floatingContr
               isCenter={i === 0}
               pos={TILE_POSITIONS[i] ?? TILE_POSITIONS[0]}
               flashNonce={flash?.i === i ? flash.n : 0}
+              disabled={usedLetters.has(letter.toLowerCase())}
               onClick={() => {
                 setFlash((f) => ({ i, n: (f?.n ?? 0) + 1 }))
                 onLetterClick(letter)

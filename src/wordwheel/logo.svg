@@ -1,34 +1,113 @@
-<!-- wordwheel logo: the word wheel — a large saturated-red centre hub ringed by
-     eight warm-neutral outer tiles, on a rounded rect in a light warm ground. The
-     centre is the "used in every word" tile; the eight outer tiles ring it exactly
-     as the on-screen board does. Colours mirror theme.css (--wordwheel-accent /
-     -accent-edge for the centre, the warm tile ramp for the ring); SVG files can't
-     read CSS custom properties, so the hex values are inlined. Faint spokes tie the
-     hub to the ring so it reads as a wheel even at small sizes. -->
-<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="wordwheel" viewBox="0 0 2000 2000">
-  <rect x="30" y="30" width="1940" height="1940" rx="240" fill="#efe7d8" stroke="#b8ad97" stroke-width="60"/>
-  <!-- Spokes from hub to each outer tile (drawn under the tiles). -->
-  <g stroke="#c9bfa6" stroke-width="34" stroke-linecap="round">
-    <line x1="1000" y1="1000" x2="1000" y2="360"/>
-    <line x1="1000" y1="1000" x2="1452.5" y2="547.5"/>
-    <line x1="1000" y1="1000" x2="1640" y2="1000"/>
-    <line x1="1000" y1="1000" x2="1452.5" y2="1452.5"/>
-    <line x1="1000" y1="1000" x2="1000" y2="1640"/>
-    <line x1="1000" y1="1000" x2="547.5" y2="1452.5"/>
-    <line x1="1000" y1="1000" x2="360" y2="1000"/>
-    <line x1="1000" y1="1000" x2="547.5" y2="547.5"/>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- wordwheel logo: the word wheel, mirroring the on-screen board. A large
+     saturated-red centre tile ringed by eight warm-neutral outer tiles, each with
+     a thick gold border (the tile-5-border token) and each TANGENT to the centre +
+     its neighbours (the same tangency the board geometry uses). The tiles sit
+     directly on a dark rounded-rect card — no inner ground, matching the board's
+     no-tray look. Colours are inlined from the theme (tile-2 fill, tile-5-border
+     stroke, wordwheel-accent centre); SVG files can't read CSS custom properties.
+     (NOTE: XML comments must not contain a double hyphen, so token names here are
+     written without their leading dashes; a stray one makes the whole SVG invalid
+     XML and it silently fails to render as an img / ?url import.) -->
+
+<svg
+   role="img"
+   aria-label="wordwheel"
+   viewBox="0 0 2000 2000"
+   version="1.1"
+   id="svg9"
+   sodipodi:docname="logo.svg"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs9" />
+  <sodipodi:namedview
+     id="namedview9"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.104"
+     inkscape:cx="1000"
+     inkscape:cy="1000"
+     inkscape:window-width="1512"
+     inkscape:window-height="735"
+     inkscape:window-x="0"
+     inkscape:window-y="38"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg9" />
+  <rect
+     x="30"
+     y="30"
+     width="1940"
+     height="1940"
+     rx="240"
+     fill="#423829"
+     stroke="#2b2419"
+     stroke-width="30"
+     id="rect1"
+     style="fill:none" />
+  <!-- Eight outer tiles (warm neutral, thick gold border), clockwise from the top,
+       tangent to the centre + each other. -->
+  <g
+     fill="#f6efdf"
+     stroke="#d2b060"
+     stroke-width="79"
+     id="g8">
+    <circle
+       cx="1000"
+       cy="407"
+       r="227"
+       id="circle1" />
+    <circle
+       cx="1419"
+       cy="581"
+       r="227"
+       id="circle2" />
+    <circle
+       cx="1593"
+       cy="1000"
+       r="227"
+       id="circle3" />
+    <circle
+       cx="1419"
+       cy="1419"
+       r="227"
+       id="circle4" />
+    <circle
+       cx="1000"
+       cy="1593"
+       r="227"
+       id="circle5" />
+    <circle
+       cx="581"
+       cy="1419"
+       r="227"
+       id="circle6" />
+    <circle
+       cx="407"
+       cy="1000"
+       r="227"
+       id="circle7" />
+    <circle
+       cx="581"
+       cy="581"
+       r="227"
+       id="circle8" />
   </g>
-  <!-- Eight outer tiles (warm neutral), clockwise from the top. -->
-  <g fill="#f6f0e3" stroke="#b8ad97" stroke-width="26">
-    <circle cx="1000" cy="360" r="150"/>
-    <circle cx="1452.5" cy="547.5" r="150"/>
-    <circle cx="1640" cy="1000" r="150"/>
-    <circle cx="1452.5" cy="1452.5" r="150"/>
-    <circle cx="1000" cy="1640" r="150"/>
-    <circle cx="547.5" cy="1452.5" r="150"/>
-    <circle cx="360" cy="1000" r="150"/>
-    <circle cx="547.5" cy="547.5" r="150"/>
-  </g>
-  <!-- Centre hub (saturated red). -->
-  <circle cx="1000" cy="1000" r="300" fill="#d6494f" stroke="#9e2c31" stroke-width="34"/>
+  <!-- Centre hub (saturated red, same thick gold border), drawn last so it reads crisp. -->
+  <circle
+     cx="1000"
+     cy="1000"
+     r="366"
+     fill="#d6494f"
+     stroke="#d2b060"
+     stroke-width="79"
+     id="circle9" />
 </svg>

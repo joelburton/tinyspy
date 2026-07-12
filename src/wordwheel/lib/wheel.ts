@@ -18,20 +18,27 @@
 export const BOX_W = 300
 export const BOX_H = 300
 
-/** The centre tile's radius, in wheel units — deliberately bigger than an outer
- *  tile (≈1.4×) so the "used in every word" tile reads as the hub. */
-export const CENTER_R = 48
-/** Each outer tile's radius, in wheel units. Sized so adjacent outer tiles have a
- *  clean gap: at RING_R the eight tiles' centres are a chord ≈81 units apart, so a
- *  34-unit radius (68 diameter) leaves ≈13 units between neighbours. */
-export const OUTER_R = 34
-/** Distance from the wheel centre to each outer tile's centre. Chosen so the outer
- *  tiles clear the (larger) centre tile with a comfortable gap
- *  (RING_R − CENTER_R − OUTER_R ≈ 24 units) and the outermost edge (RING_R + OUTER_R
- *  = 140) sits inside the 150-unit half-box with a small margin. */
-const RING_R = 106
 /** How many outer tiles ring the centre. Word wheel has exactly eight. */
 const OUTER_COUNT = 8
+
+/** Distance from the wheel centre to each outer tile's centre. Chosen so the
+ *  outermost edge (RING_R + OUTER_R) sits inside the 150-unit half-box. */
+const RING_R = 105
+
+/**
+ * The tiles TOUCH — both each other and the centre. Two tangency conditions fix
+ * the radii from RING_R (no gaps, no guesswork):
+ *
+ *   • Adjacent outer tiles are tangent: their centres are a chord
+ *     2·RING_R·sin(π/8) apart, so touching means OUTER_R = RING_R·sin(π/8).
+ *   • Each outer tile is tangent to the centre tile: the centre-to-outer
+ *     distance is RING_R, so touching means CENTER_R = RING_R − OUTER_R.
+ *
+ * That makes the centre ≈1.6× an outer tile — the "used in every word" hub reads
+ * as the biggest tile while every tile kisses its neighbours + the hub.
+ */
+export const OUTER_R = RING_R * Math.sin(Math.PI / OUTER_COUNT)
+export const CENTER_R = RING_R - OUTER_R
 
 /**
  * Each tile's centre + radius, in RENDER order: index 0 is the (mandatory) centre

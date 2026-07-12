@@ -101,6 +101,10 @@ export function BoardCol({
     [clearLocalFeedback, onChange],
   )
 
+  // Letters already in the typed word (lower-cased). Each tile is used ONCE per
+  // word, so the wheel disables a tile once its letter appears here.
+  const usedLetters = useMemo(() => new Set(word.toLowerCase()), [word])
+
   // Space shuffles the outer letters — wordwheel's one capture-entry extra key (the
   // shared <EntryRow> owns the rest of the keyboard).
   const handleEntryExtraKey = useCallback(
@@ -121,6 +125,7 @@ export function BoardCol({
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
         onLetterClick={handleLetterClick}
+        usedLetters={usedLetters}
         // Shuffle floats over the wheel's top-right — a fresh visual scan of the
         // SAME board, not a turn action. Always clickable, even when locked (a
         // harmless rearrange). Passed into Wheel so it anchors to the visual
