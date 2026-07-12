@@ -1133,8 +1133,10 @@ as $$
 declare
   g_row wordwheel.games%rowtype;
   current_play_state text;
+  current_target_rank int;
   team_score int;
   team_found_words_count int;
+  status_leaderboard jsonb;
   player_results jsonb;
 begin
   select * into g_row from wordwheel.games
@@ -1190,19 +1192,28 @@ begin
       player_results
     );
   else
-    -- compete: leaderboard at timeout, no winner.
-    select jsonb_object_agg(
-             p.user_id::text,
+    -- compete: freeze the leaderboard at timeout, no winner. common.end_game
+    -- REPLACES status wholesale, so we must re-emit target_rank + the display
+    -- leaderboard the mid-game status carried — otherwise the club label reads
+    -- "no winner at Start" (target_rank ?? 0) and the terminal OpponentStrip
+    -- shows every player "Lost at Start" (empty leaderboard). Same array shape
+    -- as submit_word's win path.
+    select (setup->>'target_rank')::int into current_target_rank
+      from common.games where id = target_game;
+
+    select jsonb_agg(
              jsonb_build_object(
-               'won', false,                       -- timeout = no winner
+               'user_id', p.user_id,
                'found_words_score', p.found_words_score,
-               'rank_idx', wordwheel._rank_idx(p.found_words_score, g_row.required_words_score)
+               'rank_idx', wordwheel._rank_idx(p.found_words_score, g_row.required_words_score),
+               'found_words_count', p.found_words_count
              )
            )
-      into player_results
+      into status_leaderboard
       from (
         select gp.user_id,
-               coalesce(sum(fw.points), 0)::int as found_words_score
+               coalesce(sum(fw.points), 0)::int as found_words_score,
+               count(fw.word)::int as found_words_count
           from common.game_players gp
           left join wordwheel.found_words fw
                  on fw.game_id = target_game and fw.user_id = gp.user_id
@@ -1214,9 +1225,21 @@ begin
       target_game, 'ended',
       jsonb_build_object(
         'outcome', 'timeout',
-        'mode', 'compete'
+        'mode', 'compete',
+        'target_rank', current_target_rank,
+        'leaderboard', status_leaderboard
       ),
-      player_results
+      -- Re-key the display array into the per-player {won:false, score,
+      -- rank_idx} shape common.end_game expects (no winner at a timeout).
+      (select jsonb_object_agg(
+                (entry->>'user_id'),
+                jsonb_build_object(
+                  'won', false,
+                  'found_words_score', (entry->>'found_words_score')::int,
+                  'rank_idx', (entry->>'rank_idx')::int
+                )
+              )
+         from jsonb_array_elements(status_leaderboard) entry)
     );
   end if;
 
@@ -1269,8 +1292,10 @@ as $$
 declare
   g_row wordwheel.games%rowtype;
   current_play_state text;
+  current_target_rank int;
   team_score int;
   team_found_words_count int;
+  status_leaderboard jsonb;
   player_results jsonb;
 begin
   select * into g_row from wordwheel.games
@@ -1327,21 +1352,26 @@ begin
       player_results
     );
   else
-    -- compete: per-player aggregates, no winner (the players
-    -- agreed to stop). Same shape as submit_timeout's compete
-    -- branch.
-    select jsonb_object_agg(
-             p.user_id::text,
+    -- compete: per-player aggregates, no winner (the players agreed to stop).
+    -- Same shape as submit_timeout's compete branch — re-emit target_rank +
+    -- the display leaderboard so the terminal label + OpponentStrip don't fall
+    -- back to "Start" (common.end_game replaces status wholesale).
+    select (setup->>'target_rank')::int into current_target_rank
+      from common.games where id = target_game;
+
+    select jsonb_agg(
              jsonb_build_object(
-               'won', false,
+               'user_id', p.user_id,
                'found_words_score', p.found_words_score,
-               'rank_idx', wordwheel._rank_idx(p.found_words_score, g_row.required_words_score)
+               'rank_idx', wordwheel._rank_idx(p.found_words_score, g_row.required_words_score),
+               'found_words_count', p.found_words_count
              )
            )
-      into player_results
+      into status_leaderboard
       from (
         select gp.user_id,
-               coalesce(sum(fw.points), 0)::int as found_words_score
+               coalesce(sum(fw.points), 0)::int as found_words_score,
+               count(fw.word)::int as found_words_count
           from common.game_players gp
           left join wordwheel.found_words fw
                  on fw.game_id = target_game and fw.user_id = gp.user_id
@@ -1353,9 +1383,19 @@ begin
       target_game, 'ended',
       jsonb_build_object(
         'outcome', 'manual',
-        'mode', 'compete'
+        'mode', 'compete',
+        'target_rank', current_target_rank,
+        'leaderboard', status_leaderboard
       ),
-      player_results
+      (select jsonb_object_agg(
+                (entry->>'user_id'),
+                jsonb_build_object(
+                  'won', false,
+                  'found_words_score', (entry->>'found_words_score')::int,
+                  'rank_idx', (entry->>'rank_idx')::int
+                )
+              )
+         from jsonb_array_elements(status_leaderboard) entry)
     );
   end if;
 

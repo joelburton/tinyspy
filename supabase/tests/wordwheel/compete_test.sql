@@ -24,7 +24,7 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(20);
+select plan(23);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -207,6 +207,21 @@ select is(
   'compete submit_timeout: every player gets {won: false} (no winner on timer-out)'
 );
 
+-- The terminal status must still carry target_rank + the leaderboard array —
+-- common.end_game replaces status wholesale, so dropping them would make the
+-- club label read "no winner at Start" and the OpponentStrip "Lost at Start".
+select is(
+  (select (status->>'target_rank')::int from common.games where id = (select id from g_timeout)),
+  5,
+  'compete submit_timeout: status.target_rank survives (= 5, not the ?? 0 fallback)'
+);
+
+select is(
+  (select jsonb_array_length(status->'leaderboard') from common.games where id = (select id from g_timeout)),
+  2,
+  'compete submit_timeout: status.leaderboard is the per-player array (2 entries), not dropped'
+);
+
 -- ============================================================
 -- (13)–(14) end_game in compete — manual stop, no winner
 -- ============================================================
@@ -239,6 +254,12 @@ select is(
   ),
   2::bigint,
   'compete end_game: every player gets {won: false} (friends agreed to stop)'
+);
+
+select is(
+  (select (status->>'target_rank')::int from common.games where id = (select id from g_end)),
+  5,
+  'compete end_game: status.target_rank survives (= 5, not the ?? 0 fallback)'
 );
 
 -- ============================================================
