@@ -188,8 +188,9 @@ Signatures mirror wordwheel one-for-one except the board shape and the validated
     at face value (the edge fn computed it under the caller's JWT), structure is
     sanity-checked here.
   - Inserts `common.games` (gametype `'wordiply_' || mode`) + `wordiply.games`; seeds the
-    `status` jsonb (below). **Title formula:** `"<BASE> · best <N>"` e.g. `"AR · best 9"`
-    (base + best-possible length — identifies the board at a glance in the club list).
+    `status` jsonb (below). **Title = just the uppercased `<BASE>`** (e.g. `"AR"`) —
+    deliberately NOT `"<BASE> · best <N>"`: the club-page title shows before/during play,
+    and the longest-word length is secret until terminal, so it must not leak there.
 
 - **`wordiply.submit_guess(target_game uuid, word text) → jsonb`** — **trusting-commit**
   (wordwheel's `submit_word` twin; the FE already validated against the shipped legal list):

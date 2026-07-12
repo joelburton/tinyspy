@@ -419,7 +419,9 @@ grant execute on function wordiply.try_base(text, int, int, int, int) to authent
 -- Board content is taken at face value (the edge fn computed it under the
 -- caller's JWT); the RPC sanity-checks STRUCTURE.
 --
--- Title formula: "<BASE> · best <N>"  e.g.  "AR · best 9".
+-- Title formula: just "<BASE>" (uppercased) — e.g. "AR". Deliberately NOT
+-- "<BASE> · best <N>": the club-page title is visible before/during play, and
+-- the longest-word length is secret until terminal, so it must not leak here.
 create function wordiply.create_game(
   target_club text,
   setup jsonb,
@@ -502,7 +504,7 @@ begin
   end if;
 
   -- ─── Title ───────────────────────────────────────────────
-  game_title := upper(b_base) || ' · best ' || b_max_word_length;
+  game_title := upper(b_base);
 
   effective_gametype := 'wordiply_' || mode;
 

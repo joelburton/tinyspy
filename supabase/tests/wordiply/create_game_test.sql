@@ -4,8 +4,8 @@
 --
 -- A fork of wordwheel's create_game_test. Coverage:
 --   1. Coop happy path: ada creates a game; common.games + wordiply.games
---      rows materialize; mode='coop'; gametype 'wordiply_coop'; title
---      formula "<BASE> · best <N>"; is_current_view flips on; status seeded
+--      rows materialize; mode='coop'; gametype 'wordiply_coop'; title is
+--      just the uppercased base (no length leak); is_current_view flips on; status seeded
 --      with the coop shape {mode,base,max_word_length,guesses_used:0}.
 --   2. Compete happy path: mode='compete'; compete-shape status seeded
 --      (leaderboard with per-player guesses_used:0). NO target_rank.
@@ -85,11 +85,12 @@ select is(
   'wordiply.games.base carries the board base verbatim'
 );
 
--- Title formula: "<BASE> · best <N>"  (BASE uppercased).
+-- Title is just the uppercased base — NOT "<BASE> · best <N>", so the club
+-- page never leaks the secret longest-word length.
 select is(
   (select title from common.games where id = (select id from g)),
-  'AR · best 7',
-  'title formula: <BASE-UPPER> · best <max_word_length>'
+  'AR',
+  'title is just the uppercased base (no length leak)'
 );
 
 -- Coop status shape.
