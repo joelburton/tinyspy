@@ -138,7 +138,7 @@ SUPABASE_URL="https://${PROJECT_REF}.supabase.co"
 # Schemas to expose via the Data API. `public` + `graphql_public`
 # are Supabase defaults that we keep so other features that read
 # from them don't break.
-EXPOSED_SCHEMAS="public,graphql_public,common,codenamesduet,psychicnum,connections,spellingbee,wordwheel,bananagrams,waffle,wordle,stackdown,scrabble,boggle,crosswords"
+EXPOSED_SCHEMAS="public,graphql_public,common,codenamesduet,psychicnum,connections,spellingbee,wordwheel,bananagrams,waffle,wordle,stackdown,scrabble,boggle,crosswords,wordiply"
 
 # Extra search path. Strictly speaking we don't NEED this (every
 # common.* reference in our RLS and RPCs is fully qualified — see
@@ -568,9 +568,9 @@ echo
 # ════════════════════════════════════════════════════════════════
 # `supabase functions deploy` with no args pushes every function under
 # supabase/functions/ (codenamesduet-suggest-clue, define, and the
-# *-build-board generators for spellingbee, wordwheel, waffle, and boggle), so
-# new ones are picked up automatically — nothing to edit here when adding a
-# function. (define needs no extra secret: SUPABASE_URL / ANON /
+# *-build-board generators for spellingbee, wordwheel, waffle, boggle, and
+# wordiply), so new ones are picked up automatically — nothing to edit here
+# when adding a function. (define needs no extra secret: SUPABASE_URL / ANON /
 # SERVICE_ROLE keys are auto-injected by the Edge Runtime, and it
 # calls the public Wiktionary API with no key.)
 #
@@ -639,12 +639,14 @@ echo
 # gamelist working copy ~/src/gamelist/words.tsv — see import-words.ts; it
 # isn't vendored into this repo.)
 #
-# waffle, wordle, scrabble, and boggle have NO data import step — waffle
-# and boggle generate boards on demand via their edge functions, wordle
-# picks a random target from common.words at create-game time, and
-# scrabble's bag + board are constants in code. They just need their schema
-# migrated (step 2) and exposed (step 3). (boggle's edge function does need
-# its bundled wordlist asset, which step 6 regenerates before deploy.)
+# waffle, wordle, scrabble, boggle, and wordiply have NO data import step —
+# waffle, boggle, and wordiply generate boards on demand via their edge
+# functions (wordiply's picks a base + its word lists straight from
+# common.words at build time), wordle picks a random target from common.words
+# at create-game time, and scrabble's bag + board are constants in code. They
+# just need their schema migrated (step 2) and exposed (step 3). (boggle's edge
+# function does need its bundled wordlist asset, which step 6 regenerates
+# before deploy.)
 #
 # ORDER MATTERS: common.words is the shared master word list, and both the
 # spellingbee AND wordwheel pangram seeds are DERIVED from it — so the word
