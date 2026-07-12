@@ -279,7 +279,7 @@ export function BoardCol({
             localPill ? (
               // My own guess result — a centered local pill (sticky; a tile click
               // dismisses it). Same register as the header pill.
-              <div className={shared.localPill}>
+              <div className={shared.localFeedback}>
                 <GenericFeedbackPill msg={localPill} onClose={noop} />
               </div>
             ) : (
@@ -309,7 +309,7 @@ export function BoardCol({
           ) : (
             // Terminal / eliminated — a PERMANENT outcome pill at game over, or a
             // sticky "you're out" while the rest race on.
-            <div className={shared.localPill}>
+            <div className={shared.localFeedback}>
               <GenericFeedbackPill
                 msg={over ? terminalPill(over.tone, over.verdict) : outOfRacePill(myConceded)}
                 onClose={noop}
