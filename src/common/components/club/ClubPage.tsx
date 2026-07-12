@@ -763,17 +763,25 @@ export function ClubPage({ handle, session }: Props) {
         </h1>
       </div>
 
-      {/* Mobile-only tab switcher (phones + portrait tablets). On
+      {/* Mobile-only view switcher (phones + portrait tablets). On
           desktop this bar is display:none and both columns show side
           by side; below the breakpoint only the selected column
           renders, so the page still fits the viewport without
           scrolling. Labels are kept short + count-free — the section
-          headings (which carried the count) are hidden on mobile. */}
-      <div className={styles.tabs} role="tablist" aria-label="Games">
+          headings (which carried the count) are hidden on mobile.
+
+          These are two toggle BUTTONS (`aria-pressed`), NOT an ARIA tabs
+          pattern. `role="tab"` would promise the full tabs keyboard model —
+          a single tab-stop with arrow-key navigation between tabs, plus
+          `aria-controls`/`role="tabpanel"` wiring — which we don't implement
+          (this is a touch-first two-way switch; you tap it). `aria-pressed`
+          is the honest shape: two independent toggle buttons whose pressed
+          state says which view is showing. `role="group"` + a label ties
+          them together for assistive tech without over-claiming behavior. */}
+      <div className={styles.tabs} role="group" aria-label="Show new or completed games">
         <button
           type="button"
-          role="tab"
-          aria-selected={mobileTab === 'new'}
+          aria-pressed={mobileTab === 'new'}
           className={styles.tab}
           onClick={() => setMobileTab('new')}
         >
@@ -781,8 +789,7 @@ export function ClubPage({ handle, session }: Props) {
         </button>
         <button
           type="button"
-          role="tab"
-          aria-selected={mobileTab === 'completed'}
+          aria-pressed={mobileTab === 'completed'}
           className={styles.tab}
           onClick={() => setMobileTab('completed')}
         >

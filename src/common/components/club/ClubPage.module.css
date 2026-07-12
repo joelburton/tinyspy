@@ -183,14 +183,15 @@
     margin-inline: auto;
   }
 
-  /* Each tab shares the row evenly. The theme's base <button> rule
-   * already paints it accent + white — that IS the selected look, so
-   * we only override the UNselected tab back to the surface treatment. */
+  /* Each toggle shares the row evenly. The theme's base <button> rule
+   * already paints it accent + white — that IS the pressed (active-view)
+   * look, so we only override the UNpressed toggle back to the surface
+   * treatment. */
   .tab {
     flex: 1;
   }
 
-  .tab[aria-selected='false'] {
+  .tab[aria-pressed='false'] {
     background: var(--color-surface);
     border-color: var(--color-surface-border);
     color: var(--color-text);
