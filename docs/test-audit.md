@@ -138,7 +138,8 @@ The three that matter:
 
 1. **crosswords `submit_timeout`** — a live RPC (timed games exist) with zero
    coverage, in a game whose terminal logic (`_maybe_finish`, coop/compete win
-   helpers) is its most intricate part. Every sibling tests this.
+   helpers) is its most intricate part. Every sibling tests this. *(Now covered
+   — `crosswords/timeout_test.sql`; see recommendation #2.)*
 2. **wordiply RLS** — the newest game shipped without an `rls_test.sql`. Its
    `guesses_select` policy implements a real game rule (opponents' guess words
    hidden mid-game, lengths only), so a policy regression is a *gameplay* bug,
@@ -229,9 +230,12 @@ Ordered by (chance of silent breakage) × (blast radius) ÷ (cost to write):
    full subscription registry; catches missing *and* extra tables). The five
    older per-schema guards it subsumed were consolidated into it (two deleted,
    three trimmed).
-2. **`crosswords/timeout_test.sql`** — the only schema with an untested
+2. ~~**`crosswords/timeout_test.sql`** — the only schema with an untested
    `submit_timeout`, sitting on the most intricate terminal logic. Small file,
-   pattern exists in 12 siblings.
+   pattern exists in 12 siblings.~~ **DONE** — 19 assertions covering the coop
+   and compete timeout paths, the require_game_player gate, the crosswords-only
+   no-op idempotency (siblings throw; it returns silently), and the guard that a
+   racing timeout cannot clobber an already-recorded win.
 3. **`wordiply/rls_test.sql`** (and a smaller `stackdown/rls_test.sql`) — the
    mode-aware guess-visibility policy is a game rule with no test. Copy the
    wordwheel/spellingbee shape.
