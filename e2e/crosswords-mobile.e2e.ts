@@ -80,6 +80,29 @@ test.describe('crosswords mobile', () => {
       await page.waitForTimeout(300)
       expect((await sheet.boundingBox())!.x).toBeGreaterThanOrEqual(w - 5)
 
+      // Acting from inside the sheet auto-closes it, so the result lands on the
+      // now-visible grid + active-clue bar instead of behind the sheet (M4). The
+      // Check pill renders in the active-clue bar, which the full-width sheet
+      // otherwise covers. Reopen, tap "Check word" → the sheet slides back off.
+      const openSheet = async () => {
+        await page.getByRole('button', { name: 'Game menu' }).click()
+        await page.getByText('Game info', { exact: true }).click()
+        await page.waitForTimeout(300)
+        expect((await sheet.boundingBox())!.x).toBeLessThan(xClosed - 100)
+      }
+      await openSheet()
+      await page.getByRole('button', { name: 'Check word' }).click()
+      await page.waitForTimeout(300)
+      expect((await sheet.boundingBox())!.x).toBeGreaterThanOrEqual(w - 5)
+
+      // Tapping a clue in the sheet likewise closes it, so the moved cursor is
+      // visible on the grid (L12). Any clue works — even the active one routes
+      // through onClueClick → close.
+      await openSheet()
+      await sheet.locator('ol li').first().click()
+      await page.waitForTimeout(300)
+      expect((await sheet.boundingBox())!.x).toBeGreaterThanOrEqual(w - 5)
+
       // Keyboard entry still works (keyboard-required): click a cell, type.
       await page.locator('[data-xw-cell][data-row="0"][data-col="0"]').click()
       await page.keyboard.type('q')

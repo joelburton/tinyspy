@@ -95,6 +95,10 @@ export function PlayArea(ctx: GamePageCtx) {
   // tablet (or phone) WITH a keyboard, not a touch-entry mode. `wide`: the
   // Across|Down columns want the full device width, like the WordList games.
   const infoSheet = useInfoSheet()
+  // Stable alias for the callbacks below: `infoSheet.close` is a useCallback([])
+  // (never changes), but the object identity does (isOpen flips), so depending
+  // on the member keeps them from churning while satisfying exhaustive-deps.
+  const closeInfoSheet = infoSheet.close
 
   const [pencil, setPencil] = useState(false)
   const [rebus, setRebus] = useState<{ row: number; col: number } | null>(null)
@@ -296,8 +300,12 @@ export function PlayArea(ctx: GamePageCtx) {
       if (!grid) return
       const pos = findCellByNumber(grid, number)
       if (pos) setCursor({ row: pos.row, col: pos.col, dir: direction })
+      // Mobile: the clue lists live in the info sheet, which covers the grid —
+      // close it so the moved cursor (and the grid) are visible. No-op on
+      // desktop, where the sheet is never open (the lists show inline).
+      closeInfoSheet()
     },
-    [grid],
+    [grid, closeInfoSheet],
   )
 
   // Teammates' cursor cells + recently-filled cells → CSS colors for the Grid.
@@ -648,6 +656,11 @@ export function PlayArea(ctx: GamePageCtx) {
     async (scope: Scope) => {
       const target = scopeCells(scope)
       if (target.length === 0) return
+      // Mobile: Check is tapped from inside the full-width info sheet, which
+      // covers the grid AND the active-clue bar where the result pill renders —
+      // close it so the marked cells + the pill are actually visible. No-op on
+      // desktop (sheet never open) and when already closed (menu path).
+      closeInfoSheet()
       clearLocalFeedback()
       const { error } = await db.rpc('check_cells', { target_game: gameId, p_cells: target })
       if (error) {
@@ -664,13 +677,16 @@ export function PlayArea(ctx: GamePageCtx) {
       })
       if (skippedPencil) showLocalFeedback(PENCIL_SKIPPED_MSG)
     },
-    [scopeCells, gameId, cells, showLocalFeedback, clearLocalFeedback],
+    [scopeCells, gameId, cells, showLocalFeedback, clearLocalFeedback, closeInfoSheet],
   )
 
   const handleReveal = useCallback(
     async (scope: Scope) => {
       const target = scopeCells(scope)
       if (target.length === 0) return
+      // See handleCheck: close the covering sheet so the revealed cells (and any
+      // error pill) are visible. No-op on desktop / when already closed.
+      closeInfoSheet()
       clearLocalFeedback()
       const { error } = await db.rpc('reveal_cells', { target_game: gameId, p_cells: target })
       if (error) {
@@ -681,7 +697,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // CDC arrives colorless (like a typed fill), so it needs its own signal.
       broadcastFills(target)
     },
-    [scopeCells, gameId, showLocalFeedback, clearLocalFeedback, broadcastFills],
+    [scopeCells, gameId, showLocalFeedback, clearLocalFeedback, broadcastFills, closeInfoSheet],
   )
 
   // Keep the ⌥-shortcut action handlers current (read by the keyboard's kbRef
