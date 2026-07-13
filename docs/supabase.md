@@ -272,13 +272,19 @@ Related server-side subtleties:
   UPDATE touch on `games`** after deleting the child rows: the UPDATE
   event is what wakes clients to refetch the now-empty list. This is why
   those games subscribe to `games` at all.
-- Two published tables currently have **no subscriber**: `common.clubs`
-  and `crosswords.games` (crosswords' `clear_board` UPDATEs cells rather
-  than deleting them, so the cells subscription hears it directly and no
-  games-touch is needed). Harmless — the invariant only kills things in
-  the other direction — but see [recommendations](#recommendations).
-- Reference/seed tables (`common.profiles`, `wordwheel.pangrams`,
-  `crosswords.puzzles`, …) are deliberately unpublished.
+- **No published-but-unsubscribed tables remain.** `common.clubs` and
+  `crosswords.games` were both published without a subscriber (harmless —
+  the invariant only kills things in the other direction — but pure
+  replication overhead); the 2026-07-12 review pruned both. `crosswords`
+  now publishes only `cells` (its `clear_board` UPDATEs cells rather than
+  deleting them, so the cells subscription hears it directly — no
+  games-touch needed), and the four no-op `crosswords.games` "Realtime
+  touch" self-updates went with it. Membership is now pinned per-schema
+  by `tests/common/publication_test.sql` and
+  `tests/crosswords/publication_test.sql`.
+- Reference/seed tables (`common.profiles`, `common.clubs`,
+  `wordwheel.pangrams`, `crosswords.puzzles`, …) are deliberately
+  unpublished.
 
 ## RPCs
 
@@ -453,6 +459,15 @@ What the review's follow-up already shipped (2026-07-12):
   shared-word Broadcast is gone (selections are local; it's a plain
   `useRealtimeRefetch` Pattern-A hook now). `docs/games/stackdown.md` was
   already correct, so it needed no change.
+- **Subscriber-less publication entries pruned** (edited baseline
+  migrations): dropped `common.clubs` and `crosswords.games` from
+  `supabase_realtime` (both were published with no FE subscriber — pure
+  replication overhead) plus crosswords' four no-op `crosswords.games`
+  "Realtime touch" self-updates. Added per-schema membership guards
+  (`tests/common/publication_test.sql`,
+  `tests/crosswords/publication_test.sql`) that pin the load-bearing
+  tables published AND the pruned ones absent — common had no such guard
+  before. Verified with `db:reset` + `import` + `test:db` (1628 pass).
 
 ### Work plan — still open, in priority order
 
@@ -461,21 +476,7 @@ what's already been decided, and how to verify. None are urgent at
 friends-alpha scale now that the cap is raised. Delete each item (and
 update any doc text it references) as it lands.
 
-1. **Prune the subscriber-less publication entries.** Nothing subscribes
-   to `crosswords.games` (crosswords' `clear_board` UPDATEs cells, so the
-   cells subscription hears it — no games-touch needed, unlike the
-   found-words games' replay trick): remove its
-   `alter publication supabase_realtime add table crosswords.games` line
-   from `supabase/migrations/20260706000000_crosswords.sql` AND the
-   matching assertion in crosswords' `schema_test.sql`, then update this
-   doc's Realtime section (the "two published tables have no subscriber"
-   bullet). For `common.clubs` (also unsubscribed), keep it but add a
-   comment on the `add table` line in `20260615000000_common.sql` saying
-   it's held for future club-rename liveness — or prune it too if Joel
-   says rename-liveness isn't wanted. Verify with `npm run db:reset`
-   (edited baseline migrations — the alpha convention) + `npm run import`
-   + `npm run test:db`.
-2. **(Cosmetic, someday)** Rename codenamesduet's channel prefixes
+1. **(Cosmetic, someday)** Rename codenamesduet's channel prefixes
    (`channelPrefix` in its `useGame` / `useBoard` / `useClues`) from
    `game`/`board`/`clues` to `codenamesduet`-prefixed names matching the
    `<gametype>:` convention, and update the channel registry table above.

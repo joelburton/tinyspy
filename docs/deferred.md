@@ -71,9 +71,9 @@ home for crosswords deferrals — ⌥M, `fetch-nyt-range`, NYT dedup, the **libr
 picker bound before the bulk puzzle import** (2026-07-12 supabase review — the
 `SetupForm` library `select` is unbounded; do it *with* the import since >10k
 puzzles needs a real picker UI anyway), the scratchpad lock races (C3b/C3c), the
-standing schema/migration flags (vestigial `'nyt'` constraint, dead
-`crosswords.games` realtime touches, half-frozen terminal cursor), and the known
-unpinned tests.
+standing schema/migration flags (vestigial `'nyt'` constraint, half-frozen
+terminal cursor), and the known unpinned tests. *(The dead `crosswords.games`
+realtime wiring was pruned in the 2026-07-12 supabase review — no longer open.)*
 
 ## Wordlist markers (spellingbee + boggle)
 

@@ -174,12 +174,13 @@ create trigger cells_bump_version
   execute function crosswords._bump_cell_version();
 
 -- Realtime: the FE subscribes to the cells (fills) via useCells. It does NOT
--- currently subscribe to crosswords.games — useGame is a one-shot fetch and
--- status flows through common.games (useCommonGame). The crosswords.games entry
--- here + the four "Realtime touch" self-updates below are therefore latent
--- no-ops today; kept as ready-made wiring if the FE ever needs to react to a
--- crosswords.games change. (Missing this line would fail silently — no events.)
-alter publication supabase_realtime add table crosswords.games;
+-- subscribe to crosswords.games — useGame is a one-shot fetch and status flows
+-- through common.games (useCommonGame). So crosswords.games is deliberately
+-- UNpublished (and the terminal RPCs carry no "Realtime touch" self-update):
+-- there is no subscriber to wake. If a future feature needs the FE to react to
+-- a crosswords.games change, re-add the publication line here AND a touch in the
+-- writing RPC — a subscription to an unpublished table fails silently.
+-- Publication membership is pinned by tests/crosswords/publication_test.sql.
 alter publication supabase_realtime add table crosswords.cells;
 
 -- ── Gametype registration ─────────────────────────────────────────────
@@ -293,11 +294,6 @@ begin
     jsonb_build_object('mode', 'coop', 'outcome', 'solved'),
     v_results
   );
-  -- Realtime touch: common.end_game writes common.games, not our table; a
-  -- no-op self-update would wake any FE subscriber of crosswords.games. NB:
-  -- there is no such subscriber today (see the publication note above), so this
-  -- is currently latent — kept for symmetry with the other terminal RPCs.
-  update crosswords.games set club_handle = club_handle where id = target_game;
 end;
 $$;
 revoke execute on function crosswords._finish_coop_won(uuid) from public;
@@ -326,7 +322,6 @@ begin
     ),
     v_results
   );
-  update crosswords.games set club_handle = club_handle where id = target_game;
 end;
 $$;
 revoke execute on function crosswords._finish_compete_won(uuid, uuid) from public;
@@ -922,7 +917,6 @@ begin
     jsonb_build_object('mode', 'coop', 'outcome', 'finished'),
     v_results
   );
-  update crosswords.games set club_handle = club_handle where id = target_game;
 end;
 $$;
 revoke execute on function crosswords.end_game(uuid) from public;
@@ -978,7 +972,6 @@ begin
     jsonb_build_object('mode', v_mode, 'outcome', 'timeout'),
     v_results
   );
-  update crosswords.games set club_handle = club_handle where id = target_game;
 end;
 $$;
 revoke execute on function crosswords.submit_timeout(uuid) from public;

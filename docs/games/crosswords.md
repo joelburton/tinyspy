@@ -405,11 +405,14 @@ future cleanup pass:
   writes `'nyt'` anymore (NYT games are self-contained — no `puzzles` row; the CLI
   only writes `'library'`). A harmless spare; drop it from the constraint if you want
   the schema to state the truth (a schema change, hence not done as a comment fix).
-- **Dead `crosswords.games` Realtime wiring.** The migration publishes
-  `crosswords.games` + does four no-op "Realtime touch" self-updates in the terminal
-  RPCs to wake FE subscribers — but nothing subscribes (`useGame` is one-shot; status
-  flows through `common.games`). Latent no-ops; drop the touches + the publication
-  line to lean the migration, or keep them as ready-made wiring.
+- ~~**Dead `crosswords.games` Realtime wiring.**~~ **Resolved (2026-07-12 supabase
+  review).** `crosswords.games` was published + touched by four no-op "Realtime touch"
+  self-updates in the terminal RPCs to wake FE subscribers that never existed (`useGame`
+  is one-shot; status flows through `common.games`). Both the publication line and the
+  four touches were removed to lean the migration; `crosswords` now publishes only
+  `cells`. Re-add both together (publication line + a writing-RPC touch) if a feature
+  ever needs the FE to react to a `crosswords.games` change. Membership is pinned by
+  `tests/crosswords/publication_test.sql`.
 - **Terminal cursor navigation is half-frozen.** At terminal the keyboard is disabled
   but a mouse click still moves the cursor (`onCellClick` isn't gated on
   `isPlayable`). Inconsistent, not a bug — decide fully-freeze vs fully-allow

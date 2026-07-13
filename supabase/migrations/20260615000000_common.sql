@@ -769,8 +769,7 @@ grant execute on function common.set_scratchpad(uuid, uuid, text) to authenticat
 -- ============================================================
 -- Realtime publication
 -- ============================================================
--- Five tables broadcast so the FE can subscribe to:
---   - clubs              new club created / renamed
+-- Four tables broadcast so the FE can subscribe to:
 --   - clubs_members      roster changes (deferred to v2 but free)
 --   - messages           chat
 --   - games              new games appear; status, play_state,
@@ -781,6 +780,11 @@ grant execute on function common.set_scratchpad(uuid, uuid, text) to authenticat
 --   - game_players       end-of-game `result` writes trigger
 --                        per-player outcome rendering
 --
+-- clubs is deliberately NOT published — nothing subscribes to it. It was
+-- published for a hypothetical club-rename-liveness feature that never
+-- shipped; a published-but-unsubscribed table is pure replication overhead.
+-- If live club renames land later, re-add it here (and subscribe).
+--
 -- Profiles is deliberately NOT in the publication — usernames
 -- don't change during a session and the realtime traffic isn't
 -- worth it. If usernames become mutable later, add it then.
@@ -789,8 +793,9 @@ grant execute on function common.set_scratchpad(uuid, uuid, text) to authenticat
 -- they only change at club creation (already handled by the
 -- ClubPage refetch on navigation) and at gametype registration
 -- (a deploy-time event).
+--
+-- Membership is pinned by tests/common/publication_test.sql.
 
-alter publication supabase_realtime add table common.clubs;
 alter publication supabase_realtime add table common.clubs_members;
 alter publication supabase_realtime add table common.messages;
 alter publication supabase_realtime add table common.games;
