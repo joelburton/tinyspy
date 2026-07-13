@@ -13,10 +13,6 @@ links to:
 | Per-game schema details | [games/*.md](games/) |
 | Test patterns for all of this (pgTAP + Vitest + the e2e gates) | [testing.md](testing.md) |
 
-A dated review of the whole surface (2026-07-12) closes the doc:
-[what the review verified](#what-the-2026-07-12-review-verified) and
-[recommendations](#recommendations).
-
 ## The client
 
 One typed client for the whole app —
@@ -62,19 +58,19 @@ Two operational invariants ride on this:
 - **`max_rows = 10000`** (config.toml): PostgREST silently caps every
   response at this many rows. It's a backstop against a missing-filter
   bug fetching a whole seed table, not a license to skip `.limit()` —
-  see [Query bounds](#query-bounds-and-the-max_rows-trap). Raised from
-  the 1000 default in 2026-07 after the cap silently truncated the
-  connections puzzle picker. Two gotchas (both in the config.toml
-  comment): applied only at `supabase stop && supabase start`, and the
-  hosted project's Max Rows is a separate dashboard setting to keep in
-  sync.
+  see [Query bounds](#query-bounds-and-the-max_rows-trap). Set above the
+  1000 default so the connections puzzle picker (1122 dated rows) isn't
+  truncated and every legitimately-growing query has years of headroom.
+  Two gotchas (both in the config.toml comment): applied only at
+  `supabase stop && supabase start`, and the hosted project's Max Rows is
+  a separate dashboard setting to keep in sync.
 
 ## Query conventions
 
 ### Explicit columns, always
 
 Every `.select()` in the app lists its columns by name; there is no
-`select('*')` anywhere (verified in the 2026-07-12 review). The consuming
+`select('*')` anywhere. The consuming
 hook usually narrows the row with a TypeScript `Pick`-style type right next
 to the query. This is what makes schema evolution safe: adding a column
 can't silently fatten every payload, and removing one fails loudly at the
@@ -122,17 +118,18 @@ worse than it sounds because of ordering:
 > rows you wanted. A descending-ordered one degrades gracefully (you lose
 > the oldest). An *unordered* one returns an unspecified subset.
 
-The 2026-07 raise of `max_rows` to 10,000 pushed the cliff years out for
-all of these, but the cliff still exists — a busy club (a couple dozen
-quick games a day is realistic) accumulates games, chat, and lifetime
-seats faster than "per year" intuitions suggest:
+The `max_rows` cap of 10,000 keeps the cliff years out for all of these,
+but the cliff still exists — a busy club (a couple dozen quick games a day
+is realistic) accumulates games, chat, and lifetime seats faster than
+"per year" intuitions suggest. Every unbounded query is now bounded by an
+explicit mechanism:
 
-| query | order | at >cap rows | status |
+| query | order | bound | status |
 |---|---|---|---|
-| `useClubChat` messages (`useClubChat.ts`) | `sent_at` **asc** | can't happen — bounded by a 7-day recency window (`.gte('sent_at', cutoff)`, cutoff computed once per subscription) | **bounded** ✓ (a recency window, not a row limit — the window matches how chat is read) |
-| `useGameInvitations` (`game_players` for self) | n/a | can't happen — one `!inner` embed filtered to `is_terminal = false`, so the row set is my *active* games (a handful), not every seat I've ever held | **bounded** ✓ (collapsed two queries into one inner-join embed) |
-| ClubPage games list | `last_active_at` **desc** | can't hit the cap — explicit `.limit(200)`; overflow drops the oldest games (deliberate, commented) | **bounded** ✓ |
-| `makeFoundWordsGame` / boggle / wordiply child rows | `found_at` asc | can't realistically happen (human-bounded) | note the pattern, no action |
+| `useClubChat` messages (`useClubChat.ts`) | `sent_at` **asc** | a 7-day recency window (`.gte('sent_at', cutoff)`, cutoff computed once per subscription) | **bounded** ✓ (a recency window, not a row limit — the window matches how chat is read) |
+| `useGameInvitations` (`game_players` for self) | n/a | one `!inner` embed filtered to `is_terminal = false`, so the row set is my *active* games (a handful), not every seat I've ever held | **bounded** ✓ |
+| ClubPage games list | `last_active_at` **desc** | explicit `.limit(200)`; overflow drops the oldest games (deliberate, commented) | **bounded** ✓ |
+| `makeFoundWordsGame` / boggle / wordiply child rows | `found_at` asc | human-bounded (nobody finds thousands of words in one game) | note the pattern, no action |
 
 ### The flip side: reads that legitimately NEED >1000 rows
 
@@ -158,7 +155,7 @@ read of a seed/library table:
 - **Stay in SQL** — do the heavy read inside an RPC (or via `psql` for
   CLIs), where `max_rows` doesn't exist.
 
-The inventory (row counts from a freshly-imported 2026-07 dev DB):
+The inventory (row counts from a freshly-imported dev DB):
 
 | reader | table (rows) | mechanism | capped? |
 |---|---|---|---|
@@ -169,12 +166,9 @@ The inventory (row counts from a freshly-imported 2026-07 dev DB):
 | boggle-build-board | — | dictionary **bundled** in the fn (`dict.ts`); no fetch | no ✓ |
 | stackdown `create_game` board pick | `stackdown.boards` (1.2k) | `order by random() limit 1` inside the RPC | no ✓ |
 | import CLIs (`npm run import`) | everything | direct Postgres (`psql \copy`), not PostgREST | no ✓ |
-| connections SetupForm puzzle picker | `connections.puzzles` (**1122** NYT-dated) | plain select, no limit | **was truncating at the old 1000 cap** (oldest ~122 dates silently absent from the calendar) — the 2026-07 raise to 10k fixed it; needs a paging loop if the library ever nears 10k. A min/max-dates shortcut does NOT work here: the import skips unusable puzzles (image-word days), so dates are sparse, and the calendar needs per-date statuses anyway |
+| connections SetupForm puzzle picker | `connections.puzzles` (**1122** NYT-dated) | plain select, no limit | fits under the 10k cap (1122 rows); needs a paging loop if the library ever nears 10k. A min/max-dates shortcut does NOT work here: the import skips unusable puzzles (image-word days), so dates are sparse, and the calendar needs per-date statuses anyway |
 | connections SetupForm `club_game_status` | grows with the club's games per mode | plain select | headroom to 10k; a club playing daily takes decades, but watch it if clubs binge one mode |
-| crosswords SetupForm library list | `crosswords.puzzles` (3 today; the planned dictionary-puzzle import will be **large**) | plain select | fine until that import — give it a paging loop (or a limit + real picker UI, which >10k puzzles needs regardless) **before** importing in bulk |
-
-Recommendations for the flagged rows are in the
-[closing section](#recommendations).
+| crosswords SetupForm library list | `crosswords.puzzles` (3 today; the planned dictionary-puzzle import will be **large**) | plain select | fine until that import — give it a paging loop (or a limit + real picker UI, which >10k puzzles needs regardless) **before** importing in bulk (deferred: [crosswords.md §9](games/crosswords.md#9-deferred--future)) |
 
 ## Realtime
 
@@ -186,7 +180,9 @@ Every channel in the app, in one place. The naming pattern is
 **stable names** are used iff peers must share the room (presence rosters
 and broadcasts are per-channel-name), **UUID-suffixed names** (via
 `channelDedupSuffix()`) everywhere else, to sidestep supabase-js's
-name-cache + StrictMode double-mount collision.
+name-cache + StrictMode double-mount collision. Every CDC subscription is
+filtered (`id=eq` / `game_id=eq` / `club_handle=eq` / `user_id=eq`) — none
+is broader than the rows the hook consumes.
 
 | channel | opened by | stable? | carries |
 |---|---|---|---|
@@ -218,10 +214,9 @@ the short version, with every current member:
    The default. Initial load + refetch on every CDC event + refetch on
    every SUBSCRIBED (reconnect catch-up), with a generation counter so a
    slow superseded load can't clobber a newer one. Members: codenamesduet
-   (×3 hooks), psychicnum, wordle, **stackdown**, scrabble (data side),
+   (×3 hooks), psychicnum, wordle, stackdown, scrabble (data side),
    waffle, bananagrams (×2 hooks), boggle, wordiply, the
-   spellingbee/wordwheel factory, HomePage. *(stackdown moved here when
-   shared-word Broadcast was removed — its selections are now local.)*
+   spellingbee/wordwheel factory, HomePage.
 2. **Pattern B — broadcast/presence-coupled, hand-rolled, stable name.**
    `useCommonGame`, connections `useGame`, `useScratchpad`,
    `useClubPresence`, `useClubSetupPresence`, `usePeerCursors`,
@@ -254,12 +249,11 @@ Three cooperating pieces:
 ### The publication invariant (load-bearing)
 
 **Every table a channel subscribes to via `postgres_changes` must be in
-the `supabase_realtime` publication.** The current Realtime server rejects
-the channel's *entire* subscription if any one bound table is unpublished —
-live updates silently die for all tables on that channel. This bit
-spellingbee and wordwheel once; each game's `schema_test.sql` now pins its
-publication membership, and each game's migration adds its tables at the
-bottom of the file.
+the `supabase_realtime` publication.** The Realtime server rejects the
+channel's *entire* subscription if any one bound table is unpublished —
+live updates silently die for all tables on that channel, with no error.
+Each game's `schema_test.sql` pins its publication membership, and each
+game's migration adds its tables at the bottom of the file.
 
 Related server-side subtleties:
 
@@ -272,16 +266,16 @@ Related server-side subtleties:
   UPDATE touch on `games`** after deleting the child rows: the UPDATE
   event is what wakes clients to refetch the now-empty list. This is why
   those games subscribe to `games` at all.
-- **No published-but-unsubscribed tables remain.** `common.clubs` and
-  `crosswords.games` were both published without a subscriber (harmless —
-  the invariant only kills things in the other direction — but pure
-  replication overhead); the 2026-07-12 review pruned both. `crosswords`
-  now publishes only `cells` (its `clear_board` UPDATEs cells rather than
-  deleting them, so the cells subscription hears it directly — no
-  games-touch needed), and the four no-op `crosswords.games` "Realtime
-  touch" self-updates went with it. Membership is now pinned per-schema
-  by `tests/common/publication_test.sql` and
-  `tests/crosswords/publication_test.sql`.
+- **Nothing is published without a subscriber.** A published-but-unread
+  table is harmless (the invariant only kills things in the other
+  direction) but pure replication overhead, so the publication is kept
+  minimal. `crosswords` publishes only `cells` — its `clear_board` UPDATEs
+  cells rather than deleting them, so the cells subscription hears it
+  directly, and `crosswords.games` is unpublished (`useGame` is one-shot;
+  status flows through `common.games`). Publication membership is pinned
+  per-schema by `tests/common/publication_test.sql` and
+  `tests/crosswords/publication_test.sql` (both directions: the
+  load-bearing tables published, the deliberately-absent ones absent).
 - Reference/seed tables (`common.profiles`, `common.clubs`,
   `wordwheel.pangrams`, `crosswords.puzzles`, …) are deliberately
   unpublished.
@@ -302,10 +296,9 @@ Server-side conventions
   (`set_current_view`, `tick_timer`);
   errcode `42501` for authz failures, `P0001` for validation.
 - **Every mid-game mutation locks the game row** (`select … for update`)
-  to serialize concurrent moves — verified across all games in the
-  2026-07-12 review (codenamesduet, psychicnum, connections, waffle ×4,
-  bananagrams ×3, scrabble ×3, …). scrabble adds a `base_version`
-  optimistic-concurrency check on top.
+  to serialize concurrent moves — across all games (codenamesduet,
+  psychicnum, connections, waffle ×4, bananagrams ×3, scrabble ×3, …).
+  scrabble adds a `base_version` optimistic-concurrency check on top.
 - **Duplicate-write discipline:** state-transitioning RPCs update both the
   per-game row and the `common.games` header (`common.update_state` /
   `common.end_game`) in one transaction, so the club list's labels and
@@ -391,98 +384,13 @@ All of these are commented at the site; this table is the index.
 | Stable-name temp channel | ClubPage delete-current-game broadcast | borrows `useCommonGame`'s room name to reach peers, send-only, ~1s lifetime |
 | FE-side owner filter on CDC | crosswords `useCells` | compete privacy: CDC payload carries other owners' cells; dropped before apply |
 
-## What the 2026-07-12 review verified
+## Bounds & realtime work — where it's tracked
 
-A full pass over every query, subscription, RPC, policy, and edge function
-(the audit behind this doc) found the surface **clean** on the big-ticket
-items:
+This doc describes the current surface. Deferred bounds/realtime items
+(e.g. the crosswords library-picker bound, owed before the bulk
+dictionary-puzzle import) live in [deferred.md](deferred.md) and the
+per-game deferred registers ([crosswords.md §9](games/crosswords.md#9-deferred--future)).
 
-- No `select('*')` anywhere; every query's columns match what the consumer
-  reads. No N+1 shapes, no duplicate subscriptions to the same table.
-- Every CDC subscription is filtered (`id=eq` / `game_id=eq` /
-  `club_handle=eq` / `user_id=eq`); none broader than needed.
-- FE subscriptions ⊆ publication: every subscribed table is published
-  (the load-bearing direction of the invariant), pinned per-game by
-  `schema_test.sql`.
-- Every mid-game mutation RPC takes `FOR UPDATE` on the game row.
-- Column-grant shielding is in place for every hidden-solution game;
-  no edge function holds more privilege than its caller.
-- Known-and-commented soft spots stand as documented: swallowed
-  `set_current_view`/`unset_current_view` errors (friends-alpha tradeoff,
-  self-healing on reconnect) and `useSession`'s over-permissive
-  profile-probe failure path.
-
-## Recommendations
-
-What the review's follow-up already shipped (2026-07-12):
-
-- **`max_rows` raised 1000 → 10,000** (config.toml, with the
-  restart-to-apply + keep-hosted-in-sync gotchas commented). This
-  un-truncates the connections puzzle picker (1122 rows, previously
-  capped at 1000 with the oldest ~122 dates silently missing) and gives
-  every legitimately-growing query years of headroom. **Not applied to a
-  running local stack until `supabase stop && supabase start`** — if the
-  picker still shows 1000 dates, that's why. The paging loops are correct
-  either way.
-- **The three build-board paging loops made cap-agnostic** (waffle /
-  spellingbee / wordwheel): advance by rows received, stop on empty page,
-  `PAGE_SIZE` 10k — see
-  [the flip side](#the-flip-side-reads-that-legitimately-need-1000-rows)
-  for why the old short-page termination was a config-drift footgun.
-  waffle's loop also gained the previously-missing stable `.order()`
-  (unordered `.range()` windows can skip/double-count rows across pages).
-- **Chat bounded by a 7-day recency window** (`useClubChat.ts`): the
-  `load()` query gained `.gte('sent_at', cutoff)`, with `cutoff` computed
-  once per subscription so a mid-session refetch can't shrink the window
-  under the user. A recency window (not `order desc + limit`) because a
-  row count is an implementation detail that would leak into the UX; the
-  window matches how club chat is actually read. Live INSERTs still append
-  past the window during the session; the existing `messages
-  (club_handle, sent_at)` index serves the filter (no migration).
-- **Invitations collapsed to one bounded query** (`useGameInvitations.ts`):
-  the old shape fetched *every* `game_players` seat I've ever held
-  (unordered → nondeterministic truncation at the cap) then filtered to
-  non-terminal games. Now a single `game_players` select with a
-  `games!inner(...)` embed and `.eq('games.is_terminal', false)` bounds the
-  result to my active games. The generated types accepted the embed and a
-  live PostgREST probe confirmed the FK resolves; downstream dedupe/seen
-  logic is unchanged.
-- **ClubPage games list bounded** (`ClubPage.tsx` `loadGames()`): added
-  `.limit(200)` under the `last_active_at desc` order. Overflow is
-  deliberate and commented — descending order drops the oldest games, and
-  the current game (always recently-active) is never cut.
-- **Stale stackdown Pattern-B references cleaned up** (docs-only): dropped
-  the stackdown bullet from
-  [code-conventions.md → Pattern B](code-conventions.md#pattern-b--broadcast-coupled-hand-rolled-single-stable-name-channel)'s
-  example list and reworded CLAUDE.md's roster line — stackdown's
-  shared-word Broadcast is gone (selections are local; it's a plain
-  `useRealtimeRefetch` Pattern-A hook now). `docs/games/stackdown.md` was
-  already correct, so it needed no change.
-- **Subscriber-less publication entries pruned** (edited baseline
-  migrations): dropped `common.clubs` and `crosswords.games` from
-  `supabase_realtime` (both were published with no FE subscriber — pure
-  replication overhead) plus crosswords' four no-op `crosswords.games`
-  "Realtime touch" self-updates. Added per-schema membership guards
-  (`tests/common/publication_test.sql`,
-  `tests/crosswords/publication_test.sql`) that pin the load-bearing
-  tables published AND the pruned ones absent — common had no such guard
-  before. Verified with `db:reset` + `import` + `test:db` (1628 pass).
-- **codenamesduet channel prefixes renamed** (`useGame` / `useBoard` /
-  `useClues`): `game`/`board`/`clues` → `codenamesduet:game`/`:board`/`:clues`,
-  concern-keyed under the gametype like `crosswords:cells`/`:cursors`.
-  Updated the channel registry + folded the old "generic prefixes"
-  divergence row into the existing "three data hooks" one (the naming is
-  no longer a divergence). Zero functional impact — per-tab UUID-suffixed
-  rooms never collide across prefixes.
-
-### Work plan — all items landed
-
-Every item the 2026-07-12 review raised has shipped (see the list above);
-one — the crosswords library-picker bound — was deliberately **deferred**
-(it belongs with the future bulk puzzle import), now recorded in
-[deferred.md](deferred.md) and [crosswords.md §9](games/crosswords.md#9-deferred--future).
-When a new bounds/realtime finding surfaces, add it back here.
-
-Gates for any future code items: `npx tsc -b` (NOT `tsc --noEmit` — the
+Gates for any code change here: `npx tsc -b` (NOT `tsc --noEmit` — the
 root tsconfig checks nothing), `npm test`, and `npm run test:db` for
 migration changes.
