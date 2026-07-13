@@ -129,7 +129,7 @@ seats faster than "per year" intuitions suggest:
 
 | query | order | at >cap rows | status |
 |---|---|---|---|
-| `useClubChat` messages (`useClubChat.ts`) | `sent_at` **asc** | fresh load shows the oldest rows; the newest history is silently missing (live INSERTs still append during the session) | should get a real bound — chat wants "recent-ish" semantics anyway (see [recommendations](#recommendations)) |
+| `useClubChat` messages (`useClubChat.ts`) | `sent_at` **asc** | can't happen — bounded by a 7-day recency window (`.gte('sent_at', cutoff)`, cutoff computed once per subscription) | **bounded** ✓ (a recency window, not a row limit — the window matches how chat is read) |
 | `useGameInvitations` first query (`game_players` for self) | **none** | which rows come back is unspecified → a fresh invite can be missed nondeterministically | worth an explicit bound / one-query rewrite |
 | ClubPage games list | `last_active_at` **desc** | oldest games silently vanish from the list | graceful direction, but deserves an explicit limit |
 | `makeFoundWordsGame` / boggle / wordiply child rows | `found_at` asc | can't realistically happen (human-bounded) | note the pattern, no action |
@@ -427,6 +427,14 @@ What the review's follow-up already shipped (2026-07-12):
   for why the old short-page termination was a config-drift footgun.
   waffle's loop also gained the previously-missing stable `.order()`
   (unordered `.range()` windows can skip/double-count rows across pages).
+- **Chat bounded by a 7-day recency window** (`useClubChat.ts`): the
+  `load()` query gained `.gte('sent_at', cutoff)`, with `cutoff` computed
+  once per subscription so a mid-session refetch can't shrink the window
+  under the user. A recency window (not `order desc + limit`) because a
+  row count is an implementation detail that would leak into the UX; the
+  window matches how club chat is actually read. Live INSERTs still append
+  past the window during the session; the existing `messages
+  (club_handle, sent_at)` index serves the filter (no migration).
 
 ### Work plan — still open, in priority order
 
@@ -435,27 +443,7 @@ what's already been decided, and how to verify. None are urgent at
 friends-alpha scale now that the cap is raised. Delete each item (and
 update any doc text it references) as it lands.
 
-1. **Chat: recency window, not a row limit** — `useClubChat.ts` `load()`.
-   **Decided:** filter by date (`sent_at >= now − 7 days`), NOT
-   `order desc + limit` — the window matches how club chat is read, and
-   a row count is an implementation detail leaking into UX.
-   Implementation notes:
-   - Compute the cutoff **once at effect start** (a `const` inside the
-     `subscribeToClubMessages` effect, before `load` is defined) so every
-     refetch in a session uses the same stable window — recomputing per
-     refetch would make day-old messages visibly evaporate mid-session.
-   - Add `.gte('sent_at', cutoff)` to the existing query; keep the
-     ascending order (no reverse step needed).
-   - The composite index `messages (club_handle, sent_at)` already
-     serves this filter; no migration needed.
-   - The merge-on-refetch rule (`mergeSnapshot`) already tolerates a
-     partial snapshot; the INSERT-append path is unaffected, as is
-     `useChatFeedback`'s rows-loaded seeding.
-   - Update `useClubChat.test.ts` if any test seeds messages older than
-     the window; add one test pinning "older-than-window messages are
-     not loaded."
-   - Then update this doc's bounds table row for chat.
-2. **Invitations: one bounded query** — `useGameInvitations.ts` `load()`.
+1. **Invitations: one bounded query** — `useGameInvitations.ts` `load()`.
    Today: query 1 fetches `game_id` of every `game_players` row the user
    has *ever* had (unordered — nondeterministic truncation at the cap),
    query 2 filters those ids to non-terminal games. Collapse into one
@@ -467,12 +455,12 @@ update any doc text it references) as it lands.
    making query 1 `order('game_id') + limit` — bounded and deterministic,
    just not minimal. Covered by `useGameInvitations.test.ts` (mocks will
    need the new query shape).
-3. **ClubPage games list: explicit limit** — `ClubPage.tsx` `loadGames()`
+2. **ClubPage games list: explicit limit** — `ClubPage.tsx` `loadGames()`
    (the `last_active_at desc` query). Add `.limit(200)` (value is a
    judgment call — the list UI shows everything it gets, so pick what a
    listing should reasonably show; desc order means overflow drops the
    oldest). Add a one-line comment that overflow is deliberate.
-4. **Crosswords library picker: bound before the bulk import** —
+3. **Crosswords library picker: bound before the bulk import** —
    `src/crosswords/components/SetupForm.tsx` (the `source = 'library'`
    query). Blocked-ish: the planned dictionary-puzzle import will push
    `crosswords.puzzles` past any cap, but >10k puzzles needs a real
@@ -480,7 +468,7 @@ update any doc text it references) as it lands.
    import, not before: until then the library is ~3 curated puzzles.
    Minimum safe change if the import happens first: `.limit()` + a
    truncation note in the UI.
-5. **Prune the subscriber-less publication entries.** Nothing subscribes
+4. **Prune the subscriber-less publication entries.** Nothing subscribes
    to `crosswords.games` (crosswords' `clear_board` UPDATEs cells, so the
    cells subscription hears it — no games-touch needed, unlike the
    found-words games' replay trick): remove its
@@ -494,7 +482,7 @@ update any doc text it references) as it lands.
    says rename-liveness isn't wanted. Verify with `npm run db:reset`
    (edited baseline migrations — the alpha convention) + `npm run import`
    + `npm run test:db`.
-6. **Fix the stale stackdown Pattern-B references.** stackdown's
+5. **Fix the stale stackdown Pattern-B references.** stackdown's
    shared-word Broadcast was removed (selections are local now; the hook
    uses the plain `useRealtimeRefetch` factory — its docstring records
    the change). Three places still describe the old design:
@@ -504,7 +492,7 @@ update any doc text it references) as it lands.
    accurate — keep it), docs/games/stackdown.md, and CLAUDE.md's roster
    line ("coop (shared collaborative word via Broadcast)"). Docs-only;
    no code change.
-7. **(Cosmetic, someday)** Rename codenamesduet's channel prefixes
+6. **(Cosmetic, someday)** Rename codenamesduet's channel prefixes
    (`channelPrefix` in its `useGame` / `useBoard` / `useClues`) from
    `game`/`board`/`clues` to `codenamesduet`-prefixed names matching the
    `<gametype>:` convention, and update the channel registry table above.

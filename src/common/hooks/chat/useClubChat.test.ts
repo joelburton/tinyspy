@@ -38,6 +38,7 @@ const {
   mockChannel,
   mockRemoveChannel,
   mockOrder,
+  mockGte,
   mockSchemaFrom,
 } = vi.hoisted(() => {
   // Per-test handlers — set by the spied .on()/.subscribe() calls.
@@ -64,6 +65,7 @@ const {
     mockChannel: vi.fn(() => channelObj),
     mockRemoveChannel: vi.fn(),
     mockOrder: vi.fn(),
+    mockGte: vi.fn(),
     mockSchemaFrom: vi.fn(),
     // Re-export the handler refs for tests via getters below.
     handlers,
@@ -104,6 +106,7 @@ beforeEach(() => {
   mockChannel.mockClear()
   mockRemoveChannel.mockClear()
   mockOrder.mockReset()
+  mockGte.mockReset()
   mockSchemaFrom.mockReset()
 
   // Rebuild the channel mock so each test gets fresh handler
@@ -129,14 +132,17 @@ beforeEach(() => {
   }
   mockChannel.mockReturnValue(channelObj as never)
 
-  // Default DB query chain: from('messages').select().eq().order()
+  // Default DB query chain: from('messages').select().eq().gte().order()
   // resolves to { data: [], error: null }. Individual tests override
-  // mockOrder for specific payloads.
+  // mockOrder for specific payloads. mockGte returns the order terminal so
+  // the recency-window filter (.gte('sent_at', cutoff)) slots into the chain;
+  // its call args are asserted by the recency-window test.
   mockOrder.mockResolvedValue({ data: [], error: null })
+  mockGte.mockReturnValue({ order: mockOrder })
   mockSchemaFrom.mockReturnValue({
     select: () => ({
       eq: () => ({
-        order: mockOrder,
+        gte: mockGte,
       }),
     }),
   })
@@ -163,6 +169,30 @@ describe('useClubChat', () => {
       { id: 'm1', user_id: 'ada', content: 'hi' },
       { id: 'm2', user_id: 'bea', content: 'hello' },
     ])
+  })
+
+  it('bounds the load to a recent-history window (older-than-window messages are not loaded)', async () => {
+    // The actual filtering happens in Postgres; at the unit level we pin that
+    // the query CARRIES the recency bound — a `.gte('sent_at', cutoff)` where
+    // cutoff is ~7 days ago. Without it, a fresh mount would pull the whole
+    // archive (and, past max_rows, silently truncate to the OLDEST rows).
+    mockOrder.mockResolvedValueOnce({ data: [], error: null })
+
+    const before = Date.now()
+    const { result } = renderHook(() => useClubChat('club-1'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    const after = Date.now()
+
+    expect(mockGte).toHaveBeenCalledTimes(1)
+    const [column, cutoffIso] = mockGte.mock.calls[0]
+    expect(column).toBe('sent_at')
+
+    // The cutoff is 7 days before "now" — assert it lands in the window
+    // bracketed by the render's before/after wall-clock reads.
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000
+    const cutoffMs = new Date(cutoffIso as string).getTime()
+    expect(cutoffMs).toBeGreaterThanOrEqual(before - sevenDaysMs)
+    expect(cutoffMs).toBeLessThanOrEqual(after - sevenDaysMs)
   })
 
   it('appends a new message when an INSERT event fires', async () => {

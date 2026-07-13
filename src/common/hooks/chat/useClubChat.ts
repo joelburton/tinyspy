@@ -21,6 +21,20 @@ export type ClubMessage = Pick<
 >
 
 /**
+ * How far back a fresh load reaches. Club chat is read as "what's been said
+ * recently," not "the complete archive," so we bound the initial fetch by a
+ * recency WINDOW rather than a row count — a row limit is an implementation
+ * detail that would leak into the UX (drop the 501st message but keep a
+ * years-old one). This also keeps the query safely under PostgREST's
+ * `max_rows` cap without a paging loop: even a chatty club won't send 10k
+ * messages in a week. Live INSERTs still append during the session, so the
+ * panel keeps growing past the window as new messages arrive; the window only
+ * bounds the backlog a fresh mount pulls in. The composite index
+ * `messages (club_handle, sent_at)` already serves the filter.
+ */
+const CHAT_HISTORY_WINDOW_DAYS = 7
+
+/**
  * Merge a full-snapshot refetch into the current list without dropping messages
  * appended since the refetch's query ran.
  *
@@ -70,11 +84,20 @@ export function useClubChat(clubHandle: string) {
 
     let mounted = true
 
+    // Compute the recency cutoff ONCE per subscription, not per refetch:
+    // every load() in this session shares this stable window. Recomputing it
+    // inside load() would make day-old messages visibly evaporate as the
+    // session aged past a boundary and a SUBSCRIBED refetch fired.
+    const cutoff = new Date(
+      Date.now() - CHAT_HISTORY_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+    ).toISOString()
+
     async function load() {
       const { data } = await commonDb
         .from('messages')
         .select('id, user_id, content, sent_at')
         .eq('club_handle', clubHandle)
+        .gte('sent_at', cutoff)
         .order('sent_at', { ascending: true })
       if (!mounted) return
       // Merge, don't replace: a refetch must not clobber messages appended via
