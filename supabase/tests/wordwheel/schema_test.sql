@@ -18,14 +18,6 @@
 --   4. The games_state view exposes both word lists unconditionally
 --      (during play and at terminal) — the missed-words reveal is a
 --      client-side `required − found` at terminal, not a server gate.
---   5. BOTH wordwheel.found_words AND wordwheel.games are members of the
---      supabase_realtime publication — the load-bearing invariant for LIVE
---      play. useGame subscribes to postgres_changes on both (found_words for
---      submissions, games for replay_board's realtime touch), and Realtime
---      rejects a channel's WHOLE postgres_changes subscription if any bound
---      table is unpublished — so a missing games line silently kills
---      found_words delivery too (scores + the word list stop updating until a
---      manual refresh). These two assertions guard both lines.
 --
 -- THE FORK: word wheel is 8 outer letters (char(8)) + 1 center, so the
 -- direct-insert board below uses an 8-letter outer_letters string.
@@ -36,7 +28,7 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(11);
+select plan(9);
 
 \ir ../_shared/setup.psql
 
@@ -196,36 +188,9 @@ select is(
   'games_state.required_words remains exposed post-terminal'
 );
 
--- ============================================================
--- Realtime publication membership (LIVE-play invariant)
--- ============================================================
--- BOTH found_words AND games must be in supabase_realtime. useGame subscribes to
--- postgres_changes on each, and Realtime rejects a channel's ENTIRE
--- postgres_changes subscription if any bound table is unpublished — so a missing
--- games line silently kills found_words delivery too (writes persist, only a
--- manual refresh shows them). This guards both lines. (Schema facts, independent
--- of the fixture above.)
+-- Realtime publication membership for wordwheel.games + found_words is
+-- guarded centrally in ../common/realtime_publication_test.sql (the
+-- registry-driven guard for every schema's subscribed tables).
 
-reset role;
-select is(
-  (select count(*)::int
-     from pg_publication_tables
-    where pubname = 'supabase_realtime'
-      and schemaname = 'wordwheel'
-      and tablename = 'found_words'),
-  1,
-  'wordwheel.found_words is published to supabase_realtime (live score/word-list updates)'
-);
-select is(
-  (select count(*)::int
-     from pg_publication_tables
-    where pubname = 'supabase_realtime'
-      and schemaname = 'wordwheel'
-      and tablename = 'games'),
-  1,
-  'wordwheel.games is published to supabase_realtime (replay touch; keeps the whole channel valid)'
-);
-
--- ============================================================
 select * from finish();
 rollback;

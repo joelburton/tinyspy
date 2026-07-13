@@ -14,13 +14,6 @@
 --   3. Nothing is hidden: the games_state view exposes base / difficulty /
 --      max_word_length / longest_words / legal_words (the "reveal scores at
 --      terminal" rule is an FE display choice, not a server gate).
---   4. BOTH wordiply.games AND wordiply.guesses are members of the
---      supabase_realtime publication — the load-bearing LIVE-play invariant.
---      useGame subscribes to postgres_changes on both (guesses for the live
---      guess log, games for replay_board's realtime touch), and Realtime
---      rejects a channel's WHOLE postgres_changes subscription if any bound
---      table is unpublished — so a missing games line silently kills guesses
---      delivery too. These two assertions guard both lines.
 --
 -- RLS membership / coop-vs-compete visibility lives in gameplay_test.sql.
 
@@ -28,7 +21,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(12);
+select plan(10);
 
 \ir ../_shared/setup.psql
 
@@ -166,34 +159,9 @@ select is(
   'games_state.longest_words is exposed (FE only RENDERS it at terminal)'
 );
 
--- ============================================================
--- Realtime publication membership (LIVE-play invariant)
--- ============================================================
--- BOTH guesses AND games must be in supabase_realtime. useGame subscribes to
--- postgres_changes on each, and Realtime rejects a channel's ENTIRE
--- postgres_changes subscription if any bound table is unpublished — so a
--- missing games line silently kills guesses delivery too. This guards both.
+-- Realtime publication membership for wordiply.games + guesses is guarded
+-- centrally in ../common/realtime_publication_test.sql (the registry-driven
+-- guard for every schema's subscribed tables).
 
-reset role;
-select is(
-  (select count(*)::int
-     from pg_publication_tables
-    where pubname = 'supabase_realtime'
-      and schemaname = 'wordiply'
-      and tablename = 'guesses'),
-  1,
-  'wordiply.guesses is published to supabase_realtime (live guess-log updates)'
-);
-select is(
-  (select count(*)::int
-     from pg_publication_tables
-    where pubname = 'supabase_realtime'
-      and schemaname = 'wordiply'
-      and tablename = 'games'),
-  1,
-  'wordiply.games is published to supabase_realtime (replay touch; keeps the whole channel valid)'
-);
-
--- ============================================================
 select * from finish();
 rollback;
