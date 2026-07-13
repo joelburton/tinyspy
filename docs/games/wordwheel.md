@@ -255,10 +255,35 @@ permanent version of this failure) is caught in CI.
 
 ## Frontend
 
-`src/wordwheel/` mirrors spellingbee's layout (see spellingbee.md → *Folder layout* for
-the shared pieces: `PlayArea` + `BoardCol`/`InfoCol` decomposition, `RankBar`, `Stats`,
-`SetupForm`, `Help`, `useGame`, `db.ts`, `manifest.ts`, `theme.css`). The
-wordwheel-specific parts:
+`src/wordwheel/` mirrors spellingbee's layout. After the 2026-07 dedup
+(code-review-2026-07-12 → **D2** + **D4**) the two games split cleanly into three buckets:
+
+- **Shared, hoisted into `common/` (D2).** The pieces that were byte-identical
+  after a codename rename now live once, so a fix lands for both games: the rank
+  ladder (`common/lib/game/rankLadder`), the found-words data model + display +
+  leaderboard (`common/lib/game/foundWords*`), the `useGame` factory
+  (`common/hooks/game/makeFoundWordsGame`), and the `RankBar` / `Stats`
+  components (`common/components/game/`, themed via generic `--rank-*` tokens
+  each game's `theme.css` aliases).
+- **Deliberately forked — per-game siblings (D4, decision (a)).** `PlayArea`,
+  `BoardCol`, `InfoCol`, `SetupForm`, and `lib/setup.ts` are 85–98% identical to
+  spellingbee's but are kept as separate copies **on purpose**. Their deltas are
+  load-bearing game logic — the bounded-**multiset** legality (per-letter counts,
+  tile-spend) vs spellingbee's **set** test, the wheel vs honeycomb geometry, the
+  `unique_letters` control, 8 vs 6 outer letters, the `s`-rule — i.e. exactly
+  where the two games' identities live, and the two are still diverging
+  (`unique_letters` is wordwheel-only). A shared "hive-family" component
+  parameterized on set-vs-multiset would bury that distinction behind a flag on
+  the hottest path, so we keep the fork. **Implication:** a change to one game's
+  `PlayArea` / `BoardCol` / `SetupForm` must be mirrored into the other by hand.
+  (`InfoCol` is a ~1-line delta — just the `unique_letters` `<li>` — and could be
+  folded via an `extraSetupItems` prop if that ever feels worth it; left forced
+  for now for symmetry with its siblings.)
+- **Per-game seams by design** (not duplicates to eliminate): `Help` (rules
+  copy), `db.ts` (schema-scoped client), `manifest.ts` (brand lives only here),
+  `theme.css` (palette).
+
+The genuinely wordwheel-only parts (no spellingbee counterpart):
 
 ### The wheel board — `Wheel` / `Tile` + `lib/wheel.ts`
 
