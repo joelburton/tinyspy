@@ -146,7 +146,7 @@ create table codenamesduet.clues (
 -- TWICE — neutral by one player, then agent/neutral/assassin by the
 -- other — so the per-word row can't hold the history. `guesser_seat`
 -- is the seat that made the guess; `outcome` is the label on the
--- clue-giver's (i.e. the partner's) key.
+-- clue-giver's (i.e., the partner's) key.
 
 create table codenamesduet.guesses (
   id uuid primary key default gen_random_uuid(),
@@ -230,9 +230,13 @@ grant select on codenamesduet.guesses to authenticated;
 -- Realtime publication
 -- ============================================================
 
+-- noinspection SqlResolve
 alter publication supabase_realtime add table codenamesduet.games;
+-- noinspection SqlResolve
 alter publication supabase_realtime add table codenamesduet.words;
+-- noinspection SqlResolve
 alter publication supabase_realtime add table codenamesduet.clues;
+-- noinspection SqlResolve
 alter publication supabase_realtime add table codenamesduet.guesses;
 
 -- ============================================================
@@ -492,10 +496,14 @@ begin
   --   N/G:5  N/N:7  N/A:1
   --   A/G:1  A/N:1  A/A:1
   tiles := array[]::jsonb[];
+  -- noinspection SqlUnused
   for i in 1..3 loop tiles := tiles || jsonb_build_object('a','G','b','G'); end loop;
+  -- noinspection SqlUnused
   for i in 1..5 loop tiles := tiles || jsonb_build_object('a','G','b','N'); end loop;
   tiles := tiles || jsonb_build_object('a','G','b','A');
+  -- noinspection SqlUnused
   for i in 1..5 loop tiles := tiles || jsonb_build_object('a','N','b','G'); end loop;
+  -- noinspection SqlUnused
   for i in 1..7 loop tiles := tiles || jsonb_build_object('a','N','b','N'); end loop;
   tiles := tiles || jsonb_build_object('a','N','b','A');
   tiles := tiles || jsonb_build_object('a','A','b','G');
@@ -703,9 +711,7 @@ begin
   -- Already resolved FOR THIS GUESSER? A word is off-limits to the caller if
   -- it's globally done (contacted as an agent, or the assassin was hit) OR this
   -- seat already hit it as a neutral. The PARTNER's neutral does not block the
-  -- caller — the word may be the caller's agent in the other direction (the
-  -- Duet rule that a word one player marks neutral may still be the other
-  -- player's agent, so it stays open for the partner's direction).
+  -- caller — the word may be the caller's agent in the other direction.
   if exists (
     select 1 from codenamesduet.words w
     where w.game_id = target_game and w.position = target_position
@@ -912,8 +918,7 @@ grant execute on function codenamesduet.submit_timeout(uuid) to authenticated;
 --
 -- The friends' explicit "we're done here" button. codenamesduet has
 -- plenty of *automatic* terminals (won / lost_assassin / lost_clock
--- / lost_timeout), so unlike spellingbee's coop mode there's always a
--- rules-driven way for a game to end on its own — but the friends
+-- / lost_timeout) — but the friends
 -- may still want to abandon an in-progress game early (a clue went
 -- sideways, someone has to leave the Zoom call). This RPC is that
 -- escape hatch.
@@ -1137,11 +1142,6 @@ begin
         and w.revealed_as is null
         and (caller_key->>w.position) = 'N'
     ), '[]'::jsonb),
-    -- ALL still-unrevealed assassins, not just one. A Duet key card has
-    -- three 'A' positions; collapsing them to a single word (the old
-    -- `limit 1`) hid the other two from the suggester, which could then
-    -- hand back a clue pointing straight at an unmentioned assassin — an
-    -- instant loss. Aggregated exactly like greens/neutrals above.
     'assassins', coalesce((
       select jsonb_agg(w.word order by w.position)
       from codenamesduet.words w
