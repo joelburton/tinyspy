@@ -545,6 +545,12 @@ export function ClubPage({ handle, session }: Props) {
         )
         .eq('club_handle', clubHandle)
         .order('last_active_at', { ascending: false })
+        // Explicit bound so a long-lived club can't drift into PostgREST's
+        // silent `max_rows` truncation. Overflow past 200 is DELIBERATE — the
+        // list shows everything it gets, and descending order means the drop
+        // is the oldest games (nobody scrolls a club's full lifetime history;
+        // the current game is always recently-active, so it's never cut).
+        .limit(200)
       if (!mounted || myGen !== generation) return
 
       const rows = data ?? []
