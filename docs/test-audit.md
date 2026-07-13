@@ -175,8 +175,9 @@ covered transitively and isolating them would pin implementation detail.
 > guards + both confirm paths + error surfacing), `useHistoryViewer` (9 — the
 > click-anywhere-exit that spares the turn-# handles + modifier-aware exitOnKey),
 > and `manifestRpcs` (7 — the RPC-collapse + the read-once edge-fn error unwrap).
-> Still untested from the list below: `difficulty.ts` and the `common/pdf/`
-> helpers (the latter is recommendation #6).
+> The `common/pdf/` helpers are also now covered (recommendation #6):
+> `frame.test.ts` (9), `turnLog.test.ts` (5), `wordColumns.test.ts` (6). Still
+> untested from the list below: `difficulty.ts`.
 
 Per-game `lib/` is well tested; the gaps cluster in `src/common/` modules that
 **every game flows through** (widest blast radius, zero tests):
@@ -281,9 +282,13 @@ Ordered by (chance of silent breakage) × (blast radius) ÷ (cost to write):
    all mockable with existing patterns from `useCommonGame.test.ts`.~~ **DONE** —
    35 tests across the four (`manifestRpcs.test.ts` 7, `useHistoryViewer.test.ts`
    9, `useStandardGameActions.test.ts` 12, `makeFoundWordsGame.test.ts` 7).
-6. **`common/pdf/` helper tests** (pure jsPDF-call assembly, testable like
+6. ~~**`common/pdf/` helper tests** (pure jsPDF-call assembly, testable like
    crosswords' `layout.test.ts`) — cheaper and higher-leverage than testing six
-   per-game print bodies.
+   per-game print bodies.~~ **DONE** — 20 tests via a fake jsPDF that records
+   calls + models text width as 1pt/char: `frame.test.ts` (fit truncation,
+   drawSetup cursor, savePrint slug, palette), `turnLog.test.ts` (twoColGeom +
+   the column-then-page spill), `wordColumns.test.ts` (balanced packing +
+   wordListBody composition).
 7. **Round out e2e to its de-facto scope**: mobile specs for boggle/wordwheel/wordiply,
    history-viewer specs for waffle/stackdown, print smokes for boggle/wordwheel,
    one concede-flow spec. Also fix testing.md's stale "deliberately narrow" scope
