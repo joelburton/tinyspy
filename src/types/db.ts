@@ -450,7 +450,7 @@ export type Database = {
       get_clue_context: { Args: { target_game: string }; Returns: Json }
       pass_turn: { Args: { target_game: string }; Returns: undefined }
       submit_clue: {
-        Args: { clue_count: number; target_game: string; word: string }
+        Args: { clue_count: number; clue_word: string; target_game: string }
         Returns: undefined
       }
       submit_guess: {

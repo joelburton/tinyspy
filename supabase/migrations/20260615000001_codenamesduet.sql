@@ -568,12 +568,13 @@ grant execute on function codenamesduet.create_game(text, jsonb, uuid[]) to auth
 -- ============================================================
 -- codenamesduet.submit_clue
 -- ============================================================
--- Parameter is named clue_count (not "count") to avoid shadowing
--- the SQL aggregate function. The matching column on codenamesduet.clues
--- stays "count" since it's only ever referenced in column lists,
--- never as a function call.
+-- Parameters are named clue_word / clue_count (not "word" / "count") to
+-- avoid shadowing the codenamesduet.clues columns of those names (and, for
+-- count, the SQL aggregate function). The matching columns stay "word" /
+-- "count" since they're only ever referenced in column lists, never
+-- ambiguously — the prefixed params keep the INSERT's VALUES unambiguous.
 
-create function codenamesduet.submit_clue(target_game uuid, word text, clue_count int)
+create function codenamesduet.submit_clue(target_game uuid, clue_word text, clue_count int)
 returns void
 language plpgsql
 security definer
@@ -621,7 +622,7 @@ begin
   end if;
 
   insert into codenamesduet.clues (game_id, turn_number, by_seat, word, count)
-  values (target_game, g_row.turn_number, caller_seat, word, clue_count);
+  values (target_game, g_row.turn_number, caller_seat, clue_word, clue_count);
 end;
 $$;
 

@@ -202,7 +202,7 @@ function ClueForm({
     setBusy(true)
     const { error } = await db.rpc('submit_clue', {
       target_game: gameId,
-      word: word.trim(),
+      clue_word: word.trim(),
       clue_count: parseInt(count, 10),
     })
     setBusy(false)
