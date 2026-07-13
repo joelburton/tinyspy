@@ -38,6 +38,18 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
 
   return (
     <div className={styles.setup}>
+      {/* Coop pacing — free-for-all (default) vs turn-by-turn — first, right
+          below the dialog's player picker. Self-gates to nothing for
+          compete / solo. */}
+      <CoopStyleField
+        mode={mode}
+        players={players}
+        coopStyle={s.coopStyle ?? 'free-for-all'}
+        firstTurnUserId={s.firstTurnUserId ?? ''}
+        onChange={({ coopStyle, firstTurnUserId }) =>
+          onChange({ ...s, coopStyle, firstTurnUserId })
+        }
+      />
       <p className="muted">
         Build words on the board from your rack of tiles. A word is accepted if
         it's in the dictionary at the difficulty you pick for its length.
@@ -97,18 +109,6 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
           )}
         </SetupSection>
       )}
-
-      {/* Coop pacing — free-for-all (default) vs turn-by-turn. Self-gates to
-          nothing for compete / solo. */}
-      <CoopStyleField
-        mode={mode}
-        players={players}
-        coopStyle={s.coopStyle ?? 'free-for-all'}
-        firstTurnUserId={s.firstTurnUserId ?? ''}
-        onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coopStyle, firstTurnUserId })
-        }
-      />
 
       <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
     </div>

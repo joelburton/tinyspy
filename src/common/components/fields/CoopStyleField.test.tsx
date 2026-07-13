@@ -47,10 +47,10 @@ describe('CoopStyleField', () => {
     // Style choices are always present in coop/2+.
     expect(screen.getByRole('radio', { name: 'turns' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'free-for-all' })).toBeInTheDocument()
-    // Free-for-all: no first-player picker.
-    expect(screen.queryByRole('radio', { name: 'ada' })).not.toBeInTheDocument()
+    // Free-for-all: no first-player picker (the dropdown isn't rendered).
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
 
-    // Turns: the first-player picker (one radio per selected player) appears.
+    // Turns: the first-player dropdown appears, one <option> per selected player.
     rerender(
       <CoopStyleField
         mode="coop"
@@ -60,8 +60,9 @@ describe('CoopStyleField', () => {
         onChange={() => {}}
       />,
     )
-    expect(screen.getByRole('radio', { name: 'ada' })).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: 'bea' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'First player' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'ada' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'bea' })).toBeInTheDocument()
   })
 
   it('bakes the live value into the disclosure summary', () => {

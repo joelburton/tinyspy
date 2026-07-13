@@ -35,6 +35,17 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
 
   return (
     <div className={form.setup}>
+      {/* Coop pacing — first, right below the dialog's player picker.
+          Self-gates to nothing for compete / solo. */}
+      <CoopStyleField
+        mode={mode}
+        players={players}
+        coopStyle={s.coopStyle ?? 'free-for-all'}
+        firstTurnUserId={s.firstTurnUserId ?? ''}
+        onChange={({ coopStyle, firstTurnUserId }) =>
+          onChange({ ...s, coopStyle, firstTurnUserId })
+        }
+      />
       <SetupSection label={guessesLabel}>
         <p className="muted">How many guesses you get (6 is classic).</p>
         <SelectField
@@ -68,15 +79,6 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           onChange={(legal_guess) => onChange({ ...s, legal_guess })}
         />
       </SetupSection>
-      <CoopStyleField
-        mode={mode}
-        players={players}
-        coopStyle={s.coopStyle ?? 'free-for-all'}
-        firstTurnUserId={s.firstTurnUserId ?? ''}
-        onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coopStyle, firstTurnUserId })
-        }
-      />
       <TimerField
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}

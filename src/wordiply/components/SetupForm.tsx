@@ -23,6 +23,17 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
 
   return (
     <div className={styles.setup}>
+      {/* Coop pacing — first, right below the dialog's player picker.
+          Self-gates to nothing for compete / solo. */}
+      <CoopStyleField
+        mode={mode}
+        players={players}
+        coopStyle={s.coopStyle ?? 'free-for-all'}
+        firstTurnUserId={s.firstTurnUserId ?? ''}
+        onChange={({ coopStyle, firstTurnUserId }) =>
+          onChange({ ...s, coopStyle, firstTurnUserId })
+        }
+      />
       {mode === 'coop' ? (
         <p className="muted">
           Everyone in the club shares five guesses. Each guess must contain
@@ -44,16 +55,6 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         maxDifficulty={6}
         value={s.difficulty}
         onChange={(difficulty) => onChange({ ...s, difficulty })}
-      />
-
-      <CoopStyleField
-        mode={mode}
-        players={players}
-        coopStyle={s.coopStyle ?? 'free-for-all'}
-        firstTurnUserId={s.firstTurnUserId ?? ''}
-        onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coopStyle, firstTurnUserId })
-        }
       />
 
       <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />

@@ -38,6 +38,17 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
 
   return (
     <div className={styles.setup}>
+      {/* Coop pacing — first, right below the dialog's player picker.
+          Self-gates to nothing for compete / solo. */}
+      <CoopStyleField
+        mode={mode}
+        players={players}
+        coopStyle={s.coopStyle ?? 'free-for-all'}
+        firstTurnUserId={s.firstTurnUserId ?? ''}
+        onChange={({ coopStyle, firstTurnUserId }) =>
+          onChange({ ...s, coopStyle, firstTurnUserId })
+        }
+      />
       <SetupSection label={dictLabel}>
         <p className="muted">Which vocabulary the puzzle's words come from.</p>
         <DifficultyField
@@ -66,15 +77,6 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           onChange={(extra_swaps) => onChange({ ...s, extra_swaps })}
         />
       </SetupSection>
-      <CoopStyleField
-        mode={mode}
-        players={players}
-        coopStyle={s.coopStyle ?? 'free-for-all'}
-        firstTurnUserId={s.firstTurnUserId ?? ''}
-        onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coopStyle, firstTurnUserId })
-        }
-      />
       <TimerField
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}

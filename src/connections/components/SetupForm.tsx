@@ -205,6 +205,17 @@ export function SetupForm({ brand, clubHandle, mode, players, value, onChange }:
 
   return (
     <div className={styles.setup}>
+      {/* Coop pacing — first, right below the dialog's player picker.
+          Self-gates to nothing for compete / solo. */}
+      <CoopStyleField
+        mode={mode}
+        players={players}
+        coopStyle={s.coopStyle ?? 'free-for-all'}
+        firstTurnUserId={s.firstTurnUserId ?? ''}
+        onChange={({ coopStyle, firstTurnUserId }) =>
+          onChange({ ...s, coopStyle, firstTurnUserId })
+        }
+      />
       <fieldset className={styles.fieldset}>
         <legend>Puzzle</legend>
         <p className="muted">
@@ -228,15 +239,6 @@ export function SetupForm({ brand, clubHandle, mode, players, value, onChange }:
         />
       </fieldset>
 
-      <CoopStyleField
-        mode={mode}
-        players={players}
-        coopStyle={s.coopStyle ?? 'free-for-all'}
-        firstTurnUserId={s.firstTurnUserId ?? ''}
-        onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coopStyle, firstTurnUserId })
-        }
-      />
       <TimerField
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}

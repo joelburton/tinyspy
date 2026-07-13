@@ -52,6 +52,18 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
 
   return (
     <div className={styles.setup}>
+      {/* Coop pacing — free-for-all (default) vs turn-by-turn — first, right
+          below the dialog's player picker. Self-gates to nothing for
+          compete / solo, so it's dropped in unconditionally. */}
+      <CoopStyleField
+        mode={mode}
+        players={players}
+        coopStyle={s.coopStyle ?? 'free-for-all'}
+        firstTurnUserId={s.firstTurnUserId ?? ''}
+        onChange={({ coopStyle, firstTurnUserId }) =>
+          onChange({ ...s, coopStyle, firstTurnUserId })
+        }
+      />
       <SetupSection label={guessesLabel}>
         {/* Copy is mode-neutral on purpose — the same SetupForm
             backs both psychicnum_coop and psychicnum_compete
@@ -101,17 +113,6 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
           onChange={(difficulty) => onChange({ ...s, difficulty })}
         />
       </SetupSection>
-      {/* Coop pacing — free-for-all (default) vs turn-by-turn. Self-gates
-          to nothing for compete / solo, so it's dropped in unconditionally. */}
-      <CoopStyleField
-        mode={mode}
-        players={players}
-        coopStyle={s.coopStyle ?? 'free-for-all'}
-        firstTurnUserId={s.firstTurnUserId ?? ''}
-        onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coopStyle, firstTurnUserId })
-        }
-      />
       <TimerField
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}
