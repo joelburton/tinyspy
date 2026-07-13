@@ -2,7 +2,7 @@
 -- Test: stackdown RLS — club gating + the compete-mode submissions policy
 -- ============================================================
 --
--- stackdown shipped without an rls_test (docs/test-audit.md → rec #3). The
+-- stackdown shipped without an rls_test. The
 -- hidden-solution reveal is covered in reveal_test.sql; this file covers the
 -- ROW-visibility policies, which had no test:
 --

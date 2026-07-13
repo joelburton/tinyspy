@@ -4,8 +4,9 @@
 --
 -- wordiply's board builder is DB-orchestration: the edge function loops over
 -- candidate_bases() and keeps the first that clears try_base()'s gate. So the
--- "pure logic" the audit flags (docs/test-audit.md → recommendation #4) is in
--- SQL, not TS — it belongs here, not in a deno test. This pins the gate:
+-- board-quality "pure logic" is in SQL, not TS — it belongs here, not in a deno
+-- test (unlike spellingbee/wordwheel, whose builders extract a TS board.ts). This
+-- pins the gate:
 --
 --   try_base(base, legal_band, min_children, max_children, min_headroom)
 --   returns ONE board row iff

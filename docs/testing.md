@@ -6,12 +6,17 @@ Audience: human contributors and AI assistants. Per the [CLAUDE.md](../CLAUDE.md
 
 ## Our theory of testing
 
-Two test layers exist, and they're for different things:
+Two test layers do most of the work, and they're for different things:
 
 - **pgTAP (database tests)** — `supabase/tests/<schema>/*_test.sql`. Runs against a real local Supabase Postgres. Tests **server-authoritative behavior**: RPCs, RLS policies, triggers, schema constraints, the game-rule logic that lives in PL/pgSQL.
 - **Vitest (frontend tests)** — `src/**/*.test.ts(x)`. Runs against jsdom with a stubbed Supabase client. Tests **UI behavior and pure derivations**: React hook state machines, routing, pure helper functions (like phase derivation), components rendering correctly given mocked data.
 
 The split mirrors the architecture: **game state lives in Postgres and mutates only through RPCs.** Anything that proves the game *works* is a DB test. Anything that proves the game is *usable* is a FE test.
+
+Two narrower layers sit alongside them:
+
+- **Deno tests (edge-function logic)** — `supabase/functions/**/*_test.ts`, run by `npm run test:edge`. The build-board edge functions can't be imported into a Vitest test (their `index.ts` calls `serve()` and loads remote `https:`/`jsr:` modules on import), so each extracts its **pure** board-building logic into a sibling `board.ts` / `gen.ts` and covers it there, dependency-free. The orchestration + I/O around it stay verified by `deno check` + the e2e suite. The AI/import functions aren't unit-tested (prompt churn; the output is human-judged).
+- **Playwright e2e (browser + live stack)** — see [E2E smoke tests](#e2e-smoke-tests-playwright) below.
 
 ### Decide where a test goes
 
@@ -230,14 +235,39 @@ Deliberately **not** part of `npm test` — it's slower and flakier (real realti
 
 The **WebKit + Firefox engines are installed** (`npx playwright install webkit firefox`), so cross-engine (Safari / Firefox) layout repro is available beyond the default Chromium run.
 
+## Repo-wide invariant guards
+
+A couple of tests guard an invariant across ALL schemas/games from a
+hand-maintained registry, so a new game is covered automatically (or forces a
+one-line update) instead of each game needing its own copy:
+
+- **`src/schemaExposure.e2e.test.ts`** (Vitest) — every registered game schema is
+  reachable through PostgREST (the `[api] schemas` exposure that a `db reset`
+  doesn't re-read). Derived from the game registry, so a new game is covered for
+  free.
+- **`supabase/tests/common/realtime_publication_test.sql`** (pgTAP) — the single
+  source of truth for the [publication invariant](supabase.md) (every table a
+  channel subscribes to via `postgres_changes` must be in `supabase_realtime`, or
+  the whole subscription silently dies). One `set_eq` compares the publication
+  against a registry of every FE subscription — catching both a missing table
+  (live updates die) and an extra one (replication overhead). **Update its
+  `expected` list when a hook adds or drops a `postgres_changes` subscription**
+  (re-derive with `grep -rn "table:" src`).
+
 ## Running the suites
 
 ```bash
 npm test               # FE first, then DB; the canonical "is everything green" (NOT e2e)
 npm run test:fe        # Vitest only (add `-- --watch` for the dev loop)
 npm run test:db        # pgTAP only — needs the local Supabase stack running
+npm run test:edge      # Deno tests for the edge-function pure logic (deno test)
 npm run test:e2e       # Playwright realtime smoke tests — see above
 ```
+
+**CI.** `.github/workflows/ci.yml` runs the two stack-free gates — `tsc -b` and
+`eslint` — on every push + pull request. `test:fe` is also stack-free and a
+candidate to add; `test:db` / `test:e2e` would need a Supabase service container,
+so they stay local for now.
 
 Single-file pgTAP run, for tightening one test:
 

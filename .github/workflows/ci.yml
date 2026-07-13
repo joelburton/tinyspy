@@ -1,9 +1,9 @@
 # Continuous integration — the STACK-FREE gates only.
 #
-# docs/test-audit.md → recommendation #9 (Gap 6): nothing ran the suites
-# automatically, so a forgotten local run could ship a type error or a lint
-# regression. This runs the two checks that need neither a Supabase stack nor a
-# browser — the type-check and the linter — on every push + pull request.
+# Nothing else runs the suites automatically, so a forgotten local run could ship
+# a type error or a lint regression. This runs the two checks that need neither a
+# Supabase stack nor a browser — the type-check and the linter — on every push +
+# pull request. See docs/testing.md → "Running the suites" for the full picture.
 #
 # Deliberately NOT here (yet):
 #   - npm run test:fe  — also stack-free (jsdom + a mocked client); a natural

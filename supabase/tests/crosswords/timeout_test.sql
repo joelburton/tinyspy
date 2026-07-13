@@ -12,7 +12,7 @@
 -- when the game isn't 'playing' (its only non-terminal state). That's the
 -- load-bearing guard here — a timeout racing a just-recorded WIN must not
 -- clobber it (group E). Every sibling tests submit_timeout; crosswords was
--- the last gap (docs/test-audit.md → recommendation #2).
+-- the last gap.
 --
 -- Coverage:
 --   A. require_game_player: a non-player (dee) is rejected (42501).

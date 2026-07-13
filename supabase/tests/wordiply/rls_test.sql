@@ -5,9 +5,8 @@
 -- The guesses_select policy is the load-bearing piece for compete, and it
 -- encodes a GAME RULE, not just privacy: during a compete game a player
 -- sees only their OWN guess words (the FE shows opponents' guesses as
--- lengths only). A regression here leaks the words. wordiply shipped
--- without this test (docs/test-audit.md → recommendation #3); this fills it,
--- mirroring wordwheel/spellingbee's rls_test shape.
+-- lengths only). A regression here leaks the words. wordiply shipped without
+-- this test; it mirrors wordwheel/spellingbee's rls_test shape.
 --
 -- Two layers of access control on wordiply.guesses:
 --   1. Outer gate: must be a club member of the game's club.

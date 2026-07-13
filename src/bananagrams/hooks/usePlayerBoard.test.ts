@@ -1,6 +1,7 @@
 /**
  * Tests for usePlayerBoard — bananagrams' board+hand interaction engine, the other
- * of the two most intricate untested hooks (docs/test-audit.md → recommendation #8).
+ * of the two most intricate hooks in the codebase (the twin is crosswords'
+ * useGridKeyboard).
  * It spans both columns, so the load-bearing pieces are: the hand DERIVED from the
  * server tiles minus the board, the persistence (debounced autosave + the
  * save-on-unmount that PauseBoundary depends on), the keyboard cursor (place a held

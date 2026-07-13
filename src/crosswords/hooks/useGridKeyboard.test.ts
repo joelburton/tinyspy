@@ -1,8 +1,8 @@
 /**
  * Tests for useGridKeyboard — crosswords' single window keydown handler (a port of
- * crossplay's PuzzleView keys). It's one of the two most intricate untested hooks
- * (docs/test-audit.md → recommendation #8): a big key→action switch with several
- * guards (disabled / suspended / floating-panel / editable-field / modifier chords)
+ * crossplay's PuzzleView keys). It's one of the two most intricate hooks in the
+ * codebase (the twin is bananagrams' usePlayerBoard) — a big key→action switch with
+ * several guards (disabled / suspended / floating-panel / editable-field / modifier chords)
  * and a readOnly mode where navigation still works but writes are ignored.
  *
  * The pure cursor math (moveCursor/advanceAfterFill/jumpClue/…) is covered by
