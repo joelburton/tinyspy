@@ -204,16 +204,17 @@ The pattern is: **mock at the lowest layer that lets you write the test simply**
 
 ## E2E smoke tests (Playwright)
 
-A **deliberately narrow** Playwright suite (`e2e/`, `npm run test:e2e`) for the one surface Vitest and pgTAP structurally can't reach: **realtime presence / pause / multi-client behavior.** Those suites mock the Supabase client, so the realtime layer — exactly the part that has broken — is the part they never exercise. E2E runs two real browser contexts against the live local stack.
+A Playwright suite (`e2e/`, `npm run test:e2e`) for the surfaces Vitest and pgTAP structurally can't reach — anything that needs a **real browser against the live local stack**. The original and still-core reason is **realtime presence / pause / multi-client behavior**: the unit suites mock the Supabase client, so the realtime layer — exactly the part that has broken — is the part they never exercise. Over time the suite grew to cover the other browser-only surfaces too, and that growth is deliberate, not scope creep.
 
-**Scope boundary (intentional):** this is NOT for routine game logic — that stays in Vitest + pgTAP. E2E covers only the surfaces that depend on the live stack — realtime/presence and the auth/session boot flow:
+**Scope boundary (intentional):** this is NOT for routine game *logic* — move legality, RPC results, RLS, pure derivations all stay in Vitest + pgTAP. E2E covers only what a real browser + the live stack can exercise, which today falls in these buckets:
 
-- **member presence dots** — two clients in a club; a present member's dot fills, a leaving member's goes hollow.
-- **the abandoned-game heal** — a current game nobody's viewing gets its `is_current_view` cleared when the club page loads (the stuck-pointer bug).
-- **pause-on-disconnect** — two players in a game; one disconnects, the other's game pauses.
-- **the auth gate** — a stale/invalidated session lands on LoginScreen (not stranded on the username gate); a valid-but-unclaimed session gets the gate, with a working sign-out.
+- **realtime / presence / auth (the core)** — member presence dots (a present member's dot fills, a leaving member's goes hollow); the abandoned-game heal (`is_current_view` cleared when the club page loads); pause-on-disconnect (one player disconnects, the other's game pauses); the auth gate (a stale session lands on LoginScreen; an unclaimed session gets the username gate with a working sign-out). These run two real browser contexts.
+- **responsive layout** — the `*-mobile.e2e.ts` specs: at phone viewports the board fills, the page never scrolls, and the info sheet slides in/out. Pure CSS/flex geometry jsdom can't measure (see [verify-layout-headless] in memory / docs/mobile.md).
+- **real PDF generation** — the `*-print.e2e.ts` smokes: the "Print board (PDF)" menu item downloads a `%PDF-` file. jsPDF's runtime is unreachable by the mocked component tests (the `common/pdf/` unit tests use a fake jsPDF; these use the real one).
+- **the turn-history overlay** — the `*-history.e2e.ts` specs: clicking a turn-log `#N` replays it on the board with the frame/banner, and the shared exit paths (key / board click / any click) work. Overlay + no-reflow properties jsdom can't see.
+- **game-specific browser behavior** — chat unread, clue-form focus traps, tap-to-trace, AI opponent, the bananagrams touch block, etc.
 
-(Plus a couple of game-specific realtime smokes — chat unread, bananagrams. The list is illustrative, not a contract; add to it only for the live-stack surfaces above.)
+The list is illustrative, not a contract. When you add a spec, add it for a browser-only surface in one of these buckets — not to re-test logic Vitest/pgTAP already own.
 
 **Reach for e2e EARLY when triaging an integration bug — not only as a regression guard after the fix.** When a bug lives in the live-stack layer (realtime, or the auth/session boot that depends on a real JWT in localStorage + `onAuthStateChange` + a real `getUser()` round-trip), a throwaway e2e that drives the *real* flow tells you what's actually broken faster than reasoning about it or reproducing in Node — where you're guessing at supabase-js internals and error shapes. Concretely: the "stuck on the username gate" bug ate an afternoon of Node repro scripts that kept showing the code *should* work; a 30-second e2e (sign in → delete the user → reload) would have shown immediately that the deleted-user path recovers fine, redirecting to the real cause (a valid session on the gate with no escape hatch). The fixtures already exist, so the cost of standing one up is low and the signal is the real thing, not a mock. Mocked unit tests are complementary — they can pin error shapes the real backend won't produce — but they're where a *clean* mock can quietly hide the messy reality (see `useSession.test.ts`).
 

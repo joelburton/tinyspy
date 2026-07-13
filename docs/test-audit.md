@@ -214,6 +214,14 @@ presentational components, `Help.tsx` files, manifest metadata.
 
 ## Gap 5 — e2e: drifted scope, and holes inside its own scope
 
+> **Update — mostly addressed** (recommendation #7). testing.md's scope paragraph
+> was rewritten to describe the real buckets (realtime/presence/auth, responsive
+> layout, real-PDF print, the history overlay, game-specific browser behavior).
+> The mobile holes (boggle/wordwheel/wordiply) and print holes (boggle/wordwheel)
+> are filled. Still open: history-viewer specs for waffle/stackdown and a
+> concede-flow spec — they need new move-seed fixtures / a two-context compete
+> game. The snapshot below is pre-implementation.
+
 [testing.md](testing.md) declares e2e "deliberately narrow — realtime/presence/auth
 only," but the suite is now 46 specs covering mobile layout, print smokes, history
 viewers, AI opponents, and full gameplay loops. The practice is better than the doc
@@ -289,10 +297,15 @@ Ordered by (chance of silent breakage) × (blast radius) ÷ (cost to write):
    drawSetup cursor, savePrint slug, palette), `turnLog.test.ts` (twoColGeom +
    the column-then-page spill), `wordColumns.test.ts` (balanced packing +
    wordListBody composition).
-7. **Round out e2e to its de-facto scope**: mobile specs for boggle/wordwheel/wordiply,
-   history-viewer specs for waffle/stackdown, print smokes for boggle/wordwheel,
-   one concede-flow spec. Also fix testing.md's stale "deliberately narrow" scope
-   paragraph.
+7. **Round out e2e to its de-facto scope** — *partially done.* Shipped:
+   **mobile** specs for boggle/wordwheel/wordiply (`*-mobile.e2e.ts`, copying the
+   shared info-sheet recipe), **print** smokes for boggle/wordwheel
+   (`*-print.e2e.ts` — both have printers; wordiply/waffle don't), and the
+   **testing.md scope-paragraph rewrite** (the "deliberately narrow" claim now
+   describes the real realtime/layout/print/history/input buckets). *Remaining:*
+   history-viewer specs for waffle/stackdown and one concede-flow spec — both
+   need new fixture machinery (move-seeding against a known board; a two-context
+   compete game to avoid presence-pause), so they're a separate focused pass.
 8. **A hook test for the two hardest untested hooks** — `usePlayerBoard`
    (bananagrams) and `useGridKeyboard` (crosswords). Only these two; the
    PlayArea-component-test pattern is adequate for the rest.
