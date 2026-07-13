@@ -63,7 +63,8 @@ Two operational invariants ride on this:
   truncated and every legitimately-growing query has years of headroom.
   Two gotchas (both in the config.toml comment): applied only at
   `supabase stop && supabase start`, and the hosted project's Max Rows is
-  a separate dashboard setting to keep in sync.
+  a separate setting — `import-to-hosted.sh` step 3 sets it to match
+  config.toml; if you change one, change both.
 
 ## Query conventions
 

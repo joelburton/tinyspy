@@ -25,7 +25,8 @@
 #      Passing neither is a hard error — the two behaviors are too
 #      different (one wipes everything) to guess a default.
 #   3. PATCH the PostgREST config to add our schemas to the
-#      "exposed schemas" allowlist + extra search path.
+#      "exposed schemas" allowlist + extra search path, and set
+#      Max Rows to match local config.toml.
 #   4. PATCH the auth config — Site URL + redirect allowlist +
 #      Resend SMTP settings + magic-link email template with
 #      both {{ .ConfirmationURL }} link AND {{ .Token }} code.
@@ -145,6 +146,13 @@ EXPOSED_SCHEMAS="public,graphql_public,common,codenamesduet,psychicnum,connectio
 # the deploy notes in the conversation), but matching local makes
 # behavior identical across environments.
 EXTRA_SEARCH_PATH="common,public,extensions"
+
+# PostgREST row cap — MUST match max_rows in supabase/config.toml
+# (see the rationale comment there: a backstop against missing-filter
+# bugs, not a substitute for explicit .limit()s). The hosted value is
+# a separate setting from the local config.toml one; setting it here
+# is what keeps the two in sync.
+MAX_ROWS=10000
 
 # ════════════════════════════════════════════════════════════════
 # Sanity check — refuse to run with placeholders in load-bearing
@@ -442,7 +450,7 @@ fi
 echo
 
 # ════════════════════════════════════════════════════════════════
-# 3. Configure PostgREST exposed schemas + extra search path
+# 3. Configure PostgREST exposed schemas + search path + max rows
 # ════════════════════════════════════════════════════════════════
 # Management API: PATCH /v1/projects/{ref}/postgrest. Server-side
 # triggers a PostgREST schema-cache reload — same as clicking Save
@@ -455,7 +463,8 @@ curl --fail --silent --show-error \
   -H "Content-Type: application/json" \
   -d "{
     \"db_schema\": \"${EXPOSED_SCHEMAS}\",
-    \"db_extra_search_path\": \"${EXTRA_SEARCH_PATH}\"
+    \"db_extra_search_path\": \"${EXTRA_SEARCH_PATH}\",
+    \"max_rows\": ${MAX_ROWS}
   }"
 echo
 

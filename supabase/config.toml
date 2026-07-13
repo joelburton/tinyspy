@@ -34,8 +34,9 @@ extra_search_path = ["common", "public", "extensions"]
 #
 # Two gotchas: (1) like `schemas` above, this is applied only at
 # `supabase stop && supabase start` — a db reset does NOT re-read it;
-# (2) the HOSTED project's Max Rows is a separate dashboard setting
-# (Settings → API) — keep it in sync with this value.
+# (2) the HOSTED project's Max Rows is a separate setting (dashboard
+# Settings → API) — import-to-hosted.sh step 3 sets it to match this
+# value; if you change one, change both.
 max_rows = 10000
 # Controls whether new tables, views, sequences and functions created in the `public` schema by
 # `postgres` are reachable through the Data API roles (`anon`, `authenticated`, `service_role`)
