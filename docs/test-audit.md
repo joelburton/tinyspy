@@ -143,9 +143,10 @@ The three that matter:
 2. **wordiply RLS** — the newest game shipped without an `rls_test.sql`. Its
    `guesses_select` policy implements a real game rule (opponents' guess words
    hidden mid-game, lengths only), so a policy regression is a *gameplay* bug,
-   not just a privacy one.
+   not just a privacy one. *(Now covered — `wordiply/rls_test.sql`; see rec #3.)*
 3. **stackdown RLS** — 3 policies, none exercised. Same reasoning at lower stakes
-   (its hidden-solution reveal *is* tested).
+   (its hidden-solution reveal *is* tested). *(Now covered —
+   `stackdown/rls_test.sql`.)*
 
 Not worth chasing (deliberately): isolated tests for internal `_helpers` that are
 fully exercised through their public RPCs (`_end_turn`, `_finish`, `_rank_idx`,
@@ -236,9 +237,14 @@ Ordered by (chance of silent breakage) × (blast radius) ÷ (cost to write):
    and compete timeout paths, the require_game_player gate, the crosswords-only
    no-op idempotency (siblings throw; it returns silently), and the guard that a
    racing timeout cannot clobber an already-recorded win.
-3. **`wordiply/rls_test.sql`** (and a smaller `stackdown/rls_test.sql`) — the
+3. ~~**`wordiply/rls_test.sql`** (and a smaller `stackdown/rls_test.sql`) — the
    mode-aware guess-visibility policy is a game rule with no test. Copy the
-   wordwheel/spellingbee shape.
+   wordwheel/spellingbee shape.~~ **DONE** — `wordiply/rls_test.sql` (11
+   assertions) and `stackdown/rls_test.sql` (10), both exercising the
+   club-membership gate plus every branch of the mode-aware policy
+   (coop-sees-all / compete-sees-own / terminal-reveal), copied from the
+   wordwheel shape. Verified with a mutation check: a broken-open compete
+   policy fails the branch-(b) assertion.
 4. **Unit tests for the three all-local board builders** (spellingbee, wordwheel,
    wordiply build-board logic — extract the pure parts into testable modules or
    test them via `deno test`), plus a **`test:edge` npm script** so the existing
