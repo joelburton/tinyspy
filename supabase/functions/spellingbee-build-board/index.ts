@@ -333,18 +333,19 @@ function validateCustomLetters(center: string, letters: string): string | null {
 // PostgREST helpers
 // ───────────────────────────────────────────────────────────
 
-/** PostgREST's max_rows cap (per supabase/config.toml). Page size
- *  for any bulk-fetch loop is bounded by this — requesting more
- *  in a single `.range()` would still be silently truncated. */
-const PAGE_SIZE = 1000
+/** Page size for bulk-fetch loops — an optimization knob, NOT a
+ *  correctness bound. The loop below is cap-agnostic (advances by the
+ *  rows actually received, stops only on an empty page), so a server
+ *  max_rows below this — config drift, a hosted dashboard out of sync
+ *  with config.toml — just means more round-trips, never lost rows.
+ *  Keep ≤ config.toml's [api] max_rows for fewest round-trips. */
+const PAGE_SIZE = 10_000
 
 /** Fetches the entire pangram pool. ~3.5k rows × ~30 bytes each
- *  = ~100 KB JSON across the pages, ~4 PostgREST round-trips at
- *  the 1000-row cap. The loop terminates when a page comes back
- *  shorter than PAGE_SIZE — that's the last page. */
+ *  = ~100 KB JSON — a single round-trip at the 10k page size. */
 async function fetchPangrams(supabase: SupabaseClient): Promise<PangramRow[]> {
   const out: PangramRow[] = []
-  for (let from = 0; ; from += PAGE_SIZE) {
+  for (let from = 0; ; ) {
     const { data, error } = await supabase
       .schema('spellingbee')
       .from('pangrams')
@@ -356,8 +357,12 @@ async function fetchPangrams(supabase: SupabaseClient): Promise<PangramRow[]> {
       .range(from, from + PAGE_SIZE - 1)
     if (error) throw new Error(`fetchPangrams page ${from}: ${error.message}`)
     const page = (data ?? []) as PangramRow[]
+    // Cap-agnostic advance: step by what actually arrived (the server may cap
+    // a window below PAGE_SIZE) and stop only on an empty page — a short page
+    // is NOT a reliable "last page" signal when max_rows < PAGE_SIZE.
+    if (page.length === 0) break
     out.push(...page)
-    if (page.length < PAGE_SIZE) break
+    from += page.length
   }
   return out
 }

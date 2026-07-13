@@ -23,7 +23,20 @@ schemas = ["public", "graphql_public", "common", "codenamesduet", "psychicnum", 
 extra_search_path = ["common", "public", "extensions"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
 # for accidental or malicious requests.
-max_rows = 1000
+#
+# Raised from the 1000 default: the cap is a backstop against a missing-filter
+# bug fetching a whole seed table (common.words is 283k rows), NOT a substitute
+# for explicit .limit()s — and a too-low cap SILENTLY truncates legitimate
+# reads (bit the connections puzzle picker at 1122 rows). 10k gives every
+# legitimately-growing query (club games list, puzzle pickers) years of
+# headroom while still bounding a runaway response. See docs/supabase.md →
+# Query bounds.
+#
+# Two gotchas: (1) like `schemas` above, this is applied only at
+# `supabase stop && supabase start` — a db reset does NOT re-read it;
+# (2) the HOSTED project's Max Rows is a separate dashboard setting
+# (Settings → API) — keep it in sync with this value.
+max_rows = 10000
 # Controls whether new tables, views, sequences and functions created in the `public` schema by
 # `postgres` are reachable through the Data API roles (`anon`, `authenticated`, `service_role`)
 # without explicit GRANTs. When unset, new entities are NOT auto-exposed, matching the new cloud
