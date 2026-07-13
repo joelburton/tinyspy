@@ -4,7 +4,8 @@ import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
@@ -242,43 +243,21 @@ export function PlayArea(ctx: GamePageCtx) {
   // found").
   const foundSet = useMemo(() => new Set(foundWords.map((f) => f.word)), [foundWords])
 
-  // Manual end — an info-column action-row button now (like the other converged
-  // games), off the GamePage menu. Always confirmed via the shared modal (ending
-  // is harmful for the whole group, even coop/solo); it's irreversible. Its error
-  // shares the same below-board pill as a word submit (via the hook's
-  // showLocalFeedback).
-  const handleEndGame = useCallback(async () => {
-    if (isTerminal) return
-    if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback('error', `End game failed: ${error.message}`)
-  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
-
-  // ─── Concede (compete) — drop out of the race ──────────
-  // A real loss for the conceder; the others keep racing (boggle.concede →
-  // common.concede). Distinct from End, which is coop's neutral mutual stop. Its
-  // error shares the same below-board pill as a word submit (via showLocalFeedback).
-  const handleConcede = useCallback(async () => {
-    if (isTerminal || myConceded) return
-    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
-    const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showLocalFeedback('error', `Concede failed: ${error.message}`)
-  }, [gameId, isTerminal, myConceded, showLocalFeedback])
-
-  // ─── Replay board — restart THIS board (same faces + word lists) ──
-  // Clears everyone's found words and un-terminals the game (the waffle
-  // feature — see boggle.replay_board). Confirmed MID-GAME only (it wipes
-  // the group's finds); at terminal there's nothing left to lose. The reset
-  // arrives via the realtime refetch (the RPC's games touch).
-  const handleReplay = useCallback(async () => {
-    if (
-      !isTerminal &&
-      !window.confirm("Replay board? This clears everyone's found words and restarts the board.")
-    )
-      return
-    const { error } = await db.rpc('replay_board', { target_game: gameId })
-    if (error) showLocalFeedback('error', `Replay failed: ${error.message}`)
-  }, [isTerminal, gameId, showLocalFeedback])
+  // ─── End / Concede / Replay — the shared trio ──────────
+  // The byte-identical shared handlers (useStandardGameActions); only the
+  // failure-pill format + the replay sentence are boggle's. Its errors share the
+  // same below-board pill as a word submit (via showLocalFeedback). New game
+  // stays below — its create path diverges per game.
+  const showError = useCallback((m: string) => showLocalFeedback('error', m), [showLocalFeedback])
+  const { endGame, concede, replay } = useStandardGameActions({
+    db,
+    gameId,
+    isTerminal,
+    myConceded,
+    confirm: confirmAction,
+    replayConfirm: "Replay board? This clears everyone's found words and restarts the board.",
+    showError,
+  })
 
   // ─── New game — a FRESH game (new id, new board) with THIS game's setup ──
   // Same roster + mode, in the same club, via the same boggle-build-board edge
@@ -309,12 +288,12 @@ export function PlayArea(ctx: GamePageCtx) {
   // menu effect above never re-runs to pick up a new closure).
   useEffect(() => {
     actionsRef.current = {
-      endGame: () => void handleEndGame(),
-      concede: () => void handleConcede(),
-      replay: () => void handleReplay(),
+      endGame,
+      concede,
+      replay,
       newGame: () => void handleNewGame(),
     }
-  }, [handleEndGame, handleConcede, handleReplay, handleNewGame])
+  }, [endGame, concede, replay, handleNewGame])
 
   // ─── Coop peer-word narration (global header) ──────────────────
   // coop's `found_words` is club-wide, so a teammate's accepted word arrives in
@@ -430,9 +409,9 @@ export function PlayArea(ctx: GamePageCtx) {
         metricByUser={scoreByUser}
         concededIds={concededIds}
         // ── Action row ──
-        onEndGame={() => void handleEndGame()}
-        onConcede={() => void handleConcede()}
-        onRestart={() => void handleReplay()}
+        onEndGame={endGame}
+        onConcede={concede}
+        onRestart={replay}
         onNewGame={() => void handleNewGame()}
         onBackToClub={goToClub}
         onRequestBackToClub={menu.requestBackToClub}

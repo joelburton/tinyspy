@@ -19,7 +19,8 @@ import { buildDisplayRows } from '../../common/lib/game/foundWordsDisplayRows'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { printWordwheelPdf } from '../pdf/printWordwheelPdf'
 import shared from '../../common/components/game/PlayArea.module.css'
@@ -259,48 +260,24 @@ export function PlayArea(ctx: GamePageCtx) {
       },
     })
 
-  // ─── End-game action (info-column button) ──────────────
-  // The manual "we're done" stop — an info-column action-row button now (like
-  // psychicnum / waffle), off the GamePage menu. Available in both modes; in
-  // compete it terminates the race with everyone {won:false} — friends agreeing
-  // to stop is a valid outcome, not a "you lose" punishment. Always confirmed
-  // via the shared modal (ending is harmful for the whole group, even
-  // coop/solo); it's irreversible; a failure flashes the local feedback.
-  const handleEndGame = useCallback(async () => {
-    if (isTerminal) return
-    if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) {
-      showLocalFeedback('error', `End game failed: ${error.message}`)
-    }
-  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
-
-  // ─── Concede (compete) — drop out of the race ──────────
-  // A real loss for the conceder; the others keep racing (wordwheel.concede →
-  // common.concede). Distinct from End, which is coop's neutral mutual stop.
-  const handleConcede = useCallback(async () => {
-    if (isTerminal || myConceded) return
-    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
-    const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) {
-      showLocalFeedback('error', `Concede failed: ${error.message}`)
-    }
-  }, [gameId, isTerminal, myConceded, showLocalFeedback])
-
-  // ─── Replay board — restart THIS board (same letters + word lists) ──
-  // Clears everyone's found words and un-terminals the game (the waffle
-  // feature — see wordwheel.replay_board). Confirmed MID-GAME only (it
-  // wipes the group's finds); at terminal there's nothing left to lose. The
-  // reset arrives via the realtime refetch (the RPC's games touch).
-  const handleReplay = useCallback(async () => {
-    if (
-      !isTerminal &&
-      !window.confirm("Replay board? This clears everyone's found words and restarts the board.")
-    )
-      return
-    const { error } = await db.rpc('replay_board', { target_game: gameId })
-    if (error) showLocalFeedback('error', `Replay failed: ${error.message}`)
-  }, [isTerminal, gameId, showLocalFeedback])
+  // ─── End / Concede / Replay — the shared trio ──────────
+  // End is the manual "we're done" stop (both modes; compete ends the race with
+  // everyone {won:false} — a valid outcome, not a punishment), confirmed via the
+  // styled modal. Concede (compete) is a real loss for the conceder while the
+  // others race on. Replay restarts this board, clearing everyone's finds. All
+  // three are the byte-identical shared handlers (useStandardGameActions); only
+  // the failure-pill format + the replay sentence are wordwheel's. New game stays
+  // below — its create path diverges per game.
+  const showError = useCallback((m: string) => showLocalFeedback('error', m), [showLocalFeedback])
+  const { endGame, concede, replay } = useStandardGameActions({
+    db,
+    gameId,
+    isTerminal,
+    myConceded,
+    confirm: confirmAction,
+    replayConfirm: "Replay board? This clears everyone's found words and restarts the board.",
+    showError,
+  })
 
   // ─── New game — a FRESH game (new id, new board) with THIS game's setup ──
   // Same roster + mode, in the same club, via the same wordwheel-build-board
@@ -337,12 +314,12 @@ export function PlayArea(ctx: GamePageCtx) {
   // actionsRef, so the menu effect needn't depend on these handlers).
   useEffect(() => {
     actionsRef.current = {
-      endGame: () => void handleEndGame(),
-      concede: () => void handleConcede(),
-      replay: () => void handleReplay(),
+      endGame,
+      concede,
+      replay,
       newGame: () => void handleNewGame(),
     }
-  }, [handleEndGame, handleConcede, handleReplay, handleNewGame])
+  }, [endGame, concede, replay, handleNewGame])
 
   // Peer/opponent activity → header feedback pills (coop: a peer found a
   // word; compete: an opponent climbed a rank). Self-activity is excluded —
@@ -529,9 +506,9 @@ export function PlayArea(ctx: GamePageCtx) {
         metricByUser={rankByUser}
         concededIds={concededIds}
         // ── Action row ──
-        onEndGame={() => void handleEndGame()}
-        onConcede={() => void handleConcede()}
-        onRestart={() => void handleReplay()}
+        onEndGame={endGame}
+        onConcede={concede}
+        onRestart={replay}
         onNewGame={() => void handleNewGame()}
         onBackToClub={goToClub}
         onRequestBackToClub={menu.requestBackToClub}

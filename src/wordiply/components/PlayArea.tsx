@@ -15,7 +15,8 @@ import { MAX_GUESSES } from './GuessBoard'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -151,30 +152,20 @@ export function PlayArea(ctx: GamePageCtx) {
         base && !w.includes(base.toLowerCase()) ? `must contain "${base.toUpperCase()}"` : 'not a word',
     })
 
-  // ─── Actions ───────────────────────────────────────────
-  const handleEndGame = useCallback(async () => {
-    if (isTerminal) return
-    if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback('error', `End game failed: ${error.message}`)
-  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
-
-  const handleConcede = useCallback(async () => {
-    if (isTerminal || myConceded) return
-    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
-    const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showLocalFeedback('error', `Concede failed: ${error.message}`)
-  }, [gameId, isTerminal, myConceded, showLocalFeedback])
-
-  const handleReplay = useCallback(async () => {
-    if (
-      !isTerminal &&
-      !window.confirm("Replay board? This clears everyone's guesses and restarts the same starter.")
-    )
-      return
-    const { error } = await db.rpc('replay_board', { target_game: gameId })
-    if (error) showLocalFeedback('error', `Replay failed: ${error.message}`)
-  }, [isTerminal, gameId, showLocalFeedback])
+  // ─── End / Concede / Replay — the shared trio ──────────
+  // The byte-identical shared handlers (useStandardGameActions); only the
+  // failure-pill format + the replay sentence are wordiply's. New game stays
+  // below — its create path diverges per game.
+  const showError = useCallback((m: string) => showLocalFeedback('error', m), [showLocalFeedback])
+  const { endGame, concede, replay } = useStandardGameActions({
+    db,
+    gameId,
+    isTerminal,
+    myConceded,
+    confirm: confirmAction,
+    replayConfirm: "Replay board? This clears everyone's guesses and restarts the same starter.",
+    showError,
+  })
 
   const gameMode = game?.mode
   const handleNewGame = useCallback(async () => {
@@ -193,12 +184,12 @@ export function PlayArea(ctx: GamePageCtx) {
 
   useEffect(() => {
     actionsRef.current = {
-      endGame: () => void handleEndGame(),
-      concede: () => void handleConcede(),
-      replay: () => void handleReplay(),
+      endGame,
+      concede,
+      replay,
       newGame: () => void handleNewGame(),
     }
-  }, [handleEndGame, handleConcede, handleReplay, handleNewGame])
+  }, [endGame, concede, replay, handleNewGame])
 
   // ─── GamePage menu ─────────────────────────────────────
   useEffect(() => {
@@ -313,9 +304,9 @@ export function PlayArea(ctx: GamePageCtx) {
           guessesByUser={guessesByUser}
           scoreByUser={scoreByUser}
           concededIds={concededIds}
-          onEndGame={() => void handleEndGame()}
-          onConcede={() => void handleConcede()}
-          onRestart={() => void handleReplay()}
+          onEndGame={endGame}
+          onConcede={concede}
+          onRestart={replay}
           onNewGame={() => void handleNewGame()}
           onBackToClub={goToClub}
           onRequestBackToClub={menu.requestBackToClub}

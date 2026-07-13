@@ -13,7 +13,8 @@ import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDis
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -175,55 +176,42 @@ export function PlayArea({
     [gameId, showLocalFeedback],
   )
 
-  // Manual end — the friends agreeing they're done (neutral terminal, nobody
-  // wins/loses). Always confirmed via the shared modal (ending is harmful for
-  // the whole group, even coop/solo); it's irreversible.
-  const handleEndGame = useCallback(async () => {
-    if (isTerminal) return
-    if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback(ownAction('error', `End game failed: ${error.message}`))
-  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
-
-  // Concede — drop out of a compete race (a real loss; the rest keep racing).
-  // Distinct from End: waffle.concede flips the shared conceded flag then re-runs the
-  // compete terminal check (which now counts me as done). Confirmed; irreversible.
-  const handleConcede = useCallback(async () => {
-    if (isTerminal) return
-    if (!window.confirm('Concede the game? You drop out and the rest keep playing.')) return
-    const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showLocalFeedback(ownAction('error', `Concede failed: ${error.message}`))
-  }, [gameId, isTerminal, showLocalFeedback])
+  // Concede lives on the COMMON roster (ctx `players`), computed here (before the
+  // handlers + the menu effect) so both can read it. Drives the shared trio's
+  // concede guard, the menu's coop-End-vs-compete-Concede pick, the "You
+  // conceded" copy, and the conceded-opponent 'out' marker below.
+  const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
 
   // Post-game local answer reveal — set by the TERMINAL branch of
   // handleRevealAnswer (below), cleared by replay. Swaps the DISPLAYED board
   // for the solution; see the derivation past the loading guard.
   const [revealedLocally, setRevealedLocally] = useState(false)
 
-  // Replay board — restart THIS board (same scramble/setup) from scratch for
-  // everyone: clears the turn log + all progress and un-terminals the game.
-  // Available mid-game or after game-over. Confirmed MID-GAME only (it wipes
-  // the group's in-progress work); at terminal the game is already over, so
-  // there's nothing to lose and the confirm would just be noise. The
-  // board/log/terminal reset arrives via the realtime refetch (useGame +
-  // useCommonGame); we just leave any open history view + clear the local pill.
-  const handleReplay = useCallback(async () => {
-    if (
-      !isTerminal &&
-      !window.confirm(
-        "Replay board? This clears everyone's progress and the turn log, and restarts from the original scramble.",
-      )
-    )
-      return
-    const { error } = await db.rpc('replay_board', { target_game: gameId })
-    if (error) {
-      showLocalFeedback(ownAction('error', `Replay failed: ${error.message}`))
-      return
-    }
+  // ─── End / Concede / Replay — the shared trio ──────────
+  // The byte-identical shared handlers (useStandardGameActions); waffle's own
+  // bits are the `ownAction` failure pill, the replay sentence, and the
+  // post-replay cleanup (leave the history view, clear the pill, re-hide a
+  // locally-revealed answer). New game + Reveal answer stay below.
+  const showError = useCallback(
+    (m: string) => showLocalFeedback(ownAction('error', m)),
+    [showLocalFeedback],
+  )
+  const onReplayed = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
     setRevealedLocally(false) // the new run starts blind again
-  }, [gameId, isTerminal, showLocalFeedback, clearLocalFeedback, exitViewing])
+  }, [exitViewing, clearLocalFeedback])
+  const { endGame, concede, replay } = useStandardGameActions({
+    db,
+    gameId,
+    isTerminal,
+    myConceded,
+    confirm: confirmAction,
+    replayConfirm:
+      "Replay board? This clears everyone's progress and the turn log, and restarts from the original scramble.",
+    showError,
+    onReplayed,
+  })
 
   // New game — a FRESH game (new id, new randomly-built board) with THIS
   // game's setup + roster + mode, in the same club: the "same again!" action
@@ -304,30 +292,30 @@ export function PlayArea({
   // solution; the give-up RPC tagged status.outcome='revealed'; or this client
   // already clicked it).
   //
-  // mode/myConceded are derived up here (not the below-guard copies) so the effect can
-  // pick coop End vs compete Concede. Every handler in the deps is a stable useCallback
-  // (or a one-shot transition value like `isTerminal`), so this effect only re-runs on
-  // real menu-affecting changes — never every render — keeping the setState loop-free.
+  // menuMode is derived up here (not the below-guard copy) so the effect can
+  // pick coop End vs compete Concede. Every handler in the deps is a stable
+  // useCallback (or a one-shot transition value like `isTerminal`), so this
+  // effect only re-runs on real menu-affecting changes — never every render —
+  // keeping the setState loop-free. (`myConceded` is derived at the top.)
   const solutionKnown = game?.solution != null
   const answerShown =
     revealedLocally || playState === 'won' || (status?.outcome as string | undefined) === 'revealed'
   const revealDisabled = isTerminal ? answerShown : !solutionKnown
   const menuMode: 'coop' | 'compete' = game?.mode === 'compete' ? 'compete' : 'coop'
-  const menuConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   useEffect(() => {
     menu.setGameSections(
       buildGameMenu({
         menu,
         mode: menuMode,
         isTerminal,
-        conceded: menuConceded,
-        onEndGame: () => void handleEndGame(),
-        onConcede: () => void handleConcede(),
+        conceded: myConceded,
+        onEndGame: endGame,
+        onConcede: concede,
         extra: [
           ...infoSheet.menuSections,
           {
             items: [
-              { id: 'replay', label: 'Replay board', onClick: () => void handleReplay() },
+              { id: 'replay', label: 'Replay board', onClick: replay },
               // Same setup + roster, a fresh randomly-built board, a NEW game id.
               { id: 'new-game', label: 'New game', onClick: () => void handleNewGame() },
               {
@@ -345,10 +333,10 @@ export function PlayArea({
   }, [
     menu,
     menuMode,
-    menuConceded,
-    handleEndGame,
-    handleConcede,
-    handleReplay,
+    myConceded,
+    endGame,
+    concede,
+    replay,
     handleNewGame,
     handleRevealAnswer,
     isTerminal,
@@ -364,10 +352,8 @@ export function PlayArea({
   const isPlayer = self !== undefined
   const isCompete = game.mode === 'compete'
 
-  // Concede lives on the COMMON roster (ctx `players` = GamePlayer[]), not on
-  // waffle.players. `myConceded` drives the "You conceded" copy; `concededIds` marks
-  // a conceded opponent 'out' in the strip mid-game.
-  const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
+  // `concededIds` marks a conceded opponent 'out' in the strip mid-game.
+  // (`myConceded` — my own drop-out flag — is derived at the top.)
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
   // Turn viewer (coop only): the historical board for the swap being viewed, or null
@@ -468,9 +454,9 @@ export function PlayArea({
         selfId={session.user.id}
         playerStates={playerStates}
         concededIds={concededIds}
-        onEndGame={() => void handleEndGame()}
-        onConcede={() => void handleConcede()}
-        onRestart={() => void handleReplay()}
+        onEndGame={endGame}
+        onConcede={concede}
+        onRestart={replay}
         onRevealAnswer={() => void handleRevealAnswer()}
         revealDisabled={revealDisabled}
         onNewGame={() => void handleNewGame()}

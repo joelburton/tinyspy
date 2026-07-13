@@ -8,7 +8,8 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -184,49 +185,28 @@ export function PlayArea({
     globalFeedback,
   })
 
-  // Manual end — the friends agreeing to stop (a neutral terminal). Always
-  // confirmed via the shared modal (ending is harmful for the whole group, even
-  // coop/solo); it's irreversible; an RPC failure flashes in the local feedback
-  // slot. `useCallback` so the ref-populate effect below re-runs only when its
-  // real inputs change.
-  const handleEndGame = useCallback(async () => {
-    if (isTerminal) return
-    if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', error.message))
-  }, [isTerminal, gameId, showLocalFeedback, confirmAction])
-
-  // Concede — drop out of a compete race (a real loss; the others keep racing). Distinct
-  // from End: wordle.concede flips the shared conceded flag then re-runs the compete
-  // terminal check (which now counts me as done).
-  const handleConcede = useCallback(async () => {
-    if (isTerminal || myConceded) return
-    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
-    const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', error.message))
-  }, [isTerminal, myConceded, gameId, showLocalFeedback])
-
-  // Replay board — restart THIS game (same word) from scratch for everyone:
-  // clears every guess and un-terminals the game. Confirmed MID-GAME only (it
-  // wipes the group's progress); at terminal there's nothing left to lose
-  // (waffle's replay behavior). The reset arrives via the realtime refetch;
-  // we leave any open history view, clear the pill, and re-hide a locally
-  // revealed answer so the new run starts blind.
-  const handleReplay = useCallback(async () => {
-    if (
-      !isTerminal &&
-      !window.confirm("Replay board? This clears everyone's guesses and restarts with the same word.")
-    )
-      return
-    const { error } = await db.rpc('replay_board', { target_game: gameId })
-    if (error) {
-      showLocalFeedback(stickyPill('error', `Replay failed: ${error.message}`))
-      return
-    }
+  // ─── End / Concede / Replay — the shared trio ──────────
+  // The byte-identical shared handlers (useStandardGameActions); wordle's own
+  // bits are the `stickyPill` failure pill, the replay sentence, and the
+  // post-replay cleanup (leave the history view, clear the pill, re-hide a
+  // locally-revealed answer so the new run starts blind). New game + Reveal
+  // answer stay below — their paths diverge (new game is a direct create_game).
+  const showError = useCallback((m: string) => showLocalFeedback(stickyPill('error', m)), [showLocalFeedback])
+  const onReplayed = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
     setAnswerRevealed(false)
-  }, [isTerminal, gameId, showLocalFeedback, clearLocalFeedback, exitViewing])
+  }, [exitViewing, clearLocalFeedback])
+  const { endGame, concede, replay } = useStandardGameActions({
+    db,
+    gameId,
+    isTerminal,
+    myConceded,
+    confirm: confirmAction,
+    replayConfirm: "Replay board? This clears everyone's guesses and restarts with the same word.",
+    showError,
+    onReplayed,
+  })
 
   // New game — a FRESH game (new id, new random target) with THIS game's
   // setup + roster + mode, in the same club (waffle's "same again!" feature).
@@ -333,13 +313,13 @@ export function PlayArea({
   // needs the (identity-changing) handlers in its own dep array.
   useEffect(() => {
     actionsRef.current = {
-      endGame: () => void handleEndGame(),
-      concede: () => void handleConcede(),
-      replay: () => void handleReplay(),
+      endGame,
+      concede,
+      replay,
       reveal: () => void handleReveal(),
       newGame: () => void handleNewGame(),
     }
-  }, [handleEndGame, handleConcede, handleReplay, handleReveal, handleNewGame])
+  }, [endGame, concede, replay, handleReveal, handleNewGame])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -460,9 +440,9 @@ export function PlayArea({
         playerStates={playerStates}
         concededIds={concededIds}
         // ── Action row ──
-        onEndGame={() => void handleEndGame()}
-        onConcede={() => void handleConcede()}
-        onRestart={() => void handleReplay()}
+        onEndGame={endGame}
+        onConcede={concede}
+        onRestart={replay}
         onRevealAnswer={() => void handleReveal()}
         revealDisabled={answerShown}
         onNewGame={() => void handleNewGame()}
