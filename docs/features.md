@@ -139,8 +139,6 @@ MC FB MW (find many words)  WW (find the longest word)
 ## Hints
 PN SD WK RA CP
 SS* FB*(hint for the pangram) MC*(first 2 letters?)
-(WW shows the best word's length from the start — a standing nudge, not an
-on-demand hint.)
 
 ## AI
 TS (clue suggester)  RA (suggester + opponent)  CP (explain-cryptic-clue)
