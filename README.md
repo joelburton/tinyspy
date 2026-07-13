@@ -2,7 +2,23 @@
 
 A monorepo for online collaborative games among groups of friends. The shell, auth, clubs, and chat are common; each game lives in its own folder + Postgres schema + lazy chunk. Adding or removing a game is a folder-and-one-line operation; the architecture's removability is the structural integrity check (enforced by ESLint).
 
-The flagship game is **codenamesduet** — an online implementation of [Codenames Duet](https://czechgames.com/en/codenames-duet/), the cooperative variant where two players give clues to each other to find 15 agents before the timer runs out. **connections** is a Connections-style word-grouping puzzle. A tiny third game (**psychicnum**) exists to exercise the multi-game wiring with a game small enough that the architectural patterns dominate, not the game logic — it'll be removed after beta. **spellingbee** (a Spelling-Bee-style word finder), **bananagrams** (Bananagrams-style), **waffle** (a Waffle-style swap-to-solve puzzle), **wordle** (a Wordle-style guess-the-word game), **stackdown** (a mahjong-style word game — clear a stack of lettered tiles by spelling words off the exposed ones), **scrabble** (a Scrabble-style game on the standard 15×15 premium board), **boggle** (a Boggle-style find-words-in-a-grid game), and **crosswords** (a collaborative/competitive crossword) round out today's roster of eleven. The planned roster is essentially complete; any further game slots into the same shape — most are ports of games already implemented in other stacks (so the rules / problem-space are well understood, and the porting work focuses on fitting them cleanly into the Supabase + React shell).
+Thirteen games are live today (the parenthetical is each game's in-app brand):
+
+- **bananagrams** (MonkeyGrams) — Bananagrams-style: build your own crossword from a shared tile bank.
+- **boggle** (MothCubes) — Boggle-style: find words in a grid of lettered dice.
+- **codenamesduet** (TinySpy) — [Codenames Duet](https://czechgames.com/en/codenames-duet/): two players give clues to each other to find all the agents before the timer runs out.
+- **connections** (WordKnit) — Connections-style: sort sixteen words into four hidden groups.
+- **crosswords** (CrossPlay) — a collaborative/competitive crossword.
+- **psychicnum** (PsychicNum) — a deliberately tiny toy that keeps the multi-game wiring honest, with the smallest possible game-logic surface.
+- **scrabble** (RackAttack) — Scrabble-style on the standard 15×15 premium board, with an AI opponent.
+- **spellingbee** (FreeBee) — Spelling-Bee-style: make words from seven letters around a required centre.
+- **stackdown** (StackDown) — a mahjong-style word game: clear a stack of lettered tiles by spelling words off the exposed ones.
+- **waffle** (SyrupSwap) — Waffle-style swap-to-solve grid puzzle.
+- **wordiply** (WordWire) — Wordiply-style: make the longest words that contain a short base.
+- **wordle** (WordNerd) — Wordle-style guess-the-word.
+- **wordwheel** (MooseWheel) — Word-Wheel-style: make words from nine wheel letters, each using the centre.
+
+Most multiplayer games ship as a cooperative + competitive sibling pair; codenamesduet is cooperative-only, and bananagrams is a single competitive race. The planned roster is essentially complete; any further game slots into the same shape — most are ports of games already implemented in other stacks (so the rules / problem-space are well understood, and the porting work focuses on fitting them cleanly into the Supabase + React shell).
 
 Built as a learning exercise around Supabase (row-level security, Postgres RPCs, Realtime, Edge Functions) with all game logic enforced server-side. Frontend is React + Vite + TypeScript, no router library — a ~40-line hand-rolled router covers the flat route set.
 
@@ -25,7 +41,7 @@ See [`docs/common.md`](docs/common.md) for the full club model and [`CLAUDE.md`]
 - **Frontend:** Vite + React 19 + TypeScript. Hand-rolled path-based router (no react-router). Each game's `Root` is a lazy chunk so the main bundle stays small as games are added.
 - **Backend:** Supabase — Postgres (with RLS), PostgREST, Realtime (WebSocket), Auth (magic links via Resend SMTP), Edge Functions (Deno).
 - **Hosting:** Netlify (FE), Supabase (everything else).
-- **AI features:** Anthropic Claude via Edge Functions (codenamesduet's clue suggester is the current example).
+- **AI features:** Anthropic Claude via Edge Functions — codenamesduet's clue suggester and crosswords' clue explainer. (scrabble's move suggester + autonomous opponent are a local trie-search engine, not an LLM.)
 
 ## Architecture at a glance
 
@@ -35,8 +51,8 @@ src/
   common/                         # cross-game UI, hooks, lib, db handle
   codenamesduet/                  # Codenames Duet
   psychicnum/                     # toy game; exercises multi-game wiring
-  connections/  spellingbee/  bananagrams/  waffle/  wordle/
-  stackdown/  scrabble/  boggle/  crosswords/   # the other live games (one folder each)
+  connections/  spellingbee/  bananagrams/  waffle/  wordle/  stackdown/
+  scrabble/  boggle/  crosswords/  wordwheel/  wordiply/   # the other live games (one folder each)
 
 supabase/
   config.toml, seed.sql
@@ -128,7 +144,7 @@ A few hosted-project settings can only be configured in the dashboard (not via `
 - **Auth → URL Configuration** — `site_url` + redirect URLs must include the Netlify origin.
 - **Auth → Email rate limits** — free-tier defaults are conservative; raise if real magic-link traffic warrants it.
 - **Custom SMTP** — we use Resend on `tinyspy.joelburton.com`. Supabase's shared mailer caps at 2 emails/hour; any real magic-link traffic requires your own SMTP provider.
-- **Edge Function secrets** — set via `supabase secrets set` (CLI) rather than the dashboard for atomicity. Currently just `ANTHROPIC_API_KEY` for `codenamesduet-suggest-clue`.
+- **Edge Function secrets** — set via `supabase secrets set` (CLI) rather than the dashboard for atomicity. Currently just `ANTHROPIC_API_KEY`, shared by the Claude-backed functions (`codenamesduet-suggest-clue` and `crosswords-explain-clue`).
 
 ## Documentation
 
@@ -136,6 +152,6 @@ The detail behind everything above lives in `docs/`. **[CLAUDE.md](CLAUDE.md) ca
 
 ## Status
 
-Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). Eleven games are live — codenamesduet, psychicnum, connections, spellingbee, bananagrams, waffle, wordle, stackdown, scrabble, boggle, crosswords (every multiplayer one a coop + compete sibling pair); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest (slated for removal after beta). Further games slot into the same shape — one new folder under `src/`, one new line in `src/games.ts`, one new Postgres schema.
+Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). Thirteen games are live — bananagrams, boggle, codenamesduet, connections, crosswords, psychicnum, scrabble, spellingbee, stackdown, waffle, wordiply, wordle, wordwheel — most multiplayer ones a coop + compete sibling pair (codenamesduet is coop-only, bananagrams a single competitive race); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest. Further games slot into the same shape — one new folder under `src/`, one new line in `src/games.ts`, one new Postgres schema.
 
 Known cosmetic gaps and deferred work are in [`docs/deferred.md`](docs/deferred.md).
