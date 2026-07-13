@@ -130,7 +130,7 @@ seats faster than "per year" intuitions suggest:
 | query | order | at >cap rows | status |
 |---|---|---|---|
 | `useClubChat` messages (`useClubChat.ts`) | `sent_at` **asc** | can't happen — bounded by a 7-day recency window (`.gte('sent_at', cutoff)`, cutoff computed once per subscription) | **bounded** ✓ (a recency window, not a row limit — the window matches how chat is read) |
-| `useGameInvitations` first query (`game_players` for self) | **none** | which rows come back is unspecified → a fresh invite can be missed nondeterministically | worth an explicit bound / one-query rewrite |
+| `useGameInvitations` (`game_players` for self) | n/a | can't happen — one `!inner` embed filtered to `is_terminal = false`, so the row set is my *active* games (a handful), not every seat I've ever held | **bounded** ✓ (collapsed two queries into one inner-join embed) |
 | ClubPage games list | `last_active_at` **desc** | oldest games silently vanish from the list | graceful direction, but deserves an explicit limit |
 | `makeFoundWordsGame` / boggle / wordiply child rows | `found_at` asc | can't realistically happen (human-bounded) | note the pattern, no action |
 
@@ -435,6 +435,14 @@ What the review's follow-up already shipped (2026-07-12):
   window matches how club chat is actually read. Live INSERTs still append
   past the window during the session; the existing `messages
   (club_handle, sent_at)` index serves the filter (no migration).
+- **Invitations collapsed to one bounded query** (`useGameInvitations.ts`):
+  the old shape fetched *every* `game_players` seat I've ever held
+  (unordered → nondeterministic truncation at the cap) then filtered to
+  non-terminal games. Now a single `game_players` select with a
+  `games!inner(...)` embed and `.eq('games.is_terminal', false)` bounds the
+  result to my active games. The generated types accepted the embed and a
+  live PostgREST probe confirmed the FK resolves; downstream dedupe/seen
+  logic is unchanged.
 
 ### Work plan — still open, in priority order
 
@@ -443,24 +451,12 @@ what's already been decided, and how to verify. None are urgent at
 friends-alpha scale now that the cap is raised. Delete each item (and
 update any doc text it references) as it lands.
 
-1. **Invitations: one bounded query** — `useGameInvitations.ts` `load()`.
-   Today: query 1 fetches `game_id` of every `game_players` row the user
-   has *ever* had (unordered — nondeterministic truncation at the cap),
-   query 2 filters those ids to non-terminal games. Collapse into one
-   inner-join embed (both tables are in `common`, FK
-   `game_players.game_id → games.id` exists):
-   `from('game_players').select('game_id, games!inner(id, gametype, club_handle, created_by)').eq('user_id', selfId).eq('games.is_terminal', false)`.
-   Keep the downstream dedupe/seen logic unchanged. If the generated
-   types fight the embed shape, the fallback is keeping two queries but
-   making query 1 `order('game_id') + limit` — bounded and deterministic,
-   just not minimal. Covered by `useGameInvitations.test.ts` (mocks will
-   need the new query shape).
-2. **ClubPage games list: explicit limit** — `ClubPage.tsx` `loadGames()`
+1. **ClubPage games list: explicit limit** — `ClubPage.tsx` `loadGames()`
    (the `last_active_at desc` query). Add `.limit(200)` (value is a
    judgment call — the list UI shows everything it gets, so pick what a
    listing should reasonably show; desc order means overflow drops the
    oldest). Add a one-line comment that overflow is deliberate.
-3. **Crosswords library picker: bound before the bulk import** —
+2. **Crosswords library picker: bound before the bulk import** —
    `src/crosswords/components/SetupForm.tsx` (the `source = 'library'`
    query). Blocked-ish: the planned dictionary-puzzle import will push
    `crosswords.puzzles` past any cap, but >10k puzzles needs a real
@@ -468,7 +464,7 @@ update any doc text it references) as it lands.
    import, not before: until then the library is ~3 curated puzzles.
    Minimum safe change if the import happens first: `.limit()` + a
    truncation note in the UI.
-4. **Prune the subscriber-less publication entries.** Nothing subscribes
+3. **Prune the subscriber-less publication entries.** Nothing subscribes
    to `crosswords.games` (crosswords' `clear_board` UPDATEs cells, so the
    cells subscription hears it — no games-touch needed, unlike the
    found-words games' replay trick): remove its
@@ -482,7 +478,7 @@ update any doc text it references) as it lands.
    says rename-liveness isn't wanted. Verify with `npm run db:reset`
    (edited baseline migrations — the alpha convention) + `npm run import`
    + `npm run test:db`.
-5. **Fix the stale stackdown Pattern-B references.** stackdown's
+4. **Fix the stale stackdown Pattern-B references.** stackdown's
    shared-word Broadcast was removed (selections are local now; the hook
    uses the plain `useRealtimeRefetch` factory — its docstring records
    the change). Three places still describe the old design:
@@ -492,7 +488,7 @@ update any doc text it references) as it lands.
    accurate — keep it), docs/games/stackdown.md, and CLAUDE.md's roster
    line ("coop (shared collaborative word via Broadcast)"). Docs-only;
    no code change.
-6. **(Cosmetic, someday)** Rename codenamesduet's channel prefixes
+5. **(Cosmetic, someday)** Rename codenamesduet's channel prefixes
    (`channelPrefix` in its `useGame` / `useBoard` / `useClues`) from
    `game`/`board`/`clues` to `codenamesduet`-prefixed names matching the
    `<gametype>:` convention, and update the channel registry table above.

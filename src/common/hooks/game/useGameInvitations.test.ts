@@ -49,12 +49,20 @@ vi.mock('../../../games', () => ({
 // so the test id must be UUID-shaped or currentGameId won't match it.
 const GID = '11111111-1111-1111-1111-111111111111'
 
-// Per-table db results. `load()` runs three queries (game_players → games
-// → profiles); each builder is a thenable resolving to its table's rows.
+// Per-table db results. `load()` now runs two queries: game_players (with
+// an `!inner` embed of the game, filtered to non-terminal) → profiles. Each
+// builder is a thenable resolving to its table's rows. The game_players rows
+// carry the embedded `games` object (to-one), matching the query shape.
 const dbData: Record<string, unknown[]> = {
-  game_players: [{ game_id: GID }],
-  games: [
-    { id: GID, gametype: 'spellingbee_coop', club_handle: 'pals', created_by: 'moth-id' },
+  game_players: [
+    {
+      games: {
+        id: GID,
+        gametype: 'spellingbee_coop',
+        club_handle: 'pals',
+        created_by: 'moth-id',
+      },
+    },
   ],
   profiles: [{ user_id: 'moth-id', username: 'moth' }],
 }
