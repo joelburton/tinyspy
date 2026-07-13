@@ -2,12 +2,16 @@
  * spellingbee-build-board — Edge Function that produces a fresh
  * spellingbee puzzle and creates the game in one round-trip.
  *
- * Why edge (not PL/pgSQL): the diverse-builder strategy needs
- * weighted random sampling over the pangram seeds, two filter
- * passes (previous-letters overlap cap + ING dampening), and a
- * subset-mask join against the word list (common.words, via the
- * candidate_words RPC). All of this is much easier to express +
- * maintain in TypeScript than in plpgsql.
+ * The PURE board-building core (overlap cap, weighted pool, scoring, the
+ * required/bonus partition, custom-letter validation) lives in ./board.ts,
+ * unit-tested by ./board_test.ts. This file keeps the orchestration: weighted
+ * random sampling over the pangram seeds, the ING-dampening filter, a
+ * subset-mask join against common.words (via the candidate_words RPC), and the
+ * serve handler.
+ *
+ * Why edge (not PL/pgSQL): the diverse-builder strategy needs weighted random
+ * sampling, two filter passes (previous-letters overlap cap + ING dampening),
+ * and the subset-mask join — much easier in TypeScript than plpgsql.
  *
  * Architecture:
  *   1. Verify the caller's JWT, read the inputs.
@@ -63,6 +67,17 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { json, preflight } from '../_shared/http.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
+import {
+  type Board,
+  type CandidateRow,
+  type PangramRow,
+  applyOverlapCap,
+  buildBoard,
+  buildWeightedPool,
+  letterMask,
+  maskLetters,
+  validateCustomLetters,
+} from './board.ts'
 
 // ───────────────────────────────────────────────────────────
 // Types
@@ -90,52 +105,10 @@ type Setup = {
 
 type Mode = 'coop' | 'compete'
 
-/** The board payload handed to spellingbee.create_game. */
-type Board = {
-  outer_letters: string
-  center_letter: string
-  required_words_score: number
-  required_words_count: number
-  /** The required set: words in the smaller list (the displayed goal). */
-  required_words: Array<{ word: string; points: number; is_pangram: boolean }>
-  /** The bonus set (legal − required): accepted + scored, not the goal. Same
-   *  { word, points, is_pangram } shape as required so the FE scores it locally. */
-  bonus_words: Array<{ word: string; points: number; is_pangram: boolean }>
-}
-
-type PangramRow = {
-  mask: string                // bigint comes through PostgREST as string
-  /** How many required words fit this 7-letter seed — the ≥30 gate. */
-  required_words_count: number
-  /**
-   * Whether the seed's 7 letters include a rare one — {j, q, x, z}
-   * (very rare) or {k, v, w, y} (somewhat rare). The diverse builder
-   * gives these masks a ×RARE_LETTER_WEIGHT sampling boost so boards
-   * aren't dominated by common-letter seeds (e, a, i, r, t, …).
-   * Precomputed at import time.
-   */
-  has_rare_letters: boolean
-}
-
-type CandidateRow = {
-  word: string
-  letter_mask: string
-  /** In the required set (band ≤ 3, american, no slang, clean: slur 0 +
-   *  crude 0) — counts toward the goal. */
-  is_required: boolean
-  /** In the legal set (band ≤ 5) — enterable. Always true here
-   *  (candidate_words already pre-filters to legal). */
-  is_legal: boolean
-}
-
 // ───────────────────────────────────────────────────────────
 // Constants
 // ───────────────────────────────────────────────────────────
 
-/** Overlap cap with the previous board, in letters out of 7. */
-const MAX_PREVIOUS_OVERLAP = 4
-/** Weighting boost for has_rare_letters masks. */
-const RARE_LETTER_WEIGHT = 3
 /** Accept rate for masks containing all of {i, n, g}. */
 const ING_ACCEPT_RATE = 1 / 3
 /** Sanity gate that must agree with the RPC's same gate. */
@@ -156,55 +129,8 @@ const G_BIT = 1n << BigInt('g'.charCodeAt(0) - 97)
 const ING_MASK = I_BIT | N_BIT | G_BIT
 
 // ───────────────────────────────────────────────────────────
-// Bitmask helpers
+// Sampling (impure — uses Math.random)
 // ───────────────────────────────────────────────────────────
-
-function letterMask(s: string): bigint {
-  let mask = 0n
-  for (const ch of s.toLowerCase()) {
-    const code = ch.charCodeAt(0) - 97
-    if (code >= 0 && code < 26) mask |= 1n << BigInt(code)
-  }
-  return mask
-}
-
-function popcount26(mask: bigint): number {
-  let m = mask
-  let count = 0
-  while (m !== 0n) {
-    count += Number(m & 1n)
-    m >>= 1n
-  }
-  return count
-}
-
-/** Letters in the mask, as a lowercase string ('a' = bit 0). */
-function maskLetters(mask: bigint): string {
-  let out = ''
-  for (let i = 0; i < 26; i++) {
-    if ((mask & (1n << BigInt(i))) !== 0n) {
-      out += String.fromCharCode(97 + i)
-    }
-  }
-  return out
-}
-
-// ───────────────────────────────────────────────────────────
-// Diverse builder
-// ───────────────────────────────────────────────────────────
-
-/** Filter the pangram pool by the previous-board overlap cap.
- *  Returns the input unchanged when previousMask is null. */
-function applyOverlapCap(
-  pool: PangramRow[],
-  previousMask: bigint | null,
-): PangramRow[] {
-  if (previousMask === null) return pool
-  return pool.filter((row) => {
-    const overlap = popcount26(BigInt(row.mask) & previousMask)
-    return overlap <= MAX_PREVIOUS_OVERLAP
-  })
-}
 
 /** Fisher–Yates shuffle of a copy — used to try a seed's 7 candidate centers
  *  in random order (so repeated boards on the same seed vary their center). */
@@ -215,18 +141,6 @@ function shuffled<T>(arr: T[]): T[] {
     ;[out[i], out[j]] = [out[j], out[i]]
   }
   return out
-}
-
-/** Build the weighted candidate array. A mask appears
- *  RARE_LETTER_WEIGHT times if has_rare_letters; otherwise once.
- *  Cheap given pool size (~3.5k → ~7-10k after weighting). */
-function buildWeightedPool(pool: PangramRow[]): PangramRow[] {
-  const weighted: PangramRow[] = []
-  for (const row of pool) {
-    const reps = row.has_rare_letters ? RARE_LETTER_WEIGHT : 1
-    for (let i = 0; i < reps; i++) weighted.push(row)
-  }
-  return weighted
 }
 
 /** ING dampening: if the mask has all of {i, n, g}, accept it
@@ -259,74 +173,6 @@ function sampleMask(weighted: PangramRow[]): PangramRow {
   // passing MIN_REQUIRED_WORDS_COUNT — but those rows were filtered at
   // import time, so this branch is essentially unreachable.
   throw new Error('failed to sample a valid pangram mask after retries')
-}
-
-// ───────────────────────────────────────────────────────────
-// Word enumeration + scoring (required + bonus)
-// ───────────────────────────────────────────────────────────
-
-/** Length-based score: 1pt for 4-letter, length-pt for ≥5.
- *  The pangram +10 bonus is applied inline in buildBoard()
- *  where we already have the puzzleMask in scope. */
-function lengthScore(word: string): number {
-  return word.length === 4 ? 1 : word.length
-}
-
-/** Given the puzzle mask + center, partition the candidate words
- *  into the required set + the bonus set (legal − required) and tally
- *  the required totals. */
-function buildBoard(
-  outerLetters: string,
-  centerLetter: string,
-  candidateWords: CandidateRow[],
-): Board {
-  const puzzleMask = letterMask(outerLetters + centerLetter)
-  const required: Board['required_words'] = []
-  const bonus: Board['bonus_words'] = []
-  let requiredWordsScore = 0
-  let requiredWordsCount = 0
-
-  for (const row of candidateWords) {
-    const wMask = BigInt(row.letter_mask)
-    // Same length + pangram scoring for both sets; the FE reads points off the
-    // shipped entry, so bonus words must carry them too.
-    const isPangram = wMask === puzzleMask
-    const points = lengthScore(row.word) + (isPangram ? 10 : 0)
-    if (row.is_required) {
-      required.push({ word: row.word, points, is_pangram: isPangram })
-      requiredWordsScore += points
-      requiredWordsCount++
-    } else {
-      bonus.push({ word: row.word, points, is_pangram: isPangram })
-    }
-  }
-
-  return {
-    outer_letters: outerLetters,
-    center_letter: centerLetter,
-    required_words_score: requiredWordsScore,
-    required_words_count: requiredWordsCount,
-    required_words: required,
-    bonus_words: bonus,
-  }
-}
-
-/** Validate a custom (player-specified) letter set, or null if it's fine.
- *  Mirrors spellingbee.create_game's letter rules + the FE's `customLettersError`:
- *  a single center + six OTHER letters, all seven distinct lowercase a–z, none
- *  being 's' (the Spelling Bee rule). Both inputs are already lowercased/trimmed
- *  by the caller. */
-function validateCustomLetters(center: string, letters: string): string | null {
-  if (!/^[a-z]$/.test(center) || center === 's') {
-    return 'custom center must be a single letter a–z (not s)'
-  }
-  if (!/^[a-z]{6}$/.test(letters) || letters.includes('s')) {
-    return 'custom letters must be six letters a–z (no s)'
-  }
-  if (new Set(center + letters).size !== 7) {
-    return 'all seven custom letters must be different'
-  }
-  return null
 }
 
 // ───────────────────────────────────────────────────────────

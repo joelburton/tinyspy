@@ -87,6 +87,20 @@ beats nine.
 
 ## Gap 2 — edge functions are the least-tested layer
 
+> **Update — largely addressed** (recommendation #4). A **`test:edge`** npm
+> script (`deno test supabase/functions/`) now runs every edge-function test,
+> including waffle's previously-orphaned `gen_test.ts`. The two builders with
+> real pure TS logic had that logic extracted into a sibling `board.ts` and
+> unit-tested: `wordwheel-build-board/board_test.ts` (15 tests — the multiset
+> tile-spend rule, buildBoard partition + pangram scoring, overlap cap,
+> custom-letter validation) and `spellingbee-build-board/board_test.ts` (11).
+> wordiply's builder is DB-orchestration — its gate lives in the SQL
+> `try_base`/`candidate_bases`, now covered by `wordiply/try_base_test.sql`
+> (boundary tests for the child-count + headroom gates). Still uncovered: the
+> import/AI functions and the build-board *orchestration* (fetch + serve), which
+> only `deno check` + e2e reach. The rest of this section is the original
+> snapshot.
+
 Verification today is `deno check` (types) plus whatever the e2e suite happens to
 exercise live. The board builders matter most: they gate game creation, and four of
 them contain substantial pure logic that lives **only** in the edge function (not in
@@ -245,10 +259,14 @@ Ordered by (chance of silent breakage) × (blast radius) ÷ (cost to write):
    (coop-sees-all / compete-sees-own / terminal-reveal), copied from the
    wordwheel shape. Verified with a mutation check: a broken-open compete
    policy fails the branch-(b) assertion.
-4. **Unit tests for the three all-local board builders** (spellingbee, wordwheel,
+4. ~~**Unit tests for the three all-local board builders** (spellingbee, wordwheel,
    wordiply build-board logic — extract the pure parts into testable modules or
    test them via `deno test`), plus a **`test:edge` npm script** so the existing
-   waffle `gen_test.ts` (and any future edge tests) actually run.
+   waffle `gen_test.ts` (and any future edge tests) actually run.~~ **DONE** —
+   `test:edge` script added; wordwheel + spellingbee pure logic extracted to
+   `board.ts` and unit-tested (`board_test.ts`, 15 + 11 tests, 34 edge tests
+   total); wordiply's SQL gate covered by `wordiply/try_base_test.sql`. The
+   spellingbee custom-letters e2e exercises the refactored function live.
 5. **Tests for the shared FE spine**: `makeFoundWordsGame`, `useStandardGameActions`,
    `useHistoryViewer`, `manifestRpcs` — four modules, every game's blast radius,
    all mockable with existing patterns from `useCommonGame.test.ts`.
