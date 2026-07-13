@@ -85,6 +85,8 @@ export function PlayArea({
   playState,
   isTerminal,
   timer,
+  isMyTurn,
+  currentTurnUserId,
   setup,
   globalFeedback,
   goToClub,
@@ -348,6 +350,7 @@ export function PlayArea({
         snap={snap}
         viewing={viewing}
         showInput={showInput}
+        isMyTurn={isMyTurn}
         onExitViewing={exitViewing}
         // ── Tile selection (state in useGame; rendered + committed here) ──
         ownerByTile={ownerByTile}
@@ -380,6 +383,7 @@ export function PlayArea({
         over={over}
         showInput={showInput}
         myConceded={myConceded}
+        currentTurnUserId={currentTurnUserId}
         // ── State readout ──
         found={found}
         categoryCount={CATEGORY_COUNT}

@@ -66,6 +66,7 @@ function rejectReason(reason: string | undefined, base: string): string {
 export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
+    isMyTurn, currentTurnUserId,
     setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback,
   } = ctx
   const { game, guesses, loading, rowsLoaded } = useGame(gameId)
@@ -276,7 +277,11 @@ export function PlayArea(ctx: GamePageCtx) {
       <BoardCol
         base={base}
         guesses={boardRows}
-        entryDisabled={!active}
+        // `!isMyTurn` folds in turn-order (coop only): a waiting player's entry
+        // freezes. Always true for free-for-all / solo. wordiply's disabled entry
+        // shows no "locally done" pill, so a waiting coop player sees only the
+        // frozen keyboard + the InfoCol TurnStatusLine.
+        entryDisabled={!active || !isMyTurn}
         word={word}
         onChange={setWord}
         onSubmit={submit}
@@ -292,6 +297,7 @@ export function PlayArea(ctx: GamePageCtx) {
           isTerminal={isTerminal}
           over={over}
           isLocallyDone={isLocallyDone}
+          currentTurnUserId={currentTurnUserId}
           guessesUsed={guessesUsed}
           longest={longest}
           letters={letters}

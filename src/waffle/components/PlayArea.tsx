@@ -69,6 +69,8 @@ export function PlayArea({
   playState,
   isTerminal,
   timer,
+  isMyTurn,
+  currentTurnUserId,
   setup,
   status,
   globalFeedback,
@@ -410,8 +412,12 @@ export function PlayArea({
   // race on). Shown with the terminal LOOK, not a quietly swapped help line.
   const selfDone = isPlayer && (self?.solved === true || remaining === 0 || myConceded)
 
-  // The board is inert whenever I can't act OR I'm peeking at history.
-  const readOnly = isTerminal || !isPlayer || selfDone || viewing
+  // The board is inert whenever I can't act OR I'm peeking at history. `!isMyTurn`
+  // folds in turn-order (coop only): a waiting player's board freezes. Always true
+  // for free-for-all / solo. Like wordle, waffle's `selfDone` "waiting" pill is
+  // compete-only, so a waiting coop player sees only the inert board + the InfoCol
+  // TurnStatusLine — no false "out of swaps".
+  const readOnly = isTerminal || !isPlayer || selfDone || viewing || !isMyTurn
 
   // The below-board local pill. Precedence: the permanent terminal verdict → the
   // sticky locally-terminal "waiting" pill → the transient own-move error. (While
@@ -445,6 +451,7 @@ export function PlayArea({
         isPlayer={isPlayer}
         selfDone={selfDone}
         myConceded={myConceded}
+        currentTurnUserId={currentTurnUserId}
         selfSolved={self?.solved ?? false}
         swapsUsed={swapsUsed}
         maxSwaps={game.max_swaps}

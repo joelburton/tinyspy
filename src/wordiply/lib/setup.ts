@@ -1,4 +1,5 @@
 import type { TimerMode } from '../../common/lib/games'
+import type { CoopTurnSetup } from '../../common/components/fields/CoopStyleField'
 
 /**
  * wordiply's per-game setup — collected by the start-game dialog,
@@ -18,7 +19,7 @@ import type { TimerMode } from '../../common/lib/games'
  *     can be the longest word. Both manifests default to 5.
  *   - `timer` — wall-clock mode (none / countup / countdown).
  */
-export type WordiplySetup = {
+export type WordiplySetup = CoopTurnSetup & {
   timer: TimerMode
   /** Dictionary band for legal child words (1..6). */
   difficulty: number
@@ -44,6 +45,9 @@ export function wordiplySetupError(setup: WordiplySetup): string | null {
 export const DEFAULT_WORDIPLY_SETUP_COOP: WordiplySetup = {
   timer: { kind: 'none' },
   difficulty: 5,
+  // Coop pacing: free-for-all by default; the "Co-op" setup section (coop,
+  // 2+ players) offers turn-by-turn. firstTurnUserId is seeded by the field.
+  coopStyle: 'free-for-all',
 }
 
 /**

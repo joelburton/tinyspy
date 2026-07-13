@@ -133,6 +133,11 @@ export function SetupGameDialog({
   const showPicker = members.length > 1
   const [minPlayers, maxPlayers] = manifest.numberOfPlayers
   const playerCount = selectedIds.size
+  // The checked subset of the roster, in `members` order. Handed to the
+  // setup body so a control that must name the ACTUAL players (the
+  // turn-order "First player" picker) lists only who'll play — not the
+  // whole club. Recomputed each render as the picker toggles.
+  const selectedPlayers = members.filter((m) => selectedIds.has(m.user_id))
   const countOk = playerCount >= minPlayers && playerCount <= maxPlayers
   const playerHint =
     playerCount < minPlayers
@@ -245,6 +250,7 @@ export function SetupGameDialog({
           clubHandle={clubHandle}
           mode={manifest.mode}
           playerCount={playerCount}
+          players={selectedPlayers}
           value={setup}
           onChange={setSetup}
         />

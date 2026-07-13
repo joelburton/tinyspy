@@ -49,6 +49,14 @@ export type CommonGame = {
   status: Record<string, unknown> | null
   started_at: string
   ended_at: string | null
+  /** Whose turn it is, for the opt-in turn-by-turn coop mode
+   *  (setup coopStyle='turns'). NULL for free-for-all games (the
+   *  default) — i.e. every game that doesn't opt in. Rotated
+   *  server-side by common._advance_turn; the FE reads it only to
+   *  gate input + render the waiting line. Compare to
+   *  session.user.id (see the hook's `isMyTurn` below). Scrabble
+   *  compete does NOT use this — it keeps its own seat pointer. */
+  current_turn_user_id: string | null
 }
 
 
@@ -145,6 +153,13 @@ export function useCommonGame(
   sendManualUnpause: () => void
   sendSuspend: () => void
   timer: { displaySeconds: number; expired: boolean }
+  /** True when the caller may act right now under turn-order. Always
+   *  true for free-for-all games (the pointer is null) and for solo,
+   *  so games that don't opt in are unaffected — they can gate on
+   *  this unconditionally. Turn games AND-it into their existing
+   *  input gate (canGuess/readOnly/etc.). Pre-load (commonGame null)
+   *  it's true, matching the pre-load "nothing to gate yet" posture. */
+  isMyTurn: boolean
   loading: boolean
 } {
   const [commonGame, setCommonGame] = useState<CommonGame | null>(null)
@@ -223,7 +238,7 @@ export function useCommonGame(
         commonDb
           .from('games')
           .select(
-            'id, club_handle, gametype, title, setup, is_current_view, play_state, is_terminal, status, started_at, ended_at',
+            'id, club_handle, gametype, title, setup, is_current_view, play_state, is_terminal, status, started_at, ended_at, current_turn_user_id',
           )
           .eq('id', gameId)
           .maybeSingle(),
@@ -533,6 +548,14 @@ export function useCommonGame(
     running: commonGame != null && !commonGame.is_terminal,
   })
 
+  // Turn-order gate. Null pointer ⇒ free-for-all (or solo, where the
+  // sole player always is the pointer) ⇒ everyone may act. Otherwise
+  // only the named player may. Derived here (the hook already has the
+  // session) so every game page gets it without new plumbing.
+  const isMyTurn =
+    commonGame?.current_turn_user_id == null ||
+    commonGame.current_turn_user_id === session.user.id
+
   return {
     commonGame,
     players,
@@ -543,6 +566,7 @@ export function useCommonGame(
     sendManualUnpause,
     sendSuspend,
     timer,
+    isMyTurn,
     loading,
   }
 }

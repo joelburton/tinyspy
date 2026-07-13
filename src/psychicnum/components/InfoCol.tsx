@@ -8,6 +8,7 @@ import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
+import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import type { PsychicnumSetup } from '../lib/setup'
 import type { Player, PlayerRow, GuessRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
@@ -31,6 +32,7 @@ export function InfoCol({
   over,
   canGuess,
   myConceded,
+  currentTurnUserId,
   found,
   secretCount,
   guessesUsed,
@@ -61,6 +63,10 @@ export function InfoCol({
   /** I conceded a compete race (a real loss; the others keep racing) — picks the
    *  locally-done status wording. */
   myConceded: boolean
+  /** Whose turn it is under turn-order, or null for a free-for-all game.
+   *  Non-null ⇒ render the shared `<TurnStatusLine>` (this is a turn game);
+   *  null ⇒ omit it entirely (the default free-for-all games). */
+  currentTurnUserId: string | null
 
   // ── State readout (secrets found + the guess counter) ──
   found: number
@@ -108,6 +114,11 @@ export function InfoCol({
     <EndGameButton onClick={onEndGame} className={shared.helperButton} />
   )
 
+  // Turn-order: is it my turn (or a free-for-all game, pointer null)? Only used
+  // to hide the "type a word" help while I'm waiting — the entry is inert then,
+  // so the prompt would misdirect. Hint/Reveal/End stay available while waiting.
+  const myTurn = currentTurnUserId === null || currentTurnUserId === selfId
+
   return (
     <div className={shared.infoCol}>
       {/* The non-log info column — the shared named readouts, in the canonical order
@@ -125,6 +136,17 @@ export function InfoCol({
           </strong>{' '}
           guesses used
         </p>
+        {/* Whose-turn line — ONLY for a turn-order game (currentTurnUserId
+            non-null). A separate line below the state readout, never replacing
+            it. Its presence is fixed at create-time, so it can't reflow. */}
+        {currentTurnUserId !== null && (
+          <TurnStatusLine
+            currentTurnUserId={currentTurnUserId}
+            players={players}
+            selfId={selfId}
+            isTerminal={over !== null}
+          />
+        )}
         {isCompete && (
           <OpponentStrip
             players={players}
@@ -167,7 +189,7 @@ export function InfoCol({
             silently swaps text: the "out of guesses, waiting" state is carried loudly
             by the action row above (the terminal look), not by a quietly-changed help
             line. Below the action row, per the InfoCol order. */}
-        {canGuess && <p className={shared.infoHelp}>Click on or type a word and hit submit.</p>}
+        {canGuess && myTurn && <p className={shared.infoHelp}>Click on or type a word and hit submit.</p>}
 
         {/* Setup — shown in BOTH states, behind a disclosure, LAST before the turn log
             (docs/playarea.md → Info-column readouts). Open, it grows (which we

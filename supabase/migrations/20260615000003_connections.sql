@@ -473,6 +473,7 @@ declare
   first_two_tiles text;
   game_title text;
   effective_gametype text;
+  first_turn uuid;
 begin
   -- ─── Validate mode + player-count ────────────────────────
   perform common.validate_mode(mode);
@@ -569,8 +570,22 @@ begin
   new_id := common.create_game(
     target_club, effective_gametype, player_user_ids, game_title,
     setup,
-    setup
+    -- saved_default strips firstTurnUserId (per-game "who goes first" pick,
+    -- not a per-club preference; the coopStyle toggle rides).
+    setup - 'firstTurnUserId'
   );
+
+  -- Opt-in turn-by-turn coop: when setup.coopStyle='turns', seat the common
+  -- rotation so submit_guess gates each guess. Free-for-all / compete leave
+  -- the pointer null. Runs after common.create_game seeds game_players.
+  if mode = 'coop' and setup->>'coopStyle' = 'turns' then
+    first_turn := (setup->>'firstTurnUserId')::uuid;
+    if first_turn is null or not (first_turn = any(player_user_ids)) then
+      raise exception 'setup.firstTurnUserId must be one of the players'
+        using errcode = 'P0001';
+    end if;
+    perform common._assign_turn_order(new_id, first_turn);
+  end if;
 
   -- Insert with the canonical id. Note: id NOT default-generated;
   -- it comes from common.create_game above and FKs to
@@ -732,6 +747,13 @@ begin
     raise exception 'you have conceded' using errcode = 'P0001';
   end if;
 
+  -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
+  -- (pointer null) and compete; raises 'not your turn' otherwise. The
+  -- turn ADVANCES only on the two coop non-terminal continue paths below
+  -- (a fresh correct-but-not-won guess, a fresh wrong-but-not-lost guess)
+  -- — never on the duplicate no-op `return`s, which exit before them.
+  perform common._require_turn(target_game, caller_id);
+
   -- ─── Light payload validation (mode-independent) ─────────
   -- Server-side checks for shape, not for rule correctness — the
   -- FE is trusted to apply the rules under the friends-only
@@ -824,6 +846,11 @@ begin
           player_results
         );
       else
+        -- Turn-order: an accepted, non-terminal coop guess (a fresh correct
+        -- group that doesn't yet complete the puzzle) hands the turn on
+        -- (no-op for free-for-all). Fires only here — the duplicate `return`
+        -- above and the terminal win branch don't reach it.
+        perform common._advance_turn(target_game);
         perform common.update_state(
           target_game,
           'playing',
@@ -940,6 +967,11 @@ begin
         player_results
       );
     else
+      -- Turn-order: an accepted, non-terminal coop guess (a fresh wrong/
+      -- oneAway that costs a mistake but doesn't hit the 4th) hands the turn
+      -- on (no-op for free-for-all). The duplicate `return` above and the
+      -- terminal lost branch don't reach it.
+      perform common._advance_turn(target_game);
       perform common.update_state(
         target_game,
         'playing',

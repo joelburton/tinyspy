@@ -77,6 +77,8 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     playState: 'playing',
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
+    isMyTurn: true,
+    currentTurnUserId: null,
     // A realistic setup blob — the info-column disclosure reads it (a `{}` here
     // would crash timerLabel / the difficulty lookups, exactly what this guards).
     setup: {

@@ -183,6 +183,36 @@ export async function createGame(
 }
 
 /**
+ * Start a psychicnum COOP game with the opt-in turn-by-turn mode on
+ * (setup.coopStyle='turns'), seating the club's FIRST member as the
+ * first player. All members are players. Used by the turn-order e2e to
+ * drive the live turn gate across two clients.
+ */
+export async function createTurnGame(
+  club: E2EClub,
+): Promise<{ id: string; gametype: string }> {
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('psychicnum')
+    .rpc('create_game', {
+      setup: {
+        guesses: 7,
+        word_count: 10,
+        difficulty: 3,
+        timer: { kind: 'none' },
+        coopStyle: 'turns',
+        firstTurnUserId: creator.userId,
+      },
+      target_club: club.handle,
+      player_user_ids: club.members.map((m) => m.userId),
+      mode: 'coop',
+    })
+  if (res.error) throw new Error(`psychicnum.create_game (turns): ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: 'psychicnum_coop' }
+}
+
+/**
  * Start a bananagrams game in the club, with all members as players.
  * Returns the id + gametype for building the `/g/bananagrams/<id>` URL.
  */

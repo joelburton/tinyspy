@@ -172,6 +172,12 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
     letters).
   - **compete:** apply to the caller's row only (no log row).
   - Returns `{ colors, swaps_used, solved, terminal }`.
+  - **Opt-in turn-by-turn coop** (setup `coopStyle = 'turns'`): after the
+    lock + caller, `submit_swap` gates on `common._require_turn`, and calls
+    `common._advance_turn` only on an accepted, non-terminal swap — never on a
+    guard reject (bad position, hole, out of swaps) or the swap that solves /
+    exhausts the board. See
+    [common.md → Turn-order](../common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 - **`submit_timeout(game)`** — only when a countdown timer is set; reuse the
   spellingbee "realtime touch" pattern so the FE wakes up on expiry.
 - **`concede(game)`** — the compete "Concede" action-row button: a per-player

@@ -255,6 +255,7 @@ declare
   s_legal_guess   int;
   s_answer_max    int;
   v_target        char(5);
+  first_turn      uuid;
 begin
   perform common.require_club_member(target_club);
   -- Must agree with numberOfPlayers in src/wordle/manifest.ts.
@@ -314,9 +315,23 @@ begin
   new_id := common.create_game(
     -- 'New game' is the instance label for common.games.title (the club
     -- card heading); the brand is shown from the FE manifest, not stored.
+    -- saved_default strips firstTurnUserId (the turn-order "who goes first"
+    -- pick is a per-game choice, not a per-club preference; coopStyle rides).
     target_club, 'wordle_' || mode, player_user_ids, 'New game', setup,
-    setup
+    setup - 'firstTurnUserId'
   );
+
+  -- Opt-in turn-by-turn coop: when setup.coopStyle='turns', seat the common
+  -- rotation so submit_guess gates each guess. Free-for-all / compete leave the
+  -- pointer null (inert). Runs after common.create_game seeds game_players.
+  if mode = 'coop' and setup->>'coopStyle' = 'turns' then
+    first_turn := (setup->>'firstTurnUserId')::uuid;
+    if first_turn is null or not (first_turn = any(player_user_ids)) then
+      raise exception 'setup.firstTurnUserId must be one of the players'
+        using errcode = 'P0001';
+    end if;
+    perform common._assign_turn_order(new_id, first_turn);
+  end if;
 
   insert into wordle.games (id, club_handle, mode, target, max_guesses, legal_guess)
   values (new_id, target_club, mode, v_target, s_max_guesses, s_legal_guess);
@@ -471,6 +486,11 @@ begin
     raise exception 'game is not in progress' using errcode = 'P0001';
   end if;
 
+  -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
+  -- (pointer null) and compete; raises 'not your turn' otherwise. Placed
+  -- before the soft-rejects so an out-of-turn guess is rejected outright.
+  perform common._require_turn(target_game, caller_id);
+
   -- ─── Soft reject: malformed entry (no burn) ──────────────
   norm := lower(trim(coalesce(guess, '')));
   if norm !~ '^[a-z]{5}$' then
@@ -560,6 +580,13 @@ begin
                            'guesses_used', new_used, 'max_guesses', g_row.max_guesses),
         player_results
       );
+    end if;
+
+    -- Turn-order: an accepted, non-terminal coop guess hands the turn to the
+    -- next player (no-op for free-for-all). Skipped when this guess ended the
+    -- game (a won/lost board leaves the pointer as-is at terminal).
+    if not out_terminal then
+      perform common._advance_turn(target_game);
     end if;
   else
     -- Compete: apply to the caller's own row only.

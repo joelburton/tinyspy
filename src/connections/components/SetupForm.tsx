@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { TimerField } from '../../common/components/fields/TimerField'
+import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { db } from '../db'
 import type { ConnectionsSetup } from '../lib/setup'
@@ -62,7 +63,7 @@ type ClubGameStatusRow = {
  * (`connections/components/SetupForm.tsx`) disambiguates from the
  * other games' SetupForm components.
  */
-export function SetupForm({ brand, clubHandle, mode, value, onChange }: SetupBodyProps) {
+export function SetupForm({ brand, clubHandle, mode, players, value, onChange }: SetupBodyProps) {
   const s = value as ConnectionsSetup
   const [puzzles, setPuzzles] = useState<PuzzleEntry[] | null>(null)
   // `null` = still loading (distinct from a loaded-but-empty club with no
@@ -227,6 +228,15 @@ export function SetupForm({ brand, clubHandle, mode, value, onChange }: SetupBod
         />
       </fieldset>
 
+      <CoopStyleField
+        mode={mode}
+        players={players}
+        coopStyle={s.coopStyle ?? 'free-for-all'}
+        firstTurnUserId={s.firstTurnUserId ?? ''}
+        onChange={({ coopStyle, firstTurnUserId }) =>
+          onChange({ ...s, coopStyle, firstTurnUserId })
+        }
+      />
       <TimerField
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}

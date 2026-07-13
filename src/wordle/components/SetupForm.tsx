@@ -1,6 +1,7 @@
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { TimerField } from '../../common/components/fields/TimerField'
+import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
@@ -21,7 +22,7 @@ import form from '../../common/components/fields/setupForm.module.css'
  * Plus the shared `TimerField`. Controlled component (state lives in the
  * wrapper); shared by both manifests (mode doesn't change the form).
  */
-export function SetupForm({ value, onChange }: SetupBodyProps) {
+export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
   const s = value as WordleSetup
 
   // Disclosure summaries carry the current values so each section reads without
@@ -67,6 +68,15 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           onChange={(legal_guess) => onChange({ ...s, legal_guess })}
         />
       </SetupSection>
+      <CoopStyleField
+        mode={mode}
+        players={players}
+        coopStyle={s.coopStyle ?? 'free-for-all'}
+        firstTurnUserId={s.firstTurnUserId ?? ''}
+        onChange={({ coopStyle, firstTurnUserId }) =>
+          onChange({ ...s, coopStyle, firstTurnUserId })
+        }
+      />
       <TimerField
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}

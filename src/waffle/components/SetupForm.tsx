@@ -1,6 +1,7 @@
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { TimerField } from '../../common/components/fields/TimerField'
+import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
@@ -23,7 +24,7 @@ import styles from '../../common/components/fields/setupForm.module.css'
  * `unknown` setup and waffle's shape. Shared by both manifests (mode
  * doesn't change the form).
  */
-export function SetupForm({ value, onChange }: SetupBodyProps) {
+export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
   const s = value as WaffleSetup
 
   // Disclosure summaries carry the current values so each section reads without
@@ -65,6 +66,15 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           onChange={(extra_swaps) => onChange({ ...s, extra_swaps })}
         />
       </SetupSection>
+      <CoopStyleField
+        mode={mode}
+        players={players}
+        coopStyle={s.coopStyle ?? 'free-for-all'}
+        firstTurnUserId={s.firstTurnUserId ?? ''}
+        onChange={({ coopStyle, firstTurnUserId }) =>
+          onChange({ ...s, coopStyle, firstTurnUserId })
+        }
+      />
       <TimerField
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}

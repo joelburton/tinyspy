@@ -158,6 +158,15 @@ export const psychicnumCompeteGame: GameManifest = {
 
 **Don't introduce a setup.mode field.** Mode is locked at the gametype level. Adding `setup.mode` would create a second source of truth and reopen the "which Start button am I clicking?" question.
 
+### Reserved coop-turn setup keys
+
+Two setup keys are a **common convention** any coop game can adopt to opt into turn-by-turn play (see [`common.md` → Turn-order](common.md#turn-order--opt-in-turn-by-turn-for-coop-games) for the mechanism):
+
+- `setup.coopStyle: 'turns' | 'free-for-all'` — the pacing choice (default `'free-for-all'`). It **DOES round-trip** as a `saved_default` — "we like taking turns" is a reusable club preference.
+- `setup.firstTurnUserId: string (uuid)` — who goes first. It is **stripped from `saved_default`** server-side in each game's `create_game` (`setup - 'firstTurnUserId'`), exactly like codenamesduet strips `firstClueGiverUserId`: a specific person isn't a reusable club preference — the club default should remember the *style*, not who happened to go first last time.
+
+This is the general rule for what makes it into `saved_default`: **style/mode preferences round-trip; specific-person picks don't.** The per-game `create_game` controls what's passed as the `saved_setup` argument to `common.create_game`, so it does the strip. The shared `CoopStyleField` writes both keys; only `coopStyle` survives into `common.clubs_gametypes.default_setup`.
+
 ### Realtime channel names
 
 Pattern: `<topic>:<id>:<unique>`, e.g.:

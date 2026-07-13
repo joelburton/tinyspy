@@ -4,6 +4,7 @@ import { Dot } from '../../common/components/text/Dot'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
+import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
@@ -51,6 +52,7 @@ export function InfoCol({
   over,
   myConceded,
   isTerminal,
+  currentTurnUserId,
   currentMember,
   teamScore,
   bagCount,
@@ -81,6 +83,10 @@ export function InfoCol({
   /** I conceded (compete) — drives the "You conceded" terminal look. */
   myConceded: boolean
   isTerminal: boolean
+  /** COOP turn-order pointer, or null for a free-for-all coop game. Non-null ⇒
+   *  render the shared TurnStatusLine below the team-score line (compete uses its
+   *  OWN seat-based turn line above, which also names AI seats). */
+  currentTurnUserId: string | null
 
   // ── State readout (turn / team score + the bag) ──
   /** The player whose turn it is (compete) — its color + name drive the "Turn: ● name"
@@ -156,6 +162,18 @@ export function InfoCol({
           {' · '}
           {bagCount} in bag
         </p>
+        {/* Coop turn-order: whose turn it is, as a separate line below the team
+            score (compete's own seat turn line is inline above). Only for a
+            turn-order coop game (pointer non-null); fixed at create-time, so no
+            reflow. */}
+        {!isCompete && currentTurnUserId !== null && (
+          <TurnStatusLine
+            currentTurnUserId={currentTurnUserId}
+            players={players}
+            selfId={selfId}
+            isTerminal={isTerminal}
+          />
+        )}
 
         {/* Opponent strip (compete) — each peer's score, identity on a leading disc.
             Scores aren't hidden (the board reveals them). */}

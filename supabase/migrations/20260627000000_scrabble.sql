@@ -660,6 +660,7 @@ declare
   v_ai_band     int;
   v_total       int;
   v_i           int;
+  first_turn    uuid;
 begin
   perform common.require_club_member(target_club);
   -- Up to 4 players; compete needs at least 2 (a 1-player race is degenerate).
@@ -728,7 +729,10 @@ begin
   select jsonb_agg(null::jsonb) into v_empty_board from generate_series(1, 225);
 
   new_id := common.create_game(
-    target_club, 'scrabble_' || mode, player_user_ids, 'New game', setup, setup);
+    target_club, 'scrabble_' || mode, player_user_ids, 'New game', setup,
+    -- saved_default strips firstTurnUserId (per-game "who goes first" pick,
+    -- not a per-club preference; coopStyle rides).
+    setup - 'firstTurnUserId');
 
   if mode = 'compete' then
     -- Random first seat among ALL seats (humans 0..h-1, then AI) — an AI may open.
@@ -767,6 +771,19 @@ begin
       insert into scrabble.players (game_id, user_id, seat) values (new_id, uid, v_seat);
       v_seat := v_seat + 1;
     end loop;
+
+    -- Opt-in turn-by-turn coop: when setup.coopStyle='turns', seat the COMMON
+    -- rotation so _commit_word / _commit_exchange gate the shared-rack moves.
+    -- (Coop uses the common pointer; compete keeps scrabble.games.current_seat.)
+    -- Free-for-all coop leaves the pointer null. Compete never reaches here.
+    if setup->>'coopStyle' = 'turns' then
+      first_turn := (setup->>'firstTurnUserId')::uuid;
+      if first_turn is null or not (first_turn = any(player_user_ids)) then
+        raise exception 'setup.firstTurnUserId must be one of the players'
+          using errcode = 'P0001';
+      end if;
+      perform common._assign_turn_order(new_id, first_turn);
+    end if;
   end if;
 
   perform common.update_state(new_id, 'playing', scrabble._status(new_id));
@@ -844,6 +861,14 @@ begin
   -- By SEAT (current_seat), so the same gate works whoever occupies it.
   if g.mode = 'compete' and p_seat is distinct from g.current_seat then
     raise exception 'not your turn' using errcode = 'P0001';
+  end if;
+
+  -- ─── Coop turn-order (opt-in) ────────────────────────────
+  -- Compete uses its own seat pointer above; coop uses the COMMON pointer
+  -- (the two turn systems coexist). No-op for free-for-all coop (pointer
+  -- null). v_user is the acting seat's user (coop seats are all human).
+  if g.mode = 'coop' then
+    perform common._require_turn(target_game, v_user);
   end if;
 
   if coalesce(array_length(p_words, 1), 0) = 0 then
@@ -944,6 +969,10 @@ begin
   else
     if g.mode = 'compete' then
       perform scrabble._advance_turn(target_game);
+    else
+      -- Coop turn-order: hand the turn to the next player on the COMMON
+      -- pointer (no-op for free-for-all coop). Non-terminal branch only.
+      perform common._advance_turn(target_game);
     end if;
     perform common.update_state(target_game, 'playing', scrabble._status(target_game));
   end if;
@@ -1068,6 +1097,12 @@ begin
     raise exception 'not your turn' using errcode = 'P0001';
   end if;
 
+  -- Coop turn-order (opt-in): gate the shared-rack exchange on the common
+  -- pointer. No-op for free-for-all coop. (Compete gates by seat above.)
+  if g.mode = 'coop' then
+    perform common._require_turn(target_game, v_user);
+  end if;
+
   v_n := coalesce(array_length(rack_tiles, 1), 0);
   if v_n = 0 then
     raise exception 'choose at least one tile to exchange' using errcode = 'P0001';
@@ -1096,6 +1131,9 @@ begin
   if g.mode = 'coop' then
     update scrabble.games set shared_rack = v_rack, bag = v_bag, version = version + 1
      where id = target_game;
+    -- Coop turn-order: an exchange consumes the turn (it never ends the game),
+    -- so hand it on via the common pointer (no-op for free-for-all coop).
+    perform common._advance_turn(target_game);
   else
     update scrabble.players set rack = v_rack
      where game_id = target_game and seat = p_seat;

@@ -33,6 +33,8 @@ Coop only (no compete):  TS
 Compete only (no coop):  MG
 
 ## Co-op interaction (games that have coop)
+This is the DEFAULT pacing; six of the free-for-all games also offer opt-in
+turn-by-turn play at setup (see the "Opt-in turn-by-turn coop" tag below).
 Free-for-all (shared board, everyone acts anytime):  PN FB WK MC RA SD SS WN CP MW WW
 Turn-based (fixed seats, alternating):  TS
 
@@ -125,6 +127,14 @@ grid; clue lists fill the info side)
 
 
 # Tags
+
+## Opt-in turn-by-turn coop (the common turn-order primitive)
+PN WN WK SS WW  RA (coop)
+(A per-game setup choice — `coopStyle: 'turns'` — that rotates moves through the
+players instead of free-for-all. Discrete-move coop games only; the shared
+primitive lives on `common.games.current_turn_user_id` + `common.game_players.
+turn_seat`. See docs/common.md → Turn-order. Distinct from TS, whose turns are
+fixed at the gametype level, not an opt-in.)
 
 ## Word-finding as core play
 MC FB MW (find many words)  WW (find the longest word)

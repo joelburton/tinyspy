@@ -58,6 +58,8 @@ export function PlayArea({
   playState,
   isTerminal,
   timer,
+  isMyTurn,
+  currentTurnUserId,
   setup,
   status,
   globalFeedback,
@@ -329,9 +331,11 @@ export function PlayArea({
   const totalGuesses = psychicnumSetup.guesses
   const guessesUsed = totalGuesses - selfBudget
 
-  // Conceding (compete drop-out) locks guessing the same way running out of
-  // budget does — I'm done, but the game continues for the others. (The guess
-  // dispatch itself lives in BoardCol; PlayArea passes `canGuess` down.)
+  // Am I a live PARTICIPANT (not out of budget, not conceded, game not over)?
+  // This drives the terminal-vs-play LOOK in both columns. It deliberately does
+  // NOT fold in turn-order: a player who's merely waiting their turn isn't
+  // "done", so they must not get the locally-terminal "out of guesses" look.
+  // Turn-order gates the actual input separately (`isMyTurn`, passed to BoardCol).
   const canGuess = !over && selfBudget > 0 && !myConceded
 
   // Hint (a clue) and reveal (the answer word) both land in the turn log via
@@ -368,6 +372,10 @@ export function PlayArea({
         // ── Guess dispatch (BoardCol owns submit_guess) ──
         gameId={gameId}
         canGuess={canGuess}
+        // Turn-order: gates the ENTRY input only (not the play-vs-terminal look
+        // above). Always true for free-for-all / solo. When false, the entry is
+        // shown but inert and the InfoCol TurnStatusLine says whose turn it is.
+        isMyTurn={isMyTurn}
         showLocalFeedback={showLocalFeedback}
         clearLocalFeedback={clearLocalFeedback}
         localPill={localFeedback}
@@ -384,6 +392,8 @@ export function PlayArea({
         over={over}
         canGuess={canGuess}
         myConceded={myConceded}
+        // ── Turn-order (null for free-for-all games → no TurnStatusLine) ──
+        currentTurnUserId={currentTurnUserId}
         // ── State readout ──
         found={found}
         secretCount={SECRET_COUNT}

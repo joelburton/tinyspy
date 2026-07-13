@@ -1,4 +1,5 @@
 import type { TimerMode } from '../../common/lib/games'
+import type { CoopTurnSetup } from '../../common/components/fields/CoopStyleField'
 
 /**
  * waffle's per-game setup — collected by the start-game dialog,
@@ -8,7 +9,7 @@ import type { TimerMode } from '../../common/lib/games'
  * Lives in `lib/` rather than `manifest.ts` so the SetupForm body can
  * import the type without dragging the manifest into its lazy chunk.
  */
-export type WaffleSetup = {
+export type WaffleSetup = CoopTurnSetup & {
   /**
    * Vocabulary tier (1–6) — the recognizability band the six words are
    * drawn from: a tier-N puzzle uses words of band ≤ N with its hardest
@@ -36,6 +37,9 @@ export const DEFAULT_WAFFLE_SETUP: WaffleSetup = {
   difficulty: 2,
   extra_swaps: 5,
   timer: { kind: 'none' },
+  // Coop pacing: free-for-all by default; the "Co-op" setup section (coop,
+  // 2+ players) offers turn-by-turn. firstTurnUserId is seeded by the field.
+  coopStyle: 'free-for-all',
 }
 
 /**

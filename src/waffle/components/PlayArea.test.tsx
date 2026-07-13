@@ -84,6 +84,8 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     playState: 'playing',
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
+    isMyTurn: true,
+    currentTurnUserId: null,
     // A realistic setup blob — the info-column disclosure reads it (a `{}` here
     // would crash timerLabel, exactly the kind of render bug these tests guard).
     setup: { difficulty: 2, extra_swaps: 5, timer: { kind: 'none' } },

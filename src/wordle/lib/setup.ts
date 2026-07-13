@@ -1,4 +1,5 @@
 import type { TimerMode } from '../../common/lib/games'
+import type { CoopTurnSetup } from '../../common/components/fields/CoopStyleField'
 
 /**
  * wordle's per-game setup — collected by the start-game dialog,
@@ -8,7 +9,7 @@ import type { TimerMode } from '../../common/lib/games'
  * Lives in `lib/` rather than `manifest.ts` so the SetupForm body can
  * import the type without dragging the manifest into its lazy chunk.
  */
-export type WordleSetup = {
+export type WordleSetup = CoopTurnSetup & {
   /**
    * Guess budget — how many guesses the player (coop: the team) gets.
    * Classic Wordle is 6; we offer 5–8. The server bounds it.
@@ -42,6 +43,10 @@ export const DEFAULT_WORDLE_SETUP: WordleSetup = {
   answer_source: 0,
   legal_guess: 4,
   timer: { kind: 'none' },
+  // Coop pacing: free-for-all by default; the setup dialog's "Co-op"
+  // section (coop, 2+ players) offers turn-by-turn. firstTurnUserId is
+  // seeded by the field when turns is picked.
+  coopStyle: 'free-for-all',
 }
 
 /** The guess-budget choices the form offers (5–8; 6 is classic). */

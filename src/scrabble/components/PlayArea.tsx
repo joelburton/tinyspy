@@ -55,6 +55,8 @@ export function PlayArea({
   players,
   playState,
   isTerminal,
+  isMyTurn,
+  currentTurnUserId,
   status,
   setup,
   goToClub,
@@ -121,7 +123,10 @@ export function PlayArea({
   // Concede lives on the common roster (ctx.players → `players`).
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
-  const myTurn = !isCompete || game?.currentUserId === session.user.id
+  // Compete gates by scrabble's own seat pointer (`game.currentUserId`); coop
+  // uses the COMMON turn pointer via ctx `isMyTurn` (true for free-for-all coop,
+  // so nothing changes there; false when a turn-order coop game isn't your turn).
+  const myTurn = isCompete ? game?.currentUserId === session.user.id : isMyTurn
   const nameOf = useCallback(
     (userId: string | null) => players.find((m: Member) => m.user_id === userId)?.username ?? 'someone',
     [players],
@@ -408,6 +413,7 @@ export function PlayArea({
           over={over}
           myConceded={myConceded}
           isTerminal={isTerminal}
+          currentTurnUserId={currentTurnUserId}
           currentMember={currentMember}
           teamScore={game.teamScore}
           bagCount={game.bagCount}

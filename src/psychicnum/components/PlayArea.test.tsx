@@ -60,6 +60,8 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     playState: 'playing',
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
+    isMyTurn: true,
+    currentTurnUserId: null,
     // A realistic setup blob — the info column reads `guesses` + `difficulty`.
     setup: { guesses: 7, word_count: 10, difficulty: 3, timer: { kind: 'none' } },
     status: null,
@@ -133,6 +135,63 @@ describe('psychicnum PlayArea — concede', () => {
     // pill narrates the drop-out — both read "You conceded…".
     expect(screen.getByText('You conceded')).toBeInTheDocument()
     expect(screen.getByText(/You conceded — the rest are still racing/)).toBeInTheDocument()
+  })
+})
+
+describe('psychicnum PlayArea — turn order', () => {
+  it('on a teammate’s turn: shows "Waiting for …" and gates the guess prompt', () => {
+    h.result = loaded(coopGame, [me, moth])
+    render(
+      <PlayArea
+        {...makeCtx({
+          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
+          isMyTurn: false,
+          currentTurnUserId: 'u2',
+        })}
+      />,
+    )
+    // The shared TurnStatusLine names the current player (coop has no
+    // OpponentStrip, so "moth" here is unambiguously the turn line). A regex
+    // because the name sits in a text node beside the identity <Dot>.
+    expect(screen.getByText(/moth/)).toBeInTheDocument()
+    // The "type a word" prompt is hidden while I'm waiting (the entry is inert).
+    // But I'm still a live participant — NOT locally terminal — so I do NOT get
+    // the "out of guesses" / "Waiting for others" done-look, and Hint stays live.
+    expect(screen.queryByText(/hit submit/i)).not.toBeInTheDocument()
+    expect(screen.queryByText('Waiting for others')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Out of guesses/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /hint/i })).toBeInTheDocument()
+  })
+
+  it('on my turn: shows "Your turn", the guess prompt, and the play actions', () => {
+    h.result = loaded(coopGame, [me, moth])
+    render(
+      <PlayArea
+        {...makeCtx({
+          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
+          isMyTurn: true,
+          currentTurnUserId: 'u1',
+        })}
+      />,
+    )
+    expect(screen.getByText('Your turn')).toBeInTheDocument()
+    expect(screen.getByText(/hit submit/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /hint/i })).toBeInTheDocument()
+  })
+
+  it('free-for-all (no pointer): renders no turn line', () => {
+    h.result = loaded(coopGame, [me, moth])
+    render(
+      <PlayArea
+        {...makeCtx({
+          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
+          isMyTurn: true,
+          currentTurnUserId: null,
+        })}
+      />,
+    )
+    expect(screen.queryByText('Your turn')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Waiting for/)).not.toBeInTheDocument()
   })
 })
 

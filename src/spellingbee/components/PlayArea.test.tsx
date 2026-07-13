@@ -85,6 +85,8 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     playState: 'playing',
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
+    isMyTurn: true,
+    currentTurnUserId: null,
     // A realistic setup blob — the info-column disclosure + rank target read it.
     setup: { required: 3, legal: 5, timer: { kind: 'none' } },
     status: null,

@@ -68,6 +68,8 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     playState: 'playing',
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
+    isMyTurn: true,
+    currentTurnUserId: null,
     // A realistic setup blob — the info-column disclosure reads it (a `{}` here
     // would crash timerLabel, exactly the kind of render bug these tests guard).
     setup: { max_guesses: 6, answer_source: 0, legal_guess: 4, timer: { kind: 'none' } },

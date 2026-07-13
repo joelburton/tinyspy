@@ -48,6 +48,8 @@ export function PlayArea({
   playState,
   isTerminal,
   timer,
+  isMyTurn,
+  currentTurnUserId,
   setup,
   status,
   globalFeedback,
@@ -377,8 +379,13 @@ export function PlayArea({
   // state. `readOnly` (glossary): the board is inert when there's no self row, the
   // game's terminal, I've solved / conceded, or I'm out of guesses. (De Morgan of
   // the old positive `guessingAllowed`.)
+  // `!isMyTurn` folds in turn-order (coop only): a waiting player's board is
+  // inert. Always true for free-for-all / solo, so it only tightens a turn
+  // game. Unlike psychicnum, wordle's below-board pill has no coop "locally
+  // done" look (isLocallyDone is compete-only), so a waiting coop player sees
+  // only the disabled keyboard + the InfoCol TurnStatusLine — no false "out".
   const readOnly =
-    !self || isTerminal || mySolved || myConceded || guessesUsed >= maxGuesses
+    !self || isTerminal || mySolved || myConceded || guessesUsed >= maxGuesses || !isMyTurn
 
   const wordleSetup = setup as WordleSetup
 
@@ -431,6 +438,7 @@ export function PlayArea({
         isLocallyDone={isLocallyDone}
         myConceded={myConceded}
         isPlayer={!!self}
+        currentTurnUserId={currentTurnUserId}
         // ── State ──
         guessesUsed={guessesUsed}
         maxGuesses={maxGuesses}

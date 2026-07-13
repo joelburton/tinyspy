@@ -352,6 +352,15 @@ create table common.games (
   -- accumulator.
   started_at timestamptz not null default now(),
   ended_at timestamptz,
+  -- Whose turn it is right now, for the opt-in turn-by-turn coop mode
+  -- (setup coopStyle='turns'). NULL ⇒ free-for-all — the default and the
+  -- behaviour of every game that doesn't opt in — so this column is inert
+  -- for them. Set at create-time by common._assign_turn_order and rotated
+  -- by common._advance_turn; gated on by common._require_turn. Directly
+  -- comparable to auth.uid() server-side and session.user.id client-side.
+  -- (This is the COMMON turn pointer; scrabble compete keeps its own
+  -- scrabble.games.current_seat — the two coexist deliberately.)
+  current_turn_user_id uuid references common.profiles(user_id) on delete set null,
   -- "Last activity" — the club games list orders by and dates from this, so
   -- a long-suspended game surfaces by when it was last touched, not when it
   -- started. Maintained by the `games_touch_last_active` BEFORE UPDATE
@@ -473,6 +482,13 @@ create table common.game_players (
   result jsonb,
   conceded boolean not null default false,
   conceded_at timestamptz,
+  -- The player's 0-based position in the turn rotation, for the opt-in
+  -- turn-by-turn coop mode. NULL for free-for-all games (the default).
+  -- Assigned at create-time by common._assign_turn_order (seat 0 = the
+  -- chosen first player, the rest shuffled). joined_at can't serve as the
+  -- order — every row shares the create transaction's now(), so it isn't
+  -- deterministic — hence an explicit seat.
+  turn_seat int,
   joined_at timestamptz not null default now(),
   primary key (game_id, user_id)
 );
@@ -1327,6 +1343,140 @@ $$;
 
 -- No grant to authenticated; internal helper.
 revoke execute on function common.require_game_player(uuid) from public;
+
+-- ============================================================
+-- Turn-order primitive — opt-in turn-by-turn for coop games
+-- ============================================================
+-- Free-for-all is the default and unchanged: common.games.current_turn_user_id
+-- stays NULL and all three helpers below are inert. A coop game that opts in
+-- (setup coopStyle='turns') calls _assign_turn_order once at create-time to
+-- seat the rotation; each ACCEPTED, non-terminal move then calls _advance_turn;
+-- and each move RPC gates on _require_turn right after it locks the game row +
+-- resolves the caller.
+--
+-- The whole rotation lives on the COMMON tables (game_players.turn_seat +
+-- games.current_turn_user_id), so every gametype inherits it without a per-game
+-- turn table — even wordiply, which has no players table of its own. This is
+-- the common port of scrabble compete's own seat system (scrabble.games.
+-- current_seat + scrabble._advance_turn); scrabble compete keeps that, coop
+-- uses this, and the two coexist deliberately.
+
+-- Seat the rotation for a freshly-created turn game. Seat 0 = the chosen
+-- first player; everyone else is shuffled after them (only "who goes first"
+-- is a setup choice — the rest is random, which is fine). Also sets the live
+-- pointer to that first player.
+create function common._assign_turn_order(target_game uuid, first_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+begin
+  -- row_number()-1 gives dense 0-based seats. Booleans sort false<true, so
+  -- ordering by `(user_id = first_user_id) desc` puts the chosen player first
+  -- (seat 0); random() orders the tail.
+  update common.game_players gp
+     set turn_seat = seated.seat
+    from (
+      select user_id,
+             (row_number() over (
+               order by (user_id = first_user_id) desc, random()
+             ) - 1) as seat
+        from common.game_players
+       where game_id = target_game
+    ) seated
+   where gp.game_id = target_game
+     and gp.user_id = seated.user_id;
+
+  update common.games
+     set current_turn_user_id = first_user_id
+   where id = target_game;
+end;
+$$;
+
+revoke execute on function common._assign_turn_order(uuid, uuid) from public;
+
+-- Advance the pointer to the next player by turn_seat (wraps; skips conceded).
+-- No-op when the game isn't a turn game (pointer null ⇒ no seats ⇒ nothing to
+-- advance), so it's safe to call unconditionally on a game's accepted-move
+-- path. skip-conceded is inert in coop (coop never concedes) — it's kept only
+-- to mirror the scrabble port this is copied from, and to future-proof.
+create function common._advance_turn(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  n_players int;
+  cur_seat  int;
+  next_seat int;
+  i         int;
+begin
+  -- The current player's seat. Null ⇒ free-for-all (no rotation) ⇒ nothing to
+  -- do. (Also null if the pointer somehow references a seatless player, which
+  -- can't happen for an assigned turn game — defensive.)
+  select gp.turn_seat into cur_seat
+    from common.game_players gp
+    join common.games g on g.id = gp.game_id
+   where gp.game_id = target_game
+     and gp.user_id = g.current_turn_user_id;
+  if cur_seat is null then
+    return;
+  end if;
+
+  select count(*) into n_players
+    from common.game_players where game_id = target_game;
+
+  -- Walk forward to the next non-conceded seat. With no conceders this is just
+  -- (cur_seat + 1) % n. We never loop forever: the current player is itself a
+  -- non-conceded seat, so at worst we wrap all the way back to them.
+  next_seat := null;
+  for i in 1..n_players loop
+    select gp.turn_seat into next_seat
+      from common.game_players gp
+     where gp.game_id = target_game
+       and gp.turn_seat = (cur_seat + i) % n_players
+       and not gp.conceded;
+    exit when next_seat is not null;
+  end loop;
+
+  if next_seat is not null then
+    update common.games
+       set current_turn_user_id = (
+         select user_id from common.game_players
+          where game_id = target_game and turn_seat = next_seat
+       )
+     where id = target_game;
+  end if;
+end;
+$$;
+
+revoke execute on function common._advance_turn(uuid) from public;
+
+-- Gate a move on whose-turn-it-is. Raises P0001 'not your turn' when the game
+-- is a turn game (pointer set) and the caller isn't the current player. No-op
+-- for free-for-all (pointer null) and for solo (the sole player is always the
+-- current player). Call it right after the move RPC locks the game row and
+-- resolves the caller (common.require_game_player).
+create function common._require_turn(target_game uuid, caller uuid)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  cur uuid;
+begin
+  select current_turn_user_id into cur
+    from common.games where id = target_game;
+  if cur is not null and caller is distinct from cur then
+    raise exception 'not your turn' using errcode = 'P0001';
+  end if;
+end;
+$$;
+
+revoke execute on function common._require_turn(uuid, uuid) from public;
 
 -- ─── common.update_state ───────────────────────────────
 -- The mid-game state-write helper. Per-gametype RPCs call this

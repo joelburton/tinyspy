@@ -17,6 +17,7 @@ import type { Member } from '../../common/lib/games'
 import type { WordlePlayerState, GuessRow } from '../hooks/useGame'
 import type { WordleSetup } from '../lib/setup'
 import { GameTurnLog } from './GameTurnLog'
+import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './InfoCol.module.css'
 
@@ -42,6 +43,7 @@ export function InfoCol({
   isLocallyDone,
   myConceded,
   isPlayer,
+  currentTurnUserId,
   // ── State (guess count) ──
   guessesUsed,
   maxGuesses,
@@ -81,6 +83,9 @@ export function InfoCol({
   myConceded: boolean
   /** Am I a player in this game? (Else the "watching" notice.) */
   isPlayer: boolean
+  /** Whose turn it is under turn-order, or null for a free-for-all game.
+   *  Non-null ⇒ render the shared TurnStatusLine (a turn game). */
+  currentTurnUserId: string | null
 
   // ── State ──
   guessesUsed: number
@@ -168,6 +173,16 @@ export function InfoCol({
         <p className={shared.infoState}>
           <strong>{guessesUsed}/{maxGuesses}</strong> guesses
         </p>
+        {/* Whose-turn line — only for a turn-order game (pointer non-null). A
+            separate line below the state readout; never replaces it. */}
+        {currentTurnUserId !== null && (
+          <TurnStatusLine
+            currentTurnUserId={currentTurnUserId}
+            players={players}
+            selfId={selfId}
+            isTerminal={isTerminal}
+          />
+        )}
 
         {/* Opponent strip (compete) — each racer's guess COUNT (not their letters,
             which RLS hides until terminal). */}

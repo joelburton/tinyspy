@@ -1,4 +1,5 @@
 import type { TimerMode } from '../../common/lib/games'
+import type { CoopTurnSetup } from '../../common/components/fields/CoopStyleField'
 
 /**
  * psychicnum's per-game setup — the choices collected by the
@@ -16,7 +17,7 @@ import type { TimerMode } from '../../common/lib/games'
  * the manifest in (which would defeat the lazy-load — the form
  * would not split into its own chunk).
  */
-export type PsychicnumSetup = {
+export type PsychicnumSetup = CoopTurnSetup & {
   /**
    * Starting guess budget — the shared pool every club member
    * draws from. 7 is the historical default; 3/5/9 are the
@@ -56,6 +57,11 @@ export const DEFAULT_PSYCHICNUM_SETUP: PsychicnumSetup = {
   word_count: 10,
   difficulty: 3,
   timer: { kind: 'countdown', seconds: 15 },
+  // Coop pacing defaults to the historical free-for-all; the setup
+  // dialog's "Co-op" section (coop, 2+ players) offers turn-by-turn.
+  // firstTurnUserId is omitted here — the field seeds it to a real
+  // player once turns is picked (a member id can't live in a default).
+  coopStyle: 'free-for-all',
 }
 
 /** The allowed `guesses` values — drives the radio rendering. */

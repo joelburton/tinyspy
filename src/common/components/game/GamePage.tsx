@@ -138,6 +138,7 @@ export function GamePage({
     sendManualUnpause,
     sendSuspend,
     timer,
+    isMyTurn,
     loading,
   } = useCommonGame(gameId, session)
 
@@ -459,6 +460,8 @@ export function GamePage({
           playState: commonGame.play_state,
           isTerminal: commonGame.is_terminal,
           timer,
+          isMyTurn,
+          currentTurnUserId: commonGame.current_turn_user_id,
           setup: commonGame.setup,
           status: commonGame.status,
           goToClub,

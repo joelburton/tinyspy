@@ -16,6 +16,7 @@ import type { WaffleSetup } from '../lib/setup'
 import type { WafflePlayerState, SwapRow } from '../hooks/useGame'
 import { SolutionReveal } from './SolutionReveal'
 import { GameTurnLog } from './GameTurnLog'
+import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 
 /**
@@ -37,6 +38,7 @@ export function InfoCol({
   isPlayer,
   selfDone,
   myConceded,
+  currentTurnUserId,
   selfSolved,
   swapsUsed,
   maxSwaps,
@@ -66,6 +68,9 @@ export function InfoCol({
   over: TerminalCopy | null
   /** Am I a player in this game (gates the action row + help). */
   isPlayer: boolean
+  /** Whose turn it is under turn-order, or null for a free-for-all game.
+   *  Non-null ⇒ render the shared TurnStatusLine (a turn game). */
+  currentTurnUserId: string | null
   /** I can't act any more, but the game continues for others (compete: solved / out
    *  of swaps / conceded) — drives the terminal LOOK. The broader analog of the other
    *  games' concede-only `isLocallyDone`: waffle is a per-player-board race, so you can
@@ -161,6 +166,16 @@ export function InfoCol({
           </strong>{' '}
           ({remaining} left) · Par <strong>{parSwaps}</strong>
         </p>
+        {/* Whose-turn line — only for a turn-order game (pointer non-null). A
+            separate line below the state readout; never replaces it. */}
+        {currentTurnUserId !== null && (
+          <TurnStatusLine
+            currentTurnUserId={currentTurnUserId}
+            players={players}
+            selfId={selfId}
+            isTerminal={over !== null}
+          />
+        )}
 
         {/* The answer, revealed progressively: a word shows once you've turned it
             fully green; the rest read as em dashes. Part of the status readout (above

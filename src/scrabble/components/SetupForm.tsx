@@ -1,5 +1,6 @@
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
 import { TimerField } from '../../common/components/fields/TimerField'
+import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { SetupSection } from '../../common/components/setup/SetupSection'
@@ -23,7 +24,7 @@ import styles from '../../common/components/fields/setupForm.module.css'
  *     (docs/scrabble-ai-strength.md).
  * Controlled component; state lives in the SetupGameDialog wrapper.
  */
-export function SetupForm({ value, onChange, mode, playerCount }: SetupBodyProps) {
+export function SetupForm({ value, onChange, mode, players, playerCount }: SetupBodyProps) {
   const s = value as ScrabbleSetup
 
   // Disclosure summary carries the current bands so the section reads without
@@ -96,6 +97,18 @@ export function SetupForm({ value, onChange, mode, playerCount }: SetupBodyProps
           )}
         </SetupSection>
       )}
+
+      {/* Coop pacing — free-for-all (default) vs turn-by-turn. Self-gates to
+          nothing for compete / solo. */}
+      <CoopStyleField
+        mode={mode}
+        players={players}
+        coopStyle={s.coopStyle ?? 'free-for-all'}
+        firstTurnUserId={s.firstTurnUserId ?? ''}
+        onChange={({ coopStyle, firstTurnUserId }) =>
+          onChange({ ...s, coopStyle, firstTurnUserId })
+        }
+      />
 
       <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
     </div>

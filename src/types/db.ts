@@ -573,6 +573,7 @@ export type Database = {
           game_id: string
           joined_at: string
           result: Json | null
+          turn_seat: number | null
           user_id: string
         }
         Insert: {
@@ -581,6 +582,7 @@ export type Database = {
           game_id: string
           joined_at?: string
           result?: Json | null
+          turn_seat?: number | null
           user_id: string
         }
         Update: {
@@ -589,6 +591,7 @@ export type Database = {
           game_id?: string
           joined_at?: string
           result?: Json | null
+          turn_seat?: number | null
           user_id?: string
         }
         Relationships: [
@@ -651,6 +654,7 @@ export type Database = {
         Row: {
           club_handle: string
           created_by: string | null
+          current_turn_user_id: string | null
           ended_at: string | null
           gametype: string
           id: string
@@ -667,6 +671,7 @@ export type Database = {
         Insert: {
           club_handle: string
           created_by?: string | null
+          current_turn_user_id?: string | null
           ended_at?: string | null
           gametype: string
           id?: string
@@ -683,6 +688,7 @@ export type Database = {
         Update: {
           club_handle?: string
           created_by?: string | null
+          current_turn_user_id?: string | null
           ended_at?: string | null
           gametype?: string
           id?: string
@@ -707,6 +713,13 @@ export type Database = {
           {
             foreignKeyName: "games_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "games_current_turn_user_id_fkey"
+            columns: ["current_turn_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
@@ -883,6 +896,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _advance_turn: { Args: { target_game: string }; Returns: undefined }
+      _assign_turn_order: {
+        Args: { first_user_id: string; target_game: string }
+        Returns: undefined
+      }
+      _require_turn: {
+        Args: { caller: string; target_game: string }
+        Returns: undefined
+      }
       _set_conceded: { Args: { target_game: string }; Returns: string }
       cache_definition: {
         Args: { p_def: string; p_source: string; p_word: string }

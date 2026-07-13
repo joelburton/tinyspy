@@ -55,6 +55,7 @@ export function BoardCol({
   // ── Guess dispatch (this column owns submit_guess) ──
   gameId,
   canGuess,
+  isMyTurn,
   showLocalFeedback,
   clearLocalFeedback,
   localPill,
@@ -81,8 +82,14 @@ export function BoardCol({
 
   // ── Guess dispatch ──
   gameId: string
-  /** May I guess right now? Gates the entry (vs a waiting / terminal pill) + tile clicks. */
+  /** Am I a live participant? Picks the entry (vs a waiting / terminal pill) — the
+   *  play-vs-done LOOK. NOT turn-aware: a waiting player is still a participant. */
   canGuess: boolean
+  /** Turn-order: may I act THIS moment? Always true for free-for-all / solo. When
+   *  false the entry stays visible but inert (the tiles + capture are frozen); the
+   *  InfoCol's TurnStatusLine explains whose turn it is. Kept separate from
+   *  `canGuess` so a non-current turn doesn't read as "out of guesses". */
+  isMyTurn: boolean
   /** Show an own-move pill (Correct / Incorrect / a rejected guess). PlayArea owns
    *  the shared below-board channel (InfoCol's Hint / Reveal / End write it too). */
   showLocalFeedback: (msg: GenericFeedbackMsg) => void
@@ -173,7 +180,7 @@ export function BoardCol({
         words={shuffledWords}
         results={results}
         selected={viewing ? null : selected}
-        onPick={canGuess && !viewing ? handleEntryChange : undefined}
+        onPick={canGuess && isMyTurn && !viewing ? handleEntryChange : undefined}
         viewing={viewing}
         highlightWord={highlightWord}
         // Shuffle floats over the board's top-right — purely visual (a fresh scan
@@ -239,9 +246,10 @@ export function BoardCol({
               onSubmit={submitGuess}
               placeholder="Click on a tile or type"
               busy={submitting}
-              // While viewing history the capture is a hard no-op — so typing behind
-              // the banner never accumulates, and the keystroke goes to exitOnKey.
-              disabled={viewing}
+              // Disabled while viewing history (capture is a hard no-op so typing
+              // behind the banner never accumulates, and the keystroke goes to
+              // exitOnKey) OR when it's not my turn (the entry stays but inert).
+              disabled={viewing || !isMyTurn}
               onAnyKey={clearLocalFeedback}
               recall={lastGuess}
               className={styles.bigEntry}

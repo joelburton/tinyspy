@@ -11,6 +11,7 @@ import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
+import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import { MAX_GUESSES } from './GuessBoard'
 import { LengthScoreBar } from './LengthScoreBar'
 import { OpponentReveal, type OpponentReveals } from './OpponentReveal'
@@ -33,6 +34,7 @@ export function InfoCol({
   isTerminal,
   over,
   isLocallyDone,
+  currentTurnUserId,
   // ── State ──
   guessesUsed,
   longest,
@@ -62,6 +64,9 @@ export function InfoCol({
   over: TerminalCopy | null
   /** Compete: I conceded but the others race on — the terminal LOOK. */
   isLocallyDone: boolean
+  /** Whose turn it is under turn-order, or null for a free-for-all game.
+   *  Non-null ⇒ render the shared TurnStatusLine (a turn game). */
+  currentTurnUserId: string | null
 
   // ── State (the caller's / team's track) ──
   guessesUsed: number
@@ -118,6 +123,18 @@ export function InfoCol({
             </div>
           )}
         </div>
+        {/* Whose-turn line — only for a turn-order game (pointer non-null). An
+            ADJACENT line: wordiply's state region is a bespoke stateBlock (not the
+            shared .infoState), so TurnStatusLine sits beside it rather than replacing
+            it. Its presence is fixed at create-time, so it can't reflow. */}
+        {currentTurnUserId !== null && (
+          <TurnStatusLine
+            currentTurnUserId={currentTurnUserId}
+            players={players}
+            selfId={selfId}
+            isTerminal={isTerminal}
+          />
+        )}
 
         {/* Opponent strip (compete) — mid-game shows each opponent's guesses
             used (never a score — scores are terminal-only); at terminal it

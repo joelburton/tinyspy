@@ -1,4 +1,5 @@
 import { TimerField } from '../../common/components/fields/TimerField'
+import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { RadioRow } from '../../common/components/fields/RadioRow'
@@ -39,7 +40,7 @@ import styles from '../../common/components/fields/setupForm.module.css'
  * (`psychicnum/components/SetupForm.tsx`) disambiguates from the
  * other games' SetupForm components.
  */
-export function SetupForm({ value, onChange }: SetupBodyProps) {
+export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
   const s = value as PsychicnumSetup
 
   // Disclosure summaries carry the current values so each section reads without
@@ -100,6 +101,17 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           onChange={(difficulty) => onChange({ ...s, difficulty })}
         />
       </SetupSection>
+      {/* Coop pacing — free-for-all (default) vs turn-by-turn. Self-gates
+          to nothing for compete / solo, so it's dropped in unconditionally. */}
+      <CoopStyleField
+        mode={mode}
+        players={players}
+        coopStyle={s.coopStyle ?? 'free-for-all'}
+        firstTurnUserId={s.firstTurnUserId ?? ''}
+        onChange={({ coopStyle, firstTurnUserId }) =>
+          onChange({ ...s, coopStyle, firstTurnUserId })
+        }
+      />
       <TimerField
         value={s.timer}
         onChange={(timer) => onChange({ ...s, timer })}

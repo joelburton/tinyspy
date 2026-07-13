@@ -10,6 +10,7 @@ import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { ConnectionsSetup } from '../lib/setup'
 import type { GuessRow, MatchedCategory, Player } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
+import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 
 /** Format a puzzle's NYT date (`YYYY-MM-DD`) for the setup disclosure. Parsed as
@@ -43,6 +44,7 @@ export function InfoCol({
   over,
   showInput,
   myConceded,
+  currentTurnUserId,
   found,
   categoryCount,
   mistakeCount,
@@ -71,6 +73,9 @@ export function InfoCol({
   showInput: boolean
   /** I conceded / was eliminated in a compete race — picks the locally-done wording. */
   myConceded: boolean
+  /** Whose turn it is under turn-order, or null for a free-for-all game.
+   *  Non-null ⇒ render the shared TurnStatusLine (a turn game). */
+  currentTurnUserId: string | null
 
   // ── State readout (categories found + mistakes) ──
   found: number
@@ -131,6 +136,16 @@ export function InfoCol({
           </strong>{' '}
           mistakes
         </p>
+        {/* Whose-turn line — only for a turn-order game (pointer non-null). A
+            separate line below the state readout; never replaces it. */}
+        {currentTurnUserId !== null && (
+          <TurnStatusLine
+            currentTurnUserId={currentTurnUserId}
+            players={players}
+            selfId={selfId}
+            isTerminal={over !== null}
+          />
+        )}
 
         {/* Opponent strip (compete) — the race comparison: each player's categories
             FOUND (public via players.matched_count). */}

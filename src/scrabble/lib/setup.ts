@@ -1,4 +1,5 @@
 import type { TimerMode } from '../../common/lib/games'
+import type { CoopTurnSetup } from '../../common/components/fields/CoopStyleField'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 
 /**
@@ -13,7 +14,7 @@ import { difficultyValue } from '../../common/lib/game/difficulty'
  * mirror of policy's `LEVELS` vocabCaps, kept local so the setup chunk stays
  * light; the server re-derives it in create_game and remains the authority.
  */
-export type ScrabbleSetup = {
+export type ScrabbleSetup = CoopTurnSetup & {
   /**
    * The dictionary bands that gate word acceptance, by word length (both
    * 1..6, `common.words.difficulty`). 2-letter words are a thin, separate
@@ -67,6 +68,9 @@ export const DEFAULT_SCRABBLE_SETUP: ScrabbleSetup = {
   timer: { kind: 'none' },
   ai_count: 0,
   ai_level: 'strong',
+  // Coop pacing: free-for-all by default; the "Co-op" setup section (coop,
+  // 2+ players) offers turn-by-turn. firstTurnUserId is seeded by the field.
+  coopStyle: 'free-for-all',
 }
 
 /**

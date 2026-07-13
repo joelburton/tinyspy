@@ -62,6 +62,8 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     playState: 'playing',
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
+    isMyTurn: true,
+    currentTurnUserId: null,
     setup: { turns: 9, timer: { kind: 'none' } },
     status: null,
     globalFeedback: { show: vi.fn(), clear: vi.fn() },

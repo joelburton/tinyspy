@@ -56,6 +56,7 @@ export function BoardCol({
   snap,
   viewing,
   showInput,
+  isMyTurn,
   onExitViewing,
   // ── Tile selection (state owned by useGame; this renders + commits it) ──
   ownerByTile,
@@ -91,8 +92,14 @@ export function BoardCol({
   /** The viewed turn's snapshot, or null when live — PlayArea reconstructs it. */
   snap: TurnSnapshot | null
   viewing: boolean
-  /** May I still submit? Gates the tiles + the commit row (vs a terminal / waiting pill). */
+  /** May I still submit? Gates the tiles + the commit row (vs a terminal / waiting pill).
+   *  Participant-level (terminal / eliminated / conceded) — NOT turn-aware. */
   showInput: boolean
+  /** Turn-order: may I act THIS moment? Always true for free-for-all / solo. When
+   *  false, tile selection + submit are frozen (the InfoCol TurnStatusLine explains
+   *  why). Kept apart from `showInput` so a non-turn doesn't read as terminal /
+   *  eliminated (which would flip to the reveal view). */
+  isMyTurn: boolean
   /** Return to the live board (the banner click / ✕). */
   onExitViewing: () => void
 
@@ -156,7 +163,7 @@ export function BoardCol({
     ? reconcileLocalOrder(localOrder, remainingTiles)
     : remainingTiles
 
-  const canSubmit = unionTiles.length === 4 && !submitting && showInput
+  const canSubmit = unionTiles.length === 4 && !submitting && showInput && isMyTurn
 
   async function handleSubmit() {
     if (submitting || unionTiles.length !== 4) return
@@ -205,7 +212,7 @@ export function BoardCol({
   // conditions, so a stray Enter with an incomplete selection is a harmless no-op.
   // The shared hook already ignores keys aimed at a focused text field (chat, etc.).
   useGlobalKeyHandler((e) => {
-    if (e.key !== 'Enter' || viewing || !showInput || hintsOpen) return
+    if (e.key !== 'Enter' || viewing || !showInput || !isMyTurn || hintsOpen) return
     e.preventDefault()
     void handleSubmit()
   })
@@ -214,6 +221,10 @@ export function BoardCol({
   // return), then toggle the tile — connections's analog of "typing dismisses the
   // entry flash" (the player has moved on to the next selection).
   function handleToggle(tile: string) {
+    // Turn-order: a waiting player can't build (or broadcast) a selection — the
+    // tile toggle is shared over Broadcast in coop, so freezing it here keeps a
+    // non-current player from nudging teammates' boards.
+    if (!isMyTurn) return
     clearLocalFeedback()
     toggleTile(tile)
   }

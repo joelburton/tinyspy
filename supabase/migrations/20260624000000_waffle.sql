@@ -397,6 +397,7 @@ declare
   b_par        int;
   budget       int;
   game_title   text;
+  first_turn   uuid;
 begin
   perform common.require_club_member(target_club);
   -- Must agree with numberOfPlayers in src/waffle/manifest.ts ([1,6]).
@@ -463,8 +464,22 @@ begin
 
   new_id := common.create_game(
     target_club, 'waffle_' || mode, player_user_ids, game_title, setup,
-    setup
+    -- saved_default strips firstTurnUserId (per-game "who goes first" pick,
+    -- not a per-club preference; coopStyle rides).
+    setup - 'firstTurnUserId'
   );
+
+  -- Opt-in turn-by-turn coop: when setup.coopStyle='turns', seat the common
+  -- rotation so submit_swap gates each swap. Free-for-all / compete leave the
+  -- pointer null. Runs after common.create_game seeds game_players.
+  if mode = 'coop' and setup->>'coopStyle' = 'turns' then
+    first_turn := (setup->>'firstTurnUserId')::uuid;
+    if first_turn is null or not (first_turn = any(player_user_ids)) then
+      raise exception 'setup.firstTurnUserId must be one of the players'
+        using errcode = 'P0001';
+    end if;
+    perform common._assign_turn_order(new_id, first_turn);
+  end if;
 
   insert into waffle.games
     (id, club_handle, mode, scramble, par_swaps, max_swaps, solution)
@@ -629,6 +644,12 @@ begin
     raise exception 'you have conceded' using errcode = 'P0001';
   end if;
 
+  -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
+  -- (pointer null) and compete; raises 'not your turn' otherwise. All the
+  -- swap soft-rejects below `raise` (rolling back), so a rejected swap never
+  -- advances; the accepted coop branch advances only when non-terminal.
+  perform common._require_turn(target_game, caller_id);
+
   -- ─── Validate the two positions ──────────────────────────
   if pos_a is null or pos_b is null or pos_a = pos_b
      or pos_a < 0 or pos_a > 24 or pos_b < 0 or pos_b > 24 then
@@ -699,6 +720,13 @@ begin
                            'swaps_used', new_swaps, 'max_swaps', g_row.max_swaps),
         player_results
       );
+    end if;
+
+    -- Turn-order: an accepted, non-terminal coop swap hands the turn to the
+    -- next player (no-op for free-for-all). Skipped when this swap solved the
+    -- puzzle or spent the last swap (the pointer is left as-is at terminal).
+    if not out_terminal then
+      perform common._advance_turn(target_game);
     end if;
   else
     -- Compete: apply the swap to the caller's own row only.

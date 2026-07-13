@@ -1,5 +1,6 @@
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
 import { TimerField } from '../../common/components/fields/TimerField'
+import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
 import type { SetupBodyProps } from '../../common/lib/games'
 import type { WordiplySetup } from '../lib/setup'
 import styles from '../../common/components/fields/setupForm.module.css'
@@ -17,7 +18,7 @@ import styles from '../../common/components/fields/setupForm.module.css'
  * Controlled component: state lives in the wrapping `SetupGameDialog`; this
  * body renders `value` and signals via `onChange`.
  */
-export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
+export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
   const s = value as WordiplySetup
 
   return (
@@ -43,6 +44,16 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
         maxDifficulty={6}
         value={s.difficulty}
         onChange={(difficulty) => onChange({ ...s, difficulty })}
+      />
+
+      <CoopStyleField
+        mode={mode}
+        players={players}
+        coopStyle={s.coopStyle ?? 'free-for-all'}
+        firstTurnUserId={s.firstTurnUserId ?? ''}
+        onChange={({ coopStyle, firstTurnUserId }) =>
+          onChange({ ...s, coopStyle, firstTurnUserId })
+        }
       />
 
       <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />

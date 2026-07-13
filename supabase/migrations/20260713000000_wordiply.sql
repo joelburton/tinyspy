@@ -443,6 +443,7 @@ declare
   game_title text;
   effective_gametype text;
   init_status jsonb;
+  first_turn uuid;
 begin
   perform common.require_club_member(target_club);
 
@@ -514,8 +515,23 @@ begin
   -- returns the canonical id. Persist the whole setup as the club's next
   -- default (bands + timer are things a friend group settles on).
   new_id := common.create_game(
-    target_club, effective_gametype, player_user_ids, game_title, setup, setup
+    target_club, effective_gametype, player_user_ids, game_title, setup,
+    -- saved_default strips firstTurnUserId (per-game "who goes first" pick,
+    -- not a per-club preference; coopStyle rides).
+    setup - 'firstTurnUserId'
   );
+
+  -- Opt-in turn-by-turn coop: when setup.coopStyle='turns', seat the common
+  -- rotation so submit_guess gates each guess. Free-for-all / compete leave
+  -- the pointer null. Runs after common.create_game seeds game_players.
+  if mode = 'coop' and setup->>'coopStyle' = 'turns' then
+    first_turn := (setup->>'firstTurnUserId')::uuid;
+    if first_turn is null or not (first_turn = any(player_user_ids)) then
+      raise exception 'setup.firstTurnUserId must be one of the players'
+        using errcode = 'P0001';
+    end if;
+    perform common._assign_turn_order(new_id, first_turn);
+  end if;
 
   -- ─── Insert the per-gametype row ─────────────────────────
   insert into wordiply.games (
@@ -797,6 +813,13 @@ begin
     raise exception 'you have conceded' using errcode = 'P0001';
   end if;
 
+  -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
+  -- (pointer null) and compete; raises 'not your turn' otherwise. The
+  -- soft-reject guards below (too_short / missing_base / duplicate) `return`
+  -- before the insert, so a rejected guess never advances; the accepted coop
+  -- branch advances only on the non-terminal continue path.
+  perform common._require_turn(target_game, caller_id);
+
   base_len := char_length(g_row.base);
   w_lower := lower(coalesce(word, ''));
 
@@ -842,6 +865,10 @@ begin
     if track_count + 1 >= 5 then
       perform wordiply._finish_coop(target_game, 'complete');
     else
+      -- Turn-order: an accepted, non-terminal coop guess hands the turn to the
+      -- next player (no-op for free-for-all). Skipped on the 5th guess, which
+      -- ends the game just above.
+      perform common._advance_turn(target_game);
       perform common.update_state(target_game, 'playing',
         jsonb_build_object(
           'mode', 'coop',

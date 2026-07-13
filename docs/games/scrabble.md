@@ -340,8 +340,16 @@ declared letter).
    moved first → return `{result:'stale'}` (the FE refetches + recomputes). This
    is the race handler — it also rejects a *stale* client that computed against
    an old board.
-3. **Compete:** reject unless `current_user_id = caller` (`P0001`). **Coop:** no
-   turn check — any player.
+3. **Compete:** reject unless `current_user_id = caller` (`P0001`), keyed on the
+   scrabble-local seat system. **Coop:** free-for-all by default (any player), but
+   the coop sibling also supports **opt-in turn-by-turn** play (setup `coopStyle =
+   'turns'`) — when on, the shared `_commit_word` core gates on the **common**
+   `common._require_turn` and advances `common._advance_turn` on an accepted,
+   non-terminal commit. The two turn systems coexist deliberately: compete keeps
+   its own `scrabble.games.current_seat` + `scrabble._advance_turn` (which also
+   drive the AI opponent, [§12](#12-the-ai-opponent-compete)), coop uses the
+   common pointer. See
+   [common.md → Turn-order](../common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 4. **Integrity guards** (cheap; data-consistency, *not* anti-cheat): every
    placement is in-bounds and lands on an empty square; the consumed tiles
    (`?` per blank, else the letter) are actually in the acting rack (compete:
@@ -373,8 +381,12 @@ Lock + version CAS (same stale-guard as `play_word` — it mutates the shared ra
 (`?` for a blank). Requires `bag_count ≥ 7`. Returns the tiles to the bag,
 reshuffles, redraws the same count; `version += 1`; logs `kind='exchange'`.
 **Compete:** `consecutive_scoreless += 1`, advance turn, check the blocked-end
-condition. **Coop:** none of that — it's just a rack refresh (no turns, no
-blocked-end). Returns `{drawn, version}`.
+condition. **Coop:** none of that — it's just a rack refresh (no compete-seat
+turns, no blocked-end). Under **coop turn-by-turn** (setup `coopStyle = 'turns'`)
+the shared `_commit_exchange` core also gates on `common._require_turn` and hands
+off via `common._advance_turn` — an exchange is a real turn-consuming coop move.
+(There's no coop pass — `pass_turn` is compete-only — so only `_commit_word` and
+`_commit_exchange` carry the common gate.) Returns `{drawn, version}`.
 
 ### 5.4 `pass_turn(target_game, base_version)` (compete only)
 

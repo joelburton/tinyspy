@@ -362,6 +362,7 @@ declare
   s_secrets text[];
   game_title text;
   effective_gametype text;
+  first_turn uuid;
 begin
   -- ─── Validate mode + player-count ───────────────────
   perform common.validate_mode(mode);
@@ -463,12 +464,31 @@ begin
   -- full responsibilities (auth, membership, vacate prior
   -- current-view game, insert common.games + game_players,
   -- return canonical id).
+  -- Saved-default arg strips firstTurnUserId — the turn-order "who goes
+  -- first" pick is a per-game choice, not a per-club preference (same
+  -- treatment codenamesduet gives firstClueGiverUserId). The coopStyle
+  -- toggle itself DOES round-trip, so a club that likes turns keeps it.
   new_id := common.create_game(
     target_club, effective_gametype, player_user_ids,
     game_title,
     setup,
-    setup
+    setup - 'firstTurnUserId'
   );
+
+  -- Opt-in turn-by-turn coop. When setup.coopStyle='turns', seat the
+  -- common rotation (seat 0 = the chosen first player, the rest shuffled)
+  -- so submit_guess gates each guess on whose turn it is. Free-for-all
+  -- (the default, or any compete game) leaves the pointer null — inert.
+  -- The players + the pointer live on the common tables that
+  -- common.create_game just populated, so this runs after it.
+  if mode = 'coop' and setup->>'coopStyle' = 'turns' then
+    first_turn := (setup->>'firstTurnUserId')::uuid;
+    if first_turn is null or not (first_turn = any(player_user_ids)) then
+      raise exception 'setup.firstTurnUserId must be one of the players'
+        using errcode = 'P0001';
+    end if;
+    perform common._assign_turn_order(new_id, first_turn);
+  end if;
 
   -- Insert the gametype-specific row.
   insert into psychicnum.games (id, club_handle, mode, words, secrets)
@@ -577,6 +597,13 @@ begin
   if current_play_state <> 'playing' then
     raise exception 'game is not active' using errcode = 'P0001';
   end if;
+
+  -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
+  -- games (pointer null) and solo; raises 'not your turn' when it's a
+  -- turn game and someone guesses out of turn. Placed after the active
+  -- check so a finished game reads "game is not active" for everyone,
+  -- not "not your turn" for the non-current player.
+  perform common._require_turn(target_game, caller_id);
 
   -- A conceded player is out of the race — no more guesses. The FE gates
   -- on myConceded, so this only fires on a race (a guess in flight when
@@ -725,6 +752,13 @@ begin
   end if;
 
   -- ─── Game continues ──────────────────────────────────────
+  -- An accepted, non-terminal guess: hand the turn to the next player
+  -- (no-op for free-for-all / solo). Only reached past the win/loss
+  -- returns above, so a game-ending guess never advances the pointer;
+  -- and the soft-rejects above all `raise` (rolling back), so a rejected
+  -- guess never advances either — the same player retries.
+  perform common._advance_turn(target_game);
+
   -- For the listing label, surface (coop) the shared remaining value, or
   -- (compete) the caller's own remaining value.
   perform common.update_state(

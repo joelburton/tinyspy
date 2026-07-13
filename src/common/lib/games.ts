@@ -62,6 +62,17 @@ export type GamePageCtx = {
     displaySeconds: number
     expired: boolean
   }
+  /** Turn-order gate for the opt-in turn-by-turn coop mode. True when
+   *  the viewer may act right now — ALWAYS true for free-for-all games
+   *  (the default) and solo, so a game that doesn't opt in is
+   *  unaffected. A turn game AND-s this into its existing input gate
+   *  (canGuess/readOnly/…). Derived once in `useCommonGame`. */
+  isMyTurn: boolean
+  /** Whose turn it is (`common.games.current_turn_user_id`), or null
+   *  for a free-for-all game. Turn games pass it to `<TurnStatusLine>`
+   *  to render "Your turn" / "Waiting for ● Name…"; free-for-all games
+   *  ignore it. */
+  currentTurnUserId: string | null
   /** The game's setup blob from `common.games.setup` — the
    *  choices the SetupGameDialog collected at start. Typed as
    *  `Record<string, unknown>` here because each gametype's
@@ -335,6 +346,13 @@ export type SetupBodyProps = {
    *  bananagrams sizes its tile bag against `playerCount × hand_size`);
    *  the rest ignore it. */
   playerCount: number
+  /** The SELECTED players — the checked subset of `members`, live as
+   *  the creator toggles the picker (`playerCount === players.length`).
+   *  Distinct from `members` (the whole club roster): a setup control
+   *  that must name the actual roster reads this, e.g. the turn-order
+   *  "First player" picker, which may only list people who'll play.
+   *  The rest ignore it. */
+  players: Member[]
   value: unknown
   onChange: (next: unknown) => void
 }

@@ -1,4 +1,5 @@
 import type { TimerMode } from '../../common/lib/games'
+import type { CoopTurnSetup } from '../../common/components/fields/CoopStyleField'
 
 /**
  * connections's per-game setup — the choices collected by the
@@ -19,7 +20,7 @@ import type { TimerMode } from '../../common/lib/games'
  * accommodates new optional fields without schema churn — only
  * the RPC's shape validator changes.
  */
-export type ConnectionsSetup = {
+export type ConnectionsSetup = CoopTurnSetup & {
   puzzleId: string
   timer: TimerMode
 }
@@ -38,4 +39,7 @@ export type ConnectionsSetup = {
 export const DEFAULT_CONNECTIONS_SETUP: ConnectionsSetup = {
   puzzleId: '',
   timer: { kind: 'none' },
+  // Coop pacing: free-for-all by default; the "Co-op" setup section (coop,
+  // 2+ players) offers turn-by-turn. firstTurnUserId is seeded by the field.
+  coopStyle: 'free-for-all',
 }
