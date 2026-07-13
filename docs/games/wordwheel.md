@@ -255,17 +255,17 @@ permanent version of this failure) is caught in CI.
 
 ## Frontend
 
-`src/wordwheel/` mirrors spellingbee's layout. After the 2026-07 dedup
-(code-review-2026-07-12 → **D2** + **D4**) the two games split cleanly into three buckets:
+`src/wordwheel/` mirrors spellingbee's layout. The two games' code splits cleanly
+into three buckets:
 
-- **Shared, hoisted into `common/` (D2).** The pieces that were byte-identical
-  after a codename rename now live once, so a fix lands for both games: the rank
+- **Shared, hoisted into `common/`.** The pieces that are byte-identical
+  after a codename rename live once, so a fix lands for both games: the rank
   ladder (`common/lib/game/rankLadder`), the found-words data model + display +
   leaderboard (`common/lib/game/foundWords*`), the `useGame` factory
   (`common/hooks/game/makeFoundWordsGame`), and the `RankBar` / `Stats`
   components (`common/components/game/`, themed via generic `--rank-*` tokens
   each game's `theme.css` aliases).
-- **Deliberately forked — per-game siblings (D4, decision (a)).** `PlayArea`,
+- **Deliberately forked — per-game siblings.** `PlayArea`,
   `BoardCol`, `InfoCol`, `SetupForm`, and `lib/setup.ts` are 85–98% identical to
   spellingbee's but are kept as separate copies **on purpose**. Their deltas are
   load-bearing game logic — the bounded-**multiset** legality (per-letter counts,
