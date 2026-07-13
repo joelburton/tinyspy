@@ -204,7 +204,7 @@ name-cache + StrictMode double-mount collision.
 | `home-clubs:<selfId>:<uuid>` | HomePage | uuid | CDC on `common.clubs_members` filtered by self |
 | `<gametype>:<gameId>:<uuid>` | each per-game `useGame` (or factory) | uuid | CDC on that game's tables |
 | `crosswords:cells:<gameId>:<uuid>` | `useCells` | uuid | CDC UPDATE on `crosswords.cells` (direct-apply) |
-| `game:` / `board:` / `clues:` `<gameId>:<uuid>` | codenamesduet's three hooks | uuid | CDC per concern (naming drift — see [recommendations](#recommendations)) |
+| `codenamesduet:game:` / `codenamesduet:board:` / `codenamesduet:clues:` `<gameId>:<uuid>` | codenamesduet's three hooks | uuid | CDC per concern (concern-keyed like `crosswords:cells` / `crosswords:cursors`) |
 | `bananagrams-board:` / `bananagrams-progress:` `<gameId>:<uuid>` | bananagrams' two hooks | uuid | CDC per RLS boundary |
 
 ### The four data-hook shapes
@@ -390,7 +390,6 @@ All of these are commented at the site; this table is the index.
 | One-shot on-demand fetch | crosswords Reveal (`games_state.solution`) | solution is gated; fetched only when the button is pressed |
 | Stable-name temp channel | ClubPage delete-current-game broadcast | borrows `useCommonGame`'s room name to reach peers, send-only, ~1s lifetime |
 | FE-side owner filter on CDC | crosswords `useCells` | compete privacy: CDC payload carries other owners' cells; dropped before apply |
-| Generic channel prefixes (`game:`/`board:`/`clues:`) | codenamesduet | predates the `<gametype>:` prefix convention (cosmetic drift) |
 
 ## What the 2026-07-12 review verified
 
@@ -468,21 +467,22 @@ What the review's follow-up already shipped (2026-07-12):
   `tests/crosswords/publication_test.sql`) that pin the load-bearing
   tables published AND the pruned ones absent — common had no such guard
   before. Verified with `db:reset` + `import` + `test:db` (1628 pass).
+- **codenamesduet channel prefixes renamed** (`useGame` / `useBoard` /
+  `useClues`): `game`/`board`/`clues` → `codenamesduet:game`/`:board`/`:clues`,
+  concern-keyed under the gametype like `crosswords:cells`/`:cursors`.
+  Updated the channel registry + folded the old "generic prefixes"
+  divergence row into the existing "three data hooks" one (the naming is
+  no longer a divergence). Zero functional impact — per-tab UUID-suffixed
+  rooms never collide across prefixes.
 
-### Work plan — still open, in priority order
+### Work plan — all items landed
 
-Written to be picked up cold: each item says exactly what to change,
-what's already been decided, and how to verify. None are urgent at
-friends-alpha scale now that the cap is raised. Delete each item (and
-update any doc text it references) as it lands.
+Every item the 2026-07-12 review raised has shipped (see the list above);
+one — the crosswords library-picker bound — was deliberately **deferred**
+(it belongs with the future bulk puzzle import), now recorded in
+[deferred.md](deferred.md) and [crosswords.md §9](games/crosswords.md#9-deferred--future).
+When a new bounds/realtime finding surfaces, add it back here.
 
-1. **(Cosmetic, someday)** Rename codenamesduet's channel prefixes
-   (`channelPrefix` in its `useGame` / `useBoard` / `useClues`) from
-   `game`/`board`/`clues` to `codenamesduet`-prefixed names matching the
-   `<gametype>:` convention, and update the channel registry table above.
-   Zero functional impact — per-tab UUID-suffixed rooms never collide
-   across prefixes.
-
-Gates for any of the code items: `npx tsc -b` (NOT `tsc --noEmit` — the
+Gates for any future code items: `npx tsc -b` (NOT `tsc --noEmit` — the
 root tsconfig checks nothing), `npm test`, and `npm run test:db` for
 migration changes.

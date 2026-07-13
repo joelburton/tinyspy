@@ -70,7 +70,7 @@ export function useGame(gameId: string) {
 
   useRealtimeRefetch({
     tables: { schema: 'codenamesduet', table: 'games', filter: `id=eq.${gameId}` },
-    channelPrefix: 'game',
+    channelPrefix: 'codenamesduet:game',
     id: gameId,
     load: async ({ mounted }) => {
       const gameRes = await db

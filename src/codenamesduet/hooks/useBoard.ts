@@ -83,7 +83,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
       { schema: 'codenamesduet', table: 'words', filter: `game_id=eq.${gameId}` },
       { schema: 'codenamesduet', table: 'guesses', filter: `game_id=eq.${gameId}` },
     ],
-    channelPrefix: 'board',
+    channelPrefix: 'codenamesduet:board',
     id: gameId,
     load: async ({ mounted }) => {
       // Seats + key cards are columns on codenamesduet.games (not a separate
