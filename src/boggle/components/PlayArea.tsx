@@ -50,7 +50,7 @@ import '../theme.css'
  */
 export function PlayArea(ctx: GamePageCtx) {
   const { gameId, players, isTerminal, setup, goToClub, clubHandle, goToGame, session, status, globalFeedback, menu, brand, title } = ctx
-  const { game, foundWords, loading } = useGame(gameId)
+  const { game, foundWords, loading, rowsLoaded } = useGame(gameId)
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
   // fills the screen and the info column moves into a full-width off-canvas
@@ -325,6 +325,9 @@ export function PlayArea(ctx: GamePageCtx) {
   // silent by design (opponents' words are private; no rank ladder to announce).
   useGlobalFeedback({
     enabled: game?.mode === 'coop',
+    // Gate the seed on the found_words fetch (separate from the header that sets
+    // `game`), so a coop rejoin doesn't replay the backlog as a burst of pills.
+    ready: rowsLoaded,
     items: foundWords,
     keyOf: (r) => `${r.user_id}:${r.word}`,
     messageFor: (r) => {

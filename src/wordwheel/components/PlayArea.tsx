@@ -57,7 +57,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // the player's own word result. Two different surfaces.
     globalFeedback,
   } = ctx
-  const { game, foundWords, loading } = useGame(gameId)
+  const { game, foundWords, loading, rowsLoaded } = useGame(gameId)
 
   const wordwheelSetup = setup as WordwheelSetup
 
@@ -355,6 +355,9 @@ export function PlayArea(ctx: GamePageCtx) {
   // row, so there's nothing to suppress. Own words go to the in-body local pill.
   useGlobalFeedback({
     enabled: game?.mode === 'coop',
+    // Gate the seed on the found_words fetch (separate from the header that sets
+    // `game`), so a coop rejoin doesn't replay the backlog as a burst of pills.
+    ready: rowsLoaded,
     items: foundWords,
     keyOf: (r) => `${r.user_id}:${r.word}`,
     messageFor: (r) => {

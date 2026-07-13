@@ -18,10 +18,19 @@ import type { GenericFeedbackApi, GenericFeedbackMsg } from '../../lib/games'
  * and every row looks "new", so the whole history replays as a burst of pills.
  * The fix: return early when `!enabled` *before* touching the ref, so the seed
  * runs on the first render where the game is actually loaded — at which point
- * `items` holds the real backlog (game row + its rows arrive in one fetch), the
- * seed captures it, and nothing replays. On a fresh game (`items` genuinely
- * empty at load) the seed is an empty set, so the peer's FIRST event is new and
- * fires — fixing the opposite bug (psychicnum/connections silently dropping it).
+ * `items` holds the real backlog, the seed captures it, and nothing replays. On
+ * a fresh game (`items` genuinely empty at load) the seed is an empty set, so the
+ * peer's FIRST event is new and fires — fixing the opposite bug
+ * (psychicnum/connections silently dropping it).
+ *
+ * **Two-fetch hooks need `ready`.** The above holds only when the game row and
+ * its rows arrive in ONE fetch. The found-words hooks (spellingbee / wordwheel /
+ * wordiply / boggle) load the immutable header in one fetch and the rows in a
+ * SEPARATE realtime-refetch, so `enabled` (derived from the header) can flip true
+ * while `items` (the rows) is still `[]` — the seed captures nothing and the
+ * backlog replays. Such callers pass `ready` = "the rows have loaded at least
+ * once", so the seed waits for the real backlog. Single-fetch callers leave
+ * `ready` at its default `true` and are unaffected.
  *
  * `enabled` is the mode gate (e.g. `mode === 'coop'`, or `=== 'compete'` for a
  * solve stream). `keyOf` identifies a peer event uniquely; `messageFor` returns
@@ -37,12 +46,17 @@ import type { GenericFeedbackApi, GenericFeedbackMsg } from '../../lib/games'
  */
 export function useGlobalFeedback<T>({
   enabled,
+  ready = true,
   items,
   keyOf,
   messageFor,
   globalFeedback,
 }: {
   enabled: boolean
+  /** Whether `items` holds the real backlog yet. Defaults true (single-fetch
+   *  callers). Two-fetch hooks pass their "rows loaded once" flag so the seed
+   *  doesn't run against an empty pre-rows `items` and then replay the backlog. */
+  ready?: boolean
   items: readonly T[]
   keyOf: (item: T) => string
   /** The pill to fire for a new peer event, or `null` to skip it. */
@@ -65,10 +79,11 @@ export function useGlobalFeedback<T>({
   })
 
   useEffect(() => {
-    // Gate BEFORE seeding (the §1.1 fix): if the game isn't loaded / this mode
-    // doesn't narrate, don't seed — so the first seed happens once `items` is
-    // real, not while it's still the empty loading value.
-    if (!enabled) return
+    // Gate BEFORE seeding (the §1.1 fix): don't seed until the game narrates
+    // this mode (`enabled`) AND its backlog has actually arrived (`ready`) — so
+    // the first seed captures the real `items`, not the empty loading value or a
+    // pre-rows-fetch snapshot (see the `ready` note in the header).
+    if (!enabled || !ready) return
     const key = keyOfRef.current
     if (seenRef.current === null) {
       // First loaded render: adopt the existing backlog silently.
@@ -83,5 +98,5 @@ export function useGlobalFeedback<T>({
       const msg = messageForRef.current(item)
       if (msg) globalFeedback.show(msg)
     }
-  }, [enabled, items, globalFeedback])
+  }, [enabled, ready, items, globalFeedback])
 }

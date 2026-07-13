@@ -58,10 +58,15 @@ export function useGame(gameId: string): {
   game: BoggleGame | null
   foundWords: FoundWordRow[]
   loading: boolean
+  /** True once the found_words rows have loaded at least once — distinct from
+   *  `loading` (which flips on the HEADER fetch). Peer narration gates on this
+   *  so it seeds against the real backlog, not the empty pre-rows snapshot. */
+  rowsLoaded: boolean
 } {
   const [game, setGame] = useState<BoggleGame | null>(null)
   const [foundWords, setFoundWords] = useState<FoundWordRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [rowsLoaded, setRowsLoaded] = useState(false)
 
   // The immutable header — fetched once per game. `loading` gates the PlayArea's
   // board render, so it flips here (the found_words load below just fills the list).
@@ -117,8 +122,9 @@ export function useGame(gameId: string): {
         .order('found_at', { ascending: true })
       if (!mounted()) return
       setFoundWords((data ?? []) as FoundWordRow[])
+      setRowsLoaded(true)
     },
   })
 
-  return { game, foundWords, loading }
+  return { game, foundWords, loading, rowsLoaded }
 }

@@ -67,7 +67,7 @@ export function PlayArea(ctx: GamePageCtx) {
     gameId, isTerminal, playState, players, session, status,
     setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback,
   } = ctx
-  const { game, guesses, loading } = useGame(gameId)
+  const { game, guesses, loading, rowsLoaded } = useGame(gameId)
 
   const wordiplySetup = setup as WordiplySetup
 
@@ -231,6 +231,9 @@ export function PlayArea(ctx: GamePageCtx) {
   // go to the in-body local pill.
   useGlobalFeedback({
     enabled: game?.mode === 'coop',
+    // Gate the seed on the guesses fetch (separate from the header that sets
+    // `game`), so a coop rejoin doesn't replay the backlog as a burst of pills.
+    ready: rowsLoaded,
     items: guesses,
     keyOf: (r) => `${r.user_id}:${r.word}`,
     messageFor: (r) => {

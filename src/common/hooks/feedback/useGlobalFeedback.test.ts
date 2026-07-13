@@ -11,10 +11,11 @@ import type { GenericFeedbackMsg } from '../../lib/games'
  * via `rerender`: enabled/items flip across renders the way a real load does.
  */
 
-type Props = { enabled: boolean; items: readonly string[] }
+type Props = { enabled: boolean; items: readonly string[]; ready?: boolean }
 
 /** A harness that narrates every item as `"{item}"`, except `"self"` (skipped,
- *  standing in for the player's own action). Returns the feedback spy. */
+ *  standing in for the player's own action). Returns the feedback spy. `ready`
+ *  is omitted by single-fetch cases (defaults true in the hook). */
 function setup(initial: Props) {
   const globalFeedback = { show: vi.fn(), clear: vi.fn() }
   const messageFor = (item: string): GenericFeedbackMsg | null =>
@@ -23,6 +24,7 @@ function setup(initial: Props) {
     (p: Props) =>
       useGlobalFeedback({
         enabled: p.enabled,
+        ready: p.ready,
         items: p.items,
         keyOf: (x) => x,
         messageFor,
@@ -84,6 +86,36 @@ describe('useGlobalFeedback', () => {
     rerender({ enabled: true, items: ['a', 'b', 'c'] })
     expect(globalFeedback.show).toHaveBeenCalledTimes(1)
     expect(globalFeedback.show.mock.calls[0][0].text).toBe('c')
+  })
+
+  // L4 — the TWO-FETCH race (found-words games): `enabled` derives from the
+  // HEADER fetch and can flip true while the SEPARATE rows fetch is still empty.
+  // Without the `ready` gate the seed captured [] and then replayed the whole
+  // backlog when the rows landed. With it, the seed waits for the rows.
+  it('does NOT replay when enabled flips before the rows load (ready gate)', () => {
+    const { globalFeedback, rerender } = setup({ enabled: false, ready: false, items: [] })
+    // header resolves first: coop is known, but the rows fetch hasn't returned
+    // (this is the render that used to seed an empty set and doom the backlog).
+    rerender({ enabled: true, ready: false, items: [] })
+    expect(globalFeedback.show).not.toHaveBeenCalled()
+    // rows resolve: ready flips true with the backlog in the same commit → the
+    // seed captures it silently.
+    rerender({ enabled: true, ready: true, items: ['a', 'b', 'c'] })
+    expect(globalFeedback.show).not.toHaveBeenCalled()
+    // only genuinely later arrivals narrate.
+    rerender({ enabled: true, ready: true, items: ['a', 'b', 'c', 'd'] })
+    expect(globalFeedback.show).toHaveBeenCalledTimes(1)
+    expect(globalFeedback.show.mock.calls[0][0].text).toBe('d')
+  })
+
+  // A fresh two-fetch game (rows load empty) still narrates the first real peer
+  // event — ready gates the SEED, it doesn't suppress genuine events.
+  it('fires the first peer event of a fresh two-fetch game', () => {
+    const { globalFeedback, rerender } = setup({ enabled: true, ready: false, items: [] })
+    rerender({ enabled: true, ready: true, items: [] }) // rows loaded, empty → seed empty
+    rerender({ enabled: true, ready: true, items: ['a'] })
+    expect(globalFeedback.show).toHaveBeenCalledTimes(1)
+    expect(globalFeedback.show.mock.calls[0][0].text).toBe('a')
   })
 
   it('a remount with a backlog re-seeds silently (no replay on reconnect)', () => {

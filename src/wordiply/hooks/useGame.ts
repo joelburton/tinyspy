@@ -64,10 +64,15 @@ export function useGame(gameId: string): {
   game: WordiplyGame | null
   guesses: GuessRow[]
   loading: boolean
+  /** True once the guesses rows have loaded at least once — distinct from
+   *  `loading` (which flips on the HEADER fetch). Peer narration gates on this
+   *  so it seeds against the real backlog, not the empty pre-rows snapshot. */
+  rowsLoaded: boolean
 } {
   const [game, setGame] = useState<WordiplyGame | null>(null)
   const [guesses, setGuesses] = useState<GuessRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [rowsLoaded, setRowsLoaded] = useState(false)
 
   // The immutable header — fetched once per game. `loading` gates the
   // PlayArea render, so it flips here.
@@ -117,8 +122,9 @@ export function useGame(gameId: string): {
         .order('created_at', { ascending: true })
       if (!mounted()) return
       setGuesses((data ?? []) as GuessRow[])
+      setRowsLoaded(true)
     },
   })
 
-  return { game, guesses, loading }
+  return { game, guesses, loading, rowsLoaded }
 }
