@@ -1,0 +1,42 @@
+# Continuous integration — the STACK-FREE gates only.
+#
+# docs/test-audit.md → recommendation #9 (Gap 6): nothing ran the suites
+# automatically, so a forgotten local run could ship a type error or a lint
+# regression. This runs the two checks that need neither a Supabase stack nor a
+# browser — the type-check and the linter — on every push + pull request.
+#
+# Deliberately NOT here (yet):
+#   - npm run test:fe  — also stack-free (jsdom + a mocked client); a natural
+#     next addition, left out for now per the "tsc + eslint only" first cut.
+#   - npm run test:db  — pgTAP; needs a local Supabase Postgres (a service
+#     container) to run.
+#   - npm run test:e2e — Playwright; needs the full live stack + browsers.
+#
+# `tsc -b` (not `npm run build`) skips the vite bundle — CI only needs the
+# type-check, and it's faster without the build.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# One run per ref; a new push cancels an in-progress run on the same branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type-check (tsc -b)
+        run: npx tsc -b
+      - name: Lint (eslint)
+        run: npm run lint

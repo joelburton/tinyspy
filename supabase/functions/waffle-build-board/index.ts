@@ -46,8 +46,6 @@ import { buildWaffleBoard, type WordRow } from './gen.ts'
 import { json, preflight } from '../_shared/http.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 
-type Mode = 'coop' | 'compete'
-
 /** Page size for the word-fetch loop — an optimization knob, NOT a
  *  correctness bound. The loop is cap-agnostic (advances by the rows
  *  actually received, stops only on an empty page), so a server

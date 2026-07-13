@@ -72,8 +72,6 @@ type Setup = {
     | { kind: 'countdown'; seconds: number }
 }
 
-type Mode = 'coop' | 'compete'
-
 /** The board payload handed to wordiply.create_game. */
 type Board = {
   base: string

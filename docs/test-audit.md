@@ -244,7 +244,9 @@ Holes measured against what the suite *actually* tries to be:
   a forgotten run before deploy ships silently. A minimal GitHub Action running
   `test:fe` + `tsc -b` + `eslint` (the pieces that don't need a Supabase stack)
   would catch the cheap majority. pgTAP/e2e in CI would need a `supabase start`
-  service container — heavier, optional.
+  service container — heavier, optional. *(Update — recommendation #9:
+  `.github/workflows/ci.yml` now runs `tsc -b` + `eslint`; `test:fe` still to
+  add.)*
 - **The stackdown board generator** (`supabase/scripts/generate-stackdown-boards.ts`)
   enforces the strict no-trap invariant with zero tests. Mitigated by being
   generate-then-import (bad boards would be caught at generation time, and the
@@ -315,8 +317,11 @@ Ordered by (chance of silent breakage) × (blast radius) ÷ (cost to write):
    readOnly writes-ignored) and `usePlayerBoard.test.ts` (11 — derived hand,
    debounced autosave + the load-bearing save-on-unmount, keyboard
    place/return/flash, doPeel guards, frozen). 32 tests.
-9. *(Optional)* **Minimal CI** for the stack-free gates (`tsc -b`, eslint,
-   `test:fe`).
+9. *(Optional)* **Minimal CI** for the stack-free gates — *partially done.*
+   `.github/workflows/ci.yml` runs `tsc -b` + `eslint` on every push + PR
+   (enabling it surfaced 4 pre-existing dead `type Mode` lint errors in the
+   build-board edge fns, now removed). `test:fe` (also stack-free) is a natural
+   next addition; pgTAP/e2e would need a Supabase service container.
 
 Explicitly *not* recommended: isolated tests for transitively-covered SQL
 `_helpers`; coverage percentage tooling; tests for AI/prompt edge functions;
