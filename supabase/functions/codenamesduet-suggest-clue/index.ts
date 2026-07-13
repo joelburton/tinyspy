@@ -32,7 +32,10 @@ import Anthropic from 'npm:@anthropic-ai/sdk@0.109.0'
 type ClueContext = {
   greens: string[]
   neutrals: string[]
-  assassin: string | null
+  // ALL still-unrevealed assassins. A Duet key card has THREE, so this is an
+  // array of the 0..3 not-yet-revealed ones (empty once all are revealed) —
+  // every one of them is an instant-loss word the clue must avoid.
+  assassins: string[]
   previous_clues: Array<{
     word: string
     count: number
@@ -223,7 +226,11 @@ serve(async (req) => {
 function buildPrompt(ctx: ClueContext): string {
   const greens = ctx.greens.join(', ')
   const neutrals = ctx.neutrals.length > 0 ? ctx.neutrals.join(', ') : '(none)'
-  const assassin = ctx.assassin ?? '(already revealed)'
+  // A Duet key card has THREE assassins; list every one that's still hidden.
+  // Any of them, if guessed, loses the game instantly — so the clue must dodge
+  // all of them, not just one.
+  const assassins =
+    ctx.assassins.length > 0 ? ctx.assassins.join(', ') : '(none still hidden)'
 
   const prevClues =
     ctx.previous_clues.length > 0
@@ -239,7 +246,7 @@ YOUR PARTNER WILL GUESS BASED ON YOUR CLUE. Their job is to find agents you poin
 
 Your unrevealed AGENTS (you want them to find these): ${greens}
 Your unrevealed NEUTRALS (do not hint at these — guessing one ends the turn): ${neutrals}
-Your ASSASSIN (NEVER suggest a clue that could point here — they'll lose): ${assassin}
+Your ASSASSINS (there are up to THREE — NEVER suggest a clue that could point at ANY of these; guessing even one loses the game instantly): ${assassins}
 
 Clues already given this game (avoid repeating themes):
 ${prevClues}
@@ -248,7 +255,7 @@ Constraints on your clue:
 - Pick a single word that connects 1–3 of your remaining agents.
 - Higher counts are riskier; only go for 3 if the connection is very strong.
 - The clue must not share a root with any of the 25 board words.
-- Avoid clues that have ANY plausible connection to a neutral or the assassin.
+- Avoid clues that have ANY plausible connection to a neutral or to ANY of the assassins listed above.
 
 Provide your suggested clue.`
 }

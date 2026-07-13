@@ -1066,8 +1066,11 @@ grant execute on function codenamesduet.pass_turn(uuid) to authenticated;
 -- Returns a jsonb object with:
 --   greens:         text[]  — caller's unrevealed green agents
 --   neutrals:       text[]  — caller's unrevealed neutrals (avoid)
---   assassin:       text    — caller's unrevealed assassin (avoid),
---                              or null if it's already revealed
+--   assassins:      text[]  — caller's still-unrevealed assassins (avoid).
+--                              A Duet key card carries THREE assassins, so
+--                              this is an ARRAY of the 0..3 not-yet-revealed
+--                              ones — never a single word. Empty [] once all
+--                              three are revealed.
 --   previous_clues: array of {word, count, by_seat, turn_number}
 --
 -- Authorization: caller must be the current clue-giver of an
@@ -1134,14 +1137,18 @@ begin
         and w.revealed_as is null
         and (caller_key->>w.position) = 'N'
     ), '[]'::jsonb),
-    'assassin', (
-      select w.word
+    -- ALL still-unrevealed assassins, not just one. A Duet key card has
+    -- three 'A' positions; collapsing them to a single word (the old
+    -- `limit 1`) hid the other two from the suggester, which could then
+    -- hand back a clue pointing straight at an unmentioned assassin — an
+    -- instant loss. Aggregated exactly like greens/neutrals above.
+    'assassins', coalesce((
+      select jsonb_agg(w.word order by w.position)
       from codenamesduet.words w
       where w.game_id = target_game
         and w.revealed_as is null
         and (caller_key->>w.position) = 'A'
-      limit 1
-    ),
+    ), '[]'::jsonb),
     'previous_clues', coalesce((
       select jsonb_agg(
         jsonb_build_object(

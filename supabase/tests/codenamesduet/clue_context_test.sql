@@ -14,7 +14,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(6);
+select plan(7);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -79,8 +79,10 @@ select throws_ok(
 );
 
 -- ============================================================
--- (4)–(6) Happy path: ada gets a context with the expected keys
--- and the greens array has exactly 9 entries (one per A-side green).
+-- (4)–(7) Happy path: ada gets a context with the expected keys,
+-- the greens array has exactly 9 entries (one per A-side green),
+-- and the assassins array has exactly 3 (a Duet key card carries
+-- three — the regression guard for the old `limit 1` that hid two).
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -98,6 +100,12 @@ select is(
   (select jsonb_array_length(data->'greens') from ctx),
   9,
   'greens array has 9 entries (the A-side green count at start)'
+);
+
+select is(
+  (select jsonb_array_length(data->'assassins') from ctx),
+  3,
+  'assassins array has 3 entries (a Duet key card carries three)'
 );
 
 select is(
