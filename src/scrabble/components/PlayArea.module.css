@@ -9,7 +9,8 @@
  * stack, which is EXACTLY the board column's 0.75rem gap + the belowBoard's 0.25rem
  * margin-top + the rack/action row (the belowBoard min-height, 3.4rem) = 4.4rem.
  * Matching it exactly makes the board fill all the height it can. Keep in sync with
- * BoardCol.module.css `.belowBoard`. */
+ * BoardCol.module.css `.belowBoard` — BOTH regimes: the desktop one-line row here
+ * and the phone two-row override below. */
 .layout {
   --info-col-width: 25rem;
   --avail-h: calc(100svh - var(--game-chrome-height) - 4.4rem);
@@ -30,6 +31,30 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* ─── Phone: two-row rack/controls (see BoardCol.module.css .moveArea) ────────
+ * The below-board reserve grows to 5.1rem (two rows), so --avail-h subtracts
+ * 0.75rem gap + 0.25rem margin + 5.1rem = 6.1rem. Portrait phones are
+ * width-bound (--avail-w wins the board's min()), so this mostly matters on
+ * LANDSCAPE phones, where the board is height-bound: subtracting the taller
+ * reserve before the board sizes itself is what keeps the page from scrolling.
+ *
+ * MUST come after the base `.controls` rule: its `flex: 1` shorthand resets
+ * flex-basis to 0%, so at equal specificity source order decides — an earlier
+ * override silently loses. */
+@media (--phone) {
+  .layout {
+    --avail-h: calc(100svh - var(--game-chrome-height) - 6.1rem);
+  }
+  /* The controls take the full row width, wrapping onto their own second row —
+   * UNCONDITIONALLY (not content-dependent, so the slot height never moves
+   * with game state; a coop one-liner *almost* fits at 375px but compete's
+   * Pass button overflows it). The commit slot's margin-left:auto still
+   * right-justifies it within the new row. */
+  .controls {
+    flex-basis: 100%;
+  }
 }
 
 /* scrabble's PARTIAL-SWAP box: it holds EITHER the commit buttons OR (when an

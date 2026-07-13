@@ -6,6 +6,8 @@ import { TerminalModal } from '../../common/components/game/terminal/TerminalMod
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { colorVarFor } from '../../common/lib/color/memberColor'
@@ -62,6 +64,16 @@ export function PlayArea({
   globalFeedback,
 }: GamePageCtx) {
   const { game, players: playerStates, plays, loading } = useGame(gameId)
+
+  // Mobile (docs/mobile.md → the psychicnum recipe): below the breakpoint the
+  // board fills the screen and the info column moves into an off-canvas
+  // <InfoSheet>, opened from the hook's "Game info" menu item. Desktop is
+  // unchanged. This is a LAYOUT for keyboard-attached devices (tablets), not a
+  // touch-entry mode — the drag path gets no touch support; play is the
+  // keyboard cursor (tap a square, type). Like crosswords, the window-level key
+  // capture keeps running while the sheet is open — typing stages tiles behind
+  // it; acceptable for the keyboard-tablet class this targets.
+  const infoSheet = useInfoSheet()
 
   // The player's own-move result — a sticky pill in the commit slot (the local
   // feedback area; docs/ui.md → Feedback pill). Lifted to the coordinator
@@ -298,12 +310,13 @@ export function PlayArea({
         onEndGame: () => actionsRef.current?.endGame(),
         onConcede: () => actionsRef.current?.concede(),
         extra: [
+          ...infoSheet.menuSections,
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printScrabblePdf(model) }] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, plays, self, isCompete, isTerminal, myConceded, nameOf, setup, brand, title])
+  }, [menu, game, plays, self, isCompete, isTerminal, myConceded, nameOf, setup, brand, title, infoSheet.menuSections])
 
   // Always confirmed via the shared modal (ending is harmful for the whole
   // group, even coop/solo); it's irreversible.
@@ -364,7 +377,7 @@ export function PlayArea({
     : localFeedback
 
   return (
-    <div className={cls(shared.layout, styles.layout)}>
+    <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         game={game}
         gameId={gameId}
@@ -388,33 +401,35 @@ export function PlayArea({
         registerSuggestionApplier={registerSuggestionApplier}
       />
 
-      <InfoCol
-        isCompete={isCompete}
-        myTurn={myTurn}
-        over={over}
-        myConceded={myConceded}
-        isTerminal={isTerminal}
-        currentMember={currentMember}
-        teamScore={game.teamScore}
-        bagCount={game.bagCount}
-        players={players}
-        selfId={session.user.id}
-        playerStates={playerStates}
-        concededIds={concededIds}
-        onEndGame={() => void handleEndGame()}
-        onConcede={() => void handleConcede()}
-        onBackToClub={goToClub}
-        suggest={isCompete ? null : suggestView}
-        canSuggest={!isTerminal && !!self}
-        onSuggest={() => void handleSuggest()}
-        onApplySuggestion={handleApplySuggestion}
-        setup={scrabbleSetup}
-        aiSeats={aiRoster}
-        aiMemberOfSeat={aiMemberOfSeat}
-        plays={plays}
-        viewingSeq={viewingSeq}
-        onSelectTurn={(seq: number) => select({ kind: 'turn', seq })}
-      />
+      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
+        <InfoCol
+          isCompete={isCompete}
+          myTurn={myTurn}
+          over={over}
+          myConceded={myConceded}
+          isTerminal={isTerminal}
+          currentMember={currentMember}
+          teamScore={game.teamScore}
+          bagCount={game.bagCount}
+          players={players}
+          selfId={session.user.id}
+          playerStates={playerStates}
+          concededIds={concededIds}
+          onEndGame={() => void handleEndGame()}
+          onConcede={() => void handleConcede()}
+          onBackToClub={goToClub}
+          suggest={isCompete ? null : suggestView}
+          canSuggest={!isTerminal && !!self}
+          onSuggest={() => void handleSuggest()}
+          onApplySuggestion={handleApplySuggestion}
+          setup={scrabbleSetup}
+          aiSeats={aiRoster}
+          aiMemberOfSeat={aiMemberOfSeat}
+          plays={plays}
+          viewingSeq={viewingSeq}
+          onSelectTurn={(seq: number) => select({ kind: 'turn', seq })}
+        />
+      </InfoSheet>
 
       <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
       {confirmDialog}

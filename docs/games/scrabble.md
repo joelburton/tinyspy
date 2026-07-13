@@ -28,11 +28,12 @@ multiplayer gametype.
 > **Keyboard-required, NOT desktop-only.** Placing a word on the 15×15 board is a
 > drag-or-type gesture, and we won't build touch-drag or an in-game keyboard for
 > it — so scrabble wants a hardware keyboard. That's *not* the same as
-> desktop-only: the board fits a tablet **with** a keyboard fine. So it's
-> hard-blocked on *phone* widths only (tablets allowed — a keyboard may be
-> attached, which the browser can't detect), not on all touch. Contrast
-> bananagrams, which is genuinely desktop-only. See [docs/mobile.md](../mobile.md)
-> → "Where each game plays".
+> desktop-only: the board fits a tablet **with** a keyboard fine, so scrabble is
+> **un-gated everywhere** (no device block — a keyboard may be attached to
+> anything, which the browser can't detect) and has a **mobile layout** (§7): a
+> layout for keyboard-attached devices, not a touch-entry mode. Contrast
+> bananagrams, which is genuinely desktop-only and touch-blocked. See
+> [docs/mobile.md](../mobile.md) → "Where each game plays".
 
 ---
 
@@ -475,6 +476,20 @@ shape isn't disabled-away but surfaces as an error pill on submit. The **info co
 the live turn/score state, the compete `OpponentStrip` (metric "Score"), the
 End/Concede action row (the terminal outcome line at game over), a help line, the
 setup disclosure, and the Moves log filling the rest.
+
+**Mobile** (the [mobile.md](../mobile.md) info-sheet recipe, crosswords'
+keyboard-required flavor): below the breakpoint the board fills the width
+(`shared.mobileFill`) and the info column moves into the narrow off-canvas
+`<InfoSheet>`, opened from the "Game info" menu item (`useInfoSheet`). This is a
+**layout for keyboard-attached devices, not a touch-entry mode** — drag gets no
+touch support; play is the keyboard cursor (tap a square, type). One phone-only
+divergence: the rack + controls can't share one line at phone widths (the rack
+bottoms out at ~206px, the controls need ~205px), so at `@media (--phone)` the
+`.moveArea` wraps and `.controls` takes a full-width second row — unconditional,
+never state-dependent — with the below-board reserve (5.1rem) and `--avail-h`
+(−6.1rem) grown in lockstep so the height-bound landscape board still fits
+without page scroll. Guard: `e2e/scrabble-mobile.e2e.ts` (phone + tablet
+viewports: fit invariants + the sheet round-trip).
 
 **Placement mirrors bananagrams's two input modes** — its pointer-gesture system
 (a press-past-threshold becomes a drag, with a floating ghost + drop highlights)

@@ -139,13 +139,12 @@ desktop-only (a drag-heavy 25×25 arena), so the gate keys off the *pointer* —
 `useCoarsePointer()` in its PlayArea blocks *all* touch (phone + tablet), since
 even a keyboard tablet has no mouse to drag with.
 
-The other two never-converted games — **scrabble + crossplay** — are
-keyboard-required but **NOT** blocked today. A friend who opens them on a phone
-gets the desktop two-column layout (overflow + page-scroll — rough), which is
-the deliberate cut: a keyboard-attached tablet plays them fine and the browser
-can't tell that apart from a bare phone, so we'd rather leave them un-gated than
-lock out the tablet case. A phone-width block for them is a **deferred** decision
-(see the closing section), not a shipped one.
+The two keyboard-required games — **scrabble + crossplay** — are **NOT**
+blocked, and both now have mobile layouts (info sheet + board-fills-width): a
+**layout for keyboard-attached devices, not a touch-entry mode**. A
+keyboard-attached tablet plays them fine and the browser can't tell that apart
+from a bare phone, so we'd rather leave them un-gated than lock out the tablet
+case; a bare phone renders the layout but can't enter tiles/letters.
 
 The **phone-l tension**: landscape helps fit tiles side-by-side
 (psychicnum / connections / tinyspy — text in tiles needn't wrap) but a short
@@ -269,8 +268,9 @@ string — fine because `GenericFeedbackMsg.text` is already `ReactNode`; the pi
 psychicnum, connections, waffle, wordle, spellingbee, boggle, stackdown. Two
 deliberate exclusions: (1) **chat** feedback keeps its sender name — the chat
 pill has no size constraint the game feedback areas have, and knowing *who*
-messaged matters more there; (2) the three never-phone-converted games —
-**scrabble** and **crossplay** (keyboard-required, no mobile layout) and
+messaged matters more there; (2) the keyboard-required games —
+**scrabble** and **crossplay** (played on keyboard-attached devices, not bare
+phones, even now that both have mobile layouts) and
 **bananagrams** (blocked on touch, so its feedback never shows there) — skip the
 migration: not worth the churn for games you don't play on a phone. Unit tests that asserted the pill
 `text` as a string now render the node and read its text (`nodeText` helper).
@@ -591,26 +591,25 @@ same three (they're not the shared `.tile`, so they replicate it locally). The
 zoom-suppression *feel* is an on-device check — Playwright can't reproduce
 Safari's gesture heuristics (recorded in [deferred.md](deferred.md)).
 
-**The pass now covers every game except two.** Nine games follow the info-sheet
-recipe: the wide-sheet trio **spellingbee / boggle / crosswords**, and the
-plain-sheet games **psychicnum / wordle / codenamesduet / stackdown / waffle /
-connections**. The remaining two are *not* phone-converted, for two different
-reasons (see the input taxonomy above — don't collapse them into one bucket):
+**The pass now covers every game except one.** Twelve games follow the
+info-sheet recipe: the wide-sheet trio **spellingbee / boggle / crosswords**,
+and the plain-sheet games **psychicnum / wordle / codenamesduet / stackdown /
+waffle / connections / wordwheel / wordiply / scrabble**.
 
-- **scrabble** is **keyboard-required, NOT desktop-only.** Its board (a 15×15
-  rack-and-tiles arena) needs a hardware keyboard for entry, but it fits a tablet
-  *with* a keyboard fine. A phone-width hard-block was considered but **not
-  shipped**: today it renders the desktop layout everywhere (rough on a bare
-  phone). Gating it on `usePhone()` is a **deferred** call, left off so a
-  keyboard-attached phone/tablet — which the browser can't detect — stays
-  playable. (crosswords is ALSO keyboard-required — its conversion above is a
-  layout for keyboard-attached devices, not a touch-entry mode, and it's
-  likewise un-gated.)
+- **scrabble** is **keyboard-required, NOT desktop-only** — like crosswords, its
+  conversion is a layout for keyboard-attached devices, not a touch-entry mode
+  (drag gets no touch support; play is the keyboard cursor — tap a square,
+  type). The board fills the width; on phones the rack + controls row wraps to
+  two rows (`@media (--phone)` in BoardCol/PlayArea `.module.css`, with the
+  below-board reserve and `--avail-h` grown in lockstep). It stays **un-gated**
+  (no `usePhone()` block) so a keyboard-attached phone/tablet — which the
+  browser can't detect — stays playable; a bare phone renders fine but can't
+  enter tiles. Guard: `e2e/scrabble-mobile.e2e.ts`.
 - **bananagrams** is genuinely **desktop-only** (a large 25×25 drag-heavy arena,
   unpleasant even on a keyboard tablet) — **hard-blocked on *all* touch** via the
   shared [`<DeviceBlockNotice>`](../src/common/components/game/DeviceBlockNotice.tsx)
   (`useCoarsePointer()` in its PlayArea). The one game that actually gates the
-  device.
+  device, and the sole unconverted one.
 
 The app *chrome* (the `.card` shell pages, club page, header/player strip, chat,
 panels) is mobile-ready for all of them regardless.

@@ -55,6 +55,30 @@
   flex-wrap: nowrap;
 }
 
+/* ─── Phone: the rack + controls become TWO rows ──────────────────────────────
+ * At phone width the one-line row can't fit: the rack bottoms out at 206px
+ * (7 × 22px min tiles + gaps + padding) and the controls need ≈205px (icon
+ * buttons + the fixed-5.5rem commit slot) — but a 375px phone leaves only
+ * ~150px beside the rack. Everything but Submit is already icon-only, so no
+ * shrink recovers it; instead the controls take a full-width second row
+ * (`.controls { flex-basis: 100% }` in PlayArea.module.css — unconditional,
+ * so the slot height never changes with game state). Tablet portrait and even
+ * the --phone-p boundary still fit one line, hence --phone, not --mobile.
+ *
+ * min-height reserves BOTH rows: rack row (22px tile + 2×8px pad = 2.375rem)
+ * + 0.625rem row-gap + controls row (2.05rem icon buttons) ≈ 5.05 → 5.1rem.
+ * The .layout --avail-h override in PlayArea.module.css subtracts the same
+ * 5.1rem — keep the two in sync. */
+@media (--phone) {
+  .moveArea {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .belowBoard {
+    min-height: 5.1rem;
+  }
+}
+
 /* Positioning context for the shuffle button floating over the rack's top-right
  * corner (so the ⟲ reads as "shuffle the rack"). Sized to the rack. */
 .rackWrap {

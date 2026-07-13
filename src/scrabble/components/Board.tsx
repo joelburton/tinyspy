@@ -126,5 +126,11 @@ export function Board({
       )
     }
   }
-  return <div className={cls(styles.board, viewing && history.frame)}>{cells}</div>
+  // data-board is the e2e layout hook (the stable board-root selector every
+  // game's mobile e2e uses); the cells keep their data-cell/-x/-y hooks.
+  return (
+    <div data-board className={cls(styles.board, viewing && history.frame)}>
+      {cells}
+    </div>
+  )
 }
