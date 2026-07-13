@@ -384,6 +384,13 @@ This is the **canonical deferred register** for crosswords — distilled from th
   PlayArea, and `?` / the logo already open it.
 - **NYT dedup** — inline NYT games aren't stored, so re-fetching a date makes a new
   game (fine; NYT was always kept out of the library).
+- **Library picker bound before the bulk import** (from the 2026-07-12 supabase
+  review) — `SetupForm.tsx`'s `source = 'library'` query is a plain unbounded
+  `select` on `crosswords.puzzles`. Fine today (~3 curated puzzles), but the planned
+  dictionary-puzzle import will push it past PostgREST's `max_rows` cap. Deliberately
+  **not** fixed pre-emptively: >10k puzzles needs a real picker UI (search/filter, not
+  a flat list) anyway, so do the bound **with** that import, not before. Minimum safe
+  change if the import lands first: `.limit()` + a truncation note in the UI.
 - **Scratchpad lock races C3b / C3c** (review 2026-07-05) — simultaneous first
   keystrokes from two clients can each adopt the *other's* claim (both read-only for
   ~`STALE_MS`, and the loser's in-flight flush still lands); a late joiner sees no

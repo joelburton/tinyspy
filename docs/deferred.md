@@ -67,10 +67,13 @@ No outstanding deferred items today.
 The crosswords deferred register now lives in its game doc:
 [docs/games/crosswords.md → §9 Deferred / future](games/crosswords.md#9-deferred--future).
 The build-plan + code-review docs were retired into that file, so §9 is the single
-home for crosswords deferrals — ⌥M, `fetch-nyt-range`, NYT dedup, the scratchpad
-lock races (C3b/C3c), the standing schema/migration flags (vestigial `'nyt'`
-constraint, dead `crosswords.games` realtime touches, half-frozen terminal cursor),
-and the known unpinned tests.
+home for crosswords deferrals — ⌥M, `fetch-nyt-range`, NYT dedup, the **library
+picker bound before the bulk puzzle import** (2026-07-12 supabase review — the
+`SetupForm` library `select` is unbounded; do it *with* the import since >10k
+puzzles needs a real picker UI anyway), the scratchpad lock races (C3b/C3c), the
+standing schema/migration flags (vestigial `'nyt'` constraint, dead
+`crosswords.games` realtime touches, half-frozen terminal cursor), and the known
+unpinned tests.
 
 ## Wordlist markers (spellingbee + boggle)
 

@@ -221,8 +221,7 @@ the short version, with every current member:
    (×3 hooks), psychicnum, wordle, **stackdown**, scrabble (data side),
    waffle, bananagrams (×2 hooks), boggle, wordiply, the
    spellingbee/wordwheel factory, HomePage. *(stackdown moved here when
-   shared-word Broadcast was removed — its selections are now local; the
-   Pattern-B example list in code-conventions.md predates that.)*
+   shared-word Broadcast was removed — its selections are now local.)*
 2. **Pattern B — broadcast/presence-coupled, hand-rolled, stable name.**
    `useCommonGame`, connections `useGame`, `useScratchpad`,
    `useClubPresence`, `useClubSetupPresence`, `usePeerCursors`,
@@ -447,6 +446,13 @@ What the review's follow-up already shipped (2026-07-12):
   `.limit(200)` under the `last_active_at desc` order. Overflow is
   deliberate and commented — descending order drops the oldest games, and
   the current game (always recently-active) is never cut.
+- **Stale stackdown Pattern-B references cleaned up** (docs-only): dropped
+  the stackdown bullet from
+  [code-conventions.md → Pattern B](code-conventions.md#pattern-b--broadcast-coupled-hand-rolled-single-stable-name-channel)'s
+  example list and reworded CLAUDE.md's roster line — stackdown's
+  shared-word Broadcast is gone (selections are local; it's a plain
+  `useRealtimeRefetch` Pattern-A hook now). `docs/games/stackdown.md` was
+  already correct, so it needed no change.
 
 ### Work plan — still open, in priority order
 
@@ -455,15 +461,7 @@ what's already been decided, and how to verify. None are urgent at
 friends-alpha scale now that the cap is raised. Delete each item (and
 update any doc text it references) as it lands.
 
-1. **Crosswords library picker: bound before the bulk import** —
-   `src/crosswords/components/SetupForm.tsx` (the `source = 'library'`
-   query). Blocked-ish: the planned dictionary-puzzle import will push
-   `crosswords.puzzles` past any cap, but >10k puzzles needs a real
-   picker UI anyway (search/filter, not a flat list). Do this WITH that
-   import, not before: until then the library is ~3 curated puzzles.
-   Minimum safe change if the import happens first: `.limit()` + a
-   truncation note in the UI.
-2. **Prune the subscriber-less publication entries.** Nothing subscribes
+1. **Prune the subscriber-less publication entries.** Nothing subscribes
    to `crosswords.games` (crosswords' `clear_board` UPDATEs cells, so the
    cells subscription hears it — no games-touch needed, unlike the
    found-words games' replay trick): remove its
@@ -477,17 +475,7 @@ update any doc text it references) as it lands.
    says rename-liveness isn't wanted. Verify with `npm run db:reset`
    (edited baseline migrations — the alpha convention) + `npm run import`
    + `npm run test:db`.
-3. **Fix the stale stackdown Pattern-B references.** stackdown's
-   shared-word Broadcast was removed (selections are local now; the hook
-   uses the plain `useRealtimeRefetch` factory — its docstring records
-   the change). Three places still describe the old design:
-   [code-conventions.md → Pattern B](code-conventions.md#pattern-b--broadcast-coupled-hand-rolled-single-stable-name-channel)'s
-   canonical-examples list (drop the stackdown bullet; the separate
-   `pendingRemoved` mention under "Append-on-event exception" is still
-   accurate — keep it), docs/games/stackdown.md, and CLAUDE.md's roster
-   line ("coop (shared collaborative word via Broadcast)"). Docs-only;
-   no code change.
-4. **(Cosmetic, someday)** Rename codenamesduet's channel prefixes
+2. **(Cosmetic, someday)** Rename codenamesduet's channel prefixes
    (`channelPrefix` in its `useGame` / `useBoard` / `useClues`) from
    `game`/`board`/`clues` to `codenamesduet`-prefixed names matching the
    `<gametype>:` convention, and update the channel registry table above.

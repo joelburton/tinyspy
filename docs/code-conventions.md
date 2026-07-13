@@ -205,7 +205,6 @@ For hooks that need to **send and receive Broadcast events between peers** (sele
 Canonical examples:
 - [`common/useCommonGame`](../src/common/hooks/game/useCommonGame.ts) — stable `game:${gameId}` channel carrying presence, manual-pause Broadcast, suspend Broadcast, AND postgres-changes on `common.games`.
 - [`connections/useGame`](../src/connections/hooks/useGame.ts) — stable `connections:${gameId}` channel carrying the shared-selection Broadcast (`select` / `deselect` / `clear`) AND postgres-changes on `connections.{games, guesses}`.
-- [`stackdown/useGame`](../src/stackdown/hooks/useGame.ts) — stable `stackdown:${gameId}` channel carrying the shared in-progress-word Broadcast (`append` / `retract` / `clear` / `commit` — the last kept distinct so peers hold an accepted word's tiles removed without a flash) AND postgres-changes on `stackdown.{games, players, submissions}`. Coop only — compete suppresses the sends (each player's word is private), like connections.
 - [`common/useClubPresence`](../src/common/hooks/realtime/useClubPresence.ts) — stable `club:${handle}` channel carrying **only Presence** (no broadcast, no postgres-changes): every connected member of the club orbit announces whether they're on the club page or viewing a game. It's the leanest Pattern B instance — still Pattern B because presence rosters are keyed per-channel-name, so the name must be stable across peers (rule 2 below). Drives the member-strip dots and the abandoned-current-view heal; see [`docs/states.md`](states.md).
 
 The shape is:
