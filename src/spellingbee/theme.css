@@ -29,4 +29,11 @@
    * gone — the submission pill is the shared <GenericFeedbackPill> off the common
    * --color-outcome-* tones.) */
   --spellingbee-accent-edge:   #a86b00;
+
+  /* Shared-component tokens: the common <RankBar> / <Stats> read these generic
+   * names so one copy serves both hive-family games; spellingbee maps them to
+   * its own palette here. */
+  --rank-accent:               var(--spellingbee-accent);
+  --rank-accent-edge:          var(--spellingbee-accent-edge);
+  --rank-text:                 var(--spellingbee-hex-text);
 }

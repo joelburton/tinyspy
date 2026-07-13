@@ -1,10 +1,10 @@
 /**
- * The compete-mode leaderboard payload on `common.games.status`.
- * `wordwheel.submit_word` rewrites the full array on every accepted
- * submission. Two FE readers share it: the OpponentStrip (renders
- * each opponent's current rank) and the opponent-rank-up header
- * feedback (the compete rank-climb effect in PlayArea). Lives in `lib/`
- * so both can import it without one reaching into the other's file.
+ * The compete-mode leaderboard payload on `common.games.status`, shared by the
+ * found-words rank-ladder games (spellingbee + wordwheel — their
+ * `lib/leaderboard.ts` copies were byte-identical). Each game's `submit_word`
+ * rewrites the full array on every accepted submission. Two FE readers share
+ * it: the OpponentStrip (renders each opponent's current rank) and the
+ * opponent-rank-up header feedback (the compete rank-climb effect in PlayArea).
  */
 export type LeaderboardEntry = {
   user_id: string

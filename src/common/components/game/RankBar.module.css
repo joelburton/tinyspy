@@ -1,18 +1,21 @@
-/* The Start..Genius progress bar — 7 squares on a horizontal line
- * with a hover tooltip per square showing the rank name + points
- * needed.
+/* The Start..Genius progress bar — 7 squares on a horizontal line with a hover
+ * tooltip per square showing the rank name + points needed. Shared by the
+ * found-words rank-ladder games (spellingbee + wordwheel).
  *
- * Idiom adapted from wordwheel-ws (which used dots): filled squares
- * before/equal to current rank, hollow squares beyond. We deliberately
- * use SQUARES, not circles — across this app a colored circle means
- * "this player" (member list, chat labels, wordlist markers), so rank
- * tiers take a different shape to avoid muddying that signal. The current
- * rank's name is displayed as a label above the track so the player has a
- * vocabulary anchor without hovering.
+ * We deliberately use SQUARES, not circles — across this app a colored circle
+ * means "this player" (member list, chat labels, wordlist markers), so rank
+ * tiers take a different shape to avoid muddying that signal. The current rank's
+ * name is displayed as a label above the track so the player has a vocabulary
+ * anchor without hovering.
  *
- * The track is intrinsically narrow (~280px) so it reads as a
- * horizontal indicator rather than a sticky band. Sits at the
- * top of the side panel above the score-words grid.
+ * Game colors arrive through generic tokens each game's theme.css aliases:
+ *   --rank-accent       the achieved-tier fill (the game's accent)
+ *   --rank-accent-edge  the achieved-tier border (a darker edge)
+ *   --rank-text         the label + tooltip color (the game's tile-text)
+ *
+ * The track is intrinsically narrow (~280px) so it reads as a horizontal
+ * indicator rather than a sticky band. Sits at the top of the side panel above
+ * the score-words grid.
  */
 
 .rankBar {
@@ -28,7 +31,7 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--wordwheel-tile-text);
+  color: var(--rank-text);
 }
 
 .track {
@@ -77,12 +80,12 @@
   outline-offset: 2px;
 }
 
-/* Achieved tiers fill bright yellow with a darker-amber edge (not a
+/* Achieved tiers fill with the game's accent, with a darker edge (not a
  * yellow-on-yellow border) so the square stands out against the white track
  * background without the heaviness of a near-black outline. */
 .achieved {
-  background: var(--wordwheel-accent);
-  border-color: var(--wordwheel-accent-edge);
+  background: var(--rank-accent);
+  border-color: var(--rank-accent-edge);
 }
 
 /* Tooltip — only renders on hover/focus of its parent dot. */
@@ -91,7 +94,7 @@
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  background: var(--wordwheel-tile-text);
+  background: var(--rank-text);
   color: var(--color-surface);
   padding: 4px 8px;
   border-radius: 4px;

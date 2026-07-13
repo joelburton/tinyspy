@@ -5,7 +5,7 @@ import {
   rankPoints,
   RANKS,
   rankThreshold,
-} from './ranks'
+} from './rankLadder'
 
 describe('RANKS', () => {
   it('has 7 entries in the expected order', () => {
@@ -71,17 +71,17 @@ describe('rankPoints', () => {
     // 63.00000000000001, so a naive Math.ceil(rankThreshold(i)*total) returns
     // 64 — one point ABOVE where the bar fills Amazing and the compete race is
     // actually won (both integer-based). The displayed "needs N" must be that
-    // real integer unlock point. (code-review §1.3)
+    // real integer unlock point.
     expect(rankPoints(5, 108)).toBe(63)
   })
 
   it('the displayed threshold is the real integer unlock point for every rank/total', () => {
     // The "needs N points" label must be the MINIMAL score at which the rank is
-    // actually awarded — i.e. it must agree with the integer win-check that
-    // spellingbee._rank_idx runs: least(6, (score*60)/(total*7)). This is the
-    // "keep the two implementations in lockstep" invariant from ranks.ts, applied
-    // to the display. A float-drifted rankPoints breaks it (34 totals in 1..2000,
-    // all at Amazing).
+    // actually awarded — i.e. it must agree with the integer win-check each
+    // game's `_rank_idx` runs: least(6, (score*60)/(total*7)). This is the
+    // "keep the two implementations in lockstep" invariant from rankLadder.ts,
+    // applied to the display. A float-drifted rankPoints breaks it (34 totals in
+    // 1..2000, all at Amazing).
     const sqlIdx = (s: number, t: number) =>
       t ? Math.min(6, Math.floor((s * 60) / (t * 7))) : 0
     const drifted: Array<{ total: number; rank: number; pts: number }> = []
@@ -146,7 +146,7 @@ describe('currentRankIndex', () => {
     expect(currentRankIndex(34, 50)).toBe(5)
   })
 
-  it('agrees with the integer-math formula used by spellingbee._rank_idx', () => {
+  it('agrees with the integer-math formula used by each game\'s _rank_idx', () => {
     // The SQL helper computes:
     //   least(6, (score * 60) / (total * 7))   -- integer division
     // For every value of total ∈ {50, 100} and score ∈ [0, total]

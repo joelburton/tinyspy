@@ -12,10 +12,10 @@ import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { WordList, type WordListRow } from '../../common/components/game/lists/WordList'
-import { RANKS } from '../lib/ranks'
+import { RANKS } from '../../common/lib/game/rankLadder'
 import type { WordwheelSetup } from '../lib/setup'
-import { RankBar } from './RankBar'
-import { Stats } from './Stats'
+import { RankBar } from '../../common/components/game/RankBar'
+import { Stats } from '../../common/components/game/Stats'
 import shared from '../../common/components/game/PlayArea.module.css'
 
 /**

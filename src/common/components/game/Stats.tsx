@@ -8,17 +8,16 @@ type Props = {
 }
 
 /**
- * The 2-cell stat grid below the rank bar: Score, Words.
+ * The 2-cell stat grid below the rank bar: Score, Words. Shared by spellingbee
+ * + wordwheel (their per-game `Stats` copies were identical bar the text token).
  *
- * Each cell is `label / value`. Values are tabular-nums so the
- * digits don't shift width as the score climbs. (No timer cell —
- * the GamePage header already shows the countdown, so repeating it
- * here would be redundant.)
+ * Each cell is `label / value`. Values are tabular-nums so the digits don't
+ * shift width as the score climbs. (No timer cell — the GamePage header already
+ * shows the countdown, so repeating it here would be redundant.)
  *
- * Pure presentation — no derivation, no state. The parent
- * (PlayArea) wires in the found vs required figures (found counts
- * include bonus words, so each numerator can overshoot its
- * required denominator).
+ * Pure presentation — no derivation, no state. The parent (PlayArea) wires in
+ * the found vs required figures (found counts include bonus words, so each
+ * numerator can overshoot its required denominator).
  */
 export function Stats({
   foundWordsScore,

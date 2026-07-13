@@ -1,21 +1,19 @@
 /**
- * spellingbee rank ladder — TypeScript port of
- * `~/spellingbee-ws/shared/ranks.js`.
+ * The Start..Genius rank ladder shared by the found-words rank-ladder games
+ * (spellingbee + wordwheel — both ports of the NYT-Bee-style `*-ws` originals).
+ * Extracted from the two byte-identical per-game `lib/ranks.ts` copies.
  *
- * 7 rank tiers from Start (0%) to Genius (70%). Other ranks
- * spread linearly between 0 and GENIUS_AT. The same constants
- * drive:
- *   - The FE's <RankBar> visualization.
- *   - The compete-mode "first to target_rank wins" check in
- *     `spellingbee.submit_word` (Phase 2 RPC). The RPC's
- *     `spellingbee._rank_idx` computes the same number via integer
- *     math; the formula `(score * 60) / (total * 7)` is the
- *     algebraic rearrangement of this file's
- *     `score >= rankThreshold(i) * total` — derived to avoid
- *     PL/pgSQL floating point.
+ * 7 rank tiers from Start (0%) to Genius (70%); the middle ranks spread
+ * linearly between 0 and GENIUS_AT. The same constants drive:
+ *   - the FE's <RankBar> visualization;
+ *   - the compete-mode "first to target_rank wins" check in each game's
+ *     `submit_word` RPC. The RPC's `<schema>._rank_idx` computes the same
+ *     number via integer math; the formula `(score * 60) / (total * 7)` is the
+ *     algebraic rearrangement of this file's `score >= rankThreshold(i) * total`,
+ *     derived to avoid PL/pgSQL floating point.
  *
- * Keep the two implementations in lockstep. If either set of
- * constants moves, walk the other to match.
+ * Keep the FE + SQL in lockstep. If either set of constants moves, walk the
+ * other to match (the games share one ladder, so a change touches both).
  */
 
 export const RANKS = [
@@ -50,7 +48,7 @@ export function rankThreshold(i: number): number {
  *  number (e.g. i=5, total=108 → 63.00000000000001) and make `Math.ceil`
  *  overshoot by one. The algebraically-identical `(i * 7 * total) / 60`
  *  keeps the numerator an exact integer, so the label matches the
- *  integer win-check in `spellingbee._rank_idx` and the bar fill in
+ *  integer win-check in the SQL `_rank_idx` and the bar fill in
  *  `currentRankIndex` (see the lockstep note atop this file). */
 export function rankPoints(i: number, total: number): number {
   return Math.ceil((i * 7 * total) / 60)

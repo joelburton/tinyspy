@@ -40,4 +40,11 @@
    * the tile background only (not the border / letter) to mark a spent letter. */
   --wordwheel-tile-used:     #d8c79c;
   --wordwheel-accent-used:   #a83c41;
+
+  /* Shared-component tokens: the common <RankBar> / <Stats> read these generic
+   * names so one copy serves both hive-family games; wordwheel maps them to its
+   * own palette here. */
+  --rank-accent:             var(--wordwheel-accent);
+  --rank-accent-edge:        var(--wordwheel-accent-edge);
+  --rank-text:               var(--wordwheel-tile-text);
 }

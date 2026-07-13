@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { FoundWordRow } from '../hooks/useGame'
-import { buildDisplayRows } from './displayRows'
+import type { FoundWordRow } from './foundWords'
+import { buildDisplayRows } from './foundWordsDisplayRows'
 
 function fw(
   user_id: string,

@@ -8,7 +8,7 @@ import {
   wordwheelSetupError,
   type WordwheelSetup,
 } from './lib/setup'
-import { RANKS } from './lib/ranks'
+import { RANKS } from '../common/lib/game/rankLadder'
 import logoUrl from './logo.svg?url'
 
 /**

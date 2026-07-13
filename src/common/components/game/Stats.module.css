@@ -1,10 +1,11 @@
-/* The 2-cell stat grid: Score / Words. Sits between the RankBar
- * and the WordList. Each cell shows a small uppercase label + a
- * large number, spellingbee-ws idiom. (The timer lives in the GamePage
- * header, so it isn't repeated here.)
+/* The 2-cell stat grid: Score / Words. Sits between the RankBar and the
+ * WordList. Each cell shows a small uppercase label + a large number. Shared by
+ * the found-words rank-ladder games (spellingbee + wordwheel). The timer lives
+ * in the GamePage header, so it isn't repeated here.
  *
- * Grid template: 2 equal columns. Tightly packed so the score +
- * words read at a glance.
+ * The value color comes from the game's theme via `--rank-text` (aliased per
+ * game in its theme.css). Grid template: 2 equal columns, tightly packed so the
+ * score + words read at a glance.
  */
 
 .stats {
@@ -37,7 +38,7 @@
   font-size: 18px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--spellingbee-hex-text);
+  color: var(--rank-text);
 }
 
 .muted {

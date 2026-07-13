@@ -1,14 +1,11 @@
-import type { WordListRow } from '../../common/components/game/lists/WordList'
-import type { FoundWordRow } from '../hooks/useGame'
-
-/** A required-word reveal entry (from `games_state.required_words`,
- *  materialized only post-terminal). */
-export type RevealWord = { word: string; points: number; is_pangram: boolean }
+import type { WordListRow } from '../../components/game/lists/WordList'
+import type { FoundWordRow, FoundWordsWord } from './foundWords'
 
 /**
  * Build the alphabetized shared `WordListRow`s from the found words + (post-
- * terminal) the required-word reveal. Each word renders **at most once**; two
- * dedup rules:
+ * terminal) the required-word reveal. Shared by spellingbee + wordwheel (their
+ * `lib/displayRows.ts` copies were byte-identical). Each word renders **at most
+ * once**; two dedup rules:
  *
  *  1. **Found-vs-found.** In compete the post-terminal reveal exposes every
  *     player's `found_words` rows (RLS opens at `is_terminal`), so a word more
@@ -19,10 +16,14 @@ export type RevealWord = { word: string; points: number; is_pangram: boolean }
  *     word as both found-in-color AND missed-in-grey.
  *
  * Pure + synchronous so it's unit-testable away from the component.
+ *
+ * NOTE: this is the SET-semantics dedup (one row per distinct word). boggle
+ * deliberately keeps a different rule (per-player duplicates in compete) — it
+ * has its own displayRows and must NOT use this one.
  */
 export function buildDisplayRows(
   foundWords: FoundWordRow[],
-  revealWords: RevealWord[] | null | undefined,
+  revealWords: FoundWordsWord[] | null | undefined,
 ): WordListRow[] {
   // Dedup found rows by word, keeping the earliest finder. `found_at` is an ISO
   // timestamp, so a lexicographic compare is chronological.
