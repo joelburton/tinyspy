@@ -487,7 +487,13 @@ export async function createWordwheelGame(
     .schema('wordwheel')
     .rpc('create_game', {
       target_club: club.handle,
-      setup: { timer: { kind: 'none' }, required: 3, legal: 5 },
+      // compete requires a target_rank (the race-to goal); coop ignores it.
+      setup: {
+        timer: { kind: 'none' },
+        required: 3,
+        legal: 5,
+        ...(mode === 'compete' ? { target_rank: 5 } : {}),
+      },
       player_user_ids: playerUserIds,
       mode,
       board: {
@@ -601,6 +607,25 @@ export async function seedWordleGuesses(
     if (result !== 'incorrect') throw new Error(`submit_guess(${word}) → ${result}, expected incorrect`)
   }
   return words.map((w) => w.toUpperCase())
+}
+
+/**
+ * Commit one waffle swap through the real RPC, so a game loads with a populated
+ * turn log (a `#N` handle for the history viewer). Swapping two ALREADY-CORRECT
+ * cells makes the board worse without solving it, so the game stays mid-play with
+ * exactly one logged swap — the state a history spec wants. The default board
+ * (createWaffleGame) has correct 'c'/'d' at positions 2/3.
+ */
+export async function seedWaffleSwap(
+  member: E2EMember,
+  gameId: string,
+  posA = 2,
+  posB = 3,
+): Promise<void> {
+  const res = await asUser(member.session.access_token)
+    .schema('waffle')
+    .rpc('submit_swap', { target_game: gameId, pos_a: posA, pos_b: posB })
+  if (res.error) throw new Error(`submit_swap(${posA},${posB}): ${res.error.message}`)
 }
 
 /** Start a scrabble game (coop by default). Returns id + gametype for the URL.
@@ -798,6 +823,51 @@ export async function createStackdownGame(
   if (res.error) throw new Error(`stackdown.create_game: ${res.error.message}`)
   const row = Array.isArray(res.data) ? res.data[0] : res.data
   return { id: (row as { id: string }).id, gametype: `stackdown_${mode}` }
+}
+
+/**
+ * Pin a stackdown game to the KNOWN fixture board and clear its first word (EAGLE),
+ * so a history spec loads with one `#N` handle in the log. create_game claims a
+ * RANDOM board from the imported library, so we can't know its solution — instead we
+ * overwrite THIS game's own board row (tiles + solution) to the fixture board, which
+ * is non-destructive: the shared `stackdown.boards` library is untouched. Then EAGLE
+ * is cleared through the real submit_word RPC using sd_seq(1) — the reachable-at-start
+ * tile sequence from supabase/tests/stackdown/setup.psql (id 19=E,11=A,15=G,24=L,10=E).
+ * The tiles/words mirror createStackdownGame's fixture board (a frozen test artifact).
+ */
+export async function seedStackdownFirstWord(member: E2EMember, gameId: string): Promise<void> {
+  if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
+  const tiles = [
+    { id: 0, z: 0, y: 0, x: 2, letter: 'E' }, { id: 1, z: 0, y: 0, x: 6, letter: 'A' },
+    { id: 2, z: 1, y: 1, x: 3, letter: 'L' }, { id: 3, z: 1, y: 1, x: 5, letter: 'N' },
+    { id: 4, z: 0, y: 2, x: 0, letter: 'C' }, { id: 5, z: 2, y: 2, x: 2, letter: 'B' },
+    { id: 6, z: 2, y: 2, x: 4, letter: 'T' }, { id: 7, z: 2, y: 2, x: 6, letter: 'P' },
+    { id: 8, z: 0, y: 2, x: 8, letter: 'S' }, { id: 9, z: 1, y: 3, x: 1, letter: 'E' },
+    { id: 10, z: 3, y: 3, x: 3, letter: 'E' }, { id: 11, z: 3, y: 3, x: 5, letter: 'A' },
+    { id: 12, z: 1, y: 3, x: 7, letter: 'L' }, { id: 13, z: 0, y: 4, x: 0, letter: 'N' },
+    { id: 14, z: 2, y: 4, x: 2, letter: 'L' }, { id: 15, z: 2, y: 4, x: 6, letter: 'G' },
+    { id: 16, z: 0, y: 4, x: 8, letter: 'A' }, { id: 17, z: 1, y: 5, x: 1, letter: 'L' },
+    { id: 18, z: 3, y: 5, x: 3, letter: 'P' }, { id: 19, z: 3, y: 5, x: 5, letter: 'E' },
+    { id: 20, z: 1, y: 5, x: 7, letter: 'A' }, { id: 21, z: 0, y: 6, x: 0, letter: 'E' },
+    { id: 22, z: 2, y: 6, x: 2, letter: 'U' }, { id: 23, z: 2, y: 6, x: 4, letter: 'J' },
+    { id: 24, z: 2, y: 6, x: 6, letter: 'L' }, { id: 25, z: 0, y: 6, x: 8, letter: 'P' },
+    { id: 26, z: 1, y: 7, x: 3, letter: 'I' }, { id: 27, z: 1, y: 7, x: 5, letter: 'M' },
+    { id: 28, z: 0, y: 8, x: 2, letter: 'E' }, { id: 29, z: 0, y: 8, x: 6, letter: 'O' },
+  ]
+  const words = ['eagle', 'table', 'plans', 'apple', 'juice', 'lemon']
+  const sql =
+    `update stackdown.games set tiles = '${JSON.stringify(tiles)}'::jsonb, ` +
+    `solution = array[${words.map((w) => `'${w}'`).join(',')}]::text[], band = 1, board_id = null ` +
+    `where id = '${gameId}';`
+  execFileSync(
+    'psql',
+    ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-v', 'ON_ERROR_STOP=1', '-c', sql],
+    { stdio: 'pipe' },
+  )
+  const res = await asUser(member.session.access_token)
+    .schema('stackdown')
+    .rpc('submit_word', { target_game: gameId, tile_ids: [19, 11, 15, 24, 10] })
+  if (res.error) throw new Error(`submit_word(EAGLE): ${res.error.message}`)
 }
 
 /**
