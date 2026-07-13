@@ -399,7 +399,7 @@ manifest.ts:66-85. `winner = status.winner_username`.
 
 ## stackdown (brand StackDown) — `stackdown_coop` / `stackdown_compete`
 
-Clear a 30-tile stack by spelling six words. Coop shares a board (collaborative word via Broadcast); compete races.
+Clear a 30-tile stack by spelling six words. Coop shares a board (each player builds words privately — selections are local, not broadcast; only completed submissions sync via realtime); compete races.
 
 ### Play-state enum
 | play_state | mode | terminal? |
@@ -644,6 +644,116 @@ No percent-filled placeholder in either label (deliberately progress-free).
 
 ---
 
+## wordwheel (brand MooseWheel) — `wordwheel_coop` / `wordwheel_compete`
+
+A **targeted fork of spellingbee** — the end-state machinery (terminal states, `buildOver` copy, `labelFor` shapes) is identical to spellingbee's; only the board logic differs (a bounded **multiset** wheel of 9 tiles, +15 pangram, `s` allowed, per-game difficulty band). Coop shares one find-list toward a rank; compete races to a target rank. Timer is optional (`none` / `countup` / `countdown`, both modes).
+
+### Play-state enum
+| play_state | mode | terminal? |
+|---|---|---|
+| `playing` | both | no |
+| `won_compete` | compete | **yes** |
+| `ended` | both | **yes** (win-less finish for coop; timeout/manual) |
+| `lost` | compete | **yes** (all-conceded only) |
+
+Like spellingbee, coop has **no win terminal** — it only ever reaches `ended` (there's no auto-end at 100% found). Compete's positive terminal is `won_compete`; there is no `lost_compete` (the no-winner terminal is `ended`, all-conceded is the generic `lost`).
+
+### How each terminal state is reached
+Migration `…wordwheel.sql`:
+- **compete `won_compete`** — a player's own score reaches the target rank (`caller_rank_idx >= current_target_rank`, `submit_word` :1000), freezes the leaderboard, `end_game(…, 'won_compete', …)` (:1028).
+- **`ended` via timeout** (both) — countdown hits 0 → `submit_timeout` → `end_game(…, 'ended', outcome 'timeout')` (coop :1182, compete :1225).
+- **`ended` via manual** (both) — `end_game` button → `outcome 'manual'` (coop :1342, compete :1383).
+- **compete `lost` via all-conceded** — `common.concede` when the last racer drops (`play_state 'lost'`, `outcome 'conceded'`). A single conceder drops out locally; the rest race on.
+
+### In-game feedback at end-states
+From `buildOver()` (PlayArea.tsx:600-657). `rankLabel(name)` renders e.g. `rank "Solid"`. **Copy is identical to spellingbee.**
+| state | verdict | message | tone |
+|---|---|---|---|
+| coop `ended`, Genius (rank ≥ 6) | `Genius! ${foundScore}/${requiredScore} points.` | `Genius!` | won |
+| coop `ended`, below Genius (timeout **or** manual) | `Stopped at ${rankLabel} — ${foundScore}/${requiredScore} points.` | `Stopped at ${rankLabel}` | neutral |
+| compete `won_compete` (you won) | `You won the race — reached ${rankLabel(target)}!` | `You won!` | won |
+| compete `won_compete` (beaten) | `${winnerName} beat you to ${rankLabel(target)}.` | `${winnerName} won` | lost |
+| compete `ended` (timeout) | `Time's up — no winner at ${rankLabel(target)}.` | `Time up` | lost |
+| compete `ended` (manual) | `Game ended — no winner at ${rankLabel(target)}.` | `Game ended` | neutral |
+
+**Known quirk (inherited from spellingbee):** compete `lost` (all-conceded) has no dedicated `buildOver` branch — it falls through the `ended`-compete block and, since `outcome='conceded'` (not `'timeout'`), renders the **manual-end** copy (`Game ended — no winner…`, neutral), not a loss verdict.
+
+### Listing label (`labelFor`)
+Coop (manifest.ts:123-146) surfaces score+word counts; compete (:184-208) is rank-only. `targetRankName = RANKS[target_rank]`; the terminal status re-emits `target_rank` (so timeout/manual labels name the real target rank, not `Start` — the M3 fix, shared with spellingbee).
+| play_state / outcome | coop label | compete label |
+|---|---|---|
+| `playing` | `${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words` | `race to ${targetRankName}` |
+| `won_compete` | — | `winner at ${targetRankName}` |
+| terminal, `conceded` | — | `all conceded` |
+| terminal, `timeout` | `time up · ${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words` | `time up · no winner at ${targetRankName}` |
+| terminal, `manual` | `done · ${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words` | `ended · no winner at ${targetRankName}` |
+
+### Shelved (non-terminal, suspended)
+- **coop:** `${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words` — e.g. `40/93 pts · 22/61 words`.
+- **compete:** `race to ${targetRankName}` — e.g. `race to Amazing`.
+
+---
+
+## wordiply (brand WordWire) — `wordiply_coop` / `wordiply_compete`
+
+Guardian-Wordiply-style base extender: a short **base** (a 2–4 letter combination) every guess must contain; **5 guesses** (coop = 5 shared; compete = 5 per player). Two readouts — a length score % + a letter count — plus the longest word are shown **only at terminal**; during play each guess shows only its length. Compete winner is a lexicographic **comparator** (length score → letter count → earlier-if-timed → co-winners), not first-to-a-threshold. Timer is optional (`none` default / `countup` / `countdown`).
+
+### Play-state enum
+| play_state | mode | terminal? |
+|---|---|---|
+| `playing` | both | no |
+| `ended` | both | **yes** (coop: every finish; compete: manual "we're done", no winner) |
+| `won_compete` | compete | **yes** (comparator winner) |
+| `lost` | compete | **yes** (all-conceded only) |
+
+wordiply has **no `lost_compete`** — the compete no-winner terminal is the neutral `ended` (via `_finish_compete(pick_winner=false)`), and the all-conceded terminal is the generic `lost` (via `common.concede`).
+
+### How each terminal state is reached
+Migration `…wordiply.sql`. Coop funnels through `_finish_coop` → `end_game(…, 'ended', …)` (:598-611); compete through `_finish_compete(outcome, pick_winner)` → `end_game(…, won_compete | ended, …)` (:631-731; `terminal_state = pick_winner ? 'won_compete' : 'ended'`, :653):
+- **coop `ended`** — the team's 5th guess is submitted (`submit_guess` :843); **or** timer expiry (`submit_timeout` :947); **or** manual `end_game` (:994). All → `_finish_coop`.
+- **compete `won_compete`** — every active (non-conceded) player has spent all 5 guesses → `submit_guess` (:877) → `_finish_compete('complete', true)`; **or** timer expiry (`submit_timeout` :949); **or** a concede that leaves all remaining active players out of guesses (`concede` :1104). The comparator resolves the winner; on an unbroken tie every tied player is a **co-winner** (`winner_user_id = NULL`, :715 — the M1 fix; picking one arbitrary tied player would tell the others they lost).
+- **compete `ended`** — manual `end_game` (players agree to stop, no winner) → `_finish_compete(…, false)` (:996).
+- **compete `lost`** — the **last** non-conceded player concedes with nobody having finished by guesses → `common.concede` → `end_game(…, 'lost', outcome 'conceded')`.
+
+**Concede subtlety (H1 fix):** a finished-but-not-conceded player counts as "still active" to `common.concede`, so a concede can leave every remaining active player out of guesses with nobody able to re-fire the end check — hanging the game in `playing`. `wordiply.concede` therefore re-runs the all-active-done check itself after conceding (:1094-1105) and resolves the race (→ `won_compete`) instead of stalling.
+
+### In-game feedback at end-states
+From `buildOver()` (PlayArea.tsx:333-411). wordiply does **not** render the GameOverModal — feedback is the below-board indicator + the info-column message. `pct` = the length score %.
+
+**Compete:**
+| state | verdict | message | tone |
+|---|---|---|---|
+| `won_compete` (you won) | `You won — ${pct}%!` | `You won!` | won |
+| `won_compete` (you co-won a tie) | `You tied for the win — ${pct}%!` | `You tied for the win!` | won |
+| `won_compete` (opponent won) | `${winnerLabel} won with ${pct}%.` | `${winnerLabel} won` | lost |
+| `won_compete` (opponents tied) | `${winnerLabel} tied for the win — ${pct}%.` | `${winnerLabel} tied` | lost |
+| `ended` (manual) **or** `lost` (all-conceded) | `Game ended — no winner.` | `Game ended` | neutral |
+
+`winnerLabel` is the winner's username, or co-winners joined with ` & ` (e.g. `alice & bob`). On a tie the FE reads the caller's own `won` flag (never an arbitrary picked id), so no co-winner is shown a loss (M1).
+
+**Coop** (one branch, all outcomes — neutral, since coop has no clear "win"):
+| state | verdict | message | tone |
+|---|---|---|---|
+| `ended` (any: done / timeout / manual) | `Length: ${pct}%, Letters: ${letters}.` | `Length ${pct}%` | neutral |
+
+**Compete terminal reveal (M2):** `OpponentReveal.tsx` renders at the compete terminal only — heading `Opponents' words`, then each opponent's username + their guesses (the word with the base dimmed + a length badge), or `no guesses`. The longest word (`game.longestWords[0]`) also shows in the info column. During play, opponents' words are hidden (only per-guess length shows).
+
+### Listing label (`labelFor`)
+Coop (manifest.ts:87-95) / compete (:101-115). `ls = status.length_score`, `lc = status.letter_count`, `used = status.guesses_used`, `leaderboard` (per-player `guesses_used` / `won` / `length_score`) for compete.
+| play_state / outcome | coop label | compete label |
+|---|---|---|
+| `playing` | `${used}/5 guesses` | leaderboard empty → `in progress`; else per-player `${g}/5 · ${g}/5 · …` |
+| `won_compete` | — | co-winners → `co-winners · ${ls}%`; single → `winner · ${ls}%` |
+| terminal, `conceded` | — | `all conceded` |
+| terminal, `timeout` | `time up · ${ls}% · ${lc} letters` | — |
+| terminal, other (`done` / `manual`) | `done · ${ls}% · ${lc} letters` | `ended · no winner` |
+
+### Shelved (non-terminal, suspended)
+- **coop:** `${used}/5 guesses` — e.g. `3/5 guesses`.
+- **compete:** `in progress` (before anyone guesses), or the per-player `${g}/5 · ${g}/5` string once play starts.
+
+---
+
 ## Cross-game summary
 
 ### Terminal `play_state` values by game
@@ -660,16 +770,20 @@ No percent-filled placeholder in either label (deliberately progress-free).
 | scrabble | `won` (only) | `won_compete`, `lost` (all-conceded), `ended` |
 | boggle | `ended` (only) | `ended` (only) |
 | crosswords | `won`, `ended` | `won_compete`, `lost` (all-conceded), `lost_compete`\* |
+| wordwheel | `ended` (only) | `won_compete`, `ended`, `lost` (all-conceded) |
+| wordiply | `ended` (only) | `won_compete`, `ended`, `lost` (all-conceded) |
 
 \* crosswords `lost_compete` is reachable only via `submit_timeout`, which never fires (no timer).
 
+Note the spellingbee-family shape (spellingbee, wordwheel, wordiply): coop has **no win terminal** (only `ended`), and compete has **no `lost_compete`** — its no-winner terminal is the neutral `ended` and its all-conceded terminal is the generic `lost`.
+
 ### How games end — the trigger families
-- **Objective met** — all agents/categories/grid/stack/board solved or cleared (codenamesduet `won`, connections `solved`, waffle `won`, wordle `won`, stackdown `won`, crosswords `won`, scrabble going-out, bananagrams peel-out, spellingbee/boggle target).
-- **Countdown expiry** (`submit_timeout`) — codenamesduet, psychicnum, connections, spellingbee, bananagrams, waffle, wordle, stackdown, scrabble, boggle. (crosswords has no timer.)
-- **Resource exhausted** — guesses/swaps/mistakes/budget run out (psychicnum budget, connections mistakes, waffle swaps, wordle guesses).
-- **Race decided** — first to the objective wins immediately; laggards lose (all `*_compete` win states).
+- **Objective / threshold met** — all agents/categories/grid/stack/board solved or cleared, or a score threshold crossed (codenamesduet `won`, connections `solved`, waffle `won`, wordle `won`, stackdown `won`, crosswords `won`, scrabble going-out, bananagrams peel-out, spellingbee/boggle target, wordwheel target rank).
+- **Countdown expiry** (`submit_timeout`) — codenamesduet, psychicnum, connections, spellingbee, bananagrams, waffle, wordle, stackdown, scrabble, boggle, and (optional timer) wordwheel / wordiply. (crosswords has no timer.)
+- **Resource exhausted** — guesses/swaps/mistakes/budget run out (psychicnum budget, connections mistakes, waffle swaps, wordle guesses, wordiply's 5 guesses — coop ends, compete resolves the comparator).
+- **Race decided** — first to the objective wins immediately (all `*_compete` win states); wordiply is the variant — the winner is a **comparator** run once every active player has spent their 5 guesses, not a first-past-the-post.
 - **Manual "End game"** (`ended`) — everyone except bananagrams (and crosswords-compete, which has no manual end).
-- **Concede** (compete) — a single conceder drops out (locally terminal); the *last* conceder ends the game as a collective loss.
+- **Concede** (compete) — a single conceder drops out (locally terminal); the *last* conceder ends the game as a collective loss (`common.concede` → `lost`).
 
 ### Shelved (non-terminal, suspended) labels at a glance
 A suspended game is still `play_state = 'playing'` — its label is the `playing` branch of `labelFor`:
@@ -686,3 +800,5 @@ A suspended game is still `play_state = 'playing'` — its label is the `playing
 | scrabble | `${team_score} pts · ${bag} tiles left` | `${bag} tiles left` |
 | boggle | `${w} words · ${p} pts` | `competing · ${n} players` |
 | crosswords | `${title}` | `${title} · racing` |
+| wordwheel | `${s}/${r} pts · ${w}/${rw} words` | `race to ${rank}` |
+| wordiply | `${used}/5 guesses` | `in progress` (or `${g}/5 · ${g}/5`) |
