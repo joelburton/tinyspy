@@ -169,6 +169,15 @@ covered transitively and isolating them would pin implementation detail.
 
 ## Gap 4 — FE: the shared layer is thinner than the per-game layer
 
+> **Update — partially addressed** (recommendation #5). The four highest-blast-radius
+> modules now have tests: `makeFoundWordsGame` (7 — header-once + found_words
+> refetch + the mounted guard), `useStandardGameActions` (12 — End/Concede/Replay
+> guards + both confirm paths + error surfacing), `useHistoryViewer` (9 — the
+> click-anywhere-exit that spares the turn-# handles + modifier-aware exitOnKey),
+> and `manifestRpcs` (7 — the RPC-collapse + the read-once edge-fn error unwrap).
+> Still untested from the list below: `difficulty.ts` and the `common/pdf/`
+> helpers (the latter is recommendation #6).
+
 Per-game `lib/` is well tested; the gaps cluster in `src/common/` modules that
 **every game flows through** (widest blast radius, zero tests):
 
@@ -267,9 +276,11 @@ Ordered by (chance of silent breakage) × (blast radius) ÷ (cost to write):
    `board.ts` and unit-tested (`board_test.ts`, 15 + 11 tests, 34 edge tests
    total); wordiply's SQL gate covered by `wordiply/try_base_test.sql`. The
    spellingbee custom-letters e2e exercises the refactored function live.
-5. **Tests for the shared FE spine**: `makeFoundWordsGame`, `useStandardGameActions`,
+5. ~~**Tests for the shared FE spine**: `makeFoundWordsGame`, `useStandardGameActions`,
    `useHistoryViewer`, `manifestRpcs` — four modules, every game's blast radius,
-   all mockable with existing patterns from `useCommonGame.test.ts`.
+   all mockable with existing patterns from `useCommonGame.test.ts`.~~ **DONE** —
+   35 tests across the four (`manifestRpcs.test.ts` 7, `useHistoryViewer.test.ts`
+   9, `useStandardGameActions.test.ts` 12, `makeFoundWordsGame.test.ts` 7).
 6. **`common/pdf/` helper tests** (pure jsPDF-call assembly, testable like
    crosswords' `layout.test.ts`) — cheaper and higher-leverage than testing six
    per-game print bodies.
