@@ -62,7 +62,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { json, preflight } from '../_shared/http.ts'
-import { callerClient } from '../_shared/startGame.ts'
+import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 
 // ───────────────────────────────────────────────────────────
 // Types
@@ -436,50 +436,15 @@ serve(async (req) => {
   const pre = preflight(req)
   if (pre) return pre
 
-  // Always log a one-line trace at entry so the function-serve
-  // output shows that the request arrived even when the body
-  // turns out to be unparseable. Without this the early-return
-  // paths (400 for missing fields, 401 for no auth) look like
-  // silent failures in the log.
-  console.log('spellingbee-build-board: request received')
-
   try {
-    const body = await req.json().catch(() => ({}))
-    const targetClub: string | undefined = body.target_club
-    const setup: Setup | undefined = body.setup
-    const playerUserIds: string[] | undefined = body.player_user_ids
-    const mode: Mode | undefined = body.mode
-
-    if (!targetClub || typeof targetClub !== 'string') {
-      console.log('reject: missing target_club; body keys =', Object.keys(body))
-      return json({ error: 'target_club (uuid string) required' }, 400)
-    }
-    if (!setup || typeof setup !== 'object') {
-      console.log('reject: missing/invalid setup')
-      return json({ error: 'setup (object) required' }, 400)
-    }
+    const parsed = await parseBuildBoardRequest(req, 'spellingbee-build-board')
+    if (parsed instanceof Response) return parsed
+    const { targetClub, mode, playerUserIds, supabase } = parsed
+    const setup = parsed.setup as Setup
     // Word bands for this board (create_game is the authority on their range;
     // here we just default the classic 3 / 5 and feed candidate_words).
     const requiredBand = setup.required ?? 3
     const legalBand = setup.legal ?? 5
-    if (mode !== 'coop' && mode !== 'compete') {
-      console.log(`reject: invalid mode "${mode}"`)
-      return json({ error: 'mode ("coop" | "compete") required' }, 400)
-    }
-    if (!Array.isArray(playerUserIds) || playerUserIds.length === 0) {
-      console.log('reject: missing player_user_ids')
-      return json({ error: 'player_user_ids (non-empty uuid[]) required' }, 400)
-    }
-
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      console.log('reject: no Authorization header')
-      return json({ error: 'authorization required' }, 401)
-    }
-
-    console.log(`accepted: target_club=${targetClub}, players=${playerUserIds.length}`)
-
-    const supabase = callerClient(authHeader)
 
     // Optional custom board: the player's own letters. Both fields set → custom
     // (the FE sends them lowercased/letters-only; we re-normalize defensively).
@@ -584,27 +549,12 @@ serve(async (req) => {
     )
 
     // ─── 5. Create the game ───────────────────────────────
-    const { data: createdRows, error: createErr } = await supabase
-      .schema('spellingbee')
-      .rpc('create_game', {
-        target_club: targetClub,
-        setup,
-        player_user_ids: playerUserIds,
-        mode,
-        board,
-      })
-    if (createErr) {
-      console.log('create_game RPC error:', createErr.message)
-      return json({ error: createErr.message }, 400)
-    }
-    const created = (createdRows as Array<{ id: string }> | null) ?? []
-    if (created.length === 0) {
-      console.log('reject: create_game returned no row')
-      return json({ error: 'create_game returned no row' }, 500)
-    }
-
-    console.log(`success: id=${created[0].id}`)
-    return json({ id: created[0].id })
+    return await invokeCreateGame(
+      supabase,
+      'spellingbee',
+      { target_club: targetClub, setup, player_user_ids: playerUserIds, mode, board },
+      'spellingbee-build-board',
+    )
   } catch (e) {
     console.error('spellingbee-build-board threw:', e)
     return json(

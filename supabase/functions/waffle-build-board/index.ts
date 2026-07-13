@@ -44,7 +44,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { buildWaffleBoard, type WordRow } from './gen.ts'
 import { json, preflight } from '../_shared/http.ts'
-import { callerClient } from '../_shared/startGame.ts'
+import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 
 type Mode = 'coop' | 'compete'
 
@@ -92,49 +92,20 @@ serve(async (req) => {
   const pre = preflight(req)
   if (pre) return pre
 
-  console.log('waffle-build-board: request received')
-
   try {
-    const body = await req.json().catch(() => ({}))
-    const targetClub: string | undefined = body.target_club
-    const setup: { difficulty?: number } | undefined = body.setup
-    const playerUserIds: string[] | undefined = body.player_user_ids
-    const mode: Mode | undefined = body.mode
-
-    if (!targetClub || typeof targetClub !== 'string') {
-      console.log('reject: missing target_club; body keys =', Object.keys(body))
-      return json({ error: 'target_club (uuid string) required' }, 400)
-    }
-    if (!setup || typeof setup !== 'object') {
-      console.log('reject: missing/invalid setup')
-      return json({ error: 'setup (object) required' }, 400)
-    }
-    if (mode !== 'coop' && mode !== 'compete') {
-      console.log(`reject: invalid mode "${mode}"`)
-      return json({ error: 'mode ("coop" | "compete") required' }, 400)
-    }
-    if (!Array.isArray(playerUserIds) || playerUserIds.length === 0) {
-      console.log('reject: missing player_user_ids')
-      return json({ error: 'player_user_ids (non-empty uuid[]) required' }, 400)
-    }
+    const parsed = await parseBuildBoardRequest(req, 'waffle-build-board')
+    if (parsed instanceof Response) return parsed
+    const { targetClub, mode, playerUserIds, supabase } = parsed
+    const setup = parsed.setup as { difficulty?: number }
 
     // The vocabulary band. Server accepts the full 1..6 range (the UI
     // offers a subset); create_game re-validates after we build.
     const band = setup.difficulty ?? DEFAULT_BAND
     if (!Number.isInteger(band) || band < MIN_BAND || band > MAX_BAND) {
-      console.log(`reject: invalid difficulty "${band}"`)
+      console.log(`waffle-build-board reject: invalid difficulty "${band}"`)
       return json({ error: `setup.difficulty must be ${MIN_BAND}..${MAX_BAND}` }, 400)
     }
-
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      console.log('reject: no Authorization header')
-      return json({ error: 'authorization required' }, 401)
-    }
-
-    console.log(`accepted: target_club=${targetClub}, band=${band}, players=${playerUserIds.length}`)
-
-    const supabase = callerClient(authHeader)
+    console.log(`waffle-build-board: band=${band}`)
 
     // ─── 1. Candidate words for the band ──────────────────
     const words = await fetchCandidateWords(supabase, band)
@@ -152,31 +123,18 @@ serve(async (req) => {
     console.log(`board: solution=${board.solution} par=${board.par}`)
 
     // ─── 3. Create the game ───────────────────────────────
-    const { data: createdRows, error: createErr } = await supabase
-      .schema('waffle')
-      .rpc('create_game', {
+    return await invokeCreateGame(
+      supabase,
+      'waffle',
+      {
         target_club: targetClub,
         setup,
         player_user_ids: playerUserIds,
         mode,
-        board: {
-          solution: board.solution,
-          scramble: board.scramble,
-          par_swaps: board.par,
-        },
-      })
-    if (createErr) {
-      console.log('create_game RPC error:', createErr.message)
-      return json({ error: createErr.message }, 400)
-    }
-    const created = (createdRows as Array<{ id: string }> | null) ?? []
-    if (created.length === 0) {
-      console.log('reject: create_game returned no row')
-      return json({ error: 'create_game returned no row' }, 500)
-    }
-
-    console.log(`success: id=${created[0].id}`)
-    return json({ id: created[0].id })
+        board: { solution: board.solution, scramble: board.scramble, par_swaps: board.par },
+      },
+      'waffle-build-board',
+    )
   } catch (e) {
     console.error('waffle-build-board threw:', e)
     return json({ error: String(e instanceof Error ? e.message : e) }, 500)

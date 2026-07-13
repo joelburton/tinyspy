@@ -116,7 +116,6 @@ and connections (turn-log / word-list families) and stackdown.
 
 ## Tooling
 
-- **Fold waffle + spellingbee's create_game tails into `_shared/startGame.ts`'s `invokeCreateGame`.** The board-builder edge functions now share `callerClient` (all three) + `invokeCreateGame` (boggle) from `supabase/functions/_shared/startGame.ts`. waffle + spellingbee still call `create_game` inline because their tails carry bespoke diagnostic `console.log`s (`'create_game RPC error:'`, `'success: id=…'`) that `invokeCreateGame` doesn't emit — and per the keep-logs prior we don't silently drop diagnostics. To finish the extraction: decide whether `invokeCreateGame` should log internally (keyed by schema) so all three can adopt it, or add an optional logger hook; then repoint both. Small, log-policy-gated — ask Joel before changing those log lines.
 - **Generate ESLint `GAMETYPES` from `src/games.ts`.** Currently the games list is hand-maintained in two places (`src/games.ts` + `eslint.config.js`). A tiny script could derive the ESLint list from the registry. Now worth doing: with eleven games registered the dup has already drifted **silently** — a stretch where five games were missing from `GAMETYPES` left their cross-game imports unguarded, and nothing failed (a game simply absent from the forbidden list produces no lint error). So the old "a missed update is obvious" assumption was wrong; deriving from the registry is the real fix (the list was manually re-synced in the meantime).
 
 ## Far future

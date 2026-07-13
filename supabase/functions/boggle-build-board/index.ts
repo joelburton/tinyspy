@@ -35,7 +35,7 @@ import { DICE_BY_NAME } from '../../../src/boggle/lib/dice.ts'
 import { LADDERS, type LadderName } from '../../../src/boggle/lib/solver.ts'
 import { requiredTrie, legalTrie } from './dict.ts'
 import { json, preflight } from '../_shared/http.ts'
-import { callerClient, invokeCreateGame } from '../_shared/startGame.ts'
+import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 
 interface BoggleSetup {
   dice_set?: string
@@ -56,20 +56,10 @@ serve(async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405)
 
   try {
-    const body = await req.json().catch(() => ({}))
-    const targetClub: string | undefined = body.target_club
-    const setup: BoggleSetup | undefined = body.setup
-    const playerUserIds: string[] | undefined = body.player_user_ids
-    const mode: string | undefined = body.mode
-
-    if (!targetClub || typeof targetClub !== 'string') return json({ error: 'target_club required' }, 400)
-    if (!setup || typeof setup !== 'object') return json({ error: 'setup required' }, 400)
-    if (mode !== 'coop' && mode !== 'compete') return json({ error: 'mode must be coop|compete' }, 400)
-    if (!Array.isArray(playerUserIds) || playerUserIds.length === 0) {
-      return json({ error: 'player_user_ids (non-empty) required' }, 400)
-    }
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return json({ error: 'authorization required' }, 401)
+    const parsed = await parseBuildBoardRequest(req, 'boggle-build-board')
+    if (parsed instanceof Response) return parsed
+    const { targetClub, mode, playerUserIds, supabase } = parsed
+    const setup = parsed.setup as BoggleSetup
 
     const set = DICE_BY_NAME[setup.dice_set ?? '4']
     if (!set) return json({ error: `unknown dice_set: ${setup.dice_set}` }, 400)
@@ -113,20 +103,25 @@ serve(async (req: Request): Promise<Response> => {
     })
 
     // ─── Create the game as the caller ────────────────────────────────────
-    return await invokeCreateGame(callerClient(authHeader), 'boggle', {
-      target_club: targetClub,
-      setup,
-      player_user_ids: playerUserIds,
-      mode,
-      board: {
-        board: board.board,
-        n: board.n,
-        required_words: board.requiredWords,
-        required_words_count: board.requiredWords.length,
-        required_words_score: board.score,
-        bonus_words: bonusWords,
+    return await invokeCreateGame(
+      supabase,
+      'boggle',
+      {
+        target_club: targetClub,
+        setup,
+        player_user_ids: playerUserIds,
+        mode,
+        board: {
+          board: board.board,
+          n: board.n,
+          required_words: board.requiredWords,
+          required_words_count: board.requiredWords.length,
+          required_words_score: board.score,
+          bonus_words: bonusWords,
+        },
       },
-    })
+      'boggle-build-board',
+    )
   } catch (e) {
     console.error('boggle-build-board threw:', e)
     return json({ error: String(e instanceof Error ? e.message : e) }, 500)
