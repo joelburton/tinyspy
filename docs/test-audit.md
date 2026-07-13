@@ -200,7 +200,9 @@ Per-game patterns:
   strains: `bananagrams/hooks/usePlayerBoard.ts` (~569 LOC — arena placement, hand
   derivation, snapshot-on-unmount), `stackdown/hooks/useGame.ts` (~283 LOC),
   `crosswords/hooks/{useGridKeyboard,usePeerCursors}.ts` (~257 + ~223 LOC —
-  keyboard state machine, peer cursor sync).
+  keyboard state machine, peer cursor sync). *(Update: `usePlayerBoard` +
+  `useGridKeyboard` are now tested — recommendation #8; `stackdown/useGame` +
+  `usePeerCursors` remain.)*
 - **PDF bodies**: `printXxxPdf.ts` untested for all 6 non-crosswords print games.
   Mitigated by the 4 `*-print.e2e.ts` smoke specs (download succeeds, non-empty),
   which is arguably the right level for visual output — but boggle + wordwheel
@@ -306,9 +308,13 @@ Ordered by (chance of silent breakage) × (blast radius) ÷ (cost to write):
    **concede-flow** spec (`concede.e2e.ts`, two connected contexts so the compete
    game doesn't presence-pause); and the **testing.md scope-paragraph rewrite**
    (now describes the real realtime/layout/print/history/input buckets).
-8. **A hook test for the two hardest untested hooks** — `usePlayerBoard`
+8. ~~**A hook test for the two hardest untested hooks** — `usePlayerBoard`
    (bananagrams) and `useGridKeyboard` (crosswords). Only these two; the
-   PlayArea-component-test pattern is adequate for the rest.
+   PlayArea-component-test pattern is adequate for the rest.~~ **DONE** —
+   `useGridKeyboard.test.ts` (21 — the key→action dispatch + every guard +
+   readOnly writes-ignored) and `usePlayerBoard.test.ts` (11 — derived hand,
+   debounced autosave + the load-bearing save-on-unmount, keyboard
+   place/return/flash, doPeel guards, frozen). 32 tests.
 9. *(Optional)* **Minimal CI** for the stack-free gates (`tsc -b`, eslint,
    `test:fe`).
 
