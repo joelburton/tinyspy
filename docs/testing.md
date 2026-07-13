@@ -264,10 +264,10 @@ npm run test:edge      # Deno tests for the edge-function pure logic (deno test)
 npm run test:e2e       # Playwright realtime smoke tests — see above
 ```
 
-**CI.** `.github/workflows/ci.yml` runs the two stack-free gates — `tsc -b` and
-`eslint` — on every push + pull request. `test:fe` is also stack-free and a
-candidate to add; `test:db` / `test:e2e` would need a Supabase service container,
-so they stay local for now.
+**CI.** `.github/workflows/ci.yml` runs the stack-free gates — `tsc -b`,
+`eslint`, and `test:fe` — on every push + pull request. `test:db` / `test:e2e`
+need a live stack (a Supabase service container / browsers), and `test:edge`
+needs Deno set up, so those stay local for now.
 
 Single-file pgTAP run, for tightening one test:
 
