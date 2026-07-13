@@ -108,9 +108,8 @@ serve(async (req) => {
       // truncated (a max_tokens cut mid-JSON would break the schema). The answer
       // itself is tiny: a word, a count, a few agents, one or two sentences.
       max_tokens: 8192,
-      // Native adaptive thinking replaces the old scratchpad field. `summarized`
-      // keeps the reasoning readable so we can still log it (see below); the raw
-      // chain-of-thought is never returned by the model regardless.
+      // `summarized` keeps reasoning readable so we can still log it (see below);
+      // the raw chain-of-thought is never returned by the model regardless.
       thinking: { type: 'adaptive', display: 'summarized' },
       output_config: {
         // Codenames clue-giving is a hard little reasoning task (connect agents,
@@ -233,7 +232,8 @@ function buildPrompt(ctx: ClueContext): string {
           .join('\n')
       : '  (none yet)'
 
-  return `You are helping a player of Codenames Duet who is stuck. They are the clue-giver and need a single-word clue that points at one or more of their remaining agents.
+  return `You are helping a player of Codenames Duet who is stuck. They are the clue-giver 
+and need a single-word clue that points at one or more of their remaining agents.
 
 YOUR PARTNER WILL GUESS BASED ON YOUR CLUE. Their job is to find agents you point at.
 
