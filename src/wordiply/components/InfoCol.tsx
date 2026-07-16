@@ -12,6 +12,7 @@ import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
+import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import { MAX_GUESSES } from './GuessBoard'
 import { LengthScoreBar } from './LengthScoreBar'
 import { OpponentReveal, type OpponentReveals } from './OpponentReveal'
@@ -102,6 +103,9 @@ export function InfoCol({
   // ── Setup disclosure ──
   setup: WordiplySetup
 }) {
+  // Click-to-define for the terminal "best possible word" reveal — the same
+  // shared popover the word lists / waffle's answer reveal use.
+  const { define, popover } = useDefinePopover()
   return (
     <div className={shared.infoCol}>
       <div className={shared.actionSlot}>
@@ -191,13 +195,24 @@ export function InfoCol({
           <span className={styles.revealLabel}>
             Best possible word: <span className={styles.revealLen}>{maxWordLength}</span>
           </span>
-          <span className={styles.revealWord}>{longestWord.toUpperCase()}</span>
+          {/* Click-to-define — a bare button styled as the word (like waffle's
+              answer reveal + the shared word lists). */}
+          <button
+            type="button"
+            className={styles.revealWord}
+            title="Click to define"
+            onClick={(e) => define(longestWord, e.currentTarget)}
+          >
+            {longestWord.toUpperCase()}
+          </button>
         </div>
       )}
 
       {/* Compete terminal reveal — opponents' actual words, hidden all game.
           Renders null in coop / mid-game (opponentReveal is empty). */}
       {isTerminal && <OpponentReveal base={base} opponents={opponentReveal} />}
+
+      {popover}
     </div>
   )
 }

@@ -140,9 +140,12 @@ describe('wordiply PlayArea — terminal reveal', () => {
     // Score bar (longest 'stars'=5 of 7 → 71%) + its anchor now visible.
     expect(screen.getByText('71%')).toBeInTheDocument()
     expect(screen.getByText(/possible 7/)).toBeInTheDocument()
-    // The reveal names the longest possible word (label carries the length).
+    // The reveal names the longest possible word (label carries the length)…
     expect(screen.getByText(/Best possible word/)).toBeInTheDocument()
-    expect(screen.getByText(/HANGARS/)).toBeInTheDocument()
+    // …and it's click-to-define: a bare button carrying the shared affordance.
+    const defineBtn = screen.getByTitle('Click to define')
+    expect(defineBtn).toHaveTextContent('HANGARS')
+    expect(defineBtn.tagName).toBe('BUTTON')
   })
 
   it('compete terminal reveals opponents’ words but keeps my board to my own', () => {

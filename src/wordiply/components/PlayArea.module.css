@@ -112,6 +112,17 @@
   letter-spacing: 0.04em;
   color: var(--color-text);
   overflow-wrap: anywhere;
+  /* A click-to-define button styled as the bare word (button reset), aligned
+   * left under the label; the hover underline is the clickability affordance,
+   * matching waffle's answer reveal + the shared word lists. */
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.revealWord:hover {
+  text-decoration: underline;
 }
 
 .revealLen {
