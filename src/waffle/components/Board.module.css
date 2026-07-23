@@ -15,13 +15,16 @@
  *
  * ─── Tile size cap — TINKER HERE ─────────────────────────────────────────────
  * waffle is the SQUARE board (the other games cap width + height independently),
- * so it has ONE knob: the max tile SIZE. It ships effectively UNCAPPED — a huge
- * 999rem default, so the `--side` calc below never wins the `min()` and the board
- * grows to the largest square that fits. LOWER it (e.g. 6rem) to cap tile size.
- * (A real defined value rather than a commented-out knob + var() fallback, so the
- * token isn't "phantom" — see src/cssTokens.test.ts.) Relative units (rem). */
+ * so it has ONE knob: the max tile SIZE. It ships CAPPED at 6rem/tile — with a
+ * 5×5 grid + 0.5rem gaps that makes the cap term `5×6rem + 4×0.5rem = 32rem`
+ * (512px), which is the smallest of the three `min()` terms on a roomy desktop,
+ * so the board tops out at 512px rather than filling all the space beside the
+ * info column. RAISE it (or drop the whole term) to let the board grow larger;
+ * LOWER it for smaller tiles. Defined outright (not a `var(--x, fallback)`
+ * knob) so the token isn't "phantom" — see src/cssTokens.test.ts. Relative
+ * units (rem). */
 .board {
-  --max-tile-size: 6rem; /* effectively uncapped; lower (e.g. 6rem) to cap */
+  --max-tile-size: 6rem; /* cap = 5×6rem + 4×0.5rem gap = 32rem (512px) */
   --grid-gap: 0.5rem;
   --cols: 5;
   --rows: 5;
