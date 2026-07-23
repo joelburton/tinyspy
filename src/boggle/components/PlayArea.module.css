@@ -11,14 +11,15 @@
  * here — boggle composes `shared.responsiveInfoCol`, which derives
  * `--info-col-width` (a 22rem…53rem clamp) from `--board-reserve` so the word
  * list gives way to the board as the viewport narrows (see that class). This
- * game reserves 30rem for the square board — a comfortable size; the board's own
- * min() still caps it by tile size / avail-h. --avail-h is the vertical space
- * left for the square board (it's bounded by height too, unlike the rectangular
- * fill-boards): viewport − chrome − the below-board stack (the input row /
- * feedback pill min-height 2.75rem + the board column's 0.75rem gap + the
- * .belowBoard margin-top 1.5rem = 5rem). Keep in sync with `.belowBoard`. */
+ * game reserves 24rem — a usable floor that keeps the word list wider at narrow
+ * widths; the board's own min() still caps it by tile size / avail-h and it grows
+ * past 24rem on a roomy desktop. --avail-h is the vertical space left for the
+ * square board (it's bounded by height too, unlike the rectangular fill-boards):
+ * viewport − chrome − the below-board stack (the input row / feedback pill
+ * min-height 2.75rem + the board column's 0.75rem gap + the .belowBoard
+ * margin-top 1.5rem = 5rem). Keep in sync with `.belowBoard`. */
 .layout {
-  --board-reserve: 30rem;
+  --board-reserve: 24rem;
   --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
 }
 
