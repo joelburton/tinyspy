@@ -131,8 +131,9 @@ export function GamePage({
   const {
     commonGame,
     players,
+    activePlayers,
     paused,
-    missing,
+    presentUserIds,
     manuallyPausedBy,
     sendManualPause,
     sendManualUnpause,
@@ -420,7 +421,8 @@ export function GamePage({
 
       <PauseBoundary
         paused={paused}
-        missing={missing}
+        expected={activePlayers}
+        presentUserIds={presentUserIds}
         manuallyPausedBy={manuallyPausedBy}
         onResume={sendManualUnpause}
         // Escape hatches for a wedged presence-pause (both players walked away,

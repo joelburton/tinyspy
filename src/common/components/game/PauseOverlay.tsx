@@ -1,14 +1,19 @@
-import type { ReactNode } from 'react'
 import type { Member } from '../../lib/games'
 import { colorVarFor } from '../../lib/color/memberColor'
+import { Dot } from '../text/Dot'
 import { BackToClubButton } from '../buttons/BackToClubButton'
 import { EndGameButton } from '../buttons/EndGameButton'
 import styles from './PauseOverlay.module.css'
 
 type Props = {
-  /** Members expected at the game who aren't currently on the
-   *  realtime channel. Populated for presence-driven pauses. */
-  missing: Member[]
+  /** The full presence-pause roster — every player we're waiting on
+   *  (conceders already excluded upstream). Listed vertically, each
+   *  with an identity disc: filled color when present, a hollow gray
+   *  "away" ring when absent. */
+  expected: Member[]
+  /** User ids currently on the game's realtime channel. Anyone in
+   *  `expected` but not here is drawn as an away ring. */
+  presentUserIds: Set<string>
   /** Set when a player clicked the Pause button. Drives the
    *  "X paused the game" copy line. null when the pause has no
    *  manual source (e.g. presence-only). */
@@ -31,14 +36,21 @@ type Props = {
  * Banner + dim overlay rendered when a game is paused. Composes
  * its copy from the two possible pause sources:
  *
- *   - **presence-only** (missing[].length > 0, !manuallyPausedBy):
- *     "Waiting for Bea…" — covers a player who disconnected AND one
- *     who's been invited but hasn't joined the game yet.
- *   - **manual-only** (!missing[].length, manuallyPausedBy set):
+ *   - **presence-only** (someone in `expected` is absent, !manuallyPausedBy):
+ *     "Waiting for everyone to connect…" over the roster list — which
+ *     covers a player who disconnected AND one who's been invited but
+ *     hasn't joined the game yet.
+ *   - **manual-only** (everyone present, manuallyPausedBy set):
  *     "Bea paused the game" + Resume button
  *   - **both** (both populated): stack both messages; Resume
  *     button still shown (clicking Resume only clears the
  *     manual pause; presence-pause stays until everyone's back)
+ *
+ * The roster (shown whenever anyone's absent) lists the WHOLE expected
+ * team, not just the missing — so a waiting player sees who's already
+ * here (their color dot) alongside who we're still waiting on (a hollow
+ * gray ring). Names stay black; the dot alone carries presence, the
+ * same identity-disc grammar as the club-page `PlayersStrip`.
  *
  * Paused ≠ suspended. Paused is the transient gameplay-pause
  * state — same UX as a video player's pause: clock stops, no
@@ -53,24 +65,46 @@ type Props = {
  * section.
  */
 export function PauseOverlay({
-  missing,
+  expected,
+  presentUserIds,
   manuallyPausedBy,
   onResume,
   onReturnToClub,
   onEndGame,
 }: Props) {
-  if (missing.length === 0 && !manuallyPausedBy) return null
-
-  // Each name is its own colored span so the attribution stays
-  // legible even when several peers are missing. The connective
-  // text ("and", ", ") sits outside the colored spans in the
-  // body-text color.
-  const missingList = joinNames(missing.map(memberToColoredName))
+  // Anyone expected but off the channel is who we're waiting on. Derived
+  // here (not passed in) so the roster and the "someone's missing" gate
+  // share a single source of truth.
+  const someoneMissing = expected.some((m) => !presentUserIds.has(m.user_id))
+  if (!someoneMissing && !manuallyPausedBy) return null
 
   return (
     <div className={styles.overlay} role="status" aria-live="polite">
       <div className={styles.banner}>
-        {missing.length > 0 && <strong>Waiting for {missingList}…</strong>}
+        {someoneMissing && (
+          <>
+            <strong>Waiting for everyone to connect…</strong>
+            {/* The whole team, one per row. The list block is centered but
+                its rows are left-aligned, so every dot shares one column. */}
+            <ul className={styles.roster}>
+              {expected.map((m) => {
+                const present = presentUserIds.has(m.user_id)
+                return (
+                  <li key={m.user_id} className={styles.rosterItem}>
+                    {/* Present: their color disc. Absent: a hollow gray ring
+                        (--dot-ring override) — "not here" reads at a glance. */}
+                    <Dot
+                      color={m.color}
+                      hollow={!present}
+                      className={styles.rosterDot}
+                    />
+                    <span className={styles.rosterName}>{m.username}</span>
+                  </li>
+                )
+              })}
+            </ul>
+          </>
+        )}
         {manuallyPausedBy && (
           <strong>
             <span style={{ color: colorVarFor(manuallyPausedBy.color) }}>
@@ -101,41 +135,4 @@ export function PauseOverlay({
       </div>
     </div>
   )
-}
-
-/** Render one member's name with their profile color applied. */
-function memberToColoredName(m: Member): ReactNode {
-  return (
-    <span key={m.user_id} style={{ color: colorVarFor(m.color) }}>
-      {m.username}
-    </span>
-  )
-}
-
-/**
- * English-style join of a list of name spans. Equivalent to the
- * plain-string form for 1/2/many cases, but keeps each name as
- * its own colored span so the reader can tell who's who when
- * multiple peers are missing simultaneously.
- *
- *   1 name  → [N]
- *   2 names → [N] and [N]
- *   3+      → [N], [N], and [N]
- */
-function joinNames(nodes: ReactNode[]): ReactNode {
-  if (nodes.length === 0) return null
-  if (nodes.length === 1) return nodes[0]
-  if (nodes.length === 2) {
-    return (
-      <>
-        {nodes[0]} and {nodes[1]}
-      </>
-    )
-  }
-  return nodes.map((node, i) => (
-    <span key={i}>
-      {node}
-      {i < nodes.length - 2 ? ', ' : i === nodes.length - 2 ? ', and ' : ''}
-    </span>
-  ))
 }

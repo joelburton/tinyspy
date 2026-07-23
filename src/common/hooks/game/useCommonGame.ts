@@ -146,8 +146,19 @@ export function useCommonGame(
 ): {
   commonGame: CommonGame | null
   players: GamePlayer[]
+  /** The presence-pause roster: `players` minus anyone who conceded.
+   *  This is the exact set the pause machinery watches — conceded
+   *  players are excluded because they've willfully quit, so their
+   *  absence must not wedge the game. The pause overlay lists these
+   *  members (present ones filled, absent ones a hollow ring). */
+  activePlayers: GamePlayer[]
   paused: boolean
   missing: Member[]
+  /** User ids currently on the game's realtime channel. Paired with
+   *  `activePlayers` to tell present (filled dot) from absent (hollow
+   *  gray ring) in the pause overlay — same present/away split the
+   *  club-page `PlayersStrip` draws. */
+  presentUserIds: Set<string>
   manuallyPausedBy: Member | null
   sendManualPause: () => void
   sendManualUnpause: () => void
@@ -559,8 +570,10 @@ export function useCommonGame(
   return {
     commonGame,
     players,
+    activePlayers,
     paused,
     missing,
+    presentUserIds,
     manuallyPausedBy,
     sendManualPause,
     sendManualUnpause,

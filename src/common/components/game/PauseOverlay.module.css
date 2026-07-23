@@ -38,6 +38,39 @@
   margin-top: 0.5rem;
 }
 
+/* The expected-players list. The block is centered under the banner
+ * (width shrink-wraps its longest row, then `margin-inline: auto`), but
+ * the rows themselves are LEFT-aligned so every dot shares one column —
+ * a tidy vertical stack rather than each row centered on its own width. */
+.roster {
+  width: fit-content;
+  margin: 0.75rem auto 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.rosterItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* A touch larger than the inline header dot, with a matching ring width;
+ * the hollow (away) variant rings in gray so absence reads at a glance. */
+.rosterDot {
+  --dot-size: 0.85rem;
+  --dot-border-width: 2px;
+  --dot-ring: var(--color-muted);
+}
+
+.rosterName {
+  color: var(--color-text);
+}
+
 .actions {
   margin-top: 1rem;
   display: flex;

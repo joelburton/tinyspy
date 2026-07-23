@@ -7,10 +7,14 @@ type Props = {
    *  sources (presence-disconnect, manual-pause). The boundary
    *  doesn't care about source — only the boolean. */
   paused: boolean
-  /** Members currently expected but absent — populated when the
-   *  pause is caused by someone being disconnected. Passed to
-   *  PauseOverlay for the "Waiting for Bea…" copy. */
-  missing: Member[]
+  /** The full presence-pause roster — every player we're waiting on
+   *  (conceders already excluded upstream). PauseOverlay lists them
+   *  all, splitting present from absent via `presentUserIds`. */
+  expected: Member[]
+  /** User ids currently connected on the game's realtime channel.
+   *  A member in `expected` but not here renders as a hollow gray
+   *  "away" ring; one that's present renders as their color dot. */
+  presentUserIds: Set<string>
   /** The member who clicked the manual Pause button, if the pause
    *  has a manual source. PauseOverlay branches its copy on this. */
   manuallyPausedBy?: Member | null
@@ -60,7 +64,8 @@ type Props = {
  */
 export function PauseBoundary({
   paused,
-  missing,
+  expected,
+  presentUserIds,
   manuallyPausedBy,
   onResume,
   onReturnToClub,
@@ -70,7 +75,8 @@ export function PauseBoundary({
   if (paused) {
     return (
       <PauseOverlay
-        missing={missing}
+        expected={expected}
+        presentUserIds={presentUserIds}
         manuallyPausedBy={manuallyPausedBy}
         onResume={onResume}
         onReturnToClub={onReturnToClub}
