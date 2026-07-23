@@ -454,7 +454,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const wordRows = buildDisplayRows(foundWords, isTerminal ? game.requiredWords : null)
 
   return (
-    <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
+    <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, styles.layout)}>
       <BoardCol
         // ── Board to render ──
         outerLetters={game.outer_letters}

@@ -7,14 +7,18 @@
  * column's readouts use the shared `.actionSlot` + readout classes; own-move and
  * terminal feedback render as the shared `<GenericFeedbackPill>` in `.localFeedback`. */
 
-/* Per-game layout vars the shared scaffold reads. The info column runs wide — the
- * word list wants room for its columns — so 33rem (spellingbee's width). --avail-h
- * is the vertical space left for the square board (it's bounded by height too,
- * unlike the rectangular fill-boards): viewport − chrome − the below-board stack
- * (the input row / feedback pill min-height 2.75rem + the board column's 0.75rem
- * gap + the .belowBoard margin-top 1.5rem = 5rem). Keep in sync with `.belowBoard`. */
+/* Per-game layout vars the shared scaffold reads. The info column is RESPONSIVE
+ * here — boggle composes `shared.responsiveInfoCol`, which derives
+ * `--info-col-width` (a 22rem…53rem clamp) from `--board-reserve` so the word
+ * list gives way to the board as the viewport narrows (see that class). This
+ * game reserves 30rem for the square board — a comfortable size; the board's own
+ * min() still caps it by tile size / avail-h. --avail-h is the vertical space
+ * left for the square board (it's bounded by height too, unlike the rectangular
+ * fill-boards): viewport − chrome − the below-board stack (the input row /
+ * feedback pill min-height 2.75rem + the board column's 0.75rem gap + the
+ * .belowBoard margin-top 1.5rem = 5rem). Keep in sync with `.belowBoard`. */
 .layout {
-  --info-col-width: 53rem;
+  --board-reserve: 30rem;
   --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
 }
 
@@ -24,14 +28,15 @@
  *
  * ─── Tile size cap — TINKER HERE ─────────────────────────────────────────────
  * boggle is a SQUARE board (like waffle), so it has ONE knob: the max tile SIZE.
- * It ships effectively UNCAPPED — a huge 999rem default, so the per-tile term
- * never wins the `min()` and the board grows to the largest square that fits
- * (bounded by the width left beside the info column, --avail-w, and the height
- * left above the input row, --avail-h). LOWER it (e.g. 6rem) to cap tile size.
- * A real defined value rather than a commented-out knob + var() fallback, so the
- * token isn't "phantom" (see src/cssTokens.test.ts). Relative units (rem). */
+ * It ships CAPPED at 6rem/tile — so the per-tile term is `--cols × 6rem +
+ * gaps` (≈ 32rem for a 5×5), which is often the binding min() term on a roomy
+ * desktop; otherwise the board is bounded by the width left beside the info
+ * column (--avail-w) or the height above the input row (--avail-h). RAISE it
+ * (or drop the term) to let the board grow; LOWER it for smaller tiles. A real
+ * defined value rather than a commented-out knob + var() fallback, so the token
+ * isn't "phantom" (see src/cssTokens.test.ts). Relative units (rem). */
 .boardCol {
-  --max-tile-size: 6rem; /* effectively uncapped; lower (e.g. 6rem) to cap */
+  --max-tile-size: 6rem; /* cap = --cols × 6rem + gaps (≈ 32rem at 5×5) */
   --grid-gap: 10px;
   --side: min(
     var(--avail-w),

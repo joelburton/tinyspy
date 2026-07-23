@@ -366,7 +366,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const diceLabel = DICE_BY_NAME[boggleSetup.dice_set]?.desc ?? `${game.n}×${game.n}`
 
   return (
-    <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
+    <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, styles.layout)}>
       <BoardCol
         // ── Board to render ──
         grid={grid}

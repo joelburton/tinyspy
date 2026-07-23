@@ -9,16 +9,19 @@
  * terminal feedback render as the shared `<GenericFeedbackPill>` in `.localFeedback`.
  */
 
-/* Per-game layout vars the shared scaffold reads. The info column runs wider than
- * the other games' — the word list wants room for several columns — so start at
- * 33rem and tune. --avail-h is the vertical space left for the wheel board (bounded
- * by height too, like waffle's square): viewport − chrome − the single below-board
- * slot (the input row / feedback pill / terminal status, ~2.75rem), the board
- * column's gap above it (~0.75rem), and the extra `.belowBoard` margin-top that
- * drops the input row down off the board (1.5rem) — 5rem total. Keep this in sync
- * with `.belowBoard`'s margin-top below. */
+/* Per-game layout vars the shared scaffold reads. The info column is RESPONSIVE
+ * here — wordwheel composes `shared.responsiveInfoCol`, which derives
+ * `--info-col-width` (a 22rem…53rem clamp) from `--board-reserve` so the word
+ * list gives way to the board as the viewport narrows (see that class). This
+ * game reserves 30rem for the wheel — its capped edge — so the board keeps its
+ * full size across the whole desktop range. --avail-h is the vertical space left
+ * for the wheel board (bounded by height too, like waffle's square): viewport −
+ * chrome − the single below-board slot (the input row / feedback pill / terminal
+ * status, ~2.75rem), the board column's gap above it (~0.75rem), and the extra
+ * `.belowBoard` margin-top that drops the input row down off the board (1.5rem) —
+ * 5rem total. Keep this in sync with `.belowBoard`'s margin-top below. */
 .layout {
-  --info-col-width: 53rem;
+  --board-reserve: 30rem;
   --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
 }
 

@@ -90,6 +90,50 @@
   }
 }
 
+/* Opt-in RESPONSIVE info column, composed by the WordList games (spellingbee,
+ * wordwheel, boggle) — NOT the fixed-width games (waffle / psychicnum /
+ * connections / codenamesduet), whose info column is a plain fixed
+ * `--info-col-width` and which must not compose this.
+ *
+ * ─── The problem this solves ─────────────────────────────────────────────────
+ * A fixed `--info-col-width` claims a constant slice of the row, so every pixel
+ * the viewport loses comes out of `--avail-w` — the board. At the WordList
+ * games' wide 53rem column that's pathological: near ~1000px the board collapses
+ * to a few rem while the word list still hugs five columns. The board should win.
+ *
+ * ─── How ─────────────────────────────────────────────────────────────────────
+ * Redefine `--info-col-width` as a clamp instead of a constant. Because the
+ * scaffold's `--avail-w` math AND `.infoCol { flex: 0 0 var(--info-col-width) }`
+ * both read this one token, the board and the column stay consistent from a
+ * single knob — nothing else in the scaffold changes.
+ *
+ *   - floor 22rem — the column never shrinks below a readable width (the
+ *     action-slot readouts + ~1–2 word columns; the WordList side-scrolls the
+ *     rest, exactly as it does in the mobile sheet);
+ *   - middle: viewport MINUS a reserved board (`--board-reserve`, per game) minus
+ *     the gaps — wherever this term binds, `--avail-w` resolves to exactly
+ *     `--board-reserve`, so the BOARD holds its size and the COLUMN absorbs the
+ *     viewport change (fewer word columns as it narrows);
+ *   - ceiling 53rem — today's wide look, unchanged above ~1350px.
+ *
+ * 22rem / 53rem are literals here on purpose: they're the identical-across-the-
+ * three-games look, so they live once in this shared formula (a game that forked
+ * them would be drift). Only `--board-reserve` is per-game (each board has its
+ * own comfortable size) — every composing game MUST define it. The floor sits
+ * below the 900px `--mobile` cutoff for every sane reserve, so it never actually
+ * binds before the info column goes off-canvas into the InfoSheet — mobile is
+ * untouched (mobileFill overrides --avail-w there regardless). */
+.responsiveInfoCol {
+  --info-col-width: clamp(
+    22rem,
+    calc(
+      var(--client-width, 100vw) - var(--board-reserve) - var(--layout-gap) -
+        2 * var(--page-padding-x)
+    ),
+    53rem
+  );
+}
+
 /* Board column: HUGS its board (`flex: 0 0 auto`) and CENTERS in the space the
  * fixed info column leaves. The horizontal auto margins split the layout's free
  * space equally around the hug-width column (and, as auto margins, they also
