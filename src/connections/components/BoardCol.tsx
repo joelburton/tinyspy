@@ -17,7 +17,6 @@ import type { ConnectionsGame, GuessRow, MatchedCategory } from '../hooks/useGam
 import type { Category } from '../lib/board'
 import type { TurnSnapshot } from '../lib/history'
 import { Board } from './Board'
-import { HintModal } from './HintModal'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './PlayArea.module.css'
@@ -31,7 +30,7 @@ const NO_OWNERS: ReadonlyMap<string, string> = new Map()
 
 /**
  * connections's board column — the `<Board>` (one grid of bands + tiles) with the
- * floating Shuffle and the HintModal, plus the fixed-height below-board slot (the
+ * floating Shuffle, plus the fixed-height below-board slot (the
  * turn-viewer banner, the Clear/Submit commit row + inline mistakes, or a local
  * `<GenericFeedbackPill>` for an own-guess result / the terminal / eliminated verdict).
  *
@@ -77,9 +76,6 @@ export function BoardCol({
   mistakeBudget,
   over,
   myConceded,
-  // ── Hints (state owned by PlayArea; the modal renders here, in the board column) ──
-  hintsOpen,
-  onCloseHints,
 }: {
   // ── Board to render ──
   game: ConnectionsGame
@@ -131,10 +127,6 @@ export function BoardCol({
   over: TerminalCopy | null
   /** I conceded a compete race — picks the "you're out / conceded" pill's wording. */
   myConceded: boolean
-
-  // ── Hints ──
-  hintsOpen: boolean
-  onCloseHints: () => void
 }) {
   const [submitting, setSubmitting] = useState(false)
   // On a phone the below-board commit row is tight: the Clear/Submit buttons go
@@ -207,12 +199,13 @@ export function BoardCol({
   // a tile happens to hold keyboard focus. (macOS doesn't focus a <button> on
   // click, so the per-tile Enter never fired after mouse selection — the whole
   // "click four tiles, hit Return" flow was dead.) Gated to live input: not while
-  // viewing a past turn (a keystroke there exits the viewer instead) and not with
-  // the Hints modal open. `handleSubmit` self-guards on the 4-tile / in-flight
-  // conditions, so a stray Enter with an incomplete selection is a harmless no-op.
-  // The shared hook already ignores keys aimed at a focused text field (chat, etc.).
+  // viewing a past turn (a keystroke there exits the viewer instead). `handleSubmit`
+  // self-guards on the 4-tile / in-flight conditions, so a stray Enter with an
+  // incomplete selection is a harmless no-op. The shared hook already ignores keys
+  // aimed at a focused text field (chat, etc.). (Hints is now an inline info-column
+  // list, not a board modal, so it no longer needs to suppress Enter.)
   useGlobalKeyHandler((e) => {
-    if (e.key !== 'Enter' || viewing || !showInput || !isMyTurn || hintsOpen) return
+    if (e.key !== 'Enter' || viewing || !showInput || !isMyTurn) return
     e.preventDefault()
     void handleSubmit()
   })
@@ -231,8 +224,6 @@ export function BoardCol({
 
   return (
     <div className={shared.boardCol}>
-      <HintModal categories={game.board.categories} open={hintsOpen} onClose={onCloseHints} />
-
       {/* One grid: solved categories as full-width band rows + the remaining tiles.
           While viewing, the board is the historical snapshot (bands before the turn +
           its 4 guessed tiles ringed); else live (tiles only while input is live). */}

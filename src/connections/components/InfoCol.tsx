@@ -8,8 +8,10 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { ConnectionsSetup } from '../lib/setup'
+import type { Board } from '../lib/board'
 import type { GuessRow, MatchedCategory, Player } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
+import { HintList } from './HintList'
 import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 
@@ -53,6 +55,8 @@ export function InfoCol({
   selfId,
   metricByUser,
   concededIds,
+  categories,
+  hintsOpen,
   onHints,
   onEndGame,
   onConcede,
@@ -93,6 +97,10 @@ export function InfoCol({
   concededIds: Set<string>
 
   // ── Action row (Hints + End/Concede, back-to-club at terminal) ──
+  /** The board's 4 categories — feeds the inline HintList (first-tile reveals). */
+  categories: Board['categories']
+  /** Is the inline hint list unfolded? The Hints button toggles this (PlayArea owns it). */
+  hintsOpen: boolean
   onHints: () => void
   onEndGame: () => void
   onConcede: () => void
@@ -178,11 +186,22 @@ export function InfoCol({
             {endButton}
           </LocalTerminalRow>
         ) : (
-          <div className={shared.infoActions}>
-            {/* Hints opens the per-player HintModal (warning-toned, amber). */}
-            <HintButton label="Hints" onClick={onHints} className={shared.helperButton} />
-            {endButton}
-          </div>
+          <>
+            <div className={shared.infoActions}>
+              {/* Hints toggles the inline HintList below (warning-toned, amber);
+                  aria-pressed reflects whether the list is currently unfolded. */}
+              <HintButton
+                label="Hints"
+                onClick={onHints}
+                aria-pressed={hintsOpen}
+                className={shared.helperButton}
+              />
+              {endButton}
+            </div>
+            {/* The per-player hint reveals — unfolds right under the action row when
+                Hints is on; stays mounted (so revealed tiles persist across toggles). */}
+            <HintList categories={categories} open={hintsOpen} />
+          </>
         )}
 
         {/* Help — shown only while you can act on it (never silently swaps); the

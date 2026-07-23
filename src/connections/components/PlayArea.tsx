@@ -105,9 +105,10 @@ export function PlayArea({
     sendClear,
     loading,
   } = useGame(session, gameId)
-  // Hints modal open/closed — set by InfoCol's Hints button, the modal renders in
-  // BoardCol (it's about the board). (The guess dispatch, the local tile shuffle, and
-  // the wrong-guess shake all moved into BoardCol.)
+  // Inline hint list open/closed — InfoCol's Hints button TOGGLES it, and the list
+  // renders in InfoCol right below that button (it's one more info-column readout,
+  // not a window over the board). (The guess dispatch, the local tile shuffle, and
+  // the wrong-guess shake all live in BoardCol.)
   const [hintsOpen, setHintsOpen] = useState(false)
 
   // Mobile: below --mobile the board fills the screen and the info column slides in
@@ -269,9 +270,9 @@ export function PlayArea({
     return () => menu.setGameSections([])
   }, [menu, mode, isTerminal, myConceded, infoSheet.menuSections])
 
-  // Hints + End now live in the info-column action row (buttons), not the
-  // GamePage menu — see the .infoActions block below. Hints opens the HintModal
-  // (disabled once the caller can't submit); End fires handleEndGame.
+  // Hints + End live in the info-column action row (buttons), not the GamePage
+  // menu — see the .infoActions block below. Hints toggles the inline HintList
+  // (only shown while the caller can submit); End fires handleEndGame.
 
   // (The guess dispatch — submit_guess + dup detection + the wrong-guess shake — and
   // the local tile shuffle moved into BoardCol, beside the board + commit row.)
@@ -371,9 +372,6 @@ export function PlayArea({
         mistakeBudget={MISTAKE_BUDGET}
         over={over}
         myConceded={myConceded}
-        // ── Hints (state here; the modal renders in the board column) ──
-        hintsOpen={hintsOpen}
-        onCloseHints={() => setHintsOpen(false)}
       />
 
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
@@ -395,7 +393,9 @@ export function PlayArea({
         metricByUser={opponentFound}
         concededIds={concededIds}
         // ── Action row ──
-        onHints={() => setHintsOpen(true)}
+        categories={game.board.categories}
+        hintsOpen={hintsOpen}
+        onHints={() => setHintsOpen((o) => !o)}
         onEndGame={() => void handleEndGame()}
         onConcede={() => void handleConcede()}
         onBackToClub={goToClub}

@@ -8,7 +8,7 @@ import type { CategoryRank } from './board'
  * this map just translates the rank to the CSS-variable lookup.
  *
  * Consumed by `<Board>` (the matched-category strips
- * above the tile grid) and `<HintModal>` (per-row swatch). Lives
+ * above the tile grid) and `<HintList>` (per-row swatch). Lives
  * in its own file so it can be imported alongside components
  * without tripping Vite Fast Refresh's "components-only file"
  * rule.

@@ -1,0 +1,49 @@
+/* Inline hint-list styles. This unfolds in the info column's action slot when the
+ * Hints button is toggled on; the panel gives it a bordered surface so it reads as
+ * a distinct region below the action row. The rows + swatch layout carries over
+ * unchanged from when this was a floating modal. */
+
+.panel {
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+}
+
+.rows {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Colored rank square preceding each row. Same color as the matched-category band
+ * would use; gives the row a visual shorthand for "the yellow category" / "the
+ * purple category" before the player has matched it. */
+.swatch {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  border: 1px solid var(--color-surface-border);
+}
+
+.revealButton {
+  /* Slight horizontal padding so the click target reads as a button, even
+   * rendered with link-button styling. */
+  padding: 0.1rem 0.25rem;
+}
+
+.revealedTile {
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 0.04em;
+}
