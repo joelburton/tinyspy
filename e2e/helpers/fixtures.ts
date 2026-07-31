@@ -38,13 +38,19 @@ export type E2EClub = { handle: string; members: E2EMember[] }
  * Create N fresh confirmed users, each with a claimed username (which also
  * materializes their solo club `=<username>`). Names are suffixed per-run so
  * repeated runs don't collide on the global username uniqueness.
+ *
+ * Usernames must satisfy the same CHECK real players do — `^[a-z][a-z0-9-]{2,14}$`,
+ * i.e. **15 characters max**. The 6-char run suffix is what keeps runs from
+ * colliding, so it's the base name that gets truncated (to 9), never the suffix:
+ * `e2e` + up to 6 of the caller's name + 6 of the suffix.
  */
 async function createMembers(names: string[]): Promise<E2EMember[]> {
   const suffix = Date.now().toString(36).slice(-6)
   const members: E2EMember[] = []
 
   for (const name of names) {
-    const username = `e2e${name}${suffix}`.replace(/[^a-z0-9-]/g, '').slice(0, 30)
+    const base = `e2e${name}`.replace(/[^a-z0-9-]/g, '').slice(0, 9)
+    const username = `${base}${suffix}`
     const email = `${username}@e2e.test`
     const password = 'e2e-password-1234'
 
@@ -461,6 +467,10 @@ export async function createSpellingbeeGame(
   club: E2EClub,
   mode: 'coop' | 'compete' = 'coop',
   playerUserIds: string[] = club.members.map((m) => m.userId),
+  /** Optional win threshold. Compete always needs one (the fixture passes 5
+   *  implicitly via the RPC default below); coop is the interesting case —
+   *  omitted it's the open-ended hunt, set it's the team's win condition. */
+  targetRank?: number,
 ): Promise<{ id: string; gametype: string }> {
   const reqWords = [
     'bead', 'beef', 'face', 'fade', 'cage', 'cafe', 'deaf', 'aged', 'bade', 'feed',
@@ -474,7 +484,12 @@ export async function createSpellingbeeGame(
     .schema('spellingbee')
     .rpc('create_game', {
       target_club: club.handle,
-      setup: { timer: { kind: 'none' }, required: 3, legal: 5 },
+      setup: {
+        timer: { kind: 'none' },
+        required: 3,
+        legal: 5,
+        ...(targetRank !== undefined ? { target_rank: targetRank } : {}),
+      },
       player_user_ids: playerUserIds,
       mode,
       board: {
@@ -503,6 +518,9 @@ export async function createWordwheelGame(
   club: E2EClub,
   mode: 'coop' | 'compete' = 'coop',
   playerUserIds: string[] = club.members.map((m) => m.userId),
+  /** Optional coop win threshold (compete always gets 5 below). Omitted in coop
+   *  = the open-ended hunt. */
+  targetRank?: number,
 ): Promise<{ id: string; gametype: string }> {
   const four = ['bead', 'face', 'fade', 'cafe', 'deaf', 'abed', 'chef', 'dice', 'hade', 'bice']
   const five = ['beach', 'chafe', 'fiche', 'abide', 'ached']
@@ -517,12 +535,17 @@ export async function createWordwheelGame(
     .schema('wordwheel')
     .rpc('create_game', {
       target_club: club.handle,
-      // compete requires a target_rank (the race-to goal); coop ignores it.
+      // compete requires a target_rank (the race-to goal); coop MAY set one,
+      // and then it's the team's win threshold.
       setup: {
         timer: { kind: 'none' },
         required: 3,
         legal: 5,
-        ...(mode === 'compete' ? { target_rank: 5 } : {}),
+        ...(mode === 'compete'
+          ? { target_rank: targetRank ?? 5 }
+          : targetRank !== undefined
+            ? { target_rank: targetRank }
+            : {}),
       },
       player_user_ids: playerUserIds,
       mode,

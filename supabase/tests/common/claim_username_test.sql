@@ -98,7 +98,7 @@ select pg_temp.as_user('f1a66666-6666-6666-6666-666666666666');
 select throws_ok(
   $$ select common.claim_username('ab', 'blue') $$,
   'P0001',
-  'username must be 3–30 chars, lowercase letters/digits/hyphens, starting with a letter',
+  'username must be 3–15 chars, lowercase letters/digits/hyphens, starting with a letter',
   'claim_username: 2-char username rejected'
 );
 
@@ -106,7 +106,7 @@ select throws_ok(
 select throws_ok(
   $$ select common.claim_username('1abc', 'blue') $$,
   'P0001',
-  'username must be 3–30 chars, lowercase letters/digits/hyphens, starting with a letter',
+  'username must be 3–15 chars, lowercase letters/digits/hyphens, starting with a letter',
   'claim_username: leading digit rejected'
 );
 
@@ -114,7 +114,7 @@ select throws_ok(
 select throws_ok(
   $$ select common.claim_username('Joel', 'blue') $$,
   'P0001',
-  'username must be 3–30 chars, lowercase letters/digits/hyphens, starting with a letter',
+  'username must be 3–15 chars, lowercase letters/digits/hyphens, starting with a letter',
   'claim_username: uppercase letters rejected'
 );
 
@@ -122,16 +122,16 @@ select throws_ok(
 select throws_ok(
   $$ select common.claim_username('joel.smith', 'blue') $$,
   'P0001',
-  'username must be 3–30 chars, lowercase letters/digits/hyphens, starting with a letter',
+  'username must be 3–15 chars, lowercase letters/digits/hyphens, starting with a letter',
   'claim_username: dot rejected'
 );
 
--- 31 chars (1 over the cap)
+-- 16 chars (1 over the cap)
 select throws_ok(
-  $$ select common.claim_username('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'blue') $$,
+  $$ select common.claim_username('aaaaaaaaaaaaaaaa', 'blue') $$,
   'P0001',
-  'username must be 3–30 chars, lowercase letters/digits/hyphens, starting with a letter',
-  'claim_username: 31-char username rejected'
+  'username must be 3–15 chars, lowercase letters/digits/hyphens, starting with a letter',
+  'claim_username: 16-char username rejected'
 );
 
 -- Leading = (reserved for solo-club prefix; the regex on
@@ -139,7 +139,7 @@ select throws_ok(
 select throws_ok(
   $$ select common.claim_username('=joel', 'blue') $$,
   'P0001',
-  'username must be 3–30 chars, lowercase letters/digits/hyphens, starting with a letter',
+  'username must be 3–15 chars, lowercase letters/digits/hyphens, starting with a letter',
   'claim_username: leading = rejected'
 );
 

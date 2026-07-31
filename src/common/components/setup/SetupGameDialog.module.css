@@ -23,6 +23,17 @@
   min-width: 6rem;
 }
 
+/* The Start button's "<game> · <mode>" tail. Dropped on a phone, where the
+ * footer has to fit Cancel + Start inside a ~320px dialog and the full label
+ * ("Start PsychicNum · Co-op") wraps or pushes Cancel off. The dialog title
+ * carries the same words two inches above, so the short button reads fine.
+ * `--phone`, not `--mobile`: a tablet has the room. */
+@media (--phone) {
+  .startDetail {
+    display: none;
+  }
+}
+
 /* Player picker — a checkbox list of club members, all checked by
  * default. Sits above the game-specific setup body. */
 .players {

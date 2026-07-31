@@ -23,17 +23,17 @@ type Props = {
  *
  * Two fields: a username (the user's permanent handle — shown in chat,
  * on every game roster, and as the literal handle of their solo club
- * `=<username>`; immutable post-claim) and a player color. The color
- * defaults to a deterministic hash of the username (`defaultColorFor`)
- * so it's pre-selected, but they can change it here or later from the
- * profile dialog.
+ * `=<username>`; immutable post-claim) and a player color. The color is
+ * pre-selected from a deterministic hash of the SUGGESTED handle
+ * (`defaultColorFor`, seeded once on mount — it doesn't follow the field as
+ * they type), and they can change it here or later from the profile dialog.
  *
  * The username regex is enforced both in the FE (instant feedback) and
  * on the server (CHECK + the RPC's P0001 raise), kept in sync with the
  * SQL CHECK in 20260615000000_common.sql.
  *
  * Error mapping (the RPC's SQLSTATE codes → display):
- *   - P0001 "username must be 3–30 chars …" → show as-is
+ *   - P0001 "username must be 3–15 chars …" → show as-is
  *   - 23505 unique_violation                → "that username is taken"
  *   - 23503 foreign_key_violation           → "session expired,
  *                                              sign in again" + signOut
@@ -43,13 +43,13 @@ type Props = {
 // Mirror of the SQL CHECK regex on common.profiles.username.
 // Update both together; tests in supabase/tests/common/
 // claim_username_test.sql gate the server side.
-const HANDLE_REGEX = /^[a-z][a-z0-9-]{2,29}$/
+const HANDLE_REGEX = /^[a-z][a-z0-9-]{2,14}$/
 
 /**
  * Derive a suggested handle from an email address — used to pre-fill
  * the field as an editable default. Normalizes the local-part
  * (lowercase, drop invalid chars, drop leading non-letters, truncate
- * to 30) and returns the result only if it satisfies HANDLE_REGEX —
+ * to 15) and returns the result only if it satisfies HANDLE_REGEX —
  * otherwise an empty string, so the field starts blank rather than
  * pre-filled with something misleading like "foo!" or a too-short
  * fragment.
@@ -67,32 +67,38 @@ function suggestedHandleFromEmail(email: string | null | undefined): string {
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, '')   // strip dots, plus-tags, underscores, …
     .replace(/^[^a-z]+/, '')       // must start with a letter
-    .slice(0, 30)
+    .slice(0, 15)
   return HANDLE_REGEX.test(normalized) ? normalized : ''
 }
 
 export function ClaimHandleScreen({ onClaimed, email }: Props) {
   // Pre-fill with the email-derived suggestion as an editable default.
   const [desired, setDesired] = useState(() => suggestedHandleFromEmail(email))
-  // The player's explicit color pick, or null to use the username
-  // default. `selected` resolves the two.
-  const [picked, setPicked] = useState<string | null>(null)
+  // The selected color. Seeded ONCE from the suggested handle (a deterministic
+  // hash, so two people rarely start on the same color) and then owned entirely
+  // by the player.
+  //
+  // It deliberately does NOT track the username field. It used to — `picked ??
+  // defaultColorFor(desired)` — and the selection then hopped from swatch to
+  // swatch on every keystroke, which reads as the form fighting you: you're
+  // typing in one control and watching a different one flicker. A default is
+  // worth having; a default that keeps re-deciding while you type isn't.
+  const [selected, setSelected] = useState(() =>
+    defaultColorFor(suggestedHandleFromEmail(email)),
+  )
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // FE-side regex check, shown as you type. Empty string → no hint
   // (don't badger the user before they've typed anything).
   const localValid = desired.length === 0 || HANDLE_REGEX.test(desired)
-  // The color shown selected: the player's pick, else a deterministic
-  // default from the username (updates as they type until they pick).
-  const selected = picked ?? defaultColorFor(desired)
 
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
 
     if (!HANDLE_REGEX.test(desired)) {
-      setError('Username must be 3–30 chars, lowercase letters/digits/hyphens, starting with a letter.')
+      setError('Username must be 3–15 chars, lowercase letters/digits/hyphens, starting with a letter.')
       return
     }
 
@@ -147,10 +153,7 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
     <div className="card">
       <h1>Let&rsquo;s set you up</h1>
       <p>
-        Your username is your permanent handle — it shows up everywhere
-        in the app (chat, rosters, URLs) and can&rsquo;t be changed later,
-        so pick one you&rsquo;ll be happy with. Your color is just a
-        starting point; you can change it any time from your profile.
+        Your username is your permanent handle — pick one you&rsquo;ll be happy with. Your color can be changed later.
       </p>
 
       <form onSubmit={onSubmit} className={styles.form}>
@@ -163,16 +166,19 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
             disabled={busy}
             autoFocus
             required
+            // Hard stop at the CHECK's ceiling — a handle you can't submit
+            // shouldn't be typeable in the first place.
+            maxLength={15}
           />
           <span className={cls(styles.help, localValid ? 'muted' : 'error')}>
-            3–30 characters: lowercase letters, digits, and hyphens. Must
+            3–15 characters: lowercase letters, digits, and hyphens. Must
             start with a letter.
           </span>
         </label>
 
         <fieldset className={styles.field}>
           <legend className={styles.label}>Player color</legend>
-          <ColorChoiceList value={selected} onChange={setPicked} disabled={busy} />
+          <ColorChoiceList value={selected} onChange={setSelected} disabled={busy} />
         </fieldset>
 
         {error && <p className="error">{error}</p>}

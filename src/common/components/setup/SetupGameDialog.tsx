@@ -288,7 +288,23 @@ export function SetupGameDialog({
             disabled={busy || !countOk || setupError !== null}
             autoFocus
           >
-            {busy ? 'Starting…' : `Start ${manifest.name}${modeSuffix}`}
+            {/* On a phone the button is just "Start" — "Start PsychicNum · Co-op"
+                doesn't fit beside Cancel at 390px. The detail is dropped in CSS
+                rather than by a `usePhone()` branch: it's presentation, and the
+                dialog TITLE right above still names the game + mode, so nothing
+                is actually lost. */}
+            {busy ? (
+              'Starting…'
+            ) : (
+              <>
+                Start
+                <span className={styles.startDetail}>
+                  {' '}
+                  {manifest.name}
+                  {modeSuffix}
+                </span>
+              </>
+            )}
           </button>
         </div>
       </div>

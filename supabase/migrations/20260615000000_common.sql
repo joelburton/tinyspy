@@ -81,8 +81,11 @@ grant usage on schema common to authenticated;
 -- account and resignup."
 --
 -- The CHECK on username enforces the canonical regex:
---   ^[a-z][a-z0-9-]{2,29}$
--- (3–30 chars, leading alpha, lowercase + digits + hyphens).
+--   ^[a-z][a-z0-9-]{2,14}$
+-- (3–15 chars, leading alpha, lowercase + digits + hyphens). The 15-char
+-- ceiling is a MOBILE constraint: a username headlines rosters, chat lines,
+-- the players strip and feedback pills, all of which are tight on a phone
+-- (docs/mobile.md → handle length).
 -- The unique constraint enforces collision rejection — the
 -- claim RPC surfaces 23505 to the FE as "that username is
 -- taken; pick another."
@@ -90,7 +93,7 @@ grant usage on schema common to authenticated;
 create table common.profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   username text unique not null
-    check (username ~ '^[a-z][a-z0-9-]{2,29}$'),
+    check (username ~ '^[a-z][a-z0-9-]{2,14}$'),
   -- Visual identity color, drawn from a fixed 8-name palette.
   -- Stored as a NAME (not a hex) so the FE theme can translate it
   -- per context — the hex for "blue" on a white page-background
@@ -2278,8 +2281,8 @@ begin
   -- Clean P0001 if the requested handle doesn't match the regex.
   -- (The profiles CHECK would raise 23514 from the same input;
   -- this just gives the FE a friendlier error string.)
-  if desired !~ '^[a-z][a-z0-9-]{2,29}$' then
-    raise exception 'username must be 3–30 chars, lowercase letters/digits/hyphens, starting with a letter'
+  if desired !~ '^[a-z][a-z0-9-]{2,14}$' then
+    raise exception 'username must be 3–15 chars, lowercase letters/digits/hyphens, starting with a letter'
       using errcode = 'P0001';
   end if;
 
