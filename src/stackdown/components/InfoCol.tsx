@@ -4,6 +4,8 @@ import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
+import { RestartButton } from '../../common/components/buttons/RestartButton'
+import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { HintButton } from '../../common/components/buttons/HintButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
@@ -45,6 +47,8 @@ export function InfoCol({
   onReveal,
   onEndGame,
   onConcede,
+  onRestart,
+  onNewGame,
   onBackToClub,
   setup,
   solution,
@@ -85,6 +89,11 @@ export function InfoCol({
   onReveal: () => void
   onEndGame: () => void
   onConcede: () => void
+  /** Restart THIS stack — same tiles, same solution — from scratch (the menu's
+   *  replay-board, unconfirmed at terminal since there's no progress left to lose). */
+  onRestart: () => void
+  /** Start a fresh follow-up game — same setup + roster, a newly claimed board. */
+  onNewGame: () => void
   onBackToClub: () => void
 
   // ── Setup disclosure + terminal words reveal ──
@@ -146,32 +155,40 @@ export function InfoCol({
             play; at terminal the bold outcome line + a compact back-to-club
             button. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} />
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
+            {/* Stay-here options left of the leave option (Club): run this stack
+                back, or claim the next one. */}
+            <RestartButton iconOnly onClick={onRestart} />
+            <NewGameButton iconOnly onClick={onNewGame} />
+          </TerminalActionRow>
         ) : isLocallyDone ? (
           // I conceded; the others race on. Terminal LOOK (a status line + the
           // now-disabled Concede) so the drop-out reads loudly.
           <LocalTerminalRow label="You conceded">
-            <ConcedeGameButton className={shared.helperButton} disabled />
+            <ConcedeGameButton iconOnly className={shared.helperButton} disabled />
           </LocalTerminalRow>
         ) : isPlayer ? (
           <div className={shared.infoActions}>
             {/* Cheats: both warning-toned (amber) — "help, not good-or-bad".
-                Default labels ("Hint" / "Reveal"); the tooltip carries the
-                full "what it does" copy. */}
+                Icon-only like the rest of the row; `tooltip` (the styled hover
+                bubble) carries the full "what it does" copy, richer than the
+                aria-label the glyph gets from `label`. */}
             <HintButton
+              iconOnly
               onClick={onHint}
               className={shared.helperButton}
-              title="Cheat: show the next word's definition (not the word)"
+              tooltip="Cheat: show the next word's definition (not the word)"
             />
             <RevealButton
+              iconOnly
               onClick={onReveal}
               className={shared.helperButton}
-              title="Cheat: peek at the next word (for verifying boards)"
+              tooltip="Cheat: peek at the next word (for verifying boards)"
             />
             {isCompete ? (
-              <ConcedeGameButton onClick={onConcede} className={shared.helperButton} />
+              <ConcedeGameButton iconOnly onClick={onConcede} className={shared.helperButton} />
             ) : (
-              <EndGameButton onClick={onEndGame} className={shared.helperButton} />
+              <EndGameButton iconOnly onClick={onEndGame} className={shared.helperButton} />
             )}
           </div>
         ) : null}

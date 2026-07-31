@@ -5,7 +5,9 @@ export type ConfirmOptions = {
   title: string
   message: ReactNode
   confirmLabel: string
-  cancelLabel?: string
+  /** Omit for "Cancel"; pass **null** for a one-button NOTICE (no question to
+   *  answer — connections' "no unplayed puzzles left" uses this). */
+  cancelLabel?: string | null
 }
 
 type Pending = ConfirmOptions & { resolve: (confirmed: boolean) => void }

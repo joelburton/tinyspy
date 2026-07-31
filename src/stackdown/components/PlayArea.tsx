@@ -9,7 +9,8 @@ import type {
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
@@ -69,6 +70,8 @@ export function PlayArea({
   status,
   globalFeedback,
   goToClub,
+  clubHandle,
+  goToGame,
   menu,
 }: GamePageCtx) {
   const {
@@ -258,27 +261,57 @@ export function PlayArea({
     )
   }, [gameId, showLocalFeedback])
 
-  // ─── End (coop) — an info-column action-row button ────────────
-  // Manual end (stackdown.end_game) → a neutral whole-table stop. Always
-  // confirmed via the shared modal (ending is harmful for the whole group, even
-  // coop/solo); irreversible. Coop's answer to "we're done"; compete uses
-  // Concede instead.
-  const handleEndGame = useCallback(async () => {
-    if (isTerminal) return
-    if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback(`End game failed: ${error.message}`, 'error')
-  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
+  // ─── End / Concede / Replay — the shared trio ─────────────────
+  // The byte-identical shared handlers (useStandardGameActions). End is coop's
+  // neutral whole-table stop (confirmed through the styled modal); Concede is
+  // compete's per-player drop-out; Replay restarts THIS stack — same tiles, same
+  // solution, everything the players did wiped. stackdown's own bits are the
+  // failure-pill format, the replay sentence, and the post-replay cleanup
+  // (leave the turn-history view, clear the pill).
+  const showError = useCallback(
+    (m: string) => showLocalFeedback(m, 'error'),
+    [showLocalFeedback],
+  )
+  const onReplayed = useCallback(() => {
+    exitViewing()
+    clearLocalFeedback()
+  }, [exitViewing, clearLocalFeedback])
+  const { endGame, concede, replay } = useStandardGameActions({
+    db,
+    gameId,
+    isTerminal,
+    myConceded,
+    confirm: confirmAction,
+    replayConfirm:
+      "Replay board? This clears everyone's words and hints, and rebuilds the stack.",
+    showError,
+    onReplayed,
+  })
 
-  // ─── Concede (compete) — drop out of the race ─────────────────
-  // A real loss for the conceder; the others keep racing (stackdown.concede →
-  // common.concede). Distinct from End, which is coop's neutral mutual stop.
-  const handleConcede = useCallback(async () => {
-    if (isTerminal || myConceded) return
-    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
-    const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showLocalFeedback(`Concede failed: ${error.message}`, 'error')
-  }, [gameId, isTerminal, myConceded, showLocalFeedback])
+  // New game — a FRESH game (new id, a newly claimed board) with THIS game's
+  // setup + roster + mode, in the same club. stackdown's create_game claims a
+  // random board from the pre-generated library, so this is a direct RPC — no
+  // edge function — mirroring the manifest's startGameInClub. Non-destructive
+  // (common.create_game un-currents this game into the club list), so no
+  // confirm; the creator jumps in via ctx.goToGame, peers arrive via the
+  // game-invitation toast.
+  const gameMode = game?.mode
+  const handleNewGame = useCallback(async () => {
+    if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
+    const { data, error } = await db
+      .rpc('create_game', {
+        target_club: clubHandle,
+        setup: setup as StackdownSetup,
+        player_user_ids: players.map((p) => p.user_id),
+        mode: gameMode,
+      })
+      .single()
+    if (error || !data) {
+      showLocalFeedback(`New game failed: ${error?.message ?? 'unknown'}`, 'error')
+      return
+    }
+    goToGame(`stackdown_${gameMode}`, (data as { id: string }).id)
+  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback])
 
   // ─── Header menu (every game owns its whole menu now) ─────────
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
@@ -288,15 +321,16 @@ export function PlayArea({
   // fits a phone on its own; the input is tile taps (no keyboard).
   const infoSheet = useInfoSheet()
 
-  // stackdown adds no game-specific actions (its reveal/hint cheats live in the
-  // info-column action row, not the menu); the only `extra` is the mobile-only
-  // "Game info" item that opens the off-canvas info column (empty on desktop).
-  // Placed after handleEndGame/handleConcede so they're in scope for the deps; all
-  // deps here are stable (the useCallback handlers + primitives + the memoized
-  // menuSections), so setGameSections — a setState — runs only when the
-  // mode/terminal/conceded facts actually change, not every render. `game?.mode`
-  // is null until loaded; default to coop so the menu exists during the loading
-  // beat and re-runs once the real mode arrives.
+  // The shared frame (Help / End-or-Concede / Back to club) plus stackdown's two
+  // own items, "Replay board" and "New game" — the same pair the terminal action
+  // row offers, so they're reachable mid-game too. (The reveal/hint cheats stay
+  // in the info-column action row, not the menu.) Placed after the action
+  // handlers so they're in scope for the deps; all deps here are stable (the
+  // useCallback handlers + primitives + the memoized menuSections), so
+  // setGameSections — a setState — runs only when the mode/terminal/conceded
+  // facts actually change, not every render. `game?.mode` is null until loaded;
+  // default to coop so the menu exists during the loading beat and re-runs once
+  // the real mode arrives.
   const menuMode = game?.mode === 'compete' ? 'compete' : 'coop'
   useEffect(() => {
     menu.setGameSections(
@@ -305,13 +339,22 @@ export function PlayArea({
         mode: menuMode,
         isTerminal,
         conceded: myConceded,
-        onEndGame: () => void handleEndGame(),
-        onConcede: () => void handleConcede(),
-        extra: infoSheet.menuSections,
+        onEndGame: endGame,
+        onConcede: concede,
+        extra: [
+          ...infoSheet.menuSections,
+          {
+            items: [
+              { id: 'replay', label: 'Replay board', onClick: replay },
+              // Same setup + roster, a freshly claimed board, a NEW game id.
+              { id: 'new-game', label: 'New game', onClick: () => void handleNewGame() },
+            ],
+          },
+        ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, menuMode, isTerminal, myConceded, handleEndGame, handleConcede, infoSheet.menuSections])
+  }, [menu, menuMode, isTerminal, myConceded, endGame, concede, replay, handleNewGame, infoSheet.menuSections])
 
   // ─── Coop: narrate teammates' moves ───────────────────────────
   // The player who DIDN'T make a move otherwise saw nothing but the log quietly
@@ -462,8 +505,10 @@ export function PlayArea({
         concededIds={concededIds}
         onHint={() => void revealHint()}
         onReveal={() => void revealNext()}
-        onEndGame={() => void handleEndGame()}
-        onConcede={() => void handleConcede()}
+        onEndGame={endGame}
+        onConcede={concede}
+        onRestart={replay}
+        onNewGame={() => void handleNewGame()}
         onBackToClub={goToClub}
         setup={setup as unknown as StackdownSetup}
         solution={game.solution}

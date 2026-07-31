@@ -127,3 +127,45 @@ test.describe('codenamesduet below-board layout stability', () => {
     await ctxBob.close()
   })
 })
+
+/**
+ * "New game" — the terminal action row's one stay-here option, also reachable
+ * mid-game from the menu. Deals a FRESH board with this game's setup + roster
+ * on a NEW row and navigates to it.
+ *
+ * There is deliberately no "Replay board" twin: duet's whole board — including
+ * which word is the assassin — is the secret, so replaying it would hand both
+ * players a board they'd already learned.
+ */
+test.describe('codenamesduet new game', () => {
+  test('menu "New game" starts a FRESH game (new id, same setup)', async ({ browser }) => {
+    const club = await createClubWithMembers(['alice', 'bob'])
+    const [alice, bob] = club.members
+    const game = await createCodenamesduetGame(club, alice.userId)
+    const url = `/g/${game.gametype}/${game.id}`
+
+    // BOTH present, or the game presence-pauses and the PlayArea unmounts.
+    const ctxAlice = await browser.newContext()
+    const ctxBob = await browser.newContext()
+    await signIn(ctxAlice, alice.session)
+    await signIn(ctxBob, bob.session)
+    const pageAlice = await ctxAlice.newPage()
+    const pageBob = await ctxBob.newPage()
+    await pageAlice.goto(url)
+    await pageBob.goto(url)
+    await expect(pageAlice.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+
+    await pageAlice.getByRole('button', { name: 'Game menu' }).click()
+    await pageAlice.getByRole('menuitem', { name: 'New game' }).click()
+
+    // Navigated to a DIFFERENT game id. (We don't assert the board here: the new
+    // game presence-pauses until bob arrives too, which unmounts the PlayArea.)
+    await pageAlice.waitForURL(
+      (u) => u.pathname.startsWith(`/g/${game.gametype}/`) && !u.pathname.endsWith(game.id),
+      { timeout: 15000 },
+    )
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+})

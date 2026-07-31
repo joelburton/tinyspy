@@ -226,6 +226,9 @@ export function PlayArea({
   setup,
   globalFeedback,
   goToClub,
+  clubHandle,
+  goToGame,
+  players: members,
   menu,
 }: GamePageCtx) {
   // Per-game setup blob — opaque on GamePageCtx, cast to codenamesduet's
@@ -324,6 +327,36 @@ export function PlayArea({
     if (error) showLocalFeedback(ownAction('error', `End game failed: ${error.message}`))
   }, [gameId, isTerminal, showLocalFeedback, confirmAction])
 
+  // ─── New game ───────────────────────────────────────────
+  // A FRESH game (new id, a newly sampled board) with THIS game's setup +
+  // roster, in the same club — the "same again!" action after a solve, without
+  // a trip through the club page's setup dialog. codenamesduet's create_game
+  // samples its board inline, so this is a direct RPC (no edge function) and
+  // takes no `mode` (the game is coop-only, one gametype). Non-destructive —
+  // common.create_game un-currents THIS game into the club's list — so no
+  // confirm; the creator jumps in via ctx.goToGame, the peer arrives via the
+  // game-invitation toast.
+  //
+  // NOTE there is deliberately no "Replay board" twin here (Joel's call). The
+  // other games' replay re-runs the SAME puzzle; duet's whole board — including
+  // which words are the assassin — is the secret, so replaying it would hand
+  // both players a board they'd already learned. A new sample is the only
+  // meaningful "again".
+  const handleNewGame = useCallback(async () => {
+    const { data, error } = await db
+      .rpc('create_game', {
+        target_club: clubHandle,
+        setup: codenamesduetSetup,
+        player_user_ids: members.map((m) => m.user_id),
+      })
+      .single()
+    if (error || !data) {
+      showLocalFeedback(ownAction('error', `New game failed: ${error?.message ?? 'unknown'}`))
+      return
+    }
+    goToGame('codenamesduet', (data as { id: string }).id)
+  }, [clubHandle, codenamesduetSetup, members, goToGame, showLocalFeedback])
+
   // ─── Header menu (each game owns its whole menu now) ────
   // codenamesduet is coop-only (fixed 2 seats, no compete sibling), so the menu
   // is Help + End game + Back to club — no `extra` sections. `buildGameMenu`
@@ -339,12 +372,16 @@ export function PlayArea({
         mode: 'coop',
         isTerminal,
         onEndGame: () => void handleEndGame(),
-        // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
-        extra: infoSheet.menuSections,
+        extra: [
+          // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
+          ...infoSheet.menuSections,
+          // The same action the terminal row offers, reachable mid-game too.
+          { items: [{ id: 'new-game', label: 'New game', onClick: () => void handleNewGame() }] },
+        ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, isTerminal, handleEndGame, infoSheet.menuSections])
+  }, [menu, isTerminal, handleEndGame, handleNewGame, infoSheet.menuSections])
 
   // Announce turn-state changes in the header feedback pill — it's easy to miss
   // "the other player ended their turn, it's your turn now" otherwise. Called
@@ -480,6 +517,7 @@ export function PlayArea({
         peer={peer}
         // ── Action row ──
         onEndGame={() => void handleEndGame()}
+        onNewGame={() => void handleNewGame()}
         onBackToClub={goToClub}
         // ── Setup disclosure ──
         setup={codenamesduetSetup}

@@ -57,3 +57,58 @@ test.describe('stackdown turn-history viewer', () => {
     await ctx.close()
   })
 })
+
+/**
+ * "Replay board" + "New game" — the terminal action row's stay-here options,
+ * also reachable mid-game from the menu. Replay resets THIS stack (same tiles,
+ * same solution, log cleared, title back to "New game"); New game creates a
+ * FRESH row from the same setup + roster and navigates to it.
+ *
+ * A browser test because both are round trips: the reset arrives back over the
+ * realtime refetch (the RPC writes no realtime "touch"), and the new game is a
+ * navigation to a different id.
+ */
+test.describe('stackdown replay + new game', () => {
+  test('coop: a word logs a turn; "Replay board" clears the log', async ({ browser }) => {
+    const club = await createSoloClub('sdrp')
+    const game = await createStackdownGame(club)
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
+
+    // Take a hint so the submission log is non-empty without needing to spell
+    // a word through the tile geometry.
+    await page.getByRole('button', { name: /hint/i }).click()
+    await expect(page.getByText('No words yet.')).toBeHidden({ timeout: 10000 })
+
+    // Mid-game replay confirms (it wipes the group's progress) — the handler must
+    // be armed BEFORE the click, or Playwright's default auto-dismiss cancels it.
+    page.once('dialog', (d) => void d.accept())
+    await page.getByRole('button', { name: 'Game menu' }).click()
+    await page.getByRole('menuitem', { name: 'Replay board' }).click()
+
+    await expect(page.getByText('No words yet.')).toBeVisible({ timeout: 10000 })
+    await ctx.close()
+  })
+
+  test('menu "New game" starts a FRESH game (new id, same setup)', async ({ browser }) => {
+    const club = await createSoloClub('sdng')
+    const game = await createStackdownGame(club)
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
+
+    await page.getByRole('button', { name: 'Game menu' }).click()
+    await page.getByRole('menuitem', { name: 'New game' }).click()
+
+    // Navigated to a DIFFERENT game id, same gametype, board up.
+    await page.waitForURL((u) => u.pathname.startsWith(`/g/${game.gametype}/`) &&
+                                !u.pathname.endsWith(game.id), { timeout: 15000 })
+    await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
+    await ctx.close()
+  })
+})

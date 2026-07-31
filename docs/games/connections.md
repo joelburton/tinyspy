@@ -214,6 +214,20 @@ Fires when the countdown timer expires. Mode-aware terminal:
 
 Idempotent — a second concurrent call on the already-terminal game raises `P0001 "game is not in progress"`, which the FE swallows. See [Timer](#timer).
 
+### `connections.replay_board(target_game uuid)`
+
+The **Restart** button in the terminal action row + the "Replay board" menu item. Resets the working state on the SAME game row: the frozen `board` (the categories AND this game's shuffled tileOrder) stays, so it's the same sixteen tiles in the same arrangement solved again. Any game player, from a finished game OR mid-game (mid-game confirms — it wipes the group's progress).
+
+The load-bearing detail: **deleting the guess log is also what un-matches the categories.** A matched category IS a `result='correct'` guess row — there's no separate "solved" column — so clearing the log rebuilds the board by construction. Player rows go back to `mistake_count = 0` / `matched_count = 0`; turn-order coop rewinds the pointer to the player seated first; the common half (un-terminal, empty status, per-player results + concede cleared, clock zeroed) is `common.reset_game`. pgTAP: `replay_test.sql`.
+
+### New game — the next unplayed puzzle
+
+connections is the only game whose boards are a **dated archive** rather than something generated per game, so its **New game** can't just re-roll a board the way every other game's does. It walks FORWARD: the earliest puzzle after this game's `puzzle_date` that this club has no game for **in this mode**. Scoping matters — a coop game doesn't use up the compete side, and another club's play doesn't use up ours (clubs are independent groups of friends).
+
+The rule is the pure, unit-tested `lib/nextPuzzle.ts → nextUnplayedPuzzle`; PlayArea supplies the two reads (the dated `puzzles` list, and the club's per-date rows from the `club_game_status` view — the same view the setup form's calendar uses). A game built from a non-NYT puzzle has no `puzzle_date` and so no place in the archive; it falls back to the earliest unplayed puzzle of all.
+
+When nothing is left, we say so in a **notice** — a one-button `<ConfirmDialog>` (`cancelLabel: null`) — rather than failing quietly or handing the group a board they've already played.
+
 ### `connections.end_game(target_game uuid) → void`
 
 The **End button** in the info-column action row fires this — the manual, **neutral** stop, shown in **coop** (compete shows **Concede** instead — see below). Where `submit_timeout` writes a "you lost" terminal, `end_game` writes `play_state='ended'` with status `{outcome: 'manual', mode}` and every player `{won: false}`: the friends agreed to quit, so nobody won and nobody lost. The FE renders a neutral-toned "Game ended" below-board pill (the shared `endedCopy`), not a red loss verdict, and no celebration; `labelFor` learns `'ended'` in both manifests. Any current game player can call it (same `require_game_player` gate as `submit_guess`).

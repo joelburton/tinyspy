@@ -66,3 +66,56 @@ test('terminal: secret tiles are ringed and the pill carries the verdict', async
 
   await ctx.close()
 })
+
+/**
+ * "Replay board" + "New game" — the terminal action row's stay-here options,
+ * also reachable mid-game from the menu. Replay hunts THIS board's same three
+ * secrets again (guesses cleared, budgets restored); New game deals a fresh
+ * board + secrets on a NEW row and navigates to it.
+ *
+ * A browser test because both are round trips: the reset arrives back over the
+ * realtime refetch, and New game is a navigation to a different id.
+ */
+test.describe('psychicnum replay + new game', () => {
+  test('a guess is wiped by "Replay board" (same board, budget restored)', async ({ browser }) => {
+    const club = await createSoloClub('pnrp')
+    const game = await createGame(club)
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+
+    // Guess the first board word → a turn-log row appears and the budget ticks.
+    await page.locator('[data-board] button').first().click()
+    await page.getByRole('button', { name: 'Submit' }).click()
+    await expect(page.getByText('No turns yet.')).toBeHidden({ timeout: 10000 })
+
+    // Mid-game replay confirms — arm the handler BEFORE the click, or
+    // Playwright's default auto-dismiss cancels it.
+    page.once('dialog', (d) => void d.accept())
+    await page.getByRole('button', { name: 'Game menu' }).click()
+    await page.getByRole('menuitem', { name: 'Replay board' }).click()
+
+    await expect(page.getByText('No turns yet.')).toBeVisible({ timeout: 10000 })
+    await ctx.close()
+  })
+
+  test('menu "New game" starts a FRESH game (new id, same setup)', async ({ browser }) => {
+    const club = await createSoloClub('pnng')
+    const game = await createGame(club)
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+
+    await page.getByRole('button', { name: 'Game menu' }).click()
+    await page.getByRole('menuitem', { name: 'New game' }).click()
+
+    await page.waitForURL((u) => u.pathname.startsWith(`/g/${game.gametype}/`) &&
+                                !u.pathname.endsWith(game.id), { timeout: 15000 })
+    await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+    await ctx.close()
+  })
+})

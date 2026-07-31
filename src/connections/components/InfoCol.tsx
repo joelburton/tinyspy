@@ -1,6 +1,8 @@
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
+import { RestartButton } from '../../common/components/buttons/RestartButton'
+import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { HintButton } from '../../common/components/buttons/HintButton'
@@ -60,6 +62,8 @@ export function InfoCol({
   onHints,
   onEndGame,
   onConcede,
+  onRestart,
+  onNewGame,
   onBackToClub,
   setup,
   puzzleDate,
@@ -104,6 +108,12 @@ export function InfoCol({
   onHints: () => void
   onEndGame: () => void
   onConcede: () => void
+  /** Solve THIS puzzle again from scratch — same sixteen tiles, same shuffle
+   *  (the menu's replay-board; unconfirmed at terminal, nothing left to lose). */
+  onRestart: () => void
+  /** Start the NEXT unplayed daily puzzle — connections' archive is dated, so
+   *  this walks forward rather than re-rolling a board. */
+  onNewGame: () => void
   onBackToClub: () => void
 
   // ── Setup disclosure ──
@@ -123,10 +133,12 @@ export function InfoCol({
   // The End / Concede button — error-toned (red). Compete uses CONCEDE (drop out of
   // the race → connections.concede); coop uses the neutral "End" (a mutual "we're
   // done" → end_game). Shared by the playing and the locally-terminal action rows.
+  // Icon-only (the canonical action-row treatment): the styled tooltip carries
+  // the label.
   const endButton = isCompete ? (
-    <ConcedeGameButton onClick={onConcede} className={shared.helperButton} disabled={myConceded} />
+    <ConcedeGameButton iconOnly onClick={onConcede} className={shared.helperButton} disabled={myConceded} />
   ) : (
-    <EndGameButton onClick={onEndGame} className={shared.helperButton} />
+    <EndGameButton iconOnly onClick={onEndGame} className={shared.helperButton} />
   )
 
   return (
@@ -180,7 +192,12 @@ export function InfoCol({
             status ("You're out" / "You conceded") + Concede. Terminal: the outcome
             line + a compact back-to-club button. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} />
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
+            {/* Stay-here options left of the leave option (Club): run this
+                puzzle back, or move on to the next unplayed date. */}
+            <RestartButton iconOnly onClick={onRestart} />
+            <NewGameButton iconOnly onClick={onNewGame} />
+          </TerminalActionRow>
         ) : !showInput ? (
           <LocalTerminalRow label={myConceded ? 'You conceded' : 'You’re out'}>
             {endButton}
@@ -191,6 +208,7 @@ export function InfoCol({
               {/* Hints toggles the inline HintList below (warning-toned, amber);
                   aria-pressed reflects whether the list is currently unfolded. */}
               <HintButton
+                iconOnly
                 label="Hints"
                 onClick={onHints}
                 aria-pressed={hintsOpen}

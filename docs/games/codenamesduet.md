@@ -207,6 +207,12 @@ Accepts `playing` and `sudden_death` (both non-terminal); idempotent on the term
 
 Reject reasons: not authenticated; not a game player; game not found; already terminal.
 
+### New game — a fresh board, no Replay twin
+
+The **New game** button in the terminal action row + the matching menu item: a FRESH game (new id, a newly sampled board) with this game's setup + roster, in the same club. A direct `create_game` RPC — codenamesduet samples its board inline, and takes no `mode` (coop-only, one gametype). Non-destructive: `common.create_game` un-currents this game into the club's list, so there's no confirm; the creator jumps in via `ctx.goToGame` and the peer arrives via the game-invitation toast.
+
+**There is deliberately no "Replay board" twin**, unlike the ten games that have one. Their replay re-runs the SAME puzzle; duet's whole board — including which word is the assassin — is the secret, so replaying it would hand both players a board they'd already learned. A new sample is the only meaningful "again".
+
 ### `codenamesduet.end_game(target_game uuid) → void`
 
 The friends' explicit "we're done" button — the **End game** header-menu item (coop-only; declared by codenamesduet's PlayArea via `ctx.menu.setGameSections` + `buildGameMenu`; click → `window.confirm()` → `db.rpc('end_game', ...)`, disabled when terminal) and the info-column `<EndGameButton>`, both firing the same handler. codenamesduet has plenty of *automatic* terminals (won / lost_*), so this is purely the escape hatch for abandoning an in-progress game early.

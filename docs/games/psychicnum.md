@@ -270,6 +270,14 @@ Idempotent on the terminal-state guard: a second concurrent call from a racing c
 
 Reject reasons: not authenticated; not a game player; game not found; game status ≠ playing.
 
+### `psychicnum.replay_board(target_game uuid)`
+
+The **Restart** button in the terminal action row + the "Replay board" menu item. Resets the working state on the SAME game row: the frozen puzzle (`words` / `secrets` / `mode`) stays, so it's the same board and the same three secrets hunted again, and everything the players did is wiped — guess log cleared, every player back to a full budget with `secrets_found = 0`. Any game player, from a finished game OR mid-game (mid-game confirms, since it wipes the group's progress; at terminal there's nothing left to lose).
+
+The budget is re-read from `common.games.setup->>'guesses'`, **not** from `psychicnum.players` — those rows have been decremented all game and can't say what the budget was. Turn-order coop rewinds the pointer to the player seated first (`game_players.turn_seat = 0`); a free-for-all game's null pointer stays null. The common half (un-terminal, fresh status, per-player results + concede cleared, clock zeroed) is `common.reset_game`; the secrets re-hide on their own, since `games_state` gates them on `is_terminal`.
+
+No realtime touch needed — the players update + guesses delete wake `useGame` directly. pgTAP: `replay_test.sql`.
+
 ### `psychicnum.end_game(target_game uuid)`
 
 The **End** button in the info-column action row (coop; compete shows **Concede** instead — see the play-states above) fires this, behind a `window.confirm`. It's the explicit manual stop — any current game player can decide the group is done. Like every game, it's surfaced in **both** the action row and the GamePage menu — the latter wired through `buildGameMenu` (see [common.md → Manual end](../common.md#manual-end--every-gametypes-end_gametarget_game)).

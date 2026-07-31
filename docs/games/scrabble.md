@@ -394,7 +394,38 @@ Advances the turn, `consecutive_scoreless += 1`, logs `kind='pass'`, checks the
 blocked-end condition. Like the other moves it takes `base_version` and runs the
 optimistic-concurrency stale-guard, returning `{result, version, terminal}`.
 
-### 5.5 `end_game` / `concede` / `submit_timeout`
+### 5.5 `replay_board`
+
+The "Replay board" menu item / terminal-row Restart. Note what "the board" means
+here: scrabble's 15×15 premium grid is the **standard layout**, the same for
+every game — not a generated puzzle. So unlike waffle/wordle there is nothing to
+restore, and a replay **re-deals**: freshly shuffled bag, new racks, empty grid,
+keeping the setup (club, roster, seats, dictionary bands, AI opponents). "Same
+table, new deal", not "same puzzle again" — which is also why replay and New game
+differ less here than elsewhere (New game additionally mints a NEW game row,
+leaving this one in the club's list).
+
+Any game player may call it, from a finished game OR mid-game; both modes reset
+every seat. Three subtleties:
+
+- **`version` is BUMPED, not zeroed.** It's the optimistic-concurrency counter
+  every move RPC checks `base_version` against. Zeroing would let a client
+  holding a stale mid-game version commit against the fresh deal; bumping keeps
+  it monotonic so every in-flight move fails its check — correct, since that move
+  was for the old deal.
+- **Compete re-randomizes `current_seat`**, matching `create_game`: the deal is
+  new, so who opens is drawn afresh.
+- **Coop turn-order rewinds** to the player seated first (`game_players.turn_seat
+  = 0`). The rotation was assigned at create time and doesn't change, so this
+  restores the original opener without re-reading `setup.firstTurnUserId`. A
+  free-for-all game's null pointer stays null.
+
+It also puts `common.games.title` back to `"New game"` (the title is the first
+three words played — see §7 — so it would otherwise advertise the old deal), then
+hands the common half to `common.reset_game`. Takes the row `FOR UPDATE`: a
+replay racing a move must not interleave with it. pgTAP: `replay_test.sql`.
+
+### 5.6 `end_game` / `concede` / `submit_timeout`
 
 `submit_timeout` is countdown expiry and always runs final scoring
 ([§2.7](#27-ending-the-game)). `end_game` is the player-fired stop shown in

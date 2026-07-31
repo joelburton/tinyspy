@@ -1167,3 +1167,84 @@ insert into common.gametypes (gametype, min_players) values
   ('psychicnum_coop', 1),
   ('psychicnum_compete', 2)
 on conflict do nothing;
+
+-- ============================================================
+-- psychicnum.replay_board — restart this board from scratch
+-- ============================================================
+-- The "Replay board" game-menu item / terminal-row Restart: reset the
+-- working state on the SAME game row. The frozen puzzle (words /
+-- secrets / mode) stays — the same board and the same three secrets,
+-- hunted again; everything the players did is wiped. Any game player
+-- may call it, from a finished game OR mid-game (no play_state guard —
+-- it's a restart). Both modes reset ALL players (a group "run it back",
+-- per the friends trust model).
+--
+-- The guess budget is re-read from `common.games.setup->>'guesses'`
+-- rather than from `psychicnum.players` — those rows have been
+-- decremented all game, so they can't say what the budget WAS. It's the
+-- same value create_game seeded them with.
+--
+-- Turn-order coop rewinds the pointer to the player seated first
+-- (`game_players.turn_seat = 0`). The rotation was assigned at create
+-- time and doesn't change, so this restores the original opener without
+-- re-reading `setup.firstTurnUserId`; a free-for-all game's null pointer
+-- stays null.
+--
+-- The secrets re-hide on their own: games_state gates them on
+-- common.games.is_terminal, which reset_game clears.
+--
+-- No realtime touch needed: the players update + guesses delete wake
+-- useGame (subscribed to psychicnum.{games,players,guesses}), and
+-- reset_game's common.games write wakes useCommonGame — so the board,
+-- turn log, and terminal state all reset live for every player.
+create function psychicnum.replay_board(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = psychicnum, common, public, extensions
+as $$
+declare
+  g_row     psychicnum.games;
+  v_guesses int;
+  v_players int;
+begin
+  perform common.require_game_player(target_game);
+  select * into g_row from psychicnum.games where id = target_game;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  select (setup->>'guesses')::int into v_guesses
+    from common.games where id = target_game;
+
+  update psychicnum.players
+     set guesses_remaining = v_guesses,
+         secrets_found = 0
+   where game_id = target_game;
+
+  delete from psychicnum.guesses where game_id = target_game;
+
+  -- Turn-order coop: rewind to the original opener. Matches no row (so it's a
+  -- no-op) in a free-for-all game, whose pointer is null.
+  update common.games
+     set current_turn_user_id = (
+           select gp.user_id from common.game_players gp
+            where gp.game_id = target_game and gp.turn_seat = 0
+         )
+   where id = target_game and current_turn_user_id is not null;
+
+  -- The club-list label: coop shows the shared remaining budget, compete the
+  -- sum across players — the same two shapes submit_guess writes.
+  select count(*) into v_players from psychicnum.players where game_id = target_game;
+  perform common.reset_game(
+    target_game,
+    jsonb_build_object(
+      'guesses_remaining',
+      case when g_row.mode = 'coop' then v_guesses else v_guesses * v_players end
+    )
+  );
+end;
+$$;
+
+revoke execute on function psychicnum.replay_board(uuid) from public;
+grant execute on function psychicnum.replay_board(uuid) to authenticated;

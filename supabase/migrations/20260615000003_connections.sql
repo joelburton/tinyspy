@@ -1276,6 +1276,66 @@ grant execute on function connections.end_game(uuid) to authenticated;
 -- create_club's RPC adds clubs_gametypes rows for both modes to
 -- every new club automatically.
 
+-- ============================================================
+-- connections.replay_board — restart this puzzle from scratch
+-- ============================================================
+-- The "Replay board" menu item / terminal-row Restart: reset the working
+-- state on the SAME game row. The frozen puzzle (`board` — the categories
+-- AND this game's shuffled tileOrder — plus `puzzle_date` / `mode`) stays,
+-- so it's the same sixteen tiles in the same arrangement, solved again;
+-- everything the players did is wiped. Any game player may call it, from a
+-- finished game OR mid-game (no play_state guard — it's a restart). Both
+-- modes reset ALL players (a group "run it back", per the friends trust
+-- model).
+--
+-- Resets the connections-specific working state (every player's mistakes +
+-- matched count zeroed; the guess log cleared, which is also what un-matches
+-- the categories — a matched category IS a `result='correct'` guess row, so
+-- deleting the log rebuilds the board by construction), then hands the
+-- common-layer reset to common.reset_game. `status` goes back to the empty
+-- object create_game leaves it at.
+--
+-- Turn-order coop rewinds the pointer to the player seated first
+-- (`game_players.turn_seat = 0`); a free-for-all game's null pointer stays
+-- null.
+--
+-- No realtime touch needed: the players update + guesses delete wake useGame
+-- (subscribed to connections.{games,players,guesses}), and reset_game's
+-- common.games write wakes useCommonGame.
+create function connections.replay_board(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = connections, common, public, extensions
+as $$
+begin
+  perform common.require_game_player(target_game);
+  if not exists (select 1 from connections.games where id = target_game) then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  update connections.players
+     set mistake_count = 0,
+         matched_count = 0
+   where game_id = target_game;
+
+  delete from connections.guesses where game_id = target_game;
+
+  update common.games
+     set current_turn_user_id = (
+           select gp.user_id from common.game_players gp
+            where gp.game_id = target_game and gp.turn_seat = 0
+         )
+   where id = target_game and current_turn_user_id is not null;
+
+  perform common.reset_game(target_game, '{}'::jsonb);
+end;
+$$;
+
+revoke execute on function connections.replay_board(uuid) from public;
+grant execute on function connections.replay_board(uuid) to authenticated;
+
+
 insert into common.gametypes (gametype, min_players) values
   ('connections_coop', 1),
   ('connections_compete', 2)

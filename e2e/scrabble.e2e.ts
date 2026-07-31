@@ -55,3 +55,61 @@ test.describe('scrabble — play a turn', () => {
     await ctx.close()
   })
 })
+
+/**
+ * "Replay board" + "New game" — the terminal action row's stay-here options,
+ * also reachable mid-game from the menu.
+ *
+ * scrabble's 15×15 grid is the standard layout, not a generated puzzle, so a
+ * replay RE-DEALS (fresh bag, new racks, empty grid) rather than restoring a
+ * board. Both are round trips a unit test can't reach: the re-deal arrives back
+ * over the realtime refetch, and New game is a navigation to a different id.
+ */
+test.describe('scrabble replay + new game', () => {
+  test('a committed word is wiped by "Replay board" (the grid re-deals)', async ({ browser }) => {
+    const club = await createSoloClub('screp')
+    const game = await createScrabbleGame(club, 'coop')
+    setScrabbleRack(game.id, ['C', 'A', 'T', 'S', 'E', 'R', 'O'])
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+
+    // Play CAT at the centre so there's a committed tile + a log row to wipe.
+    const center = page.locator('[data-cell][data-x="7"][data-y="7"]')
+    await center.click()
+    await page.keyboard.type('CAT')
+    await page.keyboard.press('Enter')
+    await expect(page.getByText(/CAT \+\d/i)).toBeVisible({ timeout: 10000 })
+    await expect(center).toContainText('C')
+
+    // Mid-game replay confirms — arm the handler BEFORE the click, or
+    // Playwright's default auto-dismiss cancels it.
+    page.once('dialog', (d) => void d.accept())
+    await page.getByRole('button', { name: 'Game menu' }).click()
+    await page.getByRole('menuitem', { name: 'Replay board' }).click()
+
+    // The centre square is empty again — the re-deal landed.
+    await expect(center).not.toContainText('C', { timeout: 10000 })
+    await ctx.close()
+  })
+
+  test('menu "New game" starts a FRESH game (new id, same setup)', async ({ browser }) => {
+    const club = await createSoloClub('scng')
+    const game = await createScrabbleGame(club, 'coop')
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+
+    await page.getByRole('button', { name: 'Game menu' }).click()
+    await page.getByRole('menuitem', { name: 'New game' }).click()
+
+    await page.waitForURL((u) => u.pathname.startsWith(`/g/${game.gametype}/`) &&
+                                !u.pathname.endsWith(game.id), { timeout: 15000 })
+    await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+    await ctx.close()
+  })
+})

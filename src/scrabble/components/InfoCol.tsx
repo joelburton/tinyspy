@@ -6,6 +6,8 @@ import { difficultyValue } from '../../common/lib/game/difficulty'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
+import { RestartButton } from '../../common/components/buttons/RestartButton'
+import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
@@ -63,6 +65,8 @@ export function InfoCol({
   concededIds,
   onEndGame,
   onConcede,
+  onRestart,
+  onNewGame,
   onBackToClub,
   suggest,
   canSuggest,
@@ -107,6 +111,13 @@ export function InfoCol({
   // ── Action row (End/Concede, back-to-club at terminal) ──
   onEndGame: () => void
   onConcede: () => void
+  /** Deal this game again from scratch — same setup, roster and seats, fresh bag
+   *  and racks (the menu's replay-board; unconfirmed at terminal since there's no
+   *  progress left to lose). scrabble's grid is the standard layout, so a replay
+   *  is a re-deal rather than a puzzle reset. */
+  onRestart: () => void
+  /** Start a fresh follow-up game — same setup + roster, a NEW game id. */
+  onNewGame: () => void
   onBackToClub: () => void
 
   // ── Suggest-a-move (docs/scrabble-ai.md S5) ──
@@ -205,23 +216,29 @@ export function InfoCol({
             conceded" terminal look once I've dropped out (others race on); at
             terminal the bold outcome line + a compact back-to-club button. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} />
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
+            {/* Stay-here options left of the leave option (Club): deal this table
+                again, or spin up the next game. */}
+            <RestartButton iconOnly onClick={onRestart} />
+            <NewGameButton iconOnly onClick={onNewGame} />
+          </TerminalActionRow>
         ) : isCompete && myConceded ? (
           <LocalTerminalRow label="You conceded">
-            <ConcedeGameButton className={shared.helperButton} disabled />
+            <ConcedeGameButton iconOnly className={shared.helperButton} disabled />
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
             {isCompete ? (
-              <ConcedeGameButton className={shared.helperButton} onClick={onConcede} />
+              <ConcedeGameButton iconOnly className={shared.helperButton} onClick={onConcede} />
             ) : (
               <>
-                <EndGameButton className={shared.helperButton} onClick={onEndGame} />
+                <EndGameButton iconOnly className={shared.helperButton} onClick={onEndGame} />
                 {/* Suggest-a-move (coop) — the AI hint lives with the other
                     action buttons; its results render in the reserved box
                     below the help text. */}
                 {suggest && (
                   <AIButton
+                    iconOnly
                     label="Suggest"
                     className={shared.helperButton}
                     disabled={!canSuggest || suggest.status === 'loading'}

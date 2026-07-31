@@ -1605,3 +1605,115 @@ $$;
 
 revoke execute on function scrabble.get_ai_context(uuid) from public;
 grant execute on function scrabble.get_ai_context(uuid) to authenticated;
+
+-- ============================================================
+-- scrabble.replay_board — deal this game again from scratch
+-- ============================================================
+-- The "Replay board" game-menu item. NOTE what "the board" means here:
+-- scrabble's 15×15 premium grid is the SAME for every game (it's the
+-- standard layout, not a generated puzzle), so unlike waffle/wordle
+-- there is no per-game board to restore. What a scrabble replay restores
+-- is the SETUP — same club, same roster + seats, same dictionary bands,
+-- same AI opponents — and then re-deals: a freshly shuffled bag, new
+-- racks, an empty grid. So it's "same table, new deal", not "same puzzle
+-- again". (That's also why replay and New game differ less here than
+-- elsewhere: New game additionally makes a NEW game row, leaving this
+-- one in the club's list.)
+--
+-- Any game player may call it, from a finished game OR mid-game (no
+-- play_state guard — it's a restart). Both modes reset ALL players, per
+-- the friends trust model.
+--
+-- Three subtleties:
+--   - **`version` is BUMPED, not zeroed.** It's the optimistic-concurrency
+--     counter every move RPC checks against the client's `base_version`.
+--     Zeroing it would let a client holding a stale mid-game version
+--     commit a move against the fresh deal; bumping keeps it monotonic,
+--     so every in-flight move fails its version check, which is exactly
+--     right — that move was for the old deal.
+--   - **compete re-randomizes `current_seat`**, matching create_game. The
+--     deal is new, so who opens is drawn afresh.
+--   - **coop turn-order rewinds** to the player seated first
+--     (`game_players.turn_seat = 0`). The rotation itself was assigned at
+--     create time and doesn't change, so this restores the original
+--     opener without re-reading `setup.firstTurnUserId`. A free-for-all
+--     game has a null pointer and stays null.
+--
+-- No realtime touch needed: the games/players update + plays delete wake
+-- useGame (subscribed to scrabble.{games,players,plays}), and
+-- reset_game's common.games write wakes useCommonGame.
+create function scrabble.replay_board(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = scrabble, common, public, extensions
+as $$
+declare
+  g_row       scrabble.games;
+  v_bag       text[];
+  v_board     jsonb;
+  v_seats     int;
+  v_first     int;
+  v_drawn     text[];
+  r           record;
+begin
+  perform common.require_game_player(target_game);
+  -- FOR UPDATE: a replay racing a move must not interleave with it (the move
+  -- RPCs lock the same row), or the re-deal could land on a half-applied play.
+  select * into g_row from scrabble.games where id = target_game for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  select array_agg(t order by random()) into v_bag from unnest(scrabble._new_bag()) t;
+  select jsonb_agg(null::jsonb) into v_board from generate_series(1, 225);
+
+  delete from scrabble.plays where game_id = target_game;
+
+  if g_row.mode = 'compete' then
+    -- Re-deal every seat in seat order, threading the bag down (create_game's
+    -- deal, minus the seat/AI assignment — the seats themselves are frozen).
+    for r in select seat from scrabble.players
+              where game_id = target_game order by seat loop
+      v_drawn := v_bag[1:7];
+      v_bag   := v_bag[8:];
+      update scrabble.players
+         set score = 0, rack = v_drawn
+       where game_id = target_game and seat = r.seat;
+    end loop;
+    select count(*) into v_seats from scrabble.players where game_id = target_game;
+    v_first := floor(random() * v_seats)::int;
+    update scrabble.games
+       set board = v_board, bag = v_bag, version = g_row.version + 1,
+           current_seat = v_first, consecutive_scoreless = 0
+     where id = target_game;
+  else
+    -- Coop: one shared rack + one team score on the game row; the player rows
+    -- carry only seats (score/rack stay null), so they need no reset.
+    v_drawn := v_bag[1:7];
+    v_bag   := v_bag[8:];
+    update scrabble.games
+       set board = v_board, bag = v_bag, version = g_row.version + 1,
+           shared_rack = v_drawn, team_score = 0, consecutive_scoreless = 0
+     where id = target_game;
+
+    -- Turn-order coop: rewind the pointer to the original opener (turn_seat 0).
+    -- Null pointer (free-for-all) stays null — the update matches no row.
+    update common.games
+       set current_turn_user_id = (
+             select gp.user_id from common.game_players gp
+              where gp.game_id = target_game and gp.turn_seat = 0
+           )
+     where id = target_game and current_turn_user_id is not null;
+  end if;
+
+  -- The club-list title is the first three words played (scrabble._title), so a
+  -- replayed game would otherwise still advertise the previous deal's words.
+  update common.games set title = 'New game' where id = target_game;
+
+  perform common.reset_game(target_game, scrabble._status(target_game));
+end;
+$$;
+
+revoke execute on function scrabble.replay_board(uuid) from public;
+grant execute on function scrabble.replay_board(uuid) to authenticated;

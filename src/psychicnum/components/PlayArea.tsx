@@ -9,7 +9,8 @@ import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { memberById } from '../../common/lib/game/peers'
@@ -67,6 +68,8 @@ export function PlayArea({
   status,
   globalFeedback,
   goToClub,
+  clubHandle,
+  goToGame,
   menu,
   brand,
   title,
@@ -108,7 +111,12 @@ export function PlayArea({
   // effect's onClick closures can call them without depending on the concrete
   // handlers (whose closures change each render). Populated by the effect just
   // below `useGlobalKeyHandler`, like the crosswords `actionsRef` pattern.
-  const actionsRef = useRef<{ end: () => void; concede: () => void } | null>(null)
+  const actionsRef = useRef<{
+    end: () => void
+    concede: () => void
+    replay: () => void
+    newGame: () => void
+  } | null>(null)
 
   // The FULL psychicnum game menu (Help + Print + End/Concede + Back to club).
   // `buildGameMenu` supplies the framing; `extra` is our one Print item. Print
@@ -163,6 +171,13 @@ export function PlayArea({
           // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
           ...infoSheet.menuSections,
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printPsychicnumPdf(model) }] },
+          {
+            items: [
+              // The same pair the terminal action row offers, reachable mid-game too.
+              { id: 'replay', label: 'Replay board', onClick: () => actionsRef.current?.replay() },
+              { id: 'new-game', label: 'New game', onClick: () => actionsRef.current?.newGame() },
+            ],
+          },
         ],
       }),
     )
@@ -282,20 +297,62 @@ export function PlayArea({
   // The menu (⌥⌫ + the End/Concede item) and InfoCol's buttons share ONE pair
   // of handlers — hoisted above the early returns as useCallbacks so the ref
   // can list them in its deps. (The crosswords `actionsRef` pattern.)
-  const endGame = useCallback(async () => {
-    if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
-  }, [gameId, showLocalFeedback, confirmAction])
-  const handleConcede = useCallback(async () => {
-    if (isTerminal || myConceded) return
-    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
-    const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
-  }, [isTerminal, myConceded, gameId, showLocalFeedback])
+  //
+  // End / Concede / Replay come from the shared `useStandardGameActions`;
+  // psychicnum's own bits are the capitalize-the-RPC-error pill, the replay
+  // sentence, and the post-replay cleanup (leave the turn-history view, clear
+  // the pill).
+  const showError = useCallback(
+    (m: string) => showLocalFeedback(stickyPill('error', capitalize(m))),
+    [showLocalFeedback],
+  )
+  const onReplayed = useCallback(() => {
+    exitViewing()
+    clearLocalFeedback()
+  }, [exitViewing, clearLocalFeedback])
+  const { endGame, concede, replay } = useStandardGameActions({
+    db,
+    gameId,
+    isTerminal,
+    myConceded,
+    confirm: confirmAction,
+    replayConfirm:
+      "Replay board? This clears everyone's guesses and hunts the same three secrets again.",
+    showError,
+    onReplayed,
+  })
+
+  // New game — a FRESH game (new id, a new random board + secrets) with THIS
+  // game's setup + roster + mode, in the same club. psychicnum's create_game
+  // samples its board inline, so this is a direct RPC — no edge function.
+  // Non-destructive (common.create_game un-currents this game into the club
+  // list), so no confirm; the creator jumps in via ctx.goToGame, peers arrive
+  // via the game-invitation toast.
+  const handleNewGame = useCallback(async () => {
+    if (!mode) return // menu exists pre-load, but there's no mode to copy yet
+    const { data, error } = await db
+      .rpc('create_game', {
+        target_club: clubHandle,
+        setup: setup as unknown as PsychicnumSetup,
+        player_user_ids: players.map((p) => p.user_id),
+        mode,
+      })
+      .single()
+    if (error || !data) {
+      showLocalFeedback(stickyPill('error', `New game failed: ${error?.message ?? 'unknown'}`))
+      return
+    }
+    goToGame(`psychicnum_${mode}`, (data as { id: string }).id)
+  }, [mode, clubHandle, setup, players, goToGame, showLocalFeedback])
+
   useEffect(() => {
-    actionsRef.current = { end: () => void endGame(), concede: () => void handleConcede() }
-  }, [endGame, handleConcede])
+    actionsRef.current = {
+      end: endGame,
+      concede,
+      replay,
+      newGame: () => void handleNewGame(),
+    }
+  }, [endGame, concede, replay, handleNewGame])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -448,8 +505,10 @@ export function PlayArea({
         hinting={hinting}
         onReveal={() => void getReveal()}
         revealing={revealing}
-        onEndGame={() => void endGame()}
-        onConcede={() => void handleConcede()}
+        onEndGame={endGame}
+        onConcede={concede}
+        onRestart={replay}
+        onNewGame={() => void handleNewGame()}
         onBackToClub={goToClub}
         // ── Setup disclosure ──
         setup={psychicnumSetup}

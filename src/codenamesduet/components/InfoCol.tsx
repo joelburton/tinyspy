@@ -2,6 +2,7 @@ import { colorVarFor } from '../../common/lib/color/memberColor'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
+import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { CodenamesduetSetup } from '../lib/setup'
@@ -36,6 +37,7 @@ export function InfoCol({
   peerFinished,
   peer,
   onEndGame,
+  onNewGame,
   onBackToClub,
   setup,
   firstClueGiver,
@@ -69,6 +71,8 @@ export function InfoCol({
 
   // ── Action row (End during play; back-to-club at terminal) ──
   onEndGame: () => void
+  /** Start a fresh follow-up game — same setup + roster, a newly sampled board. */
+  onNewGame: () => void
   onBackToClub: () => void
 
   // ── Setup disclosure ──
@@ -133,7 +137,11 @@ export function InfoCol({
         {/* Action row. Playing: End. Terminal: the bold, outcome-colored result line +
             a compact back-to-club button (the shared swap). */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} />
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
+            {/* The one stay-here option, left of the leave option (Club): deal a
+                fresh board. No Restart twin — see PlayArea's handleNewGame. */}
+            <NewGameButton iconOnly onClick={onNewGame} />
+          </TerminalActionRow>
         ) : (
           <div className={shared.infoActions}>
             {/* Manual "we're done" stop — the shared EndGameButton (flag + error/red
@@ -141,7 +149,7 @@ export function InfoCol({
                 mutual stop), not Concede. It reads distinctly from this game's "Pass &
                 end turn" below the board (a different component + glyph), so it keeps
                 the same plain "End" as every other v3 game. */}
-            <EndGameButton onClick={onEndGame} className={shared.helperButton} />
+            <EndGameButton iconOnly onClick={onEndGame} className={shared.helperButton} />
           </div>
         )}
 

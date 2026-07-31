@@ -19,6 +19,7 @@ import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import type { ConnectionsSetup } from '../lib/setup'
+import { nextUnplayedPuzzle } from '../lib/nextPuzzle'
 import { turnSnapshot } from '../lib/history'
 import { stickyPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
@@ -92,6 +93,8 @@ export function PlayArea({
   setup,
   globalFeedback,
   goToClub,
+  clubHandle,
+  goToGame,
   menu,
 }: GamePageCtx) {
   const {
@@ -229,6 +232,83 @@ export function PlayArea({
     }
   }, [gameId, isTerminal, showLocalFeedback, confirmAction])
 
+  // ─── Replay board ──────────────────────────────────────
+  // Restart THIS puzzle: same sixteen tiles in the same shuffle, everyone's
+  // guesses + mistakes wiped. Confirmed mid-game (it wipes the group's
+  // progress); at terminal there's nothing left to lose. The post-replay
+  // cleanup leaves the turn-history view and clears the pill.
+  const handleReplay = useCallback(async () => {
+    if (!isTerminal &&
+        !window.confirm("Replay board? This clears everyone's guesses and mistakes.")) return
+    const { error } = await db.rpc('replay_board', { target_game: gameId })
+    if (error) {
+      showLocalFeedback(stickyPill('error', `Replay failed: ${error.message}`))
+      return
+    }
+    exitViewing()
+    clearLocalFeedback()
+  }, [gameId, isTerminal, showLocalFeedback, clearLocalFeedback, exitViewing])
+
+  // ─── New game — the NEXT unplayed puzzle ───────────────
+  // connections is the one game whose boards are a dated ARCHIVE rather than
+  // something generated per game, so "New game" can't just re-roll: it walks
+  // forward to the next daily puzzle this club hasn't played in this mode
+  // (`nextUnplayedPuzzle`, unit-tested). Two reads feed it — the dated puzzle
+  // list, and the club's per-date game rows via the `club_game_status` view
+  // (the same view the setup form's calendar uses).
+  //
+  // When the archive runs out there's nothing sensible to start, so we say so
+  // in a NOTICE (a one-button ConfirmDialog) rather than failing quietly or
+  // starting a repeat.
+  const gameMode = game?.mode
+  // The current game's puzzle date, read at CLICK time so `handleNewGame`'s
+  // identity stays stable across the realtime refetches that re-create `game`
+  // (an unstable handler would rebuild the menu every render — the setState
+  // loop the actionsRef pattern exists to avoid). Synced in a passive effect;
+  // writing a ref during render is forbidden here (react-hooks/refs).
+  const puzzleDateRef = useRef<string | null>(null)
+  useEffect(() => {
+    puzzleDateRef.current = game?.puzzleDate ?? null
+  })
+  const handleNewGame = useCallback(async () => {
+    if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
+    const [{ data: puzzleRows }, { data: statusRows }] = await Promise.all([
+      db.from('puzzles').select('id, nyt_date').not('nyt_date', 'is', null).order('nyt_date'),
+      db.from('club_game_status').select('nyt_date').eq('club_handle', clubHandle).eq('mode', gameMode),
+    ])
+    const played = new Set(
+      ((statusRows ?? []) as { nyt_date: string }[]).map((r) => r.nyt_date),
+    )
+    const next = nextUnplayedPuzzle(
+      ((puzzleRows ?? []) as { id: string; nyt_date: string }[]),
+      played,
+      puzzleDateRef.current,
+    )
+    if (!next) {
+      await confirmAction({
+        title: 'No more puzzles',
+        message:
+          "You've played every puzzle after this one that's been imported. Import more, or pick an earlier date from the club page.",
+        confirmLabel: 'Got it',
+        cancelLabel: null, // a notice, not a question
+      })
+      return
+    }
+    const { data, error } = await db
+      .rpc('create_game', {
+        target_club: clubHandle,
+        setup: { ...(setup as unknown as ConnectionsSetup), puzzleId: next.id },
+        player_user_ids: players.map((p) => p.user_id),
+        mode: gameMode,
+      })
+      .single()
+    if (error || !data) {
+      showLocalFeedback(stickyPill('error', `New game failed: ${error?.message ?? 'unknown'}`))
+      return
+    }
+    goToGame(`connections_${gameMode}`, (data as { id: string }).id)
+  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction])
+
   // Concede — drop out of a compete race (a real loss; the others keep racing).
   // Distinct from End: connections.concede flips the caller's conceded flag then
   // re-runs the compete terminal check (which now counts them as done). Reads
@@ -262,16 +342,25 @@ export function PlayArea({
   // re-runs once `game` arrives. Placed above the early returns so hook order is
   // stable.
   const mode: 'coop' | 'compete' = game?.mode ?? 'coop'
-  const actionsRef = useRef<{ endGame: () => void; concede: () => void }>({
+  const actionsRef = useRef<{
+    endGame: () => void
+    concede: () => void
+    replay: () => void
+    newGame: () => void
+  }>({
     endGame: () => {},
     concede: () => {},
+    replay: () => {},
+    newGame: () => {},
   })
   useEffect(() => {
     actionsRef.current = {
       endGame: () => void handleEndGame(),
       concede: () => void handleConcede(),
+      replay: () => void handleReplay(),
+      newGame: () => void handleNewGame(),
     }
-  }, [handleEndGame, handleConcede])
+  }, [handleEndGame, handleConcede, handleReplay, handleNewGame])
   useEffect(() => {
     menu.setGameSections(
       buildGameMenu({
@@ -281,7 +370,16 @@ export function PlayArea({
         conceded: myConceded,
         onEndGame: () => actionsRef.current.endGame(),
         onConcede: () => actionsRef.current.concede(),
-        extra: infoSheet.menuSections,
+        extra: [
+          ...infoSheet.menuSections,
+          {
+            items: [
+              // The same pair the terminal action row offers, reachable mid-game too.
+              { id: 'replay', label: 'Replay board', onClick: () => actionsRef.current.replay() },
+              { id: 'new-game', label: 'New game', onClick: () => actionsRef.current.newGame() },
+            ],
+          },
+        ],
       }),
     )
     return () => menu.setGameSections([])
@@ -425,6 +523,8 @@ export function PlayArea({
         onHints={() => setHintsOpen((o) => !o)}
         onEndGame={() => void handleEndGame()}
         onConcede={() => void handleConcede()}
+        onRestart={() => void handleReplay()}
+        onNewGame={() => void handleNewGame()}
         onBackToClub={goToClub}
         // ── Setup disclosure ──
         setup={connSetup}

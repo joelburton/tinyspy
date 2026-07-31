@@ -797,3 +797,68 @@ $$;
 
 revoke execute on function stackdown.concede(uuid) from public;
 grant execute on function stackdown.concede(uuid) to authenticated;
+
+-- ============================================================
+-- stackdown.replay_board — restart this stack from scratch
+-- ============================================================
+-- The "Replay board" game-menu item: reset the working state on the
+-- SAME game row. The frozen puzzle (tiles / solution / band / mode)
+-- stays — the same stack, cleared again; everything the players did is
+-- wiped. Any game player may call it, from a finished game OR mid-game
+-- (no play_state guard — it's a restart). Both modes reset ALL players
+-- (a group "run it back", per the friends trust model).
+--
+-- Three things reset, matching what create_game established:
+--   - players zeroed + unsolved;
+--   - the submission log cleared (words, hints AND reveals — a replay is
+--     a genuine second try, so the cheats you spent don't carry over);
+--   - the club-list TITLE back to 'New game'. Coop rewrites it to the
+--     cleared words as it plays (submit_word → _found_title), so without
+--     this a replayed game would advertise the previous run's words —
+--     and, in a game whose whole point is that the solution is hidden,
+--     spoil the board it just reset. (The other games' replays have no
+--     title to restore; this one does.)
+--
+-- Then the common-layer reset (common.reset_game): un-terminal, fresh
+-- initial status matching create_game's, per-player results + concede
+-- cleared. The solution re-hides on its own — games_state gates it on
+-- common.games.is_terminal, which reset_game clears.
+--
+-- No realtime touch needed: the players update + submissions delete wake
+-- useGame (subscribed to stackdown.{games,players,submissions}), and
+-- reset_game's common.games write wakes useCommonGame — so the board,
+-- log, and terminal state all reset live for every player.
+create function stackdown.replay_board(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = stackdown, common, public, extensions
+as $$
+declare
+  g_row stackdown.games;
+begin
+  perform common.require_game_player(target_game);
+  select * into g_row from stackdown.games where id = target_game;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  update stackdown.players
+     set found_count = 0,
+         solved = false,
+         solved_at = null
+   where game_id = target_game;
+
+  delete from stackdown.submissions where game_id = target_game;
+
+  update common.games set title = 'New game' where id = target_game;
+
+  perform common.reset_game(
+    target_game,
+    jsonb_build_object('mode', g_row.mode, 'found', 0, 'total', 6)
+  );
+end;
+$$;
+
+revoke execute on function stackdown.replay_board(uuid) from public;
+grant execute on function stackdown.replay_board(uuid) to authenticated;

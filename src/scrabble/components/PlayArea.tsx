@@ -8,7 +8,8 @@ import { CelebrationDialog } from '../../common/components/game/CelebrationDialo
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
-import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { difficultyValue } from '../../common/lib/game/difficulty'
@@ -64,6 +65,8 @@ export function PlayArea({
   status,
   setup,
   goToClub,
+  clubHandle,
+  goToGame,
   menu,
   brand,
   title,
@@ -292,7 +295,12 @@ export function PlayArea({
   // End/Concede items call `actionsRef.current?.…` at click time, and a separate
   // effect keeps the ref current. This keeps the menu effect's deps stable so
   // `setGameSections` (a setState) doesn't loop.
-  const actionsRef = useRef<{ endGame: () => void; concede: () => void } | null>(null)
+  const actionsRef = useRef<{
+    endGame: () => void
+    concede: () => void
+    replay: () => void
+    newGame: () => void
+  } | null>(null)
 
   // SPIKE (branch scrabble-jspdf): a "Print board (PDF)" item in the GamePage menu.
   // Builds the print model from the live state (RLS already scoped it to what I may
@@ -338,40 +346,86 @@ export function PlayArea({
         extra: [
           ...infoSheet.menuSections,
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printScrabblePdf(model) }] },
+          {
+            items: [
+              // The same pair the terminal action row offers, reachable mid-game too.
+              { id: 'replay', label: 'Replay board', onClick: () => actionsRef.current?.replay() },
+              { id: 'new-game', label: 'New game', onClick: () => actionsRef.current?.newGame() },
+            ],
+          },
         ],
       }),
     )
     return () => menu.setGameSections([])
   }, [menu, game, plays, self, isCompete, isTerminal, myConceded, nameOf, setup, brand, title, infoSheet.menuSections])
 
-  // Always confirmed via the shared modal (ending is harmful for the whole
-  // group, even coop/solo); it's irreversible.
-  const handleEndGame = useCallback(async () => {
-    if (isTerminal) return
-    if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback({ tone: 'error', text: `End game failed: ${error.message}` })
-  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
+  // ─── End / Concede / Replay — the shared trio ─────────────
+  // The byte-identical shared handlers (useStandardGameActions). scrabble's own
+  // bits are the failure-pill format, the replay sentence, and the post-replay
+  // cleanup (leave whichever read-only overlay is open — a past turn or a
+  // teammate's shared move — since the board it described is gone).
+  //
+  // What "Replay board" means here is worth stating: scrabble's 15×15 grid is
+  // the standard layout, not a generated puzzle, so there's no board to restore.
+  // A replay re-deals — fresh bag, new racks, empty grid — keeping the setup,
+  // roster, seats and any AI opponents. Hence the confirm's wording.
+  const showError = useCallback(
+    (m: string) => showLocalFeedback({ tone: 'error', text: m }),
+    [showLocalFeedback],
+  )
+  const onReplayed = useCallback(() => {
+    exitViewing()
+    clearLocalFeedback()
+  }, [exitViewing, clearLocalFeedback])
+  const { endGame, concede, replay } = useStandardGameActions({
+    db,
+    gameId,
+    isTerminal,
+    myConceded,
+    confirm: confirmAction,
+    replayConfirm:
+      "Replay board? This clears the grid and everyone's score, and deals fresh racks.",
+    showError,
+    onReplayed,
+  })
 
-  // Concede (compete) — drop out of the race. Turn-based, so the server hands off the
-  // turn / ends the game (scrabble.concede); the conceder forfeits any win. Distinct
-  // from End, which is coop's neutral mutual stop.
-  const handleConcede = useCallback(async () => {
-    if (isTerminal) return
-    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
-    const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showLocalFeedback({ tone: 'error', text: `Concede failed: ${error.message}` })
-  }, [gameId, isTerminal, showLocalFeedback])
+  // New game — a FRESH game (new id, new shuffle) with THIS game's setup +
+  // roster + mode, in the same club. scrabble's create_game is a direct RPC (no
+  // edge function — the only per-game randomness is the bag shuffle), so this
+  // mirrors the manifest's startGameInClub. Non-destructive (common.create_game
+  // un-currents this game into the club list), so no confirm.
+  //
+  // `setup` is passed through verbatim, AI seats included — "same again" means
+  // the same opponents. It carries `firstTurnUserId` for a turn-order coop game;
+  // create_game re-reads it, so the rotation is seeded exactly as before.
+  const gameMode: 'coop' | 'compete' = isCompete ? 'compete' : 'coop'
+  const handleNewGame = useCallback(async () => {
+    const { data, error } = await db
+      .rpc('create_game', {
+        target_club: clubHandle,
+        setup: setup as unknown as ScrabbleSetup,
+        player_user_ids: players.filter((p) => !p.conceded).map((p) => p.user_id),
+        mode: gameMode,
+      })
+      .single()
+    if (error || !data) {
+      showLocalFeedback({ tone: 'error', text: `New game failed: ${error?.message ?? 'unknown'}` })
+      return
+    }
+    goToGame(`scrabble_${gameMode}`, (data as { id: string }).id)
+  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback])
 
-  // Keep the menu's End/Concede dispatch current (read via the stable actionsRef
-  // by the menu items above). Separate from the menu effect so those handlers'
-  // changing identity doesn't rebuild the menu each time.
+  // Keep the menu's dispatch current (read via the stable actionsRef by the menu
+  // items above). Separate from the menu effect so those handlers' changing
+  // identity doesn't rebuild the menu each time.
   useEffect(() => {
     actionsRef.current = {
-      endGame: () => void handleEndGame(),
-      concede: () => void handleConcede(),
+      endGame,
+      concede,
+      replay,
+      newGame: () => void handleNewGame(),
     }
-  }, [handleEndGame, handleConcede])
+  }, [endGame, concede, replay, handleNewGame])
 
   if (loading) return <p className={styles.loading}>Loading game…</p>
   if (!game) return <p className={styles.loading}>Game not found.</p>
@@ -478,8 +532,10 @@ export function PlayArea({
           selfId={session.user.id}
           playerStates={playerStates}
           concededIds={concededIds}
-          onEndGame={() => void handleEndGame()}
-          onConcede={() => void handleConcede()}
+          onEndGame={endGame}
+          onConcede={concede}
+          onRestart={replay}
+          onNewGame={() => void handleNewGame()}
           onBackToClub={goToClub}
           suggest={isCompete ? null : suggestView}
           canSuggest={!isTerminal && !!self}

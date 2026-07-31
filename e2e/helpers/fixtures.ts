@@ -755,7 +755,13 @@ export async function createConnectionsGame(
   club: E2EClub,
   mode: 'coop' | 'compete' = 'coop',
   playerUserIds: string[] = club.members.map((m) => m.userId),
+  /** Use an EXISTING puzzle (by id) instead of inserting the undated A/B/C/D
+   *  fixture. Needed by the "New game" tests, which turn on where the game sits
+   *  in the DATED archive — the fixture puzzle has `nyt_date: null` and so has
+   *  no place in it. */
+  existingPuzzleId?: string,
 ): Promise<{ id: string; gametype: string }> {
+  if (existingPuzzleId) return createConnectionsGameFrom(club, mode, playerUserIds, existingPuzzleId)
   const puzzle = await admin
     .schema('connections')
     .from('puzzles')
@@ -785,6 +791,42 @@ export async function createConnectionsGame(
   if (res.error) throw new Error(`connections.create_game: ${res.error.message}`)
   const row = Array.isArray(res.data) ? res.data[0] : res.data
   return { id: (row as { id: string }).id, gametype: `connections_${mode}` }
+}
+
+/** The `existingPuzzleId` arm of createConnectionsGame — no puzzle insert. */
+async function createConnectionsGameFrom(
+  club: E2EClub,
+  mode: 'coop' | 'compete',
+  playerUserIds: string[],
+  puzzleId: string,
+): Promise<{ id: string; gametype: string }> {
+  const res = await asUser(club.members[0].session.access_token)
+    .schema('connections')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: { puzzleId, timer: { kind: 'none' } },
+      player_user_ids: playerUserIds,
+      mode,
+    })
+  if (res.error) throw new Error(`connections.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: `connections_${mode}` }
+}
+
+/** The imported connections archive's puzzle at one end of the date order —
+ *  `'last'` for the most recent (nothing after it, so "New game" runs out),
+ *  `'first'` for the oldest (plenty after it). */
+export async function connectionsArchiveEdge(which: 'first' | 'last'): Promise<string> {
+  const res = await admin
+    .schema('connections')
+    .from('puzzles')
+    .select('id, nyt_date')
+    .not('nyt_date', 'is', null)
+    .order('nyt_date', { ascending: which === 'first' })
+    .limit(1)
+    .single()
+  if (res.error || !res.data) throw new Error(`connections archive ${which}: ${res.error?.message}`)
+  return (res.data as { id: string }).id
 }
 
 /**

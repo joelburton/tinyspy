@@ -1,6 +1,8 @@
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
+import { RestartButton } from '../../common/components/buttons/RestartButton'
+import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { HintButton } from '../../common/components/buttons/HintButton'
@@ -48,6 +50,8 @@ export function InfoCol({
   revealing,
   onEndGame,
   onConcede,
+  onRestart,
+  onNewGame,
   onBackToClub,
   setup,
   wordCount,
@@ -91,6 +95,11 @@ export function InfoCol({
   revealing: boolean
   onEndGame: () => void
   onConcede: () => void
+  /** Hunt the SAME board + secrets again from scratch (the menu's replay-board;
+   *  unconfirmed at terminal since there's no progress left to lose). */
+  onRestart: () => void
+  /** Start a fresh follow-up game — same setup + roster, a new board + secrets. */
+  onNewGame: () => void
   onBackToClub: () => void
 
   // ── Setup disclosure ──
@@ -109,10 +118,12 @@ export function InfoCol({
   // the race → psychicnum.concede); solo / coop use the neutral "End" (a mutual
   // "we're done" → end_game). Two components because they're semantically distinct
   // actions. Shared by the "playing" and the "out of guesses / conceded" action rows.
+  // Icon-only (the canonical action-row treatment): the styled tooltip carries
+  // the label.
   const endButton = isCompete ? (
-    <ConcedeGameButton onClick={onConcede} className={shared.helperButton} disabled={myConceded} />
+    <ConcedeGameButton iconOnly onClick={onConcede} className={shared.helperButton} disabled={myConceded} />
   ) : (
-    <EndGameButton onClick={onEndGame} className={shared.helperButton} />
+    <EndGameButton iconOnly onClick={onEndGame} className={shared.helperButton} />
   )
 
   // Turn-order: is it my turn (or a free-for-all game, pointer null)? Only used
@@ -170,14 +181,19 @@ export function InfoCol({
             LOOK (a bold status line + the action on the right) so the state change
             reads loudly, not as a silently-swapped help line. */}
         {over ? (
-          <TerminalActionRow over={over} onBackToClub={onBackToClub} />
+          <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
+            {/* Stay-here options left of the leave option (Club): hunt this board
+                again, or deal a new one. */}
+            <RestartButton iconOnly onClick={onRestart} />
+            <NewGameButton iconOnly onClick={onNewGame} />
+          </TerminalActionRow>
         ) : canGuess ? (
           <div className={shared.infoActions}>
             {/* Hint = a clue (common.words.hint); Reveal = the answer word. Both log
                 to the turn log, cost nothing — and both are warning-toned (amber) via
                 the semantic button components. */}
-            <HintButton onClick={onHint} disabled={hinting} className={shared.helperButton} />
-            <RevealButton onClick={onReveal} disabled={revealing} className={shared.helperButton} />
+            <HintButton iconOnly onClick={onHint} disabled={hinting} className={shared.helperButton} />
+            <RevealButton iconOnly onClick={onReveal} disabled={revealing} className={shared.helperButton} />
             {endButton}
           </div>
         ) : (

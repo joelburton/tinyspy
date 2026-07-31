@@ -1165,6 +1165,7 @@ export type Database = {
         }[]
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
       submit_guess: {
         Args: {
           matched_category_rank?: number
@@ -1625,6 +1626,7 @@ export type Database = {
         }[]
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
       request_hint: { Args: { target_game: string }; Returns: string }
       request_reveal: { Args: { target_game: string }; Returns: string }
       submit_guess: {
@@ -1999,6 +2001,7 @@ export type Database = {
         }
         Returns: Json
       }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
     }
     Enums: {
@@ -2411,6 +2414,7 @@ export type Database = {
         }[]
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
       reveal_next_hint: { Args: { target_game: string }; Returns: string }
       reveal_next_word: { Args: { target_game: string }; Returns: string }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }

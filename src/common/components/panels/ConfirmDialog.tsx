@@ -11,8 +11,11 @@ type Props = {
   /** The confirm button's label ("End game", "Suspend"). Deliberately never
    *  a bare "OK" — the button should name the act. */
   confirmLabel: string
-  /** The dismiss button's label. Defaults to "Cancel". */
-  cancelLabel?: string
+  /** The dismiss button's label. Defaults to "Cancel"; pass **null** to omit
+   *  the button entirely, which turns this into a one-button NOTICE ("here's
+   *  why nothing happened") rather than a question. Esc / the header ✕ still
+   *  dismiss, and both still route through `onCancel`. */
+  cancelLabel?: string | null
   onConfirm: () => void
   /** Called on Cancel, Esc, or the header ✕. */
   onCancel: () => void
@@ -60,9 +63,11 @@ export function ConfirmDialog({
       <div ref={anchorRef}>
         <p>{message}</p>
         <div className={actionRow.modalActions}>
-          <button type="button" className="secondary" onClick={onCancel}>
-            {cancelLabel}
-          </button>
+          {cancelLabel !== null && (
+            <button type="button" className="secondary" onClick={onCancel}>
+              {cancelLabel}
+            </button>
+          )}
           <button type="button" onClick={onConfirm} autoFocus>
             {confirmLabel}
           </button>
