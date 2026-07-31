@@ -492,10 +492,7 @@ export function PlayArea({
 /** Terminal copy (the shared `TerminalCopy`), mode- and (compete) self-aware.
  *  `tone` + `verdict` drive the permanent below-board pill; `message` + `tone`
  *  drive the short bold line in the info-column action row (`tone` picks its
- *  `outcome_<tone>` color — incl. neutral for a manual end). `outcome` was the
- *  GameOverModal's field — stackdown no longer renders that modal (the coop
- *  celebration + the in-page verdict replaced it) — but the shared shape still
- *  requires it.
+ *  `outcome_<tone>` color — incl. neutral for a manual end).
  *
  *  Verdicts lead with the outcome word (`Won:` / `Lost:`) and carry no trailing
  *  period: the pill is a one-line, ellipsising row (~48 chars on a phone), so
@@ -521,10 +518,9 @@ function buildOver({
   if (playState === 'ended') return endedCopy(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
-      return { outcome: 'won', verdict: 'Won: stack cleared', message: 'Cleared!', tone: 'won' }
+      return { verdict: 'Won: stack cleared', message: 'Cleared!', tone: 'won' }
     }
     return {
-      outcome: 'lost',
       verdict: timerExpired ? 'Lost: out of time' : 'Lost: stack not cleared',
       message: timerExpired ? 'Out of time' : 'Not cleared',
       tone: 'lost',
@@ -536,10 +532,9 @@ function buildOver({
   // twin for anything that needs a string.
   if (playState === 'won_compete') {
     if (selfWon) {
-      return { outcome: 'won', verdict: 'Won: cleared it first', message: 'You won!', tone: 'won' }
+      return { verdict: 'Won: cleared it first', message: 'You won!', tone: 'won' }
     }
     return {
-      outcome: 'lost',
       verdict: `${winnerName} cleared it first`,
       verdictNode: (
         <>
@@ -553,7 +548,6 @@ function buildOver({
   // lost_compete — nobody cleared, or time ran out. No `Lost:` prefix: nobody was
   // beaten, the stack just outlasted everyone.
   return {
-    outcome: 'lost',
     verdict: timerExpired ? 'Out of time — no winner' : 'Nobody cleared it',
     message: timerExpired ? 'Out of time' : 'No winner',
     tone: 'lost',

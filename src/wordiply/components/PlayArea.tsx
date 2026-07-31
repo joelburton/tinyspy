@@ -401,7 +401,6 @@ function buildOver({
       const shared = winners.length > 1
       if (iWon) {
         return {
-          outcome: 'won',
           verdict: shared ? `Won: tied at ${pct}%` : `Won: ${pct}%`,
           message: shared ? 'You tied for the win!' : 'You won!',
           tone: 'won',
@@ -411,7 +410,6 @@ function buildOver({
       if (shared) {
         const label = winners.map((e) => nameOf(e.user_id)).join(' & ')
         return {
-          outcome: 'lost',
           verdict: `${label} tied at ${pct}%`,
           message: `${label} tied`,
           tone: 'lost',
@@ -420,7 +418,6 @@ function buildOver({
       const soleId = winners[0]?.user_id ?? winnerId ?? undefined
       const label = nameOf(soleId)
       return {
-        outcome: 'lost',
         verdict: `${label} won at ${pct}%`,
         verdictNode: (
           <>
@@ -445,9 +442,6 @@ function buildOver({
   // withheld.
   const pct = lengthScore(longest, maxWordLength)
   return {
-    // `outcome` was the GameOverModal's field, and wordiply renders no modal —
-    // 'won' just means "not a loss". The DISPLAYED colour is `tone: 'neutral'`.
-    outcome: 'won',
     verdict: `Ended: ${pct}%, ${letters} letters`,
     message: `Length ${pct}%`,
     tone: 'neutral',

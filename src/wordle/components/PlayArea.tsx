@@ -489,10 +489,7 @@ export function PlayArea({
 /**
  * Per-status terminal copy (the shared `TerminalCopy` shape). `tone` + `verdict`
  * drive the below-board terminal pill; `tone` + `message` drive the short,
- * color-coded info-column outcome line. `outcome` was the GameOverModal's field —
- * wordle no longer renders that modal (the coop celebration + the in-page verdict
- * replaced it) — but the shared shape still requires it. Mode- and (compete)
- * self-aware.
+ * color-coded info-column outcome line. Mode- and (compete) self-aware.
  */
 function buildOver({
   mode,
@@ -517,10 +514,9 @@ function buildOver({
   if (playState === 'ended') return endedCopy(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
-      return { outcome: 'won', verdict: 'Solved! 🎉', message: 'Solved it!', tone: 'won' }
+      return { verdict: 'Solved! 🎉', message: 'Solved it!', tone: 'won' }
     }
     return {
-      outcome: 'lost',
       verdict: timerExpired ? 'Lost: out of time' : 'Lost: out of guesses',
       message: timerExpired ? 'Out of time' : 'Out of guesses',
       tone: 'lost',
@@ -531,17 +527,16 @@ function buildOver({
   if (playState === 'won_compete') {
     if (selfWon) {
       return wonByClock
-        ? { outcome: 'won', verdict: 'Won: same guesses, but faster', message: 'You won (faster)', tone: 'won' }
-        : { outcome: 'won', verdict: 'Won: fewest guesses', message: 'You won!', tone: 'won' }
+        ? { verdict: 'Won: same guesses, but faster', message: 'You won (faster)', tone: 'won' }
+        : { verdict: 'Won: fewest guesses', message: 'You won!', tone: 'won' }
     }
     return selfTiedWinner
-      ? { outcome: 'lost', verdict: 'Lost: beaten on the clock', message: 'Opponent won (faster)', tone: 'lost' }
-      : { outcome: 'lost', verdict: 'Lost: beaten on guesses', message: 'Opponent won', tone: 'lost' }
+      ? { verdict: 'Lost: beaten on the clock', message: 'Opponent won (faster)', tone: 'lost' }
+      : { verdict: 'Lost: beaten on guesses', message: 'Opponent won', tone: 'lost' }
   }
   // lost_compete — nobody solved, or time ran out. No `Lost:` prefix: nobody was
   // beaten, the board just ran out.
   return {
-    outcome: 'lost',
     verdict: timerExpired ? 'Out of time — no winner' : 'Nobody solved',
     message: timerExpired ? 'Out of time' : 'No winner',
     tone: 'lost',

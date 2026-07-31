@@ -483,9 +483,8 @@ type LeaderRow = { user_id: string; count: number; score: number }
  * the highest score. A `'target'` compete win names the crosser in
  * `status.winner_id` / `status.winner_username`.
  *
- * Returns `{ outcome, verdict, message, tone }`: `outcome` + `verdict` drive the
- * GameOverModal + the permanent below-board pill; `message` + `tone` drive the
- * short bold line in the info-column action row.
+ * `verdict` + `tone` drive the permanent below-board pill; `message` + `tone`
+ * drive the short bold line in the info-column action row.
  */
 function buildOver({
   mode,
@@ -504,7 +503,6 @@ function buildOver({
   myConceded: boolean
   selfId: string
 }): {
-  outcome: 'won' | 'lost'
   verdict: string
   /** The one case where the pill wants a WIDGET rather than a string: the
    *  winner's identity dot, the same way peer feedback names people elsewhere.
@@ -524,7 +522,6 @@ function buildOver({
     // IS a real win. Which of timeout-vs-manual ended it rides in `message`
     // ("Time's up" / "Game ended") — the pill spends its width on the tally.
     return {
-      outcome: 'won',
       verdict: isTarget ? `Won: ${tally}` : `Ended: ${tally}`,
       message: isTarget ? 'Target reached!' : reason,
       tone: isTarget ? 'won' : 'neutral',
@@ -536,7 +533,6 @@ function buildOver({
   // banked score was the highest (mirrors the server's won:false).
   if (myConceded) {
     return {
-      outcome: 'lost',
       verdict: 'Lost: conceded',
       message: 'You conceded',
       tone: 'lost',
@@ -550,14 +546,12 @@ function buildOver({
     const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
     if (winnerId === selfId) {
       return {
-        outcome: 'won',
         verdict: `Won: ${tally}`,
         message: 'You won!',
         tone: 'won',
       }
     }
     return {
-      outcome: 'lost',
       verdict: `${winnerName} won`,
       verdictNode: (
         <>
@@ -577,7 +571,6 @@ function buildOver({
   const max = board.reduce((m, r) => Math.max(m, r.score), 0)
   if (max === 0) {
     return {
-      outcome: 'lost',
       verdict: 'Ended: no words found',
       message: 'No winner',
       tone: 'neutral',
@@ -585,7 +578,6 @@ function buildOver({
   }
   if (myScore >= max) {
     return {
-      outcome: 'won',
       verdict: `Won: ${tally}`,
       message: 'You won!',
       tone: 'won',
@@ -595,7 +587,6 @@ function buildOver({
   const topPlayer = players.find((p) => p.user_id === topRow?.user_id)
   const topName = topPlayer?.username ?? 'Someone'
   return {
-    outcome: 'lost',
     verdict: `${topName} won`,
     verdictNode: (
       <>

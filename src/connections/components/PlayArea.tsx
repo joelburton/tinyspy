@@ -457,8 +457,7 @@ export function PlayArea({
  * Per-status terminal copy. `verdict` + `tone` drive the permanent below-board
  * pill; `message` + `tone` drive the short, bold, color-coded line in the
  * info-column action row (won = green, lost = red, manual end = neutral). Same
- * shape as psychicnum's buildOver. (`outcome` is vestigial now that there's no
- * GameOverModal, but the shared `TerminalCopy` type still requires it.) Coop
+ * shape as psychicnum's buildOver. Coop
  * verdicts are team-wide; compete distinguishes the racer who hit 4 matches (the
  * winner) from two losers — eliminated (used all 4 mistakes) vs beaten to the
  * punch (an opponent solved it first). Detail-on-page intentionally: the
@@ -490,10 +489,9 @@ function buildOver({
   if (playState === 'ended') return endedCopy(mode)
   if (mode === 'coop') {
     if (playState === 'solved') {
-      return { outcome: 'won', verdict: 'You win!', message: 'You won!', tone: 'won' }
+      return { verdict: 'You win!', message: 'You won!', tone: 'won' }
     }
     return {
-      outcome: 'lost',
       verdict: timerExpired ? 'Lost: out of time' : 'Lost: out of mistakes',
       message: timerExpired ? 'Out of time' : 'Out of mistakes',
       tone: 'lost',
@@ -502,19 +500,18 @@ function buildOver({
   // compete
   if (playState === 'solved_compete') {
     if (selfMatched >= CATEGORY_COUNT) {
-      return { outcome: 'won', verdict: 'You won the race!', message: 'You won!', tone: 'won' }
+      return { verdict: 'You won the race!', message: 'You won!', tone: 'won' }
     }
     // I lost — but WHY matters. If I used all my mistakes I was eliminated
     // (out of mistakes); "beaten to the punch" is only for a still-racing player
     // whose opponent solved it first.
     if (selfEliminated) {
-      return { outcome: 'lost', verdict: 'Lost: out of mistakes', message: 'Out of mistakes', tone: 'lost' }
+      return { verdict: 'Lost: out of mistakes', message: 'Out of mistakes', tone: 'lost' }
     }
-    return { outcome: 'lost', verdict: 'Beaten to the punch', message: 'Opponent won', tone: 'lost' }
+    return { verdict: 'Beaten to the punch', message: 'Opponent won', tone: 'lost' }
   }
   // lost_compete (everyone eliminated OR timeout)
   return {
-    outcome: 'lost',
     verdict: timerExpired
       ? 'Out of time — nobody won'
       : 'Everyone eliminated',

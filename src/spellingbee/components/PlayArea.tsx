@@ -615,7 +615,6 @@ function buildOver({
       const winnerId = (status?.winner_user_id as string | undefined) ?? null
       if (winnerId === selfId) {
         return {
-          outcome: 'won',
           verdict: `Won: "${targetRankName}" ${points}`,
           message: 'You won!',
           tone: 'won',
@@ -624,7 +623,6 @@ function buildOver({
       const winner = players.find((p) => p.user_id === winnerId)
       const winnerName = winner?.username ?? 'someone'
       return {
-        outcome: 'lost',
         verdict: `${winnerName} won at "${targetRankName}"`,
         // The identity dot names the winner the way every other peer message
         // does — no "Lost:" prefix needed, the loss is implicit in "they won".
@@ -643,7 +641,6 @@ function buildOver({
     // race as a collective loss when the last racer drops).
     if (playState === 'lost') {
       return {
-        outcome: 'lost',
         verdict: 'Lost: all conceded',
         message: 'All conceded',
         tone: 'lost',
@@ -655,14 +652,12 @@ function buildOver({
     const outcome = (status?.outcome as string | undefined) ?? 'ended'
     if (outcome === 'timeout') {
       return {
-        outcome: 'lost',
         verdict: 'Lost: ran out of time',
         message: 'Out of time',
         tone: 'lost',
       }
     }
     return {
-      outcome: 'won',
       verdict: 'Ended: No winner',
       message: 'Game over',
       tone: 'neutral',
@@ -674,7 +669,6 @@ function buildOver({
     // The rank NAMED is the one they set out for; the score can overshoot it.
     const targetRankName = RANKS[targetRankIdx ?? selfRankIdx]
     return {
-      outcome: 'won',
       verdict: `Won: "${targetRankName}" ${points}`,
       message: 'You won!',
       tone: 'won',
@@ -683,7 +677,6 @@ function buildOver({
   if (playState === 'lost') {
     // Only reachable with a target set: the countdown beat them to it.
     return {
-      outcome: 'lost',
       verdict: 'Lost: ran out of time',
       message: 'Out of time',
       tone: 'lost',
@@ -692,7 +685,6 @@ function buildOver({
   // 'ended' — the open-ended hunt finishing, or an early stop. Neutral, and the
   // same sentence at every rank (Genius included): they didn't fail at anything.
   return {
-    outcome: 'won',
     verdict: `Ended: ${rankName} ${points}`,
     message: rankName,
     tone: 'neutral',

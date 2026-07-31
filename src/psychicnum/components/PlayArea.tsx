@@ -480,9 +480,7 @@ export function PlayArea({
 /**
  * Per-status terminal copy. `verdict` + `tone` drive the permanent below-board
  * pill; `message` + `tone` drive the short, bold, color-coded line in the info
- * column (won = green, lost = red, manual end = neutral). (`outcome` is vestigial
- * now that there's no GameOverModal, but the shared `TerminalCopy` type still
- * requires it.)
+ * column (won = green, lost = red, manual end = neutral).
  *
  * Verdicts are terse and unpunctuated ("Lost: out of guesses"), the shared
  * sweep vocabulary — the pill is a fixed-height, ellipsising row that has to fit
@@ -510,10 +508,9 @@ function buildOver({
   if (playState === 'ended') return endedCopy(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
-      return { outcome: 'won', verdict: 'Won: all found', message: 'You won!', tone: 'won' }
+      return { verdict: 'Won: all found', message: 'You won!', tone: 'won' }
     }
     return {
-      outcome: 'lost',
       verdict: timerExpired ? 'Lost: out of time' : 'Lost: out of guesses',
       message: timerExpired ? 'Timer elapsed' : 'Out of guesses',
       tone: 'lost',
@@ -522,12 +519,11 @@ function buildOver({
   // compete
   if (playState === 'won_compete') {
     return selfWon
-      ? { outcome: 'won', verdict: 'Won: the race', message: 'You won!', tone: 'won' }
-      : { outcome: 'lost', verdict: 'Beaten to the punch', message: `${winnerName} won`, tone: 'lost' }
+      ? { verdict: 'Won: the race', message: 'You won!', tone: 'won' }
+      : { verdict: 'Beaten to the punch', message: `${winnerName} won`, tone: 'lost' }
   }
   // lost_compete (all exhausted OR timeout in compete)
   return {
-    outcome: 'lost',
     verdict: timerExpired ? 'Out of time — nobody won' : 'Out of guesses — nobody won',
     message: timerExpired ? 'Timer elapsed' : 'Out of guesses',
     tone: 'lost',

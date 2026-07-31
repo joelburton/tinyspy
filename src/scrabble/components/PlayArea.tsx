@@ -539,9 +539,6 @@ function moveText(p: PlayRow): string {
  *     carries the live number, so repeating it here spends the width twice.
  *   - `message` (+ `tone`) drives the bold info-column outcome line. Deliberately
  *     UNCHANGED by the end-states sweep — the two surfaces carry two lengths.
- *   - `outcome` was the GameOverModal's field; scrabble no longer renders that
- *     modal (a compete win celebrates, the verdict is in-page), so it survives
- *     only as the shared shape's "not a loss" flag.
  *
  * COOP has no win — one shared rack, no opponent — so its three endings are all
  * neutral, and they're distinguished rather than collapsed: `Completed:` for
@@ -566,7 +563,6 @@ function buildOver({
    *  for the identity dot. Undefined on a tie / all-conceded / coop. */
   winnerMember: Member | undefined
 }): {
-  outcome: 'won' | 'lost'
   verdict: string
   verdictNode?: ReactNode
   message: string
@@ -575,21 +571,20 @@ function buildOver({
   const outcome = (status?.outcome as string | undefined) ?? ''
   if (game.mode === 'coop') {
     const score = game.teamScore ?? 0
-    if (outcome === 'manual') return { outcome: 'won', verdict: 'Ended', message: `${score} pts`, tone: 'neutral' }
-    if (outcome === 'timeout') return { outcome: 'won', verdict: 'Ended', message: `${score} pts`, tone: 'neutral' }
+    if (outcome === 'manual') return { verdict: 'Ended', message: `${score} pts`, tone: 'neutral' }
+    if (outcome === 'timeout') return { verdict: 'Ended', message: `${score} pts`, tone: 'neutral' }
     // Played all the way out — not a WIN (coop has none), but a real completion,
     // and the one coop ending worth distinguishing from "it just stopped".
-    return { outcome: 'won', verdict: 'Completed', message: `${score} pts`, tone: 'won' }
+    return { verdict: 'Completed', message: `${score} pts`, tone: 'won' }
   }
-  if (playState === 'ended') return { outcome: 'won', verdict: 'Ended', message: 'Ended', tone: 'neutral' }
+  if (playState === 'ended') return { verdict: 'Ended', message: 'Ended', tone: 'neutral' }
   // Everyone conceded (play_state 'lost', outcome 'conceded'): a collective
   // loss with no eligible winner. Must precede the winner logic below, which
   // would otherwise fall through to the phantom co-winners tie on null winner.
-  if (outcome === 'conceded') return { outcome: 'lost', verdict: 'All conceded', message: 'All conceded', tone: 'lost' }
+  if (outcome === 'conceded') return { verdict: 'All conceded', message: 'All conceded', tone: 'lost' }
   const winner = status?.winner as string | null | undefined
-  if (winner === selfId) return { outcome: 'won', verdict: 'You won', message: 'You won!', tone: 'won' }
+  if (winner === selfId) return { verdict: 'You won', message: 'You won!', tone: 'won' }
   const named = (name: string) => ({
-    outcome: 'lost' as const,
     verdict: `${name} won`,
     verdictNode: (
       <>
@@ -604,5 +599,5 @@ function buildOver({
   // `winner_username` carries its "AI n" label (from scrabble._finish).
   const winnerSeat = status?.winner_seat as number | null | undefined
   if (winnerSeat != null) return named((status?.winner_username as string | undefined) ?? 'The AI')
-  return { outcome: 'won', verdict: 'Tie', message: 'Tie', tone: 'neutral' }
+  return { verdict: 'Tie', message: 'Tie', tone: 'neutral' }
 }

@@ -83,9 +83,7 @@ const ownAction = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg 
  *  shape (the same psychicnum/connections use): `verdict` + `tone` drive the
  *  permanent below-board pill; `message` + `tone` drive the short, bold,
  *  color-coded line in the info-column action row (won = green, lost = red,
- *  manual end = neutral). (`outcome` is vestigial here — it drove the
- *  GameOverModal's green/red treatment, and duet no longer renders one — but the
- *  shared `TerminalCopy` type still requires it.) Detail-on-page intentionally:
+ *  manual end = neutral). Detail-on-page intentionally:
  *  the agents-found counter sits in the info-column state line, the board carries
  *  the revealed tiles.
  *
@@ -94,11 +92,10 @@ const ownAction = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg 
  *  grows it. */
 function buildOver(playState: string): TerminalCopy {
   if (playState === 'won') {
-    return { outcome: 'won', verdict: 'You win!', message: 'You won!', tone: 'won' }
+    return { verdict: 'You win!', message: 'You won!', tone: 'won' }
   }
   if (playState === 'lost_assassin') {
     return {
-      outcome: 'lost',
       verdict: 'Lost: assassin',
       message: 'Assassin revealed',
       tone: 'lost',
@@ -106,7 +103,6 @@ function buildOver(playState: string): TerminalCopy {
   }
   if (playState === 'lost_clock') {
     return {
-      outcome: 'lost',
       verdict: 'Lost: out of turns',
       message: 'Out of turns',
       tone: 'lost',
@@ -119,7 +115,6 @@ function buildOver(playState: string): TerminalCopy {
   // lost_timeout (and any future terminal state that doesn't match above —
   // falls back to a generic timer-out message rather than crashing).
   return {
-    outcome: 'lost',
     verdict: 'Lost: out of time',
     message: 'Out of time',
     tone: 'lost',

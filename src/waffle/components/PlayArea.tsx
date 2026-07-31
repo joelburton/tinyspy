@@ -118,8 +118,7 @@ export function PlayArea({
   // both the coop-only guard ('won' is coop's win; compete writes
   // 'won_compete') and — unlike `game.mode`, which is null until useGame's
   // async fetch lands and would fake a mid-session flip on every mount of a
-  // won game — correct from the very first render. NOT over.outcome either
-  // (manual-end reuses outcome:'won' for styling).
+  // won game — correct from the very first render.
   const celebration = useCelebration(playState === 'won')
 
   // ─── Compete peer news (header pill) ───────────────────
@@ -510,9 +509,7 @@ export function PlayArea({
  * Per-status terminal copy (the shared `TerminalCopy`), mode- and (compete)
  * self-aware. `tone` + `verdict` drive the below-board terminal pill; `tone` +
  * `message` drive the short bold info-column line (won = green, lost = red,
- * manual end = neutral). `outcome` was the GameOverModal's field — waffle no
- * longer renders that modal (the coop celebration + the in-page verdict
- * replaced it) — but the shared `TerminalCopy` shape still requires it.
+ * manual end = neutral).
  */
 function buildOver({
   mode,
@@ -548,10 +545,9 @@ function buildOver({
           : swapsOverPar > 0
             ? `Won: par +${swapsOverPar}`
             : `Won: par −${-swapsOverPar}`
-      return { outcome: 'won', verdict: parVerdict, message: parVerdict, tone: 'won' }
+      return { verdict: parVerdict, message: parVerdict, tone: 'won' }
     }
     return {
-      outcome: 'lost',
       verdict: timerExpired ? 'Lost: out of time' : 'Lost: out of swaps',
       message: timerExpired ? 'Out of time' : 'Out of swaps',
       tone: 'lost',
@@ -560,13 +556,12 @@ function buildOver({
   // compete
   if (playState === 'won_compete') {
     return selfWon
-      ? { outcome: 'won', verdict: 'Won: fewest swaps', message: 'You won!', tone: 'won' }
-      : { outcome: 'lost', verdict: 'Lost: beaten on swaps', message: 'Opponent won', tone: 'lost' }
+      ? { verdict: 'Won: fewest swaps', message: 'You won!', tone: 'won' }
+      : { verdict: 'Lost: beaten on swaps', message: 'Opponent won', tone: 'lost' }
   }
   // lost_compete — nobody solved, or time ran out. No `Lost:` prefix: nobody was
   // beaten, the board just ran out.
   return {
-    outcome: 'lost',
     verdict: timerExpired ? 'Out of time — no winner' : 'Nobody solved',
     message: timerExpired ? 'Out of time' : 'No winner',
     tone: 'lost',

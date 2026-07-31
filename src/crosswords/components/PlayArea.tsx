@@ -915,9 +915,7 @@ function buildPrintCells(meta: PuzzleTemplate, cells: CellsMap): Cell[][] {
 /**
  * Map the terminal play_state to the shared TerminalCopy shape. `tone` +
  * `verdict` drive the permanent pill in the active-clue slot; `message` + `tone`
- * drive the short info-column outcome line. `outcome` was the GameOverModal's
- * field — crosswords no longer renders that modal (the coop celebration + the
- * in-page verdict replaced it) — but the shared shape still requires it.
+ * drive the short info-column outcome line.
  *
  * Verdicts lead with the outcome word (`Won:` / `Lost:`) and carry no trailing
  * period: the pill is a one-line, ellipsising row (~48 chars on a phone), so
@@ -940,13 +938,12 @@ function buildOver(
   const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
   switch (playState) {
     case 'won':
-      return { outcome: 'won', verdict: 'Won: grid complete', message: 'Solved!', tone: 'won' }
+      return { verdict: 'Won: grid complete', message: 'Solved!', tone: 'won' }
     case 'won_compete':
       if (winner === myId) {
-        return { outcome: 'won', verdict: 'Won: solved it first', message: 'You won!', tone: 'won' }
+        return { verdict: 'Won: solved it first', message: 'You won!', tone: 'won' }
       }
       return {
-        outcome: 'lost',
         verdict: `${winnerName} solved it first`,
         verdictNode: (
           <>
@@ -958,12 +955,12 @@ function buildOver(
         tone: 'lost',
       }
     case 'lost_compete':
-      return { outcome: 'lost', verdict: 'Lost: out of the race', message: 'You lost', tone: 'lost' }
+      return { verdict: 'Lost: out of the race', message: 'You lost', tone: 'lost' }
     case 'lost':
       // crosswords has no timer; `lost` is only reached when every remaining
       // compete player concedes (common.concede's last-active-conceder path).
       // No `Lost:` prefix — nobody was beaten, the race just emptied out.
-      return { outcome: 'lost', verdict: 'Everyone conceded', message: 'Game over', tone: 'lost' }
+      return { verdict: 'Everyone conceded', message: 'Game over', tone: 'lost' }
     case 'ended':
     default:
       return endedCopy(mode)

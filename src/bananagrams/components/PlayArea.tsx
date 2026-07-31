@@ -308,12 +308,12 @@ export function PlayArea(ctx: GamePageCtx) {
   const over: TerminalCopy | null = !isTerminal
     ? null
     : ctx.status?.outcome === 'timeout'
-      ? { outcome: 'lost', verdict: "⏰ Time's up — nobody went out.", message: 'Out of time', tone: 'lost' }
+      ? { verdict: "⏰ Time's up — nobody went out.", message: 'Out of time', tone: 'lost' }
       : ctx.status?.outcome === 'conceded'
-        ? { outcome: 'lost', verdict: '🏳️ Everyone conceded — no winner.', message: 'All conceded', tone: 'lost' }
+        ? { verdict: '🏳️ Everyone conceded — no winner.', message: 'All conceded', tone: 'lost' }
         : selfWon
-          ? { outcome: 'won', verdict: '🍌 Bananas! You went out first.', message: 'You won!', tone: 'won' }
-          : { outcome: 'lost', verdict: `${winnerName} went out — Bananas!`, message: `${winnerName} won`, tone: 'lost' }
+          ? { verdict: '🍌 Bananas! You went out first.', message: 'You won!', tone: 'won' }
+          : { verdict: `${winnerName} went out — Bananas!`, message: `${winnerName} won`, tone: 'lost' }
 
   const bunchCount = ctx.status?.bunch_remaining as number | undefined
   const bagCount = ctx.status?.bag_remaining as number | undefined
