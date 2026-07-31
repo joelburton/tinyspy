@@ -157,7 +157,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     h.cells = new Map([['0:0', cellState({ fill: 'C', pencil: true })]])
     render(<PlayArea {...makeCtx()} />)
     fireEvent.click(screen.getByRole('button', { name: /check word/i }))
-    expect(await screen.findByText('Check skips pencil marks.')).toBeInTheDocument()
+    expect(await screen.findByText('Check skips pencil marks')).toBeInTheDocument()
     expect(rpcNames()).toContain('check_cells')
   })
 
@@ -166,7 +166,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     render(<PlayArea {...makeCtx()} />)
     fireEvent.click(screen.getByRole('button', { name: /check word/i }))
     await waitFor(() => expect(rpcNames()).toContain('check_cells'))
-    expect(screen.queryByText('Check skips pencil marks.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Check skips pencil marks')).not.toBeInTheDocument()
   })
 
   /** Flatten the last setGameSections call into a flat item array. */

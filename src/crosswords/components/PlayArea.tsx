@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { GamePageCtx } from '../../common/lib/games'
-import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import type { GamePageCtx, Member } from '../../common/lib/games'
+import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
@@ -15,6 +16,7 @@ import { writeIpuz } from '../lib/parse/ipuz'
 import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { cls } from '../../common/lib/util/cls'
 import {
   activeClueNumber,
@@ -50,10 +52,11 @@ import styles from './PlayArea.module.css'
 import '../theme.css'
 
 /** Timed info pill shown after a Check whose scope contained pencilled cells —
- *  Check skips them (see `handleCheck`), so this flags that they weren't tested. */
+ *  Check skips them (see `handleCheck`), so this flags that they weren't tested.
+ *  Unpunctuated: the pill is a one-line LABEL, not prose. */
 const PENCIL_SKIPPED_MSG: GenericFeedbackMsg = {
   tone: 'info',
-  text: 'Check skips pencil marks.',
+  text: 'Check skips pencil marks',
   dismiss: { kind: 'timed' },
 }
 
@@ -87,6 +90,16 @@ export function PlayArea(ctx: GamePageCtx) {
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
   const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+
+  // ─── Coop-win celebration ──────────────────────────────
+  // Confetti at the MOMENT the team completes the grid — the last correct cell
+  // ends the game on every connected client via the common realtime refetch, so
+  // everyone celebrates together; opening an already-solved game stays quiet
+  // (useCelebration never pops on mount). Gated on playState ALONE: 'won' is
+  // coop's win by the states vocabulary (compete writes 'won_compete'), and it
+  // comes off the same common.games row GamePage already waited for — so it's
+  // correct on the very first render, unlike anything read from `useGame`.
+  const celebration = useCelebration(playState === 'won')
 
   // Mobile (docs/mobile.md): below --mobile the grid + the active-clue bar ARE
   // the main view (grid maximized; the bar is how you read the clue you're on),
@@ -607,7 +620,9 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => menu.setGameSections([])
   }, [menu, game, hasNote, pencil, collapseRebus, mode, myConceded, handleShowNote, handleExplain, handleRevealBoard, handleClear, handleDownloadIpuz, handlePrintSolution, isPlayable, isTerminal, solution, infoSheet.menuSections])
 
-  const over: TerminalCopy | null = isTerminal ? buildOver(playState, status, mode, myId) : null
+  const over: (TerminalCopy & { verdictNode?: ReactNode }) | null = isTerminal
+    ? buildOver(playState, status, mode, myId, players)
+    : null
 
   // What the below-board pill slot shows: an active local pill (own-move
   // result, or the terminal verdict pushed in by the effect below) wins;
@@ -619,7 +634,9 @@ export function PlayArea(ctx: GamePageCtx) {
   // Surface the terminal verdict in the active-clue slot (the reserved
   // 3-line home), permanently (`locked`).
   useEffect(() => {
-    if (isTerminal && over) showLocalFeedback(terminalPill(over.tone, over.verdict))
+    // The `verdictNode` (a compete loss's "● moth solved it first") wins when
+    // present; the plain string is the fallback for every other case.
+    if (isTerminal && over) showLocalFeedback(terminalPill(over.tone, over.verdictNode ?? over.verdict))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTerminal, over?.verdict])
 
@@ -857,7 +874,16 @@ export function PlayArea(ctx: GamePageCtx) {
         <ExplainDialog clueLabel={explainLabel} state={explain} onClose={() => setExplain(null)} />
       )}
 
-      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {/* No GameOverModal (the sweep treatment): the verdict is carried in-page
+          by the pill in the active-clue slot + the info-column outcome line, and
+          a coop solve gets the celebration instead — once, when it happens. */}
+      {celebration.show && (
+        <CelebrationDialog
+          title="Solved! 🎉"
+          body="The grid is complete."
+          onClose={celebration.close}
+        />
+      )}
       {confirmDialog}
     </div>
   )
@@ -886,33 +912,58 @@ function buildPrintCells(meta: PuzzleTemplate, cells: CellsMap): Cell[][] {
   )
 }
 
-/** Map the terminal play_state to the shared TerminalCopy shape. */
+/**
+ * Map the terminal play_state to the shared TerminalCopy shape. `tone` +
+ * `verdict` drive the permanent pill in the active-clue slot; `message` + `tone`
+ * drive the short info-column outcome line. `outcome` was the GameOverModal's
+ * field — crosswords no longer renders that modal (the coop celebration + the
+ * in-page verdict replaced it) — but the shared shape still requires it.
+ *
+ * Verdicts lead with the outcome word (`Won:` / `Lost:`) and carry no trailing
+ * period: the pill is a one-line, ellipsising row (~48 chars on a phone), so
+ * it's a LABEL, not prose.
+ *
+ * The compete loser's verdict names WHO beat them — the one case that wants a
+ * WIDGET (the winner's identity dot, the way peer feedback names people
+ * elsewhere), returned as `verdictNode`; `verdict` carries the plain-text twin.
+ */
 function buildOver(
   playState: string,
   status: Record<string, unknown> | null,
   mode: 'coop' | 'compete',
   myId: string,
-): TerminalCopy {
+  players: Member[],
+): TerminalCopy & { verdictNode?: ReactNode } {
   const winner = status?.winner as string | undefined
-  const winnerName = status?.winner_username as string | undefined
+  // The handle cached in `status` at finish time — a rename is rare enough that a
+  // stale name beats a follow-up query. The roster row drives the identity DOT.
+  const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
   switch (playState) {
     case 'won':
-      return { outcome: 'won', verdict: 'Solved!', message: 'Solved!', tone: 'won' }
+      return { outcome: 'won', verdict: 'Won: grid complete', message: 'Solved!', tone: 'won' }
     case 'won_compete':
-      return winner === myId
-        ? { outcome: 'won', verdict: 'You solved it first!', message: 'You won!', tone: 'won' }
-        : {
-            outcome: 'lost',
-            verdict: winnerName ? `Beaten to it by ${winnerName}.` : 'Beaten to it.',
-            message: 'You lost',
-            tone: 'lost',
-          }
+      if (winner === myId) {
+        return { outcome: 'won', verdict: 'Won: solved it first', message: 'You won!', tone: 'won' }
+      }
+      return {
+        outcome: 'lost',
+        verdict: `${winnerName} solved it first`,
+        verdictNode: (
+          <>
+            <ActorDot actor={players.find((p) => p.user_id === winner)} fallback="Someone" show="both" />{' '}
+            solved it first
+          </>
+        ),
+        message: `${winnerName} won`,
+        tone: 'lost',
+      }
     case 'lost_compete':
-      return { outcome: 'lost', verdict: 'Out of the race.', message: 'You lost', tone: 'lost' }
+      return { outcome: 'lost', verdict: 'Lost: out of the race', message: 'You lost', tone: 'lost' }
     case 'lost':
       // crosswords has no timer; `lost` is only reached when every remaining
       // compete player concedes (common.concede's last-active-conceder path).
-      return { outcome: 'lost', verdict: 'Everyone conceded.', message: 'Game over', tone: 'lost' }
+      // No `Lost:` prefix — nobody was beaten, the race just emptied out.
+      return { outcome: 'lost', verdict: 'Everyone conceded', message: 'Game over', tone: 'lost' }
     case 'ended':
     default:
       return endedCopy(mode)

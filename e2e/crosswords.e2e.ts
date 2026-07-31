@@ -38,9 +38,10 @@ test.describe('crosswords play loop', () => {
     await fill(1, 0, 't')
     await fill(1, 1, 's')
 
-    // Solving flips the game terminal → the shared game-over modal appears
-    // (its verdict is "Solved!"; the same text also lands in the local pill).
-    await expect(page.getByText('Solved!').first()).toBeVisible({ timeout: 10000 })
+    // Solving flips the game terminal → the coop celebration pops (crosswords
+    // renders no game-over modal) and the verdict lands in the local pill.
+    await expect(page.getByText('Solved! 🎉').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Won: grid complete').first()).toBeVisible({ timeout: 10000 })
   })
 
   test('check flags a wrong letter; reveal writes the answer', async ({ browser }) => {
@@ -81,12 +82,12 @@ test.describe('crosswords play loop', () => {
     await page.getByRole('button', { name: /^End$/ }).click()
     // End now confirms through the shared modal (docs/ui.md → Confirm modals).
     await page.getByRole('button', { name: 'End game' }).click()
-    await expect(page.getByText('Game over').first()).toBeVisible({ timeout: 8000 })
+    // No game-over modal any more (the sweep treatment) — the neutral verdict
+    // lands in the active-clue slot's pill.
+    await expect(page.getByText('Game ended').first()).toBeVisible({ timeout: 8000 })
     await expect(cell11).toHaveAttribute('data-fill', '')
 
-    // Close the game-over panel; "Reveal board" fills the blanks with the
-    // greyed answers (A / T / S).
-    await page.getByRole('button', { name: 'Close' }).click()
+    // "Reveal board" fills the blanks with the greyed answers (A / T / S).
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'Reveal board' }).click()
     await expect(cell11).toHaveAttribute('data-fill', 'S', { timeout: 8000 })
@@ -120,7 +121,7 @@ test.describe('crosswords play loop', () => {
     await fill(1, 1, 's')
 
     // First to a correct grid wins outright.
-    await expect(page.getByText('You solved it first!').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Won: solved it first').first()).toBeVisible({ timeout: 10000 })
   })
 
   test('print board produces a PDF download', async ({ browser }) => {
