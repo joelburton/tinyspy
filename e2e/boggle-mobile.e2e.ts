@@ -37,6 +37,18 @@ test.describe('boggle mobile', () => {
       expect(m.sw).toBeLessThanOrEqual(m.iw + 1)
       expect(m.sh).toBeLessThanOrEqual(m.ih + 1)
 
+      // The info column is off-canvas here, so the state readout (the 4-cell
+      // Stats grid) is mirrored ABOVE the board by the shared <MobileStatusBar>
+      // — the same component the sheet renders, so the two can't drift. Its
+      // height is already subtracted from the board's --avail-h, which is why
+      // the no-scroll assertions above still hold.
+      const statusBar = page.locator('[data-mobile-status]')
+      await expect(statusBar).toContainText('Req')
+      await expect(statusBar).toContainText('Words')
+      const barBox = (await statusBar.boundingBox())!
+      const trayBox = (await page.locator('[class*="_grid_"]').first().boundingBox())!
+      expect(barBox.y + barBox.height).toBeLessThanOrEqual(trayBox.y + 1)
+
       // Info sheet: collapsed off the right edge → slides in from the menu → back
       // out on the ✕.
       const wrap = page.locator('[data-info-sheet]')

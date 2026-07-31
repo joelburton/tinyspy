@@ -362,11 +362,13 @@ board), swapped in for spellingbee's hex flower.
     (required `+N` / bonus / too-short / off-board / not-a-word), dismissed by the
     next keystroke — not the GamePage header feedback channel.
 - **Info column** (the canonical v3 order — see [playarea.md → Info-column readouts](../playarea.md#info-column-readouts)):
-  the live **`<Stats>` grid** — a 4-cell two-line readout (label over value, the
-  spellingbee `<Stats>` idiom), every cell `found / total`: **Words** (required
-  found / required on board) · **Score** (required-found score / required total) ·
-  **Bonus Words** (bonus found / bonus on board) · **Bonus Score** (bonus-found
-  score / bonus total) — the compete **`OpponentStrip`**
+  the live **`<Stats>` grid** — a 4-cell three-line readout (a two-line stacked
+  label over the value over the found-share percent), every cell `found / total`:
+  **Req / Words** (required found / required on board) · **Req / Score**
+  (required-found score / required total) · **Bonus / Words** · **Bonus / Score**.
+  The labels stack ("Req" over "Words") because four cells side by side are
+  narrow — narrower still in the mobile status block, where this same grid is
+  ALSO rendered above the board (see below). Then the compete **`OpponentStrip`**
   (the shared common one, `metricLabel="Score"`, score-only — counts stay private),
   the **action row** (`EndGameButton` coop / `ConcedeGameButton` compete during play;
   the bold outcome line + a compact back-to-club button at terminal), a **help line**,
@@ -381,12 +383,27 @@ board), swapped in for spellingbee's hex flower.
 **End game** is surfaced in both places per the common convention (see
 [common.md → Manual end](../common.md#manual-end--every-gametypes-end_gametarget_game)):
 an info-column action-row button *and* a GamePage menu item wired through `buildGameMenu`.
-The terminal copy comes from a unified `buildOver` (`{outcome, verdict, message, tone}`)
-driving the below-board pill, the action-row line, and the `GameOverModal`. Without
-a win target, coop is a neutral shared hunt and compete picks the highest score;
+The terminal copy comes from a unified `buildOver` (`{outcome, verdict, verdictNode?,
+message, tone}`) driving the below-board pill + the action-row line. There is **no
+`GameOverModal`** (the sweep treatment — it duplicated the pill). Without a win
+target, coop is a neutral shared hunt and compete picks the highest score;
 **with** one (`setup.win_percent`), reaching the score bar is a real win
-(`status.outcome === 'target'`) — coop reads "Target reached!", compete names the
-first player to cross (`status.winner_id`).
+(`status.outcome === 'target'`) — and a **coop** target win pops the shared
+`<CelebrationDialog>` ("Target reached! 🎉"), once, at the moment it happens.
+That gate reads `status.mode` + `status.outcome`, both off the common row GamePage
+waits for — deliberately not boggle's own `game.mode`, which arrives later and
+would pop confetti at someone opening a finished game.
+
+Verdicts are terse and lead with the outcome word ("Won: 12 words, 34 points",
+"Ended: no words found", "Lost: conceded"); a loss to a named player is a widget,
+"● alice won", carried in `verdictNode`.
+
+**Mobile status block.** Below `--mobile` the info column moves off-canvas, taking
+the Stats grid with it — so `BoardCol` renders the SAME `<Stats>` above the tray in
+the shared `<MobileStatusBar>` ([mobile.md](../mobile.md#the-mobile-status-bar-—-core-state-above-the-board)).
+One `stats` object feeds both surfaces, so they can't drift; its `4rem` is
+subtracted from `--avail-h` so the board shrinks to match and the page still
+doesn't scroll.
 
 **Guess flow.** Because the FE holds both word lists, *every* guess resolves
 instantly with no round-trip and commits optimistically: a word in required ∪

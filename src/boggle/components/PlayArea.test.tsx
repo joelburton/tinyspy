@@ -112,11 +112,16 @@ describe('boggle PlayArea — render smoke', () => {
     h.result = loaded(loadedGame({ bonus_words: [{ word: 'dog', points: 2 }] }))
     const { container } = render(<PlayArea {...makeCtx()} />)
     expect(container.querySelectorAll('[data-boggle-tile]')).toHaveLength(16)
-    // The info-column 4-cell Stats grid (all labels are unique to Stats).
-    expect(screen.getByText('Req Words')).toBeInTheDocument()
-    expect(screen.getByText('Req Score')).toBeInTheDocument()
-    expect(screen.getByText('Bonus Words')).toBeInTheDocument()
-    expect(screen.getByText('Bonus Score')).toBeInTheDocument()
+    // The 4-cell Stats grid. Labels stack on two lines ("Req" over "Words"), so
+    // match the <span> as a whole rather than a single text node — and it now
+    // renders TWICE (the info column + the mobile status block above the board),
+    // hence getAllByText.
+    const label = (a: string, b: string) =>
+      screen.getAllByText((_t, el) => el?.textContent === `${a}${b}`, { selector: 'span' })
+    expect(label('Req', 'Words').length).toBeGreaterThan(0)
+    expect(label('Req', 'Score').length).toBeGreaterThan(0)
+    expect(label('Bonus', 'Words').length).toBeGreaterThan(0)
+    expect(label('Bonus', 'Score').length).toBeGreaterThan(0)
   })
 
   it('hides Bonus Words / Bonus Score when legal_band equals band', () => {
@@ -137,8 +142,10 @@ describe('boggle PlayArea — render smoke', () => {
         })}
       />,
     )
-    expect(screen.queryByText('Bonus Words')).not.toBeInTheDocument()
-    expect(screen.queryByText('Bonus Score')).not.toBeInTheDocument()
+    const noLabel = (a: string, b: string) =>
+      screen.queryAllByText((_t, el) => el?.textContent === `${a}${b}`, { selector: 'span' })
+    expect(noLabel('Bonus', 'Words')).toHaveLength(0)
+    expect(noLabel('Bonus', 'Score')).toHaveLength(0)
   })
 
   it('renders the OpponentStrip (Score) in compete play', () => {
@@ -326,7 +333,7 @@ describe('boggle PlayArea — coop peer narration (global header)', () => {
     h.result = loaded(loadedGame(), [foundRow({ word: 'jackpot', points: 9 })])
     rerender(<PlayArea {...ctx} />)
     expect(nodeText(vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0].text)).toBe(
-      'moth found JACKPOT +9 — wow!',
+      'moth wow! JACKPOT +9',
     )
   })
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
@@ -7,7 +7,8 @@ import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
-import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
+import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { memberById } from '../../common/lib/game/peers'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
@@ -63,6 +64,24 @@ export function PlayArea(ctx: GamePageCtx) {
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
   const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+
+  // ─── Coop-target celebration ───────────────────────────
+  // boggle's only unambiguous win: a COOP team crossing the score target
+  // (`setup.win_percent`, `status.outcome='target'`). Confetti at the moment it
+  // happens — the crossing word ends the game on every connected client via
+  // realtime — and never on mount, so opening a finished game is quiet review
+  // (`useCelebration`). Both inputs come off the SAME common.games row that
+  // gates GamePage's render, so they're correct on the first render here; no
+  // per-player data is involved, which is what keeps this safe (the
+  // connections/psychicnum loading-race lesson).
+  //
+  // Compete deliberately doesn't celebrate, matching the other games: the
+  // winner-vs-loser test is a leaderboard comparison, and a race has a loser
+  // watching.
+  const celebration = useCelebration(
+    (status?.mode as string | undefined) === 'coop' &&
+      (status?.outcome as string | undefined) === 'target',
+  )
   const myId = session.user.id
 
   // `setup` is typed `Record<string, unknown>`; BoggleSetup is an `interface`,
@@ -317,9 +336,12 @@ export function PlayArea(ctx: GamePageCtx) {
       return {
         tone: 'success',
         variant: 'outline',
+        // A long find leads with the flourish (spellingbee's "pangram 🐝 WORD
+        // +14" shape) so the headline reads before the word does — and so the
+        // line fits the header pill's ~26 phone characters.
         text: wow ? (
           <>
-            <ActorDot actor={member} fallback="A teammate" /> found {label} +{r.points} — wow!
+            <ActorDot actor={member} fallback="A teammate" /> wow! {label} +{r.points}
           </>
         ) : (
           <>
@@ -365,9 +387,26 @@ export function PlayArea(ctx: GamePageCtx) {
   const ladderLabel = ladder.charAt(0).toUpperCase() + ladder.slice(1)
   const diceLabel = DICE_BY_NAME[boggleSetup.dice_set]?.desc ?? `${game.n}×${game.n}`
 
+  // The 4-cell Stats figures, built once and handed to BOTH surfaces: the info
+  // column (desktop) and the mobile status block above the board (where the info
+  // column is off-canvas). One object, so the two can't drift.
+  const stats = {
+    requiredFound,
+    requiredCount: game.required_words_count,
+    requiredFoundScore,
+    requiredScore: game.required_words_score,
+    bonusFound: hasBonusDifficulty ? bonusFound : 0,
+    bonusCount: hasBonusDifficulty ? game.bonus_words.length : 0,
+    bonusFoundScore: hasBonusDifficulty ? bonusFoundScore : 0,
+    bonusScore: hasBonusDifficulty ? bonusScore : 0,
+  }
+
   return (
     <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, styles.layout)}>
       <BoardCol
+        // ── Mobile-only status block (the SAME Stats the InfoCol renders; on a
+        //    phone the info column is off-canvas in the InfoSheet) ──
+        stats={stats}
         // ── Board to render ──
         grid={grid}
         n={game.n}
@@ -393,16 +432,7 @@ export function PlayArea(ctx: GamePageCtx) {
         isLocallyDone={isLocallyDone}
         // ── State readout ──
         score={myScore}
-        stats={{
-          requiredFound,
-          requiredCount: game.required_words_count,
-          requiredFoundScore,
-          requiredScore: game.required_words_score,
-          bonusFound: hasBonusDifficulty ? bonusFound : 0,
-          bonusCount: hasBonusDifficulty ? game.bonus_words.length : 0,
-          bonusFoundScore: hasBonusDifficulty ? bonusFoundScore : 0,
-          bonusScore: hasBonusDifficulty ? bonusScore : 0,
-        }}
+        stats={stats}
         // ── Players (OpponentStrip, compete) ──
         players={players}
         selfId={myId}
@@ -426,7 +456,17 @@ export function PlayArea(ctx: GamePageCtx) {
         />
       </InfoSheet>
 
-      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {/* No GameOverModal (the sweep treatment): the verdict is carried in-page
+          by the below-board pill + the info-column outcome line. A coop TARGET
+          win — the only unambiguous win boggle has — gets the celebration
+          instead, once, at the moment the team crosses. */}
+      {celebration.show && (
+        <CelebrationDialog
+          title="Target reached! 🎉"
+          body={`${myCount} words, ${myScore} points.`}
+          onClose={celebration.close}
+        />
+      )}
       {confirmDialog}
     </div>
   )
@@ -466,6 +506,10 @@ function buildOver({
 }): {
   outcome: 'won' | 'lost'
   verdict: string
+  /** The one case where the pill wants a WIDGET rather than a string: the
+   *  winner's identity dot, the same way peer feedback names people elsewhere.
+   *  `verdict` carries the plain-text twin for anything that needs a string. */
+  verdictNode?: ReactNode
   message: string
   tone: 'won' | 'lost' | 'neutral'
 } {
@@ -473,14 +517,15 @@ function buildOver({
   const isTarget = statusOutcome === 'target'
   const reason = statusOutcome === 'timeout' ? "Time's up" : 'Game ended'
 
+  const tally = `${myCount} words, ${myScore} points`
+
   if (mode === 'coop') {
-    // Coop is a shared hunt: normally a neutral end (reuse the modal's non-red
-    // 'won' styling, neutral tone). Reaching the score target IS a real win.
+    // Coop is a shared hunt: normally a neutral end. Reaching the score target
+    // IS a real win. Which of timeout-vs-manual ended it rides in `message`
+    // ("Time's up" / "Game ended") — the pill spends its width on the tally.
     return {
       outcome: 'won',
-      verdict: isTarget
-        ? `Target reached! ${myCount} words, ${myScore} points.`
-        : `${reason} — ${myCount} words, ${myScore} points.`,
+      verdict: isTarget ? `Won: ${tally}` : `Ended: ${tally}`,
       message: isTarget ? 'Target reached!' : reason,
       tone: isTarget ? 'won' : 'neutral',
     }
@@ -492,7 +537,7 @@ function buildOver({
   if (myConceded) {
     return {
       outcome: 'lost',
-      verdict: `${reason} — you conceded.`,
+      verdict: 'Lost: conceded',
       message: 'You conceded',
       tone: 'lost',
     }
@@ -501,18 +546,24 @@ function buildOver({
   // status) wins outright, everyone else loses — no leaderboard comparison.
   if (isTarget) {
     const winnerId = status?.winner_id as string | undefined
+    const winner = players.find((p) => p.user_id === winnerId)
     const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
     if (winnerId === selfId) {
       return {
         outcome: 'won',
-        verdict: `You won — reached the target with ${myScore} points!`,
+        verdict: `Won: ${tally}`,
         message: 'You won!',
         tone: 'won',
       }
     }
     return {
       outcome: 'lost',
-      verdict: `${winnerName} reached the target first — you had ${myScore} points.`,
+      verdict: `${winnerName} won`,
+      verdictNode: (
+        <>
+          <ActorDot actor={winner} fallback="Someone" show="both" /> won
+        </>
+      ),
       message: `${winnerName} won`,
       tone: 'lost',
     }
@@ -527,7 +578,7 @@ function buildOver({
   if (max === 0) {
     return {
       outcome: 'lost',
-      verdict: `${reason} — no words found.`,
+      verdict: 'Ended: no words found',
       message: 'No winner',
       tone: 'neutral',
     }
@@ -535,17 +586,23 @@ function buildOver({
   if (myScore >= max) {
     return {
       outcome: 'won',
-      verdict: `You win — ${myCount} words, ${myScore} points!`,
+      verdict: `Won: ${tally}`,
       message: 'You won!',
       tone: 'won',
     }
   }
-  const winner = board.find((r) => r.score === max)
-  const winnerName = players.find((p) => p.user_id === winner?.user_id)?.username ?? 'Someone'
+  const topRow = board.find((r) => r.score === max)
+  const topPlayer = players.find((p) => p.user_id === topRow?.user_id)
+  const topName = topPlayer?.username ?? 'Someone'
   return {
     outcome: 'lost',
-    verdict: `${winnerName} won — you had ${myCount} words, ${myScore} points.`,
-    message: `${winnerName} won`,
+    verdict: `${topName} won`,
+    verdictNode: (
+      <>
+        <ActorDot actor={topPlayer} fallback="Someone" show="both" /> won
+      </>
+    ),
+    message: `${topName} won`,
     tone: 'lost',
   }
 }

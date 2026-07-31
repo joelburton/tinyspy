@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -6,6 +6,8 @@ import { terminalPill } from '../../common/lib/game/localPills'
 import { EntryRow } from '../../common/components/game/entry/EntryRow'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { asciiLetters } from '../../common/hooks/input/useCaptureKeys'
+import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
+import { Stats, type BoggleStats } from './Stats'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
@@ -52,6 +54,8 @@ function pathWord(path: Cell[], view: string[][]): string {
  * the below-board `over` pill / `localPill`. See docs/playarea-decomposition-plan.md.
  */
 export function BoardCol({
+  // ── Mobile-only status block (above the board) ──
+  stats,
   // ── Board to render ──
   grid,
   n,
@@ -66,6 +70,13 @@ export function BoardCol({
   over,
   localPill,
 }: {
+  // ── Mobile-only status block ──
+  /** The figures behind the 4-cell `<Stats>` grid — the SAME component the info
+   *  column renders, mirrored above the board below the `--mobile` breakpoint
+   *  (where the info column is off-canvas in the InfoSheet). Hidden by CSS on
+   *  desktop; see `<MobileStatusBar>`. */
+  stats: BoggleStats
+
   // ── Board to render ──
   /** The display grid (letters in board order) — PlayArea builds it from the board;
    *  this column rotates the local view on top. */
@@ -87,7 +98,7 @@ export function BoardCol({
 
   // ── Below-board pill ──
   /** Terminal copy — its verdict shows as a permanent below-board pill at game-over. */
-  over: TerminalCopy | null
+  over: (TerminalCopy & { verdictNode?: ReactNode }) | null
   /** The own-move pill to show while the entry is empty (a word result), or null. */
   localPill: GenericFeedbackMsg | null
 }) {
@@ -142,6 +153,15 @@ export function BoardCol({
       className={cls(shared.boardCol, styles.boardCol)}
       style={{ ['--cols' as string]: n, ['--rows' as string]: n }}
     >
+      {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
+          the Req/Bonus × Words/Score grid, above the board. A fixed-height
+          block — the board's `--side` already has it subtracted, so the tray
+          shrinks by exactly this much and the page still doesn't scroll. */}
+      <MobileStatusBar>
+        <div className={styles.mobileStatus}>
+          <Stats {...stats} />
+        </div>
+      </MobileStatusBar>
       <div className={styles.grid}>
         {view.flatMap((row, y) =>
           row.map((cell, x) => {
@@ -214,7 +234,11 @@ export function BoardCol({
             charFor={asciiLetters('upper')}
             recall={lastWord}
             pill={
-              over ? terminalPill(over.tone, over.verdict) : word === '' ? localPill : null
+              over
+                ? terminalPill(over.tone, over.verdictNode ?? over.verdict)
+                : word === ''
+                  ? localPill
+                  : null
             }
           />
         </div>
