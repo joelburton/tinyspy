@@ -681,6 +681,30 @@ export async function seedWaffleSwap(
   if (res.error) throw new Error(`submit_swap(${posA},${posB}): ${res.error.message}`)
 }
 
+/**
+ * Stuff N synthetic rows into a waffle game's swap log, straight through psql as
+ * the superuser. The real RPC can't do this — a game only has `par + extra`
+ * swaps before it ends — but a LAYOUT spec needs a log long enough to overflow
+ * its scroll box, and the log is read-only display data. Rows alternate the same
+ * two cells so the rendered text is uniform.
+ */
+export function seedWaffleSwapLog(gameId: string, userId: string, count: number): void {
+  if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) throw new Error(`bad user id: ${userId}`)
+  execFileSync(
+    'psql',
+    [
+      process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
+      '-v', 'ON_ERROR_STOP=1', '-q',
+      '-c',
+      `insert into waffle.swaps (game_id, user_id, seq, pos_a, pos_b, letter_a, letter_b)
+         select '${gameId}', '${userId}', g, 2, 3, 'c', 'd'
+           from generate_series(1, ${Number(count)}) g`,
+    ],
+    { stdio: 'ignore' },
+  )
+}
+
 /** Start a scrabble game (coop by default). Returns id + gametype for the URL.
  *  `setup` overrides the default (timer only) — e.g. AI-player fields
  *  (ai_count/ai_level + wider dictionaries) for the human-vs-AI e2e. */

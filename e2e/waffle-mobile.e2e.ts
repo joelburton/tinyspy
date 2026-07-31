@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { createSoloClub, createWaffleGame } from './helpers/fixtures'
+import { createSoloClub, createWaffleGame, seedWaffleSwapLog } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
@@ -100,4 +100,63 @@ test.describe('waffle mobile', () => {
 
     await ctx.close()
   })
+})
+
+/**
+ * A LONG turn log must scroll inside its own bordered box — the sheet around it
+ * must not grow and scroll instead.
+ *
+ * The regression this pins: the off-canvas `<InfoSheet>` used to be a plain
+ * `display: block` in its narrow (non-`wide`) form, so the info column inside
+ * had no definite height to divide up. `.turnLog`'s `flex: 1; min-height: 0`
+ * then bounded nothing — the log grew to its full content height and the SHEET
+ * scrolled, carrying the readouts and the action row off the top. Every
+ * narrow-sheet game had it (waffle / wordle / psychicnum / connections /
+ * scrabble / stackdown / codenamesduet); waffle is the one driven here.
+ *
+ * Measured, not eyeballed: the log's box must overflow its own client height
+ * (so it scrolls), while the sheet's must not.
+ */
+test('a long turn log scrolls inside its box, not the sheet', async ({ browser }) => {
+  const club = await createSoloClub('wflog')
+  const game = await createWaffleGame(club)
+  // Far more rows than a real game can produce (a game has par + extra swaps),
+  // which is the point — the box has to be overflowing for the test to mean
+  // anything. Display-only data, so synthetic rows are honest here.
+  seedWaffleSwapLog(game.id, club.members[0].userId, 30)
+
+  const ctx = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  })
+  await signIn(ctx, club.members[0].session)
+  const page = await ctx.newPage()
+  await page.goto(`/g/${game.gametype}/${game.id}`)
+  await expect(page.locator('[role="grid"]')).toBeVisible({ timeout: 20000 })
+
+  await page.getByRole('button', { name: 'Game menu' }).click()
+  await page.getByText('Game info', { exact: true }).click()
+  await page.waitForTimeout(300)
+
+  const m = await page.evaluate(() => {
+    const box = document.querySelector('[class*="turnLogBox"]') as HTMLElement | null
+    const sheet = document.querySelector('[data-info-sheet]') as HTMLElement | null
+    return {
+      boxScroll: box?.scrollHeight ?? 0,
+      boxClient: box?.clientHeight ?? 0,
+      sheetScroll: sheet?.scrollHeight ?? 0,
+      sheetClient: sheet?.clientHeight ?? 0,
+      docScroll: document.documentElement.scrollHeight,
+      innerH: window.innerHeight,
+    }
+  })
+  // The log overflows its box → it scrolls there.
+  expect(m.boxScroll).toBeGreaterThan(m.boxClient)
+  // …and the sheet does NOT scroll (the +1 absorbs sub-pixel rounding).
+  expect(m.sheetScroll).toBeLessThanOrEqual(m.sheetClient + 1)
+  // …nor does the page (docs/ui.md → page fits the viewport).
+  expect(m.docScroll).toBeLessThanOrEqual(m.innerH + 1)
+
+  await ctx.close()
 })

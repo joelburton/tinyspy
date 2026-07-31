@@ -459,7 +459,17 @@ mobile pass is now composing them, not copy-paste:
   mis-announced as a modal. `useInfoSheet` also **resets `isOpen` when the
   viewport crosses up to desktop** (adjust-state-during-render, not an effect),
   so a sheet opened on mobile doesn't reappear already-open after a round trip
-  through a wide layout.
+  through a wide layout. **The sheet is a FLEX COLUMN** whose in-flow child (the
+  game's `<InfoCol>`) gets `flex: 1 1 auto; min-height: 0` — that's what gives
+  the info column a definite height to divide up, so its turn log / word list
+  scrolls inside its own bordered box instead of growing tall and making the
+  whole sheet scroll. `min-height: 0` is the load-bearing half: a flex item's
+  implicit `min-height: auto` refuses to shrink under its content. (This was
+  once only on the `wide` variant; the narrow sheets were plain blocks and every
+  one of them — waffle / wordle / psychicnum / connections / scrabble /
+  stackdown / codenamesduet — scrolled the sheet instead. Pinned by a measured
+  spec in `waffle-mobile.e2e.ts`.) `overflow-y: auto` stays as the fallback for
+  content that can't fit even after the log has shrunk.
 - **`shared.mobileFill`** on `.layout` (in the scaffold
   [`PlayArea.module.css`](../src/common/components/game/PlayArea.module.css)) —
   the `@media (--mobile)` full-width `--avail-w` + height override.

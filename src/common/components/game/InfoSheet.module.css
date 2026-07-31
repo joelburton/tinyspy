@@ -30,6 +30,19 @@
     box-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
     /* Extra top padding leaves room for the absolutely-placed close button. */
     padding: 2.5rem 1rem 1rem;
+    /* A FLEX COLUMN, so the info column inside can be given the sheet's height
+     * to divide up — that's what lets its turn log / word list scroll INSIDE
+     * its own bordered box instead of growing tall and making the whole sheet
+     * scroll. (`.infoCol` is itself a flex column whose log is `flex: 1;
+     * min-height: 0`, but that only bounds anything if the column has a
+     * definite height to start from; as a plain block child it just grew.)
+     * The ✕ is `position: absolute`, out of flow, so it isn't a flex item.
+     *
+     * `overflow-y: auto` stays as the FALLBACK: content that genuinely can't
+     * fit even after the log has shrunk (a long setup disclosure unfolded on a
+     * short phone) scrolls the sheet rather than being clipped. */
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
     transform: translateX(100%);
     /* Closed = `visibility: hidden` as well as slid off-canvas. `translateX`
@@ -43,22 +56,21 @@
     transition: transform 160ms ease, visibility 160ms ease;
   }
 
-  /* Opt-in (the `wide` prop): full device width instead of 24rem — for a game
-   * whose info column needs the room (spellingbee/boggle's WordList). Also a flex
-   * column so the info column STRETCHES to the sheet's full height (the base 24rem
-   * sheets are plain `block` + sheet-scroll; only here does the WordList want to
-   * fill the height and scroll internally). The ✕ is `position: absolute`, out of
-   * flow, so it isn't a flex item. */
-  .wide {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-  /* The in-flow child (the game's InfoCol) fills the sheet height — so its
-   * WordList grows tall (a couple of columns) instead of collapsing to one row. */
-  .wide > :not(.close) {
+  /* The in-flow child (the game's InfoCol) fills the sheet height and may shrink
+   * below its content — the two halves of "scroll the inner box, not the sheet".
+   * `min-height: 0` is the load-bearing one: without it a flex item's implicit
+   * `min-height: auto` refuses to shrink under its content, so the log would push
+   * the sheet tall again even inside a flex column. */
+  .wrap > :not(.close) {
     flex: 1 1 auto;
     min-height: 0;
+  }
+
+  /* Opt-in (the `wide` prop): full device width instead of 24rem — for a game
+   * whose info column needs the room (spellingbee/boggle's WordList). Only the
+   * width; the flex-column layout is the base behavior now. */
+  .wide {
+    width: 100%;
   }
 
   .open {
