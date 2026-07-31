@@ -12,6 +12,7 @@ import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import type { PsychicnumSetup } from '../lib/setup'
 import type { Player, PlayerRow, GuessRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
+import { StateLine } from './StateLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 
 /**
@@ -125,16 +126,16 @@ export function InfoCol({
           (docs/playarea.md → Info-column readouts): STATE → OpponentStrip (compete) →
           ACTIONS → HELP → SETUP disclosure, then the turn log below. */}
       <div className={shared.actionSlot}>
-        {/* State — shown in both play and terminal. */}
+        {/* State — shown in both play and terminal. The same `<StateLine>` the
+            mobile status bar renders above the board (BoardCol), so the two
+            copies can't drift. */}
         <p className={shared.infoState}>
-          <strong>
-            {found}/{secretCount}
-          </strong>{' '}
-          found ·{' '}
-          <strong>
-            {guessesUsed}/{totalGuesses}
-          </strong>{' '}
-          guesses used
+          <StateLine
+            found={found}
+            secretCount={secretCount}
+            guessesUsed={guessesUsed}
+            totalGuesses={totalGuesses}
+          />
         </p>
         {/* Whose-turn line — ONLY for a turn-order game (currentTurnUserId
             non-null). A separate line below the state readout, never replacing

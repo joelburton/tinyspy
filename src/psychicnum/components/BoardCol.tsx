@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
+import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { EntryRow } from '../../common/components/game/entry/EntryRow'
 import { db } from '../db'
@@ -44,6 +45,8 @@ function shuffled<T>(arr: readonly T[]): T[] {
  * which InfoCol's Hint / Reveal / End also write). See docs/playarea-decomposition-plan.md.
  */
 export function BoardCol({
+  // ── Mobile-only status strip (above the board) ──
+  mobileStatus,
   // ── Board to render (live OR a historical snapshot — PlayArea picks) ──
   words,
   results,
@@ -64,6 +67,13 @@ export function BoardCol({
   secrets,
   myConceded,
 }: {
+  // ── Mobile-only status strip ──
+  /** The core state readout (the `<StateLine>` the InfoCol also renders), shown
+   *  above the board ONLY below the `--mobile` breakpoint — where the info
+   *  column is off-canvas in the InfoSheet and would otherwise take a tap to
+   *  read. Hidden by CSS on desktop; see `<MobileStatusBar>`. */
+  mobileStatus: ReactNode
+
   // ── Board to render ──
   /** The board words (the shuffle source + the client-side board-word check). */
   words: string[]
@@ -99,9 +109,13 @@ export function BoardCol({
   localPill: GenericFeedbackMsg | null
 
   // ── Below-board slot content ──
-  /** Terminal copy — its verdict + the secret reveal show as a permanent pill. */
+  /** Terminal copy — non-null means the game is over; its `verdict` + `tone` are
+   *  the permanent below-board pill (the same contract the other games use). The
+   *  secret reveal moved to the board's rings. */
   over: TerminalCopy | null
-  /** The three secret words, revealed at game-over (terminal only), else null. */
+  /** The three secret words, revealed at game-over (terminal only), else null.
+   *  Handed to `<Board>`, which rings their tiles — the reveal is the BOARD's job
+   *  now, not a word list in the pill (no room for it on a phone). */
   secrets: string[] | null
   /** I conceded a compete race — picks the "waiting" pill's wording. */
   myConceded: boolean
@@ -176,10 +190,18 @@ export function BoardCol({
 
   return (
     <div className={shared.boardCol}>
+      {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
+          the live found/guesses readout, above the board. It's a fixed-height
+          row, so on a phone the board is that much shorter — the deliberate
+          trade for keeping the core state on the play surface. */}
+      <MobileStatusBar>{mobileStatus}</MobileStatusBar>
       <Board
         words={shuffledWords}
         results={results}
         selected={viewing ? null : selected}
+        // Terminal answer key: ring every secret bright green (found or not).
+        // Null until the game ends, so nothing leaks mid-play.
+        secretWords={secrets}
         onPick={canGuess && isMyTurn && !viewing ? handleEntryChange : undefined}
         viewing={viewing}
         highlightWord={highlightWord}
@@ -226,12 +248,9 @@ export function BoardCol({
             </div>
           )}
           {over ? (
-            <div className={shared.localPill}>
+            <div className={shared.localFeedback}>
               <GenericFeedbackPill
-                msg={terminalPill(
-                  over.tone,
-                  secrets ? `The words were ${secrets.join(', ').toUpperCase()}` : 'Game over.',
-                )}
+                msg={terminalPill(over.tone, over.verdict)}
                 onClose={noop}
               />
             </div>
@@ -256,9 +275,9 @@ export function BoardCol({
               pill={pending === '' ? localPill : null}
             />
           ) : (
-            <div className={shared.localPill}>
+            <div className={shared.localFeedback}>
               <GenericFeedbackPill
-                msg={outOfRacePill(myConceded, 'Out of guesses — waiting on the rest.')}
+                msg={outOfRacePill(myConceded, 'Out of guesses — race continues')}
                 onClose={noop}
               />
             </div>

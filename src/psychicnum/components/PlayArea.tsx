@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx } from '../../common/lib/games'
 import type { PsychicnumSetup } from '../lib/setup'
-import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
+import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
@@ -23,6 +24,7 @@ import { capitalize } from '../lib/capitalize'
 import { stickyPill } from '../../common/lib/game/localPills'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
+import { StateLine } from './StateLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
@@ -79,6 +81,21 @@ export function PlayArea({
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
   const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+
+  // ─── Coop-win celebration ──────────────────────────────
+  // Confetti at the MOMENT the team finds the third secret (the winning guess
+  // flips playState to 'won' on every connected client via realtime, so the
+  // whole group celebrates together); opening an already-won game stays quiet
+  // (useCelebration never pops on mount). This replaces the GameOverModal, which
+  // duplicated the below-board verdict pill.
+  //
+  // Gated on `playState` ALONE, which is available from the very first render —
+  // the waffle loading-race lesson. That's also why COMPETE doesn't celebrate:
+  // 'won_compete' means SOMEONE won, and telling my own win from a loss needs
+  // per-player data from useGame that's empty until the fetch lands, so an
+  // already-won race would flip false→true after load and pop confetti at
+  // someone merely reviewing it. Same call connections + wordle + waffle made.
+  const celebration = useCelebration(playState === 'won')
 
   // I dropped out of a compete race (a real loss; the others keep racing). Read
   // from the common roster (prop `players`, always present) so it's available
@@ -194,7 +211,7 @@ export function PlayArea({
           text: (
             <>
               <ActorDot actor={member} fallback="Someone" />{' '}
-              {g.kind === 'hint' ? 'asked for a hint' : 'revealed a word'}
+              {g.kind === 'hint' ? 'got hint' : 'revealed word'}
             </>
           ),
           dismiss: { kind: 'timed', ms: 3000 },
@@ -203,14 +220,14 @@ export function PlayArea({
       return {
         tone: g.was_correct ? 'success' : 'error',
         variant: 'outline',
-        text: g.was_correct ? (
+        // "Correct: WORD" / "Wrong: WORD" — the label carries the outcome (with
+        // the tone), leaving the header pill's ~26 phone characters for the word
+        // itself rather than a sentence around it.
+        text: (
           <>
-            <ActorDot actor={member} fallback="Someone" /> found a secret —{' '}
-            {g.word.toUpperCase()}!
-          </>
-        ) : (
-          <>
-            <ActorDot actor={member} fallback="Someone" /> guessed {g.word.toUpperCase()} — not it
+            <ActorDot actor={member} fallback="Someone" />{' '}
+            {g.was_correct ? 'Correct: ' : 'Wrong: '}
+            {g.word.toUpperCase()}
           </>
         ),
         dismiss: { kind: 'timed', ms: 3000 },
@@ -240,7 +257,7 @@ export function PlayArea({
         variant: 'outline',
         text: (
           <>
-            <ActorDot actor={member} fallback="Someone" /> guessed a secret word
+            <ActorDot actor={member} fallback="Someone" /> guessed a word
           </>
         ),
         dismiss: { kind: 'timed', ms: 3000 },
@@ -361,6 +378,16 @@ export function PlayArea({
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
+        // ── Mobile-only status strip (the SAME StateLine the InfoCol renders;
+        //    on a phone the info column is off-canvas in the InfoSheet) ──
+        mobileStatus={
+          <StateLine
+            found={found}
+            secretCount={SECRET_COUNT}
+            guessesUsed={guessesUsed}
+            totalGuesses={totalGuesses}
+          />
+        }
         // ── Board to render (live OR the historical snapshot — picked here) ──
         words={game.words}
         results={snap ? snap.results : results}
@@ -422,16 +449,34 @@ export function PlayArea({
         />
       </InfoSheet>
 
-      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {/* No GameOverModal (the codenamesduet/connections treatment): the verdict
+          is carried in-page by the below-board pill + the info-column outcome
+          line, and a coop win gets the celebration instead — once, when it
+          happens. */}
+      {celebration.show && (
+        <CelebrationDialog
+          title="You win! 🎉"
+          body="All three secret words found."
+          onClose={celebration.close}
+        />
+      )}
       {confirmDialog}
     </div>
   )
 }
 
 /**
- * Per-status terminal copy. `outcome` + `verdict` drive the GameOverModal;
- * `message` + `tone` drive the short, bold, color-coded line in the info column
- * (won = green, lost = red, manual end = neutral).
+ * Per-status terminal copy. `verdict` + `tone` drive the permanent below-board
+ * pill; `message` + `tone` drive the short, bold, color-coded line in the info
+ * column (won = green, lost = red, manual end = neutral). (`outcome` is vestigial
+ * now that there's no GameOverModal, but the shared `TerminalCopy` type still
+ * requires it.)
+ *
+ * Verdicts are terse and unpunctuated ("Lost: out of guesses"), the shared
+ * sweep vocabulary — the pill is a fixed-height, ellipsising row that has to fit
+ * a phone (docs/mobile.md → feedback copy). The pill only became free to carry
+ * them when the secret reveal moved onto the BOARD (ringed tiles); before that it
+ * spent its width listing "The words were APPLE, RIVER, STONE".
  */
 function buildOver({
   mode,
@@ -453,11 +498,11 @@ function buildOver({
   if (playState === 'ended') return endedCopy(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
-      return { outcome: 'won', verdict: 'You found all three!', message: 'You won!', tone: 'won' }
+      return { outcome: 'won', verdict: 'Won: all found', message: 'You won!', tone: 'won' }
     }
     return {
       outcome: 'lost',
-      verdict: timerExpired ? 'You lost: out of time' : 'You lost: out of guesses',
+      verdict: timerExpired ? 'Lost: out of time' : 'Lost: out of guesses',
       message: timerExpired ? 'Timer elapsed' : 'Out of guesses',
       tone: 'lost',
     }
@@ -465,13 +510,13 @@ function buildOver({
   // compete
   if (playState === 'won_compete') {
     return selfWon
-      ? { outcome: 'won', verdict: 'You won the race!', message: 'You won!', tone: 'won' }
-      : { outcome: 'lost', verdict: 'Beaten to the punch.', message: `${winnerName} won`, tone: 'lost' }
+      ? { outcome: 'won', verdict: 'Won: the race', message: 'You won!', tone: 'won' }
+      : { outcome: 'lost', verdict: 'Beaten to the punch', message: `${winnerName} won`, tone: 'lost' }
   }
   // lost_compete (all exhausted OR timeout in compete)
   return {
     outcome: 'lost',
-    verdict: timerExpired ? 'Out of time — nobody won.' : 'Out of guesses — nobody won.',
+    verdict: timerExpired ? 'Out of time — nobody won' : 'Out of guesses — nobody won',
     message: timerExpired ? 'Timer elapsed' : 'Out of guesses',
     tone: 'lost',
   }

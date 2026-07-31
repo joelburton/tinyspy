@@ -116,16 +116,18 @@ Migration `…002_psychicnum.sql`, in `submit_guess` / `submit_timeout` / `conce
 - **`ended`** (both) — manual `end_game`, `outcome='manual'` (:1108-1113).
 
 ### In-game feedback at end-states
-From `buildOver()` (PlayArea.tsx:420-462). A below-board pill also reveals the secrets: `The words were <A, B, C>` (BoardCol.tsx:227).
+From `buildOver()`. **No `GameOverModal`** — the below-board pill shows `verdict`, the info-column shows `message`. A **coop win** (only) also pops the shared `<CelebrationDialog>` ("You win! 🎉" / "All three secret words found."), one-shot via `useCelebration` — never on opening an already-won game; compete doesn't celebrate (`won_compete` means *someone* won, and the self-vs-other test needs per-player data that's empty on the first render).
+
+**The secret reveal is the BOARD, not text.** At terminal every secret's tile is ringed bright green (`--psychicnum-secret-ring`, over its existing background, so found-vs-missed still reads) — replacing the old below-board word list `The words were <A, B, C>`, which had no room on a phone. That's what freed the pill to carry the verdict like every other game.
 | state | verdict | message | tone |
 |---|---|---|---|
-| coop `won` | `You found all three!` | `You won!` | won |
-| coop `lost` (budget) | `You lost: out of guesses` | `Out of guesses` | lost |
-| coop `lost` (timer) | `You lost: out of time` | `Timer elapsed` | lost |
-| compete `won_compete` (you won) | `You won the race!` | `You won!` | won |
-| compete `won_compete` (beaten) | `Beaten to the punch.` | `${winnerName} won` | lost |
-| compete `lost_compete` (budget) | `Out of guesses — nobody won.` | `Out of guesses` | lost |
-| compete `lost_compete` (timer) | `Out of time — nobody won.` | `Timer elapsed` | lost |
+| coop `won` | `Won: all found` | `You won!` | won |
+| coop `lost` (budget) | `Lost: out of guesses` | `Out of guesses` | lost |
+| coop `lost` (timer) | `Lost: out of time` | `Timer elapsed` | lost |
+| compete `won_compete` (you won) | `Won: the race` | `You won!` | won |
+| compete `won_compete` (beaten) | `Beaten to the punch` | `${winnerName} won` | lost |
+| compete `lost_compete` (budget) | `Out of guesses — nobody won` | `Out of guesses` | lost |
+| compete `lost_compete` (timer) | `Out of time — nobody won` | `Timer elapsed` | lost |
 | `ended` coop | `Game ended` | `Game over` | neutral |
 | `ended` compete | `Game ended — no winner` | `Game over` | neutral |
 

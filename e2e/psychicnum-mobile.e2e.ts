@@ -44,6 +44,16 @@ test.describe('psychicnum mobile', () => {
       expect(m.sw).toBeLessThanOrEqual(m.iw + 1)
       expect(m.sh).toBeLessThanOrEqual(m.ih + 1)
 
+      // The info column is off-canvas here, so the core state readout is mirrored
+      // above the board by the shared <MobileStatusBar> — the same <StateLine>
+      // the sheet renders, so the two can't drift. It sits ABOVE the board (and
+      // shortens it) rather than overlaying it.
+      const statusBar = page.locator('[data-mobile-status]')
+      await expect(statusBar).toHaveText('0/3 found · 0/7 guesses used')
+      const barBox = (await statusBar.boundingBox())!
+      const boardBox = (await page.locator('[data-board]').boundingBox())!
+      expect(barBox.y + barBox.height).toBeLessThanOrEqual(boardBox.y + 1)
+
       // Info sheet: collapsed off the right edge → slides in from the menu → back
       // out on the ✕.
       const wrap = page.locator('[data-info-sheet]')

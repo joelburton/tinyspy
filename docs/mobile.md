@@ -599,10 +599,11 @@ copy at the top, which is what you read while the sheet is up (on a phone the
 [`codenamesduet-mobile.e2e.ts`](../e2e/codenamesduet-mobile.e2e.ts) — visible and
 above the board on a phone, hidden on desktop, still readable with the sheet open.
 
-**Adopted by:** codenamesduet. The remaining games are candidates as the
-end-states sweep reaches them — but adoption is a per-game judgment, not a
-default. A game only needs the bar if its core state is invisible once the info
-column slides away.
+**Adopted by:** codenamesduet, psychicnum ("1/3 found · 4/7 guesses used" — both
+numbers live only in the info column, and neither is readable off the board).
+The remaining games are candidates as the end-states sweep reaches them — but
+adoption is a per-game judgment, not a default. A game only needs the bar if its
+core state is invisible once the info column slides away.
 
 **Deliberately NOT adopted — connections.** Both halves of its state are already
 on the play surface: **categories found** is self-evident from the board (each
@@ -678,7 +679,7 @@ mobile and tightens the rosters, chat, and club lists everywhere.
   that exists).
 - [ ] **Audit local/global feedback message COPY for length.** Dropping the name
   to a dot (the actor-mention widgets) handles the *name* half, but some messages
-  are just wordy — "guessed a secret word — not it". The pill is `nowrap` +
+  are just wordy. The pill is `nowrap` +
   `text-overflow: ellipsis`, so an over-long message is **silently cut**, not
   wrapped. Measured budget on a 390px phone: the **header** pill fits ~26 chars
   (it shares the row with the logo + chat bubble; the identity dot eats ~2 of
@@ -690,3 +691,11 @@ mobile and tightens the rosters, chat, and club lists everywhere.
   complete"), sudden death → "Sudden death: wrong loses", and the below-board
   clue row dropped its "Your clue:" label and its "Waiting for ● moth to guess…"
   sentence (now "● moth guessing").
+  **Done for connections** (2026-07-30): terse verdicts, and the peer-solve pill
+  stopped naming the category ("● found category") — the name is puzzle data of
+  unbounded length and the solved band is already on the reader's board.
+  **Done for psychicnum** (2026-07-30): peer narration went label-first ("●
+  Correct: WORD" / "● Wrong: WORD" / "● got hint" / "● revealed word", and
+  compete's "● guessed a word"), verdicts joined the "Lost: out of guesses"
+  vocabulary, and the terminal secret list left the pill entirely — the BOARD
+  rings the answers instead, which is both shorter and easier to read.

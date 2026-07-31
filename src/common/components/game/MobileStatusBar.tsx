@@ -30,9 +30,18 @@ export function MobileStatusBar({ children }: { children: ReactNode }) {
   // `data-mobile-status` is the e2e handle (the repo's `[data-board]` /
   // `[data-info-sheet]` convention) — hashed CSS-module class names aren't
   // selectable from a browser test.
+  //
+  // The inner <span> is load-bearing, not a wrapper habit: `.bar` is a flex
+  // container, and a flex container turns each run of text into its OWN
+  // anonymous flex item, DROPPING the whitespace between them. A status line
+  // built from `<strong>1/3</strong> found · <strong>0/7</strong> guesses used`
+  // then renders as "1/3found·0/7guesses used" — visibly tighter than the same
+  // component inside the info column's plain <p>. Making the span the single
+  // flex item hands the text back to normal inline layout, so both surfaces
+  // space identically.
   return (
     <div className={styles.bar} data-mobile-status>
-      {children}
+      <span>{children}</span>
     </div>
   )
 }

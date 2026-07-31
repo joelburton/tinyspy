@@ -83,6 +83,19 @@
   font-weight: 700;
 }
 
+/* TERMINAL secret reveal: at game over every secret word is ringed bright green
+ * — including the ones nobody guessed, which is the point (the board becomes the
+ * answer key). An OUTLINE, not a fill: a found secret keeps its green result
+ * background and a never-guessed one keeps the plain tile, so the ring adds "this
+ * was an answer" without erasing "did we find it?". Inset (`outline-offset`) so
+ * it hugs just inside the tile edge, clear of the grid gap and its neighbours.
+ * Declared BEFORE `.viewed` so the history-yellow ring wins while inspecting a
+ * past turn — that's the active context then. */
+.secret {
+  outline: 3px solid var(--psychicnum-secret-ring);
+  outline-offset: -3px;
+}
+
 /* Turn-history: the tile the VIEWED past turn guessed — the shared history-yellow
  * (`--color-history-viewer`), the same signal the board frame + viewed log #N wear.
  * An inset outline so it rings just inside the tile edge, over its green/red fill. */

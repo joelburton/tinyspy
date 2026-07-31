@@ -25,6 +25,11 @@ type Props = {
   /** Turn-history: the word the viewed turn's guess decided — ring its tile
    *  history-yellow (over its green/red outcome color). Null / omitted when live. */
   highlightWord?: string | null
+  /** The secret words, non-null ONLY at terminal (the server reveals them then).
+   *  Every secret's tile gets a bright-green ring — the board becomes the answer
+   *  key, including the secrets nobody guessed. Backgrounds are untouched, so
+   *  found-vs-missed still reads. */
+  secretWords?: readonly string[] | null
   /** A control floated over the board's top-right (the Shuffle button). Rendered
    *  INSIDE the board root — the root is the `position: relative` anchor — so it
    *  hugs the VISUAL board. Anchoring to the column instead would strand it at the
@@ -44,6 +49,13 @@ type Props = {
  * a secret, red if not — so the board doubles as an at-a-glance record of what's
  * been found and ruled out. In compete mode RLS scopes `results` to the caller,
  * so it reflects only the viewer's own attempts.
+ *
+ * At TERMINAL the board doubles as the answer key: `secretWords` arrives (the
+ * server reveals the secrets once the game is over) and every secret's tile is
+ * ringed bright green — over its existing background, so a found secret still
+ * reads as found and a missed one as missed. That reveal used to be a text list
+ * in the below-board pill ("The words were APPLE, RIVER, STONE"), which had no
+ * room on a phone and made the player map words back to tiles by eye.
  */
 export function Board({
   words,
@@ -52,8 +64,12 @@ export function Board({
   onPick,
   viewing = false,
   highlightWord = null,
+  secretWords = null,
   floatingControl,
 }: Props) {
+  // A Set for the per-tile lookup below; empty (so no ring) while the game runs,
+  // since `secretWords` only arrives at terminal.
+  const secrets = new Set(secretWords ?? [])
   const cols = Math.ceil(Math.sqrt(words.length))
   const rows = Math.ceil(words.length / cols)
   return (
@@ -87,6 +103,8 @@ export function Board({
               className={cls(
                 shared.tile,
                 guessed && (correct ? styles.correct : styles.incorrect),
+                // Terminal answer key — ring every secret, found or not.
+                secrets.has(word) && styles.secret,
                 selected === word && shared.selected,
                 // Turn-history: this tile is the guess the viewed turn decided.
                 highlightWord === word && styles.viewed,
