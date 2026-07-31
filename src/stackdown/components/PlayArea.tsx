@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type {
   GenericFeedbackMsg,
   GenericFeedbackTone,
   GamePageCtx,
+  Member,
 } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
-import { terminalPill } from '../../common/lib/game/localPills'
-import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
+import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
+import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { db } from '../db'
 import { turnSnapshot } from '../lib/history'
 import type { StackdownSetup } from '../lib/setup'
@@ -106,6 +108,17 @@ export function PlayArea({
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
   const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+
+  // ─── Coop-win celebration ──────────────────────────────
+  // Confetti at the MOMENT the team clears the stack — the sixth word flips
+  // playState to 'won' on every connected client via the realtime refetch, so
+  // the whole group celebrates together; opening an already-won game stays
+  // quiet (useCelebration never pops on mount). Gated on playState ALONE:
+  // it's coop-only by the states vocabulary (compete writes 'won_compete'),
+  // and unlike anything from `useGame` it's correct from the very first render
+  // (GamePage has already waited for the common.games row).
+  const celebration = useCelebration(playState === 'won')
+
   const showLocalFeedback = useCallback(
     (text: string, tone: GenericFeedbackTone, dismiss: GenericFeedbackMsg['dismiss'] = { kind: 'sticky' }) =>
       showMsg({ tone, text, variant: 'outline', dismiss }),
@@ -239,7 +252,7 @@ export function PlayArea({
     }
     const hint = data as string | null
     showLocalFeedback(
-      hint ? `Hint: ${hint}` : 'No hint for this word yet.',
+      hint ? `Hint: ${hint}` : 'No hint for this word yet',
       'warning', // a reveal is a "help, not good-or-bad" action — amber like the button
       { kind: 'closeable' },
     )
@@ -323,9 +336,11 @@ export function PlayArea({
       const word = (s.word ?? '').toUpperCase()
       const valid = s.valid === true
       onPeerWord([...word], valid)
+      // "tried X" (not "tried X — not a word"): the header pill fits ~26 chars on
+      // a phone and ellipsises silently, and the error tone already says it failed.
       return valid
         ? { tone: 'success', text: <>{who} found {word}</>, dismiss: { kind: 'timed' } }
-        : { tone: 'error', text: <>{who} tried {word} — not a word</>, dismiss: { kind: 'timed' } }
+        : { tone: 'error', text: <>{who} tried {word}</>, dismiss: { kind: 'timed' } }
     },
     globalFeedback,
   })
@@ -343,9 +358,21 @@ export function PlayArea({
     for (const id of currentWord) offBoard.add(id)
   }
 
-  const selfWon = (status?.winner as string | undefined) === session.user.id
+  // The compete winner, for the loser's named verdict. `status.winner` is the id
+  // and `status.winner_username` the handle cached at finish time (a rename is
+  // rare enough that a stale name beats a follow-up query); the roster row is
+  // looked up for the identity DOT, falling back to the cached name.
+  const winnerId = status?.winner as string | undefined
+  const selfWon = winnerId === session.user.id
   const over = isTerminal
-    ? buildOver({ mode: game.mode, playState, timerExpired: timer.expired, selfWon })
+    ? buildOver({
+        mode: game.mode,
+        playState,
+        timerExpired: timer.expired,
+        selfWon,
+        winner: players.find((p) => p.user_id === winnerId),
+        winnerName: (status?.winner_username as string | undefined) ?? 'Someone',
+      })
     : null
 
   // The words-cleared count for the info-column state line. Coop is the shared total
@@ -377,14 +404,24 @@ export function PlayArea({
   const snap = viewingIndex !== null ? turnSnapshot(logWords, viewingIndex) : null
 
   // The below-board local pill. Precedence: the permanent terminal verdict → the
-  // transient own-move message. While viewing a past turn the pill is irrelevant —
-  // BoardCol's yellow overlay banner covers the region with the turn's description.
+  // sticky "I'm out, the others race on" pill → the transient own-move message.
+  // While viewing a past turn the pill is irrelevant — BoardCol's yellow overlay
+  // banner covers the region with the turn's description.
+  //
+  // The middle branch is stackdown's only locally-terminal state: conceding
+  // (there's no elimination here — you can't run out of tiles). It matches the
+  // other games' below-board treatment, so a conceder sees the drop-out in the
+  // slot they've been reading all game, not only in the info column.
   const localPill: GenericFeedbackMsg | null = over
     ? // over.tone (won/lost/neutral) not over.outcome, so a manual end (neutral)
       // reads neutral here — matching the info-column line and the other games,
-      // rather than the green a `.outcome`-keyed map used to give it.
-      terminalPill(over.tone, over.verdict)
-    : localFeedback
+      // rather than the green a `.outcome`-keyed map used to give it. The
+      // `verdictNode` (a compete loss's "● moth cleared it first") wins when
+      // present; the plain string is the fallback for every other case.
+      terminalPill(over.tone, over.verdictNode ?? over.verdict)
+    : isLocallyDone
+      ? outOfRacePill(myConceded)
+      : localFeedback
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -437,50 +474,87 @@ export function PlayArea({
         />
       </InfoSheet>
 
-      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {/* No GameOverModal (the sweep treatment): the verdict is carried in-page
+          by the below-board pill + the info-column outcome line, and a coop
+          clear gets the celebration instead — once, when it happens. */}
+      {celebration.show && (
+        <CelebrationDialog
+          title="Stack cleared! 🎉"
+          body="All six words found."
+          onClose={celebration.close}
+        />
+      )}
       {confirmDialog}
     </div>
   )
 }
 
 /** Terminal copy (the shared `TerminalCopy`), mode- and (compete) self-aware.
- *  `outcome` + `verdict` drive the GameOverModal + the permanent below-board pill;
- *  `message` + `tone` drive the short bold line in the info-column action row
- *  (`tone` picks its `outcome_<tone>` color — incl. neutral for a manual end). */
+ *  `tone` + `verdict` drive the permanent below-board pill; `message` + `tone`
+ *  drive the short bold line in the info-column action row (`tone` picks its
+ *  `outcome_<tone>` color — incl. neutral for a manual end). `outcome` was the
+ *  GameOverModal's field — stackdown no longer renders that modal (the coop
+ *  celebration + the in-page verdict replaced it) — but the shared shape still
+ *  requires it.
+ *
+ *  Verdicts lead with the outcome word (`Won:` / `Lost:`) and carry no trailing
+ *  period: the pill is a one-line, ellipsising row (~48 chars on a phone), so
+ *  it's a LABEL, not prose. */
 function buildOver({
   mode,
   playState,
   timerExpired,
   selfWon,
+  winner,
+  winnerName,
 }: {
   mode: 'coop' | 'compete'
   playState: string
   timerExpired: boolean
   selfWon: boolean
-}): TerminalCopy {
+  /** The compete winner's roster row (for the identity dot), if we have it. */
+  winner: Member | undefined
+  /** The compete winner's handle, cached in `status` at finish time. */
+  winnerName: string
+}): TerminalCopy & { verdictNode?: ReactNode } {
   // Manual end (stackdown.end_game) → the shared neutral copy (no winner).
   if (playState === 'ended') return endedCopy(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
-      return { outcome: 'won', verdict: 'Stack cleared! 🎉', message: 'Cleared!', tone: 'won' }
+      return { outcome: 'won', verdict: 'Won: stack cleared', message: 'Cleared!', tone: 'won' }
     }
     return {
       outcome: 'lost',
-      verdict: timerExpired ? 'Out of time.' : 'Stack not cleared.',
+      verdict: timerExpired ? 'Lost: out of time' : 'Lost: stack not cleared',
       message: timerExpired ? 'Out of time' : 'Not cleared',
       tone: 'lost',
     }
   }
-  // compete
+  // compete — a race to clear, so a loss names WHO beat you. That's the one case
+  // the pill wants a WIDGET rather than a string (the winner's identity dot, the
+  // way peer feedback names people elsewhere); `verdict` carries the plain-text
+  // twin for anything that needs a string.
   if (playState === 'won_compete') {
-    return selfWon
-      ? { outcome: 'won', verdict: 'You won — cleared it first!', message: 'You won!', tone: 'won' }
-      : { outcome: 'lost', verdict: 'Beaten to the clear.', message: 'Opponent won', tone: 'lost' }
+    if (selfWon) {
+      return { outcome: 'won', verdict: 'Won: cleared it first', message: 'You won!', tone: 'won' }
+    }
+    return {
+      outcome: 'lost',
+      verdict: `${winnerName} cleared it first`,
+      verdictNode: (
+        <>
+          <ActorDot actor={winner} fallback="Someone" show="both" /> cleared it first
+        </>
+      ),
+      message: `${winnerName} won`,
+      tone: 'lost',
+    }
   }
-  // lost_compete — nobody cleared, or time ran out
+  // lost_compete — nobody cleared, or time ran out. No `Lost:` prefix: nobody was
+  // beaten, the stack just outlasted everyone.
   return {
     outcome: 'lost',
-    verdict: timerExpired ? 'Out of time — no winner.' : 'Nobody cleared it.',
+    verdict: timerExpired ? 'Out of time — no winner' : 'Nobody cleared it',
     message: timerExpired ? 'Out of time' : 'No winner',
     tone: 'lost',
   }
