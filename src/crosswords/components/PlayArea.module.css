@@ -86,21 +86,13 @@
   flex-direction: column;
   gap: 0.4rem;
 }
-/* The tool row: controls on the left, the action button pushed to the right
- * (this is where action buttons live). */
+/* The tool row. Everything in it — the fill toggle, check/reveal, and the
+ * End / Concede action — is laid out by <Controls>, which owns the grouping
+ * and the rules between groups (Controls.module.css). */
 .toolRow {
   display: flex;
   align-items: center;
   gap: 0.8rem;
-}
-.actionRight {
-  margin-left: auto;
-}
-/* Size the End / Concede button to match the pen/pencil + check/reveal
- * buttons in the row (the shared ActionButton is bigger by default). */
-.compactAction {
-  padding: 0.25rem 0.55rem !important;
-  font-size: 0.85rem !important;
 }
 .actions {
   display: flex;

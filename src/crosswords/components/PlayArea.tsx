@@ -813,6 +813,9 @@ export function PlayArea(ctx: GamePageCtx) {
             <div className={styles.strip}>
               {!isTerminal && (
                 <div className={styles.toolRow}>
+                  {/* End / Concede rides INSIDE the bar as icon-only children,
+                      in its own rule-separated group — one row of uniform
+                      squares, grouped by what they do. */}
                   <Controls
                     mode={mode}
                     pencil={pencil}
@@ -820,22 +823,14 @@ export function PlayArea(ctx: GamePageCtx) {
                     onCheck={(scope) => void handleCheck(scope)}
                     onReveal={(scope) => void handleReveal(scope)}
                     disabled={!isPlayable}
-                  />
-                  {isPlayable && (
-                    <div className={styles.actionRight}>
-                      {mode === 'compete' ? (
-                        <ConcedeGameButton
-                          className={styles.compactAction}
-                          onClick={() => void handleConcede()}
-                        />
+                  >
+                    {isPlayable &&
+                      (mode === 'compete' ? (
+                        <ConcedeGameButton iconOnly onClick={() => void handleConcede()} />
                       ) : (
-                        <EndGameButton
-                          className={styles.compactAction}
-                          onClick={() => void handleEndGame()}
-                        />
-                      )}
-                    </div>
-                  )}
+                        <EndGameButton iconOnly onClick={() => void handleEndGame()} />
+                      ))}
+                  </Controls>
                 </div>
               )}
               {isTerminal && (

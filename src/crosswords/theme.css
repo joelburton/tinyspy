@@ -22,6 +22,11 @@
   --crosswords-line: #000;
   --crosswords-fill: #111;
   --crosswords-pencil: #555;
+  /* Ink blue — used ONLY by the Fill toggle's "pen" glyph, to read as a pen
+     against the pencil's grey italic. Grid entries themselves are
+     `--crosswords-fill` near-black however they were typed; the distinction
+     exists in the toggle, not on the board. */
+  --crosswords-pen: #1a4fd6;
   --crosswords-wrong: #d33;
   --crosswords-revealed: #00a3d9;
 }

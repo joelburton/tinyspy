@@ -2,59 +2,78 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.4rem 0.8rem;
+  /* Row gap is generous (the bar wraps on a narrow column); column gap is tight
+     because the RULES do the separating now, not whitespace. */
+  gap: 0.4rem 0.5rem;
 }
 
 .group {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.25rem;
 }
+
+/* Group name ("Fill:", "Check:", "Reveal:"). Full text color, not muted: it's
+   what disambiguates the one-character squares beside it, so it's load-bearing
+   content rather than background chrome. */
 .label {
   font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-muted);
-}
-
-/* Pen / pencil segmented toggle. */
-.seg {
-  display: inline-flex;
-  border: 1px solid var(--color-control-border);
-  border-radius: 6px;
-  overflow: hidden;
-}
-.segBtn {
-  padding: 0.25rem 0.6rem;
-  font: inherit;
-  font-size: 0.85rem;
-  background: var(--color-control-bg);
-  color: var(--color-text);
-  border: none;
-  cursor: pointer;
-}
-.segBtn + .segBtn {
-  border-left: 1px solid var(--color-control-border);
-}
-.segOn {
-  background: var(--crosswords-cursor);
   font-weight: 700;
+  color: var(--color-text);
 }
 
-.actionBtn {
-  padding: 0.25rem 0.55rem;
+/* The dark vertical rule between groups. Sized off the button box so it spans
+   the row's full height rather than just the text. */
+.rule {
+  width: 1px;
+  height: var(--icon-button-size);
+  background: var(--color-text);
+  /* Its own breathing room, so the rule doesn't crowd the squares. */
+  margin: 0 0.35rem;
+}
+
+/* Every square in the bar — the two Fill glyphs and the six scope buttons — is
+   the SAME box as a shared icon-only action button (`--icon-button-size`), so
+   the End / Concede button passed in as children sits flush with them. */
+.btn {
+  width: var(--icon-button-size);
+  height: var(--icon-button-size);
+  padding: 0;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  line-height: 1;
   background: var(--color-control-bg);
   color: var(--color-text);
   border: 1px solid var(--color-control-border);
   border-radius: 6px;
   cursor: pointer;
 }
-.actionBtn:hover:not(:disabled) {
+.btn:hover:not(:disabled) {
   background: var(--color-surface-hover);
 }
-.segBtn:disabled,
-.actionBtn:disabled {
+.btn:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* The Fill toggle's selected side, in the game's established "active" yellow
+   (the same token as the cursor cell). */
+.btnOn {
+  background: var(--crosswords-cursor);
+  border-color: var(--crosswords-line);
+}
+.btnOn:hover:not(:disabled) {
+  background: var(--crosswords-cursor);
+}
+
+/* The two Fill glyphs are both the letter "P" — the STYLE is the distinction,
+   and it's the same one the grid itself draws with. */
+.pencilBtn {
+  color: var(--crosswords-pencil);
+  font-weight: 500;
+  font-style: italic;
+}
+.penBtn {
+  color: var(--crosswords-pen);
+  font-weight: 800;
 }
