@@ -213,7 +213,7 @@ The friends' explicit "we're done" button — the **End game** header-menu item 
 
 Same shape as `submit_timeout` — accepts both active states (`playing` / `sudden_death`), same `require_game_player` gate, same idempotency (a second call raises `P0001 'game is not in progress'`, swallowed by the FE). Differences: it writes `play_state = 'ended'` with `status->>'outcome' = 'manual'`, and every player's `common.game_players.result = {won: false}` (cooperative game: nobody wins a manually-stopped game — agreeing to stop is a valid outcome, not a loss).
 
-The terminal renders **neutral**, not as a loss: `buildOver('ended')` returns `outcome:'won'` (the non-red `GameOverModal` coloring) with the verdict "Game ended.", and `manifest.STATUS_LABEL.ended = 'ended'`.
+The terminal renders **neutral**, not as a loss: `buildOver('ended')` returns the shared `endedCopy('coop')` — a neutral-toned below-board pill reading "Game ended" — and `manifest.STATUS_LABEL.ended = 'ended'`.
 
 **Realtime touch at the tail**: a no-op self-write on `codenamesduet.games` (`set turn_number = turn_number`) so the FE's schema-scoped `useGame` subscription wakes to refetch and flip into review mode — the uniform trick documented at [common.md → Manual end, step 6](../common.md#manual-end--every-gametypes-end_gametarget_game). (`submit_timeout`'s `current_clue_giver = null` write provides the same wake incidentally.) Tested in `tests/codenamesduet/end_game_test.sql`.
 
@@ -304,7 +304,7 @@ src/codenamesduet/
                           clicking a log `#N` hands Board the `lib/history.ts` board
                           for that turn (its own cells ringed) with input frozen until
                           you leave (a keystroke / click / ✕).
-                          Pops the shared `<GameOverModal>` on terminal and renders
+                          Pops the shared `<CelebrationDialog>` on a win (only) and renders
                           the AI `<ClueSuggestionPanel>` at the `.layout` level (a
                           floating panel must mount high — see ui.md → Components).
                           Mounted by <GamePage> as its render-prop child;
@@ -340,8 +340,9 @@ src/codenamesduet/
                           `.inputRow` slot (NOT the info column). ONE horizontal
                           line per state: the clue FORM (count + word `<input>` +
                           Submit + "AI") for the giver; the active clue +
-                          Pass for the guesser; a muted "Waiting for moth…" line
-                          otherwise; the sudden-death notice. Live-uppercases the
+                          Pass for the guesser; a muted "● moth guessing" /
+                          "Waiting for moth to give a clue…" line otherwise; the
+                          sudden-death notice. Live-uppercases the
                           clue. The "AI" button (shared `AIButton`, sparkles + amber)
                           calls the edge function and opens the
                           AI suggestion in a <FloatingPanel> (the exported
@@ -414,7 +415,9 @@ src/codenamesduet/
     history.test.ts       Unit tests for the fold + per-seat neutral handling + inclusive boundary.
 ```
 
-**Terminal state.** PlayArea owns a `showModal` flag initialized to `isTerminal` plus an effect that pops it true when `isTerminal` flips during play. Renders the shared `<GameOverModal>` (see [`ui.md` → Modals for terminal results](../ui.md#modals-for-terminal-results)) with a per-status verdict — "You win!" / "You lost: assassin revealed" / "You lost: out of turns" / "You lost: out of time." After the modal closes the result stays visible the shared way: the info-column action row swaps the End button for a bold outcome-colored line + a compact back-to-club button ([ui.md → Info-column readouts](../playarea.md#info-column-readouts)), and the below-board slot echoes the verdict where the clue UI was.
+**Terminal state.** codenamesduet renders **no `<GameOverModal>`** (the waffle/wordle treatment): the modal duplicated the below-board pill exactly — same verdict string, same moment — so it only cost a dismiss. The result lives in-page, the shared way: the below-board slot swaps the clue UI for a permanent outcome-colored pill carrying the per-status verdict — "You win!" / "Lost: assassin" / "Lost: out of turns" / "Lost: out of time" / "Game ended" (terse, so the fixed-height slot doesn't wrap on a phone) — and the info-column action row swaps the End button for a bold outcome-colored line ("You won!" / "Assassin revealed" / …) + a compact back-to-club button ([ui.md → Info-column readouts](../playarea.md#info-column-readouts)).
+
+A **win** additionally pops the shared `<CelebrationDialog>` (title "You win! 🎉"), driven by `useCelebration(playState === 'won')` — once, at the moment the 15th agent is contacted, on both clients via the realtime refetch. It deliberately never fires on mount, so opening an already-won game is quiet review. Losses and the manual end pop nothing.
 
 ### Board tile colors
 
@@ -424,7 +427,7 @@ The **never-selected** (unrevealed) cell is a **deliberate exception** to the pr
 
 ### Feedback: header pill (peer) vs local flash (you), and sudden death
 
-codenamesduet follows the shared [local-vs-group feedback split](../ui.md#feedback-pill). Your **own** action's result is a local `<FeedbackPill>` (centered, in the below-board slot via the shared `.localFeedback`) — error-only here (a rejected guess / clue, or an end-game error), since a successful guess shows on the board + turn log instead; the terminal verdict shows there too as a permanent (fill) pill. The GamePage **header pill** reports what the **other** player is doing — "● moth is writing a clue", "● moth is making guesses", "● moth is waiting for your guess" — *sticky*, *neutral*-toned, with a **leading** player-color disc (the `dot` + `variant: 'outline'` pill). These are *peer status*, not your to-do list: the board itself tells you when it's your move. (Header pill = leading disc; the turn-log's `<ActorTag>` puts the disc *after* the name — a deliberate placement difference.)
+codenamesduet follows the shared [local-vs-group feedback split](../ui.md#feedback-pill). Your **own** action's result is a local `<FeedbackPill>` (centered, in the below-board slot via the shared `.localFeedback`) — error-only here (a rejected guess / clue, or an end-game error), since a successful guess shows on the board + turn log instead; the terminal verdict shows there too as a permanent (fill) pill. The GamePage **header pill** reports what the **other** player is doing — "● moth writing clue", "● moth guessing", "● moth waiting for clue", "● moth waiting for you" — *sticky*, *neutral*-toned, with a **leading** player-color disc. The copy is deliberately **telegraphic** (no verb): the header pill shares its row with the logo + chat bubble, so on a 390px phone it fits ~26 characters and silently ellipsises the rest (the `dot` + `variant: 'outline'` pill). These are *peer status*, not your to-do list: the board itself tells you when it's your move. (Header pill = leading disc; the turn-log's `<ActorTag>` puts the disc *after* the name — a deliberate placement difference.)
 
 **Sudden death** is the one feedback shown in both channels at once: an error-toned, sticky header pill **and** a persistent tinted notice in the below-board CluePanel slot (`.suddenDeath`), with the info-column help leading with a red **SUDDEN DEATH:** before the explanation. It deliberately does **not** frame the whole board in red — that would shrink the `flex: 1` board ([ui.md → Layout stability](../ui.md#layout-stability)); the redundant signals carry it instead.
 

@@ -9,6 +9,7 @@ import type { ClueRow } from '../hooks/useClues'
 import type { GuessRow } from '../hooks/useBoard'
 import type { Player } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
+import { StateLine } from './StateLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './InfoCol.module.css'
 
@@ -92,15 +93,15 @@ export function InfoCol({
           codenamesduet's finished-player banners are a loud live-state announcement,
           so they sit right under the state line. */}
       <div className={shared.actionSlot}>
+        {/* The same `<StateLine>` the mobile status bar renders above the board
+            (BoardCol) — one component so the two copies can't drift. */}
         <p className={shared.infoState}>
-          <strong>{greenFound}</strong>/15 agents ·{' '}
-          {inSuddenDeath ? (
-            'sudden death'
-          ) : (
-            <>
-              <strong>{turnNumber}</strong>/{setup.turns} turns
-            </>
-          )}
+          <StateLine
+            greenFound={greenFound}
+            turnNumber={turnNumber}
+            turns={setup.turns}
+            inSuddenDeath={inSuddenDeath}
+          />
         </p>
 
         {/* Duet's finished-player rule, surfaced to BOTH players so neither reads the

@@ -1,7 +1,7 @@
 import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent } from 'react'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { cls } from '../../common/lib/util/cls'
-import { ActorTag } from '../../common/components/game/lists/ActorMention'
+import { ActorDot, ActorTag } from '../../common/components/game/lists/ActorMention'
 import { FloatingPanel } from '../../common/components/panels/FloatingPanel'
 import { SubmitButton } from '../../common/components/buttons/SubmitButton'
 import { AIButton } from '../../common/components/buttons/AIButton'
@@ -48,8 +48,8 @@ type CluePanelProps = {
  *
  *   sudden death    → "Sudden death — any non-green reveal loses" notice
  *   guess phase &&
- *     guesser       → "Your clue: WORD · N" + Pass button
- *     clue-giver    → "Your clue: WORD · N" + "waiting for <peer> to guess"
+ *     guesser       → "WORD · N" + Pass button
+ *     clue-giver    → "WORD · N" + "● <peer> guessing"
  *   clue phase &&
  *     clue-giver    → "Clue for <peer>" + count + word + Submit + AI
  *     guesser       → "waiting for <peer> to give a clue"
@@ -81,10 +81,11 @@ export function CluePanel({
   if (isGuessPhase && currentClue) {
     return (
       <div className={styles.cluePanel}>
-        <span className={styles.clueLabel}>Your clue:</span>
+        {/* No "Your clue:" label — the bold WORD · N beside the Pass button is
+            self-evidently the clue, and the row is tight on a phone. */}
         <ClueDisplay clue={currentClue} />
         {!isClueGiver && <PassButton gameId={gameId} onError={onError} />}
-        {isClueGiver && <PeerWaiting peer={peer} action="guess" />}
+        {isClueGiver && <PeerActivity peer={peer} activity="guessing" />}
       </div>
     )
   }
@@ -114,9 +115,31 @@ function ClueDisplay({ clue }: { clue: Clue }) {
   )
 }
 
+/** "● moth guessing" — the peer's identity via the shared <ActorDot> (colored
+ *  disc + name) followed by what they're doing. Telegraphic, matching the header
+ *  pill's vocabulary: this shares the below-board row with the clue display and
+ *  the Pass button, so a sentence ("Waiting for moth to guess…") crowded it on a
+ *  phone. Falls back to "Your partner" when the peer hasn't loaded yet. */
+function PeerActivity({
+  peer,
+  activity,
+}: {
+  peer: Player | undefined
+  activity: string
+}) {
+  return (
+    <span className={cls('muted', styles.waiting)}>
+      {/* show="auto": on a phone the name drops to just the dot ("● guessing") so
+          a long username can't overflow this tight below-board row. */}
+      <ActorDot actor={peer} fallback="Your partner" show="auto" /> {activity}
+    </span>
+  )
+}
+
 /** "Waiting for <peer> to <action>…" — the peer's identity via the shared
  *  <ActorTag> (name + colored disc); falls back to "your partner" when the peer
- *  hasn't loaded yet. */
+ *  hasn't loaded yet. Still the sentence form: this state OWNS the whole
+ *  below-board row (no clue display, no buttons beside it), so it has the room. */
 function PeerWaiting({
   peer,
   action,
@@ -127,7 +150,7 @@ function PeerWaiting({
   return (
     <span className={cls('muted', styles.waiting)}>
       {/* show="auto": on a phone the name drops to just the dot ("Waiting for ● to
-          guess…") so a long username can't overflow this tight below-board row. */}
+          give a clue…") so a long username can't overflow this tight row. */}
       Waiting for <ActorTag actor={peer} fallback="your partner" show="auto" /> to {action}…
     </span>
   )

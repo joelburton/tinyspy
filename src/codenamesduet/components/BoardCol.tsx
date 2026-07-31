@@ -1,9 +1,10 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { terminalPill } from '../../common/lib/game/localPills'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
+import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
 import { db } from '../db'
 import type { WordRow } from '../hooks/useBoard'
 import type { ClueRow } from '../hooks/useClues'
@@ -39,6 +40,8 @@ const noop = () => {}
  * high in the tree). See docs/playarea-decomposition-plan.md.
  */
 export function BoardCol({
+  // ── Mobile-only status strip (above the board) ──
+  mobileStatus,
   // ── Board to render (live OR a historical snapshot — PlayArea picks) ──
   words,
   myKey,
@@ -66,6 +69,13 @@ export function BoardCol({
   peer,
   onSuggestionChange,
 }: {
+  // ── Mobile-only status strip ──
+  /** The core state readout (the `<StateLine>` the InfoCol also renders), shown
+   *  above the board ONLY below the `--mobile` breakpoint — where the info
+   *  column is off-canvas in the InfoSheet and would otherwise take a tap to
+   *  read. Hidden by CSS on desktop; see `<MobileStatusBar>`. */
+  mobileStatus: ReactNode
+
   // ── Board to render ──
   /** The 25 board words — the live board OR a snapshot's reveal state (PlayArea picks). */
   words: WordRow[]
@@ -155,6 +165,11 @@ export function BoardCol({
 
   return (
     <div className={shared.boardCol}>
+      {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
+          the live agents/turns readout, above the board. It's a fixed-height
+          row, so on a phone the board is that much shorter — the deliberate
+          trade for keeping the core state on the play surface. */}
+      <MobileStatusBar>{mobileStatus}</MobileStatusBar>
       <Board
         words={words}
         myKey={myKey}

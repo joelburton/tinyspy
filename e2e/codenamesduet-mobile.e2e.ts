@@ -63,8 +63,27 @@ test.describe('codenamesduet mobile', () => {
     // the slide-in/close mechanism is identical CSS to wordle, guarded there.
     const wrap = page.locator('[data-info-sheet]')
     expect((await wrap.boundingBox())!.x).toBeGreaterThanOrEqual(m.iw - 1)
+
+    // …and BECAUSE it's off-canvas, the core state readout is mirrored above the
+    // board by the shared <MobileStatusBar> — the same <StateLine> the sheet
+    // renders, so the two can't drift.
+    const statusBar = page.locator('[data-mobile-status]')
+    await expect(statusBar).toBeVisible()
+    await expect(statusBar).toHaveText('0/15 agents · 1/9 turns')
+    // It sits ABOVE the board (and shortens it) rather than overlaying it.
+    const barBox = (await statusBar.boundingBox())!
+    const boardBox = (await page.locator('[data-board]').boundingBox())!
+    expect(barBox.y + barBox.height).toBeLessThanOrEqual(boardBox.y + 1)
     await page.getByRole('button', { name: 'Game menu' }).click()
     await expect(page.getByText('Game info', { exact: true })).toBeVisible()
+
+    // Opening the sheet doesn't take the status away — the info column's own copy
+    // of the same <StateLine> sits at the top of it (on a phone the sheet is
+    // ~full width, so it covers the bar; this is the copy you read there).
+    await page.getByText('Game info', { exact: true }).click()
+    await expect(page.locator('[data-info-sheet] [class*="infoState"]')).toHaveText(
+      '0/15 agents · 1/9 turns',
+    )
 
     await ctxAlice.close(); await ctxBob.close()
   })
@@ -81,6 +100,27 @@ test.describe('codenamesduet mobile', () => {
     const name = page.locator('[class*="namePhoneHidden"]').first()
     await expect(name).toBeVisible()
     await expect(name).toHaveText(peer.username)
+
+    // …and it shares the SENTENCE's baseline. Regression guard for the mention
+    // being `display: inline`: as an inline-FLEX box it took its baseline from
+    // its first flex item (the empty <Dot>, whose baseline is its bottom margin
+    // edge), which dropped the name below the words after it. Measured, because
+    // jsdom has no layout — the name span's text box vs a Range over the
+    // sentence text node that follows it. The offset was 0.81px pre-fix (small
+    // in CSS px, plainly visible on a 2–3x screen) and is exactly 0 now, so the
+    // sub-pixel threshold is the point, not sloppiness.
+    const baselineOffset = await page.evaluate(() => {
+      const nameEl = document.querySelector('[class*="pill"] [class*="name"]')!
+      const after = nameEl.parentElement!.nextSibling as Text
+      const range = document.createRange()
+      range.selectNodeContents(after)
+      return Math.abs(nameEl.getBoundingClientRect().top - range.getBoundingClientRect().top)
+    })
+    expect(baselineOffset).toBeLessThanOrEqual(0.5)
+
+    // The mobile status bar is CSS-hidden on desktop — the info column is right
+    // there, so the strip would be a duplicate (and it must generate no box).
+    await expect(page.locator('[data-mobile-status]')).toBeHidden()
 
     await ctxAlice.close(); await ctxBob.close()
   })

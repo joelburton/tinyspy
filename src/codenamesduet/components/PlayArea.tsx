@@ -3,7 +3,8 @@ import type { GenericFeedbackApi, GenericFeedbackMsg, GenericFeedbackTone, GameP
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
-import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
+import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
@@ -24,6 +25,7 @@ import type { CodenamesduetSetup } from '../lib/setup'
 import { ClueSuggestionModal, type SuggestState } from './CluePanel'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
+import { StateLine } from './StateLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with this chunk)
@@ -44,17 +46,20 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
  * Cross-cutting chrome (logo, chat, pause, timer, the players strip)
  * lives on `<GamePage>` above this component.
  *
- * **Terminal handling.** Two pieces:
+ * **Terminal handling.** codenamesduet skips the shared `<GameOverModal>` (the
+ * waffle/wordle treatment): the modal was a pure duplicate — same verdict
+ * string, same moment — of the below-board pill, so it only cost a dismiss.
+ * What's left is two in-page surfaces plus one celebration:
  *
- *   1. `<GameOverModal>` (shared) pops on terminal entry. State is
- *      a local boolean initialized to `isTerminal` (true if the
- *      user navigated into an already-won/lost game), bumped to
- *      true by an effect when `isTerminal` flips during play. No
- *      reopen after close — review mode takes over.
- *   2. The action slot shows the indicator below until the user
- *      navigates away. Same status label as the modal's title;
- *      same Back-to-club button as the modal's primary action,
- *      both wired to `ctx.goToClub`.
+ *   1. The below-board slot swaps the CluePanel for a permanent
+ *      outcome-colored pill carrying `over.verdict`, and the info-column
+ *      action row swaps the End button for a bold `over.message` line + a
+ *      compact Back-to-club button (wired to `ctx.goToClub`). Both persist
+ *      until the user navigates away.
+ *   2. A **win** — and only a win — also pops `<CelebrationDialog>`, at the
+ *      MOMENT the 15th agent is contacted. `useCelebration` deliberately never
+ *      fires on mount, so opening an already-won game is quiet review, not a
+ *      re-run of the moment.
  *
  * Most of the game logic is server-side (in plpgsql RPCs); this
  * component's job is to load the row + board + clues via the three
@@ -75,12 +80,18 @@ const ownAction = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg 
 
 /** Per-status terminal copy for codenamesduet. `playState` is the authoritative
  *  input — only terminal states appear here. Returns the shared `TerminalCopy`
- *  shape (the same psychicnum/connections use): `outcome` + `verdict` drive the
- *  GameOverModal and the permanent below-board pill; `message` + `tone` drive the
- *  short, bold, color-coded line in the info-column action row (won = green,
- *  lost = red, manual end = neutral). Detail-on-page intentionally: the
- *  agents-found counter sits in the info-column state line, the board carries the
- *  revealed tiles. */
+ *  shape (the same psychicnum/connections use): `verdict` + `tone` drive the
+ *  permanent below-board pill; `message` + `tone` drive the short, bold,
+ *  color-coded line in the info-column action row (won = green, lost = red,
+ *  manual end = neutral). (`outcome` is vestigial here — it drove the
+ *  GameOverModal's green/red treatment, and duet no longer renders one — but the
+ *  shared `TerminalCopy` type still requires it.) Detail-on-page intentionally:
+ *  the agents-found counter sits in the info-column state line, the board carries
+ *  the revealed tiles.
+ *
+ *  The loss verdicts are terse ("Lost: assassin") rather than sentences: the pill
+ *  is a fixed-height below-board slot, and on a phone a long verdict wraps and
+ *  grows it. */
 function buildOver(playState: string): TerminalCopy {
   if (playState === 'won') {
     return { outcome: 'won', verdict: 'You win!', message: 'You won!', tone: 'won' }
@@ -88,7 +99,7 @@ function buildOver(playState: string): TerminalCopy {
   if (playState === 'lost_assassin') {
     return {
       outcome: 'lost',
-      verdict: 'You lost: assassin revealed',
+      verdict: 'Lost: assassin',
       message: 'Assassin revealed',
       tone: 'lost',
     }
@@ -96,7 +107,7 @@ function buildOver(playState: string): TerminalCopy {
   if (playState === 'lost_clock') {
     return {
       outcome: 'lost',
-      verdict: 'You lost: out of turns',
+      verdict: 'Lost: out of turns',
       message: 'Out of turns',
       tone: 'lost',
     }
@@ -109,7 +120,7 @@ function buildOver(playState: string): TerminalCopy {
   // falls back to a generic timer-out message rather than crashing).
   return {
     outcome: 'lost',
-    verdict: 'You lost: out of time',
+    verdict: 'Lost: out of time',
     message: 'Out of time',
     tone: 'lost',
   }
@@ -119,12 +130,18 @@ function buildOver(playState: string): TerminalCopy {
  * Surface the current turn-state in the header feedback pill, firing once each
  * time it CHANGES. The header describes **what the PEER is doing** — never what
  * YOU should do (your own to-do is conveyed by the below-board clue UI). So all
- * four turn states read as "{peer} is …", neutral and sticky (they describe an
+ * four turn states read as "{peer} {doing}", neutral and sticky (they describe an
  * ongoing peer state, not a transient nudge, so they persist until it changes).
  *
+ * **Telegraphic on purpose** ("waiting for you", not "is waiting for your turn to
+ * complete"): the header pill shares its row with the logo and chat bubble, so on
+ * a 390px phone it fits ~26 characters and silently ELLIPSISES the rest — and the
+ * dot alone eats two of them. Anything longer than a few words is a message the
+ * phone player never finishes reading. Keep additions this short.
+ *
  * The one exception is **sudden death** — a standing danger warning, not a peer
- * action — which stays here in `error` tone (and is also shown, persistently,
- * below the board via the CluePanel notice).
+ * action — which stays here in `error` tone (and is also shown, persistently, in
+ * full, below the board via the CluePanel notice, which has room for it).
  *
  * Self-contained so it can be called unconditionally before PlayArea's loading
  * early-return.
@@ -161,19 +178,20 @@ function useTurnPill(args: {
     })
     if (inSuddenDeath) {
       key = 'sudden-death'
-      node = 'Sudden death — any non-green reveal loses'
+      node = 'Sudden death: wrong loses'
       tone = 'error'
     } else {
       outline = true
-      // What the peer is doing — the sentence WITHOUT their name (the ActorDot
-      // supplies "● moth" ahead of it).
+      // What the peer is doing — the phrase WITHOUT their name (the ActorDot
+      // supplies "● moth" ahead of it), and without a verb ("● moth guessing"):
+      // see the phone-width note above.
       const rest = !isGuessPhase
         ? isClueGiver
-          ? 'is waiting for your clue'
-          : 'is writing a clue'
+          ? 'waiting for clue'
+          : 'writing clue'
         : isClueGiver
-          ? 'is making guesses'
-          : 'is waiting for your turn to complete'
+          ? 'guessing'
+          : 'waiting for you'
       key = `${peer?.user_id ?? 'partner'}:${rest}`
       node = (
         <>
@@ -237,15 +255,21 @@ export function PlayArea({
   // `gameOver` mirrors common.games.is_terminal — derived early so
   // we can pass `revealPeer` into useBoard. `playState` carries the
   // gametype-specific value ('playing', 'sudden_death', 'won', ...)
-  // for the phase derivation and the GameOverModal copy.
+  // for the phase derivation and the terminal copy.
   const gameOver = isTerminal
   const { words, guesses, myKey, peerKey, myAgentsDone, peerAgentsDone, loading } =
     useBoard(gameId, session.user.id, gameOver)
   const { clues } = useClues(gameId)
 
-  // Shared terminal-modal scaffold: open on mount if already-
-  // terminal, re-pop when isTerminal flips during play, no re-pop
-  // after dismiss. See common/hooks/game/useTerminalModal.ts.
+  // ─── Win celebration ───────────────────────────────────
+  // Confetti at the MOMENT the pair contacts the 15th agent (the winning guess
+  // flips playState to 'won' on every connected client via realtime, so both
+  // players celebrate together); opening an already-won game stays quiet
+  // (useCelebration never pops on mount). Gated on `playState` alone — it's
+  // available from the very first render, unlike anything read from useGame,
+  // and duet is coop-only so 'won' is unambiguous. This is the ONLY terminal
+  // modal duet shows: losses and the manual end land in-page only.
+  const celebration = useCelebration(playState === 'won')
 
   // ─── Own-action feedback (local) ───────────────────────
   // The below-board local-feedback channel — the LOCAL half of the feedback split
@@ -408,6 +432,16 @@ export function PlayArea({
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
+        // ── Mobile-only status strip (the SAME StateLine the InfoCol renders;
+        //    on a phone the info column is off-canvas in the InfoSheet) ──
+        mobileStatus={
+          <StateLine
+            greenFound={greenFound}
+            turnNumber={game.turn_number}
+            turns={codenamesduetSetup.turns}
+            inSuddenDeath={inSuddenDeath}
+          />
+        }
         // ── Board to render (live OR the historical snapshot — picked here) ──
         words={snap ? snap.words : words}
         myKey={myKey}
@@ -466,7 +500,7 @@ export function PlayArea({
       </InfoSheet>
 
       {/* The AI clue-suggestion dialog. Rendered HERE — a child of `.layout`
-          (a flex row), like GameOverModal — so react-rnd places it on-screen.
+          (a flex row), like the other dialogs — so react-rnd places it on-screen.
           (Deep inside the flex-column board column it lands below the viewport.) */}
       {clueSuggestion && (
         <ClueSuggestionModal
@@ -475,7 +509,16 @@ export function PlayArea({
         />
       )}
 
-      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {/* No GameOverModal (the waffle/wordle treatment): the verdict is carried
+          in-page by the below-board pill + the info-column outcome line, and a
+          win gets the celebration instead — once, at the moment it happens. */}
+      {celebration.show && (
+        <CelebrationDialog
+          title="You win! 🎉"
+          body="All 15 agents contacted."
+          onClose={celebration.close}
+        />
+      )}
       {confirmDialog}
     </div>
   )

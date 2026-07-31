@@ -2,9 +2,17 @@
  * widgets in ActorMention.tsx (ActorTag = name-then-dot, ActorDot = dot-then-name).
  * The disc carries the identity; the name stays plain text so the two never fight
  * for the color (docs/ui.md → "Player identity = a colored disc"). */
+/* Plain `inline`, NOT `inline-flex`. A mention sits INSIDE a sentence ("● joel is
+ * waiting for your turn"), so its text must share the sentence's baseline — and an
+ * inline-flex box takes its baseline from its FIRST flex item, which here is the
+ * `<Dot>`: an empty inline-block, whose baseline is its bottom margin edge. That
+ * put the dot's underside on the sentence baseline and pushed the NAME visibly
+ * below the surrounding words. Going inline hands the name back to normal text
+ * layout; the dot centers itself on the text via its own `vertical-align: middle`,
+ * which is what `align-items: center` was doing here. `nowrap` still applies (and
+ * still keeps "● joel" together), and no call site relies on the box being flex. */
 .mention {
-  display: inline-flex;
-  align-items: center;
+  display: inline;
   white-space: nowrap;
 }
 

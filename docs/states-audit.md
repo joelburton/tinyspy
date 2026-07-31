@@ -22,7 +22,7 @@ These patterns recur across every game; the per-game sections below assume them.
 Sibling coop/compete pairs name the compete terminal as the coop name + `_compete`: coop `won`/`lost` → compete `won_compete`/`lost_compete`. connections/waffle/wordle/etc. follow this; boggle is the documented exception (its sole terminal is `'ended'`, winner derived from points — no win-threshold state).
 
 ### The neutral `'ended'` terminal
-Most games expose a manual **"End game"** that writes a uniform neutral terminal `play_state = 'ended'` with `status.outcome = 'manual'` and every player `{"won": false}`. Its feedback comes from the shared **`endedCopy(mode)`** (`src/common/lib/game/terminalCopy.ts:25-32`): coop verdict `'Game ended.'`, compete verdict `'Game ended — no winner.'`, both `message: 'Game over'`, `tone: 'neutral'`, `outcome: 'won'` (so the modal reads neutral-green, not a red loss). Exceptions: bananagrams has **no** `end_game` (retired for per-player concede); waffle/wordle/scrabble-coop/stackdown/etc. vary — noted per game.
+Most games expose a manual **"End game"** that writes a uniform neutral terminal `play_state = 'ended'` with `status.outcome = 'manual'` and every player `{"won": false}`. Its feedback comes from the shared **`endedCopy(mode)`** (`src/common/lib/game/terminalCopy.ts:25-32`): coop verdict `'Game ended'`, compete verdict `'Game ended — no winner'`, both `message: 'Game over'`, `tone: 'neutral'`, `outcome: 'won'` (so the modal reads neutral-green, not a red loss). Exceptions: bananagrams has **no** `end_game` (retired for per-player concede); waffle/wordle/scrabble-coop/stackdown/etc. vary — noted per game.
 
 ### `concede` (compete only)
 Each compete game exposes `<schema>.concede(target_game)` gating to compete, delegating to **`common.concede`**. A single conceder among several racers does **not** end the game — they take a real per-player loss and drop out (a *locally-terminal* look: below-board pill `"You conceded — the rest are still racing."` and an info-column `LocalTerminalRow` labeled `"You conceded"`), while the others race on. Only when the **last** active racer concedes does `common.concede` end the whole game — usually as a collective loss (`play_state 'lost'`/`'lost_compete'`, `status.outcome 'conceded'`, all `{"won": false}`).
@@ -67,16 +67,16 @@ All terminal writes go through `common.end_game`. In `codenamesduet.submit_guess
 No concede (it's coop).
 
 ### In-game feedback at end-states
-From `buildOver()` (PlayArea.tsx:83-115). Modal shows `verdict`; info-column shows `message`.
-| terminal state | modal `verdict` | info `message` | tone |
+From `buildOver()`. **No `GameOverModal`** — the below-board pill shows `verdict`, the info-column shows `message`. A **win** (only) also pops the shared `<CelebrationDialog>` ("You win! 🎉" / "All 15 agents contacted."), one-shot at the moment of the win via `useCelebration` — never on opening an already-won game.
+| terminal state | below-board `verdict` | info `message` | tone |
 |---|---|---|---|
 | `won` | `You win!` | `You won!` | won |
-| `lost_assassin` | `You lost: assassin revealed` | `Assassin revealed` | lost |
-| `lost_clock` | `You lost: out of turns` | `Out of turns` | lost |
-| `lost_timeout` | `You lost: out of time` | `Out of time` | lost |
-| `ended` | `Game ended.` | `Game over` | neutral |
+| `lost_assassin` | `Lost: assassin` | `Assassin revealed` | lost |
+| `lost_clock` | `Lost: out of turns` | `Out of turns` | lost |
+| `lost_timeout` | `Lost: out of time` | `Out of time` | lost |
+| `ended` | `Game ended` | `Game over` | neutral |
 
-Non-terminal notice worth recording: the sudden-death standing header pill `Sudden death — any non-green reveal loses` (PlayArea.tsx:163).
+Non-terminal notices worth recording. The header (global) pill carries the peer's turn-state, deliberately telegraphic for the ~26-char phone budget — `● {peer} writing clue` / `guessing` / `waiting for clue` / `waiting for you` — plus the standing sudden-death warning `Sudden death: wrong loses` (error tone). The below-board CluePanel keeps the long-form sudden-death notice ("Sudden death. No more clues — any non-green reveal loses."), which has the room.
 
 ### Listing label (`labelFor`)
 `labelFor: (row) => STATUS_LABEL[row.play_state] ?? row.play_state` (manifest.ts:106). Static strings — **no status placeholders** (Duet is coop; no winner name).
@@ -126,8 +126,8 @@ From `buildOver()` (PlayArea.tsx:420-462). A below-board pill also reveals the s
 | compete `won_compete` (beaten) | `Beaten to the punch.` | `${winnerName} won` | lost |
 | compete `lost_compete` (budget) | `Out of guesses — nobody won.` | `Out of guesses` | lost |
 | compete `lost_compete` (timer) | `Out of time — nobody won.` | `Timer elapsed` | lost |
-| `ended` coop | `Game ended.` | `Game over` | neutral |
-| `ended` compete | `Game ended — no winner.` | `Game over` | neutral |
+| `ended` coop | `Game ended` | `Game over` | neutral |
+| `ended` compete | `Game ended — no winner` | `Game over` | neutral |
 
 ### Listing label (`labelFor`)
 Coop (manifest.ts:145-155) / compete (:186-196); `name = status.winner_username ?? 'someone'`.
@@ -178,7 +178,7 @@ From `buildOver()` (PlayArea.tsx:420-474). Modal + below-board pill show `verdic
 | compete `solved_compete` (beaten, still racing) | `Beaten to the punch.` | `Opponent won` | lost |
 | compete `lost_compete` (all eliminated) | `Everyone eliminated — nobody won.` | `All eliminated` | lost |
 | compete `lost_compete` (timer) | `Out of time — nobody won.` | `Out of time` | lost |
-| `ended` coop / compete | `Game ended.` / `Game ended — no winner.` | `Game over` | neutral |
+| `ended` coop / compete | `Game ended` / `Game ended — no winner` | `Game over` | neutral |
 
 Coop-only peer narration (non-terminal, `useGlobalFeedback`): `● found COLORS!` / `● was one away` / `● guessed wrong`.
 
@@ -378,7 +378,7 @@ From `buildOver()` (PlayArea.tsx). Below-board pill = `${verdict} Answer: CRANE.
 | compete `won_compete` (beaten, clock tie) | `Beaten on the clock — same guesses, just slower.` | `Opponent won (faster)` | lost |
 | compete `lost_compete` (no solve) | `Nobody solved it.` | `No winner` | lost |
 | compete `lost_compete` (timer) | `Out of time — no winner.` | `Out of time` | lost |
-| `ended` coop / compete | `Game ended.` / `Game ended — no winner.` | `Game over` | neutral |
+| `ended` coop / compete | `Game ended` / `Game ended — no winner` | `Game over` | neutral |
 
 Peer narration (non-terminal): coop `● guessed CRANE` (neutral); compete `● solved it` (success).
 
@@ -430,7 +430,7 @@ From `buildOver()` (PlayArea.tsx:442-479). Below-board pill shows `verdict`; inf
 | compete `won_compete` (beaten) | `Beaten to the clear.` | `Opponent won` | lost |
 | compete `lost_compete` (timer) | `Out of time — no winner.` | `Out of time` | lost |
 | compete `lost_compete` (nobody) | `Nobody cleared it.` | `No winner` | lost |
-| `ended` coop / compete | `Game ended.` / `Game ended — no winner.` | `Game over` | neutral |
+| `ended` coop / compete | `Game ended` / `Game ended — no winner` | `Game over` | neutral |
 
 Locally-done (compete conceder, game continues): info-column `You conceded`.
 
@@ -611,7 +611,7 @@ From `buildOver()` (PlayArea.tsx:826-857). **Both** the modal and the below-boar
 | `won_compete` | loser (no name) | `Beaten to it.` | lost / lost |
 | `lost_compete` | that player | `Out of the race.` | lost / lost |
 | `lost` | everyone (all conceded) | `Everyone conceded.` | lost / lost |
-| `ended` (coop) | everyone | `Game ended.` | won / neutral |
+| `ended` (coop) | everyone | `Game ended` | won / neutral |
 
 Non-terminal compete pill: a conceded-but-racing player sees `You conceded — the rest are still racing.`
 

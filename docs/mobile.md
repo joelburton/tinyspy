@@ -258,7 +258,7 @@ render the name in a real `.name` span rather than baking it into the message
 string. A `show` prop (`auto` / `both` / `name` / `dot` / `none`) controls it;
 `auto` (the feedback default) hides the name under `@media (--phone)` via one
 rule, so a long username can't overflow a tight header or below-board pill —
-"● moth is writing a clue" becomes "● is writing a clue". Turn logs keep their
+"● moth writing clue" becomes "● writing clue". Turn logs keep their
 names (`TurnLogActor` → `show="both"`).
 
 This required the feedback message's `text` to hold the **widget** instead of a
@@ -569,6 +569,39 @@ tablet-p + phone on a generated full-size 15×15 board
 can't exercise width-bound sizing): no page scroll, width-bound grid, the bar
 under the grid at its reserved height, the sheet round-trip, typed entry.
 
+### The mobile status bar — core state above the board
+
+The info-sheet recipe has a cost: the moment the info column goes off-canvas, the
+game's **live state readout** ("3/15 agents · 4/9 turns") goes with it, so
+answering "how many agents left?" costs a menu tap mid-game.
+[`<MobileStatusBar>`](../src/common/components/game/MobileStatusBar.tsx) puts that
+one line back on the play surface — rendered as the **first child of
+`shared.boardCol`**, above the board, and hidden by pure CSS (`display: none`)
+above `--mobile`, so it's exactly the InfoSheet's own breakpoint and generates no
+box (no flex gap) on desktop. It is NOT gated by `useIsMobile()`: two independent
+reads of the same breakpoint can disagree across a resize; one CSS rule can't.
+
+Two rules for a game adopting it:
+
+- **Feed it the same node the info column renders.** The game extracts its state
+  line into one component and hands it to both surfaces — codenamesduet's
+  [`StateLine`](../src/codenamesduet/components/StateLine.tsx), used by `InfoCol`
+  (wrapped in `shared.infoState`) and by the bar. Two hand-written copies would
+  drift.
+- **One short line, fixed height.** The bar is `height: 1.75rem` + `nowrap` +
+  `flex-shrink: 0`; it sits above a `flex: 1` board, so anything that wrapped or
+  grew would move the board mid-game (docs/ui.md → Layout stability). Costing the
+  board that fixed height is the intended trade.
+
+Opening the sheet doesn't take the status away: `InfoCol` still renders its own
+copy at the top, which is what you read while the sheet is up (on a phone the
+~24rem sheet covers the bar; on a tablet both are on screen). Guarded in
+[`codenamesduet-mobile.e2e.ts`](../e2e/codenamesduet-mobile.e2e.ts) — visible and
+above the board on a phone, hidden on desktop, still readable with the sheet open.
+
+**Adopted by:** codenamesduet. The remaining games are candidates as the
+end-states sweep reaches them.
+
 ### Tap feedback — one canonical treatment
 
 spellingbee + boggle grew bespoke tap feedback first (grey-flash suppression + an
@@ -636,8 +669,15 @@ mobile and tightens the rosters, chat, and club lists everywhere.
   that exists).
 - [ ] **Audit local/global feedback message COPY for length.** Dropping the name
   to a dot (the actor-mention widgets) handles the *name* half, but some messages
-  are just wordy — "is waiting for your turn to complete", "guessed a secret word
-  — not it". On a narrow header pill / below-board row a long sentence still
-  wraps or crowds. Pass over every game's feedback strings and shorten where the
-  meaning survives (the dot already names the actor; the tone/color already
-  carries good/bad), so they read tight on a phone without a per-length hack.
+  are just wordy — "guessed a secret word — not it". The pill is `nowrap` +
+  `text-overflow: ellipsis`, so an over-long message is **silently cut**, not
+  wrapped. Measured budget on a 390px phone: the **header** pill fits ~26 chars
+  (it shares the row with the logo + chat bubble; the identity dot eats ~2 of
+  them), a **below-board** pill ~48. Pass over every game's feedback strings and
+  shorten where the meaning survives (the dot already names the actor; the
+  tone/color already carries good/bad).
+  **Done for codenamesduet** (2026-07-30): the four peer-turn messages went
+  telegraphic ("● moth waiting for you", not "● moth is waiting for your turn to
+  complete"), sudden death → "Sudden death: wrong loses", and the below-board
+  clue row dropped its "Your clue:" label and its "Waiting for ● moth to guess…"
+  sentence (now "● moth guessing").

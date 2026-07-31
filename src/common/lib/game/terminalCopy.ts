@@ -25,7 +25,10 @@ export type TerminalCopy = {
 export function endedCopy(mode: 'coop' | 'compete'): TerminalCopy {
   return {
     outcome: 'won',
-    verdict: mode === 'coop' ? 'Game ended.' : 'Game ended — no winner.',
+    // No trailing period: these are pill LABELS, not prose (the pill is a
+    // fixed-height, ellipsising row), and the rest of the terminal vocabulary
+    // ("You win!", "Lost: assassin", "Out of time") doesn't punctuate either.
+    verdict: mode === 'coop' ? 'Game ended' : 'Game ended — no winner',
     message: 'Game over',
     tone: 'neutral',
   }

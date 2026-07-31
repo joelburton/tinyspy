@@ -1,0 +1,33 @@
+/* The mobile-only status strip above the board (docs/mobile.md → the status
+ * bar). See MobileStatusBar.tsx for what goes in it. */
+
+/* Desktop: the info column is on-screen, so this line would be a duplicate —
+ * generate no box at all (not even a gap in `.boardCol`'s flex column). */
+.bar {
+  display: none;
+}
+
+@media (--mobile) {
+  /* Below the breakpoint the info column is off-canvas in the <InfoSheet>, so
+   * this becomes the only always-visible copy of the game's core state.
+   *
+   * FIXED height, `flex-shrink: 0`, `nowrap`: it's a `.boardCol` child sitting
+   * above a `flex: 1` board, so any growth here would push the board (and any
+   * wrap would move it mid-game). One line, always — the games that compose this
+   * keep their status copy short enough to fit a phone (docs/ui.md → Layout
+   * stability). The board shrinking by this row's height is the intended cost.
+   *
+   * Full `--color-text` (not muted): this is a real value the player reads, not
+   * background chrome (docs/ui.md → the two vocabularies). */
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    height: 1.75rem;
+    color: var(--color-text);
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+}
