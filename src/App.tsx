@@ -5,6 +5,7 @@ import { ClaimHandleScreen } from './common/components/auth/ClaimHandleScreen'
 import { ClubPage } from './common/components/club/ClubPage'
 import { CreateClubPage } from './common/components/club/CreateClubPage'
 import { GamePage } from './common/components/game/GamePage'
+import { PlayAreaErrorBoundary } from './common/components/game/PlayAreaErrorBoundary'
 import { HomePage } from './common/components/home/HomePage'
 import { UserMenu } from './common/components/account/UserMenu'
 import { EditProfileDialog } from './common/components/account/EditProfileDialog'
@@ -128,9 +129,11 @@ export default function App() {
               gametype={gametype}
             >
               {(ctx) => (
-                <Suspense fallback={<p>Loading game…</p>}>
-                  <PlayArea {...ctx} />
-                </Suspense>
+                <PlayAreaErrorBoundary>
+                  <Suspense fallback={<p>Loading game…</p>}>
+                    <PlayArea {...ctx} />
+                  </Suspense>
+                </PlayAreaErrorBoundary>
               )}
             </GamePage>
           )

@@ -5,4 +5,13 @@
 #
 # Format: <from> <to> <status>
 # Docs:   https://docs.netlify.com/routing/redirects/
+#
+# Missing build assets must FAIL, not fall into the SPA rule below. Deploys
+# are atomic — a new build deletes the old build's hashed chunks — so an old
+# tab lazy-loading a now-deleted /assets/ file would otherwise receive
+# index.html with a 200 and die on the "text/html is not a module" MIME check.
+# A 404 keeps the failure honest; the vite:preloadError reload (wired in
+# src/main.tsx) is what actually recovers. Netlify consults redirects only
+# when no real file matches, so live assets are unaffected.
+/assets/* /index.html 404
 /* /index.html 200
