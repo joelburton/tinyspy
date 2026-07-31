@@ -224,7 +224,8 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
     await user.keyboard('bcdf{Enter}') // valid tiles, but no center 'e' — fits the wheel, so it submits
-    expect(screen.getByText(/missing center letter/i)).toBeInTheDocument()
+    // The letter itself, quoted — not the rule ("missing center letter").
+    expect(screen.getByText(/missing "E"/)).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
   })
 
@@ -323,7 +324,7 @@ describe('wordwheel PlayArea — coop peer narration (global header)', () => {
     h.result = loaded(loadedGame(), [foundRow({ word: 'duplicate', points: 24, is_pangram: true })])
     rerender(<PlayArea {...ctx} />)
     expect(nodeText(vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0].text)).toBe(
-      'moth found DUPLICATE +24 — pangram! 🦌',
+      'moth pangram 🦌 DUPLICATE +24',
     )
   })
 

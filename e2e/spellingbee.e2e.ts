@@ -61,7 +61,8 @@ test.describe('spellingbee play loop', () => {
     await submit('zzzz')
     await expect(pill()).toContainText(/bad letters/)
     await submit('bcdf') // valid letters but no center 'e'
-    await expect(pill()).toContainText(/missing center letter/)
+    // The reject names the LETTER, quoted — not the rule.
+    await expect(pill()).toContainText(/missing "E"/)
     await expect(page.getByRole('button', { name: 'ZZZZ' })).toHaveCount(0)
 
     await ctx.close()

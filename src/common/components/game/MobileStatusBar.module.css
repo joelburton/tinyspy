@@ -13,9 +13,12 @@
    *
    * FIXED height, `flex-shrink: 0`, `nowrap`: it's a `.boardCol` child sitting
    * above a `flex: 1` board, so any growth here would push the board (and any
-   * wrap would move it mid-game). One line, always — the games that compose this
-   * keep their status copy short enough to fit a phone (docs/ui.md → Layout
-   * stability). The board shrinking by this row's height is the intended cost.
+   * wrap would move it mid-game). The default is ONE line — games that compose
+   * this keep their status copy short enough to fit a phone (docs/ui.md → Layout
+   * stability) — but a game whose readout is a small BLOCK rather than a line
+   * (spellingbee's rank bar + score/words) raises `--mobile-status-height` on its
+   * board column. Either way the height is fixed, never content-driven. The board
+   * shrinking by this row is the intended cost.
    *
    * Full `--color-text` (not muted): this is a real value the player reads, not
    * background chrome (docs/ui.md → the two vocabularies). */
@@ -24,10 +27,22 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    height: 1.75rem;
+    height: var(--mobile-status-height, 1.75rem);
     color: var(--color-text);
     font-size: 0.95rem;
+    /* Never wrap: the height is fixed, so a wrapped line would be clipped rather
+     * than push the board — and a status that needs two lines should raise
+     * `--mobile-status-height` and lay itself out (spellingbee's block does). */
     white-space: nowrap;
     overflow: hidden;
   }
+}
+
+/* The single flex item holding the status content — see MobileStatusBar.tsx for
+ * why it exists (flex would otherwise eat the whitespace between text runs).
+ * Block-level, so a game can pass a small stack (spellingbee's rank bar over its
+ * score/words) as readily as one line of text; it shrink-wraps its content and
+ * `.bar`'s centering places it. */
+.inner {
+  min-width: 0;
 }

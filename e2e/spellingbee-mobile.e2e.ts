@@ -42,6 +42,22 @@ test('spellingbee mobile — full-width sheet', async ({ browser }) => {
   }))
   expect(s.sw).toBeLessThanOrEqual(s.iw + 1) // no page scroll
   expect(s.sh).toBeLessThanOrEqual(s.ih + 1)
+
+  // The info column is off-canvas here, so the state unit (RankBar + Stats) is
+  // mirrored ABOVE the hive by the shared <MobileStatusBar> — the same two
+  // components the sheet renders, so they can't drift. Its height is already
+  // subtracted from the hive's --avail-h, which is why the no-scroll assertions
+  // above still hold.
+  const statusBar = page.locator('[data-mobile-status]')
+  // (The labels render uppercase via CSS; the DOM text is "Score" / "Words".)
+  await expect(statusBar).toContainText('Score')
+  await expect(statusBar).toContainText('Words')
+  const barBox = (await statusBar.boundingBox())!
+  // `_board_` (with the trailing underscore) is Letters' own root — `_boardCol_`
+  // is the column that CONTAINS the status bar, so a loose match would compare
+  // the bar against its own parent.
+  const hiveBox = (await page.locator('[class*="_board_"]').first().boundingBox())!
+  expect(barBox.y + barBox.height).toBeLessThanOrEqual(hiveBox.y + 1)
   // Open the info sheet from the menu.
   await page.getByRole('button', { name: 'Game menu' }).click()
   await page.getByText('Game info', { exact: true }).click()

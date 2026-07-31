@@ -17,10 +17,13 @@ import type { TimerMode } from '../../common/lib/games'
  *   - `timer` — wall-clock mode (none / countup / countdown).
  *     Per-game rather than per-gametype so friends can pick
  *     their own challenge each session.
- *   - `target_rank` — REQUIRED when starting from the compete
- *     manifest; absent when starting from the coop manifest.
- *     0..6 maps to the Start..Genius rank ladder. Compete wins
- *     when the first player reaches this rank.
+ *   - `target_rank` — 0..6 on the Start..Genius rank ladder.
+ *     REQUIRED in compete (the race's finish line — first player
+ *     there wins). OPTIONAL in coop, where it's the TEAM's win
+ *     threshold: reach it together and the game ends as a win.
+ *     `undefined` in coop means the open-ended word hunt, which
+ *     only the clock or the End button stops — the default, and
+ *     the right pick for a group that just wants to find words.
  *   - `required` / `legal` — the vocabulary bands. `required`
  *     (1..6) is where the displayed goal words come from; `legal`
  *     (required..6) is the wider set of accepted/bonus words. The
@@ -41,9 +44,8 @@ import type { TimerMode } from '../../common/lib/games'
  */
 export type SpellingbeeSetup = {
   timer: TimerMode
-  /** Required in compete, absent in coop. Optional on the type
-   *  because both manifests share it; the per-mode default
-   *  factories below seed the field iff compete. */
+  /** Required in compete; optional in coop, where it's the team's win
+   *  threshold (undefined = no win condition, the coop default). */
   target_rank?: number
   /** Required-words band (1..6); see the type-level notes. */
   required: number
@@ -107,9 +109,10 @@ export function spellingbeeSetupError(setup: SpellingbeeSetup): string | null {
 }
 
 /**
- * Initial setup for the coop manifest — no `target_rank` (coop
- * has no win-rank to race to; see the type's field notes). The
- * timer starts off; players pick a clock in the setup dialog.
+ * Initial setup for the coop manifest. No `target_rank`: the default coop game
+ * is the open-ended hunt (find words until you stop) — a team that wants a
+ * finish line picks one in the dialog's "Win at" field, and then reaching it
+ * ends the game as a win. The timer starts off; players pick a clock too.
  */
 export const DEFAULT_SPELLINGBEE_SETUP_COOP: SpellingbeeSetup = {
   timer: { kind: 'none' },

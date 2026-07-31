@@ -130,14 +130,22 @@ export const wordwheelCoopGame: GameManifest = {
     if (row.play_state === 'playing') {
       return `${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words`
     }
-    // Terminal coop outcomes: only 'timeout' (countdown ran out)
-    // or 'manual' (someone hit End game). There's no auto-end
-    // at 100%-found in wordwheel — players keep going past the
-    // displayed denominator (bonus words climb the score past
-    // required_words_score, the Words counter past required_words_count).
+    // Terminal coop outcomes: 'target' (the team reached the rank they set out
+    // for — the only coop WIN), 'timeout' (countdown ran out) or 'manual'
+    // (someone hit End game). Without a target there's still no auto-end at
+    // 100%-found — players keep going past the displayed denominator (bonus
+    // words climb the score past required_words_score, the Words counter past
+    // required_words_count).
     const outcome = s.outcome as string | undefined
+    if (outcome === 'target') {
+      const target = s.target_rank as number | undefined
+      return `won at ${RANKS[target ?? 6]} · ${foundScore}/${requiredScore} pts`
+    }
     if (outcome === 'timeout') {
-      return `time up · ${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words`
+      // play_state distinguishes "ran out with a target to hit" (a loss) from
+      // "ran out with nothing to fail at" (the neutral end of an open hunt).
+      const lead = row.play_state === 'lost' ? 'lost · time up' : 'time up'
+      return `${lead} · ${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words`
     }
     if (outcome === 'manual') {
       return `done · ${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words`

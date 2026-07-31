@@ -588,10 +588,22 @@ Two rules for a game adopting it:
   [`StateLine`](../src/codenamesduet/components/StateLine.tsx), used by `InfoCol`
   (wrapped in `shared.infoState`) and by the bar. Two hand-written copies would
   drift.
-- **One short line, fixed height.** The bar is `height: 1.75rem` + `nowrap` +
-  `flex-shrink: 0`; it sits above a `flex: 1` board, so anything that wrapped or
-  grew would move the board mid-game (docs/ui.md → Layout stability). Costing the
-  board that fixed height is the intended trade.
+- **Fixed height, never content-driven.** The bar defaults to `1.75rem` +
+  `nowrap` + `flex-shrink: 0`; it sits above a `flex: 1` board, so anything that
+  wrapped or grew would move the board mid-game (docs/ui.md → Layout stability).
+  A game whose readout is a small BLOCK instead of a line raises
+  `--mobile-status-height` (spellingbee: `4.25rem` for the RankBar over the
+  Score/Words grid) — still fixed, just taller. **If the game's board sizes
+  itself from a height budget, subtract the bar there too**: spellingbee's hive
+  derives from `--avail-h`, so its mobile block is deducted from that number or
+  the board would be sized for space it no longer has and the page would scroll.
+- **The inner wrapper is load-bearing.** `.bar` is a flex container, and flex
+  turns each run of text into its own anonymous item, *dropping the whitespace
+  between them* — a status line renders "1/3found·0/7guesses used", visibly
+  tighter than the same component in the info column's `<p>`. `<MobileStatusBar>`
+  wraps its children in a single `<div>` to hand the text back to normal inline
+  layout. Text assertions can't catch this (the whitespace is in the DOM, just
+  not in the layout); it took a screenshot.
 
 Opening the sheet doesn't take the status away: `InfoCol` still renders its own
 copy at the top, which is what you read while the sheet is up (on a phone the
@@ -600,7 +612,10 @@ copy at the top, which is what you read while the sheet is up (on a phone the
 above the board on a phone, hidden on desktop, still readable with the sheet open.
 
 **Adopted by:** codenamesduet, psychicnum ("1/3 found · 4/7 guesses used" — both
-numbers live only in the info column, and neither is readable off the board).
+numbers live only in the info column, and neither is readable off the board),
+spellingbee (the RankBar + Stats unit — a small BLOCK rather than a line, so it
+raises `--mobile-status-height`; see below), boggle (its 4-cell Req/Bonus ×
+Words/Score grid, same block treatment).
 The remaining games are candidates as the end-states sweep reaches them — but
 adoption is a per-game judgment, not a default. A game only needs the bar if its
 core state is invisible once the info column slides away.
@@ -665,14 +680,18 @@ that threatens the no-scroll invariant on a narrow screen (see the `.card` and
 player-strip notes above); bounding their length makes the whole app calmer on
 mobile and tightens the rosters, chat, and club lists everywhere.
 
-- [ ] **Cap user handles at 10 characters.** The username is shown in chat, every
-  game roster, the header player strip, and as the literal handle of the solo
-  club (`=<username>`). A 10-char ceiling keeps all of those compact on a phone.
-  Enforced where the handle is created — the SQL `CHECK` on `common.profiles.username`
-  and the `claim_username` RPC, mirrored by `HANDLE_REGEX` in
-  [`ClaimHandleScreen`](../src/common/components/auth/ClaimHandleScreen.tsx)
-  (currently 3–30 chars). Alpha prior: fine to just re-narrow the constraint;
-  existing over-long handles get re-picked.
+- [x] **Cap user handles — done at 15 characters** (2026-07-30; the note below
+  proposed 10, we landed on 15). The username is shown in chat, every game
+  roster, the header player strip, and as the literal handle of the solo club
+  (`=<username>`). Enforced where the handle is created — the SQL `CHECK` on
+  `common.profiles.username` (`^[a-z][a-z0-9-]{2,14}$`) and the `claim_username`
+  RPC, mirrored by `HANDLE_REGEX` + a `maxLength` on the input in
+  [`ClaimHandleScreen`](../src/common/components/auth/ClaimHandleScreen.tsx),
+  which also states "3–15 characters" in its help text. The **club** handle
+  regex is deliberately unchanged (`{2,29}`): it has to keep accommodating the
+  `=<username>` solo form and slugified club names, which is a separate cap.
+  Alpha prior applied: the constraint just re-narrowed; any over-long handle
+  gets re-picked.
 - [ ] **Cap club names at 20 characters.** The club name headlines the club page
   and appears in the home clubs list. A 20-char ceiling keeps the title on one
   line on a phone. Enforced at `create_club` (and wherever a rename lands, once

@@ -221,7 +221,8 @@ describe('spellingbee PlayArea — submit behavior (shared useWordSubmit)', () =
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
     await user.keyboard('bcdf{Enter}') // valid letters, but no center 'e'
-    expect(screen.getByText(/missing center letter/i)).toBeInTheDocument()
+    // The letter itself, quoted — not the rule ("missing center letter").
+    expect(screen.getByText(/missing "E"/)).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
   })
 })
@@ -261,7 +262,7 @@ describe('spellingbee PlayArea — coop peer narration (global header)', () => {
     h.result = loaded(loadedGame(), [foundRow({ word: 'abcdefg', points: 17, is_pangram: true })])
     rerender(<PlayArea {...ctx} />)
     expect(nodeText(vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0].text)).toBe(
-      'moth found ABCDEFG +17 — pangram! 🐝',
+      'moth pangram 🐝 ABCDEFG +17',
     )
   })
 

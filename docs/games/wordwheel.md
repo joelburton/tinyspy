@@ -62,7 +62,11 @@ Same sibling pattern as spellingbee (see spellingbee.md → *Coop vs compete* an
 *Sibling-manifest at a glance*):
 
 - **coop** (`wordwheel_coop`, 1–6 players): one shared find-list; everyone's words
-  add to a shared score + rank. Ends on the timer or a manual **End game**.
+  add to a shared score + rank. An **optional** `setup.target_rank` ("Win at" in the
+  dialog) turns it into a team goal: reach that rank together and the game ends as a
+  **win** (`play_state='won'`, everyone `{won:true}`); the countdown beating you to it
+  is a **loss**. With no target — the default — it's the open-ended hunt that only the
+  timer or a manual **End game** stops, both neutral.
 - **compete** (`wordwheel_compete`, 2–6 players): private find-lists; first player to
   reach the chosen **target rank** wins. Opponents see each other's **rank only**, not
   words or numeric score.
@@ -157,7 +161,10 @@ both a fitting word *and* an over-demanding word come back).
   constraint or raise the difficulty). Stored in the `setup` jsonb; no migration
   (`create_game` doesn't whitelist setup keys).
 - **Play states, `status` jsonb, title formula** — identical to spellingbee (title is
-  `<CENTRE>·<OUTER-SORTED>`, e.g. `E·ABCDFGHI`).
+  `<CENTRE>·<OUTER-SORTED>`, e.g. `E·ABCDFGHI`), including the **opt-in coop win**:
+  `setup.target_rank` is required in compete and optional in coop, where reaching it
+  writes `won` / missing it on the clock writes `lost` (see
+  [spellingbee.md](spellingbee.md) → play states).
 
 ## RPCs
 

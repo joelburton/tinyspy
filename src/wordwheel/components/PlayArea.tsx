@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef , type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
-import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
+import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -72,6 +73,15 @@ export function PlayArea(ctx: GamePageCtx) {
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
   const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+
+  // ─── Coop-win celebration ──────────────────────────────
+  // Confetti at the MOMENT the team crosses the rank they set out for (the
+  // winning word flips playState to 'won' on every connected client via
+  // realtime); opening an already-won game stays quiet (useCelebration never
+  // pops on mount). Only coop reaches 'won' — compete writes 'won_compete', and
+  // telling the winner from the losers there needs data that isn't right on the
+  // first render (the waffle loading-race lesson), so compete doesn't celebrate.
+  const celebration = useCelebration(playState === 'won')
 
   // The end/concede action handlers, held in a stable ref so the menu effect
   // needn't list the (later-declared, per-render `useCallback`) handlers in its
@@ -255,7 +265,10 @@ export function PlayArea(ctx: GamePageCtx) {
       // reasons left are the missing centre or simply not-a-word. The hook wraps
       // the reason as `WORD — reason`.
       explainReject: (w) => {
-        if (center && !w.includes(center)) return 'missing center letter'
+        // Name the letter rather than the rule: "missing \"A\"" is both shorter
+        // and more actionable than "missing center letter" (the quotes are
+        // literal — they mark the letter as a quoted character, not a word).
+        if (center && !w.includes(center)) return `missing "${center.toUpperCase()}"`
         return 'not a word'
       },
     })
@@ -343,10 +356,13 @@ export function PlayArea(ctx: GamePageCtx) {
       return {
         tone: 'success',
         variant: 'outline',
+        // A pangram leads with the label + the moose, so the headline reads before
+        // the word does — and so the line fits the header pill's ~26 phone
+        // characters, which "found WORD +14 — pangram! 🦌" did not.
         text: r.is_pangram ? (
           <>
-            <ActorDot actor={member} fallback="A teammate" /> found{' '}
-            {wordWithBonusDot(r.word, r.is_bonus)} +{r.points} — pangram! 🦌
+            <ActorDot actor={member} fallback="A teammate" /> pangram 🦌{' '}
+            {wordWithBonusDot(r.word, r.is_bonus)} +{r.points}
           </>
         ) : (
           <>
@@ -436,9 +452,12 @@ export function PlayArea(ctx: GamePageCtx) {
   // re-emit it on the terminal status. Reading from setup avoids
   // a "Time up — no winner at Genius" verdict on a game that
   // actually targeted Amazing.
-  const targetRankIdx = isCompete
-    ? (wordwheelSetup.target_rank ?? null)
-    : null
+  // Target rank reads off `setup`, NOT `status.target_rank`. Setup is fixed at
+  // create_game time and lives on every code path; the status copy is written by
+  // submit_word and the terminals, but reading it would make the verdict depend
+  // on which terminal path ran. Both modes now: compete's race finish line, and
+  // coop's OPTIONAL win threshold (null = the open-ended hunt).
+  const targetRankIdx = wordwheelSetup.target_rank ?? null
 
   const over = isTerminal
     ? buildOver({
@@ -519,48 +538,48 @@ export function PlayArea(ctx: GamePageCtx) {
         reveal={isTerminal}
         />
       </InfoSheet>
-      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {/* No GameOverModal (the sweep treatment — docs/mobile.md): the verdict is
+          carried in-page by the below-board pill + the info-column outcome line.
+          A coop WIN — only possible when the team set a target rank — gets the
+          celebration instead, once, at the moment they cross. */}
+      {celebration.show && (
+        <CelebrationDialog
+          title="You win! 🎉"
+          body={`Reached "${RANKS[wordwheelSetup.target_rank ?? 6]}" — ${foundWordsScore}/${game.required_words_score} points.`}
+          onClose={celebration.close}
+        />
+      )}
       {confirmDialog}
     </div>
   )
 }
 
-/** Wraps a rank name for terminal copy: `rank "Solid"`. The bare ladder words
- *  ("Start", "Solid", "Nice", …) read as a puzzle mid-sentence — "Stopped at
- *  Start" looks like a typo — so a terminal line that embeds a rank labels it as
- *  one and quotes the name. (The standalone "Genius!" win celebration keeps the
- *  bare, iconic word — it's the exclamation, not embedded mid-sentence.) */
-function rankLabel(name: string): string {
-  return `rank "${name}"`
-}
-
 /**
- * Maps the terminal play_state to:
- *   - `outcome` — the GameOverModal's green/red color cue.
- *   - `verdict` — the centered large-font line in the modal.
- *   - `indicator` — the detailed status line that replaces the input area
- *     below the board (e.g. "Genius! 12/93 points").
- *   - `message` + `tone` — the short, bold, color-coded line in the
- *     info-column action row (won = green, lost = red, neutral = plain).
+ * The terminal copy: `verdict` + `tone` drive the permanent below-board pill,
+ * `message` + `tone` the short bold line in the info-column action row. There is
+ * no `<GameOverModal>` — a coop WIN pops `<CelebrationDialog>` and everything
+ * else lives in-page.
  *
- * A rank embedded mid-sentence is wrapped via `rankLabel` (`rank "Solid"`); the
- * bare "Genius!" win is the one exception (it's the celebratory exclamation).
+ * Verdicts lead with the OUTCOME WORD — "Won:" / "Lost:" / "Ended:" — so the
+ * result reads before the detail does, and they stay short enough for the
+ * below-board pill on a phone (~44 characters; it ellipsises rather than wraps).
+ * A rank in a verdict is quoted (`"Genius"`), the one place we still use
+ * `rankLabel`'s longer `rank "Genius"` form being the info-column line.
  *
- * Coop:
- *   - `playState='ended'` + Genius rank → "Genius! N/M points."
- *   - `playState='ended'` + lower rank → 'Stopped at rank "Solid" —
- *     N/M points.' (covers timeout AND manual end, since the
- *     player already knows which one happened)
+ * **Coop** (the target rank is optional — see `SpellingbeeSetup.target_rank`):
+ *   - `won`   — the team reached the rank they set out for → `Won: "Genius" 47/50 points`
+ *   - `lost`  — the countdown beat an unreached target → `Lost: ran out of time`
+ *   - `ended` — no target, or they stopped early → `Ended: Solid 10/50 points`
+ *     (the rank REACHED, not a target; the same sentence at every rank)
  *
- * Compete:
- *   - `playState='won_compete'` + caller is winner → 'You won
- *     the race — reached rank "Amazing"!'
- *   - `playState='won_compete'` + caller is NOT winner → '<name>
- *     beat you to rank "Amazing".'
- *   - `playState='ended'` with outcome='timeout' → 'Time's up —
- *     no winner at rank "Amazing".'
- *   - `playState='ended'` with outcome='manual' → 'Game ended —
- *     no winner at rank "Amazing".'
+ * **Compete** (a target rank is always set):
+ *   - `won_compete`, caller won → `Won: "Amazing" 47/50 points`
+ *   - `won_compete`, beaten → `● alice won at "Amazing"` (a WIDGET — the
+ *     opponent's identity dot — hence `verdictNode`; `verdict` carries the
+ *     plain-text twin for anything that needs a string)
+ *   - `ended` + timeout → `Lost: ran out of time`
+ *   - `ended` + manual → `Ended: No winner`
+ *   - `lost` (everyone conceded) → `Lost: all conceded`
  */
 function buildOver({
   mode,
@@ -576,19 +595,20 @@ function buildOver({
   mode: 'coop' | 'compete'
   playState: string
   status: Record<string, unknown> | null
-  /** From `setup.target_rank` — null in coop, present in compete. */
+  /** From `setup.target_rank`: always set in compete, optional in coop (null =
+   *  the open-ended hunt, which has no win condition). */
   targetRankIdx: number | null
   foundWordsScore: number
   requiredWordsScore: number
   selfRankIdx: number
   selfId: string
   players: Member[]
-  // The shared TerminalCopy (drives the modal + info-column line) extended with a
-  // wordwheel-specific `indicator` — the detailed below-board status line. Naming
-  // TerminalCopy here (rather than re-listing its fields) makes the "same copy, plus
-  // one extra field" relationship explicit; InfoCol consumes it as a plain TerminalCopy.
-}): TerminalCopy & { indicator: string } {
+  // The shared TerminalCopy plus an optional NODE verdict — the one case where
+  // the pill needs a widget (the winner's identity dot) rather than a string.
+  // InfoCol consumes it as a plain TerminalCopy.
+}): TerminalCopy & { verdictNode?: ReactNode } {
   const rankName = RANKS[selfRankIdx]
+  const points = `${foundWordsScore}/${requiredWordsScore} points`
 
   if (mode === 'compete') {
     // Passed in from setup, not derived here — see the comment at
@@ -597,63 +617,88 @@ function buildOver({
 
     if (playState === 'won_compete') {
       const winnerId = (status?.winner_user_id as string | undefined) ?? null
-      const selfWon = winnerId === selfId
-      if (selfWon) {
+      if (winnerId === selfId) {
         return {
           outcome: 'won',
-          verdict: `You won the race — reached ${rankLabel(targetRankName)}!`,
-          indicator: `you won at ${rankLabel(targetRankName)}`,
+          verdict: `Won: "${targetRankName}" ${points}`,
           message: 'You won!',
           tone: 'won',
         }
       }
-      const winnerName =
-        players.find((p) => p.user_id === winnerId)?.username ?? 'someone'
+      const winner = players.find((p) => p.user_id === winnerId)
+      const winnerName = winner?.username ?? 'someone'
       return {
         outcome: 'lost',
-        verdict: `${winnerName} beat you to ${rankLabel(targetRankName)}.`,
-        indicator: `${winnerName} won at ${rankLabel(targetRankName)}`,
+        verdict: `${winnerName} won at "${targetRankName}"`,
+        // The identity dot names the winner the way every other peer message
+        // does — no "Lost:" prefix needed, the loss is implicit in "they won".
+        verdictNode: (
+          <>
+            <ActorDot actor={winner} fallback="someone" show="both" /> won at "
+            {targetRankName}"
+          </>
+        ),
         message: `${winnerName} won`,
         tone: 'lost',
       }
     }
 
-    // playState='ended' in compete: timeout or manual. No winner
-    // either way — the race didn't finish.
+    // 'lost' in compete is the all-conceded terminal (common.concede ends the
+    // race as a collective loss when the last racer drops).
+    if (playState === 'lost') {
+      return {
+        outcome: 'lost',
+        verdict: 'Lost: all conceded',
+        message: 'All conceded',
+        tone: 'lost',
+      }
+    }
+
+    // playState='ended' in compete: timeout or manual. No winner either way —
+    // the race didn't finish. The clock is a loss; agreeing to stop isn't.
     const outcome = (status?.outcome as string | undefined) ?? 'ended'
     if (outcome === 'timeout') {
       return {
         outcome: 'lost',
-        verdict: `Time's up — no winner at ${rankLabel(targetRankName)}.`,
-        indicator: `time up — no winner at ${rankLabel(targetRankName)}`,
-        message: 'Time up',
+        verdict: 'Lost: ran out of time',
+        message: 'Out of time',
         tone: 'lost',
       }
     }
     return {
-      outcome: 'lost',
-      verdict: `Game ended — no winner at ${rankLabel(targetRankName)}.`,
-      indicator: `ended — no winner at ${rankLabel(targetRankName)}`,
-      message: 'Game ended',
+      outcome: 'won',
+      verdict: 'Ended: No winner',
+      message: 'Game over',
       tone: 'neutral',
     }
   }
 
-  // coop
-  if (selfRankIdx >= 6) {
+  // ─── coop ───
+  if (playState === 'won') {
+    // The rank NAMED is the one they set out for; the score can overshoot it.
+    const targetRankName = RANKS[targetRankIdx ?? selfRankIdx]
     return {
       outcome: 'won',
-      verdict: `Genius! ${foundWordsScore}/${requiredWordsScore} points.`,
-      indicator: `Genius! ${foundWordsScore}/${requiredWordsScore} points`,
-      message: 'Genius!',
+      verdict: `Won: "${targetRankName}" ${points}`,
+      message: 'You won!',
       tone: 'won',
     }
   }
+  if (playState === 'lost') {
+    // Only reachable with a target set: the countdown beat them to it.
+    return {
+      outcome: 'lost',
+      verdict: 'Lost: ran out of time',
+      message: 'Out of time',
+      tone: 'lost',
+    }
+  }
+  // 'ended' — the open-ended hunt finishing, or an early stop. Neutral, and the
+  // same sentence at every rank (Genius included): they didn't fail at anything.
   return {
     outcome: 'won',
-    verdict: `Stopped at ${rankLabel(rankName)} — ${foundWordsScore}/${requiredWordsScore} points.`,
-    indicator: `stopped at ${rankLabel(rankName)}`,
-    message: `Stopped at ${rankLabel(rankName)}`,
+    verdict: `Ended: ${rankName} ${points}`,
+    message: rankName,
     tone: 'neutral',
   }
 }

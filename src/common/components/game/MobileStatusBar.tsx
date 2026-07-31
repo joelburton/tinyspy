@@ -22,26 +22,29 @@ import styles from './MobileStatusBar.module.css'
  * game should extract its state line into one component and hand it to both
  * (see codenamesduet's `StateLine`), so the two can't drift.
  *
- * The bar is a fixed-height, non-wrapping row: it costs the board that height
- * and nothing more, ever (docs/ui.md → Layout stability). Keep the content to
- * one short line.
+ * The bar is a fixed-height row: it costs the board that height and nothing
+ * more, ever (docs/ui.md → Layout stability). The default is one short line;
+ * a game whose readout is a small BLOCK instead (spellingbee's rank bar over its
+ * score/words) raises `--mobile-status-height` on its layout and lays the block
+ * out itself. Fixed either way; never content-driven.
  */
 export function MobileStatusBar({ children }: { children: ReactNode }) {
   // `data-mobile-status` is the e2e handle (the repo's `[data-board]` /
   // `[data-info-sheet]` convention) — hashed CSS-module class names aren't
   // selectable from a browser test.
   //
-  // The inner <span> is load-bearing, not a wrapper habit: `.bar` is a flex
+  // The inner wrapper is load-bearing, not a wrapper habit: `.bar` is a flex
   // container, and a flex container turns each run of text into its OWN
   // anonymous flex item, DROPPING the whitespace between them. A status line
   // built from `<strong>1/3</strong> found · <strong>0/7</strong> guesses used`
   // then renders as "1/3found·0/7guesses used" — visibly tighter than the same
-  // component inside the info column's plain <p>. Making the span the single
-  // flex item hands the text back to normal inline layout, so both surfaces
-  // space identically.
+  // component inside the info column's plain <p>. Making this the single flex
+  // item hands the text back to normal inline layout, so both surfaces space
+  // identically. A <div> (not a <span>) so a game can pass block content — e.g.
+  // spellingbee's rank bar stacked over its score/words grid.
   return (
     <div className={styles.bar} data-mobile-status>
-      <span>{children}</span>
+      <div className={styles.inner}>{children}</div>
     </div>
   )
 }

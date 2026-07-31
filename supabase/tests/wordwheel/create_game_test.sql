@@ -31,7 +31,7 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(35);
+select plan(36);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -282,7 +282,10 @@ select throws_ok(
   'compete with target_rank > 6 rejected'
 );
 
-select throws_ok(
+-- coop MAY set target_rank: it's the team's win threshold (reach that rank
+-- together and wordwheel.submit_word ends the game as 'won'). Absent/null is the
+-- open-ended hunt that only the clock or the End button stops.
+select lives_ok(
   format(
     $$ select wordwheel.create_game(%L,
                                    pg_temp.wordwheel_setup() || '{"target_rank": 3}'::jsonb,
@@ -291,9 +294,17 @@ select throws_ok(
                                    pg_temp.wordwheel_board()) $$,
     (select handle from club)
   ),
-  'P0001',
-  'setup.target_rank only allowed when mode=compete',
-  'coop with a stray target_rank rejected (loud — FE forgot to strip)'
+  'coop with a target_rank accepted (the coop win threshold)'
+);
+
+select is(
+  (select (status->>'target_rank')::int
+     from common.games
+    where gametype = 'wordwheel_coop'
+      and (status->>'target_rank') is not null
+    limit 1),
+  3,
+  'the coop target rank is echoed into status (the FE reads it for the win copy)'
 );
 
 -- ============================================================

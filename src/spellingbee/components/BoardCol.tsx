@@ -1,10 +1,13 @@
-import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { terminalPill } from '../../common/lib/game/localPills'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { EntryRow } from '../../common/components/game/entry/EntryRow'
+import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
+import { RankBar } from '../../common/components/game/RankBar'
+import { Stats } from '../../common/components/game/Stats'
 import { asciiLetters } from '../../common/hooks/input/useCaptureKeys'
 import { Letters } from './Letters'
 import { TypedWord } from './TypedWord'
@@ -37,6 +40,11 @@ function shuffled<T>(arr: readonly T[]): T[] {
  * docs/playarea-decomposition-plan.md.
  */
 export function BoardCol({
+  // ── Mobile-only status block (above the board) ──
+  foundWordsScore,
+  requiredWordsScore,
+  foundWordsCount,
+  requiredWordsCount,
   // ── Board to render ──
   outerLetters,
   centerLetter,
@@ -52,6 +60,16 @@ export function BoardCol({
   // ── Below-board pill ──
   over,
 }: {
+  // ── Mobile-only status block ──
+  /** The four figures behind the RankBar + Stats unit — the SAME components the
+   *  info column renders, mirrored above the board below the `--mobile`
+   *  breakpoint (where the info column is off-canvas in the InfoSheet). Hidden by
+   *  CSS on desktop; see `<MobileStatusBar>`. */
+  foundWordsScore: number
+  requiredWordsScore: number
+  foundWordsCount: number
+  requiredWordsCount: number
+
   // ── Board to render ──
   /** The board's outer letters (a string) — the local shuffle rearranges this. */
   outerLetters: string
@@ -75,11 +93,12 @@ export function BoardCol({
   isTerminal: boolean
 
   // ── Below-board pill ──
-  /** The shared `TerminalCopy`, extended with a spellingbee-specific `indicator`
-   *  (the detailed below-board status line, e.g. "Genius! 12/93 points"). Same
-   *  `over` object InfoCol receives as a plain `TerminalCopy`; this column reads
-   *  `tone` + `indicator` to show a permanent below-board pill at game-over. */
-  over: (TerminalCopy & { indicator: string }) | null
+  /** The shared `TerminalCopy`, extended with an optional NODE verdict — the one
+   *  case (compete's "● alice won at …") where the pill needs a widget rather
+   *  than a string. Same `over` object InfoCol receives as a plain
+   *  `TerminalCopy`; this column reads `tone` + the verdict to show a permanent
+   *  below-board pill at game-over. */
+  over: (TerminalCopy & { verdictNode?: ReactNode }) | null
 }) {
   // Local visual shuffle of the outer letters — a `shuffleSeed` counter drives a memo
   // (avoids storing the order in state + a sync effect). Keyed on the outer-letters
@@ -117,6 +136,21 @@ export function BoardCol({
 
   return (
     <div className={cls(shared.boardCol, styles.boardCol)}>
+      {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
+          the rank ladder + score/words, above the hive. A fixed-height block —
+          the hive's `--avail-h` already has it subtracted, so the board shrinks
+          by exactly this much and the page still doesn't scroll. */}
+      <MobileStatusBar>
+        <div className={styles.mobileStatus}>
+          <RankBar score={foundWordsScore} total={requiredWordsScore} />
+          <Stats
+            foundWordsScore={foundWordsScore}
+            requiredWordsScore={requiredWordsScore}
+            foundWordsCount={foundWordsCount}
+            requiredWordsCount={requiredWordsCount}
+          />
+        </div>
+      </MobileStatusBar>
       <Letters
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
@@ -153,7 +187,7 @@ export function BoardCol({
             recall={lastWord}
             pill={
               isTerminal && over
-                ? terminalPill(over.tone, `Game over — ${over.indicator}`)
+                ? terminalPill(over.tone, over.verdictNode ?? over.verdict)
                 : word === ''
                   ? localPill
                   : null

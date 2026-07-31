@@ -27,6 +27,11 @@ const cleanLetters = (raw: string, max: number) =>
  */
 const TARGET_RANK_CHOICES = [2, 3, 4, 5, 6] as const
 
+/** The coop picker's "None" option. A UI-only sentinel — choosing it removes
+ *  `target_rank` from the setup blob entirely (the server reads absent/null as
+ *  "no win condition"), so this number never leaves this file. */
+const NO_TARGET = -1
+
 /**
  * wordwheel's per-game setup form. Mode is locked at the gametype
  * level (coop or compete — picked by which Start button the
@@ -75,7 +80,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
         </p>
       )}
 
-      {mode === 'compete' && (
+      {mode === 'compete' ? (
         <fieldset className={styles.fieldset}>
           <legend>Target rank — first to reach it wins</legend>
           <RadioRow
@@ -83,6 +88,30 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
             options={TARGET_RANK_CHOICES.map((idx) => ({ value: idx, label: RANKS[idx] }))}
             value={s.target_rank}
             onChange={(target_rank) => onChange({ ...s, target_rank })}
+          />
+        </fieldset>
+      ) : (
+        <fieldset className={styles.fieldset}>
+          <legend>Win at — reach it together and you win</legend>
+          <RadioRow
+            name="target_rank"
+            // -1 is the RadioRow's "None" value only; it never reaches the
+            // setup blob — picking it DELETES the key (see below), because
+            // "no win condition" is the absence of a target, not a magic rank.
+            options={[
+              { value: NO_TARGET, label: 'None' },
+              ...TARGET_RANK_CHOICES.map((idx) => ({ value: idx, label: RANKS[idx] })),
+            ]}
+            value={s.target_rank ?? NO_TARGET}
+            onChange={(choice) => {
+              if (choice === NO_TARGET) {
+                const rest = { ...s }
+                delete rest.target_rank
+                onChange(rest)
+              } else {
+                onChange({ ...s, target_rank: choice })
+              }
+            }}
           />
         </fieldset>
       )}

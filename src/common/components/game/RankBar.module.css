@@ -18,15 +18,21 @@
  * the score-words grid.
  */
 
+/* ONE ROW: the rank name sits to the LEFT of the track ("GENIUS ▪-▪-▪…") rather
+ * than stacked above it. The stack cost a whole line of height for one short
+ * word, which matters now that this same unit renders in the mobile status area
+ * above the board (where every row it takes is a row the board loses). */
 .rankBar {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 0.5rem;
 }
 
 .label {
+  /* Doesn't shrink or wrap — the track absorbs the width instead. */
+  flex: 0 0 auto;
+  white-space: nowrap;
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -39,7 +45,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 0;
-  width: 100%;
+  /* Takes the row's remaining width beside the label, up to the same cap. */
+  flex: 1 1 auto;
+  min-width: 0;
   max-width: 280px;
   margin: 0;
   padding: 0;

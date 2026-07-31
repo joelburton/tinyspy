@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, useMemo, useState, type Dispatch, type SetStateAction , type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -78,11 +78,12 @@ export function BoardCol({
   isTerminal: boolean
 
   // ── Below-board pill ──
-  /** The shared `TerminalCopy`, extended with a wordwheel-specific `indicator`
-   *  (the detailed below-board status line, e.g. "Genius! 12/93 points"). Same
-   *  `over` object InfoCol receives as a plain `TerminalCopy`; this column reads
-   *  `tone` + `indicator` to show a permanent below-board pill at game-over. */
-  over: (TerminalCopy & { indicator: string }) | null
+  /** The shared `TerminalCopy`, extended with an optional NODE verdict — the one
+   *  case (compete's "● alice won at …") where the pill needs a widget rather
+   *  than a string. Same `over` object InfoCol receives as a plain
+   *  `TerminalCopy`; this column reads `tone` + the verdict to show a permanent
+   *  below-board pill at game-over. */
+  over: (TerminalCopy & { verdictNode?: ReactNode }) | null
 }) {
   // Local visual shuffle of the outer letters — a `shuffleSeed` counter drives a memo
   // (avoids storing the order in state + a sync effect). Keyed on the outer-letters
@@ -174,7 +175,7 @@ export function BoardCol({
             submitDisabled={!wordFitsWheel(word, letterCounts)}
             pill={
               isTerminal && over
-                ? terminalPill(over.tone, `Game over — ${over.indicator}`)
+                ? terminalPill(over.tone, over.verdictNode ?? over.verdict)
                 : word === ''
                   ? localPill
                   : null

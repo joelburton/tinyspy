@@ -206,40 +206,49 @@ Coop (manifest.ts:212-227) reads `status.matched_count` + `status.mistake_count`
 | play_state | mode | terminal? |
 |---|---|---|
 | `playing` | both | no |
+| `won` | coop | **yes** (the team reached its target rank) |
+| `lost` | coop | **yes** (countdown beat an unreached target) |
 | `won_compete` | compete | **yes** |
-| `ended` | both | **yes** (win-less finish for coop; timeout/manual) |
+| `ended` | both | **yes** (coop: no target, or an early stop; compete: timeout/manual) |
 | `lost` | compete | **yes** (all-conceded only) |
 
-Coop has **no win terminal** — coop only ever reaches `ended` (there's no auto-end at 100% found). Compete's positive terminal is `won_compete`.
+Coop's win is **opt-in**: `setup.target_rank` is optional in coop (required in compete), and setting it means "reach this rank TOGETHER and you win" — `submit_word` ends the game as `won` the moment the team crosses. Without a target, coop is the open-ended hunt it always was (no auto-end at 100% found) and only ever reaches `ended`. Compete's positive terminal is `won_compete`.
 
 ### How each terminal state is reached
 Migration `…spellingbee.sql`:
 - **compete `won_compete`** — a player's own score reaches the target rank (`caller_rank_idx >= current_target_rank`, :943), freezes the leaderboard, `end_game(…, 'won_compete', …)` (:970-990).
+- **coop `won`** — the TEAM's rank reaches `setup.target_rank` in `submit_word` (only when a target was set); `end_game(…, 'won', outcome 'target')`, every player `{"won": true}` — coop has no individual result.
+- **coop `lost`** — countdown hits 0 with a target set and unreached (`submit_timeout`, `outcome 'timeout'`). With NO target the same expiry writes the neutral `ended` — nothing to fail at.
 - **`ended` via timeout** (both) — countdown hits 0 → `submit_timeout` → `end_game(…, 'ended', outcome 'timeout')` (coop :1122, compete :1156).
-- **`ended` via manual** (both) — `end_game` button → `outcome 'manual'` (coop :1259, compete :1295).
+- **`ended` via manual** (both) — `end_game` button → `outcome 'manual'` (coop :1259, compete :1295). Neutral even in a coop game with a target it never reached: agreeing to stop isn't losing.
 - **compete `lost` via all-conceded** — `common.concede` when the last racer drops (`outcome 'conceded'`, common `…1612-1616`).
 
 ### In-game feedback at end-states
-From `buildOver()` (PlayArea.tsx:507-601). `rankLabel(name)` renders e.g. `rank "Solid"`.
+From `buildOver()`. **No `GameOverModal`** — the below-board pill shows `verdict`, the info-column shows `message`. A **coop win** pops the shared `<CelebrationDialog>` ("You win! 🎉" / `Reached "Genius" — 47/50 points.`), one-shot via `useCelebration`; compete doesn't celebrate (the winner-vs-loser test needs data that isn't right on the first render).
+
+Verdicts lead with the outcome word so the result reads before the detail, and stay inside the ~44-character below-board budget on a phone.
 | state | verdict | message | tone |
 |---|---|---|---|
-| coop `ended`, Genius (rank ≥ 6) | `Genius! ${foundScore}/${requiredScore} points.` | `Genius!` | won |
-| coop `ended`, below Genius (timeout **or** manual) | `Stopped at ${rankLabel} — ${foundScore}/${requiredScore} points.` | `Stopped at ${rankLabel}` | neutral |
-| compete `won_compete` (you won) | `You won the race — reached ${rankLabel(target)}!` | `You won!` | won |
-| compete `won_compete` (beaten) | `${winnerName} beat you to ${rankLabel(target)}.` | `${winnerName} won` | lost |
-| compete `ended` (timeout) | `Time's up — no winner at ${rankLabel(target)}.` | `Time up` | lost |
-| compete `ended` (manual) | `Game ended — no winner at ${rankLabel(target)}.` | `Game ended` | neutral |
+| coop `won` (target reached) | `Won: "${targetRank}" ${foundScore}/${requiredScore} points` | `You won!` | won |
+| coop `lost` (clock beat the target) | `Lost: ran out of time` | `Out of time` | lost |
+| coop `ended` (no target, or an early stop) | `Ended: ${rankReached} ${foundScore}/${requiredScore} points` | `${rankReached}` | neutral |
+| compete `won_compete` (you won) | `Won: "${targetRank}" ${foundScore}/${requiredScore} points` | `You won!` | won |
+| compete `won_compete` (beaten) | `● ${winnerName} won at "${targetRank}"` (a widget — `verdictNode`) | `${winnerName} won` | lost |
+| compete `ended` (timeout) | `Lost: ran out of time` | `Out of time` | lost |
+| compete `ended` (manual) | `Ended: No winner` | `Game over` | neutral |
+| compete `lost` (all conceded) | `Lost: all conceded` | `All conceded` | lost |
 
-**Known quirk:** compete `lost` (all-conceded) has no dedicated `buildOver` branch — it falls through the `ended`-compete block and, since `outcome='conceded'` (not `'timeout'`), renders the **manual-end** copy (`Game ended — no winner…`, neutral), not a loss verdict.
+The coop `ended` line is the same sentence at every rank, Genius included — an open-ended hunt has nothing to fail at. (The old **known quirk** — compete all-conceded falling through to the manual-end copy — is fixed: `lost` now has its own branch.)
 
 ### Listing label (`labelFor`)
 Coop (manifest.ts:122-145) surfaces score+word counts; compete (:183-207) is rank-only.
 | play_state / outcome | coop label | compete label |
 |---|---|---|
 | `playing` | `${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words` | `race to ${targetRankName}` |
+| terminal, `target` | `won at ${targetRankName} · ${foundScore}/${requiredScore} pts` | — |
 | `won_compete` | — | `winner at ${targetRankName}` |
 | terminal, `conceded` | — | `all conceded` |
-| terminal, `timeout` | `time up · ${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words` | `time up · no winner at ${targetRankName}` |
+| terminal, `timeout` | `time up · …` — or `lost · time up · …` when a target was set (play_state `lost`) | `time up · no winner at ${targetRankName}` |
 | terminal, `manual` | `done · ${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words` | `ended · no winner at ${targetRankName}` |
 
 ### Shelved (non-terminal, suspended)
@@ -533,23 +542,27 @@ Everything funnels through `boggle._finish(target_game, outcome, winner_id)` →
 Coop has no concede.
 
 ### In-game feedback at end-states
-From `buildOver()` (PlayArea.tsx:402-503). `reason = statusOutcome === 'timeout' ? "Time's up" : 'Game ended'`. Modal + below-board pill show `verdict`; info-column shows `message`.
+From `buildOver()`. **No `GameOverModal`** — the below-board pill shows `verdict`, the info-column shows `message`. A **coop target win** (boggle's only unambiguous win) pops the shared `<CelebrationDialog>` ("Target reached! 🎉" / `12 words, 34 points.`), one-shot via `useCelebration` — gated on `status.mode` + `status.outcome`, both off the common row GamePage already waits for, NOT on boggle's own late-arriving `game.mode`. Compete doesn't celebrate.
+
+`tally` = `${myCount} words, ${myScore} points`. Which of timeout-vs-manual ended it rides in `message` (`Time's up` / `Game ended`), so the pill can spend its width on the tally.
 
 **Coop** (always `outcome: 'won'` styling):
 | case | verdict | message | tone |
 |---|---|---|---|
-| target reached | `Target reached! ${myCount} words, ${myScore} points.` | `Target reached!` | won |
-| manual / timeout | `${reason} — ${myCount} words, ${myScore} points.` | `${reason}` (`Time's up` / `Game ended`) | neutral |
+| target reached | `Won: ${tally}` | `Target reached!` | won |
+| manual / timeout | `Ended: ${tally}` | `Time's up` / `Game ended` | neutral |
 
 **Compete** (winner derived from most points, or named crosser):
 | case | verdict | message | tone |
 |---|---|---|---|
-| you conceded | `${reason} — you conceded.` | `You conceded` | lost |
-| target win (you) | `You won — reached the target with ${myScore} points!` | `You won!` | won |
-| target win (other) | `${winnerName} reached the target first — you had ${myScore} points.` | `${winnerName} won` | lost |
-| manual/timeout, no words | `${reason} — no words found.` | `No winner` | neutral |
-| manual/timeout, you win | `You win — ${myCount} words, ${myScore} points!` | `You won!` | won |
-| manual/timeout, you lost | `${winnerName} won — you had ${myCount} words, ${myScore} points.` | `${winnerName} won` | lost |
+| you conceded | `Lost: conceded` | `You conceded` | lost |
+| target win (you) | `Won: ${tally}` | `You won!` | won |
+| target win (other) | `● ${winnerName} won` (a widget — `verdictNode`) | `${winnerName} won` | lost |
+| manual/timeout, no words | `Ended: no words found` | `No winner` | neutral |
+| manual/timeout, you win | `Won: ${tally}` | `You won!` | won |
+| manual/timeout, you lost | `● ${winnerName} won` (a widget — `verdictNode`) | `${winnerName} won` | lost |
+
+Coop peer narration (non-terminal, `useGlobalFeedback`): `● found CAT +1`, or `● wow! JACKPOT +9` for a 7+-letter find (label-first, the spellingbee-pangram shape).
 
 Confirms: End → `End the game now? You can't undo this.`; Concede → `Concede the game? You drop out and the others keep playing.`
 
@@ -654,40 +667,51 @@ A **targeted fork of spellingbee** — the end-state machinery (terminal states,
 | play_state | mode | terminal? |
 |---|---|---|
 | `playing` | both | no |
+| `won` | coop | **yes** (the team reached its target rank) |
+| `lost` | coop | **yes** (countdown beat an unreached target) |
 | `won_compete` | compete | **yes** |
-| `ended` | both | **yes** (win-less finish for coop; timeout/manual) |
+| `ended` | both | **yes** (coop: no target, or an early stop; compete: timeout/manual) |
 | `lost` | compete | **yes** (all-conceded only) |
 
-Like spellingbee, coop has **no win terminal** — it only ever reaches `ended` (there's no auto-end at 100% found). Compete's positive terminal is `won_compete`; there is no `lost_compete` (the no-winner terminal is `ended`, all-conceded is the generic `lost`).
+Like spellingbee, coop's win is **opt-in** via an optional `setup.target_rank` (reach it together → `won`); without one, coop only ever reaches `ended` (no auto-end at 100% found). Compete's positive terminal is `won_compete`; there is no `lost_compete` (the no-winner terminal is `ended`, all-conceded is the generic `lost`).
 
 ### How each terminal state is reached
 Migration `…wordwheel.sql`:
 - **compete `won_compete`** — a player's own score reaches the target rank (`caller_rank_idx >= current_target_rank`, `submit_word` :1000), freezes the leaderboard, `end_game(…, 'won_compete', …)` (:1028).
+- **coop `won`** — the TEAM's rank reaches `setup.target_rank` in `submit_word` (only when a target was set); `end_game(…, 'won', outcome 'target')`, every player `{"won": true}` — coop has no individual result.
+- **coop `lost`** — countdown hits 0 with a target set and unreached (`submit_timeout`, `outcome 'timeout'`). With NO target the same expiry writes the neutral `ended` — nothing to fail at.
 - **`ended` via timeout** (both) — countdown hits 0 → `submit_timeout` → `end_game(…, 'ended', outcome 'timeout')` (coop :1182, compete :1225).
 - **`ended` via manual** (both) — `end_game` button → `outcome 'manual'` (coop :1342, compete :1383).
 - **compete `lost` via all-conceded** — `common.concede` when the last racer drops (`play_state 'lost'`, `outcome 'conceded'`). A single conceder drops out locally; the rest race on.
 
 ### In-game feedback at end-states
-From `buildOver()` (PlayArea.tsx:600-657). `rankLabel(name)` renders e.g. `rank "Solid"`. **Copy is identical to spellingbee.**
+From `buildOver()`. **No `GameOverModal`** — the below-board pill shows `verdict`, the info-column shows `message`. A **coop win** pops the shared `<CelebrationDialog>` ("You win! 🎉" / `Reached "Genius" — 47/62 points.`), one-shot via `useCelebration`; compete doesn't celebrate (the winner-vs-loser test needs data that isn't right on the first render).
+
+Verdicts lead with the outcome word so the result reads before the detail, and stay inside the ~44-character below-board budget on a phone.
 | state | verdict | message | tone |
 |---|---|---|---|
-| coop `ended`, Genius (rank ≥ 6) | `Genius! ${foundScore}/${requiredScore} points.` | `Genius!` | won |
-| coop `ended`, below Genius (timeout **or** manual) | `Stopped at ${rankLabel} — ${foundScore}/${requiredScore} points.` | `Stopped at ${rankLabel}` | neutral |
-| compete `won_compete` (you won) | `You won the race — reached ${rankLabel(target)}!` | `You won!` | won |
-| compete `won_compete` (beaten) | `${winnerName} beat you to ${rankLabel(target)}.` | `${winnerName} won` | lost |
-| compete `ended` (timeout) | `Time's up — no winner at ${rankLabel(target)}.` | `Time up` | lost |
-| compete `ended` (manual) | `Game ended — no winner at ${rankLabel(target)}.` | `Game ended` | neutral |
+| coop `won` (target reached) | `Won: "${targetRank}" ${foundScore}/${requiredScore} points` | `You won!` | won |
+| coop `lost` (clock beat the target) | `Lost: ran out of time` | `Out of time` | lost |
+| coop `ended` (no target, or an early stop) | `Ended: ${rankReached} ${foundScore}/${requiredScore} points` | `${rankReached}` | neutral |
+| compete `won_compete` (you won) | `Won: "${targetRank}" ${foundScore}/${requiredScore} points` | `You won!` | won |
+| compete `won_compete` (beaten) | `● ${winnerName} won at "${targetRank}"` (a widget — `verdictNode`) | `${winnerName} won` | lost |
+| compete `ended` (timeout) | `Lost: ran out of time` | `Out of time` | lost |
+| compete `ended` (manual) | `Ended: No winner` | `Game over` | neutral |
+| compete `lost` (all conceded) | `Lost: all conceded` | `All conceded` | lost |
 
-**Known quirk (inherited from spellingbee):** compete `lost` (all-conceded) has no dedicated `buildOver` branch — it falls through the `ended`-compete block and, since `outcome='conceded'` (not `'timeout'`), renders the **manual-end** copy (`Game ended — no winner…`, neutral), not a loss verdict.
+The coop `ended` line is the same sentence at every rank, Genius included — an open-ended hunt has nothing to fail at. (The old **known quirk** — compete all-conceded falling through to the manual-end copy — is fixed: `lost` now has its own branch.)
+
+**Copy is identical to spellingbee's** (the fork shares `buildOver`'s shape).
 
 ### Listing label (`labelFor`)
 Coop (manifest.ts:123-146) surfaces score+word counts; compete (:184-208) is rank-only. `targetRankName = RANKS[target_rank]`; the terminal status re-emits `target_rank` (so timeout/manual labels name the real target rank, not `Start` — the M3 fix, shared with spellingbee).
 | play_state / outcome | coop label | compete label |
 |---|---|---|
 | `playing` | `${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words` | `race to ${targetRankName}` |
+| terminal, `target` | `won at ${targetRankName} · ${foundScore}/${requiredScore} pts` | — |
 | `won_compete` | — | `winner at ${targetRankName}` |
 | terminal, `conceded` | — | `all conceded` |
-| terminal, `timeout` | `time up · ${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words` | `time up · no winner at ${targetRankName}` |
+| terminal, `timeout` | `time up · …` — or `lost · time up · …` when a target was set (play_state `lost`) | `time up · no winner at ${targetRankName}` |
 | terminal, `manual` | `done · ${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words` | `ended · no winner at ${targetRankName}` |
 
 ### Shelved (non-terminal, suspended)
@@ -764,7 +788,7 @@ Coop (manifest.ts:87-95) / compete (:101-115). `ls = status.length_score`, `lc =
 | codenamesduet | `won`, `lost_assassin`, `lost_clock`, `lost_timeout`, `ended` | *(coop only)* |
 | psychicnum | `won`, `lost`, `ended` | `won_compete`, `lost_compete`, `ended` |
 | connections | `solved`, `lost`, `ended` | `solved_compete`, `lost_compete`, `ended` |
-| spellingbee | `ended` (only) | `won_compete`, `ended`, `lost` (all-conceded) |
+| spellingbee | `won`, `lost`, `ended` (win/loss only when a target rank is set) | `won_compete`, `ended`, `lost` (all-conceded) |
 | bananagrams | *(compete-only)* | `won`, `lost` (timeout/conceded) |
 | waffle | `won`, `lost`, `ended` | `won_compete`, `lost_compete`, `ended` |
 | wordle | `won`, `lost`, `ended` | `won_compete`, `lost_compete`, `ended` |
@@ -772,12 +796,12 @@ Coop (manifest.ts:87-95) / compete (:101-115). `ls = status.length_score`, `lc =
 | scrabble | `won` (only) | `won_compete`, `lost` (all-conceded), `ended` |
 | boggle | `ended` (only) | `ended` (only) |
 | crosswords | `won`, `ended` | `won_compete`, `lost` (all-conceded), `lost_compete`\* |
-| wordwheel | `ended` (only) | `won_compete`, `ended`, `lost` (all-conceded) |
+| wordwheel | `won`, `lost`, `ended` (win/loss only when a target rank is set) | `won_compete`, `ended`, `lost` (all-conceded) |
 | wordiply | `ended` (only) | `won_compete`, `ended`, `lost` (all-conceded) |
 
 \* crosswords `lost_compete` is reachable only via `submit_timeout`, which never fires (no timer).
 
-Note the spellingbee-family shape (spellingbee, wordwheel, wordiply): coop has **no win terminal** (only `ended`), and compete has **no `lost_compete`** — its no-winner terminal is the neutral `ended` and its all-conceded terminal is the generic `lost`.
+Note the spellingbee-family shape (spellingbee, wordwheel, wordiply): compete has **no `lost_compete`** — its no-winner terminal is the neutral `ended` and its all-conceded terminal is the generic `lost`. spellingbee + wordwheel additionally gained an **opt-in coop win** (2026-07-30): `setup.target_rank` is optional in coop, and setting it turns "reach that rank together" into a real `won` (and the clock beating you into `lost`). wordiply still has no coop win.
 
 ### How games end — the trigger families
 - **Objective / threshold met** — all agents/categories/grid/stack/board solved or cleared, or a score threshold crossed (codenamesduet `won`, connections `solved`, waffle `won`, wordle `won`, stackdown `won`, crosswords `won`, scrabble going-out, bananagrams peel-out, spellingbee/boggle target, wordwheel target rank).

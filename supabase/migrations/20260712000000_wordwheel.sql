@@ -506,7 +506,10 @@ grant execute on function wordwheel.candidate_words(bigint, bigint, int, int) to
 --
 -- Setup shape (server validates):
 --   {
---     "target_rank": 0..6,                  -- compete only
+--     "target_rank": 0..6 | null,           -- compete: required (the race's
+--                                           --   finish line). coop: OPTIONAL —
+--                                           --   reach it together and you WIN;
+--                                           --   null/absent = open-ended hunt.
 --     "timer": (
 --         { "kind": "none" }
 --       | { "kind": "countup" }
@@ -549,8 +552,8 @@ grant execute on function wordwheel.candidate_words(bigint, bigint, int, int) to
 --   - compete mode requires at least 2 players
 --   - more than 6 players (require_player_count_max)
 --   - setup.mode is no longer valid (mode is the positional arg)
---   - setup.target_rank is required when mode='compete' /
---     must be 0..6 / only allowed when mode='compete'
+--   - setup.target_rank is required when mode='compete' / must be 0..6
+--     (coop may set it too: it becomes the coop WIN threshold)
 --   - timer shape errors (delegated to common.validate_timer)
 --   - board.outer_letters must be 8 lowercase ASCII letters
 --     (duplicates allowed — the wheel is a multiset; 's' is allowed
@@ -619,13 +622,18 @@ begin
       using errcode = 'P0001';
   end if;
 
-  -- ─── Validate setup.target_rank (compete only) ───────────
-  -- Required when mode=compete; absent when mode=coop.
-  if mode = 'compete' then
-    if (setup->>'target_rank') is null then
-      raise exception 'setup.target_rank is required when mode=compete'
-        using errcode = 'P0001';
-    end if;
+  -- ─── Validate setup.target_rank (BOTH modes) ─────────────
+  -- compete: REQUIRED — it's the finish line of the race.
+  -- coop:    OPTIONAL — present means "reach this rank together and you WIN"
+  --          (the game ends the moment the TEAM rank reaches it); absent/null
+  --          means the open-ended word hunt that only ends on the clock or the
+  --          End button. Absent and explicit null are the same thing, so a FE
+  --          that always sends the key can send null for "none".
+  if mode = 'compete' and (setup->>'target_rank') is null then
+    raise exception 'setup.target_rank is required when mode=compete'
+      using errcode = 'P0001';
+  end if;
+  if (setup->>'target_rank') is not null then
     begin
       s_target_rank := (setup->>'target_rank')::int;
     exception when invalid_text_representation then
@@ -634,12 +642,6 @@ begin
     end;
     if s_target_rank < 0 or s_target_rank > 6 then
       raise exception 'setup.target_rank must be 0..6 (got %)', s_target_rank
-        using errcode = 'P0001';
-    end if;
-  else
-    -- coop: target_rank must NOT be present.
-    if setup ? 'target_rank' then
-      raise exception 'setup.target_rank only allowed when mode=compete'
         using errcode = 'P0001';
     end if;
   end if;
@@ -788,7 +790,10 @@ begin
         'required_words_score', b_required_words_score,
         'rank_idx', 0,
         'found_words_count', 0,
-        'required_words_count', b_required_words_count
+        'required_words_count', b_required_words_count,
+        -- null when the team picked "none" — the FE reads this to know whether
+        -- there's a win condition at all (and the listing label to name it).
+        'target_rank', s_target_rank
       )
     );
   else
@@ -953,12 +958,13 @@ begin
     (target_game, caller_id, w_lower,
      coalesce(points, 0), coalesce(is_pangram, false), coalesce(is_bonus, false));
 
-  -- ─── Recompute aggregates + status (no terminal in coop) ─
-  -- Coop submissions never end the game — coop only ends via
-  -- timer expiry or the manual End-game menu item. Players can
-  -- keep finding bonus words past the displayed `Y / required_words_count`
-  -- denominator and the score can overshoot `required_words_score` (the
-  -- wordwheel-ws design — see the bonus-scoring write-up above).
+  -- ─── Recompute aggregates + status ──────────────────────
+  -- Coop ends on a submission ONLY when the team picked a target rank and this
+  -- word carried them to it. Without a target (the open-ended hunt) coop still
+  -- only ends via timer expiry or the manual End button: players keep finding
+  -- bonus words past the displayed `Y / required_words_count` denominator and
+  -- the score overshoots `required_words_score` (the wordwheel-ws design —
+  -- see the bonus-scoring write-up above).
   if g_row.mode = 'coop' then
     -- Alias `fw` so `points` resolves to the column, not the same-named function
     -- parameter (PL/pgSQL would otherwise raise "column reference is ambiguous").
@@ -969,6 +975,34 @@ begin
      where fw.game_id = target_game;
     team_rank_idx := wordwheel._rank_idx(team_score, g_row.required_words_score);
 
+    if current_target_rank is not null and team_rank_idx >= current_target_rank then
+      -- Coop win: the TEAM reached the rank they set out for. Everyone wins
+      -- together (coop has no individual result), and the game is over — the
+      -- team chose a finish line, so this is it. `_rank_idx` is monotonic in the
+      -- score, so this fires exactly once: the first word that crosses the line
+      -- ends the game and every later submit_word hits the not-in-progress gate.
+      perform common.end_game(
+        target_game,
+        'won',
+        jsonb_build_object(
+          'mode', 'coop',
+          'outcome', 'target',
+          'found_words_score', team_score,
+          'required_words_score', g_row.required_words_score,
+          'rank_idx', team_rank_idx,
+          'found_words_count', team_found_words_count,
+          'required_words_count', g_row.required_words_count,
+          'target_rank', current_target_rank
+        ),
+        (select jsonb_object_agg(gp.user_id, jsonb_build_object('won', true))
+           from common.game_players gp
+          where gp.game_id = target_game)
+      );
+      return jsonb_build_object(
+        'result', 'accepted', 'points', coalesce(points, 0), 'won', true
+      );
+    end if;
+
     perform common.update_state(
       target_game, 'playing',
       jsonb_build_object(
@@ -977,7 +1011,8 @@ begin
         'required_words_score', g_row.required_words_score,
         'rank_idx', team_rank_idx,
         'found_words_count', team_found_words_count,
-        'required_words_count', g_row.required_words_count
+        'required_words_count', g_row.required_words_count,
+        'target_rank', current_target_rank
       )
     );
 
@@ -1104,8 +1139,10 @@ grant execute on function wordwheel.submit_word(uuid, text, int, boolean, boolea
 -- ============================================================
 -- wordwheel.submit_timeout
 -- ============================================================
--- Fired by the FE when the count-down timer hits 0. Flips the
--- game to 'ended' with outcome='timeout'. Multiple peers may
+-- Fired by the FE when the count-down timer hits 0. Flips the game terminal
+-- with outcome='timeout' — 'ended' (neutral) normally, but 'lost' in a COOP
+-- game that set a target rank and didn't reach it (the clock beat them), and
+-- 'ended' in compete (nobody reached the target). Multiple peers may
 -- race the expiry; the SELECT ... FOR UPDATE serializes them
 -- and the post-lock play_state check rejects everyone after
 -- the first with P0001 (which the FE swallows silently).
@@ -1165,9 +1202,17 @@ begin
       from wordwheel.found_words
      where game_id = target_game;
 
+    select (setup->>'target_rank')::int into current_target_rank
+      from common.games where id = target_game;
+
+    -- The clock beat a team that set out for a rank → a real LOSS ('lost').
+    -- With no target there was nothing to fail at, so the same expiry is just
+    -- the neutral stop ('ended'). (A team that had already REACHED its target
+    -- can't be here: submit_word ends the game the moment they cross.)
     select jsonb_object_agg(
              user_id::text,
              jsonb_build_object(
+               'won', false,
                'finished', true,
                'team_score', team_score,
                'team_rank_idx',
@@ -1179,7 +1224,8 @@ begin
      where game_id = target_game;
 
     perform common.end_game(
-      target_game, 'ended',
+      target_game,
+      case when current_target_rank is not null then 'lost' else 'ended' end,
       jsonb_build_object(
         'outcome', 'timeout',
         'mode', 'coop',
@@ -1187,7 +1233,8 @@ begin
         'required_words_score', g_row.required_words_score,
         'rank_idx', wordwheel._rank_idx(team_score, g_row.required_words_score),
         'found_words_count', team_found_words_count,
-        'required_words_count', g_row.required_words_count
+        'required_words_count', g_row.required_words_count,
+        'target_rank', current_target_rank
       ),
       player_results
     );
@@ -1325,9 +1372,13 @@ begin
       from wordwheel.found_words
      where game_id = target_game;
 
+    select (setup->>'target_rank')::int into current_target_rank
+      from common.games where id = target_game;
+
     select jsonb_object_agg(
              user_id::text,
              jsonb_build_object(
+               'won', false,
                'finished', true,
                'team_score', team_score,
                'team_rank_idx',
@@ -1338,6 +1389,8 @@ begin
       from common.game_players
      where game_id = target_game;
 
+    -- Manual End is NEUTRAL even when a target was set and missed: the friends
+    -- chose to stop, which isn't losing (only the clock running out is).
     perform common.end_game(
       target_game, 'ended',
       jsonb_build_object(
@@ -1347,7 +1400,8 @@ begin
         'required_words_score', g_row.required_words_score,
         'rank_idx', wordwheel._rank_idx(team_score, g_row.required_words_score),
         'found_words_count', team_found_words_count,
-        'required_words_count', g_row.required_words_count
+        'required_words_count', g_row.required_words_count,
+        'target_rank', current_target_rank
       ),
       player_results
     );
@@ -1445,6 +1499,9 @@ begin
   delete from wordwheel.found_words where game_id = target_game;
 
   -- The fresh initial status — the exact shapes create_game seeds.
+  select (setup->>'target_rank')::int into s_target_rank
+    from common.games where id = target_game;
+
   if g_row.mode = 'coop' then
     new_status := jsonb_build_object(
       'mode', 'coop',
@@ -1452,11 +1509,12 @@ begin
       'required_words_score', g_row.required_words_score,
       'rank_idx', 0,
       'found_words_count', 0,
-      'required_words_count', g_row.required_words_count
+      'required_words_count', g_row.required_words_count,
+      -- Carried over: replay re-runs the SAME game (same board, same setup), so
+      -- a coop win target survives the restart.
+      'target_rank', s_target_rank
     );
   else
-    select (setup->>'target_rank')::int into s_target_rank
-      from common.games where id = target_game;
     new_status := jsonb_build_object(
       'mode', 'compete',
       'target_rank', s_target_rank,

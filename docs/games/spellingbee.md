@@ -26,7 +26,7 @@ A honeycomb of **7 distinct letters** — one **center letter** plus 6 **outer l
 - **Bonus words:** spellingbee slices the shared `common.words` list into two nested tiers — a smaller **required** set (band ≤ `setup.required`, american, no slang, clean: slur 0 + crude 0 — the goal shown to players) and a larger **legal** set (band ≤ `setup.legal`, no other restriction: the acceptance bar). Both bands are per-game setup choices (`required` 1..6 default 3; `legal` required..6 default 5); the rest of this section uses the defaults for concreteness. A word that's legal but NOT required is a **bonus** word (`bonus = legal − required`), accepted and **scored the same way as a required word** (length-based + pangram bonus). The difference is purely about what the player saw before they found it: bonus words are NOT counted in `required_words_count` and NOT included in the puzzle-quality gate (`≥30 required words`) or the rank-threshold *denominator* (`required_words_score`). So a player who finds a bonus pangram (rare-word knowledge!) can legitimately rocket past the displayed "max" score and even past the Genius rank. The `Words: X/Y` display lets `X` (`found_words_count`, all finds) overshoot `Y` (`required_words_count`) when bonus words are found, signaling the extra credit. Bonus contribution to score + rank is *intentional* — the design call is "we don't want players to feel bad for missing obscure words, but reward them if they find them." Matches `~/spellingbee-ws/server/sessions.js:988-990`.
 - **Rank ladder:** as score climbs vs. the puzzle's maximum-possible score, the player passes through **Start → Good → Solid → Nice → Great → Amazing → Genius**. Genius unlocks at **70%** of the maximum. The ladder is mirrored on the FE in [`src/spellingbee/lib/ranks.ts`](../../src/spellingbee/lib/ranks.ts) and on the SQL side in `spellingbee._rank_idx` — both compute from the same constants, and a Vitest assertion checks they agree numerically across every score-vs-total combination.
 - **Lifecycle:**
-  - *Coop*: ends when (a) the countdown timer expires (`timer.kind = 'countdown'` only) or (b) any player chooses the **End game** menu item. **There's no auto-end on 100%-found** — players who exhaust the required set keep going, finding bonus words past the displayed `Y / required_words_count` and pushing the score past `required_words_score` (the rank clamps at Genius). Untimed and count-up games end only via (b). Matches `~/spellingbee-ws/server/sessions.js`'s `submitWord` (no terminal check past acceptance).
+  - *Coop*: ends when (a) the team reaches an **optional** `setup.target_rank` — the coop WIN, `play_state='won'`, everyone `{won:true}` — (b) the countdown timer expires (`timer.kind = 'countdown'` only; `play_state='lost'` if a target was set and missed, else the neutral `'ended'`) or (c) any player chooses the **End game** menu item (always neutral `'ended'` — stopping isn't losing). **There's no auto-end on 100%-found** — players who exhaust the required set keep going, finding bonus words past the displayed `Y / required_words_count` and pushing the score past `required_words_score` (the rank clamps at Genius). Untimed and count-up games end only via (b). Matches `~/spellingbee-ws/server/sessions.js`'s `submitWord` (no terminal check past acceptance).
   - *Compete*: ends when (a) a player reaches the configured `target_rank` first (→ `play_state='won_compete'`, that player wins, others lose), (b) the countdown timer expires before any winner emerges (→ `play_state='ended'`, no winner), or (c) any player ends the game manually (→ `play_state='ended'`, no winner). Per-player elimination doesn't exist — players keep racing until terminal.
 
 ### Coop vs compete
@@ -173,10 +173,12 @@ Two OPTIONAL setup fields let a player hand-pick the board instead of getting a 
 `common.games.play_state` carries spellingbee's lifecycle enum:
 
 - **`playing`** — submissions accepted. The default.
-- **`ended`** — terminal. Covers two outcome shapes: countdown expiry (`status.outcome='timeout'`) and manual end (`'manual'`). In compete, both still write `play_state='ended'` (no winner). In coop, these are the *only* paths to terminal.
+- **`ended`** — terminal, NEUTRAL. Countdown expiry (`status.outcome='timeout'`) with no coop target set, and manual end (`'manual'`) in either mode. In compete both still write `'ended'` (no winner).
+- **`won`** — terminal. Coop only: the TEAM reached `setup.target_rank` (`status.outcome='target'`), every player `{won:true}`.
+- **`lost`** — terminal. Coop: the countdown beat a target that was set and unreached. Compete: everyone conceded (`common.concede`).
 - **`won_compete`** — terminal. Compete only: a player hit `setup.target_rank`. `status.outcome='won_compete'` + `status.winner_user_id`.
 
-`is_terminal` is true for `ended` and `won_compete`.
+`is_terminal` is true for `ended`, `won`, `lost` and `won_compete`.
 
 ### `status` jsonb
 
@@ -199,7 +201,7 @@ Called only by the `spellingbee-build-board` edge function in practice (it build
 
 - `mode` ∈ `{'coop', 'compete'}`. Compete enforces ≥2 players (`array_length(player_user_ids, 1) >= 2`).
 - `setup.mode` is **rejected** if present (P0001) — catches a stale FE that didn't strip it after the sibling-manifest split.
-- `setup.target_rank` is required iff `mode='compete'`; absent iff `mode='coop'`. Range 0..6.
+- `setup.target_rank` is **required** when `mode='compete'` and **optional** when `mode='coop'` (absent/null = the open-ended hunt; present = the team's win threshold). Range 0..6.
 - `setup.required` (the goal-words band) defaults to 3, range **1..6**; `setup.legal` (the accepted-words band) defaults to 5, range **required..6** (legal must contain required, else P0001). These are the bands the edge function already baked into the board via `candidate_words`; create_game re-checks them as a server-authoritative belt to the FE's `legalError` Start gate. (The board is already built, so this is a guard, not a re-selection.)
 - `setup.timer` delegated to `common.validate_timer`.
 - `board.outer_letters` is exactly 6 distinct lowercase ASCII letters excluding `s`; `board.center_letter` is one lowercase ASCII letter excluding `s` and not present in outer.
@@ -221,7 +223,7 @@ The FE-side validation happens in `useWordSubmit` + `lib/` before the commit fir
 4. `alreadyFound` — deduped against `foundWords` (+ the in-flight `pendingRef`) per mode rule (coop: any `(game_id, word)`; compete: `(game_id, user_id, word)`)
 5. otherwise accepted: the FE reads `points` + `isPangram` + `isBonus` straight off the shipped list entry and sends them. `pangram` (all 7 letters) is a display flourish; bonus words **score normally** (length + pangram bonus, same as a required word).
 
-Server-side on the trusted commit: inserts `found_words` row, recomputes team/player score, calls `common.update_state` (in coop, every accept; in compete, until the caller hits `target_rank`) or `common.end_game` (compete target-rank-hit only — coop never auto-terminates from `submit_word`). It re-checks the dedup under the row lock as a race backstop, and rejects a conceded caller.
+Server-side on the trusted commit: inserts `found_words` row, recomputes team/player score, calls `common.update_state` (in coop, every accept; in compete, until the caller hits `target_rank`) or `common.end_game` — compete on the caller's target-rank hit, coop on the TEAM's (only when the team set a target; without one coop never auto-terminates from `submit_word`). It re-checks the dedup under the row lock as a race backstop, and rejects a conceded caller.
 
 `SELECT … FOR UPDATE` on `spellingbee.games` serializes concurrent submissions. The PK on `found_words` is `(game_id, user_id, word)` — a same-player double-submit is also caught at the constraint level.
 
@@ -345,6 +347,11 @@ src/spellingbee/
                           only — the OpponentStrip (rank), then the action row (End / Concede),
                           then the Setup disclosure; the found-words WordList fills the rest.
                           Every mutation is a named callback up; PlayArea owns the RPCs.
+                          Below --mobile the same RankBar + Stats pair is ALSO rendered above
+                          the hive by BoardCol's shared <MobileStatusBar> (the info column is
+                          off-canvas then) — same components, so the two can't drift; its
+                          4.25rem is subtracted from --avail-h so the hive shrinks to match
+                          and the page still doesn't scroll.
     PlayArea.module.css   Per-game bits only (layout vars, hex board sizing, the below-board
                           slot). The two-column shell + readout classes are the shared
                           common/components/game/PlayArea.module.css. Desktop-first, no @media
@@ -377,11 +384,14 @@ src/spellingbee/
                           FeedbackTone now, so the surface needs no game-specific tone type.
                           Peer/opponent events still go to the HEADER slot via the common
                           useGlobalFeedback — two distinct LOCATIONS for the same shared pill component.)
-    RankBar.tsx           7 dots from Start to Genius, filled up to the current rank.
-                          Per-dot hover tooltip with rank name + points threshold.
-    Stats.tsx             2-cell grid: Score / Words. Tabular-nums so the digits
-                          don't shift width as the score climbs. (Timer lives in
-                          the GamePage header, not here.)
+    (RankBar)             SHARED common/components/game/RankBar — 7 squares from Start to
+                          Genius, filled up to the current rank, with the rank NAME inline
+                          to their left ("GENIUS ▪-▪-▪…"). Per-square hover tooltip with
+                          rank name + points threshold.
+    (Stats)               SHARED common/components/game/Stats — 2-cell grid: Score / Words,
+                          written tight ("13/50"), no rules above or below (it reads as one
+                          unit with the RankBar). Tabular-nums so the digits don't shift
+                          width as the score climbs. (Timer lives in the GamePage header.)
     (WordList)            The found-words list is now the SHARED
                           common/components/game/lists/WordList (used by spellingbee + boggle, so the
                           list looks identical across games). PlayArea builds its rows via
