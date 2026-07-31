@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx, Member } from '../../common/lib/games'
-import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { outOfRacePill } from '../../common/lib/game/localPills'
 import { db } from '../db'
 import { useGame, type GuessRow } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
@@ -42,7 +43,10 @@ function rejectReason(reason: string | undefined, base: string): string {
     case 'missing_base':
       return `must contain "${base.toUpperCase()}"`
     case 'duplicate':
-      return 'already used'
+      // Worded exactly like the CLIENT-side duplicate check in useWordSubmit —
+      // same condition, so it must not read as two different rejections
+      // depending on which side caught it.
+      return 'already found'
     default:
       return 'not accepted'
   }
@@ -234,9 +238,11 @@ export function PlayArea(ctx: GamePageCtx) {
       return {
         tone: 'success',
         variant: 'outline',
+        // No verb: the dot names who, the word is the news, the count is its
+        // length. "played" earned no room in a ~26-char header pill.
         text: (
           <>
-            <ActorDot actor={member} fallback="A teammate" /> played {r.word.toUpperCase()} ({r.length})
+            <ActorDot actor={member} fallback="A teammate" /> {r.word.toUpperCase()} ({r.length})
           </>
         ),
         dismiss: { kind: 'timed' },
@@ -287,7 +293,10 @@ export function PlayArea(ctx: GamePageCtx) {
         onSubmit={submit}
         clearLocalFeedback={clearLocalFeedback}
         lastWord={lastWord}
-        localPill={localFeedback}
+        // Locally terminal (compete: I conceded while the others race on) gets
+        // the standard "you're out" pill, so the frozen keyboard has an
+        // explanation — matching every other game's below-board treatment.
+        localPill={isLocallyDone ? outOfRacePill(true) : localFeedback}
         over={over}
       />
 
@@ -328,13 +337,22 @@ export function PlayArea(ctx: GamePageCtx) {
 }
 
 /**
- * Maps the terminal play_state to the shared `TerminalCopy` (modal +
- * info-column line) plus a wordiply `indicator` (the below-board line). The
- * scores that were hidden all game land here.
+ * Maps the terminal play_state to the shared `TerminalCopy`. The scores that
+ * were hidden all game land here: `tone` + `verdict` drive the below-board
+ * terminal pill, `tone` + `message` the short info-column outcome line.
  *
- * Coop: `ended` → "You reached N%" (a collaborative result, framed as a win).
- * Compete: `won_compete` → self won ("You won — N%") vs a named opponent won;
- * `ended`/manual → no winner.
+ * Verdicts lead with the outcome word (`Won:` / `Lost:` / `Ended:`) and carry
+ * no trailing period — the pill is a one-line, ellipsising row (~48 chars on a
+ * phone), so it's a LABEL, not prose. A compete loss names WHO beat you, which
+ * is the one case the pill wants a WIDGET (the winner's identity dot, the way
+ * peer feedback names people elsewhere) — returned as `verdictNode`, with
+ * `verdict` carrying the plain-text twin. A CO-win has 2+ winners, so it stays
+ * a plain string (a row of dots would read as noise).
+ *
+ * Coop: no clear win — the team just did as well as it did — so every coop
+ * terminal reports the result neutrally, manual end included.
+ * Compete: `won_compete` → self won / tied vs a named winner; anything else →
+ * no winner.
  */
 function buildOver({
   mode,
@@ -356,7 +374,7 @@ function buildOver({
   leaderboard: LeaderRow[]
   selfId: string
   players: Member[]
-}): TerminalCopy & { indicator: string } {
+}): TerminalCopy & { verdictNode?: ReactNode } {
   if (mode === 'compete') {
     if (playState === 'won_compete') {
       // winner_user_id is null on co-winners (a tie the server didn't break);
@@ -371,46 +389,53 @@ function buildOver({
       if (iWon) {
         return {
           outcome: 'won',
-          verdict: shared ? `You tied for the win — ${pct}%!` : `You won — ${pct}%!`,
-          indicator: shared ? `you tied for the win at ${pct}%` : `you won at ${pct}%`,
+          verdict: shared ? `Won: tied at ${pct}%` : `Won: ${pct}%`,
           message: shared ? 'You tied for the win!' : 'You won!',
           tone: 'won',
         }
       }
       const nameOf = (id?: string) => players.find((p) => p.user_id === id)?.username ?? 'someone'
-      const winnerLabel = shared
-        ? winners.map((e) => nameOf(e.user_id)).join(' & ')
-        : nameOf(winners[0]?.user_id ?? winnerId ?? undefined)
+      if (shared) {
+        const label = winners.map((e) => nameOf(e.user_id)).join(' & ')
+        return {
+          outcome: 'lost',
+          verdict: `${label} tied at ${pct}%`,
+          message: `${label} tied`,
+          tone: 'lost',
+        }
+      }
+      const soleId = winners[0]?.user_id ?? winnerId ?? undefined
+      const label = nameOf(soleId)
       return {
         outcome: 'lost',
-        verdict: shared ? `${winnerLabel} tied for the win — ${pct}%.` : `${winnerLabel} won with ${pct}%.`,
-        indicator: shared ? `${winnerLabel} tied at ${pct}%` : `${winnerLabel} won at ${pct}%`,
-        message: shared ? `${winnerLabel} tied` : `${winnerLabel} won`,
+        verdict: `${label} won at ${pct}%`,
+        verdictNode: (
+          <>
+            <ActorDot actor={players.find((p) => p.user_id === soleId)} fallback="Someone" show="both" /> won
+            at {pct}%
+          </>
+        ),
+        message: `${label} won`,
         tone: 'lost',
       }
     }
-    // ended / manual — no winner.
-    return {
-      outcome: 'lost',
-      verdict: 'Game ended — no winner.',
-      indicator: 'ended — no winner',
-      message: 'Game ended',
-      tone: 'neutral',
-    }
+    // ended / manual — no winner. The shared neutral copy, so the one terminal
+    // every game has stays worded in one place.
+    return endedCopy('compete')
   }
 
-  // coop — the team's collaborative result. There's no clear "win" in coop
-  // (you just did as well as you did), so the tone is NEUTRAL (a grey outcome
-  // colour), not the celebratory green. `outcome: 'won'` only keeps the modal
-  // from reading as a LOSS (neutral-green, per TerminalCopy's convention).
+  // coop — the team's collaborative result. There's no clear "win" in coop (you
+  // just did as well as you did), so the tone is NEUTRAL (a grey outcome colour)
+  // rather than the celebratory green, and the verdict leads with `Ended:` — the
+  // vocabulary's word for "over, nobody won or lost". That covers a manual end
+  // too: reporting the score is more use than "game ended" with the numbers
+  // withheld.
   const pct = lengthScore(longest, maxWordLength)
   return {
-    // `outcome` only drives the GameOverModal, which wordiply doesn't show —
-    // 'won' just means "not a loss". The DISPLAYED colour is `tone: 'neutral'`
-    // (grey), because coop has no clear win.
+    // `outcome` was the GameOverModal's field, and wordiply renders no modal —
+    // 'won' just means "not a loss". The DISPLAYED colour is `tone: 'neutral'`.
     outcome: 'won',
-    verdict: `Length: ${pct}%, Letters: ${letters}.`,
-    indicator: `Length: ${pct}%, Letters: ${letters}`,
+    verdict: `Ended: ${pct}%, ${letters} letters`,
     message: `Length ${pct}%`,
     tone: 'neutral',
   }

@@ -1,4 +1,4 @@
-import { useCallback, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -52,8 +52,9 @@ export function BoardCol({
   /** The own-move pill (from useWordSubmit). Success is dropped; only a
    *  soft-reject reason is shown. */
   localPill: GenericFeedbackMsg | null
-  /** Terminal copy at game-over (`indicator` drives the verdict line). */
-  over: (TerminalCopy & { indicator: string }) | null
+  /** Terminal copy at game-over — `verdict` (or the `verdictNode` widget, when
+   *  the winner is named) fills the keyboard slot as the permanent pill. */
+  over: (TerminalCopy & { verdictNode?: ReactNode }) | null
 }) {
   // On-screen key → append/backspace (updater form, so it reads the latest
   // word); each edit dismisses a sticky reject.
@@ -96,7 +97,10 @@ export function BoardCol({
       <div className={styles.inputArea}>
         {over ? (
           <div className={styles.verdictSlot}>
-            <GenericFeedbackPill msg={terminalPill(over.tone, over.indicator)} onClose={() => {}} />
+            <GenericFeedbackPill
+              msg={terminalPill(over.tone, over.verdictNode ?? over.verdict)}
+              onClose={() => {}}
+            />
           </div>
         ) : (
           <>
