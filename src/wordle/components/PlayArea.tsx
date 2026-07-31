@@ -392,20 +392,16 @@ export function PlayArea({
   // ─── The below-board pill (terminal / locally-terminal / own-move) ─────
   // The fixed-height feedback slot under the board shows exactly one pill, chosen here
   // by priority (BoardCol just renders it):
-  //   - terminal → a PERMANENT (fill) verdict pill with the answer folded in (the answer
-  //     also shows in the info column's terminalExtra — it lands in both places);
+  //   - terminal → a PERMANENT (fill) verdict pill: the terse verdict ALONE. The answer
+  //     is NOT folded in — the pill is a one-line, ellipsising row (~48 chars on a
+  //     phone) and the word has its own home in the info column's terminalExtra ("The
+  //     answer was CRANE", click-to-define), so duplicating it here only crowded out
+  //     the verdict;
   //   - locally terminal (compete: I'm done while the others race) → a sticky "you're
   //     out" pill (the target isn't revealed until the whole game ends);
   //   - otherwise → the own-move soft-reject / error pill (localFeedback, or nothing).
-  // Kept short ("Answer: CRANE.") so the terminal pill stays on one line — the info
-  // column's terminalExtra carries the fuller "The answer was …" sentence. Gated on
-  // `answerShown` (win / explicit reveal), NOT on target availability: post-terminal
-  // the target is always on the client, but a loss keeps it hidden (see the
-  // answerShown block above).
-  const answerSuffix =
-    answerShown && game.target ? `Answer: ${game.target.toUpperCase()}.` : ''
   const localPill: GenericFeedbackMsg | null = over
-    ? terminalPill(over.tone, answerSuffix ? `${over.verdict} ${answerSuffix}` : over.verdict)
+    ? terminalPill(over.tone, over.verdict)
     : isLocallyDone
       ? outOfRacePill(myConceded)
       : localFeedback
@@ -503,7 +499,9 @@ function buildOver({
   /** The viewer lost specifically on the clock (tied the winner's count). */
   selfTiedWinner: boolean
 }): TerminalCopy {
-  // Manual end (wordle.end_game) → the shared neutral 'ended' copy.
+  // Manual end (wordle.end_game) → the shared neutral 'ended' copy. Deliberately
+  // NOT worded here: manual end is the one terminal every game shares, so it
+  // stays in one place rather than drifting per game.
   if (playState === 'ended') return endedCopy(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
@@ -511,7 +509,7 @@ function buildOver({
     }
     return {
       outcome: 'lost',
-      verdict: timerExpired ? 'Out of time.' : 'Out of guesses.',
+      verdict: timerExpired ? 'Lost: out of time' : 'Lost: out of guesses',
       message: timerExpired ? 'Out of time' : 'Out of guesses',
       tone: 'lost',
     }
@@ -521,17 +519,18 @@ function buildOver({
   if (playState === 'won_compete') {
     if (selfWon) {
       return wonByClock
-        ? { outcome: 'won', verdict: 'You won — same guesses, but faster! ⏱️', message: 'You won (faster)', tone: 'won' }
-        : { outcome: 'won', verdict: 'You won — fewest guesses!', message: 'You won!', tone: 'won' }
+        ? { outcome: 'won', verdict: 'Won: same guesses, but faster', message: 'You won (faster)', tone: 'won' }
+        : { outcome: 'won', verdict: 'Won: fewest guesses', message: 'You won!', tone: 'won' }
     }
     return selfTiedWinner
-      ? { outcome: 'lost', verdict: 'Beaten on the clock — same guesses, just slower.', message: 'Opponent won (faster)', tone: 'lost' }
-      : { outcome: 'lost', verdict: 'Beaten on guesses.', message: 'Opponent won', tone: 'lost' }
+      ? { outcome: 'lost', verdict: 'Lost: beaten on the clock', message: 'Opponent won (faster)', tone: 'lost' }
+      : { outcome: 'lost', verdict: 'Lost: beaten on guesses', message: 'Opponent won', tone: 'lost' }
   }
-  // lost_compete — nobody solved, or time ran out.
+  // lost_compete — nobody solved, or time ran out. No `Lost:` prefix: nobody was
+  // beaten, the board just ran out.
   return {
     outcome: 'lost',
-    verdict: timerExpired ? 'Out of time — no winner.' : 'Nobody solved it.',
+    verdict: timerExpired ? 'Out of time — no winner' : 'Nobody solved',
     message: timerExpired ? 'Out of time' : 'No winner',
     tone: 'lost',
   }

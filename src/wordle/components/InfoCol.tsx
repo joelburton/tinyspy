@@ -245,8 +245,10 @@ export function InfoCol({
       </div>
 
       {/* Terminal-only answer reveal — the one info-column region allowed to grow at
-          game over (docs/ui.md → Layout stability). Shown in BOTH here and the
-          below-board pill, deliberately. */}
+          game over (docs/ui.md → Layout stability). The ONLY place the word shows:
+          the below-board terminal pill carries the verdict alone (a one-line,
+          ellipsising row), so the answer lives here where it has room to be a
+          sentence and a click-to-define target. */}
       {over && solution && (
         <div className={shared.terminalExtra}>
           <p className={cls(shared.infoState, styles.answerLine)}>

@@ -110,8 +110,8 @@ describe('wordle PlayArea — render smoke', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
-    // The info-column outcome line + the answer reveal (now shown in both the
-    // terminalExtra region and the below-board pill).
+    // The info-column outcome line + the answer reveal (the terminalExtra region —
+    // the only place the word shows; the below-board pill carries the verdict alone).
     expect(screen.getByText('Solved it!')).toBeInTheDocument()
     expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
   })
