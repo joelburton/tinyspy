@@ -33,6 +33,24 @@
   gap: 6px;
 }
 
+/* ─── Mobile: the status bar takes its height off the board ───────────────────
+ * Below --mobile the info column is off-canvas, so its state readout is mirrored
+ * ABOVE the board by the shared `<MobileStatusBar>` — a fixed-height row in the
+ * same flex column. It must come out of `--avail-h` too: the square board takes
+ * its side from that number, so leaving it alone would size a board that no
+ * longer fits and push the page into scrolling. scrabble keeps the bar's
+ * one-line default height, so this re-states the token's fallback rather than
+ * raising it; the extra 0.75rem is `.boardCol`'s flex gap below the bar.
+ *
+ * Both --avail-h regimes need it — this one and the --phone override below. */
+@media (--mobile) {
+  .layout {
+    --avail-h: calc(
+      100svh - var(--game-chrome-height) - 4.4rem - var(--mobile-status-height, 1.75rem) - 0.75rem
+    );
+  }
+}
+
 /* ─── Phone: two-row rack/controls (see BoardCol.module.css .moveArea) ────────
  * The below-board reserve grows to 5.1rem (two rows), so --avail-h subtracts
  * 0.75rem gap + 0.25rem margin + 5.1rem = 6.1rem. Portrait phones are
@@ -45,7 +63,14 @@
  * override silently loses. */
 @media (--phone) {
   .layout {
-    --avail-h: calc(100svh - var(--game-chrome-height) - 6.1rem);
+    /* The taller two-row reserve, PLUS the mobile status bar (see the --mobile
+     * block above — a phone is inside --mobile, so it gets the bar too). The one
+     * exception is a very wide landscape phone (>56.25rem), where the bar is
+     * CSS-hidden but this still reserves its height: the board is height-bound
+     * and tiny there anyway, so a slightly smaller board beats a second regime. */
+    --avail-h: calc(
+      100svh - var(--game-chrome-height) - 6.1rem - var(--mobile-status-height, 1.75rem) - 0.75rem
+    );
   }
   /* The controls take the full row width, wrapping onto their own second row —
    * UNCONDITIONALLY (not content-dependent, so the slot height never moves

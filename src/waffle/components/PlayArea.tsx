@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
+import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
@@ -420,8 +421,15 @@ export function PlayArea({
   // TurnStatusLine — no false "out of swaps".
   const readOnly = isTerminal || !isPlayer || selfDone || viewing || !isMyTurn
 
+  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId` is
+  // null in a free-for-all game, so this is false there — the pill's presence is
+  // fixed for the game's life, no reflow.
+  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
+
   // The below-board local pill. Precedence: the permanent terminal verdict → the
-  // sticky locally-terminal "waiting" pill → the transient own-move error. (While
+  // sticky locally-terminal "waiting" pill → the whose-turn pill (the ONLY
+  // whose-turn indicator on mobile, where the InfoCol's TurnStatusLine is
+  // off-canvas) → the transient own-move error. (While
   // viewing, BoardCol's yellow banner covers this region with the swap description.)
   const localPill: GenericFeedbackMsg | null = over
     ? terminalPill(over.tone, over.verdict)
@@ -430,7 +438,9 @@ export function PlayArea({
           myConceded,
           self?.solved ? 'Solved — waiting on the rest' : 'Out of swaps — waiting',
         )
-      : localFeedback
+      : waiting
+        ? waitingTurnPill(players.find((m) => m.user_id === currentTurnUserId))
+        : localFeedback
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>

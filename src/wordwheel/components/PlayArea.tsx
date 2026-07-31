@@ -479,6 +479,12 @@ export function PlayArea(ctx: GamePageCtx) {
   return (
     <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, styles.layout)}>
       <BoardCol
+        // ── Mobile-only status block (the SAME RankBar + Stats the InfoCol
+        //    renders; on a phone the info column is off-canvas in the InfoSheet) ──
+        foundWordsScore={foundWordsScore}
+        requiredWordsScore={game.required_words_score}
+        foundWordsCount={foundWordsCount}
+        requiredWordsCount={game.required_words_count}
         // ── Board to render ──
         outerLetters={game.outer_letters}
         centerLetter={game.center_letter}

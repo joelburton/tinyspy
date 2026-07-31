@@ -15,6 +15,7 @@ import { AI_LEVEL_LABEL, type ScrabbleSetup } from '../lib/setup'
 import type { RankedMove } from '../lib/rank'
 import type { PlayerRow, PlayRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
+import { StateLine } from './StateLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './InfoCol.module.css'
 
@@ -141,26 +142,16 @@ export function InfoCol({
             state → opponent strip → action row → help → setup disclosure → log. */}
 
         {/* State — whose turn (compete) / team score (coop) + the bag count. The
-            other player's turn reads "Turn: ● name" (a leading color disc + the bare
-            name) — never the possessive "name's turn" (we don't apostrophize usernames). */}
+            SAME <StateLine> the mobile status bar renders above the board (they
+            must never drift). */}
         <p className={shared.infoState}>
-          {isCompete ? (
-            myTurn ? (
-              <strong>Your turn</strong>
-            ) : (
-              <>
-                Turn:{' '}
-                <Dot color={currentMember?.color} />{' '}
-                {currentMember?.username ?? 'someone'}
-              </>
-            )
-          ) : (
-            <>
-              Team score: <strong>{teamScore ?? 0}</strong>
-            </>
-          )}
-          {' · '}
-          {bagCount} in bag
+          <StateLine
+            isCompete={isCompete}
+            myTurn={myTurn}
+            currentMember={currentMember}
+            teamScore={teamScore}
+            bagCount={bagCount}
+          />
         </p>
         {/* Coop turn-order: whose turn it is, as a separate line below the team
             score (compete's own seat turn line is inline above). Only for a

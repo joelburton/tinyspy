@@ -26,6 +26,31 @@
   --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
 }
 
+/* Mobile: the info column is off-canvas, so the state unit (RankBar + Stats) is
+ * mirrored ABOVE the board by the shared `<MobileStatusBar>` — a small BLOCK,
+ * not the one-line default, so the bar's height token is raised here. It must
+ * also come out of `--avail-h`: the wheel sizes itself from that number, so
+ * leaving it alone would size a board that no longer fits and push the page into
+ * scrolling (the hard no-scroll invariant). The extra 0.75rem is `.boardCol`'s
+ * flex gap between the status block and the wheel. Same figures as spellingbee's
+ * — same block, same components (docs/games/wordwheel.md → the fork). */
+@media (--mobile) {
+  .layout {
+    --mobile-status-height: 4.25rem;
+    --avail-h: calc(
+      100svh - var(--game-chrome-height) - 5rem - var(--mobile-status-height) - 0.75rem
+    );
+  }
+}
+
+/* The mobile status block's content — the RankBar over the Stats grid, sized to
+ * a comfortable reading width rather than the full phone width (the two figures
+ * shouldn't drift to opposite edges). Only ever rendered inside the
+ * mobile-only `<MobileStatusBar>`. */
+.mobileStatus {
+  width: min(20rem, 100%);
+}
+
 /* The board column. Defines `--u` (one wheel coordinate unit) and the derived
  * `--board-width` HERE — rather than on the grid — so the below-board input row can
  * match the board's width from the same source.

@@ -6,6 +6,9 @@ import { terminalPill } from '../../common/lib/game/localPills'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { EntryRow } from '../../common/components/game/entry/EntryRow'
 import { asciiLetters } from '../../common/hooks/input/useCaptureKeys'
+import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
+import { RankBar } from '../../common/components/game/RankBar'
+import { Stats } from '../../common/components/game/Stats'
 import { wordFitsWheel } from '../lib/tiles'
 import { Wheel } from './Wheel'
 import { TypedWord } from './TypedWord'
@@ -38,6 +41,11 @@ function shuffled<T>(arr: readonly T[]): T[] {
  * docs/playarea-decomposition-plan.md.
  */
 export function BoardCol({
+  // ── Mobile-only status block (above the board) ──
+  foundWordsScore,
+  requiredWordsScore,
+  foundWordsCount,
+  requiredWordsCount,
   // ── Board to render ──
   outerLetters,
   centerLetter,
@@ -53,6 +61,16 @@ export function BoardCol({
   // ── Below-board pill ──
   over,
 }: {
+  // ── Mobile-only status block ──
+  /** The four figures behind the RankBar + Stats unit — the SAME components the
+   *  info column renders, mirrored above the board below the `--mobile`
+   *  breakpoint (where the info column is off-canvas in the InfoSheet). Hidden by
+   *  CSS on desktop; see `<MobileStatusBar>`. */
+  foundWordsScore: number
+  requiredWordsScore: number
+  foundWordsCount: number
+  requiredWordsCount: number
+
   // ── Board to render ──
   /** The board's outer letters (a string) — the local shuffle rearranges this. */
   outerLetters: string
@@ -130,6 +148,23 @@ export function BoardCol({
 
   return (
     <div className={cls(shared.boardCol, styles.boardCol)}>
+      {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
+          the rank bar + stat grid, above the board. A small BLOCK rather than the
+          bar's one-line default, so PlayArea.module.css raises
+          `--mobile-status-height` AND takes it out of `--avail-h` — the wheel
+          sizes itself from that number, so leaving it alone would size a board
+          that no longer fits (the hard no-scroll invariant). */}
+      <MobileStatusBar>
+        <div className={styles.mobileStatus}>
+          <RankBar score={foundWordsScore} total={requiredWordsScore} />
+          <Stats
+            foundWordsScore={foundWordsScore}
+            requiredWordsScore={requiredWordsScore}
+            foundWordsCount={foundWordsCount}
+            requiredWordsCount={requiredWordsCount}
+          />
+        </div>
+      </MobileStatusBar>
       <Wheel
         outerLetters={outerShuffled}
         centerLetter={centerLetter}

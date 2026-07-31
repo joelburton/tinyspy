@@ -22,6 +22,7 @@ import { printPsychicnumPdf } from '../pdf/printPsychicnumPdf'
 import { turnSnapshot } from '../lib/history'
 import { capitalize } from '../lib/capitalize'
 import { stickyPill } from '../../common/lib/game/localPills'
+import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { StateLine } from './StateLine'
@@ -375,6 +376,16 @@ export function PlayArea({
   // (endGame / handleConcede are hoisted above the early returns — see the
   // actionsRef block — so the menu, ⌥⌫, and InfoCol's buttons share one pair.)
 
+  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId` is
+  // null in a free-for-all game, so this is false there — the pill's presence is
+  // fixed for the game's life, no reflow. It carries the whose-turn answer on
+  // MOBILE, where the InfoCol's TurnStatusLine is off-canvas in the InfoSheet;
+  // without it a frozen board just ignored taps with no explanation.
+  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
+  const boardPill = waiting
+    ? waitingTurnPill(players.find((p) => p.user_id === currentTurnUserId))
+    : localFeedback
+
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
@@ -400,12 +411,13 @@ export function PlayArea({
         gameId={gameId}
         canGuess={canGuess}
         // Turn-order: gates the ENTRY input only (not the play-vs-terminal look
-        // above). Always true for free-for-all / solo. When false, the entry is
-        // shown but inert and the InfoCol TurnStatusLine says whose turn it is.
+        // above). Always true for free-for-all / solo. When false the waiting
+        // pill takes the entry slot (EntryRow's designed swap — same height), so
+        // the frozen input explains itself instead of silently ignoring taps.
         isMyTurn={isMyTurn}
         showLocalFeedback={showLocalFeedback}
         clearLocalFeedback={clearLocalFeedback}
-        localPill={localFeedback}
+        localPill={boardPill}
         // ── Below-board slot content ──
         over={over}
         secrets={game.secrets}

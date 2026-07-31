@@ -142,9 +142,11 @@ describe('scrabble PlayArea — render smoke', () => {
     // starts empty and is seeded by the version-move effect; if that seeding is
     // skipped the rack renders no tiles (the brown tray bug).
     expect(container.querySelectorAll('[data-rack-tile]')).toHaveLength(7)
-    // The info-column state line (coop): "Team score: 0 · 86 in bag".
-    expect(screen.getByText(/in bag/)).toBeInTheDocument()
-    expect(screen.getByText(/Team score:/)).toBeInTheDocument()
+    // The state line (coop): "Team score: 0 · 86 in bag". TWO copies — the info
+    // column's and the mobile status bar's, which render the same <StateLine>
+    // (only one is visible at a time, by CSS; jsdom has no media queries).
+    expect(screen.getAllByText(/in bag/)).toHaveLength(2)
+    expect(screen.getAllByText(/Team score:/)).toHaveLength(2)
   })
 
   it('renders the OpponentStrip (Score) + rack in compete play', () => {

@@ -1,5 +1,5 @@
-import { Dot } from '../text/Dot'
 import type { Member } from '../../lib/games'
+import { waitingFor } from './turnCopy'
 import shared from './PlayArea.module.css'
 
 type Props = {
@@ -55,13 +55,7 @@ export function TurnStatusLine({
 
   // A teammate's turn. Leading color disc + the bare name (never the
   // possessive "name's turn" — we don't apostrophize usernames), an
-  // ellipsis for the wait. `current` is defensively optional: the
-  // pointer should always name a player, but a departed member falls
-  // back to a neutral disc + "someone".
-  const current = players.find((p) => p.user_id === currentTurnUserId)
-  return (
-    <p className={shared.infoState}>
-      Waiting for <Dot color={current?.color} /> {current?.username ?? 'someone'}…
-    </p>
-  )
+  // ellipsis for the wait. Shares `waitingFor` with the below-board
+  // `waitingTurnPill()`, so the two surfaces can't word it differently.
+  return <p className={shared.infoState}>{waitingFor(players.find((p) => p.user_id === currentTurnUserId))}</p>
 }

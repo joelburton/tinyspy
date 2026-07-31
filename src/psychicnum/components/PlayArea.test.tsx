@@ -151,10 +151,13 @@ describe('psychicnum PlayArea — turn order', () => {
         })}
       />,
     )
-    // The shared TurnStatusLine names the current player (coop has no
-    // OpponentStrip, so "moth" here is unambiguously the turn line). A regex
-    // because the name sits in a text node beside the identity <Dot>.
-    expect(screen.getByText(/moth/)).toBeInTheDocument()
+    // The current player is named TWICE while I wait: the info column's
+    // TurnStatusLine (desktop) and the below-board waitingTurnPill (the only
+    // whose-turn indicator on mobile, where the column is off-canvas). Both
+    // render the shared `waitingFor` copy. Coop has no OpponentStrip, so "moth"
+    // is unambiguously the turn copy; a regex because the name sits in a text
+    // node beside the identity <Dot>.
+    expect(screen.getAllByText(/moth/)).toHaveLength(2)
     // The "type a word" prompt is hidden while I'm waiting (the entry is inert).
     // But I'm still a live participant — NOT locally terminal — so I do NOT get
     // the "out of guesses" / "Waiting for others" done-look, and Hint stays live.

@@ -37,6 +37,22 @@ test.describe('wordwheel mobile', () => {
       expect(m.sw).toBeLessThanOrEqual(m.iw + 1)
       expect(m.sh).toBeLessThanOrEqual(m.ih + 1)
 
+      // The info column is off-canvas here, so the state unit (RankBar + Stats) is
+      // mirrored ABOVE the wheel by the shared <MobileStatusBar> — the same two
+      // components the sheet renders, so they can't drift. Its height is already
+      // subtracted from the wheel's --avail-h, which is why the no-scroll
+      // assertions above still hold.
+      const statusBar = page.locator('[data-mobile-status]')
+      // (The labels render uppercase via CSS; the DOM text is "Score" / "Words".)
+      await expect(statusBar).toContainText('Score')
+      await expect(statusBar).toContainText('Words')
+      const barBox = (await statusBar.boundingBox())!
+      // `_board_` (with the trailing underscore) is Wheel's own root — `_boardCol_`
+      // is the column that CONTAINS the status bar, so a loose match would compare
+      // the bar against its own parent.
+      const wheelBox = (await page.locator('[class*="_board_"]').first().boundingBox())!
+      expect(barBox.y + barBox.height).toBeLessThanOrEqual(wheelBox.y + 1)
+
       // Info sheet: collapsed off the right edge → slides in from the menu → back
       // out on the ✕.
       const wrap = page.locator('[data-info-sheet]')

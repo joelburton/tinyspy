@@ -21,6 +21,7 @@ import { useGame } from '../hooks/useGame'
 import type { ConnectionsSetup } from '../lib/setup'
 import { turnSnapshot } from '../lib/history'
 import { stickyPill } from '../../common/lib/game/localPills'
+import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '../../common/components/game/PlayArea.module.css'
@@ -356,6 +357,16 @@ export function PlayArea({
   const connSetup = setup as ConnectionsSetup
   const found = matchedCategories.length
 
+  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId` is
+  // null in a free-for-all game, so this is false there — the pill's presence is
+  // fixed for the game's life, no reflow. It carries the whose-turn answer on
+  // MOBILE, where the InfoCol's TurnStatusLine is off-canvas in the InfoSheet;
+  // without it a frozen board just ignored taps with no explanation.
+  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
+  const boardPill = waiting
+    ? waitingTurnPill(players.find((p) => p.user_id === currentTurnUserId))
+    : localFeedback
+
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
@@ -377,7 +388,7 @@ export function PlayArea({
         selfId={session.user.id}
         colorByUserId={colorByUserId}
         // ── Own-guess feedback (channel owned by PlayArea) ──
-        localPill={localFeedback}
+        localPill={boardPill}
         showLocalFeedback={showLocalFeedback}
         clearLocalFeedback={clearLocalFeedback}
         // ── Guess dispatch ──

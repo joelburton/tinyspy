@@ -1,6 +1,6 @@
 /* Celebratory modal — a centered confetti card over a dimmed backdrop.
-  Distinct from GameOverModal (the plain FloatingPanel
-   result modal): this one's whole job is the festive moment. */
+   Distinct from the plain FloatingPanel dialogs (Help, the confirms):
+   this one's whole job is the festive moment. */
 
 .backdrop {
   position: fixed;

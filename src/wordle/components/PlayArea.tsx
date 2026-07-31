@@ -19,6 +19,7 @@ import { turnSnapshot } from '../lib/history'
 import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import type { WordleSetup } from '../lib/setup'
 import { memberById } from '../../common/lib/game/peers'
+import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { cls } from '../../common/lib/util/cls'
@@ -383,13 +384,18 @@ export function PlayArea({
   // inert. Always true for free-for-all / solo, so it only tightens a turn
   // game. Unlike psychicnum, wordle's below-board pill has no coop "locally
   // done" look (isLocallyDone is compete-only), so a waiting coop player sees
-  // only the disabled keyboard + the InfoCol TurnStatusLine — no false "out".
+  // no false "out" — just the disabled keyboard + the waiting pill below.
   const readOnly =
     !self || isTerminal || mySolved || myConceded || guessesUsed >= maxGuesses || !isMyTurn
 
+  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId` is
+  // null in a free-for-all game, so this is false there — the pill's presence is
+  // fixed for the game's life, no reflow.
+  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
+
   const wordleSetup = setup as WordleSetup
 
-  // ─── The below-board pill (terminal / locally-terminal / own-move) ─────
+  // ─── The below-board pill (terminal / locally-terminal / waiting / own-move) ─────
   // The fixed-height feedback slot under the board shows exactly one pill, chosen here
   // by priority (BoardCol just renders it):
   //   - terminal → a PERMANENT (fill) verdict pill: the terse verdict ALONE. The answer
@@ -399,12 +405,18 @@ export function PlayArea({
   //     the verdict;
   //   - locally terminal (compete: I'm done while the others race) → a sticky "you're
   //     out" pill (the target isn't revealed until the whole game ends);
+  //   - waiting on a teammate's turn → "Waiting for ● moth…", the ONLY whose-turn
+  //     indicator on mobile (the InfoCol's TurnStatusLine is off-canvas there);
   //   - otherwise → the own-move soft-reject / error pill (localFeedback, or nothing).
+  // Waiting out-ranks own-move: when it isn't your turn there's no fresh own-move
+  // result to lose, and a stale one would bury the answer to "why can't I type?".
   const localPill: GenericFeedbackMsg | null = over
     ? terminalPill(over.tone, over.verdict)
     : isLocallyDone
       ? outOfRacePill(myConceded)
-      : localFeedback
+      : waiting
+        ? waitingTurnPill(memberById(members, currentTurnUserId))
+        : localFeedback
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>

@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import type { GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import { useFlash } from '../../common/hooks/ui/useFlash'
 import { cls } from '../../common/lib/util/cls'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { Dot } from '../../common/components/text/Dot'
+import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
 import { useBoardCursorKeys } from '../../common/hooks/input/useBoardCursorKeys'
 import { useDragGesture, type DragGesture } from '../../common/hooks/ui/useDragGesture'
 import { moveCursor, stepBack } from '../../common/lib/game/gridCursor'
@@ -141,6 +142,7 @@ function nextRackOrder(
  *     `viewingIndex` (an array position). Same hook, deliberately different key.
  */
 export function BoardCol({
+  mobileStatus,
   game,
   gameId,
   self,
@@ -162,6 +164,13 @@ export function BoardCol({
   selfId,
   registerSuggestionApplier,
 }: {
+  // ── Mobile-only status strip ──
+  /** The core state readout (the `<StateLine>` the InfoCol also renders), shown
+   *  above the board ONLY below the `--mobile` breakpoint — where the info
+   *  column is off-canvas in the InfoSheet and would otherwise take a tap to
+   *  read. Hidden by CSS on desktop; see `<MobileStatusBar>`. */
+  mobileStatus: ReactNode
+
   // ── Game data (the turn machine reads board/version/rack/bag off this) ──
   game: ScrabbleGame
   gameId: string
@@ -746,6 +755,12 @@ export function BoardCol({
           cascading `--viewer-accent` var, so a teammate's shared move reads
           distinctly from a history replay (theme.css → --color-share-preview). */}
       <div className={cls(shared.boardCol, styles.boardCol, viewShared && history.sharePreview)}>
+        {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
+            the live turn/score + bag readout, above the board. It's a fixed-height
+            row, and the square board sizes off `--avail-h` — so PlayArea.module.css
+            subtracts this row's height there too, in BOTH the --mobile and --phone
+            regimes, or the board would overflow (the hard no-scroll invariant). */}
+        <MobileStatusBar>{mobileStatus}</MobileStatusBar>
         <Board
           board={renderBoard}
           tentative={viewTurn ? NO_TENT : viewShared ? sharedTent : tentativeMap}

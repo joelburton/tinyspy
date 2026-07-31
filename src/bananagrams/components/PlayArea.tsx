@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/game/timerLabel'
-import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
+import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { DeviceBlockNotice } from '../../common/components/game/DeviceBlockNotice'
 import { useCoarsePointer } from '../../common/hooks/ui/useCoarsePointer'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
@@ -45,7 +46,8 @@ import '../theme.css' // bananagrams tokens + the global drag-cursor rule
  *
  * Win flow: `peel` (enabled only when the hand is empty) either deals everyone a
  * tile or — when the bunch can't refill the ACTIVE table — goes out and wins.
- * The `is_terminal` flip arrives over `useCommonGame`'s realtime → `useTerminalModal`.
+ * The `is_terminal` flip arrives over `useCommonGame`'s realtime; the winner gets
+ * a `<CelebrationDialog>`, everyone else the below-board verdict pill.
  *
  * Concede: bananagrams is compete, so conceding is a real loss — but it only
  * drops YOU out (`bananagrams.concede`); the others keep racing. A conceded
@@ -102,7 +104,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // fires on a CONTINUING peel (you can't peel an invalid board), not only on
     // a winning one. A 'won'/'dealt' result needs nothing here: a continuing
     // peel grows `tiles` (the announcement effect reacts) and a winning peel
-    // flips is_terminal (the modal reacts).
+    // flips is_terminal (the verdict pill + the winner's celebration react).
     const res = data as { result: string; invalid_cells: number[] } | null
     if (res?.result === 'illegal') {
       showLocalFeedback({
@@ -250,6 +252,30 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => menu.setGameSections([])
   }, [menu, brand, title, ctx.setup, loading, initialBoard, isTerminal, myConceded])
 
+  // ─── Did I win? ────────────────────────────────────────────────────────
+  // Derived UP HERE (not beside the terminal verdict below) because the
+  // celebration hook needs it and every early return past this point would
+  // otherwise make that hook conditional. Reads ONLY ctx — the common.games row
+  // + the roster, both of which GamePage has already awaited (it renders
+  // "Loading game…" until then) — so it's correct on the very FIRST render.
+  // That's what makes a per-player gate safe here: nothing arrives late to flip
+  // it false→true and pop confetti at someone merely reviewing a finished game.
+  //
+  // bananagrams' status carries only `winner_username` (no winner uuid — see
+  // the peel-win block in the migration), so the test is a name comparison.
+  const selfId = ctx.session.user.id
+  const selfUsername = ctx.players.find((p) => p.user_id === selfId)?.username
+  const winnerName = (ctx.status?.winner_username as string | undefined) ?? 'someone'
+  const selfWon = !!selfUsername && winnerName === selfUsername
+
+  // ─── Win celebration ───────────────────────────────────────────────────
+  // Confetti at the MOMENT I go out — my winning peel ends the game on every
+  // client via the common realtime refetch. bananagrams is compete-only (a race
+  // to clear), so unlike the coop games it's the WINNER who celebrates, and only
+  // them; everyone else gets the verdict pill. `useCelebration` never pops on
+  // mount, so re-opening a won game stays quiet.
+  const celebration = useCelebration(isTerminal && selfWon)
+
   // Desktop-only block (see `isTouch` above). Rendered AFTER every hook so the
   // Rules of Hooks hold, and in place of the whole play surface so the drag
   // arena never mounts on touch. GamePage's chrome (header menu, Back to club)
@@ -266,7 +292,6 @@ export function PlayArea(ctx: GamePageCtx) {
 
   if (loading || initialBoard === null) return <p className="muted">Dealing tiles…</p>
 
-  const selfId = ctx.session.user.id
   // Locally terminal: I've conceded but the game is still live for the others.
   // Shown as the terminal LOOK (frozen board + "you're out"), not a silent swap.
   // Concede lives on the shared roster (ctx.players → common.game_players).
@@ -278,9 +303,8 @@ export function PlayArea(ctx: GamePageCtx) {
   // loss (outcome 'conceded', everyone lost). The no-winner cases are checked
   // FIRST — with no winner_username the peel-win branch would fall through to
   // "someone went out — Bananas!" and show everyone a loss for the wrong reason.
-  const selfUsername = ctx.players.find((p) => p.user_id === selfId)?.username
-  const winnerName = (ctx.status?.winner_username as string | undefined) ?? 'someone'
-  const selfWon = !!selfUsername && winnerName === selfUsername
+  // (`winnerName` / `selfWon` are derived above the early returns, for the
+  // celebration hook.)
   const over: TerminalCopy | null = !isTerminal
     ? null
     : ctx.status?.outcome === 'timeout'
@@ -402,7 +426,13 @@ export function PlayArea(ctx: GamePageCtx) {
         infoActions={infoActions}
         localPill={localFeedbackMsg && <GenericFeedbackPill msg={localFeedbackMsg} onClose={noop} />}
       />
-      <TerminalModal isTerminal={ctx.isTerminal} over={over} onBackToClub={ctx.goToClub} />
+      {/* No GameOverModal (the sweep treatment): the verdict is carried in-page
+          by the below-board pill + the info-column outcome line. The WINNER gets
+          the celebration instead — bananagrams is compete-only, so there's no
+          coop win to pop it for (see useCelebration above). */}
+      {celebration.show && (
+        <CelebrationDialog title="Bananas! 🍌" body="You went out first." onClose={celebration.close} />
+      )}
     </>
   )
 }

@@ -1,8 +1,7 @@
 /**
  * Tests for useCelebration — the one-shot "celebrate at the moment of the win"
- * state machine (waffle's coop win is the first consumer). Its contract is the
- * deliberate inverse of useTerminalModal's on mount, and both halves are
- * load-bearing:
+ * state machine (waffle's coop win is the first consumer). Both halves of its
+ * contract are load-bearing:
  *
  *   1. NEVER open on mount — opening an already-won game (deep link / refresh)
  *      is reviewing history, not winning;

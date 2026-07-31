@@ -51,6 +51,17 @@ test.describe('scrabble mobile', () => {
       expect(m.sw).toBeLessThanOrEqual(m.iw + 1)
       expect(m.sh).toBeLessThanOrEqual(m.ih + 1)
 
+      // The info column is off-canvas here, so its state readout is mirrored
+      // above the board by the shared <MobileStatusBar> — the same <StateLine>
+      // the sheet renders, so the two can't drift. It sits ABOVE the board (and
+      // shortens it — PlayArea.module.css takes its height out of --avail-h in
+      // BOTH the --mobile and --phone regimes) rather than overlaying it.
+      const statusBar = page.locator('[data-mobile-status]')
+      await expect(statusBar).toHaveText('Team score: 0 · 93 in bag')
+      const statusBox = (await statusBar.boundingBox())!
+      const boardTop = (await page.locator('[data-board]').boundingBox())!.y
+      expect(statusBox.y + statusBox.height).toBeLessThanOrEqual(boardTop + 1)
+
       // … and the board + the whole rack/controls block are on-screen. The
       // Submit button is the bottom-right of the controls row (its own second
       // row on the phone), so it's the binding below-board corner.

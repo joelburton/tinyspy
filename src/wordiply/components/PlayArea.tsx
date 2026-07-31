@@ -4,6 +4,7 @@ import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { outOfRacePill } from '../../common/lib/game/localPills'
+import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { db } from '../db'
 import { useGame, type GuessRow } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
@@ -256,6 +257,10 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const isCompete = game.mode === 'compete'
   const isLocallyDone = isCompete && myConceded && !isTerminal
+  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId` is
+  // null in a free-for-all game, so this is false there — the pill's presence is
+  // fixed for the game's life, no reflow.
+  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
 
   // Compete leaderboard (off the live status jsonb) → per-player metrics.
   const leaderboard = (status?.leaderboard as LeaderRow[] | undefined) ?? []
@@ -294,9 +299,17 @@ export function PlayArea(ctx: GamePageCtx) {
         clearLocalFeedback={clearLocalFeedback}
         lastWord={lastWord}
         // Locally terminal (compete: I conceded while the others race on) gets
-        // the standard "you're out" pill, so the frozen keyboard has an
-        // explanation — matching every other game's below-board treatment.
-        localPill={isLocallyDone ? outOfRacePill(true) : localFeedback}
+        // the standard "you're out" pill; a teammate's turn (coop turn-order)
+        // gets the whose-turn pill — the ONLY such indicator on mobile, where the
+        // InfoCol's TurnStatusLine is off-canvas. Either way the frozen keyboard
+        // gets an explanation, matching every other game's below-board treatment.
+        localPill={
+          isLocallyDone
+            ? outOfRacePill(true)
+            : waiting
+              ? waitingTurnPill(players.find((p) => p.user_id === currentTurnUserId))
+              : localFeedback
+        }
         over={over}
       />
 

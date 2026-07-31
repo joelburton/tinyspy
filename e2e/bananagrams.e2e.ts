@@ -149,9 +149,13 @@ test.describe('bananagrams win', () => {
     await expect(peel).toBeEnabled({ timeout: 15000 })
     await peel.click()
 
-    // The win verdict appears (in BOTH the below-board pill and the GameOverModal,
-    // by design — hence .first()).
+    // The win verdict appears in the below-board pill…
     await expect(page.getByText('Bananas! You went out first').first()).toBeVisible({ timeout: 15000 })
+    // …and the WINNER gets the celebration instead of the old game-over modal.
+    // This is the one test that drives a REAL win, so it's the only place the
+    // false→true flip `useCelebration` needs actually happens (a test that renders
+    // straight into a finished game sees nothing, by design).
+    await expect(page.getByRole('dialog', { name: 'Bananas! 🍌' })).toBeVisible({ timeout: 15000 })
 
     await ctx.close()
   })

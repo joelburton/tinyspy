@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { terminalPill } from '../../common/lib/game/localPills'
-import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
+import { waitingTurnPill } from '../../common/components/game/turnCopy'
+import { ActorDot } from '../../common/components/game/lists/ActorMention'
+import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
@@ -22,6 +25,7 @@ import { useSharedMove, type SharedMovePayload } from '../hooks/useSharedMove'
 import { printScrabblePdf } from '../pdf/printScrabblePdf'
 import { BoardCol, type LocalFeedbackMsg, type ViewTarget } from './BoardCol'
 import { InfoCol, type SuggestState } from './InfoCol'
+import { StateLine } from './StateLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -90,6 +94,23 @@ export function PlayArea({
   const showLocalFeedback = useCallback(
     (m: LocalFeedbackMsg) => showMsg({ ...m, variant: 'outline', dismiss: { kind: 'sticky' } }),
     [showMsg],
+  )
+
+  // ─── Win celebration (COMPETE only) ────────────────────
+  // scrabble inverts the usual gate. Everywhere else the celebration is the
+  // COOP win, because coop is where the group shares an unambiguous victory —
+  // but scrabble's coop has no win at all: one shared rack, no opponent, the
+  // game just ends when the tiles run out and you're left with a score. There's
+  // nothing to celebrate, so coop pops nothing. COMPETE has a real winner, so
+  // that's where the confetti goes, for the player who won.
+  //
+  // Both inputs come off the `common.games` row GamePage already waited for
+  // (`playState`, `status.winner`), so this is correct on the very FIRST render
+  // — which is what makes a per-player gate safe here (the usual objection is
+  // per-player data arriving empty and faking a flip). `useCelebration` never
+  // pops on mount besides, so opening a finished game stays quiet.
+  const celebration = useCelebration(
+    playState === 'won_compete' && (status?.winner as string | undefined) === session.user.id,
   )
 
   // Board-viewer coordination (shared hook): which read-only overlay is open — a
@@ -367,7 +388,23 @@ export function PlayArea({
     suggest.status === 'ready' && (isTerminal || suggest.version !== game.version)
       ? { status: 'idle' }
       : suggest
-  const over = isTerminal ? buildOver({ game, playState, status, selfId: session.user.id, nameOf }) : null
+  // The winner's member row for the terminal identity dot: a human from the
+  // common roster, or — when `winner_seat` names an AI seat — the synthetic
+  // "AI n" member. Undefined on a tie / all-conceded / coop, where nobody is named.
+  const winnerSeat = status?.winner_seat as number | null | undefined
+  const winnerMember =
+    players.find((m: Member) => m.user_id === (status?.winner as string | undefined)) ??
+    (winnerSeat != null ? aiMemberOfSeat(winnerSeat) : undefined)
+  const over = isTerminal
+    ? buildOver({
+        game,
+        playState,
+        status,
+        selfId: session.user.id,
+        nameOf,
+        winnerMember,
+      })
+    : null
   // The player whose turn it is (compete) — for the "Turn: ● name" state line.
   // A human (by currentUserId) or, when it's an AI seat's turn, the synthetic
   // "AI n" member.
@@ -377,13 +414,33 @@ export function PlayArea({
   // The commit-slot pill: the terminal verdict (permanent fill) takes precedence,
   // else the sticky own-move result (transient outline), else nothing (the commit
   // buttons show). Passed down to BoardCol, which renders it in the Controls.
+  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId` is
+  // null in a free-for-all game, so this is false there. (Compete is ALWAYS
+  // turn-based, but its status line already names the current player, so the
+  // pill would be redundant — hence the coop-only pointer, which compete leaves
+  // null.) The pill lands where the commit buttons would be: they're useless on a
+  // teammate's turn, so swapping them for the reason is exactly right.
+  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
   const localPill: GenericFeedbackMsg | null = over
-    ? terminalPill(over.tone, over.message)
-    : localFeedback
+    ? // `verdict` (or its `verdictNode` widget, when the winner is named) — the
+      // pill's own string, distinct from the info column's shorter `message`.
+      terminalPill(over.tone, over.verdictNode ?? over.verdict)
+    : waiting
+      ? waitingTurnPill(players.find((m: Member) => m.user_id === currentTurnUserId))
+      : localFeedback
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
+        mobileStatus={
+          <StateLine
+            isCompete={isCompete}
+            myTurn={myTurn}
+            currentMember={currentMember}
+            teamScore={game.teamScore}
+            bagCount={game.bagCount}
+          />
+        }
         game={game}
         gameId={gameId}
         self={self}
@@ -437,7 +494,12 @@ export function PlayArea({
         />
       </InfoSheet>
 
-      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {/* No GameOverModal (the sweep treatment): the verdict is carried in-page
+          by the commit-slot pill + the info-column outcome line. Only a COMPETE
+          win celebrates — coop has no win to celebrate (see useCelebration above). */}
+      {celebration.show && (
+        <CelebrationDialog title="You won! 🎉" onClose={celebration.close} />
+      )}
       {confirmDialog}
     </div>
   )
@@ -466,10 +528,26 @@ function moveText(p: PlayRow): string {
 }
 
 /**
- * Terminal copy, mode- and self-aware. Returns `{ outcome, verdict, message,
- * tone }`: `outcome` + `verdict` drive the GameOverModal; `message` (terse) +
- * `tone` drive BOTH the info-column outcome line AND the permanent below-board
- * pill (so the narrow commit slot stays one line).
+ * Terminal copy, mode- and self-aware.
+ *
+ *   - `verdict` (+ the `verdictNode` widget when the winner is NAMED) drives the
+ *     permanent pill in the commit slot. ONE OR TWO WORDS — far terser than the
+ *     other games' verdicts, because scrabble's slot is not a full below-board
+ *     row: it's the sub-area that swaps in for the commit buttons, with the rack
+ *     still beside it, and on a phone the rack + controls have already wrapped to
+ *     two rows. No score in it either — the mobile status bar above the board
+ *     carries the live number, so repeating it here spends the width twice.
+ *   - `message` (+ `tone`) drives the bold info-column outcome line. Deliberately
+ *     UNCHANGED by the end-states sweep — the two surfaces carry two lengths.
+ *   - `outcome` was the GameOverModal's field; scrabble no longer renders that
+ *     modal (a compete win celebrates, the verdict is in-page), so it survives
+ *     only as the shared shape's "not a loss" flag.
+ *
+ * COOP has no win — one shared rack, no opponent — so its three endings are all
+ * neutral, and they're distinguished rather than collapsed: `Completed:` for
+ * playing the board out, `Ended: time` for the clock, plain `Ended:` for a manual
+ * stop. COMPETE names who won, which is the one case the pill wants a WIDGET (the
+ * winner's identity dot, the way peer feedback names people elsewhere).
  */
 function buildOver({
   game,
@@ -477,34 +555,54 @@ function buildOver({
   status,
   selfId,
   nameOf,
+  winnerMember,
 }: {
   game: { mode: 'coop' | 'compete'; teamScore: number | null }
   playState: string
   status: Record<string, unknown> | null
   selfId: string
   nameOf: (id: string | null) => string
-}): { outcome: 'won' | 'lost'; verdict: string; message: string; tone: 'won' | 'lost' | 'neutral' } {
+  /** The winner's member row (a human from the roster, or the synthetic "AI n"),
+   *  for the identity dot. Undefined on a tie / all-conceded / coop. */
+  winnerMember: Member | undefined
+}): {
+  outcome: 'won' | 'lost'
+  verdict: string
+  verdictNode?: ReactNode
+  message: string
+  tone: 'won' | 'lost' | 'neutral'
+} {
   const outcome = (status?.outcome as string | undefined) ?? ''
   if (game.mode === 'coop') {
     const score = game.teamScore ?? 0
-    if (outcome === 'manual') return { outcome: 'won', verdict: `Game ended — ${score} points.`, message: `${score} pts`, tone: 'neutral' }
-    if (outcome === 'timeout') return { outcome: 'won', verdict: `Time's up — ${score} points.`, message: `${score} pts`, tone: 'neutral' }
-    return { outcome: 'won', verdict: `Board cleared — ${score} points! 🎉`, message: `${score} pts`, tone: 'won' }
+    if (outcome === 'manual') return { outcome: 'won', verdict: 'Ended', message: `${score} pts`, tone: 'neutral' }
+    if (outcome === 'timeout') return { outcome: 'won', verdict: 'Ended', message: `${score} pts`, tone: 'neutral' }
+    // Played all the way out — not a WIN (coop has none), but a real completion,
+    // and the one coop ending worth distinguishing from "it just stopped".
+    return { outcome: 'won', verdict: 'Completed', message: `${score} pts`, tone: 'won' }
   }
-  if (playState === 'ended') return { outcome: 'won', verdict: 'Game ended — no winner.', message: 'Ended', tone: 'neutral' }
+  if (playState === 'ended') return { outcome: 'won', verdict: 'Ended', message: 'Ended', tone: 'neutral' }
   // Everyone conceded (play_state 'lost', outcome 'conceded'): a collective
   // loss with no eligible winner. Must precede the winner logic below, which
   // would otherwise fall through to the phantom co-winners tie on null winner.
-  if (outcome === 'conceded') return { outcome: 'lost', verdict: 'Everyone conceded — no winner.', message: 'All conceded', tone: 'lost' }
+  if (outcome === 'conceded') return { outcome: 'lost', verdict: 'All conceded', message: 'All conceded', tone: 'lost' }
   const winner = status?.winner as string | null | undefined
-  if (winner === selfId) return { outcome: 'won', verdict: 'You won the game! 🎉', message: 'You won!', tone: 'won' }
-  if (winner) return { outcome: 'lost', verdict: `${nameOf(winner)} won.`, message: `${nameOf(winner)} won`, tone: 'lost' }
+  if (winner === selfId) return { outcome: 'won', verdict: 'You won', message: 'You won!', tone: 'won' }
+  const named = (name: string) => ({
+    outcome: 'lost' as const,
+    verdict: `${name} won`,
+    verdictNode: (
+      <>
+        <ActorDot actor={winnerMember} fallback="Someone" show="both" /> won
+      </>
+    ),
+    message: `${name} won`,
+    tone: 'lost' as const,
+  })
+  if (winner) return named(nameOf(winner))
   // An AI winner: no human `winner` uuid, but `winner_seat` names the seat and
   // `winner_username` carries its "AI n" label (from scrabble._finish).
   const winnerSeat = status?.winner_seat as number | null | undefined
-  if (winnerSeat != null) {
-    const name = (status?.winner_username as string | undefined) ?? 'The AI'
-    return { outcome: 'lost', verdict: `${name} won.`, message: `${name} won`, tone: 'lost' }
-  }
-  return { outcome: 'won', verdict: "It's a tie — co-winners!", message: 'Tie', tone: 'neutral' }
+  if (winnerSeat != null) return named((status?.winner_username as string | undefined) ?? 'The AI')
+  return { outcome: 'won', verdict: 'Tie', message: 'Tie', tone: 'neutral' }
 }

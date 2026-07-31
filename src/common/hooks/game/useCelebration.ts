@@ -4,12 +4,11 @@ import { useState } from 'react'
  * One-shot celebration state — pops `<CelebrationDialog>` at the MOMENT of a
  * win, and only then.
  *
- * The deliberate inverse of `useTerminalModal`'s mount behavior:
+ * Three rules:
  *
  *   1. **Never show on mount.** Opening an already-won game (deep link,
  *      refresh) is reviewing history, not winning — the moment has passed, so
- *      the confetti stays away. (`useTerminalModal` initializes open for
- *      exactly that case; this initializes closed.)
+ *      the confetti stays away.
  *   2. **Pop when `won` flips true during the session.** The winning move
  *      lands on every connected client via the common realtime refetch, so the
  *      whole group celebrates together — no broadcast needed.
@@ -17,9 +16,15 @@ import { useState } from 'react'
  *      false (waffle's replay-board un-terminals the game) re-arms it, so
  *      win → restart → win celebrates again.
  *
- * Same effect-free previous-render pattern as `useTerminalModal` (state is
- * adjusted DURING render behind a transition guard — React's endorsed "storing
- * information from previous renders" shape).
+ * Rule 1 is what makes the `won` expression load-bearing: gate it ONLY on values
+ * that are correct on the FIRST render (the `common.games` row — `playState`,
+ * `status.*` — plus the roster, all of which GamePage awaits before rendering a
+ * PlayArea). Anything that arrives later flips false→true after mount and pops
+ * confetti at someone merely reviewing a finished game.
+ *
+ * Effect-free previous-render pattern: state is adjusted DURING render behind a
+ * transition guard — React's endorsed "storing information from previous
+ * renders" shape.
  *
  * Usage:
  *

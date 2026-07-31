@@ -36,13 +36,17 @@ test.describe('psychicnum turn order (coop)', () => {
     await expect(pageA.locator('[data-board]')).toBeVisible({ timeout: 20000 })
     await expect(pageB.locator('[data-board]')).toBeVisible({ timeout: 20000 })
 
-    // ── Alice's turn: she sees "Your turn"; Bob's TurnStatusLine names Alice. ──
+    // ── Alice's turn: she sees "Your turn"; Bob is told he's waiting on her. ──
     // (Bob also shows the gated "Waiting for others" action row — a separate
-    // element — so target the turn line by Alice's username specifically.)
+    // element — so target the turn copy by Alice's username specifically.)
     await expect(pageA.getByText('Your turn')).toBeVisible({ timeout: 15000 })
+    // TWO elements carry it, and both matter: the info column's TurnStatusLine
+    // (the desktop answer) and the below-board waitingTurnPill (the ONLY answer
+    // on mobile, where the info column is off-canvas in the InfoSheet). Both
+    // render the shared `waitingFor` copy, so this also guards them against drift.
     await expect(
       pageB.getByText(new RegExp(`Waiting for.*${alice.username}`)),
-    ).toBeVisible({ timeout: 15000 })
+    ).toHaveCount(2, { timeout: 15000 })
 
     // Capture the two-client turn state for the visual record.
     await pageA.screenshot({
@@ -54,10 +58,11 @@ test.describe('psychicnum turn order (coop)', () => {
       fullPage: true,
     })
 
-    // Bob cannot act: his entry is shown but inert (Submit disabled). Crucially
-    // he is NOT shown the locally-terminal "out of guesses" look — he's just
-    // waiting his turn.
-    await expect(pageB.getByRole('button', { name: 'Submit' })).toBeDisabled()
+    // Bob cannot act: the waiting pill has taken the entry slot (EntryRow's
+    // designed pill swap — same height, controls replaced), so there's no Submit
+    // to press at all. Crucially he is NOT shown the locally-terminal "out of
+    // guesses" look — he's just waiting his turn.
+    await expect(pageB.getByRole('button', { name: 'Submit' })).toHaveCount(0)
     await expect(pageB.getByText(/Out of guesses/i)).toHaveCount(0)
 
     // ── Alice guesses (click a tile → Submit). ──
@@ -68,9 +73,11 @@ test.describe('psychicnum turn order (coop)', () => {
     // (Alice's own entry slot now carries her sticky own-move pill, so the flip
     // is asserted via the turn lines, which both clients update over realtime.)
     await expect(pageB.getByText('Your turn')).toBeVisible({ timeout: 15000 })
+    // Alice's own sticky own-move pill is OUTRANKED by the waiting pill (see the
+    // precedence chain in turnCopy.tsx), so she gets both copies too.
     await expect(
       pageA.getByText(new RegExp(`Waiting for.*${bob.username}`)),
-    ).toBeVisible({ timeout: 15000 })
+    ).toHaveCount(2, { timeout: 15000 })
 
     await ctxA.close()
     await ctxB.close()
