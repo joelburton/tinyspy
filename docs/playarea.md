@@ -132,8 +132,11 @@ placement is the rule, not redundancy to trim.
   aid → on the board.
 - **Terminal swap.** Setup + state stay; help hides; the action row replaces the
   play buttons with a **bold, outcome-colored result line** (won = green / lost =
-  red / manual-end = neutral, via the `--color-outcome-*-strong` tones) + a
-  **compact** back-to-club button (`<BackToClubButton compact>` → just "‹ Club").
+  red / manual-end = neutral, via the `--color-outcome-*-strong` tones), any
+  per-game terminal actions (Restart / Reveal / New game), and a **compact**
+  back-to-club button — the shared `<TerminalActionRow>`, icon-only in most games
+  so four items survive a ~22rem column (see
+  [ui.md → Terminal results](ui.md#terminal-results--the-moment-vs-the-record)).
 - **`.terminalExtra` — the one allowed growth on the play→terminal transition.**
   A region that appears *only* at game over, for terminal content too big for the
   below-board slot — waffle's multi-line answer reveal, which there would overflow
@@ -249,9 +252,14 @@ The pill is driven by the shared **`useLocalFeedback`** hook (holds one
 `GenericFeedbackMsg`, auto-clears on the next move / any key via
 `useDismissLocalFeedbackOnKey`, and is permanent at terminal — see [Terminal local
 feedback is permanent](#text-entry--capture-not-input) above). The slot reserves its
-height so swapping the pill in for the move controls never reflows the board. All eleven
-games share this; the earlier per-game full-width `<ResultFlash>` bar has been
-removed.
+height so swapping the pill in for the move controls never reflows the board. All thirteen
+games share this (nine drive `useLocalFeedback` directly, the four word-list games via
+`useWordSubmit`); the earlier per-game full-width `<ResultFlash>` bar has been
+removed. In the six turn-order coop games the same slot also carries the sticky
+"Waiting for ● Name…" pill (the shared `waitingTurnPill` in
+`common/components/game/turnCopy.tsx`), slotted into the precedence chain as
+terminal verdict → locally-done → **waiting-for-turn** → own-move
+([common.md → Turn-order](common.md#turn-order--opt-in-turn-by-turn-for-coop-games)).
 
 **Terminal reveal goes where the entry was.** When the game ends, render the
 reveal ("The words were …") in the slot the entry vacated — *below* the

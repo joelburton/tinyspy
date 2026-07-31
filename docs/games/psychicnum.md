@@ -280,7 +280,7 @@ No realtime touch needed — the players update + guesses delete wake `useGame` 
 
 ### `psychicnum.end_game(target_game uuid)`
 
-The **End** button in the info-column action row (coop; compete shows **Concede** instead — see the play-states above) fires this, behind a `window.confirm`. It's the explicit manual stop — any current game player can decide the group is done. Like every game, it's surfaced in **both** the action row and the GamePage menu — the latter wired through `buildGameMenu` (see [common.md → Manual end](../common.md#manual-end--every-gametypes-end_gametarget_game)).
+The **End** button in the info-column action row (coop; compete shows **Concede** instead — see the play-states above) fires this, behind the shared confirm dialog (`END_GAME_CONFIRM` via `useConfirmDialog`). It's the explicit manual stop — any current game player can decide the group is done. Like every game, it's surfaced in **both** the action row and the GamePage menu — the latter wired through `buildGameMenu` (see [common.md → Manual end](../common.md#manual-end--every-gametypes-end_gametarget_game)).
 
 Unlike `submit_timeout`, a manual stop is **neither a win nor a loss**, so it writes the uniform terminal `play_state = 'ended'` with `status = {outcome:'manual', mode}` and `result = {won: false}` for every player (psychicnum tracks no per-player score, so there's nothing richer to record). Same shape across both modes. The FE renders `'ended'` neutrally — green "Game ended" copy, not the red loss treatment.
 

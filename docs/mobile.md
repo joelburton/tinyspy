@@ -623,11 +623,12 @@ above the board on a phone, hidden on desktop, still readable with the sheet ope
 
 **Adopted by:** codenamesduet, psychicnum ("1/3 found · 4/7 guesses used" — both
 numbers live only in the info column, and neither is readable off the board),
-spellingbee (the RankBar + Stats unit — a small BLOCK rather than a line, so it
-raises `--mobile-status-height`; see below), boggle (its 4-cell Req/Bonus ×
-Words/Score grid, same block treatment).
-The remaining games are candidates as the end-states sweep reaches them — but
-adoption is a per-game judgment, not a default. A game only needs the bar if its
+spellingbee + wordwheel (the RankBar + Stats unit — a small BLOCK rather than a
+line, so it raises `--mobile-status-height`; see below), boggle (its 4-cell
+Req/Bonus × Words/Score grid, same block treatment), waffle ("Swaps 3/12 (9
+left) · Par 10"), and scrabble ("Your turn · 7 in bag" / "Turn: ● moth · 7 in
+bag" / coop's "Team score: 152 · 7 in bag").
+Adoption is a per-game judgment, not a default: a game only needs the bar if its
 core state is invisible once the info column slides away.
 
 **Deliberately NOT adopted — connections.** Both halves of its state are already
@@ -636,6 +637,17 @@ solve becomes a full-width colored band above the remaining tiles — you can
 count them), and **mistakes** sit in the below-board row as `<StrikeMarks>`
 (labeled "Mistakes" on a phone, "Mistakes (lose at 4)" above it). A status bar
 would restate both and cost the board 1.75rem for nothing.
+
+**The companion answer — "whose turn is it?"** The six opt-in turn-order coop
+games answer that in the info column too (`<TurnStatusLine>`), so it went
+off-canvas with the rest — and a waiting player on a phone had no cue at all
+(the shared `.tile:disabled` rule deliberately refuses to fade; taps silently
+did nothing). The shared **`waitingTurnPill()`**
+(`common/components/game/turnCopy.tsx`) puts the same "Waiting for ● Name…"
+wording into the fixed-height below-board feedback slot as a sticky neutral
+pill — shown only when it ISN'T your turn (the turn signal is the pill
+clearing), costing no layout since the slot already exists. See
+[common.md → Turn-order](common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 
 ### Tap feedback — one canonical treatment
 

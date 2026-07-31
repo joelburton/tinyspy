@@ -300,7 +300,7 @@ JWT carries every authz signal; `common.words` + the helpers are authenticated-r
 | guesses | **5 shared** (the whole team fills the five lines together) | **5 per player** (each has their own five-line board) |
 | visibility | everyone sees every guess live (each row shows its length); **scores + longest word revealed at terminal** | opponents' **guesses + scores hidden** mid-game (an opponent shows only **guesses used `n/5`**); full reveal at terminal |
 | ends | after the team's 5th guess / timeout / manual `end_game` | once every active player has spent 5 / timeout / concede |
-| terminal verdict | "You reached **N%**" (+ letter count, + the revealed longest word) | winner banner via the formula; loser sees who won + at what % |
+| terminal verdict | "Ended: **N%**, M letters" — neutral tone (coop has no win, you just did as well as you did; the info column fills in the LengthScoreBar + longest word) | "Won: N%" (co-winners "Won: tied at N%"); a loser sees who won, with their identity dot — "● moth won at 78%" |
 | players | `[1, 6]` (solo allowed) | `[2, 6]` |
 
 **Why coop = 5 _shared_ (not 5 each):** the FE board is a single five-row surface, and coop
@@ -363,7 +363,11 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   just **"guesses n/5"** (scores are terminal-only, §2); at terminal the same slot fills in
   the **`<LengthScoreBar>`** (percent fill to `max_word_length`, "best 7 / possible 9") + the
   **letter-count** stat. Then **`<OpponentStrip>`** (compete; mid-game `metricLabel="Guesses"`,
-  value = each opponent's `n/5`; at terminal switch to length score %), then the **action row**,
+  value = each opponent's `n/5`; at terminal switch to length score %), then the **action row** —
+  ICON-ONLY: playing = End (coop) / Concede (compete) + back-to-club; terminal = the outcome
+  line + `RestartButton` / `NewGameButton` / primary Club via `TerminalActionRow iconOnly`;
+  a conceded compete player (the others race on) gets the `LocalTerminalRow` "You conceded"
+  + the below-board out-of-race pill —
   then the **`<SetupDisclosure>`** (difficulty band, timer), then the **terminal reveal**
   ("Best possible word: **HANGARS** (7)" — full-colour, no card) — there is **no `<WordList>`**
   (the board rows are the words). **The info column is a FIXED width** (`--info-col-width` on

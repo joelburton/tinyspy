@@ -302,11 +302,21 @@ sizing).
   `scratchpad` field): shared pad in coop (Broadcast takeover lock), private pad
   per player in compete. See [docs/common.md](../common.md) → "The shared
   scratchpad" for the architecture.
-- **Terminal** — the board is **not** auto-revealed at game end: the blanks
-  stay blank until someone picks the **"Reveal board"** game-menu item, which
-  fetches `games_state.solution` and fills the blank cells with the greyed
-  answers. The item is disabled mid-game (the server only unshields the
-  solution at terminal) and disables itself once revealed.
+- **Terminal** — no modal carries the verdict
+  ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
+  `buildOver`'s terse copy lands as a permanent pill in the active-clue slot
+  ("Won: grid complete" / "Won: solved it first" / "Lost: out of the race" /
+  a compete loss naming the winner with their identity dot — "● moth solved it
+  first"; "Everyone conceded" carries no `Lost:` prefix, nobody was beaten) plus
+  the info-column outcome line. A **coop solve** pops the shared
+  `<CelebrationDialog>` via `useCelebration(playState === 'won')` — coop-only by
+  the states vocabulary (compete writes `won_compete`), at the moment of the
+  flip, never on opening an already-solved game. The board is **not**
+  auto-revealed at game end: the blanks stay blank until someone picks the
+  **"Reveal board"** game-menu item, which fetches `games_state.solution` and
+  fills the blank cells with the greyed answers. The item is disabled mid-game
+  (the server only unshields the solution at terminal) and disables itself once
+  revealed.
 
 ### Printing the board (PDF) — a deliberate whole-cloth exception
 

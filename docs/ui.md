@@ -20,7 +20,7 @@ The play surface is a laptop or desktop browser. Some games are awkward on mobil
 
 ## Layout stability
 
-**A game page's shape is allocated at mount, and that shape doesn't change during play.** State updates rotate content *within* slots; they don't resize, reposition, or reflow the slots themselves. Rare, content-rich moments (terminal result, error explanations, postgame celebrations) escape into modals rather than dedicating in-page space for the case where they're empty.
+**A game page's shape is allocated at mount, and that shape doesn't change during play.** State updates rotate content *within* slots; they don't resize, reposition, or reflow the slots themselves. Rare, content-rich moments (error explanations, the win celebration) escape into modals rather than dedicating in-page space for the case where they're empty; the terminal verdict rotates into slots the page already reserves (see [Terminal results](#terminal-results--the-moment-vs-the-record)).
 
 Closest existing model: NYT Connections. The grid is the grid from start to finish; the lives row is always there; the matched-band stripe at the top is always there. What changes is *which tiles are dark, which bands are bright, which copy is in the feedback slot.* The frame is fixed.
 
@@ -34,7 +34,7 @@ Why this matters here:
 - **Status-text rotation in a fixed slot.** "Your turn to give a clue," "Peer is giving a clue," "Clue: BIRD 3" all render into the same DOM region, sized at mount for the worst-case string. Empty / loading state ("No clue yet") is that same height too.
 - **Always-present feedback slot.** "Already tried that," "Correct!," "Out of guesses." A dedicated slot that's the same height whether populated or empty. Content fades in and out; the slot stays. (See "Feedback pill" below.)
 - **Scrollable regions for unbounded lists.** Guess history, clue history, chat. The outer container is fixed; the inner content scrolls. The game frame doesn't grow with the history.
-- **Modal for rare-and-rich.** "You won!" / postgame summary / "Play again?" → modal that overlays the static layout. The play surface below stays visible in review mode; the modal carries the high-content celebration.
+- **Modal for rare-and-rich.** The win *moment* → the `<CelebrationDialog>` overlaying the static layout; the *record* (the verdict, the replay/new-game actions) rotates into reserved in-page slots instead — see [Terminal results](#terminal-results--the-moment-vs-the-record). The play surface stays visible in review mode either way.
 - **Disabled in place, not removed.** The clue-input field is always rendered; greyed out when it's not your turn. Same shape, different state.
 
 > **⚠️ The #1 offender — conditionally removing a flow element on state change.** Writing `{showInput && <CommitRow/>}` / `{isTerminal ? … : <EntryRow/>}` so the input/commit/entry row is *removed* at terminal looks harmless, but the board above is usually `flex: 1` — so when the row vanishes, **the board grows into the freed space.** That's a reflow on a state change, the exact thing this section forbids.
@@ -135,7 +135,7 @@ Neither replaces the page: it stays in *review mode* (the final board, connectio
 
 **Don't reveal the solution on a loss.** Waffle and wordle keep the answer hidden when you lose (and on a manual end); the paths to closure are `RestartButton` (replay the same board), `RevealButton`, or `NewGameButton`. The two ideas reinforce each other: force-reveal at loss time and the replay becomes theater — you already know where the tree ends. Under the friends-only trust model this is FE-only — where the solution shield lifts at terminal, simply not *displaying* it is enough, so the terminal `RevealButton` is a local display toggle (no RPC, no confirm).
 
-**Replay** (`RestartButton` + the per-game `<gametype>.replay_board` RPC on top of `common.reset_game`) serves three different players: the do-over (we lost, let us finish), the line-explorer (same puzzle, different tree), and the optimizer (I won, but I want to beat my swap count) — so it shows at *any* terminal, not just losses. Two accepted costs: replay wipes the win (the game sits "unwon" until re-solved) and wipes the previous attempt's turn log. Ten games have it; codenamesduet and bananagrams deliberately don't — duet's board *is* the secret, and bananagrams has no puzzle to re-run.
+**Replay** (`RestartButton` + the per-game `<gametype>.replay_board` RPC on top of `common.reset_game`) serves three different players: the do-over (we lost, let us finish), the line-explorer (same puzzle, different tree), and the optimizer (I won, but I want to beat my swap count) — so it shows at *any* terminal, not just losses. Two accepted costs: replay wipes the win (the game sits "unwon" until re-solved) and wipes the previous attempt's turn log. Ten games have it; codenamesduet and bananagrams deliberately don't — duet's board *is* the secret, and bananagrams has no puzzle to re-run — and crosswords doesn't yet (an open item; see [deferred.md → Terminal results](deferred.md#terminal-results-whole-app)).
 
 ### Confirm modals — never `window.confirm`
 

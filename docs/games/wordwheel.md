@@ -371,6 +371,11 @@ wordwheel-specific tests:
   (title `E·ABCDEFGG` — duplicates appear twice, sorted); `custom_letters_test.sql`
   accepts duplicate custom letters; `gameplay_test.sql` smokes a repeat-letter word
   (`egged`) through trusting-commit on the dup board.
+- **`coop_target_test.sql`** — the opt-in coop win (the same contract as
+  spellingbee's): team reaches `setup.target_rank` → `won` / `outcome='target'` /
+  everyone `{won:true}` and a later submit is rejected; the clock beating an
+  unreached target → `lost`; no target → `ended`; manual End with a target
+  unreached → `ended` (stopping ≠ losing).
 - `compete` / `concede` / `replay` / `reveal_partition` / `rls` / `player_subset` —
   the standard per-game coverage, with 8-letter boards, +15 pangrams, the ≥ 15 gate,
   and `s` accepted.

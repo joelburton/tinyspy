@@ -320,6 +320,18 @@ pill (with the teammate's identity disc). An accepted / rejected word additional
 flashes its letters green/red in the `WordEntry` ring (strong outcome colors) — so
 the local pill carries only the results a ring can't.
 
+At terminal, no modal carries the verdict
+([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
+`buildOver`'s terse copy fills the local pill + the info-column outcome line —
+coop "Won: stack cleared" / "Lost: out of time" / "Lost: stack not cleared";
+compete "Won: cleared it first" vs a loss naming the winner with their identity
+dot ("● moth cleared it first"), while the no-winner endings ("Out of time — no
+winner" / "Nobody cleared it") drop the `Lost:` prefix — nobody was beaten, the
+stack just outlasted everyone. A **coop clear** pops the shared
+`<CelebrationDialog>` via `useCelebration(playState === 'won')` — at the moment
+of the flip, never on opening an already-won game; a compete win stays in the
+pill.
+
 - **`lib/board.ts`** — the display half of the board logic, ported from the
   prototype: `covers`, `exposedIds`, `depthMap` (layer-below-frontier for the
   depth shading), `letterCorner` (tuck a covered tile's letter into a free
