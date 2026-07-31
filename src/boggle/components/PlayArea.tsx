@@ -10,6 +10,7 @@ import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
+import { outOfRacePill } from '../../common/lib/game/localPills'
 import { memberById } from '../../common/lib/game/peers'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { difficultyValue } from '../../common/lib/game/difficulty'
@@ -419,7 +420,12 @@ export function PlayArea(ctx: GamePageCtx) {
         readOnly={isTerminal || myConceded}
         // ── Below-board pill ──
         over={over}
-        localPill={localFeedback}
+        // Locally terminal (compete: I conceded while the others play on) gets the
+        // standard "you're out" pill, so the frozen entry has an explanation right
+        // beside it. The InfoCol's LocalTerminalRow says the same thing tersely —
+        // dual placement is the rule (docs/playarea.md), and on a phone the InfoCol
+        // is off-canvas, making this the ONLY copy the player sees.
+        localPill={isLocallyDone ? outOfRacePill(true) : localFeedback}
       />
 
       {/* Info column — off-canvas full-width sheet on mobile, flex child on desktop. */}

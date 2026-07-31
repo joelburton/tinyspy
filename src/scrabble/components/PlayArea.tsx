@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
-import { terminalPill } from '../../common/lib/game/localPills'
+import { outOfRacePill, terminalPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
@@ -482,13 +482,21 @@ export function PlayArea({
   // null.) The pill lands where the commit buttons would be: they're useless on a
   // teammate's turn, so swapping them for the reason is exactly right.
   const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
+  // Locally terminal (compete: I conceded while the others play on). Mutually
+  // exclusive with `waiting` — that pointer is coop-only here — but ordered first
+  // to match the other games' chains. The InfoCol's LocalTerminalRow carries the
+  // terse half of this; dual placement is the rule (docs/playarea.md), and on a
+  // phone the InfoCol is off-canvas, making this the ONLY copy the player sees.
+  const isLocallyDone = isCompete && myConceded && !isTerminal
   const localPill: GenericFeedbackMsg | null = over
     ? // `verdict` (or its `verdictNode` widget, when the winner is named) — the
       // pill's own string, distinct from the info column's shorter `message`.
       terminalPill(over.tone, over.verdictNode ?? over.verdict)
-    : waiting
-      ? waitingTurnPill(players.find((m: Member) => m.user_id === currentTurnUserId))
-      : localFeedback
+    : isLocallyDone
+      ? outOfRacePill(true)
+      : waiting
+        ? waitingTurnPill(players.find((m: Member) => m.user_id === currentTurnUserId))
+        : localFeedback
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>

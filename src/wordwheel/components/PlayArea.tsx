@@ -10,6 +10,7 @@ import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/game/useWordSubmit'
 import { memberById } from '../../common/lib/game/peers'
+import { outOfRacePill } from '../../common/lib/game/localPills'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { readLeaderboard } from '../../common/lib/game/foundWordsLeaderboard'
 import { currentRankIndex, RANKS } from '../../common/lib/game/rankLadder'
@@ -493,7 +494,12 @@ export function PlayArea(ctx: GamePageCtx) {
         word={word}
         onChange={setWord}
         onSubmit={submit}
-        localPill={localFeedback}
+        // Locally terminal (compete: I conceded while the others play on) gets the
+        // standard "you're out" pill, so the frozen entry has an explanation right
+        // beside it. The InfoCol's LocalTerminalRow says the same thing tersely —
+        // dual placement is the rule (docs/playarea.md), and on a phone the InfoCol
+        // is off-canvas, making this the ONLY copy the player sees.
+        localPill={isLocallyDone ? outOfRacePill(true) : localFeedback}
         clearLocalFeedback={clearLocalFeedback}
         lastWord={lastWord}
         isTerminal={isTerminal}
