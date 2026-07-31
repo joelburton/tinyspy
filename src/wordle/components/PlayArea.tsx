@@ -413,7 +413,15 @@ export function PlayArea({
   const localPill: GenericFeedbackMsg | null = over
     ? terminalPill(over.tone, over.verdict)
     : isLocallyDone
-      ? outOfRacePill(myConceded)
+      ? outOfRacePill(
+          myConceded,
+          // `isLocallyDone` folds THREE states together, and solving is the good
+          // one: compete is won by fewest guesses, decided when everyone
+          // finishes, so a solver may well be winning. The default
+          // 'Lost — race continues' would be flatly wrong for them. (waffle's
+          // identical branch does the same.)
+          mySolved ? 'Solved — waiting on the rest' : 'Out of guesses — waiting',
+        )
       : waiting
         ? waitingTurnPill(memberById(members, currentTurnUserId))
         : localFeedback

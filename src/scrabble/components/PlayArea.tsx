@@ -398,13 +398,20 @@ export function PlayArea({
   // `setup` is passed through verbatim, AI seats included — "same again" means
   // the same opponents. It carries `firstTurnUserId` for a turn-order coop game;
   // create_game re-reads it, so the rotation is seeded exactly as before.
+  //
+  // The roster is the FULL roster, conceded players included (as in every
+  // sibling's New game). Conceding is "I'm out of THIS race", not a withdrawal
+  // from the group — and `conceded` lives on the old game's `common.game_players`
+  // rows, so a fresh game starts everyone clean. Filtering them out would drop a
+  // friend from the rematch silently, and in the common 2-human compete case
+  // would leave a single player, which create_game rejects outright.
   const gameMode: 'coop' | 'compete' = isCompete ? 'compete' : 'coop'
   const handleNewGame = useCallback(async () => {
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,
         setup: setup as unknown as ScrabbleSetup,
-        player_user_ids: players.filter((p) => !p.conceded).map((p) => p.user_id),
+        player_user_ids: players.map((p) => p.user_id),
         mode: gameMode,
       })
       .single()
