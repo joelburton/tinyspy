@@ -441,7 +441,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   needs a physical keyboard).
 - **Feedback:** `useLocalFeedback` / `useGlobalFeedback` / `<GenericFeedbackPill>`.
 - **Info column:** `<OpponentStrip>`, `<SetupDisclosure>`, `<Stats>`-style readout,
-  `<TerminalModal>` / `<TerminalActionRow>` / `<LocalTerminalRow>`, the button set
+  `<TerminalActionRow>` / `<LocalTerminalRow>`, the button set
   (End/Concede/Restart/NewGame/BackToClub). A `<LengthScoreBar>` is likely new (or a thin
   reskin of wordwheel's `<RankBar>`, which is already "fill to a target percent").
 - **RPC helpers:** `makeRpcDispatcher`, `invokeStartGameEdgeFn`.

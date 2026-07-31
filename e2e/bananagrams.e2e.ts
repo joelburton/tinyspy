@@ -126,7 +126,7 @@ test.describe('bananagrams persistence', () => {
 
 /**
  * Peel — win path: with an empty hand and a dry bunch, peeling goes out and
- * wins (peel → is_terminal flip → useTerminalModal). We empty the hand by
+ * wins (peel → is_terminal flip → the terminal verdict + celebration). We empty the hand by
  * placing alice's REAL tiles (the FE derives the hand by letter) and drain the
  * bunch so the peel can't refill.
  */

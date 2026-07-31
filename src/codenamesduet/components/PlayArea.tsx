@@ -46,10 +46,10 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
  * Cross-cutting chrome (logo, chat, pause, timer, the players strip)
  * lives on `<GamePage>` above this component.
  *
- * **Terminal handling.** codenamesduet skips the shared `<GameOverModal>` (the
- * waffle/wordle treatment): the modal was a pure duplicate — same verdict
- * string, same moment — of the below-board pill, so it only cost a dismiss.
- * What's left is two in-page surfaces plus one celebration:
+ * **Terminal handling.** No modal carries the verdict (docs/ui.md → Terminal
+ * results): a dialog saying what the below-board pill already says — same
+ * string, same moment — would only cost a dismiss. So it's two in-page
+ * surfaces plus one celebration:
  *
  *   1. The below-board slot swaps the CluePanel for a permanent
  *      outcome-colored pill carrying `over.verdict`, and the info-column
@@ -542,7 +542,7 @@ export function PlayArea({
         />
       )}
 
-      {/* No GameOverModal (the waffle/wordle treatment): the verdict is carried
+      {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
           in-page by the below-board pill + the info-column outcome line, and a
           win gets the celebration instead — once, at the moment it happens. */}
       {celebration.show && (

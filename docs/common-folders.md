@@ -63,7 +63,7 @@ components/
     entry/       # the in-game typed-move input — the word box + its row
         EntryBox, EntryRow
     terminal/    # what shows when a game ENDS
-        GameOverModal, TerminalModal, TerminalActionRow
+        TerminalActionRow, LocalTerminalRow
     lists/       # info-column list views (turn history, found words) + actor tags
         TurnLog, WordList, TurnLogActor, ActorTag
   definitions/   # click-a-word dictionary lookup
@@ -90,8 +90,9 @@ components/
 ```
 hooks/
   game/          # live-game state, timer, terminal, move-submit, invitations, history
-      useCommonGame, useGameTimer, useTerminalModal, useEndGameMenu,
-      useWordSubmit, useHistoryViewer, useRecentlyFound, useGameInvitations
+      useCommonGame, useGameTimer, useCelebration, useStandardGameActions,
+      useWordSubmit, useHistoryViewer, useRecentlyFound, useGameInvitations,
+      makeFoundWordsGame
   realtime/      # supabase presence + reconnect/refetch plumbing
       useClubPresence, useClubSetupPresence, useRealtimeRefetch, useRealtimeReconnect
   session/       # the auth session + the user's own profile

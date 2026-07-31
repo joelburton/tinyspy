@@ -416,9 +416,9 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   solved or ran out of swaps; coop needs none — the swap log shows every move).
 - `SetupForm` (timer + the extra-swaps difficulty knob) and `Help` round it out.
 
-**Terminal flow — no GameOverModal.** Waffle deliberately skips the shared
-`GameOverModal` (see [ui.md → Modals for terminal results](../ui.md#modals-for-terminal-results)):
-the verdict is already carried in-page (the below-board terminal pill + the
+**Terminal flow — the prototype for the app-wide treatment**
+(see [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)).
+No modal carries the verdict: it's in-page (the below-board terminal pill + the
 action-row outcome line), and the terminal action row offers Restart right
 there. Instead, a **coop solve** pops the shared **`CelebrationDialog`**
 (confetti + jingle) via the `useCelebration` hook — **only at the moment of the

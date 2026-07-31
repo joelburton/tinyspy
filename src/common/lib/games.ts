@@ -109,9 +109,8 @@ export type GamePageCtx = {
   /** Navigate to this game's club page directly — no suspend-
    *  confirm modal. Wired by `<GamePage>` to use the resolved
    *  `club_handle` for terminal-game navigation; downstream
-   *  consumers (the GameOverModal's "Back to club" button, the
-   *  PlayArea terminal indicator) call it without re-deriving
-   *  the URL. Identity is stable across renders. Only valid to
+   *  consumers (the PlayArea terminal action row's "Back to
+   *  club" button) call it without re-deriving the URL. Identity is stable across renders. Only valid to
    *  call when the game is terminal — for non-terminal back-to-
    *  club, use the menu (which fires the suspend-confirm flow). */
   goToClub: () => void

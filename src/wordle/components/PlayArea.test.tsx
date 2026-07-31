@@ -182,8 +182,8 @@ describe('wordle PlayArea — icon-only action rows', () => {
 })
 
 /**
- * Terminal flow (the waffle treatment — docs/celebration-ideas.md). Wordle
- * skips the shared GameOverModal; a coop solve pops the CelebrationDialog at
+ * Terminal flow (the waffle treatment — docs/ui.md → Terminal results). No
+ * modal carries the verdict; a coop solve pops the CelebrationDialog at
  * the MOMENT of the win (the playState flip), never on mounting an
  * already-won game. And the word stays HIDDEN on a loss — displayed only on
  * a win or an explicit reveal (the menu item, which at terminal is a local
@@ -197,7 +197,7 @@ describe('wordle PlayArea — terminal flow', () => {
     return sections.flatMap((s) => s.items)
   }
 
-  it('hides the word on a coop loss (no GameOverModal either)', () => {
+  it('hides the word on a coop loss (and pops no modal)', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
     expect(screen.getByText('Out of guesses')).toBeInTheDocument()

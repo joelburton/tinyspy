@@ -341,9 +341,10 @@ export function PlayArea(ctx: GamePageCtx) {
           setup={wordiplySetup}
         />
       </InfoSheet>
-      {/* No GameOverModal — the terminal result is shown in the below-board pill
-          (BoardCol) + the info column (score bar, letters, reveal), so a modal
-          would just interrupt. */}
+      {/* No modal at terminal (docs/ui.md → Terminal results) — the result is
+          shown in the below-board pill (BoardCol) + the info column (score bar,
+          letters, reveal), so a modal would just interrupt. wordiply has no win
+          state, so there's no celebration either. */}
       {confirmDialog}
     </div>
   )

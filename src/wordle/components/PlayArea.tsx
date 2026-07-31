@@ -105,7 +105,7 @@ export function PlayArea({
   // answer" menu click (answerRevealed — FE-local: the target is already on
   // the client post-terminal, so showing it is a display decision, per the
   // friends trust model). A plain loss / manual end keeps it hidden so
-  // "Replay board" stays a genuine second try (docs/celebration-ideas.md).
+  // "Replay board" stays a genuine second try (docs/ui.md → Terminal results).
   const [answerRevealed, setAnswerRevealed] = useState(false)
   const answerShown =
     playState === 'won' ||
@@ -476,10 +476,10 @@ export function PlayArea({
         />
       </InfoSheet>
 
-      {/* Wordle skips the shared GameOverModal (the waffle treatment —
-          docs/celebration-ideas.md): the verdict is carried in-page by the
-          below-board pill + the action-row outcome line, and a coop solve
-          gets the celebration instead. */}
+      {/* No modal carries the verdict (the waffle treatment — docs/ui.md →
+          Terminal results): it's in-page, on the below-board pill + the
+          action-row outcome line, and a coop solve gets the celebration
+          instead. */}
       {celebration.show && <CelebrationDialog title="Solved! 🎉" onClose={celebration.close} />}
       {confirmDialog}
     </div>

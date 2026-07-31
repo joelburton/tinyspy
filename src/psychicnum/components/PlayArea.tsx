@@ -90,8 +90,8 @@ export function PlayArea({
   // Confetti at the MOMENT the team finds the third secret (the winning guess
   // flips playState to 'won' on every connected client via realtime, so the
   // whole group celebrates together); opening an already-won game stays quiet
-  // (useCelebration never pops on mount). This replaces the GameOverModal, which
-  // duplicated the below-board verdict pill.
+  // (useCelebration never pops on mount). It's the ONLY modal at terminal — the
+  // verdict itself rides the below-board pill (docs/ui.md → Terminal results).
   //
   // Gated on `playState` ALONE, which is available from the very first render —
   // the waffle loading-race lesson. That's also why COMPETE doesn't celebrate:
@@ -520,10 +520,9 @@ export function PlayArea({
         />
       </InfoSheet>
 
-      {/* No GameOverModal (the codenamesduet/connections treatment): the verdict
-          is carried in-page by the below-board pill + the info-column outcome
-          line, and a coop win gets the celebration instead — once, when it
-          happens. */}
+      {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
+          in-page by the below-board pill + the info-column outcome line, and a
+          coop win gets the celebration instead — once, when it happens. */}
       {celebration.show && (
         <CelebrationDialog
           title="You win! 🎉"

@@ -74,7 +74,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Pause-on-disconnect + manual pause** | shipped (via common) | Free from the common shell |
 | **Chat** (incl. `!`-prefix force-open) | shipped (via common) | In `FloatingChat` |
 | **Reveal the required wordlist on game end** | shipped | Client-side `required − found` at `isTerminal` (the list ships from game start; bonus words aren't revealed) |
-| **`GameOverModal` + terminal indicator** | shipped | Verdict copy: "Genius!" (rank 6) or 'Stopped at rank "<name>"' (rank < 6 — covers both timeout and manual) |
+| **In-page terminal verdict** (below-board pill + info-column outcome line) | shipped | Terse verdict copy leading with the outcome word: `Won: "Genius" 47/50 points` / `Lost: ran out of time` / `Ended: No winner` |
 | **Diverse board-builder** (rare-letter weighting, ING dampening, previous-board overlap cap) | shipped | The only builder; "default" strategy dropped |
 | **Compete mode** (per-player found list, target-rank race, OpponentStrip, RLS-narrowed WordList) | **shipped** | Sibling-manifest pair; both modes live in the consolidated `20260617000000_spellingbee.sql`. See [Compete mode](#compete-mode). |
 | **Custom-letters puzzle** (player-specified 6+1) | **shipped** | Optional `setup.custom_center` + `setup.custom_letters` (a center + six other letters). Both empty → the random diverse builder; both set → the edge function builds a board from exactly those letters (no seed sampling, no overlap cap). Works in either mode. See [Custom letters](#custom-letters). |
@@ -241,7 +241,7 @@ The Realtime-touch pattern repeats — see `submit_timeout` above. Tested via th
 
 ### `spellingbee.replay_board(target_game uuid) → void`
 
-The **"Replay board"** game-menu item + the terminal action row's `RestartButton` (the waffle feature — [celebration-ideas.md](../celebration-ideas.md)). Restarts the SAME board — same letters + word lists — for everyone: clears `spellingbee.found_words` (the game's only working state), then `common.reset_game` un-terminals the row with the exact initial status `create_game` seeds (mode-branched; compete's `target_rank` re-read from the frozen setup) and zeroes the shared clock. Any game player, mid-game (confirmed) or post-terminal (unconfirmed — nothing left to lose).
+The **"Replay board"** game-menu item + the terminal action row's `RestartButton` (the waffle feature — [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)). Restarts the SAME board — same letters + word lists — for everyone: clears `spellingbee.found_words` (the game's only working state), then `common.reset_game` un-terminals the row with the exact initial status `create_game` seeds (mode-branched; compete's `target_rank` re-read from the frozen setup) and zeroes the shared clock. Any game player, mid-game (confirmed) or post-terminal (unconfirmed — nothing left to lose).
 
 **The realtime touch here is LOAD-BEARING** (not just uniform habit): replay only DELETEs `found_words` rows, and realtime filters don't reliably match DELETE events — so `useGame` now also subscribes to `spellingbee.games`, and the RPC's no-op games write is what wakes every client to refetch the now-empty found list. pgTAP: `replay_test.sql`.
 
@@ -334,7 +334,8 @@ src/spellingbee/
                           localFeedback / …) DOWN to BoardCol (a thin-input game, like
                           boggle/connections). Wires the common useGlobalFeedback to the header slot
                           for peer/opponent events. buildOver branches mode → terminal verdict
-                          copy. Mounts GameOverModal via useTerminalModal on the isTerminal flip.
+                          copy (a TerminalCopy the pill + the info-column row share), and pops the
+                          shared CelebrationDialog on a coop win via useCelebration.
     BoardCol.tsx          The board column: the honeycomb <Letters> + a floating Shuffle over its
                           top-right + the below-board <EntryRow> (the typed-word input + capture
                           keyboard, whose <EntryBox> renders the per-character illegal-letter dim
@@ -459,7 +460,7 @@ src/spellingbee/
 
 ### Routes & shell
 
-Standard PuzPuzPuz route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_compete/<gameId>` (the gametype URL segment is the sibling-manifest's full string, not the `baseGametype`). Mounted by `App.tsx` via `<GamePage>` with `spellingbee`'s shared `PlayArea` as the render-prop child. `GamePage` owns the cross-cutting chrome (header / timer / pause overlay / chat / Back-to-club / common menu items). `PlayArea` owns everything per-game, including the `<GameOverModal>` itself — same pattern as connections / psychicnum / codenamesduet, since the verdict copy needs game-specific context.
+Standard PuzPuzPuz route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_compete/<gameId>` (the gametype URL segment is the sibling-manifest's full string, not the `baseGametype`). Mounted by `App.tsx` via `<GamePage>` with `spellingbee`'s shared `PlayArea` as the render-prop child. `GamePage` owns the cross-cutting chrome (header / timer / pause overlay / chat / Back-to-club / common menu items). `PlayArea` owns everything per-game, including the terminal copy (`buildOver`) and the coop-win `<CelebrationDialog>` — same pattern as connections / psychicnum / codenamesduet, since the verdict copy needs game-specific context.
 
 ### State flow for one submission
 
@@ -473,13 +474,13 @@ Standard PuzPuzPuz route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_comp
 
 ### "End game" menu wiring
 
-spellingbee builds its whole header menu via `ctx.menu.setGameSections` + the shared [`buildGameMenu`](../../src/common/lib/game/gameMenu.ts) helper — a Print item in `extra`, plus the standard Help + End game / Concede (⌥⌫) + Back-to-club (⇧<) framing. The End/Concede handlers are the same `useCallback`s that back the info-column buttons, dispatched through a stable `actionsRef` (so the menu-building effect keeps stable deps and never loops). Click → `window.confirm()` → `db.rpc('end_game' / 'concede', ...)`, disabled at terminal. See [ui.md → GamePage menu](../ui.md#gamepage-menu).
+spellingbee builds its whole header menu via `ctx.menu.setGameSections` + the shared [`buildGameMenu`](../../src/common/lib/game/gameMenu.ts) helper — a Print item in `extra`, plus the standard Help + End game / Concede (⌥⌫) + Back-to-club (⇧<) framing. The End/Concede handlers are the same `useCallback`s that back the info-column buttons, dispatched through a stable `actionsRef` (so the menu-building effect keeps stable deps and never loops). Click → the shared confirm dialog (`END_GAME_CONFIRM`, never `window.confirm`) → `db.rpc('end_game' / 'concede', ...)`, disabled at terminal. See [ui.md → GamePage menu](../ui.md#gamepage-menu).
 
 ### Terminal experience
 
 When `isTerminal` flips true:
-1. `useTerminalModal` opens the `<GameOverModal>` (won/lost color + verdict line + Back-to-club).
-2. The below-board slot swaps the input row for a **permanent fill `<FeedbackPill>`** (outcome-colored) carrying `"Game over — <indicator copy>"`. Per the v3 rule, the terminal state shows in BOTH places — this local pill *and* the info-column action row's bold outcome line + compact Back-to-club button (the Back-to-club button is in the action row, not the below-board slot).
+1. A **coop win** pops the shared `<CelebrationDialog>` via `useCelebration` — only at the moment of the win, never on opening an already-won game. Nothing else pops: the verdict is carried in-page ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)).
+2. The below-board slot swaps the input row for a **permanent fill `<FeedbackPill>`** (outcome-colored) carrying the terse `verdict` (`Won: "Genius" 47/50 points`). Per the v3 rule, the terminal state shows in BOTH places — this local pill *and* the info-column `<TerminalActionRow>`'s bold `message` line + compact Back-to-club button (the Back-to-club button is in the action row, not the below-board slot).
 3. The input row's Delete + Submit buttons disable; the floating Shuffle stays clickable.
 4. `game.requiredWords` is already present (both word lists ship from game start — see [The word lists ship to the FE](#the-word-lists-ship-to-the-fe-not-hidden)); the terminal reveal is the client-side `required − found`, no refetch needed.
 5. `<WordList revealWords={game.requiredWords}>` merges the unfound required words into the alphabetical render as gray rows.

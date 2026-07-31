@@ -257,7 +257,7 @@ export function PlayArea({
   }, [gameMode, clubHandle, brand, goToGame, showLocalFeedback])
 
   // Reveal answer — two shapes behind one action (the wordle pattern,
-  // docs/celebration-ideas.md):
+  // docs/ui.md → Terminal results):
   //   MID-GAME: give up — server-side `reveal_answer` overwrites every
   //   `waffle.players.board` with the solution (the board the players are
   //   looking at literally becomes the answer, all green) then ends the game
@@ -495,10 +495,10 @@ export function PlayArea({
       />
       </InfoSheet>
 
-      {/* Waffle skips the shared GameOverModal: the terminal verdict is already
-          carried in-page (the below-board pill + the outcome line in the action
-          row, now with Restart right there), and a coop solve gets the
-          celebration instead. */}
+      {/* No modal for the verdict (docs/ui.md → Terminal results — waffle is
+          where this treatment started): it's carried in-page (the below-board
+          pill + the outcome line in the action row, with Restart right there),
+          and a coop solve gets the celebration instead. */}
       {celebration.show && <CelebrationDialog title="Solved it! 🧇" onClose={celebration.close} />}
       {confirmDialog}
     </div>

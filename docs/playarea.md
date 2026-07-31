@@ -269,8 +269,8 @@ are gone — the terminal reveal, or an "out of guesses / you're out" waiting
 line). Reuse these when a new game grows the same row. The **`.inputMessage`**
 text presentation is canonical across games — **muted, `1.15rem`, normal weight**
 (`<strong>` rises to full text color for key tokens) — a *calm, secondary* line,
-since the loud verdict lives in the GameOverModal + the bold info-column
-`.outcome`. (Its box differs by placement: a padded board-column child in
+since the loud verdict lives in the below-board terminal pill + the bold
+info-column `.outcome`. (Its box differs by placement: a padded board-column child in
 psychicnum, a `flex: 1` span in the `.inputRow` in connections — same text, the
 box fits where it sits.)
 

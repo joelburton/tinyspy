@@ -35,8 +35,8 @@ type CluePanelProps = {
    *  state and renders the <ClueSuggestionModal> HIGH in the tree: the board
    *  column is a flex column, and <FloatingPanel> (react-rnd) positions from its
    *  static flow position, so a panel rendered deep in the column lands
-   *  off-screen. Rendered up at the `.layout` level (like GameOverModal) it
-   *  sits where its coordinates intend. */
+   *  off-screen. Rendered up at the `.layout` level it sits where its
+   *  coordinates intend. */
   onSuggestionChange: (state: SuggestState | null) => void
 }
 
@@ -341,8 +341,8 @@ function ClueForm({
  * straight away while Claude thinks (`loading`), so the few-second wait is
  * obvious; then shows the picked clue + reasoning (`ready`, also filled into the
  * form inputs) or the API error message (`error`). Plain <FloatingPanel>, like
- * connections' HintModal — but PlayArea renders it HIGH in the tree (next to
- * GameOverModal, at the `.layout` flex-row level) so react-rnd positions it
+ * connections' HintModal — but PlayArea renders it HIGH in the tree (at the
+ * `.layout` flex-row level) so react-rnd positions it
  * on-screen; rendered deep in the flex-column board it lands below the viewport.
  */
 export function ClueSuggestionModal({

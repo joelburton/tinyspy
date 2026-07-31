@@ -544,8 +544,8 @@ export function PlayArea(ctx: GamePageCtx) {
         reveal={isTerminal}
         />
       </InfoSheet>
-      {/* No GameOverModal (the sweep treatment — docs/mobile.md): the verdict is
-          carried in-page by the below-board pill + the info-column outcome line.
+      {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
+          in-page by the below-board pill + the info-column outcome line.
           A coop WIN — only possible when the team set a target rank — gets the
           celebration instead, once, at the moment they cross. */}
       {celebration.show && (
@@ -562,8 +562,8 @@ export function PlayArea(ctx: GamePageCtx) {
 
 /**
  * The terminal copy: `verdict` + `tone` drive the permanent below-board pill,
- * `message` + `tone` the short bold line in the info-column action row. There is
- * no `<GameOverModal>` — a coop WIN pops `<CelebrationDialog>` and everything
+ * `message` + `tone` the short bold line in the info-column action row. No modal
+ * carries the verdict — a coop WIN pops `<CelebrationDialog>` and everything
  * else lives in-page.
  *
  * Verdicts lead with the OUTCOME WORD — "Won:" / "Lost:" / "Ended:" — so the

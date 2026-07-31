@@ -323,8 +323,9 @@ nothing.
 
 ### Terminal state
 
-**No `<GameOverModal>`** (the codenamesduet/wordle treatment): it duplicated the
-below-board pill — same verdict, same moment — so it only cost a dismiss. The
+**No modal carries the verdict** ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
+a dialog would duplicate the below-board pill — same verdict, same moment — so it
+would only cost a dismiss. The
 result lives in-page: the below-board slot swaps the commit row for a permanent
 outcome-colored pill carrying `over.verdict`, and the info-column action row swaps
 its buttons for the bold `over.message` line + a back-to-club button.

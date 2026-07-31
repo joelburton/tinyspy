@@ -475,8 +475,8 @@ export function PlayArea(ctx: GamePageCtx) {
         infoActions={infoActions}
         localPill={localFeedbackMsg && <GenericFeedbackPill msg={localFeedbackMsg} onClose={noop} />}
       />
-      {/* No GameOverModal (the sweep treatment): the verdict is carried in-page
-          by the below-board pill + the info-column outcome line. The WINNER gets
+      {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
+          in-page by the below-board pill + the info-column outcome line. The WINNER gets
           the celebration instead — bananagrams is compete-only, so there's no
           coop win to pop it for (see useCelebration above). */}
       {celebration.show && (

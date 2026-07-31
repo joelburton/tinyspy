@@ -121,7 +121,7 @@ describe('bananagrams PlayArea — render smoke', () => {
       />,
     )
     // The short info-column outcome line + the fuller verdict in the below-board
-    // pill. No GameOverModal any more — a WIN pops the celebration instead
+    // pill. No modal carries the verdict — a WIN pops the celebration instead
     // (useCelebration fires on the false→true flip, not on mount, so a test that
     // renders straight into the terminal state sees no dialog).
     expect(screen.getByText('You won!')).toBeInTheDocument()

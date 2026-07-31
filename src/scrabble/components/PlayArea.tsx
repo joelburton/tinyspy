@@ -550,8 +550,8 @@ export function PlayArea({
         />
       </InfoSheet>
 
-      {/* No GameOverModal (the sweep treatment): the verdict is carried in-page
-          by the commit-slot pill + the info-column outcome line. Only a COMPETE
+      {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
+          in-page by the commit-slot pill + the info-column outcome line. Only a COMPETE
           win celebrates — coop has no win to celebrate (see useCelebration above). */}
       {celebration.show && (
         <CelebrationDialog title="You won! 🎉" onClose={celebration.close} />

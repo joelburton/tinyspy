@@ -288,8 +288,8 @@ describe('waffle PlayArea — icon-only action rows', () => {
 })
 
 /**
- * Terminal flow. Waffle deliberately skips the shared GameOverModal: the
- * verdict is carried in-page, the action row gains a Restart button (the
+ * Terminal flow. No modal carries the verdict: it's in-page, the action row
+ * gains a Restart button (the
  * menu's replay-board, unconfirmed at terminal), and a coop solve pops the
  * CelebrationDialog — but ONLY at the moment of the win (the playState flip),
  * never when mounting an already-won game.
@@ -300,7 +300,7 @@ describe('waffle PlayArea — terminal flow', () => {
     solution: ['crane', 'octal', 'slate', 'basin', 'rounds'].join(''),
   }
 
-  it('shows Restart (left of Club) and no GameOverModal at terminal', () => {
+  it('shows Restart (left of Club) and no modal at terminal', () => {
     h.result = loaded(solvedCoop)
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
 
@@ -308,8 +308,9 @@ describe('waffle PlayArea — terminal flow', () => {
     const club = screen.getByRole('button', { name: /club/i })
     // Restart precedes Back-to-Club in the row.
     expect(restart.compareDocumentPosition(club) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    // No GameOverModal ("Game over" is its FloatingPanel title) — and no
-    // celebration either: mounting an already-won game is review, not a win.
+    // No stray "Game over" anywhere (that's the neutral manual-end copy, not a
+    // solve) — and no celebration either: mounting an already-won game is
+    // review, not a win.
     expect(screen.queryByText('Game over')).not.toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })

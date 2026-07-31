@@ -456,8 +456,8 @@ export function PlayArea(ctx: GamePageCtx) {
         />
       </InfoSheet>
 
-      {/* No GameOverModal (the sweep treatment): the verdict is carried in-page
-          by the below-board pill + the info-column outcome line. A coop TARGET
+      {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
+          in-page by the below-board pill + the info-column outcome line. A coop TARGET
           win — the only unambiguous win boggle has — gets the celebration
           instead, once, at the moment the team crosses. */}
       {celebration.show && (

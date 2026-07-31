@@ -383,7 +383,7 @@ describe('useCommonGame — paused unification', () => {
     // loads the row with ended_at. Paused should now be false
     // even though manuallyPausedBy is still set — the terminal
     // short-circuit takes priority so PauseBoundary remounts
-    // PlayArea to render the GameOverModal.
+    // PlayArea to render its terminal state.
     await act(async () => {
       await handlers['postgres_changes']?.()
     })

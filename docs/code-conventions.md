@@ -276,7 +276,7 @@ Roles, not implementations:
 | The route-level shell every game mounts inside (header / pause / chat) | `GamePage` | shared (`common/components/`) |
 | The gametype-specific play surface, mounted inside `<GamePage>` at the route level via the manifest's lazy `PlayArea` field | `PlayArea` | per-game |
 | The gametype-specific setup form mounted inside the common `SetupGameDialog` | `SetupForm` | per-game |
-| End-of-game modal | `GameOverModal` | shared (`common/components/`); per-game callers pass an `outcome` + per-status `verdict` |
+| End-of-game info-column row | `TerminalActionRow` | shared (`common/components/game/terminal/`); per-game callers pass the `TerminalCopy` their `buildOver()` returns + any extra terminal actions as children |
 | Reused chat surface | `FloatingChat` | shared, mounted once by `GamePage` |
 | Auth gate | `LoginScreen` | shared |
 
@@ -315,7 +315,7 @@ The decision rule is mechanical: "does this game's per-row state name specific s
 Concrete examples in the tree today:
 - Shared: `<GamePage>`, `<PauseBoundary>`, `<FloatingChat>`, `<TimerField>`, `<ClubGameCard>`, `<StartGameButtons>`, `<SuspendConfirmDialog>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
 - Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GameTurnLog` (all seven turn-log games — the turn-log component was unified on this name, retiring stackdown's `FoundWords` and scrabble's `PlayLog`), `lib/history` (the six games with a turn-history viewer — scrabble is the exception, its replay is `boardUpToSeq` in `lib/play.ts`).
-- Extracted-to-common after recurrence: `GameOverModal`, `ChatBubble`, `PlayersStrip`, `StatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
+- Extracted-to-common after recurrence: `TerminalActionRow`, `ChatBubble`, `PlayersStrip`, `StatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
 
 #### PlayArea decomposition — `BoardCol` / `InfoCol`
 

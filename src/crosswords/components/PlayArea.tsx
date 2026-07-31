@@ -874,8 +874,8 @@ export function PlayArea(ctx: GamePageCtx) {
         <ExplainDialog clueLabel={explainLabel} state={explain} onClose={() => setExplain(null)} />
       )}
 
-      {/* No GameOverModal (the sweep treatment): the verdict is carried in-page
-          by the pill in the active-clue slot + the info-column outcome line, and
+      {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
+          in-page by the pill in the active-clue slot + the info-column line, and
           a coop solve gets the celebration instead — once, when it happens. */}
       {celebration.show && (
         <CelebrationDialog

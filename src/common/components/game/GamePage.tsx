@@ -113,7 +113,7 @@ type Props = {
  * Game-end auto-unpauses: `useCommonGame.paused` short-circuits
  * to false once `common.games.ended_at` is populated, so a game
  * that ends mid-pause (stale-tab edge case) cleanly transitions
- * to "PlayArea mounted, GameOverModal popped."
+ * to "PlayArea mounted, showing its terminal state."
  *
  * Back-to-club asymmetry (per docs/states.md → "Leaving the
  * game page"): the "Back to club" menu item navigates directly
@@ -263,9 +263,8 @@ export function GamePage({
   // on every realtime `commonGame` update.
   const clubHandle = commonGame?.club_handle ?? ''
   const isGameOver = commonGame?.ended_at != null
-  // Direct-nav to the club page — the terminal branch. Exposed via ctx so the
-  // GameOverModal button + each PlayArea's terminal indicator can call it
-  // without re-deriving the URL.
+  // Direct-nav to the club page — the terminal branch. Exposed via ctx so each
+  // PlayArea's terminal action row can call it without re-deriving the URL.
   const goToClub = useCallback(() => {
     if (clubHandle) navigate(`/c/${clubHandle}`)
   }, [clubHandle])

@@ -622,7 +622,8 @@ board rotation) — never shared, never persisted, doesn't pause.
   the Share trigger), `InfoCol` (the readouts + score + the End/Concede action-row
   button + the GameTurnLog), `PlayArea` (the thin coordinator: `useGame`, the shared
   below-board feedback channel [both columns write it], the coop `useSharedMove`
-  transport, the terminal `GameOverModal`, and the board-viewer state), `SetupForm`
+  transport, the terminal copy + the compete-win `CelebrationDialog`, and the
+  board-viewer state), `SetupForm`
   (two `<DifficultyField>`s + timer), `Help`.
 
 **Tentative placement is local state** (and private in coop until commit — per the

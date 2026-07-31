@@ -295,7 +295,7 @@ game is terminal, then all.
   [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP:
   `concede_test.sql`.
 - **`replay_board`** — the **"Replay board"** menu item + terminal
-  `RestartButton` (spellingbee's twin — [celebration-ideas.md](../celebration-ideas.md)):
+  `RestartButton` (spellingbee's twin — [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
   restart the SAME board (same faces + word lists) for everyone. Clears
   `boggle.found_words` (the only working state), then `common.reset_game`
   un-terminals with the exact initial status `create_game` seeds and zeroes the
@@ -384,8 +384,9 @@ board), swapped in for spellingbee's hex flower.
 [common.md → Manual end](../common.md#manual-end--every-gametypes-end_gametarget_game)):
 an info-column action-row button *and* a GamePage menu item wired through `buildGameMenu`.
 The terminal copy comes from a unified `buildOver` (`{outcome, verdict, verdictNode?,
-message, tone}`) driving the below-board pill + the action-row line. There is **no
-`GameOverModal`** (the sweep treatment — it duplicated the pill). Without a win
+message, tone}`) driving the below-board pill + the action-row line. **No modal
+carries the verdict** ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)
+— it would duplicate the pill). Without a win
 target, coop is a neutral shared hunt and compete picks the highest score;
 **with** one (`setup.win_percent`), reaching the score bar is a real win
 (`status.outcome === 'target'`) — and a **coop** target win pops the shared
