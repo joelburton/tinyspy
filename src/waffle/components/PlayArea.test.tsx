@@ -118,23 +118,23 @@ describe('waffle PlayArea — render smoke', () => {
   })
 
   it('renders the coop win with the golf-style par verdict', () => {
-    // 11 swaps against par 9 → "Par +2", shown in BOTH terminal spots: the
+    // 11 swaps against par 9 → "Won: par +2", shown in BOTH terminal spots: the
     // below-board pill (verdict) and the info-column outcome line (message).
     h.result = loaded(
       { ...coopGame, solution: ['crane', 'octal', 'slate', 'basin', 'rounds'].join('') },
       [{ ...me, swaps_used: 11, solved: true }],
     )
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
-    expect(screen.getAllByText('Par +2')).toHaveLength(2)
+    expect(screen.getAllByText('Won: par +2')).toHaveLength(2)
   })
 
-  it('renders an even-par coop win as "Par!"', () => {
+  it('renders an even-par coop win as "Won: par!"', () => {
     h.result = loaded(
       { ...coopGame, solution: ['crane', 'octal', 'slate', 'basin', 'rounds'].join('') },
       [{ ...me, swaps_used: 9, solved: true }],
     )
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
-    expect(screen.getAllByText('Par!')).toHaveLength(2)
+    expect(screen.getAllByText('Won: par!')).toHaveLength(2)
   })
 })
 

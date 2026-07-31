@@ -3,7 +3,7 @@ import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../..
 import { cls } from '../../common/lib/util/cls'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
-import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
@@ -24,6 +24,7 @@ import { solvedWords } from '../lib/waffle'
 import type { WaffleSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
+import { StateLine } from './StateLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
@@ -157,7 +158,7 @@ export function PlayArea({
             variant: 'outline',
             text: (
               <>
-                <ActorDot actor={member} fallback="Someone" /> is out of swaps
+                <ActorDot actor={member} fallback="Someone" /> out of swaps
               </>
             ),
             dismiss: { kind: 'timed', ms: 3000 },
@@ -427,13 +428,21 @@ export function PlayArea({
     : selfDone
       ? outOfRacePill(
           myConceded,
-          self?.solved ? 'Solved — waiting on the rest.' : 'Out of swaps — waiting on the rest.',
+          self?.solved ? 'Solved — waiting on the rest' : 'Out of swaps — waiting',
         )
       : localFeedback
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
+        mobileStatus={
+          <StateLine
+            swapsUsed={swapsUsed}
+            maxSwaps={game.max_swaps}
+            remaining={remaining}
+            parSwaps={game.par_swaps}
+          />
+        }
         board={board}
         colors={colors}
         readOnly={readOnly}
@@ -511,28 +520,29 @@ function buildOver({
 }): TerminalCopy {
   // Manual end (waffle.end_game) → 'ended' in either mode. Neutral result: nobody
   // won or lost; tone:'neutral' keeps the info-column line plain. Handled first so
-  // an 'ended' game never falls through to a loss verdict.
-  if (playState === 'ended') {
-    return {
-      outcome: 'won',
-      verdict: mode === 'coop' ? 'Game ended.' : 'Game ended — no winner.',
-      message: 'Game ended',
-      tone: 'neutral',
-    }
-  }
+  // an 'ended' game never falls through to a loss verdict. Deliberately NOT worded
+  // here: manual end is the one terminal every game shares, so it stays in the
+  // shared `endedCopy()` rather than drifting per game.
+  if (playState === 'ended') return endedCopy(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
       // Golf-style verdict: how the solve measured against par, not a generic
       // "Solved!" (the celebration dialog carries that moment). Par is the
       // generator's MINIMUM, so over-par is the norm and matching it is the
-      // flex — "Par!". Under par can't happen; rendered honestly if it ever does.
+      // flex — "par!". Under par can't happen; rendered honestly if it ever does.
+      // Prefixed `Won:` like every other terminal verdict — the par figure alone
+      // reads as a score, not as "you won".
       const parVerdict =
-        swapsOverPar === 0 ? 'Par!' : swapsOverPar > 0 ? `Par +${swapsOverPar}` : `Par −${-swapsOverPar}`
+        swapsOverPar === 0
+          ? 'Won: par!'
+          : swapsOverPar > 0
+            ? `Won: par +${swapsOverPar}`
+            : `Won: par −${-swapsOverPar}`
       return { outcome: 'won', verdict: parVerdict, message: parVerdict, tone: 'won' }
     }
     return {
       outcome: 'lost',
-      verdict: timerExpired ? 'Out of time.' : 'Out of swaps.',
+      verdict: timerExpired ? 'Lost: out of time' : 'Lost: out of swaps',
       message: timerExpired ? 'Out of time' : 'Out of swaps',
       tone: 'lost',
     }
@@ -540,13 +550,14 @@ function buildOver({
   // compete
   if (playState === 'won_compete') {
     return selfWon
-      ? { outcome: 'won', verdict: 'You won — fewest swaps!', message: 'You won!', tone: 'won' }
-      : { outcome: 'lost', verdict: 'Beaten on swaps.', message: 'Opponent won', tone: 'lost' }
+      ? { outcome: 'won', verdict: 'Won: fewest swaps', message: 'You won!', tone: 'won' }
+      : { outcome: 'lost', verdict: 'Lost: beaten on swaps', message: 'Opponent won', tone: 'lost' }
   }
-  // lost_compete — nobody solved, or time ran out
+  // lost_compete — nobody solved, or time ran out. No `Lost:` prefix: nobody was
+  // beaten, the board just ran out.
   return {
     outcome: 'lost',
-    verdict: timerExpired ? 'Out of time — no winner.' : 'Nobody solved it.',
+    verdict: timerExpired ? 'Out of time — no winner' : 'Nobody solved',
     message: timerExpired ? 'Out of time' : 'No winner',
     tone: 'lost',
   }

@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
+import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
 import { Board } from './Board'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
@@ -19,6 +21,7 @@ const noop = () => {}
  * docs/playarea-decomposition-plan.md.
  */
 export function BoardCol({
+  mobileStatus,
   board,
   colors,
   readOnly,
@@ -28,6 +31,13 @@ export function BoardCol({
   onSwap,
   localPill,
 }: {
+  // ── Mobile-only status strip ──
+  /** The core state readout (the `<StateLine>` the InfoCol also renders), shown
+   *  above the board ONLY below the `--mobile` breakpoint — where the info
+   *  column is off-canvas in the InfoSheet and would otherwise take a tap to
+   *  read. Hidden by CSS on desktop; see `<MobileStatusBar>`. */
+  mobileStatus: ReactNode
+
   // ── Board to render (live OR a historical snapshot — PlayArea picks) ──
   /** 25-char board string, holes '.'. */
   board: string
@@ -60,6 +70,12 @@ export function BoardCol({
     // listener + the click-through `.frame`), so the board column needs no click
     // handler — a click anywhere returns to live.
     <div className={shared.boardCol}>
+      {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
+          the live swaps/par readout, above the board. It's a fixed-height row,
+          and waffle's square board sizes off `--avail-h` — so Board.module.css
+          subtracts this row's height there too, or the square would overflow
+          the viewport (the hard no-scroll invariant). */}
+      <MobileStatusBar>{mobileStatus}</MobileStatusBar>
       <Board
         board={board}
         colors={colors}

@@ -15,6 +15,7 @@ import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { WaffleSetup } from '../lib/setup'
 import type { WafflePlayerState, SwapRow } from '../hooks/useGame'
 import { SolutionReveal } from './SolutionReveal'
+import { StateLine } from './StateLine'
 import { GameTurnLog } from './GameTurnLog'
 import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import shared from '../../common/components/game/PlayArea.module.css'
@@ -158,13 +159,15 @@ export function InfoCol({
         {/* InfoCol order is FIXED (docs/playarea.md → Info-column readouts):
             state → opponent strip → action row → help → setup disclosure → log. */}
 
-        {/* State — shown in both play and terminal. */}
+        {/* State — shown in both play and terminal. The SAME <StateLine> the
+            mobile status bar renders above the board (they must never drift). */}
         <p className={shared.infoState}>
-          Swaps{' '}
-          <strong>
-            {swapsUsed}/{maxSwaps}
-          </strong>{' '}
-          ({remaining} left) · Par <strong>{parSwaps}</strong>
+          <StateLine
+            swapsUsed={swapsUsed}
+            maxSwaps={maxSwaps}
+            remaining={remaining}
+            parSwaps={parSwaps}
+          />
         </p>
         {/* Whose-turn line — only for a turn-order game (pointer non-null). A
             separate line below the state readout; never replaces it. */}

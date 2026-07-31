@@ -38,6 +38,22 @@
   flex: 0 0 auto;
 }
 
+/* Mobile: the info column is off-canvas, so its state readout is mirrored ABOVE
+ * the board by the shared `<MobileStatusBar>` — a fixed-height row in the same
+ * flex column. It must come out of `--avail-h` too: the square takes its SIDE
+ * from that number, so leaving it alone would size a board that no longer fits
+ * and push the page into scrolling (the hard no-scroll invariant). waffle keeps
+ * the bar's one-line default height, so it just re-states the token's fallback
+ * rather than raising it; the extra 0.75rem is `.boardCol`'s flex gap between
+ * the bar and the board. */
+@media (--mobile) {
+  .board {
+    --avail-h: calc(
+      100svh - var(--game-chrome-height) - 3.5rem - var(--mobile-status-height, 1.75rem) - 0.75rem
+    );
+  }
+}
+
 /* The square grid: the largest square that fits — the smaller of the width left
  * beside the info column (--avail-w, the shared scaffold token), the height left
  * for the board (--avail-h), and the per-tile caps. The board column hugs this

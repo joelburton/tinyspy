@@ -43,6 +43,17 @@ test.describe('waffle mobile', () => {
       const grid = (await page.locator('[role="grid"]').boundingBox())!
       expect(grid.width).toBeGreaterThan(w * 0.9)
 
+      // The info column is off-canvas here, so the core state readout is mirrored
+      // above the board by the shared <MobileStatusBar> — the same <StateLine>
+      // the sheet renders, so the two can't drift. It sits ABOVE the board (and
+      // shortens it — Board.module.css takes its height out of `--avail-h`)
+      // rather than overlaying it.
+      const statusBar = page.locator('[data-mobile-status]')
+      // The fixture board is par 1 + 5 extra swaps.
+      await expect(statusBar).toHaveText('Swaps 0/6 (6 left) · Par 1')
+      const barBox = (await statusBar.boundingBox())!
+      expect(barBox.y + barBox.height).toBeLessThanOrEqual(grid.y + 1)
+
       // Info sheet: collapsed off the right edge → slides in from the menu → back
       // out on the ✕.
       const wrap = page.locator('[data-info-sheet]')
