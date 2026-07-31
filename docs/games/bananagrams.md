@@ -209,6 +209,14 @@ table comment in the baseline migration.)
 - `bananagrams.submit_timeout(target_game)` — **countdown expiry** (modeled on `stackdown.submit_timeout`). When a chosen countdown hits 0 before anyone goes out, GamePage fires this and the race ends as a **collective loss**: `play_state='lost'`, `status={outcome:'timeout'}` (NO `winner_username`), and **every** player's result `{"won": false}`. The RPC is timer-agnostic (it just ends the in-progress game; the FE decides *when*). `require_game_player`, gametype-row lock, `P0001 'game is not in progress'` idempotency. The PlayArea renders the no-winner timeout as a red "⏰ Time's up — nobody went out." pgTAP: `submit_timeout_test.sql`.
 - `bananagrams.concede(target_game)` — **a player drops out of the race.** bananagrams was the *origin* of per-player concede; that mechanism has since been promoted into `common` and made a whole-app feature (see [common.md → Concede](../common.md#concede--per-player-drop-out)), so this is now a **thin wrapper over `common.concede`**. The semantics are unchanged: conceding is a **real loss** for the conceder, it marks JUST the caller out and the **others keep racing**, and the game ends as a collective loss (`play_state='lost'`, `status={outcome:'conceded'}`, every `{"won": false}`, no `winner_username`) only when the LAST active player concedes (including a solo `N = 1` game). The `conceded` flag now lives on **`common.game_players`** (not `bananagrams.progress`), so `peel` / `save_player_board` read it from there to skip a dropped-out player, and the FE reads it off `ctx.players`; `useCommonGame`'s `common.game_players` realtime listener nudges peers, and the terminal's `common.end_game` wakes the modal. pgTAP: `concede_test.sql`. `save_player_board` no-ops for a conceded caller (their board is frozen).
 
+### New game — a fresh deal, no Replay twin
+
+The **New game** button in the terminal action row + the matching menu item: a FRESH game (new id, a newly dealt bunch) with this game's setup + roster, in the same club. A direct `create_game` RPC — bananagrams deals inline (no edge function) and takes no `mode` argument, being compete-only. Non-destructive: `common.create_game` un-currents this game into the club's list, so there's no confirm.
+
+**There is deliberately no "Replay board" twin**, unlike the ten games that have one. Their replay re-runs the SAME puzzle; bananagrams has no puzzle to re-run — the bunch is dealt at random and the whole game IS the race to consume it, so "again" can only mean a fresh deal, which is what New game already is.
+
+The locally-terminal "You're out" row (conceded, the others still racing) keeps Club alone: the race is still going, so offering to start a different game there would be a distraction.
+
 ### Title formula
 
 Static: the string **"bananagrams"**, passed verbatim by `create_game`. Each
@@ -271,4 +279,12 @@ The fixed 25×25 arena + zoom/scroll shipped after a growing/recentering board w
 tried and found complex and fiddly — that comparison was made in a standalone
 pure-FE prototype (`bananagrams-ui/`, gitignored, never wired to Supabase). The
 durable takeaway is captured above (Resolved decisions → Board); the prototype
-itself is throwaway.
+itself is throwaway.### New game — a fresh deal, no Replay twin
+
+The **New game** button in the terminal action row + the matching menu item: a FRESH game (new id, a newly dealt bunch) with this game's setup + roster, in the same club. A direct `create_game` RPC (bananagrams deals inline — no edge function) with no `mode` argument, since the game is compete-only. Non-destructive: `common.create_game` un-currents this game into the club's list, so there's no confirm.
+
+**There is deliberately no "Replay board" twin.** The games that have one re-run the SAME puzzle; bananagrams has no puzzle to re-run — the bunch is dealt at random and the whole game IS the race to consume it, so "again" can only mean a fresh deal, which is what New game already is.
+
+The locally-terminal "You're out" row (conceded, the others still racing) keeps Club alone: the race is still running, so offering to start a different game there would be a distraction.
+
+

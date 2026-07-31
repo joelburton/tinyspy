@@ -8,6 +8,7 @@ import { useCoarsePointer } from '../../common/hooks/ui/useCoarsePointer'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
+import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
 import { difficultyValue } from '../../common/lib/game/difficulty'
@@ -195,6 +196,43 @@ export function PlayArea(ctx: GamePageCtx) {
     concedeRef.current = () => void handleConcede()
   }, [handleConcede])
 
+  // ─── New game ───────────────────────────────────────────────────────────
+  // A FRESH game (new id, a newly dealt bunch) with THIS game's setup + roster,
+  // in the same club — the "same again!" action after someone goes out. A direct
+  // create_game RPC (bananagrams deals inline, no edge function) and no `mode`
+  // argument: the game is compete-only, one gametype. Non-destructive
+  // (common.create_game un-currents this game into the club's list), so no
+  // confirm; the creator jumps in via ctx.goToGame, peers arrive via the
+  // game-invitation toast.
+  //
+  // NOTE there is deliberately no "Replay board" twin (Joel's call). The other
+  // games' replay re-runs the SAME puzzle; bananagrams has no puzzle to re-run —
+  // the bunch is dealt at random and the whole game is the race to consume it, so
+  // "again" can only mean a fresh deal, which is what New game already is.
+  const newGameRef = useRef<() => void>(() => {})
+  const handleNewGame = useCallback(async () => {
+    const { data, error } = await db
+      .rpc('create_game', {
+        target_club: ctx.clubHandle,
+        setup: ctx.setup as unknown as BananagramsSetup,
+        player_user_ids: ctx.players.map((p) => p.user_id),
+      })
+      .single()
+    if (error || !data) {
+      showLocalFeedback({
+        tone: 'error',
+        text: `New game failed: ${error?.message ?? 'unknown'}`,
+        variant: 'outline',
+        dismiss: { kind: 'sticky' },
+      })
+      return
+    }
+    ctx.goToGame('bananagrams', (data as { id: string }).id)
+  }, [ctx, showLocalFeedback])
+  useEffect(() => {
+    newGameRef.current = () => void handleNewGame()
+  }, [handleNewGame])
+
   // My conceded flag off the shared roster (common.game_players), for the menu's
   // greyed-out Concede item. The stronger `isConceded` (below the loading guard)
   // also ANDs `!isTerminal` for the frozen-board LOOK; the menu just needs the
@@ -246,7 +284,11 @@ export function PlayArea(ctx: GamePageCtx) {
         isTerminal,
         conceded: myConceded,
         onConcede: () => concedeRef.current(),
-        extra: [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: doPrint }] }],
+        extra: [
+          { items: [{ id: 'print', label: 'Print board (PDF)', onClick: doPrint }] },
+          // The same action the terminal row offers, reachable mid-game too.
+          { items: [{ id: 'new-game', label: 'New game', onClick: () => newGameRef.current() }] },
+        ],
       }),
     )
     return () => menu.setGameSections([])
@@ -395,18 +437,25 @@ export function PlayArea(ctx: GamePageCtx) {
   // `.infoActions` row, adding the Peel button beside it while playing): the
   // terminal outcome line + back-to-club, the locally-terminal "you're out"
   // look, or the Concede button while playing.
+  // Icon-only throughout (the canonical action-row treatment — the styled
+  // tooltip carries each label). At terminal the stay-here option (New game)
+  // sits left of the leave option (Club), matching every other game's terminal
+  // row; there's no Restart twin (see handleNewGame). The locally-terminal
+  // "you're out" row keeps Club alone — the race is still running, so offering
+  // to start a different game there would be a distraction.
   const infoActions = over ? (
     <>
       <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>{over.message}</span>
-      <BackToClubButton onClick={ctx.goToClub} variant="primary" compact />
+      <NewGameButton iconOnly onClick={() => void handleNewGame()} />
+      <BackToClubButton onClick={ctx.goToClub} variant="primary" iconOnly />
     </>
   ) : isConceded ? (
     <>
       <span className={cls(shared.outcome, shared.outcome_neutral)}>You&rsquo;re out</span>
-      <BackToClubButton onClick={ctx.goToClub} variant="primary" compact />
+      <BackToClubButton onClick={ctx.goToClub} variant="primary" iconOnly />
     </>
   ) : (
-    <ConcedeGameButton onClick={() => void handleConcede()} className={shared.helperButton} />
+    <ConcedeGameButton iconOnly onClick={() => void handleConcede()} className={shared.helperButton} />
   )
 
   return (

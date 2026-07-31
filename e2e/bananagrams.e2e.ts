@@ -281,3 +281,32 @@ test.describe('bananagrams peer counts', () => {
     await ctxB.close()
   })
 })
+
+/**
+ * "New game" — the terminal action row's one stay-here option, also reachable
+ * mid-game from the menu. Deals a FRESH bunch with this game's setup + roster
+ * on a NEW row and navigates to it.
+ *
+ * There is deliberately no "Replay board" twin: bananagrams has no puzzle to
+ * re-run — the bunch is dealt at random and the whole game is the race to
+ * consume it, so "again" can only mean a fresh deal.
+ */
+test.describe('bananagrams new game', () => {
+  test('menu "New game" starts a FRESH game (new id, same setup)', async ({ browser }) => {
+    const club = await createSoloClub('bgng')
+    const game = await createBananagramsGame(club)
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.getByRole('button', { name: /Peel/ })).toBeVisible({ timeout: 20000 })
+
+    await page.getByRole('button', { name: 'Game menu' }).click()
+    await page.getByRole('menuitem', { name: 'New game' }).click()
+
+    await page.waitForURL((u) => u.pathname.startsWith(`/g/${game.gametype}/`) &&
+                                !u.pathname.endsWith(game.id), { timeout: 15000 })
+    await expect(page.getByRole('button', { name: /Peel/ })).toBeVisible({ timeout: 20000 })
+    await ctx.close()
+  })
+})
