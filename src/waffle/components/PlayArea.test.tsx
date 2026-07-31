@@ -176,7 +176,7 @@ describe('waffle PlayArea — concede', () => {
       />,
     )
     // The bold action-row status (exact) — the below-board pill carries the
-    // longer "You conceded — the rest are still racing." variant.
+    // shared "Conceded — race continues" variant.
     expect(screen.getByText('You conceded')).toBeInTheDocument()
   })
 })

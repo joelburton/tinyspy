@@ -159,7 +159,7 @@ describe('connections PlayArea — concede', () => {
       />,
     )
     // The info-column action row shows the bold status; the below-board pill
-    // carries the fuller "You conceded — the rest are still racing." sentence.
+    // carries the shared "Conceded — race continues" variant.
     expect(screen.getByText('You conceded')).toBeInTheDocument()
   })
 })

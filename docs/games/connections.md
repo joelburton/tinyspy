@@ -145,7 +145,7 @@ Anything not listed here is identical across modes. The shape mirrors [`psychicn
 | **`submit_timeout` terminal**              | `play_state='lost'`, outcome `lost_timeout`                 | `play_state='lost_compete'`, outcome `lost_compete_timeout`          |
 | **FE opponent visibility**                 | N/A (everyone's on the same team)                           | OpponentStrip showing per-player mistake counts; no peer guesses, no peer matched-counts |
 | **FE GameTurnLog**                        | Every guess with username attribution                       | Only caller's guesses (RLS filters server-side)                      |
-| **GameOverModal verdict**                  | "You win!" / "You lost: out of mistakes/time" (team)        | "You won the race!" / "Beaten to the punch." / "Everyone eliminated — nobody won." |
+| **Terminal verdict** (below-board pill; no modal) | "You win!" / "Lost: out of mistakes/time" (team) — a solve also pops the `<CelebrationDialog>` | "You won the race!" / "Beaten to the punch" / "Everyone eliminated" / "Out of time — nobody won" (no celebration — see Terminal state) |
 
 The shape that's the same in both modes:
 - The `connections.games` table (modulo the `mode` value).
@@ -216,7 +216,7 @@ Idempotent — a second concurrent call on the already-terminal game raises `P00
 
 ### `connections.end_game(target_game uuid) → void`
 
-The **End button** in the info-column action row fires this — the manual, **neutral** stop, shown in **coop** (compete shows **Concede** instead — see below). Where `submit_timeout` writes a "you lost" terminal, `end_game` writes `play_state='ended'` with status `{outcome: 'manual', mode}` and every player `{won: false}`: the friends agreed to quit, so nobody won and nobody lost. The FE renders the green "Game ended" `GameOverModal` (outcome `'won'` with neutral copy), not the red loss modal; `labelFor` learns `'ended'` in both manifests. Any current game player can call it (same `require_game_player` gate as `submit_guess`).
+The **End button** in the info-column action row fires this — the manual, **neutral** stop, shown in **coop** (compete shows **Concede** instead — see below). Where `submit_timeout` writes a "you lost" terminal, `end_game` writes `play_state='ended'` with status `{outcome: 'manual', mode}` and every player `{won: false}`: the friends agreed to quit, so nobody won and nobody lost. The FE renders a neutral-toned "Game ended" below-board pill (the shared `endedCopy`), not a red loss verdict, and no celebration; `labelFor` learns `'ended'` in both manifests. Any current game player can call it (same `require_game_player` gate as `submit_guess`).
 
 **`connections.concede(target_game)`** is the compete counterpart: a per-player "I quit, the others keep going". connections is an **elimination** game (a player is out at 4 mistakes without the table ending), so concede can't use the generic `common.concede` — it calls `common._set_conceded` then re-runs `connections._maybe_finish_compete`, which counts a conceder as "not alive" alongside the eliminated (the game ends when nobody's alive; a conceder forfeits). The FE shows `<ConcedeGameButton>` in compete, marks a conceder "out" in the OpponentStrip, and folds them into the existing "eliminated, others race" locally-terminal look. Full mechanism: [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.
 
@@ -295,6 +295,39 @@ compete shows a **Found** opponent strip in the info column; a wrong/one-away gu
 clears the selection. The setup dialog surfaces a rich roster-mismatch error
 (`<RichMessage>`) when a puzzle already has a game with a different roster.
 
+### Mobile: no status bar (deliberate)
+
+connections follows the shared info-sheet recipe below `--mobile` (board fills,
+info column off-canvas), but it **deliberately does not** render the shared
+`<MobileStatusBar>` that codenamesduet uses to put its info-column state readout
+above the board ([mobile.md → The mobile status bar](../mobile.md#the-mobile-status-bar-—-core-state-above-the-board)).
+Its two numbers are already on the play surface: **categories found** is
+self-evident — each solve becomes a full-width colored band above the remaining
+tiles, so you can just look — and **mistakes** live in the below-board row as
+`<StrikeMarks>`. A status bar would restate both and shorten the board for
+nothing.
+
+### Terminal state
+
+**No `<GameOverModal>`** (the codenamesduet/wordle treatment): it duplicated the
+below-board pill — same verdict, same moment — so it only cost a dismiss. The
+result lives in-page: the below-board slot swaps the commit row for a permanent
+outcome-colored pill carrying `over.verdict`, and the info-column action row swaps
+its buttons for the bold `over.message` line + a back-to-club button.
+
+A **coop solve** additionally pops the shared `<CelebrationDialog>` ("You win! 🎉"),
+driven by `useCelebration(playState === 'solved')` — once, at the moment the fourth
+category falls, on every client via the realtime refetch; it never fires on mount,
+so opening an already-solved game is quiet review.
+
+**Compete deliberately doesn't celebrate.** The gate would have to be "I hold all
+four matches", which reads `selfMatched` from `useGame` — 0 until the fetch lands.
+Opening a race you'd already won would flip that false→true after load and pop
+confetti at someone merely reviewing the game (the waffle loading-race lesson).
+`playState` is the only signal correct from the first render, and it can't
+distinguish the winner from the losers in compete. wordle and waffle made the same
+call for the same reason.
+
 ### Folder layout
 
 ```
@@ -330,8 +363,8 @@ src/connections/
                           green/amber/red as the shared below-board <GenericFeedbackPill>
                           (`useLocalFeedback`, in the fixed-height `.localFeedback` slot),
                           dismissed on the next move; a teammate's
-                          guess is a header pill ("Bea found ANIMALS!"). Only coop reaches the
-                          header — compete's guesses log is RLS-scoped to the caller.
+                          guess is a header pill ("● Bea found category"). Only coop reaches
+                          the header — compete's guesses log is RLS-scoped to the caller.
     PlayArea.module.css
     Board.tsx             The board as ONE grid: solved/revealed categories as full-width
                           colored band rows (grid-column: 1 / -1, sorted by rank — the

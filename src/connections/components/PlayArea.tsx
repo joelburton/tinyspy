@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap } from '../../common/lib/color/memberColor'
-import { TerminalModal } from '../../common/components/game/terminal/TerminalModal'
+import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
@@ -121,6 +122,21 @@ export function PlayArea({
   // modal: backdrop-blocked board, dialog-owned keyboard).
   const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
 
+  // ─── Coop-win celebration ──────────────────────────────
+  // Confetti at the MOMENT the team clears the fourth category (the winning
+  // guess flips playState to 'solved' on every connected client via realtime, so
+  // the whole group celebrates together); opening an already-solved game stays
+  // quiet (useCelebration never pops on mount). This replaces the GameOverModal,
+  // which duplicated the below-board verdict pill.
+  //
+  // Gated on `playState` ALONE, which is available from the very first render —
+  // the waffle loading-race lesson. That's also why COMPETE doesn't celebrate:
+  // "did I win the race?" needs `selfMatched` from useGame, which is 0 until the
+  // fetch lands, so a won-race game opened fresh would go false→true after load
+  // and pop confetti at someone merely reviewing it. Same call wordle + waffle
+  // made (they celebrate coop only).
+  const celebration = useCelebration(playState === 'solved')
+
   // ─── Commit-slot flash (own-action feedback, local) ─────
   // A transient message shown *in place of the commit buttons* for the
   // player's own guess: "Correct!" (green) / "One away!" (amber) /
@@ -167,16 +183,16 @@ export function PlayArea({
       if (g.user_id === session.user.id) return null // mine → local commit flash
       const member = memberById(players, g.user_id)
       if (g.result === 'correct') {
-        // Name the solved category — coop reveals its band to everyone anyway,
-        // so there's nothing to hide.
-        const cat = game?.board.categories.find((c) => c.rank === g.matched_category_rank)
+        // NOT the category's name: it's puzzle data of unbounded length (a NYT
+        // category can run 25+ chars), and the header pill fits ~26 on a phone
+        // before it ellipsises. The solved band appears on the reader's own
+        // board at the same moment, so naming it here says nothing new.
         return {
           tone: 'success',
           variant: 'outline',
           text: (
             <>
-              <ActorDot actor={member} fallback="Someone" />{' '}
-              {cat ? `found ${cat.name.toUpperCase()}!` : 'found a category!'}
+              <ActorDot actor={member} fallback="Someone" /> found category
             </>
           ),
           dismiss: { kind: 'timed', ms: 3000 },
@@ -411,21 +427,36 @@ export function PlayArea({
       />
       </InfoSheet>
 
-      <TerminalModal isTerminal={isTerminal} over={over} onBackToClub={goToClub} />
+      {/* No GameOverModal (the codenamesduet/wordle treatment): the verdict is
+          carried in-page by the below-board pill + the info-column outcome line,
+          and a coop solve gets the celebration instead — once, when it happens. */}
+      {celebration.show && (
+        <CelebrationDialog
+          title="You win! 🎉"
+          body="All four categories found."
+          onClose={celebration.close}
+        />
+      )}
       {confirmDialog}
     </div>
   )
 }
 
 /**
- * Per-status terminal copy. `outcome` + `verdict` drive the GameOverModal;
- * `message` + `tone` drive the short, bold, color-coded line in the info-column
- * action row (won = green, lost = red, manual end = neutral). Same shape as
- * psychicnum's buildOver. Coop verdicts are team-wide; compete distinguishes the
- * racer who hit 4 matches (the winner) from two losers — eliminated (used all 4
- * mistakes) vs beaten to the punch (an opponent solved it first). Detail-on-page
- * intentionally: the matched/unmatched categories show on the bands and mistake
- * counts on the strip; the modal + line stay focused on the verdict.
+ * Per-status terminal copy. `verdict` + `tone` drive the permanent below-board
+ * pill; `message` + `tone` drive the short, bold, color-coded line in the
+ * info-column action row (won = green, lost = red, manual end = neutral). Same
+ * shape as psychicnum's buildOver. (`outcome` is vestigial now that there's no
+ * GameOverModal, but the shared `TerminalCopy` type still requires it.) Coop
+ * verdicts are team-wide; compete distinguishes the racer who hit 4 matches (the
+ * winner) from two losers — eliminated (used all 4 mistakes) vs beaten to the
+ * punch (an opponent solved it first). Detail-on-page intentionally: the
+ * matched/unmatched categories show on the bands and mistake counts on the strip;
+ * the pill + line stay focused on the verdict.
+ *
+ * Verdicts are terse and unpunctuated ("Lost: out of mistakes", not "You lost:
+ * out of mistakes."): the pill is a fixed-height, ellipsising row that has to fit
+ * a phone (docs/mobile.md → feedback copy).
  */
 function buildOver({
   mode,
@@ -452,9 +483,7 @@ function buildOver({
     }
     return {
       outcome: 'lost',
-      verdict: timerExpired
-        ? 'You lost: out of time'
-        : 'You lost: out of mistakes',
+      verdict: timerExpired ? 'Lost: out of time' : 'Lost: out of mistakes',
       message: timerExpired ? 'Out of time' : 'Out of mistakes',
       tone: 'lost',
     }
@@ -468,16 +497,16 @@ function buildOver({
     // (out of mistakes); "beaten to the punch" is only for a still-racing player
     // whose opponent solved it first.
     if (selfEliminated) {
-      return { outcome: 'lost', verdict: 'You lost: out of mistakes', message: 'Out of mistakes', tone: 'lost' }
+      return { outcome: 'lost', verdict: 'Lost: out of mistakes', message: 'Out of mistakes', tone: 'lost' }
     }
-    return { outcome: 'lost', verdict: 'Beaten to the punch.', message: 'Opponent won', tone: 'lost' }
+    return { outcome: 'lost', verdict: 'Beaten to the punch', message: 'Opponent won', tone: 'lost' }
   }
   // lost_compete (everyone eliminated OR timeout)
   return {
     outcome: 'lost',
     verdict: timerExpired
-      ? 'Out of time — nobody won.'
-      : 'Everyone eliminated — nobody won.',
+      ? 'Out of time — nobody won'
+      : 'Everyone eliminated',
     message: timerExpired ? 'Out of time' : 'All eliminated',
     tone: 'lost',
   }

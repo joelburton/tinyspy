@@ -107,8 +107,9 @@ look** — a bold status line ("Waiting for others") + their End/Concede on the
 right — rather than a quietly-changed help line: being unable to act is basically
 terminal *for them*, so show it that way. Terminal **and** locally-terminal always
 show in **both** the action row (terse, carrying the button) and the below-board
-local-feedback pill (which can read fuller — "You're out — the rest are still
-racing."). That dual placement is the rule, not redundancy to trim.
+local-feedback pill (which reads slightly fuller — "Conceded — race continues"
+against the row's "You conceded"; the shared `outOfRacePill`). That dual
+placement is the rule, not redundancy to trim.
 
 | class | what it is | style | terminal? |
 |---|---|---|---|

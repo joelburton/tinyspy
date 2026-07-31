@@ -25,7 +25,7 @@ Sibling coop/compete pairs name the compete terminal as the coop name + `_compet
 Most games expose a manual **"End game"** that writes a uniform neutral terminal `play_state = 'ended'` with `status.outcome = 'manual'` and every player `{"won": false}`. Its feedback comes from the shared **`endedCopy(mode)`** (`src/common/lib/game/terminalCopy.ts:25-32`): coop verdict `'Game ended'`, compete verdict `'Game ended — no winner'`, both `message: 'Game over'`, `tone: 'neutral'`, `outcome: 'won'` (so the modal reads neutral-green, not a red loss). Exceptions: bananagrams has **no** `end_game` (retired for per-player concede); waffle/wordle/scrabble-coop/stackdown/etc. vary — noted per game.
 
 ### `concede` (compete only)
-Each compete game exposes `<schema>.concede(target_game)` gating to compete, delegating to **`common.concede`**. A single conceder among several racers does **not** end the game — they take a real per-player loss and drop out (a *locally-terminal* look: below-board pill `"You conceded — the rest are still racing."` and an info-column `LocalTerminalRow` labeled `"You conceded"`), while the others race on. Only when the **last** active racer concedes does `common.concede` end the whole game — usually as a collective loss (`play_state 'lost'`/`'lost_compete'`, `status.outcome 'conceded'`, all `{"won": false}`).
+Each compete game exposes `<schema>.concede(target_game)` gating to compete, delegating to **`common.concede`**. A single conceder among several racers does **not** end the game — they take a real per-player loss and drop out (a *locally-terminal* look: below-board pill `"Conceded — race continues"` and an info-column `LocalTerminalRow` labeled `"You conceded"`), while the others race on. Only when the **last** active racer concedes does `common.concede` end the whole game — usually as a collective loss (`play_state 'lost'`/`'lost_compete'`, `status.outcome 'conceded'`, all `{"won": false}`).
 
 ### `submit_timeout` (timed games only)
 Every timed gametype exposes `submit_timeout`, fired by **every** connected client the moment the browser countdown hits 0. It's idempotent on the terminal-state guard (first call ends the game; the rest raise "not in progress", which the manifest swallows). Games with `timerMode: 'none'` (crosswords) implement it for the interface but never fire it.
@@ -167,20 +167,20 @@ Migration `…003_connections.sql`:
 A single player hitting 4 mistakes / conceding in compete is **not** a game terminal (survivors keep playing).
 
 ### In-game feedback at end-states
-From `buildOver()` (PlayArea.tsx:420-474). Modal + below-board pill show `verdict`; info-column shows `message`.
+From `buildOver()`. **No `GameOverModal`** — the below-board pill shows `verdict`, the info-column shows `message`. A **coop solve** (only) also pops the shared `<CelebrationDialog>` ("You win! 🎉" / "All four categories found."), one-shot at the moment of the solve via `useCelebration` — never on opening an already-solved game. Compete deliberately doesn't celebrate: "did I win the race?" needs `selfMatched` from `useGame`, which is 0 until the fetch lands, so an already-won game would flip false→true after load and pop at someone merely reviewing it (the same reason wordle/waffle celebrate coop only).
 | state | verdict | message | tone |
 |---|---|---|---|
 | coop `solved` | `You win!` | `You won!` | won |
-| coop `lost` (mistakes) | `You lost: out of mistakes` | `Out of mistakes` | lost |
-| coop `lost` (timer) | `You lost: out of time` | `Out of time` | lost |
+| coop `lost` (mistakes) | `Lost: out of mistakes` | `Out of mistakes` | lost |
+| coop `lost` (timer) | `Lost: out of time` | `Out of time` | lost |
 | compete `solved_compete` (you won) | `You won the race!` | `You won!` | won |
-| compete `solved_compete` (you, out of mistakes) | `You lost: out of mistakes` | `Out of mistakes` | lost |
-| compete `solved_compete` (beaten, still racing) | `Beaten to the punch.` | `Opponent won` | lost |
-| compete `lost_compete` (all eliminated) | `Everyone eliminated — nobody won.` | `All eliminated` | lost |
-| compete `lost_compete` (timer) | `Out of time — nobody won.` | `Out of time` | lost |
+| compete `solved_compete` (you, out of mistakes) | `Lost: out of mistakes` | `Out of mistakes` | lost |
+| compete `solved_compete` (beaten, still racing) | `Beaten to the punch` | `Opponent won` | lost |
+| compete `lost_compete` (all eliminated) | `Everyone eliminated` | `All eliminated` | lost |
+| compete `lost_compete` (timer) | `Out of time — nobody won` | `Out of time` | lost |
 | `ended` coop / compete | `Game ended` / `Game ended — no winner` | `Game over` | neutral |
 
-Coop-only peer narration (non-terminal, `useGlobalFeedback`): `● found COLORS!` / `● was one away` / `● guessed wrong`.
+Coop-only peer narration (non-terminal, `useGlobalFeedback`): `● found category` / `● was one away` / `● guessed wrong`. The solved category is **not** named — it's puzzle data of unbounded length against a ~26-char phone budget, and the band appears on the reader's own board at the same moment.
 
 ### Listing label (`labelFor`)
 Coop (manifest.ts:212-227) reads `status.matched_count` + `status.mistake_count`; compete (:265-275) is deliberately numeric-free, reads `status.winner_username`.
@@ -326,7 +326,7 @@ From `buildOver()` (PlayArea.tsx:380-427). Below-board pill shows `verdict` (not
 | compete `lost_compete` (timer) | `Out of time — no winner.` | `Out of time` | lost |
 | `ended` coop / compete | `Game ended.` / `Game ended — no winner.` | `Game ended` | neutral |
 
-Locally-terminal (compete, game continues): pills `You conceded — the rest are still racing.` / `Solved — waiting on the rest.` / `Out of swaps — waiting on the rest.`; info-column `You conceded` / `Solved — waiting` / `Out of swaps`. Peer milestones (non-terminal): `● solved it` (success), `● is out of swaps` (warning).
+Locally-terminal (compete, game continues): pills `Conceded — race continues` / `Solved — waiting on the rest.` / `Out of swaps — waiting on the rest.`; info-column `You conceded` / `Solved — waiting` / `Out of swaps`. Peer milestones (non-terminal): `● solved it` (success), `● is out of swaps` (warning).
 
 ### Listing label (`labelFor`)
 manifest.ts:58-78 (one function; `modeLabel` only affects the mid-game default). `winner = status.winner_username`.
@@ -613,7 +613,7 @@ From `buildOver()` (PlayArea.tsx:826-857). **Both** the modal and the below-boar
 | `lost` | everyone (all conceded) | `Everyone conceded.` | lost / lost |
 | `ended` (coop) | everyone | `Game ended` | won / neutral |
 
-Non-terminal compete pill: a conceded-but-racing player sees `You conceded — the rest are still racing.`
+Non-terminal compete pill: a conceded-but-racing player sees `Conceded — race continues`
 
 ### Listing label (`labelFor`)
 Coop `coopLabel` (manifest.ts:92-97) / compete `competeLabel` (:100-108); `title = status.title ?? 'Crossword'`, `winner = status.winner_username`.

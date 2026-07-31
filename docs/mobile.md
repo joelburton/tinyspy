@@ -600,7 +600,16 @@ copy at the top, which is what you read while the sheet is up (on a phone the
 above the board on a phone, hidden on desktop, still readable with the sheet open.
 
 **Adopted by:** codenamesduet. The remaining games are candidates as the
-end-states sweep reaches them.
+end-states sweep reaches them — but adoption is a per-game judgment, not a
+default. A game only needs the bar if its core state is invisible once the info
+column slides away.
+
+**Deliberately NOT adopted — connections.** Both halves of its state are already
+on the play surface: **categories found** is self-evident from the board (each
+solve becomes a full-width colored band above the remaining tiles — you can
+count them), and **mistakes** sit in the below-board row as `<StrikeMarks>`
+(labeled "Mistakes" on a phone, "Mistakes (lose at 4)" above it). A status bar
+would restate both and cost the board 1.75rem for nothing.
 
 ### Tap feedback — one canonical treatment
 

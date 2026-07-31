@@ -131,10 +131,11 @@ describe('psychicnum PlayArea — concede', () => {
         })}
       />,
     )
-    // The info-column action row swaps to the terminal LOOK, and the below-board
-    // pill narrates the drop-out — both read "You conceded…".
+    // The info-column action row swaps to the terminal LOOK ("You conceded"),
+    // and the below-board pill narrates the drop-out ("Conceded — race
+    // continues" — the shared `outOfRacePill`).
     expect(screen.getByText('You conceded')).toBeInTheDocument()
-    expect(screen.getByText(/You conceded — the rest are still racing/)).toBeInTheDocument()
+    expect(screen.getByText(/Conceded — race continues/)).toBeInTheDocument()
   })
 })
 

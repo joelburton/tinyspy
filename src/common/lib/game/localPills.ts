@@ -56,11 +56,17 @@ export function terminalPill(tone: OutcomeTone, text: string): GenericFeedbackMs
  * (conceded, or locally done). A neutral `stickyPill` that centralizes the
  * shared conceded copy; the caller passes the still-active-side text, which is
  * genuinely per-game (out of guesses / out of swaps / solved / …). Defaults to
- * the connections/wordle wording when the active side is a plain "you're out".
+ * the connections/wordle wording when the active side is a plain loss.
+ *
+ * Telegraphic and unpunctuated — "Conceded — race continues", not "You conceded
+ * — the rest are still racing." The pill is a fixed-height row that ellipsises
+ * rather than wrapping, and a below-board slot fits ~48 characters on a phone
+ * (docs/mobile.md → feedback copy). The subject is obvious (it's YOUR pill, in
+ * YOUR below-board slot), so "You" is the first word to go.
  */
 export function outOfRacePill(
   myConceded: boolean,
-  activeText = "You're out — the rest are still racing.",
+  activeText = 'Lost — race continues',
 ): GenericFeedbackMsg {
-  return stickyPill('neutral', myConceded ? 'You conceded — the rest are still racing.' : activeText)
+  return stickyPill('neutral', myConceded ? 'Conceded — race continues' : activeText)
 }
