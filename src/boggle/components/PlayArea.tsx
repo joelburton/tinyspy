@@ -4,7 +4,7 @@ import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
@@ -249,7 +249,7 @@ export function PlayArea(ctx: GamePageCtx) {
             items: [
               // Same board, wiped finds / same setup, fresh board + id.
               { id: 'restart', label: 'Restart', onClick: () => actionsRef.current?.restart() },
-              { id: 'new-game', label: 'New game', onClick: () => actionsRef.current?.newGame() },
+              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
             ],
           },
         ],
@@ -286,6 +286,11 @@ export function PlayArea(ctx: GamePageCtx) {
   // ctx.goToGame, peers arrive via the game-invitation toast.
   const gameMode = game?.mode
   const handleNewGame = useCallback(async () => {
+    // Starting a new game mid-play SHELVES this one (create_game clears the
+    // club's current-view flag; it stays resumable from the club page). Confirm
+    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
+    // copy says shelved, not ended. At terminal there's nothing to interrupt.
+    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
     const res = await invokeStartGameEdgeFn(
       'boggle-build-board',
@@ -302,7 +307,7 @@ export function PlayArea(ctx: GamePageCtx) {
       return
     }
     goToGame(`boggle_${gameMode}`, res.id)
-  }, [gameMode, clubHandle, setup, players, brand, goToGame, showLocalFeedback])
+  }, [gameMode, clubHandle, setup, players, brand, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Keep the menu's actions current (read via the stable actionsRef, so the
   // menu effect above never re-runs to pick up a new closure).

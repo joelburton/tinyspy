@@ -49,6 +49,9 @@ test.describe('waffle replay board', () => {
     // board for the same setup band and we land on a DIFFERENT game id.
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'New game' }).click()
+    // Mid-play, New game CONFIRMS first (it shelves the game in progress —
+    // see NEW_GAME_CONFIRM); say yes and it proceeds.
+    await page.getByRole('button', { name: 'Start new game' }).click()
     await expect(page).not.toHaveURL(new RegExp(game.id), { timeout: 20000 })
     await expect(page).toHaveURL(/\/g\/waffle_coop\//)
     // The fresh game renders: a board with an empty swap log (the new board's

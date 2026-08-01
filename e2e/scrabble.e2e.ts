@@ -106,6 +106,9 @@ test.describe('scrabble replay + new game', () => {
 
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'New game' }).click()
+    // Mid-play, New game CONFIRMS first (it shelves the game in progress —
+    // see NEW_GAME_CONFIRM); say yes and it proceeds.
+    await page.getByRole('button', { name: 'Start new game' }).click()
 
     await page.waitForURL((u) => u.pathname.startsWith(`/g/${game.gametype}/`) &&
                                 !u.pathname.endsWith(game.id), { timeout: 15000 })

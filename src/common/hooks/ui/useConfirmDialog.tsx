@@ -25,6 +25,26 @@ export const END_GAME_CONFIRM: ConfirmOptions = {
 }
 
 /**
+ * The canonical new-game confirm, asked only while a game is still in progress
+ * (at terminal there's nothing to interrupt, so New game goes straight through).
+ *
+ * Starting a new game does NOT end this one: `create_game` clears the club's
+ * current-view flag on the old row, which stays in `common.games` and can be
+ * resumed from the club page — the same "shelved" language ClubPage already
+ * uses. So the copy REASSURES rather than warns: the point is that someone who
+ * hits `+` by accident doesn't think they just lost their game. Deliberately
+ * not phrased like END_GAME_CONFIRM's "you can't undo it", which would be
+ * false here.
+ */
+export const NEW_GAME_CONFIRM: ConfirmOptions = {
+  title: 'Start a new game?',
+  message:
+    'The game in progress will be shelved, not lost — you can resume it from the club page whenever you like.',
+  confirmLabel: 'Start new game',
+  cancelLabel: 'Keep playing',
+}
+
+/**
  * `window.confirm`, but the styled `<ConfirmDialog>` modal — the drop-in for
  * game action handlers:
  *

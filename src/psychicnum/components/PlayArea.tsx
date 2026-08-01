@@ -9,7 +9,7 @@ import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { difficultyValue } from '../../common/lib/game/difficulty'
@@ -175,7 +175,7 @@ export function PlayArea({
             items: [
               // The same pair the terminal action row offers, reachable mid-game too.
               { id: 'restart', label: 'Restart', onClick: () => actionsRef.current?.restart() },
-              { id: 'new-game', label: 'New game', onClick: () => actionsRef.current?.newGame() },
+              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
             ],
           },
         ],
@@ -329,6 +329,11 @@ export function PlayArea({
   // list), so no confirm; the creator jumps in via ctx.goToGame, peers arrive
   // via the game-invitation toast.
   const handleNewGame = useCallback(async () => {
+    // Starting a new game mid-play SHELVES this one (create_game clears the
+    // club's current-view flag; it stays resumable from the club page). Confirm
+    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
+    // copy says shelved, not ended. At terminal there's nothing to interrupt.
+    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!mode) return // menu exists pre-load, but there's no mode to copy yet
     const { data, error } = await db
       .rpc('create_game', {
@@ -343,7 +348,7 @@ export function PlayArea({
       return
     }
     goToGame(`psychicnum_${mode}`, (data as { id: string }).id)
-  }, [mode, clubHandle, setup, players, goToGame, showLocalFeedback])
+  }, [mode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   useEffect(() => {
     actionsRef.current = {

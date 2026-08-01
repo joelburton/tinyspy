@@ -14,7 +14,7 @@ import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDis
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { db } from '../db'
@@ -243,6 +243,11 @@ export function PlayArea({
     newGameArgsRef.current = { setup, playerIds: players.map((p) => p.user_id) }
   })
   const handleNewGame = useCallback(async () => {
+    // Starting a new game mid-play SHELVES this one (create_game clears the
+    // club's current-view flag; it stays resumable from the club page). Confirm
+    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
+    // copy says shelved, not ended. At terminal there's nothing to interrupt.
+    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
     const args = newGameArgsRef.current
     const res = await invokeStartGameEdgeFn(
@@ -260,7 +265,7 @@ export function PlayArea({
       return
     }
     goToGame(`waffle_${gameMode}`, res.id)
-  }, [gameMode, clubHandle, brand, goToGame, showLocalFeedback])
+  }, [gameMode, clubHandle, brand, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Reveal answer — two shapes behind one action (the wordle pattern,
   // docs/ui.md → Terminal results):
@@ -326,7 +331,7 @@ export function PlayArea({
             items: [
               { id: 'restart', label: 'Restart', onClick: restart },
               // Same setup + roster, a fresh randomly-built board, a NEW game id.
-              { id: 'new-game', label: 'New game', onClick: () => void handleNewGame() },
+              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
               {
                 id: 'reveal',
                 label: 'Reveal answer',

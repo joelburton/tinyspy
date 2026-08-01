@@ -8,7 +8,7 @@ import { CelebrationDialog } from '../../common/components/game/CelebrationDialo
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
-import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
@@ -356,7 +356,7 @@ export function PlayArea({
             items: [
               // The same pair the terminal action row offers, reachable mid-game too.
               { id: 'restart', label: 'Restart', onClick: () => actionsRef.current?.restart() },
-              { id: 'new-game', label: 'New game', onClick: () => actionsRef.current?.newGame() },
+              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
             ],
           },
         ],
@@ -413,6 +413,11 @@ export function PlayArea({
   // would leave a single player, which create_game rejects outright.
   const gameMode: 'coop' | 'compete' = isCompete ? 'compete' : 'coop'
   const handleNewGame = useCallback(async () => {
+    // Starting a new game mid-play SHELVES this one (create_game clears the
+    // club's current-view flag; it stays resumable from the club page). Confirm
+    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
+    // copy says shelved, not ended. At terminal there's nothing to interrupt.
+    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,
@@ -426,7 +431,7 @@ export function PlayArea({
       return
     }
     goToGame(`scrabble_${gameMode}`, (data as { id: string }).id)
-  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback])
+  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Keep the menu's dispatch current (read via the stable actionsRef by the menu
   // items above). Separate from the menu effect so those handlers' changing

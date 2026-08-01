@@ -150,13 +150,24 @@ game", "Suspend") — never a bare "OK". For the imperative form handlers want,
 `window.confirm` with a promise: `if (!(await confirm({...}))) return`, plus a
 `{confirmDialog}` node to render.
 
-Two standing users:
+Three standing users:
 
 - **End game** — ALWAYS confirmed, in every game and every entry point (the
   info-row button, the menu item, the pause overlay's escape hatch), even
   solo/coop: ending is terminal for the whole group and irreversible. One
   canonical copy object (`END_GAME_CONFIRM`) so the question reads identically
   everywhere.
+- **New game** — confirmed only while a game is IN PROGRESS (at terminal
+  there's nothing to interrupt, so it goes straight through). `NEW_GAME_CONFIRM`
+  is the shared copy, asked inside each game's own `handleNewGame`, so every
+  entry point inherits it: the terminal button, the menu item, and the `+`
+  shortcut. **⌥+** (new game from setup) asks it separately, in GamePage — it
+  never reaches a game's handler, since it hands off to ClubPage's setup dialog
+  instead of dealing a board. **Its copy reassures rather than warns**, because starting a new
+  game does *not* end this one — `create_game` clears the club's current-view
+  flag and the old game stays resumable from the club page ("shelved, not
+  lost"). Phrasing it like End game's "you can't undo it" would be false. The
+  point is that an accidental `+` doesn't read as *I just lost my game*.
 - **Suspend / Back-to-club** — confirmed only when there are PEERS to
   surprise. Three shapes (see
   [states.md → Leaving the game page](states.md#leaving-the-game-page--terminal-vs-non-terminal)):
@@ -346,7 +357,11 @@ The logo is a menu trigger. Click opens a dropdown anchored below it; same trigg
 
 **The `buildGameMenu` helper** ([common/lib/game/gameMenu.ts](../src/common/lib/game/gameMenu.ts)) assembles the standard framing so games don't duplicate it: a **Help** section at the top, the game's own `extra` sections in the middle, and a tail with **End game** (coop) / **Concede game** (compete, id `concede`) + **Back to club**. The end/concede item dispatches through the game's own handler (each game's `db` is schema-typed, so the RPC stays at the call site); Help/Back use the shell actions. Most games call it in one line with `extra: [{ items: [printItem] }]` (or `[]`); crosswords passes its full check/reveal/clear section list.
 
-**Shortcut hints.** A `MenuItem` may carry an optional `shortcut` string (e.g. `'⌥C'`) rendered right-aligned + muted. Two are shell-global (work on any game, dispatching to the game's own menu items / actions): **⌥⌫** fires End/Concede (finds the `end-game`/`concede` item and clicks it), **⇧<** fires Back to club. Both bail inside any editable field, so ⌥Backspace stays "delete word" while typing.
+**Shortcut hints.** A `MenuItem` may carry an optional `shortcut` string (e.g. `'⌥C'`) rendered right-aligned + muted. Three are shell-global (work on any game, dispatching to the game's own menu items / actions): **⌥⌫** fires End/Concede (finds the `end-game`/`concede` item and clicks it), **+** fires New game (finds the `new-game` item — `NEW_GAME_ID`), **⇧<** fires Back to club. All bail inside any editable field, so ⌥Backspace stays "delete word" while typing.
+
+Dispatching through the *menu item* rather than a callback is what makes `+` work on **every** game that offers New game — including one whose only affordance is the menu, with no button on screen — and it inherits the item's `disabled` state for free. New game isn't built by `buildGameMenu` (the board each game deals is its own), so the shared id is the contract between the games and the shell.
+
+**⌥+ — "new game from setup"** is the one shortcut with **no menu item**: the power-user variant of `+`. Where `+` reuses this game's setup verbatim, `⌥+` stops at the setup dialog so you can change the options first. It asks the same `NEW_GAME_CONFIRM` mid-play, then hands off to `/c/<club>?new=<gametype>` — the setup dialog lives on ClubPage, and that's the same route crosswords' own New game uses. Cancelling the dialog simply leaves you on the club page. It matches on `e.code === 'Equal'`, not `e.key`, because Option changes the character a key emits (⌥= is `≠` on a Mac) — the same reason ⌥⌫ matches `code`; that also makes ⌥= and ⌥⇧= both work, so the shift is optional.
 
 **⇧< means "up a level", not "back to club" specifically** — the ClubPage menu's *Back to home* item carries the same shortcut, taking you from a club to the club list. One key, one meaning, wherever you are. (ClubPage's handler additionally bails inside an open dialog / menu / floating panel — navigating out from under an open setup dialog would be its own bug. GamePage's older twin bails only on editable fields; worth aligning next time that file is open.)
 

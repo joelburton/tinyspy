@@ -10,7 +10,7 @@ import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
@@ -303,6 +303,11 @@ export function PlayArea({
   // game-invitation toast.
   const gameMode = game?.mode
   const handleNewGame = useCallback(async () => {
+    // Starting a new game mid-play SHELVES this one (create_game clears the
+    // club's current-view flag; it stays resumable from the club page). Confirm
+    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
+    // copy says shelved, not ended. At terminal there's nothing to interrupt.
+    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
     const { data, error } = await db
       .rpc('create_game', {
@@ -317,7 +322,7 @@ export function PlayArea({
       return
     }
     goToGame(`stackdown_${gameMode}`, (data as { id: string }).id)
-  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback])
+  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // ─── Header menu (every game owns its whole menu now) ─────────
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
@@ -353,7 +358,7 @@ export function PlayArea({
             items: [
               { id: 'restart', label: 'Restart', onClick: restart },
               // Same setup + roster, a freshly claimed board, a NEW game id.
-              { id: 'new-game', label: 'New game', onClick: () => void handleNewGame() },
+              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
             ],
           },
         ],

@@ -104,6 +104,9 @@ test.describe('stackdown replay + new game', () => {
 
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'New game' }).click()
+    // Mid-play, New game CONFIRMS first (it shelves the game in progress —
+    // see NEW_GAME_CONFIRM); say yes and it proceeds.
+    await page.getByRole('button', { name: 'Start new game' }).click()
 
     // Navigated to a DIFFERENT game id, same gametype, board up.
     await page.waitForURL((u) => u.pathname.startsWith(`/g/${game.gametype}/`) &&

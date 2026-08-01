@@ -8,7 +8,7 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
@@ -220,6 +220,11 @@ export function PlayArea({
   // via the game-invitation toast.
   const gameMode = game?.mode
   const handleNewGame = useCallback(async () => {
+    // Starting a new game mid-play SHELVES this one (create_game clears the
+    // club's current-view flag; it stays resumable from the club page). Confirm
+    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
+    // copy says shelved, not ended. At terminal there's nothing to interrupt.
+    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
     const { data, error } = await db
       .rpc('create_game', {
@@ -237,7 +242,7 @@ export function PlayArea({
       return
     }
     goToGame(`wordle_${gameMode}`, (data as { id: string }).id)
-  }, [gameMode, clubHandle, setup, members, goToGame, showLocalFeedback])
+  }, [gameMode, clubHandle, setup, members, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Reveal answer — two shapes behind one menu item:
   //   MID-GAME: a group give-up — ends the game for everyone (confirmed,
@@ -297,7 +302,7 @@ export function PlayArea({
             items: [
               { id: 'restart', label: 'Restart', onClick: () => actionsRef.current.restart() },
               // Same setup + roster, a fresh random target, a NEW game id.
-              { id: 'new-game', label: 'New game', onClick: () => actionsRef.current.newGame() },
+              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current.newGame() },
               {
                 id: 'reveal',
                 label: 'Reveal answer',

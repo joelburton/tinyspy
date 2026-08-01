@@ -9,7 +9,7 @@ import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDis
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { memberById } from '../../common/lib/game/peers'
@@ -276,6 +276,11 @@ export function PlayArea({
     puzzleDateRef.current = game?.puzzleDate ?? null
   })
   const handleNewGame = useCallback(async () => {
+    // Starting a new game mid-play SHELVES this one (create_game clears the
+    // club's current-view flag; it stays resumable from the club page). Confirm
+    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
+    // copy says shelved, not ended. At terminal there's nothing to interrupt.
+    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
     const [{ data: puzzleRows }, { data: statusRows }] = await Promise.all([
       db.from('puzzles').select('id, nyt_date').not('nyt_date', 'is', null).order('nyt_date'),
@@ -312,7 +317,7 @@ export function PlayArea({
       return
     }
     goToGame(`connections_${gameMode}`, (data as { id: string }).id)
-  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction])
+  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // ─── Header menu ("each game owns its whole menu") ─────
   // The shell no longer injects a common Help / Back-to-club section; connections
@@ -362,7 +367,7 @@ export function PlayArea({
             items: [
               // The same pair the terminal action row offers, reachable mid-game too.
               { id: 'restart', label: 'Restart', onClick: () => actionsRef.current.restart() },
-              { id: 'new-game', label: 'New game', onClick: () => actionsRef.current.newGame() },
+              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current.newGame() },
             ],
           },
         ],

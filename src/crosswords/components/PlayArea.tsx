@@ -11,7 +11,7 @@ import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog, END_GAME_CONFIRM, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { navigate } from '../../common/lib/routing/router'
@@ -625,6 +625,7 @@ export function PlayArea(ctx: GamePageCtx) {
                 // lives in the off-canvas info sheet there.
                 id: 'new-game',
                 label: 'New game',
+                shortcut: '+',
                 onClick: () => actionsRef.current?.newGame(),
               },
             ],
@@ -676,9 +677,14 @@ export function PlayArea(ctx: GamePageCtx) {
   // to re-send at all. Picking the next puzzle is the only sane "another one",
   // and the setup dialog is where puzzles are picked.
   // (`navigate` directly rather than ctx's goToClub, which takes no query.)
-  const handleNewGame = useCallback(() => {
+  const handleNewGame = useCallback(async () => {
+    // Starting a new game mid-play SHELVES this one (create_game clears the
+    // club's current-view flag; it stays resumable from the club page). Confirm
+    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
+    // copy says shelved, not ended. At terminal there's nothing to interrupt.
+    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     navigate(`/c/${clubHandle}?new=crosswords_${mode}`)
-  }, [clubHandle, mode])
+  }, [clubHandle, mode, confirmAction, isTerminal])
 
   // Resolve a check/reveal scope to the target coordinates the RPCs want.
   const scopeCells = useCallback(

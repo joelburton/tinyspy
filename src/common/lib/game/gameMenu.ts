@@ -66,3 +66,15 @@ export function buildGameMenu(opts: {
 
 /** The menu-item ids the shell's ⌥⌫ shortcut looks for to fire end/concede. */
 export const END_OR_CONCEDE_IDS = ['end-game', 'concede'] as const
+
+/**
+ * The menu-item id the shell's `+` shortcut looks for to start a new game.
+ *
+ * New game is NOT built by `buildGameMenu` — each game adds its own item (the
+ * board it deals is game-specific), so this is the contract between them and
+ * the shell: use this id and the shortcut finds you. Dispatching through the
+ * menu item rather than a callback is deliberate — it means `+` works on any
+ * game that offers New game at all, with no per-game wiring, and it inherits
+ * the item's `disabled` state for free.
+ */
+export const NEW_GAME_ID = 'new-game'

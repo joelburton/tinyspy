@@ -30,6 +30,7 @@ import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import shared from '../../common/components/game/PlayArea.module.css'
 import '../theme.css' // bananagrams tokens + the global drag-cursor rule
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
+import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 
 /**
  * bananagrams play surface (v3).
@@ -216,8 +217,17 @@ export function PlayArea(ctx: GamePageCtx) {
   // games' replay re-runs the SAME puzzle; bananagrams has no puzzle to re-run —
   // the bunch is dealt at random and the whole game is the race to consume it, so
   // "again" can only mean a fresh deal, which is what New game already is.
+  // Shared confirm modal — bananagrams' only use is the new-game question
+  // below (its End/Concede go through useStandardGameActions, which owns its
+  // own). Render {confirmDialog} in the tree, as the other games do.
+  const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
   const newGameRef = useRef<() => void>(() => {})
   const handleNewGame = useCallback(async () => {
+    // Starting a new game mid-play SHELVES this one (create_game clears the
+    // club's current-view flag; it stays resumable from the club page). Confirm
+    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
+    // copy says shelved, not ended. At terminal there's nothing to interrupt.
+    if (!ctx.isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     const { data, error } = await db
       .rpc('create_game', {
         target_club: ctx.clubHandle,
@@ -235,7 +245,7 @@ export function PlayArea(ctx: GamePageCtx) {
       return
     }
     ctx.goToGame('bananagrams', (data as { id: string }).id)
-  }, [ctx, showLocalFeedback])
+  }, [ctx, showLocalFeedback, confirmAction])
   useEffect(() => {
     newGameRef.current = () => void handleNewGame()
   }, [handleNewGame])
@@ -294,7 +304,7 @@ export function PlayArea(ctx: GamePageCtx) {
         extra: [
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: doPrint }] },
           // The same action the terminal row offers, reachable mid-game too.
-          { items: [{ id: 'new-game', label: 'New game', onClick: () => newGameRef.current() }] },
+          { items: [{ id: 'new-game', label: 'New game', shortcut: '+', onClick: () => newGameRef.current() }] },
         ],
       }),
     )
@@ -491,6 +501,7 @@ export function PlayArea(ctx: GamePageCtx) {
       {celebration.show && (
         <CelebrationDialog title="Bananas! 🍌" body="You went out first." onClose={celebration.close} />
       )}
+      {confirmDialog}
     </>
   )
 }

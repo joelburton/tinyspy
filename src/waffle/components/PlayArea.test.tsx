@@ -196,12 +196,18 @@ describe('waffle PlayArea — new game (menu)', () => {
   }
 
   it('starts a fresh game with this game\'s setup + roster + mode, then navigates', async () => {
+    const user = userEvent.setup()
     startEdgeFn.mockResolvedValue({ id: 'fresh-game-id' })
     h.result = loaded(coopGame, [me, moth])
     const ctx = makeCtx({ players: twoMembers })
     render(<PlayArea {...ctx} />)
 
     act(() => menuItems(ctx).find((i) => i.id === 'new-game')!.onClick())
+    // Mid-game, New game CONFIRMS first (NEW_GAME_CONFIRM) — an accidental `+`
+    // shouldn't shelve a game in progress. Nothing is created until we say yes.
+    expect(await screen.findByText('Start a new game?')).toBeInTheDocument()
+    expect(startEdgeFn).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Start new game' }))
     await waitFor(() =>
       expect(startEdgeFn).toHaveBeenCalledWith(
         'waffle-build-board',
@@ -218,12 +224,14 @@ describe('waffle PlayArea — new game (menu)', () => {
   })
 
   it('surfaces an edge-function error in the local pill (no navigation)', async () => {
+    const user = userEvent.setup()
     startEdgeFn.mockResolvedValue({ error: 'no words for that band' })
     h.result = loaded(coopGame)
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
 
     act(() => menuItems(ctx).find((i) => i.id === 'new-game')!.onClick())
+    await user.click(await screen.findByRole('button', { name: 'Start new game' }))
     await waitFor(() =>
       expect(screen.getByText('New game failed: no words for that band')).toBeInTheDocument(),
     )

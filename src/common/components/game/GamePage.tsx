@@ -16,12 +16,12 @@ import type {
   MenuApi,
   MenuSection,
 } from '../../lib/games'
-import { END_OR_CONCEDE_IDS } from '../../lib/game/gameMenu'
+import { END_OR_CONCEDE_IDS, NEW_GAME_ID } from '../../lib/game/gameMenu'
 import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
 import { useClubPresence } from '../../hooks/realtime/useClubPresence'
 import { useClubSetupPresence } from '../../hooks/realtime/useClubSetupPresence'
 import { useCommonGame } from '../../hooks/game/useCommonGame'
-import { useConfirmDialog, END_GAME_CONFIRM } from '../../hooks/ui/useConfirmDialog'
+import { useConfirmDialog, END_GAME_CONFIRM, NEW_GAME_CONFIRM } from '../../hooks/ui/useConfirmDialog'
 import { formatTimerSeconds } from '../../hooks/game/useGameTimer'
 import { useClubRoster } from '../../hooks/club/useClubRoster'
 import { useChatFeedback } from '../../hooks/chat/useChatFeedback'
@@ -300,10 +300,10 @@ export function GamePage({
   )
 
   // Global game-menu shortcuts (work on any game, dispatching to the game's
-  // own menu items): ⇧< → Back to club; ⌥⌫ → End / Concede game. Both bail
-  // inside any editable field (so ⌥Backspace stays "delete word" while typing
-  // a clue). The menu itself stopPropagations its keys, so an open menu won't
-  // reach here. See docs/ui.md → GamePage menu.
+  // own menu items): ⇧< → Back to club; + → New game; ⌥+ → New game FROM SETUP;
+  // ⌥⌫ → End / Concede game. All bail inside any editable field (so ⌥Backspace
+  // stays "delete word" while typing a clue). The menu itself stopPropagations
+  // its keys, so an open menu won't reach here. See docs/ui.md → GamePage menu.
   useEffect(function globalMenuShortcuts() {
     function onKeyDown(e: KeyboardEvent) {
       const t = e.target
@@ -315,6 +315,37 @@ export function GamePage({
       if (e.key === '<' && !e.altKey) {
         e.preventDefault()
         requestBackToClub()
+      } else if (e.key === '+' && !e.altKey) {
+        // New game. Dispatched through the MENU ITEM, like ⌥⌫ below, so it
+        // works on every game that offers New game — including the ones whose
+        // only affordance is the menu (no terminal button on screen) — with no
+        // per-game wiring, and it inherits the item's disabled state.
+        // Mid-game the game's own handler asks NEW_GAME_CONFIRM first, so a
+        // stray `+` can't silently shelve a game in progress.
+        e.preventDefault()
+        const item = gameSectionsRef.current
+          .flatMap((s) => s.items)
+          .find((i) => i.id === NEW_GAME_ID)
+        if (item && !item.disabled) item.onClick()
+      } else if (e.altKey && e.code === 'Equal') {
+        // ⌥+ → New game FROM SETUP: the same fresh game, but stopping at the
+        // setup dialog so you can change the options first (the plain `+` reuses
+        // this game's setup verbatim). Deliberately NOT a menu item — it's the
+        // power-user variant of one that is.
+        //
+        // Matched on `code`, not `key`: Option changes the character a key
+        // produces (⌥= is "≠" on a Mac), which is exactly why ⌥⌫ below matches
+        // `code` too. Matching the physical key also accepts ⌥= and ⌥⇧= alike,
+        // so it doesn't matter whether you reach for the shift.
+        //
+        // The dialog lives on ClubPage, so this hands off with `?new=<gametype>`
+        // — the same route crosswords' own New game uses. Cancelling it just
+        // leaves you on the club page, which is a fine place to be.
+        e.preventDefault()
+        void (async () => {
+          if (!isGameOver && !(await confirmAction(NEW_GAME_CONFIRM))) return
+          if (clubHandle) navigate(`/c/${clubHandle}?new=${gametype}`)
+        })()
       } else if (e.altKey && e.code === 'Backspace') {
         e.preventDefault()
         const item = gameSectionsRef.current
@@ -325,7 +356,7 @@ export function GamePage({
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [requestBackToClub])
+  }, [requestBackToClub, confirmAction, isGameOver, clubHandle, gametype])
 
   // The FULL club roster (not just this game's players) — chat is club-wide, so
   // naming a sender (chat window + the feedback pill) needs every member. Empty

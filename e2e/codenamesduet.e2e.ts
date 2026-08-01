@@ -157,6 +157,9 @@ test.describe('codenamesduet new game', () => {
 
     await pageAlice.getByRole('button', { name: 'Game menu' }).click()
     await pageAlice.getByRole('menuitem', { name: 'New game' }).click()
+    // Mid-play, New game CONFIRMS first (it shelves the game in progress —
+    // see NEW_GAME_CONFIRM); say yes and it proceeds.
+    await pageAlice.getByRole('button', { name: 'Start new game' }).click()
 
     // Navigated to a DIFFERENT game id. (We don't assert the board here: the new
     // game presence-pauses until bob arrives too, which unmounts the PlayArea.)

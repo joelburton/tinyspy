@@ -10,7 +10,7 @@ import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDis
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog, END_GAME_CONFIRM, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -343,6 +343,11 @@ export function PlayArea({
   // both players a board they'd already learned. A new sample is the only
   // meaningful "again".
   const handleNewGame = useCallback(async () => {
+    // Starting a new game mid-play SHELVES this one (create_game clears the
+    // club's current-view flag; it stays resumable from the club page). Confirm
+    // anyway so an accidental `+` doesn't read as "I just lost my game" — the
+    // copy says shelved, not ended. At terminal there's nothing to interrupt.
+    if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,
@@ -355,7 +360,7 @@ export function PlayArea({
       return
     }
     goToGame('codenamesduet', (data as { id: string }).id)
-  }, [clubHandle, codenamesduetSetup, members, goToGame, showLocalFeedback])
+  }, [clubHandle, codenamesduetSetup, members, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // ─── Header menu (each game owns its whole menu now) ────
   // codenamesduet is coop-only (fixed 2 seats, no compete sibling), so the menu
@@ -376,7 +381,7 @@ export function PlayArea({
           // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
           ...infoSheet.menuSections,
           // The same action the terminal row offers, reachable mid-game too.
-          { items: [{ id: 'new-game', label: 'New game', onClick: () => void handleNewGame() }] },
+          { items: [{ id: 'new-game', label: 'New game', shortcut: '+', onClick: () => void handleNewGame() }] },
         ],
       }),
     )
