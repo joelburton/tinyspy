@@ -15,6 +15,7 @@
     "db:lint": "SUPABASE_ACCESS_TOKEN=local supabase db lint --local --level warning",
     "test": "npm run test:fe -- --run && npm run test:db",
     "test:fe": "vitest",
+    "report:labels": "REPORT=1 vitest run src/gameStatusLabels.test.ts",
     "test:db": "supabase test db --local supabase/tests",
     "test:edge": "deno test supabase/functions/",
     "types:gen": "SUPABASE_ACCESS_TOKEN=local supabase gen types typescript --local > src/types/db.ts",

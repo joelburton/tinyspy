@@ -16,6 +16,7 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/playarea.md](docs/playarea.md) | THE **play-surface** doc: the two-column PlayArea layout, info-column readouts (+ the canonical order, OpponentStrip rules, locally-terminal look), text entry (capture), the turn log, the turn-history viewer, board sizing — plus the `PlayArea` → `BoardCol` / `InfoCol` decomposition (`useHistoryViewer`, per-game `lib/history.ts`) |
 | [docs/pdf.md](docs/pdf.md) | Printing game boards to PDF (jsPDF): the clean-printable design language — the three-shade greyscale palette, color-only-for-meaning, white backgrounds, header/Setup conventions; the shared `common/pdf/` helpers (frame + turnLog + wordColumns + `wordListBody`) and the three body families (turn-log, word-list, and crosswords' whole-cloth ported printer) |
 | [docs/features.md](docs/features.md) | Games categorized by feature: dimensions (every game has exactly one value — a game missing from one is a gap to notice) vs tags (a game has the feature or not) |
+| [docs/game-status-labels.md](docs/game-status-labels.md) | What every game writes as its **title** and renders as its club-page **status line**, per play state — plus the known inconsistencies between them |
 | [docs/deferred.md](docs/deferred.md) | Things explicitly deferred from code reviews and conversations |
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command + file lookup |
 | [README.md](README.md) | Narrative + stack |
