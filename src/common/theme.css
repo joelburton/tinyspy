@@ -10,7 +10,7 @@
  * Anything in this file is GLOBAL — no CSS Modules scoping. Use
  * sparingly: tokens, element-level defaults, and a handful of
  * truly cross-cutting utility classes (.card, .muted, .error,
- * .link-button, .actions, .divider, .dot-separator, .home-footer,
+ * .link-button, .actions, .divider, .definable,
  * button.secondary). Component-specific styles live in
  * co-located `*.module.css` files and are scoped automatically.
  *
@@ -43,7 +43,6 @@
   --color-text:               #1a1a1a;
   --color-muted:              #6b6b6b;
   --color-divider:            #8a8a8a;
-  --color-dot:                #a0a0a0;
   /* System-error red — validation failures, RPC/API errors, and destructive
      actions (delete buttons). Deliberately DARKER + COOLER (a deep crimson) than
      --color-outcome-lost-strong (#c62828) so a *system failure* or a *destructive
@@ -114,10 +113,10 @@
   /* "Near miss" — a partial-credit signal distinct from active-
      yellow. For any "you were close" row state in a guess
      history; amber/orange to read as warning-flavored rather
-     than wait-flavored. The `-bg` completes the won/lost/near
-     trio the filled outcome boxes lean on (connections's one-away
-     commit flash); `-border` is the outcome-bar amber. */
-  --color-outcome-near-bg:     #ffe0b2;  /* amber 100 */
+     than wait-flavored. `-border` is the outcome-bar amber.
+     (There was a `-bg` here too, documented as backing
+     connections's one-away commit flash — which actually uses
+     `-border` + `-strong`. Nothing read it; it's gone.) */
   --color-outcome-near-border: #ffb74d;  /* amber 300 */
   /* "Current" — the now-playing / join-this-one signal. Used by
      ClubGameCard's active-game corner flag (a saturated orange,
@@ -585,15 +584,6 @@ a {
   margin-top: 1.5rem;
 }
 
-/* Vertical stack of cards within a section — used for
-   suspended/completed game lists on ClubPage. The cards bring
-   their own visual treatment; this just spaces them. */
-.cardList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
 .divider {
   text-align: center;
   color: var(--color-divider);
@@ -609,18 +599,6 @@ a {
   cursor: pointer;
   padding: 0;
   text-decoration: underline;
-}
-
-/* Footer row inside .card screens — typically log-out / help links. */
-.home-footer {
-  margin-top: 2rem;
-  display: flex;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.dot-separator {
-  color: var(--color-dot);
 }
 
 /* Browser printing (Cmd/Ctrl-P) isn't supported — the app is a live, scrolling,

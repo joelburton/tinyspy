@@ -7,8 +7,6 @@
  *
  *   --wordiply-accent       The teal wire / length-bar fill + the base-tile
  *                           accent in the logo. The one "brand" colour.
- *   --wordiply-accent-edge  A darker teal border for the filled bar / badge.
- *   --wordiply-badge-text   Glyph colour on the teal length badge.
  *   --wordiply-base-dim     The dimmed colour of the BASE inside a guess
  *                           (DimmedBaseWord) — present but understated so
  *                           the player's added letters stand out.
@@ -20,9 +18,6 @@
  */
 :root {
   --wordiply-accent:      #2f9e8f;
-  --wordiply-accent-edge: #1f7a6e;
-  --wordiply-accent-dim:  #9cc9c1; /* a softer teal — the in-progress badge */
-  --wordiply-badge-text:  #ffffff;
   --wordiply-base-dim:    var(--color-muted);
   --wordiply-row:         var(--color-surface);
   --wordiply-row-empty:   var(--color-control-bg);

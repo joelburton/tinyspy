@@ -112,7 +112,10 @@
 
 /* The tile shape — the real fill + border. Outer tiles: warm tile-2 with its OWN
  * matching tile-family border (--tile-2-border), so the border tracks the fill if
- * the shade changes; the centre is the saturated red with a darker-red edge. */
+ * the shade changes; the centre is the saturated red on the SAME border as the
+ * outer tiles, so all nine tiles read as one set and only the fill says "centre".
+ * (A darker-red edge was tried and left commented out mid-tuning; the shared
+ * border won, so its token is gone.) */
 .tileShape {
   fill: var(--wordwheel-tile);
   stroke: var(--tile-5-border);
@@ -121,7 +124,6 @@
 }
 .center .tileShape {
   fill: var(--wordwheel-accent);
-  /*stroke: var(--wordwheel-accent-edge);*/
   stroke: var(--tile-5-border);
   stroke-width: 14;
 }

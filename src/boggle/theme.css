@@ -1,13 +1,16 @@
 /* boggle color tokens. Loaded with this game's chunk (imported from
  * PlayArea.tsx) so they only ship when boggle is being played.
  *
- * Semantic names tied to boggle's vocabulary (`tile`, `accent`) rather than
- * literal colors — see docs/ui.md "two vocabularies".
+ * Semantic names tied to boggle's vocabulary (`tile`) rather than literal
+ * colors — see docs/ui.md "two vocabularies".
+ *
+ * The selected-path highlight is the SHARED `--color-accent`, not a boggle hue
+ * (PlayArea.module.css) — there was a `--boggle-accent` here claiming that job,
+ * but nothing ever read it.
  */
 :root {
   --boggle-tile:        var(--tile-3);  /* the shared normal tile (shade 3) */
   --boggle-tile-text:   var(--tile-text);
-  --boggle-accent:      #c0563b;  /* highlight / selected path (moth red-brown) */
   --boggle-board-bg:    #2b2622;  /* the tray the tiles sit in */
   /* The board sizes itself to the largest square that fits via the shared HUG
    * model (PlayArea.module.css `.boardCol --side`), so there's no board-size

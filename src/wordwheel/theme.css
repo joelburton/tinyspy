@@ -11,9 +11,6 @@
  *   --wordwheel-accent       The centre tile fill — a moderately-saturated red,
  *                            the single "used in every word" cue. Also the
  *                            achieved-tier fill on the RankBar.
- *   --wordwheel-accent-edge  A darker-red border for the centre tile + the
- *                            achieved RankBar tier, so the red square reads
- *                            against a white track without a near-black outline.
  *   --wordwheel-center-text  White glyph on the red centre tile (black would
  *                            fight the saturated fill).
  *   --wordwheel-tile-used    A used (already-in-the-word) outer tile's darkened
@@ -33,7 +30,6 @@
 
   /* Moderately-saturated red — the centre tile. */
   --wordwheel-accent:        #d6494f;
-  --wordwheel-accent-edge:   #9e2c31;
   --wordwheel-center-text:   #ffffff;
 
   /* Used-tile fills: a couple of steps darker than the resting fills. Applied to

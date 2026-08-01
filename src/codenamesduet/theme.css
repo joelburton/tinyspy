@@ -37,7 +37,6 @@
      wrapper border and the in-board error banner. */
   --codenamesduet-assassin:            #be3c3c;
   --codenamesduet-assassin-soft:       rgba(190, 60, 60, 0.16);
-  --codenamesduet-assassin-soft-dim:   rgba(190, 60, 60, 0.05);
   --codenamesduet-assassin-text:       #8b1a1a;  /* dark red; readable on soft-bright bg */
 
   /* Keycard-square fills — the small corner chips showing what a key card says

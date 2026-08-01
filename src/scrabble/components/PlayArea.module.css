@@ -114,36 +114,6 @@
   gap: 6px;
 }
 
-/* The own-move / terminal pill, constrained to the commit slot so a long message
- * truncates instead of growing the row (the pill itself already does nowrap +
- * ellipsis; this bounds its box). */
-.commitPill {
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-/* The dragged tile, following the pointer — sized to match the (responsive)
- * rack tile so the drag image is the same size as the tile it lifted. */
-.ghost {
-  position: fixed;
-  transform: translate(-50%, -50%) rotate(-3deg);
-  width: var(--rack-tile-size);
-  height: var(--rack-tile-size);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--scrabble-tile-bg);
-  color: var(--scrabble-tile-ink);
-  border: 1px solid var(--scrabble-tile-edge);
-  border-radius: 4px;
-  font-weight: 700;
-  font-size: calc(var(--rack-tile-size) * 0.5);
-  pointer-events: none;
-  z-index: 100;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
-
 .loading {
   padding: 2rem;
   color: var(--color-text);

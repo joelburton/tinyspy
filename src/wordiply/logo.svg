@@ -3,8 +3,12 @@
      brand teal, nearly filling the square (like the other framed square
      logos), with a bold white "WW" (WordWire) at the centre. The 12-point
      burst is a star polygon (alternating outer/inner radius) around (1000,1000);
-     colours are inlined from the theme (wordiply-accent fill, wordiply-accent-edge
-     stroke) since SVG files can't read CSS custom properties. -->
+     colours are inlined as literals since SVG files can't read CSS custom
+     properties (nor may an XML comment contain a double hyphen, hence the bare
+     token names): the fill #2f9e8f is theme.css's wordiply-accent, and the
+     stroke #1f7a6e is a darker teal that lives ONLY here — it was a
+     wordiply-accent-edge token, but this file was its only "reader" and a
+     comment isn't a reader, so keep the two in step by hand. -->
 <svg
    role="img"
    aria-label="WordWire"
