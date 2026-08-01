@@ -9,6 +9,10 @@ type Props = {
    *  (always in compete, optional in coop). Its square gets the goal outline.
    *  Null/absent = the open-ended hunt, no square marked. */
   targetIdx?: number | null
+  /** Hang the per-square tooltip BELOW the track instead of above it. Set by
+   *  the copy inside the mobile status bar, where there's nothing above the
+   *  squares but a clipped edge (see the CSS). */
+  tooltipBelow?: boolean
 }
 
 /**
@@ -27,7 +31,7 @@ type Props = {
  * `score` + `total` via `currentRankIndex`; the FE never disagrees with the SQL
  * `_rank_idx` because both compute from the same constants.
  */
-export function RankBar({ score, total, targetIdx = null }: Props) {
+export function RankBar({ score, total, targetIdx = null, tooltipBelow = false }: Props) {
   const idx = currentRankIndex(score, total)
   return (
     <div className={styles.rankBar}>
@@ -48,7 +52,7 @@ export function RankBar({ score, total, targetIdx = null }: Props) {
               tabIndex={0}
               aria-label={`${name}, ${pts} points${isTarget ? ' — target' : ''}`}
             >
-              <span className={styles.tooltip}>
+              <span className={cls(styles.tooltip, tooltipBelow && styles.tooltipBelow)}>
                 {name} · {pts} pts{isTarget ? ' · target' : ''}
               </span>
             </li>

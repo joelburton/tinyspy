@@ -247,7 +247,7 @@
      `--color-text`, so it reads as a mark ON the ladder rather than another
      rung state. */
   --rank-fill:                #f7da21;
-  --rank-edge:                #c9911e;
+  --rank-edge:                #ddab35;
 
   /* The keyboard / crossword ENTRY cursor ring on a tile grid (scrabble,
      bananagrams, future grid games). A slightly-orange-brown — deliberately NOT

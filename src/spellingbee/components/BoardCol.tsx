@@ -147,7 +147,14 @@ export function BoardCol({
           by exactly this much and the page still doesn't scroll. */}
       <MobileStatusBar>
         <div className={styles.mobileStatus}>
-          <RankBar score={foundWordsScore} total={requiredWordsScore} targetIdx={targetRankIdx} />
+          <RankBar
+            score={foundWordsScore}
+            total={requiredWordsScore}
+            targetIdx={targetRankIdx}
+            // Nothing above the squares here but the status bar's clipped top
+            // edge — hang the tooltips below instead.
+            tooltipBelow
+          />
           <Stats
             foundWordsScore={foundWordsScore}
             requiredWordsScore={requiredWordsScore}

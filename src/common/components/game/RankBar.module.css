@@ -129,6 +129,7 @@
   position: absolute;
   bottom: calc(100% + 8px);
   left: 50%;
+  z-index: 2;
   transform: translateX(-50%);
   background: var(--rank-text);
   color: var(--color-surface);
@@ -145,4 +146,15 @@
 .tier:hover .tooltip,
 .tier:focus-visible .tooltip {
   opacity: 1;
+}
+
+/* Flip the bubble BELOW the square. For the copy in the mobile status bar: that
+ * strip is a fixed-height `overflow: hidden` box (MobileStatusBar.module.css —
+ * fixed so the board below it can't be pushed), and the squares sit near its
+ * top, so a bubble above is clipped away entirely. Below, it fits inside the
+ * block, overlapping the Score/Words figures for as long as the finger or
+ * cursor is down — a fair trade for a tooltip that can actually be read. */
+.tooltipBelow {
+  bottom: auto;
+  top: calc(100% + 8px);
 }
