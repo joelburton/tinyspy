@@ -9,10 +9,6 @@ type Props = {
    *  (always in compete, optional in coop). Its square gets the goal outline.
    *  Null/absent = the open-ended hunt, no square marked. */
   targetIdx?: number | null
-  /** Hang the per-square tooltip BELOW the track instead of above it. Set by
-   *  the copy inside the mobile status bar, where there's nothing above the
-   *  squares but a clipped edge (see the CSS). */
-  tooltipBelow?: boolean
 }
 
 /**
@@ -26,12 +22,13 @@ type Props = {
  * threshold. The current rank's name renders as a label above the track so the
  * player has a vocabulary anchor ("you're at Solid; Genius is 35 points").
  *
- * Colors come from the game's theme via `--rank-accent` / `--rank-accent-edge`
- * / `--rank-text` (aliased per game in its `theme.css`). Pure derivation from
+ * The ladder's own colors (`--rank-fill` / `--rank-edge`) are shared by both
+ * games — see the CSS module; only the type color `--rank-text` is aliased per
+ * game in its `theme.css`. Pure derivation from
  * `score` + `total` via `currentRankIndex`; the FE never disagrees with the SQL
  * `_rank_idx` because both compute from the same constants.
  */
-export function RankBar({ score, total, targetIdx = null, tooltipBelow = false }: Props) {
+export function RankBar({ score, total, targetIdx = null }: Props) {
   const idx = currentRankIndex(score, total)
   return (
     <div className={styles.rankBar}>
@@ -52,7 +49,7 @@ export function RankBar({ score, total, targetIdx = null, tooltipBelow = false }
               tabIndex={0}
               aria-label={`${name}, ${pts} points${isTarget ? ' — target' : ''}`}
             >
-              <span className={cls(styles.tooltip, tooltipBelow && styles.tooltipBelow)}>
+              <span className={styles.tooltip}>
                 {name} · {pts} pts{isTarget ? ' · target' : ''}
               </span>
             </li>

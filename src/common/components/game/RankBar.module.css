@@ -148,13 +148,24 @@
   opacity: 1;
 }
 
-/* Flip the bubble BELOW the square. For the copy in the mobile status bar: that
- * strip is a fixed-height `overflow: hidden` box (MobileStatusBar.module.css —
- * fixed so the board below it can't be pushed), and the squares sit near its
- * top, so a bubble above is clipped away entirely. Below, it fits inside the
- * block, overlapping the Score/Words figures for as long as the finger or
- * cursor is down — a fair trade for a tooltip that can actually be read. */
-.tooltipBelow {
-  bottom: auto;
-  top: calc(100% + 8px);
+/* MOBILE: hang the bubble BELOW the squares instead of above them.
+ *
+ * Both copies of this bar live near the top of their container on a phone, and
+ * both are unusable with the bubble above:
+ *   - the status bar above the board is a fixed-height `overflow: hidden` box
+ *     (MobileStatusBar.module.css — fixed so the board beneath can't be pushed),
+ *     so a bubble above the squares is clipped away entirely;
+ *   - the info column, off-canvas in the <InfoSheet>, isn't clipped but puts the
+ *     bubble over the sheet's close X, 14px from the top edge.
+ * Below, both fit in open space (the Score/Words figures underneath), which the
+ * bubble covers only while it's shown.
+ *
+ * A media query rather than a prop: the condition really is the breakpoint —
+ * on desktop the info column has room above and the status bar isn't rendered
+ * at all — so neither call site has a decision to make. */
+@media (--mobile) {
+  .tooltip {
+    bottom: auto;
+    top: calc(100% + 8px);
+  }
 }
