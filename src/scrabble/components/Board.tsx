@@ -9,6 +9,7 @@ import {
   type PremiumType,
 } from '../lib/board'
 import history from '../../common/components/game/lists/historyViewer.module.css'
+import gridCursor from '../../common/components/game/gridCursor.module.css'
 import styles from './Board.module.css'
 
 /** A tile a player has placed this turn but not yet committed. */
@@ -120,7 +121,13 @@ export function Board({
             })()}
           {!committed && !tent && (idx === CENTER ? '★' : PREMIUM_LABEL[premium])}
           {cursorHere && !viewing && (
-            <span className={cls(styles.cursor, cursor.dir === 'h' ? styles.cursorH : styles.cursorV)} />
+            <span
+              className={cls(
+                gridCursor.cursor,
+                styles.cursor,
+                cursor.dir === 'h' ? gridCursor.cursorH : gridCursor.cursorV,
+              )}
+            />
           )}
         </div>,
       )

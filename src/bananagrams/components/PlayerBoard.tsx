@@ -5,6 +5,7 @@ import { usePlayerBoard, LETTER_SCALE } from '../hooks/usePlayerBoard'
 import { BoardArena } from './BoardArena'
 import { HandCard } from './HandCard'
 import shared from '../../common/components/game/PlayArea.module.css'
+import dragGhost from '../../common/components/game/dragGhost.module.css'
 import styles from './PlayerBoard.module.css'
 
 /**
@@ -171,7 +172,7 @@ export function PlayerBoard({
 
       {arena.drag && (
         <div
-          className={styles.ghost}
+          className={cls(dragGhost.ghost, styles.ghost)}
           style={{
             left: arena.drag.x,
             top: arena.drag.y,

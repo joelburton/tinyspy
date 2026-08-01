@@ -193,7 +193,7 @@ export function BoardCol({
               turn-state changes go to the header pill);
             - else → the CluePanel (clue form / clue display + Pass / waiting). */}
       <div className={styles.belowBoard}>
-        <div className={cls(shared.moveAreaOrLocalFeedback, viewing && styles.slotViewing)}>
+        <div className={cls(shared.moveAreaOrLocalFeedback, viewing && history.bannerHost)}>
           {/* Turn-viewer banner — while inspecting a past turn it overlays this
               below-board slot (the CluePanel / pill stays mounted underneath, so an
               in-progress clue survives). Opaque surface + yellow border = the shared

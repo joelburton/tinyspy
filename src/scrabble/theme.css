@@ -20,7 +20,9 @@
      brighter + more yellow, so it clearly stands out from the committed C tiles. */
   --scrabble-tile-attention: linear-gradient(var(--tile-attention), var(--tile-attention)), var(--scrabble-tile-bg);
   --scrabble-tile-selected: #ffd24d; /* a rack tile picked for exchange */
-  --scrabble-cursor: var(--grid-cursor); /* the shared grid keyboard-entry cursor */
+  /* (No cursor alias: the keyboard cursor is the shared gridCursor module, which
+     reads --grid-cursor directly. This game-named alias pointed straight at it
+     and had no other reader.) */
 }
 
 /* While dragging a tile, suppress text selection + show the grab cursor. */

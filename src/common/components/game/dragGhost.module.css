@@ -1,0 +1,33 @@
+/* The drag ghost — the tile that follows the pointer while you're dragging one,
+ * shared by the two games with draggable tiles (scrabble's rack, bananagrams's
+ * hand + board). Composed with each game's own look:
+ * `cls(dragGhost.ghost, styles.ghost)`.
+ *
+ * WHAT'S HERE is the mechanics of "an element pinned to the pointer", which is
+ * identical in both and is the part that would drift silently — if someone
+ * retuned the rotation in one game, nothing would point at the other:
+ *
+ *   position: fixed          the render sites set `left`/`top` from pointer coords
+ *   translate(-50%, -50%)    so those coords are the tile's CENTRE, not its corner
+ *   rotate(-3deg)            the "lifted off the board" tilt
+ *   pointer-events: none     the ghost must never eat the drop target's events
+ *
+ * WHAT'S DELIBERATELY NOT HERE is the look. Each game's ghost imitates the tile
+ * it lifted, and those tiles genuinely differ: bananagrams's are large and round
+ * (7px radius, a deep `0 6px 14px` shadow), scrabble's small and crisp (4px, a
+ * shallower `0 4px 10px`), each on its own colour tokens, and scrabble sizes its
+ * ghost from `--rack-tile-size` where bananagrams's is sized by its content. A
+ * ghost that stopped resembling the tile it came from would be a worse drag, not
+ * a more consistent one. The z-indexes also differ (1000 vs 100) and are left
+ * alone pending the z-index-ladder item in docs/css-audit.md — a fixed-position
+ * overlay's tier is a whole-app question, not a per-component one.
+ */
+.ghost {
+  position: fixed;
+  transform: translate(-50%, -50%) rotate(-3deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  pointer-events: none;
+}

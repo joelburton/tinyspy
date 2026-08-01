@@ -1,0 +1,43 @@
+/* The keyboard cursor on a grid board — the ring that shows which cell you're
+ * typing into and which way the letters will run. Shared by the two games with
+ * keyboard entry onto a grid (scrabble's board, bananagrams's player board);
+ * scrabble's copy of this was even commented "(bananagrams style)", which is the
+ * standing signal to make the match structural rather than remembered.
+ *
+ * The shape is a ring that's THICK ON THE AXIS OF TRAVEL: 1px all round with the
+ * two edges perpendicular to the direction thickened to 5px. So a horizontal
+ * cursor has heavy top and bottom rules (the letters will run left-to-right
+ * between them) and a vertical one heavy left and right. Reading the direction
+ * off the cursor is the whole job, so the asymmetry is the point, not decoration.
+ *
+ * Render it as a positioned child of the CELL:
+ *   cls(gridCursor.cursor, styles.cursor, dir === 'h' ? gridCursor.cursorH : gridCursor.cursorV)
+ *
+ * The per-game `styles.cursor` carries ONE declaration: `border-radius`, which
+ * tracks the cell it sits in — 3px on scrabble's rounded squares, and its own
+ * value on bananagrams's. That genuinely differs per board, so it stays local;
+ * everything else here is identical in both.
+ */
+.cursor {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  pointer-events: none;
+  /* Above the cell's own contents (letter + premium label) but below the drag
+   * ghost and any overlay — see the board-layer tier in each game's board CSS. */
+  z-index: 5;
+}
+
+/* Horizontal: heavy top + bottom, so the eye runs along the row. */
+.cursorH {
+  border: 1px solid var(--grid-cursor);
+  border-top-width: 5px;
+  border-bottom-width: 5px;
+}
+
+/* Vertical: heavy left + right, so the eye runs down the column. */
+.cursorV {
+  border: 1px solid var(--grid-cursor);
+  border-left-width: 5px;
+  border-right-width: 5px;
+}

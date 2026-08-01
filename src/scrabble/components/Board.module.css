@@ -160,22 +160,10 @@
   font-weight: 600;
 }
 
-/* The keyboard cursor — a thick-on-the-axis ring (bananagrams style). */
+/* The keyboard cursor's one game-specific declaration: it hugs the cell it sits
+ * in, and scrabble's cells are 3px (`.cell, .tile` above). The ring itself — the
+ * thick-on-the-axis shape and its direction variants — is the shared
+ * common/components/game/gridCursor.module.css. */
 .cursor {
-  position: absolute;
-  inset: 0;
-  box-sizing: border-box;
   border-radius: 3px;
-  pointer-events: none;
-  z-index: 5;
-}
-.cursorH {
-  border: 1px solid var(--scrabble-cursor);
-  border-top-width: 5px;
-  border-bottom-width: 5px;
-}
-.cursorV {
-  border: 1px solid var(--scrabble-cursor);
-  border-left-width: 5px;
-  border-right-width: 5px;
 }

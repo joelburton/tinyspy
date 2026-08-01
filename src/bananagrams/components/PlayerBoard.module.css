@@ -158,24 +158,12 @@
   opacity: 0.28;
 }
 
-/* ---- keyboard cursor ---- */
+/* ---- keyboard cursor ----
+ * Just the corner rounding; the ring itself (thick-on-the-axis, plus its
+ * direction variants) is the shared common/components/game/gridCursor.module.css.
+ * A touch of radius on square `.cell`s so the ring doesn't read as a hard box. */
 .cursor {
-  position: absolute;
-  inset: 0;
-  box-sizing: border-box;
   border-radius: 4px;
-  pointer-events: none;
-  z-index: 5;
-}
-.cursorH {
-  border: 1px solid var(--grid-cursor);
-  border-top-width: 5px;
-  border-bottom-width: 5px;
-}
-.cursorV {
-  border: 1px solid var(--grid-cursor);
-  border-left-width: 5px;
-  border-right-width: 5px;
 }
 /* A brief red box around the hand: "you don't hold that tile" (a keyboard
  * miss). Absolutely covers the hand (which is position:relative); rendered
@@ -320,19 +308,15 @@ button.floatingRotate {
   border-color: var(--color-surface-border);
 }
 
-/* ---- drag ghost ---- */
+/* ---- drag ghost ----
+ * The LOOK only; the pointer-following mechanics (fixed + centre-translate +
+ * tilt) come from the shared common/components/game/dragGhost.module.css,
+ * composed alongside this. */
 .ghost {
-  position: fixed;
-  transform: translate(-50%, -50%) rotate(-3deg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
   color: var(--bananagrams-tile-ink);
   background: var(--bananagrams-tile-face);
   border: 1px solid var(--bananagrams-tile-edge);
   border-radius: 7px;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
-  pointer-events: none;
   z-index: 1000;
 }

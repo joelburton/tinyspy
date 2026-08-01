@@ -260,7 +260,7 @@ export function BoardCol({
           reserved height so the flex:1 board never shifts. While viewing a past turn
           the history banner overlays it. */}
       <div className={styles.belowBoard}>
-        <div className={cls(shared.moveAreaOrLocalFeedback, viewing && styles.slotViewing)}>
+        <div className={cls(shared.moveAreaOrLocalFeedback, viewing && history.bannerHost)}>
           {viewing && snap && (
             <div className={history.banner} onClick={onExitViewing} title="Click to exit">
               <span className={history.bannerLabel}>{snap.description}</span>

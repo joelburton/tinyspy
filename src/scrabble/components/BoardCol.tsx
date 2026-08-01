@@ -18,6 +18,7 @@ import { Rack } from './Rack'
 import { Controls } from './Controls'
 import { BlankPicker } from './BlankPicker'
 import shared from '../../common/components/game/PlayArea.module.css'
+import dragGhost from '../../common/components/game/dragGhost.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 
@@ -847,7 +848,7 @@ export function BoardCol({
       {blankAt && <BlankPicker onPick={pickBlank} onCancel={() => setBlankAt(null)} />}
 
       {drag && (
-        <div className={styles.ghost} style={{ left: drag.x, top: drag.y }}>
+        <div className={cls(dragGhost.ghost, styles.ghost)} style={{ left: drag.x, top: drag.y }}>
           {drag.letter === BLANK ? '' : drag.letter}
         </div>
       )}

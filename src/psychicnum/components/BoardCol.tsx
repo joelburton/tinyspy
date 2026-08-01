@@ -226,7 +226,7 @@ export function BoardCol({
             - locally done but game not over (out of guesses OR conceded) → a sticky
               "waiting" pill. */}
       <div className={styles.belowBoard}>
-        <div className={cls(shared.moveAreaOrLocalFeedback, viewing && styles.slotViewing)}>
+        <div className={cls(shared.moveAreaOrLocalFeedback, viewing && history.bannerHost)}>
           {/* Turn-viewer banner — while inspecting a past turn it overlays this slot
               (the entry / pill stays mounted underneath, its capture frozen). Opaque
               surface + yellow border = the shared "viewing history" marker; the

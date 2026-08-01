@@ -17,10 +17,10 @@
  * game — that's a different signal from "you're in the viewer".)
  *
  * What stays GAME-SPECIFIC and is deliberately NOT here: WHICH element wears the
- * board frame (each Board applies `.frame` to its own board box) and the HEIGHT /
- * position of the banner's parent — the banner is `inset: 0`, filling whatever
- * below-board region the game gives it (each game sizes that region and makes it a
- * positioning context with `position: relative`). See docs/playarea-decomposition-plan.md.
+ * board frame (each Board applies `.frame` to its own board box) and the HEIGHT of
+ * the banner's parent — the banner is `inset: 0`, filling whatever below-board
+ * region the game gives it. Making that parent a positioning context is shared
+ * (`.bannerHost` below). See docs/playarea.md.
  */
 
 /* Board frame: a yellow outline around the board. An outline (not a border) so it
@@ -61,6 +61,20 @@
   outline: 2px solid var(--color-history-viewer);
   outline-offset: 1px;
   border-radius: var(--radius-sm);
+}
+
+/* The positioning context `.banner` anchors to — it's `inset: 0`, so its parent
+ * must be positioned or the overlay escapes to the nearest one that is.
+ *
+ * TWO shapes of host exist, both fine. Games whose whole below-board region is
+ * already `position: relative` (stackdown, waffle, wordle, scrabble) need nothing
+ * from here. The rest (codenamesduet, connections, psychicnum) put the banner
+ * inside the narrower `shared.moveAreaOrLocalFeedback` swap box, which isn't
+ * positioned by default — they wear this class conditionally, only while viewing,
+ * so a `position` they don't otherwise want doesn't sit on the box during play.
+ * All three had a byte-identical private one-liner for it. */
+.bannerHost {
+  position: relative;
 }
 
 /* The overlay banner — covers the below-board input area while inspecting a past

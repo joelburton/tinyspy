@@ -10,6 +10,8 @@ import {
   type DragSource,
 } from '../hooks/usePlayerBoard'
 import { idx } from '../lib/board'
+import { cls } from '../../common/lib/util/cls'
+import gridCursor from '../../common/components/game/gridCursor.module.css'
 import styles from './PlayerBoard.module.css'
 
 /**
@@ -86,9 +88,11 @@ export function BoardArena({
           )}
           {cursorHere && (
             <div
-              className={
-                styles.cursor + ' ' + (cursor.dir === 'h' ? styles.cursorH : styles.cursorV)
-              }
+              className={cls(
+                gridCursor.cursor,
+                styles.cursor,
+                cursor.dir === 'h' ? gridCursor.cursorH : gridCursor.cursorV,
+              )}
             />
           )}
         </div>,
