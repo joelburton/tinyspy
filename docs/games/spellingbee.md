@@ -388,7 +388,14 @@ src/spellingbee/
     (RankBar)             SHARED common/components/game/RankBar — 7 squares from Start to
                           Genius, filled up to the current rank, with the rank NAME inline
                           to their left ("GENIUS ▪-▪-▪…"). Per-square hover tooltip with
-                          rank name + points threshold.
+                          rank name + points threshold. When the game has a `target_rank`
+                          (always in compete, optional in coop) THAT square carries a heavy
+                          near-black outline — the goal marker. Squares past the goal are
+                          kept, not cropped (a single big word can carry the score past the
+                          rank that ended the game), and the outline survives the achieved
+                          fill, so at terminal the bar still shows what was played for.
+                          The marker is the ONLY in-play readout of the goal in coop —
+                          compete additionally names it in the OpponentStrip.
     (Stats)               SHARED common/components/game/Stats — 2-cell grid: Score / Words,
                           written tight ("13/50"), no rules above or below (it reads as one
                           unit with the RankBar). Tabular-nums so the digits don't shift

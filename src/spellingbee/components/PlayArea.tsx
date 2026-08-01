@@ -475,6 +475,7 @@ export function PlayArea(ctx: GamePageCtx) {
         requiredWordsScore={game.required_words_score}
         foundWordsCount={foundWordsCount}
         requiredWordsCount={game.required_words_count}
+        targetRankIdx={targetRankIdx}
         // ── Board to render ──
         outerLetters={game.outer_letters}
         centerLetter={game.center_letter}

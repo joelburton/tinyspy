@@ -44,7 +44,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0;
+  /* A MINIMUM separation, not the spacing: `space-between` still distributes
+   * whatever width is left over, so the roomy info-column copy is unchanged
+   * (~30px between squares at the 280px cap). It matters where there IS no
+   * spare width — the mobile status block above the board, whose centered
+   * shrink-wrapping parent chain leaves this track at its min-content 98px
+   * (7 × 14). Without a floor the squares sat edge to edge there, hiding the
+   * baseline rule that connects them; this keeps a short piece of that line
+   * visible in every gap. Kept small so the row still fits the rank name
+   * beside it on a phone. */
+  gap: 8px;
   /* Takes the row's remaining width beside the label, up to the same cap. */
   flex: 1 1 auto;
   min-width: 0;
@@ -94,6 +103,22 @@
 .achieved {
   background: var(--rank-accent);
   border-color: var(--rank-accent-edge);
+}
+
+/* The GOAL square — the rank this game is played to (`setup.target_rank`).
+ * A heavy near-black outline rather than another fill color: the fill is
+ * already spoken for by `.achieved` (the game's accent), and the two would
+ * collide on this very square at the moment it's reached. An outline sits on
+ * top of either state, so the goal stays marked before AND after you get
+ * there. Deliberately NOT a per-game hue — a goal isn't good or bad, and this
+ * component is shared, so both games mark it identically.
+ *
+ * `box-sizing: border-box` is global, so the thicker border eats inward and
+ * the square's 14px footprint is unchanged — no reflow of the track.
+ * Declared after `.achieved` so it wins the border-color cascade. */
+.target {
+  border-width: 3px;
+  border-color: var(--color-text);
 }
 
 /* Tooltip — only renders on hover/focus of its parent dot. */

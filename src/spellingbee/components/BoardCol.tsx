@@ -43,6 +43,7 @@ export function BoardCol({
   // ── Mobile-only status block (above the board) ──
   foundWordsScore,
   requiredWordsScore,
+  targetRankIdx,
   foundWordsCount,
   requiredWordsCount,
   // ── Board to render ──
@@ -69,6 +70,10 @@ export function BoardCol({
   requiredWordsScore: number
   foundWordsCount: number
   requiredWordsCount: number
+  /** The goal rank, when the game has one — marked on the mobile RankBar
+   *  exactly as on the info column's copy (which is off-canvas on a phone,
+   *  so this is the only place the goal shows there). */
+  targetRankIdx: number | null
 
   // ── Board to render ──
   /** The board's outer letters (a string) — the local shuffle rearranges this. */
@@ -142,7 +147,7 @@ export function BoardCol({
           by exactly this much and the page still doesn't scroll. */}
       <MobileStatusBar>
         <div className={styles.mobileStatus}>
-          <RankBar score={foundWordsScore} total={requiredWordsScore} />
+          <RankBar score={foundWordsScore} total={requiredWordsScore} targetIdx={targetRankIdx} />
           <Stats
             foundWordsScore={foundWordsScore}
             requiredWordsScore={requiredWordsScore}

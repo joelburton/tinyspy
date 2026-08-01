@@ -271,7 +271,11 @@ into three buckets:
   leaderboard (`common/lib/game/foundWords*`), the `useGame` factory
   (`common/hooks/game/makeFoundWordsGame`), and the `RankBar` / `Stats`
   components (`common/components/game/`, themed via generic `--rank-*` tokens
-  each game's `theme.css` aliases).
+  each game's `theme.css` aliases). The RankBar marks the game's
+  `target_rank` square with a heavy near-black outline — deliberately NOT a
+  per-game hue, since a goal is neither good nor bad and the component is
+  shared; see [spellingbee.md](spellingbee.md) for the full behavior. It's the
+  only in-play readout of the goal in coop.
 - **Deliberately forked — per-game siblings.** `PlayArea`,
   `BoardCol`, `InfoCol`, `SetupForm`, and `lib/setup.ts` are 85–98% identical to
   spellingbee's but are kept as separate copies **on purpose**. Their deltas are

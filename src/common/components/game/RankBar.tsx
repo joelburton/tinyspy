@@ -5,6 +5,10 @@ import styles from './RankBar.module.css'
 type Props = {
   score: number
   total: number
+  /** The rank this game is played TO, when one was set — `setup.target_rank`
+   *  (always in compete, optional in coop). Its square gets the goal outline.
+   *  Null/absent = the open-ended hunt, no square marked. */
+  targetIdx?: number | null
 }
 
 /**
@@ -23,7 +27,7 @@ type Props = {
  * `score` + `total` via `currentRankIndex`; the FE never disagrees with the SQL
  * `_rank_idx` because both compute from the same constants.
  */
-export function RankBar({ score, total }: Props) {
+export function RankBar({ score, total, targetIdx = null }: Props) {
   const idx = currentRankIndex(score, total)
   return (
     <div className={styles.rankBar}>
@@ -31,15 +35,21 @@ export function RankBar({ score, total }: Props) {
       <ol className={styles.track}>
         {RANKS.map((name, i) => {
           const pts = rankPoints(i, total)
+          // The goal square keeps its outline after you reach it (`.target`
+          // wins over `.achieved`), so the bar still reads "this is what we
+          // were playing to" at terminal — and the ranks BEYOND the target
+          // stay on the track rather than being cropped, since a single big
+          // word can carry the score past the goal that ended the game.
+          const isTarget = i === targetIdx
           return (
             <li
               key={name}
-              className={cls(styles.tier, i <= idx && styles.achieved)}
+              className={cls(styles.tier, i <= idx && styles.achieved, isTarget && styles.target)}
               tabIndex={0}
-              aria-label={`${name}, ${pts} points`}
+              aria-label={`${name}, ${pts} points${isTarget ? ' — target' : ''}`}
             >
               <span className={styles.tooltip}>
-                {name} · {pts} pts
+                {name} · {pts} pts{isTarget ? ' · target' : ''}
               </span>
             </li>
           )

@@ -114,7 +114,7 @@ export function InfoCol({
       <div className={shared.actionSlot}>
         {/* State — RankBar + Stats are one unit (score progress + the figures),
             kept together and leading. */}
-        <RankBar score={foundWordsScore} total={requiredWordsScore} />
+        <RankBar score={foundWordsScore} total={requiredWordsScore} targetIdx={targetRankIdx} />
         <Stats
           foundWordsScore={foundWordsScore}
           requiredWordsScore={requiredWordsScore}
