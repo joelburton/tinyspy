@@ -438,7 +438,8 @@ function PanelRnd({
   // refs so the observer is installed once (no reconnect churn per fit).
   const bodyRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
-  const userMovedRef = useRef(false) // once the user drags/resizes, stop re-centering
+  // (No "has the user moved it?" flag: the fit anchors the panel's top wherever
+  // it currently is, so a dragged panel keeps its position for free.)
   // Latest rect/setRect kept in refs so the observer below installs ONCE (its
   // deps are just [fitContent]) yet always reads current values. Synced in a
   // passive effect — never written during render (react-compiler forbids that).
@@ -534,11 +535,9 @@ function PanelRnd({
         // closes the panel.
         dragHandleClassName={draggable ? styles.dragHandle : undefined}
         onDragStop={(_e, d) => {
-          userMovedRef.current = true // stop auto-re-centering after a manual move
           setRect({ ...rect, x: d.x, y: d.y })
         }}
         onResizeStop={(_e, _dir, ref, _delta, position) => {
-          userMovedRef.current = true
           setRect({
             x: position.x,
             y: position.y,
