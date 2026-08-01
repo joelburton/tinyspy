@@ -446,6 +446,20 @@ This is the **canonical deferred register** for crosswords — distilled from th
 ### Deliberate leaves / standing flags
 Recorded decisions, not bugs — surfaced in the reviews and left as-is for a possible
 future cleanup pass:
+- **The clue-list greys deliberately diverge from crossplay — don't "correct" them.**
+  `--crosswords-row-hover` / `-row-rule` / `-clue-num` (and the `-clue-label`,
+  `-rebus-bg` pair) are a cool **slate** family that exists in neither `~/src/crossplay`
+  nor this app's neutral greys. Two of them replaced a source value outright: the
+  clue-row hover was crossplay's `#eef3fa`, and the clue number was its `#444`. That
+  divergence almost certainly arrived by substitution during the port rather than by
+  design — but Joel likes the result and **ratified it (2026-08-01)**, which is the
+  concrete evidence the port-parity rule asks for before accepting a deviation. They
+  were bare literals scattered across three modules; they're now named in `theme.css`
+  at **unchanged values**, so the palette is findable and `cssTokens.test.ts` covers
+  them. Anyone diffing against crossplay will find this and think it's a bug: it isn't.
+  (`#333` on the `.circle` decoration IS byte-identical to crossplay's `Cell.module.css`,
+  and the grid's `#fff` / `#000` / `#111` are structural black-and-white, so all of those
+  stay literal.)
 - **Vestigial `'nyt'` in `crosswords.puzzles.source`'s check constraint.** Nothing
   writes `'nyt'` anymore (NYT games are self-contained — no `puzzles` row; the CLI
   only writes `'library'`). A harmless spare; drop it from the constraint if you want

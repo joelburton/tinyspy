@@ -149,7 +149,7 @@
   font-size: 0.5em;
   font-weight: 600;
   border: 0.05em solid #333;
-  background: #fffbe6;
+  background: var(--crosswords-rebus-bg);
   padding: 0;
 }
 /* Read-only peek (Shift+Space): the same box as the rebus input, rendered as

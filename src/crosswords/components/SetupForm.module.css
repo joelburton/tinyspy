@@ -98,11 +98,11 @@
      muted color, stays visible). */
   color: var(--color-text);
   text-align: left;
-  border-bottom: 1px solid #eef2f6;
+  border-bottom: 1px solid var(--crosswords-row-rule);
   font: inherit;
 }
 .item:last-child { border-bottom: none; }
-.item:hover { background: #f1f5f9; }
+.item:hover { background: var(--crosswords-row-hover); }
 .selected,
 .selected:hover {
   background: var(--crosswords-in-word);

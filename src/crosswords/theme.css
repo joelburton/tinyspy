@@ -17,6 +17,19 @@
   --crosswords-header-fg: #374151;
   --crosswords-header-border: #d1d5db;
 
+  /* Clue-list rows + the active-clue readout. These are a cool slate family
+     rather than the app's neutral greys, and that is DELIBERATE — see
+     docs/games/crosswords.md → "The clue-list greys". Named here (rather than
+     left as literals in three modules) so the palette is findable and the
+     cssTokens guard covers them; the values are unchanged. */
+  --crosswords-row-hover: #f1f5f9;
+  --crosswords-row-rule: #eef2f6;
+  --crosswords-clue-num: #475569;
+  --crosswords-clue-label: #444;
+  /* The rebus (multi-letter) input's warm background — an "you're typing
+     something unusual into this cell" cue, distinct from the grid's white. */
+  --crosswords-rebus-bg: #fffbe6;
+
   /* Grid ink. */
   --crosswords-block: #000;
   --crosswords-line: #000;

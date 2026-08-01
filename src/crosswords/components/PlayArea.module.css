@@ -67,7 +67,7 @@
 }
 .activeClueLabel {
   font-weight: 700;
-  color: #444;
+  color: var(--crosswords-clue-label);
   flex-shrink: 0;
 }
 .activeClueText {
