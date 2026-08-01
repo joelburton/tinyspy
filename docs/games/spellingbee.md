@@ -102,7 +102,7 @@ Both manifests share the same `PlayArea`, `SetupForm`, `Help`, and `useGame`. Th
 
 ### Rules (compete)
 
-- **Setup**: in addition to the timer, the start-game dialog asks for a **target rank** — one of Solid / Nice / Great / Amazing / Genius (RANKS indices 2..6 — Start and Good are excluded as trivially-won). Default is **Amazing (5)**.
+- **Setup**: in addition to the timer, the start-game dialog asks for a **target rank** — a dropdown over Good / Solid / Nice / Great / Amazing / Genius (RANKS indices 1..6). Only **Start (0)** is withheld: every player begins at it, so it's won by the first accepted word in compete and instantly in coop (`_rank_idx >= 0` is true from the off). Default is **Amazing (5)**. The coop picker is the same list plus a leading **None** (the open-ended hunt, stored as an absent `target_rank`).
 - **Per-player score + word list**: each player's `submit_word` calls write into `spellingbee.found_words` with `user_id` set to caller. RLS hides peers' rows mid-game (caller sees only their own); the WordList renders just the caller's finds until the game ends (post-terminal it opens up — see the reveal bullet below).
 - **First-to-target wins**: when caller's `_rank_idx(caller_score, required_words_score) >= target_rank`, `submit_word` flips `play_state` to `won_compete`, writes `status.winner_user_id = caller`, sets caller's `common.game_players.result = {won: true}` and every opponent's `= {won: false}`. The race ends for everyone instantly — opponents with sub-target ranks can no longer submit. **Bonus words count toward the rank** — a player who hits bonus pangrams can reach target faster than the displayed max-score implies (see [Rules → Bonus words](#rules)).
 - **Timeout / manual end → no winner**: if the countdown timer fires or any player ends the game manually before any player hits target, terminal `play_state='ended'` with `outcome='timeout'` (or `'manual'`) and every player's `result = {won: false}`. Friends-agreed-to-stop is a valid outcome, not a "you lose" punishment.
@@ -394,8 +394,9 @@ src/spellingbee/
                           kept, not cropped (a single big word can carry the score past the
                           rank that ended the game), and the outline survives the achieved
                           fill, so at terminal the bar still shows what was played for.
-                          The marker is the ONLY in-play readout of the goal in coop —
-                          compete additionally names it in the OpponentStrip.
+                          The goal also appears as a `Target rank:` line in the setup-options
+                          disclosure below (both modes); compete additionally names it in the
+                          OpponentStrip.
     (Stats)               SHARED common/components/game/Stats — 2-cell grid: Score / Words,
                           written tight ("13/50"), no rules above or below (it reads as one
                           unit with the RankBar). Tabular-nums so the digits don't shift
@@ -413,7 +414,7 @@ src/spellingbee/
                           SetupGameDialog wrapper). Reads `mode` from SetupBodyProps
                           (fed by the sibling-manifest's GameManifest.mode). Coop:
                           short paragraph + shared <TimerField>. Compete: adds a
-                          target-rank radio (Solid..Genius, default Amazing) above
+                          target-rank dropdown (Good..Genius, default Amazing) above
                           the timer. Both modes: a "Word difficulty" fieldset with
                           two shared <DifficultyField>s (Required words: band 1..6;
                           Legal/bonus words: band required..6), then a "Custom

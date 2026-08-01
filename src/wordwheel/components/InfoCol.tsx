@@ -180,7 +180,9 @@ export function InfoCol({
         <SetupDisclosure>
           <li>Dictionary (required): {difficultyValue(setup.required)}</li>
           <li>Dictionary (legal): {difficultyValue(setup.legal)}</li>
-          {isCompete && targetRankIdx !== null && <li>Target rank: {RANKS[targetRankIdx]}</li>}
+          {/* Both modes: coop's target is an opt-in win condition, and the setup
+              recap is where every OTHER chosen option is listed. */}
+          {targetRankIdx !== null && <li>Target rank: {RANKS[targetRankIdx]}</li>}
           {setup.unique_letters && <li>Unique letters only</li>}
           <li>Timer: {timerLabel(setup.timer)}</li>
         </SetupDisclosure>

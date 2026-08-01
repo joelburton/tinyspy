@@ -31,7 +31,7 @@
   --wordwheel-tile:          var(--tile-2); /* the shared warm ramp */
   --wordwheel-tile-text:     #1a1a1a;
 
-  /* Moderately-saturated red — the centre tile + the RankBar's achieved tier. */
+  /* Moderately-saturated red — the centre tile. */
   --wordwheel-accent:        #d6494f;
   --wordwheel-accent-edge:   #9e2c31;
   --wordwheel-center-text:   #ffffff;
@@ -41,10 +41,10 @@
   --wordwheel-tile-used:     #d8c79c;
   --wordwheel-accent-used:   #a83c41;
 
-  /* Shared-component tokens: the common <RankBar> / <Stats> read these generic
-   * names so one copy serves both hive-family games; wordwheel maps them to its
-   * own palette here. */
-  --rank-accent:             var(--wordwheel-accent);
-  --rank-accent-edge:        var(--wordwheel-accent-edge);
+  /* Shared-component token: the common <RankBar> / <Stats> read this generic
+   * name so one copy serves both hive-family games. Only the TEXT color is
+   * per-game now — the ladder's own fill + edge are shared (`--rank-fill` /
+   * `--rank-edge` in common/theme.css). wordwheel's red stays the WHEEL's
+   * accent; the ladder is yellow in both games on purpose. */
   --rank-text:               var(--wordwheel-tile-text);
 }

@@ -8,10 +8,15 @@
  * name is displayed as a label above the track so the player has a vocabulary
  * anchor without hovering.
  *
- * Game colors arrive through generic tokens each game's theme.css aliases:
- *   --rank-accent       the achieved-tier fill (the game's accent)
- *   --rank-accent-edge  the achieved-tier border (a darker edge)
- *   --rank-text         the label + tooltip color (the game's tile-text)
+ * The LADDER'S OWN palette is deliberately the same in both games — freebee
+ * yellow with dark-gold rules and borders — rather than each game's accent.
+ * A rank ladder means the same thing wherever it appears, and when the two
+ * games' bars sat side by side in the docs the differing hues read as a
+ * distinction that wasn't there. It's defined once, here:
+ *   --rank-fill  the achieved-tier fill
+ *   --rank-edge  every rule + border on the track
+ * (`--rank-text`, the label + tooltip color, is still aliased per game — it's
+ * near-black in both, and it belongs to the game's type color, not the ladder.)
  *
  * The track is intrinsically narrow (~280px) so it reads as a horizontal
  * indicator rather than a sticky band. Sits at the top of the side panel above
@@ -64,8 +69,7 @@
   position: relative;
 }
 
-/* Faint baseline behind the dots; the achievement bar (below)
- * draws on top with the player's accent color. */
+/* The rule connecting the squares, behind them; the squares draw on top. */
 .track::before {
   content: '';
   position: absolute;
@@ -73,7 +77,7 @@
   right: 0;
   top: 50%;
   height: 2px;
-  background: var(--color-surface-border);
+  background: var(--rank-edge);
   transform: translateY(-50%);
   z-index: 0;
 }
@@ -88,7 +92,7 @@
    * a harsh pixel box. */
   border-radius: 2px;
   background: var(--color-surface);
-  border: 2px solid var(--color-surface-border);
+  border: 2px solid var(--rank-edge);
   cursor: default;
 }
 
@@ -97,17 +101,16 @@
   outline-offset: 2px;
 }
 
-/* Achieved tiers fill with the game's accent, with a darker edge (not a
- * yellow-on-yellow border) so the square stands out against the white track
- * background without the heaviness of a near-black outline. */
+/* Achieved tiers take the fill; the border is already the shared dark gold, so
+ * the bright square stands out against the white track without the heaviness of
+ * a near-black outline (which is reserved for the goal marker below). */
 .achieved {
-  background: var(--rank-accent);
-  border-color: var(--rank-accent-edge);
+  background: var(--rank-fill);
 }
 
 /* The GOAL square — the rank this game is played to (`setup.target_rank`).
  * A heavy near-black outline rather than another fill color: the fill is
- * already spoken for by `.achieved` (the game's accent), and the two would
+ * already spoken for by `.achieved`, and the two would
  * collide on this very square at the moment it's reached. An outline sits on
  * top of either state, so the goal stays marked before AND after you get
  * there. Deliberately NOT a per-game hue — a goal isn't good or bad, and this

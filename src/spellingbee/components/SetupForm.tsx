@@ -1,5 +1,5 @@
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
-import { RadioRow } from '../../common/components/fields/RadioRow'
+import { SelectField } from '../../common/components/fields/SelectField'
 import { TimerField } from '../../common/components/fields/TimerField'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
@@ -17,15 +17,14 @@ const cleanLetters = (raw: string, max: number) =>
   raw.toLowerCase().replace(/[^a-z]/g, '').slice(0, max)
 
 /**
- * Allowed target-rank choices for the compete picker. The full
- * 7-rank ladder is `RANKS[0..6]` (Start, Good, Solid, Nice,
- * Great, Amazing, Genius), but Start (0) is trivially won (every
- * player starts at it) and Good (1) typically lands on the first
- * required word — neither makes a meaningful race. We expose
- * Solid..Genius (indices 2..6). Default lands on Amazing (5) per
- * the design conversation.
+ * Allowed target-rank choices, shared by both modes' pickers. The full
+ * 7-rank ladder is `RANKS[0..6]` (Start, Good, Solid, Nice, Great, Amazing,
+ * Genius); only Start (0) is withheld, because every player begins at it — a
+ * target of Start is won by the first accepted word in compete and instantly
+ * in coop (`_rank_idx >= 0` is true from the off). So the list runs
+ * Good..Genius (1..6). Compete's default lands on Amazing (5).
  */
-const TARGET_RANK_CHOICES = [2, 3, 4, 5, 6] as const
+const TARGET_RANK_CHOICES = [1, 2, 3, 4, 5, 6] as const
 
 /** The coop picker's "None" option. A UI-only sentinel — choosing it removes
  *  `target_rank` from the setup blob entirely (the server reads absent/null as
@@ -83,27 +82,29 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       {mode === 'compete' ? (
         <fieldset className={styles.fieldset}>
           <legend>Target rank — first to reach it wins</legend>
-          <RadioRow
+          <SelectField
             name="target_rank"
-            options={TARGET_RANK_CHOICES.map((idx) => ({ value: idx, label: RANKS[idx] }))}
-            value={s.target_rank}
-            onChange={(target_rank) => onChange({ ...s, target_rank })}
-          />
+            value={s.target_rank ?? NO_TARGET}
+            onChange={(v) => onChange({ ...s, target_rank: Number(v) })}
+          >
+            {TARGET_RANK_CHOICES.map((idx) => (
+              <option key={idx} value={idx}>
+                {RANKS[idx]}
+              </option>
+            ))}
+          </SelectField>
         </fieldset>
       ) : (
         <fieldset className={styles.fieldset}>
           <legend>Win at — reach it together and you win</legend>
-          <RadioRow
+          <SelectField
             name="target_rank"
-            // -1 is the RadioRow's "None" value only; it never reaches the
-            // setup blob — picking it DELETES the key (see below), because
-            // "no win condition" is the absence of a target, not a magic rank.
-            options={[
-              { value: NO_TARGET, label: 'None' },
-              ...TARGET_RANK_CHOICES.map((idx) => ({ value: idx, label: RANKS[idx] })),
-            ]}
             value={s.target_rank ?? NO_TARGET}
-            onChange={(choice) => {
+            // -1 is this picker's "None" value only; it never reaches the setup
+            // blob — picking it DELETES the key, because "no win condition" is
+            // the absence of a target, not a magic rank.
+            onChange={(v) => {
+              const choice = Number(v)
               if (choice === NO_TARGET) {
                 const rest = { ...s }
                 delete rest.target_rank
@@ -112,7 +113,14 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
                 onChange({ ...s, target_rank: choice })
               }
             }}
-          />
+          >
+            <option value={NO_TARGET}>None</option>
+            {TARGET_RANK_CHOICES.map((idx) => (
+              <option key={idx} value={idx}>
+                {RANKS[idx]}
+              </option>
+            ))}
+          </SelectField>
         </fieldset>
       )}
 

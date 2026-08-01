@@ -237,6 +237,18 @@
      Used for a placed-but-not-committed scrabble tile (its history-turn tiles too). */
   --tile-attention:           rgba(255, 234, 110, 0.62);
 
+  /* RANK LADDER (the shared <RankBar>, used by spellingbee + wordwheel).
+     ONE palette for both games, not each game's accent: a rank ladder means the
+     same thing wherever it appears, so a differing hue would imply a difference
+     that isn't there. Freebee's yellow with a dark-gold edge — the fill is the
+     same value as spellingbee's `--spellingbee-accent`, kept as its own token
+     here because it's now the LADDER's color rather than that game's.
+     The goal-square marker is deliberately not in this family; it's
+     `--color-text`, so it reads as a mark ON the ladder rather than another
+     rung state. */
+  --rank-fill:                #f7da21;
+  --rank-edge:                #c9911e;
+
   /* The keyboard / crossword ENTRY cursor ring on a tile grid (scrabble,
      bananagrams, future grid games). A slightly-orange-brown — deliberately NOT
      red or blue, since scrabble's premium squares already use those (a red/blue

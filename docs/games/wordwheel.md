@@ -274,8 +274,11 @@ into three buckets:
   each game's `theme.css` aliases). The RankBar marks the game's
   `target_rank` square with a heavy near-black outline — deliberately NOT a
   per-game hue, since a goal is neither good nor bad and the component is
-  shared; see [spellingbee.md](spellingbee.md) for the full behavior. It's the
-  only in-play readout of the goal in coop.
+  shared; see [spellingbee.md](spellingbee.md) for the full behavior. The
+  ladder's own palette (`--rank-fill` / `--rank-edge` in `common/theme.css`) is
+  shared too — freebee yellow with dark-gold rules, in BOTH games: a rank ladder
+  means the same thing wherever it appears, so wordwheel's red stays the
+  wheel's accent and doesn't recolor the bar.
 - **Deliberately forked — per-game siblings.** `PlayArea`,
   `BoardCol`, `InfoCol`, `SetupForm`, and `lib/setup.ts` are 85–98% identical to
   spellingbee's but are kept as separate copies **on purpose**. Their deltas are
