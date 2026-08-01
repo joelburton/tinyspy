@@ -4,7 +4,7 @@ A cross-game reference for **how each game ends**, catalogued four ways for ever
 
 1. **How each terminal state is reached** — the trigger (timer expiry, mistakes exhausted, grid solved, concede, manual end…) and the RPC that writes it.
 2. **Coop vs compete** — shown side-by-side; the two variants reach different terminal `play_state` values.
-3. **In-game feedback at end-states** — the exact copy players see in the PlayArea when a game ends (the terminal modal verdict + the info-column message).
+3. **In-game feedback at end-states** — the exact copy players see in the PlayArea when a game ends (the below-board verdict pill + the info-column message).
 4. **Listing label** — the exact string `manifest.labelFor(row)` returns for the club-page games list (the "game-listing-state field"), for every play_state including mid-game — **plus what a shelved (non-terminal, suspended) game shows** (always the `playing` branch).
 
 This is a snapshot; the source of truth is each game's `manifest.ts` (`labelFor`), its migration (`common.end_game` call sites), and its `components/PlayArea.tsx` (`buildOver`). See [states.md](states.md) for the view-state/play-state vocabulary this builds on.
@@ -22,19 +22,22 @@ These patterns recur across every game; the per-game sections below assume them.
 Sibling coop/compete pairs name the compete terminal as the coop name + `_compete`: coop `won`/`lost` → compete `won_compete`/`lost_compete`. connections/waffle/wordle/etc. follow this; boggle is the documented exception (its sole terminal is `'ended'`, winner derived from points — no win-threshold state).
 
 ### The neutral `'ended'` terminal
-Most games expose a manual **"End game"** that writes a uniform neutral terminal `play_state = 'ended'` with `status.outcome = 'manual'` and every player `{"won": false}`. Its feedback comes from the shared **`endedCopy(mode)`** (`src/common/lib/game/terminalCopy.ts:25-32`): coop verdict `'Game ended'`, compete verdict `'Game ended — no winner'`, both `message: 'Game over'`, `tone: 'neutral'`, `outcome: 'won'` (so the modal reads neutral-green, not a red loss). Exceptions: bananagrams has **no** `end_game` (retired for per-player concede); waffle/wordle/scrabble-coop/stackdown/etc. vary — noted per game.
+Most games expose a manual **"End game"** that writes a uniform neutral terminal `play_state = 'ended'` with `status.outcome = 'manual'` and every player `{"won": false}`. Its feedback comes from the shared **`endedCopy(mode)`** (`src/common/lib/game/terminalCopy.ts:25-32`): coop verdict `'Game ended'`, compete verdict `'Game ended — no winner'`, both `message: 'Game over'` and `tone: 'neutral'` (neutral grey — neither the win green nor the loss red). Exceptions: bananagrams has **no** `end_game` (retired for per-player concede); waffle/wordle/scrabble-coop/stackdown/etc. vary — noted per game.
 
 ### `concede` (compete only)
 Each compete game exposes `<schema>.concede(target_game)` gating to compete, delegating to **`common.concede`**. A single conceder among several racers does **not** end the game — they take a real per-player loss and drop out (a *locally-terminal* look: below-board pill `"Conceded — race continues"` and an info-column `LocalTerminalRow` labeled `"You conceded"`), while the others race on. Only when the **last** active racer concedes does `common.concede` end the whole game — usually as a collective loss (`play_state 'lost'`/`'lost_compete'`, `status.outcome 'conceded'`, all `{"won": false}`).
 
 ### `submit_timeout` (timed games only)
-Every timed gametype exposes `submit_timeout`, fired by **every** connected client the moment the browser countdown hits 0. It's idempotent on the terminal-state guard (first call ends the game; the rest raise "not in progress", which the manifest swallows). Games with `timerMode: 'none'` (crosswords) implement it for the interface but never fire it.
+Every timed gametype exposes `submit_timeout`, fired by **every** connected client the moment the browser countdown hits 0. It's idempotent on the terminal-state guard (first call ends the game; the rest raise "not in progress", which the manifest swallows). **Every** game offers the timer at setup — crosswords was the last holdout and gained the shared `<TimerField>` on 2026-07-31.
 
-### Where the three feedback surfaces live
-`buildOver()` in each `PlayArea.tsx` returns `{ outcome, verdict, message, tone }`. Conventionally:
-- **`verdict`** → the `GameOverModal` (via `TerminalModal`) big line — modal title bar is always the literal `"Game over"`.
-- **`message`** → the info-column outcome line (`TerminalActionRow`), colored by `tone`.
-- The **below-board terminal pill** shows either `verdict` or `message` depending on the game (noted per game).
+### Where the two feedback surfaces live
+`buildOver()` in each `PlayArea.tsx` returns `{ verdict, message, tone }`. Conventionally:
+- **`verdict`** → the **below-board terminal pill** (permanent, `fill` variant), colored by `tone`.
+- **`message`** → the info-column outcome line (`TerminalActionRow`), colored by `tone` — the terser of the two.
+
+There is **no game-over modal**: `GameOverModal` / `TerminalModal` / `useTerminalModal` were deleted in the 2026-07 end-states sweep ([ui.md → Terminal results](ui.md#terminal-results--the-moment-vs-the-record)) — the verdict is a permanent pill, not a thing to dismiss. What *does* pop is the shared `<CelebrationDialog>`, on the win worth marking (per game, below). Older references to a modal in this doc have been rewritten; if you find one, it's stale.
+
+A third surface applies while the game is still LIVE for others: a compete player who has dropped out gets the **locally-terminal** treatment — the `outOfRacePill` below the board plus a `<LocalTerminalRow>` in the info column. Both, always ([playarea.md](playarea.md)).
 
 ### The listing label & the shelved case
 The club page lists games entirely from `common.games`; each row is handed to `manifest.labelFor(row)` → one string (the "status label" on `ClubGameCard`). **A shelved / suspended game is just a non-current, non-terminal game — its `play_state` is still `'playing'`**, so its listing label is exactly the `playing` branch of `labelFor`. There is no separate "suspended" play_state or label. `ClubGameCard` distinguishes `active` / `suspended` / `completed` purely by CSS + a corner-flag (orange = current, yellow = suspended/open, muted = terminal); the *text* is the same `labelFor` output. (`ClubPage` computes `state={g.isTerminal ? 'completed' : 'suspended'}` for non-current games.)
@@ -67,7 +70,7 @@ All terminal writes go through `common.end_game`. In `codenamesduet.submit_guess
 No concede (it's coop).
 
 ### In-game feedback at end-states
-From `buildOver()`. **No `GameOverModal`** — the below-board pill shows `verdict`, the info-column shows `message`. A **win** (only) also pops the shared `<CelebrationDialog>` ("You win! 🎉" / "All 15 agents contacted."), one-shot at the moment of the win via `useCelebration` — never on opening an already-won game.
+From `buildOver()` — the below-board pill shows `verdict`, the info-column shows `message`. A **win** (only) also pops the shared `<CelebrationDialog>` ("You win! 🎉" / "All 15 agents contacted."), one-shot at the moment of the win via `useCelebration` — never on opening an already-won game.
 | terminal state | below-board `verdict` | info `message` | tone |
 |---|---|---|---|
 | `won` | `You win!` | `You won!` | won |
@@ -116,7 +119,7 @@ Migration `…002_psychicnum.sql`, in `submit_guess` / `submit_timeout` / `conce
 - **`ended`** (both) — manual `end_game`, `outcome='manual'` (:1108-1113).
 
 ### In-game feedback at end-states
-From `buildOver()`. **No `GameOverModal`** — the below-board pill shows `verdict`, the info-column shows `message`. A **coop win** (only) also pops the shared `<CelebrationDialog>` ("You win! 🎉" / "All three secret words found."), one-shot via `useCelebration` — never on opening an already-won game; compete doesn't celebrate (`won_compete` means *someone* won, and the self-vs-other test needs per-player data that's empty on the first render).
+From `buildOver()` — the below-board pill shows `verdict`, the info-column shows `message`. A **coop win** (only) also pops the shared `<CelebrationDialog>` ("You win! 🎉" / "All three secret words found."), one-shot via `useCelebration` — never on opening an already-won game; compete doesn't celebrate (`won_compete` means *someone* won, and the self-vs-other test needs per-player data that's empty on the first render).
 
 **The secret reveal is the BOARD, not text.** At terminal every secret's tile is ringed bright green (`--psychicnum-secret-ring`, over its existing background, so found-vs-missed still reads) — replacing the old below-board word list `The words were <A, B, C>`, which had no room on a phone. That's what freed the pill to carry the verdict like every other game.
 | state | verdict | message | tone |
@@ -169,7 +172,7 @@ Migration `…003_connections.sql`:
 A single player hitting 4 mistakes / conceding in compete is **not** a game terminal (survivors keep playing).
 
 ### In-game feedback at end-states
-From `buildOver()`. **No `GameOverModal`** — the below-board pill shows `verdict`, the info-column shows `message`. A **coop solve** (only) also pops the shared `<CelebrationDialog>` ("You win! 🎉" / "All four categories found."), one-shot at the moment of the solve via `useCelebration` — never on opening an already-solved game. Compete deliberately doesn't celebrate: "did I win the race?" needs `selfMatched` from `useGame`, which is 0 until the fetch lands, so an already-won game would flip false→true after load and pop at someone merely reviewing it (the same reason wordle/waffle celebrate coop only).
+From `buildOver()` — the below-board pill shows `verdict`, the info-column shows `message`. A **coop solve** (only) also pops the shared `<CelebrationDialog>` ("You win! 🎉" / "All four categories found."), one-shot at the moment of the solve via `useCelebration` — never on opening an already-solved game. Compete deliberately doesn't celebrate: "did I win the race?" needs `selfMatched` from `useGame`, which is 0 until the fetch lands, so an already-won game would flip false→true after load and pop at someone merely reviewing it (the same reason wordle/waffle celebrate coop only).
 | state | verdict | message | tone |
 |---|---|---|---|
 | coop `solved` | `You win!` | `You won!` | won |
@@ -224,7 +227,7 @@ Migration `…spellingbee.sql`:
 - **compete `lost` via all-conceded** — `common.concede` when the last racer drops (`outcome 'conceded'`, common `…1612-1616`).
 
 ### In-game feedback at end-states
-From `buildOver()`. **No `GameOverModal`** — the below-board pill shows `verdict`, the info-column shows `message`. A **coop win** pops the shared `<CelebrationDialog>` ("You win! 🎉" / `Reached "Genius" — 47/50 points.`), one-shot via `useCelebration`; compete doesn't celebrate (the winner-vs-loser test needs data that isn't right on the first render).
+From `buildOver()` — the below-board pill shows `verdict`, the info-column shows `message`. A **coop win** pops the shared `<CelebrationDialog>` ("You win! 🎉" / `Reached "Genius" — 47/50 points.`), one-shot via `useCelebration`; compete doesn't celebrate (the winner-vs-loser test needs data that isn't right on the first render).
 
 Verdicts lead with the outcome word so the result reads before the detail, and stay inside the ~44-character below-board budget on a phone.
 | state | verdict | message | tone |
@@ -485,7 +488,7 @@ Migration `…scrabble.sql`, all terminal writes via `scrabble._finish` → `com
 A single compete concede (others remain) is non-terminal — stays `playing`.
 
 ### In-game feedback at end-states
-From `buildOver()` (PlayArea.tsx:445-481). Below-board pill shows `message` (not verdict); info-column shows `message`; modal shows `verdict`.
+From `buildOver()`. The commit-slot pill shows `verdict` (or its `verdictNode` widget, when the winner is named); the info column shows `message`.
 
 **Coop** (`score = game.teamScore`):
 | outcome | verdict | message | tone |
@@ -542,7 +545,7 @@ Everything funnels through `boggle._finish(target_game, outcome, winner_id)` →
 Coop has no concede.
 
 ### In-game feedback at end-states
-From `buildOver()`. **No `GameOverModal`** — the below-board pill shows `verdict`, the info-column shows `message`. A **coop target win** (boggle's only unambiguous win) pops the shared `<CelebrationDialog>` ("Target reached! 🎉" / `12 words, 34 points.`), one-shot via `useCelebration` — gated on `status.mode` + `status.outcome`, both off the common row GamePage already waits for, NOT on boggle's own late-arriving `game.mode`. Compete doesn't celebrate.
+From `buildOver()` — the below-board pill shows `verdict`, the info-column shows `message`. A **coop target win** (boggle's only unambiguous win) pops the shared `<CelebrationDialog>` ("Target reached! 🎉" / `12 words, 34 points.`), one-shot via `useCelebration` — gated on `status.mode` + `status.outcome`, both off the common row GamePage already waits for, NOT on boggle's own late-arriving `game.mode`. Compete doesn't celebrate.
 
 `tally` = `${myCount} words, ${myScore} points`. Which of timeout-vs-manual ended it rides in `message` (`Time's up` / `Game ended`), so the pill can spend its width on the tally.
 
@@ -594,7 +597,7 @@ Mid-game `playing` branch:
 
 ## crosswords (brand CrossPlay) — `crosswords_coop` / `crosswords_compete`
 
-Collaborative/competitive crossword. Coop = shared grid + peer cursors; compete = private grids, first-correct-wins. **No timer** (`timerMode: 'none'`), so `submit_timeout` never fires.
+Collaborative/competitive crossword. Coop = shared grid + peer cursors; compete = private grids, first-correct-wins. Timed like every other game (the shared `<TimerField>`, added 2026-07-31 — before that the setup form offered no timer and `submit_timeout` was unreachable).
 
 ### Play-state enum
 | play_state | mode | terminal? | note |
@@ -603,8 +606,8 @@ Collaborative/competitive crossword. Coop = shared grid + peer cursors; compete 
 | `won` | coop | **yes** | shared grid solved |
 | `ended` | coop | **yes** | manual whole-table end (neutral) |
 | `won_compete` | compete | **yes** | first private grid solved |
-| `lost` | compete | **yes** | everyone conceded |
-| `lost_compete` | compete | **yes** | only via `submit_timeout` — **never fires** (no timer) |
+| `lost` | coop + compete | **yes** | compete: everyone conceded. coop: the countdown expired |
+| `lost_compete` | compete | **yes** | the countdown expired (takes the whole table down together) |
 
 ### How each terminal state is reached
 Migration `…crosswords.sql`; terminal transitions run under a row-lock re-checking `play_state='playing'` (so only the first solver wins):
@@ -612,23 +615,27 @@ Migration `…crosswords.sql`; terminal transitions run under a row-lock re-chec
 - **coop `ended`** — coop-only "End game" button → `crosswords.end_game` (rejects if mode ≠ coop) → `end_game(…, 'ended', outcome 'finished')` (:893-927).
 - **compete `won_compete`** — first player's own grid completes → `_finish_compete_won(target_game, caller)` → `end_game(…, 'won_compete', winner, winner_username)` (:306-331).
 - **compete `lost`** — last active player concedes → `common.concede` → `end_game(…, 'lost', outcome 'conceded')`.
-- **`lost` / `lost_compete` via timeout** — implemented (:952-984) but never invoked (no timer).
+- **`lost` (coop) / `lost_compete` (compete) via timeout** — the browser countdown hits 0 → `crosswords.submit_timeout` (:946-975) → `end_game(…, outcome 'timeout')`, everyone `{"won": false}`. Note the two `lost*` states are each reachable **two** ways (clock or concede), which is why the feedback below branches on `status.outcome`.
 
 No concede in coop; no manual end in compete (compete drops out via non-eliminating `concede`).
 
 ### In-game feedback at end-states
-From `buildOver()` (PlayArea.tsx:826-857). **Both** the modal and the below-board pill show `verdict` (this game does not render `message`). No CelebrationDialog — it uses the shared `GameOverModal`/`TerminalModal`.
-| play_state | who | verdict | outcome / tone |
-|---|---|---|---|
-| `won` (coop) | everyone | `Solved!` | won / won |
-| `won_compete` | winner | `You solved it first!` | won / won |
-| `won_compete` | loser (winner known) | `Beaten to it by ${winnerName}.` | lost / lost |
-| `won_compete` | loser (no name) | `Beaten to it.` | lost / lost |
-| `lost_compete` | that player | `Out of the race.` | lost / lost |
-| `lost` | everyone (all conceded) | `Everyone conceded.` | lost / lost |
-| `ended` (coop) | everyone | `Game ended` | won / neutral |
+From `buildOver()`. The `verdict` lands as a permanent pill in the **active-clue slot** (crosswords' below-board equivalent — the one readout a phone shows without opening the info sheet). `message` is computed for the info column but the terminal row deliberately renders **no** outcome line, so it's currently unused — see the two documented departures in [crosswords.md → Terminal](games/crosswords.md). A **coop solve** pops `<CelebrationDialog>` ("Solved! 🎉" / "The grid is complete."); compete doesn't celebrate.
 
-Non-terminal compete pill: a conceded-but-racing player sees `Conceded — race continues`
+| play_state | who | verdict (pill) | message | tone |
+|---|---|---|---|---|
+| `won` (coop) | everyone | `Won: grid complete` | `Solved!` | won |
+| `won_compete` | winner | `Won: solved it first` | `You won!` | won |
+| `won_compete` | loser | `${winnerName} solved it first` — rendered as a widget with the winner's identity dot (`verdictNode`) | `${winnerName} won` | lost |
+| `lost_compete` | everyone (timeout) | `Out of time — no winner` | `Out of time` | lost |
+| `lost_compete` | that player | `Lost: out of the race` | `You lost` | lost |
+| `lost` (coop) | everyone (timeout) | `Lost: out of time` | `Out of time` | lost |
+| `lost` (compete) | everyone (all conceded) | `Everyone conceded` — no `Lost:` prefix, nobody was beaten | `Game over` | lost |
+| `ended` (coop) | everyone | `endedCopy('coop')` → `Game ended` | `Game over` | neutral |
+
+Non-terminal compete: a conceded-but-racing player gets both halves of the locally-terminal treatment — the `Conceded — race continues` pill **and** a `<LocalTerminalRow>` "You conceded" with an inert Concede in the chrome strip. No Reveal in that state: the solution stays server-shielded until the *game* is terminal.
+
+**The terminal chrome strip** drops the fill / check / reveal controls entirely and becomes **Reveal solution** · **New game** · **Back to club** (primary). New game is the roster's only one that opens the club's *setup dialog* rather than creating a game directly — `setup` names a puzzle, so "same again" would re-serve the grid just solved. Crosswords deliberately has **no Replay** (see [deferred.md](deferred.md)).
 
 ### Listing label (`labelFor`)
 Coop `coopLabel` (manifest.ts:92-97) / compete `competeLabel` (:100-108); `title = status.title ?? 'Crossword'`, `winner = status.winner_username`.
@@ -685,7 +692,7 @@ Migration `…wordwheel.sql`:
 - **compete `lost` via all-conceded** — `common.concede` when the last racer drops (`play_state 'lost'`, `outcome 'conceded'`). A single conceder drops out locally; the rest race on.
 
 ### In-game feedback at end-states
-From `buildOver()`. **No `GameOverModal`** — the below-board pill shows `verdict`, the info-column shows `message`. A **coop win** pops the shared `<CelebrationDialog>` ("You win! 🎉" / `Reached "Genius" — 47/62 points.`), one-shot via `useCelebration`; compete doesn't celebrate (the winner-vs-loser test needs data that isn't right on the first render).
+From `buildOver()` — the below-board pill shows `verdict`, the info-column shows `message`. A **coop win** pops the shared `<CelebrationDialog>` ("You win! 🎉" / `Reached "Genius" — 47/62 points.`), one-shot via `useCelebration`; compete doesn't celebrate (the winner-vs-loser test needs data that isn't right on the first render).
 
 Verdicts lead with the outcome word so the result reads before the detail, and stay inside the ~44-character below-board budget on a phone.
 | state | verdict | message | tone |
@@ -744,7 +751,7 @@ Migration `…wordiply.sql`. Coop funnels through `_finish_coop` → `end_game(�
 **Concede subtlety (H1 fix):** a finished-but-not-conceded player counts as "still active" to `common.concede`, so a concede can leave every remaining active player out of guesses with nobody able to re-fire the end check — hanging the game in `playing`. `wordiply.concede` therefore re-runs the all-active-done check itself after conceding (:1094-1105) and resolves the race (→ `won_compete`) instead of stalling.
 
 ### In-game feedback at end-states
-From `buildOver()` (PlayArea.tsx:333-411). wordiply does **not** render the GameOverModal — feedback is the below-board indicator + the info-column message. `pct` = the length score %.
+From `buildOver()`. The below-board pill shows `verdict` (or its `verdictNode` widget); the info column shows `message`. `pct` = the length score %.
 
 **Compete:**
 | state | verdict | message | tone |
@@ -795,17 +802,15 @@ Coop (manifest.ts:87-95) / compete (:101-115). `ls = status.length_score`, `lc =
 | stackdown | `won`, `lost`, `ended` | `won_compete`, `lost_compete`, `ended` |
 | scrabble | `won` (only) | `won_compete`, `lost` (all-conceded), `ended` |
 | boggle | `ended` (only) | `ended` (only) |
-| crosswords | `won`, `ended` | `won_compete`, `lost` (all-conceded), `lost_compete`\* |
+| crosswords | `won`, `lost` (timeout), `ended` | `won_compete`, `lost` (all-conceded), `lost_compete` (timeout) |
 | wordwheel | `won`, `lost`, `ended` (win/loss only when a target rank is set) | `won_compete`, `ended`, `lost` (all-conceded) |
 | wordiply | `ended` (only) | `won_compete`, `ended`, `lost` (all-conceded) |
-
-\* crosswords `lost_compete` is reachable only via `submit_timeout`, which never fires (no timer).
 
 Note the spellingbee-family shape (spellingbee, wordwheel, wordiply): compete has **no `lost_compete`** — its no-winner terminal is the neutral `ended` and its all-conceded terminal is the generic `lost`. spellingbee + wordwheel additionally gained an **opt-in coop win** (2026-07-30): `setup.target_rank` is optional in coop, and setting it turns "reach that rank together" into a real `won` (and the clock beating you into `lost`). wordiply still has no coop win.
 
 ### How games end — the trigger families
 - **Objective / threshold met** — all agents/categories/grid/stack/board solved or cleared, or a score threshold crossed (codenamesduet `won`, connections `solved`, waffle `won`, wordle `won`, stackdown `won`, crosswords `won`, scrabble going-out, bananagrams peel-out, spellingbee/boggle target, wordwheel target rank).
-- **Countdown expiry** (`submit_timeout`) — codenamesduet, psychicnum, connections, spellingbee, bananagrams, waffle, wordle, stackdown, scrabble, boggle, and (optional timer) wordwheel / wordiply. (crosswords has no timer.)
+- **Countdown expiry** (`submit_timeout`) — every game; the timer is optional at setup everywhere, and crosswords was the last to offer it (2026-07-31).
 - **Resource exhausted** — guesses/swaps/mistakes/budget run out (psychicnum budget, connections mistakes, waffle swaps, wordle guesses, wordiply's 5 guesses — coop ends, compete resolves the comparator).
 - **Race decided** — first to the objective wins immediately (all `*_compete` win states); wordiply is the variant — the winner is a **comparator** run once every active player has spent their 5 guesses, not a first-past-the-post.
 - **Manual "End game"** (`ended`) — everyone except bananagrams (and crosswords-compete, which has no manual end).
