@@ -1,0 +1,18 @@
+/* Per-character styling for a typed word rendered inside <EntryBox> (a game
+ * passes its own `<TypedWord>` as the box's children). The input-like box, the
+ * blinking caret, and the placeholder are EntryBox's; only the illegal-letter
+ * dim lives here.
+ *
+ * Shared by spellingbee + wordwheel. Their `TypedWord.tsx` files genuinely
+ * differ — spellingbee's letters are a SET (a letter is legal or it isn't),
+ * wordwheel's wheel is a MULTISET (a letter dims once its tile count is spent;
+ * see docs/games/wordwheel.md → the fork). That difference is real game logic
+ * and stays per-game. The *styling* of the result never differed, so it lives
+ * here instead of as two identical files that could drift apart.
+ */
+
+/* A character the submission will reject — off the puzzle's letters entirely,
+ * or (wordwheel) past the tile count for that letter. */
+.illegal {
+  color: #aaa;
+}

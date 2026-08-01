@@ -3,6 +3,29 @@
 *2026-07-13. A working audit doc (like test-audit.md was): work the items, then retire it —
 durable decisions move into ui.md / code-conventions.md / deferred.md.*
 
+> **Progress (2026-07-31).** Re-verified against the tree first: every finding was still live —
+> 53 commits had landed since the audit and none had touched them. Worked so far:
+>
+> - **§1 Dead CSS — DONE.** All dead classes + tokens deleted and the lying comments fixed.
+>   Backed by a new mirror guard in `src/cssTokens.test.ts` (§3 gap 1), which also caught a
+>   ninth token the hand-sweep couldn't see: `--color-dot` died with `.dot-separator`.
+>   `VOCABULARY_COMPLETENESS` in that test now holds the deliberate slots, which is also
+>   where the `deferred.md` ↔ `theme.css` disagreement about `current-bg` got settled.
+> - **§2.1 the spellingbee↔wordwheel fork CSS — DONE except Letters/Wheel.** The PlayArea
+>   pair folded into `common/components/game/foundWordsPlayArea.module.css` (each game keeps
+>   four geometry numbers), TypedWord into `common/…/entry/typedWord.module.css`, `.checkRow`
+>   into the shared `setupForm.module.css`. **`Letters.module.css` / `Wheel.module.css` are
+>   deliberately NOT folded** — recorded with its reasoning in deferred.md.
+>   Proved a pixel-for-pixel no-op by extending `e2e/board-geometry.e2e.ts` to both games
+>   (column AND board root) and seeding a baseline before touching any CSS.
+> - **§3 gap 1 — DONE** (the mirror guard, above).
+>
+> **Still open:** §2.2 boggle Stats, §2.3 the info-panel frame ×3, §2.4 hardcoded values,
+> §2.5 grid-cursor + drag-ghost, §2.6 the one-liner drift kills, and §3 gaps 2–5 (the CSS
+> checklist, `_variant` naming, the z-index ladder, the stale ui.md claims). Note §2.2's
+> premise shifted: boggle's Stats and the shared one now agree on which *surface* gets which
+> shape (the 2026-07-31 status-bar split), so what's left there is the type-scale drift.
+
 **Scope + method:** all 142 CSS files (~10.4k lines; 127 CSS modules + the 15 theme/breakpoints
 files). Dead-class detection resolved each module's actual importers and their `styles.x` /
 `styles['x']` / `` styles[`x_${…}`] `` reads; token detection matched `var()` reads including

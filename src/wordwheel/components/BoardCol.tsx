@@ -13,7 +13,7 @@ import { wordFitsWheel } from '../lib/tiles'
 import { Wheel } from './Wheel'
 import { TypedWord } from './TypedWord'
 import shared from '../../common/components/game/PlayArea.module.css'
-import styles from './PlayArea.module.css'
+import surface from '../../common/components/game/foundWordsPlayArea.module.css'
 
 /** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */
 function shuffled<T>(arr: readonly T[]): T[] {
@@ -152,7 +152,7 @@ export function BoardCol({
   )
 
   return (
-    <div className={cls(shared.boardCol, styles.boardCol)}>
+    <div className={cls(shared.boardCol, surface.boardCol)}>
       {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
           the rank bar + stat grid, above the board. A small BLOCK rather than the
           bar's one-line default, so PlayArea.module.css raises
@@ -160,7 +160,7 @@ export function BoardCol({
           sizes itself from that number, so leaving it alone would size a board
           that no longer fits (the hard no-scroll invariant). */}
       <MobileStatusBar>
-        <div className={styles.mobileStatus}>
+        <div className={surface.mobileStatus}>
           <RankBar score={foundWordsScore} total={requiredWordsScore} targetIdx={targetRankIdx} />
           <Stats
             foundWordsScore={foundWordsScore}
@@ -193,7 +193,7 @@ export function BoardCol({
           When `pill` is set, EntryRow shows it in place of the controls (same slot, no
           reflow): the terminal verdict (permanent fill) takes precedence over an
           own-move result, which shows only while the entry is empty. */}
-      <div className={styles.belowBoard}>
+      <div className={surface.belowBoard}>
         <div className={shared.moveAreaOrLocalFeedback}>
           <EntryRow
             value={word}

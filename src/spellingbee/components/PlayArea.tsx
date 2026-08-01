@@ -26,6 +26,7 @@ import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { printSpellingbeePdf } from '../pdf/printSpellingbeePdf'
 import shared from '../../common/components/game/PlayArea.module.css'
+import surface from '../../common/components/game/foundWordsPlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
@@ -415,10 +416,10 @@ export function PlayArea(ctx: GamePageCtx) {
   // React forbids conditional hook calls.
 
   if (loading) {
-    return <div className={styles.loading}>Loading…</div>
+    return <div className={surface.loading}>Loading…</div>
   }
   if (!game) {
-    return <div className={styles.empty}>Game not found.</div>
+    return <div className={surface.empty}>Game not found.</div>
   }
 
   const isCompete = game.mode === 'compete'
@@ -467,7 +468,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const wordRows = buildDisplayRows(foundWords, isTerminal ? game.requiredWords : null)
 
   return (
-    <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, styles.layout)}>
+    <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>
       <BoardCol
         // ── Mobile-only status block (the SAME RankBar + Stats the InfoCol
         //    renders; on a phone the info column is off-canvas in the InfoSheet) ──

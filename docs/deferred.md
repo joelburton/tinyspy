@@ -64,6 +64,10 @@ The connections deferrals — **per-tile rise-and-fade animations** on category 
 
 No outstanding deferred items today (see [`spellingbee.md → Open / deferred`](games/spellingbee.md#open--deferred) for context).
 
+## spellingbee + wordwheel (the fork pair)
+
+- **`Letters.module.css` / `Wheel.module.css` are deliberately NOT folded** (2026-07-31, the CSS audit's §2.1). The rest of the pair's CSS is now shared — see [`wordwheel.md → the fork`](games/wordwheel.md) — but these two remain separate copies. They're structurally parallel selector-for-selector (`.board`, `.grid`, `.floatAnchor`, a tile shape / text / flash trio, one keyframe; 73 vs 86 lines with comments stripped), so a fold is mechanically easy. The reason not to: it means picking ONE vocabulary for the shared class names, and a honeycomb has hexes where a wheel has tiles. That trades [ui.md's two-vocabularies rule](ui.md) — names track the game's own concepts — for ~40 lines of dedup, and the geometry inside the rules (`clip-path` hexes with per-position `nth-child` vs SVG circles) doesn't share anyway. **If it's ever revisited**, the tractable middle is sharing only the interaction/flash layer (hover/focus states, the flash overlay + its keyframe) under neutral names, leaving each game's shape rules local. Don't fold the whole file just because the skeletons rhyme.
+
 ## waffle (waffle)
 
 No outstanding deferred items today.

@@ -1,5 +1,5 @@
 import { cls } from '../../common/lib/util/cls'
-import styles from './TypedWord.module.css'
+import styles from '../../common/components/game/entry/typedWord.module.css'
 
 type Props = {
   /** The current typed word (already uppercase; we uppercase defensively). */

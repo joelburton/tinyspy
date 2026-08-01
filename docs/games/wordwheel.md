@@ -293,6 +293,23 @@ into three buckets:
   (`InfoCol` is a ~1-line delta — just the `unique_letters` `<li>` — and could be
   folded via an `extraSetupItems` prop if that ever feels worth it; left forced
   for now for symmetry with its siblings.)
+- **The CSS is NOT forked, though the components are.** The deltas above are
+  behavioral, and the two play surfaces never looked different — so the
+  stylesheets folded even where their `.tsx` siblings stayed apart:
+  `common/components/game/foundWordsPlayArea.module.css` holds the whole surface
+  (layout vars, mobile status block, the `--u` arithmetic, below-board slot), and
+  each game's `PlayArea.module.css` is now just four numbers naming its board's
+  coordinate box — spellingbee `256×267` capped at `320`, wordwheel `300×300×300`.
+  `TypedWord.module.css` collapsed into `common/…/entry/typedWord.module.css`
+  (the dimming *rule* was always one line; the multiset-vs-set logic that decides
+  *what* to dim stays per-game), and `.checkRow` moved to the shared
+  `setupForm.module.css` it shares with bananagrams.
+  **`Letters.module.css` / `Wheel.module.css` are deliberately NOT folded** —
+  they're structurally parallel (`.board`, `.grid`, `.floatAnchor`, the tile
+  shape/text/flash trio, a keyframe), but folding them means picking one
+  vocabulary, and a honeycomb has hexes where a wheel has tiles. Renaming one to
+  match the other trades [ui.md's two-vocabularies rule](../ui.md) for ~40 lines
+  of dedup. See [deferred.md](../deferred.md) if that trade ever looks worth it.
 - **Per-game seams by design** (not duplicates to eliminate): `Help` (rules
   copy), `db.ts` (schema-scoped client), `manifest.ts` (brand lives only here),
   `theme.css` (palette).

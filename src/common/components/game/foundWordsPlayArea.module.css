@@ -1,0 +1,120 @@
+/* The play surface shared by the found-words rank-ladder games — spellingbee
+ * (honeycomb) and wordwheel (wheel). Layered ON TOP of the two-column scaffold
+ * (`common/components/game/PlayArea.module.css`, imported as `shared`), not a
+ * replacement for it: a call site composes `cls(shared.boardCol, foundWords.boardCol)`.
+ *
+ * WHY THIS EXISTS. wordwheel is a targeted fork of spellingbee (docs/games/
+ * wordwheel.md → the fork). The 2026-07-12 review's D2 finding pulled their
+ * shared TypeScript into `common/` — rankLadder, displayRows, leaderboard, the
+ * `makeFoundWordsGame` factory, RankBar, Stats — but left the CSS forked, so two
+ * 104-line modules sat here differing by ONE token name and FOUR numbers. They
+ * had already begun to drift apart in ways nobody decided (a stroke token in one
+ * and not the other, left commented out mid-tuning). This is the CSS half of D2.
+ *
+ * WHAT STAYS PER-GAME: the board's coordinate geometry, and only that. Each
+ * game's own `PlayArea.module.css` sets four numbers on `.layout`, which inherit
+ * down to `.boardCol` here:
+ *
+ *   --board-units-w    the board's bounding-box WIDTH in its own coordinate units
+ *   --board-units-h    ... and its HEIGHT
+ *   --board-units-cap  the unit count `--max-board-size` is expressed in
+ *   --max-board-size   the on-screen cap (the TINKER knob)
+ *
+ * They're custom properties rather than a `composes:` or a duplicated block
+ * because the *shape* of the arithmetic is identical and only its inputs differ
+ * — which is exactly what a custom property is for. (This repo doesn't use
+ * `composes` anywhere; classes are combined with `cls()` at the call site.)
+ */
+
+/* Per-game layout vars the shared scaffold reads. The info column is RESPONSIVE
+ * for both games — they compose `shared.responsiveInfoCol`, which derives
+ * `--info-col-width` (a 22rem…53rem clamp) from `--board-reserve` so the word
+ * list gives way to the board as the viewport narrows (see that class).
+ *
+ * `--board-reserve: 24rem` reads slightly differently in each game and is the
+ * same number by coincidence of design, not by derivation: for spellingbee it's
+ * the hex board's capped width (256 × 30rem/320); for wordwheel it's a usable
+ * floor below the wheel's 30rem cap that keeps the word list wider at narrow
+ * widths. Either way the board reaches full size on a roomy desktop.
+ *
+ * --avail-h is the vertical space left for the board (bounded by height too,
+ * like waffle's square): viewport − chrome − the single below-board slot (the
+ * input row / feedback pill / terminal status, ~2.75rem), the board column's gap
+ * above it (~0.75rem), and the extra `.belowBoard` margin-top that drops the
+ * input row down off the board (1.5rem) — 5rem total. Keep this in sync with
+ * `.belowBoard`'s margin-top below. */
+.layout {
+  --board-reserve: 24rem;
+  --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
+}
+
+/* Mobile: the info column is off-canvas, so the state unit (RankBar + Stats) is
+ * mirrored ABOVE the board by the shared `<MobileStatusBar>` — a small BLOCK,
+ * not the one-line default, so the bar's height token is raised here. It must
+ * also come out of `--avail-h`: the board sizes itself from that number, so
+ * leaving it alone would size a board that no longer fits and push the page into
+ * scrolling (the hard no-scroll invariant). The extra 0.75rem is `.boardCol`'s
+ * flex gap between the status block and the board. */
+@media (--mobile) {
+  .layout {
+    --mobile-status-height: 4.25rem;
+    --avail-h: calc(
+      100svh - var(--game-chrome-height) - 5rem - var(--mobile-status-height) - 0.75rem
+    );
+  }
+}
+
+/* The mobile status block's content — the RankBar over the Stats grid, sized to
+ * a comfortable reading width rather than the full phone width (the two figures
+ * shouldn't drift to opposite edges). Only ever rendered inside the mobile-only
+ * `<MobileStatusBar>`. */
+.mobileStatus {
+  width: min(20rem, 100%);
+}
+
+/* The board column. Defines `--u` (one board coordinate unit) and the derived
+ * `--board-width` HERE — rather than on the grid — so the below-board input row
+ * can match the board's width from the same source.
+ *
+ * ─── Board size cap — TINKER IN THE PER-GAME MODULE ──────────────────────────
+ * `--u` sizes the board to fill the SMALLER of the width left beside the info
+ * column (--avail-w, the shared scaffold token) and the height left above the
+ * input row (--avail-h), capped by --max-board-size. All four inputs come from
+ * the game's own PlayArea.module.css — change them there, not here. To REMOVE
+ * the cap, SET it to 999rem (don't comment the knob OUT: the token must stay
+ * defined, or the cssTokens guard trips on the now-undefined var() reference). */
+.boardCol {
+  --u: min(
+    calc(var(--avail-w) / var(--board-units-w)),
+    calc(var(--avail-h) / var(--board-units-h)),
+    calc(var(--max-board-size) / var(--board-units-cap))
+  );
+  --board-width: calc(var(--board-units-w) * var(--u));
+}
+
+/* The below-board REGION. Board-matched width + the gap off the board; the
+ * fixed-height reservation lives on the `shared.moveAreaOrLocalFeedback` swap
+ * box inside it, which holds exactly ONE of the input row, the own-action
+ * feedback pill, or the terminal status. Width pinned to the board width so a
+ * long typed word can't widen the column and shift the centered board. Column
+ * so that box STRETCHES to the full board width (so the input row spans the
+ * board and its EntryBox flex-fills between the buttons). `margin-top` drops the
+ * row down off the board for breathing room (on top of the board column's
+ * 0.75rem gap) — counted into `--avail-h` above.
+ *
+ * (The input row + its EntryBox/Delete/Submit live in the shared
+ * common/components/game/entry/EntryRow; only the slot wrapper is here.) */
+.belowBoard {
+  width: var(--board-width);
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.loading,
+.empty {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--color-muted);
+  grid-column: 1 / -1;
+}

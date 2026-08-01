@@ -91,7 +91,7 @@ export function SetupForm({ value, onChange, playerCount }: SetupBodyProps) {
       </SetupSection>
 
       <SetupSection label={dumpLabel}>
-        <label className={styles.checkRow}>
+        <label className={form.checkRow}>
           <input
             type="checkbox"
             name="dump_to_bag"

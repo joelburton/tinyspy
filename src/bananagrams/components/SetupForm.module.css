@@ -1,23 +1,12 @@
 /* bananagrams-specific setup bits. The form scaffold (.setup / .fieldset /
- * .radioRow / .radio) comes from the shared
+ * .radioRow / .radio / .checkRow) comes from the shared
  * common/components/fields/setupForm.module.css; only the bag-size input and the
- * checkbox / dictionary-picker rows below are unique to bananagrams. */
+ * dictionary-picker rows below are unique to bananagrams. */
 
 /* The bunch-size number input — a short box; it only ever holds 1–3
  * digits (max 144). */
 .bagInput {
   width: 5rem;
-}
-
-/* "Check if board is legal to win" checkbox row. */
-.checkRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-}
-.checkRow input {
-  margin: 0;
 }
 
 /* The two dictionary-difficulty pickers (2-letter + 3+), revealed when the

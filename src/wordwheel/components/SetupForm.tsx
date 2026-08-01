@@ -156,7 +156,7 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
           custom letters are set (those letters stand as the player chose them).
           The summary shows the active constraint or "(optional)" when none. */}
       <SetupSection label={constraintsLabel}>
-        <label className={local.checkRow}>
+        <label className={styles.checkRow}>
           <input
             type="checkbox"
             name="unique_letters"

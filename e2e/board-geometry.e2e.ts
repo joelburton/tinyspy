@@ -12,26 +12,35 @@ import {
   createWordleGame,
   createBoggleGame,
   createScrabbleGame,
+  createSpellingbeeGame,
+  createWordwheelGame,
   type E2EClub,
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * Board-geometry before/after guard for the §3.2 hug-board CSS refactor.
+ * Board-geometry before/after guard for CSS refactors that MUST be pixel-for-
+ * pixel no-ops. A behavioural e2e can't prove that — "board doesn't reflow
+ * across states" holds both before and after the change. What proves a no-op is
+ * a DIRECT before/after comparison of each board's rendered geometry.
  *
- * §3.2 extracts a byte-identical board-width formula (and its square variant)
- * out of eight games into a shared helper. It's meant to be a pixel-for-pixel
- * NO-OP. A behavioural e2e can't prove that — "board doesn't reflow across
- * states" holds both before and after the change. What proves a no-op is a
- * DIRECT before/after comparison of each board's rendered geometry.
- *
- * This test measures the eight boardful games the refactor touches:
+ * Built for the §3.2 hug-board refactor (which extracted a byte-identical
+ * board-width formula, and its square variant, out of eight games into a shared
+ * helper); reused since for any board-geometry-touching move. Games measured:
  *   rect formula:   psychicnum, connections, codenamesduet, wordle
  *   square variant: waffle, boggle, scrabble, stackdown
+ *   fork pair:      spellingbee, wordwheel
  * It reads the bounding box of each game's `.boardCol` (the shared hug column,
  * matched by substring since CSS-module class names are hashed) — the element
  * whose width the formula governs, so any change to the computed width moves
  * this box.
+ *
+ * The fork pair is measured TWICE — the column AND the board root inside it
+ * (`_board_`) — because their shared PlayArea module carries the coordinate-unit
+ * arithmetic (`--u`, `--board-width`) that sizes the board within a column that
+ * would hug either way. Sharing that module across two games with different
+ * bounding boxes (the honeycomb's 256×267 capped at 320; the wheel's 300×300) is
+ * exactly the change where a wrong number resizes a board instead of erroring.
  *
  * Workflow (single machine, same session):
  *   1. On the pre-refactor tree:  BASELINE=1 npx playwright test board-geometry
@@ -47,7 +56,7 @@ import { signIn } from './helpers/session'
  * machines. This is a hand-run tool, consistent with the narrow e2e charter.
  *
  * Not in scope: bananagrams (fixed 25×25 arena, not the hug formula) and
- * spellingbee (honeycomb, not a grid) — neither uses the §3.2 arithmetic.
+ * crosswords (its own keyboard-required layout).
  */
 
 const BASELINE_PATH = 'e2e/.artifacts/board-geometry.json'
@@ -83,6 +92,36 @@ async function measureSolo(
   }
 }
 
+/** As `measureSolo`, but also measures the board root INSIDE the column — for
+ *  the games whose shared module does coordinate-unit arithmetic, where the
+ *  column can hug correctly while the board within it is the wrong size.
+ *  `_board_` with the trailing underscore is the board's own root; a loose
+ *  `board` match would hit `boardCol`, its parent. */
+async function measureSoloWithBoard(
+  browser: Browser,
+  club: E2EClub,
+  game: { id: string; gametype: string },
+): Promise<{ col: Box; board: Box }> {
+  const ctx = await browser.newContext()
+  try {
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    const col = await measureBoard(page)
+    const inner = page.locator('[class*="_board_"]').first()
+    await expect(inner).toBeVisible({ timeout: 20000 })
+    const b = await inner.boundingBox()
+    if (!b) throw new Error('board root has no bounding box')
+    const round = (n: number) => Math.round(n * 100) / 100
+    return {
+      col,
+      board: { x: round(b.x), y: round(b.y), width: round(b.width), height: round(b.height) },
+    }
+  } finally {
+    await ctx.close()
+  }
+}
+
 test.describe('hug-board geometry (§3.2 no-op guard)', () => {
   test('every touched board renders at its baseline geometry', async ({ browser }) => {
     const measured: Record<string, Box> = {}
@@ -108,6 +147,17 @@ test.describe('hug-board geometry (§3.2 no-op guard)', () => {
 
     const stack = await createSoloClub('stack')
     measured.stackdown = await measureSolo(browser, stack, await createStackdownGame(stack))
+
+    // ── The fork pair: column AND board root (see the header note). ──────────
+    const sbee = await createSoloClub('sbee')
+    const sbeeBoxes = await measureSoloWithBoard(browser, sbee, await createSpellingbeeGame(sbee))
+    measured.spellingbee = sbeeBoxes.col
+    measured.spellingbee_board = sbeeBoxes.board
+
+    const wwheel = await createSoloClub('wwheel')
+    const wwheelBoxes = await measureSoloWithBoard(browser, wwheel, await createWordwheelGame(wwheel))
+    measured.wordwheel = wwheelBoxes.col
+    measured.wordwheel_board = wwheelBoxes.board
 
     // ── codenamesduet: fixed 2-seat game; both must be present or it pauses
     //    and the board unmounts. Two contexts; measure on the opener's page. ──

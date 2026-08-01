@@ -2,9 +2,9 @@
  * Shared setup-form scaffold — the layout every game's per-game
  * `SetupForm` (rendered inside `SetupGameDialog`) draws its fieldsets and
  * radio rows from. Each `<game>/components/SetupForm.tsx` imports THIS module
- * for `.setup` / `.fieldset` / `.radioRow` / `.radio`; only genuinely
- * game-specific bits (bananagrams's bag/checkbox rows, wordle's answer-source
- * `<select>`) stay in a game-local module.
+ * for `.setup` / `.fieldset` / `.radioRow` / `.radio` / `.checkRow`; only
+ * genuinely game-specific bits (bananagrams's bag-size input, wordle's
+ * answer-source `<select>`) stay in a game-local module.
  *
  * Why this is shared rather than copied per game: with nine games the forms had
  * each kept a near-identical copy of these rules, and the copies had quietly
@@ -61,4 +61,20 @@
   /* Override theme.css's input padding (`0.6rem 0.9rem`) — that sizes text
    * inputs, not radios. */
   padding: 0;
+}
+
+/* A single checkbox inline with its label — the toggle shape, as `.radio` is the
+ * radio shape. Used by bananagrams ("check if board is legal to win") and
+ * wordwheel ("unique letters only"); the two had byte-identical private copies,
+ * and wordwheel's even carried a comment saying it mirrored bananagrams's, which
+ * is the standing signal to make the match structural rather than remembered. */
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.checkRow input {
+  margin: 0;
 }

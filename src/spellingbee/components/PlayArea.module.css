@@ -1,104 +1,22 @@
-/* spellingbee play surface, now on the shared two-column scaffold
- * (common/components/game/PlayArea.module.css, imported as `shared`) — the same
- * .layout / .boardCol / .infoCol psychicnum / connections / codenamesduet /
- * waffle use. This module holds only spellingbee's own bits: the per-game layout
- * vars, the board-size derivation, the below-board input region (the typed-word
- * display + Delete/Enter on one line, with the local feedback / terminal pill
- * swapping into the same slot), and the leftover loading styles. The info
- * column's readouts use the shared `.actionSlot` + readout classes; own-move and
- * terminal feedback render as the shared `<GenericFeedbackPill>` in `.localFeedback`.
- */
-
-/* Per-game layout vars the shared scaffold reads. The info column is RESPONSIVE
- * here — spellingbee composes `shared.responsiveInfoCol`, which derives
- * `--info-col-width` (a 22rem…53rem clamp) from `--board-reserve` so the word
- * list gives way to the board as the viewport narrows (see that class). This
- * game reserves 24rem for the hex board — its capped width (256 × 30rem/320), so
- * the board keeps its full size across the whole desktop range. --avail-h is the
- * vertical space left for the hex board (bounded by height too, like waffle's
- * square): viewport − chrome − the single below-board slot (the input row /
- * feedback pill / terminal status, ~2.75rem), the board column's gap above it
- * (~0.75rem), and the extra `.belowBoard` margin-top that drops the input row
- * down off the board (1.5rem) — 5rem total. Keep this in sync with
- * `.belowBoard`'s margin-top below. */
-.layout {
-  --board-reserve: 24rem;
-  --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
-}
-
-/* Mobile: the info column is off-canvas, so the state unit (RankBar + Stats) is
- * mirrored ABOVE the board by the shared `<MobileStatusBar>` — a small BLOCK,
- * not the one-line default, so the bar's height token is raised here. It must
- * also come out of `--avail-h`: the hive sizes itself from that number, so
- * leaving it alone would size a board that no longer fits and push the page into
- * scrolling (the hard no-scroll invariant). The extra 0.75rem is `.boardCol`'s
- * flex gap between the status block and the hive. */
-@media (--mobile) {
-  .layout {
-    --mobile-status-height: 4.25rem;
-    --avail-h: calc(
-      100svh - var(--game-chrome-height) - 5rem - var(--mobile-status-height) - 0.75rem
-    );
-  }
-}
-
-/* The mobile status block's content — the RankBar over the Stats grid, sized to
- * a comfortable reading width rather than the full phone width (the two figures
- * shouldn't drift to opposite edges). Only ever rendered inside the
- * mobile-only `<MobileStatusBar>`. */
-.mobileStatus {
-  width: min(20rem, 100%);
-}
-
-/* The board column. Defines `--u` (one honeycomb coordinate unit) and the derived
- * `--board-width` HERE — rather than on the grid — so the below-board input row can
- * match the board's width from the same source.
+/* spellingbee's board geometry — the ONLY thing its play surface does
+ * differently from wordwheel's.
  *
- * ─── Board size cap — TINKER HERE ────────────────────────────────────────────
+ * Everything else (the two-column layout vars, the mobile status block, the
+ * `--u` arithmetic, the below-board slot, loading/empty) lives in the shared
+ * `common/components/game/foundWordsPlayArea.module.css`, composed alongside
+ * this class at the call site. See that file's header for why the split is here.
+ *
+ * ─── Board size — TINKER HERE ────────────────────────────────────────────────
  * The flower's bounding box is 256 (wide) × 267 (tall) coordinate units (see
- * Letters.module.css). `--u` sizes it to fill the SMALLER of the width left beside
- * the info column (--avail-w, the shared scaffold token) and the height left above
- * the input row (--avail-h), capped by --max-hex-board-size — expressed as a
- * 320-unit square edge, the same cap the old square box used, so the max on-screen
- * size is unchanged. Raise/lower the cap to taste; to REMOVE it, SET it to 999rem
- * (don't comment the knob OUT: the token must stay defined, or the cssTokens guard
- * trips on the now-undefined var() reference — see the passing games). */
-.boardCol {
-  --max-hex-board-size: 30rem;
-  --u: min(
-    calc(var(--avail-w) / 256),
-    calc(var(--avail-h) / 267),
-    calc(var(--max-hex-board-size) / 320)
-  );
-  --board-width: calc(256 * var(--u));
+ * Letters.module.css). The cap is expressed as a 320-unit square edge — the same
+ * cap the old square box used, so the max on-screen size is unchanged, which is
+ * why the cap divisor (320) is NOT the width divisor (256). Raise/lower
+ * `--max-board-size` to taste; to REMOVE the cap, SET it to 999rem (don't
+ * comment the knob OUT: the token must stay defined, or the cssTokens guard
+ * trips on the now-undefined var() reference in the shared module). */
+.layout {
+  --board-units-w: 256;
+  --board-units-h: 267;
+  --board-units-cap: 320;
+  --max-board-size: 30rem;
 }
-
-/* The below-board slot — holds exactly ONE of: the input row, the own-action
- * feedback pill, or the terminal status (they replace each other, the same swap
- * the other redesigned games do). A reserved min-height (the input row's) keeps
- * the top-anchored board from shifting as they swap. Width pinned to the board
- * width so a long typed word can't widen the column and shift the centered board.
- * `margin-top` drops the row down off the board for breathing room (on top of the
- * board column's 0.75rem gap) — counted into `--avail-h` above. */
-/* The below-board REGION (universal). Board-matched width + the gap off the
- * board; the fixed-height reservation now lives on the `shared.moveAreaOrLocalFeedback`
- * swap box inside it. Column so that box STRETCHES to the full board width (so
- * the input row spans the board and its EntryBox flex-fills between the buttons). */
-.belowBoard {
-  width: var(--board-width);
-  margin-top: 1.5rem;
-  display: flex;
-  flex-direction: column;
-}
-
-/* (The input row + its EntryBox/Delete/Submit live in the shared
- * common/components/game/entry/EntryRow now; only the below-board slot wrapper is here.) */
-
-.loading,
-.empty {
-  padding: 48px 16px;
-  text-align: center;
-  color: var(--color-muted);
-  grid-column: 1 / -1;
-}
-

@@ -353,10 +353,14 @@ src/spellingbee/
                           off-canvas then) — same components, so the two can't drift; its
                           4.25rem is subtracted from --avail-h so the hive shrinks to match
                           and the page still doesn't scroll.
-    PlayArea.module.css   Per-game bits only (layout vars, hex board sizing, the below-board
-                          slot). The two-column shell + readout classes are the shared
-                          common/components/game/PlayArea.module.css. Desktop-first, no @media
-                          reflow — per ui.md.
+    PlayArea.module.css   FOUR numbers: the flower's 256×267 coordinate box, the 320-unit cap
+                          divisor, and --max-board-size. That's the only way this play surface
+                          differs from wordwheel's; everything else (layout vars, the --u
+                          arithmetic, mobile status block, below-board slot, loading/empty) is
+                          the shared common/components/game/foundWordsPlayArea.module.css,
+                          composed alongside it. The two-column shell + readout classes are
+                          the shared common/components/game/PlayArea.module.css. Desktop-first,
+                          no @media reflow — per ui.md.
     Letters.tsx           The 7-hex honeycomb, rendered as .board > .grid (the board-column
                           convention — no tray; the hexes carry their own shape). Render
                           order: center → top → upper-right → lower-right → bottom →

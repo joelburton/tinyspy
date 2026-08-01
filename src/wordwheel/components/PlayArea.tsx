@@ -26,6 +26,7 @@ import { useStandardGameActions } from '../../common/hooks/game/useStandardGameA
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { printWordwheelPdf } from '../pdf/printWordwheelPdf'
 import shared from '../../common/components/game/PlayArea.module.css'
+import surface from '../../common/components/game/foundWordsPlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 import '../theme.css'
@@ -116,7 +117,8 @@ export function PlayArea(ctx: GamePageCtx) {
   // RLS, and stays correct across the terminal transition.
   //
   // foundWordsCount counts ALL of the viewer's accepted submissions
-  // (required + bonus). Matches wordwheel-ws's "found.length" stat —
+  // (required + bonus). Matches spellingbee's "found.length" stat (this
+  // game is a fork of it; there is no "wordwheel-ws" upstream) —
   // the displayed "X / Y words" can legitimately overshoot Y (the
   // required goal) when the player digs into the bonus list. The
   // denominator (game.required_words_count) stays required-only.
@@ -419,10 +421,10 @@ export function PlayArea(ctx: GamePageCtx) {
   // React forbids conditional hook calls.
 
   if (loading) {
-    return <div className={styles.loading}>Loading…</div>
+    return <div className={surface.loading}>Loading…</div>
   }
   if (!game) {
-    return <div className={styles.empty}>Game not found.</div>
+    return <div className={surface.empty}>Game not found.</div>
   }
 
   const isCompete = game.mode === 'compete'
@@ -478,7 +480,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const wordRows = buildDisplayRows(foundWords, isTerminal ? game.requiredWords : null)
 
   return (
-    <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, styles.layout)}>
+    <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>
       <BoardCol
         // ── Mobile-only status block (the SAME RankBar + Stats the InfoCol
         //    renders; on a phone the info column is off-canvas in the InfoSheet) ──
