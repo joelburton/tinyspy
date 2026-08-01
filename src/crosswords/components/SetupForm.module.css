@@ -105,7 +105,7 @@
 .item:hover { background: #f1f5f9; }
 .selected,
 .selected:hover {
-  background: var(--crosswords-in-word, #d7ebff);
+  background: var(--crosswords-in-word);
 }
 
 /* One line per row (rows are fixed-height): a long title ellipsizes instead
@@ -154,7 +154,7 @@
 /* Active drag-over state — highlight the target. */
 .dropOver {
   border-color: var(--color-text);
-  background: var(--crosswords-in-word, #d7ebff);
+  background: var(--crosswords-in-word);
 }
 .dropTitle {
   font-weight: 600;

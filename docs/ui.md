@@ -14,7 +14,7 @@ Read this before:
 
 The play surface is a laptop or desktop browser. Some games are awkward on mobile by their nature (crosswords, Boggle on a phone); even the ones that *would* play fine on mobile are most fun with a keyboard and a wider canvas. So:
 
-- **Default styles are written for desktop.** Use `@media (max-width: …)` to add mobile adjustments only when something genuinely breaks. The opposite — mobile-first authoring with `@media (min-width: 1024px)` overlays — shipped some of the existing code ([`PlayArea.module.css`](../src/codenamesduet/components/PlayArea.module.css)'s three-column layout); fine to leave alone, but new code should be desktop-first.
+- **Default styles are written for desktop.** Mobile adjustments go in `@media (--mobile)` blocks that *override* the desktop rule, and only when something genuinely breaks. The opposite — mobile-first authoring, where the base rule is the phone and `@media (min-width: …)` overlays restore the desktop — once shipped in codenamesduet's three-column `PlayArea.module.css`, but that layout is gone and **the repo now has zero `min-width` media queries**; every one of its ~26 breakpoint blocks is a desktop-first override. Keep it that way: a `min-width` query in a diff is the signal that a rule got written backwards.
 - **Mobile gets graceful degradation, not engineering.** Phone users should be able to read the page and use the app; we don't chase pixel-perfect mobile layouts.
 - **The real mobile pass has begun.** It proceeds one screen at a time and is recorded in [`mobile.md`](mobile.md) — the single `56.25rem` (900px) desktop→mobile breakpoint, what's been made phone-safe so far, and how to verify no-scroll headless. Still desktop-first: mobile is a `max-width` exception that never changes the desktop layout.
 
@@ -612,7 +612,7 @@ chrome, modals/dialogs/toasts, mode pills, and iconography.
 identity discs + metric labels, the terminal look for locally-terminal states,
 sticky local feedback, natural-width action buttons). v1 was the original per-game
 layout; v2 the intermediate shared-layout scaffold. **The sweep is complete — all
-eleven games are v3**, with bananagrams and crosswords the two documented layout
+thirteen games are v3**, with bananagrams and crosswords the two documented layout
 exceptions (their own board layouts; see their game docs). There is no v4. A game
 doc calling a game "v3" means "conforms to this standard."
 
@@ -723,7 +723,7 @@ the same exchange glyph as scrabble's tile swap, in both the dump zone and the
 dump feedback pill (`FeedbackMsg.text` is a `ReactNode`, so a pill can lead with
 an inline icon).
 
-**Rollout.** Complete — **all eleven games are v3**, so every game-move / end /
+**Rollout.** Complete — **all thirteen games are v3**, so every game-move / end /
 hint / reveal / concede is now a semantic component from
 `common/components/buttons/`, and **End (or Concede)** is an info-column
 action-row *button*, never a GamePage-menu item. The roster of semantic buttons:

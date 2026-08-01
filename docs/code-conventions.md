@@ -301,7 +301,7 @@ Two-rule heuristic for deciding where a piece of UI / logic lives:
 
 2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `GameTurnLog`, `Help`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`CodenamesduetPlayArea`, `ConnectionsSetupForm`) — the folder already says which game.
 
-The reason both rules matter: this codebase is shaped to host a roster of games (the original ~7–8 target has since been exceeded — eleven are live), most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the connections version of the same thing codenamesduet does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
+The reason both rules matter: this codebase is shaped to host a roster of games (the original ~7–8 target has since been exceeded — thirteen are live), most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the connections version of the same thing codenamesduet does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
 
 #### Per-game `useGame` shape — pick the right template
 
@@ -367,6 +367,35 @@ src/common/components/chat/FloatingChat.module.css
 - Plain global `.css` files for components — fine for the global theme file, but anything component-specific should be a `.module.css`.
 - CSS-in-JS (styled-components, emotion) — adds a dependency and a runtime cost for a problem CSS Modules already solve.
 - Tailwind — large stylistic change from where the code is now; not worth the migration cost.
+- **`composes:`** — zero uses in the repo. Classes are combined at the call site with `cls()` instead, so the composition is visible where the element is written rather than hidden in a stylesheet.
+
+#### The CSS checklist
+
+Six rules that are otherwise only discoverable by reading the code:
+
+1. **No `var()` fallbacks.** Write `var(--token)`, never `var(--token, #ccc)`. We own the whole custom-property namespace, so a missing token is always a bug — and a fallback can only ever *mask* that bug while drifting out of sync with the real value. [`src/cssTokens.test.ts`](../src/cssTokens.test.ts) is the safety net, and it guards **both directions**: every `var()` reference resolves to a definition, and every definition has a reader. A token that's a deliberate vocabulary slot with no caller yet goes in that test's `VOCABULARY_COMPLETENESS` list — which is where the "keep the grid complete" policy is enforced rather than argued. (The `var(--client-width, 100vw)` idiom in `common/` is a different thing: an opt-in *parameter* default, not a colour fallback.)
+2. **Desktop-first: `@media (--mobile)` blocks override the base rule**, never the reverse. See [`ui.md`](ui.md#audience-and-platform-desktop-first) — a `min-width` media query means a rule got written backwards.
+3. **A component that renders on two surfaces keeps the roomier one as its base rule.** The compressed variant is an override scoped to the surface — e.g. `[data-mobile-status] .stats { … }`, keyed off the attribute `<MobileStatusBar>` already stamps. No media query needed (the bar doesn't exist on desktop) and no `compact` prop to thread through call sites. Writing it the other way round leaks the phone's budget onto a desktop that has room to spare; see [`mobile.md`](mobile.md).
+4. **State classes win by re-setting tokens, not by out-cascading.** A state (`.achieved`, `.dropOk`) should set `--tile-bg` and let the base rule consume it, rather than restating `background` at higher specificity.
+5. **Click-to-define words are pointer-only** — no `tabIndex`, no `role="button"`, no focus style. The reasoning is in [`theme.css`](../src/common/theme.css)'s `.definable` block. A word that genuinely needs keyboard reach gets a real `<button>`.
+6. **`_variant` suffixes** name the classes behind a `` styles[`base_${key}`] `` lookup: `.outcome_won`, `.day_lost`, `.barInner_good`, `.viewedTile_oneAway`, `.guessWord_G`. Base name, underscore, the key's value. The underscore is what marks a class as *dynamically* selected — grep it to find every class that isn't referenced literally anywhere.
+
+#### The z-index ladder
+
+Tiers, low to high. Most values are in CSS; the panel tiers are set in JS (`FloatingPanel`'s `zIndex` prop). Stay inside a tier rather than inventing a number between two of them:
+
+| tier | range | what |
+|---|---|---|
+| board layers | 0–5 | tiles, rings, the keyboard cursor, the history frame — all *within* a board's stacking context |
+| in-board controls | 10–100 | bananagrams's floating zoom controls, scrabble's floating buttons, the account menu |
+| panels / dialogs | **500** | `FloatingPanel`'s default (its backdrop paints at `zIndex - 1`) — the setup dialog, confirms, Help |
+| bananagrams drag ghost | 1000 | a pointer-following tile, above its own arena |
+| popovers | 1500 | the definition popover, `Menu`, crosswords' number-jump |
+| chat + scratchpad | 9999–10000 | deliberately above dialogs: you can chat with a setup dialog open |
+| celebration | 10001 | one beat, above everything except… |
+| toasts + tooltips | 12000 | always the top layer |
+
+**Known anomaly:** scrabble's `BlankPicker.module.css` overlay sits at `z-index: 50` — a full-screen `position: fixed` modal parked *below* the 500 panel tier, so an open chat or menu would paint over it. Harmless in practice (nothing else is usually up mid-move) and left as-is rather than changed blind; it wants a look, not a reflex bump.
 
 ### TypeScript naming conventions
 

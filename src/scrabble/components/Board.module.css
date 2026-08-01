@@ -115,9 +115,13 @@
 .tile.lifted {
   opacity: 0.3;
 }
-/* A just-accepted word: green outline for ~1s. */
+/* A just-accepted word: green outline for ~1s. The SAME success green the
+   persistent `.viewedTile` outline below uses — the flash is the transient
+   version of that signal, not a second green. (Both were hand-picked literals
+   once; the ramp lives in common/theme.css so a palette change reaches every
+   good/bad cue at once.) */
 .tile.flashAccept {
-  outline: 3px solid #2faa5a;
+  outline: 3px solid var(--color-outcome-won-strong);
   outline-offset: -3px;
   z-index: 2;
 }
@@ -130,9 +134,10 @@
   outline-offset: -3px;
   z-index: 2;
 }
-/* New tiles in a rejected (not-in-dictionary) word: red outline for ~1s. */
+/* New tiles in a rejected (not-in-dictionary) word: red outline for ~1s — the
+   app-wide failure red, the counterpart to `.flashAccept`'s green above. */
 .tile.flashReject {
-  outline: 3px solid #d24a4a;
+  outline: 3px solid var(--color-outcome-lost-strong);
   outline-offset: -3px;
   z-index: 2;
 }

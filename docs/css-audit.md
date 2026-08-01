@@ -48,8 +48,29 @@ durable decisions move into ui.md / code-conventions.md / deferred.md.*
 >   underline). A word that ever DOES need keyboard reach gets a real `<button>` — waffle's
 >   and wordiply's reveals already are.
 >
-> **Still open:** §2.4 hardcoded values, and §3 gaps 2–5 (the CSS checklist, `_variant`
-> naming, the z-index ladder, the stale ui.md claims).
+> - **§2.4a + §2.4c — DONE.** scrabble's `.flashAccept` / `.flashReject` literals now use
+>   `--color-outcome-won-strong` / `-lost-strong`, the tokens the *same file* already used
+>   two classes down for the same meaning (a small deliberate colour shift: `#2faa5a` →
+>   `#2e7d32`, `#d24a4a` → `#c62828`). The two redundant `var(--crosswords-in-word, #d7ebff)`
+>   fallbacks are gone — the token holds that exact value, so it was a pure no-op, and the
+>   repo now has **zero** redundant `var()` fallbacks in game CSS.
+> - **§3 gaps 2–5 — DONE.** `code-conventions.md → CSS Modules + theme` gained a six-rule
+>   **CSS checklist** (incl. the `_variant` convention from §3.3 and the two conventions this
+>   sweep established) and the **z-index ladder**, derived from the 32 live declarations plus
+>   the JS-set panel tiers — with scrabble's BlankPicker-at-50 recorded as a known anomaly
+>   rather than bumped blind. `ui.md:17`'s dead mobile-first counter-example is rewritten
+>   (the repo now has **zero** `min-width` media queries, so the rule is stated as an
+>   invariant with a grep to check it). The stale game count was fixed in **six** places, not
+>   the three the audit found — `playarea.md` and two `deferred.md` entries were also stale.
+>   `LengthScoreBar.module.css` has its header, so no module in the repo lacks one.
+>
+> **Still open — one item.** §2.4b, crosswords' six port-residue greys (`#f1f5f9` hover ×2,
+> `#475569`, `#444`, `#333` ×2). Held back deliberately: the standing guidance on port
+> divergences is to match the source unless there's evidence the divergence was intentional,
+> so these want a look at whether each grey is meaningful in crossplay or just an
+> untokenized default — the two `#333` grid borders especially, which are load-bearing for
+> how the grid reads. Once that's settled this doc has nothing live left and should be
+> deleted.
 
 **Scope + method:** all 142 CSS files (~10.4k lines; 127 CSS modules + the 15 theme/breakpoints
 files). Dead-class detection resolved each module's actual importers and their `styles.x` /

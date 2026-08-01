@@ -8,7 +8,7 @@ modals, mode pills, iconography), see [ui.md](ui.md).
 
 ## PlayArea layout
 
-The shape every game's play surface takes — **all eleven games** are on it. The
+The shape every game's play surface takes — **all thirteen games** are on it. The
 scaffold + readout classes live in
 [`common/components/game/PlayArea.module.css`](../src/common/components/game/PlayArea.module.css)
 (a CSS-only module imported the way `setupForm.module.css` is, composed with a thin

@@ -1,3 +1,16 @@
+/* wordiply's length-score readout — a big percentage over a filled track,
+ * rendered only at terminal (mid-game the info column shows "guesses n/5"
+ * instead; the score is a terminal-only reveal). See LengthScoreBar.tsx for the
+ * scoring and why it's terminal-only.
+ *
+ * A hand-rolled bar rather than the shared <RankBar>: that one is a LADDER of
+ * discrete named tiers you climb, this is one continuous percentage of the best
+ * possible word. Different readouts that happen to both be horizontal.
+ *
+ * Two-line stack: the `.head` row (percentage + its "best N / possible M"
+ * anchor, baseline-aligned so the big number and the small print sit on one
+ * line) over the `.track`.
+ */
 .wrap {
   display: flex;
   flex-direction: column;
