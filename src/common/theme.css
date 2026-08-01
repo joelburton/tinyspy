@@ -319,7 +319,13 @@
   font-family: system-ui, -apple-system, sans-serif;
 
   color: var(--color-text);
-  color-scheme: light;
+  /* `only` — not a bare `light` — is what opts us out of Chrome Android's /
+     Samsung Internet's forced dark mode; see the matching <meta name=
+     "color-scheme"> in index.html for the why. This declaration is the
+     load-bearing one: the meta behaves like an author rule placed BEFORE all
+     other author CSS, so a bare `light` here would quietly win and re-enable
+     the browser's flipping. Change both together. */
+  color-scheme: only light;
 }
 
 /* PHONES ONLY (not tablets): tighten the page padding to a hair so the board /

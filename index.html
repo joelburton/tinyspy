@@ -16,6 +16,23 @@
          home indicator. See docs/deferred.md → Mobile. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
+    <!-- Opt OUT of browser-imposed dark mode (Chrome Android's "Auto Dark
+         Theme", Samsung Internet's equivalent). Those algorithms flip colors by
+         LIGHTNESS, independently: near-white and near-black inverted, mid-tone
+         saturated colors left alone. That shreds hand-picked contrast pairs —
+         a spellingbee tile kept its gold ground while its near-white glyph went
+         dark, i.e. unreadable. Both browsers gate the whole feature on whether
+         the page claims to manage its own color scheme, and the CSS Color
+         Adjust spec's `only` keyword is the hard "don't transform this" signal.
+         The trade is deliberate: on a phone in system dark mode we stay light
+         while everything around us is dark. Readable beats blended.
+         The granularity is the page (or a subtree) — there is NO per-color
+         opt-out, so don't go looking for one when a single tile misbehaves.
+         WHEN A REAL DARK MODE LANDS: change this to `light dark` and add the
+         prefers-color-scheme rules; the browsers then back off on their own
+         because we've declared support, and our palette wins. -->
+    <meta name="color-scheme" content="only light" />
+
     <!-- Installable / home-screen web app. The manifest's `scope: "/"` +
          `display: "standalone"` are the fix for iOS dropping the browser chrome
          back in mid-app: without a manifest, an added-to-home-screen app gets a

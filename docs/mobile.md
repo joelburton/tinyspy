@@ -393,6 +393,48 @@ retractable UI), so this is a mobile-only fix with zero desktop effect. Grep
 behavior. (Standalone PWA mode has no toolbar, so this mainly helps the
 in-browser / not-yet-installed path — but it's the correct unit regardless.)
 
+### Browser-forced dark mode — opted out with `only light`
+
+We are a **light-only** app on purpose, and we now say so in the one way phone
+browsers actually listen to. Chrome Android's "Auto Dark Theme" and Samsung
+Internet's equivalent re-color pages that don't manage their own color scheme —
+and they do it per-color, by **lightness**: near-white and near-black get
+inverted, mid-tone saturated colors are left alone. That is precisely the wrong
+transformation for a palette of hand-picked contrast pairs. The report that
+prompted this: a spellingbee board on a phone with auto-dark kept its golden
+tiles (mid-tone, untouched) while the near-white glyphs on them flipped dark —
+white-on-yellow, unreadable, unplayable.
+
+Two declarations, and they have to agree:
+
+- `<meta name="color-scheme" content="only light">` in `index.html`
+- `color-scheme: only light` on `:root` in `src/common/theme.css`
+
+The **`only` keyword is the whole point** — a bare `light` states a preference
+but does *not* forbid the browser's transformation. And the CSS one is
+load-bearing: the meta behaves like an author rule placed before all other
+author CSS, so a bare `light` in `theme.css` silently beats the meta and hands
+force-dark back its license. Change both together.
+
+The trade is deliberate and was made explicitly: on a phone in system dark mode
+we stay bright while everything around us is dark. Readable beats blended.
+
+Two things to know before someone re-files this:
+
+- **There is no per-color opt-out.** `color-scheme` scopes to the page or a
+  subtree; you cannot exempt one tile. The tricks that protect an individual
+  element from force-dark (hiding a color behind a `linear-gradient`
+  background-image, rendering text as SVG) are non-standard and fragile — don't.
+- **`forced-color-adjust` is a different feature.** It pairs with
+  `@media (forced-colors: active)` and covers Windows High Contrast Mode, not
+  mobile auto-dark. Easy to reach for by mistake.
+
+**When a real dark mode lands**, this is its first line rather than something to
+undo: change both declarations to `light dark` and add the
+`prefers-color-scheme` rules. Both browsers then stand down on their own,
+because the page has declared it handles this — and our palette wins instead of
+their heuristic.
+
 ### Per-game conversions — the info-sheet recipe
 
 Each game's mobile pass follows the **psychicnum recipe**: below `--mobile` the
