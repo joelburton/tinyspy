@@ -213,8 +213,12 @@ describe('psychicnum PlayArea — click-to-define (turn log)', () => {
     render(<PlayArea {...makeCtx()} />)
     // The guessed word is definable...
     const define = screen.getByTitle('Click to define')
-    expect(define).toHaveAttribute('role', 'button')
     expect(define).toHaveTextContent('BRAVO')
+    // POINTER-ONLY: not a tab stop and not announced as a control. Definitions
+    // are a convenience on a word you're already pointing at, and the entry
+    // swallows Tab anyway (common/theme.css → `.definable`).
+    expect(define).not.toHaveAttribute('role')
+    expect(define).not.toHaveAttribute('tabindex')
     // ...but the hint sentence is not (only the one define affordance in the log).
     expect(screen.getAllByTitle('Click to define')).toHaveLength(1)
     expect(screen.getByText(/a paid assassin/)).toBeInTheDocument()

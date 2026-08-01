@@ -1,4 +1,4 @@
-import { type KeyboardEvent, type MouseEvent } from 'react'
+import { type MouseEvent } from 'react'
 import type { Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
@@ -42,22 +42,15 @@ export function GameTurnLog({
   // Words display uppercase in the log; the lookup wants them lowercase.
   const { define, popover } = useDefinePopover()
   const openDefine = (word: string, el: HTMLElement) => define(word.toLowerCase(), el)
+  // Pointer-only, deliberately: NOT focusable, no `role="button"`. See
+  // common/theme.css → `.definable` for why every definable word is like this.
   const defineProps = (word: string) => ({
     className: cls(styles.word, 'definable'),
-    role: 'button' as const,
-    tabIndex: 0,
     title: 'Click to define',
     // stopPropagation so defining a word doesn't ALSO open the row's turn viewer.
     onClick: (e: MouseEvent<HTMLSpanElement>) => {
       e.stopPropagation()
       openDefine(word, e.currentTarget)
-    },
-    onKeyDown: (e: KeyboardEvent<HTMLSpanElement>) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault()
-        e.stopPropagation()
-        openDefine(word, e.currentTarget)
-      }
     },
   })
 

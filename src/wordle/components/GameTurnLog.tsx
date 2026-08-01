@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { KeyboardEvent, MouseEvent } from 'react'
+import type { MouseEvent } from 'react'
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
 import { cls } from '../../common/lib/util/cls'
 import { memberById, orderSelfFirst } from '../../common/lib/game/peers'
@@ -95,18 +95,12 @@ export function GameTurnLog({
   // affordance rides the WORD (the five-square group), not the individual cells, so
   // one click looks up the guess. Guesses are stored lowercase, which the lookup wants.
   const { define, popover } = useDefinePopover()
+  // Pointer-only, deliberately: NOT focusable, no `role="button"`. See
+  // common/theme.css → `.definable` for why every definable word is like this.
   const defineProps = (word: string) => ({
     className: cls(styles.squares, styles.definable),
-    role: 'button' as const,
-    tabIndex: 0,
     title: 'Click to define',
     onClick: (e: MouseEvent<HTMLSpanElement>) => define(word, e.currentTarget),
-    onKeyDown: (e: KeyboardEvent<HTMLSpanElement>) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault()
-        define(word, e.currentTarget)
-      }
-    },
   })
 
   // In compete an opponent's guesses are RLS-hidden until the game ends, so an

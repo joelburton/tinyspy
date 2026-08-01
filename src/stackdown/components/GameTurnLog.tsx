@@ -1,4 +1,4 @@
-import { type KeyboardEvent, type MouseEvent } from 'react'
+import { type MouseEvent } from 'react'
 import type { Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { memberById } from '../../common/lib/game/peers'
@@ -57,20 +57,13 @@ export function GameTurnLog({
   // Click / keyboard activation for a clickable word chip (mirrors
   // spellingbee's WordList — same "Click to define" affordance). stopPropagation
   // so defining a word doesn't ALSO open that row's turn viewer.
+  // Pointer-only, deliberately: NOT focusable, no `role="button"`. See
+  // common/theme.css → `.definable` for why every definable word is like this.
   const defineActivation = (word: string) => ({
     onClick: (e: MouseEvent<HTMLSpanElement>) => {
       e.stopPropagation()
       openDefine(word, e.currentTarget)
     },
-    onKeyDown: (e: KeyboardEvent<HTMLSpanElement>) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault()
-        e.stopPropagation()
-        openDefine(word, e.currentTarget)
-      }
-    },
-    role: 'button' as const,
-    tabIndex: 0,
     title: 'Click to define',
   })
 

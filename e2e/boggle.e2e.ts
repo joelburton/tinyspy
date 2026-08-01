@@ -31,12 +31,12 @@ test.describe('boggle play loop', () => {
     // role=button, rendered uppercase).
     await page.keyboard.type('cat')
     await page.keyboard.press('Enter')
-    await expect(page.getByRole('button', { name: 'CAT' })).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-word="cat"]')).toBeVisible({ timeout: 10000 })
 
     // An off-board word ("zzz" — no Z on the board) is rejected: never listed.
     await page.keyboard.type('zzz')
     await page.keyboard.press('Enter')
-    await expect(page.getByRole('button', { name: 'ZZZ' })).toHaveCount(0)
+    await expect(page.locator('[data-word="zzz"]')).toHaveCount(0)
 
     await ctx.close()
   })
@@ -84,7 +84,7 @@ test.describe('boggle play loop', () => {
     await tiles.nth(2).click()
     await expect(selected).toHaveCount(3)
     await page.getByRole('button', { name: 'Submit' }).click()
-    await expect(page.getByRole('button', { name: 'CAT' })).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-word="cat"]')).toBeVisible({ timeout: 10000 })
     await expect(selected).toHaveCount(0)
 
     await ctx.close()
@@ -116,7 +116,7 @@ test.describe('boggle play loop', () => {
     await tiles.nth(1).click()
     await tiles.nth(2).click()
     await page.getByRole('button', { name: 'Submit' }).click()
-    await expect(page.getByRole('button', { name: 'CAT' })).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-word="cat"]')).toBeVisible({ timeout: 10000 })
 
     // Word 2: TYPE "cat" and press Enter. Before the fix, the still-focused T tile
     // grabbed Enter and traced "T", so the submit saw "T — too short". Now Enter

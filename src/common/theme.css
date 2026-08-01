@@ -561,18 +561,29 @@ a {
 
 /* A click-to-define word — the shared affordance for "this word opens its
    definition" (via the DefinitionPopover), a cross-game concept worth naming
-   once. A subtle underline-on-hover/focus; focus shows the underline rather than
-   a ring so it doesn't box a word mid-sentence. Compose onto the word span, e.g.
-   `cls('definable', styles.word)`. (WordList's `.word` deliberately does MORE —
-   an accent focus-ring + finder-color recent-flash — so it stays its own thing.) */
+   once. A subtle underline on hover. Compose onto the word span, e.g.
+   `cls('definable', styles.word)`.
+
+   POINTER-ONLY, and that is deliberate everywhere: a definable word carries no
+   `tabIndex` and no `role="button"`, so it is not a tab stop and has no focus
+   state to style. Two reasons. First, these words aren't reachable by keyboard
+   anyway — while a game's entry is live `useCaptureKeys` swallows Tab
+   (`e.preventDefault()`), because the caret owns the keyboard. Second, the words
+   come in bulk: a WordList can hold a hundred found words, and making each a tab
+   stop would bury every real control behind a hundred presses while ringing the
+   text in accent blue. Looking up a definition is a convenience on a word you're
+   already pointing at, not a control the game requires.
+
+   So: no `:focus-visible` rule here or in any game's local copy — there's
+   nothing to focus. If a definable word ever DOES need keyboard reach, give it a
+   real <button> (waffle's SolutionReveal and wordiply's longest-word reveal are
+   both standalone buttons already) rather than re-adding tabIndex to a span. */
 .definable {
   cursor: pointer;
   border-radius: var(--radius-sm);
 }
-.definable:hover,
-.definable:focus-visible {
+.definable:hover {
   text-decoration: underline;
-  outline: none;
 }
 
 /* Stack of buttons / form rows, separated by a generous gap.

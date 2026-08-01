@@ -527,7 +527,11 @@ describe('wordle PlayArea — click-to-define (turn log)', () => {
     // The turn-log guess carries the click-to-define affordance, and it rides the
     // whole five-letter word (one define per guess), not an individual cell.
     const define = screen.getByTitle('Click to define')
-    expect(define).toHaveAttribute('role', 'button')
     expect(define).toHaveTextContent('SLATE')
+    // POINTER-ONLY: not a tab stop and not announced as a control. Definitions
+    // are a convenience on a word you're already pointing at, and the entry
+    // swallows Tab anyway (common/theme.css → `.definable`).
+    expect(define).not.toHaveAttribute('role')
+    expect(define).not.toHaveAttribute('tabindex')
   })
 })

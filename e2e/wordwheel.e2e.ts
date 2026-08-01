@@ -47,7 +47,7 @@ test.describe('wordwheel live updates', () => {
     // word renders as a button labelled with the uppercase word. If the realtime
     // refetch doesn't fire, this button never appears (until a manual refresh) and
     // the test fails, reproducing the report.
-    await expect(page.getByRole('button', { name: 'BEAD', exact: true })).toBeVisible({
+    await expect(page.locator('[data-word="bead"]')).toBeVisible({
       timeout: 10000,
     })
 

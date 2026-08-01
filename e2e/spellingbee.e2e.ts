@@ -46,7 +46,7 @@ test.describe('spellingbee play loop', () => {
     // to boggle.)
     await submit('bead')
     await expect(pill()).toContainText('BEAD — +1')
-    await expect(page.getByRole('button', { name: 'BEAD' })).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-word="bead"]')).toBeVisible({ timeout: 10000 })
 
     // Bonus word → the dot right after the word ("BCDFGE • — +6").
     await submit('bcdfge')
@@ -63,7 +63,7 @@ test.describe('spellingbee play loop', () => {
     await submit('bcdf') // valid letters but no center 'e'
     // The reject names the LETTER, quoted — not the rule.
     await expect(pill()).toContainText(/missing "E"/)
-    await expect(page.getByRole('button', { name: 'ZZZZ' })).toHaveCount(0)
+    await expect(page.locator('[data-word="zzzz"]')).toHaveCount(0)
 
     await ctx.close()
   })

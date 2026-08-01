@@ -253,18 +253,12 @@ export function InfoCol({
         <div className={shared.terminalExtra}>
           <p className={cls(shared.infoState, styles.answerLine)}>
             The answer was{' '}
+            {/* Pointer-only, deliberately: NOT focusable, no `role="button"`.
+                See common/theme.css → `.definable`. */}
             <strong
               className={cls('definable', styles.answerReveal)}
-              role="button"
-              tabIndex={0}
               title="Click to define"
               onClick={(e) => define(solution, e.currentTarget)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  define(solution, e.currentTarget)
-                }
-              }}
             >
               {solution.toUpperCase()}
             </strong>

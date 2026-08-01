@@ -1,4 +1,4 @@
-import type { KeyboardEvent, MouseEvent } from 'react'
+import type { MouseEvent } from 'react'
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
 import { cls } from '../../common/lib/util/cls'
 import { memberById } from '../../common/lib/game/peers'
@@ -56,18 +56,12 @@ export function GameTurnLog({ guesses, players, viewingIndex, onSelectTurn }: Pr
   // guessed / revealed word is a real dictionary word, so it's definable; a HINT
   // row's `word` is a clue sentence, so it is NOT wired up.
   const { define, popover } = useDefinePopover()
+  // Pointer-only, deliberately: NOT focusable, no `role="button"`. See
+  // common/theme.css → `.definable` for why every definable word is like this.
   const defineProps = (word: string) => ({
-    className: styles.definable,
-    role: 'button' as const,
-    tabIndex: 0,
+    className: 'definable',
     title: 'Click to define',
     onClick: (e: MouseEvent<HTMLSpanElement>) => define(word.toLowerCase(), e.currentTarget),
-    onKeyDown: (e: KeyboardEvent<HTMLSpanElement>) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault()
-        define(word.toLowerCase(), e.currentTarget)
-      }
-    },
   })
 
   return (

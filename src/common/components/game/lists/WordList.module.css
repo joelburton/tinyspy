@@ -101,12 +101,6 @@
   text-decoration-thickness: 1px;
 }
 
-.word:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
-  border-radius: 2px;
-}
-
 /* Pangram — emphasized by font-weight (a found one, or a missed one in grey).
  * Games without pangrams (boggle) simply never set the row's `isPangram`. */
 .pangram {

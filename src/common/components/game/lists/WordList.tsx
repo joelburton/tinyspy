@@ -1,6 +1,5 @@
 import {
   useMemo,
-  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from 'react'
 import { useDefinePopover } from '../../../hooks/definitions/useDefinePopover'
@@ -90,21 +89,24 @@ export function WordList({ rows, players, reveal = false, heading = 'Words' }: P
   // that row. The open/anchor/close plumbing is the shared useDefinePopover hook.
   const { define: openDefine, popover } = useDefinePopover()
 
-  /** Mouse + keyboard activation for a clickable word. Spread onto the word
-   *  <span> itself (not the row) so only the word text — not the leading dot or
-   *  the empty rest of the cell — opens the definition. */
+  /** Pointer activation for a clickable word. Spread onto the word <span> itself
+   *  (not the row) so only the word text — not the leading dot or the empty rest
+   *  of the cell — opens the definition.
+   *
+   *  Pointer-only, deliberately: NOT focusable, no `role="button"`. See
+   *  common/theme.css → `.definable`. This list is the worst case for the
+   *  alternative — a found-words grid can hold a hundred words, so making each
+   *  one a tab stop buried every real control behind a hundred presses. */
   function wordActivation(word: string) {
     return {
       onClick: (e: ReactMouseEvent<HTMLSpanElement>) => openDefine(word, e.currentTarget),
-      onKeyDown: (e: ReactKeyboardEvent<HTMLSpanElement>) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          openDefine(word, e.currentTarget)
-        }
-      },
-      role: 'button' as const,
-      tabIndex: 0,
       title: 'Click to define',
+      // The e2e handle (the repo's `[data-board]` / `[data-cell]` convention).
+      // Specs used to find a listed word by `getByRole('button', {name})`, which
+      // quietly depended on these spans faking button semantics; the word is the
+      // stable thing to select on, so name it. Lowercase = as stored, not as
+      // displayed.
+      'data-word': word,
     }
   }
 

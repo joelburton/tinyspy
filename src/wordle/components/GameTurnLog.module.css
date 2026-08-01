@@ -10,16 +10,16 @@
 }
 
 /* The guess is click-to-define (common/hooks/definitions/useDefinePopover) — the affordance
- * rides the whole five-square WORD group, not the individual cells. Colored
- * blocks can't take the usual underline-on-hover, so the cue is a pointer +
- * a tone-colored ring on hover / keyboard focus. The `outline` draws outside the
- * box, so it never reflows the log. */
+ * rides the whole five-square WORD group, not the individual cells. This is the
+ * one deliberate departure from the global `.definable`: colored blocks can't
+ * take an underline, so the hover cue is a tone-colored ring instead. The
+ * `outline` draws outside the box, so it never reflows the log. (Hover only —
+ * like every definable word, this isn't focusable; see common/theme.css.) */
 .definable {
   cursor: pointer;
   border-radius: 4px;
 }
-.definable:hover,
-.definable:focus-visible {
+.definable:hover {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }

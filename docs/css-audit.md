@@ -36,11 +36,20 @@ durable decisions move into ui.md / code-conventions.md / deferred.md.*
 >   MECHANICS; the per-game look is deliberate (each ghost imitates the tile it lifted), as
 >   are the two z-indexes, which belong to the ladder item below.
 >
-> **Still open:** §2.4 hardcoded values, §2.6's psychicnum `.definable` (a live QUESTION, not
-> work — adopting the global would delete psychicnum's focus ring, and wordle went the other
-> way by adding a ring on purpose; the global's `outline: none` may be the outlier), and
-> §3 gaps 2–5 (the CSS checklist, `_variant` naming, the z-index ladder, the stale ui.md
-> claims).
+> - **§2.6's psychicnum `.definable` — DONE, but not the way the audit framed it.** The
+>   three variants weren't duplication, they were an undocumented policy question about
+>   FOCUS. Resolved by deciding the question: **a definable word is pointer-only** — no
+>   `tabIndex`, no `role="button"`, no focus state to style anywhere. Two reasons, both
+>   recorded in `common/theme.css`: these words were never keyboard-reachable in the first
+>   place (`useCaptureKeys` swallows Tab while an entry is live), and they come in bulk — a
+>   WordList of a hundred found words made a hundred tab stops and ringed the text in accent
+>   blue. With focus out of the picture psychicnum's local copy became identical to the
+>   global and is gone; wordle keeps its documented hover-ring (colored blocks can't take an
+>   underline). A word that ever DOES need keyboard reach gets a real `<button>` — waffle's
+>   and wordiply's reveals already are.
+>
+> **Still open:** §2.4 hardcoded values, and §3 gaps 2–5 (the CSS checklist, `_variant`
+> naming, the z-index ladder, the stale ui.md claims).
 
 **Scope + method:** all 142 CSS files (~10.4k lines; 127 CSS modules + the 15 theme/breakpoints
 files). Dead-class detection resolved each module's actual importers and their `styles.x` /
