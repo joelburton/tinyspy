@@ -11,8 +11,10 @@ export type StandardGameActions = {
 }
 
 /** The concede confirm — one sentence, shared (the games only trivially varied
- *  "others" vs "rest"; normalized here). Concede is compete-only. */
-const CONCEDE_CONFIRM = 'Concede the game? You drop out and the others keep playing.'
+ *  "others" vs "rest"; normalized here). Concede is compete-only. Exported for
+ *  bananagrams, which owns its own concede handler (its per-player concede
+ *  predates this hook) but must ask the same question. */
+export const CONCEDE_CONFIRM = 'Concede the game? You drop out and the others keep playing.'
 
 /** The minimal slice of a schema-scoped client this hook calls. Typing it this
  *  narrowly (rather than the full generated client) lets every game pass its own
@@ -25,8 +27,9 @@ type GameRpcClient = {
 }
 
 /**
- * The End / Concede / Replay handlers shared by the found-words + board games
- * (spellingbee, wordwheel, wordiply, boggle, waffle, wordle). Their PlayAreas
+ * The End / Concede / Replay handlers shared by ten games (spellingbee,
+ * wordwheel, wordiply, boggle, waffle, wordle, psychicnum, stackdown, scrabble,
+ * connections). Their PlayAreas
  * each hand-rolled the same three handlers (byte-identical modulo the
  * schema-scoped `db`); this owns the one copy. The genuinely per-game bits stay
  * callbacks/params, so no deliberate difference is flattened:

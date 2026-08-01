@@ -4,7 +4,7 @@ import { CelebrationDialog } from '../../common/components/game/CelebrationDialo
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx, Member } from '../../common/lib/games'
-import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
@@ -581,7 +581,7 @@ export function PlayArea(ctx: GamePageCtx) {
  *     opponent's identity dot — hence `verdictNode`; `verdict` carries the
  *     plain-text twin for anything that needs a string)
  *   - `ended` + timeout → `Lost: ran out of time`
- *   - `ended` + manual → `Ended: No winner`
+ *   - `ended` + manual → the shared `endedCopy('compete')` → `Game ended — no winner`
  *   - `lost` (everyone conceded) → `Lost: all conceded`
  */
 function buildOver({
@@ -664,11 +664,9 @@ function buildOver({
         tone: 'lost',
       }
     }
-    return {
-      verdict: 'Ended: No winner',
-      message: 'Game over',
-      tone: 'neutral',
-    }
+    // The shared neutral manual-end copy, like every other game — the friends
+    // agreed to stop, and that sentence isn't per-game.
+    return endedCopy('compete')
   }
 
   // ─── coop ───

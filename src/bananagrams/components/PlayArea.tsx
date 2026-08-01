@@ -3,10 +3,12 @@ import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
+import { CONCEDE_CONFIRM } from '../../common/hooks/game/useStandardGameActions'
+import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
+import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { DeviceBlockNotice } from '../../common/components/game/DeviceBlockNotice'
 import { useCoarsePointer } from '../../common/hooks/ui/useCoarsePointer'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
-import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
@@ -14,9 +16,8 @@ import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDis
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { IconExchange } from '../../common/components/icons'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { stickyPill, terminalPill } from '../../common/lib/game/localPills'
+import { outOfRacePill, terminalPill } from '../../common/lib/game/localPills'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
-import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
 import { useGame, useProgress } from '../hooks/useGame'
 import type { BananagramsSetup } from '../lib/setup'
@@ -179,7 +180,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // pill. A conceded player is out — the game continues for everyone else.
   const handleConcede = useCallback(async () => {
     if (isTerminal) return
-    if (!window.confirm("Concede? You'll drop out and take the loss — the others keep racing. You can't undo this.")) return
+    if (!window.confirm(CONCEDE_CONFIRM)) return
     const { error } = await db.rpc('concede', { target_game: gameId })
     if (error) {
       showLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
@@ -350,11 +351,11 @@ export function PlayArea(ctx: GamePageCtx) {
   const over: TerminalCopy | null = !isTerminal
     ? null
     : ctx.status?.outcome === 'timeout'
-      ? { verdict: "⏰ Time's up — nobody went out.", message: 'Out of time', tone: 'lost' }
+      ? { verdict: "⏰ Time's up — no winner", message: 'Out of time', tone: 'lost' }
       : ctx.status?.outcome === 'conceded'
-        ? { verdict: '🏳️ Everyone conceded — no winner.', message: 'All conceded', tone: 'lost' }
+        ? { verdict: '🏳️ Everyone conceded — no winner', message: 'All conceded', tone: 'lost' }
         : selfWon
-          ? { verdict: '🍌 Bananas! You went out first.', message: 'You won!', tone: 'won' }
+          ? { verdict: '🍌 Bananas! You went out first', message: 'You won!', tone: 'won' }
           : { verdict: `${winnerName} went out — Bananas!`, message: `${winnerName} won`, tone: 'lost' }
 
   const bunchCount = ctx.status?.bunch_remaining as number | undefined
@@ -368,7 +369,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const localFeedbackMsg: GenericFeedbackMsg | null = over
     ? terminalPill(over.tone, over.verdict)
     : isConceded
-      ? stickyPill('neutral', "You conceded — you're out of the race.")
+      ? outOfRacePill(true)
       : localFeedback
 
   // ─── Info-column chrome ─────────────────────────────────────────────────
@@ -444,16 +445,13 @@ export function PlayArea(ctx: GamePageCtx) {
   // "you're out" row keeps Club alone — the race is still running, so offering
   // to start a different game there would be a distraction.
   const infoActions = over ? (
-    <>
-      <span className={cls(shared.outcome, shared[`outcome_${over.tone}`])}>{over.message}</span>
+    <TerminalActionRow over={over} onBackToClub={ctx.goToClub} iconOnly>
       <NewGameButton iconOnly onClick={() => void handleNewGame()} />
-      <BackToClubButton onClick={ctx.goToClub} variant="primary" iconOnly />
-    </>
+    </TerminalActionRow>
   ) : isConceded ? (
-    <>
-      <span className={cls(shared.outcome, shared.outcome_neutral)}>You&rsquo;re out</span>
-      <BackToClubButton onClick={ctx.goToClub} variant="primary" iconOnly />
-    </>
+    // No Concede button to carry: bananagrams' conceded row is the status line
+    // plus the way out, since the race running on is the whole point.
+    <LocalTerminalRow label="You conceded" />
   ) : (
     <ConcedeGameButton iconOnly onClick={() => void handleConcede()} className={shared.helperButton} />
   )

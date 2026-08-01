@@ -129,8 +129,8 @@ From `buildOver()` — the below-board pill shows `verdict`, the info-column sho
 | coop `lost` (timer) | `Lost: out of time` | `Timer elapsed` | lost |
 | compete `won_compete` (you won) | `Won: the race` | `You won!` | won |
 | compete `won_compete` (beaten) | `Beaten to the punch` | `${winnerName} won` | lost |
-| compete `lost_compete` (budget) | `Out of guesses — nobody won` | `Out of guesses` | lost |
-| compete `lost_compete` (timer) | `Out of time — nobody won` | `Timer elapsed` | lost |
+| compete `lost_compete` (budget) | `Out of guesses — no winner` | `Out of guesses` | lost |
+| compete `lost_compete` (timer) | `Out of time — no winner` | `Timer elapsed` | lost |
 | `ended` coop | `Game ended` | `Game over` | neutral |
 | `ended` compete | `Game ended — no winner` | `Game over` | neutral |
 
@@ -182,7 +182,7 @@ From `buildOver()` — the below-board pill shows `verdict`, the info-column sho
 | compete `solved_compete` (you, out of mistakes) | `Lost: out of mistakes` | `Out of mistakes` | lost |
 | compete `solved_compete` (beaten, still racing) | `Beaten to the punch` | `Opponent won` | lost |
 | compete `lost_compete` (all eliminated) | `Everyone eliminated` | `All eliminated` | lost |
-| compete `lost_compete` (timer) | `Out of time — nobody won` | `Out of time` | lost |
+| compete `lost_compete` (timer) | `Out of time — no winner` | `Out of time` | lost |
 | `ended` coop / compete | `Game ended` / `Game ended — no winner` | `Game over` | neutral |
 
 Coop-only peer narration (non-terminal, `useGlobalFeedback`): `● found category` / `● was one away` / `● guessed wrong`. The solved category is **not** named — it's puzzle data of unbounded length against a ~26-char phone budget, and the band appears on the reader's own board at the same moment.
@@ -238,7 +238,7 @@ Verdicts lead with the outcome word so the result reads before the detail, and s
 | compete `won_compete` (you won) | `Won: "${targetRank}" ${foundScore}/${requiredScore} points` | `You won!` | won |
 | compete `won_compete` (beaten) | `● ${winnerName} won at "${targetRank}"` (a widget — `verdictNode`) | `${winnerName} won` | lost |
 | compete `ended` (timeout) | `Lost: ran out of time` | `Out of time` | lost |
-| compete `ended` (manual) | `Ended: No winner` | `Game over` | neutral |
+| compete `ended` (manual) | `endedCopy('compete')` → `Game ended — no winner` | `Game over` | neutral |
 | compete `lost` (all conceded) | `Lost: all conceded` | `All conceded` | lost |
 
 The coop `ended` line is the same sentence at every rank, Genius included — an open-ended hunt has nothing to fail at. (The old **known quirk** — compete all-conceded falling through to the manual-end copy — is fixed: `lost` now has its own branch.)
@@ -287,7 +287,7 @@ From `buildOver()` → `over` (PlayArea.tsx:259-267). Below-board pill shows `ve
 | `won` (you) | `🍌 Bananas! You went out first.` | `You won!` | won |
 | `won` (opponent) | `${winnerName} went out — Bananas!` | `${winnerName} won` | lost |
 
-Locally-terminal (you conceded, others race on — not a terminal play_state): below-board pill `You conceded — you're out of the race.`; info-column `You're out`. Concede confirm: `Concede? You'll drop out and take the loss — the others keep racing. You can't undo this.`
+Locally-terminal (you conceded, others race on — not a terminal play_state): the shared pair — below-board `outOfRacePill` → `Conceded — race continues`; info-column `<LocalTerminalRow>` → `You conceded`. Concede confirm: the shared `CONCEDE_CONFIRM`.
 
 ### Listing label (`labelFor`)
 manifest.ts:92-108; `name = status.winner_username ?? 'someone'`.
@@ -703,7 +703,7 @@ Verdicts lead with the outcome word so the result reads before the detail, and s
 | compete `won_compete` (you won) | `Won: "${targetRank}" ${foundScore}/${requiredScore} points` | `You won!` | won |
 | compete `won_compete` (beaten) | `● ${winnerName} won at "${targetRank}"` (a widget — `verdictNode`) | `${winnerName} won` | lost |
 | compete `ended` (timeout) | `Lost: ran out of time` | `Out of time` | lost |
-| compete `ended` (manual) | `Ended: No winner` | `Game over` | neutral |
+| compete `ended` (manual) | `endedCopy('compete')` → `Game ended — no winner` | `Game over` | neutral |
 | compete `lost` (all conceded) | `Lost: all conceded` | `All conceded` | lost |
 
 The coop `ended` line is the same sentence at every rank, Genius included — an open-ended hunt has nothing to fail at. (The old **known quirk** — compete all-conceded falling through to the manual-end copy — is fixed: `lost` now has its own branch.)

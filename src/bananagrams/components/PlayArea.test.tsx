@@ -133,9 +133,10 @@ describe('bananagrams PlayArea — render smoke', () => {
     // Concede now lives on the common roster (ctx.players), not progress.
     h.progress = [progressRow({ user_id: 'u1' })]
     render(<PlayArea {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true })] })} />)
-    // The action row shows "You're out" + back-to-club — no Peel and no Concede
-    // (the conceder is frozen out; the row is the terminal look).
-    expect(screen.getAllByText(/you.?re out/i).length).toBeGreaterThan(0)
+    // The action row is the shared <LocalTerminalRow> "You conceded" (the same
+    // label every other game uses) — no Peel and no Concede, since the conceder
+    // is frozen out and the row is the terminal look.
+    expect(screen.getAllByText(/you conceded/i).length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Peel' })).not.toBeInTheDocument()
   })

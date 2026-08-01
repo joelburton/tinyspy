@@ -163,7 +163,7 @@ export function BoardCol({
     // Dup detection (FE-side per the FE-knows model). My own action, so it flashes
     // locally (the selection stays put; clicking a tile dismisses it).
     if (guesses.some((g) => sameTileSet(g.tiles, unionTiles))) {
-      showLocalFeedback(stickyPill('error', 'You already tried that'))
+      showLocalFeedback(stickyPill('warning', 'You already tried that'))
       return
     }
 

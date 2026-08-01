@@ -9,13 +9,14 @@ import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDis
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { memberById } from '../../common/lib/game/peers'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import type { ConnectionsSetup } from '../lib/setup'
@@ -218,37 +219,34 @@ export function PlayArea({
     globalFeedback,
   })
 
-  // ─── End-game action (info-column action-row button) ───
-  // Available in both modes. Manual end terminates the game with
-  // everyone {won:false} and a NEUTRAL green "Game ended" modal —
-  // friends agreeing to stop is a valid outcome, not a "you lose"
-  // punishment. Fired by the End button in the info column (like
-  // psychicnum), not a GamePage-menu item.
-  const handleEndGame = useCallback(async () => {
-    if (isTerminal) return
-    if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) {
-      showLocalFeedback(stickyPill('error', `End game failed: ${error.message}`))
-    }
-  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
+  // Concede lives on the common roster (ctx `players` = GamePlayer[]), not
+  // connections.players; `myConceded` also folds into the locally-terminal
+  // branch below (same treatment as a 4-mistake elimination).
+  const myConceded =
+    players.find((p) => p.user_id === session.user.id)?.conceded ?? false
 
-  // ─── Replay board ──────────────────────────────────────
-  // Restart THIS puzzle: same sixteen tiles in the same shuffle, everyone's
-  // guesses + mistakes wiped. Confirmed mid-game (it wipes the group's
-  // progress); at terminal there's nothing left to lose. The post-replay
-  // cleanup leaves the turn-history view and clears the pill.
-  const handleReplay = useCallback(async () => {
-    if (!isTerminal &&
-        !window.confirm("Replay board? This clears everyone's guesses and mistakes.")) return
-    const { error } = await db.rpc('replay_board', { target_game: gameId })
-    if (error) {
-      showLocalFeedback(stickyPill('error', `Replay failed: ${error.message}`))
-      return
-    }
-    exitViewing()
-    clearLocalFeedback()
-  }, [gameId, isTerminal, showLocalFeedback, clearLocalFeedback, exitViewing])
+  // ─── End / Concede / Replay — the shared three ─────────
+  // End is available in both modes and terminates with everyone {won:false} and
+  // a NEUTRAL verdict: friends agreeing to stop is a valid outcome, not a "you
+  // lose" punishment. It's fired by the End button in the info column (like
+  // psychicnum), not a GamePage-menu item. Concede is compete's drop-out (a real
+  // loss; the others keep racing). Replay restarts THIS puzzle — the same
+  // sixteen tiles in the same shuffle, everyone's guesses + mistakes wiped —
+  // and `onReplayed` leaves the turn-history view + clears the pill.
+  const { endGame: handleEndGame, concede: handleConcede, replay: handleReplay } =
+    useStandardGameActions({
+      db,
+      gameId,
+      isTerminal,
+      myConceded,
+      confirm: confirmAction,
+      replayConfirm: "Replay board? This clears everyone's guesses and mistakes.",
+      showError: (message) => showLocalFeedback(stickyPill('error', message)),
+      onReplayed: () => {
+        exitViewing()
+        clearLocalFeedback()
+      },
+    })
 
   // ─── New game — the NEXT unplayed puzzle ───────────────
   // connections is the one game whose boards are a dated ARCHIVE rather than
@@ -310,25 +308,6 @@ export function PlayArea({
     goToGame(`connections_${gameMode}`, (data as { id: string }).id)
   }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction])
 
-  // Concede — drop out of a compete race (a real loss; the others keep racing).
-  // Distinct from End: connections.concede flips the caller's conceded flag then
-  // re-runs the compete terminal check (which now counts them as done). Reads
-  // `myConceded` (derived just below, from the common roster) — a useCallback so
-  // the menu / ref-populate effects can depend on a stable identity. An RPC
-  // failure flashes in the local commit slot.
-  //
-  // Concede lives on the common roster (ctx `players` = GamePlayer[]), not
-  // connections.players; `myConceded` also folds into the locally-terminal
-  // branch below (same treatment as a 4-mistake elimination).
-  const myConceded =
-    players.find((p) => p.user_id === session.user.id)?.conceded ?? false
-  const handleConcede = useCallback(async () => {
-    if (isTerminal || myConceded) return
-    if (!window.confirm('Concede the game? You drop out and the others keep playing.')) return
-    const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', `Concede failed: ${error.message}`))
-  }, [gameId, isTerminal, myConceded, showLocalFeedback])
-
   // ─── Header menu ("each game owns its whole menu") ─────
   // The shell no longer injects a common Help / Back-to-club section; connections
   // builds its FULL menu via buildGameMenu. connections has no game-specific menu
@@ -356,9 +335,9 @@ export function PlayArea({
   })
   useEffect(() => {
     actionsRef.current = {
-      endGame: () => void handleEndGame(),
-      concede: () => void handleConcede(),
-      replay: () => void handleReplay(),
+      endGame: handleEndGame,
+      concede: handleConcede,
+      replay: handleReplay,
       newGame: () => void handleNewGame(),
     }
   }, [handleEndGame, handleConcede, handleReplay, handleNewGame])
@@ -522,9 +501,9 @@ export function PlayArea({
         categories={game.board.categories}
         hintsOpen={hintsOpen}
         onHints={() => setHintsOpen((o) => !o)}
-        onEndGame={() => void handleEndGame()}
-        onConcede={() => void handleConcede()}
-        onRestart={() => void handleReplay()}
+        onEndGame={handleEndGame}
+        onConcede={handleConcede}
+        onRestart={handleReplay}
         onNewGame={() => void handleNewGame()}
         onBackToClub={goToClub}
         // ── Setup disclosure ──
@@ -614,7 +593,7 @@ function buildOver({
   // lost_compete (everyone eliminated OR timeout)
   return {
     verdict: timerExpired
-      ? 'Out of time — nobody won'
+      ? 'Out of time — no winner'
       : 'Everyone eliminated',
     message: timerExpired ? 'Out of time' : 'All eliminated',
     tone: 'lost',

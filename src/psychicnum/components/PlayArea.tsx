@@ -582,7 +582,7 @@ function buildOver({
   }
   // lost_compete (all exhausted OR timeout in compete)
   return {
-    verdict: timerExpired ? 'Out of time — nobody won' : 'Out of guesses — nobody won',
+    verdict: timerExpired ? 'Out of time — no winner' : 'Out of guesses — no winner',
     message: timerExpired ? 'Timer elapsed' : 'Out of guesses',
     tone: 'lost',
   }
