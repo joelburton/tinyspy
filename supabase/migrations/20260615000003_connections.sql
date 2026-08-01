@@ -1292,8 +1292,10 @@ grant execute on function connections.end_game(uuid) to authenticated;
 -- matched count zeroed; the guess log cleared, which is also what un-matches
 -- the categories — a matched category IS a `result='correct'` guess row, so
 -- deleting the log rebuilds the board by construction), then hands the
--- common-layer reset to common.reset_game. `status` goes back to the empty
--- object create_game leaves it at.
+-- common-layer reset to common.reset_game, which writes the `status` passed
+-- here. Note that's NOT identical to a brand-new game: common.create_game omits
+-- `status` from its insert, so a fresh game's is NULL where a replayed one's is
+-- '{}'. No behavioral difference — both `labelFor`s read `row.status ?? {}`.
 --
 -- Turn-order coop rewinds the pointer to the player seated first
 -- (`game_players.turn_seat = 0`); a free-for-all game's null pointer stays

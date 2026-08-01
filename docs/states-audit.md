@@ -751,7 +751,7 @@ Migration `…wordiply.sql`. Coop funnels through `_finish_coop` → `end_game(�
 **Concede subtlety (H1 fix):** a finished-but-not-conceded player counts as "still active" to `common.concede`, so a concede can leave every remaining active player out of guesses with nobody able to re-fire the end check — hanging the game in `playing`. `wordiply.concede` therefore re-runs the all-active-done check itself after conceding (:1094-1105) and resolves the race (→ `won_compete`) instead of stalling.
 
 ### In-game feedback at end-states
-From `buildOver()`. The below-board pill shows `verdict` (or its `verdictNode` widget); the info column shows `message`. `pct` = the length score %.
+From `buildOver()`. The below-board pill shows `verdict` (or its `verdictNode` widget); the info column shows `message`. `pct` = the length score %. **No `<CelebrationDialog>` in either mode** — deliberate, and the only game with a coop win that stays quiet: wordiply's coop "win" is a length-score readout rather than a solved/not-solved moment, so there's no instant worth marking (verified intentional in the 2026-07-31 review).
 
 **Compete:**
 | state | verdict | message | tone |

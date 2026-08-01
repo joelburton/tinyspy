@@ -308,8 +308,13 @@ export function PlayArea(ctx: GamePageCtx) {
   // the peel-win block in the migration), so the test is a name comparison.
   const selfId = ctx.session.user.id
   const selfUsername = ctx.players.find((p) => p.user_id === selfId)?.username
-  const winnerName = (ctx.status?.winner_username as string | undefined) ?? 'someone'
-  const selfWon = !!selfUsername && winnerName === selfUsername
+  // Gate on the winner EXISTING, not on the display fallback: 'someone' is a
+  // legal username (^[a-z][a-z0-9-]{2,14}$), so comparing against it would pop
+  // confetti for a player actually called "someone" on a no-winner terminal
+  // (timeout / all-conceded, where status carries no winner_username).
+  const winnerUsername = ctx.status?.winner_username as string | undefined
+  const winnerName = winnerUsername ?? 'someone'
+  const selfWon = !!selfUsername && winnerUsername === selfUsername
 
   // ─── Win celebration ───────────────────────────────────────────────────
   // Confetti at the MOMENT I go out — my winning peel ends the game on every
