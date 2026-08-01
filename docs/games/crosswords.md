@@ -122,7 +122,7 @@ plain RPCs — no edge function needed.
 | `reveal_cells(target_game, cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil. **Coop only** (reveal-all would trivially win the compete race). On success the FE broadcasts the revealed coords on the peer channel so teammates flash them in the actor's color (the CDC arrives colorless). |
 | `clear_board(target_game)` | Destructive "start over" (crossplay parity): blanks every fillable cell on the caller's grid (the shared grid in coop, own in compete) and drops its `pencil` / `wrong` / `revealed` flags + cryptic edge marks. Givens live on the template, so they're preserved; the answer is untouched. Guards: membership, `play_state = playing`, not conceded. No solve check (clearing only removes fills). FE surfaces it as a **confirmed** game-menu item. |
 | `end_game(target_game)` | Coop mutual give-up → neutral `ended` ("finished"). Terminal unshields the solution (`games_state`), but the FE only shows it on demand — the "Reveal board" menu item (§7 → Terminal). |
-| `concede` / `submit_timeout` | Standard. Crosswords has **no timer** (timerMode none), so `submit_timeout` is never invoked in practice. |
+| `concede` / `submit_timeout` | Standard. The setup form offers the shared `<TimerField>` like every other game; a countdown expiring takes the whole table down (coop → `lost`, compete → `lost_compete`), stamped `outcome: 'timeout'` so the verdict reads "Out of time" rather than the concede wording those same states otherwise carry. |
 
 ## 5. Puzzle sourcing
 
@@ -307,8 +307,10 @@ sizing).
   `buildOver`'s terse copy lands as a permanent pill in the active-clue slot
   ("Won: grid complete" / "Won: solved it first" / "Lost: out of the race" /
   a compete loss naming the winner with their identity dot — "● moth solved it
-  first"; "Everyone conceded" carries no `Lost:` prefix, nobody was beaten) plus
-  the info-column outcome line. A **coop solve** pops the shared
+  first"; "Everyone conceded" carries no `Lost:` prefix, nobody was beaten; a
+  countdown expiring reads "Lost: out of time" in coop and "Out of time — no
+  winner" in compete, the roster's shared phrasing, keyed off
+  `status.outcome === 'timeout'`). A **coop solve** pops the shared
   `<CelebrationDialog>` via `useCelebration(playState === 'won')` — coop-only by
   the states vocabulary (compete writes `won_compete`), at the moment of the
   flip, never on opening an already-solved game. The board is **not**
@@ -317,6 +319,38 @@ sizing).
   fills the blank cells with the greyed answers. The item is disabled mid-game
   (the server only unshields the solution at terminal) and disables itself once
   revealed.
+
+  **The chrome strip has three states**, swapping in place: the control bar
+  while playing; a `<LocalTerminalRow>` "You conceded" + inert Concede for a
+  conceded compete player (no Reveal — the solution is still shielded while the
+  others race); and at terminal an action row of **Reveal solution** (the same
+  `handleRevealBoard` as the menu item, self-disabling) · **New game** ·
+  **Back to club** (primary), with the fill / check / reveal controls gone —
+  pencilling a finished grid is meaningless.
+
+  Two documented departures from the sweep here. **No outcome message in the
+  row** — unlike every other game's `<TerminalActionRow>`, whose shape is
+  message-plus-actions: the verdict is already a permanent pill in the
+  active-clue slot directly above (the one readout a phone shows without
+  opening the info sheet), so a second copy a line below would be noise. That's
+  why the row is hand-rolled rather than reusing the shared component. And the
+  strip's **height changing** between the three states is fine, not a
+  no-reflow violation: the board column is `min-content` and spans all three
+  rows of a viewport-height grid, so it can't move — only the `1fr` clue list
+  above absorbs the difference.
+
+  **New game opens the SETUP dialog** rather than creating a game directly —
+  the only game that does. A crossword has no randomness to re-roll: `setup`
+  names a *puzzle*, so replaying it re-serves the grid just solved (library /
+  nyt / guardian alike), and an uploaded board is stripped before it's
+  persisted (§5), leaving nothing to re-send. Picking the next puzzle is the
+  only sane "another one". Mechanically it navigates to
+  `/c/<handle>?new=<gametype>`; ClubPage reads that param once at mount and
+  opens `SetupGameDialog` on it **after** its fetch settles (the dialog seeds
+  its form from `savedDefault` + `members` with a lazy initializer and never
+  re-seeds, so opening early would lose the club's last-played setup), then
+  strips the param on cancel/start. Also a **game-menu item**, which is the
+  phone route to it — the strip lives in the off-canvas info sheet there.
 
 ### Printing the board (PDF) — a deliberate whole-cloth exception
 
@@ -339,7 +373,8 @@ single-column layout in order: **Help** · pencil (⌥P) / Enter rebus (⇧↵) 
 Collapse rebuses · Show note (⌥N) / Explain cryptic clue (⌥X) / Scratchpad (⌥S)
 / Print (⌥ none) / Download as .ipuz / Print answer key (PDF) · Check letter (⌥C) / word (⌥⇧C) / puzzle ·
 Reveal letter (⌥R) / word (⌥⇧R) / puzzle *(whole section coop-only)* · Clear
-board / Reveal board · **End game / Concede game** (⌥⌫) · **Back to club** (⇧<).
+board / Reveal board / New game · **End game / Concede game** (⌥⌫) · **Back to
+club** (⇧<).
 The play actions dispatch through the stable `actionsRef`. Notables: **Collapse
 rebuses** is a display-only toggle (persisted per browser) that shows multi-char
 rebus fills as just their first letter; **Download as .ipuz** emits the current

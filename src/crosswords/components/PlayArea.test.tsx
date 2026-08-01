@@ -187,7 +187,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
       'note', 'explain', 'scratchpad', 'print', 'download-ipuz', 'print-solution',
       'check-letter', 'check-word', 'check-puzzle',
       'reveal-letter', 'reveal-word', 'reveal-puzzle',
-      'clear-board', 'reveal-board',
+      'clear-board', 'reveal-board', 'new-game',
       'end-game', 'back',
     ])
     // Corrected shortcut hints: ⌥C = check letter, ⌥⇧C = check word.

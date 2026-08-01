@@ -6,11 +6,15 @@ import { GenericFeedbackPill } from '../../common/components/feedback/GenericFee
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
+import { NewGameButton } from '../../common/components/buttons/NewGameButton'
+import { RevealButton } from '../../common/components/buttons/RevealButton'
+import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { navigate } from '../../common/lib/routing/router'
 import { setScratchpadOpen } from '../../common/lib/scratchpad/scratchpadOpenStore'
 import { writeIpuz } from '../lib/parse/ipuz'
 import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
@@ -75,7 +79,8 @@ function fileStem(id: string | undefined): string {
  * when set_cell ends the game), so this component just reacts to `isTerminal`.
  */
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, playState, goToClub, session, status, menu } = ctx
+  const { gameId, players, isTerminal, playState, goToClub, session, status, menu, clubHandle } =
+    ctx
   const myId = session.user.id
 
   const { game } = useGame(gameId)
@@ -224,6 +229,7 @@ export function PlayArea(ctx: GamePageCtx) {
     explain: () => void
     endGame: () => void
     concede: () => void
+    newGame: () => void
   } | null>(null)
 
   // Latest play state for the window keyboard handler (dodges stale
@@ -612,6 +618,15 @@ export function PlayArea(ctx: GamePageCtx) {
                 disabled: !isTerminal || solution !== null,
                 onClick: () => void handleRevealBoard(),
               },
+              {
+                // Every game carries New game in the menu; crosswords' opens the
+                // club's setup dialog (see handleNewGame) rather than creating a
+                // game directly. Also the phone route to it — the terminal row
+                // lives in the off-canvas info sheet there.
+                id: 'new-game',
+                label: 'New game',
+                onClick: () => actionsRef.current?.newGame(),
+              },
             ],
           },
         ],
@@ -651,6 +666,19 @@ export function PlayArea(ctx: GamePageCtx) {
     const { error } = await db.rpc('concede', { target_game: gameId })
     if (error) showLocalFeedback(stickyPill('error', `Concede failed: ${error.message}`))
   }, [gameId, showLocalFeedback])
+
+  // New game — unlike every other game's "same setup, fresh randomness", this
+  // opens the club's SETUP dialog rather than creating a game directly. A
+  // crossword has no randomness: `setup` names a PUZZLE, so replaying it would
+  // re-serve the grid just solved (library / nyt / guardian all do), and an
+  // uploaded board is stripped before it's persisted (manifest.ts — the
+  // solution must never reach the unshielded setup blob), so there's nothing
+  // to re-send at all. Picking the next puzzle is the only sane "another one",
+  // and the setup dialog is where puzzles are picked.
+  // (`navigate` directly rather than ctx's goToClub, which takes no query.)
+  const handleNewGame = useCallback(() => {
+    navigate(`/c/${clubHandle}?new=crosswords_${mode}`)
+  }, [clubHandle, mode])
 
   // Resolve a check/reveal scope to the target coordinates the RPCs want.
   const scopeCells = useCallback(
@@ -729,8 +757,9 @@ export function PlayArea(ctx: GamePageCtx) {
       explain: () => void handleExplain(),
       endGame: () => void handleEndGame(),
       concede: () => void handleConcede(),
+      newGame: handleNewGame,
     }
-  }, [handleCheck, handleReveal, handleShowNote, handleExplain, handleEndGame, handleConcede, cursor])
+  }, [handleCheck, handleReveal, handleShowNote, handleExplain, handleEndGame, handleConcede, handleNewGame, cursor])
 
   if (!game || !cursor) {
     return (
@@ -807,11 +836,41 @@ export function PlayArea(ctx: GamePageCtx) {
               />
             </div>
 
-            {/* Chrome strip: the action row (End / Concede; back-to-club at
-                terminal). The state readout + setup recap are deliberately
-                omitted for now — to be reintroduced elsewhere on the page. */}
+            {/* Chrome strip — three states, one slot:
+                  - PLAYING: the full control bar (fill / check / reveal / end).
+                  - CONCEDED (compete, the others still racing): the terminal
+                    LOOK — a status line + the now-inert Concede. No Reveal: the
+                    solution stays server-shielded until the GAME is terminal.
+                  - TERMINAL: the controls all vanish (checking and pencilling a
+                    finished grid is meaningless) and the row becomes the three
+                    things left to do. Deliberately NO outcome message here — a
+                    documented departure from the shared <TerminalActionRow>,
+                    whose whole shape is message-plus-actions: crosswords already
+                    renders the verdict as a permanent pill in the active-clue
+                    slot right above (the one readout a phone shows), so a
+                    second copy one line below would just be noise.
+                The strip's height changing between these is FINE, not a
+                no-reflow violation: the board column is `min-content` and spans
+                all three grid rows of a viewport-height grid, so it can't move
+                — only the `1fr` clue list above absorbs the difference. */}
             <div className={styles.strip}>
-              {!isTerminal && (
+              {isTerminal ? (
+                <div className={styles.actions}>
+                  <RevealButton
+                    label="Reveal solution"
+                    iconOnly
+                    // Self-disables once shown, like its game-menu twin.
+                    disabled={solution !== null}
+                    onClick={() => void handleRevealBoard()}
+                  />
+                  <NewGameButton iconOnly onClick={handleNewGame} />
+                  <BackToClubButton onClick={goToClub} variant="primary" compact iconOnly />
+                </div>
+              ) : myConceded ? (
+                <LocalTerminalRow label="You conceded">
+                  <ConcedeGameButton iconOnly disabled />
+                </LocalTerminalRow>
+              ) : (
                 <div className={styles.toolRow}>
                   {/* End / Concede rides INSIDE the bar as icon-only children,
                       in its own rule-separated group — one row of uniform
@@ -831,11 +890,6 @@ export function PlayArea(ctx: GamePageCtx) {
                         <EndGameButton iconOnly onClick={() => void handleEndGame()} />
                       ))}
                   </Controls>
-                </div>
-              )}
-              {isTerminal && (
-                <div className={styles.actions}>
-                  <BackToClubButton onClick={goToClub} />
                 </div>
               )}
             </div>
@@ -931,6 +985,9 @@ function buildOver(
   // The handle cached in `status` at finish time — a rename is rare enough that a
   // stale name beats a follow-up query. The roster row drives the identity DOT.
   const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
+  // `submit_timeout` stamps this; the two `lost*` states are reachable both by
+  // the clock and by conceding, and they read very differently.
+  const timedOut = status?.outcome === 'timeout'
   switch (playState) {
     case 'won':
       return { verdict: 'Won: grid complete', message: 'Solved!', tone: 'won' }
@@ -950,11 +1007,20 @@ function buildOver(
         tone: 'lost',
       }
     case 'lost_compete':
+      // A countdown running out takes the whole compete table down together
+      // (crosswords.submit_timeout). The roster's shared no-winner phrasing.
+      if (timedOut) {
+        return { verdict: 'Out of time — no winner', message: 'Out of time', tone: 'lost' }
+      }
       return { verdict: 'Lost: out of the race', message: 'You lost', tone: 'lost' }
     case 'lost':
-      // crosswords has no timer; `lost` is only reached when every remaining
-      // compete player concedes (common.concede's last-active-conceder path).
-      // No `Lost:` prefix — nobody was beaten, the race just emptied out.
+      // Two ways here: the coop countdown expiring, or every remaining compete
+      // player conceding (common.concede's last-active-conceder path). The
+      // concede one gets no `Lost:` prefix — nobody was beaten, the race just
+      // emptied out.
+      if (timedOut) {
+        return { verdict: 'Lost: out of time', message: 'Out of time', tone: 'lost' }
+      }
       return { verdict: 'Everyone conceded', message: 'Game over', tone: 'lost' }
     case 'ended':
     default:

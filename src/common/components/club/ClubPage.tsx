@@ -205,18 +205,54 @@ export function ClubPage({ handle, session }: Props) {
   // calls back into us via onStarted / onCancel to close.
   const [pendingSetup, setPendingSetup] = useState<GameManifest | null>(null)
 
+  // ── "Start another one" arriving from a game's terminal row ──────────────
+  // A game whose board IS its identity can't offer a meaningful "same again"
+  // (crosswords: replaying the setup re-serves the puzzle you just solved, and
+  // an uploaded board is stripped before it's persisted). Those games send the
+  // player here with `?new=<gametype>` instead, which opens this club's setup
+  // dialog on that gametype so they can pick the NEXT puzzle.
+  //
+  // Read ONCE at mount (the value is a navigation intent, not live state), and
+  // honored only after the club fetch settles: SetupGameDialog seeds its form
+  // from `savedDefault` + `members` with a lazy initializer and never re-seeds,
+  // so opening it early would strip the club's last-played setup and show an
+  // empty player list.
+  const [requestedGametype] = useState(
+    () => new URLSearchParams(window.location.search).get('new'),
+  )
+  // Set once the intent has been acted on (opened then cancelled/started), so
+  // the derived value below stops re-opening the dialog.
+  const [requestConsumed, setRequestConsumed] = useState(false)
+  // The dialog's manifest: an explicit Start-button click wins; otherwise the
+  // `?new=` intent, once loaded and until consumed. DERIVED at render rather
+  // than pushed into state by an effect (the repo bans setState-in-effect); the
+  // two setters below run in the dialog's own event handlers.
+  const activeSetup =
+    pendingSetup ??
+    (loading || requestConsumed
+      ? null
+      : (games.find((g) => g.gametype === requestedGametype) ?? null))
+
+  /** Close the setup dialog, whichever way it was opened, and drop `?new=` from
+   *  the URL so a refresh doesn't re-open it. */
+  const closeSetup = useCallback(() => {
+    setPendingSetup(null)
+    setRequestConsumed(true)
+    if (window.location.search) navigate(window.location.pathname, true)
+  }, [])
+
   // Announce "I'm setting up a game" to the club while MY setup dialog is open,
   // and toast when a PEER is — so two members don't both start the next game
-  // unaware of each other. Driven straight off `pendingSetup` (non-null = my
-  // dialog is open); cancel/start clears it → my announcement drops → peers'
-  // toasts clear. Presence-based (auto-clears on disconnect, syncs to
-  // late-joiners); see useClubSetupPresence.
+  // unaware of each other. Driven straight off `activeSetup` (non-null = my
+  // dialog is open, however it was opened); cancel/start clears it → my
+  // announcement drops → peers' toasts clear. Presence-based (auto-clears on
+  // disconnect, syncs to late-joiners); see useClubSetupPresence.
   const selfUsername = members.find((m) => m.user_id === selfId)?.username ?? 'You'
   useClubSetupPresence({
     clubHandle: club?.handle ?? null,
     selfId,
-    announce: pendingSetup
-      ? { brand: pendingSetup.name, mode: pendingSetup.mode, username: selfUsername }
+    announce: activeSetup
+      ? { brand: activeSetup.name, mode: activeSetup.mode, username: selfUsername }
       : null,
   })
 
@@ -648,7 +684,7 @@ export function ClubPage({ handle, session }: Props) {
   // stops; items are reached by the cursor, never focused. While one of our
   // dialogs is up, it owns Enter/arrows (focus may still sit on a container,
   // since a dialog opened by Enter never stole it).
-  const kbDialogUp = pendingSetup !== null || editing || helpOpen
+  const kbDialogUp = activeSetup !== null || editing || helpOpen
   const listKeyDown = (list: 'start' | 'games') => (e: ReactKeyboardEvent) => {
     if (kbDialogUp) return
     const len = list === 'start' ? startableGames.length : otherGames.length
@@ -940,24 +976,23 @@ export function ClubPage({ handle, session }: Props) {
           which opens the menu). Parity with each game's Help on GamePage. */}
       {helpOpen && <ClubHelp onClose={() => setHelpOpen(false)} />}
 
-      {pendingSetup && (
+      {activeSetup && (
         <SetupGameDialog
-          manifest={pendingSetup}
+          manifest={activeSetup}
           members={members}
           selfId={selfId}
           clubHandle={club.handle}
-          savedDefault={savedDefaults.get(pendingSetup.gametype)}
+          savedDefault={savedDefaults.get(activeSetup.gametype)}
           onStarted={(id) => {
-            // Capture gametype before clearing pendingSetup —
-            // the state setter is asynchronous but our reference
-            // to pendingSetup inside this closure is the one
-            // from this render, so reading .gametype here is
-            // safe regardless of ordering.
-            const gametype = pendingSetup.gametype
-            setPendingSetup(null)
+            // Capture gametype before closing — the state setter is
+            // asynchronous but our reference to activeSetup inside this
+            // closure is the one from this render, so reading .gametype
+            // here is safe regardless of ordering.
+            const gametype = activeSetup.gametype
+            closeSetup()
             navigate(`/g/${gametype}/${id}`)
           }}
-          onCancel={() => setPendingSetup(null)}
+          onCancel={closeSetup}
         />
       )}
 

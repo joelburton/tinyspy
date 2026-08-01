@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { SetupBodyProps } from '../../common/lib/games'
+import { TimerField } from '../../common/components/fields/TimerField'
 import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
 import type { CrosswordsSetup } from '../lib/setup'
@@ -275,6 +276,13 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           </div>
         </div>
       </div>
+
+      {/* Timer — the shared field every other game uses (None / Up / Down with
+          MM:SS). A countdown expiring routes to crosswords.submit_timeout,
+          which ends the table: coop → `lost`, compete → `lost_compete`, both
+          stamped `outcome: 'timeout'` so buildOver can say "Out of time"
+          rather than the concede wording those states otherwise carry. */}
+      <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
     </div>
   )
 }

@@ -172,11 +172,14 @@ WW — same story: a display choice, not a security boundary.)
 ## Replay board (`<gametype>.replay_board` + the terminal `RestartButton`)
 PN WK FB MC RA SD SS WN MW WW
 Deliberately without: TS (the board IS the secret), MG (no puzzle to re-run —
-its New game is the fresh deal)
-CP* (open — deferred.md → Terminal results)
+its New game is the fresh deal), CP (a re-read grid can't surprise you twice —
+Clear board covers a fresh grid, New game covers another puzzle)
 
 ## New game from the terminal row (`NewGameButton`)
-Everything except CP.
+Everything. CP is the odd one: its button opens the club's SETUP dialog
+(`/c/<handle>?new=<gametype>`) instead of creating a game directly, because
+`setup` names a puzzle rather than a shuffle. All thirteen also carry it as a
+game-menu item.
 
 ## Turn-history replay (`useHistoryViewer`)
 TS WK PN RA SD SS WN
@@ -192,7 +195,7 @@ Custom letters too:  FB MW (MW also a "unique letters only" board constraint)
 (library games WK/CP pick a puzzle instead; TS has no difficulty knob)
 
 ## Timer
-Optional at setup for every game except CP (never timed).
+Optional at setup for every game.
 On timeout, MC RA WW resolve a winner from current scores; everywhere else a
 timeout crowns nobody (coop loss / compete leaderboard frozen with no winner).
 
