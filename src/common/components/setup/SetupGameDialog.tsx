@@ -4,6 +4,7 @@ import { FloatingPanel } from '../panels/FloatingPanel'
 import { HelpButton } from '../buttons/HelpButton'
 import { RichMessage } from '../text/RichMessage'
 import { Dot } from '../text/Dot'
+import { cls } from '../../lib/util/cls'
 import styles from './SetupGameDialog.module.css'
 
 type Props = {
@@ -243,7 +244,15 @@ export function SetupGameDialog({
         </fieldset>
       )}
 
-      <Suspense fallback={<p className="muted">Loading options…</p>}>
+      {/* The fallback RESERVES most of a setup body's height rather than being
+          the one bare line it reads as. The panel is `fitContent`: it measures
+          whatever is mounted, so a one-line fallback made it fit to that —
+          collapsing to its 300px floor, then leaping ~370px when the real form
+          arrived ~300ms later, with the footer buttons sailing out from under
+          the cursor. Reserving the slot is the same no-reflow move the setup
+          hint below makes; the remaining growth is small and lands downward
+          (FloatingPanel anchors the header rather than re-centering). */}
+      <Suspense fallback={<p className={cls('muted', styles.bodyReserve)}>Loading options…</p>}>
         <SetupBody
           members={members}
           brand={manifest.name}

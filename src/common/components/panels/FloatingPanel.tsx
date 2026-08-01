@@ -471,11 +471,17 @@ function PanelRnd({
       setRectRef.current({
         ...r,
         height: target,
-        // Re-center vertically on open; once the user has moved the panel,
-        // leave its position (setRect soft-clamps it back into view).
-        y: userMovedRef.current
-          ? r.y
-          : Math.max(8, Math.round((window.innerHeight - target) / 2)),
+        // ANCHOR THE TOP — don't re-center. A fit can land well after the panel
+        // is on screen and under a cursor (a lazily-imported body arriving ~300ms
+        // in — see SetupGameDialog), and re-centering a growing panel slides
+        // everything in it upward by half the growth: buttons move out from
+        // under the pointer mid-click. Growing downward from a fixed header is
+        // the "don't move what someone is looking at" behavior. The panel's
+        // OPENING position is still centered (`defaultPosition: 'center'`), so
+        // this only governs later re-fits. The one exception is overflow: if
+        // growing would push the panel past the bottom edge, ride it up just
+        // enough to fit (never above the 8px top margin).
+        y: Math.max(8, Math.min(r.y, window.innerHeight - target - 8)),
       })
     }
     fit()

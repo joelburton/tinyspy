@@ -92,3 +92,16 @@
   color: var(--color-muted);
   font-size: 0.85em;
 }
+
+/* Height reserved by the lazy setup body's Suspense fallback, so the
+ * `fitContent` panel doesn't size itself to a one-line placeholder and then
+ * leap when the real form arrives (see the Suspense boundary's comment).
+ * Deliberately a MIDDLE estimate, not the tallest form's height: it can't be
+ * exact (each game's body differs, and the same body changes height as its
+ * async data lands), and over-reserving would make every SHORT form open too
+ * tall and visibly shrink — the same jump, inverted. The residual growth is a
+ * fraction of the old one and now lands downward from a fixed header. */
+.bodyReserve {
+  display: block;
+  min-height: 15rem;
+}
