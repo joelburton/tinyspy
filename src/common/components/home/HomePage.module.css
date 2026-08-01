@@ -123,3 +123,21 @@
    * break "SOLO" into "SOL / O" when a long club name squeezes the row. */
   white-space: nowrap;
 }
+
+/* The keyboard list-nav cursor — the ring marking which club Enter would open.
+ * The LIST holds the actual focus (it's the tab stop); this ring says which row
+ * it's pointing at. Same treatment as ClubPage's `.kbCursor` so the two lists
+ * read as one idiom: accent ring, offset just outside the row's own border,
+ * radius matched so it hugs the row. */
+.kbCursor {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+  border-radius: var(--radius-md);
+}
+
+/* The list container is focusable (the tab stop) but shows no ring of its own —
+ * the row cursor above IS the focus indicator, and two rings would compete. */
+.clubsList:focus,
+.clubsList:focus-visible {
+  outline: none;
+}

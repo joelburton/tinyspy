@@ -1,14 +1,15 @@
 import { useGlobalKeyHandler } from './useGlobalKeyHandler'
 
 /**
- * Tab does nothing while the board owns the keyboard.
+ * Tab does nothing on a surface that navigates by cursor rather than by focus.
  *
  * **The problem.** A game's play surface is not a form: there is no meaningful
  * "next field" to advance to. Left native, Tab walks the page's focus order —
  * onto the header buttons, then the info column's, then out of the document
  * entirely and into the browser's chrome (the URL bar). Nothing along that path
  * helps, and a player who tabbed by reflex is stranded somewhere their typing
- * no longer reaches the game.
+ * no longer reaches the game. The same is true of the club-list page, where
+ * Up/Down + Enter are the keyboard story and Tab only leads away from it.
  *
  * **The rule**, matching what `useCaptureKeys` has always done for the games
  * with a text entry: swallow Tab (and Shift+Tab) outright, but let modified
@@ -21,10 +22,15 @@ import { useGlobalKeyHandler } from './useGlobalKeyHandler'
  * — and chat/scratchpad deliberately use Tab to hand the keyboard BACK to the
  * game (`handOffKeyboardOnTab`).
  *
- * Call it once per game, at the PlayArea level. Games built on `useCaptureKeys`
- * (boggle, spellingbee, wordle, wordwheel, wordiply, psychicnum) already get
- * this from that hook and don't need it; crosswords deliberately keeps Tab as
- * clue navigation.
+ * An open `<Menu>` is covered too, by its own means: it `stopPropagation()`s
+ * every key while open (and while its trigger has focus), so a window-level
+ * listener never sees them — that's what keeps Tab-closes-the-menu working.
+ *
+ * Call it once per surface. Games built on `useCaptureKeys` (boggle,
+ * spellingbee, wordle, wordwheel, wordiply, psychicnum) already get this from
+ * that hook and don't need it; crosswords deliberately keeps Tab as clue
+ * navigation. Callers today: the five window-key games' PlayAreas, and
+ * `HomePage` (whose club list is arrow-driven — see docs/ui.md → ClubPage).
  */
 export function useSwallowTab(): void {
   useGlobalKeyHandler((e: KeyboardEvent) => {

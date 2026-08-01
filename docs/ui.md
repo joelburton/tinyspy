@@ -432,6 +432,20 @@ not the accent: since this feature, a blue ring means "the keyboard cursor
 is here", and the active card must not impersonate it. Guarded by
 [`club-keyboard.e2e.ts`](../e2e/club-keyboard.e2e.ts).
 
+**The same idiom on the club-list page.** `/` (the [`HomePage`](../src/common/components/home/HomePage.tsx)
+clubs list) navigates identically: the `<ul>` holds focus, which lands there on
+arrival, Up/Down move a clamped no-wrap cursor, and Enter opens the club under
+the ring — the same 2px accent ring, so "blue ring = the keyboard cursor is
+here" holds across both pages. **Tab does nothing** (`useSwallowTab`), as on the
+game boards: arrows + Enter are the whole keyboard story, and native Tab only
+led away from it — onto the header menu, then out into the browser's URL bar.
+The accepted cost is that `+ New club` isn't keyboard-reachable from this page;
+an open `<Menu>` is unaffected, since it `stopPropagation()`s its own keys and
+Tab still closes it. The rows stay ordinary links, so clicking is unchanged.
+The solo club sorts first, and the cursor indexes one flattened display-ordered
+array — the rows render from that same array, so ring and row can't disagree.
+Guarded by [`home-keyboard.e2e.ts`](../e2e/home-keyboard.e2e.ts).
+
 ### Components
 
 Same principle, applied to components.

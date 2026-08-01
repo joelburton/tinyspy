@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { Link } from '../../lib/routing/Link'
+import { navigate } from '../../lib/routing/router'
+import { cls } from '../../lib/util/cls'
+import { useSwallowTab } from '../../hooks/input/useSwallowTab'
 import { db as commonDb } from '../../db'
 import { useProfile } from '../../hooks/session/useProfile'
 import { useRealtimeRefetch } from '../../hooks/realtime/useRealtimeRefetch'
@@ -81,8 +84,73 @@ export function HomePage({ session }: Props) {
   // prefix is the only reliable signal — handles are slugified
   // by `slugify_club_name` which strips '='-style chars, so no
   // user-created club can collide. See common.md → "Solo clubs".
-  const soloClubs = clubs.filter((c) => c.handle.startsWith('='))
-  const regularClubs = clubs.filter((c) => !c.handle.startsWith('='))
+  //
+  // Flattened into ONE display-ordered array (solo first) because the keyboard
+  // cursor below indexes it: the cursor and the rendered rows have to walk the
+  // same order, so there's exactly one list and it renders from this.
+  const ordered = useMemo(
+    () => [
+      ...clubs.filter((c) => c.handle.startsWith('=')),
+      ...clubs.filter((c) => !c.handle.startsWith('=')),
+    ],
+    [clubs],
+  )
+
+  // ─── Keyboard navigation ─────────────────────────────────────────────────
+  // The same shape ClubPage uses for its two lists: the LIST holds focus, and
+  // Up/Down move a cursor ring through the rows with Enter opening the one
+  // under it. The rows stay ordinary links, so clicking is unchanged.
+  //
+  // Tab does NOTHING on this page (useSwallowTab). Arrows + Enter are the whole
+  // keyboard story, and native Tab only led away from it — onto the header menu
+  // and then out into the browser's URL bar. The trade-off is deliberate: the
+  // "+ New club" link is no longer keyboard-reachable from here. An open
+  // <Menu> is unaffected — it stopPropagation()s its own keys, so Tab still
+  // closes it.
+  useSwallowTab()
+
+  const listRef = useRef<HTMLUListElement>(null)
+  const [cursor, setCursor] = useState(0)
+  // Tracked on the container proper (not a bubbled child focus) so tabbing on
+  // to a row's link doesn't leave a stale ring pointing somewhere else.
+  const [listFocused, setListFocused] = useState(false)
+
+  // The row the ring is ON: clamped to the live list length (it can shrink
+  // under us — the club list is realtime), and hidden entirely unless the
+  // container holds focus. -1 = no ring.
+  const kbCursor =
+    listFocused && ordered.length > 0 ? Math.min(cursor, ordered.length - 1) : -1
+
+  function onListKeyDown(e: KeyboardEvent) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault() // don't ALSO scroll the page
+      const delta = e.key === 'ArrowDown' ? 1 : -1
+      // Clamp to the ends — deliberately no wrap-around, matching ClubPage.
+      setCursor((c) =>
+        Math.max(0, Math.min(ordered.length - 1, Math.min(c, ordered.length - 1) + delta)),
+      )
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      const club = ordered[Math.min(cursor, ordered.length - 1)]
+      if (club) navigate(`/c/${club.handle}`)
+    }
+  }
+
+  // Focus the list on arrival so arrows work without a first Tab — the same
+  // welcome ClubPage gives its start list. Waits for the clubs to land (the
+  // list doesn't exist before that) and yields to anything already focused.
+  // preventScroll: the list is near the top anyway and a focus-scroll would
+  // just jitter the page.
+  useEffect(
+    function focusListOnLoad() {
+      if (ordered.length === 0) return
+      const el = listRef.current
+      const idle =
+        document.activeElement === null || document.activeElement === document.body
+      if (el && idle) el.focus({ preventScroll: true })
+    },
+    [ordered.length],
+  )
 
   return (
     <div className="card">
@@ -111,20 +179,28 @@ export function HomePage({ session }: Props) {
           // list silently.
           <p className="muted">You haven't joined a club yet.</p>
         ) : (
-          <ul className={styles.clubsList}>
-            {soloClubs.map((c) => (
+          <ul
+            ref={listRef}
+            className={styles.clubsList}
+            tabIndex={0}
+            role="group"
+            aria-label="Your clubs"
+            onKeyDown={onListKeyDown}
+            onFocus={(e) => {
+              if (e.target === e.currentTarget) setListFocused(true)
+            }}
+            onBlur={(e) => {
+              if (e.target === e.currentTarget) setListFocused(false)
+            }}
+          >
+            {ordered.map((c, i) => (
               <li key={c.handle}>
-                <Link to={`/c/${c.handle}`} className={styles.clubItem}>
+                <Link
+                  to={`/c/${c.handle}`}
+                  className={cls(styles.clubItem, i === kbCursor && styles.kbCursor)}
+                >
                   <span className={styles.clubName}>{c.name}</span>
-                  <span className={styles.soloBadge}>Solo</span>
-                  <span className={styles.handle}>/c/{c.handle}</span>
-                </Link>
-              </li>
-            ))}
-            {regularClubs.map((c) => (
-              <li key={c.handle}>
-                <Link to={`/c/${c.handle}`} className={styles.clubItem}>
-                  <span className={styles.clubName}>{c.name}</span>
+                  {c.handle.startsWith('=') && <span className={styles.soloBadge}>Solo</span>}
                   <span className={styles.handle}>/c/{c.handle}</span>
                 </Link>
               </li>
