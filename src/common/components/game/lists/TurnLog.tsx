@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { cls } from '../../../lib/util/cls'
+import infoPanel from '../infoPanel.module.css'
 import styles from './TurnLog.module.css'
 import history from './historyViewer.module.css'
 
@@ -78,13 +79,13 @@ export function TurnLog({
         // Heading + a right-aligned control on one line. Only when an action is
         // passed, so the bare-heading layout is untouched for everyone else.
         <div className={styles.turnLogHeaderRow}>
-          <h3 className={styles.turnLogHeading}>{heading}</h3>
+          <h3 className={infoPanel.heading}>{heading}</h3>
           {headerAction}
         </div>
       ) : (
-        <h3 className={styles.turnLogHeading}>{heading}</h3>
+        <h3 className={infoPanel.heading}>{heading}</h3>
       )}
-      <div ref={boxRef} className={styles.turnLogBox}>
+      <div ref={boxRef} className={cls(infoPanel.box, styles.turnLogBox)}>
         {empty ? (
           <p className={cls('muted', styles.turnLogEmpty)}>{emptyText}</p>
         ) : (

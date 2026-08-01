@@ -21,23 +21,12 @@
 /* The card heading — a plain label over the list, matching the shared TurnLog's
  * heading. (The live "X / Y words" count belongs in the info-column state line,
  * not here — it would duplicate it.) */
-.heading {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-text);
-  flex-shrink: 0;
-}
-
-/* The card frame: an evident bordered scroll box (the same chrome as the shared
- * TurnLog's .turnLogBox) around the column-major list. Fixed height via flex; the
- * list scrolls HORIZONTALLY inside once words run past the visible columns. */
+/* The box's interior: a padded flex row around the column-major list, clipped so
+ * the list scrolls HORIZONTALLY inside once words run past the visible columns.
+ * The frame (flex sizing + the 2px border) is the shared `infoPanel.box`,
+ * composed alongside this; the heading is `infoPanel.heading`. */
 .box {
-  flex: 1;
-  min-height: 0;
   display: flex;
-  border: 2px solid var(--color-divider);
-  border-radius: var(--radius-md);
   overflow: hidden;
   padding: 0.5rem 0.6rem;
 }

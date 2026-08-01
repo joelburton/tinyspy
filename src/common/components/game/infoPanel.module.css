@@ -1,0 +1,41 @@
+/* The info column's bordered panel — a small heading with an evident 2px-framed
+ * box under it. Worn by the turn log, the word list, and bananagrams's hand, all
+ * of which sit in the info column and all of which had a private copy of these
+ * same rules. bananagrams's even carried the comment "Matches the shared
+ * WordList / TurnLog chrome", which is the standing signal that a match kept by
+ * memory should be kept by the stylesheet instead.
+ *
+ * Compose with whatever the panel does INSIDE its frame:
+ *   <h3 className={cls(infoPanel.heading, …)}>
+ *   <div className={cls(infoPanel.box, styles.box)}>
+ *
+ * The frame is all that's shared, deliberately. The three interiors have genuinely
+ * different jobs — the turn log scrolls vertically, the word list is a
+ * horizontally-scrolling column-major grid, the hand is a padded flex column with
+ * a dump zone — so each keeps its own `display` / `overflow` / padding locally.
+ *
+ * NOT used by stackdown's board `.canvas`, which draws the same 2px divider
+ * border with `radius-lg`. That's a board frame, not an info panel: same
+ * ingredient, different dish. Its comment already cross-references this chrome,
+ * and that's the right amount of coupling for it.
+ */
+
+/* The heading above the box — outside the frame, not inside it. */
+.heading {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+/* The frame itself: fills the space its parent column gives it (`flex: 1` +
+ * `min-height: 0`, so the box shrinks rather than pushing the column taller and
+ * the interior gets a definite height to scroll within), inside an evident
+ * 2px border. */
+.box {
+  flex: 1;
+  min-height: 0;
+  border: 2px solid var(--color-divider);
+  border-radius: var(--radius-md);
+}

@@ -26,13 +26,8 @@
   min-height: 0;
 }
 
-.turnLogHeading {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-text);
-  flex-shrink: 0;
-}
+/* (The heading itself is the shared `infoPanel.heading`; this module only styles
+ * the heading ROW variant below, and the box's interior.) */
 
 /* Heading row used only when a consumer passes a `headerAction` (e.g. wordle's
  * "whose guesses" dropdown): the heading on the left, the control on the right.
@@ -49,12 +44,10 @@
 /* The scroll box: an EVIDENT bordered frame (2px medium-grey, not a hairline) so
  * players read it as a contained, scrollable region. Fixed height (`flex: 1` +
  * `min-height: 0`) — the same whether empty or full — the table scrolls inside. */
+/* The log's interior: it scrolls vertically. The frame (flex sizing + the 2px
+ * border) is the shared `infoPanel.box`, composed alongside this. */
 .turnLogBox {
-  flex: 1;
-  min-height: 0;
   overflow-y: auto;
-  border: 2px solid var(--color-divider);
-  border-radius: var(--radius-md);
 }
 
 .turnLogEmpty {

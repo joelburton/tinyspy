@@ -9,6 +9,7 @@ import { colorVarFor } from '../../../lib/color/memberColor'
 import { cls } from '../../../lib/util/cls'
 import type { Member } from '../../../lib/games'
 import { Dot } from '../../text/Dot'
+import infoPanel from '../infoPanel.module.css'
 import styles from './WordList.module.css'
 
 /**
@@ -109,10 +110,10 @@ export function WordList({ rows, players, reveal = false, heading = 'Words' }: P
 
   return (
     <div className={styles.wrapper}>
-      <h3 className={styles.heading}>{heading}</h3>
+      <h3 className={infoPanel.heading}>{heading}</h3>
       {/* The list in a bordered card — the same scroll-box chrome the shared
           TurnLog uses (a heading over an evident frame). */}
-      <div className={styles.box}>
+      <div className={cls(infoPanel.box, styles.box)}>
         <ul
           className={cls(
             styles.list,

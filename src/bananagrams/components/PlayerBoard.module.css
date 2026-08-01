@@ -202,25 +202,16 @@
   flex-direction: column;
   gap: 0.5rem;
 }
-/* The heading — OUTSIDE the box, same look as WordList / TurnLog. */
-.handHeading {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-text);
-  flex-shrink: 0;
-}
-/* The bordered box (same 2px frame as WordList / TurnLog): dump zone at the top,
- * the scrolling tiles below. */
+/* (The heading is the shared `infoPanel.heading` — same look as WordList /
+ * TurnLog, now by construction rather than by hand.) */
+/* The box's interior: dump zone at the top, the scrolling tiles below. The frame
+ * (flex sizing + the 2px border) is the shared `infoPanel.box`, composed
+ * alongside this. */
 .handBox {
-  flex: 1;
-  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   padding: 0.5rem 0.6rem;
-  border: 2px solid var(--color-divider);
-  border-radius: var(--radius-md);
 }
 /* Wraps the scrolling tiles so the ⟲ rotate can float at the BOTTOM-right of the
  * tiles area (out of the way of the tiles you reach for up top) and stay put as

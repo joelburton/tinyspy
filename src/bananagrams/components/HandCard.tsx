@@ -3,6 +3,8 @@ import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { IconExchange } from '../../common/components/icons'
 import type { DragState } from '../../common/hooks/ui/useDragGesture'
 import { DUMP_COUNT, blurActiveField, type DragSource } from '../hooks/usePlayerBoard'
+import { cls } from '../../common/lib/util/cls'
+import infoPanel from '../../common/components/game/infoPanel.module.css'
 import styles from './PlayerBoard.module.css'
 
 /**
@@ -62,8 +64,8 @@ export function HandCard({
 
   return (
     <div className={styles.handSection}>
-      <h3 className={styles.handHeading}>Hand</h3>
-      <div className={styles.handBox}>
+      <h3 className={infoPanel.heading}>Hand</h3>
+      <div className={cls(infoPanel.box, styles.handBox)}>
         {/* Dump zone — drop a tile here (from the hand OR the board) to swap it for
             DUMP_COUNT. Info-blue dashed target; brightens while a tile is dragged,
             greens when one hovers it. Hidden once terminal or conceded. */}
