@@ -130,6 +130,49 @@ test.describe('club page keyboard nav', () => {
   })
 
   /**
+   * A CLICK selects, the same as an arrow key does. Without this the ring stayed
+   * wherever it had been, so cancelling a clicked game's setup dialog left the
+   * mouse and the keyboard disagreeing about "the selected item" — and the next
+   * arrow key jumped somewhere unrelated.
+   */
+  test('clicking a start button moves the cursor to it', async ({ browser }) => {
+    const club = await createSoloClub('ckbc')
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/c/${club.handle}`)
+    await expect(page.getByText('Start a new game')).toBeVisible({ timeout: 15000 })
+
+    const buttons = page.locator('[class*="_button_"]')
+    /** Index of the start button wearing the cursor ring, or -1. */
+    const ringed = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll('[class*="_button_"]')].findIndex(
+          (el) => getComputedStyle(el).outlineWidth === '2px',
+        ),
+      )
+
+    // The ring starts on the first game.
+    expect(await ringed()).toBe(0)
+
+    // Click the THIRD game, then cancel its setup dialog: the ring is on the
+    // game we clicked, not back at 0.
+    const cancel = page.getByRole('button', { name: /^cancel$/i })
+    await buttons.nth(2).click()
+    await expect(cancel).toBeVisible({ timeout: 5000 })
+    expect(await ringed()).toBe(2)
+    await cancel.click()
+    await expect(cancel).toBeHidden()
+    expect(await ringed()).toBe(2)
+
+    // ...and arrows step from THERE, not from where the ring used to be.
+    await page.keyboard.press('ArrowDown')
+    expect(await ringed()).toBe(3)
+
+    await ctx.close()
+  })
+
+  /**
    * ⇧< → Back to home, the club-list page. The keyboard twin of the menu item
    * that already existed, and the same key the GAME page uses for "Back to
    * club" — one key meaning "up a level from wherever I am".

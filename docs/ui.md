@@ -432,6 +432,15 @@ not the accent: since this feature, a blue ring means "the keyboard cursor
 is here", and the active card must not impersonate it. Guarded by
 [`club-keyboard.e2e.ts`](../e2e/club-keyboard.e2e.ts).
 
+**A click selects, the same as an arrow key.** Clicking a start button or a game
+card moves the cursor onto it, so the mouse and the keyboard never disagree about
+which item is "selected". It matters most on the start list, which is the one
+place a click leaves you on the page: click a game, cancel its setup dialog, and
+the ring is on the game you clicked with the next arrow key stepping from there —
+before this it stayed wherever it had last been, and the next arrow key jumped
+somewhere unrelated. (This works only because those buttons decline focus on
+mousedown, so the container keeps focus and the ring stays visible.)
+
 **The same idiom on the club-list page.** `/` (the [`HomePage`](../src/common/components/home/HomePage.tsx)
 clubs list) navigates identically: the `<ul>` holds focus, which lands there on
 arrival, Up/Down move a clamped no-wrap cursor, and Enter opens the club under
@@ -444,6 +453,8 @@ an open `<Menu>` is unaffected, since it `stopPropagation()`s its own keys and
 Tab still closes it. The rows stay ordinary links, so clicking is unchanged.
 The solo club sorts first, and the cursor indexes one flattened display-ordered
 array — the rows render from that same array, so ring and row can't disagree.
+Clicking a row selects it too, for symmetry with ClubPage — though since every
+row here navigates away, that's an invariant rather than something you'd notice.
 Guarded by [`home-keyboard.e2e.ts`](../e2e/home-keyboard.e2e.ts).
 
 ### Components

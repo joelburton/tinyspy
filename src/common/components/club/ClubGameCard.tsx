@@ -45,6 +45,9 @@ type Props = {
    *  marking which game Enter would open). Also keeps the card scrolled
    *  into the list frame's view. */
   kbCursor?: boolean
+  /** Move the club's keyboard cursor onto this card — called on click, so the
+   *  mouse and the keyboard agree on "the selected game". */
+  onCursorTo?: () => void
 }
 
 /**
@@ -99,6 +102,7 @@ export function ClubGameCard({
   onDelete,
   soloClub,
   kbCursor = false,
+  onCursorTo,
 }: Props) {
   const manifest = games.find((g) => g.gametype === gametype)
   // Friendly relative date — see friendlyDate.ts. Doesn't tick;
@@ -144,6 +148,10 @@ export function ClubGameCard({
   return (
     <div
       className={cls(styles.wrapper, kbCursor && styles.kbCursor)}
+      // Clicking IS selecting. On the wrapper (not the <Link>) so a click
+      // anywhere on the card counts, including the delete affordance — it's
+      // still this card either way.
+      onClick={onCursorTo}
       // Keep the keyboard cursor's card in the scrolled frame's view.
       ref={kbCursor ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
     >

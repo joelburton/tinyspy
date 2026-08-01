@@ -194,7 +194,13 @@ export function HomePage({ session }: Props) {
             }}
           >
             {ordered.map((c, i) => (
-              <li key={c.handle}>
+              // Clicking IS selecting, so the mouse and the keyboard agree on
+              // "the selected club". On the <li> because <Link> owns its own
+              // onClick for routing; the row's click bubbles here first. This
+              // list navigates away on click, so it's the same symmetry
+              // ClubPage's game list has rather than something you'd notice
+              // here today.
+              <li key={c.handle} onClick={() => setCursor(i)}>
                 <Link
                   to={`/c/${c.handle}`}
                   className={cls(styles.clubItem, i === kbCursor && styles.kbCursor)}

@@ -42,6 +42,11 @@ type Props = {
   /** The keyboard cursor's index into `games` (ClubPage's list-nav — the
    *  ring marking which button Enter would press), or -1 for none. */
   cursor?: number
+  /** Move the keyboard cursor to `index` — called when a button is CLICKED, so
+   *  the mouse and the keyboard agree on "the selected item". Without it,
+   *  clicking a game and cancelling its setup dialog left the ring wherever it
+   *  had been, and the next arrow key jumped somewhere unrelated. */
+  onCursorTo?: (index: number) => void
 }
 
 /**
@@ -72,6 +77,7 @@ export function StartGameButtons({
   onStartSetup,
   soloClub,
   cursor = -1,
+  onCursorTo,
 }: Props) {
   return (
     <div className={styles.list}>
@@ -84,7 +90,13 @@ export function StartGameButtons({
             className={cls(styles.button, i === cursor && styles.kbCursor)}
             // Keep the keyboard cursor's button in the scrolled frame's view.
             ref={i === cursor ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
-            onClick={() => onStartSetup(g.gametype)}
+            onClick={() => {
+              // Clicking IS selecting: leave the cursor on what you clicked, so
+              // cancelling the dialog returns you to it and the next arrow key
+              // steps from there rather than from wherever the ring last sat.
+              onCursorTo?.(i)
+              onStartSetup(g.gametype)
+            }}
             // Don't let a pointer press MOVE FOCUS onto this button. The list
             // container is the tab stop and owns the keyboard cursor (ClubPage's
             // `focusedList`); a button that takes focus on click therefore blanks

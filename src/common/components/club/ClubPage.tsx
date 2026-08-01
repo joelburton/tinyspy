@@ -937,6 +937,7 @@ export function ClubPage({ handle, session }: Props) {
                 onStartSetup={handleStartSetup}
                 soloClub={soloClub}
                 cursor={startKbCursor}
+                onCursorTo={setStartCursor}
               />
             </div>
             {activeGame && (
@@ -989,6 +990,10 @@ export function ClubPage({ handle, session }: Props) {
                   soloClub={soloClub}
                   onDelete={() => handleDelete(g.gameId, false)}
                   kbCursor={i === gamesKbCursor}
+                  // Clicking a card selects it too, so mouse and keyboard agree
+                  // on "the selected game" (this list navigates away on click,
+                  // so it mostly matters on the way back).
+                  onCursorTo={() => setGamesCursor(i)}
                 />
               ))
             )}
