@@ -85,6 +85,16 @@ export function StartGameButtons({
             // Keep the keyboard cursor's button in the scrolled frame's view.
             ref={i === cursor ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
             onClick={() => onStartSetup(g.gametype)}
+            // Don't let a pointer press MOVE FOCUS onto this button. The list
+            // container is the tab stop and owns the keyboard cursor (ClubPage's
+            // `focusedList`); a button that takes focus on click therefore blanks
+            // the cursor and leaves a stray focus ring on one item — two rings in
+            // the same accent, meaning different things, only one of which Enter
+            // acts on. Preventing mousedown's default keeps focus where it
+            // belongs, so after clicking a game and cancelling its setup dialog
+            // the Up/Down cursor is still live instead of needing a Tab to come
+            // back. `click` still fires — only the focus side effect is dropped.
+            onMouseDown={(e) => e.preventDefault()}
             disabled={!fits}
             // Tooltip only when the button is disabled — explains
             // WHY clicking would have done nothing. When enabled,

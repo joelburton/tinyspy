@@ -234,11 +234,19 @@ export function ClubPage({ handle, session }: Props) {
       : (games.find((g) => g.gametype === requestedGametype) ?? null))
 
   /** Close the setup dialog, whichever way it was opened, and drop `?new=` from
-   *  the URL so a refresh doesn't re-open it. */
+   *  the URL so a refresh doesn't re-open it.
+   *
+   *  Hand focus back to the start list. The dialog autofocuses a field inside
+   *  itself, so when it unmounts the focus it held dies with it and lands on
+   *  <body> — which blanks `focusedList` and with it the Up/Down cursor, so
+   *  cancelling a setup used to cost a Tab press to get the keyboard back.
+   *  Returning focus to the list container restores the cursor exactly where it
+   *  was (the index is kept in state, not derived from focus). */
   const closeSetup = useCallback(() => {
     setPendingSetup(null)
     setRequestConsumed(true)
     if (window.location.search) navigate(window.location.pathname, true)
+    startListRef.current?.focus({ preventScroll: true })
   }, [])
 
   // Announce "I'm setting up a game" to the club while MY setup dialog is open,
@@ -881,8 +889,15 @@ export function ClubPage({ handle, session }: Props) {
               onFocus={(e) => {
                 if (e.target === e.currentTarget) setFocusedList('start')
               }}
+              // Don't blank the cursor while the setup dialog is up. Beyond
+              // being pointless (the list isn't interactive behind a modal),
+              // this state update used to land BETWEEN the mousedown and the
+              // click of the dialog's own buttons — focus leaves this container
+              // the moment you press one — and the re-render it caused dropped
+              // that in-flight click, so Cancel did nothing. closeSetup() hands
+              // focus back here when the dialog goes away.
               onBlur={(e) => {
-                if (e.target === e.currentTarget)
+                if (e.target === e.currentTarget && !activeSetup)
                   setFocusedList((f) => (f === 'start' ? null : f))
               }}
             >

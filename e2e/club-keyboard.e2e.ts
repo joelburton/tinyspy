@@ -81,4 +81,51 @@ test.describe('club page keyboard nav', () => {
     expect(page.url()).not.toContain(g3.id)
     expect([g1.id, g2.id].some((id) => page.url().includes(id))).toBe(true)
   })
+
+  test('a mouse click on a start button leaves no focus ring and keeps the cursor', async ({
+    browser,
+  }) => {
+    const club = await createSoloClub('ckbm')
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/c/${club.handle}`)
+    await expect(page.getByText('Start a new game')).toBeVisible({ timeout: 15000 })
+
+    /** Every element painting a 2px ring, with its outline-offset. The keyboard
+     *  cursor is INSET (-2px); a stray focus ring sat OUTSIDE (+2px), so the
+     *  offset is what tells the two apart. */
+    const rings = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll('button, a, div')]
+          .filter((el) => getComputedStyle(el).outlineWidth === '2px')
+          .map((el) => getComputedStyle(el).outlineOffset),
+      )
+    const listFocused = () =>
+      page.evaluate(
+        () => document.activeElement?.getAttribute('aria-label') === 'Start a new game',
+      )
+
+    // The list container holds focus on load and shows exactly one cursor.
+    expect(await listFocused()).toBe(true)
+    expect(await rings()).toEqual(['-2px'])
+
+    // CLICKING a game must not move focus onto the button: the container is the
+    // tab stop, and a focused button would blank the cursor while painting a
+    // second, look-alike ring that Enter doesn't act on.
+    const cancel = page.getByRole('button', { name: /^cancel$/i })
+    await page.locator('[class*="_button_"]').first().click()
+    await expect(cancel).toBeVisible({ timeout: 5000 })
+    expect(await listFocused()).toBe(true)
+    expect(await rings()).toEqual(['-2px'])
+
+    // ...and cancelling hands focus back, so Up/Down work immediately — no Tab
+    // needed to re-enter the list.
+    await cancel.click()
+    await expect(cancel).toBeHidden()
+    expect(await listFocused()).toBe(true)
+    expect(await rings()).toEqual(['-2px'])
+
+    await ctx.close()
+  })
 })
