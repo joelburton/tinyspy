@@ -56,7 +56,10 @@ const forbidGameImports = (forbidden, fromContext) =>
 
 export default defineConfig([
   // wordlist.ts is a ~1 MB generated base64 blob (see generate-boggle-wordlist.ts).
-  globalIgnores(['dist', 'supabase/functions/boggle-build-board/wordlist.ts']),
+  // supabase/.temp is the CLI's scratch dir — it appears whenever the local
+  // stack is running and holds generated TS we don't author, which otherwise
+  // fails `npm run lint` with ~190 bogus prefer-const errors.
+  globalIgnores(['dist', 'supabase/.temp', 'supabase/functions/boggle-build-board/wordlist.ts']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

@@ -1081,6 +1081,15 @@ begin
     );
   end if;
 
+  -- Turn-order coop: rewind to the original opener. Matches no row (so it's a
+  -- no-op) in a free-for-all game, whose pointer is null.
+  update common.games
+     set current_turn_user_id = (
+           select gp.user_id from common.game_players gp
+            where gp.game_id = target_game and gp.turn_seat = 0
+         )
+   where id = target_game and current_turn_user_id is not null;
+
   perform common.reset_game(target_game, new_status);
 
   -- Realtime touch — wakes useGame's games subscription.

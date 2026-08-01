@@ -20,7 +20,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(9);
+select plan(10);
 
 -- A turn setup: coop pacing = turns, ada first.
 create function pg_temp.wordle_turn_setup(first uuid)
@@ -137,6 +137,25 @@ select is(
   wordle.submit_guess((select id from ffa), (select word from valws where n = 1))->>'result',
   'incorrect',
   'free-for-all: any player may guess in any order'
+);
+
+
+-- ── REPLAY rewinds the pointer to the opener ────────────────
+-- The turn game `g` above was seated on ada. Move the pointer off her the way
+-- an accepted move does (proven above — done directly here so this assertion
+-- doesn't depend on finding another valid word), then replay: the fresh board
+-- must start with the ORIGINAL opener holding the turn, not whoever moved last.
+reset role;
+update common.games
+   set current_turn_user_id = 'bea22222-2222-2222-2222-222222222222'::uuid
+ where id = (select id from g);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select wordle.replay_board((select id from g));
+reset role;
+select is(
+  (select current_turn_user_id from common.games where id = (select id from g)),
+  'ada11111-1111-1111-1111-111111111111'::uuid,
+  'turns: replay rewinds the turn to the first-seated player'
 );
 
 select * from finish();

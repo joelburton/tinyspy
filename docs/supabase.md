@@ -300,6 +300,13 @@ Server-side conventions
   to serialize concurrent moves — across all games (codenamesduet,
   psychicnum, connections, waffle ×4, bananagrams ×3, scrabble ×3, …).
   scrabble adds a `base_version` optimistic-concurrency check on top.
+  This includes **every `replay_board`**: a replay that interleaved with an
+  in-flight move would leave a stray log row on the "fresh" board, or — if that
+  move was the game-ENDING one — let its `end_game` land after `reset_game`
+  cleared `is_terminal`, re-terminalling the just-reset game with the previous
+  run's verdict (and re-unshielding its solution, since `games_state` gates on
+  `is_terminal`). All ten replays take the lock as of 2026-07-31; before that
+  only scrabble and wordiply did.
 - **Duplicate-write discipline:** state-transitioning RPCs update both the
   per-game row and the `common.games` header (`common.update_state` /
   `common.end_game`) in one transaction, so the club list's labels and

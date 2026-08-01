@@ -19,7 +19,7 @@ set search_path = wordiply, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(9);
+select plan(10);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -116,6 +116,25 @@ select is(
   wordiply.submit_guess((select id from ffa), 'arxxxxx')->>'ok',
   'true',
   'free-for-all: any player may guess in any order'
+);
+
+
+-- ── REPLAY rewinds the pointer to the opener ────────────────
+-- The turn game `g` above was seated on ada. Move the pointer off her the way
+-- an accepted move does (proven above — done directly here so this assertion
+-- doesn't depend on finding another valid word), then replay: the fresh board
+-- must start with the ORIGINAL opener holding the turn, not whoever moved last.
+reset role;
+update common.games
+   set current_turn_user_id = 'bea22222-2222-2222-2222-222222222222'::uuid
+ where id = (select id from g);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select wordiply.replay_board((select id from g));
+reset role;
+select is(
+  (select current_turn_user_id from common.games where id = (select id from g)),
+  'ada11111-1111-1111-1111-111111111111'::uuid,
+  'turns: replay rewinds the turn to the first-seated player'
 );
 
 select * from finish();

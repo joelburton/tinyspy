@@ -222,6 +222,15 @@ Coop games are **free-for-all** by default: every player may act at any time, an
 | `common._advance_turn(target_game)` | on an **accepted, non-terminal** move | walks `game_players` by `turn_seat`, skips conceded, wraps, and points `current_turn_user_id` at the next player. No-op when the pointer is null (free-for-all). skip-conceded is inert in coop — kept only to mirror scrabble's port |
 | `common._require_turn(target_game, caller)` | in the move RPC, **right after** the `FOR UPDATE` lock + `require_game_player` (caller resolution) | raises `P0001 'not your turn'` when the pointer is set and `caller` isn't the current player. No-op for free-for-all (null pointer), compete siblings (never assigned), and solo (you're always current) |
 
+**Replay rewinds the pointer.** Every turn-capable game's `replay_board`
+(psychicnum, connections, waffle, wordle, scrabble, wordiply) resets
+`current_turn_user_id` to the player at `turn_seat = 0` — the same opener
+`_assign_turn_order` chose — rather than leaving it wherever the last run
+stopped. It's a plain `update … where id = target_game and
+current_turn_user_id is not null`, so it matches no row (a no-op) in a
+free-for-all game. Uniform across all six as of 2026-07-31; before that only
+psychicnum, connections and scrabble did it.
+
 The "accepted, non-terminal" qualifier on `_advance_turn` is load-bearing: soft-reject paths (not-a-word, duplicate, out-of-budget) don't consume the shared budget, so they must **not** advance — the same player retries. And a move that *ends* the game skips the advance (a pointless UPDATE + a misleading pointer at terminal).
 
 **Two reserved setup keys** (a documented common convention — see [code-conventions.md](code-conventions.md#reserved-coop-turn-setup-keys)):

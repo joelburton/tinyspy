@@ -862,7 +862,11 @@ declare
   g_row wordle.games;
 begin
   perform common.require_game_player(target_game);
-  select * into g_row from wordle.games where id = target_game;
+  -- FOR UPDATE: a replay racing a move must not interleave with it (the move
+  -- RPCs lock the same row), or the reset could land on a half-applied move —
+  -- a stray log row in the "fresh" game, or worse, an in-flight game-ENDING
+  -- move re-terminalling the board that was just reset.
+  select * into g_row from wordle.games where id = target_game for update;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
@@ -874,6 +878,15 @@ begin
    where game_id = target_game;
 
   delete from wordle.guesses where game_id = target_game;
+
+  -- Turn-order coop: rewind to the original opener. Matches no row (so it's a
+  -- no-op) in a free-for-all game, whose pointer is null.
+  update common.games
+     set current_turn_user_id = (
+           select gp.user_id from common.game_players gp
+            where gp.game_id = target_game and gp.turn_seat = 0
+         )
+   where id = target_game and current_turn_user_id is not null;
 
   perform common.reset_game(
     target_game,

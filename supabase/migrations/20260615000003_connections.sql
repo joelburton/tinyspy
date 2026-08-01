@@ -1308,9 +1308,17 @@ language plpgsql
 security definer
 set search_path = connections, common, public, extensions
 as $$
+declare
+  g_row connections.games;
 begin
   perform common.require_game_player(target_game);
-  if not exists (select 1 from connections.games where id = target_game) then
+  -- FOR UPDATE: a replay racing a move must not interleave with it (the move
+  -- RPCs lock the same row), or the reset could land on a half-applied move —
+  -- a stray guess row in the "fresh" game, or worse, an in-flight game-ENDING
+  -- move re-terminalling the board that was just reset. `g_row` is unused
+  -- beyond the existence check; the LOCK is the point.
+  select * into g_row from connections.games where id = target_game for update;
+  if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
 

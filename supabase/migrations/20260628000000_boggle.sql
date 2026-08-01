@@ -596,7 +596,11 @@ declare
   new_status jsonb;
 begin
   perform common.require_game_player(target_game);
-  select * into g_row from boggle.games where id = target_game;
+  -- FOR UPDATE: a replay racing a move must not interleave with it (the move
+  -- RPCs lock the same row), or the reset could land on a half-applied move —
+  -- a stray log row in the "fresh" game, or worse, an in-flight game-ENDING
+  -- move re-terminalling the board that was just reset.
+  select * into g_row from boggle.games where id = target_game for update;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
