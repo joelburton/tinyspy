@@ -92,7 +92,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const actionsRef = useRef<{
     endGame: () => void
     concede: () => void
-    replay: () => void
+    restart: () => void
     newGame: () => void
   } | null>(null)
 
@@ -196,7 +196,7 @@ export function PlayArea(ctx: GamePageCtx) {
           {
             items: [
               // Same board, wiped finds / same setup, fresh board + id.
-              { id: 'replay', label: 'Replay board', onClick: () => actionsRef.current?.replay() },
+              { id: 'restart', label: 'Restart', onClick: () => actionsRef.current?.restart() },
               { id: 'new-game', label: 'New game', onClick: () => actionsRef.current?.newGame() },
             ],
           },
@@ -283,13 +283,13 @@ export function PlayArea(ctx: GamePageCtx) {
   // the failure-pill format + the replay sentence are wordwheel's. New game stays
   // below — its create path diverges per game.
   const showError = useCallback((m: string) => showLocalFeedback('error', m), [showLocalFeedback])
-  const { endGame, concede, replay } = useStandardGameActions({
+  const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    replayConfirm: "Replay board? This clears everyone's found words and restarts the board.",
+    restartConfirm: "Restart? This clears everyone's found words and restarts the board.",
     showError,
   })
 
@@ -330,10 +330,10 @@ export function PlayArea(ctx: GamePageCtx) {
     actionsRef.current = {
       endGame,
       concede,
-      replay,
+      restart,
       newGame: () => void handleNewGame(),
     }
-  }, [endGame, concede, replay, handleNewGame])
+  }, [endGame, concede, restart, handleNewGame])
 
   // Peer/opponent activity → header feedback pills (coop: a peer found a
   // word; compete: an opponent climbed a rank). Self-activity is excluded —
@@ -540,7 +540,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // ── Action row ──
         onEndGame={endGame}
         onConcede={concede}
-        onRestart={replay}
+        onRestart={restart}
         onNewGame={() => void handleNewGame()}
         onBackToClub={goToClub}
         onRequestBackToClub={menu.requestBackToClub}

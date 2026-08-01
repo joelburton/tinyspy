@@ -396,7 +396,7 @@ optimistic-concurrency stale-guard, returning `{result, version, terminal}`.
 
 ### 5.5 `replay_board`
 
-The "Replay board" menu item / terminal-row Restart. Note what "the board" means
+The "Restart" menu item / terminal-row Restart. Note what "the board" means
 here: scrabble's 15×15 premium grid is the **standard layout**, the same for
 every game — not a generated puzzle. So unlike waffle/wordle there is nothing to
 restore, and a replay **re-deals**: freshly shuffled bag, new racks, empty grid,

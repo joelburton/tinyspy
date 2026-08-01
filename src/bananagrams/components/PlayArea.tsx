@@ -206,7 +206,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // confirm; the creator jumps in via ctx.goToGame, peers arrive via the
   // game-invitation toast.
   //
-  // NOTE there is deliberately no "Replay board" twin (Joel's call). The other
+  // NOTE there is deliberately no "Restart" twin (Joel's call). The other
   // games' replay re-runs the SAME puzzle; bananagrams has no puzzle to re-run —
   // the bunch is dealt at random and the whole game is the race to consume it, so
   // "again" can only mean a fresh deal, which is what New game already is.
@@ -353,7 +353,7 @@ export function PlayArea(ctx: GamePageCtx) {
     : ctx.status?.outcome === 'timeout'
       ? { verdict: "⏰ Time's up — no winner", message: 'Out of time', tone: 'lost' }
       : ctx.status?.outcome === 'conceded'
-        ? { verdict: '🏳️ Everyone conceded — no winner', message: 'All conceded', tone: 'lost' }
+        ? { verdict: '🏳️ All conceded — no winner', message: 'All conceded', tone: 'lost' }
         : selfWon
           ? { verdict: '🍌 Bananas! You went out first', message: 'You won!', tone: 'won' }
           : { verdict: `${winnerName} went out — Bananas!`, message: `${winnerName} won`, tone: 'lost' }

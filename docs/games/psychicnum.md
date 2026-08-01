@@ -272,7 +272,7 @@ Reject reasons: not authenticated; not a game player; game not found; game statu
 
 ### `psychicnum.replay_board(target_game uuid)`
 
-The **Restart** button in the terminal action row + the "Replay board" menu item. Resets the working state on the SAME game row: the frozen puzzle (`words` / `secrets` / `mode`) stays, so it's the same board and the same three secrets hunted again, and everything the players did is wiped — guess log cleared, every player back to a full budget with `secrets_found = 0`. Any game player, from a finished game OR mid-game (mid-game confirms, since it wipes the group's progress; at terminal there's nothing left to lose).
+The **Restart** button in the terminal action row + the "Restart" menu item. Resets the working state on the SAME game row: the frozen puzzle (`words` / `secrets` / `mode`) stays, so it's the same board and the same three secrets hunted again, and everything the players did is wiped — guess log cleared, every player back to a full budget with `secrets_found = 0`. Any game player, from a finished game OR mid-game (mid-game confirms, since it wipes the group's progress; at terminal there's nothing left to lose).
 
 The budget is re-read from `common.games.setup->>'guesses'`, **not** from `psychicnum.players` — those rows have been decremented all game and can't say what the budget was. Turn-order coop rewinds the pointer to the player seated first (`game_players.turn_seat = 0`); a free-for-all game's null pointer stays null. The common half (un-terminal, fresh status, per-player results + concede cleared, clock zeroed) is `common.reset_game`; the secrets re-hide on their own, since `games_state` gates them on `is_terminal`.
 

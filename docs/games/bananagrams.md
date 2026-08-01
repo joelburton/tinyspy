@@ -213,7 +213,7 @@ table comment in the baseline migration.)
 
 The **New game** button in the terminal action row + the matching menu item: a FRESH game (new id, a newly dealt bunch) with this game's setup + roster, in the same club. A direct `create_game` RPC — bananagrams deals inline (no edge function) and takes no `mode` argument, being compete-only. Non-destructive: `common.create_game` un-currents this game into the club's list, so there's no confirm.
 
-**There is deliberately no "Replay board" twin**, unlike the ten games that have one. Their replay re-runs the SAME puzzle; bananagrams has no puzzle to re-run — the bunch is dealt at random and the whole game IS the race to consume it, so "again" can only mean a fresh deal, which is what New game already is.
+**There is deliberately no "Restart" twin**, unlike the ten games that have one. Their replay re-runs the SAME puzzle; bananagrams has no puzzle to re-run — the bunch is dealt at random and the whole game IS the race to consume it, so "again" can only mean a fresh deal, which is what New game already is.
 
 The locally-terminal row (conceded, the others still racing) is the shared `<LocalTerminalRow>` labelled "You conceded", and it keeps Club alone: the race is still going, so offering to start a different game there would be a distraction.
 

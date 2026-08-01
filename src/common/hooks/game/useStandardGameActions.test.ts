@@ -23,7 +23,7 @@ function setup(overrides: Overrides = {}) {
   const rpc = vi.fn().mockResolvedValue({ error: null })
   const confirm = vi.fn().mockResolvedValue(overrides.confirmResult ?? true)
   const showError = vi.fn()
-  const onReplayed = vi.fn()
+  const onRestarted = vi.fn()
   const { result } = renderHook(() =>
     useStandardGameActions({
       db: { rpc },
@@ -31,12 +31,12 @@ function setup(overrides: Overrides = {}) {
       isTerminal: overrides.isTerminal ?? false,
       myConceded: overrides.myConceded ?? false,
       confirm,
-      replayConfirm: 'Replay this board?',
+      restartConfirm: 'Replay this board?',
       showError,
-      onReplayed,
+      onRestarted,
     }),
   )
-  return { result, rpc, confirm, showError, onReplayed }
+  return { result, rpc, confirm, showError, onRestarted }
 }
 
 beforeEach(() => {
@@ -113,40 +113,40 @@ describe('concede', () => {
   })
 })
 
-describe('replay', () => {
-  it('confirms MID-GAME, fires replay_board, then runs onReplayed', async () => {
-    const { result, rpc, onReplayed } = setup({ isTerminal: false })
-    act(() => result.current.replay())
+describe('restart', () => {
+  it('confirms MID-GAME, fires replay_board, then runs onRestarted', async () => {
+    const { result, rpc, onRestarted } = setup({ isTerminal: false })
+    act(() => result.current.restart())
     await flush()
     expect(window.confirm).toHaveBeenCalledTimes(1)
     expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' })
-    expect(onReplayed).toHaveBeenCalledTimes(1)
+    expect(onRestarted).toHaveBeenCalledTimes(1)
   })
 
   it('skips the confirm at terminal (nothing left to lose)', async () => {
-    const { result, rpc, onReplayed } = setup({ isTerminal: true })
-    act(() => result.current.replay())
+    const { result, rpc, onRestarted } = setup({ isTerminal: true })
+    act(() => result.current.restart())
     await flush()
     expect(window.confirm).not.toHaveBeenCalled()
     expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' })
-    expect(onReplayed).toHaveBeenCalledTimes(1)
+    expect(onRestarted).toHaveBeenCalledTimes(1)
   })
 
   it('does nothing if the mid-game confirm is dismissed', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(false)
-    const { result, rpc, onReplayed } = setup({ isTerminal: false })
-    act(() => result.current.replay())
+    const { result, rpc, onRestarted } = setup({ isTerminal: false })
+    act(() => result.current.restart())
     await flush()
     expect(rpc).not.toHaveBeenCalled()
-    expect(onReplayed).not.toHaveBeenCalled()
+    expect(onRestarted).not.toHaveBeenCalled()
   })
 
-  it('does NOT run onReplayed when the RPC fails', async () => {
-    const { result, rpc, showError, onReplayed } = setup({ isTerminal: true })
+  it('does NOT run onRestarted when the RPC fails', async () => {
+    const { result, rpc, showError, onRestarted } = setup({ isTerminal: true })
     rpc.mockResolvedValue({ error: { message: 'reset failed' } })
-    act(() => result.current.replay())
+    act(() => result.current.restart())
     await flush()
     expect(showError).toHaveBeenCalledWith('Replay failed: reset failed')
-    expect(onReplayed).not.toHaveBeenCalled()
+    expect(onRestarted).not.toHaveBeenCalled()
   })
 })

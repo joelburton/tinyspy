@@ -239,7 +239,7 @@ export function PlayArea({
       variant: 'outline',
       dot: colorVarFor(actor?.color),
       text: peerMoveText(actor?.username ?? 'Someone', latest),
-      dismiss: { kind: 'timed', ms: 3000 },
+      dismiss: { kind: 'timed' },
     })
   }, [plays, game, isCompete, session.user.id, players, aiMemberOfSeat, globalFeedback])
 
@@ -298,7 +298,7 @@ export function PlayArea({
   const actionsRef = useRef<{
     endGame: () => void
     concede: () => void
-    replay: () => void
+    restart: () => void
     newGame: () => void
   } | null>(null)
 
@@ -349,7 +349,7 @@ export function PlayArea({
           {
             items: [
               // The same pair the terminal action row offers, reachable mid-game too.
-              { id: 'replay', label: 'Replay board', onClick: () => actionsRef.current?.replay() },
+              { id: 'restart', label: 'Restart', onClick: () => actionsRef.current?.restart() },
               { id: 'new-game', label: 'New game', onClick: () => actionsRef.current?.newGame() },
             ],
           },
@@ -365,7 +365,7 @@ export function PlayArea({
   // cleanup (leave whichever read-only overlay is open — a past turn or a
   // teammate's shared move — since the board it described is gone).
   //
-  // What "Replay board" means here is worth stating: scrabble's 15×15 grid is
+  // What "Restart" means here is worth stating: scrabble's 15×15 grid is
   // the standard layout, not a generated puzzle, so there's no board to restore.
   // A replay re-deals — fresh bag, new racks, empty grid — keeping the setup,
   // roster, seats and any AI opponents. Hence the confirm's wording.
@@ -373,20 +373,20 @@ export function PlayArea({
     (m: string) => showLocalFeedback({ tone: 'error', text: m }),
     [showLocalFeedback],
   )
-  const onReplayed = useCallback(() => {
+  const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
   }, [exitViewing, clearLocalFeedback])
-  const { endGame, concede, replay } = useStandardGameActions({
+  const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    replayConfirm:
-      "Replay board? This clears the grid and everyone's score, and deals fresh racks.",
+    restartConfirm:
+      "Restart? This clears the grid and everyone's score, and deals fresh racks.",
     showError,
-    onReplayed,
+    onRestarted,
   })
 
   // New game — a FRESH game (new id, new shuffle) with THIS game's setup +
@@ -429,10 +429,10 @@ export function PlayArea({
     actionsRef.current = {
       endGame,
       concede,
-      replay,
+      restart,
       newGame: () => void handleNewGame(),
     }
-  }, [endGame, concede, replay, handleNewGame])
+  }, [endGame, concede, restart, handleNewGame])
 
   if (loading) return <p className={styles.loading}>Loading game…</p>
   if (!game) return <p className={styles.loading}>Game not found.</p>
@@ -549,7 +549,7 @@ export function PlayArea({
           concededIds={concededIds}
           onEndGame={endGame}
           onConcede={concede}
-          onRestart={replay}
+          onRestart={restart}
           onNewGame={() => void handleNewGame()}
           onBackToClub={goToClub}
           suggest={isCompete ? null : suggestView}
@@ -569,7 +569,7 @@ export function PlayArea({
           in-page by the commit-slot pill + the info-column outcome line. Only a COMPETE
           win celebrates — coop has no win to celebrate (see useCelebration above). */}
       {celebration.show && (
-        <CelebrationDialog title="You won! 🎉" onClose={celebration.close} />
+        <CelebrationDialog title="You win! 🎉" onClose={celebration.close} />
       )}
       {confirmDialog}
     </div>

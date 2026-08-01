@@ -275,7 +275,7 @@ export function ClubPage({ handle, session }: Props) {
   useEffect(function autoClearTimedFeedback() {
     if (!globalFeedback) return
     if (globalFeedback.dismiss.kind !== 'timed') return
-    const ms = globalFeedback.dismiss.ms ?? 2200
+    const ms = globalFeedback.dismiss.ms ?? 3000
     const t = setTimeout(() => setGlobalFeedback(null), ms)
     return () => clearTimeout(t)
   }, [globalFeedback])

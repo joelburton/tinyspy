@@ -3,12 +3,12 @@ import { createSoloClub, createWaffleGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * "Replay board" (the game menu) restarts the same board from scratch: it
+ * "Restart" (the game menu) restarts the same board from scratch: it
  * clears the turn log and resets all progress on the same game row. Solo club
  * so the game doesn't presence-pause with a single viewer.
  */
 test.describe('waffle replay board', () => {
-  test('coop: a swap logs a turn; "Replay board" clears the log', async ({ browser }) => {
+  test('coop: a swap logs a turn; "Restart" clears the log', async ({ browser }) => {
     const club = await createSoloClub('wfrp')
     const [alice] = club.members
     const game = await createWaffleGame(club) // coop by default
@@ -16,7 +16,7 @@ test.describe('waffle replay board', () => {
     const ctx = await browser.newContext()
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
-    // Auto-confirm the "Replay board?" window.confirm.
+    // Auto-confirm the "Restart?" window.confirm.
     page.on('dialog', (d) => void d.accept())
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
@@ -30,7 +30,7 @@ test.describe('waffle replay board', () => {
 
     // Replay → the turn log clears (and the board resets to the scramble).
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await page.getByRole('menuitem', { name: 'Replay board' }).click()
+    await page.getByRole('menuitem', { name: 'Restart' }).click()
     await expect(page.getByText('#1', { exact: true })).toHaveCount(0, { timeout: 8000 })
   })
 

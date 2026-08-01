@@ -114,7 +114,7 @@ export function PlayArea({
   const actionsRef = useRef<{
     end: () => void
     concede: () => void
-    replay: () => void
+    restart: () => void
     newGame: () => void
   } | null>(null)
 
@@ -174,7 +174,7 @@ export function PlayArea({
           {
             items: [
               // The same pair the terminal action row offers, reachable mid-game too.
-              { id: 'replay', label: 'Replay board', onClick: () => actionsRef.current?.replay() },
+              { id: 'restart', label: 'Restart', onClick: () => actionsRef.current?.restart() },
               { id: 'new-game', label: 'New game', onClick: () => actionsRef.current?.newGame() },
             ],
           },
@@ -230,7 +230,7 @@ export function PlayArea({
               {g.kind === 'hint' ? 'got hint' : 'revealed word'}
             </>
           ),
-          dismiss: { kind: 'timed', ms: 3000 },
+          dismiss: { kind: 'timed' },
         }
       }
       return {
@@ -246,7 +246,7 @@ export function PlayArea({
             {g.word.toUpperCase()}
           </>
         ),
-        dismiss: { kind: 'timed', ms: 3000 },
+        dismiss: { kind: 'timed' },
       }
     },
     globalFeedback,
@@ -276,7 +276,7 @@ export function PlayArea({
             <ActorDot actor={member} fallback="Someone" /> guessed a word
           </>
         ),
-        dismiss: { kind: 'timed', ms: 3000 },
+        dismiss: { kind: 'timed' },
       })
     }
   }, [playerBudgets, mode, players, session.user.id, globalFeedback])
@@ -306,20 +306,20 @@ export function PlayArea({
     (m: string) => showLocalFeedback(stickyPill('error', capitalize(m))),
     [showLocalFeedback],
   )
-  const onReplayed = useCallback(() => {
+  const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
   }, [exitViewing, clearLocalFeedback])
-  const { endGame, concede, replay } = useStandardGameActions({
+  const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    replayConfirm:
-      "Replay board? This clears everyone's guesses and hunts the same three secrets again.",
+    restartConfirm:
+      "Restart? This clears everyone's guesses and hunts the same three secrets again.",
     showError,
-    onReplayed,
+    onRestarted,
   })
 
   // New game — a FRESH game (new id, a new random board + secrets) with THIS
@@ -349,10 +349,10 @@ export function PlayArea({
     actionsRef.current = {
       end: endGame,
       concede,
-      replay,
+      restart,
       newGame: () => void handleNewGame(),
     }
-  }, [endGame, concede, replay, handleNewGame])
+  }, [endGame, concede, restart, handleNewGame])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -507,7 +507,7 @@ export function PlayArea({
         revealing={revealing}
         onEndGame={endGame}
         onConcede={concede}
-        onRestart={replay}
+        onRestart={restart}
         onNewGame={() => void handleNewGame()}
         onBackToClub={goToClub}
         // ── Setup disclosure ──

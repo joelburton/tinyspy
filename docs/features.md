@@ -169,7 +169,7 @@ TS WK the data was FE-readable all along. The trusting-commit games also
 reveal at terminal — missed words for MC FB MW, the best possible word for
 WW — same story: a display choice, not a security boundary.)
 
-## Replay board (`<gametype>.replay_board` + the terminal `RestartButton`)
+## Restart (`<gametype>.replay_board` + the terminal `RestartButton`)
 PN WK FB MC RA SD SS WN MW WW
 Deliberately without: TS (the board IS the secret), MG (no puzzle to re-run —
 its New game is the fresh deal), CP (a re-read grid can't surprise you twice —

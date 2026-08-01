@@ -287,7 +287,7 @@ test.describe('bananagrams peer counts', () => {
  * mid-game from the menu. Deals a FRESH bunch with this game's setup + roster
  * on a NEW row and navigates to it.
  *
- * There is deliberately no "Replay board" twin: bananagrams has no puzzle to
+ * There is deliberately no "Restart" twin: bananagrams has no puzzle to
  * re-run — the bunch is dealt at random and the whole game is the race to
  * consume it, so "again" can only mean a fresh deal.
  */

@@ -294,7 +294,7 @@ game is terminal, then all.
   conceder "out" in the OpponentStrip, "You conceded" locally-terminal look. See
   [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP:
   `concede_test.sql`.
-- **`replay_board`** — the **"Replay board"** menu item + terminal
+- **`replay_board`** — the **"Restart"** menu item + terminal
   `RestartButton` (spellingbee's twin — [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
   restart the SAME board (same faces + word lists) for everyone. Clears
   `boggle.found_words` (the only working state), then `common.reset_game`

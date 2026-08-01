@@ -149,7 +149,7 @@ export function PlayArea({
                 <ActorDot actor={member} fallback="Someone" /> solved it
               </>
             ),
-            dismiss: { kind: 'timed', ms: 3000 },
+            dismiss: { kind: 'timed' },
           })
         } else if (out && !prev.out) {
           // Out of swaps is a milestone — important, neither clearly good nor bad → warning.
@@ -161,7 +161,7 @@ export function PlayArea({
                 <ActorDot actor={member} fallback="Someone" /> out of swaps
               </>
             ),
-            dismiss: { kind: 'timed', ms: 3000 },
+            dismiss: { kind: 'timed' },
           })
         }
       }
@@ -199,21 +199,21 @@ export function PlayArea({
     (m: string) => showLocalFeedback(ownAction('error', m)),
     [showLocalFeedback],
   )
-  const onReplayed = useCallback(() => {
+  const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
     setRevealedLocally(false) // the new run starts blind again
   }, [exitViewing, clearLocalFeedback])
-  const { endGame, concede, replay } = useStandardGameActions({
+  const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    replayConfirm:
-      "Replay board? This clears everyone's progress and the turn log, and restarts from the original scramble.",
+    restartConfirm:
+      "Restart? This clears everyone's progress and the turn log, and restarts from the original scramble.",
     showError,
-    onReplayed,
+    onRestarted,
   })
 
   // New game — a FRESH game (new id, new randomly-built board) with THIS
@@ -267,7 +267,7 @@ export function PlayArea({
   //   AT TERMINAL (a loss / manual end left words hidden): show THIS client
   //   the solution — no RPC, no confirm; post-terminal the solution is already
   //   on the client (coop always, compete unshields), so it's purely a display
-  //   decision. Sets `revealedLocally` (declared above handleReplay, which
+  //   decision. Sets `revealedLocally` (declared above handleRestart, which
   //   clears it), which swaps the DISPLAYED board below.
   const handleRevealAnswer = useCallback(async () => {
     if (isTerminal) {
@@ -286,7 +286,7 @@ export function PlayArea({
   }, [isTerminal, gameId, showLocalFeedback, clearLocalFeedback, exitViewing])
 
   // Game menu: waffle now owns its FULL menu (Help + its own items + End/Concede +
-  // Back to club) via `buildGameMenu`. Its own items are "Replay board" (both
+  // Back to club) via `buildGameMenu`. Its own items are "Restart" (both
   // modes, any state), "New game" (same setup, fresh board + id — see
   // handleNewGame), and "Reveal answer". Reveal is offered MID-GAME only while
   // the caller actually holds the solution (compete shields it during play —
@@ -318,7 +318,7 @@ export function PlayArea({
           ...infoSheet.menuSections,
           {
             items: [
-              { id: 'replay', label: 'Replay board', onClick: replay },
+              { id: 'restart', label: 'Restart', onClick: restart },
               // Same setup + roster, a fresh randomly-built board, a NEW game id.
               { id: 'new-game', label: 'New game', onClick: () => void handleNewGame() },
               {
@@ -339,7 +339,7 @@ export function PlayArea({
     myConceded,
     endGame,
     concede,
-    replay,
+    restart,
     handleNewGame,
     handleRevealAnswer,
     isTerminal,
@@ -481,7 +481,7 @@ export function PlayArea({
         concededIds={concededIds}
         onEndGame={endGame}
         onConcede={concede}
-        onRestart={replay}
+        onRestart={restart}
         onRevealAnswer={() => void handleRevealAnswer()}
         revealDisabled={revealDisabled}
         onNewGame={() => void handleNewGame()}

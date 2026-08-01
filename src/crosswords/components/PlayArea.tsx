@@ -1021,7 +1021,7 @@ function buildOver(
       if (timedOut) {
         return { verdict: 'Lost: out of time', message: 'Out of time', tone: 'lost' }
       }
-      return { verdict: 'Everyone conceded', message: 'Game over', tone: 'lost' }
+      return { verdict: 'All conceded', message: 'Game over', tone: 'lost' }
     case 'ended':
     default:
       return endedCopy(mode)

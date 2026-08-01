@@ -228,13 +228,13 @@ describe('wordle PlayArea — terminal flow', () => {
     expect(menuItems(ctx).find((i) => i.id === 'reveal')!.disabled).toBe(true)
   })
 
-  it('"Replay board" at terminal calls replay_board WITHOUT confirming', async () => {
+  it('"Restart" at terminal calls replay_board WITHOUT confirming', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...ctx} />)
 
-    act(() => menuItems(ctx).find((i) => i.id === 'replay')!.onClick())
+    act(() => menuItems(ctx).find((i) => i.id === 'restart')!.onClick())
     // confirm returned false — the RPC firing anyway proves it was skipped.
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
     expect(confirm).not.toHaveBeenCalled()
@@ -254,7 +254,7 @@ describe('wordle PlayArea — terminal flow', () => {
     expect(confirm).not.toHaveBeenCalled()
   })
 
-  it('replay resets the board fully — no stale pending row from the finished run', async () => {
+  it('restart resets the board fully — no stale pending row from the finished run', async () => {
     // The bug: BoardCol's `pending` (the submitted word held on the board through
     // the RPC round-trip) lingered after its row landed; when replay reset `rows`
     // to empty, the stale word resurrected as an uncolored top row AND held

@@ -272,20 +272,20 @@ export function PlayArea({
     (m: string) => showLocalFeedback(m, 'error'),
     [showLocalFeedback],
   )
-  const onReplayed = useCallback(() => {
+  const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
   }, [exitViewing, clearLocalFeedback])
-  const { endGame, concede, replay } = useStandardGameActions({
+  const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    replayConfirm:
-      "Replay board? This clears everyone's words and hints, and rebuilds the stack.",
+    restartConfirm:
+      "Restart? This clears everyone's words and hints, and rebuilds the stack.",
     showError,
-    onReplayed,
+    onRestarted,
   })
 
   // New game — a FRESH game (new id, a newly claimed board) with THIS game's
@@ -322,7 +322,7 @@ export function PlayArea({
   const infoSheet = useInfoSheet()
 
   // The shared frame (Help / End-or-Concede / Back to club) plus stackdown's two
-  // own items, "Replay board" and "New game" — the same pair the terminal action
+  // own items, "Restart" and "New game" — the same pair the terminal action
   // row offers, so they're reachable mid-game too. (The reveal/hint cheats stay
   // in the info-column action row, not the menu.) Placed after the action
   // handlers so they're in scope for the deps; all deps here are stable (the
@@ -345,7 +345,7 @@ export function PlayArea({
           ...infoSheet.menuSections,
           {
             items: [
-              { id: 'replay', label: 'Replay board', onClick: replay },
+              { id: 'restart', label: 'Restart', onClick: restart },
               // Same setup + roster, a freshly claimed board, a NEW game id.
               { id: 'new-game', label: 'New game', onClick: () => void handleNewGame() },
             ],
@@ -354,7 +354,7 @@ export function PlayArea({
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, menuMode, isTerminal, myConceded, endGame, concede, replay, handleNewGame, infoSheet.menuSections])
+  }, [menu, menuMode, isTerminal, myConceded, endGame, concede, restart, handleNewGame, infoSheet.menuSections])
 
   // ─── Coop: narrate teammates' moves ───────────────────────────
   // The player who DIDN'T make a move otherwise saw nothing but the log quietly
@@ -507,7 +507,7 @@ export function PlayArea({
         onReveal={() => void revealNext()}
         onEndGame={endGame}
         onConcede={concede}
-        onRestart={replay}
+        onRestart={restart}
         onNewGame={() => void handleNewGame()}
         onBackToClub={goToClub}
         setup={setup as unknown as StackdownSetup}

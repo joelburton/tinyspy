@@ -95,7 +95,7 @@ export function InfoCol({
   revealing: boolean
   onEndGame: () => void
   onConcede: () => void
-  /** Hunt the SAME board + secrets again from scratch (the menu's replay-board;
+  /** Hunt the SAME board + secrets again from scratch (the menu's Restart item;
    *  unconfirmed at terminal since there's no progress left to lose). */
   onRestart: () => void
   /** Start a fresh follow-up game — same setup + roster, a new board + secrets. */

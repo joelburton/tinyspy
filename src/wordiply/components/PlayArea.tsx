@@ -84,7 +84,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const actionsRef = useRef<{
     endGame: () => void
     concede: () => void
-    replay: () => void
+    restart: () => void
     newGame: () => void
   } | null>(null)
 
@@ -163,13 +163,13 @@ export function PlayArea(ctx: GamePageCtx) {
   // failure-pill format + the replay sentence are wordiply's. New game stays
   // below — its create path diverges per game.
   const showError = useCallback((m: string) => showLocalFeedback('error', m), [showLocalFeedback])
-  const { endGame, concede, replay } = useStandardGameActions({
+  const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    replayConfirm: "Replay board? This clears everyone's guesses and restarts the same starter.",
+    restartConfirm: "Restart? This clears everyone's guesses and restarts the same starter.",
     showError,
   })
 
@@ -192,10 +192,10 @@ export function PlayArea(ctx: GamePageCtx) {
     actionsRef.current = {
       endGame,
       concede,
-      replay,
+      restart,
       newGame: () => void handleNewGame(),
     }
-  }, [endGame, concede, replay, handleNewGame])
+  }, [endGame, concede, restart, handleNewGame])
 
   // ─── GamePage menu ─────────────────────────────────────
   useEffect(() => {
@@ -212,7 +212,7 @@ export function PlayArea(ctx: GamePageCtx) {
           ...infoSheet.menuSections,
           {
             items: [
-              { id: 'replay', label: 'Replay board', onClick: () => actionsRef.current?.replay() },
+              { id: 'restart', label: 'Restart', onClick: () => actionsRef.current?.restart() },
               { id: 'new-game', label: 'New game', onClick: () => actionsRef.current?.newGame() },
             ],
           },
@@ -334,7 +334,7 @@ export function PlayArea(ctx: GamePageCtx) {
           concededIds={concededIds}
           onEndGame={endGame}
           onConcede={concede}
-          onRestart={replay}
+          onRestart={restart}
           onNewGame={() => void handleNewGame()}
           onBackToClub={goToClub}
           onRequestBackToClub={menu.requestBackToClub}

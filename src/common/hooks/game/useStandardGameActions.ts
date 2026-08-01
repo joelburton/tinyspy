@@ -7,7 +7,7 @@ import { END_GAME_CONFIRM, type ConfirmOptions } from '../ui/useConfirmDialog'
 export type StandardGameActions = {
   endGame: () => void
   concede: () => void
-  replay: () => void
+  restart: () => void
 }
 
 /** The concede confirm — one sentence, shared (the games only trivially varied
@@ -35,8 +35,8 @@ type GameRpcClient = {
  * callbacks/params, so no deliberate difference is flattened:
  *   - `showError` formats the game's own failure pill (the games differ:
  *      `showLocalFeedback('error', m)` vs a `stickyPill` / `ownAction` pill);
- *   - `replayConfirm` is the per-game replay sentence;
- *   - `onReplayed` runs a game's post-replay cleanup (wordle/waffle re-hide the
+ *   - `restartConfirm` is the per-game replay sentence;
+ *   - `onRestarted` runs a game's post-replay cleanup (wordle/waffle re-hide the
  *      answer + leave the history view; the others pass nothing).
  *
  * **New game is NOT here.** It diverges too far to share cleanly — wordle creates
@@ -59,9 +59,9 @@ export function useStandardGameActions({
   isTerminal,
   myConceded,
   confirm,
-  replayConfirm,
+  restartConfirm,
   showError,
-  onReplayed,
+  onRestarted,
 }: {
   db: GameRpcClient
   gameId: string
@@ -70,12 +70,12 @@ export function useStandardGameActions({
   myConceded: boolean
   /** The styled end-game confirm (a game's `useConfirmDialog().confirm`). */
   confirm: (opts: ConfirmOptions) => Promise<boolean>
-  /** The per-game replay sentence shown in `window.confirm`. */
-  replayConfirm: string
+  /** The per-game restart sentence shown in `window.confirm`. */
+  restartConfirm: string
   /** Show a failure message as this game's own local pill. */
   showError: (message: string) => void
-  /** Optional post-replay cleanup (wordle/waffle re-hide the answer, etc.). */
-  onReplayed?: () => void
+  /** Optional post-restart cleanup (wordle/waffle re-hide the answer, etc.). */
+  onRestarted?: () => void
 }): StandardGameActions {
   // End (coop's neutral mutual stop / any-mode manual end) — irreversible, so
   // it's confirmed through the styled modal.
@@ -98,20 +98,20 @@ export function useStandardGameActions({
     })()
   }, [db, gameId, isTerminal, myConceded, showError])
 
-  // Replay board — restart THIS board for everyone. Confirmed MID-GAME only (it
+  // Restart — restart THIS board for everyone. Confirmed MID-GAME only (it
   // wipes the group's progress); at terminal there's nothing left to lose. The
   // reset arrives via each game's realtime refetch (the RPC's games touch).
-  const replay = useCallback(() => {
+  const restart = useCallback(() => {
     void (async () => {
-      if (!isTerminal && !window.confirm(replayConfirm)) return
+      if (!isTerminal && !window.confirm(restartConfirm)) return
       const { error } = await db.rpc('replay_board', { target_game: gameId })
       if (error) {
         showError(`Replay failed: ${error.message}`)
         return
       }
-      onReplayed?.()
+      onRestarted?.()
     })()
-  }, [db, gameId, isTerminal, replayConfirm, showError, onReplayed])
+  }, [db, gameId, isTerminal, restartConfirm, showError, onRestarted])
 
-  return { endGame, concede, replay }
+  return { endGame, concede, restart }
 }

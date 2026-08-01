@@ -337,7 +337,7 @@ export function PlayArea({
   // confirm; the creator jumps in via ctx.goToGame, the peer arrives via the
   // game-invitation toast.
   //
-  // NOTE there is deliberately no "Replay board" twin here (Joel's call). The
+  // NOTE there is deliberately no "Restart" twin here (Joel's call). The
   // other games' replay re-runs the SAME puzzle; duet's whole board — including
   // which words are the assassin — is the secret, so replaying it would hand
   // both players a board they'd already learned. A new sample is the only

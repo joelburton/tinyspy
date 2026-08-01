@@ -202,9 +202,11 @@ export function InfoCol({
             <kbd>Backspace</kbd> takes one back.
           </p>
         )}
-        {!over && !isPlayer && (
-          <p className={shared.infoHelp}>Watching — you&rsquo;re not in this game.</p>
-        )}
+        {/* Watching someone else's game (rare by design — "no spectators", see
+            CLAUDE.md). Given the terminal LOOK rather than a muted help line:
+            being unable to act is terminal for you, so it reads as a state, not
+            as advice. Matches waffle. */}
+        {!over && !isPlayer && <LocalTerminalRow label="Watching — not in this game" />}
 
         {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
         <SetupDisclosure>

@@ -3,7 +3,7 @@ import { createSoloClub, createConnectionsGame, connectionsArchiveEdge } from '.
 import { signIn } from './helpers/session'
 
 /**
- * connections' "Replay board" + "New game" — the terminal action row's
+ * connections' "Restart" + "New game" — the terminal action row's
  * stay-here options, also reachable mid-game from the menu.
  *
  * New game is connections-specific and is what these tests mostly cover.
@@ -19,7 +19,7 @@ import { signIn } from './helpers/session'
  * jsdom can't reach.)
  */
 test.describe('connections replay + new game', () => {
-  test('"Replay board" clears the guess log', async ({ browser }) => {
+  test('"Restart" clears the guess log', async ({ browser }) => {
     const club = await createSoloClub('cnrp')
     const game = await createConnectionsGame(club, 'coop')
     const ctx = await browser.newContext()
@@ -39,7 +39,7 @@ test.describe('connections replay + new game', () => {
     // Playwright's default auto-dismiss cancels it.
     page.once('dialog', (d) => void d.accept())
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await page.getByRole('menuitem', { name: 'Replay board' }).click()
+    await page.getByRole('menuitem', { name: 'Restart' }).click()
 
     await expect(page.getByText('No guesses yet.')).toBeVisible({ timeout: 10000 })
     await ctx.close()

@@ -100,7 +100,7 @@ export function InfoCol({
   //    Reveal + New game + back-to-club.) ──
   onEndGame: () => void
   onConcede: () => void
-  /** Restart THIS board from scratch (the menu's replay-board, unconfirmed at
+  /** Restart THIS board from scratch (the menu's Restart item, unconfirmed at
    *  terminal since there's no progress left to lose). */
   onRestart: () => void
   /** Show the answer (the terminal-local reveal — no RPC; see PlayArea's
@@ -219,7 +219,7 @@ export function InfoCol({
             (not in the game): a bold note, no button. */}
         {over ? (
           <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
-            {/* Stay-here options left of the leave option (Club): replay this
+            {/* Stay-here options left of the leave option (Club): restart this
                 board, see the answer, or spin up the next game. */}
             <RestartButton iconOnly onClick={onRestart} />
             <RevealButton
@@ -262,7 +262,7 @@ export function InfoCol({
       </div>
 
       {/* The shared swap log — coop only (compete writes none, and a swap sequence
-          would leak an opponent's hidden board). Rows are clickable to replay that
+          would leak an opponent's hidden board). Rows are clickable to restart that
           swap on the board. */}
       {!isCompete && (
         <GameTurnLog

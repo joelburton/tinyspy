@@ -81,7 +81,7 @@ export function InfoCol({
   //  back-to-club.)
   onEndGame: () => void
   onConcede: () => void
-  /** Restart THIS board — same faces, finds wiped (the menu's replay-board,
+  /** Restart THIS board — same faces, finds wiped (the menu's Restart item,
    *  unconfirmed at terminal since there's nothing to lose). */
   onRestart: () => void
   /** Start a fresh follow-up game — same setup, new board + id. */

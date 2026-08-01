@@ -105,7 +105,7 @@ export function PlayArea({
   // answer" menu click (answerRevealed — FE-local: the target is already on
   // the client post-terminal, so showing it is a display decision, per the
   // friends trust model). A plain loss / manual end keeps it hidden so
-  // "Replay board" stays a genuine second try (docs/ui.md → Terminal results).
+  // "Restart" stays a genuine second try (docs/ui.md → Terminal results).
   const [answerRevealed, setAnswerRevealed] = useState(false)
   const answerShown =
     playState === 'won' ||
@@ -150,7 +150,7 @@ export function PlayArea({
             <ActorDot actor={member} fallback="Someone" /> guessed {g.guess.toUpperCase()}
           </>
         ),
-        dismiss: { kind: 'timed', ms: 3000 },
+        dismiss: { kind: 'timed' },
       }
     },
     globalFeedback,
@@ -182,7 +182,7 @@ export function PlayArea({
             <ActorDot actor={member} fallback="Someone" /> solved it
           </>
         ),
-        dismiss: { kind: 'timed', ms: 3000 },
+        dismiss: { kind: 'timed' },
       }
     },
     globalFeedback,
@@ -195,20 +195,20 @@ export function PlayArea({
   // locally-revealed answer so the new run starts blind). New game + Reveal
   // answer stay below — their paths diverge (new game is a direct create_game).
   const showError = useCallback((m: string) => showLocalFeedback(stickyPill('error', m)), [showLocalFeedback])
-  const onReplayed = useCallback(() => {
+  const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
     setAnswerRevealed(false)
   }, [exitViewing, clearLocalFeedback])
-  const { endGame, concede, replay } = useStandardGameActions({
+  const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    replayConfirm: "Replay board? This clears everyone's guesses and restarts with the same word.",
+    restartConfirm: "Restart? This clears everyone's guesses and restarts with the same word.",
     showError,
-    onReplayed,
+    onRestarted,
   })
 
   // New game — a FRESH game (new id, new random target) with THIS game's
@@ -257,7 +257,7 @@ export function PlayArea({
 
   // ─── Header menu (each game owns its whole menu) ───────────────
   // The shared frame (Help / End-or-Concede / Back to club) plus wordle's two
-  // own items, "Replay board" (both modes, any state) and "Reveal answer"
+  // own items, "Restart" (both modes, any state) and "Reveal answer"
   // (disabled once the word is already showing — a win, a prior reveal). All
   // four actions dispatch through a stable `actionsRef` so this effect's deps
   // stay stable values only (menu, mode, isTerminal, myConceded, answerShown)
@@ -268,13 +268,13 @@ export function PlayArea({
   const actionsRef = useRef<{
     endGame: () => void
     concede: () => void
-    replay: () => void
+    restart: () => void
     reveal: () => void
     newGame: () => void
   }>({
     endGame: () => {},
     concede: () => {},
-    replay: () => {},
+    restart: () => {},
     reveal: () => {},
     newGame: () => {},
   })
@@ -295,7 +295,7 @@ export function PlayArea({
           ...infoSheet.menuSections,
           {
             items: [
-              { id: 'replay', label: 'Replay board', onClick: () => actionsRef.current.replay() },
+              { id: 'restart', label: 'Restart', onClick: () => actionsRef.current.restart() },
               // Same setup + roster, a fresh random target, a NEW game id.
               { id: 'new-game', label: 'New game', onClick: () => actionsRef.current.newGame() },
               {
@@ -318,11 +318,11 @@ export function PlayArea({
     actionsRef.current = {
       endGame,
       concede,
-      replay,
+      restart,
       reveal: () => void handleReveal(),
       newGame: () => void handleNewGame(),
     }
-  }, [endGame, concede, replay, handleReveal, handleNewGame])
+  }, [endGame, concede, restart, handleReveal, handleNewGame])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -466,7 +466,7 @@ export function PlayArea({
         // ── Action row ──
         onEndGame={endGame}
         onConcede={concede}
-        onRestart={replay}
+        onRestart={restart}
         onRevealAnswer={() => void handleReveal()}
         revealDisabled={answerShown}
         onNewGame={() => void handleNewGame()}
@@ -522,7 +522,7 @@ function buildOver({
   if (playState === 'ended') return endedCopy(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
-      return { verdict: 'Solved! 🎉', message: 'Solved it!', tone: 'won' }
+      return { verdict: 'Won: solved it', message: 'Solved it!', tone: 'won' }
     }
     return {
       verdict: timerExpired ? 'Lost: out of time' : 'Lost: out of guesses',

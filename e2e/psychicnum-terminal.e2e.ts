@@ -68,7 +68,7 @@ test('terminal: secret tiles are ringed and the pill carries the verdict', async
 })
 
 /**
- * "Replay board" + "New game" — the terminal action row's stay-here options,
+ * "Restart" + "New game" — the terminal action row's stay-here options,
  * also reachable mid-game from the menu. Replay hunts THIS board's same three
  * secrets again (guesses cleared, budgets restored); New game deals a fresh
  * board + secrets on a NEW row and navigates to it.
@@ -77,7 +77,7 @@ test('terminal: secret tiles are ringed and the pill carries the verdict', async
  * realtime refetch, and New game is a navigation to a different id.
  */
 test.describe('psychicnum replay + new game', () => {
-  test('a guess is wiped by "Replay board" (same board, budget restored)', async ({ browser }) => {
+  test('a guess is wiped by "Restart" (same board, budget restored)', async ({ browser }) => {
     const club = await createSoloClub('pnrp')
     const game = await createGame(club)
     const ctx = await browser.newContext()
@@ -95,7 +95,7 @@ test.describe('psychicnum replay + new game', () => {
     // Playwright's default auto-dismiss cancels it.
     page.once('dialog', (d) => void d.accept())
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await page.getByRole('menuitem', { name: 'Replay board' }).click()
+    await page.getByRole('menuitem', { name: 'Restart' }).click()
 
     await expect(page.getByText('No turns yet.')).toBeVisible({ timeout: 10000 })
     await ctx.close()

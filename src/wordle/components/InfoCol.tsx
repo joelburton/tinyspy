@@ -105,7 +105,7 @@ export function InfoCol({
   //    Restart + Reveal + New game + back-to-club.) ──
   onEndGame: () => void
   onConcede: () => void
-  /** Restart THIS game — same word — from scratch (the menu's replay-board,
+  /** Restart THIS game — same word — from scratch (the menu's Restart item,
    *  unconfirmed at terminal since there's no progress left to lose). */
   onRestart: () => void
   /** Show the word (the terminal-local reveal — no RPC; see PlayArea's
@@ -207,7 +207,7 @@ export function InfoCol({
             hint/reveal). */}
         {over ? (
           <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
-            {/* Stay-here options left of the leave option (Club): replay this
+            {/* Stay-here options left of the leave option (Club): restart this
                 word, see the answer, or spin up the next game. */}
             <RestartButton iconOnly onClick={onRestart} />
             <RevealButton

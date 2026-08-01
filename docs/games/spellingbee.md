@@ -241,7 +241,7 @@ The Realtime-touch pattern repeats — see `submit_timeout` above. Tested via th
 
 ### `spellingbee.replay_board(target_game uuid) → void`
 
-The **"Replay board"** game-menu item + the terminal action row's `RestartButton` (the waffle feature — [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)). Restarts the SAME board — same letters + word lists — for everyone: clears `spellingbee.found_words` (the game's only working state), then `common.reset_game` un-terminals the row with the exact initial status `create_game` seeds (mode-branched; compete's `target_rank` re-read from the frozen setup) and zeroes the shared clock. Any game player, mid-game (confirmed) or post-terminal (unconfirmed — nothing left to lose).
+The **"Restart"** game-menu item + the terminal action row's `RestartButton` (the waffle feature — [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)). Restarts the SAME board — same letters + word lists — for everyone: clears `spellingbee.found_words` (the game's only working state), then `common.reset_game` un-terminals the row with the exact initial status `create_game` seeds (mode-branched; compete's `target_rank` re-read from the frozen setup) and zeroes the shared clock. Any game player, mid-game (confirmed) or post-terminal (unconfirmed — nothing left to lose).
 
 **The realtime touch here is LOAD-BEARING** (not just uniform habit): replay only DELETEs `found_words` rows, and realtime filters don't reliably match DELETE events — so `useGame` now also subscribes to `spellingbee.games`, and the RPC's no-op games write is what wakes every client to refetch the now-empty found list. pgTAP: `replay_test.sql`.
 

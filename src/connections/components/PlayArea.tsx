@@ -201,7 +201,7 @@ export function PlayArea({
               <ActorDot actor={member} fallback="Someone" /> found category
             </>
           ),
-          dismiss: { kind: 'timed', ms: 3000 },
+          dismiss: { kind: 'timed' },
         }
       }
       return {
@@ -213,7 +213,7 @@ export function PlayArea({
             {g.result === 'oneAway' ? 'was one away' : 'guessed wrong'}
           </>
         ),
-        dismiss: { kind: 'timed', ms: 3000 },
+        dismiss: { kind: 'timed' },
       }
     },
     globalFeedback,
@@ -232,17 +232,17 @@ export function PlayArea({
   // psychicnum), not a GamePage-menu item. Concede is compete's drop-out (a real
   // loss; the others keep racing). Replay restarts THIS puzzle — the same
   // sixteen tiles in the same shuffle, everyone's guesses + mistakes wiped —
-  // and `onReplayed` leaves the turn-history view + clears the pill.
-  const { endGame: handleEndGame, concede: handleConcede, replay: handleReplay } =
+  // and `onRestarted` leaves the turn-history view + clears the pill.
+  const { endGame: handleEndGame, concede: handleConcede, restart: handleRestart } =
     useStandardGameActions({
       db,
       gameId,
       isTerminal,
       myConceded,
       confirm: confirmAction,
-      replayConfirm: "Replay board? This clears everyone's guesses and mistakes.",
+      restartConfirm: "Restart? This clears everyone's guesses and mistakes.",
       showError: (message) => showLocalFeedback(stickyPill('error', message)),
-      onReplayed: () => {
+      onRestarted: () => {
         exitViewing()
         clearLocalFeedback()
       },
@@ -325,22 +325,22 @@ export function PlayArea({
   const actionsRef = useRef<{
     endGame: () => void
     concede: () => void
-    replay: () => void
+    restart: () => void
     newGame: () => void
   }>({
     endGame: () => {},
     concede: () => {},
-    replay: () => {},
+    restart: () => {},
     newGame: () => {},
   })
   useEffect(() => {
     actionsRef.current = {
       endGame: handleEndGame,
       concede: handleConcede,
-      replay: handleReplay,
+      restart: handleRestart,
       newGame: () => void handleNewGame(),
     }
-  }, [handleEndGame, handleConcede, handleReplay, handleNewGame])
+  }, [handleEndGame, handleConcede, handleRestart, handleNewGame])
   useEffect(() => {
     menu.setGameSections(
       buildGameMenu({
@@ -355,7 +355,7 @@ export function PlayArea({
           {
             items: [
               // The same pair the terminal action row offers, reachable mid-game too.
-              { id: 'replay', label: 'Replay board', onClick: () => actionsRef.current.replay() },
+              { id: 'restart', label: 'Restart', onClick: () => actionsRef.current.restart() },
               { id: 'new-game', label: 'New game', onClick: () => actionsRef.current.newGame() },
             ],
           },
@@ -503,7 +503,7 @@ export function PlayArea({
         onHints={() => setHintsOpen((o) => !o)}
         onEndGame={handleEndGame}
         onConcede={handleConcede}
-        onRestart={handleReplay}
+        onRestart={handleRestart}
         onNewGame={() => void handleNewGame()}
         onBackToClub={goToClub}
         // ── Setup disclosure ──
@@ -580,7 +580,7 @@ function buildOver({
   // compete
   if (playState === 'solved_compete') {
     if (selfMatched >= CATEGORY_COUNT) {
-      return { verdict: 'You won the race!', message: 'You won!', tone: 'won' }
+      return { verdict: 'Won: the race', message: 'You won!', tone: 'won' }
     }
     // I lost — but WHY matters. If I used all my mistakes I was eliminated
     // (out of mistakes); "beaten to the punch" is only for a still-racing player

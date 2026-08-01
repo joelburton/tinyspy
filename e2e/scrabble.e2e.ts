@@ -57,7 +57,7 @@ test.describe('scrabble — play a turn', () => {
 })
 
 /**
- * "Replay board" + "New game" — the terminal action row's stay-here options,
+ * "Restart" + "New game" — the terminal action row's stay-here options,
  * also reachable mid-game from the menu.
  *
  * scrabble's 15×15 grid is the standard layout, not a generated puzzle, so a
@@ -66,7 +66,7 @@ test.describe('scrabble — play a turn', () => {
  * over the realtime refetch, and New game is a navigation to a different id.
  */
 test.describe('scrabble replay + new game', () => {
-  test('a committed word is wiped by "Replay board" (the grid re-deals)', async ({ browser }) => {
+  test('a committed word is wiped by "Restart" (the grid re-deals)', async ({ browser }) => {
     const club = await createSoloClub('screp')
     const game = await createScrabbleGame(club, 'coop')
     setScrabbleRack(game.id, ['C', 'A', 'T', 'S', 'E', 'R', 'O'])
@@ -88,7 +88,7 @@ test.describe('scrabble replay + new game', () => {
     // Playwright's default auto-dismiss cancels it.
     page.once('dialog', (d) => void d.accept())
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await page.getByRole('menuitem', { name: 'Replay board' }).click()
+    await page.getByRole('menuitem', { name: 'Restart' }).click()
 
     // The centre square is empty again — the re-deal landed.
     await expect(center).not.toContainText('C', { timeout: 10000 })

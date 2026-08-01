@@ -185,7 +185,7 @@ export function BoardCol({
     // (start fresh). The sticky flash shows over the cleared board; clicking a tile
     // dismisses it (handleToggle) and starts the next guess.
     if (verdict.kind === 'correct') {
-      showLocalFeedback(stickyPill('success', 'Correct!'))
+      showLocalFeedback(stickyPill('success', 'Correct'))
     } else if (verdict.kind === 'oneAway') {
       showLocalFeedback(stickyPill('near', 'One away!'))
     } else {

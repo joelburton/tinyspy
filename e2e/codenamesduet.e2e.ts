@@ -133,7 +133,7 @@ test.describe('codenamesduet below-board layout stability', () => {
  * mid-game from the menu. Deals a FRESH board with this game's setup + roster
  * on a NEW row and navigates to it.
  *
- * There is deliberately no "Replay board" twin: duet's whole board — including
+ * There is deliberately no "Restart" twin: duet's whole board — including
  * which word is the assassin — is the secret, so replaying it would hand both
  * players a board they'd already learned.
  */

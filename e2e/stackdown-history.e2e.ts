@@ -59,7 +59,7 @@ test.describe('stackdown turn-history viewer', () => {
 })
 
 /**
- * "Replay board" + "New game" — the terminal action row's stay-here options,
+ * "Restart" + "New game" — the terminal action row's stay-here options,
  * also reachable mid-game from the menu. Replay resets THIS stack (same tiles,
  * same solution, log cleared, title back to "New game"); New game creates a
  * FRESH row from the same setup + roster and navigates to it.
@@ -69,7 +69,7 @@ test.describe('stackdown turn-history viewer', () => {
  * navigation to a different id.
  */
 test.describe('stackdown replay + new game', () => {
-  test('coop: a word logs a turn; "Replay board" clears the log', async ({ browser }) => {
+  test('coop: a word logs a turn; "Restart" clears the log', async ({ browser }) => {
     const club = await createSoloClub('sdrp')
     const game = await createStackdownGame(club)
     const ctx = await browser.newContext()
@@ -87,7 +87,7 @@ test.describe('stackdown replay + new game', () => {
     // be armed BEFORE the click, or Playwright's default auto-dismiss cancels it.
     page.once('dialog', (d) => void d.accept())
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await page.getByRole('menuitem', { name: 'Replay board' }).click()
+    await page.getByRole('menuitem', { name: 'Restart' }).click()
 
     await expect(page.getByText('No words yet.')).toBeVisible({ timeout: 10000 })
     await ctx.close()

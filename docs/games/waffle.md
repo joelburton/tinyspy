@@ -190,7 +190,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   existing solved/out-of-swaps locally-terminal look. Full mechanism:
   [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP:
   `concede_test.sql`.
-- **`replay_board(game)`** — the **"Replay board"** game-menu item (both modes,
+- **`replay_board(game)`** — the **"Restart"** game-menu item (both modes,
   any state). Restarts the SAME board from scratch for everyone: resets every
   `waffle.players` row to the scramble (`swaps_used=0`, unsolved), clears the
   coop `waffle.swaps` log, and hands the common-layer reset to the new
