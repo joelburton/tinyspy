@@ -12,6 +12,10 @@
   --boggle-tile:        var(--tile-3);  /* the shared normal tile (shade 3) */
   --boggle-tile-text:   var(--tile-text);
   --boggle-board-bg:    #2b2622;  /* the tray the tiles sit in */
+  /* The shared <Stats> grid colors its figures with `--rank-text`, aliased per
+     game (the same seam spellingbee + wordwheel use). boggle has no rank ladder,
+     so its figures are just the body text color. */
+  --rank-text:          var(--color-text);
   /* The board sizes itself to the largest square that fits via the shared HUG
    * model (PlayArea.module.css `.boardCol --side`), so there's no board-size
    * token here any more. */

@@ -17,8 +17,15 @@
  * round. */
 .stats {
   display: grid;
+  /* Two columns by default (Score / Words). A game with more sets
+   * `grid-template-columns` inline — boggle swings between 2 and 4 depending on
+   * whether its board has a bonus band, so the count is genuinely dynamic. */
   grid-template-columns: repeat(2, 1fr);
-  gap: 0;
+  row-gap: 0;
+  /* 0 for the two-column games, whose figures are far apart anyway. Four columns
+   * on a phone need a real floor or adjacent centred figures read as one run of
+   * digits — boggle sets this on its mobile status wrapper. */
+  column-gap: var(--stats-col-gap, 0);
   /* The rules band the state unit off from the opponent strip / action row
    * below it, so the figures read as their own readout. */
   border-top: 1px solid var(--color-surface-border);
@@ -35,12 +42,19 @@
   gap: 2px;
 }
 
+/* ONE type scale across every game that wears this grid. boggle's private copy
+ * ran a notch smaller (10px/0.04em label, 12px muted) with nothing documenting
+ * why; the larger scale won because these are figures the player reads at a
+ * glance, and the mobile status bar has room for it (measured — see boggle's
+ * --mobile-status-height). A label may be stacked on two lines (boggle's "REQ" /
+ * "WORDS"), hence the explicit line-height. */
 .label {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-muted);
+  line-height: 1.2;
 }
 
 .value {
@@ -56,6 +70,16 @@
   color: var(--color-muted);
 }
 
+/* An OPTIONAL third line under the value — the found-share as a percent. Only
+ * boggle passes one today; games that don't simply never render the element. */
+.percent {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+  line-height: 1.2;
+}
+
 /* ── The mobile status bar's compressed shape ────────────────────────────────
  * No rules and minimal margin: up there the two figures read as part of the
  * same unit as the RankBar directly above them, not as a separate banded
@@ -64,11 +88,13 @@
  *
  * Capped and left-aligned with the RankBar's 280px track above it: the status
  * block's own wrapper already sizes it, but the cap keeps Score and Words a
- * readable pair on a wide phone instead of drifting to opposite edges. */
+ * readable pair on a wide phone instead of drifting to opposite edges. A grid
+ * with MORE columns needs every pixel the phone has and opts out by setting
+ * `--stats-max-width: none` (boggle). */
 [data-mobile-status] .stats {
   border-top: none;
   border-bottom: none;
   padding: 0;
   margin: 0.25rem 0 0;
-  max-width: 20rem;
+  max-width: var(--stats-max-width, 20rem);
 }

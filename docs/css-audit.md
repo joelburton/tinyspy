@@ -20,11 +20,27 @@ durable decisions move into ui.md / code-conventions.md / deferred.md.*
 >   (column AND board root) and seeding a baseline before touching any CSS.
 > - **§3 gap 1 — DONE** (the mirror guard, above).
 >
-> **Still open:** §2.2 boggle Stats, §2.3 the info-panel frame ×3, §2.4 hardcoded values,
-> §2.5 grid-cursor + drag-ghost, §2.6 the one-liner drift kills, and §3 gaps 2–5 (the CSS
-> checklist, `_variant` naming, the z-index ladder, the stale ui.md claims). Note §2.2's
-> premise shifted: boggle's Stats and the shared one now agree on which *surface* gets which
-> shape (the 2026-07-31 status-bar split), so what's left there is the type-scale drift.
+> - **§2.2 boggle Stats — DONE.** boggle's private module is deleted; it now imports the
+>   shared `common/components/game/Stats.module.css`, aliasing `--rank-text` in its theme
+>   the way spellingbee + wordwheel do. **One type scale across all three games** (the
+>   larger, 11px/0.06em label + 13px muted — boggle's was a notch smaller with nothing
+>   documenting why). Two knobs cover the four-column shape: `--stats-col-gap` and
+>   `--stats-max-width`. Adopting the bigger scale grew boggle's mobile readout 66px → 69px,
+>   so `--mobile-status-height` went 4.25rem → 4.5rem (measured, not guessed).
+> - **§2.3 the info-panel frame — DONE** (`common/components/game/infoPanel.module.css`:
+>   `.heading` + the 2px-framed `.box`, worn by TurnLog, WordList, and bananagrams's hand;
+>   each keeps its own interior). stackdown's board `.canvas` is deliberately left out — same
+>   2px border, but `radius-lg` and a board, not an info panel.
+> - **§2.5 grid-cursor + drag-ghost — DONE**, and **§2.6's `.slotViewing` ×3 — DONE**
+>   (now `historyViewer.bannerHost`). The drag ghost shares only its pointer-following
+>   MECHANICS; the per-game look is deliberate (each ghost imitates the tile it lifted), as
+>   are the two z-indexes, which belong to the ladder item below.
+>
+> **Still open:** §2.4 hardcoded values, §2.6's psychicnum `.definable` (a live QUESTION, not
+> work — adopting the global would delete psychicnum's focus ring, and wordle went the other
+> way by adding a ring on purpose; the global's `outline: none` may be the outlier), and
+> §3 gaps 2–5 (the CSS checklist, `_variant` naming, the z-index ladder, the stale ui.md
+> claims).
 
 **Scope + method:** all 142 CSS files (~10.4k lines; 127 CSS modules + the 15 theme/breakpoints
 files). Dead-class detection resolved each module's actual importers and their `styles.x` /
@@ -75,7 +91,8 @@ mid-tuning leftover; deciding it either way also settles that token's fate.
   everything behind `styles[tone]`-style lookups.
 - Informational: `ActionButton`'s `success`/`near` tone classes are in the `ButtonTone` union
   but no wrapper ever passes them (only `warning`/`info`/`error` occur).
-- boggle's `Stats.module.css` is **not** dead — it's a live drifted variant (see §2).
+- boggle's `Stats.module.css` is **not** dead — it's a live drifted variant (see §2). *(Since
+  merged into the shared `Stats.module.css`; the file is gone.)*
 
 ## 2. Duplication worth centralizing
 

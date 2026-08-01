@@ -31,13 +31,15 @@
  * the page into scrolling (the hard no-scroll invariant). The extra 0.75rem is
  * `.boardCol`'s flex gap between the status block and the tray.
  *
- * 4.25rem (68px) is measured, not guessed: the compact three-line cell (label /
- * value / percent) plus its 0.25rem lead-in comes to 66px. It was 4rem while the
+ * 4.5rem (72px) is measured, not guessed: the compact three-line cell (label /
+ * value / percent) plus its 0.25rem lead-in comes to 69px. It was 4rem while the
  * grid still wore its info-column rules and padding — 104px of content in a
- * 64px `overflow: hidden` box, so the percent line was clipped away entirely. */
+ * 64px `overflow: hidden` box, so the percent line was clipped away entirely;
+ * then 4.25rem while the grid ran a notch smaller than the other games'. Adopting
+ * the shared type scale added 3px, so the budget follows. */
 @media (--mobile) {
   .layout {
-    --mobile-status-height: 4.25rem;
+    --mobile-status-height: 4.5rem;
     --avail-h: calc(
       100svh - var(--game-chrome-height) - 5rem - var(--mobile-status-height) - 0.75rem
     );
@@ -53,10 +55,15 @@
  * so `width: 100%` here would resolve against the grid's own max-content (~217px
  * of a 390px phone) and leave the columns packed. Four columns of "0 / 127" need
  * every pixel the phone has — at 22rem they crowded hard enough that "0 / 96"
- * and "0 / 127" read as one run of digits. The separation itself is the grid's
- * `column-gap` — see Stats.module.css. */
+ * and "0 / 127" read as one run of digits.
+ *
+ * The two knobs on the shared <Stats> grid are set here rather than there
+ * because both exist for the FOUR-column shape: opt out of the 20rem cap the
+ * two-column games want, and put a real floor between adjacent centred figures. */
 .mobileStatus {
   width: var(--side);
+  --stats-max-width: none;
+  --stats-col-gap: 0.75rem;
 }
 
 /* The board column. Computes `--side` — the largest square that fits — HERE
