@@ -30,6 +30,7 @@ import { StateLine } from './StateLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
+import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 
 /** Disc colors for AI seats (up to 3), kept distinct from the common
  *  member-color palette's usual first picks so a bot reads as "not one of us". */
@@ -72,6 +73,11 @@ export function PlayArea({
   title,
   globalFeedback,
 }: GamePageCtx) {
+  // Tab does nothing while the board has the keyboard — this play surface is
+  // not a form, so native Tab would walk out to the header buttons and on into
+  // the browser's URL bar, stranding the player. (The capture-entry games get
+  // this from useCaptureKeys; see useSwallowTab.)
+  useSwallowTab()
   const { game, players: playerStates, plays, loading } = useGame(gameId)
 
   // Mobile (docs/mobile.md → the psychicnum recipe): below the breakpoint the

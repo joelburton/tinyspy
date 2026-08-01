@@ -6,6 +6,7 @@ import type {
   GamePageCtx,
   Member,
 } from '../../common/lib/games'
+import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
@@ -74,6 +75,11 @@ export function PlayArea({
   goToGame,
   menu,
 }: GamePageCtx) {
+  // Tab does nothing while the board has the keyboard — this play surface is
+  // not a form, so native Tab would walk out to the header buttons and on into
+  // the browser's URL bar, stranding the player. (The capture-entry games get
+  // this from useCaptureKeys; see useSwallowTab.)
+  useSwallowTab()
   const {
     game,
     players: playerStates,

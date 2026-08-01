@@ -29,6 +29,7 @@ import { InfoCol } from './InfoCol'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // connections-specific color tokens (lazy with this chunk)
+import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 
 /** Four categories to find, four mistakes allowed — the NYT Connections
  *  constants, shown in the setup disclosure + the "N/4 found" state line. */
@@ -98,6 +99,11 @@ export function PlayArea({
   goToGame,
   menu,
 }: GamePageCtx) {
+  // Tab does nothing while the board has the keyboard — this play surface is
+  // not a form, so native Tab would walk out to the header buttons and on into
+  // the browser's URL bar, stranding the player. (The capture-entry games get
+  // this from useCaptureKeys; see useSwallowTab.)
+  useSwallowTab()
   const {
     game,
     guesses,

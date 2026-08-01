@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { colorVarFor } from '../../lib/color/memberColor'
 import { linkify } from '../../lib/util/linkify'
+import { handOffKeyboardOnTab } from '../../lib/util/keyboardHandoff'
 import type { ClubMessage } from '../../hooks/chat/useClubChat'
 import styles from './ChatBody.module.css'
 
@@ -132,6 +133,7 @@ export function ChatBody({ clubHandle, members, messages, loading }: Props) {
           data-chat-input
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handOffKeyboardOnTab}
           placeholder="Type a message and press Enter…"
           disabled={busy}
           maxLength={1000}

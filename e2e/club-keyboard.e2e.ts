@@ -128,4 +128,23 @@ test.describe('club page keyboard nav', () => {
 
     await ctx.close()
   })
+
+  /**
+   * ⇧< → Back to home, the club-list page. The keyboard twin of the menu item
+   * that already existed, and the same key the GAME page uses for "Back to
+   * club" — one key meaning "up a level from wherever I am".
+   */
+  test('shift-< goes back to the club list', async ({ browser }) => {
+    const club = await createSoloClub('ckbh')
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/c/${club.handle}`)
+    await expect(page.getByText('Start a new game')).toBeVisible({ timeout: 15000 })
+
+    await page.keyboard.press('<')
+    await expect(page).toHaveURL(/\/$/, { timeout: 10000 })
+
+    await ctx.close()
+  })
 })

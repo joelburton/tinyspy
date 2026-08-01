@@ -348,6 +348,8 @@ The logo is a menu trigger. Click opens a dropdown anchored below it; same trigg
 
 **Shortcut hints.** A `MenuItem` may carry an optional `shortcut` string (e.g. `'⌥C'`) rendered right-aligned + muted. Two are shell-global (work on any game, dispatching to the game's own menu items / actions): **⌥⌫** fires End/Concede (finds the `end-game`/`concede` item and clicks it), **⇧<** fires Back to club. Both bail inside any editable field, so ⌥Backspace stays "delete word" while typing.
 
+**⇧< means "up a level", not "back to club" specifically** — the ClubPage menu's *Back to home* item carries the same shortcut, taking you from a club to the club list. One key, one meaning, wherever you are. (ClubPage's handler additionally bails inside an open dialog / menu / floating panel — navigating out from under an open setup dialog would be its own bug. GamePage's older twin bails only on editable fields; worth aligning next time that file is open.)
+
 API on `GamePageCtx`:
 
 ```ts

@@ -29,6 +29,7 @@ import { PeersStrip } from './PeersStrip'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import shared from '../../common/components/game/PlayArea.module.css'
 import '../theme.css' // bananagrams tokens + the global drag-cursor rule
+import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 
 /**
  * bananagrams play surface (v3).
@@ -62,6 +63,11 @@ import '../theme.css' // bananagrams tokens + the global drag-cursor rule
 const noop = () => {}
 
 export function PlayArea(ctx: GamePageCtx) {
+  // Tab does nothing while the board has the keyboard — this play surface is
+  // not a form, so native Tab would walk out to the header buttons and on into
+  // the browser's URL bar, stranding the player. (The capture-entry games get
+  // this from useCaptureKeys; see useSwallowTab.)
+  useSwallowTab()
   const { initialBoard, tiles, loading } = useGame(ctx.gameId)
   const progress = useProgress(ctx.gameId)
 

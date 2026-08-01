@@ -29,6 +29,7 @@ import { StateLine } from './StateLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
+import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 
 /** Build waffle's own-action local pill: outline + TIMED (auto-clears after a
  *  beat — waffle's only own-move feedback is a rejected swap / failed End, a
@@ -81,6 +82,11 @@ export function PlayArea({
   goToGame,
   menu,
 }: GamePageCtx) {
+  // Tab does nothing while the board has the keyboard — this play surface is
+  // not a form, so native Tab would walk out to the header buttons and on into
+  // the browser's URL bar, stranding the player. (The capture-entry games get
+  // this from useCaptureKeys; see useSwallowTab.)
+  useSwallowTab()
   const { game, players: playerStates, swaps, loading } = useGame(gameId)
 
   // Own-action feedback (LOCAL): a rejected swap or a failed End flashes in the

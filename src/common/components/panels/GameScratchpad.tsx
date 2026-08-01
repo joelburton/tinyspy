@@ -1,6 +1,7 @@
 import { FloatingPanel } from './FloatingPanel'
 import { setScratchpadOpen, useScratchpadOpen } from '../../lib/scratchpad/scratchpadOpenStore'
 import { useScratchpad } from '../../hooks/scratchpad/useScratchpad'
+import { handOffKeyboardOnTab } from '../../lib/util/keyboardHandoff'
 import styles from './GameScratchpad.module.css'
 
 type Props = {
@@ -62,6 +63,9 @@ export function GameScratchpad({ gameId, ownerId, myId, username, isTerminal }: 
           className={styles.textarea}
           value={sp.body}
           onChange={(e) => sp.setBody(e.target.value)}
+          // Tab hands the keyboard back to the game rather than walking out of
+          // the panel — same contract as the chat box. Shift+Tab stays native.
+          onKeyDown={handOffKeyboardOnTab}
           readOnly={!sp.canEdit}
           maxLength={10000}
           placeholder={shared ? 'Shared notes…' : 'Your private notes…'}

@@ -347,6 +347,28 @@ export function ClubPage({ handle, session }: Props) {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
+  // ⇧< → Back to home (the club list), mirroring the game menu's ⇧< → Back to
+  // club. One key, one meaning: "up a level from wherever I am". Both are the
+  // keyboard twin of a menu item that already existed, so the shortcut is
+  // discoverable — the label renders beside it in the menu.
+  //
+  // Same overlay guard as the Tab handler above: a text field owns `<` as a
+  // literal character, and an open dialog / menu / floating panel owns the
+  // keyboard outright (navigating out from under an open setup dialog would be
+  // its own bug).
+  useEffect(function backToHomeShortcut() {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== '<' || e.metaKey || e.ctrlKey || e.altKey) return
+      const t = e.target instanceof Element ? e.target : null
+      if (isNonGameField(e.target)) return
+      if (t?.closest('[data-floating-panel], [role="menu"], [role="dialog"]')) return
+      e.preventDefault()
+      navigate('/')
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   // Keyboard focus STARTS on the start list — arrows/Enter work immediately,
   // no first Tab needed. Runs once the load gate opens (the list doesn't
   // exist before that); skipped if something else already took focus, or on
@@ -746,6 +768,7 @@ export function ClubPage({ handle, session }: Props) {
         {
           id: 'home',
           label: 'Back to home',
+          shortcut: '⇧<',
           onClick: () => navigate('/'),
         },
         {
