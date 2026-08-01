@@ -153,6 +153,28 @@ one-page printout isn't.
 **Still open** (would fit the existing helpers cleanly, no snapshot problem): codenamesduet
 and connections (turn-log / word-list families) and stackdown.
 
+## To discuss
+
+- **Leaving "alpha": stop editing baseline migrations, start appending new ones.**
+  [`CLAUDE.md`](../CLAUDE.md) names this trigger already — *"prefer editing baseline
+  migrations rather than appending a new migration. Once the game is out of alpha stage,
+  we'll switch to deployed and will not edit old migration files."* We're approaching it:
+  the roster is complete and the remaining known work is FE copy rather than schema.
+  Flipping the switch is what ends **trashing the database on every deploy** (`db:reset`
+  wipes everything today, which is fine only because nothing is worth keeping).
+  **Decide together:** what counts as "out of alpha"; whether the 14 baseline migrations
+  get squashed into a clean v1 first or frozen as-is; how `db:reset` + `npm run import` +
+  `seed.dev.sql` change for a database that must survive; and whether the friends get one
+  last "everything resets" warning before the freeze. Until then, the alpha prior in
+  CLAUDE.md still holds — keep editing baselines.
+- **Choose better titles + status lines**, walking the table in
+  [`game-status-labels.md`](game-status-labels.md) game by game. Its "Known
+  inconsistencies" section is the punch list (one real bug, two games with no title at
+  all, and a compete-win phrased four different ways). Note that scrabble + stackdown
+  already show the pattern worth copying: seed a placeholder, then rewrite the title from
+  play. Any change to a status line means regenerating the doc (`npm run report:labels`);
+  a title change means SQL, so it interacts with the migration-policy question above.
+
 ## Tooling
 
 - **pgTAP coverage gaps around the replay RPCs** (2026-07-31 review). Three known-thin spots, none of them a bug: the non-player rejection tests use `throws_ok(…, NULL, NULL, …)`, so *any* error passes and the 42501 errcode isn't pinned; mid-game restart (as opposed to at-terminal) is asserted only implicitly, and only in scrabble; and a coop `target_rank` carried through a restart is untested in spellingbee/wordwheel (`coop_target_test` never restarts, `restart_test` never sets a coop target), as is an explicit `"target_rank": null` in coop. Worth tightening next time those files are open.
