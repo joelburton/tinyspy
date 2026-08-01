@@ -640,6 +640,20 @@ Two rules for a game adopting it:
   [`StateLine`](../src/codenamesduet/components/StateLine.tsx), used by `InfoCol`
   (wrapped in `shared.infoState`) and by the bar. Two hand-written copies would
   drift.
+- **Same node, but the bar may compress it — write the desktop shape as the base
+  rule.** The two surfaces have opposite budgets: the info column is roomy, the
+  bar is a fixed strip where every row costs the board a row. So a component that
+  renders in both keeps its **info-column** look in the plain class and puts the
+  compressed look in a `[data-mobile-status] .x { … }` override at the bottom of
+  the same file — the attribute `<MobileStatusBar>` already stamps on its wrapper.
+  No media query (the bar is `display: none` above the breakpoint, so the override
+  can only ever apply on a phone) and no `compact` prop to thread through call
+  sites. Writing it the other way round is what shipped in `5fa7be9`: `<RankBar>`
+  and `<Stats>` were compressed at the base — rules and margins stripped, the rank
+  name inlined beside its track — which quietly imposed the phone's height budget
+  on a desktop that had room to spare. See
+  [`RankBar.module.css`](../src/common/components/game/RankBar.module.css) for the
+  worked example.
 - **Fixed height, never content-driven.** The bar defaults to `1.75rem` +
   `nowrap` + `flex-shrink: 0`; it sits above a `flex: 1` board, so anything that
   wrapped or grew would move the board mid-game (docs/ui.md → Layout stability).

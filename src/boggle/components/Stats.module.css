@@ -2,7 +2,14 @@
  * Leads the info column (the state readout). Each cell is a small uppercase
  * label over a large tabular-nums value over a muted found-share percent — the
  * same idiom as spellingbee's <Stats>, widened to four columns and with a third
- * percent line. */
+ * percent line.
+ *
+ * ── Two surfaces, two shapes ────────────────────────────────────────────────
+ * Like spellingbee's, this grid renders BOTH in the info column and inside the
+ * mobile status bar above the board. The rules below are the info-column shape
+ * (banded, ruled off); the compressed shape is scoped to `[data-mobile-status]`
+ * at the bottom of this file. See common/components/game/RankBar.module.css for
+ * why the split is written this way round. */
 
 .stats {
   display: grid;
@@ -52,4 +59,23 @@
   font-variant-numeric: tabular-nums;
   color: var(--color-muted);
   line-height: 1.2;
+}
+
+/* ── The mobile status bar's compressed shape ────────────────────────────────
+ * No rules and minimal margin — the strip is a fixed height that the board's
+ * `--side` has already been docked, so every pixel of chrome up here is a pixel
+ * of board. `[data-mobile-status]` is the attribute <MobileStatusBar> stamps on
+ * its wrapper; no media query is needed because that bar is `display: none`
+ * above the breakpoint. */
+[data-mobile-status] .stats {
+  border-top: none;
+  border-bottom: none;
+  padding: 0;
+  margin: 0.25rem 0 0;
+  /* Four columns on a phone: with `gap: 0` each cell's centered figure sat a
+   * couple of pixels from its neighbour's, so "0 / 96" and "0 / 127" ran
+   * together into one string of digits. An explicit gap guarantees the
+   * whitespace instead of leaving it to whatever the content happens not to
+   * use. The info column doesn't need it — 4 columns of ~212px there. */
+  column-gap: 0.75rem;
 }

@@ -8,22 +8,24 @@
  * score + words read at a glance.
  */
 
-/* No rules above/below and minimal margin: the two figures read as part of the
- * same state unit as the RankBar directly above them, not as a separate banded
- * section. (The rules + 12px margins made a three-band stack out of what is one
- * readout — and cost height the mobile status area can't spare.) */
+/* ── Two surfaces, two shapes ────────────────────────────────────────────────
+ * Like <RankBar>, this renders both in the info column and inside the mobile
+ * status bar above the board. The rules below are the INFO-COLUMN shape — a
+ * banded readout, ruled off above and below, each figure centered in its half
+ * — and the compressed shape is scoped to `[data-mobile-status]` at the bottom
+ * of this file. See RankBar.module.css for why the split is written this way
+ * round. */
 .stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0;
-  padding: 0;
-  margin: 0.25rem 0 0;
+  /* The rules band the state unit off from the opponent strip / action row
+   * below it, so the figures read as their own readout. */
+  border-top: 1px solid var(--color-surface-border);
+  border-bottom: 1px solid var(--color-surface-border);
+  padding: 10px 0;
+  margin: 8px 0 12px;
   text-align: center;
-  /* Capped, and left-aligned with the RankBar above it (whose track caps at
-   * 280px): in the WordList games' wide info column an uncapped 2-column grid
-   * flung Score and Words to opposite edges, ~600px apart, so they read as two
-   * unrelated readouts instead of one pair. */
-  max-width: 20rem;
 }
 
 .cell {
@@ -52,4 +54,21 @@
   font-size: 13px;
   font-weight: 500;
   color: var(--color-muted);
+}
+
+/* ── The mobile status bar's compressed shape ────────────────────────────────
+ * No rules and minimal margin: up there the two figures read as part of the
+ * same unit as the RankBar directly above them, not as a separate banded
+ * section — and the rules + 12px margins would cost height the fixed-height
+ * status strip can't spare.
+ *
+ * Capped and left-aligned with the RankBar's 280px track above it: the status
+ * block's own wrapper already sizes it, but the cap keeps Score and Words a
+ * readable pair on a wide phone instead of drifting to opposite edges. */
+[data-mobile-status] .stats {
+  border-top: none;
+  border-bottom: none;
+  padding: 0;
+  margin: 0.25rem 0 0;
+  max-width: 20rem;
 }

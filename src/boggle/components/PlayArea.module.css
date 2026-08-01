@@ -29,21 +29,34 @@
  * must also come out of `--avail-h`: the board takes its side length from that
  * number, so leaving it alone would size a board that no longer fits and push
  * the page into scrolling (the hard no-scroll invariant). The extra 0.75rem is
- * `.boardCol`'s flex gap between the status block and the tray. */
+ * `.boardCol`'s flex gap between the status block and the tray.
+ *
+ * 4.25rem (68px) is measured, not guessed: the compact three-line cell (label /
+ * value / percent) plus its 0.25rem lead-in comes to 66px. It was 4rem while the
+ * grid still wore its info-column rules and padding — 104px of content in a
+ * 64px `overflow: hidden` box, so the percent line was clipped away entirely. */
 @media (--mobile) {
   .layout {
-    --mobile-status-height: 4rem;
+    --mobile-status-height: 4.25rem;
     --avail-h: calc(
       100svh - var(--game-chrome-height) - 5rem - var(--mobile-status-height) - 0.75rem
     );
   }
 }
 
-/* The mobile status block's content — the Stats grid sized to a comfortable
- * reading width rather than the full phone width. Only ever rendered inside the
- * mobile-only `<MobileStatusBar>`. */
+/* The mobile status block's content. Only ever rendered inside the mobile-only
+ * `<MobileStatusBar>`.
+ *
+ * Sized to `--side`, the board's own edge — the same idiom the below-board input
+ * row uses, so the four figures line up with the tray beneath them. It has to be
+ * a definite width: `<MobileStatusBar>` centers a shrink-wrapping inner wrapper,
+ * so `width: 100%` here would resolve against the grid's own max-content (~217px
+ * of a 390px phone) and leave the columns packed. Four columns of "0 / 127" need
+ * every pixel the phone has — at 22rem they crowded hard enough that "0 / 96"
+ * and "0 / 127" read as one run of digits. The separation itself is the grid's
+ * `column-gap` — see Stats.module.css. */
 .mobileStatus {
-  width: min(22rem, 100%);
+  width: var(--side);
 }
 
 /* The board column. Computes `--side` — the largest square that fits — HERE

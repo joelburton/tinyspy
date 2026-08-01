@@ -23,21 +23,27 @@
  * the score-words grid.
  */
 
-/* ONE ROW: the rank name sits to the LEFT of the track ("GENIUS ▪-▪-▪…") rather
- * than stacked above it. The stack cost a whole line of height for one short
- * word, which matters now that this same unit renders in the mobile status area
- * above the board (where every row it takes is a row the board loses). */
+/* ── Two surfaces, two shapes ────────────────────────────────────────────────
+ * This component renders in TWO places: the info column (desktop, roomy) and
+ * the mobile status bar above the board (a fixed-height strip where every row
+ * costs the board a row). Those have opposite budgets, so the rules below are
+ * the INFO-COLUMN shape — a centered stack, the name above the track — and the
+ * compressed one-row shape is an override scoped to `[data-mobile-status]` at
+ * the bottom of this file.
+ *
+ * Writing it the other way round (compressing the base rule) is what shipped
+ * once, and it leaked the phone's height budget onto a desktop that had room
+ * to spare. Keep the desktop look in the base rule; let mobile take things
+ * away. */
 .rankBar {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .label {
-  /* Doesn't shrink or wrap — the track absorbs the width instead. */
-  flex: 0 0 auto;
-  white-space: nowrap;
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -49,19 +55,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* A MINIMUM separation, not the spacing: `space-between` still distributes
-   * whatever width is left over, so the roomy info-column copy is unchanged
-   * (~30px between squares at the 280px cap). It matters where there IS no
-   * spare width — the mobile status block above the board, whose centered
-   * shrink-wrapping parent chain leaves this track at its min-content 98px
-   * (7 × 14). Without a floor the squares sat edge to edge there, hiding the
-   * baseline rule that connects them; this keeps a short piece of that line
-   * visible in every gap. Kept small so the row still fits the rank name
-   * beside it on a phone. */
-  gap: 8px;
-  /* Takes the row's remaining width beside the label, up to the same cap. */
-  flex: 1 1 auto;
-  min-width: 0;
+  gap: 0;
+  /* Full width of the centered stack, capped so the track stays a compact
+   * indicator rather than a band stretched across the whole info column. */
+  width: 100%;
   max-width: 280px;
   margin: 0;
   padding: 0;
@@ -168,4 +165,42 @@
     bottom: auto;
     top: calc(100% + 8px);
   }
+}
+
+/* ── The mobile status bar's compressed shape ────────────────────────────────
+ * ONE ROW: the rank name sits to the LEFT of the track ("GENIUS ▪-▪-▪…") rather
+ * than stacked above it. The stack costs a whole line of height for one short
+ * word — free in the info column, but here every row is a row the board loses.
+ *
+ * Scoped by `[data-mobile-status]`, the attribute <MobileStatusBar> already
+ * stamps on its wrapper (it exists as the e2e handle). No media query needed:
+ * that bar is `display: none` above the breakpoint, so these rules can only
+ * ever apply on a phone. And no `compact` prop to thread through three games'
+ * call sites — the surface a component lands in decides its own shape, so the
+ * two can't drift apart the way a hand-passed flag can. */
+[data-mobile-status] .rankBar {
+  flex-direction: row;
+  gap: 0.5rem;
+  margin-bottom: 0;
+}
+
+[data-mobile-status] .label {
+  /* Doesn't shrink or wrap — the track absorbs the width instead. */
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+[data-mobile-status] .track {
+  /* A MINIMUM separation, not the spacing: `space-between` still distributes
+   * whatever width is left over. It matters here because there IS no spare
+   * width — the status block's centered shrink-wrapping parent chain leaves
+   * this track at its min-content 98px (7 × 14). Without a floor the squares
+   * sit edge to edge, hiding the baseline rule that connects them; this keeps
+   * a short piece of that line visible in every gap. Kept small so the row
+   * still fits the rank name beside it on a phone. */
+  gap: 8px;
+  /* Takes the row's remaining width beside the label, up to the same cap. */
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
 }
