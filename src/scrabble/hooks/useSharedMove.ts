@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { supabase } from '../../common/lib/supabase/supabase'
+import { channelLeaving, releaseChannel } from '../../common/lib/supabase/channelTeardown'
 import type { Placement } from '../lib/play'
 
 /**
@@ -57,15 +58,32 @@ export function useSharedMove({
 
   useEffect(() => {
     if (mode !== 'coop') return // compete / still-loading: no room, no sends
-    const ch = supabase.channel(`scrabble:${gameId}`)
-    ch.on('broadcast', { event: 'show-move' }, ({ payload }) =>
-      onReceiveRef.current(payload as SharedMovePayload),
-    )
-    ch.subscribe()
-    channelRef.current = ch
+    const room = `scrabble:${gameId}`
+    let cancelled = false
+
+    function join() {
+      // Guards the deferred path only — the effect can tear down again
+      // while the previous channel is still leaving.
+      if (cancelled) return
+      const ch = supabase.channel(room)
+      ch.on('broadcast', { event: 'show-move' }, ({ payload }) =>
+        onReceiveRef.current(payload as SharedMovePayload),
+      )
+      ch.subscribe()
+      channelRef.current = ch
+    }
+
+    // Stable ROOM name (peers must share the topic), so a remount inside the
+    // previous mount's leave round-trip would otherwise be handed the dying
+    // channel. See common/lib/supabase/channelTeardown.ts.
+    const pending = channelLeaving(room)
+    if (pending) void pending.then(join)
+    else join()
     return () => {
-      supabase.removeChannel(ch)
+      cancelled = true
+      const ch = channelRef.current
       channelRef.current = null
+      if (ch) void releaseChannel(ch) // null if we tore down before joining
     }
   }, [gameId, mode])
 

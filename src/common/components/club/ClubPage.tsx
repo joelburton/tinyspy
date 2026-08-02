@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent a
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
 import { supabase } from '../../lib/supabase/supabase'
+import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
 import { Link } from '../../lib/routing/Link'
 import { navigate } from '../../lib/routing/router'
 import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
@@ -432,6 +433,14 @@ export function ClubPage({ handle, session }: Props) {
       // useCommonGame is already wired for this. We close the
       // channel as soon as the send completes — we're not
       // listening for anything on it.
+      // Same stable room name useCommonGame uses, so the same teardown race
+      // applies: someone who just left this game's page (back to the club,
+      // then Delete) can still have its channel leaving. Joining inside that
+      // window gets the dying instance back, which would never reach
+      // SUBSCRIBED and would silently cost the peers their suspend broadcast.
+      // Already in an async function here, so the gate is a plain await.
+      // See lib/supabase/channelTeardown.ts.
+      await (channelLeaving(`game:${gameId}`) ?? Promise.resolve())
       const ch = supabase.channel(`game:${gameId}`)
       // The broadcast is friendliness, not correctness (peers handle a
       // vanished game gracefully), so it must NEVER block the delete. Wait
@@ -460,7 +469,7 @@ export function ClubPage({ handle, session }: Props) {
           payload: { type: 'suspend' },
         })
       }
-      supabase.removeChannel(ch)
+      void releaseChannel(ch)
       // Brief beat so peers have time to receive + navigate before the row
       // disappears — only meaningful if the broadcast actually went out.
       if (subscribed) await new Promise((r) => setTimeout(r, 150))

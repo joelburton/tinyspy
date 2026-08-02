@@ -103,6 +103,9 @@ let presenceStateRecord: Record<string, Array<{ user_id?: string }>> = {}
 
 function buildChannel() {
   const ch = {
+    // realtime-js sets `topic` (prefixed) in the channel constructor; the
+    // teardown registry keys off it, so the fake needs it too.
+    topic: 'realtime:game:g1',
     on: vi.fn(function (
       this: typeof ch,
       kind: string,

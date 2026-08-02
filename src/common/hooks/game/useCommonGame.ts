@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
 import { navigate } from '../../lib/routing/router'
 import { supabase } from '../../lib/supabase/supabase'
+import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
 import { computePause } from '../../lib/game/pause'
 import type { GamePlayer, Member, TimerMode } from '../../lib/games'
 import { useGameTimer } from './useGameTimer'
@@ -191,6 +192,11 @@ export function useCommonGame(
   const [channel, setChannel] = useState<
     ReturnType<typeof supabase.channel> | null
   >(null)
+  // The same channel, reachable synchronously from the effect's cleanup.
+  // The state above is for consumers (it must re-render them); the cleanup
+  // can't read it, because the channel may be created AFTER the effect body
+  // returns — the join waits on any in-flight teardown of the same room name.
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   // Mirror of presentUserIds the cleanup callback can read at
   // unmount time without being a stale closure capture. Written
@@ -207,9 +213,13 @@ export function useCommonGame(
   // alongside setCommonGame.
   const clubHandleRef = useRef<string>('')
 
-  // Idempotent apply for manual-pause events — handles echoes of
-  // our own broadcasts via React's referential-equality setState
-  // bail-out.
+  // Idempotent apply for manual-pause events. The senders below call this
+  // directly (optimistic local apply) AND broadcast; with realtime-js's
+  // `broadcast: { self: false }` default there's no echo to the sender, so
+  // this runs once locally and once per peer. Idempotent regardless — a
+  // repeat lands on the same value and React's referential-equality setState
+  // bail-out drops it — which is what makes the rebroadcast-on-peer-join
+  // effect below safe.
   const applyManualPause = useCallback((event: ManualPauseEvent) => {
     if (event.type === 'manualPause') {
       setManuallyPausedById(event.userId)
@@ -301,123 +311,140 @@ export function useCommonGame(
       setLoading(false)
     }
 
-    // Stable channel name: every connected peer for this game
-    // joins the same Realtime "room." Required for presence to
-    // see everyone and broadcasts to reach all peers. StrictMode
-    // double-mount is handled by the cleanup-then-recreate cycle
-    // in this effect; removeChannel(ch) clears the supabase-js
-    // per-client cache before the second effect run.
-    const ch = supabase.channel(`game:${gameId}`)
+    // A stable ROOM name: every connected peer for this game joins the SAME
+    // Realtime topic — required for presence to see everyone and broadcasts to
+    // reach all peers, so it can't take a dedup suffix the way the per-client
+    // data channels do. That exposes it to the teardown race: a remount inside
+    // the previous mount's leave round-trip (StrictMode's double-mount;
+    // club↔game navigation) would be handed the dying channel back, whose
+    // .subscribe() never reaches SUBSCRIBED. `channelLeaving` waits it out;
+    // nothing pending is the fast path, so a first mount joins on the spot.
+    // Full mechanism: lib/supabase/channelTeardown.ts.
+    const room = `game:${gameId}`
+    let cancelled = false
 
-    // Postgres-changes on common.games for this gameId. Drives
-    // refetch on is_current_view flip, ended_at set, status jsonb
-    // populate — the cross-cutting transitions every consumer
-    // cares about.
-    ch.on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'common',
-        table: 'games',
-        filter: `id=eq.${gameId}`,
-      },
-      load,
-    )
+    function joinRoom() {
+      // Guards the deferred path only — this effect can tear down again while
+      // the previous channel is still leaving.
+      if (cancelled) return
+      const ch = supabase.channel(room)
 
-    // Postgres-changes on common.game_players for this game. A
-    // mid-game concede (common.concede) flips a player's `conceded`
-    // WITHOUT touching common.games, so the games listener above
-    // wouldn't fire — but every peer's OpponentStrip needs to see
-    // the drop-out. This makes any per-player change (concede now,
-    // end-of-game `result` writes too) refetch the roster.
-    ch.on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'common',
-        table: 'game_players',
-        filter: `game_id=eq.${gameId}`,
-      },
-      load,
-    )
+      // Postgres-changes on common.games for this gameId. Drives
+      // refetch on is_current_view flip, ended_at set, status jsonb
+      // populate — the cross-cutting transitions every consumer
+      // cares about.
+      ch.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'common',
+          table: 'games',
+          filter: `id=eq.${gameId}`,
+        },
+        load,
+      )
 
-    // Manual-pause Broadcast. Idempotent apply handles echoes of
-    // our own sends.
-    ch.on('broadcast', { event: 'manualPause' }, ({ payload }) =>
-      applyManualPause(payload as ManualPauseEvent),
-    )
+      // Postgres-changes on common.game_players for this game. A
+      // mid-game concede (common.concede) flips a player's `conceded`
+      // WITHOUT touching common.games, so the games listener above
+      // wouldn't fire — but every peer's OpponentStrip needs to see
+      // the drop-out. This makes any per-player change (concede now,
+      // end-of-game `result` writes too) refetch the roster.
+      ch.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'common',
+          table: 'game_players',
+          filter: `game_id=eq.${gameId}`,
+        },
+        load,
+      )
 
-    // Suspend Broadcast. When one peer accepts the suspend-
-    // confirm modal, every connected peer (including the
-    // sender, via echo) navigates back to the club page. The
-    // resulting cascade of unmounts feeds last-viewer-leaves
-    // into unset_current_view; whichever cleanup runs last
-    // clears the flag. The clubHandleRef indirection is so the
-    // handler resolves the current handle at receive-time
-    // rather than at register-time (load() runs later).
-    ch.on('broadcast', { event: 'suspend' }, () => {
-      const handle = clubHandleRef.current
-      if (!handle) return
-      navigate(`/c/${handle}`)
-    })
+      // Manual-pause Broadcast. Idempotent apply handles echoes of
+      // our own sends.
+      ch.on('broadcast', { event: 'manualPause' }, ({ payload }) =>
+        applyManualPause(payload as ManualPauseEvent),
+      )
 
-    // Presence: dedupe to user_ids so multiple tabs of the same
-    // user don't double-count. We also mirror to a ref so the
-    // unmount cleanup can read the latest snapshot — see the
-    // cleanup return below.
-    ch.on('presence', { event: 'sync' }, () => {
-      const state = ch.presenceState() as Record<
-        string,
-        Array<{ user_id?: string }>
-      >
-      const ids = new Set<string>()
-      for (const list of Object.values(state)) {
-        for (const entry of list) {
-          if (entry.user_id) ids.add(entry.user_id)
+      // Suspend Broadcast. When one peer accepts the suspend-
+      // confirm modal, every connected peer (including the
+      // sender, via echo) navigates back to the club page. The
+      // resulting cascade of unmounts feeds last-viewer-leaves
+      // into unset_current_view; whichever cleanup runs last
+      // clears the flag. The clubHandleRef indirection is so the
+      // handler resolves the current handle at receive-time
+      // rather than at register-time (load() runs later).
+      ch.on('broadcast', { event: 'suspend' }, () => {
+        const handle = clubHandleRef.current
+        if (!handle) return
+        navigate(`/c/${handle}`)
+      })
+
+      // Presence: dedupe to user_ids so multiple tabs of the same
+      // user don't double-count. We also mirror to a ref so the
+      // unmount cleanup can read the latest snapshot — see the
+      // cleanup return below.
+      ch.on('presence', { event: 'sync' }, () => {
+        const state = ch.presenceState() as Record<
+          string,
+          Array<{ user_id?: string }>
+        >
+        const ids = new Set<string>()
+        for (const list of Object.values(state)) {
+          for (const entry of list) {
+            if (entry.user_id) ids.add(entry.user_id)
+          }
         }
-      }
-      presentUserIdsRef.current = ids
-      setPresentUserIds(ids)
-    })
+        presentUserIdsRef.current = ids
+        setPresentUserIds(ids)
+      })
 
-    ch.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        load()
-        ch.track({ user_id: session.user.id })
-        // First-viewer-mount write: flip this game to the
-        // club's current view (and vacate any prior one).
-        // Idempotent server-side — re-mounting an already-
-        // current game is a no-op. Fires on every SUBSCRIBED
-        // (including reconnects), which is what we want: a
-        // member who reconnects re-asserts they're viewing.
-        // See docs/states.md → "Lifecycle: when is_current_view
-        // flips" and the matching common.set_current_view RPC.
-        //
-        // Fragile: errors are logged-and-swallowed. The RPC is
-        // idempotent (its `is_current_view = false` guard absorbs
-        // double-fires), and the next SUBSCRIBED reconnect re-
-        // asserts state — so transient failures self-heal at the
-        // next network blip. A persistent failure (RLS broken,
-        // RPC dropped) goes unnoticed by the user. Acceptable
-        // under the friends-alpha posture; revisit when there's a
-        // user-visible error-surface story.
-        // See docs/code-review-2026-06-16.md §1.2 +
-        // docs/deferred.md → Common.
-        commonDb
-          .rpc('set_current_view', { target_game: gameId })
-          .then((res) => {
-            if (res.error) {
-              console.error('set_current_view failed', res.error)
-            }
-          })
-      }
-    })
-    setChannel(ch)
+      ch.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          load()
+          ch.track({ user_id: session.user.id })
+          // First-viewer-mount write: flip this game to the
+          // club's current view (and vacate any prior one).
+          // Idempotent server-side — re-mounting an already-
+          // current game is a no-op. Fires on every SUBSCRIBED
+          // (including reconnects), which is what we want: a
+          // member who reconnects re-asserts they're viewing.
+          // See docs/states.md → "Lifecycle: when is_current_view
+          // flips" and the matching common.set_current_view RPC.
+          //
+          // Fragile: errors are logged-and-swallowed. The RPC is
+          // idempotent (its `is_current_view = false` guard absorbs
+          // double-fires), and the next SUBSCRIBED reconnect re-
+          // asserts state — so transient failures self-heal at the
+          // next network blip. A persistent failure (RLS broken,
+          // RPC dropped) goes unnoticed by the user. Acceptable
+          // under the friends-alpha posture; revisit when there's a
+          // user-visible error-surface story.
+          // See docs/code-review-2026-06-16.md §1.2 +
+          // docs/deferred.md → Common.
+          commonDb
+            .rpc('set_current_view', { target_game: gameId })
+            .then((res) => {
+              if (res.error) {
+                console.error('set_current_view failed', res.error)
+              }
+            })
+        }
+      })
+      setChannel(ch)
+      channelRef.current = ch
+    }
+
+    const pending = channelLeaving(room)
+    if (pending) void pending.then(joinRoom)
+    else joinRoom()
 
     load()
 
     return () => {
       mounted = false
+      cancelled = true
 
       // Last-viewer-leave write. Fire unset_current_view IFF
       // the latest presence snapshot says I'm the only viewer
@@ -453,13 +480,16 @@ export function useCommonGame(
           })
       }
 
+      const ch = channelRef.current
+      channelRef.current = null
+      setChannel(null)
+      if (!ch) return // torn down before our turn to join came round
       try {
         ch.untrack()
       } catch {
         // ignore — channel may already be closed
       }
-      supabase.removeChannel(ch)
-      setChannel(null)
+      void releaseChannel(ch)
     }
   }, [applyManualPause, gameId, session.user.id])
 
@@ -496,12 +526,14 @@ export function useCommonGame(
 
   // Suspend-now broadcaster. Called by GamePage when the local
   // user accepts the suspend-confirm modal. Fires the broadcast
-  // first so peers start navigating, then navigates self — the
-  // broadcast handler above also fires on the local channel
-  // (Realtime echoes broadcasts back to the sender), so the
-  // local navigate would happen anyway; calling it directly
-  // here keeps the self-navigation path independent of the
-  // self-echo timing.
+  // first so peers start navigating, then navigates self.
+  //
+  // The self-navigate is REQUIRED, not belt-and-braces: realtime-js
+  // defaults to `broadcast: { self: false }` and we don't override
+  // it, so the handler above never runs on the sender's own channel.
+  // (An earlier comment here claimed Realtime echoes to the sender
+  // and that this call was merely timing-independent — wrong, though
+  // harmlessly so, since the code did the right thing anyway.)
   const sendSuspend = useCallback(() => {
     if (!channel) return
     const event: SuspendEvent = { type: 'suspend' }

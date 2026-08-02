@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase/supabase'
+import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
 import { MODE_LABEL } from '../../lib/games'
 import { showToast, dismissToast } from '../../lib/toast/toastStore'
 
@@ -62,54 +63,72 @@ export function useClubSetupPresence({
   // Subscribe once per club: peers' setup presence → toasts.
   useEffect(() => {
     if (!clubHandle) return
-    const ch = supabase.channel(`club-setup:${clubHandle}`, {
-      config: { presence: { key: selfId } },
-    })
-    ch.on('presence', { event: 'sync' }, () => {
-      const state = ch.presenceState() as Record<
-        string,
-        Array<{ user_id?: string; username?: string; brand?: string; mode?: 'coop' | 'compete' }>
-      >
-      const present = new Set<string>()
-      for (const list of Object.values(state)) {
-        for (const e of list) {
-          if (!e.user_id || e.user_id === selfId) continue // never toast my own setup
-          const id = `setup:${e.user_id}`
-          present.add(id)
-          const modeLabel = e.mode ? ` ${MODE_LABEL[e.mode]}` : ''
-          showToast({
-            id,
-            tone: 'info',
-            dismissible: false, // a live status — it clears itself when they finish
-            message: (
-              <>
-                <strong>{e.username ?? 'Someone'}</strong> is setting up a new{' '}
-                <strong>{e.brand ?? 'game'}</strong>
-                {modeLabel} game…
-              </>
-            ),
-          })
+    const room = `club-setup:${clubHandle}`
+    let cancelled = false
+
+    function join() {
+      // Guards the deferred path only: the effect can tear down again while
+      // the previous channel is still leaving.
+      if (cancelled) return
+      const ch = supabase.channel(room, {
+        config: { presence: { key: selfId } },
+      })
+      ch.on('presence', { event: 'sync' }, () => {
+        const state = ch.presenceState() as Record<
+          string,
+          Array<{ user_id?: string; username?: string; brand?: string; mode?: 'coop' | 'compete' }>
+        >
+        const present = new Set<string>()
+        for (const list of Object.values(state)) {
+          for (const e of list) {
+            if (!e.user_id || e.user_id === selfId) continue // never toast my own setup
+            const id = `setup:${e.user_id}`
+            present.add(id)
+            const modeLabel = e.mode ? ` ${MODE_LABEL[e.mode]}` : ''
+            showToast({
+              id,
+              tone: 'info',
+              dismissible: false, // a live status — it clears itself when they finish
+              message: (
+                <>
+                  <strong>{e.username ?? 'Someone'}</strong> is setting up a new{' '}
+                  <strong>{e.brand ?? 'game'}</strong>
+                  {modeLabel} game…
+                </>
+              ),
+            })
+          }
         }
-      }
-      for (const id of shownRef.current) if (!present.has(id)) dismissToast(id)
-      shownRef.current = present
-    })
-    ch.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        subscribedRef.current = true
-        // Apply whatever setup state already exists (dialog may have opened
-        // before the channel finished subscribing).
-        const a = announceRef.current
-        if (a) void ch.track({ user_id: selfId, username: a.username, brand: a.brand, mode: a.mode })
-      }
-    })
-    channelRef.current = ch
+        for (const id of shownRef.current) if (!present.has(id)) dismissToast(id)
+        shownRef.current = present
+      })
+      ch.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          subscribedRef.current = true
+          // Apply whatever setup state already exists (dialog may have opened
+          // before the channel finished subscribing).
+          const a = announceRef.current
+          if (a) void ch.track({ user_id: selfId, username: a.username, brand: a.brand, mode: a.mode })
+        }
+      })
+      channelRef.current = ch
+    }
+
+    // Stable ROOM name — a remount inside the previous mount's leave
+    // round-trip would otherwise be handed the dying channel (and could be
+    // rejected server-side as a duplicate join). Nothing pending is the fast
+    // path. See lib/supabase/channelTeardown.ts.
+    const pending = channelLeaving(room)
+    if (pending) void pending.then(join)
+    else join()
     return () => {
+      cancelled = true
       subscribedRef.current = false
       for (const id of shownRef.current) dismissToast(id)
       shownRef.current = new Set()
-      supabase.removeChannel(ch)
+      const ch = channelRef.current
       channelRef.current = null
+      if (ch) void releaseChannel(ch) // null if we tore down before joining
     }
   }, [clubHandle, selfId])
 

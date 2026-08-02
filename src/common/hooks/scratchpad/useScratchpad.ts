@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase/supabase'
+import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
 
 const commonDb = supabase.schema('common')
 
@@ -90,50 +91,69 @@ export function useScratchpad(
       setLoading(false)
     }
 
-    const ch = supabase.channel(`scratchpad:${gameId}`)
-    ch.on(
-      'postgres_changes',
-      { event: '*', schema: 'common', table: 'game_scratchpads', filter: `game_id=eq.${gameId}` },
-      (payload) => {
-        const r = payload.new as { owner_id: string | null; body: string; version: number }
-        const rowOwner = r.owner_id ?? null
-        if (rowOwner !== ownerId) return // not our pad
-        // While I hold the shared lock, MY local text is authoritative — ignore
-        // incoming CDC bodies (crossplay: "when we DO hold it, we ignore incoming
-        // text"). Without this, a body write that outruns my own flush's RPC
-        // response — my echo, or a racing non-holder's stray flush — lands mid-
-        // keystroke and visibly reverts what I've typed during the flush RTT
-        // (caret jumps to end). My next flush re-propagates my text (version
-        // bumps monotonically), so dropping the event is safe and self-heals.
-        // My own writes still advance versionRef via the flush RPC response.
-        if (shared && holderRef.current?.userId === myId) return
-        applyBody(r.body, r.version)
-      },
-    )
-    if (shared) {
-      ch.on('broadcast', { event: 'lock' }, ({ payload }) => {
-        const ev = payload as LockEvent
-        if (ev.userId === myId) return // ignore our own echo
-        if (ev.type === 'claim') {
-          setHolder({ userId: ev.userId, username: ev.username, at: ev.at })
-        } else {
-          setHolder((h) => (h && h.userId === ev.userId ? null : h))
-        }
+    const room = `scratchpad:${gameId}`
+    let cancelled = false
+
+    function join() {
+      // Guards the deferred path only: the effect can tear down again while
+      // the previous channel is still leaving.
+      if (cancelled) return
+      const ch = supabase.channel(room)
+      ch.on(
+        'postgres_changes',
+        { event: '*', schema: 'common', table: 'game_scratchpads', filter: `game_id=eq.${gameId}` },
+        (payload) => {
+          const r = payload.new as { owner_id: string | null; body: string; version: number }
+          const rowOwner = r.owner_id ?? null
+          if (rowOwner !== ownerId) return // not our pad
+          // While I hold the shared lock, MY local text is authoritative — ignore
+          // incoming CDC bodies (crossplay: "when we DO hold it, we ignore incoming
+          // text"). Without this, a body write that outruns my own flush's RPC
+          // response — my echo, or a racing non-holder's stray flush — lands mid-
+          // keystroke and visibly reverts what I've typed during the flush RTT
+          // (caret jumps to end). My next flush re-propagates my text (version
+          // bumps monotonically), so dropping the event is safe and self-heals.
+          // My own writes still advance versionRef via the flush RPC response.
+          if (shared && holderRef.current?.userId === myId) return
+          applyBody(r.body, r.version)
+        },
+      )
+      if (shared) {
+        ch.on('broadcast', { event: 'lock' }, ({ payload }) => {
+          const ev = payload as LockEvent
+          if (ev.userId === myId) return // ignore our own echo
+          if (ev.type === 'claim') {
+            setHolder({ userId: ev.userId, username: ev.username, at: ev.at })
+          } else {
+            setHolder((h) => (h && h.userId === ev.userId ? null : h))
+          }
+        })
+      }
+      ch.subscribe((status) => {
+        if (status === 'SUBSCRIBED') void load()
       })
+      channelRef.current = ch
     }
-    ch.subscribe((status) => {
-      if (status === 'SUBSCRIBED') void load()
-    })
-    channelRef.current = ch
+
+    // Stable ROOM name (the shared pad's lock broadcasts need every peer on
+    // the same topic), so a fast close→reopen inside the previous mount's
+    // leave round-trip would otherwise be handed the dying channel. Nothing
+    // pending is the fast path. See lib/supabase/channelTeardown.ts.
+    const pending = channelLeaving(room)
+    if (pending) void pending.then(join)
+    else join()
 
     return () => {
       active = false
+      cancelled = true
+      const ch = channelRef.current
+      channelRef.current = null
+      if (!ch) return // torn down before our turn to join came round
       // Release the lock on unmount so peers aren't stuck waiting.
       if (shared && holderRef.current?.userId === myId) {
         ch.send({ type: 'broadcast', event: 'lock', payload: { type: 'release', userId: myId } })
       }
-      channelRef.current = null
-      void supabase.removeChannel(ch)
+      void releaseChannel(ch)
     }
   }, [gameId, ownerId, shared, myId, applyBody])
 

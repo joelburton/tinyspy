@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../../common/lib/supabase/supabase'
+import { channelLeaving, releaseChannel } from '../../common/lib/supabase/channelTeardown'
 import type { Cursor } from '../lib/cursor'
 
 export type PeerCursor = { row: number; col: number; color: string }
@@ -106,52 +107,70 @@ export function usePeerCursors(
     // `cursor` is null, so the transient is harmless — the maps stay empty.)
     if (!enabled) return
     const timers = fillTimers.current
-    const ch = supabase.channel(`crosswords:cursors:${gameId}`, {
-      config: { presence: { key: myId } },
-    })
-    ch.on('broadcast', { event: 'cursor' }, ({ payload }) => {
-      const p = payload as CursorMsg
-      if (p.userId === myId) return
-      setPeers((prev) => {
-        const next = new Map(prev)
-        next.set(p.userId, { row: p.row, col: p.col, color: p.color })
-        return next
+    const room = `crosswords:cursors:${gameId}`
+    let cancelled = false
+
+    function join() {
+      // Guards the deferred path only — the effect can tear down again while
+      // the previous channel is still leaving.
+      if (cancelled) return
+      const ch = supabase.channel(room, {
+        config: { presence: { key: myId } },
       })
-    })
-    ch.on('broadcast', { event: 'fill' }, ({ payload }) => {
-      const p = payload as FillMsg
-      if (p.userId === myId) return // never flash my own fills
-      trackRecentFill(p.row, p.col, p.color)
-    })
-    ch.on('broadcast', { event: 'fills' }, ({ payload }) => {
-      const p = payload as FillsMsg
-      if (p.userId === myId) return
-      for (const c of p.cells) trackRecentFill(c.row, c.col, p.color)
-    })
-    ch.on('broadcast', { event: 'showNotes' }, ({ payload }) => {
-      const p = payload as ShowNoteMsg
-      if (p.userId === myId) return // don't reopen my own note broadcast
-      onPeerShowNoteRef.current?.()
-    })
-    // Presence key = the peer's userId; drop their cursor when they leave.
-    ch.on('presence', { event: 'leave' }, ({ key }) => {
-      setPeers((prev) => {
-        if (!prev.has(key)) return prev
-        const next = new Map(prev)
-        next.delete(key)
-        return next
+      ch.on('broadcast', { event: 'cursor' }, ({ payload }) => {
+        const p = payload as CursorMsg
+        if (p.userId === myId) return
+        setPeers((prev) => {
+          const next = new Map(prev)
+          next.set(p.userId, { row: p.row, col: p.col, color: p.color })
+          return next
+        })
       })
-    })
-    ch.subscribe((status) => {
-      if (status === 'SUBSCRIBED') void ch.track({ at: Date.now() })
-    })
-    channelRef.current = ch
+      ch.on('broadcast', { event: 'fill' }, ({ payload }) => {
+        const p = payload as FillMsg
+        if (p.userId === myId) return // never flash my own fills
+        trackRecentFill(p.row, p.col, p.color)
+      })
+      ch.on('broadcast', { event: 'fills' }, ({ payload }) => {
+        const p = payload as FillsMsg
+        if (p.userId === myId) return
+        for (const c of p.cells) trackRecentFill(c.row, c.col, p.color)
+      })
+      ch.on('broadcast', { event: 'showNotes' }, ({ payload }) => {
+        const p = payload as ShowNoteMsg
+        if (p.userId === myId) return // don't reopen my own note broadcast
+        onPeerShowNoteRef.current?.()
+      })
+      // Presence key = the peer's userId; drop their cursor when they leave.
+      ch.on('presence', { event: 'leave' }, ({ key }) => {
+        setPeers((prev) => {
+          if (!prev.has(key)) return prev
+          const next = new Map(prev)
+          next.delete(key)
+          return next
+        })
+      })
+      ch.subscribe((status) => {
+        if (status === 'SUBSCRIBED') void ch.track({ at: Date.now() })
+      })
+      channelRef.current = ch
+    }
+
+    // Stable ROOM name (peer presence + cursor Broadcast need every peer on
+    // the same topic), so a remount inside the previous mount's leave
+    // round-trip would otherwise be handed the dying channel. See
+    // common/lib/supabase/channelTeardown.ts.
+    const pending = channelLeaving(room)
+    if (pending) void pending.then(join)
+    else join()
 
     return () => {
+      cancelled = true
+      const ch = channelRef.current
       channelRef.current = null
       for (const t of timers.values()) clearTimeout(t)
       timers.clear()
-      void supabase.removeChannel(ch)
+      if (ch) void releaseChannel(ch) // null if we tore down before joining
     }
   }, [gameId, enabled, myId, trackRecentFill])
 

@@ -53,6 +53,9 @@ function sessionFor(userId: string): Session {
 // invoked here — these tests assert channel lifecycle, not data load,
 // so no `db.from(...)` query needs to resolve.
 const channelChain = {
+  // realtime-js sets `topic` (prefixed) in the channel constructor; the
+  // teardown registry keys off it, so the fake needs it too.
+  topic: `realtime:connections:${'00000000-0000-0000-0000-0000000000a1'}`,
   on: vi.fn(function () {
     return channelChain
   }),

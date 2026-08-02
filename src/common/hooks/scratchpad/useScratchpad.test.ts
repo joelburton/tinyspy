@@ -67,6 +67,9 @@ function buildMocks() {
 
   mockChannel.mockImplementation(() => {
     const chain: Record<string, unknown> = {
+      // realtime-js sets `topic` (prefixed) in the channel constructor; the
+      // teardown registry keys off it, so the fake needs it too.
+      topic: 'realtime:scratchpad:g1',
       on: (event: string, _opts: unknown, handler: (arg: never) => void) => {
         if (event === 'postgres_changes') cdcHandler = handler as (p: { new: Row }) => void
         else if (event === 'broadcast') lockHandler = handler as (m: { payload: unknown }) => void

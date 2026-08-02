@@ -360,6 +360,30 @@ If you find yourself wanting to import a component from another game, that's a s
 
 `GAMETYPES` in `eslint.config.js` is the list the rule works from, and it's **derived** — a regex over `src/games.ts`'s manifest imports, cross-checked against the `src/<name>/manifest.ts` folders on disk. A new game needs no lint edit; a folder registered in neither place throws at config-load time (`npm run lint` fails with the mismatch). It's derived because a hand-maintained copy drifted twice, and drift here is silent: a game missing from the forbidden list produces no error, it just stops being guarded.
 
+### Stable-name Realtime channels
+
+A channel whose name IS the room — every peer must join the identical topic for
+presence and broadcast to work — can't take the `channelDedupSuffix()` that the
+per-client data channels use. Open and close it through
+[`channelTeardown.ts`](../src/common/lib/supabase/channelTeardown.ts):
+
+```ts
+const pending = channelLeaving(room)   // null on the fast path
+if (pending) void pending.then(join)   // join() must guard on a `cancelled` flag
+else join()
+// …and in the cleanup: releaseChannel(ch), never supabase.removeChannel(ch)
+```
+
+The reason is in that module's docstring: realtime-js drops a channel from its
+name cache only in the channel's own `_onClose`, so for the whole leave
+round-trip `supabase.channel(sameName)` returns the dying instance — and the
+server can reject a re-join that races the leave, which is why evicting the
+cache wouldn't be enough on its own. Because the join can now happen *after*
+the effect body returns, hold the channel in a **ref** for the cleanup to read
+(state alone is too late) and bail out of `join()` if the effect was already
+torn down. The registry is per channel NAME, so unrelated rooms never block
+each other. Suffixed channels can't collide and keep using `removeChannel`.
+
 ### Guarding a non-idempotent action
 
 An action whose second call does real, unwanted work needs an in-flight guard,

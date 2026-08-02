@@ -181,7 +181,19 @@ Every channel in the app, in one place. The naming pattern is
 **stable names** are used iff peers must share the room (presence rosters
 and broadcasts are per-channel-name), **UUID-suffixed names** (via
 `channelDedupSuffix()`) everywhere else, to sidestep supabase-js's
-name-cache + StrictMode double-mount collision. Every CDC subscription is
+name-cache + StrictMode double-mount collision.
+
+A stable name can't take that suffix, so it needs the other half of the fix:
+every one of the eight below opens through
+[`channelTeardown.ts`](../src/common/lib/supabase/channelTeardown.ts) —
+`channelLeaving(room)` before `supabase.channel(room)`, `releaseChannel(ch)`
+instead of `supabase.removeChannel(ch)`. Without it a remount inside the
+previous mount's leave round-trip is handed realtime-js's still-dying cached
+instance (it leaves `client.channels` only on its own `_onClose`, not in
+`removeChannel`), and its `.subscribe()` never reaches SUBSCRIBED — no
+presence, no broadcasts, no CDC until the next reconnect. **Adding a new
+stable-name channel means using that pair.** Suffixed channels don't need it
+and keep calling `removeChannel` directly. Every CDC subscription is
 filtered (`id=eq` / `game_id=eq` / `club_handle=eq` / `user_id=eq`) — none
 is broader than the rows the hook consumes.
 

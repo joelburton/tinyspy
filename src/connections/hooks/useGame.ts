@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../common/lib/supabase/supabase'
+import { channelLeaving, releaseChannel } from '../../common/lib/supabase/channelTeardown'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { Member } from '../../common/lib/games'
@@ -155,6 +156,10 @@ export function useGame(
   const [channel, setChannel] = useState<
     ReturnType<typeof supabase.channel> | null
   >(null)
+  // Same channel, reachable synchronously from the effect cleanup — the state
+  // above is for consumers, but the channel may be created AFTER the effect
+  // body returns (the join waits on any in-flight teardown of this room).
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   // Apply an incoming selection event to local state. Idempotent —
   // adding an already-present tile is a no-op, deselecting an
@@ -243,46 +248,70 @@ export function useGame(
       setLoading(false)
     }
 
-    // Stable channel name — selection Broadcast (coop) needs a
-    // shared room across peers, so a UUID-suffix would defeat the
-    // purpose. StrictMode's double-mount is handled by the
-    // removeChannel(ch) in the effect cleanup. See useGame for
+    // Stable channel name — selection Broadcast (coop) needs a shared room
+    // across peers, so a UUID-suffix would defeat the purpose. That means a
+    // remount inside the previous mount's leave round-trip (StrictMode's
+    // double-mount; fast re-entry) must WAIT rather than re-create, or
+    // supabase-js hands back the dying channel. See useGame for
     // codenamesduet/psychicnum's UUID-suffixed approach when broadcast
     // isn't in play.
-    const ch = supabase.channel(`connections:${gameId}`)
+    const room = `connections:${gameId}`
+    let cancelled = false
 
-    ch.on(
-      'postgres_changes',
-      { event: '*', schema: 'connections', table: 'games', filter: `id=eq.${gameId}` },
-      load,
-    )
-    ch.on(
-      'postgres_changes',
-      { event: '*', schema: 'connections', table: 'guesses', filter: `game_id=eq.${gameId}` },
-      load,
-    )
-    ch.on(
-      'postgres_changes',
-      { event: '*', schema: 'connections', table: 'players', filter: `game_id=eq.${gameId}` },
-      load,
-    )
-    ch.on('broadcast', { event: 'selection' }, ({ payload }) =>
-      applySelection(payload as SelectionEvent),
-    )
+    function join() {
+      // Guards the deferred path only — the effect can tear down again
+      // while the previous channel is still leaving.
+      if (cancelled) return
+      const ch = supabase.channel(room)
 
-    // SUBSCRIBED fires on initial subscribe AND on every reconnect,
-    // so this single hook covers both the mount-time fetch and the
-    // missed-events-on-reconnect refetch.
-    ch.subscribe((status) => {
-      if (status === 'SUBSCRIBED') load()
-    })
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setChannel(ch)
+      ch.on(
+        'postgres_changes',
+        { event: '*', schema: 'connections', table: 'games', filter: `id=eq.${gameId}` },
+        load,
+      )
+      ch.on(
+        'postgres_changes',
+        { event: '*', schema: 'connections', table: 'guesses', filter: `game_id=eq.${gameId}` },
+        load,
+      )
+      ch.on(
+        'postgres_changes',
+        { event: '*', schema: 'connections', table: 'players', filter: `game_id=eq.${gameId}` },
+        load,
+      )
+      ch.on('broadcast', { event: 'selection' }, ({ payload }) =>
+        applySelection(payload as SelectionEvent),
+      )
+
+      // SUBSCRIBED fires on initial subscribe AND on every reconnect,
+      // so this single hook covers both the mount-time fetch and the
+      // missed-events-on-reconnect refetch.
+      ch.subscribe((status) => {
+        if (status === 'SUBSCRIBED') load()
+      })
+      // Still a sync setState from an effect on the fast path (join() runs
+      // inline when no teardown is pending) — deliberate, the channel IS the
+      // external system being synced into state. The react-hooks rule can no
+      // longer SEE it through this function, so the disable it used to need is
+      // gone; the intent is here instead.
+      setChannel(ch)
+      channelRef.current = ch
+    }
+
+    // Stable ROOM name (peers must share the topic), so a remount inside the
+    // previous mount's leave round-trip would otherwise be handed the dying
+    // channel. See common/lib/supabase/channelTeardown.ts.
+    const pending = channelLeaving(room)
+    if (pending) void pending.then(join)
+    else join()
 
     return () => {
       mounted = false
-      supabase.removeChannel(ch)
+      cancelled = true
+      const ch = channelRef.current
+      channelRef.current = null
       setChannel(null)
+      if (ch) void releaseChannel(ch) // null if we tore down before joining
     }
   }, [applySelection, gameId])
 

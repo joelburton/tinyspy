@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase/supabase'
+import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
 
 /** One present member's location within the club orbit. `gameId` is
  *  the game they're viewing, or null if they're on the club page. */
@@ -49,39 +51,60 @@ export function useClubPresence(
   // re-tracking in place — which keeps this hook a plain subscribe.
   useEffect(() => {
     if (!clubHandle) return // no subscription; the hook returns [] below
-    const ch = supabase.channel(`club:${clubHandle}`, {
-      config: { presence: { key: selfId } },
-    })
+    const room = `club:${clubHandle}`
+    let cancelled = false
+    let ch: RealtimeChannel | null = null
 
-    ch.on('presence', { event: 'sync' }, () => {
-      const state = ch.presenceState() as Record<
-        string,
-        Array<{ user_id?: string; game_id?: string | null }>
-      >
-      const entries: ClubPresenceEntry[] = []
-      for (const list of Object.values(state)) {
-        for (const e of list) {
-          if (e.user_id) {
-            entries.push({ userId: e.user_id, gameId: e.game_id ?? null })
+    function join() {
+      // The cancelled guard matters only on the deferred path below: this
+      // effect can be torn down again while the previous channel is leaving.
+      if (cancelled) return
+      const joined = supabase.channel(room, {
+        config: { presence: { key: selfId } },
+      })
+      ch = joined
+
+      joined.on('presence', { event: 'sync' }, () => {
+        const state = joined.presenceState() as Record<
+          string,
+          Array<{ user_id?: string; game_id?: string | null }>
+        >
+        const entries: ClubPresenceEntry[] = []
+        for (const list of Object.values(state)) {
+          for (const e of list) {
+            if (e.user_id) {
+              entries.push({ userId: e.user_id, gameId: e.game_id ?? null })
+            }
           }
         }
-      }
-      setRoster(entries)
-    })
+        setRoster(entries)
+      })
 
-    ch.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        void ch.track({ user_id: selfId, game_id: viewingGameId })
-      }
-    })
+      joined.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          void joined.track({ user_id: selfId, game_id: viewingGameId })
+        }
+      })
+    }
+
+    // A stable ROOM name, so a remount inside the previous mount's leave
+    // round-trip would otherwise get the dying channel back (and could be
+    // rejected server-side as a duplicate join). Wait it out — see
+    // lib/supabase/channelTeardown.ts. Nothing pending is the fast path:
+    // a first mount joins synchronously.
+    const pending = channelLeaving(room)
+    if (pending) void pending.then(join)
+    else join()
 
     return () => {
+      cancelled = true
+      if (!ch) return // torn down before our turn to join came round
       try {
         void ch.untrack()
       } catch {
         // channel may already be closed
       }
-      supabase.removeChannel(ch)
+      void releaseChannel(ch)
     }
   }, [clubHandle, selfId, viewingGameId])
 
