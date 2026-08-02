@@ -253,6 +253,15 @@ one-line update) instead of each game needing its own copy:
   (live updates die) and an extra one (replication overhead). **Update its
   `expected` list when a hook adds or drops a `postgres_changes` subscription**
   (re-derive with `grep -rn "table:" src`).
+- **`src/docLinks.test.ts`** (Vitest) — every relative markdown link across
+  `docs/`, `CLAUDE.md`, and `README.md` resolves: the file exists and a
+  `#fragment` matches a real heading. The docs are the cross-linked half of this
+  codebase, and a renamed heading breaks a link that still *looks* right in the
+  source — eleven had accumulated before this existed. Note the anchor rule it
+  encodes: GitHub **deletes** heading punctuation but keeps the spaces around it,
+  so `## Terminal results — the moment vs the record` is
+  `#terminal-results--the-moment-vs-the-record` with **two** hyphens. Writing one
+  (or keeping the literal `—`) dangles silently.
 
 ## Running the suites
 
