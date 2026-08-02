@@ -34,20 +34,6 @@ One residual oddity it left behind, worth a deliberate decision:
 
 ---
 
-## Tier A — persisted vocabulary (do before freeze)
-
-play_state values and `status`/`setup` jsonb keys live in rows; once rows survive
-deploys, every rename needs a data migration. **Remember: changing a terminal
-play_state means updating BOTH the SQL and the game's `labelFor` (+ the report
-fixtures) — nothing asserts they agree.**
-
-- [ ] **A8. wordiply compete reaches `lost_compete` only by concede.** A1 gave it
-  that state (every compete gametype's all-conceded end is `lost_compete` now),
-  but the CLOCK still can't produce one: timeout-with-winner and
-  everyone-exhausted both land `won_compete`, manual/no-winner lands `ended`
-  (`…wordiply:669`). Boggle, the other score-race, loses to the clock properly.
-  Maybe deliberate (the comparator usually names a winner) — decide and record.
-
 ## Tier B — column renames (need a migration later)
 
 - [ ] **B1.** `wordiply.guesses.created_at` → `guessed_at` (`…wordiply:143`; the
@@ -216,8 +202,10 @@ documented-deliberate set holds up:
 
 ## Suggested order of attack
 
-**Tier A + B1–B3 are the "do before freeze" set** — they change what's persisted
-in rows. Tiers C–E are worth a sweep while editing baselines is still free, but
-wouldn't block leaving alpha. Every SQL change here re-runs the usual gates
+**Tier A is DONE** (2026-08-01) — every persisted-vocabulary item is worked and
+its decision recorded in states.md / naming.md / the per-game docs. **B1–B3 are
+what's left of the "do before freeze" set**: they change column names, so
+they'd need a data migration afterwards. Tiers C–E are worth a sweep while
+editing baselines is still free, but wouldn't block leaving alpha. Every SQL change here re-runs the usual gates
 (`npm run db:reset` + `npm run import`, `npm run test:db`, `npx tsc -b`,
 `npm test`, `npm run report:labels` for anything touching status/labels).

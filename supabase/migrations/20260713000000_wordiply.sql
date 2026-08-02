@@ -667,13 +667,13 @@ declare
   status_leaderboard jsonb;
   player_results jsonb;
   winner_uid uuid;
+  best_score int;
   terminal_state text;
 begin
   select * into g_row from wordiply.games where id = target_game;
   timed := coalesce(
     (select setup->'timer'->>'kind' from common.games where id = target_game),
     'none') <> 'none';
-  terminal_state := case when pick_winner then 'won_compete' else 'ended' end;
 
   with scored as (
     select gp.user_id,
@@ -711,6 +711,10 @@ begin
     select w.*,
            (pick_winner
             and not w.conceded
+            -- Nobody wins a game nobody scored in. Without this floor a timed
+            -- race where no one guessed leaves every player tied on 0 — and
+            -- "your score is the best score" flags them ALL winners at 0%.
+            and w.length_score > 0
             and w.length_score = b.bls
             and w.letter_count = b2.blc
             and (not timed or w.finished_at is not distinct from bt.bt)) as won
@@ -736,9 +740,21 @@ begin
     -- and the FE reads its own won flag for the co-winner banner. Picking one
     -- arbitrary tied player here would tell the others they lost.
     (select case when count(*) = 1 then (array_agg(f.user_id))[1] end
-       from flagged f where f.won)
-  into status_leaderboard, player_results, winner_uid
+       from flagged f where f.won),
+    coalesce(max(length_score) filter (where not conceded), 0)
+  into status_leaderboard, player_results, winner_uid, best_score
   from flagged;
+
+  -- The clock CROWNS THE LEADER (docs/games/scrabble.md makes the same call:
+  -- a score accumulated over real plays is meaningful, and voiding it would
+  -- reward stalling) — unless there is no leader. A timed race in which nobody
+  -- guessed has no score to crown, and the table had a reachable end (spend
+  -- your five guesses) it didn't reach, so it's a collective loss.
+  terminal_state := case
+    when not pick_winner then 'ended'
+    when best_score > 0  then 'won_compete'
+    else 'lost_compete'
+  end;
 
   perform common.end_game(
     target_game, terminal_state,

@@ -82,6 +82,24 @@ only loses when there was a target to miss"), which couldn't explain scrabble:
 scrabble coop has no target and still loses. "Reachable end" covers all
 thirteen with no exceptions.
 
+#### Compete is different: the clock resolves a race
+
+The rule above is about a team missing its own goal. In **compete** the clock
+lands on a race that already has a leader, so it **crowns them** rather than
+failing everyone — scrabble, boggle (no target) and wordiply all do this, and
+[scrabble.md](games/scrabble.md) argues the case: a score accumulated over real
+plays is meaningful, and voiding it would reward stalling. (boggle *with* a
+target is the exception that proves it — there the bar, not the leader, is what
+the clock beat, so it's `lost_compete`.)
+
+**Unless there's no leader to crown.** The win test in a score race is "your
+score is the best score", which is true for *everyone* when every score is 0 —
+so a timed race nobody played would flag them all winners. Both score races
+guard it (`boggle._finish`, `wordiply._finish_compete`): no non-conceded player
+with a score means `lost_compete`, nobody `won`. Ratified 2026-08-01, after a
+probe found boggle's club label reading `Won (co-winners)` off exactly that row
+while its own play surface said "no words found".
+
 ### `status.outcome` names the CAUSE, never the verdict
 
 `play_state` answers *what happened to the game* (won / lost / ended, per mode).

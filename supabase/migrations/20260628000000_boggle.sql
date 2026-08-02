@@ -547,11 +547,16 @@ begin
     --                               however high the scores got  → lost_compete
     --   'timeout' with NO target  → it was a straight score race, so the top
     --                               non-conceded score takes it   → won_compete
+    --   'timeout' and NOBODY SCORED → a race with no runners: every player is
+    --                               tied on 0, so the win test ("your score is
+    --                               the best score") would flag them ALL winners
+    --                               of a game nobody played  → lost_compete
     --   'manual'                  → the friends chose to stop; neutral, no
     --                               winner, like every other game's End → ended
     term_state := case
       when outcome = 'target' then 'won_compete'
       when outcome = 'timeout' and g_win_pct is not null then 'lost_compete'
+      when outcome = 'timeout' and max_score = 0 then 'lost_compete'
       when outcome = 'timeout' then 'won_compete'
       else 'ended'
     end;

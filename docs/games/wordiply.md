@@ -236,7 +236,10 @@ Signatures mirror wordwheel one-for-one except the board shape and the validated
   team had a reachable end (spend the five shared guesses) and didn't reach it — see
   [states.md → When the clock is a LOSS](../states.md#when-the-clock-is-a-loss). Spending the
   guesses or stopping on purpose stay neutral `ended`. Compete → **resolve the formula on
-  current scores** → `won_compete` (whoever leads; ties per the comparator).
+  current scores** → `won_compete` (whoever leads; ties per the comparator) — **unless nobody
+  guessed at all**, in which case there is no score to crown and it's `lost_compete` with
+  everyone `won:false` (the same guard boggle's score race carries; see
+  [states.md → Compete is different](../states.md#compete-is-different-the-clock-resolves-a-race)).
 
 - **`wordiply.end_game(target_game)`** — coop's neutral mutual "we're done" stop (wordwheel
   parity). **`wordiply.concede(target_game)`** — compete per-player drop = a real loss (via

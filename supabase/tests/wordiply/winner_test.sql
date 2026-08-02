@@ -26,7 +26,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(9);
+select plan(12);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -266,6 +266,30 @@ select is(
   'ada11111-1111-1111-1111-111111111111'::uuid,
   'submit_timeout compete: the leader on current scores (ada) wins'
 );
+
+-- ============================================================
+-- (6) A timed race NOBODY played: no score to crown → lost_compete
+-- ============================================================
+-- The win test is "your score is the best score", so with every player on 0 it
+-- would flag them ALL winners of a game nobody touched. The floor in
+-- _finish_compete (length_score > 0) stops that, and the state follows: the
+-- table had a reachable end (spend your five guesses) and reached none of it.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g6 on commit drop as
+  select id from wordiply.create_game((select handle from club),
+    '{"timer": {"kind": "countdown", "seconds": 60}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid],
+    'compete', pg_temp.wordiply_board());
+select wordiply.submit_timeout((select id from g6));
+reset role;
+select is((select play_state from common.games where id = (select id from g6)),
+  'lost_compete', 'nobody guessed: the clock crowns no one — collective loss');
+select is((select count(*)::int from common.game_players
+            where game_id = (select id from g6) and result->>'won' = 'true'),
+  0, 'nobody guessed: no player is flagged won');
+select is((select status->>'winner_user_id' from common.games where id = (select id from g6)),
+  null, 'nobody guessed: no winner named');
 
 -- ============================================================
 select * from finish();

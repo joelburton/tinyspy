@@ -120,6 +120,11 @@ function competeLabel(row: { play_state: string; status?: unknown }): string {
       ? statusLine(outcome('Won', 'co-winners'), ls)
       : statusLine(wonBy(name), ls)
   }
+  // The clock with NOBODY on the board: no score to crown, and the table never
+  // spent its guesses — a collective loss (wordiply._finish_compete).
+  if (row.play_state === 'lost_compete') {
+    return statusLine(outcome('Lost', 'out of time'), 'nobody scored')
+  }
   return statusLine(
     outcome('Ended', (s.outcome as string) === 'timeout' ? 'out of time' : null), 'no winner')
 }

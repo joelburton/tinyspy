@@ -296,9 +296,18 @@ game is terminal, then all.
   | **coop, target set** | `won` | `lost` | `ended` |
   | **coop, no target** | — | `ended` | `ended` |
   | **compete, target set** | `won_compete` (the crosser) | `lost_compete` — **nobody** wins, however high the scores got | `ended` |
-  | **compete, no target** | — | `won_compete`, the top non-conceded score (ties share it) | `ended` |
+  | **compete, no target** | — | `won_compete`, the top non-conceded score (ties share it) — but `lost_compete` if that top score is **0** | `ended` |
 
-  It's the rule spellingbee/wordwheel already apply to their rank target: a game
+  The **nobody-scored** case is worth spelling out: the win test in a score race
+  is "your score is the best score", which is true for EVERYONE when every score
+  is 0 — so a timed race nobody played used to end `won_compete` with every
+  player flagged won. The club-page label rendered that as `Won (co-winners)`
+  while the play surface, which had its own `max === 0` guard, said "no words
+  found": two screens disagreeing about one row. `_finish` now writes
+  `lost_compete` for it, so both read the truth (2026-08-01; the FE guard stays
+  but is no longer load-bearing). wordiply's score race carries the same guard.
+
+  Otherwise it's the rule spellingbee/wordwheel already apply to their rank target: a game
   with something to reach can be won or lost against it; a game with nothing to
   reach is an exercise, and any ending is neutral. A manual stop is always
   neutral — the friends chose to stop, so nobody wins. A no-target score race

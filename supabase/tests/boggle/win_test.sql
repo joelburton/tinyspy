@@ -9,7 +9,7 @@
 
 begin;
 set search_path = boggle, common, public, extensions;
-select plan(22);
+select plan(24);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -211,6 +211,27 @@ select is((select (result->>'won')::boolean from common.game_players
              where game_id = (select id from gct)
                and user_id = 'ada11111-1111-1111-1111-111111111111'),
   false, 'compete + target: the leading score does NOT win — nobody reached it');
+
+-- ── A timed race NOBODY played: no score to crown → lost_compete ──
+-- Same shape as wordiply: "your score is the best score" is true for everyone
+-- when every score is 0. Before the guard this ended won_compete with both
+-- players flagged won, which the club-page label rendered as
+-- "Won (co-winners)" while the play surface said "no words found".
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gz on commit drop as
+select * from boggle.create_game(
+  (select handle from club),
+  pg_temp.boggle_setup() || '{"timer": {"kind": "countdown", "seconds": 60}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'compete', pg_temp.boggle_board());
+select boggle.submit_timeout((select id from gz));
+reset role; select set_config('request.jwt.claims', '', true);
+select is((select play_state from common.games where id = (select id from gz)),
+  'lost_compete', 'compete, no target, nobody scored: the clock crowns no one');
+select is((select count(*)::int from common.game_players
+            where game_id = (select id from gz) and result->>'won' = 'true'),
+  0, 'compete, nobody scored: no player is flagged won');
 
 select * from finish();
 rollback;

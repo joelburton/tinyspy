@@ -591,11 +591,16 @@ function buildOver({
     (r) => !concededIds.has(r.user_id),
   )
   const max = board.reduce((m, r) => Math.max(m, r.found_words_score), 0)
+  // Nobody scored. The server agrees — boggle._finish writes lost_compete for
+  // exactly this case, rather than flagging everyone a co-winner at 0 (which
+  // is what "your score is the best score" does when every score is 0). This
+  // used to render a neutral "Ended" while the club-page label read
+  // "Won (co-winners)" off the same row; both now say the same thing.
   if (max === 0) {
     return {
-      verdict: 'Ended: no words found',
+      verdict: 'Lost: no words found',
       message: 'No winner',
-      tone: 'neutral',
+      tone: 'lost',
     }
   }
   if (myScore >= max) {

@@ -179,6 +179,7 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | | won_compete — top score at the buzzer (no target) | `Won by alice · 90 pts` |
 | | won_compete — tied top score (no target) | `Won (co-winners) · 90 pts` |
 | | lost_compete — timeout, target set | `Lost (out of time) · no winner` |
+| | lost_compete — timeout, nobody scored | `Lost (out of time) · no winner` |
 | | ended — manual end | `Ended · no winner` |
 | | lost_compete — all conceded | `Lost (all conceded)` |
 | **crosswords_coop** | playing | `Playing` |
@@ -198,6 +199,7 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | | won_compete — one winner | `Won by alice · 60%` |
 | | won_compete — co-winners | `Won (co-winners) · 60%` |
 | | lost_compete — all conceded | `Lost (all conceded)` |
+| | lost_compete — timeout, nobody scored | `Lost (out of time) · nobody scored` |
 | | ended — timeout, no winner | `Ended (out of time) · no winner` |
 | | ended — manual end | `Ended · no winner` |
 
