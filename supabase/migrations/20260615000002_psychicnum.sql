@@ -365,7 +365,7 @@ declare
   first_turn uuid;
 begin
   -- ─── Validate mode + player-count ───────────────────
-  perform common.validate_mode(mode);
+  perform common.require_valid_mode(mode);
 
   if mode = 'compete' then
     -- Compete needs an opposing PLAYER. A solo race is just a
@@ -414,7 +414,7 @@ begin
       using errcode = 'P0001';
   end if;
 
-  perform common.validate_timer(setup->'timer');
+  perform common.require_valid_timer(setup->'timer');
 
   -- The board: `word_count` distinct words sampled from the dictionary under a
   -- clean (no crude/slur), american, non-slang, difficulty-≤-band filter.
@@ -1050,7 +1050,7 @@ grant execute on function psychicnum.request_hint(uuid) to authenticated;
 -- loss is the only honest outcome.
 --
 -- Terminal play_state is the per-mode value ('lost' for coop,
--- 'lost_compete' for compete) so the FE's GameOverModal can
+-- 'lost_compete' for compete) so the FE's terminal copy can
 -- show mode-appropriate copy.
 --
 -- Idempotency: the `play_state <> 'playing'` guard means a

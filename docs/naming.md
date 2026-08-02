@@ -20,7 +20,7 @@ The load-bearing words and what they each mean. Internalize these; mixing them u
 
 The *registered entry* representing a game (or game variant) in the registry. One row in `common.gametypes`, one TS manifest in `src/games.ts`, one URL prefix. Treated as one word (like `username`), not `game_type` or `gameKind`. In code: `gametype text` columns, `gametype: string` TS fields.
 
-Examples: `codenamesduet`, `psychicnum_coop`, `psychicnum_compete`, `connections_coop`, `connections_compete`, `spellingbee_coop`, `spellingbee_compete`, `bananagrams`, `waffle_coop`, `waffle_compete`, `wordle_coop`, `wordle_compete`, `stackdown_coop`, `stackdown_compete`, `scrabble_coop`, `scrabble_compete`, `boggle_coop`, `boggle_compete`, `crosswords_coop`, `crosswords_compete`.
+Examples: `codenamesduet`, `psychicnum_coop`, `psychicnum_compete`, `connections_coop`, `connections_compete`, `spellingbee_coop`, `spellingbee_compete`, `bananagrams`, `waffle_coop`, `waffle_compete`, `wordle_coop`, `wordle_compete`, `stackdown_coop`, `stackdown_compete`, `scrabble_coop`, `scrabble_compete`, `boggle_coop`, `boggle_compete`, `crosswords_coop`, `crosswords_compete`, `wordwheel_coop`, `wordwheel_compete`, `wordiply_coop`, `wordiply_compete`.
 
 The gametype string is the second segment of `/g/<gametype>/<gameId>` URLs and the key the FE uses to dispatch manifest behavior (rendering, RPC routing). It is NOT always identical to the folder/schema name — sibling gametypes share a single folder and a single schema. See [`baseGametype`](#basegametype) below.
 
@@ -51,7 +51,8 @@ Every game has two names:
 | `spellingbee` | FreeBee | | `scrabble` | RackAttack |
 | `bananagrams` | MonkeyGrams | | `stackdown` | StackDown |
 | `psychicnum` | PsychicNum | | `boggle` | MothCubes |
-| `crosswords` | CrossPlay | | | |
+| `crosswords` | CrossPlay | | `wordwheel` | MooseWheel |
+| `wordiply` | WordWire | | | |
 
 The brand and codename coincide as a word only for `stackdown`/StackDown and `psychicnum`/PsychicNum (and even there the codename is lowercase, the brand is the display-cased token).
 
@@ -234,6 +235,15 @@ The corollary to the rule above: when a cross-game name difference encodes a *re
 - **Per-player metric props** — the three same-shaped `ReadonlyMap<string, number>` props were unified on `metricByUser`, but `playerStates` / `playerBudgets` (a *rows* shape) stayed distinct — different shapes, not different names for one thing.
 - **`_maybe_finish_compete`** (connections / waffle / wordle) vs `_finish` / `_finalize` — a genuinely different function: it returns `boolean` and early-returns if the game *isn't* over, where `_finish` returns `void` and unconditionally finalizes.
 
+- **`common.wordle_colors`** — looks like a game codename in the shared layer, which the headline rule forbids. It isn't: "Wordle colors" is the *term of art* for the green/yellow/grey scheme, and waffle calls it because that's the recognizable convention, not because it borrowed from our wordle. The name describes the OUTPUT. (waffle's board-level wrapper was `compute_colors` — the repo's lone `compute_` verb — and DID get tidied, to `board_colors`.) Ratified 2026-08-02.
+- **`common.create_game`'s `saved_default` param vs the `clubs_gametypes.default_setup` column it feeds** — the mismatch is load-bearing, not drift. Naming the param `default_setup` makes the UPDATE inside the function ambiguous: PL/pgSQL sees a parameter and a column of that name in one statement and errors. Same trap as `psychicnum.submit_guess`'s local `is_correct` next to the column of that name (there the fix was qualifying the column; here it's the distinct param name).
+- **`scrabble._advance_seat` vs `common._advance_turn`** — two different pointers, and BOTH are called from scrabble's `play_word` a few lines apart: the seat pointer for compete turns, the common pointer for opt-in coop turn order. They were `scrabble._advance_turn` / `common._advance_turn` until 2026-08-02, telling apart only by schema qualifier.
+- **`common._require_turn` is `_`-prefixed while the other `require_*` gates aren't** — it belongs to the turn-order primitives (`_assign_turn_order` / `_advance_turn` / `_require_turn`), which share the prefix as one opt-in mechanism's internals rather than the roster-wide gates every RPC calls.
+- `stackdown.submissions` vs `psychicnum.guesses` for the same word/hint/reveal union shape — two table names, but a rename buys little.
+- bananagrams' two per-player tables (`player_boards` + `progress`) — a real RLS boundary (owner-only vs club-readable), documented in the divergence register.
+- `common._set_conceded` vs `common.concede` — elimination games deliberately take the half-step; the header comment explains it.
+- `scrabble.players.user_id` nullable (the AI-seat XOR) — unique but correctly documented inline.
+
 The test: would a shared name *hide* a difference the reader needs? If yes, keep them distinct and let the name carry the distinction.
 
 ### Qualify when the name will be read in isolation; stay bare when the scope owner is right there
@@ -248,7 +258,7 @@ Names that recur across gametypes and MUST be identical when the underlying conc
 
 | name | what it is |
 |---|---|
-| `gametype` | The registered-entry string (`codenamesduet` / `psychicnum_coop` / `psychicnum_compete` / `connections_coop` / `connections_compete` / `spellingbee_coop` / `spellingbee_compete` / `bananagrams` / `waffle_coop` / `waffle_compete` / `wordle_coop` / `wordle_compete` / `stackdown_coop` / `stackdown_compete` / `scrabble_coop` / `scrabble_compete` / `boggle_coop` / `boggle_compete` / `crosswords_coop` / `crosswords_compete`). Column on `common.games` + `common.gametypes`; second URL segment. NOT always identical to folder / schema name — see `baseGametype` below. |
+| `gametype` | The registered-entry string (`codenamesduet` / `psychicnum_coop` / `psychicnum_compete` / `connections_coop` / `connections_compete` / `spellingbee_coop` / `spellingbee_compete` / `bananagrams` / `waffle_coop` / `waffle_compete` / `wordle_coop` / `wordle_compete` / `stackdown_coop` / `stackdown_compete` / `scrabble_coop` / `scrabble_compete` / `boggle_coop` / `boggle_compete` / `crosswords_coop` / `crosswords_compete` / `wordwheel_coop` / `wordwheel_compete` / `wordiply_coop` / `wordiply_compete`). Column on `common.games` + `common.gametypes`; second URL segment. NOT always identical to folder / schema name — see `baseGametype` below. |
 | `baseGametype` | The shared family root for sibling gametypes. Folder under `src/`; Postgres schema name. For single-mode games, equals `gametype`. For coop/compete pairs, both manifests share the baseGametype (`psychicnum_coop` and `psychicnum_compete` both → `psychicnum`). See [naming → baseGametype](#basegametype). |
 | `mode` | The interaction-axis declaration on a manifest (`'coop'` \| `'compete'`). Also denormalized as a column on per-game `games` tables (e.g. `psychicnum.games.mode`) so RLS can branch without joining to `common.games`. |
 | `play_state` | The `text` column on `common.games` carrying each gametype's mid-game/terminal enum. The column NAME is always `play_state`; values differ per gametype. Common coop terminal values: `'won'` / `'lost'`. Common compete terminal values: `'won_compete'` / `'lost_compete'`. **No gametype uses `'active'` as a value** — "active" overloads view-state and play-state, so reusing it would relitigate the confusion the vocabulary exists to prevent. Companion column `is_terminal boolean` is materialized in the same RPCs that write `play_state`. See [`states.md`](states.md). |
@@ -257,7 +267,7 @@ Names that recur across gametypes and MUST be identical when the underlying conc
 | `club_handle` | The FK to `common.clubs(handle)` on every `<gametype>.games` table. |
 | `target_game` | The conventional name for the game-UUID parameter on every gametype's mutating RPCs (`submit_guess(target_game uuid, …)`). `target_<noun>` is the broader pattern for RPC params pointing at row IDs. |
 | `submit_guess` | The mid-game-action RPC on a gametype that records a player's guess. The guess *shape* differs (a clue + count for codenamesduet, a number for psychicnum, a 4-tile set + verdict for connections), but the RPC name is the same. |
-| `submit_word` | The mid-game-action RPC where the move is "commit a word" — the word-list / word-building games (spellingbee, boggle, stackdown today). Sibling to `submit_guess`; a distinct verb because the move concept genuinely differs (a whole scored word vs a single guess), but the name is identical across those games. (waffle's `submit_swap` and scrabble's `play_word` are their own distinct move verbs — don't reuse `submit_word` for a different gesture.) |
+| `submit_word` | The mid-game-action RPC where the move is "commit a word" — the word-list / word-building games (spellingbee, wordwheel, boggle, stackdown today). Sibling to `submit_guess`; a distinct verb because the move concept genuinely differs (a whole scored word vs a single guess), but the name is identical across those games. (waffle's `submit_swap` and scrabble's `play_word` are their own distinct move verbs — don't reuse `submit_word` for a different gesture.) |
 | `submit_timeout` | The countdown-expiry RPC every timed gametype exposes. Fired by **every** connected client when the timer hits zero; idempotent on the terminal-state check (the first call ends the game, the rest raise "not in progress" which the manifest swallows). |
 | `concede` | The per-player drop-out action in every compete game — "I quit, the rest keep racing" (a real per-player loss). The flag lives once on `common.game_players.conceded` (+ `common.concede` for the generic last-player terminal); each compete game exposes a `<schema>.concede(target_game)` wrapper gating to compete. See [`common.md` → Concede](common.md#concede--per-player-drop-out). |
 | `owner_id` | The **nullable** per-player-vs-shared discriminator on a table that holds both shapes: **null = the SHARED row** (one thing the whole coop table edits), **a user id = that player's OWN copy** (compete, where a shared one would leak). Used by `common.game_scratchpads` (shared pad vs private pad) and `crosswords.cells` (the shared grid vs per-player grids); both carry a `unique nulls not distinct` key over `(…, owner_id, …)` so the null row is a single value rather than many. Prefer this to a separate `is_shared` flag or two tables — one table, one RLS policy, and the mode picks which rows exist. (Written down 2026-08-01; the convention was consistent in code and recorded nowhere.) |

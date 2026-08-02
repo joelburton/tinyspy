@@ -38,7 +38,7 @@ export type CodenamesduetSetup = {
    * `countup` (informational) are display-only; `countdown`
    * flips the game to `lost_timeout` when the clock hits 0 (via
    * codenamesduet.submit_timeout). Validated server-side by
-   * `common.validate_timer`.
+   * `common.require_valid_timer`.
    *
    * Distinct from the rulebook's `turns` above — that's the
    * in-game turn budget (the `turns_remaining` clock); this is the

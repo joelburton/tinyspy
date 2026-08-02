@@ -39,7 +39,7 @@ select is(common.wordle_colors('eerie', 'three'), 'yxgxg',
 
 -- Case-insensitive (both lowered internally).
 select is(common.wordle_colors('CRATE', 'crate'), 'ggggg',
-  'compute_colors lowercases its inputs');
+  'wordle_colors lowercases its inputs');
 
 select * from finish();
 rollback;

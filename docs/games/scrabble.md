@@ -361,7 +361,7 @@ declared letter).
    'turns'`) — when on, the shared `_commit_word` core gates on the **common**
    `common._require_turn` and advances `common._advance_turn` on an accepted,
    non-terminal commit. The two turn systems coexist deliberately: compete keeps
-   its own `scrabble.games.current_seat` + `scrabble._advance_turn` (which also
+   its own `scrabble.games.current_seat` + `scrabble._advance_seat` (which also
    drive the AI opponent, [§12](#12-the-ai-opponent-compete)), coop uses the
    common pointer. See
    [common.md → Turn-order](../common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
@@ -448,7 +448,7 @@ replay racing a move must not interleave with it. pgTAP: `replay_test.sql`.
 `'forfeit'` play row with the negative value lost, `play_state 'ended'`, `outcome
 'manual'`). **Compete uses `scrabble.concede`, not `end_game`** — a per-player
 "I quit, the others keep playing". Because scrabble is turn-based, concede is
-more than a flag: `scrabble._advance_turn` **skips** conceders, `scrabble._finish`
+more than a flag: `scrabble._advance_seat` **skips** conceders, `scrabble._finish`
 picks the winner among **non-conceded** players (a drop-out forfeits even a tying
 score), and `scrabble.concede` hands the turn off if it was the conceder's, or
 ends the game (final scoring, nobody eligible to win) when the last active player
@@ -703,7 +703,7 @@ helpers live in [docs/pdf.md](../pdf.md).
 
 The `common.games.title` is the **first three words played**, uppercased and
 dash-joined (e.g. `"SCOWL-TABLE-QUARTZ"` — the app-wide separator for a title
-built from several words), built by `scrabble._title` and
+built from several words), built by `scrabble._title_for` and
 rewritten by `play_word` in **both** modes — a game is recognizable at a glance
 in the club list. No spoiler risk: the board is public, so the words are already
 visible. A fresh game stays `"New game"` until the first word lands.
@@ -837,7 +837,7 @@ int), not a user id, so a seat can be an AI. AI seats are rows in
 roster ignore them for free. `create_game` seats humans then AI; `_advance_turn`
 / `_finish` / the turn checks all rotate + resolve by seat (an AI can win — the
 terminal reads "AI 1"). The human move RPCs (`play_word` / `exchange_tiles` /
-`pass_turn`) and the AI twins (`ai_play_word` / `ai_exchange` / `ai_pass`) share
+`pass_turn`) and the AI twins (`ai_play_word` / `ai_exchange_tiles` / `ai_pass_turn`) share
 one seat-driven core (`_commit_word` / `_commit_exchange` / `_commit_pass`), so
 there's no second copy of the trusting-commit logic.
 

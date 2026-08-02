@@ -299,7 +299,7 @@ The start-game dialog collects these options from the players before `create_gam
 - **`guesses`**: total guess budget shared across all club members, one of `{3, 5, 7, 9}`. 7 is the default.
 - **`word_count`**: how many words on the board, 5..20 (default 10). Three of them are secret.
 - **`difficulty`**: dictionary band 1..6 (Universal..Expert, default 3), a `common.words.difficulty` value — the board is sampled at `difficulty ≤ this`. Rendered by the shared `<DifficultyField>`.
-- **`timer`**: timer mode — `none`, `countup`, or `countdown` with a player-chosen MM:SS duration. Rendered by the shared `<TimerField>`, validated server-side by `common.validate_timer`. See [Timer](#timer-server-authoritative-ticks) below.
+- **`timer`**: timer mode — `none`, `countup`, or `countdown` with a player-chosen MM:SS duration. Rendered by the shared `<TimerField>`, validated server-side by `common.require_valid_timer`. See [Timer](#timer-server-authoritative-ticks) below.
 
 Shape stored on `common.games.setup` (jsonb): `{ "guesses": 3|5|7|9, "word_count": 5..20, "difficulty": 1..6, "timer": {…} }`. The mutable `guesses_remaining` counter is initialized from `setup.guesses` at create-game time; the blob persists the original choices on the common header for end-of-game review.
 

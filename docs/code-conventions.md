@@ -175,10 +175,10 @@ export const psychicnumCompeteGame: GameManifest = {
 
 Two setup keys are a **common convention** any coop game can adopt to opt into turn-by-turn play (see [`common.md` → Turn-order](common.md#turn-order--opt-in-turn-by-turn-for-coop-games) for the mechanism):
 
-- `setup.coop_style: 'turns' | 'free-for-all'` — the pacing choice (default `'free-for-all'`). It **DOES round-trip** as a `saved_default` — "we like taking turns" is a reusable club preference.
-- `setup.first_turn_user_id: string (uuid)` — who goes first. It is **stripped from `saved_default`** server-side in each game's `create_game` (`setup - 'first_turn_user_id'`), exactly like codenamesduet strips `first_clue_giver_user_id`: a specific person isn't a reusable club preference — the club default should remember the *style*, not who happened to go first last time.
+- `setup.coop_style: 'turns' | 'free-for-all'` — the pacing choice (default `'free-for-all'`). It **DOES round-trip** as a `default_setup` — "we like taking turns" is a reusable club preference.
+- `setup.first_turn_user_id: string (uuid)` — who goes first. It is **stripped from `default_setup`** server-side in each game's `create_game` (`setup - 'first_turn_user_id'`), exactly like codenamesduet strips `first_clue_giver_user_id`: a specific person isn't a reusable club preference — the club default should remember the *style*, not who happened to go first last time.
 
-This is the general rule for what makes it into `saved_default`: **style/mode preferences round-trip; specific-person picks don't.** The per-game `create_game` controls what's passed as the `saved_setup` argument to `common.create_game`, so it does the strip. The shared `CoopStyleField` writes both keys; only `coop_style` survives into `common.clubs_gametypes.default_setup`.
+This is the general rule for what makes it into the saved default: **style/mode preferences round-trip; specific-person picks don't.** The per-game `create_game` controls what's passed as the `saved_default` argument to `common.create_game`, so it does the strip. The shared `CoopStyleField` writes both keys; only `coop_style` survives into `common.clubs_gametypes.default_setup`.
 
 ### Realtime channel names
 

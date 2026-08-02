@@ -11,7 +11,7 @@
 --      + target_rank=4; mode column + gametype string match;
 --      compete-shape status seeded (target_rank + empty leaderboard).
 --   3. Auth + membership: dee (outsider) rejected with 42501.
---   4. mode arg validation: invalid value; setup.mode field rejected;
+--   4. mode arg validation: invalid value;
 --      compete with <2 players; target_rank required iff compete;
 --      target_rank range.
 --   5. Board validation: outer_letters length (NOW 8) / alphabet;
@@ -31,7 +31,7 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(36);
+select plan(35);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -212,23 +212,6 @@ select throws_ok(
   'rejects mode value not in {coop, compete}'
 );
 
--- ============================================================
--- (14) setup.mode field rejected (catch stale FE)
--- ============================================================
-
-select throws_ok(
-  format(
-    $$ select wordwheel.create_game(%L,
-                                   '{"mode": "coop", "timer": {"kind": "none"}}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.wordwheel_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'setup.mode is no longer valid; mode is now a top-level argument',
-  'rejects setup.mode even when mode arg matches (loud over silent)'
-);
 
 -- ============================================================
 -- (15) Compete needs ≥2 players

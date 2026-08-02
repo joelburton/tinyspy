@@ -45,8 +45,8 @@
 -- Depends on `common` (clubs, profiles, games, game_players, words,
 -- is_club_member, gametypes, create_game, update_state, end_game,
 -- reset_game, concede, require_club_member, require_game_player,
--- require_player_count_max, validate_mode, require_compete,
--- validate_timer). Per the removability invariant in docs/common.md,
+-- require_player_count_max, require_valid_mode, require_compete,
+-- require_valid_timer). Per the removability invariant in docs/common.md,
 -- common MUST NOT reference wordiply back.
 
 -- ============================================================
@@ -447,7 +447,7 @@ begin
   perform common.require_club_member(target_club);
 
   -- ─── Validate mode + player-count ────────────────────────
-  perform common.validate_mode(mode);
+  perform common.require_valid_mode(mode);
   if mode = 'compete' then
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
       raise exception 'compete mode requires at least 2 players'
@@ -457,10 +457,6 @@ begin
   perform common.require_player_count_max(player_user_ids, 6);
 
   -- ─── Reject deprecated / inapplicable setup fields ───────
-  if setup ? 'mode' then
-    raise exception 'setup.mode is no longer valid; mode is now a top-level argument'
-      using errcode = 'P0001';
-  end if;
   if setup ? 'target_rank' then
     raise exception 'setup.target_rank is not a wordiply setting'
       using errcode = 'P0001';
@@ -473,7 +469,7 @@ begin
       using errcode = 'P0001';
   end if;
 
-  perform common.validate_timer(setup->'timer');
+  perform common.require_valid_timer(setup->'timer');
 
   -- ─── Board structure validation ──────────────────────────
   b_base := board->>'base';

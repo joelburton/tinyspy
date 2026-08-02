@@ -40,7 +40,7 @@
 -- Depends on `common` (clubs, profiles, games, game_players,
 -- is_club_member, gametypes, create_game, update_state, end_game,
 -- require_club_member, require_game_player, require_player_count_max,
--- validate_timer). Per the removability invariant in
+-- require_valid_timer). Per the removability invariant in
 -- docs/common.md, common MUST NOT reference wordwheel back.
 --
 -- See docs/games/wordwheel.md for the full feature picture and the
@@ -328,6 +328,11 @@ create policy found_words_select on wordwheel.found_words
 -- ship to the FE from game start so it can validate + score guesses locally — so
 -- the view exposes both directly (no terminal-gated reveal helper anymore; the
 -- missed-words reveal is a client-side `required − found` computed at terminal).
+--
+-- So this is now a PURE PASS-THROUGH, and deliberately kept as one: every
+-- game's FE reads `<schema>.games_state`, so the uniform seam is worth a view
+-- that currently adds nothing but `security_invoker`. If a column ever needs
+-- hiding again, it goes here and no FE changes.
 
 create view wordwheel.games_state with (security_invoker = true) as
 select
@@ -550,10 +555,9 @@ grant execute on function wordwheel.candidate_words(bigint, bigint, int, int) to
 --   - mode must be 'coop' or 'compete'
 --   - compete mode requires at least 2 players
 --   - more than 6 players (require_player_count_max)
---   - setup.mode is no longer valid (mode is the positional arg)
 --   - setup.target_rank is required when mode='compete' / must be 0..6
 --     (coop may set it too: it becomes the coop WIN threshold)
---   - timer shape errors (delegated to common.validate_timer)
+--   - timer shape errors (delegated to common.require_valid_timer)
 --   - board.outer_letters must be 8 lowercase ASCII letters
 --     (duplicates allowed — the wheel is a multiset; 's' is allowed
 --     — see the candidate_words note)
@@ -596,7 +600,7 @@ begin
   perform common.require_club_member(target_club);
 
   -- ─── Validate mode + player-count ────────────────────────
-  perform common.validate_mode(mode);
+  perform common.require_valid_mode(mode);
 
   if mode = 'compete' then
     -- Compete needs an opposing PLAYER. The FE manifest hides the
@@ -610,16 +614,6 @@ begin
 
   perform common.require_player_count_max(player_user_ids, 6);
 
-  -- ─── Reject the now-deprecated setup.mode field ──────────
-  -- The gametype string + the mode arg are the only sources of
-  -- truth. A stale FE that still embeds setup.mode lands here so
-  -- the misconfig is loud, not silent (silent acceptance would
-  -- have the dialog appear to work while the RLS-and-RPC mode
-  -- logic ran on the new arg only).
-  if setup ? 'mode' then
-    raise exception 'setup.mode is no longer valid; mode is now a top-level argument'
-      using errcode = 'P0001';
-  end if;
 
   -- ─── Validate setup.target_rank (BOTH modes) ─────────────
   -- compete: REQUIRED — it's the finish line of the race.
@@ -663,7 +657,7 @@ begin
       s_legal, s_required using errcode = 'P0001';
   end if;
 
-  perform common.validate_timer(setup->'timer');
+  perform common.require_valid_timer(setup->'timer');
 
   -- ─── Board structure validation ──────────────────────────
   b_outer := board->>'outer_letters';
@@ -1329,7 +1323,7 @@ grant execute on function wordwheel.submit_timeout(uuid) to authenticated;
 -- club" + start-a-new-game takes): end_game writes a terminal
 -- play_state='ended' with status.outcome='manual', so the game
 -- appears in the club's "completed" section forever after and the
--- GameOverModal pops.
+-- terminal verdict renders.
 --
 -- Same shape as submit_timeout, with two differences:
 --   - status.outcome='manual' (vs 'timeout')

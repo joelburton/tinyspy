@@ -2,7 +2,11 @@
 -- crosswords — CrossPlay: collaborative / competitive crossword solving.
 -- ============================================================
 -- Coop + compete sibling pair (one schema, `mode` column), a port of
--- Joel's crossplay app. A *puzzle* is the immutable imported template
+-- **the prior crossplay app** (`~/src/crossplay`) — every "crossplay" in this
+-- file means THAT source app, never the CrossPlay brand this game ships under.
+-- (Same word, two referents: the brand is user-facing, the app is where the
+-- match semantics below were lifted from.)
+-- A *puzzle* is the immutable imported template
 -- (curated library or NYT-fetched); a *board* is one playthrough — a
 -- `common.games` row plus per-cell fill rows.
 --
@@ -278,7 +282,7 @@ grant select on crosswords.games_state to authenticated;
 -- ============================================================
 
 -- Coop solved → the whole team wins.
-create function crosswords._finish_coop_won(target_game uuid)
+create function crosswords._finish_coop(target_game uuid)
 returns void
 language plpgsql
 security definer
@@ -299,10 +303,10 @@ begin
   );
 end;
 $$;
-revoke execute on function crosswords._finish_coop_won(uuid) from public;
+revoke execute on function crosswords._finish_coop(uuid) from public;
 
 -- Compete: the first player whose grid is fully correct wins outright.
-create function crosswords._finish_compete_won(target_game uuid, p_winner uuid)
+create function crosswords._finish_compete(target_game uuid, p_winner uuid)
 returns void
 language plpgsql
 security definer
@@ -327,7 +331,7 @@ begin
   );
 end;
 $$;
-revoke execute on function crosswords._finish_compete_won(uuid, uuid) from public;
+revoke execute on function crosswords._finish_compete(uuid, uuid) from public;
 
 -- Run the solved-check for `p_owner`'s grid and, if solved, make the
 -- terminal transition atomically: lock the common.games row and re-check
@@ -358,9 +362,9 @@ begin
    for update;
   if found then
     if p_mode = 'coop' then
-      perform crosswords._finish_coop_won(target_game);
+      perform crosswords._finish_coop(target_game);
     else
-      perform crosswords._finish_compete_won(target_game, p_caller);
+      perform crosswords._finish_compete(target_game, p_caller);
     end if;
   end if;
   return true;
@@ -399,15 +403,12 @@ declare
   v_solution  jsonb;
 begin
   perform common.require_club_member(target_club);
-  perform common.validate_mode(mode);
+  perform common.require_valid_mode(mode);
   if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
     raise exception 'compete needs at least 2 players' using errcode = 'P0001';
   end if;
   perform common.require_player_count_max(player_user_ids, 8);
-  perform common.validate_timer(coalesce(setup -> 'timer', '{"kind":"none"}'::jsonb));
-  if setup ? 'mode' then
-    raise exception 'mode is a top-level arg, not a setup field' using errcode = 'P0001';
-  end if;
+  perform common.require_valid_timer(coalesce(setup -> 'timer', '{"kind":"none"}'::jsonb));
   -- Backstop the FE's strip: the inline puzzle rides as the separate `board`
   -- arg, so `board`/`filename` never belong in the persisted setup. Dropping
   -- them here keeps a stale upload (e.g. a parsed board left in the setup after

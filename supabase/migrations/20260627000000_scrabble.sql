@@ -43,7 +43,7 @@
 -- Depends on `common` (clubs, profiles, games, game_players, words,
 -- is_club_member, gametypes, create_game, update_state, end_game,
 -- require_club_member, require_game_player, require_player_count_max,
--- validate_timer). Per the removability invariant, common MUST NOT
+-- require_valid_timer). Per the removability invariant, common MUST NOT
 -- reference scrabble back.
 
 -- ============================================================
@@ -425,7 +425,7 @@ revoke execute on function scrabble._status(uuid) from public;
 -- is public, so no spoiler concern in either mode). The dash is the app-wide
 -- separator for a title built from several words. NULL until the first word
 -- is played.
-create function scrabble._title(g_id uuid)
+create function scrabble._title_for(g_id uuid)
 returns text
 language sql
 stable
@@ -442,10 +442,15 @@ as $$
     ) p;
 $$;
 
-revoke execute on function scrabble._title(uuid) from public;
+revoke execute on function scrabble._title_for(uuid) from public;
 
 -- Advance compete's turn pointer to the next seat (wraps around).
-create function scrabble._advance_turn(g_id uuid)
+-- Named `_advance_seat`, not `_advance_turn`: common has an `_advance_turn`
+-- for the coop turn-order primitive, and BOTH are called from this file (a
+-- few lines apart in play_word). Schema-qualifying them was the only thing
+-- telling them apart until 2026-08-02. This one walks the compete SEAT
+-- pointer, skipping conceders; common's advances the shared coop pointer.
+create function scrabble._advance_seat(g_id uuid)
 returns void
 language plpgsql
 security definer
@@ -481,17 +486,19 @@ begin
   end if;
 end;
 $$;
-revoke execute on function scrabble._advance_turn(uuid) from public;
+revoke execute on function scrabble._advance_seat(uuid) from public;
 
 -- Tally final scores and end the game. `outcome` ∈ complete | timeout |
 -- blocked (NOT manual — manual end is neutral, see scrabble.end_game).
--- `out_seat` is the seat that emptied its rack (going out), or null; only that
--- seat collects the going-out bonus.
+-- `going_out_seat` is the seat that emptied its rack, or null; only that seat
+-- collects the going-out bonus. NOT the winner — going out earns the bonus,
+-- but the win is the top score after leftovers, which may be someone else.
+-- (Named `out_seat` until 2026-08-02, where it read as a PL/pgSQL OUT param.)
 --   Coop: team_score -= leftover(shared_rack); a neutral 'ended' (no opponent
 --         → no win), except the clock, which is 'lost'.
 --   Compete: each score -= own leftover; the out-player += everyone's
 --         leftovers; highest score wins ('won_compete'), ties → co-winners.
-create function scrabble._finish(g_id uuid, outcome text, out_seat int)
+create function scrabble._finish(g_id uuid, outcome text, going_out_seat int)
 returns void
 language plpgsql
 security definer
@@ -552,14 +559,14 @@ begin
 
     -- The going-out seat collects the sum of everyone's leftover tiles.
     -- (Their own rack is empty, so this is the opponents' leftovers.)
-    if out_seat is not null then
+    if going_out_seat is not null then
       select coalesce(sum(scrabble._tile_value(t)), 0)
         into v_total_left
         from scrabble.players p, unnest(p.rack) t
        where p.game_id = g_id;
       update scrabble.players
          set score = score + v_total_left
-       where game_id = g_id and seat = out_seat;
+       where game_id = g_id and seat = going_out_seat;
     end if;
 
     -- Winner = highest score among NON-conceded seats — a drop-out forfeits any
@@ -700,7 +707,7 @@ begin
     raise exception 'a game needs at least one player' using errcode = 'P0001';
   end if;
 
-  perform common.validate_mode(mode);
+  perform common.require_valid_mode(mode);
 
   s_dict_2     := coalesce((setup->>'dict_2')::int, 3);
   s_dict_3plus := coalesce((setup->>'dict_3plus')::int, 3);
@@ -750,7 +757,7 @@ begin
     raise exception 'at most 4 players (humans + AI), got %', v_total using errcode = 'P0001';
   end if;
 
-  perform common.validate_timer(setup->'timer');
+  perform common.require_valid_timer(setup->'timer');
 
   -- Shuffle the bag (the only per-game randomness).
   select array_agg(t order by random()) into v_bag
@@ -986,7 +993,7 @@ begin
 
   -- Title = the first three words played (recognizable in the club list).
   update common.games gm
-     set title = coalesce(scrabble._title(target_game), gm.title)
+     set title = coalesce(scrabble._title_for(target_game), gm.title)
    where gm.id = target_game;
 
   -- ─── End check: going out (bag empty AND acting rack empty) ──
@@ -999,7 +1006,7 @@ begin
       case when g.mode = 'compete' then p_seat else null end);
   else
     if g.mode = 'compete' then
-      perform scrabble._advance_turn(target_game);
+      perform scrabble._advance_seat(target_game);
     else
       -- Coop turn-order: hand the turn to the next player on the COMMON
       -- pointer (no-op for free-for-all coop). Non-terminal branch only.
@@ -1086,7 +1093,7 @@ grant execute on function scrabble.ai_play_word(uuid, int, int, jsonb, text[], i
 -- redraw the same count. Requires the bag to hold ≥ 7 tiles (standard
 -- rule). Compete: costs the turn and CLEARS the pass streak (it's a real
 -- attempt to move, not a refusal). Coop: just a rack refresh.
--- The seat-driven core, shared by exchange_tiles (human) and ai_exchange (AI).
+-- The seat-driven core, shared by exchange_tiles (human) and ai_exchange_tiles (AI).
 create function scrabble._commit_exchange(
   target_game  uuid,
   p_seat       int,
@@ -1178,7 +1185,7 @@ begin
        set bag = v_bag, version = version + 1,
            consecutive_passes = 0
      where id = target_game;
-    perform scrabble._advance_turn(target_game);
+    perform scrabble._advance_seat(target_game);
   end if;
 
   perform common.update_state(target_game, 'playing', scrabble._status(target_game));
@@ -1216,8 +1223,8 @@ $$;
 revoke execute on function scrabble.exchange_tiles(uuid, int, text[]) from public;
 grant execute on function scrabble.exchange_tiles(uuid, int, text[]) to authenticated;
 
--- scrabble.ai_exchange — the AI twin (any member drives; p_seat must be AI).
-create function scrabble.ai_exchange(target_game uuid, p_seat int, base_version int, rack_tiles text[])
+-- scrabble.ai_exchange_tiles — the AI twin (any member drives; p_seat must be AI).
+create function scrabble.ai_exchange_tiles(target_game uuid, p_seat int, base_version int, rack_tiles text[])
 returns jsonb
 language plpgsql
 security definer
@@ -1233,8 +1240,8 @@ begin
 end;
 $$;
 
-revoke execute on function scrabble.ai_exchange(uuid, int, int, text[]) from public;
-grant execute on function scrabble.ai_exchange(uuid, int, int, text[]) to authenticated;
+revoke execute on function scrabble.ai_exchange_tiles(uuid, int, int, text[]) from public;
+grant execute on function scrabble.ai_exchange_tiles(uuid, int, int, text[]) to authenticated;
 
 -- ============================================================
 -- scrabble.pass_turn — forfeit a turn (compete only)
@@ -1242,7 +1249,7 @@ grant execute on function scrabble.ai_exchange(uuid, int, int, text[]) to authen
 -- Coop has no turns, so passing is meaningless there (the coop "we're
 -- stuck" path is exchange or End game). Feeds the consecutive-pass streak
 -- that ends a blocked game.
--- The seat-driven core, shared by pass_turn (human) and ai_pass (AI).
+-- The seat-driven core, shared by pass_turn (human) and ai_pass_turn (AI).
 create function scrabble._commit_pass(target_game uuid, p_seat int, base_version int)
 returns jsonb
 language plpgsql
@@ -1294,7 +1301,7 @@ begin
   --
   -- The threshold is the number of seats that can still take a turn, so it
   -- tracks drop-outs: in a 3-player game where one conceded, two passes end it
-  -- (_advance_turn skips conceders, so a conceded seat can never contribute a
+  -- (_advance_seat skips conceders, so a conceded seat can never contribute a
   -- pass and would otherwise make the streak unreachable). LEFT JOIN because an
   -- AI seat has no common.game_players row — it holds a seat and passes like
   -- anyone else.
@@ -1308,7 +1315,7 @@ begin
     v_terminal := true;
     perform scrabble._finish(target_game, 'blocked', null);
   else
-    perform scrabble._advance_turn(target_game);
+    perform scrabble._advance_seat(target_game);
     perform common.update_state(target_game, 'playing', scrabble._status(target_game));
   end if;
 
@@ -1342,8 +1349,8 @@ $$;
 revoke execute on function scrabble.pass_turn(uuid, int) from public;
 grant execute on function scrabble.pass_turn(uuid, int) to authenticated;
 
--- scrabble.ai_pass — the AI twin (any member drives; p_seat must be AI).
-create function scrabble.ai_pass(target_game uuid, p_seat int, base_version int)
+-- scrabble.ai_pass_turn — the AI twin (any member drives; p_seat must be AI).
+create function scrabble.ai_pass_turn(target_game uuid, p_seat int, base_version int)
 returns jsonb
 language plpgsql
 security definer
@@ -1359,14 +1366,14 @@ begin
 end;
 $$;
 
-revoke execute on function scrabble.ai_pass(uuid, int, int) from public;
-grant execute on function scrabble.ai_pass(uuid, int, int) to authenticated;
+revoke execute on function scrabble.ai_pass_turn(uuid, int, int) from public;
+grant execute on function scrabble.ai_pass_turn(uuid, int, int) to authenticated;
 
 -- ============================================================
 -- scrabble.concede — a player drops out of a compete game
 -- ============================================================
 -- Turn-based, so concede is more than a flag: the conceder is removed
--- from the turn order (_advance_turn skips them), forfeits any win
+-- from the turn order (_advance_seat skips them), forfeits any win
 -- (_finish picks the winner among non-conceded players), and if it was
 -- their turn we hand off so the game isn't stuck. When the LAST active
 -- player concedes the game ends — final scoring with nobody eligible to
@@ -1407,7 +1414,7 @@ begin
   select (current_seat = scrabble._seat_of(target_game, caller_id)) into is_current
     from scrabble.games where id = target_game;
   if is_current then
-    perform scrabble._advance_turn(target_game);
+    perform scrabble._advance_seat(target_game);
   end if;
   -- Bump version so optimistic-concurrency readers refetch, and mirror state.
   update scrabble.games set version = version + 1 where id = target_game;
@@ -1757,7 +1764,7 @@ begin
      where id = target_game and current_turn_user_id is not null;
   end if;
 
-  -- The club-list title is the first three words played (scrabble._title), so a
+  -- The club-list title is the first three words played (scrabble._title_for), so a
   -- replayed game would otherwise still advertise the previous deal's words.
   update common.games set title = 'New game' where id = target_game;
 

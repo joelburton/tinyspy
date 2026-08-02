@@ -175,18 +175,14 @@ begin
   perform common.require_club_member(target_club);
 
   -- ─── Mode + player-count ─────────────────────────────────
-  perform common.validate_mode(mode);
+  perform common.require_valid_mode(mode);
   if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
     raise exception 'compete mode requires at least 2 players' using errcode = 'P0001';
   end if;
   perform common.require_player_count_max(player_user_ids, 8);
-  if setup ? 'mode' then
-    raise exception 'setup.mode is no longer valid; mode is a top-level argument'
-      using errcode = 'P0001';
-  end if;
 
   -- ─── Setup validation ────────────────────────────────────
-  perform common.validate_timer(setup->'timer');
+  perform common.require_valid_timer(setup->'timer');
 
   s_min_word_length := coalesce((setup->>'min_word_length')::int, 3);
   if s_min_word_length < 3 or s_min_word_length > 9 then

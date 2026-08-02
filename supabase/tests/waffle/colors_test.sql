@@ -2,7 +2,7 @@
 -- Test: waffle color-feedback algorithm
 -- ============================================================
 --
--- The per-tile green/yellow/gray feedback (waffle.compute_colors and
+-- The per-tile green/yellow/gray feedback (waffle.board_colors and
 -- its per-word helper common.wordle_colors). This is the highest-
 -- correctness-risk piece of the game — the Wordle duplicate-letter
 -- accounting plus the intersection merge — so it gets pinned first,
@@ -46,12 +46,12 @@ select is(common.wordle_colors('aabbb', 'abxyz'), 'gxyxx',
   'duplicate guess letters only claim as many yellows as the answer has');
 
 -- ============================================================
--- compute_colors — the whole board, with the intersection merge
+-- board_colors — the whole board, with the intersection merge
 -- ============================================================
 
 -- Solved: board == solution → every filled cell green, holes '.'.
 select is(
-  waffle.compute_colors('abcdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
+  waffle.board_colors('abcdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
   (select string_agg(
      case when i = any(array[6,8,16,18]) then '.' else 'g' end,
      '' order by i)
@@ -67,7 +67,7 @@ select is(
 -- so cell 0 merges yellow(a0) vs gray(d0) → YELLOW (stronger wins),
 -- cell 1 is yellow, and every other cell stays green.
 select is(
-  waffle.compute_colors('bacdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
+  waffle.board_colors('bacdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
   (select string_agg(
      case when i = any(array[6,8,16,18]) then '.'
           when i in (0,1) then 'y'
@@ -82,7 +82,7 @@ select is(
 -- intersection cell 12 (in a2 and d2): gray + gray → gray.
 select is(
   substr(
-    waffle.compute_colors('abcdef.g.hijzlmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
+    waffle.board_colors('abcdef.g.hijzlmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
     13, 1),                                            -- cell 12, 1-based 13
   'x',
   'a letter in neither of an intersection''s words → gray in the merge'
@@ -92,7 +92,7 @@ select is(
 select is(
   array_to_string(array(
     select substr(
-      waffle.compute_colors('bacdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
+      waffle.board_colors('bacdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu'),
       p + 1, 1)
     from unnest(array[6,8,16,18]) p), ''),
   '....',
@@ -101,9 +101,9 @@ select is(
 
 -- The result is always 25 characters.
 select is(
-  length(waffle.compute_colors('bacdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu')),
+  length(waffle.board_colors('bacdef.g.hijklmn.o.pqrstu', 'abcdef.g.hijklmn.o.pqrstu')),
   25,
-  'compute_colors returns a 25-char string'
+  'board_colors returns a 25-char string'
 );
 
 select * from finish();

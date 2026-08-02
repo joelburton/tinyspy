@@ -956,6 +956,8 @@ export type Database = {
         Args: { max_count: number; player_user_ids: string[] }
         Returns: undefined
       }
+      require_valid_mode: { Args: { p_mode: string }; Returns: undefined }
+      require_valid_timer: { Args: { timer: Json }; Returns: undefined }
       reset_game: {
         Args: { status: Json; target_game: string }
         Returns: undefined
@@ -970,7 +972,7 @@ export type Database = {
       }
       set_current_view: { Args: { target_game: string }; Returns: undefined }
       set_scratchpad: {
-        Args: { p_body: string; p_owner: string; target_game: string }
+        Args: { p_body: string; p_owner_id: string; target_game: string }
         Returns: number
       }
       slugify_club_name: { Args: { name: string }; Returns: string }
@@ -981,8 +983,6 @@ export type Database = {
         Args: { play_state: string; status: Json; target_game: string }
         Returns: undefined
       }
-      validate_mode: { Args: { p_mode: string }; Returns: undefined }
-      validate_timer: { Args: { timer_obj: Json }; Returns: undefined }
       word_letter_mask: { Args: { w: string }; Returns: number }
       wordle_colors: {
         Args: { answer: string; guess: string }
@@ -1354,11 +1354,11 @@ export type Database = {
       }
     }
     Functions: {
-      _finish_compete_won: {
+      _finish_compete: {
         Args: { p_winner: string; target_game: string }
         Returns: undefined
       }
-      _finish_coop_won: { Args: { target_game: string }; Returns: undefined }
+      _finish_coop: { Args: { target_game: string }; Returns: undefined }
       _is_solved: {
         Args: { p_owner: string; target_game: string }
         Returns: boolean
@@ -1897,7 +1897,7 @@ export type Database = {
       }
     }
     Functions: {
-      _advance_turn: { Args: { g_id: string }; Returns: undefined }
+      _advance_seat: { Args: { g_id: string }; Returns: undefined }
       _bag_count_for: { Args: { g_id: string }; Returns: number }
       _commit_exchange: {
         Args: {
@@ -1924,7 +1924,7 @@ export type Database = {
         Returns: Json
       }
       _finish: {
-        Args: { g_id: string; out_seat: number; outcome: string }
+        Args: { g_id: string; going_out_seat: number; outcome: string }
         Returns: undefined
       }
       _new_bag: { Args: never; Returns: string[] }
@@ -1940,8 +1940,8 @@ export type Database = {
       _seat_of: { Args: { g_id: string; p_user: string }; Returns: number }
       _status: { Args: { g_id: string }; Returns: Json }
       _tile_value: { Args: { ch: string }; Returns: number }
-      _title: { Args: { g_id: string }; Returns: string }
-      ai_exchange: {
+      _title_for: { Args: { g_id: string }; Returns: string }
+      ai_exchange_tiles: {
         Args: {
           base_version: number
           p_seat: number
@@ -1950,7 +1950,7 @@ export type Database = {
         }
         Returns: Json
       }
-      ai_pass: {
+      ai_pass_turn: {
         Args: { base_version: number; p_seat: number; target_game: string }
         Returns: Json
       }
@@ -2651,6 +2651,10 @@ export type Database = {
         Args: { board: string; solution: string }
         Returns: string[]
       }
+      _format_title: {
+        Args: { placeholder: string; words: string[] }
+        Returns: string
+      }
       _maybe_finish_compete: { Args: { target_game: string }; Returns: boolean }
       _player_board_for: {
         Args: { g_id: string; row_user: string }
@@ -2662,10 +2666,6 @@ export type Database = {
       }
       _solution_for: { Args: { g_id: string }; Returns: string }
       _sync_title: { Args: { g_id: string }; Returns: undefined }
-      _title: {
-        Args: { placeholder: string; words: string[] }
-        Returns: string
-      }
       _word_slots: {
         Args: never
         Returns: {
@@ -2673,7 +2673,7 @@ export type Database = {
           stride: number
         }[]
       }
-      compute_colors: {
+      board_colors: {
         Args: { board: string; solution: string }
         Returns: string
       }

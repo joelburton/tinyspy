@@ -310,8 +310,8 @@ begin
   -- Must agree with numberOfPlayers in src/stackdown/manifest.ts ([1,6]/[2,6]).
   perform common.require_player_count_max(player_user_ids, 6);
 
-  perform common.validate_mode(mode);
-  perform common.validate_timer(setup->'timer');
+  perform common.require_valid_mode(mode);
+  perform common.require_valid_timer(setup->'timer');
 
   -- Word-difficulty band (a common.words.difficulty ceiling). Defaults to 1
   -- (the everyday set); the setup form offers 1..2 today, but any 1..6 the

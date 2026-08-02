@@ -61,7 +61,7 @@ export type BananagramsSetup = {
   /** Shared timer mode. `none` and `countup` are display-only; a
    *  `countdown` that hits 0 ends the game as a loss for everyone
    *  (`bananagrams.submit_timeout`). Validated server-side by
-   *  `common.validate_timer`. Defaults to `none` (opt-in pressure). */
+   *  `common.require_valid_timer`. Defaults to `none` (opt-in pressure). */
   timer: TimerMode
 }
 

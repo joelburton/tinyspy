@@ -33,7 +33,7 @@
 -- Depends on `common` (clubs, profiles, games, game_players, words,
 -- is_club_member, gametypes, create_game, update_state, end_game,
 -- require_club_member, require_game_player, require_player_count_max,
--- validate_timer). Per the removability invariant, common MUST NOT
+-- require_valid_timer). Per the removability invariant, common MUST NOT
 -- reference wordle back.
 --
 -- See docs/games/wordle.md for the full feature picture.
@@ -306,7 +306,7 @@ begin
   -- Must agree with numberOfPlayers in src/wordle/manifest.ts.
   perform common.require_player_count_max(player_user_ids, 6);
 
-  perform common.validate_mode(mode);
+  perform common.require_valid_mode(mode);
 
   -- ─── Validate setup.max_guesses ──────────────────────────
   s_max_guesses := coalesce((setup->>'max_guesses')::int, 6);
@@ -336,7 +336,7 @@ begin
       s_legal_guess, s_answer_max using errcode = 'P0001';
   end if;
 
-  perform common.validate_timer(setup->'timer');
+  perform common.require_valid_timer(setup->'timer');
 
   -- ─── Pick a random target ────────────────────────────────
   -- answer_source 0: the curated 5-letter NYT answers (any crude/slur level —

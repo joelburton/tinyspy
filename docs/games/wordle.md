@@ -48,7 +48,7 @@ Mirrors waffle's hidden-answer pattern (a HIDDEN `target`) plus spellingbee's pe
 | `wordle.players` PK `(game_id, user_id)` | `guesses_used`, `solved`, `solved_at`. Coop: lock-step (shared budget). Compete: independent. |
 | `wordle.guesses` PK `(game_id, user_id, seq)` | `guess`, `colors`, `is_correct`. **RLS** (mirrors `spellingbee.found_words`): coop → club sees all; compete → see your own, opponents revealed only at `is_terminal`. |
 
-- **`common.wordle_colors(guess, answer) → text`** — the two-pass green-then-yellow algorithm with duplicate-letter accounting. Lives once in `common` (the shared layer), called by both wordle's `submit_guess` and waffle's `compute_colors` — one shared implementation rather than a per-game duplicate.
+- **`common.wordle_colors(guess, answer) → text`** — the two-pass green-then-yellow algorithm with duplicate-letter accounting. Lives once in `common` (the shared layer), called by both wordle's `submit_guess` and waffle's `board_colors` — one shared implementation rather than a per-game duplicate.
 - **`wordle.games_state`** (`security_invoker`) — the game header with `target` only post-terminal.
 - Realtime on `wordle.{games, players, guesses}`.
 

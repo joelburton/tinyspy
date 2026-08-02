@@ -46,10 +46,10 @@ revoke execute on function waffle._color_rank(text) from public;
 -- Wordle coloring moved to common.wordle_colors
 -- ============================================================
 -- The per-word green/yellow/gray algorithm now lives once in
--- common.wordle_colors (shared with wordle). compute_colors calls it per word.
+-- common.wordle_colors (shared with wordle). board_colors calls it per word.
 
 -- ============================================================
--- waffle.compute_colors — color a whole board against the solution
+-- waffle.board_colors — color a whole board against the solution
 -- ============================================================
 -- Pure function of (board, solution): both 25-char strings. Colors
 -- each of the 6 words independently with common.wordle_colors, then merges
@@ -59,7 +59,7 @@ revoke execute on function waffle._color_rank(text) from public;
 -- This is the single source of truth for feedback; submit_swap will
 -- return it and the read-view will expose it, both reading the hidden
 -- solution server-side so the FE never holds the answer.
-create function waffle.compute_colors(board text, solution text)
+create function waffle.board_colors(board text, solution text)
 returns text
 language plpgsql
 immutable
@@ -111,7 +111,7 @@ begin
   return array_to_string(res, '');
 end;
 $$;
-revoke execute on function waffle.compute_colors(text, text) from public;
+revoke execute on function waffle.board_colors(text, text) from public;
 
 -- ============================================================
 -- waffle.games — one row per playthrough
@@ -313,7 +313,7 @@ security definer
 set search_path = waffle, common, public, extensions
 as $$
   select case when waffle._board_visible(wg, cg, row_user)
-              then waffle.compute_colors(wp.board, wg.solution) else null end
+              then waffle.board_colors(wp.board, wg.solution) else null end
     from waffle.players wp
     join waffle.games wg on wg.id = wp.game_id
     join common.games cg on cg.id = wg.id
@@ -366,7 +366,7 @@ revoke execute on function waffle._correct_words(text, text) from public;
 
 -- Format a word list as a title: the first three, dash-joined ("ARENA-EAGER-
 -- TOTEM"), or the placeholder when nothing qualifies yet.
-create function waffle._title(words text[], placeholder text)
+create function waffle._format_title(words text[], placeholder text)
 returns text
 language sql
 immutable
@@ -376,7 +376,7 @@ as $$
     else array_to_string(words[1:3], '-')
   end;
 $$;
-revoke execute on function waffle._title(text[], text) from public;
+revoke execute on function waffle._format_title(text[], text) from public;
 
 -- Recompute the club-list title from state. The title is a READOUT, not a
 -- fixed name (the scrabble/stackdown pattern):
@@ -405,7 +405,7 @@ set search_path = waffle, common, public, extensions
 as $$
   update common.games cg
      set title = case
-           when wg.mode = 'coop' then waffle._title(
+           when wg.mode = 'coop' then waffle._format_title(
              -- Any players row will do: coop rows are kept in lock-step.
              --
              -- The swaps_used gate keeps this a readout of what the players
@@ -421,7 +421,7 @@ as $$
                 from waffle.players wp
                where wp.game_id = g_id limit 1),
              'New game')
-           when cg.is_terminal then waffle._title(
+           when cg.is_terminal then waffle._format_title(
              -- Terminal compete: every word is correct BY DEFINITION of the
              -- solution, so the solution against itself is the full six.
              waffle._correct_words(wg.solution, wg.solution), 'New compete')
@@ -512,7 +512,7 @@ begin
   -- Must agree with numberOfPlayers in src/waffle/manifest.ts ([1,6]).
   perform common.require_player_count_max(player_user_ids, 6);
 
-  perform common.validate_mode(mode);
+  perform common.require_valid_mode(mode);
 
   -- ─── Validate setup.extra_swaps (the swap-budget knob) ───
   s_extra := coalesce((setup->>'extra_swaps')::int, 5);
@@ -532,7 +532,7 @@ begin
       using errcode = 'P0001';
   end if;
 
-  perform common.validate_timer(setup->'timer');
+  perform common.require_valid_timer(setup->'timer');
 
   -- ─── Validate the passed board (structure, not content) ──────
   b_solution := board->>'solution';
@@ -904,7 +904,7 @@ begin
   perform waffle._sync_title(target_game);
 
   return jsonb_build_object(
-    'colors',     waffle.compute_colors(new_board, g_row.solution),
+    'colors',     waffle.board_colors(new_board, g_row.solution),
     'swaps_used', new_swaps,
     'solved',     did_solve,
     'terminal',   out_terminal
@@ -1049,7 +1049,7 @@ grant execute on function waffle.submit_timeout(uuid) to authenticated;
 -- Distinct from suspend: suspend leaves play_state='playing' and is
 -- the "back to club, start a new game" path. end_game is terminal,
 -- so the game lands in the club's completed section and the
--- GameOverModal pops.
+-- terminal verdict renders.
 --
 -- Shape mirrors submit_timeout, with three deliberate differences:
 --   - play_state is always 'ended' (no mode/solver branching)

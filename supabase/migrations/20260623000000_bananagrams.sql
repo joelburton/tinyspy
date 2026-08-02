@@ -371,7 +371,7 @@ begin
     end if;
   end if;
 
-  perform common.validate_timer(setup->'timer');
+  perform common.require_valid_timer(setup->'timer');
 
   -- ─── Build the bunch: shuffle the 144-tile bag, take bunch_size ──
   -- Standard Bananagrams letter distribution. string_to_array(_, NULL)

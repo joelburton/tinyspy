@@ -342,7 +342,9 @@ revoke execute on function codenamesduet._end_turn(uuid) from public;
 -- ============================================================
 -- Validates setup, picks 25 words, generates the Duet key-card
 -- distribution, seats both players (the chosen first-clue-giver
--- as A, the other as B), inserts in status='active'.
+-- as A, the other as B), inserts at play_state='playing'.
+-- (NOT 'active' — see the no-'active' convention in common.sql: "active"
+-- overloads view-state and play-state.)
 --
 -- player_user_ids must contain exactly 2 uuids — both must be
 -- members of target_club (validated by common.create_game). For
@@ -418,12 +420,12 @@ begin
   end;
 
   -- Timer is a per-game setup choice. Shape validation is shared
-  -- across gametypes — see common.validate_timer for the exact
+  -- across gametypes — see common.require_valid_timer for the exact
   -- message set ('setup.timer is required', 'kind must be ...',
   -- 'seconds must be 1..3600 (got X)', etc.). When kind=countdown,
   -- the FE's wall-clock timer counts down; expiry fires
   -- codenamesduet.submit_timeout (below).
-  perform common.validate_timer(setup->'timer');
+  perform common.require_valid_timer(setup->'timer');
 
   -- ─── Validate player_user_ids size + first-clue-giver ─
   -- codenamesduet is intrinsically 2-player.
@@ -931,7 +933,7 @@ grant execute on function codenamesduet.submit_timeout(uuid) to authenticated;
 -- path "back to club" + start-a-new-game takes): end_game writes a
 -- terminal play_state='ended' with status.outcome='manual', so the
 -- game lands in the club's "completed" section forever after and the
--- GameOverModal pops with a neutral "Game ended." (not a "you lost").
+-- the terminal verdict reads a neutral "Ended" (not a "you lost").
 --
 -- Modeled on submit_timeout above — same lock / auth / active-state
 -- gate / cooperative-loss player_results / Realtime-touch shape. Two

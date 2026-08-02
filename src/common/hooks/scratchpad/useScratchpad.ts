@@ -167,9 +167,9 @@ export function useScratchpad(
   const flush = useCallback(
     (text: string) => {
       void commonDb
-        // p_owner is a nullable uuid (null = the shared pad), but the generated
+        // p_owner_id is a nullable uuid (null = the shared pad), but the generated
         // arg type is non-null. PostgREST passes null through fine.
-        .rpc('set_scratchpad', { target_game: gameId, p_owner: ownerId as string, p_body: text })
+        .rpc('set_scratchpad', { target_game: gameId, p_owner_id: ownerId as string, p_body: text })
         .then(({ data, error }) => {
           // Don't silently swallow a failed flush (keep-logs ethos): notes typed
           // in the last debounce window before the game turns terminal ride on

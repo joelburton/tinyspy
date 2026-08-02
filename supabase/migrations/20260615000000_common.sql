@@ -295,7 +295,7 @@ revoke execute on function common.default_gametypes_for_club(text) from public;
 -- and (c) the FE-side `useCommonGame` hook reads timer + paused
 -- state from one place. Each gametype's `create_game` does its own
 -- field-level validation (e.g. setup.guesses ∈ {3,5,7,9}) AND
--- calls `common.validate_timer(setup->'timer')` before passing
+-- calls `common.require_valid_timer(setup->'timer')` before passing
 -- the whole blob up to `common.create_game`.
 -- View-state vs play-state vocabulary (see docs/states.md):
 --
@@ -755,12 +755,12 @@ create policy game_scratchpads_select on common.game_scratchpads
     )
   );
 
--- Replace the pad body for (game, owner). The shared pad (p_owner null) is
+-- Replace the pad body for (game, owner). The shared pad (p_owner_id null) is
 -- writable by any player; a private pad only by its owner. Guarded on
 -- membership + play state; the FE debounces this full-text flush (the pad is
 -- small + one-writer-at-a-time, so no OT/CRDT). Returns the new version so
 -- the FE adopts it and its own CDC echo is a no-op.
-create function common.set_scratchpad(target_game uuid, p_owner uuid, p_body text)
+create function common.set_scratchpad(target_game uuid, p_owner_id uuid, p_body text)
 returns bigint
 language plpgsql
 security definer
@@ -771,7 +771,7 @@ declare
   v_version bigint;
 begin
   caller_id := common.require_game_player(target_game);
-  if p_owner is not null and p_owner <> caller_id then
+  if p_owner_id is not null and p_owner_id <> caller_id then
     raise exception 'cannot write another player''s scratchpad' using errcode = '42501';
   end if;
   if (select play_state from common.games where id = target_game) is distinct from 'playing' then
@@ -782,7 +782,7 @@ begin
   end if;
 
   insert into common.game_scratchpads (game_id, owner_id, body)
-  values (target_game, p_owner, coalesce(p_body, ''))
+  values (target_game, p_owner_id, coalesce(p_body, ''))
   on conflict on constraint game_scratchpads_owner_key
     do update set body = excluded.body
   returning version into v_version;
@@ -980,7 +980,7 @@ $$;
 -- function out of PostgREST's exposed surface.
 revoke execute on function common.require_club_member(text) from public;
 
--- ─── common.validate_timer ─────────────────────────────
+-- ─── common.require_valid_timer ─────────────────────────────
 -- Validates a jsonb timer object against the canonical shape
 -- shared across games:
 --
@@ -1005,7 +1005,7 @@ revoke execute on function common.require_club_member(text) from public;
 -- its own validator — the canonical *shape* is the contract here,
 -- not the path string in error messages.
 
-create function common.validate_timer(timer_obj jsonb)
+create function common.require_valid_timer(timer jsonb)
 returns void
 language plpgsql
 immutable
@@ -1014,11 +1014,11 @@ declare
   timer_kind text;
   timer_seconds int;
 begin
-  if timer_obj is null then
+  if timer is null then
     raise exception 'setup.timer is required' using errcode = 'P0001';
   end if;
 
-  timer_kind := timer_obj->>'kind';
+  timer_kind := timer->>'kind';
   -- Explicit null check: `NULL not in (...)` returns NULL, not
   -- TRUE, so without this the "missing kind" case would fall
   -- through the next check unraised. Separate "is required" vs
@@ -1034,11 +1034,11 @@ begin
   end if;
 
   if timer_kind = 'countdown' then
-    if (timer_obj->>'seconds') is null then
+    if (timer->>'seconds') is null then
       raise exception 'setup.timer.seconds is required for countdown'
         using errcode = 'P0001';
     end if;
-    timer_seconds := (timer_obj->>'seconds')::int;
+    timer_seconds := (timer->>'seconds')::int;
     if timer_seconds < 1 or timer_seconds > 3600 then
       raise exception
         'setup.timer.seconds must be 1..3600 (got %)',
@@ -1051,9 +1051,9 @@ $$;
 
 -- No grant to authenticated; internal helper (see
 -- require_club_member's note).
-revoke execute on function common.validate_timer(jsonb) from public;
+revoke execute on function common.require_valid_timer(jsonb) from public;
 
--- ─── common.validate_mode ──────────────────────────────
+-- ─── common.require_valid_mode ──────────────────────────────
 -- Guard: a game's mode must be one of the two we support. Every
 -- open (coop/compete) gametype's create_game repeated this exact
 -- check; centralizing keeps the allowed-mode set — and the error
@@ -1066,7 +1066,7 @@ revoke execute on function common.validate_timer(jsonb) from public;
 -- exactly-2, bananagrams is compete-only) stay per-gametype — those
 -- genuinely differ; the coop-or-compete membership check does not.
 
-create function common.validate_mode(p_mode text)
+create function common.require_valid_mode(p_mode text)
 returns void
 language plpgsql
 immutable
@@ -1078,7 +1078,7 @@ begin
 end;
 $$;
 
-revoke execute on function common.validate_mode(text) from public;
+revoke execute on function common.require_valid_mode(text) from public;
 
 -- ─── common.require_compete ────────────────────────────
 -- Guard: concede is a compete-only action. In coop the players are
@@ -1150,6 +1150,14 @@ revoke execute on function common.require_compete(text) from public;
 
 -- ============================================================
 -- common.wordle_colors — color ONE word against an answer, Wordle-style
+--
+-- KEEP THE NAME. It looks like a game codename in the shared layer — the one
+-- thing naming.md's headline rule forbids — but it isn't: "Wordle colors" is
+-- the term of art for this green/yellow/grey scheme, which NYT Wordle made
+-- famous and which waffle uses because it's the recognizable convention, not
+-- because it borrowed from our wordle. The name describes the OUTPUT, and a
+-- reader who has seen a Wordle grid knows exactly what comes back. Ratified
+-- 2026-08-02; don't "fix" it to letter_colors.
 -- ============================================================
 -- Returns a same-length string of 'g' (right letter, right spot), 'y' (in the
 -- word, wrong spot) or 'x' (not in the word), with the standard duplicate-letter
@@ -1158,7 +1166,7 @@ revoke execute on function common.require_compete(text) from public;
 -- their answer letter), yellows second from the leftover pool.
 --
 -- The single source of truth for this algorithm: wordle.submit_guess and
--- waffle.compute_colors (per word) both call this instead of keeping a copy. Pinned by wordle/waffle `colors_test.sql` + the oracle-checked
+-- waffle.board_colors (per word) both call this instead of keeping a copy. Pinned by wordle/waffle `colors_test.sql` + the oracle-checked
 -- TS port `src/waffle/lib/colors.ts` — this is exactly the kind of subtle
 -- duplicated algorithm that must live in one place.
 create function common.wordle_colors(guess text, answer text)
@@ -1220,6 +1228,11 @@ create function common.create_game(
   -- codenamesduet strips its `first_clue_giver_user_id` (per-game decision,
   -- not a per-club preference). Pass NULL to opt out of auto-save
   -- entirely for this call.
+  --
+  -- NAMED DELIBERATELY UNLIKE the column it feeds. Calling it `default_setup`
+  -- to "match" makes the UPDATE below ambiguous — PL/pgSQL sees a parameter and
+  -- a column of that name in the same statement and errors out. (Tried
+  -- 2026-08-02; the whole suite went red.) The distinct name is load-bearing.
   saved_default jsonb
 )
 returns uuid
@@ -1268,7 +1281,7 @@ begin
    where club_handle = target_club and is_current_view = true;
 
   -- Setup is passed in as-validated (each gametype's create_game
-  -- does field-level checks + common.validate_timer before calling
+  -- does field-level checks + common.require_valid_timer before calling
   -- here). We just persist what we're handed. play_state defaults
   -- to 'playing'; is_terminal defaults to false. (The `gametype`
   -- on the right of VALUES resolves to the function parameter,
@@ -1472,6 +1485,10 @@ revoke execute on function common._advance_turn(uuid) from public;
 -- for free-for-all (pointer null) and for solo (the sole player is always the
 -- current player). Call it right after the move RPC locks the game row and
 -- resolves the caller (common.require_game_player).
+-- `_`-prefixed unlike the rest of the require_* gates, and deliberately so:
+-- it belongs to the turn-order PRIMITIVES (_assign_turn_order / _advance_turn /
+-- _require_turn), which share the prefix because they're the opt-in mechanism's
+-- internals rather than the roster-wide gates every RPC calls.
 create function common._require_turn(target_game uuid, caller uuid)
 returns void
 language plpgsql
@@ -2609,11 +2626,11 @@ grant execute on function common.cache_definition(text, text, text) to service_r
 -- ============================================================
 -- Centralizes the "max N players" check that each open-N game's
 -- create_game calls near the top (mirrors require_club_member +
--- validate_timer). 6 isn't a global rule — each create_game passes its
+-- require_valid_timer). 6 isn't a global rule — each create_game passes its
 -- own cap; codenamesduet keeps its inline exactly-2 check. No grant to
 -- authenticated: only callable from other SECURITY DEFINER RPCs.
 
-create or replace function common.require_player_count_max(
+create function common.require_player_count_max(
   player_user_ids uuid[],
   max_count int
 )

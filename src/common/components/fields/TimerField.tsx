@@ -7,7 +7,7 @@ import styles from './TimerField.module.css'
 
 /**
  * Bounds for the count-down picker — kept in lockstep with the
- * server-side range check in `common.validate_timer` (1..3600).
+ * server-side range check in `common.require_valid_timer` (1..3600).
  * Minimum 1 second (no zero-length games); max 60 minutes (1 hour
  * is plenty for any cooperative-puzzle gametype).
  */
@@ -25,7 +25,7 @@ type Props = {
  * Renders the **None / Up / Down** radio triple plus an MM:SS
  * input that's only editable when "Down" (countdown) is selected.
  * Used by every gametype whose `setup.timer` is server-validated
- * by `common.validate_timer`.
+ * by `common.require_valid_timer`.
  *
  * The MM:SS text is parsed on every keystroke. When the input is
  * well-formed and in [1s, 60min], the underlying setup value

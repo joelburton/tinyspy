@@ -462,7 +462,7 @@ future cleanup pass:
   stay literal.)
 - **A revealed grid still ends as `won`** (ratified 2026-08-01). `reveal_cells` runs
   the ordinary solve check, so "Reveal puzzle" fills the grid and trips
-  `_finish_coop_won` → `play_state = 'won'`, `outcome: 'solved'`, everyone
+  `_finish_coop` → `play_state = 'won'`, `outcome: 'solved'`, everyone
   `won: true`, and a green "Won" on the club list. waffle and wordle deliberately
   went the other way for the same gesture (`ended` + `outcome: 'revealed'`, nobody
   won) — don't "align" crosswords with them. Those are guess-economy games where

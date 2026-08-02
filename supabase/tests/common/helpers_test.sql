@@ -1,5 +1,5 @@
 -- ============================================================
--- Test: common helpers (require_club_member, validate_timer)
+-- Test: common helpers (require_club_member, require_valid_timer)
 -- ============================================================
 --
 -- These helpers are the canonical building blocks for every
@@ -97,7 +97,7 @@ select is(
 );
 
 -- ============================================================
--- common.validate_timer
+-- common.require_valid_timer
 -- ============================================================
 -- No auth or role dependency — pure shape validation.
 
@@ -105,73 +105,73 @@ select set_config('request.jwt.claims', '', true);
 
 -- (4) Null timer object
 select throws_ok(
-  $$ select common.validate_timer(null::jsonb) $$,
+  $$ select common.require_valid_timer(null::jsonb) $$,
   'P0001',
   'setup.timer is required',
-  'validate_timer: null raises setup.timer is required'
+  'require_valid_timer: null raises setup.timer is required'
 );
 
 -- (5) Bogus timer.kind
 select throws_ok(
-  $$ select common.validate_timer('{"kind":"fast"}'::jsonb) $$,
+  $$ select common.require_valid_timer('{"kind":"fast"}'::jsonb) $$,
   'P0001',
   'setup.timer.kind must be none, countup, or countdown (got fast)',
-  'validate_timer: bogus kind raises with the value in the message'
+  'require_valid_timer: bogus kind raises with the value in the message'
 );
 
 -- (6) Missing timer.kind (empty object) → 'setup.timer.kind is required'
 select throws_ok(
-  $$ select common.validate_timer('{}'::jsonb) $$,
+  $$ select common.require_valid_timer('{}'::jsonb) $$,
   'P0001',
   'setup.timer.kind is required',
-  'validate_timer: missing kind raises with its own message'
+  'require_valid_timer: missing kind raises with its own message'
 );
 
 -- (7) Countdown missing seconds
 select throws_ok(
-  $$ select common.validate_timer('{"kind":"countdown"}'::jsonb) $$,
+  $$ select common.require_valid_timer('{"kind":"countdown"}'::jsonb) $$,
   'P0001',
   'setup.timer.seconds is required for countdown',
-  'validate_timer: countdown without seconds raises the right error'
+  'require_valid_timer: countdown without seconds raises the right error'
 );
 
 -- (8) Countdown seconds=0 (below min)
 select throws_ok(
-  $$ select common.validate_timer('{"kind":"countdown","seconds":0}'::jsonb) $$,
+  $$ select common.require_valid_timer('{"kind":"countdown","seconds":0}'::jsonb) $$,
   'P0001',
   'setup.timer.seconds must be 1..3600 (got 0)',
-  'validate_timer: countdown seconds=0 is rejected'
+  'require_valid_timer: countdown seconds=0 is rejected'
 );
 
 -- (9) Countdown seconds=3601 (above 60-min cap)
 select throws_ok(
-  $$ select common.validate_timer('{"kind":"countdown","seconds":3601}'::jsonb) $$,
+  $$ select common.require_valid_timer('{"kind":"countdown","seconds":3601}'::jsonb) $$,
   'P0001',
   'setup.timer.seconds must be 1..3600 (got 3601)',
-  'validate_timer: countdown seconds=3601 is rejected'
+  'require_valid_timer: countdown seconds=3601 is rejected'
 );
 
 -- (10) kind=none accepted
 select lives_ok(
-  $$ select common.validate_timer('{"kind":"none"}'::jsonb) $$,
-  'validate_timer: kind=none is accepted'
+  $$ select common.require_valid_timer('{"kind":"none"}'::jsonb) $$,
+  'require_valid_timer: kind=none is accepted'
 );
 
 -- (11) kind=countup accepted (no seconds needed)
 select lives_ok(
-  $$ select common.validate_timer('{"kind":"countup"}'::jsonb) $$,
-  'validate_timer: kind=countup is accepted'
+  $$ select common.require_valid_timer('{"kind":"countup"}'::jsonb) $$,
+  'require_valid_timer: kind=countup is accepted'
 );
 
 -- (12) Countdown at the boundaries (1 and 3600)
 select lives_ok(
-  $$ select common.validate_timer('{"kind":"countdown","seconds":1}'::jsonb) $$,
-  'validate_timer: countdown seconds=1 is accepted (lower boundary)'
+  $$ select common.require_valid_timer('{"kind":"countdown","seconds":1}'::jsonb) $$,
+  'require_valid_timer: countdown seconds=1 is accepted (lower boundary)'
 );
 
 select lives_ok(
-  $$ select common.validate_timer('{"kind":"countdown","seconds":3600}'::jsonb) $$,
-  'validate_timer: countdown seconds=3600 is accepted (upper boundary)'
+  $$ select common.require_valid_timer('{"kind":"countdown","seconds":3600}'::jsonb) $$,
+  'require_valid_timer: countdown seconds=3600 is accepted (upper boundary)'
 );
 
 -- ============================================================

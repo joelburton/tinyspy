@@ -185,7 +185,7 @@ Signatures mirror wordwheel one-for-one except the board shape and the validated
 - **`wordiply.create_game(target_club text, setup jsonb, player_user_ids uuid[], mode text, board jsonb) → table(id uuid)`**
   - Validates: membership; player counts (coop `[1,6]`, compete `[2,6]`); `mode`; **rejects
     `setup.mode`** and **`setup.target_rank`** (stale-FE guards; not a race-to-rank); one
-    `difficulty` band 1..6; timer via `common.validate_timer`.
+    `difficulty` band 1..6; timer via `common.require_valid_timer`.
   - Validates `board`: `base` 2–4 lowercase letters; `max_word_length ≥ base_len + 2`
     (headroom gate); `longest_words` **and** `legal_words` non-empty. Board content is taken
     at face value (the edge fn computed it under the caller's JWT), structure is

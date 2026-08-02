@@ -8,7 +8,7 @@
 --     narrower than the AI's band / bad counts / coop
 --   - get_ai_context is the definer door to the AI seat's hidden rack + bands
 --     (member-gated, AI-seat-only, its-turn-only)
---   - ai_play_word / ai_pass drive the AI seat through the shared commit core
+--   - ai_play_word / ai_pass_turn drive the AI seat through the shared commit core
 --   - _finish crowns an AI winner (winner_seat + "AI 1", no human uuid)
 -- ============================================================
 
@@ -105,11 +105,11 @@ select throws_ok(
   'P0001', NULL, 'ai_play_word on a human seat is rejected');
 reset role;
 
--- ─── ai_pass ──────────────────────────────────────────────
+-- ─── ai_pass_turn ──────────────────────────────────────────────
 select pg_temp.sc_turn_seat((select id from gai), 1);
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table aip on commit drop as
-  select scrabble.ai_pass((select id from gai), 1,
+  select scrabble.ai_pass_turn((select id from gai), 1,
     (select version from scrabble.games where id = (select id from gai))) as res;
 reset role;
 select is((select res->>'result' from aip), 'passed', 'the AI seat can pass');

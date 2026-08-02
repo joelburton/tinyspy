@@ -10,7 +10,7 @@
 --   2. Compete happy path: mode='compete'; compete-shape status seeded
 --      (leaderboard with per-player guesses_used:0). NO target_rank.
 --   3. Auth: dee (outsider) rejected with 42501.
---   4. mode arg validation: invalid value; setup.mode rejected;
+--   4. mode arg validation: invalid value;
 --      setup.target_rank rejected; compete with <2 players.
 --   5. Difficulty band validation: below 1 / above 6 rejected.
 --   6. Board validation: base not 2–4 lowercase; max_word_length below
@@ -23,7 +23,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(27);
+select plan(26);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -201,20 +201,6 @@ select throws_ok(
   'P0001',
   null,
   'rejects mode value not in {coop, compete}'
-);
-
-select throws_ok(
-  format(
-    $$ select wordiply.create_game(%L,
-                                  '{"mode": "coop", "difficulty": 5, "timer": {"kind": "none"}}'::jsonb,
-                                  array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                  'coop',
-                                  pg_temp.wordiply_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'setup.mode is no longer valid; mode is now a top-level argument',
-  'rejects setup.mode (mode is now a top-level arg — catch a stale FE)'
 );
 
 select throws_ok(

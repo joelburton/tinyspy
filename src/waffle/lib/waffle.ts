@@ -5,7 +5,7 @@
  * the server (mirrored as constants in the `waffle` migration). These
  * are invariant constants (the board's shape); if the lattice ever
  * changed, all three would change together, along with the SQL
- * `waffle.compute_colors` word arrays.
+ * `waffle.board_colors` word arrays.
  *
  * Layout (row-major positions 0–24). Words run on rows 0/2/4 (across)
  * and columns 0/2/4 (down); the 4 interior cells where both row and
@@ -65,7 +65,7 @@ export function coord(pos: number): string {
 /**
  * The 6 words as ordered cell-index tuples, in canonical order
  * (3 across, then 3 down). Mirrors the `words` array in
- * `waffle.compute_colors`.
+ * `waffle.board_colors`.
  */
 export const WORDS: readonly (readonly number[])[] = [
   [0, 1, 2, 3, 4], // a0 — across, row 0

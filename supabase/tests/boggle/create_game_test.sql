@@ -3,12 +3,12 @@
 -- ============================================================
 -- Covers: coop happy path (header + per-game row + status), compete happy path,
 -- and the validation guards (mode, compete player floor, band, ladder, dice_set,
--- the rejected setup.mode field, non-member).
+-- non-member).
 -- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
 
 begin;
 set search_path = boggle, common, public, extensions;
-select plan(19);
+select plan(18);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -121,13 +121,6 @@ select throws_ok(
        array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
        'coop', pg_temp.boggle_board()) $$,
   'P0001', null, 'rejects an unknown scoring_ladder');
-
-select throws_ok(
-  $$ select boggle.create_game((select handle from club),
-       pg_temp.boggle_setup() || '{"mode": "coop"}'::jsonb,
-       array['ada11111-1111-1111-1111-111111111111'::uuid,'bea22222-2222-2222-2222-222222222222'::uuid],
-       'coop', pg_temp.boggle_board()) $$,
-  'P0001', null, 'rejects a stale setup.mode field');
 
 -- Non-member (dee) cannot create in this club.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');

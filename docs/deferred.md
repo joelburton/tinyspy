@@ -72,6 +72,19 @@ No outstanding deferred items today (see [`spellingbee.md → Open / deferred`](
 
 No outstanding deferred items today.
 
+## scrabble (scrabble)
+
+- **scrabble coop can't reach `blocked`, but the label + fixture still describe it.**
+  `blocked` means "every active seat passed in a row", and `pass_turn` rejects coop
+  outright — coop has no turns to pass. So the `COOP_END` map in
+  `src/scrabble/manifest.ts` has no reachable case (its only key is `blocked`), and
+  the coop `blocked → "Ended (no moves left)"` row in `src/gameStatusLabels.test.ts`
+  — and therefore in the generated `game-status-labels.md` — documents a state the
+  server can't write. Two ways out: drop the map entry + the fixture row, or give
+  coop a blocked-end (it has no pass, so it would need a different trigger, e.g.
+  the shared rack being unplayable). Left in place pending Joel's call; found
+  during the 2026-08 pre-freeze audit.
+
 ## bananagrams (bananagrams)
 
 - **The "🍌 Peel! You drew N" local pill fires for a *peer's* peel too.** A peer peeling grows the caller's own `tiles` (everyone draws on a peel), so the caller's draw-announcement watcher reads it as a draw and shows the peel pill even though the caller didn't peel. Reads slightly oddly ("I didn't peel, why the pill?"). Cosmetic — the tile counts are always correct. Joel hasn't decided whether to reword the peer case (e.g. "🍌 <name> peeled — you drew N") or leave it. Low priority.
@@ -167,14 +180,6 @@ and connections (turn-log / word-list families) and stackdown.
   `seed.dev.sql` change for a database that must survive; and whether the friends get one
   last "everything resets" warning before the freeze. Until then, the alpha prior in
   CLAUDE.md still holds — keep editing baselines.
-- **Choose better status lines**, walking the table in
-  [`game-status-labels.md`](game-status-labels.md) game by game. Its "Known
-  inconsistencies" section is the punch list — one real bug (connections's
-  `1 mistakes`), six games giving no mid-game progress, a compete win phrased four
-  different ways, and four games whose unknown-state fallback renders a finished game as
-  live. Regenerating the doc after any change is `npm run report:labels`. (**Titles were
-  done on 2026-08-01** — every game now names itself after its content, five rewrite from
-  play, and the leak rule is written up in [common.md → Title formulas](common.md#title-formulas).)
 
 ## Tooling
 

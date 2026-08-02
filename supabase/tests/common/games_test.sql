@@ -533,7 +533,7 @@ select throws_ok(
 -- opted out for this call). The intent is "next time the setup
 -- dialog opens, it pre-fills from this row."
 --
--- Up to this point the test has been passing saved_default=NULL
+-- Up to this point the test has been passing default_setup=NULL
 -- everywhere, so the m2m row's default_setup is still NULL
 -- (its post-create_club state). Verify that first, then make a
 -- non-null call and verify the write.
@@ -548,7 +548,7 @@ select is(
   'saved defaults: starts NULL (handle_new_user / create_club leave it unset)'
 );
 
--- Issue a third create_game with a non-null saved_default. This
+-- Issue a third create_game with a non-null default_setup. This
 -- exercises the auto-save path. The shape is intentionally
 -- different from a real connections setup to make the test self-
 -- evident: we're checking the plumbing, not the semantic.
@@ -569,11 +569,11 @@ select is(
   (select default_setup->>'puzzleId' from common.clubs_gametypes
     where club_handle = (select handle from club) and gametype = 'connections_coop'),
   'marker-1',
-  'saved defaults: a non-null saved_default writes to clubs_gametypes.default_setup'
+  'saved defaults: a non-null default_setup writes to clubs_gametypes.default_setup'
 );
 
 -- Overwrite-on-each-call: a second call with a different
--- saved_default replaces the row. There's no "first write wins"
+-- default_setup replaces the row. There's no "first write wins"
 -- or "must equal previous" semantics — the FE owns the policy
 -- of when to call create_game; the DB just records the latest.
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
@@ -593,7 +593,7 @@ select is(
   (select default_setup->>'puzzleId' from common.clubs_gametypes
     where club_handle = (select handle from club) and gametype = 'connections_coop'),
   'marker-2',
-  'saved defaults: a subsequent non-null saved_default overwrites the row'
+  'saved defaults: a subsequent non-null default_setup overwrites the row'
 );
 
 -- ============================================================

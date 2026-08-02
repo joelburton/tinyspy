@@ -77,7 +77,7 @@ create function pg_temp.codenamesduet_setup(
 language sql as $$
   -- timer defaults to kind=none so gameplay tests (which don't
   -- exercise the wall-clock timer) pass create_game's
-  -- common.validate_timer gate without further setup. The
+  -- common.require_valid_timer gate without further setup. The
   -- create_game and submit_timeout-specific tests pass an
   -- explicit countdown timer where they need it.
   select jsonb_build_object(

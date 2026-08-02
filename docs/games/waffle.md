@@ -140,7 +140,7 @@ exactly how `connections` handles its coop counters. The only cost is storing th
 - **`waffle.players_state`** — `board`, `swaps_used`, `solved`, `solved_at`, **+
   computed `colors`** (a `SECURITY DEFINER` helper
   `_player_colors_for(g_id, row_user)` that reads the hidden `games.solution`
-  and wraps the pure `compute_colors(board, solution)`). Colors are visible
+  and wraps the pure `board_colors(board, solution)`). Colors are visible
   during play (they *are* the gameplay); the full solution is not.
 
 ### RLS (mode-aware)
@@ -156,7 +156,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
 - **`create_game(target_club, setup, player_user_ids, mode, board)`** —
   sibling-manifest signature plus a `board` jsonb (`{solution, scramble,
   par_swaps}`) built by the `waffle-build-board` edge function. Validates
-  `require_club_member`, `require_player_count_max`, `validate_timer`; validates
+  `require_club_member`, `require_player_count_max`, `require_valid_timer`; validates
   `setup.extra_swaps` (0..15, default 5) and `setup.difficulty` (band **1–6**,
   default 2 — server accepts the full range; the dialog offers 1–5, a FE/UI
   choice); sanity-checks the board structure (25-char strings, holes at the four
@@ -264,7 +264,7 @@ game-level terminal → `play_state` (the `_compete` suffix convention from
 [`states.md`](../states.md)). All terminal transitions go through
 `common.end_game`.
 
-Timer is optional (`none` / `countup` / `countdown`, via `common.validate_timer`).
+Timer is optional (`none` / `countup` / `countdown`, via `common.require_valid_timer`).
 A countdown is a pace/cap: on expiry, coop → `lost`; compete forces any
 not-yet-done player to "done" (failed) and computes the winner among solvers.
 
@@ -387,7 +387,7 @@ Mirrors the other game folders:
 - `lib/waffle.ts` — geometry (shared), incl. `coord(pos)` → `A1`..`E5`. Color
   rendering is the shared `common/lib/color/tileColor.ts` (server code → class key);
   the server is authoritative for the actual colors.
-- `lib/colors.ts` — a TS port of `waffle.compute_colors` / `common.wordle_colors`, pinned
+- `lib/colors.ts` — a TS port of `waffle.board_colors` / `common.wordle_colors`, pinned
   against the pgTAP oracle by `colors.test.ts`. The server stays authoritative for
   LIVE colors; this exists only so the turn-history viewer can color a *historical*
   board on the FE (see below).

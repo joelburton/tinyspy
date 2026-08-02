@@ -12,8 +12,7 @@
 --      compete-shape status seeded (target_rank + empty
 --      leaderboard).
 --   3. Auth + membership: dee (outsider) rejected with 42501.
---   4. mode arg validation: invalid value; setup.mode field
---      rejected (catch a stale FE); compete with <2 players;
+--   4. mode arg validation: invalid value; compete with <2 players;
 --      target_rank required iff compete; target_rank range.
 --   5. Board validation (unchanged from pre-split): outer_letters
 --      length / alphabet / no-s / distinctness; center; center-
@@ -27,7 +26,7 @@ begin;
 
 set search_path = spellingbee, common, public, extensions;
 
-select plan(35);
+select plan(34);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -210,24 +209,6 @@ select throws_ok(
   'P0001',
   null,
   'rejects mode value not in {coop, compete}'
-);
-
--- ============================================================
--- (14) setup.mode field rejected (catch stale FE)
--- ============================================================
-
-select throws_ok(
-  format(
-    $$ select spellingbee.create_game(%L,
-                                   '{"mode": "coop", "timer": {"kind": "none"}}'::jsonb,
-                                   array['ada11111-1111-1111-1111-111111111111'::uuid],
-                                   'coop',
-                                   pg_temp.spellingbee_board()) $$,
-    (select handle from club)
-  ),
-  'P0001',
-  'setup.mode is no longer valid; mode is now a top-level argument',
-  'rejects setup.mode even when mode arg matches (loud over silent)'
 );
 
 -- ============================================================

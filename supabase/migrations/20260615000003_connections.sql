@@ -476,7 +476,7 @@ declare
   first_turn uuid;
 begin
   -- ─── Validate mode + player-count ────────────────────────
-  perform common.validate_mode(mode);
+  perform common.require_valid_mode(mode);
 
   if mode = 'compete' then
     -- Compete needs an opposing PLAYER. The FE manifest hides the
@@ -507,9 +507,9 @@ begin
       using errcode = 'P0001';
   end;
 
-  -- Canonical timer-shape validation. See common.validate_timer
+  -- Canonical timer-shape validation. See common.require_valid_timer
   -- for the accepted shapes and the exact raise messages.
-  perform common.validate_timer(setup->'timer');
+  perform common.require_valid_timer(setup->'timer');
 
   -- Load the puzzle. The FK on connections.games.puzzle_id would also
   -- catch a bad id at INSERT time, but a clear "puzzle not found"
@@ -1197,7 +1197,7 @@ grant execute on function connections.submit_timeout(uuid) to authenticated;
 -- Distinct from suspend (which leaves play_state='playing' and is
 -- the "back to club, start something else later" path): end_game
 -- writes a real terminal, so the game lands in the club's
--- completed section forever and the GameOverModal pops.
+-- completed section forever and the terminal verdict renders.
 --
 -- Same shape as submit_timeout with three differences:
 --   - one branch for both modes (the per-player result is the bare
@@ -1272,7 +1272,7 @@ begin
   -- connections.{games,guesses,players}) wakes up naturally. end_game
   -- writes ONLY common.games via common.end_game — no connections-
   -- schema write — so without this touch the FE would never
-  -- refetch and the GameOverModal would never pop until a reload.
+  -- refetch and the terminal verdict would never render until a reload.
   --
   -- The self-set (club_handle = club_handle, a real not-null
   -- column on connections.games) is a semantic no-op but produces a

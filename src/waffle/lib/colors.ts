@@ -1,6 +1,6 @@
 /**
  * Waffle's green/yellow/gray feedback, ported to TypeScript from the SQL
- * `waffle.compute_colors` (the board merger, migration `20260624000000_waffle.sql`)
+ * `waffle.board_colors` (the board merger, migration `20260624000000_waffle.sql`)
  * and the shared `common.wordle_colors` algorithm it wraps. The server stays the
  * source of truth for LIVE
  * colors (it computes them in `submit_swap` + the read view); this port exists so
@@ -63,7 +63,7 @@ export function wordleColors(guess: string, answer: string): string {
  * Color a whole 25-char board against the 25-char solution → a 25-char `g`/`y`/`x`
  * string with holes left as `.`. Colors each of the 6 words independently, then
  * merges per cell: an intersection cell (in two words) shows the STRONGER of its
- * two colors. Mirrors the SQL `compute_colors` exactly.
+ * two colors. Mirrors the SQL `board_colors` exactly.
  */
 export function computeColors(board: string, solution: string): string {
   const res: string[] = new Array(CELLS).fill(HOLE) // holes stay '.'
