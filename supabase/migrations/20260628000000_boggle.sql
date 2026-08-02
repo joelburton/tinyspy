@@ -476,6 +476,9 @@ set search_path = boggle, common, public, extensions
 as $$
 declare
   g_mode text;
+  g_win_pct int;
+  term_state text;
+  top_user uuid;
   g_req_count int;
   g_req_score int;
   fc int;
@@ -485,8 +488,8 @@ declare
   results jsonb;
   final_status jsonb;
 begin
-  select mode, required_words_count, required_words_score
-    into g_mode, g_req_count, g_req_score
+  select mode, required_words_count, required_words_score, win_percent
+    into g_mode, g_req_count, g_req_score, g_win_pct
     from boggle.games where id = target_game;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
@@ -501,6 +504,17 @@ begin
       'required_words_count', g_req_count, 'required_words_score', g_req_score
     );
     results := null; -- coop is a team effort; no per-player result
+
+    -- Terminal play_state, mirroring spellingbee/wordwheel coop: a game with a
+    -- TARGET can be won or lost against it (reaching it wins; the clock
+    -- beating you loses), while a game with no target is just an exercise —
+    -- there's nothing to fail, so any ending is the neutral 'ended'. A manual
+    -- stop is always neutral, target or not: the friends chose to stop.
+    term_state := case
+      when outcome = 'target' then 'won'
+      when outcome = 'timeout' and g_win_pct is not null then 'lost'
+      else 'ended'
+    end;
   else
     -- Leaderboard over ALL players (the final scoreboard still shows a
     -- conceder's banked score; the FE marks them "Quit").
@@ -523,28 +537,67 @@ begin
       join common.game_players gp
         on gp.game_id = target_game and gp.user_id = t.user_id
      where not gp.conceded;
+    -- Terminal play_state. Three shapes:
+    --   'target'                  → the crosser wins outright   → won_compete
+    --   'timeout' WITH a target   → nobody reached the bar, so nobody wins,
+    --                               however high the scores got  → lost_compete
+    --   'timeout' with NO target  → it was a straight score race, so the top
+    --                               non-conceded score takes it   → won_compete
+    --   'manual'                  → the friends chose to stop; neutral, no
+    --                               winner, like every other game's End → ended
+    term_state := case
+      when outcome = 'target' then 'won_compete'
+      when outcome = 'timeout' and g_win_pct is not null then 'lost_compete'
+      when outcome = 'timeout' then 'won_compete'
+      else 'ended'
+    end;
+
+    -- Name the winner when there's exactly one to name: the target-crosser, or
+    -- (score race) the sole player on the top score. A tie leaves it null and
+    -- the label reads "co-winners" — the leaderboard is privacy-scoped, so a
+    -- label can't recompute this itself.
+    if winner_id is not null then
+      top_user := winner_id;
+    elsif term_state = 'won_compete' then
+      with tops as (
+        select t.user_id
+          from (
+            select user_id, sum(points) as sc
+              from boggle.found_words where game_id = target_game group by user_id
+          ) t
+          join common.game_players gp
+            on gp.game_id = target_game and gp.user_id = t.user_id
+         where not gp.conceded and t.sc = max_score
+      )
+      select case when count(*) = 1 then (array_agg(user_id))[1] end
+        into top_user
+        from tops;
+    end if;
+
     final_status := jsonb_build_object(
       'mode', 'compete', 'outcome', outcome, 'leaderboard', lb,
+      'top_score', max_score,
       'required_words_count', g_req_count, 'required_words_score', g_req_score
     );
-    -- A target win names the crosser so the FE can announce them without
-    -- recomputing a winner from the (privacy-scoped) leaderboard.
-    if winner_id is not null then
+    if top_user is not null then
       final_status := final_status || jsonb_build_object(
-        'winner_id', winner_id,
-        'winner_username', (select username from common.profiles where user_id = winner_id)
+        'winner_id', top_user,
+        'winner_username', (select username from common.profiles where user_id = top_user)
       );
     end if;
     -- Per-player result:
-    --   target win  → the crosser wins outright; everyone else loses.
-    --   manual/timeout → win if you tied or beat the top score AND didn't concede
-    --     (a player who found nothing scores 0 and loses unless 0 is the max; a
-    --     conceder never wins even if their banked score ties the max).
+    --   target win → the crosser wins outright; everyone else loses.
+    --   score race (timeout, no target) → win if you tied or beat the top score
+    --     AND didn't concede (a player who found nothing scores 0 and loses
+    --     unless 0 is the max; a conceder never wins even on a tying score).
+    --   nobody-reached-the-target, and a manual stop → nobody wins.
     select coalesce(jsonb_object_agg(p.user_id::text,
              jsonb_build_object(
-               'won', case when winner_id is not null
-                           then p.user_id = winner_id
-                           else not p.conceded and coalesce(t.sc, 0) >= max_score end,
+               'won', case
+                        when winner_id is not null then p.user_id = winner_id
+                        when term_state <> 'won_compete' then false
+                        else not p.conceded and coalesce(t.sc, 0) >= max_score
+                      end,
                'score', coalesce(t.sc, 0))), '{}'::jsonb)
       into results
       from common.game_players p
@@ -555,7 +608,7 @@ begin
      where p.game_id = target_game;
   end if;
 
-  perform common.end_game(target_game, 'ended', final_status, results);
+  perform common.end_game(target_game, term_state, final_status, results);
 end;
 $$;
 

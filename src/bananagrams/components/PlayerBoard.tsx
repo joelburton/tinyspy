@@ -153,7 +153,7 @@ export function PlayerBoard({
         />
 
         {/* The bottom action row — natural-width action buttons side by side. While
-            playing: [Concede] [Peel] (Peel, the primary move, on the right). The shared
+            playing: [End] [Concede] [Peel] (Peel, the primary move, on the right). The shared
             PeelButton (primary) is enabled only once the hand is empty (it FLUSHES the
             board first so peel's "placed == tiles" check is current; the terminal modal
             is driven from realtime, not this click). At terminal / locally-terminal the

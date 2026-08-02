@@ -20,8 +20,18 @@ export function buildGameMenu(opts: {
   isTerminal: boolean
   /** Compete only: a conceded player has already dropped out — grey the item. */
   conceded?: boolean
-  /** Coop: fires the game's `end_game` RPC (neutral mutual give-up). */
+  /** Fires the game's `end_game` RPC (the neutral, whole-table give-up).
+   *  Coop shows it as the mode's exit; compete ignores it unless
+   *  `offerEndInCompete` is set (several compete PlayAreas pass a handler
+   *  unconditionally and rely on the mode to pick, so its mere presence can't
+   *  mean "offer it here"). */
   onEndGame?: () => void
+  /** Compete only: ALSO offer the whole-table End beneath Concede. They're
+   *  different acts — conceding is a loss on your record and it takes every
+   *  player doing it to close a game the group has simply lost interest in;
+   *  ending is the group agreeing there's no result. Opt-in per game, because
+   *  most races genuinely have no whole-table stop (the RPC won't exist). */
+  offerEndInCompete?: boolean
   /** Compete: fires the game's `concede` RPC (drop out of the race). */
   onConcede?: () => void
   /** The game's own sections, inserted between Help and the End/Back tail. */
@@ -31,24 +41,29 @@ export function buildGameMenu(opts: {
    *  title / author / copyright, matching crossplay's menu. */
   header?: MenuHeader
 }): MenuSection[] {
-  const { menu, mode, isTerminal, conceded, onEndGame, onConcede, extra = [], header } = opts
+  const { menu, mode, isTerminal, conceded, onEndGame, onConcede, offerEndInCompete, extra = [], header } = opts
 
-  const endOrConcede: MenuItem =
+  const endItem: MenuItem = {
+    id: 'end-game',
+    label: 'End game',
+    // The shortcut belongs to whichever item is the mode's PRIMARY exit —
+    // Concede in a race, End otherwise — so a compete game offering both keeps
+    // ⌥⌫ on Concede.
+    shortcut: mode === 'compete' ? undefined : '⌥⌫',
+    disabled: isTerminal,
+    onClick: () => onEndGame?.(),
+  }
+  const concedeItem: MenuItem = {
+    id: 'concede',
+    label: 'Concede game',
+    shortcut: '⌥⌫',
+    disabled: isTerminal || !!conceded,
+    onClick: () => onConcede?.(),
+  }
+  const exits: MenuItem[] =
     mode === 'compete'
-      ? {
-          id: 'concede',
-          label: 'Concede game',
-          shortcut: '⌥⌫',
-          disabled: isTerminal || !!conceded,
-          onClick: () => onConcede?.(),
-        }
-      : {
-          id: 'end-game',
-          label: 'End game',
-          shortcut: '⌥⌫',
-          disabled: isTerminal,
-          onClick: () => onEndGame?.(),
-        }
+      ? [concedeItem, ...(offerEndInCompete ? [endItem] : [])]
+      : [endItem]
 
   return [
     // A header-only section (no items) at the very top when a header is given.
@@ -57,7 +72,7 @@ export function buildGameMenu(opts: {
     ...extra,
     {
       items: [
-        endOrConcede,
+        ...exits,
         { id: 'back', label: 'Back to club', shortcut: '⇧<', onClick: menu.requestBackToClub },
       ],
     },

@@ -607,7 +607,7 @@ export function ClubPage({ handle, session }: Props) {
       const { data } = await commonDb
         .from('games')
         .select(
-          'id, gametype, title, play_state, is_terminal, status, last_active_at, is_current_view',
+          'id, gametype, title, play_state, is_terminal, status, setup, last_active_at, is_current_view',
         )
         .eq('club_handle', clubHandle)
         .order('last_active_at', { ascending: false })
@@ -632,6 +632,7 @@ export function ClubPage({ handle, session }: Props) {
           play_state: r.play_state,
           is_terminal: r.is_terminal,
           status: r.status as Record<string, unknown> | null,
+          setup: r.setup as Record<string, unknown> | null,
         }
         listed.push({
           gameId: r.id,

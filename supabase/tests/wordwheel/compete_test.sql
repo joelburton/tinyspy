@@ -187,8 +187,11 @@ select wordwheel.submit_timeout((select id from g_timeout));
 reset role;
 select is(
   (select play_state from common.games where id = (select id from g_timeout)),
-  'ended',
-  'compete submit_timeout: play_state = ended'
+  'lost_compete',
+  -- A compete race always carries a target rank, so the clock beating everyone
+  -- to it is a real loss for the table — matching coop, and matching boggle's
+  -- score target.
+  'compete submit_timeout: play_state = lost_compete (nobody reached the rank)'
 );
 
 select is(

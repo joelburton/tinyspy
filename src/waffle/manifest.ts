@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { CommonGameListRow, GameManifest } from '../common/lib/games'
 import { db } from './db'
+import { count, dictLabel, outcome, setupNum, statusLine, wonBy } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
 import { DEFAULT_WAFFLE_SETUP, type WaffleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -55,26 +56,54 @@ const endGame = makeRpcDispatcher(db, 'end_game')
 /** One-line label for the ClubPage games list — pure + synchronous.
  *  The coop/compete mode is shown by the card's <ModePill>, so it's no
  *  longer prefixed here; `modeLabel` only picks the mid-game verb. */
-function labelFor(modeLabel: string) {
+/**
+ * waffle's club-page status line. The DICT band rides on every row: a waffle at
+ * "Universal" and one at "Expert" are barely the same game, so the band is the
+ * single most useful thing about a game you're deciding whether to return to.
+ *
+ * Coop shows the swap budget; compete doesn't — each racer has their own board
+ * and their own count, and this line is club-wide readable.
+ */
+function labelFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
+    const s = (row.status ?? {}) as {
+      winner_username?: string; outcome?: string; swaps_used?: number; max_swaps?: number
+    }
+    const dict = dictLabel(setupNum(row.setup, 'difficulty'))
+    const left =
+      mode === 'coop' && s.max_swaps != null && s.swaps_used != null
+        ? count(s.max_swaps - s.swaps_used, 'swap left', 'swaps left')
+        : null
     switch (row.play_state) {
+      case 'playing':
+        return statusLine(outcome('Playing'), left, dict)
       case 'won':
-        return 'solved'
-      case 'won_compete': {
-        const winner = (row.status as { winner_username?: string } | null)?.winner_username
-        return winner ? `won by ${winner}` : 'winner decided'
-      }
+        return statusLine(outcome('Won'), left, dict)
+      case 'won_compete':
+        return statusLine(wonBy(s.winner_username), count(s.swaps_used, 'swap', 'swaps'), dict)
       case 'lost':
-        return 'out of swaps'
+        // Coop: the shared board ran out of swaps, or the clock beat it.
+        return statusLine(outcome('Lost', s.outcome === 'timeout' ? 'out of time' : 'out of swaps'), dict)
       case 'lost_compete':
-        return 'no winner'
+        // "all conceded" already says nobody won; the others need spelling out.
+        return s.outcome === 'conceded'
+          ? outcome('Lost', 'all conceded')
+          : statusLine(outcome('Lost', COMPETE_LOSS[s.outcome ?? ''] ?? null), 'no winner')
       case 'ended':
-        // Manual end (waffle.end_game): neutral terminal, no winner.
-        return 'ended'
+        // Manual end / "Reveal answer" — both neutral, but they're different
+        // stories: one is "we stopped", the other "we gave up and looked".
+        return statusLine(outcome('Ended', s.outcome === 'revealed' ? 'answer revealed' : null), dict)
       default:
-        return `${modeLabel === 'compete' ? 'racing' : 'solving'}…`
+        return row.play_state
     }
   }
+}
+
+/** Why a compete race ended with nobody winning (waffle._maybe_finish_compete). */
+const COMPETE_LOSS: Record<string, string> = {
+  timeout: 'out of time',
+  exhausted: 'out of swaps',
+  conceded: 'all conceded',
 }
 
 // Single source of truth for this game's user-facing brand name —

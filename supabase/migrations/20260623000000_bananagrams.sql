@@ -20,11 +20,12 @@
 --     non-winning peel). See `_win_blockers`.
 --
 -- All RPCs live INLINE in this one squashed baseline file —
--- create_game, save_player_board, peel, dump, submit_timeout, concede
--- (this is an alpha repo, so baselines are edited in place rather than
--- accreting per-RPC migrations; see CLAUDE.md). The intrinsic win is
+-- create_game, save_player_board, peel, dump, submit_timeout, concede,
+-- end_game (this is an alpha repo, so baselines are edited in place rather
+-- than accreting per-RPC migrations; see CLAUDE.md). The intrinsic win is
 -- detected inside `peel`; `concede` drops a single player out of the
--- race (the last one out ends the game as a collective loss).
+-- race (the last one out ends the game as a collective loss); `end_game`
+-- is the whole table stopping with no verdict for anyone.
 --
 -- See docs/games/bananagrams.md for the full plan, the keyboard
 -- rules, and the bank loop.
@@ -1113,3 +1114,65 @@ $$;
 
 revoke execute on function bananagrams.concede(uuid) from public;
 grant execute on function bananagrams.concede(uuid) to authenticated;
+
+-- ============================================================
+-- bananagrams.end_game — manual stop
+-- ============================================================
+-- The friends' explicit "we're done" action — the uniform neutral terminal
+-- every other gametype has. Writes play_state 'ended' (nobody wins or loses),
+-- everyone {"won": false}, status.outcome = 'manual'.
+--
+-- bananagrams went without one for a long time, on the reasoning that a race
+-- has a per-player Concede and each player leaves on their own. But conceding
+-- is a LOSS on your record, and it takes every player doing it to stop a game
+-- the group has simply lost interest in — so a table that wants to walk away
+-- together had no way to say so, and the game sat in the club list as the
+-- current view forever. End is that way: one click, no verdict for anyone.
+--
+-- Any game player may fire it; idempotent on the play_state check (a second
+-- click, or one racing a peel-out win, raises P0001 — swallowed by the FE).
+create function bananagrams.end_game(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = bananagrams, common, public, extensions
+as $$
+declare
+  current_play_state text;
+  player_results     jsonb;
+begin
+  if not exists (select 1 from bananagrams.games where id = target_game) then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  perform common.require_game_player(target_game);
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+  if current_play_state <> 'playing' then
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  -- Nobody won — the friends agreed to stop. A player who had already
+  -- conceded stays conceded (their own quit is still theirs); this only says
+  -- the table as a whole reached no result.
+  select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
+    into player_results
+    from common.game_players
+   where game_id = target_game;
+
+  perform common.end_game(
+    target_game, 'ended',
+    jsonb_build_object('outcome', 'manual'),
+    player_results
+  );
+
+  -- Realtime touch: common.end_game writes common.games, not bananagrams.*,
+  -- so the FE's useGame subscription would never wake. A no-op self-update
+  -- produces a WAL entry it picks up. Same trick as submit_timeout.
+  update bananagrams.games set club_handle = club_handle where id = target_game;
+end;
+$$;
+
+revoke execute on function bananagrams.end_game(uuid) from public;
+grant execute on function bananagrams.end_game(uuid) to authenticated;

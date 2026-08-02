@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
+import { count, outcome, statusLine, wonBy } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
 import {
   DEFAULT_WORDIPLY_SETUP_COMPETE,
@@ -85,34 +86,38 @@ const BRAND = 'WordWire'
 function coopLabel(row: { play_state: string; status?: unknown }): string {
   const s = (row.status ?? {}) as StatusBlob
   if (row.play_state === 'playing') {
-    const used = (s.guesses_used as number | undefined) ?? 0
-    return `${used}/5 guesses`
+    return statusLine(outcome('Playing'), `${(s.guesses_used as number | undefined) ?? 0}/5 guesses`)
   }
-  const ls = (s.length_score as number | undefined) ?? 0
-  const lc = (s.letter_count as number | undefined) ?? 0
-  const outcome = s.outcome as string | undefined
-  const lead = outcome === 'timeout' ? 'time up' : 'done'
-  return `${lead} · ${ls}% · ${lc} letters`
+  const ls = `${(s.length_score as number | undefined) ?? 0}%`
+  const lc = count(s.letter_count as number | undefined, 'letter')
+  // Coop has no win or loss — every ending is 'ended'; only the REASON differs
+  // ('complete' = all five guesses spent, 'timeout', 'manual').
+  return statusLine(outcome('Ended', COOP_END[(s.outcome as string) ?? ''] ?? null), ls, lc)
+}
+
+/** How a coop game stopped, when it's worth naming (wordiply._finish_coop). */
+const COOP_END: Record<string, string> = {
+  complete: 'out of guesses',
+  timeout: 'out of time',
 }
 
 function competeLabel(row: { play_state: string; status?: unknown }): string {
   const s = (row.status ?? {}) as StatusBlob
   const leaderboard = (s.leaderboard as LeaderRow[] | undefined) ?? []
-  if (row.play_state === 'playing') {
-    // "3/5 · 2/5" — each active player's guesses used (no scores leak early).
-    if (leaderboard.length === 0) return 'in progress'
-    return leaderboard.map((e) => `${e.guesses_used ?? 0}/5`).join(' · ')
-  }
-  const outcome = s.outcome as string | undefined
-  if (outcome === 'conceded') return 'all conceded'
+  if (row.play_state === 'playing') return outcome('Playing')
+  if ((s.outcome as string) === 'conceded') return outcome('Lost', 'all conceded')
   if (row.play_state === 'won_compete') {
     // Ties leave every tied player flagged won (winner_user_id is null), so
     // count the winners rather than name one — they share the same score.
     const winners = leaderboard.filter((e) => e.won)
-    const ls = winners[0]?.length_score ?? 0
-    return winners.length > 1 ? `co-winners · ${ls}%` : `winner · ${ls}%`
+    const ls = `${winners[0]?.length_score ?? 0}%`
+    const name = s.winner_username as string | undefined
+    return winners.length > 1
+      ? statusLine(outcome('Won', 'co-winners'), ls)
+      : statusLine(wonBy(name), ls)
   }
-  return 'ended · no winner'
+  return statusLine(
+    outcome('Ended', (s.outcome as string) === 'timeout' ? 'out of time' : null), 'no winner')
 }
 
 export const wordiplyCoopGame: GameManifest = {

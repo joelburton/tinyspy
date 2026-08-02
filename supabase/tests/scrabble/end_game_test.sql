@@ -12,7 +12,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(11);
+select plan(12);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -76,8 +76,16 @@ update scrabble.games set team_score = 12, shared_rack = array['Q']  -- leftover
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select scrabble.submit_timeout((select id from gt));
 reset role;
+-- The clock is the ONE way a coop table can lose. Playing the bag out and
+-- grinding to a halt on six scoreless turns are both legitimate finishes and
+-- stay a green 'won' (see auto_finish_test); failing to finish in time is a
+-- real loss, the same reading every other game gives it.
 select is((select play_state from common.games where id = (select id from gt)),
-  'won', 'coop timeout is still a green "won" (never a loss — no opponent)');
+  'lost', 'coop timeout is a loss — the table did not finish in time');
+select is((select (result->>'won')::boolean from common.game_players
+            where game_id = (select id from gt)
+              and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  false, 'coop timeout records every player as not-won');
 select is((select status->>'outcome' from common.games where id = (select id from gt)),
   'timeout', 'status.outcome is timeout');
 select is((select team_score from scrabble.games where id = (select id from gt)), 2,

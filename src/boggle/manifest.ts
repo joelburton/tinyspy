@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
+import { count, outcome, setupNum, statusLine, wonBy } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
 import {
   DEFAULT_BOGGLE_SETUP_COMPETE,
@@ -48,29 +49,68 @@ const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const endGame = makeRpcDispatcher(db, 'end_game')
 
 type StatusBlob = Record<string, unknown>
+type SetupBlob = Record<string, unknown> | null
 
 /** Coop club-page label: words found + points (and the terminal reason). */
-function coopLabel(row: { play_state: string; status: StatusBlob | null }): string {
+/**
+ * boggle coop. A game with a TARGET can be won or lost against it; a game
+ * without one is an exercise, so any ending is neutral — the same rule
+ * spellingbee applies to its rank target (boggle._finish picks the play_state,
+ * this just renders it).
+ */
+function coopLabel(row: { play_state: string; status: StatusBlob | null; setup: SetupBlob }): string {
   const s = row.status ?? {}
-  const words = (s.found_words_count as number | undefined) ?? 0
-  const pts = (s.score as number | undefined) ?? 0
-  if (row.play_state === 'playing') return `${words} words · ${pts} pts`
-  const outcome = s.outcome as string | undefined
-  const lead = outcome === 'target' ? 'target reached' : outcome === 'timeout' ? 'time up' : 'done'
-  return `${lead} · ${words} words · ${pts} pts`
+  const words = count(s.found_words_count as number | undefined, 'word')
+  const pts = `${(s.score as number | undefined) ?? 0} pts`
+  const pct = setupNum(row.setup, 'win_percent')
+  switch (row.play_state) {
+    case 'playing':
+      return statusLine(outcome('Playing'), words, pts)
+    case 'won':
+      return statusLine(outcome('Won', pct != null ? `reached ${pct}%` : null), words, pts)
+    case 'lost':
+      return statusLine(outcome('Lost', 'out of time'), words, pts)
+    case 'ended':
+      return statusLine(
+        outcome('Ended', (s.outcome as string) === 'timeout' ? 'out of time' : null), words, pts)
+    default:
+      return row.play_state
+  }
 }
 
 /** Compete club-page label: rank-only, no per-player scores in the listing. */
-function competeLabel(row: { play_state: string; status: StatusBlob | null }): string {
+/**
+ * boggle compete. Two shapes of win: crossing the target first, and — in a
+ * game with no target — holding the top score when the clock stops. A target
+ * game whose clock runs out is a loss for everyone: nobody reached the bar,
+ * however high the scores got.
+ */
+function competeLabel(row: { play_state: string; status: StatusBlob | null; setup: SetupBlob }): string {
   const s = row.status ?? {}
-  const players = Array.isArray(s.leaderboard) ? s.leaderboard.length : 0
-  if (row.play_state === 'playing') return players ? `competing · ${players} players` : 'competing'
-  const outcome = s.outcome as string | undefined
-  if (outcome === 'target') {
-    const winner = s.winner_username as string | undefined
-    return winner ? `${winner} won` : 'won'
+  const pct = setupNum(row.setup, 'win_percent')
+  const top = s.top_score != null ? `${s.top_score as number} pts` : null
+  switch (row.play_state) {
+    case 'playing':
+      return statusLine(outcome('Playing'), pct != null ? `race to ${pct}%` : null)
+    case 'won_compete': {
+      // A tie leaves winner_username null — they share the top score.
+      const who = s.winner_username ? wonBy(s.winner_username as string) : outcome('Won', 'co-winners')
+      // A target win reads "Won by alice at 65%" — one phrase. A score race
+      // has no bar to name, so the winning score goes in the facts slot.
+      return (s.outcome as string) === 'target' && pct != null
+        ? `${who} at ${pct}%`
+        : statusLine(who, top)
+    }
+    case 'lost_compete':
+      return statusLine(outcome('Lost', 'out of time'), 'no winner')
+    // The last racer conceding ends the table (common.concede).
+    case 'lost':
+      return outcome('Lost', 'all conceded')
+    case 'ended':
+      return statusLine(outcome('Ended'), 'no winner')
+    default:
+      return row.play_state
   }
-  return outcome === 'timeout' ? 'time up' : 'ended'
 }
 
 // The single source of truth for this game's user-facing brand name.
@@ -95,7 +135,7 @@ export const boggleCoopGame: GameManifest = {
     validate: (setup) => legalError(setup as BoggleSetup),
   },
   startGameInClub: startGameInClubFactory('coop', BRAND),
-  labelFor: coopLabel,
+  labelFor: (row) => coopLabel(row),
   submitTimeout,
   endGame,
 }
@@ -118,7 +158,7 @@ export const boggleCompeteGame: GameManifest = {
     validate: (setup) => legalError(setup as BoggleSetup),
   },
   startGameInClub: startGameInClubFactory('compete', BRAND),
-  labelFor: competeLabel,
+  labelFor: (row) => competeLabel(row),
   submitTimeout,
   endGame,
 }

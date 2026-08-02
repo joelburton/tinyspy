@@ -620,6 +620,18 @@ export type CommonGameListRow = {
   play_state: string
   is_terminal: boolean
   status: Record<string, unknown> | null
+  /**
+   * The frozen-at-create-time setup blob. Carried for the handful of labels
+   * that name a SETUP CHOICE rather than progress — waffle / wordle /
+   * stackdown all play very differently at different dictionary bands, so
+   * their status line ends `· dict "Familiar"`.
+   *
+   * It can't ride in `status`: `common.update_state` merges, but
+   * `common.reset_game` assigns, so a create-time key wouldn't survive a
+   * restart. `setup` is immutable and already on the row, so the listing
+   * query just selects it.
+   */
+  setup: Record<string, unknown> | null
 }
 
 /**

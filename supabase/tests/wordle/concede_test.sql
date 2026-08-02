@@ -19,7 +19,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(9);
+select plan(10);
 
 -- ─── A 2-player compete game (ada + bea) ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -88,6 +88,12 @@ select is(
 select is(
   (select status->>'winner' from common.games where id = (select id from g2)),
   null, 'no winner recorded when all conceded');
+-- The two ways a race ends with nobody winning used to be indistinguishable
+-- on the row (both wrote lost_compete with NO outcome key), so the club list
+-- couldn't tell "everyone burned their guesses" from "everyone walked away".
+select is(
+  (select status->>'outcome' from common.games where id = (select id from g2)),
+  'conceded', 'an all-conceded race is labelled conceded, not exhausted');
 
 -- ─── (4) concede is rejected in coop ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

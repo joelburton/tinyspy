@@ -313,3 +313,39 @@ test.describe('bananagrams new game', () => {
     await ctx.close()
   })
 })
+
+/**
+ * The whole-table End — bananagrams' second exit, added alongside per-player
+ * Concede in the 2026-08-01 status-line pass. The two are deliberately
+ * different acts: conceding is a LOSS on your record and it takes every player
+ * doing it to close a game the group has simply lost interest in; ending is the
+ * table agreeing there's no result.
+ *
+ * Asserted through the UI rather than the RPC because the wiring is the part
+ * that was missing (`buildGameMenu` offered End in coop only, and bananagrams
+ * is compete — it needs the opt-in `offerEndInCompete`).
+ */
+test.describe('bananagrams end game', () => {
+  test('the menu offers End alongside Concede, and it ends the table neutrally', async ({ browser }) => {
+    const club = await createSoloClub('bgend')
+    const game = await createBananagramsGame(club)
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.getByRole('button', { name: /Peel/ })).toBeVisible({ timeout: 20000 })
+
+    // Both exits present — the compete tail used to be Concede alone.
+    await page.getByRole('button', { name: 'Game menu' }).click()
+    await expect(page.getByRole('menuitem', { name: 'Concede game' })).toBeVisible()
+    await page.getByRole('menuitem', { name: 'End game' }).click()
+
+    // Irreversible, so it asks first (the shared END_GAME_CONFIRM modal).
+    await page.getByRole('button', { name: 'End game' }).click()
+
+    // Neutral terminal: the row offers New game + Back to club, and Peel is gone.
+    await expect(page.getByRole('button', { name: /New game/ })).toBeVisible({ timeout: 15000 })
+    await expect(page.getByRole('button', { name: /Peel/ })).toBeHidden()
+    await ctx.close()
+  })
+})

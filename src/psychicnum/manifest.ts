@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
+import { count, outcome, statusLine, tally, wonBy } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import { DEFAULT_PSYCHICNUM_SETUP, type PsychicnumSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -98,14 +99,35 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
 //
 // Each mode's labelFor handles its own play_state set; the
 // shared helper below covers what's identical between them.
-type StatusBlob = Record<string, unknown>
-// Mode is no longer prefixed (the card's <ModePill> shows it); this is
-// just the bare mid-game progress.
-function labelMidGame(row: { status: StatusBlob | null }) {
-  const s = (row.status ?? {}) as StatusBlob
-  const remaining = (s.guesses_remaining as number | undefined) ?? 0
-  const word = remaining === 1 ? 'guess' : 'guesses'
-  return `${remaining} ${word} left`
+type StatusBlob = {
+  guesses_remaining?: number
+  secrets_found?: number
+  total_secrets?: number
+  winner_username?: string
+  outcome?: string
+}
+
+/**
+ * The mid-game progress, COOP only. In compete every racer holds their own
+ * budget and hunts the same three secrets independently — `guesses_remaining`
+ * is the SUM across the table there (a 2-player game would read "10 guesses
+ * left"), and a shared found-count would tell you exactly how close your
+ * opponent is. This line is club-wide readable, so compete says nothing.
+ */
+function labelMidGame(s: StatusBlob) {
+  return statusLine(
+    outcome('Playing'),
+    tally(s.secrets_found, s.total_secrets, 'found'),
+    count(s.guesses_remaining, 'guess left', 'guesses left'),
+  )
+}
+
+/** Why a game ended with nobody finding the set (psychicnum's terminals). */
+const LOSS: Record<string, string> = {
+  exhausted: 'out of guesses',
+  lost_timeout: 'out of time',
+  lost_compete_timeout: 'out of time',
+  conceded: 'all conceded',
 }
 
 // Single source of truth for this game's user-facing brand name —
@@ -144,14 +166,21 @@ export const psychicnumCoopGame: GameManifest = {
 
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
-    if (row.play_state === 'playing') return labelMidGame(row)
-    if (row.play_state === 'won') {
-      const name = (s.winner_username as string | undefined) ?? 'someone'
-      return `won — ${name} guessed it`
+    const found = tally(s.secrets_found, s.total_secrets, 'found')
+    switch (row.play_state) {
+      case 'playing':
+        return labelMidGame(s)
+      case 'won':
+        // A team win, but naming who landed the third secret is the fun bit.
+        return statusLine(outcome('Won'), s.winner_username && `${s.winner_username} guessed it`)
+      case 'lost':
+        return statusLine(outcome('Lost', LOSS[s.outcome ?? ''] ?? null), found)
+      // 'ended' is the neutral manual-stop terminal (end_game).
+      case 'ended':
+        return statusLine(outcome('Ended'), found)
+      default:
+        return row.play_state
     }
-    // 'ended' is the neutral manual-stop terminal (end_game).
-    if (row.play_state === 'ended') return 'ended'
-    return 'lost'
   },
 
   submitTimeout,
@@ -185,14 +214,23 @@ export const psychicnumCompeteGame: GameManifest = {
 
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
-    if (row.play_state === 'playing') return labelMidGame(row)
-    if (row.play_state === 'won_compete') {
-      const name = (s.winner_username as string | undefined) ?? 'someone'
-      return `${name} won the race`
+    switch (row.play_state) {
+      // No progress: every racer's budget and finds are their own (see
+      // labelMidGame), and this line is readable by the whole club.
+      case 'playing':
+        return outcome('Playing')
+      case 'won_compete':
+        return wonBy(s.winner_username)
+      case 'lost_compete':
+        return s.outcome === 'conceded'
+          ? outcome('Lost', 'all conceded')
+          : statusLine(outcome('Lost', LOSS[s.outcome ?? ''] ?? null), 'no winner')
+      // 'ended' is the neutral manual-stop terminal (end_game).
+      case 'ended':
+        return outcome('Ended')
+      default:
+        return row.play_state
     }
-    // 'ended' is the neutral manual-stop terminal (end_game).
-    if (row.play_state === 'ended') return 'ended'
-    return 'time/budget out — no winner'
   },
 
   submitTimeout,

@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { CommonGameListRow, GameManifest } from '../common/lib/games'
 import { db } from './db'
+import { count, outcome, statusLine, wonBy } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import { DEFAULT_SCRABBLE_SETUP, validateScrabbleSetup, type ScrabbleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -56,31 +57,49 @@ const endGame = makeRpcDispatcher(db, 'end_game')
  *  "ended" for a manual stop, the winner's name or "tie" in compete, the final
  *  team score in coop. (All values come off `row.status`, written by the RPCs;
  *  the title separately carries the first words played.) */
+/**
+ * scrabble's club-page status line.
+ *
+ * Coop is the odd one: a table with no opponent can't really "win", so playing
+ * the bag out ('complete') and grinding to a halt on six scoreless turns
+ * ('blocked') are both a neutral score report — the SQL still writes them as
+ * `won`, and the label says `Ended`, because the number is the point. The one
+ * genuine coop loss is the clock.
+ */
 function labelFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
-    const st = row.status as {
-      team_score?: number
-      bag_count?: number
-      winner_username?: string | null
-    } | null
+    const s = (row.status ?? {}) as {
+      team_score?: number; bag_count?: number
+      winner_username?: string | null; winner_score?: number; outcome?: string
+    }
+    const score = s.team_score != null ? `${s.team_score} pts` : null
     switch (row.play_state) {
-      case 'ended':
-        return 'ended'
-      case 'won': // coop completion
-        return st?.team_score != null ? `${st.team_score} pts` : 'finished'
+      case 'playing':
+        return statusLine(
+          outcome('Playing'), mode === 'coop' ? score : null,
+          count(s.bag_count, 'tile left', 'tiles left'))
+      case 'won':
+        // Coop finished. Name HOW only when it wasn't the ordinary way.
+        return statusLine(outcome('Ended', COOP_END[s.outcome ?? ''] ?? null), score)
       case 'won_compete':
-        return st?.winner_username ? `won by ${st.winner_username}` : 'tie'
-      case 'lost': // compete: everyone conceded (collective loss, no winner)
-        return 'all conceded'
-      default: {
-        const left = st?.bag_count != null ? `${st.bag_count} tiles left` : ''
-        if (mode === 'coop' && st?.team_score != null) {
-          return left ? `${st.team_score} pts · ${left}` : `${st.team_score} pts`
-        }
-        return left || 'playing…'
-      }
+        return statusLine(wonBy(s.winner_username),
+                          s.winner_score != null ? `${s.winner_score} pts` : null)
+      case 'lost':
+        // Compete's all-conceded end, and coop's clock.
+        return s.outcome === 'conceded'
+          ? outcome('Lost', 'all conceded')
+          : statusLine(outcome('Lost', 'out of time'), score)
+      case 'ended':
+        return statusLine(outcome('Ended'), mode === 'coop' ? score : null)
+      default:
+        return row.play_state
     }
   }
+}
+
+/** How a coop table stopped, when it's worth naming (scrabble._finish). */
+const COOP_END: Record<string, string> = {
+  blocked: 'no moves left',
 }
 
 // Single source of truth for this game's user-facing brand name —

@@ -432,6 +432,7 @@ declare
   winner_id      uuid;
   player_results jsonb;
   term_state     text;
+  v_outcome      text;
   v_max          int;
 begin
   select max_guesses into v_max from wordle.games where id = target_game;
@@ -473,9 +474,25 @@ begin
 
   term_state := case when winner_id is not null
                      then 'won_compete' else 'lost_compete' end;
+
+  -- Why a no-winner race ended, for the club-list label: everyone burned their
+  -- guesses without solving it, versus everyone walked away. 'conceded' only
+  -- when EVERY player conceded — a mixed table (one quit, one ran out) is
+  -- 'exhausted', because somebody did play it to the end.
+  select case
+           when winner_id is not null then 'solved'
+           when not exists (select 1 from common.game_players gp
+                             where gp.game_id = target_game and not gp.conceded)
+             then 'conceded'
+           else 'exhausted'
+         end
+    into v_outcome;
+
   perform common.end_game(
     target_game, term_state,
-    jsonb_build_object('mode', 'compete', 'winner', winner_id, 'winner_username', (select username from common.profiles where user_id = winner_id)),
+    jsonb_build_object('mode', 'compete', 'outcome', v_outcome,
+                       'winner', winner_id,
+                       'winner_username', (select username from common.profiles where user_id = winner_id)),
     player_results
   );
   return true;
@@ -624,9 +641,13 @@ begin
         into player_results
         from common.game_players
        where game_id = target_game;
+      -- Every terminal write states its `outcome` explicitly: under the
+      -- merging common.end_game an omitted key inherits whatever was on the
+      -- row, so "no outcome" can't mean "solved normally".
       perform common.end_game(
         target_game, term_state,
         jsonb_build_object('mode', 'coop', 'solved', did_solve,
+                           'outcome', case when did_solve then 'solved' else 'exhausted' end,
                            'guesses_used', new_used, 'max_guesses', g_row.max_guesses),
         player_results
       );
@@ -637,6 +658,15 @@ begin
     -- game (a won/lost board leaves the pointer as-is at terminal).
     if not out_terminal then
       perform common._advance_turn(target_game);
+      -- Keep the club-list readout current. Only the guess COUNT moves, so
+      -- that's all this states — common.update_state merges.
+      --
+      -- Coop only: compete's guesses are private until the end-of-game reveal
+      -- and this column is club-wide readable, so a shared count would leak
+      -- how close an opponent is.
+      perform common.update_state(
+        target_game, 'playing',
+        jsonb_build_object('guesses_used', new_used));
     end if;
   else
     -- Compete: apply to the caller's own row only.

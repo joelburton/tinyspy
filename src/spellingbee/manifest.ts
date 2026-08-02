@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
+import { outcome, statusLine, tally, wonBy } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/manifestRpcs'
 import {
   DEFAULT_SPELLINGBEE_SETUP_COMPETE,
@@ -121,35 +122,34 @@ export const spellingbeeCoopGame: GameManifest = {
 
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
-    const foundScore = (s.found_words_score as number | undefined) ?? 0
-    const requiredScore = (s.required_words_score as number | undefined) ?? 0
-    const foundCount = (s.found_words_count as number | undefined) ?? 0
-    const requiredCount = (s.required_words_count as number | undefined) ?? 0
+    const pts = `${(s.found_words_score as number | undefined) ?? 0}/${(s.required_words_score as number | undefined) ?? 0} pts`
+    const words = tally(
+      s.found_words_count as number | undefined,
+      s.required_words_count as number | undefined, 'words')
 
-    if (row.play_state === 'playing') {
-      return `${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words`
-    }
     // Terminal coop outcomes: 'target' (the team reached the rank they set out
     // for — the only coop WIN), 'timeout' (countdown ran out) or 'manual'
     // (someone hit End game). Without a target there's still no auto-end at
     // 100%-found — players keep going past the displayed denominator (bonus
     // words climb the score past required_words_score, the Words counter past
     // required_words_count).
-    const outcome = s.outcome as string | undefined
-    if (outcome === 'target') {
-      const target = s.target_rank as number | undefined
-      return `won at ${RANKS[target ?? 6]} · ${foundScore}/${requiredScore} pts`
+    const rank = RANKS[(s.target_rank as number | undefined) ?? 6]
+    switch (row.play_state) {
+      case 'playing':
+        return statusLine(outcome('Playing'), pts, words)
+      case 'won':
+        // "Won at …" is one phrase, not two facts — no separator inside it.
+        return statusLine(`${outcome('Won')} at "${rank}"`, pts)
+      // Ran out WITH a target to hit. (Ran out with nothing to fail at is
+      // 'ended' below — the neutral close of an open hunt.)
+      case 'lost':
+        return statusLine(outcome('Lost', 'out of time'), pts, words)
+      case 'ended':
+        return statusLine(
+          outcome('Ended', (s.outcome as string) === 'timeout' ? 'out of time' : null), pts, words)
+      default:
+        return row.play_state
     }
-    if (outcome === 'timeout') {
-      // play_state distinguishes "ran out with a target to hit" (a loss) from
-      // "ran out with nothing to fail at" (the neutral end of an open hunt).
-      const lead = row.play_state === 'lost' ? 'lost · time up' : 'time up'
-      return `${lead} · ${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words`
-    }
-    if (outcome === 'manual') {
-      return `done · ${foundScore}/${requiredScore} pts · ${foundCount}/${requiredCount} words`
-    }
-    return `done · ${foundScore}/${requiredScore} pts`
   },
 
   submitTimeout,
@@ -190,28 +190,29 @@ export const spellingbeeCompeteGame: GameManifest = {
    */
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
-    const targetRank = (s.target_rank as number | undefined) ?? 0
-    const targetRankName = RANKS[targetRank] ?? '?'
+    const rank = RANKS[(s.target_rank as number | undefined) ?? 0] ?? '?'
 
-    if (row.play_state === 'playing') {
-      return `race to ${targetRankName}`
+    // The all-conceded terminal comes through common.concede as
+    // play_state='lost' + status {outcome:'conceded'} with NO target_rank, so
+    // it must be caught BEFORE anything that prints the rank — otherwise the
+    // rank falls back to 0 and the label reads the wrong "…at Start".
+    if ((s.outcome as string) === 'conceded') return outcome('Lost', 'all conceded')
+
+    switch (row.play_state) {
+      case 'playing':
+        return statusLine(outcome('Playing'), `race to "${rank}"`)
+      case 'won_compete':
+        return `${wonBy(s.winner_username as string | undefined)} at "${rank}"`
+      // The clock beat everyone to the rank — a real loss for the table.
+      case 'lost_compete':
+        return statusLine(outcome('Lost', 'out of time'), `nobody reached "${rank}"`)
+      case 'ended':
+        return statusLine(
+          outcome('Ended', (s.outcome as string) === 'timeout' ? 'out of time' : null),
+          `nobody reached "${rank}"`)
+      default:
+        return row.play_state
     }
-    if (row.play_state === 'won_compete') {
-      return `winner at ${targetRankName}`
-    }
-    // Terminal without a winner. The all-conceded terminal comes through
-    // common.concede as play_state='lost' + status {outcome:'conceded'} with NO
-    // target_rank, so it must be caught by outcome BEFORE the target-rank line
-    // below — otherwise `targetRank` falls to 0 and the label reads the wrong
-    // "no winner at Start".
-    const outcome = s.outcome as string | undefined
-    if (outcome === 'conceded') {
-      return 'all conceded'
-    }
-    if (outcome === 'timeout') {
-      return `time up · no winner at ${targetRankName}`
-    }
-    return `ended · no winner at ${targetRankName}`
   },
 
   submitTimeout,

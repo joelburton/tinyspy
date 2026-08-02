@@ -736,14 +736,16 @@ begin
         from common.game_players
        where game_id = target_game;
       terminal_state := 'lost';
-      terminal_outcome := 'lost';
+      -- The budget ran out. Named for what happened, not for the state it
+      -- lands in — the label distinguishes it from the timeout loss.
+      terminal_outcome := 'exhausted';
     else
       select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
         into player_results
         from common.game_players
        where game_id = target_game;
       terminal_state := 'lost_compete';
-      terminal_outcome := 'lost_compete';
+      terminal_outcome := 'exhausted';
     end if;
 
     perform common.end_game(
@@ -752,7 +754,16 @@ begin
       jsonb_build_object(
         'outcome', terminal_outcome,
         'guesses_used', initial_guesses
-      ),
+      )
+      -- Restate the team's tally: this guess may itself have found a secret
+      -- (a correct guess CAN be the one that empties the budget), and the
+      -- mid-game update_state below is never reached on a terminal guess, so
+      -- the merged-in value would otherwise be one behind.
+      || case when g.mode = 'coop'
+              then jsonb_build_object('secrets_found', found_count,
+                                      'total_secrets', total_secrets)
+              else '{}'::jsonb
+         end,
       player_results
     );
     return 'lost';
@@ -776,6 +787,16 @@ begin
            then caller_remaining - 1
            else total_remaining
       end)
+      -- How far along the team is, for the club-list readout. COOP ONLY: in
+      -- compete each racer hunts the same three secrets on their own, and this
+      -- column is club-wide readable, so a shared count would tell you exactly
+      -- how close your opponent is. `total_secrets` rides along so the label
+      -- can render "2/3" without knowing the rules.
+      || case when g.mode = 'coop'
+              then jsonb_build_object('secrets_found', found_count,
+                                      'total_secrets', total_secrets)
+              else '{}'::jsonb
+         end
   );
   return case when is_correct then 'correct' else 'wrong' end;
 end;
@@ -828,12 +849,19 @@ begin
   end if;
 
   -- Everyone out (exhausted or conceded), nobody completed the set → loss.
+  -- Which of the two it was is the club-list label's business: everyone burned
+  -- their budget, versus everyone walked away. 'conceded' only when EVERY
+  -- player conceded — a mixed table is 'exhausted', because somebody played
+  -- theirs out.
   select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
     into player_results
     from common.game_players where game_id = target_game;
   perform common.end_game(
     target_game, 'lost_compete',
-    jsonb_build_object('outcome', 'lost_compete'),
+    jsonb_build_object('outcome',
+      case when not exists (select 1 from common.game_players gp
+                             where gp.game_id = target_game and not gp.conceded)
+           then 'conceded' else 'exhausted' end),
     player_results
   );
 

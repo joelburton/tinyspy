@@ -1065,6 +1065,11 @@ begin
           'outcome', 'won_compete',
           'mode', 'compete',
           'winner_user_id', caller_id,
+          -- Named, not just id'd: the club-list label can't resolve a uuid
+          -- (labelFor is a pure function of this one row), and the
+          -- leaderboard it would otherwise dig through is privacy-scoped.
+          'winner_username', (select username from common.profiles
+                               where user_id = caller_id),
           'target_rank', current_target_rank,
           'leaderboard', player_results
         ),
@@ -1268,8 +1273,13 @@ begin
          group by gp.user_id
       ) p;
 
+    -- A compete race always has a target rank, so the clock beating everyone
+    -- to it is a real LOSS for the table — the same rule coop already applies
+    -- (see the coop branch's play_state), and the same rule boggle applies to
+    -- its score target. Only a game with nothing to reach ends neutrally.
     perform common.end_game(
-      target_game, 'ended',
+      target_game,
+      case when current_target_rank is not null then 'lost_compete' else 'ended' end,
       jsonb_build_object(
         'outcome', 'timeout',
         'mode', 'compete',

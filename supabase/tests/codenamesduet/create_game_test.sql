@@ -420,8 +420,12 @@ select is(
 -- can't pin the exact words; assert the shape (three dash-joined
 -- uppercase words) and that they're the ones actually on the board,
 -- in ascending order.
+-- Three parts, two dashes, all uppercase. NOT `^[A-Z]+-[A-Z]+-[A-Z]+$`: the
+-- pool holds multi-word entries ("BIG BANG", "ST.PATRICK"), so a per-part
+-- letters-only pattern fails on whichever draw happens to include one.
 select ok(
-  (select title ~ '^[A-Z]+-[A-Z]+-[A-Z]+$'
+  (select title = upper(title)
+      and length(title) - length(replace(title, '-', '')) = 2
      from common.games where id = (select id from created)),
   'create_game: title is three dash-joined uppercase words'
 );

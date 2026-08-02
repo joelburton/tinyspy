@@ -186,9 +186,12 @@ Two natural end triggers, plus the universal manual / timeout paths:
   leftover values**. Highest final score wins (`won_compete`); a tie crowns
   **co-winners** (all top-scorers get `{won: true}`).
 - **Coop:** leftover shared-rack values subtract from the team score; the final
-  number is reported. Coop has no opponent, so there's no "loss" — completion is
-  a neutral score report; a countdown that expires first just frames it as
-  "time's up" (gentle, not a punishment). **Manual end is NOT neutral in coop**:
+  number is reported. Coop has no opponent, so *finishing* isn't a "win" — playing
+  the bag out (`complete`) and grinding to a halt (`blocked`) are both a neutral
+  score report, written as `play_state='won'` and labelled `Ended · 152 pts`.
+  **The clock is the one way a coop table loses** (`play_state='lost'`): failing
+  to finish in time is a real failure to finish, which is how every other game on
+  the roster reads it. **Manual end is NOT neutral in coop**:
   ending with tiles still in hand forfeits their value from the team score
   (logged as a `'forfeit'` play, a red "−N tiles unplayed" in the log). This is
   deliberate — it pushes a solo/coop team to find plays for its last tiles

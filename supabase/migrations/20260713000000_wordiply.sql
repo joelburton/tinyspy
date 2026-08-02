@@ -741,6 +741,11 @@ begin
       'max_word_length', g_row.max_word_length,
       'outcome', outcome_label,
       'winner_user_id', winner_uid,
+      -- Named too: the club-list label is a pure function of this one row, so
+      -- it can't resolve a uuid, and the leaderboard it would otherwise scan
+      -- carries scores rather than names.
+      'winner_username', (select username from common.profiles
+                           where user_id = winner_uid),
       'leaderboard', status_leaderboard
     ),
     player_results

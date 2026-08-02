@@ -1500,6 +1500,24 @@ revoke execute on function common._require_turn(uuid, uuid) from public;
 -- foo.games row): the club-page listing needs to query play_state
 -- without joining to per-gametype tables. See docs/states.md →
 -- "Where the two tables sit."
+--
+-- `status` MERGES (`||`), it does not replace. A caller passes only the
+-- keys it is changing and everything else on the row survives. This is
+-- forget-proofing of the same kind as the last_active_at trigger: the
+-- replace-everything version silently DROPPED any key a later write
+-- forgot to repeat, and it did — codenamesduet seeded `greens_found` at
+-- create and the first `_end_turn` write erased it, so the club card
+-- could never show how many agents were found. Merging means "add a
+-- field to the listing label" is a one-line change at the one site that
+-- knows the value, not an edit to every write in the gametype.
+--
+-- The merge is shallow (jsonb `||` replaces a key wholesale, it doesn't
+-- deep-merge objects) — which is what we want: `leaderboard` arrays and
+-- nested blobs are replaced as a unit.
+--
+-- A RESTART must not merge: a replayed game has to shed the finished
+-- game's readouts entirely, so `common.reset_game` ASSIGNS the fresh
+-- status rather than calling through here.
 
 create function common.update_state(
   target_game uuid,
@@ -1513,11 +1531,13 @@ set search_path = common, public, extensions
 as $$
 begin
   -- last_active_at rides along automatically (games_touch_last_active).
-  update common.games
+  -- The status MERGE (see the header) — qualified as `games.status` to read
+  -- the row's current value, since the bare name is the parameter.
+  update common.games games
      set play_state = update_state.play_state,
-         status = update_state.status,
+         status = coalesce(games.status, '{}'::jsonb) || update_state.status,
          is_terminal = false
-   where id = target_game;
+   where games.id = target_game;
 
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
@@ -1582,12 +1602,18 @@ declare
 begin
   -- last_active_at rides along automatically (games_touch_last_active), so
   -- a finished game dates by its end time.
-  update common.games
-     set ended_at = coalesce(ended_at, now()),
+  --
+  -- `status` MERGES, exactly like common.update_state (see its header for the
+  -- why) — a terminal write states what the ENDING adds (the outcome, the
+  -- winner, a final tally) and the mid-game readouts the last move left on the
+  -- row survive underneath it. Qualified as `games.status` because the bare
+  -- name is the parameter.
+  update common.games games
+     set ended_at = coalesce(games.ended_at, now()),
          play_state = end_game.play_state,
          is_terminal = true,
-         status = end_game.status
-   where id = target_game;
+         status = coalesce(games.status, '{}'::jsonb) || end_game.status
+   where games.id = target_game;
 
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
@@ -1640,6 +1666,10 @@ security definer
 set search_path = common, public, extensions
 as $$
 begin
+  -- status ASSIGNS here, deliberately — unlike common.update_state, which
+  -- merges. A restart must shed every readout the finished game left behind
+  -- (a final score, a winner's name, an outcome), so the caller passes the
+  -- same fresh blob its create_game seeds and this overwrites wholesale.
   update common.games
      set play_state = 'playing',
          is_terminal = false,

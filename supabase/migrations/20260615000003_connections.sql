@@ -648,9 +648,18 @@ begin
   select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
     into player_results
     from common.game_players where game_id = target_game;
+
+  -- Two ways to reach here and they read very differently in the club list:
+  -- every racer hit four mistakes, or everyone walked away. This used to write
+  -- 'lost_compete_mistakes' unconditionally, which told a player who quit that
+  -- they'd lost on mistakes they never made. 'conceded' only when EVERY player
+  -- conceded — a mixed table is 'mistakes', because somebody did play it out.
   perform common.end_game(
     target_game, 'lost_compete',
-    jsonb_build_object('outcome', 'lost_compete_mistakes'),
+    jsonb_build_object('outcome',
+      case when not exists (select 1 from common.game_players gp
+                             where gp.game_id = target_game and not gp.conceded)
+           then 'lost_compete_conceded' else 'lost_compete_mistakes' end),
     player_results
   );
   return true;

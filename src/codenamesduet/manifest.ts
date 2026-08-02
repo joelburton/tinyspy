@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import { count, outcome, statusLine, tally } from '../common/lib/game/statusLabel'
 import { DEFAULT_CODENAMESDUET_SETUP, type CodenamesduetSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -103,7 +104,17 @@ export const codenamesduetGame: GameManifest = {
   // misses fall back to the raw play_state, so a future
   // play_state value renders something sensible until we add
   // its copy.
-  labelFor: (row) => STATUS_LABEL[row.play_state] ?? row.play_state,
+  labelFor: (row) => {
+    const st = (row.status ?? {}) as { greens_found?: number; turns_remaining?: number }
+    // The agent tally is the useful "should I come back to this?" fact, so it
+    // rides on every line. Mid-game the turn budget rides too.
+    const agents = tally(st.greens_found, 15, 'agents')
+    const verdict = STATUS_LABEL[row.play_state]
+    if (!verdict) return row.play_state
+    return row.play_state === 'playing'
+      ? statusLine(verdict, count(st.turns_remaining, 'turn left', 'turns left'), agents)
+      : statusLine(verdict, agents)
+  },
 
   // Called by common's GamePage when its countdown timer hits 0.
   // submit_timeout flips codenamesduet.games.status to 'lost_timeout' (distinct
@@ -118,15 +129,15 @@ export const codenamesduetGame: GameManifest = {
 // Per-play-state display strings codenamesduet owns — the common
 // ClubPage renders these verbatim. Other games define their own.
 const STATUS_LABEL: Record<string, string> = {
-  playing: 'in progress',
-  sudden_death: 'sudden death',
-  won: 'won',
-  lost_assassin: 'lost (assassin)',
+  playing: outcome('Playing'),
+  sudden_death: 'Sudden death',
+  won: outcome('Won'),
+  lost_assassin: outcome('Lost', 'assassin'),
   // "turns", not "tokens": the rulebook's physical timer-tokens are just
   // the turn budget, and "tokens" doesn't help a player who never holds one.
-  lost_clock: 'lost (ran out of turns)',
-  lost_timeout: 'lost (ran out of time)',
+  lost_clock: outcome('Lost', 'out of turns'),
+  lost_timeout: outcome('Lost', 'out of time'),
   // Manual end (codenamesduet.end_game): the friends stopped on purpose.
   // Neutral phrasing — not a loss.
-  ended: 'ended',
+  ended: outcome('Ended'),
 }

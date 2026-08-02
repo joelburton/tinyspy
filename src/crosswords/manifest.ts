@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { invokeStartGameEdgeFn, makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import { db } from './db'
+import { outcome, statusLine, wonBy } from '../common/lib/game/statusLabel'
 import { CROSSWORDS_DEFAULTS, type CrosswordsSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -93,22 +94,46 @@ const validate = (setup: unknown): string | null => {
 type StatusBlob = Record<string, unknown>
 
 /** Coop club-page label: the puzzle title, plus the terminal outcome. */
+/**
+ * crosswords coop. No progress readout and no puzzle name: the name is the
+ * game's TITLE, one line above on the same card, and a per-cell fill % would
+ * mean a `common.games` status write on every keystroke (see
+ * docs/game-status-labels.md).
+ */
 function coopLabel(row: { play_state: string; status: StatusBlob | null }): string {
-  const title = (row.status?.title as string | undefined) ?? 'Crossword'
-  if (row.play_state === 'playing') return title
-  if (row.play_state === 'won') return `${title} · solved`
-  return `${title} · ended`
+  switch (row.play_state) {
+    case 'playing':
+      return outcome('Playing')
+    case 'won':
+      return outcome('Won')
+    // The clock beating an unfinished grid is a real loss (submit_timeout).
+    case 'lost':
+      return outcome('Lost', 'out of time')
+    case 'ended':
+      return outcome('Ended')
+    default:
+      return row.play_state
+  }
 }
 
 /** Compete club-page label: rank-only, no per-player progress in the listing. */
 function competeLabel(row: { play_state: string; status: StatusBlob | null }): string {
-  const title = (row.status?.title as string | undefined) ?? 'Crossword'
-  if (row.play_state === 'playing') return `${title} · racing`
-  if (row.play_state === 'won_compete') {
-    const winner = row.status?.winner_username as string | undefined
-    return winner ? `${title} · ${winner} won` : `${title} · won`
+  const s = row.status ?? {}
+  switch (row.play_state) {
+    case 'playing':
+      return outcome('Playing')
+    case 'won_compete':
+      return wonBy(s.winner_username as string | undefined)
+    case 'lost_compete':
+      return statusLine(outcome('Lost', 'out of time'), 'no winner')
+    // A racer's own quit (common.concede) ends the table once the last one goes.
+    case 'lost':
+      return outcome('Lost', 'all conceded')
+    case 'ended':
+      return outcome('Ended')
+    default:
+      return row.play_state
   }
-  return `${title} · ended`
 }
 
 // The single source of truth for this game's user-facing brand name.

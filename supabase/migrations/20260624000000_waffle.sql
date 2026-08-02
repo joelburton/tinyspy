@@ -632,6 +632,7 @@ declare
   winner_id      uuid;
   player_results jsonb;
   term_state     text;
+  v_outcome      text;
   v_max          int;
 begin
   select max_swaps into v_max from waffle.games where id = target_game;
@@ -671,9 +672,27 @@ begin
 
   term_state := case when winner_id is not null
                      then 'won_compete' else 'lost_compete' end;
+
+  -- Why a no-winner race ended, for the club-list label. The two ways to get
+  -- here look identical on the row otherwise, and read very differently to a
+  -- player: everyone played their swaps out and nobody solved it, versus
+  -- everyone walked away. 'conceded' only when EVERY player conceded — a
+  -- mixed table (one quit, one ran out) is 'exhausted', because somebody did
+  -- play it to the end.
+  select case
+           when winner_id is not null then 'solved'
+           when not exists (select 1 from common.game_players gp
+                             where gp.game_id = target_game and not gp.conceded)
+             then 'conceded'
+           else 'exhausted'
+         end
+    into v_outcome;
+
   perform common.end_game(
     target_game, term_state,
-    jsonb_build_object('mode', 'compete', 'winner', winner_id, 'winner_username', (select username from common.profiles where user_id = winner_id)),
+    jsonb_build_object('mode', 'compete', 'outcome', v_outcome,
+                       'winner', winner_id,
+                       'winner_username', (select username from common.profiles where user_id = winner_id)),
     player_results
   );
 
@@ -819,9 +838,13 @@ begin
         into player_results
         from common.game_players
        where game_id = target_game;
+      -- Every terminal write states its `outcome` explicitly. Under the
+      -- merging common.end_game an omitted key would inherit whatever was on
+      -- the row, so "no outcome" is not a safe way to mean "solved normally".
       perform common.end_game(
         target_game, term_state,
         jsonb_build_object('mode', 'coop', 'solved', did_solve,
+                           'outcome', case when did_solve then 'solved' else 'exhausted' end,
                            'swaps_used', new_swaps, 'max_swaps', g_row.max_swaps),
         player_results
       );
@@ -832,6 +855,16 @@ begin
     -- puzzle or spent the last swap (the pointer is left as-is at terminal).
     if not out_terminal then
       perform common._advance_turn(target_game);
+      -- Keep the club-list readout current. Only the swap COUNT moves, so
+      -- that's all this states — common.update_state merges, so the rest of
+      -- the blob create_game seeded stays put.
+      --
+      -- Coop only: compete's boards are independent and private, and this
+      -- column is club-wide readable, so a shared "swaps used" would be both
+      -- meaningless (whose?) and a progress leak.
+      perform common.update_state(
+        target_game, 'playing',
+        jsonb_build_object('swaps_used', new_swaps));
     end if;
   else
     -- Compete: apply the swap to the caller's own row only.

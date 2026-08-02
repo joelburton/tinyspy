@@ -512,14 +512,22 @@ begin
      where id = g_id
      returning team_score into v_team_final;
 
-    select jsonb_object_agg(user_id::text, jsonb_build_object('won', true))
+    -- The clock is the only way a coop table can LOSE. Playing the bag out
+    -- ('complete') and grinding to a halt on six scoreless turns ('blocked')
+    -- are both legitimate finishes — nothing ran out, the tiles just stopped
+    -- scoring — so they stay a green score report. Running out of time is a
+    -- real failure to finish, which is how every other game reads it.
+    select jsonb_object_agg(user_id::text,
+                            jsonb_build_object('won', outcome <> 'timeout'))
       into player_results
       from common.game_players where game_id = g_id;
 
     v_status := jsonb_build_object('mode', 'coop', 'outcome', outcome,
                                    'team_score', v_team_final);
-    -- Coop is never a "loss"; a completed game is a green score report.
-    perform common.end_game(g_id, 'won', v_status, player_results);
+    perform common.end_game(
+      g_id,
+      case when outcome = 'timeout' then 'lost' else 'won' end,
+      v_status, player_results);
   else
     -- Subtract each player's own leftover tiles.
     update scrabble.players p
@@ -595,6 +603,10 @@ begin
       'winner', v_winner_user,        -- a HUMAN winner's uuid; null if AI won / tie
       'winner_seat', v_winner_seat,   -- the winning seat (human or AI); null on tie
       'winner_username', v_winner_name,
+      -- The winning score, for the club-list label. The leaderboard below
+      -- carries it too, but a label shouldn't have to scan an array to find
+      -- the number it wants to print.
+      'winner_score', v_max,
       'leaderboard', (select jsonb_agg(
                                jsonb_build_object('seat', seat, 'user_id', user_id,
                                                   'ai_level', ai_level, 'score', score)

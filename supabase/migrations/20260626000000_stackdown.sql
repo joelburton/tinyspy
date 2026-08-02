@@ -490,9 +490,21 @@ begin
         into player_results from common.game_players where game_id = target_game;
       perform common.end_game(
         target_game, 'won',
-        jsonb_build_object('mode', 'coop', 'solved', true),
+        jsonb_build_object('mode', 'coop', 'solved', true, 'found', team_found,
+                           'outcome', 'cleared'),
         player_results
       );
+    else
+      -- Keep the club-list readout current — `found` was seeded at create and
+      -- would otherwise sit at 0 all game. Only the count moves, so that's all
+      -- this states (common.update_state merges).
+      --
+      -- Coop only: a compete racer's found words are hidden from the others
+      -- (only their own count is theirs to see), and this column is club-wide
+      -- readable, so a shared tally would leak the leader's progress.
+      perform common.update_state(
+        target_game, 'playing',
+        jsonb_build_object('found', team_found));
     end if;
   else
     -- Compete is a RACE: the first to clear all six wins immediately.

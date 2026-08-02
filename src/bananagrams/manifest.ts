@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
+import { count, outcome, statusLine, wonBy } from '../common/lib/game/statusLabel'
 import {
   bunchSizeError,
   DEFAULT_BANANAGRAMS_SETUP,
@@ -90,21 +91,24 @@ export const bananagramsGame: GameManifest = {
   // terminals — a countdown timeout and an all-conceded race — told
   // apart by status.outcome.
   labelFor: (row) => {
-    if (row.play_state === 'playing') return 'in progress'
-    if (row.play_state === 'won') {
-      const s = (row.status ?? {}) as Record<string, unknown>
-      const name = (s.winner_username as string | undefined) ?? 'someone'
-      return `won — ${name} finished first`
+    const s = (row.status ?? {}) as { winner_username?: string; outcome?: string; bunch_remaining?: number }
+    switch (row.play_state) {
+      case 'playing':
+        // The bunch is the race's clock — it's what everyone is drawing down.
+        return statusLine(outcome('Playing'), count(s.bunch_remaining, 'tile in the bunch', 'tiles in the bunch'))
+      case 'won':
+        return wonBy(s.winner_username)
+      // No-winner terminals (submit_timeout / everyone conceded), both
+      // play_state 'lost'. status.outcome distinguishes them.
+      case 'lost':
+        return s.outcome === 'conceded'
+          ? outcome('Lost', 'all conceded')
+          : statusLine(outcome('Lost', 'out of time'), 'nobody finished')
+      case 'ended':
+        return outcome('Ended')
+      default:
+        return row.play_state
     }
-    // No-winner terminals (submit_timeout / everyone conceded), both
-    // play_state 'lost'. status.outcome distinguishes them.
-    if (row.play_state === 'lost') {
-      const s = (row.status ?? {}) as Record<string, unknown>
-      return s.outcome === 'conceded'
-        ? 'everyone conceded'
-        : "time's up — nobody finished"
-    }
-    return row.play_state
   },
 
   // Fired by GamePage when a chosen countdown hits 0. Ends the race as a
@@ -113,8 +117,10 @@ export const bananagramsGame: GameManifest = {
   // one-arg dispatcher (see common/lib/game/manifestRpcs).
   submitTimeout: makeRpcDispatcher(db, 'submit_timeout'),
 
-  // NO `endGame`: bananagrams has no whole-table "end the race now" — it retired
-  // that for per-player `concede` (drop out = a real loss; others keep racing).
-  // `endGame` is optional on the manifest, so the pause overlay just hides its
-  // End-game button here (Return-to-club/suspend stays as the escape).
+  // The whole-table stop, alongside per-player `concede`. They're different
+  // acts and bananagrams needs both: conceding is a LOSS on your record and it
+  // takes every player doing it to close a game the group has simply lost
+  // interest in. End is the group agreeing there's no result — nobody wins,
+  // nobody loses.
+  endGame: makeRpcDispatcher(db, 'end_game'),
 }

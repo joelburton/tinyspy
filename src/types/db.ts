@@ -128,6 +128,7 @@ export type Database = {
         }[]
       }
       dump: { Args: { target_game: string; tile: string }; Returns: undefined }
+      end_game: { Args: { target_game: string }; Returns: undefined }
       peel: { Args: { target_game: string }; Returns: Json }
       save_player_board: {
         Args: { board: string; target_game: string }
@@ -2646,6 +2647,10 @@ export type Database = {
         Returns: boolean
       }
       _color_rank: { Args: { c: string }; Returns: number }
+      _correct_words: {
+        Args: { board: string; solution: string }
+        Returns: string[]
+      }
       _maybe_finish_compete: { Args: { target_game: string }; Returns: boolean }
       _player_board_for: {
         Args: { g_id: string; row_user: string }
@@ -2656,6 +2661,18 @@ export type Database = {
         Returns: string
       }
       _solution_for: { Args: { g_id: string }; Returns: string }
+      _sync_title: { Args: { g_id: string }; Returns: undefined }
+      _title: {
+        Args: { placeholder: string; words: string[] }
+        Returns: string
+      }
+      _word_slots: {
+        Args: never
+        Returns: {
+          start1: number
+          stride: number
+        }[]
+      }
       compute_colors: {
         Args: { board: string; solution: string }
         Returns: string
@@ -3031,6 +3048,7 @@ export type Database = {
     }
     Functions: {
       _maybe_finish_compete: { Args: { target_game: string }; Returns: boolean }
+      _sync_title: { Args: { g_id: string }; Returns: undefined }
       _target_for: { Args: { g_id: string }; Returns: string }
       concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {

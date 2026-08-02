@@ -3,6 +3,7 @@ import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
+import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { CONCEDE_CONFIRM } from '../../common/hooks/game/useStandardGameActions'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
@@ -30,7 +31,7 @@ import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import shared from '../../common/components/game/PlayArea.module.css'
 import '../theme.css' // bananagrams tokens + the global drag-cursor rule
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
-import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog, NEW_GAME_CONFIRM, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 
 /**
  * bananagrams play surface (v3).
@@ -221,6 +222,26 @@ export function PlayArea(ctx: GamePageCtx) {
   // below (its End/Concede go through useStandardGameActions, which owns its
   // own). Render {confirmDialog} in the tree, as the other games do.
   const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+
+  // ─── End game — the whole table stops, with no result for anyone ────────
+  // The twin of Concede, and deliberately not the same thing: conceding is a
+  // loss on your record and it takes EVERY player doing it to close a game the
+  // group has just lost interest in. Confirmed through the styled modal (it's
+  // irreversible) using the shared END_GAME_CONFIRM copy, and held in a ref for
+  // the menu effect exactly like Concede above.
+  const handleEndGame = useCallback(async () => {
+    if (isTerminal) return
+    if (!(await confirmAction(END_GAME_CONFIRM))) return
+    const { error } = await db.rpc('end_game', { target_game: gameId })
+    if (error) {
+      showLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
+    }
+  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
+  const endGameRef = useRef<() => void>(() => {})
+  useEffect(() => {
+    endGameRef.current = () => void handleEndGame()
+  }, [handleEndGame])
+
   const newGameRef = useRef<() => void>(() => {})
   const handleNewGame = useCallback(async () => {
     // Starting a new game mid-play SHELVES this one (create_game clears the
@@ -291,9 +312,10 @@ export function PlayArea(ctx: GamePageCtx) {
         words,
       })
     }
-    // bananagrams is compete-only (no coop, no end_game): the tail item is
-    // always Concede. The concede thunk dispatches through the stable ref so
-    // this effect needn't depend on `handleConcede`'s identity.
+    // bananagrams is compete-only, so the tail leads with Concede — but it
+    // ALSO passes onEndGame, so the menu offers the whole-table stop beneath
+    // it (see buildGameMenu). Both thunks dispatch through stable refs so this
+    // effect needn't depend on their identities.
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -301,6 +323,8 @@ export function PlayArea(ctx: GamePageCtx) {
         isTerminal,
         conceded: myConceded,
         onConcede: () => concedeRef.current(),
+        onEndGame: () => endGameRef.current(),
+        offerEndInCompete: true,
         extra: [
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: doPrint }] },
           // The same action the terminal row offers, reachable mid-game too.
@@ -474,7 +498,13 @@ export function PlayArea(ctx: GamePageCtx) {
     // plus the way out, since the race running on is the whole point.
     <LocalTerminalRow label="You conceded" />
   ) : (
-    <ConcedeGameButton iconOnly onClick={() => void handleConcede()} className={shared.helperButton} />
+    // Both exits, side by side: End stops the table (no result for anyone),
+    // Concede drops just you (a loss, and the others race on). End sits first
+    // because it's the gentler of the two.
+    <>
+      <EndGameButton iconOnly onClick={() => void handleEndGame()} className={shared.helperButton} />
+      <ConcedeGameButton iconOnly onClick={() => void handleConcede()} className={shared.helperButton} />
+    </>
   )
 
   return (

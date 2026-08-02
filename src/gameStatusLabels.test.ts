@@ -42,6 +42,8 @@ type Case = [state: string, status: Record<string, unknown>, note: string]
  *  whatever the label's `?? 0` fallbacks invent. `shared` is for the mode-less games. */
 type Family = {
   playing: Record<string, unknown>
+  /** The game's frozen setup, for the labels that name a setup choice (`dict`). */
+  setup?: Record<string, unknown>
   shared?: Case[]
   coop?: Case[]
   compete?: Case[]
@@ -61,122 +63,200 @@ type Family = {
 const CASES: Record<string, Family> = {
   // No siblings — one manifest, one vocabulary.
   codenamesduet: {
-    playing: {},
+    playing: { greens_found: 12, turns_remaining: 5 },
     shared: [
-      ['sudden_death', {}, 'sudden death'],
-      ['won', {}, 'won'],
-      ['lost_assassin', {}, 'assassin'],
-      ['lost_clock', {}, 'out of turns'],
-      ['lost_timeout', {}, 'timeout'],
-      ['ended', {}, 'manual end'],
+      ['sudden_death', { greens_found: 12 }, 'sudden death'],
+      ['won', { greens_found: 15 }, 'won'],
+      ['lost_assassin', { greens_found: 12 }, 'assassin'],
+      ['lost_clock', { greens_found: 12 }, 'out of turns'],
+      ['lost_timeout', { greens_found: 12 }, 'timeout'],
+      ['ended', { greens_found: 12 }, 'manual end'],
     ],
   },
   psychicnum: {
-    playing: { guesses_remaining: 5 },
-    shared: [['ended', { outcome: 'manual' }, 'manual end']],
-    coop: [['won', W, 'found it'], ['lost', {}, 'out of guesses / time']],
-    compete: [['won_compete', W, 'won the race'], ['lost', {}, 'out of guesses / time']],
+    playing: { guesses_remaining: 5, secrets_found: 2, total_secrets: 3 },
+    shared: [['ended', { outcome: 'manual', secrets_found: 2, total_secrets: 3 }, 'manual end']],
+    coop: [
+      ['won', W, 'found it'],
+      ['lost', { outcome: 'exhausted', secrets_found: 2, total_secrets: 3 }, 'out of guesses'],
+      ['lost', { outcome: 'lost_timeout', secrets_found: 2, total_secrets: 3 }, 'timeout'],
+    ],
+    compete: [
+      ['won_compete', W, 'won the race'],
+      ['lost_compete', { outcome: 'exhausted' }, 'budgets exhausted'],
+      ['lost_compete', { outcome: 'lost_compete_timeout' }, 'timeout'],
+      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+    ],
   },
   connections: {
     playing: { matched_count: 2, mistake_count: 1 },
     shared: [['ended', { outcome: 'manual', matched_count: 2 }, 'manual end']],
     coop: [
       ['solved', { matched_count: 4, mistake_count: 1 }, 'solved'],
-      ['lost', { matched_count: 2 }, 'four mistakes'],
+      ['lost', { outcome: 'lost_mistakes', matched_count: 2 }, 'four mistakes'],
+      ['lost', { outcome: 'lost_timeout', matched_count: 2 }, 'timeout'],
     ],
     compete: [
       ['solved_compete', W, 'won the race'],
-      ['lost_compete', {}, 'no winner'],
+      ['lost_compete', { outcome: 'lost_compete_mistakes' }, 'everyone hit four mistakes'],
+      ['lost_compete', { outcome: 'lost_compete_timeout' }, 'timeout'],
+      ['lost_compete', { outcome: 'lost_compete_conceded' }, 'all conceded'],
     ],
   },
   spellingbee: {
     playing: { found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30, target_rank: 6 },
     coop: [
       ['won', { outcome: 'target', target_rank: 6, found_words_score: 47, required_words_score: 50 }, 'reached target'],
-      ['lost', { outcome: 'timeout', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout'],
+      ['lost', { outcome: 'timeout', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, target set'],
+      ['ended', { outcome: 'timeout', target_rank: null, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, no target'],
       ['ended', { outcome: 'manual', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'manual end'],
     ],
     compete: [
       ['won_compete', { target_rank: 6, ...W }, 'someone hit the target'],
-      ['ended', { outcome: 'timeout', target_rank: 6 }, 'timeout'],
       // end_game re-emits target_rank precisely so this doesn't read "at Start".
+      ['lost_compete', { outcome: 'timeout', target_rank: 6 }, 'timeout'],
       ['ended', { outcome: 'manual', target_rank: 6 }, 'manual end'],
-      ['ended', { outcome: 'conceded', target_rank: 6 }, 'all conceded'],
+      ['lost', { outcome: 'conceded' }, 'all conceded'],
     ],
   },
   wordwheel: {
     playing: { found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30, target_rank: 6 },
     coop: [
       ['won', { outcome: 'target', target_rank: 6, found_words_score: 47, required_words_score: 50 }, 'reached target'],
-      ['lost', { outcome: 'timeout', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout'],
+      ['lost', { outcome: 'timeout', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, target set'],
+      ['ended', { outcome: 'timeout', target_rank: null, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, no target'],
       ['ended', { outcome: 'manual', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'manual end'],
     ],
     compete: [
       ['won_compete', { target_rank: 6, ...W }, 'someone hit the target'],
-      ['ended', { outcome: 'timeout', target_rank: 6 }, 'timeout'],
+      ['lost_compete', { outcome: 'timeout', target_rank: 6 }, 'timeout'],
       ['ended', { outcome: 'manual', target_rank: 6 }, 'manual end'],
-      ['ended', { outcome: 'conceded', target_rank: 6 }, 'all conceded'],
+      ['lost', { outcome: 'conceded' }, 'all conceded'],
     ],
   },
-  // boggle only ever writes 'ended'; the OUTCOME carries the meaning.
+  // boggle's terminal state now depends on whether a TARGET was set —
+  // setup.win_percent, which the label reads off the row's setup.
   boggle: {
     playing: { found_words_count: 7, score: 21, leaderboard: [{}, {}] },
-    shared: [
-      ['ended', { outcome: 'target', found_words_count: 30, score: 90, ...W }, 'reached target'],
-      ['ended', { outcome: 'timeout', found_words_count: 7, score: 21 }, 'timeout'],
+    setup: { win_percent: 65 },
+    coop: [
+      ['won', { outcome: 'target', found_words_count: 30, score: 90 }, 'reached target'],
+      ['lost', { outcome: 'timeout', found_words_count: 7, score: 21 }, 'timeout, target set'],
+      ['ended', { outcome: 'timeout', found_words_count: 7, score: 21 }, 'timeout, no target'],
       ['ended', { outcome: 'manual', found_words_count: 7, score: 21 }, 'manual end'],
+    ],
+    compete: [
+      ['won_compete', { outcome: 'target', ...W }, 'reached target'],
+      ['won_compete', { outcome: 'timeout', top_score: 90, ...W }, 'top score at the buzzer (no target)'],
+      ['won_compete', { outcome: 'timeout', top_score: 90 }, 'tied top score (no target)'],
+      ['lost_compete', { outcome: 'timeout' }, 'timeout, target set'],
+      ['ended', { outcome: 'manual' }, 'manual end'],
+      ['lost', { outcome: 'conceded' }, 'all conceded'],
     ],
   },
   bananagrams: {
-    playing: {},
+    playing: { bunch_remaining: 12 },
     shared: [
       ['won', W, 'someone went out'],
       ['lost', { outcome: 'timeout' }, 'timeout'],
       ['lost', { outcome: 'conceded' }, 'all conceded'],
+      ['ended', { outcome: 'manual' }, 'manual end'],
     ],
   },
   waffle: {
-    playing: {},
-    shared: [['ended', { outcome: 'manual' }, 'manual end']],
-    coop: [['won', {}, 'solved'], ['lost', {}, 'out of swaps']],
-    compete: [['won_compete', W, 'someone won'], ['lost_compete', {}, 'no winner']],
+    playing: { swaps_used: 4, max_swaps: 12 },
+    setup: { difficulty: 3 },
+    shared: [
+      ['ended', { outcome: 'manual' }, 'manual end'],
+      ['ended', { outcome: 'revealed' }, 'answer revealed'],
+    ],
+    coop: [
+      ['won', { swaps_used: 9, max_swaps: 12 }, 'solved'],
+      ['lost', { outcome: 'exhausted' }, 'out of swaps'],
+      ['lost', { outcome: 'timeout' }, 'timeout'],
+    ],
+    compete: [
+      ['won_compete', { outcome: 'solved', swaps_used: 8, ...W }, 'someone won'],
+      ['lost_compete', { outcome: 'exhausted' }, 'everyone out of swaps'],
+      ['lost_compete', { outcome: 'timeout' }, 'timeout'],
+      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+    ],
   },
   wordle: {
-    playing: {},
-    shared: [['ended', { outcome: 'manual' }, 'manual end']],
-    coop: [['won', {}, 'solved'], ['lost', {}, 'out of guesses']],
-    compete: [['won_compete', W, 'someone won'], ['lost_compete', {}, 'no winner']],
+    playing: { guesses_used: 3, max_guesses: 6 },
+    setup: { answer_source: 0 },
+    shared: [
+      ['ended', { outcome: 'manual' }, 'manual end'],
+      ['ended', { outcome: 'revealed' }, 'answer revealed'],
+    ],
+    coop: [
+      ['won', { outcome: 'solved', guesses_used: 4, max_guesses: 6 }, 'solved'],
+      ['lost', { outcome: 'exhausted', guesses_used: 6, max_guesses: 6 }, 'out of guesses'],
+      ['lost', { outcome: 'timeout', guesses_used: 3, max_guesses: 6 }, 'timeout'],
+    ],
+    compete: [
+      ['won_compete', { outcome: 'solved', guesses_used: 4, ...W }, 'someone won'],
+      ['lost_compete', { outcome: 'exhausted' }, 'everyone out of guesses'],
+      ['lost_compete', { outcome: 'timeout' }, 'timeout'],
+      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+    ],
   },
   stackdown: {
-    playing: {},
-    shared: [['ended', { outcome: 'manual' }, 'manual end']],
-    coop: [['won', {}, 'cleared'], ['lost', {}, 'not cleared']],
-    compete: [['won_compete', W, 'someone won'], ['lost_compete', {}, 'no winner']],
+    playing: { found: 3, total: 6 },
+    setup: { band: 3 },
+    shared: [['ended', { outcome: 'manual', found: 3, total: 6 }, 'manual end']],
+    coop: [
+      ['won', { outcome: 'cleared', found: 6, total: 6 }, 'cleared'],
+      // The clock is stackdown's ONLY loss — no move budget, and every board
+      // is guaranteed clearable.
+      ['lost', { outcome: 'timeout', found: 3, total: 6 }, 'timeout'],
+    ],
+    compete: [
+      ['won_compete', W, 'someone won'],
+      ['lost_compete', { outcome: 'timeout' }, 'timeout'],
+      ['lost', { outcome: 'conceded' }, 'all conceded'],
+    ],
   },
   scrabble: {
     playing: { team_score: 152, bag_count: 7 },
-    shared: [['ended', { outcome: 'manual' }, 'manual end']],
-    coop: [['won', { team_score: 152 }, 'bag empty']],
-    compete: [['won_compete', W, 'highest score'], ['lost', {}, 'all conceded']],
+    shared: [['ended', { outcome: 'manual', team_score: 152 }, 'manual end']],
+    coop: [
+      ['won', { outcome: 'complete', team_score: 152 }, 'bag empty'],
+      ['won', { outcome: 'blocked', team_score: 152 }, 'six scoreless turns'],
+      ['lost', { outcome: 'timeout', team_score: 152 }, 'timeout'],
+    ],
+    compete: [
+      ['won_compete', { winner_score: 312, ...W }, 'highest score'],
+      ['lost', { outcome: 'conceded' }, 'all conceded'],
+    ],
   },
   crosswords: {
     playing: { title: 'Sun 2026-07-04' },
-    shared: [['ended', { title: 'Sun 2026-07-04', outcome: 'manual' }, 'manual end']],
-    coop: [['won', { title: 'Sun 2026-07-04' }, 'solved']],
-    compete: [['won_compete', { title: 'Sun 2026-07-04', ...W }, 'first to finish']],
+    shared: [['ended', { outcome: 'manual' }, 'manual end']],
+    coop: [
+      ['won', {}, 'solved'],
+      ['lost', { outcome: 'timeout' }, 'timeout'],
+    ],
+    compete: [
+      ['won_compete', W, 'first to finish'],
+      ['lost_compete', { outcome: 'timeout' }, 'timeout'],
+      ['lost', { outcome: 'conceded' }, 'all conceded'],
+    ],
   },
   // wordiply writes 'won_compete' only when a winner is picked; otherwise 'ended'.
   wordiply: {
     playing: { guesses_used: 2, leaderboard: [{ guesses_used: 2 }, { guesses_used: 3 }] },
     coop: [
-      ['ended', { length_score: 60, letter_count: 14, outcome: 'manual' }, 'guesses used / manual end'],
+      ['ended', { length_score: 60, letter_count: 14, outcome: 'complete' }, 'guesses used'],
       ['ended', { length_score: 60, letter_count: 14, outcome: 'timeout' }, 'timeout'],
+      ['ended', { length_score: 60, letter_count: 14, outcome: 'manual' }, 'manual end'],
     ],
     compete: [
-      ['won_compete', { leaderboard: [{ won: true, length_score: 60 }] }, 'one winner'],
+      ['won_compete', { leaderboard: [{ won: true, length_score: 60 }], ...W }, 'one winner'],
       ['won_compete', { leaderboard: [{ won: true, length_score: 60 }, { won: true, length_score: 60 }] }, 'co-winners'],
       ['ended', { outcome: 'conceded' }, 'all conceded'],
-      ['ended', {}, 'no winner'],
+      ['ended', { outcome: 'timeout' }, 'timeout, no winner'],
+      ['ended', { outcome: 'manual' }, 'manual end'],
     ],
   },
 }
@@ -186,8 +266,13 @@ function casesFor(mode: string | undefined, fam: Family): Case[] {
   return [...(fam.shared ?? []), ...(mode === 'compete' ? (fam.compete ?? []) : (fam.coop ?? []))]
 }
 
-const row = (gametype: string, state: string, status: Record<string, unknown>): CommonGameListRow => ({
-  id: 'g', gametype, play_state: state, is_terminal: state !== 'playing', status,
+const row = (
+  gametype: string,
+  state: string,
+  status: Record<string, unknown>,
+  setup: Record<string, unknown>,
+): CommonGameListRow => ({
+  id: 'g', gametype, play_state: state, is_terminal: state !== 'playing', status, setup,
 })
 
 /** The markdown table body, one `| game | state | message |` row per case. */
@@ -196,7 +281,8 @@ function buildTable(): string {
   for (const m of games) {
     const fam = CASES[m.baseGametype]
     if (!fam) throw new Error(`No CASES entry for ${m.baseGametype} — add one (see the docstring).`)
-    const label = (state: string, status: Record<string, unknown>) => m.labelFor(row(m.gametype, state, status))
+    const label = (state: string, status: Record<string, unknown>) =>
+      m.labelFor(row(m.gametype, state, status, fam.setup ?? {}))
     lines.push(`| **${m.gametype}** | playing | \`${label('playing', fam.playing)}\` |`)
     for (const [state, status, note] of casesFor(m.mode, fam)) {
       lines.push(`| | ${state} — ${note} | \`${label(state, status)}\` |`)
@@ -237,11 +323,12 @@ describe('game status labels', () => {
    * list — delete each line as that game's fallback is fixed**, and the test tightens by
    * itself. Adding to it should feel like a decision, not a fix.
    */
-  const UNKNOWN_READS_AS_LIVE = new Set([
-    'waffle_coop', 'waffle_compete',
-    'wordle_coop', 'wordle_compete',
-    'stackdown_coop', 'stackdown_compete',
-    'scrabble_coop', 'scrabble_compete',
+  const UNKNOWN_READS_AS_LIVE = new Set<string>([
+    // EMPTY, and worth keeping that way. All eight offenders (waffle, wordle,
+    // stackdown and scrabble, both modes) were fixed in the 2026-08-01 status-
+    // line pass: each label is now an exhaustive `switch` whose `default`
+    // returns the raw play_state, so an unrecognised state renders visibly
+    // wrong instead of quietly claiming the game is still live.
   ])
 
   it('no NEW game renders an unknown state as its in-progress label', () => {
@@ -250,8 +337,9 @@ describe('game status labels', () => {
     for (const m of games) {
       const fam = CASES[m.baseGametype]
       if (!fam) continue
-      const playing = m.labelFor(row(m.gametype, 'playing', fam.playing))
-      const unknown = m.labelFor(row(m.gametype, 'a_state_from_the_future', fam.playing))
+      const setup = fam.setup ?? {}
+      const playing = m.labelFor(row(m.gametype, 'playing', fam.playing, setup))
+      const unknown = m.labelFor(row(m.gametype, 'a_state_from_the_future', fam.playing, setup))
       const readsAsLive = unknown === playing
       if (readsAsLive && !UNKNOWN_READS_AS_LIVE.has(m.gametype)) {
         offenders.push(`${m.gametype} → "${unknown}"`)

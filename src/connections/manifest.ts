@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { GameManifest, Member, RichMessage } from '../common/lib/games'
 import { db } from './db'
+import { count, outcome, statusLine, tally, wonBy } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 // `game_players` and `profiles` live in the `common` schema, not `connections`,
 // so they must be read through the common-scoped client — the connections `db`
@@ -177,6 +178,13 @@ const endGame = makeRpcDispatcher(db, 'end_game')
 // Coop terminal labels are also derived from the same status keys.
 type StatusBlob = Record<string, unknown>
 
+/** Why a compete race ended with nobody solving it (connections' terminals). */
+const COMPETE_LOSS: Record<string, string> = {
+  lost_compete_timeout: 'out of time',
+  lost_compete_mistakes: '4 mistakes',
+  lost_compete_conceded: 'all conceded',
+}
+
 // The single source of truth for this game's user-facing brand name.
 // Both sibling manifests set `name: BRAND`, and the start-game error
 // reads it too — so a fork rebrands by editing this one line. The
@@ -213,17 +221,24 @@ export const connectionsCoopGame: GameManifest = {
     const s = (row.status ?? {}) as StatusBlob
     const matched = (s.matched_count as number | undefined) ?? 0
     const mistakes = (s.mistake_count as number | undefined) ?? 0
-    if (row.play_state === 'playing') {
-      return `${matched}/4 categories · ${mistakes}/4 mistakes`
+    // "groups", one noun throughout — the label used to say categories,
+    // matched and found in three different rows for the same thing.
+    const groups = tally(matched, 4, 'groups')
+    switch (row.play_state) {
+      case 'playing':
+        return statusLine(outcome('Playing'), groups, tally(mistakes, 4, 'mistakes'))
+      case 'solved':
+        // Solving means 4/4, so the mistakes are the story.
+        return statusLine(outcome('Won'), count(mistakes, 'mistake'))
+      case 'lost':
+        return statusLine(
+          outcome('Lost', s.outcome === 'lost_timeout' ? 'out of time' : '4 mistakes'), groups)
+      // Manual end (connections.end_game) — neutral, no win/loss framing.
+      case 'ended':
+        return statusLine(outcome('Ended'), groups)
+      default:
+        return row.play_state
     }
-    if (row.play_state === 'solved') {
-      return `solved · ${mistakes} mistakes`
-    }
-    // Manual end (connections.end_game) — neutral, no win/loss framing.
-    if (row.play_state === 'ended') {
-      return `${matched}/4 categories · ended`
-    }
-    return `lost · ${matched}/4 matched`
   },
 
   submitTimeout,
@@ -264,14 +279,24 @@ export const connectionsCompeteGame: GameManifest = {
   // "ada won the race." Mode itself is shown by the card's <ModePill>.
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
-    if (row.play_state === 'playing') return 'in progress'
-    if (row.play_state === 'solved_compete') {
-      const name = (s.winner_username as string | undefined) ?? 'someone'
-      return `${name} won the race`
+    switch (row.play_state) {
+      // No progress: each racer's matched/mistake counts are their own, and
+      // this line is readable by the whole club (the RPC deliberately writes
+      // an empty mid-game status in compete for the same reason).
+      case 'playing':
+        return outcome('Playing')
+      case 'solved_compete':
+        return wonBy(s.winner_username as string | undefined)
+      case 'lost_compete':
+        return (s.outcome as string) === 'lost_compete_conceded'
+          ? outcome('Lost', 'all conceded')
+          : statusLine(outcome('Lost', COMPETE_LOSS[(s.outcome as string) ?? ''] ?? null), 'no winner')
+      // Manual end (connections.end_game) — neutral, no winner.
+      case 'ended':
+        return outcome('Ended')
+      default:
+        return row.play_state
     }
-    // Manual end (connections.end_game) — neutral, no winner.
-    if (row.play_state === 'ended') return 'ended'
-    return 'time out — no winner'
   },
 
   submitTimeout,

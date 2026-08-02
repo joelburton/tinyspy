@@ -15,7 +15,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(6);
+select plan(7);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -52,6 +52,12 @@ select is(
 select is(
   (select status->>'winner' from common.games where id = (select id from g)),
   null, 'no winner when everyone conceded (a conceder forfeits)');
+-- The two ways a race ends with nobody winning used to be indistinguishable on
+-- the row (both wrote lost_compete with NO outcome key), so the club list
+-- couldn't tell "everyone spent their swaps" from "everyone walked away".
+select is(
+  (select status->>'outcome' from common.games where id = (select id from g)),
+  'conceded', 'an all-conceded race is labelled conceded, not exhausted');
 
 -- (3) coop concede rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

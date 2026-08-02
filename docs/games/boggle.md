@@ -285,8 +285,26 @@ game is terminal, then all.
 - **`_finish(target_game, outcome, winner_id default null)`** — the terminal
   transition. `outcome` ∈ `manual` / `timeout` / `target`; a `target` compete win
   passes the crosser as `winner_id` (they win outright, others lose regardless of
-  banked score). Coop has no per-player result; compete without a target ranks by
-  score.
+  banked score). Coop has no per-player result.
+
+  **The play_state depends on whether a TARGET was set** (`setup.win_percent`) —
+  boggle used to land every ending on the neutral `'ended'`, which made a reached
+  target and a give-up indistinguishable in the club list:
+
+  | | reached the target | clock ran out | manual End |
+  |---|---|---|---|
+  | **coop, target set** | `won` | `lost` | `ended` |
+  | **coop, no target** | — | `ended` | `ended` |
+  | **compete, target set** | `won_compete` (the crosser) | `lost_compete` — **nobody** wins, however high the scores got | `ended` |
+  | **compete, no target** | — | `won_compete`, the top non-conceded score (ties share it) | `ended` |
+
+  It's the rule spellingbee/wordwheel already apply to their rank target: a game
+  with something to reach can be won or lost against it; a game with nothing to
+  reach is an exercise, and any ending is neutral. A manual stop is always
+  neutral — the friends chose to stop, so nobody wins. A no-target score race
+  names its winner in `status.winner_username` (a tie leaves it null, and the
+  label reads "co-winners"), because the leaderboard is privacy-scoped and a
+  club-list label can't recompute it.
 - **`end_game` / `submit_timeout`** — flip the game terminal; `submit_timeout`
   mirrors spellingbee's timer-expiry handler. No reveal view: the FE renders the
   missed words from data it already holds. `end_game` is coop's manual stop.

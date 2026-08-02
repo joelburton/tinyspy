@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { CommonGameListRow, GameManifest } from '../common/lib/games'
 import { db } from './db'
+import { dictLabel, outcome, setupNum, statusLine, tally, wonBy } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import { DEFAULT_STACKDOWN_SETUP, type StackdownSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -62,23 +63,42 @@ const endGame = makeRpcDispatcher(db, 'end_game')
 /** One-line label for the ClubPage games list — pure + synchronous.
  *  The coop/compete mode is shown by the card's <ModePill>, so it's no
  *  longer prefixed here; `modeLabel` only picks the mid-game verb. */
-function labelFor(modeLabel: string) {
+/**
+ * stackdown's club-page status line. The dict band rides on every row — the
+ * words a stack is built from change the game's difficulty completely.
+ *
+ * Coop shows the word count (one shared board, so it's everyone's); compete
+ * doesn't — each racer's found words are hidden from the others, and this
+ * line is club-wide readable.
+ *
+ * Only ONE loss exists in either mode: the clock. There's no move budget, and
+ * the board invariant guarantees every stack is clearable.
+ */
+function labelFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
+    const s = (row.status ?? {}) as {
+      winner_username?: string; outcome?: string; found?: number; total?: number
+    }
+    const dict = dictLabel(setupNum(row.setup, 'band'))
+    const found = mode === 'coop' ? tally(s.found, s.total, 'words') : null
     switch (row.play_state) {
+      case 'playing':
+        return statusLine(outcome('Playing'), found, dict)
       case 'won':
-        return 'cleared'
-      case 'won_compete': {
-        const winner = (row.status as { winner_username?: string } | null)?.winner_username
-        return winner ? `won by ${winner}` : 'winner decided'
-      }
+        return statusLine(outcome('Won'), dict)
+      case 'won_compete':
+        return statusLine(wonBy(s.winner_username), dict)
       case 'lost':
-        return 'not cleared'
+        // Compete's all-conceded end (common.concede) lands here too.
+        return s.outcome === 'conceded'
+          ? outcome('Lost', 'all conceded')
+          : statusLine(outcome('Lost', 'out of time'), found, dict)
       case 'lost_compete':
-        return 'no winner'
+        return statusLine(outcome('Lost', 'out of time'), 'no winner')
       case 'ended':
-        return 'ended'
+        return statusLine(outcome('Ended'), found, dict)
       default:
-        return `${modeLabel === 'compete' ? 'racing' : 'stacking'}…`
+        return row.play_state
     }
   }
 }

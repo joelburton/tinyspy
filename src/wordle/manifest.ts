@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import type { CommonGameListRow, GameManifest } from '../common/lib/games'
 import { db } from './db'
+import { count, dictLabel, outcome, setupNum, statusLine, wonBy } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import { DEFAULT_WORDLE_SETUP, legalGuessError, type WordleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -63,25 +64,65 @@ const endGame = makeRpcDispatcher(db, 'end_game')
 /** One-line label for the ClubPage games list — pure + synchronous.
  *  The coop/compete mode is shown by the card's <ModePill>, so it's no
  *  longer prefixed here; `modeLabel` only picks the mid-game verb. */
-function labelFor(modeLabel: string) {
+/**
+ * wordle's club-page status line. The answer-source band rides on every row —
+ * a game drawn from the curated Wordle answer list plays very differently from
+ * one drawn from the "Expert" end of the dictionary.
+ *
+ * Coop shows the guess count; compete doesn't — guesses are private until the
+ * end-of-game reveal, and this line is club-wide readable.
+ */
+function labelFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
+    const s = (row.status ?? {}) as {
+      winner_username?: string; outcome?: string; guesses_used?: number; max_guesses?: number
+    }
+    const dict = answerSourceLabel(setupNum(row.setup, 'answer_source'))
+    const used =
+      mode === 'coop' && s.guesses_used != null && s.max_guesses != null
+        ? `${s.guesses_used}/${s.max_guesses} guesses`
+        : null
     switch (row.play_state) {
+      case 'playing':
+        return statusLine(outcome('Playing'), used, dict)
       case 'won':
-        return 'solved'
-      case 'won_compete': {
-        const winner = (row.status as { winner_username?: string } | null)?.winner_username
-        return winner ? `won by ${winner}` : 'winner decided'
-      }
+        return statusLine(outcome('Won'), used, dict)
+      case 'won_compete':
+        return statusLine(wonBy(s.winner_username), count(s.guesses_used, 'guess', 'guesses'), dict)
       case 'lost':
-        return 'not solved'
+        // The guess count is redundant once the reason IS "out of guesses".
+        return s.outcome === 'timeout'
+          ? statusLine(outcome('Lost', 'out of time'), used, dict)
+          : statusLine(outcome('Lost', 'out of guesses'), dict)
       case 'lost_compete':
-        return 'no winner'
+        // "all conceded" already says nobody won; the others need spelling out.
+        return s.outcome === 'conceded'
+          ? outcome('Lost', 'all conceded')
+          : statusLine(outcome('Lost', COMPETE_LOSS[s.outcome ?? ''] ?? null), 'no winner')
       case 'ended':
-        return 'ended'
+        return statusLine(outcome('Ended', s.outcome === 'revealed' ? 'answer revealed' : null), dict)
       default:
-        return `${modeLabel === 'compete' ? 'racing' : 'guessing'}…`
+        return row.play_state
     }
   }
+}
+
+/** Why a compete race ended with nobody winning (wordle._maybe_finish_compete). */
+const COMPETE_LOSS: Record<string, string> = {
+  timeout: 'out of time',
+  exhausted: 'out of guesses',
+  conceded: 'all conceded',
+}
+
+/**
+ * `setup.answer_source`: 0 is the curated NYT-Wordle answer list, 1..6 are the
+ * shared dictionary bands. Rendered in the same `dict "…"` slot the other
+ * band-sensitive games use, because to a player it answers the same question —
+ * how hard are the words here?
+ */
+function answerSourceLabel(source: number | null): string | null {
+  if (source === 0) return 'dict "Wordle"'
+  return dictLabel(source)
 }
 
 // Single source of truth for this game's user-facing brand name —

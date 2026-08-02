@@ -9,7 +9,7 @@
 
 begin;
 set search_path = boggle, common, public, extensions;
-select plan(14);
+select plan(22);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -72,6 +72,10 @@ select is((select is_terminal from common.games where id = (select id from gc)),
   'coop: reaching the target ends the game');
 select is((select status->>'outcome' from common.games where id = (select id from gc)), 'target',
   'coop: the terminal outcome is target');
+-- boggle used to land every ending on the neutral 'ended'. A game with a
+-- TARGET can now be won or lost against it, like spellingbee's rank target.
+select is((select play_state from common.games where id = (select id from gc)), 'won',
+  'coop: reaching the target is a WIN, not a neutral end');
 
 -- ── (3) COMPETE: first to cross wins the race ─────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -97,6 +101,8 @@ select is((select status->>'outcome' from common.games where id = (select id fro
   'compete: the terminal outcome is target');
 select is((select status->>'winner_id' from common.games where id = (select id from gp)),
   'ada11111-1111-1111-1111-111111111111', 'compete: the crosser is named as the winner');
+select is((select play_state from common.games where id = (select id from gp)), 'won_compete',
+  'compete: reaching the target is won_compete, not a neutral end');
 select is((select (result->>'won')::boolean from common.game_players
              where game_id = (select id from gp) and user_id = 'ada11111-1111-1111-1111-111111111111'),
   true, 'compete: the crosser won');
@@ -137,6 +143,74 @@ select boggle.submit_word((select id from gn), 'traces', 3, false);
 reset role; select set_config('request.jwt.claims', '', true);
 select is((select play_state from common.games where id = (select id from gn)), 'playing',
   'no target: finding everything does not auto-end the game');
+
+-- ── (5) The clock, with and without a target ─────────────────
+-- With a target, running out of time means the bar was never reached — a
+-- LOSS, the same rule spellingbee/wordwheel apply to their rank target. With
+-- no target there was nothing to fail, so the clock is just the neutral end
+-- of an exercise.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gto on commit drop as
+select * from boggle.create_game(
+  (select handle from club),
+  pg_temp.boggle_setup() || jsonb_build_object('win_percent', 50),
+  array['ada11111-1111-1111-1111-111111111111'::uuid],
+  'coop', pg_temp.boggle_board());
+select boggle.submit_timeout((select id from gto));
+reset role; select set_config('request.jwt.claims', '', true);
+select is((select play_state from common.games where id = (select id from gto)), 'lost',
+  'coop + target: the clock beating the target is a loss');
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gtn on commit drop as
+select * from boggle.create_game(
+  (select handle from club), pg_temp.boggle_setup(),   -- no win_percent
+  array['ada11111-1111-1111-1111-111111111111'::uuid],
+  'coop', pg_temp.boggle_board());
+select boggle.submit_timeout((select id from gtn));
+reset role; select set_config('request.jwt.claims', '', true);
+select is((select play_state from common.games where id = (select id from gtn)), 'ended',
+  'coop, no target: the clock is a neutral end — there was nothing to fail');
+
+-- ── (6) COMPETE, no target: the clock ranks by score ─────────
+-- Nothing to reach, so the highest non-conceded score takes it and the winner
+-- is NAMED (the leaderboard is privacy-scoped, so a label can't derive it).
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gcs on commit drop as
+select * from boggle.create_game(
+  (select handle from club), pg_temp.boggle_setup(),   -- no win_percent
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'compete', pg_temp.boggle_board());
+select boggle.submit_word((select id from gcs), 'traces', 3, false);   -- ada: 3
+reset role;
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select boggle.submit_word((select id from gcs), 'cat', 1, false);      -- bea: 1
+select boggle.submit_timeout((select id from gcs));
+reset role; select set_config('request.jwt.claims', '', true);
+select is((select play_state from common.games where id = (select id from gcs)), 'won_compete',
+  'compete, no target: the clock crowns the top score');
+select is((select status->>'winner_username' from common.games where id = (select id from gcs)),
+  'ada', 'compete, no target: the sole top scorer is named');
+
+-- ── (7) COMPETE + target: the clock means NOBODY reached it ──
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gct on commit drop as
+select * from boggle.create_game(
+  (select handle from club),
+  pg_temp.boggle_setup() || jsonb_build_object('win_percent', 50),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'compete', pg_temp.boggle_board());
+select boggle.submit_word((select id from gct), 'traces', 3, false);   -- below the 5-pt bar
+select boggle.submit_timeout((select id from gct));
+reset role; select set_config('request.jwt.claims', '', true);
+select is((select play_state from common.games where id = (select id from gct)), 'lost_compete',
+  'compete + target: the clock beating the bar is a loss for everyone');
+select is((select (result->>'won')::boolean from common.game_players
+             where game_id = (select id from gct)
+               and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  false, 'compete + target: the leading score does NOT win — nobody reached it');
 
 select * from finish();
 rollback;
