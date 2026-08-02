@@ -448,6 +448,12 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
 - `terminal_test` — coop `end_game` (→ `ended`/`manual`); coop timeout (the one coop
   loss); `replay_board` wipes guesses + un-terminals; `concede`, including the
   last-racer's concede resolving the race rather than hanging it.
+- `replay_test` — the dedicated replay suite (the shape every other replay game has).
+  Deliberately overlaps `terminal_test` §3's coop pass and adds what it doesn't reach:
+  the **compete** branch (`replay_board` hand-writes a zeroed per-player leaderboard —
+  nothing else exercises that jsonb), `is_terminal`, the shared clock zeroing, that the
+  terminal-only readouts (`length_score` …) do **not** survive into the fresh status,
+  and the non-player rejection pinned to `42501`.
 
 **Vitest** (`src/wordiply/`):
 - `setup.test` — `wordiplySetupError` (difficulty 1..6) + defaults.

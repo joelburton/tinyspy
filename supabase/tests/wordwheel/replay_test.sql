@@ -90,9 +90,10 @@ select is(
 
 -- ── Non-player rejected ─────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
+-- 42501 = common.require_game_player's 'not playing this game'.
 select throws_ok(
   format($$ select wordwheel.replay_board(%L::uuid) $$, (select id from g1)),
-  NULL, NULL, 'a non-player cannot replay the board');
+  '42501', NULL, 'a non-player cannot replay the board');
 
 select * from finish();
 rollback;
