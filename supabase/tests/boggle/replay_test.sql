@@ -54,8 +54,8 @@ select is(
   (select count(*) from boggle.found_words where game_id = (select id from g1)),
   0::bigint, 'replay → the found-words log is cleared');
 select is(
-  (select status->>'score' from common.games where id = (select id from g1)),
-  '0', 'replay → status.score reset to 0');
+  (select status->>'found_words_score' from common.games where id = (select id from g1)),
+  '0', 'replay → status.found_words_score reset to 0');
 select is(
   (select ticks from common.timers where game_id = (select id from g1)),
   0, 'replay → the shared clock is zeroed (a timed game restarts full)');

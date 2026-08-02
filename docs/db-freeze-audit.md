@@ -48,17 +48,6 @@ fixtures) — nothing asserts they agree.**
   comment arguing its case). Pick the rule — majority is "the clock only loses
   when there was a target to miss" — and record any surviving exception in
   states.md.
-- [ ] **A7. Smaller status-blob drift**, same pass:
-  - boggle writes `score` where spellingbee/wordwheel write `found_words_score`
-    (`…boggle:287` vs `…spellingbee:745`) — same word-game status shape otherwise.
-  - stackdown's bare `'found'`/`'total'` keys (`…stackdown:344`) — `total` is on
-    naming.md's generic watch list; siblings say `found_words_count`/
-    `required_words_count`.
-  - boggle's leaderboard element uses watch-listed bare `count` (`…boggle:521`);
-    the five leaderboard-writing games each have a different element shape —
-    worth at least a look.
-  - connections + psychicnum never seed `status` at create (NULL until the first
-    move); every other game seeds it. FE defends, but seed for consistency.
 - [ ] **A8. wordiply compete reaches `lost_compete` only by concede.** A1 gave it
   that state (every compete gametype's all-conceded end is `lost_compete` now),
   but the CLOCK still can't produce one: timeout-with-winner and

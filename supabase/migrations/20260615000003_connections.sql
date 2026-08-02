@@ -608,6 +608,20 @@ begin
   insert into connections.players (game_id, user_id)
   select new_id, uid from unnest(player_user_ids) as uid;
 
+  -- Seed the club-list readout, in the SAME shape submit_guess maintains.
+  -- Without this `status` stays NULL until the first guess. Coop carries the
+  -- 0/4 tallies; compete stays deliberately EMPTY — each racer's matched and
+  -- mistake counts are their own, and this column is club-wide readable, so
+  -- the compete writer publishes nothing either (see submit_guess).
+  perform common.update_state(
+    new_id,
+    'playing',
+    case when mode = 'coop'
+         then jsonb_build_object('matched_count', 0, 'mistake_count', 0)
+         else '{}'::jsonb
+    end
+  );
+
   return query select new_id;
 end;
 $$;

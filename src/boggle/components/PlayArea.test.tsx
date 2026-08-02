@@ -426,8 +426,8 @@ describe('boggle PlayArea — concede', () => {
           ],
           status: {
             leaderboard: [
-              { user_id: 'u2', count: 4, score: 12 },
-              { user_id: 'u3', count: 6, score: 40 },
+              { user_id: 'u2', found_words_count: 4, found_words_score: 12 },
+              { user_id: 'u3', found_words_count: 6, found_words_score: 40 },
             ],
           },
         })}

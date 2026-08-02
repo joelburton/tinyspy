@@ -388,7 +388,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // each peer's score (self reads the live local computation so it stays in lock
   // step with the state line above).
   const leaderboard = (status?.leaderboard as LeaderRow[] | undefined) ?? []
-  const scoreByUser = new Map(leaderboard.map((e) => [e.user_id, e.score]))
+  const scoreByUser = new Map(leaderboard.map((e) => [e.user_id, e.found_words_score]))
 
   const ladderLabel = ladder.charAt(0).toUpperCase() + ladder.slice(1)
   const diceLabel = DICE_BY_NAME[boggleSetup.dice_set]?.desc ?? `${game.n}×${game.n}`
@@ -484,7 +484,7 @@ export function PlayArea(ctx: GamePageCtx) {
 }
 
 type StatusBlob = Record<string, unknown>
-type LeaderRow = { user_id: string; count: number; score: number }
+type LeaderRow = { user_id: string; found_words_count: number; found_words_score: number }
 
 /**
  * Per-status terminal copy. A game ends three ways (`status.outcome`): a player
@@ -590,7 +590,7 @@ function buildOver({
   const board = ((status?.leaderboard as LeaderRow[] | undefined) ?? []).filter(
     (r) => !concededIds.has(r.user_id),
   )
-  const max = board.reduce((m, r) => Math.max(m, r.score), 0)
+  const max = board.reduce((m, r) => Math.max(m, r.found_words_score), 0)
   if (max === 0) {
     return {
       verdict: 'Ended: no words found',
@@ -605,7 +605,7 @@ function buildOver({
       tone: 'won',
     }
   }
-  const topRow = board.find((r) => r.score === max)
+  const topRow = board.find((r) => r.found_words_score === max)
   const topPlayer = players.find((p) => p.user_id === topRow?.user_id)
   const topName = topPlayer?.username ?? 'Someone'
   return {

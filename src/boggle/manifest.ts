@@ -61,7 +61,7 @@ type SetupBlob = Record<string, unknown> | null
 function coopLabel(row: { play_state: string; status: StatusBlob | null; setup: SetupBlob }): string {
   const s = row.status ?? {}
   const words = count(s.found_words_count as number | undefined, 'word')
-  const pts = `${(s.score as number | undefined) ?? 0} pts`
+  const pts = `${(s.found_words_score as number | undefined) ?? 0} pts`
   const pct = setupNum(row.setup, 'win_percent')
   switch (row.play_state) {
     case 'playing':

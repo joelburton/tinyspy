@@ -508,6 +508,26 @@ begin
   select new_id, uid, s_guesses
     from unnest(player_user_ids) as uid;
 
+  -- Seed the club-list readout, in the SAME shape submit_guess maintains.
+  -- Without this `status` stays NULL until the first guess and a brand-new
+  -- game reads as a bare "Playing" while every other game on the roster shows
+  -- its opening state. Coop carries the shared budget + the 0/N found tally;
+  -- compete carries only the SUMMED budget, because this column is club-wide
+  -- readable and a shared found-count would tell you how close your opponent
+  -- is (see the submit_guess writer for the same split).
+  perform common.update_state(
+    new_id,
+    'playing',
+    case when mode = 'coop'
+         then jsonb_build_object(
+                'guesses_remaining', s_guesses,
+                'secrets_found', 0,
+                'total_secrets', array_length(s_secrets, 1))
+         else jsonb_build_object(
+                'guesses_remaining', s_guesses * array_length(player_user_ids, 1))
+    end
+  );
+
   return query select new_id;
 end;
 $$;

@@ -19,7 +19,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(26);
+select plan(28);
 
 \ir ../_shared/setup.psql
 
@@ -352,6 +352,34 @@ select is(
   '3',
   'auto-saved default_setup carries the player''s last choice'
 );
+
+-- ============================================================
+-- Status is SEEDED at create (not left NULL until the first guess)
+-- ============================================================
+-- Every other game on the roster seeds its club-list readout at create; without
+-- this a brand-new psychicnum game rendered a bare "Playing". Coop carries the
+-- shared budget + the 0/N tally; compete carries only the SUMMED budget (a
+-- shared found-count would leak how close an opponent is).
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table seeded_coop on commit drop as
+  select id from psychicnum.create_game((select handle from club),
+    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+create temp table seeded_cmp on commit drop as
+  select id from psychicnum.create_game((select handle from club),
+    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+reset role;
+select is(
+  (select status from common.games where id = (select id from seeded_coop)),
+  '{"secrets_found": 0, "total_secrets": 3, "guesses_remaining": 7}'::jsonb,
+  'coop seeds the shared budget + the 0/3 found tally at create');
+select is(
+  (select status from common.games where id = (select id from seeded_cmp)),
+  '{"guesses_remaining": 14}'::jsonb,
+  'compete seeds only the SUMMED budget (2 players x 7) — no shared progress');
 
 -- ============================================================
 select * from finish();

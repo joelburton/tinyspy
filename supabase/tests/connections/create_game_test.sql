@@ -30,7 +30,7 @@ begin;
 
 set search_path = connections, common, public, extensions;
 
-select plan(27);
+select plan(29);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -391,6 +391,34 @@ select throws_ok(
   null,
   'create_game: rejects player_user_ids with > 6 entries (max 6)'
 );
+
+-- ============================================================
+-- Status is SEEDED at create (not left NULL until the first guess)
+-- ============================================================
+-- Coop seeds the 0/4 tallies the club-list label prints. Compete seeds an
+-- EMPTY object deliberately — each racer's matched/mistake counts are their
+-- own and this column is club-wide readable, so the compete writer publishes
+-- nothing either. The point is that `status` is never NULL.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table seeded_coop on commit drop as
+  select id from connections.create_game((select handle from club),
+    pg_temp.connections_setup((select id from puzzle)),
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+create temp table seeded_cmp on commit drop as
+  select id from connections.create_game((select handle from club),
+    pg_temp.connections_setup((select id from puzzle)),
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+reset role;
+select is(
+  (select status from common.games where id = (select id from seeded_coop)),
+  '{"matched_count": 0, "mistake_count": 0}'::jsonb,
+  'coop seeds the 0/4 tallies at create');
+select is(
+  (select status from common.games where id = (select id from seeded_cmp)),
+  '{}'::jsonb,
+  'compete seeds an empty (but non-NULL) status — no per-racer progress leaks');
 
 -- ============================================================
 select * from finish();

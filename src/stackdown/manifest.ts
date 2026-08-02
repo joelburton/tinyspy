@@ -77,10 +77,11 @@ const endGame = makeRpcDispatcher(db, 'end_game')
 function labelFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
     const s = (row.status ?? {}) as {
-      winner_username?: string; outcome?: string; found?: number; total?: number
+      winner_username?: string; outcome?: string
+      found_words_count?: number; required_words_count?: number
     }
     const dict = dictLabel(setupNum(row.setup, 'band'))
-    const found = mode === 'coop' ? tally(s.found, s.total, 'words') : null
+    const found = mode === 'coop' ? tally(s.found_words_count, s.required_words_count, 'words') : null
     switch (row.play_state) {
       case 'playing':
         return statusLine(outcome('Playing'), found, dict)

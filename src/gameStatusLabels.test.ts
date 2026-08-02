@@ -137,13 +137,13 @@ const CASES: Record<string, Family> = {
   // boggle's terminal state now depends on whether a TARGET was set —
   // setup.win_percent, which the label reads off the row's setup.
   boggle: {
-    playing: { found_words_count: 7, score: 21, leaderboard: [{}, {}] },
+    playing: { found_words_count: 7, found_words_score: 21, leaderboard: [{}, {}] },
     setup: { win_percent: 65 },
     coop: [
-      ['won', { outcome: 'target', found_words_count: 30, score: 90 }, 'reached target'],
-      ['lost', { outcome: 'timeout', found_words_count: 7, score: 21 }, 'timeout, target set'],
-      ['ended', { outcome: 'timeout', found_words_count: 7, score: 21 }, 'timeout, no target'],
-      ['ended', { outcome: 'manual', found_words_count: 7, score: 21 }, 'manual end'],
+      ['won', { outcome: 'target', found_words_count: 30, found_words_score: 90 }, 'reached target'],
+      ['lost', { outcome: 'timeout', found_words_count: 7, found_words_score: 21 }, 'timeout, target set'],
+      ['ended', { outcome: 'timeout', found_words_count: 7, found_words_score: 21 }, 'timeout, no target'],
+      ['ended', { outcome: 'manual', found_words_count: 7, found_words_score: 21 }, 'manual end'],
     ],
     compete: [
       ['won_compete', { outcome: 'target', ...W }, 'reached target'],
@@ -202,14 +202,14 @@ const CASES: Record<string, Family> = {
     ],
   },
   stackdown: {
-    playing: { found: 3, total: 6 },
+    playing: { found_words_count: 3, required_words_count: 6 },
     setup: { band: 3 },
-    shared: [['ended', { outcome: 'manual', found: 3, total: 6 }, 'manual end']],
+    shared: [['ended', { outcome: 'manual', found_words_count: 3, required_words_count: 6 }, 'manual end']],
     coop: [
-      ['won', { outcome: 'cleared', found: 6, total: 6 }, 'cleared'],
+      ['won', { outcome: 'cleared', found_words_count: 6, required_words_count: 6 }, 'cleared'],
       // The clock is stackdown's ONLY loss — no move budget, and every board
       // is guaranteed clearable.
-      ['lost', { outcome: 'timeout', found: 3, total: 6 }, 'timeout'],
+      ['lost', { outcome: 'timeout', found_words_count: 3, required_words_count: 6 }, 'timeout'],
     ],
     compete: [
       ['won_compete', W, 'someone won'],

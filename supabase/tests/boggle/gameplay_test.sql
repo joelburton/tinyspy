@@ -40,8 +40,8 @@ select is((select count(*) from boggle.found_words where game_id = (select id fr
   1::bigint, 'accepted word inserts one found_words row');
 select is((select (status->>'found_words_count')::int from common.games where id = (select id from g)),
   1, 'status.found_words_count refreshed to 1');
-select is((select (status->>'score')::int from common.games where id = (select id from g)),
-  1, 'status.score refreshed to 1');
+select is((select (status->>'found_words_score')::int from common.games where id = (select id from g)),
+  1, 'status.found_words_score refreshed to 1');
 
 -- ── (2) coop dedup: same word by anyone is alreadyFound ───
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

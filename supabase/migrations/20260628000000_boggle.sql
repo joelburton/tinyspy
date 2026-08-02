@@ -284,7 +284,7 @@ begin
   -- ─── Seed common.games.status for the club-page label ────
   if mode = 'coop' then
     perform common.update_state(new_id, 'playing', jsonb_build_object(
-      'mode', 'coop', 'found_words_count', 0, 'score', 0,
+      'mode', 'coop', 'found_words_count', 0, 'found_words_score', 0,
       'required_words_count', b_required_count, 'required_words_score', b_required_score
     ));
   else
@@ -326,13 +326,15 @@ begin
     select count(*), coalesce(sum(points), 0) into fc, fs
       from boggle.found_words where game_id = target_game;
     perform common.update_state(target_game, 'playing', jsonb_build_object(
-      'mode', 'coop', 'found_words_count', fc, 'score', fs,
+      'mode', 'coop', 'found_words_count', fc, 'found_words_score', fs,
       'required_words_count', g_req_count, 'required_words_score', g_req_score
     ));
   else
     select coalesce(jsonb_agg(row order by score desc), '[]'::jsonb) into lb
       from (
-        select jsonb_build_object('user_id', user_id, 'count', count(*), 'score', sum(points)) as row,
+        select jsonb_build_object('user_id', user_id,
+                                  'found_words_count', count(*),
+                                  'found_words_score', sum(points)) as row,
                sum(points) as score
           from boggle.found_words where game_id = target_game
          group by user_id
@@ -500,7 +502,7 @@ begin
       from boggle.found_words where game_id = target_game;
     final_status := jsonb_build_object(
       'mode', 'coop', 'outcome', outcome,
-      'found_words_count', fc, 'score', fs,
+      'found_words_count', fc, 'found_words_score', fs,
       'required_words_count', g_req_count, 'required_words_score', g_req_score
     );
     results := null; -- coop is a team effort; no per-player result
@@ -518,7 +520,9 @@ begin
   else
     -- Leaderboard over ALL players (the final scoreboard still shows a
     -- conceder's banked score; the FE marks them "Quit").
-    select coalesce(jsonb_agg(jsonb_build_object('user_id', user_id, 'count', cnt, 'score', sc)
+    select coalesce(jsonb_agg(jsonb_build_object('user_id', user_id,
+                                              'found_words_count', cnt,
+                                              'found_words_score', sc)
                               order by sc desc), '[]'::jsonb)
       into lb
       from (
@@ -676,7 +680,7 @@ begin
   -- The fresh initial status — the exact shapes create_game seeds.
   if g_row.mode = 'coop' then
     new_status := jsonb_build_object(
-      'mode', 'coop', 'found_words_count', 0, 'score', 0,
+      'mode', 'coop', 'found_words_count', 0, 'found_words_score', 0,
       'required_words_count', g_row.required_words_count,
       'required_words_score', g_row.required_words_score
     );

@@ -72,7 +72,7 @@ select is(
   (select ended_at from common.games where id = (select id from g1)),
   null, 'coop: replay → ended_at cleared');
 select is(
-  (select (status->>'found')::int from common.games where id = (select id from g1)),
+  (select (status->>'found_words_count')::int from common.games where id = (select id from g1)),
   0, 'coop: replay → status.found reset to 0');
 select is(
   (select title from common.games where id = (select id from g1)),

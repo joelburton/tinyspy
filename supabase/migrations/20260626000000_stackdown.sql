@@ -341,7 +341,7 @@ begin
 
   perform common.update_state(
     new_id, 'playing',
-    jsonb_build_object('mode', mode, 'found', 0, 'total', 6)
+    jsonb_build_object('mode', mode, 'found_words_count', 0, 'required_words_count', 6)
   );
 
   return query select new_id;
@@ -490,12 +490,12 @@ begin
         into player_results from common.game_players where game_id = target_game;
       perform common.end_game(
         target_game, 'won',
-        jsonb_build_object('mode', 'coop', 'solved', true, 'found', team_found,
+        jsonb_build_object('mode', 'coop', 'solved', true, 'found_words_count', team_found,
                            'outcome', 'cleared'),
         player_results
       );
     else
-      -- Keep the club-list readout current — `found` was seeded at create and
+      -- Keep the club-list readout current — the count was seeded at create and
       -- would otherwise sit at 0 all game. Only the count moves, so that's all
       -- this states (common.update_state merges).
       --
@@ -504,7 +504,7 @@ begin
       -- readable, so a shared tally would leak the leader's progress.
       perform common.update_state(
         target_game, 'playing',
-        jsonb_build_object('found', team_found));
+        jsonb_build_object('found_words_count', team_found));
     end if;
   else
     -- Compete is a RACE: the first to clear all six wins immediately.
@@ -871,7 +871,7 @@ begin
 
   perform common.reset_game(
     target_game,
-    jsonb_build_object('mode', g_row.mode, 'found', 0, 'total', 6)
+    jsonb_build_object('mode', g_row.mode, 'found_words_count', 0, 'required_words_count', 6)
   );
 end;
 $$;
