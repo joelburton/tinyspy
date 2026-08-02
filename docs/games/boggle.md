@@ -432,7 +432,7 @@ the coop neutral end "Ended: 12 words, 34 points"; the nobody-scored compete rac
 
 **Mobile status block.** Below `--mobile` the info column moves off-canvas, taking
 the Stats grid with it — so `BoardCol` renders the SAME `<Stats>` above the tray in
-the shared `<MobileStatusBar>` ([mobile.md](../mobile.md#the-mobile-status-bar-—-core-state-above-the-board)).
+the shared `<MobileStatusBar>` ([mobile.md](../mobile.md#the-mobile-status-bar--core-state-above-the-board)).
 One `stats` object feeds both surfaces, so they can't drift; its `4rem` is
 subtracted from `--avail-h` so the board shrinks to match and the page still
 doesn't scroll.

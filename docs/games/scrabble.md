@@ -561,7 +561,7 @@ state stays on the play surface via the shared `<MobileStatusBar>` above the
 board — scrabble's `StateLine` ("Your turn · 7 in bag" / "Turn: ● moth · 7 in
 bag" / coop's "Team score: 152 · 7 in bag"), the same component the info
 column's state readout renders, so the two can't drift
-([mobile.md → The mobile status bar](../mobile.md#the-mobile-status-bar-—-core-state-above-the-board)).
+([mobile.md → The mobile status bar](../mobile.md#the-mobile-status-bar--core-state-above-the-board)).
 This is a
 **layout for keyboard-attached devices, not a touch-entry mode** — drag gets no
 touch support; play is the keyboard cursor (tap a square, type). One phone-only

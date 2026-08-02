@@ -427,7 +427,7 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   The swap tally is the shared **`StateLine`** ("Swaps 3/12 (9 left) · Par 10"),
   which `BoardCol` also renders above the board in the shared `<MobileStatusBar>`
   below `--mobile`, where the info column is off-canvas
-  ([mobile.md → The mobile status bar](../mobile.md#the-mobile-status-bar-—-core-state-above-the-board)).
+  ([mobile.md → The mobile status bar](../mobile.md#the-mobile-status-bar--core-state-above-the-board)).
   **`SolutionReveal`** is the **progressive answer reveal**: the six words (3
   across, 3 down), each shown once the caller has turned it fully green (every tile
   correct) on their own board, else an em dash. It's shown *throughout* the game,

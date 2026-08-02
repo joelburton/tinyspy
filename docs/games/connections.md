@@ -319,7 +319,7 @@ clears the selection. The setup dialog surfaces a rich roster-mismatch error
 connections follows the shared info-sheet recipe below `--mobile` (board fills,
 info column off-canvas), but it **deliberately does not** render the shared
 `<MobileStatusBar>` that codenamesduet uses to put its info-column state readout
-above the board ([mobile.md → The mobile status bar](../mobile.md#the-mobile-status-bar-—-core-state-above-the-board)).
+above the board ([mobile.md → The mobile status bar](../mobile.md#the-mobile-status-bar--core-state-above-the-board)).
 Its two numbers are already on the play surface: **categories found** is
 self-evident — each solve becomes a full-width colored band above the remaining
 tiles, so you can just look — and **mistakes** live in the below-board row as

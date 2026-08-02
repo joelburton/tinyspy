@@ -58,7 +58,7 @@ Two operational invariants ride on this:
 - **`max_rows = 10000`** (config.toml): PostgREST silently caps every
   response at this many rows. It's a backstop against a missing-filter
   bug fetching a whole seed table, not a license to skip `.limit()` —
-  see [Query bounds](#query-bounds-and-the-max_rows-trap). Set above the
+  see [Query bounds](#query-bounds--and-the-max_rows-trap). Set above the
   1000 default so the connections puzzle picker (1122 dated rows) isn't
   truncated and every legitimately-growing query has years of headroom.
   Two gotchas (both in the config.toml comment): applied only at
