@@ -925,6 +925,7 @@ as $$
    order by random()
    limit 1
 $$;
+revoke execute on function psychicnum._unfound_secret(psychicnum.games, uuid) from public;
 
 -- ============================================================
 -- psychicnum.request_reveal — show an answer (a secret word)

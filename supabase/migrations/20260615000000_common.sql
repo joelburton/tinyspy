@@ -231,6 +231,7 @@ as $$
     from common.gametypes
    where target_handle not like '=%' or min_players <= 1
 $$;
+revoke execute on function common.default_gametypes_for_club(text) from public;
 
 -- ============================================================
 -- common.games — the universal game record (header)
@@ -396,6 +397,7 @@ begin
   return new;
 end;
 $$;
+revoke execute on function common.touch_games_last_active() from public;
 
 create trigger games_touch_last_active
   before update on common.games
@@ -583,6 +585,11 @@ as $$
     where club_handle = target_club and user_id = auth.uid()
   );
 $$;
+-- GRANTED to authenticated: every gametype's RLS policy calls this
+-- (`using (common.is_club_member(club_handle))`), and a policy runs as the
+-- INVOKER — so without the grant every club-scoped select fails outright.
+revoke execute on function common.is_club_member(text) from public;
+grant execute on function common.is_club_member(text) to authenticated;
 
 -- INTENTIONAL: any signed-in user can read any profile. Username
 -- is public; there's no sensitive data on profiles today. Required
@@ -729,6 +736,7 @@ begin
   return new;
 end;
 $$;
+revoke execute on function common._bump_scratchpad_version() from public;
 
 create trigger game_scratchpads_bump_version
   before update on common.game_scratchpads
@@ -871,6 +879,7 @@ as $$
     1, 40
   );
 $$;
+revoke execute on function common.slugify_club_name(text) from public;
 
 -- ============================================================
 -- common.color_for_username — deterministic palette pick
@@ -906,6 +915,7 @@ as $$
     'red', 'orange', 'yellow', 'green', 'brown', 'blue', 'purple', 'pink'
   ])[(abs(hashtext(username)) % 8) + 1];
 $$;
+revoke execute on function common.color_for_username(text) from public;
 
 -- ============================================================
 -- Helpers for game RPCs
@@ -1196,6 +1206,7 @@ begin
   return array_to_string(res, '');
 end;
 $$;
+revoke execute on function common.wordle_colors(text, text) from public;
 
 create function common.create_game(
   target_club text,
@@ -1828,6 +1839,7 @@ begin
   );
 end;
 $$;
+revoke execute on function common.concede(uuid) from public;
 
 grant execute on function common.concede(uuid) to authenticated;
 
@@ -2485,6 +2497,10 @@ as $$
     from regexp_split_to_table(w, '') as ch
    where ch between 'a' and 'z';
 $$;
+-- GRANTED to authenticated: read through security_invoker views (the
+-- letter-mask filter the word games' pickers use), so the caller needs it.
+revoke execute on function common.word_letter_mask(text) from public;
+grant execute on function common.word_letter_mask(text) to authenticated;
 
 create table common.words (
   word              text primary key,        -- lowercase a-z, the playable form

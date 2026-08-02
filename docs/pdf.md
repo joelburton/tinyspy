@@ -149,7 +149,7 @@ generator (`generateSolutionPdf`, `src/crosswords/pdf/solution.ts`) was **ported
 it shares the puzzle printer's title + grid geometry but fills every open cell with the
 canonical solution letter. Unlike the puzzle printer (which the FE builds offline from
 the template it already holds), the answer key needs the shielded solution, so the caller
-fetches it via the `crosswords.solution_for` RPC and passes it in — fine under the
+fetches it via the `crosswords.export_solution` RPC and passes it in — fine under the
 friends-only trust model (see [crosswords.md §7](games/crosswords.md)). It already went
 through crossplay's own design process (`crossplay/docs/print-design.md`) and is already
 greyscale, so it lands within the *spirit* of this doc without adopting its letterforms or

@@ -36,12 +36,6 @@ One residual oddity it left behind, worth a deliberate decision:
 
 ## Tier C — function surface (appendable later, tidier now)
 
-- [ ] **C1. `crosswords.solution_for` vs `crosswords._solution_for`** — one
-  underscore apart, both granted to `authenticated`, *opposite* shielding
-  semantics (ungated .ipuz export at `:867` vs terminal-gated view shim at
-  `:252`), different param names for the same id (`target_game` vs `g_id`). The
-  sharpest footgun in the audit. Rename the public one (`export_solution` /
-  `ipuz_solution`).
 - [ ] **C2. `common.wordle_colors`** (`common.sql:1154`) — a game codename in the
   common schema, shared by wordle *and* waffle; the clearest violation of
   naming.md's headline "role, not implementation" rule. → `letter_colors` or
@@ -76,29 +70,6 @@ One residual oddity it left behind, worth a deliberate decision:
   `common._advance_turn` — deliberate and always schema-qualified (both are
   called, `…scrabble:985` vs `:989`), but a distinguishing name would help
   readers.
-
-## Tier D — grant/revoke hygiene (one mechanical pass)
-
-Not a real exposure under RLS + friends-only, but the convention is otherwise
-uniform and the pass is mechanical:
-
-- [ ] `common.concede` is the only granted RPC missing its
-  `revoke … from public` pair (granted `common.sql:1818`, no revoke anywhere).
-- [ ] ~20 helpers have neither revoke nor grant, so they keep Postgres's default
-  EXECUTE-to-PUBLIC — including `scrabble._finish` (unconditionally terminates a
-  game). Full list: common `_bump_scratchpad_version`, `color_for_username`,
-  `default_gametypes_for_club`, `is_club_member`, `slugify_club_name`,
-  `touch_games_last_active`, `word_letter_mask`, `wordle_colors`; scrabble
-  `_advance_turn`, `_finish`, `_new_bag`, `_remove_tiles`, `_status`,
-  `_tile_value`; waffle `_board_visible`, `_color_rank`, `_correct_words`,
-  `_title`, `_word_slots`, `compute_colors`; stackdown `_found_title`,
-  `_is_exposed`, `_word`; psychicnum `_unfound_secret`; bananagrams
-  `_win_blockers`; crosswords `_bump_cell_version`.
-- [ ] Three pure-math helpers are granted to `authenticated` with no
-  security-invoker view forcing it: `spellingbee._rank_idx`,
-  `wordwheel._rank_idx`, `wordiply._length_score`. (The other ten granted
-  `_`-prefixed helpers — the `_solution_for`/`_rack_for` family — are justified:
-  view shims need the grant.)
 
 ## Tier E — comments and docs (free now, frozen into baselines later)
 
@@ -164,9 +135,10 @@ documented-deliberate set holds up:
 **Tiers A and B are DONE** — every persisted-row item (play_state values,
 status/setup jsonb keys) and every column rename is worked, with the durable
 decisions recorded in states.md / naming.md / the per-game docs. **Nothing
-left blocks leaving alpha.** C–E are worth a sweep while editing baselines is
-still free: C is function/param naming (C1 is the one with a plausible route
-to a real bug), D is one mechanical grant/revoke pass, E is comments. Tiers C–E are worth a sweep while
+left blocks leaving alpha.** C1 (the one item with a plausible route to a
+real bug — the two crosswords solution readers, one underscore apart with
+opposite shielding) and all of Tier D are done too. What's left is C2–C7
+(function/param naming) and Tier E (comments and docs). Tiers C–E are worth a sweep while
 editing baselines is still free, but wouldn't block leaving alpha. Every SQL change here re-runs the usual gates
 (`npm run db:reset` + `npm run import`, `npm run test:db`, `npx tsc -b`,
 `npm test`, `npm run report:labels` for anything touching status/labels).

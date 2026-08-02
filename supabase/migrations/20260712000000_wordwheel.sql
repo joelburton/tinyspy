@@ -413,7 +413,6 @@ as $$
 $$;
 
 revoke execute on function wordwheel._rank_idx(int, int) from public;
-grant execute on function wordwheel._rank_idx(int, int) to authenticated;
 
 -- ============================================================
 -- wordwheel.candidate_words — edge-function board-build helper

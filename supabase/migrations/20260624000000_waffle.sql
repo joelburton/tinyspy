@@ -40,6 +40,7 @@ immutable
 as $$
   select case c when 'g' then 3 when 'y' then 2 when 'x' then 1 else 0 end;
 $$;
+revoke execute on function waffle._color_rank(text) from public;
 
 -- ============================================================
 -- Wordle coloring moved to common.wordle_colors
@@ -110,6 +111,7 @@ begin
   return array_to_string(res, '');
 end;
 $$;
+revoke execute on function waffle.compute_colors(text, text) from public;
 
 -- ============================================================
 -- waffle.games — one row per playthrough
@@ -286,6 +288,7 @@ stable                         -- auth.uid() is stable
 as $$
   select row_user = auth.uid() or wg.mode = 'coop' or cg.is_terminal;
 $$;
+revoke execute on function waffle._board_visible(waffle.games, common.games, uuid) from public;
 
 create function waffle._player_board_for(g_id uuid, row_user uuid)
 returns text
@@ -338,6 +341,7 @@ as $$
   values (1, 1), (11, 1), (21, 1),   -- across: rows 0, 2, 4
          (1, 5), (3, 5), (5, 5);     -- down:   cols 0, 2, 4
 $$;
+revoke execute on function waffle._word_slots() from public;
 
 -- The words the player has actually GOT RIGHT: a word counts once all five of
 -- its cells match the solution. Uppercased, alphabetical. An unsolved board
@@ -358,6 +362,7 @@ as $$
                     = substr(solution, s.start1 + i * s.stride, 1))
     ) w;
 $$;
+revoke execute on function waffle._correct_words(text, text) from public;
 
 -- Format a word list as a title: the first three, dash-joined ("ARENA-EAGER-
 -- TOTEM"), or the placeholder when nothing qualifies yet.
@@ -371,6 +376,7 @@ as $$
     else array_to_string(words[1:3], '-')
   end;
 $$;
+revoke execute on function waffle._title(text[], text) from public;
 
 -- Recompute the club-list title from state. The title is a READOUT, not a
 -- fixed name (the scrabble/stackdown pattern):

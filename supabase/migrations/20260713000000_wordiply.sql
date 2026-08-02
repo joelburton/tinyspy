@@ -259,7 +259,6 @@ as $$
 $$;
 
 revoke execute on function wordiply._length_score(int, int) from public;
-grant execute on function wordiply._length_score(int, int) to authenticated;
 
 -- ============================================================
 -- wordiply.matching_words — edge-function board-build helper

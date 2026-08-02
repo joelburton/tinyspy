@@ -381,7 +381,6 @@ as $$
 $$;
 
 revoke execute on function spellingbee._rank_idx(int, int) from public;
-grant execute on function spellingbee._rank_idx(int, int) to authenticated;
 
 -- ============================================================
 -- spellingbee.candidate_words — edge-function board-build helper

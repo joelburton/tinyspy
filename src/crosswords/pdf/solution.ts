@@ -11,7 +11,7 @@
  *
  * Unlike the puzzle printer (which the FE can build offline from the
  * template it already holds), this needs the shielded solution — the caller
- * fetches it via the `solution_for` RPC and passes it in.
+ * fetches it via the `export_solution` RPC and passes it in.
  */
 
 import { jsPDF } from 'jspdf'

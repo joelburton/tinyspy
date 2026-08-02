@@ -77,6 +77,7 @@ as $$
     ) as d(tile, cnt),
     lateral generate_series(1, d.cnt) g;
 $$;
+revoke execute on function scrabble._new_bag() from public;
 
 -- Point value of a tile glyph. Blanks (`?`) — and anything non-letter —
 -- score 0. Used only for leftover-rack scoring at game end.
@@ -99,6 +100,7 @@ as $$
     else 0
   end;
 $$;
+revoke execute on function scrabble._tile_value(text) from public;
 
 -- Remove one occurrence of each tile in `p_remove` from `p_rack`, raising
 -- P0001 if a tile isn't there. This is BOTH the "tiles really in the rack"
@@ -125,6 +127,7 @@ begin
   return r;
 end;
 $$;
+revoke execute on function scrabble._remove_tiles(text[], text[]) from public;
 
 -- ============================================================
 -- scrabble.games — one row per game
@@ -415,6 +418,7 @@ begin
   end if;
 end;
 $$;
+revoke execute on function scrabble._status(uuid) from public;
 
 -- The club-list title: the first three words played, uppercased and dash-
 -- joined ("CRANE-BOXY-JET") — so a game is recognizable at a glance (the board
@@ -477,6 +481,7 @@ begin
   end if;
 end;
 $$;
+revoke execute on function scrabble._advance_turn(uuid) from public;
 
 -- Tally final scores and end the game. `outcome` ∈ complete | timeout |
 -- blocked (NOT manual — manual end is neutral, see scrabble.end_game).
@@ -638,6 +643,7 @@ begin
   end if;
 end;
 $$;
+revoke execute on function scrabble._finish(uuid, text, integer) from public;
 
 -- ============================================================
 -- Register the gametypes

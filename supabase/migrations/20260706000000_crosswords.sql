@@ -169,6 +169,7 @@ begin
   return new;
 end;
 $$;
+revoke execute on function crosswords._bump_cell_version() from public;
 
 create trigger cells_bump_version
   before update on crosswords.cells
@@ -868,13 +869,22 @@ $$;
 revoke execute on function crosswords.reveal_solved_word(uuid, jsonb) from public;
 grant execute on function crosswords.reveal_solved_word(uuid, jsonb) to authenticated;
 
--- solution_for — the full answer grid for the "Download as .ipuz" export
--- (review M4). Unlike `games_state` (which gates the solution to terminal),
+-- export_solution — the full answer grid for the "Download as .ipuz" export
+-- and the answer-key PDF.
+--
+-- NAMED DELIBERATELY UNLIKE `_solution_for` above, which it sat one underscore
+-- away from until 2026-08-02. The two have OPPOSITE shielding semantics — that
+-- one is the terminal-gated view shim (the roster-wide name, shared with
+-- waffle / wordle / stackdown), this one hands a member the grid at any time —
+-- and both are granted to `authenticated`, so a one-character typo swapped a
+-- gate for no gate. The names now differ at a glance.
+--
+-- Unlike `games_state` (which gates the solution to terminal),
 -- export needs the whole grid at ANY time so a downloaded file carries real
 -- answers. Handing the solution to the client on demand relaxes the shielding,
 -- which the friends-only trust model tolerates (see CLAUDE.md → trust model);
 -- it's a deliberate, member-gated exception, not the solving path.
-create function crosswords.solution_for(target_game uuid)
+create function crosswords.export_solution(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -885,8 +895,8 @@ begin
   return (select solution from crosswords.games where id = target_game);
 end;
 $$;
-revoke execute on function crosswords.solution_for(uuid) from public;
-grant execute on function crosswords.solution_for(uuid) to authenticated;
+revoke execute on function crosswords.export_solution(uuid) from public;
+grant execute on function crosswords.export_solution(uuid) to authenticated;
 
 -- ============================================================
 -- end_game (coop manual give-up) / concede (compete) / submit_timeout

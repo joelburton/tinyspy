@@ -4,7 +4,7 @@
  * `generateCrosswordPdf` (a verbatim port of crossplay's jsPDF print
  * module) builds the **puzzle** PDF as a `Blob` from the template the FE
  * already holds; `generateSolutionPdf` builds the **answer-key** PDF from a
- * solution grid the caller fetches via the `solution_for` RPC (the FE never
+ * solution grid the caller fetches via the `export_solution` RPC (the FE never
  * holds the shielded solution otherwise). These wrappers turn either blob
  * into a file the browser saves to disk via a temporary object URL + a
  * synthetic `<a download>` click.

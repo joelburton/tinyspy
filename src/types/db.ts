@@ -1393,6 +1393,7 @@ export type Database = {
         }[]
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
+      export_solution: { Args: { target_game: string }; Returns: Json }
       reveal_cells: {
         Args: { p_cells: Json; target_game: string }
         Returns: undefined
@@ -1430,7 +1431,6 @@ export type Database = {
           version: number
         }[]
       }
-      solution_for: { Args: { target_game: string }; Returns: Json }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
     }
     Enums: {

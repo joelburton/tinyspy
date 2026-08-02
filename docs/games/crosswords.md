@@ -117,7 +117,7 @@ plain RPCs — no edge function needed.
 | `set_cell(target_game, row, col, fill, pencil)` | The hot path (one call per keystroke; FE echoes optimistically first). Guards: membership, `play_state`, not conceded, cell editable (given cells have no row; **revealed cells ARE editable** — mirror `applyFill`), fill = letters only, 1–8 chars (`^[A-Z]{1,8}$`, mirroring crossplay's ws.ts). Returns the bumped `version` + solved state. Solved → terminal per mode; compete first-correct-wins uses a locked `play_state` re-check so only the first solver sets the winner. |
 | `set_mark(target_game, row, col, side, mark)` | Set/clear a cryptic word-break / hyphen mark on the cell's `right` / `bottom` edge (`mark` = `break` / `hyphen` / null). Same guards as `set_cell`; display-only (no solve). Marks live in `cells.mark_right` / `mark_bottom` and sync via the same CDC path. **Fillable cells only** (a mark rides on the *left/upper* cell of a boundary, and givens have no cell row — so a break on a given's own right/bottom edge isn't representable; a rare cryptic-with-givens case, deliberately not supported). Ported from crossplay's edge marks. |
 | `reveal_solved_word(target_game, cells jsonb)` | **Leak-safe** answer read for the AI "Explain clue" feature: returns the canonical answer for `cells` **only if the caller has already filled them all correctly** (`_matches`, honoring givens) — else `solved = false`, no letters. So it can only surface a word you've already solved (safe in compete too). Also returns the puzzle note (not secret). Consumed by the `crosswords-explain-clue` edge function. |
-| `solution_for(target_game)` | **Member-gated full-solution read** (definer; `require_game_player`), available at **any** time — unlike `games_state`, which gates the solution to terminal. Feeds the "Download as .ipuz" export and the answer-key PDF (§7, §9), both of which need real answers before the game ends. Handing the solution to the client on demand relaxes the shielding, which the friends-only trust model tolerates (see [CLAUDE.md → trust model](../../CLAUDE.md)); a deliberate, member-gated exception, not the solving path. |
+| `export_solution(target_game)` | **Member-gated full-solution read** (definer; `require_game_player`), available at **any** time — unlike `games_state`, which gates the solution to terminal. Feeds the "Download as .ipuz" export and the answer-key PDF (§7, §9), both of which need real answers before the game ends. Handing the solution to the client on demand relaxes the shielding, which the friends-only trust model tolerates (see [CLAUDE.md → trust model](../../CLAUDE.md)); a deliberate, member-gated exception, not the solving path. |
 | `check_cells(target_game, cells jsonb)` | FE resolves letter/word/puzzle scope via `cursor.ts` and sends coordinates; server sets/clears `wrong` (skipping empty/pencil). Both modes. |
 | `reveal_cells(target_game, cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil. **Coop only** (reveal-all would trivially win the compete race). Runs the solve check afterwards, since a reveal can complete the grid — including "Reveal puzzle", which ends the game as a normal `won` (deliberate; §9). On success the FE broadcasts the revealed coords on the peer channel so teammates flash them in the actor's color (the CDC arrives colorless). |
 | `clear_board(target_game)` | Destructive "start over" (crossplay parity): blanks every fillable cell on the caller's grid (the shared grid in coop, own in compete) and drops its `pencil` / `wrong` / `revealed` flags + cryptic edge marks. Givens live on the template, so they're preserved; the answer is untouched. Guards: membership, `play_state = playing`, not conceded. No solve check (clearing only removes fills). FE surfaces it as a **confirmed** game-menu item. |
@@ -360,8 +360,8 @@ sizing).
 The **answer-key generator (`generateSolutionPdf`)** is also
 ported (`pdf/solution.ts`): a solved-grid PDF (every open cell filled with the
 canonical answer, the note flowed through the clue regions), driven by a "Print
-answer key (PDF)" menu item that fetches the grid via `solution_for` — coop any
-time, compete only at terminal (a UI gate; `solution_for` itself isn't
+answer key (PDF)" menu item that fetches the grid via `export_solution` — coop any
+time, compete only at terminal (a UI gate; `export_solution` itself isn't
 terminal-gated, same as Download-as-.ipuz). Both PDFs are exposed as
 `setGameSections` menu items; the grid is snapshotted at click-time. See
 [docs/pdf.md](../pdf.md) → the grid-plus-clue-columns body family.
@@ -378,7 +378,7 @@ club** (⇧<).
 The play actions dispatch through the stable `actionsRef`. Notables: **Collapse
 rebuses** is a display-only toggle (persisted per browser) that shows multi-char
 rebus fills as just their first letter; **Download as .ipuz** emits the current
-board — template + fills + the answer grid (fetched via the `solution_for` RPC,
+board — template + fills + the answer grid (fetched via the `export_solution` RPC,
 which relaxes the shielding on demand) — via the ported `writeIpuz`, re-uploadable
 to continue; **Show note** (`NoteDialog`) also
 broadcasts a `showNotes` event in coop so teammates open it together;
@@ -490,7 +490,7 @@ future cleanup pass:
   *opens* opponents' rows at terminal (pinned in `rls_test.sql`), but `useCells` stays
   filtered to the caller and PlayArea draws one grid — deliberately-unused surface,
   not a delivered feature (see §2).
-- **Answer-key PDF gate is UI-only** (§7) — `solution_for` hands any member the grid
+- **Answer-key PDF gate is UI-only** (§7) — `export_solution` hands any member the grid
   at any time (like Download-as-.ipuz), so the compete "terminal-only" gate on the
   menu item is a UI gate, not server-enforced. Acceptable under the friends-only
   trust model.

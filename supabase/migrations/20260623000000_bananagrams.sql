@@ -660,6 +660,7 @@ as $$
     '{}'::int[]
   );
 $$;
+revoke execute on function bananagrams._win_blockers(text, integer, integer, boolean) from public;
 
 -- ============================================================
 -- bananagrams.peel — draw a round, or go out (Bananas!)

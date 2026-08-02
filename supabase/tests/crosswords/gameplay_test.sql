@@ -336,18 +336,18 @@ select is(
        and fill is not null),
   1, 'clear_board (compete): an opponent''s grid is untouched');
 
--- ── solution_for (the .ipuz-export answer read — review M4) ──────────
+-- ── export_solution (the .ipuz-export answer read — review M4) ──────────
 -- A game player gets the full solution ANY time (unlike games_state, which
 -- gates it to terminal); a non-player is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select isnt(
-  (select crosswords.solution_for(:'gc_id')), null,
-  'solution_for: a mid-game player gets the full solution grid');
+  (select crosswords.export_solution(:'gc_id')), null,
+  'export_solution: a mid-game player gets the full solution grid');
 reset role;
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
-  format('select crosswords.solution_for(%L)', :'gc_id'),
-  '42501', null, 'solution_for: a non-player is rejected');
+  format('select crosswords.export_solution(%L)', :'gc_id'),
+  '42501', null, 'export_solution: a non-player is rejected');
 reset role;
 
 select * from finish();

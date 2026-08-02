@@ -209,6 +209,7 @@ as $$
        and abs(a.y - b.y) <= 1
   );
 $$;
+revoke execute on function stackdown._is_exposed(jsonb, integer[], integer) from public;
 
 -- The word spelled by `ids` in order (their letters concatenated).
 create function stackdown._word(tiles jsonb, ids int[])
@@ -221,6 +222,7 @@ as $$
     join jsonb_to_recordset(tiles) as t(id int, x int, y int, z int, letter text)
       on t.id = u.tid;
 $$;
+revoke execute on function stackdown._word(jsonb, integer[]) from public;
 
 -- Build the club-list TITLE from the cleared words. Coop rewrites the
 -- title on every valid word (see submit_word) so the games list reads the
@@ -243,6 +245,7 @@ as $$
          || case when n > 3 then '…' else '' end
   end;
 $$;
+revoke execute on function stackdown._found_title(text[], integer) from public;
 
 -- Reveal the solution only once the game is terminal (the end reveal).
 create function stackdown._solution_for(g_id uuid)

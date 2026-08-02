@@ -70,6 +70,19 @@ When you need to expose a column the calling role can't see directly, gated on r
 
 Canonical example: `psychicnum.games_state` + `psychicnum._secrets_for(uuid)` — see [`psychicnum.md` → The hidden-secrets mechanic](games/psychicnum.md#the-hidden-secrets-mechanic).
 
+### Every function gets an explicit revoke
+
+Postgres grants EXECUTE **to PUBLIC by default** on every new function, so a helper is world-callable unless its migration says otherwise. The default is backwards for us, so the pair goes right after each definition:
+
+```sql
+revoke execute on function <schema>.<fn>(<types>) from public;
+grant  execute on function <schema>.<fn>(<types>) to authenticated;  -- ONLY if the caller runs it
+```
+
+The **grant** is for functions the *caller* executes: player-facing RPCs, plus the few helpers reached through an RLS policy or a `security_invoker` view. A policy runs as the invoker, so `common.is_club_member` genuinely needs it — revoke it without granting and every club-scoped SELECT fails. Everything else is called from inside a `security definer` function, which runs as the owner and needs **no grant at all**; a `_`-prefixed helper with a grant should be able to name the view or policy that forces it.
+
+Pinned by `tests/common/function_grants_test.sql`, which fails if any function in an app schema is executable by PUBLIC. That guard exists because forgetting the revoke *silently widens* the surface — 27 helpers had drifted this way before the 2026-08-02 sweep, `scrabble._finish` (which unconditionally terminates a game) among them. Not a live exposure under RLS + friends-only, but defence in depth is cheap when the check is one query.
+
 ### Migration filenames
 
 Pattern: `<timestamp>_<schema>[_<topic>].sql`. The schema-prefix-in-filename gives per-schema grouping without nested directories.

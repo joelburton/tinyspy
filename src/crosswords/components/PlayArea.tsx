@@ -453,12 +453,12 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // Download the current board as a standard `.ipuz` file (review M4) — the
   // template + current fills (from the click-time `printStateRef` snapshot) +
-  // the answer grid, fetched via `solution_for` (the export gets the solution
+  // the answer grid, fetched via `export_solution` (the export gets the solution
   // any time, unlike the terminal-gated reveal). Re-uploadable to continue.
   const handleDownloadIpuz = useCallback(async () => {
     const state = printStateRef.current
     if (!state) return
-    const { data, error } = await db.rpc('solution_for', { target_game: gameId })
+    const { data, error } = await db.rpc('export_solution', { target_game: gameId })
     if (error || !data) {
       showLocalFeedback(stickyPill('error', `Download failed: ${error?.message ?? 'no solution'}`))
       return
@@ -476,14 +476,14 @@ export function PlayArea(ctx: GamePageCtx) {
   }, [gameId, showLocalFeedback])
 
   // Print the answer-key PDF (crossplay's `generateSolutionPdf`). Like the
-  // .ipuz export it fetches the solution via `solution_for` — the menu gates
+  // .ipuz export it fetches the solution via `export_solution` — the menu gates
   // WHEN it's offered (coop any time; compete only once the game's over), but
-  // `solution_for` itself isn't terminal-gated, so the gate is UI-only (same
+  // `export_solution` itself isn't terminal-gated, so the gate is UI-only (same
   // posture as Download-as-.ipuz, tolerated under the friends-only trust model).
   const handlePrintSolution = useCallback(async () => {
     const state = printStateRef.current
     if (!state) return
-    const { data, error } = await db.rpc('solution_for', { target_game: gameId })
+    const { data, error } = await db.rpc('export_solution', { target_game: gameId })
     if (error || !data) {
       showLocalFeedback(stickyPill('error', `Answer key failed: ${error?.message ?? 'no solution'}`))
       return
