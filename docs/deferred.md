@@ -34,7 +34,6 @@ Only these games have open items today; the rest have none.
 | [crosswords](games/crosswords.md#9-deferred) | the fullest register — ⌥M, `fetch-nyt-range`, NYT dedup, the library picker bound before the bulk import, the scratchpad lock races, standing schema flags, unpinned tests |
 | [psychicnum](games/psychicnum.md#wont-do) | won't-do only: anti-spam, a livelier `.infoState` |
 | [stackdown](games/stackdown.md#6-deferred) | PDF print |
-| [wordiply](games/wordiply.md#10-open-decisions) | §10's item 9 (PDF print). §10 is a build-time *decision log*, not a deferral register — left as-is |
 | [wordwheel](games/wordwheel.md#deferred) | the `Letters`/`Wheel` CSS fold (owns the spellingbee pair's ledger) · the ≥15 quality gate · `s`-heavy seeds |
 
 ## Common / architecture
@@ -98,7 +97,7 @@ one-page printout isn't. waffle is a sequence of tile *swaps*, so a lone end-boa
 doesn't capture the solve; wordle *is* the guess-by-guess progression.
 
 **Still open** (would fit the existing helpers cleanly, no snapshot problem): codenamesduet,
-connections, stackdown, wordiply. Each carries the item in its own `## Deferred` section.
+connections, stackdown. Each carries the item in its own `## Deferred` section.
 
 ## To discuss
 

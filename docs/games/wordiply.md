@@ -469,6 +469,43 @@ dead-ends). There is deliberately **no `#N` history handle**: wordiply has no
 turn-history viewer and doesn't want one — its board is five rows all visible at
 once, so "replay turn 3" would be "look at rows 1-3, already on your screen".
 
+## 7c. Printing the log (PDF)
+
+`src/wordiply/pdf/` — a **"Print board (PDF)"** GamePage menu item, the eighth game
+to print (docs/pdf.md). wordiply is the **turn-log body family**, and the first
+printer with **no board**: its five guess lines carry no state of their own, so the
+page *is* the log and `drawTurnLog` starts straight under the header.
+
+The split is deliberate. `model.ts` is pure — no jsPDF — and holds every judgment;
+`printWordiplyPdf.ts` only draws. That's because the judgment is mostly one rule
+worth a test: **the terminal-only reveal has to hold on paper.** Mid-game the page
+shows the guess count and nothing else — no length score, no letter count, no
+longest word — exactly as the screen does. Dumping `status` would have leaked all
+three, so `model.test.ts` pins it.
+
+What prints:
+
+| block | when |
+|---|---|
+| Header + one-line summary | always (guess count during play; scores at terminal) |
+| **Best possible word** | terminal only |
+| **Final scores** — per player, length score + letters, winner marked | compete at terminal only |
+| The turn log — **rejects included**, each with its reason | always |
+
+Two details that fall out of the log carrying rejects:
+
+- **Rows are numbered by log position, not `seq`.** Rejects have no `seq` (they
+  occupy no board row), and a printed wordiply has no board for the numbers to line
+  up with anyway — `#3` means "the third thing that happened".
+- **Accepted vs rejected reads in black and white** without a mark, because the text
+  already says it (`HANGARS (7)` vs `ARQQQQQ — not a word`). psychicnum needs drawn
+  ✓/✗ shapes because its meaning is colour-only; this doesn't. Keep it that way.
+
+In **compete** the log is sorted **by player (self first), then by time** rather than
+interleaved chronologically — the tracks are parallel races, so a time-ordered mix
+reads as nonsense. The `who` column labels each block, so one table still does it.
+Mid-game compete needs no filter: RLS means you only *have* your own rows.
+
 ## 8. Tests
 
 **pgTAP** (`supabase/tests/wordiply/`, ported from the wordwheel suite against a fixture in
@@ -574,8 +611,8 @@ Recommended default in **bold**; each is a real fork worth a nod before/at build
 8. **What ships to the FE** — **resolved: everything** (`legal_words`, `longest_words`,
    `max_word_length` are all club-member-readable). The FE gates *display* of scores + the
    longest word to terminal (§2); the data itself isn't hidden.
-9. **PDF print** — defer (a snapshot of base + 5 guesses + reveal is printable like
-   spellingbee's, but not v1).
+9. ~~**PDF print**~~ — **resolved 2026-08-02: shipped.** See
+   [Printing the log (PDF)](#7c-printing-the-log-pdf) below.
 10. **Live readout** — **resolved: word length only during play**; length score %, letter
     count, and the longest word appear only at terminal (§2). Compete opponents show just
     guesses used mid-game.

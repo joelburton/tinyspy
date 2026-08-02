@@ -18,6 +18,9 @@ import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { difficultyValue } from '../../common/lib/game/difficulty'
+import { buildWordiplyPrintModel } from '../pdf/model'
+import { printWordiplyPdf } from '../pdf/printWordiplyPdf'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
@@ -73,7 +76,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
     isMyTurn, currentTurnUserId,
-    setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback,
+    setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback, title,
   } = ctx
   const { game, guesses, validGuesses, loading, rowsLoaded } = useGame(gameId)
 
@@ -233,9 +236,43 @@ export function PlayArea(ctx: GamePageCtx) {
     }
   }, [endGame, concede, restart, handleNewGame])
 
+  // Compete leaderboard (off the live status jsonb) → per-player metrics.
+  // Memoized because the print model (and so the menu effect) depends on it: the
+  // `?? []` fallback would otherwise mint a new array every render and rebuild
+  // the whole game menu each time.
+  const leaderboard = useMemo(
+    () => (status?.leaderboard as LeaderRow[] | undefined) ?? [],
+    [status],
+  )
+
   // ─── GamePage menu ─────────────────────────────────────
+  // The "Print board (PDF)" model is built HERE, from the live state, and is a
+  // snapshot at click time (docs/pdf.md). What it may show is decided in
+  // pdf/model.ts — notably wordiply's terminal-only reveal, which has to hold on
+  // paper too. RLS already scopes `guesses` to what I may see, so a mid-game
+  // compete print carries only my own rows without needing a filter here.
   useEffect(() => {
     if (!game) return
+    const printModel = buildWordiplyPrintModel({
+      brand,
+      gameTitle: title,
+      date: new Date().toLocaleDateString(),
+      base,
+      maxWordLength: game.max_word_length,
+      longestWord: game.longestWords[0] ?? null,
+      mode: game.mode,
+      isTerminal,
+      guesses,
+      players,
+      selfId: session.user.id,
+      guessesUsed,
+      maxGuesses: MAX_GUESSES,
+      lengthScore: lengthScore(longest, game.max_word_length),
+      letterCount: letters,
+      leaderboard,
+      // Relevant setup only — the timer isn't meaningful on paper.
+      setup: [{ label: 'Dictionary', value: difficultyValue(wordiplySetup.difficulty) }],
+    })
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -252,11 +289,16 @@ export function PlayArea(ctx: GamePageCtx) {
               { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
             ],
           },
+          { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printWordiplyPdf(printModel) }] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, isTerminal, myConceded, infoSheet.menuSections])
+  }, [
+    menu, game, isTerminal, myConceded, infoSheet.menuSections,
+    brand, title, base, guesses, players, session.user.id, guessesUsed,
+    longest, letters, leaderboard, wordiplySetup,
+  ])
 
   // ─── Coop peer-guess narration (global header) ─────────
   // coop's guesses are club-wide, so a teammate's guess arrives in `guesses`;
@@ -298,8 +340,6 @@ export function PlayArea(ctx: GamePageCtx) {
   // fixed for the game's life, no reflow.
   const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
 
-  // Compete leaderboard (off the live status jsonb) → per-player metrics.
-  const leaderboard = (status?.leaderboard as LeaderRow[] | undefined) ?? []
   const guessesByUser = new Map(leaderboard.map((e) => [e.user_id, e.guesses_used ?? 0]))
   const scoreByUser = new Map(leaderboard.map((e) => [e.user_id, e.length_score ?? 0]))
 
