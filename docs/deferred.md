@@ -113,22 +113,17 @@ Carried over from the 2026-07-10 mobile-FE review (that review doc has since bee
 
 ## Printing to PDF — which games get it
 
-Print-to-PDF is a per-game opt-in (see [`pdf.md`](pdf.md)). **Six games print today:**
-scrabble, psychicnum, boggle, spellingbee, bananagrams, crosswords.
+The per-game table (all thirteen, ✅/❌) now leads [`pdf.md`](pdf.md#which-games-print) —
+that's the one place to check or update. What's a *decision* rather than a status:
 
-**Two games are deliberately excluded** (a permanent "won't do", not a deferral): both
-are turn-by-turn *board progressions* where a single static snapshot can't represent the
+**waffle and wordle are permanently excluded** (a "won't do", not a deferral): both are
+turn-by-turn *board progressions* where a single static snapshot can't represent the
 game — you'd need a board snapshot per turn for it to mean anything on paper, which a
-one-page printout isn't.
-
-- **waffle** — the game is a sequence of tile *swaps*; a lone end-board doesn't capture
-  the solve.
-- **wordle** — the game *is* the guess-by-guess progression; a single board can't stand
-  in for it.
+one-page printout isn't. waffle is a sequence of tile *swaps*, so a lone end-board
+doesn't capture the solve; wordle *is* the guess-by-guess progression.
 
 **Still open** (would fit the existing helpers cleanly, no snapshot problem): codenamesduet,
-connections, stackdown, and wordiply (turn-log / word-list families). This list is the
-whole-app policy view; the per-game registers carry the same item where a game has one.
+connections, stackdown, wordiply. Each carries the item in its own `## Deferred` section.
 
 ## To discuss
 

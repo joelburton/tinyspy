@@ -6,9 +6,38 @@ doc is the **shared design language** for those printouts, so every game's print
 like it belongs to the same system (the on-screen consistency goal — see
 [ui.md](ui.md) — extended to paper).
 
-Status: **shared `common/pdf/` helpers**, with six games printing today (scrabble,
-psychicnum, boggle, spellingbee, bananagrams, and crosswords — the last a deliberate
-third body family, see below). **Joel picked jsPDF** over react-pdf (see [project memory] / the
+## Which games print
+
+Printing is a **per-game opt-in**, so this is the at-a-glance answer. Seven of the
+thirteen print today.
+
+| game | prints? | notes |
+|---|---|---|
+| bananagrams | ✅ | word-list family (6 columns; bare words, no score/finder) |
+| boggle | ✅ | word-list family |
+| codenamesduet | ❌ | **deferred** — would fit the turn-log family cleanly |
+| connections | ❌ | **deferred** — would fit the turn-log family cleanly |
+| crosswords | ✅ | its own third body family (a whole-cloth ported printer); the only game with **two** print items — the puzzle and a separate answer key |
+| psychicnum | ✅ | turn-log family |
+| scrabble | ✅ | turn-log family |
+| spellingbee | ✅ | word-list family |
+| stackdown | ❌ | **deferred** — the six cleared words + the starting stack are a static artifact |
+| waffle | ❌ | **won't do** — see below |
+| wordiply | ❌ | **deferred** ([wordiply.md](games/wordiply.md) §10, item 9) |
+| wordle | ❌ | **won't do** — see below |
+| wordwheel | ✅ | word-list family (forked from spellingbee's printer) |
+
+**waffle and wordle are permanent exclusions, not deferrals.** Both are turn-by-turn
+*board progressions* where one static snapshot can't represent the game — you'd need a
+board per turn for it to mean anything on paper, which a one-page printout isn't.
+waffle is a sequence of tile *swaps*, so a lone end-board doesn't capture the solve;
+wordle *is* the guess-by-guess progression. The four ❌ games marked **deferred** have
+no such problem — they'd compose from the existing helpers — they just haven't opted in.
+Those live in each game's own `## Deferred` section (see [deferred.md](deferred.md) for
+how that's organized).
+
+Status: **shared `common/pdf/` helpers**. **Joel picked jsPDF** over react-pdf (see
+[project memory] / the
 `scrabble-react-pdf` branch): precise layout control, a lighter dep, and it matches the
 existing jsPDF crossword-print code that landed with crosswords.
 
@@ -21,8 +50,8 @@ atoms and each game composes them with its OWN board renderer + a plain-data mod
 |---|---|---|
 | `common/pdf/frame.ts` | **all** | the shade constants, `PrintHeader` base model, `newPrintDoc`, `drawHeader`, `drawSetup`, `fit`, `savePrint` |
 | `common/pdf/turnLog.ts` | scrabble, psychicnum | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
-| `common/pdf/wordColumns.ts` | boggle, spellingbee, bananagrams | `drawWordColumns` — the balanced N-column alphabetical word list; per-word flags `bonus` (a dot) and `pangram` (bold) let each game opt in, and a `found: null` row is a bare word (no score/finder — every bananagrams row) |
-| `common/pdf/wordListBody.ts` | boggle, spellingbee, bananagrams | `drawWordListBody` — the **whole word-list body skeleton** (board top-left / Setup to its right / `drawWordColumns` below), pinning the shared layout offsets in one place. The caller passes a `drawBoard(x, y) → { w, h }` callback (its only real difference) plus two knobs: `cols` (4, or bananagrams' 6) and `emptyText` |
+| `common/pdf/wordColumns.ts` | boggle, spellingbee, wordwheel, bananagrams | `drawWordColumns` — the balanced N-column alphabetical word list; per-word flags `bonus` (a dot) and `pangram` (bold) let each game opt in, and a `found: null` row is a bare word (no score/finder — every bananagrams row) |
+| `common/pdf/wordListBody.ts` | boggle, spellingbee, wordwheel, bananagrams | `drawWordListBody` — the **whole word-list body skeleton** (board top-left / Setup to its right / `drawWordColumns` below), pinning the shared layout offsets in one place. The caller passes a `drawBoard(x, y) → { w, h }` callback (its only real difference) plus two knobs: `cols` (4, or bananagrams' 6) and `emptyText` |
 
 A game's `print<Game>Pdf` is then small: build a `PrintDoc`, `drawHeader`, then either
 call `drawTurnLog` under its own board (turn-log family) **or** call `drawWordListBody`
