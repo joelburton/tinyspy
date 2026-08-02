@@ -539,7 +539,6 @@ export function PlayArea({
         tileCount={game.board.tileOrder.length}
         // ── Turn-history log ──
         guesses={guesses}
-        matchedCategories={matchedCategories}
         viewingIndex={viewingId}
         onSelectTurn={selectTurn}
       />

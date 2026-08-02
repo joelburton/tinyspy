@@ -11,7 +11,7 @@ import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameBu
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { ConnectionsSetup } from '../lib/setup'
 import type { Board } from '../lib/board'
-import type { GuessRow, MatchedCategory, Player } from '../hooks/useGame'
+import type { GuessRow, Player } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
 import { HintList } from './HintList'
 import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
@@ -70,7 +70,6 @@ export function InfoCol({
   puzzleDate,
   tileCount,
   guesses,
-  matchedCategories,
   viewingIndex,
   onSelectTurn,
 }: {
@@ -130,7 +129,6 @@ export function InfoCol({
 
   // ── Turn-history log (GameTurnLog) ──
   guesses: GuessRow[]
-  matchedCategories: MatchedCategory[]
   /** The turn currently open in the board viewer (by log position), or null. */
   viewingIndex: number | null
   onSelectTurn: (index: number) => void
@@ -244,12 +242,16 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      {/* Turn log: coop shows every player's guesses; in compete RLS already filters
-          to the caller's own, so the FE does nothing special. */}
+      {/* Turn log. Coop shows the whole shared game; compete gets the shared
+          "whose guesses?" picker — an opponent's rows are RLS-hidden during play
+          and open at terminal, so the picker is how you compare lines afterwards. */}
       <GameTurnLog
         guesses={guesses}
-        matchedCategories={matchedCategories}
+        categories={categories}
         players={players}
+        selfId={selfId}
+        mode={isCompete ? 'compete' : 'coop'}
+        isTerminal={over !== null}
         viewingIndex={viewingIndex}
         onSelectTurn={onSelectTurn}
       />

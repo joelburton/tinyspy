@@ -4,13 +4,26 @@ import { cls } from '../../common/lib/util/cls'
 import { memberById } from '../../common/lib/game/peers'
 import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '../../common/components/game/lists/TurnLog'
 import turnLog from '../../common/components/game/lists/TurnLog.module.css'
-import type { GuessRow, MatchedCategory, Player } from '../hooks/useGame'
+import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
+import type { Category } from '../lib/board'
+import type { GuessRow, Player } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
 
 type Props = {
+  /** Every guess the viewer can currently see. Coop: the whole shared game.
+   *  Compete: the viewer's own during play, and (once terminal, when RLS opens)
+   *  everyone's — which is what makes the picker below useful. */
   guesses: GuessRow[]
-  matchedCategories: MatchedCategory[]
+  /** The board's four categories — PUBLIC in both modes (the FE holds the answer
+   *  key, see connections.md). Used to name a correct guess's category, so an
+   *  OPPONENT's correct rows name theirs too; deriving the names from the
+   *  viewer's own matches would leave every opponent row saying just "Correct". */
+  categories: Category[]
   players: Player[]
+  selfId: string
+  mode: 'coop' | 'compete'
+  /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
+  isTerminal: boolean
   /** Turn-history: the turn currently open in the board viewer (by log position),
    *  or null when live. Its `#N` handle wears the shared yellow ring. */
   viewingIndex: number | null
@@ -45,31 +58,46 @@ const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
  * blue band" is legible at a glance; the other two outcomes carry the
  * NYT-canonical copy.
  *
- * In compete mode RLS scopes `guesses` to the caller, so this shows only the
- * viewer's own attempts.
+ * **Whose guesses** are shown is picked by the shared
+ * `useTurnLogPlayerPicker` dropdown in the header — solo "You", coop "Team",
+ * compete "All" plus each player (defaulting to yourself). In compete an
+ * opponent's rows are empty during play (RLS hides them) and fill in once the
+ * game ends, which is exactly what the picker's empty text says.
  */
 export function GameTurnLog({
   guesses,
-  matchedCategories,
+  categories,
   players,
+  selfId,
+  mode,
+  isTerminal,
   viewingIndex,
   onSelectTurn,
 }: Props) {
-  // rank → name, for the matched-category attribution. Each rank appears at
-  // most once in matchedCategories (one band per rank), so a Map is the honest
-  // shape and the per-row lookup reads cleanly.
-  const nameByRank = new Map<number, string>(
-    matchedCategories.map((m) => [m.rank, m.name]),
-  )
+  const who = useTurnLogPlayerPicker<GuessRow>({
+    players,
+    selfId,
+    mode,
+    isTerminal,
+    label: 'Whose guesses to show',
+    emptyLabel: 'No guesses yet.',
+  })
+  const shown = who.filter(guesses)
+
+  // rank → name, off the BOARD (public in both modes) rather than off the
+  // viewer's own matches — so an opponent's correct rows name their category
+  // too. Each rank appears exactly once, so a Map is the honest shape.
+  const nameByRank = new Map<number, string>(categories.map((c) => [c.rank, c.name]))
 
   return (
     <TurnLog
       heading="Guesses"
-      empty={guesses.length === 0}
-      emptyText="No guesses yet."
-      scrollKey={guesses}
+      headerAction={who.picker}
+      empty={shown.length === 0}
+      emptyText={who.emptyText}
+      scrollKey={shown}
     >
-      {guesses.map((g, i) => (
+      {shown.map((g, i) => (
         <Fragment key={g.id}>
           {/* Row 1, real columns: [bar ⇣rowSpan 2] | #N handle | verdict (`.main`,
               absorbs the slack) | actor (`.who`, shrinks to the username).
@@ -78,7 +106,15 @@ export function GameTurnLog({
               on the board viewer. */}
           <tr className={cls(turnLog.turnLogDivider, turnLog.entryHead)}>
             <TurnLogBar outcome={OUTCOME[g.result]} rowSpan={2} />
-            <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
+            {/* The `#N` handle replays that turn on the board — live ONLY when the
+                rows on show ARE the board's (my own, or coop's shared game). On an
+                opponent's log, or the All view, the board still shows mine, so the
+                number stays a plain read-only marker. */}
+            {who.boardIsShown ? (
+              <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
+            ) : (
+              <td className={turnLog.meta}>#{i + 1}</td>
+            )}
             <td className={turnLog.main}>{verdictLabel(g, nameByRank)}</td>
             <TurnLogActor actor={memberById(players, g.user_id)} />
           </tr>

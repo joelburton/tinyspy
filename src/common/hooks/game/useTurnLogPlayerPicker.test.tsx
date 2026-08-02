@@ -93,10 +93,11 @@ describe('useTurnLogPlayerPicker', () => {
     expect(screen.getByTestId('empty')).toHaveTextContent('No guesses yet.')
   })
 
-  it('labels me "You" and lists me first', () => {
+  it('labels me "You" and lists me first, whatever order the players arrive in', () => {
     render(<Picker />)
     const opts = screen.getAllByRole('option')
-    expect(opts.map((o) => o.textContent)).toEqual(['You', 'moth'])
+    // 'All' leads in multi-player compete — see the All-view block below.
+    expect(opts.map((o) => o.textContent)).toEqual(['All', 'You', 'moth'])
   })
 })
 
@@ -109,3 +110,81 @@ function Picker() {
   })
   return <>{who.picker}</>
 }
+
+/**
+ * The compete "All" view (added with connections, 2026-08-02). It's the reason
+ * the vocabulary is worth stating once: solo → "You", team coop → "Team",
+ * compete → "All" plus each player, defaulting to yourself.
+ */
+describe('useTurnLogPlayerPicker — the compete All view', () => {
+  it('offers All in multi-player compete, but still defaults to me', () => {
+    const { result } = setup()
+    expect(result.current.picked).toBe('u1')
+    render(<>{result.current.picker}</>)
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['All', 'You', 'moth'])
+  })
+
+  it('does NOT offer All in coop — "Team" already is everyone', () => {
+    const { result } = setup({ mode: 'coop' })
+    render(<>{result.current.picker}</>)
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['Team'])
+  })
+
+  it('does NOT offer All in a solo game — it would duplicate "You"', () => {
+    const { result } = setup({ players: [two[0]] })
+    render(<>{result.current.picker}</>)
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['You'])
+  })
+
+  it('shows every player’s rows when All is picked, and no board handle', async () => {
+    const user = userEvent.setup()
+    function Probe() {
+      const who = useTurnLogPlayerPicker<Row>({
+        players: two,
+        selfId: 'u1',
+        mode: 'compete',
+        isTerminal: true,
+      })
+      return (
+        <>
+          {who.picker}
+          <p data-testid="rows">{who.filter(rows).map((r) => r.word).join(',')}</p>
+          <p data-testid="board">{String(who.boardIsShown)}</p>
+        </>
+      )
+    }
+    render(<Probe />)
+    expect(screen.getByTestId('rows')).toHaveTextContent('mine')
+
+    await user.selectOptions(screen.getByRole('combobox'), 'all')
+    expect(screen.getByTestId('rows')).toHaveTextContent('mine,theirs')
+    // All is nobody's board in particular, so #N must not be a live handle.
+    expect(screen.getByTestId('board')).toHaveTextContent('false')
+  })
+
+  it('never calls the All view "hidden" — it always carries my own rows', async () => {
+    const user = userEvent.setup()
+    function Probe() {
+      const who = useTurnLogPlayerPicker<Row>({
+        players: two,
+        selfId: 'u1',
+        mode: 'compete',
+        isTerminal: false,
+        emptyLabel: 'No guesses yet.',
+      })
+      return (
+        <>
+          {who.picker}
+          <p data-testid="empty">{who.emptyText}</p>
+        </>
+      )
+    }
+    render(<Probe />)
+    // A single opponent mid-game IS hidden…
+    await user.selectOptions(screen.getByRole('combobox'), 'u2')
+    expect(screen.getByTestId('empty')).toHaveTextContent('Hidden until game ends.')
+    // …but All is not: RLS still gives me mine, so empty means nobody played.
+    await user.selectOptions(screen.getByRole('combobox'), 'all')
+    expect(screen.getByTestId('empty')).toHaveTextContent('No guesses yet.')
+  })
+})

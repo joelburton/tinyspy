@@ -309,23 +309,37 @@ create policy games_select on connections.games
   for select to authenticated
   using (common.is_club_member(club_handle));
 
--- Guesses: mode-aware visibility, mirroring psychicnum.
+-- Guesses: mode-aware visibility, mirroring wordle.
 --   coop    — every club member sees every guess.
---   compete — each player sees only their own guesses;
---             opponents' tile picks + verdicts are private (so
---             you can't reverse-engineer the answer from a peer's
---             oneAway guess + the public board).
+--   compete — DURING PLAY each player sees only their own; opponents'
+--             tile picks + verdicts are private, so you can't
+--             reverse-engineer the answer from a peer's oneAway guess
+--             plus the public board. That privacy is a GAME RULE, not
+--             just etiquette — it's what makes the race a race.
+--   compete AT TERMINAL — everyone's guesses open up (2026-08-02). The
+--             rule exists to stop you learning the answer while you can
+--             still use it; once the game is over there's nothing left to
+--             protect, and comparing lines afterwards is most of the fun.
+--             This is what backs the turn log's "whose guesses?" picker,
+--             which is empty for an opponent until the game ends. Same
+--             shape wordle and wordiply already use.
 --
--- guesses.mode is read directly from the row — denormalized
--- expressly to avoid a join on every visibility check.
+-- guesses.mode is read directly from the row — denormalized expressly to
+-- avoid a join on every visibility check. The terminal arm does need the
+-- common.games join (is_terminal lives there, not on the per-game row).
 create policy guesses_select on connections.guesses
   for select to authenticated
   using (
     exists (
       select 1 from connections.games g
+       join common.games cg on cg.id = g.id
        where g.id = guesses.game_id
          and common.is_club_member(g.club_handle)
-         and (guesses.mode = 'coop' or guesses.user_id = auth.uid())
+         and (
+               guesses.mode = 'coop'
+            or guesses.user_id = auth.uid()
+            or cg.is_terminal
+             )
     )
   );
 

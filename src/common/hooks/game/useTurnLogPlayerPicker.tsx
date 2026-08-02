@@ -6,12 +6,16 @@ import styles from '../../components/game/lists/TurnLog.module.css'
 /** The minimum a row needs for this hook to filter it: who made it. */
 type ActorRow = { user_id: string }
 
+/** The compete "everyone" selection. Not a user id, so it can't collide. */
+const ALL = 'all'
+
 export type TurnLogPlayerPicker<R extends ActorRow> = {
   /** The `<select>`, for `<TurnLog headerAction>`. */
   picker: React.ReactNode
   /** Rows narrowed to the current selection (all of them in the Team view). */
   filter: (rows: readonly R[]) => R[]
-  /** Whose log is showing — meaningless while `teamView` is true. */
+  /** Whose log is showing: a user id, `'all'` (compete's everyone view), or
+   *  meaningless while `teamView` is true. */
   picked: string
   /** Coop with 2+ players: one shared board, so one "Team" option. */
   teamView: boolean
@@ -80,6 +84,13 @@ export function useTurnLogPlayerPicker<R extends ActorRow>({
     viewerIsPlayer ? selfId : (ordered[0]?.user_id ?? ''),
   )
 
+  // Compete lists everyone's runs at once as well as one at a time. NOT offered
+  // in coop: "Team" already IS everyone, so an "All" beside it would be the same
+  // list under two names. Multi-player only — with one player it'd duplicate
+  // "You".
+  const offersAll = mode === 'compete' && players.length >= 2
+  const isAll = offersAll && picked === ALL
+
   const picker = (
     <select
       className={styles.whoSelect}
@@ -90,23 +101,32 @@ export function useTurnLogPlayerPicker<R extends ActorRow>({
       {teamView ? (
         <option value="team">Team</option>
       ) : (
-        ordered.map((p) => (
-          <option key={p.user_id} value={p.user_id}>
-            {p.user_id === selfId ? 'You' : p.username}
-          </option>
-        ))
+        <>
+          {offersAll && <option value={ALL}>All</option>}
+          {ordered.map((p) => (
+            <option key={p.user_id} value={p.user_id}>
+              {p.user_id === selfId ? 'You' : p.username}
+            </option>
+          ))}
+        </>
       )}
     </select>
   )
 
   return {
     picker,
-    filter: (rows) => (teamView ? [...rows] : rows.filter((r) => r.user_id === picked)),
+    filter: (rows) =>
+      teamView || isAll ? [...rows] : rows.filter((r) => r.user_id === picked),
     picked,
     teamView,
+    // "All" is nobody's board in particular, so a history handle would have
+    // nothing to open — same as picking an opponent.
     boardIsShown: teamView || picked === selfId,
     emptyText:
-      mode === 'compete' && picked !== selfId && !isTerminal
+      // Only a SINGLE opponent's log is honestly "hidden": the All view still
+      // carries my own rows mid-game (RLS gives me those), so an empty All view
+      // really does mean nobody has played yet.
+      mode === 'compete' && !isAll && picked !== selfId && !isTerminal
         ? 'Hidden until game ends.'
         : emptyLabel,
   }

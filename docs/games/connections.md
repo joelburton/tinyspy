@@ -64,7 +64,7 @@ In scope today:
 - Same-date-same-mode opens the existing club game (no replay path — picking a date the club already has in this mode reopens that game rather than creating a new one)
 - 4-mistake-lose, oneAway feedback, dup-guess-doesn't-hurt
 - Reveal-on-loss (the FE reads `board.categories` directly — no separate RPC, see "FE-knows" below). In compete, individual-elimination triggers a personal reveal while the game keeps going for survivors
-- Compete OpponentStrip showing per-player mistake counts (the entire "what opponents know about you" surface — guesses + matched-categories stay private)
+- Compete OpponentStrip showing per-player mistake counts. **During play** that's the entire "what opponents know about you" surface — guesses + matched-categories stay private. **At terminal** (2026-08-02) everyone's guesses open up, and the turn log's "whose guesses?" picker is how you compare lines afterwards — see [Turn log](#turn-log--whose-guesses)
 - Shared selection across connected players via Broadcast in coop; private per-player selection in compete (broadcast send suppressed)
 - Per-player local-shuffle button
 - Hint list (reveal-on-demand, rendered **inline in the info column**: one row per category, each gated behind a "Reveal" button that surfaces that category's first tile when clicked; client-side and per-player, never broadcast or persisted; toggled by the **Hints button** in the info-column action row)
@@ -587,6 +587,27 @@ The broadcast / presence *behavior* itself (selection events merging across peer
 
 - **Per-tile rise-and-fade animations** on category match. The wrong-guess shake exists; the match-resolved animation doesn't.
 - **Print to PDF.** Would fit the shared turn-log helpers cleanly (no board-progression problem) — see [`pdf.md`](../pdf.md); just not opted in yet.
+
+## Turn log — whose guesses?
+
+The log carries the shared [`useTurnLogPlayerPicker`](../../src/common/hooks/game/useTurnLogPlayerPicker.tsx)
+dropdown, the same one wordle and wordiply use, so the vocabulary is identical
+everywhere: **solo → "You"**, **team coop → "Team"**, **compete → "All" plus each
+player**, defaulting to yourself.
+
+The compete options only mean anything because the RLS opens at terminal. Mid-game
+an opponent's log is empty and says *"Hidden until game ends."* rather than "no
+guesses yet" — the difference matters, since the first is a rule and the second
+would be a lie. The **All** view is never described as hidden: it always carries
+your own rows, so an empty All really does mean nobody has played.
+
+`#N` stays a live turn-history handle only when the rows on show ARE the board's —
+your own, or coop's shared game. On an opponent's log or the All view, the board is
+still yours, so the number is a plain marker.
+
+One consequence worth knowing: a correct guess names its category, and that name is
+looked up from the **board's** public categories rather than from your own matches —
+otherwise every opponent row would read a bare "Correct".
 
 ## File locations
 
