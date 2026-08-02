@@ -10,6 +10,11 @@
 --   3. an accepted guess advances the pointer
 --   4. a soft-rejected guess (duplicate) does NOT advance
 --   5. free-for-all (no coop_style) leaves the pointer null and ungated
+--   6. THE TURN-COST SPLIT (2026-08-02): a STRUCTURAL reject (missing_base /
+--      too_short) is a rules error and DOES end the caller's turn; a
+--      dictionary miss (not_a_word) does NOT — the shipped word list may be
+--      at fault, or it's a typo, and taxing a reach for a long word is
+--      backwards in a game whose whole incentive is reaching.
 --
 -- Base is 'ar'; any longer word containing it is accepted (trusting-commit).
 -- ============================================================
@@ -19,7 +24,7 @@ set search_path = wordiply, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(10);
+select plan(15);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -92,6 +97,44 @@ select is(
   (select current_turn_user_id from common.games where id = (select id from g)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
   'turns: bea''s fresh guess wraps the turn back to ada'
+);
+
+-- ── (6) The turn-cost split ─────────────────────────────────
+-- It's ada's turn. A word missing the base is a RULES error: logged, and it
+-- costs her the go.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(
+  wordiply.submit_guess((select id from g), 'zzzz')->>'reason',
+  'missing_base',
+  'turns: a word without the base is rejected'
+);
+reset role;
+select is(
+  (select current_turn_user_id from common.games where id = (select id from g)),
+  'bea22222-2222-2222-2222-222222222222'::uuid,
+  'turns: a STRUCTURAL reject ends the caller''s turn'
+);
+
+-- Now bea submits a word the FE says isn't in the list. Logged, but her turn
+-- survives — this is the half that must NOT cost a go.
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select is(
+  wordiply.submit_guess((select id from g), 'arqqqqq', false)->>'reason',
+  'not_a_word',
+  'turns: the FE''s dictionary verdict is recorded as not_a_word'
+);
+reset role;
+select is(
+  (select current_turn_user_id from common.games where id = (select id from g)),
+  'bea22222-2222-2222-2222-222222222222'::uuid,
+  'turns: a DICTIONARY miss does NOT end the turn'
+);
+
+-- Neither reject spent budget: the board still holds only the accepted pair.
+select is(
+  (select count(*) from wordiply.guesses where game_id = (select id from g) and valid),
+  2::bigint,
+  'turns: neither reject spent a guess'
 );
 
 -- ── FREE-FOR-ALL (no coop_style) — pointer null, ungated ──

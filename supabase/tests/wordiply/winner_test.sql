@@ -26,7 +26,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(12);
+select plan(15);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -290,6 +290,70 @@ select is((select count(*)::int from common.game_players
   0, 'nobody guessed: no player is flagged won');
 select is((select status->>'winner_user_id' from common.games where id = (select id from g6)),
   null, 'nobody guessed: no winner named');
+
+-- ============================================================
+-- (7) REJECTS MUST NOT REACH ANY SCORE
+-- ============================================================
+-- The regression the `valid` column exists to avoid, and the one that would
+-- fail SILENTLY: a missed `where valid` anywhere in _finish_compete would let a
+-- rejected word's length inflate longest / letter_count, or let a reject count
+-- toward the 5-guess terminal. So interleave rejects — including one LONGER
+-- than every accepted word, which would flip the winner if it leaked.
+--
+-- bea's accepted longest is 5 (score 71); ada's is 4 (57). But ada throws in
+-- 'arzzzzz' (7 letters) which the FE says isn't a word: if it scored, ada
+-- would win on length_score AND letter_count.
+
+-- as_user BEFORE the create: a temp table is owned by whoever creates it, and
+-- the reads below run as ada/bea — create it as postgres and they are denied.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g7 on commit drop as
+select * from wordiply.create_game(
+  (select handle from club),
+  pg_temp.wordiply_setup(),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'compete',
+  pg_temp.wordiply_board()
+);
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select wordiply.submit_guess((select id from g7), 'arzzzzz', false);  -- 7, NOT a word
+select wordiply.submit_guess((select id from g7), 'zzzz');            -- missing_base
+select wordiply.submit_guess((select id from g7), 'ar');              -- too_short
+select wordiply.submit_guess((select id from g7), 'arxx');            -- 4  valid
+select wordiply.submit_guess((select id from g7), 'arxy');            -- 4  valid
+select wordiply.submit_guess((select id from g7), 'arxz');            -- 4  valid
+select wordiply.submit_guess((select id from g7), 'arwx');            -- 4  valid
+select wordiply.submit_guess((select id from g7), 'arwy');            -- 4  valid
+
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select wordiply.submit_guess((select id from g7), 'arbbb');   -- 5 valid
+select wordiply.submit_guess((select id from g7), 'arbb');    -- 4
+select wordiply.submit_guess((select id from g7), 'arb');     -- 3
+select wordiply.submit_guess((select id from g7), 'arcc');    -- 4
+select wordiply.submit_guess((select id from g7), 'arc');     -- 3
+
+reset role;
+-- ada's three rejects did NOT count toward her five, so the game ended only
+-- once both had five ACCEPTED guesses.
+select is(
+  (select play_state from common.games where id = (select id from g7)),
+  'won_compete',
+  'rejects: the game still ends on five ACCEPTED guesses each'
+);
+select is(
+  (select (status->>'winner_user_id')::uuid from common.games where id = (select id from g7)),
+  'bea22222-2222-2222-2222-222222222222'::uuid,
+  'rejects: a 7-letter REJECTED word does not win ada the game'
+);
+-- And the rows are all there — the log kept them, the score ignored them.
+select is(
+  (select count(*) from wordiply.guesses
+    where game_id = (select id from g7) and not valid),
+  3::bigint,
+  'rejects: all three are still in the turn log'
+);
 
 -- ============================================================
 select * from finish();

@@ -31,7 +31,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(23);
+select plan(26);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -94,8 +94,11 @@ select is(
 );
 
 -- ============================================================
--- (2) Free-guard rejections: record NOTHING, spend NO budget
+-- (2) Free-guard rejections: RECORDED as invalid, spend NO budget
 -- ============================================================
+-- Since 2026-08-02 `guesses` is the TURN LOG, so a rejection lands a row with
+-- valid=false + its reason. What it must NOT do is spend budget or take a
+-- board slot (seq stays null) — the scores and the five rows are valid-only.
 
 -- too_short: a word not longer than the base ('ar' is exactly base length).
 select is(
@@ -111,11 +114,32 @@ select is(
   'submit_guess: a word not containing the base → {ok:false, reason:missing_base}'
 );
 
--- Neither rejection inserted a row (only the one happy-path guess exists).
+-- Both rejections ARE logged, as invalid rows carrying their reason...
 select is(
-  (select count(*) from wordiply.guesses where game_id = (select id from g)),
+  (select count(*) from wordiply.guesses
+    where game_id = (select id from g) and not valid),
+  2::bigint,
+  'free-guard rejections are RECORDED as invalid rows'
+);
+select is(
+  (select array_agg(reason order by reason) from wordiply.guesses
+    where game_id = (select id from g) and not valid),
+  array['missing_base', 'too_short'],
+  'each invalid row carries the guard that caught it'
+);
+-- ...and a rejected row takes no board slot: seq is the accepted-guess index,
+-- so letting rejects advance it would put row 7 on a five-row board.
+select is(
+  (select count(*) from wordiply.guesses
+    where game_id = (select id from g) and not valid and seq is not null),
+  0::bigint,
+  'an invalid row has no seq (it occupies no board row)'
+);
+-- The valid count is what everything downstream reads.
+select is(
+  (select count(*) from wordiply.guesses where game_id = (select id from g) and valid),
   1::bigint,
-  'free-guard rejections insert NO guesses row'
+  'free-guard rejections do not add to the VALID guesses'
 );
 
 -- ...and neither spent budget: guesses_used is still 1.

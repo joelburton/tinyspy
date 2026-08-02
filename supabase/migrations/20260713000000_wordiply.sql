@@ -118,30 +118,61 @@ grant select
   on wordiply.games to authenticated;
 
 -- ============================================================
--- wordiply.guesses — append-only log of accepted guesses
+-- wordiply.guesses — the TURN LOG (accepted and rejected alike)
 -- ============================================================
--- One row per accepted guess. Carries user_id from day one so compete is
--- a non-event (each player's five guesses are their own rows; the RLS
--- policy narrows by user_id during play). `length` is stored (=
--- char_length(word)) so the max/sum the scores need are trivial.
+-- One row per submitted guess, valid or not. This table is the log of
+-- TURNS, not of scored words — the same shape psychicnum.guesses
+-- (`is_correct`) and connections.guesses (`result`) use, and everything
+-- that computes a SCORE filters `where valid`.
 --
--- seq is 1..5 WITHIN THE TRACK — coop shares one 1..5 sequence
--- across the team; compete gives each player their own 1..5. It's
--- computed in submit_guess as (current track count + 1).
+-- Why rejects are stored at all (2026-08-02):
+--   1. In coop the reject pill is local, so three players independently try
+--      the same non-word and nobody can see it happened. Cross-player memory
+--      is the thing that can't be done client-side.
+--   2. In turn-by-turn coop a STRUCTURAL reject ends your turn, which only
+--      means anything if it's a recorded move.
+--
+-- `valid` / `reason`:
+--   valid = true   → reason null. A real, scoring guess.
+--   valid = false  → reason says which guard caught it:
+--     'missing_base' / 'too_short' — the server's own free guards. A RULES
+--        error, so it ends the caller's turn in turn-order coop.
+--     'not_a_word'  — the FE's verdict against the board's shipped legal
+--        list (trusting-commit: the server has no dictionary here, and we
+--        already trust the FE when it says a word IS legal). Does NOT end
+--        the turn — the miss may be the word list's fault or a typo, and
+--        wordiply's whole incentive is to reach for long words.
+-- A reject spends NO budget in either case: it can cost your go, never one
+-- of the five guesses.
+--
+-- seq is the ACCEPTED-guess index, 1..5 within the track — coop shares one
+-- 1..5 across the team; compete gives each player their own. It's null on a
+-- rejected row: rejects don't occupy a board slot, and letting them advance
+-- seq would put row 7 on a five-row board. The turn LOG orders by
+-- guessed_at, which needs no integer.
 --
 -- The backstop unique (game_id, user_id, word) catches a same-player
--- duplicate at the constraint level; MODE-AWARE dedup (coop dedups across
--- the whole team, compete per-user) can't be a partial index — it lives
--- in submit_guess (same as wordwheel.found_words).
+-- duplicate at the constraint level — now including "you already tried that
+-- and it was rejected", which is feature (1) falling out for free. MODE-AWARE
+-- dedup (coop dedups across the whole team, compete per-user) can't be a
+-- partial index — it lives in submit_guess (same as wordwheel.found_words).
 create table wordiply.guesses (
   id          bigint generated always as identity primary key,
   game_id     uuid not null references wordiply.games(id) on delete cascade,
   user_id     uuid not null references common.profiles(user_id) on delete cascade,
   word        text not null,
   length      int not null,
-  seq smallint not null,
+  valid       boolean not null default true,
+  reason      text,
+  seq smallint,
   guessed_at  timestamptz not null default now(),
-  unique (game_id, user_id, word)
+  unique (game_id, user_id, word),
+  -- The pair can't drift: a valid row has no reason and owns a board slot;
+  -- a rejected row names its guard and owns none.
+  constraint guesses_valid_shape check (
+    (valid and reason is null and seq is not null)
+    or (not valid and reason in ('missing_base', 'too_short', 'not_a_word') and seq is null)
+  )
 );
 
 create index wordiply_guesses_game_id_idx on wordiply.guesses (game_id);
@@ -598,7 +629,7 @@ begin
 
   select coalesce(max(length), 0), coalesce(sum(length), 0), count(*)
     into team_longest, team_letters, team_guesses
-    from wordiply.guesses where game_id = target_game;
+    from wordiply.guesses where game_id = target_game and valid;
 
   ls := wordiply._length_score(team_longest, g_row.max_word_length);
 
@@ -679,7 +710,7 @@ begin
            max(gg.guessed_at) as finished_at
       from common.game_players gp
       left join wordiply.guesses gg
-        on gg.game_id = target_game and gg.user_id = gp.user_id
+        on gg.game_id = target_game and gg.user_id = gp.user_id and gg.valid
      where gp.game_id = target_game
      group by gp.user_id, gp.conceded
   ),
@@ -785,15 +816,26 @@ revoke execute on function wordiply._finish_compete(uuid, text, boolean) from pu
 --   3. mode-aware dedup
 --   4. records the guess, updates status, and checks the end condition
 --      (coop: team's 5th guess; compete: every active player has spent 5).
--- Because the FE validates locally, an INVALID guess never reaches here
--- (it never consumes a line) — a guard miss returns {ok:false, reason}
--- and records nothing.
+-- Every submission is RECORDED, valid or not — this table is the turn log
+-- (see the wordiply.guesses header). `fe_legal` is the FE's dictionary
+-- verdict: false means "I checked the shipped legal list and this isn't on
+-- it". Trusting that is no weaker than trusting its accepts, which we
+-- already do. The server's own free guards still run FIRST and can reject
+-- a word the FE called legal (a stale client).
+--
+-- Turn cost, in turn-by-turn coop: a STRUCTURAL reject (missing_base /
+-- too_short) ends the caller's turn — it's a rules error. A dictionary miss
+-- does NOT: the word list may be at fault, or it's a typo, and taxing a
+-- reach for a long word is backwards in a game whose whole incentive is
+-- reaching. A duplicate ends nothing and records nothing (the row is
+-- already there — which is what makes "you already tried that" work).
+-- No reject spends budget in any case.
 --
 -- Returns {ok:true, length, guesses_used, is_terminal, ...}. `length` is
 -- the ONE live readout; length_score + letter_count are added to the
 -- response ONLY when is_terminal (scores are terminal-only — see the
 -- migration header).
-create function wordiply.submit_guess(target_game uuid, word text)
+create function wordiply.submit_guess(target_game uuid, word text, fe_legal boolean default true)
 returns jsonb
 language plpgsql
 security definer
@@ -814,6 +856,7 @@ declare
   longest_now int;
   is_term boolean;
   result jsonb;
+  reject_reason text;   -- set iff this submission is being recorded as invalid
 begin
   -- Lock the gametype row; mode rides along.
   select * into g_row from wordiply.games
@@ -837,35 +880,35 @@ begin
   end if;
 
   -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
-  -- (pointer null) and compete; raises 'not your turn' otherwise. The
-  -- soft-reject guards below (too_short / missing_base / duplicate) `return`
-  -- before the insert, so a rejected guess never advances; the accepted coop
-  -- branch advances only on the non-terminal continue path.
+  -- (pointer null) and compete; raises 'not your turn' otherwise. What happens
+  -- to the turn AFTER this depends on the outcome: an accepted non-terminal
+  -- guess advances it, so does a structural reject, a dictionary miss and a
+  -- duplicate don't. See the header.
   perform common._require_turn(target_game, caller_id);
 
   base_len := char_length(g_row.base);
   w_lower := lower(coalesce(word, ''));
 
   -- ─── Budget (mode-aware; the FE gates, so this only fires on a race) ─
+  -- `valid` only: a reject costs no budget, and track_count also feeds the
+  -- new row's seq (the board slot), which rejects don't occupy.
   if g_row.mode = 'coop' then
-    select count(*) into track_count from wordiply.guesses where game_id = target_game;
+    select count(*) into track_count
+      from wordiply.guesses where game_id = target_game and valid;
   else
     select count(*) into track_count
-      from wordiply.guesses where game_id = target_game and user_id = caller_id;
+      from wordiply.guesses where game_id = target_game and user_id = caller_id and valid;
   end if;
   if track_count >= 5 then
     raise exception 'no guesses remaining' using errcode = 'P0001';
   end if;
 
-  -- ─── Free guards (no dictionary lookup) ──────────────────
-  if char_length(w_lower) <= base_len then
-    return jsonb_build_object('ok', false, 'reason', 'too_short');
-  end if;
-  if position(g_row.base in w_lower) = 0 then
-    return jsonb_build_object('ok', false, 'reason', 'missing_base');
-  end if;
-
-  -- ─── Mode-aware dedup (alias fw — `word` is also the param name) ──
+  -- ─── Mode-aware dedup, FIRST (alias fw — `word` is also the param name) ──
+  -- Deliberately counts INVALID rows too, and deliberately runs before the
+  -- guards below: a word already in the log — however it got there — is not a
+  -- new turn. Re-submitting it must not log a second row, advance the turn, or
+  -- re-report the original guard's reason. 'duplicate' IS the "you already
+  -- tried that" answer.
   if g_row.mode = 'coop' then
     select count(*) into dup_count
       from wordiply.guesses fw where fw.game_id = target_game and fw.word = w_lower;
@@ -878,8 +921,33 @@ begin
     return jsonb_build_object('ok', false, 'reason', 'duplicate');
   end if;
 
-  -- ─── Insert (trusted word) ───────────────────────────────
+  -- ─── Free guards (no dictionary lookup), then the FE's verdict ──
+  if char_length(w_lower) <= base_len then
+    reject_reason := 'too_short';
+  elsif position(g_row.base in w_lower) = 0 then
+    reject_reason := 'missing_base';
+  elsif not coalesce(fe_legal, true) then
+    reject_reason := 'not_a_word';
+  end if;
+
   ins_length := char_length(w_lower);
+
+  -- ─── Rejected: record the turn, maybe spend it, and stop ──
+  if reject_reason is not null then
+    insert into wordiply.guesses (game_id, user_id, word, length, valid, reason, seq)
+      values (target_game, caller_id, w_lower, ins_length, false, reject_reason, null);
+    -- A rules error costs your go; a dictionary miss doesn't. No-op outside
+    -- turn-by-turn coop (the pointer is null).
+    if reject_reason in ('too_short', 'missing_base') then
+      perform common._advance_turn(target_game);
+    end if;
+    -- No status write: nothing a reject changes is IN the status (budget and
+    -- the scores are all valid-only), and the row itself reaches peers over
+    -- the guesses realtime publication.
+    return jsonb_build_object('ok', false, 'reason', reject_reason);
+  end if;
+
+  -- ─── Accepted (trusted word) ─────────────────────────────
   insert into wordiply.guesses (game_id, user_id, word, length, seq)
     values (target_game, caller_id, w_lower, ins_length, track_count + 1);
 
@@ -911,7 +979,8 @@ begin
           select coalesce(jsonb_agg(jsonb_build_object(
                    'user_id', gp.user_id,
                    'guesses_used', (select count(*) from wordiply.guesses gg
-                                     where gg.game_id = target_game and gg.user_id = gp.user_id)
+                                     where gg.game_id = target_game and gg.user_id = gp.user_id
+                                       and gg.valid)
                  )), '[]'::jsonb)
             from common.game_players gp where gp.game_id = target_game
         )));
@@ -919,7 +988,8 @@ begin
     -- Terminal when every ACTIVE (non-conceded) player has spent 5.
     select bool_and(used >= 5) into all_done from (
       select (select count(*) from wordiply.guesses gg
-               where gg.game_id = target_game and gg.user_id = gp.user_id) as used
+               where gg.game_id = target_game and gg.user_id = gp.user_id
+                 and gg.valid) as used
         from common.game_players gp
        where gp.game_id = target_game and not gp.conceded
     ) t;
@@ -933,7 +1003,8 @@ begin
   select count(*), coalesce(sum(length), 0), coalesce(max(length), 0)
     into used_now, letters_now, longest_now
     from wordiply.guesses
-   where game_id = target_game and (g_row.mode = 'coop' or user_id = caller_id);
+   where game_id = target_game and valid
+     and (g_row.mode = 'coop' or user_id = caller_id);
 
   is_term := (select play_state from common.games where id = target_game) <> 'playing';
 
@@ -955,8 +1026,8 @@ begin
 end;
 $$;
 
-revoke execute on function wordiply.submit_guess(uuid, text) from public;
-grant execute on function wordiply.submit_guess(uuid, text) to authenticated;
+revoke execute on function wordiply.submit_guess(uuid, text, boolean) from public;
+grant execute on function wordiply.submit_guess(uuid, text, boolean) to authenticated;
 
 -- ============================================================
 -- wordiply.submit_timeout — countdown expired → terminal
@@ -1155,7 +1226,8 @@ begin
      and coalesce((
        select bool_and(used >= 5) from (
          select (select count(*) from wordiply.guesses gg
-                  where gg.game_id = target_game and gg.user_id = gp.user_id) as used
+                  where gg.game_id = target_game and gg.user_id = gp.user_id
+                    and gg.valid) as used
            from common.game_players gp
           where gp.game_id = target_game and not gp.conceded
        ) t
