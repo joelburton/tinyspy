@@ -52,7 +52,7 @@ import '../theme.css'
  * `<EntryBox>` display), the same as spellingbee — boggle's structural twin.
  */
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, setup, goToClub, clubHandle, goToGame, session, status, globalFeedback, menu, brand, title } = ctx
+  const { gameId, players, isTerminal, playState, setup, goToClub, clubHandle, goToGame, session, status, globalFeedback, menu, brand, title } = ctx
   const { game, foundWords, loading, rowsLoaded } = useGame(gameId)
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
@@ -381,7 +381,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const wordRows = buildDisplayRows(foundWords, revealWords)
 
   const over = isTerminal
-    ? buildOver({ mode: game.mode, status, myCount, myScore, players, myConceded, selfId: myId })
+    ? buildOver({ mode: game.mode, status, myCount, myScore, players, myConceded, selfId: myId, playState })
     : null
 
   // Index the compete leaderboard by user so the OpponentStrip metric can read
@@ -505,9 +505,13 @@ function buildOver({
   players,
   myConceded,
   selfId,
+  playState,
 }: {
   mode: 'coop' | 'compete'
   status: StatusBlob | null
+  /** The terminal play_state — coop distinguishes a missed TARGET (`lost`)
+   *  from the neutral end of a no-target hunt (`ended`) by it. */
+  playState: string
   myCount: number
   myScore: number
   players: GamePlayer[]
@@ -529,14 +533,21 @@ function buildOver({
   const tally = `${myCount} words, ${myScore} points`
 
   if (mode === 'coop') {
-    // Coop is a shared hunt: normally a neutral end. Reaching the score target
-    // IS a real win. Which of timeout-vs-manual ended it rides in `message`
-    // ("Time's up" / "Game ended") — the pill spends its width on the tally.
-    return {
-      verdict: isTarget ? `Won: ${tally}` : `Ended: ${tally}`,
-      message: isTarget ? 'Target reached!' : reason,
-      tone: isTarget ? 'won' : 'neutral',
+    // Coop is a shared hunt, and what it means to END depends on whether there
+    // was a TARGET to reach — the same three-way the server picks the
+    // play_state from (boggle._finish):
+    //   reached it            → a real win
+    //   clock beat a target   → a real loss; there WAS a bar and we missed it
+    //   anything else         → neutral (no bar to fail, or we chose to stop)
+    // Which of timeout-vs-manual ended it rides in `message` ("Time's up" /
+    // "Game ended") — the pill spends its width on the tally.
+    if (isTarget) {
+      return { verdict: `Won: ${tally}`, message: 'Target reached!', tone: 'won' }
     }
+    if (playState === 'lost') {
+      return { verdict: `Lost: ${tally}`, message: reason, tone: 'lost' }
+    }
+    return { verdict: `Ended: ${tally}`, message: reason, tone: 'neutral' }
   }
 
   // Compete — most points wins (no dupes-cancel; see boggle.md §12).

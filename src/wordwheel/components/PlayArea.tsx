@@ -671,8 +671,10 @@ function buildOver({
       }
     }
 
-    // playState='ended' in compete: timeout or manual. No winner either way —
-    // the race didn't finish. The clock is a loss; agreeing to stop isn't.
+    // What's left in compete is timeout ('lost_compete') and manual ('ended').
+    // No winner either way — the race didn't finish. The clock is a loss (a
+    // race always has a target rank to miss); agreeing to stop isn't. Keyed on
+    // `outcome` rather than play_state so both land in the right branch.
     const outcome = (status?.outcome as string | undefined) ?? 'ended'
     if (outcome === 'timeout') {
       return {

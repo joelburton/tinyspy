@@ -654,9 +654,15 @@ function buildOver({
   if (game.mode === 'coop') {
     const score = game.teamScore ?? 0
     if (outcome === 'manual') return { verdict: 'Ended', message: `${score} pts`, tone: 'neutral' }
-    if (outcome === 'timeout') return { verdict: 'Ended', message: `${score} pts`, tone: 'neutral' }
-    // Played all the way out — not a WIN (coop has none), but a real completion,
-    // and the one coop ending worth distinguishing from "it just stopped".
+    // The clock is the ONE way a coop table loses: it failed to finish in time,
+    // which is how every other game on the roster reads a timeout (the server
+    // agrees — scrabble._finish writes play_state 'lost' for it alone).
+    if (outcome === 'timeout') {
+      return { verdict: 'Lost: out of time', message: `${score} pts`, tone: 'lost' }
+    }
+    // Played all the way out, or ground to a halt on six scoreless turns —
+    // not a WIN (coop has no opponent), but a real completion, and the coop
+    // ending worth distinguishing from "it just stopped".
     return { verdict: 'Completed', message: `${score} pts`, tone: 'won' }
   }
   if (playState === 'ended') return { verdict: 'Ended', message: 'Ended', tone: 'neutral' }
