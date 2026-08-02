@@ -53,6 +53,8 @@ The distinct names matter because the per-player outcome differs: coop's `'won'`
 
 spellingbee's compete variant follows the same suffix convention (its schema declares `'won_compete'` as a play_state). connections's compete uses `'solved_compete'` (matching connections's coop terminal naming `'solved'`).
 
+**The convention is load-bearing, not just cosmetic:** `common.concede` reads the `_compete` suffix off `common.games.gametype` to decide whether an all-conceded table ends `lost_compete` or plain `lost` (2026-08-01 — before that it hardcoded `lost`, so half the roster ended a concede in one vocabulary and half in another). A **single-mode** gametype has no `_compete` half and keeps plain `lost`: bananagrams is the only one today. So a new compete sibling gets the right terminal for free, and a new single-mode game must not be registered with a `_compete` suffix unless it really means the compete vocabulary.
+
 ### `is_terminal` is materialized
 
 Each gametype knows which of its play_states are terminal. The codebase shouldn't have to ask "is this play_state terminal for this gametype?" everywhere — we materialize `is_terminal boolean` on the row as a derived-but-stored field. Updated in the same transaction as `play_state`.

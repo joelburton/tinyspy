@@ -85,10 +85,11 @@ function labelFor(mode: 'coop' | 'compete') {
         return statusLine(wonBy(s.winner_username),
                           s.winner_score != null ? `${s.winner_score} pts` : null)
       case 'lost':
-        // Compete's all-conceded end, and coop's clock.
-        return s.outcome === 'conceded'
-          ? outcome('Lost', 'all conceded')
-          : statusLine(outcome('Lost', 'out of time'), score)
+        // Coop's clock — the one way a coop table loses.
+        return statusLine(outcome('Lost', 'out of time'), score)
+      case 'lost_compete':
+        // Everyone conceded: final scoring ran, but nobody was eligible to win.
+        return outcome('Lost', 'all conceded')
       case 'ended':
         // Every coop finish, and compete's whole-table stop. Name HOW only
         // when it wasn't the ordinary way (coop's 'blocked').

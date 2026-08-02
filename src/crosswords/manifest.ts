@@ -124,11 +124,12 @@ function competeLabel(row: { play_state: string; status: StatusBlob | null }): s
       return outcome('Playing')
     case 'won_compete':
       return wonBy(s.winner_username as string | undefined)
+    // Two collective losses share this state — the clock, and a racer's own
+    // quit ending the table once the last one goes (common.concede).
     case 'lost_compete':
-      return statusLine(outcome('Lost', 'out of time'), 'no winner')
-    // A racer's own quit (common.concede) ends the table once the last one goes.
-    case 'lost':
-      return outcome('Lost', 'all conceded')
+      return (s.outcome as string) === 'conceded'
+        ? outcome('Lost', 'all conceded')
+        : statusLine(outcome('Lost', 'out of time'), 'no winner')
     case 'ended':
       return outcome('Ended')
     default:

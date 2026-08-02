@@ -26,14 +26,8 @@ places" trap for labels. `labelFor` defends against NULL status (`row.status ?? 
 so the two games that never seed status at create (connections, psychicnum) render
 fine. No bugs found in the new work itself.
 
-Three residual oddities it left behind, worth a deliberate decision:
+One residual oddity it left behind, worth a deliberate decision:
 
-- [ ] **The wordiply all-conceded fixture doesn't match the SQL**: the generated
-  status-lines table shows state `ended`, but `common.concede` actually writes
-  `lost`. The label survives only because `competeLabel` keys off
-  `outcome === 'conceded'` before looking at play_state
-  (`src/wordiply/manifest.ts:108`). Exactly the two-places trap — fix the fixture
-  (and see A1, which may change the value anyway).
 - [ ] **deferred.md's "Choose better status lines" item is stale** — its punch list
   is done and the "Known inconsistencies" section it points at is gone. Delete or
   trim to what remains.
@@ -47,18 +41,6 @@ deploys, every rename needs a data migration. **Remember: changing a terminal
 play_state means updating BOTH the SQL and the game's `labelFor` (+ the report
 fixtures) — nothing asserts they agree.**
 
-- [ ] **A1. All-conceded ends in three different play_states.** `common.concede`
-  hardcodes `'lost'` (`20260615000000_common.sql:1811`), so
-  spellingbee/wordwheel/stackdown/scrabble/boggle/crosswords/wordiply compete
-  games end at `lost`; the elimination games' own `_maybe_finish_compete` paths
-  write `lost_compete` (connections `…003:658`, waffle `:677`, wordle `:478`,
-  psychicnum `…002:860`). Same cause, two values (plus wordiply's fixture claiming
-  `ended`). Fix: `common.concede` writes `lost_compete` when the gametype is a
-  compete variant. The wrinkle is **bananagrams** — single-mode, uses
-  `common.concede`, vocabulary has no `_compete` suffix — so it keeps `lost`;
-  pass the terminal state in from the per-game wrapper, or derive from the
-  gametype string. Note scrabble's hand-rolled `'lost'` at `…scrabble:623` has a
-  comment justifying it (null-winner FE branch) — resolve that in the same pass.
 - [ ] **A2. connections `solved`/`solved_compete` → `won`/`won_compete`.**
   states.md blesses the divergence, but thinly: the pair isn't self-consistent
   (coop loss is plain `lost`, not `unsolved`), crosswords writes `won` for the
@@ -105,9 +87,11 @@ fixtures) — nothing asserts they agree.**
     worth at least a look.
   - connections + psychicnum never seed `status` at create (NULL until the first
     move); every other game seeds it. FE defends, but seed for consistency.
-- [ ] **A8. wordiply compete has no `lost_compete` at all** — timeout-with-winner
-  and everyone-exhausted both land `won_compete`, manual/no-winner lands `ended`
-  (`…wordiply:669`). Boggle, the other score-race, does have `lost_compete`.
+- [ ] **A8. wordiply compete reaches `lost_compete` only by concede.** A1 gave it
+  that state (every compete gametype's all-conceded end is `lost_compete` now),
+  but the CLOCK still can't produce one: timeout-with-winner and
+  everyone-exhausted both land `won_compete`, manual/no-winner lands `ended`
+  (`…wordiply:669`). Boggle, the other score-race, loses to the clock properly.
   Maybe deliberate (the comparator usually names a winner) — decide and record.
 
 ## Tier B — column renames (need a migration later)

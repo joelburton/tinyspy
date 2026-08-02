@@ -89,12 +89,13 @@ function labelFor(mode: 'coop' | 'compete') {
       case 'won_compete':
         return statusLine(wonBy(s.winner_username), dict)
       case 'lost':
-        // Compete's all-conceded end (common.concede) lands here too.
+        // Coop only — the clock beat a team that hadn't cleared the stack.
+        return statusLine(outcome('Lost', 'out of time'), found, dict)
+      case 'lost_compete':
+        // The clock, or the last racer conceding (common.concede).
         return s.outcome === 'conceded'
           ? outcome('Lost', 'all conceded')
-          : statusLine(outcome('Lost', 'out of time'), found, dict)
-      case 'lost_compete':
-        return statusLine(outcome('Lost', 'out of time'), 'no winner')
+          : statusLine(outcome('Lost', 'out of time'), 'no winner')
       case 'ended':
         return statusLine(outcome('Ended'), found, dict)
       default:

@@ -116,7 +116,7 @@ const CASES: Record<string, Family> = {
       // end_game re-emits target_rank precisely so this doesn't read "at Start".
       ['lost_compete', { outcome: 'timeout', target_rank: 6 }, 'timeout'],
       ['ended', { outcome: 'manual', target_rank: 6 }, 'manual end'],
-      ['lost', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
     ],
   },
   wordwheel: {
@@ -131,7 +131,7 @@ const CASES: Record<string, Family> = {
       ['won_compete', { target_rank: 6, ...W }, 'someone hit the target'],
       ['lost_compete', { outcome: 'timeout', target_rank: 6 }, 'timeout'],
       ['ended', { outcome: 'manual', target_rank: 6 }, 'manual end'],
-      ['lost', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
     ],
   },
   // boggle's terminal state now depends on whether a TARGET was set —
@@ -151,7 +151,7 @@ const CASES: Record<string, Family> = {
       ['won_compete', { outcome: 'timeout', top_score: 90 }, 'tied top score (no target)'],
       ['lost_compete', { outcome: 'timeout' }, 'timeout, target set'],
       ['ended', { outcome: 'manual' }, 'manual end'],
-      ['lost', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
     ],
   },
   bananagrams: {
@@ -214,7 +214,7 @@ const CASES: Record<string, Family> = {
     compete: [
       ['won_compete', W, 'someone won'],
       ['lost_compete', { outcome: 'timeout' }, 'timeout'],
-      ['lost', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
     ],
   },
   scrabble: {
@@ -228,7 +228,7 @@ const CASES: Record<string, Family> = {
     ],
     compete: [
       ['won_compete', { winner_score: 312, ...W }, 'highest score'],
-      ['lost', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
     ],
   },
   crosswords: {
@@ -241,7 +241,7 @@ const CASES: Record<string, Family> = {
     compete: [
       ['won_compete', W, 'first to finish'],
       ['lost_compete', { outcome: 'timeout' }, 'timeout'],
-      ['lost', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
     ],
   },
   // wordiply writes 'won_compete' only when a winner is picked; otherwise 'ended'.
@@ -255,7 +255,7 @@ const CASES: Record<string, Family> = {
     compete: [
       ['won_compete', { leaderboard: [{ won: true, length_score: 60 }], ...W }, 'one winner'],
       ['won_compete', { leaderboard: [{ won: true, length_score: 60 }, { won: true, length_score: 60 }] }, 'co-winners'],
-      ['ended', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
       ['ended', { outcome: 'timeout' }, 'timeout, no winner'],
       ['ended', { outcome: 'manual' }, 'manual end'],
     ],

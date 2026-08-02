@@ -11,8 +11,9 @@
 --   2. Idempotency: a second concede by the same player raises P0001
 --   3. A middle concede keeps the game going (one racer left)
 --   4. The LAST active player conceding ends the game as a COLLECTIVE
---      loss (is_terminal, play_state 'lost', status.outcome
---      'conceded', every result {"won": false}, no winner)
+--      loss (is_terminal, status.outcome 'conceded', every result
+--      {"won": false}, no winner) — named 'lost_compete' for a
+--      `*_compete` gametype, plain 'lost' for a single-mode one
 --   5. Non-players rejected; conceding a finished game rejected
 --
 -- Uses common.create_game directly (concede is gametype-agnostic — it
@@ -24,7 +25,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(13);
+select plan(14);
 
 \ir ../_shared/setup.psql
 
@@ -48,8 +49,9 @@ select common.create_club('test club', array['ada', 'bea', 'cade']) as handle;
 reset role;
 select set_config('request.jwt.claims', '', true);
 
--- A 3-player game. gametype string is arbitrary for concede — pick a
--- registered compete one for realism. create_game is revoked from
+-- A 3-player game. The gametype is NOT arbitrary any more: concede reads its
+-- `_compete` suffix to name the terminal (see the case at the end of this
+-- file for the single-mode branch). create_game is revoked from
 -- `authenticated`, so create it as_jwt_only (postgres role + ada's jwt).
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select set_config(
@@ -132,8 +134,8 @@ select is(
 );
 select is(
   (select play_state from common.games where id = current_setting('test.game_id')::uuid),
-  'lost',
-  'ended play_state is lost (collective loss)'
+  'lost_compete',
+  'a *_compete gametype ends lost_compete (collective loss)'
 );
 select is(
   (select status->>'outcome' from common.games where id = current_setting('test.game_id')::uuid),
@@ -162,6 +164,38 @@ select throws_ok(
   'P0001',
   'game is already over',
   'conceding a finished game is rejected'
+);
+
+-- ─── (6) A single-mode gametype ends plain 'lost' ───
+-- bananagrams has no coop/compete split, so its vocabulary has no `_compete`
+-- half — concede must not invent one. Solo game: one concede is the last one.
+-- (reset role first: section 5 left us as `authenticated`, which has no
+-- execute privilege on common.create_game — as_jwt_only only sets the claims.)
+reset role;
+select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+select set_config(
+  'test.solo_id',
+  (common.create_game(
+    (select handle from club),
+    'bananagrams',
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'solo-title',
+    '{}'::jsonb,
+    null
+  ))::text,
+  true
+);
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select common.concede(current_setting('test.solo_id')::uuid);
+reset role;
+select set_config('request.jwt.claims', '', true);
+select is(
+  (select play_state from common.games where id = current_setting('test.solo_id')::uuid),
+  'lost',
+  'a single-mode gametype ends plain lost (no _compete half to its vocabulary)'
 );
 
 select * from finish();

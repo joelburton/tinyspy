@@ -41,7 +41,7 @@ select is((select play_state from common.games where id = :'gp_id'), 'playing',
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select crosswords.concede(:'gp_id');
 reset role;
-select is((select play_state from common.games where id = :'gp_id'), 'lost',
+select is((select play_state from common.games where id = :'gp_id'), 'lost_compete',
   'compete: the last conceder → collective loss');
 select is((select status ->> 'outcome' from common.games where id = :'gp_id'), 'conceded',
   'compete: collective loss has outcome = conceded');

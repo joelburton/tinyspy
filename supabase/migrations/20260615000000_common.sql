@@ -1774,10 +1774,11 @@ revoke execute on function common._set_conceded(uuid) from public;
 -- anyone is still racing, return and let them finish (concede
 -- NEVER ends the table for others). Only when the caller was the
 -- last one standing does the game end — as a collective loss
--- (everyone {"won": false}, outcome 'conceded'), the same shape as
--- a whole-table timeout. That's not "we all agreed to stop": each
--- player who wants out clicks Concede, and the final click happens
--- to be the one that ends it.
+-- (`lost_compete` for a sibling compete gametype, plain `lost` for a
+-- single-mode one; everyone {"won": false}, outcome 'conceded'), the
+-- same shape as a whole-table timeout. That's not "we all agreed to
+-- stop": each player who wants out clicks Concede, and the final
+-- click happens to be the one that ends it.
 --
 -- ELIMINATION games do NOT use this — they call common._set_conceded
 -- and then their own terminal check (which counts conceded as
@@ -1791,6 +1792,7 @@ as $$
 declare
   caller_id uuid;
   player_results jsonb;
+  lost_state text;
 begin
   caller_id := common._set_conceded(target_game);
 
@@ -1807,8 +1809,20 @@ begin
     into player_results
     from common.game_players where game_id = target_game;
 
+  -- Name the terminal in the caller's own vocabulary. A sibling compete
+  -- gametype is registered as `<codename>_compete` and spells its collective
+  -- loss `lost_compete` — the roster-wide suffix convention (states.md), and
+  -- the same string the elimination games write from their own terminal
+  -- checks. The single-mode games that borrow this RPC (bananagrams) have no
+  -- suffix and no `_compete` half to their vocabulary, so they stay plain
+  -- `lost`. Derived here rather than passed in by each wrapper: there's one
+  -- rule, and a new game can't forget to follow it.
+  select case when right(g.gametype, 8) = '_compete' then 'lost_compete' else 'lost' end
+    into lost_state
+    from common.games g where g.id = target_game;
+
   perform common.end_game(
-    target_game, 'lost',
+    target_game, lost_state,
     jsonb_build_object('outcome', 'conceded'),
     player_results
   );

@@ -193,9 +193,11 @@ export const spellingbeeCompeteGame: GameManifest = {
     const rank = RANKS[(s.target_rank as number | undefined) ?? 0] ?? '?'
 
     // The all-conceded terminal comes through common.concede as
-    // play_state='lost' + status {outcome:'conceded'} with NO target_rank, so
-    // it must be caught BEFORE anything that prints the rank — otherwise the
-    // rank falls back to 0 and the label reads the wrong "…at Start".
+    // play_state='lost_compete' + status {outcome:'conceded'} with NO
+    // target_rank, so it must be caught BEFORE anything that prints the rank —
+    // otherwise the rank falls back to 0 and the label reads the wrong
+    // "…at Start". (Keyed on the outcome, not the state, so it also sits ahead
+    // of the lost_compete arm below, which is the CLOCK's version of the loss.)
     if ((s.outcome as string) === 'conceded') return outcome('Lost', 'all conceded')
 
     switch (row.play_state) {

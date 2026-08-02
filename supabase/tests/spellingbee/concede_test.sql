@@ -55,7 +55,7 @@ reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
   (select play_state from common.games where id = (select id from g)),
-  'lost', 'everyone conceding ends the game as a collective loss');
+  'lost_compete', 'everyone conceding ends the game as a collective loss');
 select is(
   (select status->>'outcome' from common.games where id = (select id from g)),
   'conceded', 'status.outcome is conceded');

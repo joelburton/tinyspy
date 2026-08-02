@@ -109,7 +109,7 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | | won_compete — someone hit the target | `Won by alice at "Genius"` |
 | | lost_compete — timeout | `Lost (out of time) · nobody reached "Genius"` |
 | | ended — manual end | `Ended · nobody reached "Genius"` |
-| | lost — all conceded | `Lost (all conceded)` |
+| | lost_compete — all conceded | `Lost (all conceded)` |
 | **wordwheel_coop** | playing | `Playing · 21/50 pts · 7/30 words` |
 | | won — reached target | `Won at "Genius" · 47/50 pts` |
 | | lost — timeout, target set | `Lost (out of time) · 21/50 pts · 7/30 words` |
@@ -119,7 +119,7 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | | won_compete — someone hit the target | `Won by alice at "Genius"` |
 | | lost_compete — timeout | `Lost (out of time) · nobody reached "Genius"` |
 | | ended — manual end | `Ended · nobody reached "Genius"` |
-| | lost — all conceded | `Lost (all conceded)` |
+| | lost_compete — all conceded | `Lost (all conceded)` |
 | **bananagrams** | playing | `Playing · 12 tiles in the bunch` |
 | | won — someone went out | `Won by alice` |
 | | lost — timeout | `Lost (out of time) · nobody finished` |
@@ -159,7 +159,7 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | | ended — manual end | `Ended · dict "Familiar"` |
 | | won_compete — someone won | `Won by alice · dict "Familiar"` |
 | | lost_compete — timeout | `Lost (out of time) · no winner` |
-| | lost — all conceded | `Lost (all conceded)` |
+| | lost_compete — all conceded | `Lost (all conceded)` |
 | **scrabble_coop** | playing | `Playing · 152 pts · 7 tiles left` |
 | | ended — manual end | `Ended · 152 pts` |
 | | ended — bag empty | `Ended · 152 pts` |
@@ -168,7 +168,7 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | **scrabble_compete** | playing | `Playing · 7 tiles left` |
 | | ended — manual end | `Ended` |
 | | won_compete — highest score | `Won by alice · 312 pts` |
-| | lost — all conceded | `Lost (all conceded)` |
+| | lost_compete — all conceded | `Lost (all conceded)` |
 | **boggle_coop** | playing | `Playing · 7 words · 21 pts` |
 | | won — reached target | `Won (reached 65%) · 30 words · 90 pts` |
 | | lost — timeout, target set | `Lost (out of time) · 7 words · 21 pts` |
@@ -180,7 +180,7 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | | won_compete — tied top score (no target) | `Won (co-winners) · 90 pts` |
 | | lost_compete — timeout, target set | `Lost (out of time) · no winner` |
 | | ended — manual end | `Ended · no winner` |
-| | lost — all conceded | `Lost (all conceded)` |
+| | lost_compete — all conceded | `Lost (all conceded)` |
 | **crosswords_coop** | playing | `Playing` |
 | | ended — manual end | `Ended` |
 | | won — solved | `Won` |
@@ -189,7 +189,7 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | | ended — manual end | `Ended` |
 | | won_compete — first to finish | `Won by alice` |
 | | lost_compete — timeout | `Lost (out of time) · no winner` |
-| | lost — all conceded | `Lost (all conceded)` |
+| | lost_compete — all conceded | `Lost (all conceded)` |
 | **wordiply_coop** | playing | `Playing · 2/5 guesses` |
 | | ended — guesses used | `Ended (out of guesses) · 60% · 14 letters` |
 | | ended — timeout | `Ended (out of time) · 60% · 14 letters` |
@@ -197,7 +197,7 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | **wordiply_compete** | playing | `Playing` |
 | | won_compete — one winner | `Won by alice · 60%` |
 | | won_compete — co-winners | `Won (co-winners) · 60%` |
-| | ended — all conceded | `Lost (all conceded)` |
+| | lost_compete — all conceded | `Lost (all conceded)` |
 | | ended — timeout, no winner | `Ended (out of time) · no winner` |
 | | ended — manual end | `Ended · no winner` |
 
