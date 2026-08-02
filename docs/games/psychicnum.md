@@ -217,11 +217,12 @@ It must **not** reference the secrets, because `common.games.title` is club-wide
 The only mid-game guess action. The guess must be one of the board words (compared case-folded — the player clicks a tile or types a board word). There are three secrets; players win by finding all three, so a correct guess no longer ends the game by itself — only the one that completes the set does. Returns one of:
 
 - `'won'` — found the last needed secret; caller (compete) / team (coop) wins. Terminal.
-- `'correct'` — found a secret, but more remain. Game continues.
-- `'wrong'` — missed. Game continues.
-- `'lost'` — the guess (right or wrong) that exhausted the last available budget without completing the set. Terminal.
+- `'correct'` — found a secret. Usually the game continues; it can also be the guess that empties the budget, which ends the game — still `'correct'`.
+- `'wrong'` — missed.
 
 The FE flashes green for `'won'`/`'correct'`, red for `'wrong'`; the terminal transition it observes via realtime, not the return value.
+
+**The return value is the caller's verdict on their own guess, never the game's fate.** There's deliberately no `'lost'`: the budget-exhausting guess used to return one whichever way the guess itself went, so a *correct* guess that happened to empty the budget flashed a red "Incorrect" for a beat before the terminal verdict replaced it. Every other way this game ends (timeout, concede, a compete opponent finishing) already reaches the FE by realtime; the exhaustion loss now does too, and the RPC's three values answer only "did I hit a secret?" *(Fixed 2026-08-02.)*
 
 **Mode-aware budget decrement:**
 - Coop: decrements every `psychicnum.players` row.

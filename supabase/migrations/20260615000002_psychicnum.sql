@@ -547,17 +547,28 @@ grant execute on function psychicnum.create_game(text, jsonb, uuid[], text) to a
 -- The guess must be one of the board words (the player clicks a
 -- tile or types a word that's on the board). Compared case-folded.
 --
--- Returns one of:
+-- The return value answers ONE question — did the caller's guess
+-- hit a secret? — because its only consumer is the pill flashed in
+-- the entry box. Returns one of:
 --   'won'     — this guess found the last needed secret; the
 --               caller (compete) / team (coop) wins. Terminal.
---   'correct' — found a secret, but more remain. Game continues.
---   'wrong'   — missed. Game continues.
---   'lost'    — the guess (right or wrong) that exhausted the
---               last available budget without completing the
---               set. Collective loss. Terminal.
+--   'correct' — found a secret. Usually the game continues; it can
+--               also be the guess that empties the budget (see the
+--               loss branch below), which ends the game — still
+--               'correct', because the player DID find a secret.
+--   'wrong'   — missed.
 -- The FE flashes green for 'won'/'correct', red for 'wrong'; the
 -- terminal transition itself it observes via realtime, not the
 -- return value.
+--
+-- There is deliberately NO 'lost': the budget-exhausting guess used
+-- to return it whichever way the guess went, so a correct guess that
+-- happened to empty the budget flashed a red "Incorrect" for a beat
+-- before the terminal verdict replaced it — the return value was
+-- reporting the game's fate in a slot the FE reads as the player's.
+-- Every other way this game ends (timeout, concede, a compete
+-- opponent finishing) already reaches the FE via realtime; the
+-- exhaustion loss now does too.
 --
 -- "Found all three" is scoped per mode:
 --   coop    — the TEAM's distinct correct guesses (everyone's).
@@ -791,7 +802,10 @@ begin
          end,
       player_results
     );
-    return 'lost';
+    -- The caller's own verdict, NOT the game's — the game's fate travels by
+    -- realtime (end_game above). A correct guess that empties the budget is
+    -- still a correct guess to the person who made it.
+    return case when is_correct then 'correct' else 'wrong' end;
   end if;
 
   -- ─── Game continues ──────────────────────────────────────

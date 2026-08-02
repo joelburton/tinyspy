@@ -16,20 +16,10 @@ and the tile `aria-label`s (screen readers are out of scope project-wide — see
 
 ## psychicnum
 
-- **Make the game-status readout (`.infoState`) more visually interesting.** The
-  info-column game-status area (`.infoState` — "N/3 found · M/9 guesses used") is
-  plain and boring. Give it more visual life: spellingbee's info column (its
-  rank ladder / stats treatment) is a good reference for what "interesting" looks
-  like. Cross-game concern (the `.infoState` class is shared), but psychicnum is
-  where it's most noticeably flat. Deferred from the psychicnum v2 → v3 pass.
-- **The budget-exhausting *correct* guess flashes "Incorrect" for a beat.**
-  `submit_guess` returns `'lost'` for the guess
-  that takes the budget to zero regardless of hit/miss, and `BoardCol` maps
-  anything but `'won'`/`'correct'` to the red "Incorrect" pill — so a last guess
-  that *finds* a secret briefly shows "Incorrect" while its tile turns green,
-  then the terminal pill replaces it. Cosmetic/transient. Fix when convenient:
-  return a richer value (`'lost_correct'`) from the RPC, or branch the pill on
-  the local board check (the guessed word is a now-green secret).
+No outstanding deferred items. The budget-exhausting *correct* guess flashing
+"Incorrect" was fixed 2026-08-02 (`submit_guess` no longer returns `'lost'` —
+see [`psychicnum.md → submit_guess`](games/psychicnum.md)), and making the
+`.infoState` readout more visually interesting was dropped as a won't-do.
 
 Open scope-creep notes also live in [`psychicnum.md → Open items`](games/psychicnum.md#open-items).
 

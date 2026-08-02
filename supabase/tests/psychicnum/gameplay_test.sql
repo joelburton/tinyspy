@@ -40,7 +40,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(34);
+select plan(37);
 
 \ir ../_shared/setup.psql
 
@@ -236,12 +236,13 @@ select is(
   'coop: 2 wrong guesses keeps play_state=playing'
 );
 
--- 3rd wrong → team loses.
+-- 3rd wrong → team loses. The return value is the CALLER'S verdict on their own
+-- guess ('wrong'), not the game's fate — the loss reaches the FE by realtime.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
   psychicnum.submit_guess((select id from coop_loss), 'zfoxtrot'),
-  'lost',
-  'coop: 3rd wrong guess returns lost'
+  'wrong',
+  'coop: the budget-exhausting wrong guess returns wrong'
 );
 
 reset role;
@@ -249,6 +250,54 @@ select is(
   (select play_state from common.games where id = (select id from coop_loss)),
   'lost',
   'coop: 3rd wrong flips play_state to lost'
+);
+
+-- ── The budget-exhausting CORRECT guess ──
+-- The same loss, reached by a guess that DID find a secret. It must return
+-- 'correct' (the caller's own verdict) even though the game ends on it —
+-- returning a loss value here made the FE flash a red "Incorrect" for a beat
+-- before the terminal verdict landed. The game still ends: one of three found.
+-- (as_user BEFORE the create: a temp table is owned by whoever creates it, and
+-- the reads below run as ada — create it as postgres and they're denied.)
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table coop_loss_hit on commit drop as
+select * from psychicnum.create_game(
+  (select handle from club),
+  '{"guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'coop'
+);
+reset role;
+update psychicnum.games
+   set words = array['zalpha','zbravo','zcharlie','zdelta','zecho','zfoxtrot','zgolf','zhotel'],
+       secrets = array['zalpha','zbravo','zcharlie']
+ where id = (select id from coop_loss_hit);
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select psychicnum.submit_guess((select id from coop_loss_hit), 'zdelta');
+select psychicnum.submit_guess((select id from coop_loss_hit), 'zecho');
+select is(
+  psychicnum.submit_guess((select id from coop_loss_hit), 'zalpha'),
+  'correct',
+  'coop: the budget-exhausting CORRECT guess returns correct, not a loss value'
+);
+
+reset role;
+select is(
+  (select play_state from common.games where id = (select id from coop_loss_hit)),
+  'lost',
+  'coop: a correct guess that empties the budget still ends the game'
+);
+
+-- The terminal status must carry the tally INCLUDING this last find — the
+-- mid-game update_state is never reached on a terminal guess, so end_game
+-- restates it explicitly. Without that, the final readout says 0/3.
+select is(
+  (select status->>'found_secrets_count'
+     from common.games where id = (select id from coop_loss_hit)),
+  '1',
+  'coop: the exhausting correct guess is counted in the terminal tally'
 );
 
 -- ============================================================
@@ -374,8 +423,8 @@ select psychicnum.submit_guess((select id from comp_loss), 'zdelta');
 select psychicnum.submit_guess((select id from comp_loss), 'zecho');
 select is(
   psychicnum.submit_guess((select id from comp_loss), 'zgolf'),
-  'lost',
-  'compete: all-exhausted last guess returns lost'
+  'wrong',
+  'compete: the all-exhausting wrong guess returns wrong'
 );
 
 reset role;

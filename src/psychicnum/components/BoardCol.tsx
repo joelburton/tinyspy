@@ -166,9 +166,10 @@ export function BoardCol({
       return
     }
     setSubmitting(true)
-    // submit_guess returns 'won' | 'correct' | 'wrong' | 'lost'. 'won'/'correct'
-    // both mean the guess hit a secret; the terminal transition we observe via
-    // realtime, not the return value.
+    // submit_guess returns 'won' | 'correct' | 'wrong' — the caller's own verdict
+    // and nothing else. 'won'/'correct' both mean the guess hit a secret; every
+    // terminal transition (including the guess that empties the budget, which
+    // still returns its own hit/miss) we observe via realtime, not this value.
     const { data, error } = await db.rpc('submit_guess', { target_game: gameId, guess })
     setSubmitting(false)
     if (error) {
