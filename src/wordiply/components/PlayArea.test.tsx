@@ -21,7 +21,11 @@ import { PlayArea } from './PlayArea'
 type GameHook = { game: WordiplyGame | null; guesses: GuessRow[]; loading: boolean }
 
 const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
-vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
+// The real hook derives validGuesses from guesses; mirror that here rather than
+// hand-listing it per fixture, so a test can't accidentally disagree with itself.
+vi.mock('../hooks/useGame', () => ({
+  useGame: () => ({ ...h.result, validGuesses: h.result.guesses.filter((g) => g.valid) }),
+}))
 vi.mock('../db', () => ({ db: { rpc: vi.fn().mockResolvedValue({ error: null }) } }))
 vi.mock('../../common/lib/game/manifestRpcs', () => ({ invokeStartGameEdgeFn: vi.fn() }))
 
@@ -42,7 +46,26 @@ function loadedGame(over: Partial<WordiplyGame> = {}): WordiplyGame {
 }
 
 function guess(word: string, i: number, userId = 'u1'): GuessRow {
-  return { id: i, game_id: 'g1', user_id: userId, word, length: word.length, seq: i, guessed_at: `2026-01-01T00:0${i}:00Z` }
+  return {
+    id: i, game_id: 'g1', user_id: userId, word, length: word.length,
+    valid: true, reason: null, seq: i,
+    guessed_at: `2026-01-01T00:0${i}:00Z`,
+  }
+}
+
+/** A REJECTED submission — in the turn log, but off the board and off every
+ *  score. `seq` is null: rejects occupy no board row. */
+function reject(
+  word: string,
+  i: number,
+  reason: NonNullable<GuessRow['reason']> = 'not_a_word',
+  userId = 'u1',
+): GuessRow {
+  return {
+    id: i, game_id: 'g1', user_id: userId, word, length: word.length,
+    valid: false, reason, seq: null,
+    guessed_at: `2026-01-01T00:0${i}:00Z`,
+  }
 }
 
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
@@ -91,9 +114,11 @@ describe('wordiply PlayArea — layout stability', () => {
     h.result = { game: loadedGame(), guesses: [guess('bar', 1), guess('stars', 2)], loading: false }
     const { container } = render(<PlayArea {...makeCtx()} />)
     expect(boardRowCount(container)).toBe(5)
-    // The one live readout — each guess's length badge.
-    expect(screen.getByText('3')).toBeInTheDocument() // bar
-    expect(screen.getByText('5')).toBeInTheDocument() // stars
+    // The one live readout — each guess's length badge. Queried by its aria
+    // label, not bare text: the turn log now shows the same lengths in its own
+    // column, so plain getByText('3') matches twice.
+    expect(screen.getByLabelText('3 letters')).toBeInTheDocument() // bar
+    expect(screen.getByLabelText('5 letters')).toBeInTheDocument() // stars
   })
 })
 
@@ -101,7 +126,8 @@ describe('wordiply PlayArea — length-only during play', () => {
   it('shows guesses n/5 but NO score % or letter count mid-game', () => {
     h.result = { game: loadedGame(), guesses: [guess('bar', 1)], loading: false }
     render(<PlayArea {...makeCtx()} />)
-    expect(screen.getByText(/guesses/i)).toBeInTheDocument()
+    // getAllBy: the turn log's heading is "Guesses" too.
+    expect(screen.getAllByText(/guesses/i).length).toBeGreaterThan(0)
     // The score bar's anchor ("best N / possible M") + the reveal are absent.
     expect(screen.queryByText(/possible/i)).toBeNull()
     expect(screen.queryByText(/letters across/i)).toBeNull()
@@ -142,10 +168,13 @@ describe('wordiply PlayArea — terminal reveal', () => {
     expect(screen.getByText(/possible 7/)).toBeInTheDocument()
     // The reveal names the longest possible word (label carries the length)…
     expect(screen.getByText(/Best possible word/)).toBeInTheDocument()
-    // …and it's click-to-define: a bare button carrying the shared affordance.
-    const defineBtn = screen.getByTitle('Click to define')
+    // …and it's click-to-define: a bare BUTTON carrying the shared affordance.
+    // The turn log's accepted words are definable too (as spans), so narrow to
+    // the button — that's what distinguishes the reveal from a log row.
+    const defineBtn = screen
+      .getAllByTitle('Click to define')
+      .find((el) => el.tagName === 'BUTTON')
     expect(defineBtn).toHaveTextContent('HANGARS')
-    expect(defineBtn.tagName).toBe('BUTTON')
   })
 
   it('compete terminal reveals opponents’ words but keeps my board to my own', () => {
@@ -234,5 +263,45 @@ describe('wordiply PlayArea — compete terminal verdicts', () => {
       />,
     )
     expect(screen.getByText(/game ended/i)).toBeInTheDocument()
+  })
+})
+
+/**
+ * The turn log — wordiply's answer to "who guessed what?", and the surface that
+ * makes recording rejects worth doing. What matters is the SPLIT: rejects belong
+ * in the log and nowhere else, so a rejected word must never reach the board,
+ * the guesses-used count, or any score.
+ */
+describe('wordiply PlayArea — turn log', () => {
+  it('shows accepted and rejected guesses together, with the reason', () => {
+    h.result = {
+      game: loadedGame(),
+      guesses: [guess('cart', 1), reject('arqqq', 2), reject('zzzz', 3, 'missing_base')],
+      loading: false,
+    }
+    render(<PlayArea {...makeCtx()} />)
+    expect(screen.getByText('CART')).toBeInTheDocument()
+    expect(screen.getByText('ARQQQ')).toBeInTheDocument()
+    expect(screen.getByText('not a word')).toBeInTheDocument()
+    expect(screen.getByText('no base')).toBeInTheDocument()
+  })
+
+  it('keeps rejected guesses OUT of the guesses-used count', () => {
+    h.result = {
+      game: loadedGame(),
+      guesses: [guess('cart', 1), reject('arqqq', 2), reject('arwww', 3)],
+      loading: false,
+    }
+    render(<PlayArea {...makeCtx()} />)
+    // One accepted guess of five — the two rejects cost no budget.
+    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.getByText(/\/ 5 guesses/)).toBeInTheDocument()
+  })
+
+  it('offers the whose-guesses picker, defaulting to me', () => {
+    h.result = { game: loadedGame(), guesses: [guess('cart', 1)], loading: false }
+    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    // Two players in COMPETE would list them; a coop pair is one shared "Team".
+    expect(screen.getByRole('combobox', { name: /whose guesses/i })).toBeInTheDocument()
   })
 })

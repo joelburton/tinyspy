@@ -75,7 +75,7 @@ export function PlayArea(ctx: GamePageCtx) {
     isMyTurn, currentTurnUserId,
     setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback,
   } = ctx
-  const { game, guesses, loading, rowsLoaded } = useGame(gameId)
+  const { game, guesses, validGuesses, loading, rowsLoaded } = useGame(gameId)
 
   const wordiplySetup = setup as WordiplySetup
 
@@ -99,9 +99,9 @@ export function PlayArea(ctx: GamePageCtx) {
   const myGuesses = useMemo<GuessRow[]>(
     () =>
       game?.mode === 'compete'
-        ? guesses.filter((g) => g.user_id === session.user.id)
-        : guesses,
-    [guesses, game?.mode, session.user.id],
+        ? validGuesses.filter((g) => g.user_id === session.user.id)
+        : validGuesses,
+    [validGuesses, game?.mode, session.user.id],
   )
   const boardRows = useMemo(() => myGuesses.map((g) => ({ word: g.word, length: g.length })), [myGuesses])
   const guessesUsed = boardRows.length
@@ -115,7 +115,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const opponentReveal = useMemo(() => {
     if (game?.mode !== 'compete' || !isTerminal) return []
     const byUser = new Map<string, { word: string; length: number }[]>()
-    for (const g of guesses) {
+    for (const g of validGuesses) {
       if (g.user_id === session.user.id) continue
       const rows = byUser.get(g.user_id) ?? []
       rows.push({ word: g.word, length: g.length })
@@ -124,7 +124,7 @@ export function PlayArea(ctx: GamePageCtx) {
     return players
       .filter((p) => p.user_id !== session.user.id)
       .map((player) => ({ player, guesses: byUser.get(player.user_id) ?? [] }))
-  }, [guesses, game?.mode, isTerminal, players, session.user.id])
+  }, [validGuesses, game?.mode, isTerminal, players, session.user.id])
 
   const base = game?.base ?? ''
 
@@ -143,7 +143,7 @@ export function PlayArea(ctx: GamePageCtx) {
       isTerminal: isTerminal || myConceded,
       // Must be LONGER than the base, so the minimum length is base + 1.
       minWordLength: base.length + 1,
-      foundWords: guesses,
+      foundWords: guesses, // ALL rows: the server dedups on rejects too, so a re-try reads as 'already found' here rather than round-tripping
       lookup: (w): WordEntry | null =>
         legalSet.has(w) ? { word: w, points: w.length, isBonus: false } : null,
       commit: async (e) => {
@@ -157,6 +157,22 @@ export function PlayArea(ctx: GamePageCtx) {
       // a word. (Too-short is handled by minWordLength above.)
       explainReject: (w) =>
         base && !w.includes(base.toLowerCase()) ? `must contain "${base.toUpperCase()}"` : 'not a word',
+      // Record the rejection too — in wordiply a rejected guess is a TURN (see
+      // the guesses table header). We hand the server `fe_legal: false` and it
+      // re-derives WHICH guard applies, since it owns the structural rules; a
+      // structural reject also costs the caller their go in turn-by-turn coop.
+      // Fire-and-forget: the pill already says the same thing, so a failed
+      // write must not change what the player sees.
+      recordReject: (w) => {
+        void db
+          .rpc('submit_guess', { target_game: gameId, word: w, fe_legal: false })
+          .then(({ error }) => {
+            // Log-and-swallow: the pill already told the player, so a failed
+            // write must not change what they see — but it must not vanish
+            // silently either (the log would just be missing a row).
+            if (error) console.error('recording a rejected guess failed', error)
+          })
+      },
     })
 
   // ─── End / Concede / Replay — the shared trio ──────────
@@ -251,7 +267,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // Gate the seed on the guesses fetch (separate from the header that sets
     // `game`), so a coop rejoin doesn't replay the backlog as a burst of pills.
     ready: rowsLoaded,
-    items: guesses,
+    items: validGuesses,
     keyOf: (r) => `${r.user_id}:${r.word}`,
     messageFor: (r) => {
       if (r.user_id === session.user.id) return null
@@ -335,6 +351,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close} wide>
         <InfoCol
+          allGuesses={guesses}
           isCompete={isCompete}
           isTerminal={isTerminal}
           over={over}

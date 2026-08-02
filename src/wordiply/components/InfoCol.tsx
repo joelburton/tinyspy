@@ -15,7 +15,9 @@ import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import { MAX_GUESSES } from './GuessBoard'
 import { LengthScoreBar } from './LengthScoreBar'
+import { GameTurnLog } from './GameTurnLog'
 import { OpponentReveal, type OpponentReveals } from './OpponentReveal'
+import type { GuessRow } from '../hooks/useGame'
 import type { WordiplySetup } from '../lib/setup'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -60,6 +62,7 @@ export function InfoCol({
   onRequestBackToClub,
   // ── Setup disclosure ──
   setup,
+  allGuesses,
 }: {
   isCompete: boolean
   isTerminal: boolean
@@ -107,6 +110,9 @@ export function InfoCol({
 
   // ── Setup disclosure ──
   setup: WordiplySetup
+  /** EVERY row for the turn log — rejects included. Distinct from the accepted
+   *  guesses the board + the readouts above are built from. */
+  allGuesses: GuessRow[]
 }) {
   // Click-to-define for the terminal "best possible word" reveal — the same
   // shared popover the word lists / waffle's answer reveal use.
@@ -216,6 +222,19 @@ export function InfoCol({
       {/* Compete terminal reveal — opponents' actual words, hidden all game.
           Renders null in coop / mid-game (opponentReveal is empty). */}
       {isTerminal && <OpponentReveal base={base} opponents={opponentReveal} />}
+
+      {/* Turn log — LAST, per the canonical info-column order (docs/playarea.md).
+          Shows rejects as well as accepted guesses: in coop it's the only way to
+          see who tried what, and the only way to see that someone already tried
+          a non-word. It scrolls inside its own box (the shared <TurnLog>), so a
+          growing log never moves anything above it. */}
+      <GameTurnLog
+        guesses={allGuesses}
+        players={players}
+        selfId={selfId}
+        mode={isCompete ? 'compete' : 'coop'}
+        isTerminal={isTerminal}
+      />
 
       {popover}
     </div>

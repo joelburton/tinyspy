@@ -1,0 +1,29 @@
+/* wordiply's turn log rides the shared <TurnLog> table — the panel border, the
+ * between-turns dividers, the right-aligned who column, the "whose guesses"
+ * dropdown and the scroll box all come from
+ * common/components/game/lists/TurnLog.module.css. The only wordiply-specific
+ * bit is how a REJECTED word reads; that lives here. */
+
+/* A rejected guess: struck through, so the row scans as "tried and didn't
+ * count" without having to read the reason column. NOT muted — the word itself
+ * is a real value the player wants to recognize at a glance ("did we try that
+ * already?" is the whole point of logging it), and muting real values is
+ * against the house rule. The strike carries the meaning; the color doesn't
+ * have to. */
+.rejected {
+  text-decoration: line-through;
+  /* The strike itself is the signal, so keep it light — a full-weight rule
+   * through every rejected row turns the log into noise. */
+  text-decoration-color: var(--color-divider);
+  text-decoration-thickness: 1px;
+}
+
+/* The right-hand cell carries either a LENGTH (one digit) or a reject reason
+ * ("not a word"). Left to wrap, the two-to-three word reasons stack onto three
+ * lines and every rejected row grows to triple height — a ragged log whose row
+ * rhythm depends on which words you got wrong. Keep them on one line and let
+ * the word column (turnLog.main) absorb the slack, as it does in every other
+ * game's log. */
+.outcome {
+  white-space: nowrap;
+}

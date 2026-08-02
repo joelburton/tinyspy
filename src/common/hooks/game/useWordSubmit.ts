@@ -68,6 +68,23 @@ export type WordSubmitConfig = {
    *  board" (untraceable) vs "not a word"; spellingbee "bad letters" / "missing
    *  center letter" / "not a word". `word` is the normalized lowercase. */
   explainReject: (word: string) => string
+  /**
+   * Optional: also RECORD the rejection, don't just show it.
+   *
+   * Omitted (spellingbee / wordwheel / boggle) → a rejected word never leaves
+   * the client, which is right for a parallel word-search: "whose non-word was
+   * that" is a question nobody asks, and the log would be noise.
+   *
+   * Supplied (wordiply) → the rejection is a TURN. It goes in the shared log so
+   * peers can see what's already been tried, and — for a structural reject —
+   * so it can cost the caller their go. See docs/games/wordiply.md.
+   *
+   * Fire-and-forget: the pill is already on screen and says the same thing, so
+   * a failed write must not change what the player sees. NOT called for an
+   * already-found word — that row is in the log by definition, and re-logging
+   * it is exactly what the reminder exists to prevent.
+   */
+  recordReject?: (word: string, reason: 'too_short' | 'not_legal') => void
 }
 
 export type WordSubmitApi = {
@@ -173,6 +190,7 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
 
     if (w.length < c.minWordLength) {
       showPill(stickyPill('warning', line(w, 'too short')))
+      c.recordReject?.(w, 'too_short')
       return
     }
 
@@ -193,6 +211,10 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
 
     if (!entry) {
       showPill(stickyPill('error', line(w, c.explainReject(w))))
+      // One reason for both misses the lookup can't tell apart (not in the
+      // list vs doesn't fit the board); the SERVER re-derives which, since it
+      // owns the structural rules and this hook doesn't know them.
+      c.recordReject?.(w, 'not_legal')
       return
     }
 

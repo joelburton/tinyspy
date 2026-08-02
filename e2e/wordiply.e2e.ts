@@ -40,6 +40,25 @@ test.describe('wordiply live updates', () => {
     // And the guess count advances (also derived from the realtime rows).
     await expect(page.getByText(/1 \/ 5 guesses/)).toBeVisible({ timeout: 10000 })
 
+    // ── The turn log, including a REJECT ──────────────────
+    // A word that isn't on the shipped legal list is recorded as a turn (not a
+    // score): it must appear in the log, struck through with its reason, while
+    // the guess COUNT stays where it was. This is the whole point of storing
+    // rejects, and it exercises the FE→server fe_legal path end to end.
+    await page.keyboard.type('arqqqqq')
+    await page.keyboard.press('Enter')
+
+    const log = page.getByRole('table')
+    await expect(log).toContainText('ARQQQQQ', { timeout: 10000 })
+    await expect(log).toContainText('not a word')
+    // Budget untouched — a reject costs no guess.
+    await expect(page.getByText(/1 \/ 5 guesses/)).toBeVisible()
+    // …and the board still shows only the accepted word.
+    await expect(page.locator('ol').first()).not.toContainText('ARQQQQQ')
+
+    // The accepted guess is in the log too, with its length rather than a reason.
+    await expect(log).toContainText('HANGARS')
+
     await ctx.close()
   })
 })

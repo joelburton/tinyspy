@@ -1360,7 +1360,7 @@ export type Database = {
       }
       _finish_coop: { Args: { target_game: string }; Returns: undefined }
       _is_solved: {
-        Args: { p_owner: string; target_game: string }
+        Args: { p_owner_id: string; target_game: string }
         Returns: boolean
       }
       _matches: { Args: { p_fill: string; p_sols: Json }; Returns: boolean }
@@ -1368,7 +1368,7 @@ export type Database = {
         Args: {
           p_caller: string
           p_mode: string
-          p_owner: string
+          p_owner_id: string
           target_game: string
         }
         Returns: boolean
@@ -2750,8 +2750,10 @@ export type Database = {
           guessed_at: string
           id: number
           length: number
-          seq: number
+          reason: string | null
+          seq: number | null
           user_id: string
+          valid: boolean
           word: string
         }
         Insert: {
@@ -2759,8 +2761,10 @@ export type Database = {
           guessed_at?: string
           id?: never
           length: number
-          seq: number
+          reason?: string | null
+          seq?: number | null
           user_id: string
+          valid?: boolean
           word: string
         }
         Update: {
@@ -2768,8 +2772,10 @@ export type Database = {
           guessed_at?: string
           id?: never
           length?: number
-          seq?: number
+          reason?: string | null
+          seq?: number | null
           user_id?: string
+          valid?: boolean
           word?: string
         }
         Relationships: [
@@ -2874,7 +2880,7 @@ export type Database = {
       }
       replay_board: { Args: { target_game: string }; Returns: undefined }
       submit_guess: {
-        Args: { target_game: string; word: string }
+        Args: { fe_legal?: boolean; target_game: string; word: string }
         Returns: Json
       }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }

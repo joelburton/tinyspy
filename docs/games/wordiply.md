@@ -109,11 +109,18 @@ The legal predicate (`wordiply.matching_words`) excludes slang / slurs / crude w
 (1..6). Word **length is NOT capped** — a long best word like `compartmentalizations` is a
 legitimate target. Instead the edge builder throws out over-generous bases (see §5).
 
-### No turn log, no history viewer
+### A turn log, but no history viewer
 
-Like spellingbee / boggle, wordiply has no `GameTurnLog` and no `useHistoryViewer` — the
-five guess lines on the board *are* the record. (Contrast the seven games that do have a
-turn log; see docs/playarea.md.)
+wordiply **does** have a `GameTurnLog` (added 2026-08-02, making it the eighth). The five
+board lines show *what* was guessed but not *who* guessed it, which coop can't get any
+other way — and the log is also where **rejected** guesses live, so the team can see that
+someone already tried a word. See [§7b](#7b-the-turn-log--and-why-rejects-are-stored).
+
+It has **no `useHistoryViewer`**, deliberately, and won't get one: the mechanism replays
+board state as of turn N, and wordiply's board is five rows all visible at once — "replay
+turn 3" would mean "look at rows 1-3, which are already on your screen". The seven
+history-viewer games all have earlier state that later moves overwrite; wordiply hides
+nothing. (See docs/playarea.md.)
 
 ---
 
@@ -411,6 +418,57 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
 
 ---
 
+## 7b. The turn log — and why rejects are stored
+
+`wordiply.guesses` is the **turn log**, not a list of scored words: every
+submission lands a row, accepted or not. `valid` splits them, and everything that
+computes a score filters `where valid`. That's the same shape
+`psychicnum.guesses` (`is_correct`) and `connections.guesses` (`result`) use.
+
+**Why store rejects** (2026-08-02). Two reasons, both coop-shaped:
+
+1. The reject pill is *local*, so three players independently try the same
+   non-word and nobody can see it happened. Cross-player memory is the part that
+   can't be done client-side.
+2. A recorded move is what lets a bad guess cost a turn.
+
+**`reason`**, and the turn-cost split:
+
+| reason | judged by | ends your turn? |
+|---|---|---|
+| `missing_base` / `too_short` | the server's own free guards | **yes** — a rules error |
+| `not_a_word` | the FE, against the board's shipped `legal_words` | **no** |
+
+A dictionary miss doesn't cost a go because the word list may be at fault, or it
+was a typo — and taxing a reach for a long word is backwards in a game whose
+whole incentive is reaching. **No reject spends budget** in either case: it can
+cost your go, never one of the five guesses.
+
+`submit_guess` takes **`fe_legal`** — the FE's dictionary verdict. Trusting it is
+no weaker than trusting its accepts, which trusting-commit already does; the
+server's own guards still run first and can reject a word the FE called legal.
+The shared `useWordSubmit` supplies this through its optional `recordReject`,
+which only wordiply passes (spellingbee / wordwheel / boggle are parallel
+word-searches where "whose non-word was that" is a question nobody asks).
+
+**Dedup runs first and counts invalid rows too.** A word already in the log isn't
+a new turn, so re-submitting must not log twice, advance the turn, or re-report
+the original guard's reason — `duplicate` *is* the "you already tried that"
+answer, and it falls out of the existing `unique (game_id, user_id, word)`.
+
+**`seq` is the accepted-guess index (1–5), null on rejects.** It used to mean both
+"turn number" and "which of the five board rows"; those separate once rejects get
+rows, and letting them advance `seq` would put row 7 on a five-row board. The log
+orders by `guessed_at`.
+
+**The log itself** is `GameTurnLog` in the info column, using the shared
+[`useTurnLogPlayerPicker`](../../src/common/hooks/game/useTurnLogPlayerPicker.tsx)
+for the whose-guesses dropdown. Rejects show struck through with their reason
+instead of a length, and aren't click-to-define (a lookup of a just-rejected word
+dead-ends). There is deliberately **no `#N` history handle**: wordiply has no
+turn-history viewer and doesn't want one — its board is five rows all visible at
+once, so "replay turn 3" would be "look at rows 1-3, already on your screen".
+
 ## 8. Tests
 
 **pgTAP** (`supabase/tests/wordiply/`, ported from the wordwheel suite against a fixture in
@@ -448,6 +506,12 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
 - `terminal_test` — coop `end_game` (→ `ended`/`manual`); coop timeout (the one coop
   loss); `replay_board` wipes guesses + un-terminals; `concede`, including the
   last-racer's concede resolving the race rather than hanging it.
+- `turn_order_test` also pins the **turn-cost split** (below): a structural reject
+  ends the caller's go, a dictionary miss doesn't, and neither spends budget.
+- `winner_test`'s last case is the **score-isolation regression** — rejects
+  interleaved with accepted guesses, including one LONGER than every accepted
+  word, which flips the compete winner if any `where valid` is missed. That's the
+  failure mode the `valid` column creates, and it fails silently without this.
 - `replay_test` — the dedicated replay suite (the shape every other replay game has).
   Deliberately overlaps `terminal_test` §3's coop pass and adds what it doesn't reach:
   the **compete** branch (`replay_board` hand-writes a zeroed per-player leaderboard —

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
 import { db } from '../db'
 import type { Member } from '../../common/lib/games'
@@ -37,14 +37,24 @@ export type WordiplyGame = {
   created_at: string
 }
 
-/** One accepted guess (a row of `wordiply.guesses`). */
+/**
+ * One row of `wordiply.guesses` — the TURN log, so this is any submission,
+ * accepted or rejected. `valid` splits them: `false` rows carry a `reason` and
+ * have no `seq` (they occupy no board slot). Only valid rows score, fill the
+ * five board rows, or spend budget; the log shows both. See the migration's
+ * table header for why rejects are stored.
+ */
 export type GuessRow = {
   id: number
   game_id: string
   user_id: string
   word: string
   length: number
-  seq: number
+  valid: boolean
+  /** null iff valid; else which guard caught it. */
+  reason: 'missing_base' | 'too_short' | 'not_a_word' | null
+  /** The 1..5 board-row index — null on a rejected row. */
+  seq: number | null
   guessed_at: string
 }
 
@@ -62,7 +72,11 @@ export type GuessRow = {
  */
 export function useGame(gameId: string): {
   game: WordiplyGame | null
+  /** EVERY row — the turn log, rejects included. Only the log wants these. */
   guesses: GuessRow[]
+  /** Just the accepted ones: the board's five rows, the dedup source, the
+   *  scores. Split here so no consumer has to remember the rule. */
+  validGuesses: GuessRow[]
   loading: boolean
   /** True once the guesses rows have loaded at least once — distinct from
    *  `loading` (which flips on the HEADER fetch). Peer narration gates on this
@@ -117,7 +131,7 @@ export function useGame(gameId: string): {
     load: async ({ mounted }) => {
       const { data } = await db
         .from('guesses')
-        .select('id, game_id, user_id, word, length, seq, guessed_at')
+        .select('id, game_id, user_id, word, length, valid, reason, seq, guessed_at')
         .eq('game_id', gameId)
         .order('guessed_at', { ascending: true })
       if (!mounted()) return
@@ -126,5 +140,9 @@ export function useGame(gameId: string): {
     },
   })
 
-  return { game, guesses, loading, rowsLoaded }
+  // Split once, here, so no consumer has to remember the rule: the board, the
+  // dedup and every score read `validGuesses`; only the turn log wants them all.
+  const validGuesses = useMemo(() => guesses.filter((g) => g.valid), [guesses])
+
+  return { game, guesses, validGuesses, loading, rowsLoaded }
 }
