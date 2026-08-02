@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap } from '../../common/lib/color/memberColor'
@@ -15,6 +15,8 @@ import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandle
 import { memberById } from '../../common/lib/game/peers'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { buildConnectionsPrintModel } from '../pdf/model'
+import { printConnectionsPdf } from '../pdf/printConnectionsPdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { db } from '../db'
@@ -99,6 +101,8 @@ export function PlayArea({
   clubHandle,
   goToGame,
   menu,
+  brand,
+  title,
 }: GamePageCtx) {
   // Tab does nothing while the board has the keyboard — this play surface is
   // not a form, so native Tab would walk out to the header buttons and on into
@@ -367,7 +371,51 @@ export function PlayArea({
       newGame: () => void handleNewGame(),
     }
   }, [handleEndGame, handleConcede, handleRestart, handleNewGame])
+  // Board derivations, hoisted ABOVE the early return so the print-model build
+  // in the menu effect (a hook, so it can't live below one) reads the SAME
+  // values the render does rather than a second copy that could drift.
+  const boardView = useMemo(() => {
+    if (!game) return null
+    const locallyDone = isEliminated || myConceded
+    const showReveal = isTerminal || locallyDone
+    const matchedTiles = new Set<string>()
+    for (const mc of matchedCategories) for (const t of mc.tiles) matchedTiles.add(t)
+    const matchedRanks = new Set(matchedCategories.map((m) => m.rank))
+    return {
+      locallyDone,
+      showReveal,
+      matchedTiles,
+      remainingTiles: game.board.tileOrder.filter((t) => !matchedTiles.has(t)),
+      unmatched: showReveal
+        ? game.board.categories.filter((c) => !matchedRanks.has(c.rank))
+        : [],
+    }
+  }, [game, isEliminated, myConceded, isTerminal, matchedCategories])
+
   useEffect(() => {
+    // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). The bands,
+    // the remaining tiles and the log all come from what the VIEWER may see, so
+    // RLS scoping carries onto paper for free.
+    const printModel =
+      game && boardView
+        ? buildConnectionsPrintModel({
+            brand,
+            gameTitle: title,
+            date: new Date().toLocaleDateString(),
+            categories: game.board.categories,
+            matched: matchedCategories,
+            unmatched: boardView.unmatched,
+            remainingTiles: boardView.remainingTiles,
+            guesses,
+            players,
+            selfId: session.user.id,
+            mode,
+            isTerminal,
+            mistakes: mistakeCount,
+            maxMistakes: MISTAKE_BUDGET,
+            setup: [{ label: 'Puzzle', value: game.puzzleDate ?? 'Custom' }],
+          })
+        : null
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -385,11 +433,18 @@ export function PlayArea({
               { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current.newGame() },
             ],
           },
+          ...(printModel
+            ? [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printConnectionsPdf(printModel) }] }]
+            : []),
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, mode, isTerminal, myConceded, infoSheet.menuSections])
+  }, [
+    menu, mode, isTerminal, myConceded, infoSheet.menuSections,
+    game, boardView, brand, title, matchedCategories, guesses, players,
+    session.user.id, mistakeCount,
+  ])
 
   // Hints + End live in the info-column action row (buttons), not the GamePage
   // menu — see the .infoActions block below. Hints toggles the inline HintList
@@ -407,13 +462,7 @@ export function PlayArea({
     players.filter((p) => p.conceded).map((p) => p.user_id),
   )
 
-  const matchedTiles = new Set<string>()
-  for (const mc of matchedCategories) {
-    for (const t of mc.tiles) matchedTiles.add(t)
-  }
-  const remainingTiles = game.board.tileOrder.filter(
-    (t) => !matchedTiles.has(t),
-  )
+  const { remainingTiles } = boardView!
 
   // Turn-history: when a past turn is open, `snap` is that turn's board (else null =
   // live) — the bands matched STRICTLY BEFORE it + its own 4 guessed tiles (ringed in

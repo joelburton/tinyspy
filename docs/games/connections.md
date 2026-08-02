@@ -586,7 +586,34 @@ The broadcast / presence *behavior* itself (selection events merging across peer
 ## Deferred
 
 - **Per-tile rise-and-fade animations** on category match. The wrong-guess shake exists; the match-resolved animation doesn't.
-- **Print to PDF.** Would fit the shared turn-log helpers cleanly (no board-progression problem) — see [`pdf.md`](../pdf.md); just not opted in yet.
+
+## Printing the board (PDF)
+
+`src/connections/pdf/` — a **"Print board (PDF)"** GamePage menu item, the ninth
+game to print (docs/pdf.md). Turn-log family: the board in the left column, the
+guess log beneath.
+
+Two deliberate changes from the screen, both required by
+[`pdf.md`](../pdf.md)'s existing rules rather than invented here:
+
+- **Bands are a thick coloured border, not a fill.** Four full-width fills is an
+  enormous amount of ink, and "backgrounds are white" already says don't. The
+  border uses re-darkened variants of the rank tokens — the screen values are
+  tuned as pale *fills* and nearly vanish stroked as a 2.5pt line.
+- **Each band carries its letter A–D, top-left.** Colour can't be the only
+  signal, because a mono printer flattens all four ranks to the same grey. A–D
+  is faithful rather than arbitrary: rank 0–3 IS the difficulty order the colour
+  encodes. The letter does double duty in the log, where a correct guess is
+  labelled by the band it solved (`C: CASTLE · CIRCLE · CLOUD · CROWN`).
+
+Solved and end-of-game-revealed bands print identically, matching the screen.
+
+One accepted cost: `drawTurnLog`'s move column holds about 38 characters, and
+four tiles plus a verdict can exceed it, so a category of long words ellipsizes
+its final tile. The verdict leads for that reason — it's the part you can't
+reconstruct from a truncated line. (The on-screen log spends two rows per turn
+to avoid this; matching that on paper would mean giving up the shared
+newspaper flow.)
 
 ## Turn log — whose guesses?
 
