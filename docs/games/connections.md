@@ -74,7 +74,6 @@ In scope today:
 Deliberately deferred:
 - Scratchpad (the connections repo's collaborative-editor takeover-lock thing) — the scratchpad now ships as a common opt-in feature (`GameManifest.scratchpad`, used by crosswords); connections simply hasn't opted in
 - Per-tile rise-and-fade animations on category match
-- Scheduled / automated puzzle import (today: manual `npm run connections:import`; eventually a GitHub Action or a Supabase scheduled Edge Function)
 - "Play next puzzle" affordances
 
 ## The "FE-knows-the-answer" decision
@@ -291,6 +290,8 @@ connections.puzzles {
 ### Import script
 
 [`supabase/scripts/import-connections-puzzles.ts`](../../supabase/scripts/import-connections-puzzles.ts), run via `npm run connections:import`. Fetches the connections.json from Eyefyre's repo (or `--file <path>` for offline), maps the upstream `{id, date, answers:[{group, members}]}` shape to our `{source_id, puzzle_date, categories:[{rank, name, tiles}]}` shape, upserts on `source_id` with `ignoreDuplicates: true`. Re-runs are no-ops on already-imported rows.
+
+It also runs **daily on its own**: [`.github/workflows/connections-import.yml`](../../.github/workflows/connections-import.yml) invokes the same script against the hosted project at 10:00 UTC (well after NYT's midnight-ET rollover), with a manual "Run workflow" button for catch-up runs. GitHub Actions rather than pg_cron because the daily outbound call doubles as the "activity" that keeps a free-tier Supabase project from auto-pausing. Because the upsert is idempotent, a day with no new puzzle is a no-op and a missed day catches up on the next run. Needs the `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` repo secrets; see the workflow's header comment for the operational gotchas (UTC + best-effort scheduling, the 60-day-inactivity disable, default-branch-only).
 
 Two upstream-shape notes worth keeping in mind:
 - The `level` field is dropped in later upstream records, so the importer uses the array index as `rank` (the array is always in rank order).
@@ -586,7 +587,6 @@ The broadcast / presence *behavior* itself (selection events merging across peer
 
 Tracked in [`deferred.md`](../deferred.md). The connections-specific ones today:
 
-- **Scheduled puzzle import.** Today's `npm run connections:import` is manual. Graduates to a GitHub Action or a Supabase scheduled Edge Function when the manual cadence gets annoying enough.
 - **Per-tile rise-and-fade animations** on category match. The wrong-guess shake exists; the match-resolved animation doesn't.
 
 ## File locations

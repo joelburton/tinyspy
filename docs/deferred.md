@@ -58,7 +58,7 @@ The shipped treatment is [`ui.md → Terminal results`](ui.md#terminal-results--
 
 ## connections
 
-The connections deferrals — **per-tile rise-and-fade animations** on category match, and **scheduled puzzle import** (the manual `npm run connections:import` graduating to a GitHub Action / scheduled Edge Function) — have their full entries in [`connections.md → Future work`](games/connections.md#future-work).
+The one connections deferral — **per-tile rise-and-fade animations** on category match — has its full entry in [`connections.md → Future work`](games/connections.md#future-work). *(Scheduled puzzle import shipped: [`.github/workflows/connections-import.yml`](../.github/workflows/connections-import.yml) runs the importer daily.)*
 
 ## spellingbee
 
