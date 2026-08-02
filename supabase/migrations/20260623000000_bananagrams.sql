@@ -810,7 +810,7 @@ begin
     perform common.end_game(
       target_game,
       'won',
-      jsonb_build_object('outcome', 'won', 'winner_username', winner_name,
+      jsonb_build_object('outcome', 'complete', 'winner_username', winner_name,
                          'bunch_remaining', length(s_bunch)),
       player_results
     );

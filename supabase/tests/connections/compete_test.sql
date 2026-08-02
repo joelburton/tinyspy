@@ -341,8 +341,8 @@ select is(
 
 select is(
   (select (status->>'outcome') from common.games where id = (select id from g2)),
-  'lost_compete_mistakes',
-  'submit_guess (compete): collective loss outcome = lost_compete_mistakes'
+  'mistakes',
+  'submit_guess (compete): collective loss outcome = mistakes (the cause)'
 );
 
 -- Every player gets {won: false}.
@@ -380,8 +380,8 @@ select is(
 
 select is(
   (select (status->>'outcome') from common.games where id = (select id from g3)),
-  'lost_compete_timeout',
-  'submit_timeout (compete): outcome = lost_compete_timeout'
+  'timeout',
+  'submit_timeout (compete): outcome = timeout (the cause)'
 );
 
 -- Idempotency: a second concurrent fire raises P0001.

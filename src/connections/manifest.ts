@@ -180,9 +180,9 @@ type StatusBlob = Record<string, unknown>
 
 /** Why a compete race ended with nobody solving it (connections' terminals). */
 const COMPETE_LOSS: Record<string, string> = {
-  lost_compete_timeout: 'out of time',
-  lost_compete_mistakes: '4 mistakes',
-  lost_compete_conceded: 'all conceded',
+  timeout: 'out of time',
+  mistakes: '4 mistakes',
+  conceded: 'all conceded',
 }
 
 // The single source of truth for this game's user-facing brand name.
@@ -232,7 +232,7 @@ export const connectionsCoopGame: GameManifest = {
         return statusLine(outcome('Won'), count(mistakes, 'mistake'))
       case 'lost':
         return statusLine(
-          outcome('Lost', s.outcome === 'lost_timeout' ? 'out of time' : '4 mistakes'), groups)
+          outcome('Lost', s.outcome === 'timeout' ? 'out of time' : '4 mistakes'), groups)
       // Manual end (connections.end_game) — neutral, no win/loss framing.
       case 'ended':
         return statusLine(outcome('Ended'), groups)
@@ -288,7 +288,7 @@ export const connectionsCompeteGame: GameManifest = {
       case 'solved_compete':
         return wonBy(s.winner_username as string | undefined)
       case 'lost_compete':
-        return (s.outcome as string) === 'lost_compete_conceded'
+        return (s.outcome as string) === 'conceded'
           ? outcome('Lost', 'all conceded')
           : statusLine(outcome('Lost', COMPETE_LOSS[(s.outcome as string) ?? ''] ?? null), 'no winner')
       // Manual end (connections.end_game) — neutral, no winner.

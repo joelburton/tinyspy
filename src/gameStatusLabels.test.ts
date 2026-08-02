@@ -79,12 +79,12 @@ const CASES: Record<string, Family> = {
     coop: [
       ['won', W, 'found it'],
       ['lost', { outcome: 'exhausted', secrets_found: 2, total_secrets: 3 }, 'out of guesses'],
-      ['lost', { outcome: 'lost_timeout', secrets_found: 2, total_secrets: 3 }, 'timeout'],
+      ['lost', { outcome: 'timeout', secrets_found: 2, total_secrets: 3 }, 'timeout'],
     ],
     compete: [
       ['won_compete', W, 'won the race'],
       ['lost_compete', { outcome: 'exhausted' }, 'budgets exhausted'],
-      ['lost_compete', { outcome: 'lost_compete_timeout' }, 'timeout'],
+      ['lost_compete', { outcome: 'timeout' }, 'timeout'],
       ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
     ],
   },
@@ -93,14 +93,14 @@ const CASES: Record<string, Family> = {
     shared: [['ended', { outcome: 'manual', matched_count: 2 }, 'manual end']],
     coop: [
       ['solved', { matched_count: 4, mistake_count: 1 }, 'solved'],
-      ['lost', { outcome: 'lost_mistakes', matched_count: 2 }, 'four mistakes'],
-      ['lost', { outcome: 'lost_timeout', matched_count: 2 }, 'timeout'],
+      ['lost', { outcome: 'mistakes', matched_count: 2 }, 'four mistakes'],
+      ['lost', { outcome: 'timeout', matched_count: 2 }, 'timeout'],
     ],
     compete: [
       ['solved_compete', W, 'won the race'],
-      ['lost_compete', { outcome: 'lost_compete_mistakes' }, 'everyone hit four mistakes'],
-      ['lost_compete', { outcome: 'lost_compete_timeout' }, 'timeout'],
-      ['lost_compete', { outcome: 'lost_compete_conceded' }, 'all conceded'],
+      ['lost_compete', { outcome: 'mistakes' }, 'everyone hit four mistakes'],
+      ['lost_compete', { outcome: 'timeout' }, 'timeout'],
+      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
     ],
   },
   spellingbee: {

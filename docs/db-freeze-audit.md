@@ -47,13 +47,6 @@ fixtures) — nothing asserts they agree.**
   identical event, and every label now reads "Won" anyway. Rename
   (`…003:846`, `:890`), update both connections `labelFor`s, delete the blessing
   from states.md:54.
-- [ ] **A4. `outcome` values split into two philosophies.** Most games write the
-  *cause* (`timeout`, `manual`, `conceded`, `exhausted`); connections, psychicnum
-  and codenamesduet write play_state duplicates (`lost_timeout`,
-  `lost_compete_conceded`, `lost_compete_timeout` — `…001:893`, `…002:1073`,
-  `…003:662/:1115`), and crosswords writes `finished` where everyone else says
-  `manual` (`…crosswords:917`). Converge on cause-only — play_state already
-  carries the verdict, and the status-line grammar wants the reason noun.
 - [ ] **A6. Timeout-with-no-target policy differs per game**: spellingbee/
   wordwheel/boggle do `lost` if a target was set else `ended`
   (`…spellingbee:1189`, `…boggle:513-517`); wordiply coop is always `ended`

@@ -5,7 +5,7 @@
 -- Mirrors connections / psychicnum: the FE fires this RPC when its
 -- count-down timer hits 0. The server-side gate is the
 -- non-terminal-play_state check; play_state flips to 'lost_timeout' and
--- common.end_game records outcome='lost_timeout'. Idempotent on
+-- common.end_game records play_state='lost_timeout' + outcome='timeout'. Idempotent on
 -- the gate — a second call (e.g. a peer's racing tab) raises
 -- a clean P0001 the FE silently swallows.
 --
@@ -77,8 +77,8 @@ select is(
 select is(
   (select status->>'outcome' from common.games
     where id = (select id from g)),
-  'lost_timeout',
-  'submit_timeout: status.outcome = lost_timeout'
+  'timeout',
+  'submit_timeout: status.outcome names the CAUSE, not the play_state'
 );
 
 -- ============================================================

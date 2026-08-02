@@ -55,6 +55,43 @@ spellingbee's compete variant follows the same suffix convention (its schema dec
 
 **The convention is load-bearing, not just cosmetic:** `common.concede` reads the `_compete` suffix off `common.games.gametype` to decide whether an all-conceded table ends `lost_compete` or plain `lost` (2026-08-01 — before that it hardcoded `lost`, so half the roster ended a concede in one vocabulary and half in another). A **single-mode** gametype has no `_compete` half and keeps plain `lost`: bananagrams is the only one today. So a new compete sibling gets the right terminal for free, and a new single-mode game must not be registered with a `_compete` suffix unless it really means the compete vocabulary.
 
+### `status.outcome` names the CAUSE, never the verdict
+
+`play_state` answers *what happened to the game* (won / lost / ended, per mode).
+`status.outcome` answers *why it stopped* — and the two must not say the same
+thing twice. A terminal write states both: `play_state = 'lost_compete'` with
+`outcome = 'timeout'`, not `outcome = 'lost_compete_timeout'`.
+
+The rule, checkable at a glance: **no `outcome` value may also be a `play_state`
+value.** The whole roster's vocabulary today:
+
+| outcome | the cause it names |
+|---|---|
+| `timeout` | the countdown reached 0 |
+| `manual` | a player fired the End-game action |
+| `conceded` | every player quit (`common.concede`'s last-racer path) |
+| `exhausted` | a budget ran out — guesses, swaps, or codenamesduet's turn counter |
+| `mistakes` | the mistake limit was hit (connections) |
+| `assassin` | the assassin was revealed (codenamesduet) |
+| `solved` | the puzzle/grid/secrets were completed |
+| `target` | a score or rank target was crossed |
+| `cleared` | the stack was cleared (stackdown) |
+| `complete` | the tiles ran out with someone going out (scrabble, bananagrams) |
+| `blocked` | every active seat passed in a row (scrabble compete) |
+| `revealed` | a player asked to see the answer (waffle, wordle) |
+
+Converged 2026-08-01. Before that, connections / psychicnum / codenamesduet
+echoed their play_state into the outcome (`lost_timeout`,
+`lost_compete_conceded`, …), spellingbee / wordwheel wrote `won_compete` where
+their own coop sibling already said `target`, bananagrams wrote `won`, and
+crosswords wrote `finished` for what everyone else calls `manual`. The status-line
+grammar wants a reason noun it can drop into "Lost (out of time)", so a value
+that repeats the verdict is dead weight the label has to strip.
+
+**Adding a terminal? Pick an existing noun before inventing one.** A new cause
+that genuinely isn't in the table above gets a new noun — but "my game's win"
+is not a new cause: it's `solved`, `target`, `cleared`, or `complete`.
+
 ### `is_terminal` is materialized
 
 Each gametype knows which of its play_states are terminal. The codebase shouldn't have to ask "is this play_state terminal for this gametype?" everywhere — we materialize `is_terminal boolean` on the row as a derived-but-stored field. Updated in the same transaction as `play_state`.

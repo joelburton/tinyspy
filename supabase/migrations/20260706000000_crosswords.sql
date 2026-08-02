@@ -922,7 +922,7 @@ begin
 
   perform common.end_game(
     target_game, 'ended',
-    jsonb_build_object('mode', 'coop', 'outcome', 'finished'),
+    jsonb_build_object('mode', 'coop', 'outcome', 'manual'),
     v_results
   );
 end;

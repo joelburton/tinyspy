@@ -57,7 +57,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **found words** | The words you (coop: your team) have found — required *and* bonus. `found_words_count` / `found_words_score` are the live "X" numerators and can exceed the required "Y" denominators. |
 | **rank** | The player's tier on the 7-step Start..Genius ladder, derived from `found_words_score / required_words_score` via `currentRankIndex`. Genius unlocks at 70% (`GENIUS_AT`). Same word `connections` uses for category difficulty, but the underlying concept is different and the scope (puzzle-wide vs per-category) disambiguates in context. |
 | **letter mask** | A 26-bit integer encoding which letters a word/puzzle uses. Same encoding everywhere (TS, SQL, the generated `common.words.letter_mask` column): bit `n` is set iff letter `'a' + n` is present. Used for fast subset-of-puzzle checks (`(wordMask & ~puzzleMask) === 0`) instead of per-character scans. |
-| **outcome** | The `status.outcome` enum value for terminal spellingbee games: `'timeout'` (countdown expired), `'manual'` (any player clicked the End-game menu item), `'won_compete'` (compete: a player hit `target_rank`). A compete game that ends with no winner writes `'timeout'` / `'manual'` with `mode='compete'`. The `play_state` follows the TARGET: a **timeout is `'lost_compete'`** — a compete race always carries a target rank, so the clock beating everyone to it is a real loss for the table (the same rule coop applies, and the one boggle applies to its score target) — while a manual end stays the neutral `'ended'`. |
+| **outcome** | The `status.outcome` enum value for terminal spellingbee games: `'timeout'` (countdown expired), `'manual'` (any player clicked the End-game menu item), `'target'` (a player hit `target_rank` — the same noun coop writes). A compete game that ends with no winner writes `'timeout'` / `'manual'` with `mode='compete'`. The `play_state` follows the TARGET: a **timeout is `'lost_compete'`** — a compete race always carries a target rank, so the clock beating everyone to it is a real loss for the table (the same rule coop applies, and the one boggle applies to its score target) — while a manual end stays the neutral `'ended'`. |
 
 ## Scope: shipped vs. deferred
 
@@ -177,7 +177,7 @@ Two OPTIONAL setup fields let a player hand-pick the board instead of getting a 
 - **`ended`** — terminal, NEUTRAL. Countdown expiry (`status.outcome='timeout'`) with no coop target set, and manual end (`'manual'`) in either mode. A compete TIMEOUT is not here — it's `lost_compete` (a compete race always has a target to miss).
 - **`won`** — terminal. Coop only: the TEAM reached `setup.target_rank` (`status.outcome='target'`), every player `{won:true}`.
 - **`lost`** — terminal. Coop: the countdown beat a target that was set and unreached. Compete: everyone conceded (`common.concede`).
-- **`won_compete`** — terminal. Compete only: a player hit `setup.target_rank`. `status.outcome='won_compete'` + `status.winner_user_id`.
+- **`won_compete`** — terminal. Compete only: a player hit `setup.target_rank`. `status.outcome='target'` + `status.winner_user_id`.
 
 `is_terminal` is true for `ended`, `won`, `lost` and `won_compete`.
 

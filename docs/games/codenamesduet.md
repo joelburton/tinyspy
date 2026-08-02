@@ -201,7 +201,7 @@ Voluntary turn-end during the guess phase. Spends one turn, swaps the clue-giver
 
 ### `codenamesduet.submit_timeout(target_game uuid)`
 
-Fires when the FE's count-down timer expires. Calls `common.end_game` with `play_state = 'lost_timeout'` (distinct from `lost_clock`, which is the rulebook's turns-exhausted ending) and `status->>'outcome' = 'lost_timeout'`.
+Fires when the FE's count-down timer expires. Calls `common.end_game` with `play_state = 'lost_timeout'` (distinct from `lost_clock`, which is the rulebook's turns-exhausted ending) and `status->>'outcome' = 'timeout'` — the play_state carries the verdict, the outcome names the cause. (The other three terminals map the same way: `lost_assassin` → `assassin`, `lost_clock` → `exhausted` — the roster's noun for a spent budget, here the turn counter — and `won` → `solved`.)
 
 Accepts `playing` and `sudden_death` (both non-terminal); idempotent on the terminal-state guard — a second concurrent call from a racing client raises `P0001 'game is not active'`, which the FE swallows. See [Timer](#timer-server-authoritative-ticks).
 

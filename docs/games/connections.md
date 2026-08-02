@@ -142,7 +142,7 @@ Anything not listed here is identical across modes. The shape mirrors [`psychicn
 | **`submit_guess` correct-guess terminal**  | 4 total correct rows → `play_state='solved'`, all `{won: true}` | Caller's 4th correct → `play_state='solved_compete'`, caller `{won: true}`, others `{won: false}` |
 | **`submit_guess` mistake terminal**        | First row's mistake_count hits 4 → `play_state='lost'`, all `{won: false}` | MIN(mistake_count) across all players ≥ 4 → `play_state='lost_compete'`, all `{won: false}` |
 | **eliminated mid-game**                    | Game would already be terminal — no in-between state        | Caller can no longer submit; game continues for survivors            |
-| **`submit_timeout` terminal**              | `play_state='lost'`, outcome `lost_timeout`                 | `play_state='lost_compete'`, outcome `lost_compete_timeout`          |
+| **`submit_timeout` terminal**              | `play_state='lost'`, outcome `timeout`                      | `play_state='lost_compete'`, outcome `timeout`                       |
 | **FE opponent visibility**                 | N/A (everyone's on the same team)                           | OpponentStrip showing per-player mistake counts; no peer guesses, no peer matched-counts |
 | **FE GameTurnLog**                        | Every guess with username attribution                       | Only caller's guesses (RLS filters server-side)                      |
 | **Terminal verdict** (below-board pill; no modal) | "You win!" / "Lost: out of mistakes/time" (team) — a solve also pops the `<CelebrationDialog>` | "You won the race!" / "Beaten to the punch" / "Everyone eliminated" / "Out of time — nobody won" (no celebration — see Terminal state) |
@@ -209,8 +209,8 @@ Reject reasons: not authenticated; not a club member; play_state ≠ playing; ti
 ### `connections.submit_timeout(target_game uuid)`
 
 Fires when the countdown timer expires. Mode-aware terminal:
-- Coop: `play_state='lost'`, status `{outcome: 'lost_timeout', mistake_count, matched_count}`.
-- Compete: `play_state='lost_compete'`, status `{outcome: 'lost_compete_timeout'}`. Everyone `{won: false}` — the race ended without a winner; that's a collective loss.
+- Coop: `play_state='lost'`, status `{outcome: 'timeout', mistake_count, matched_count}`.
+- Compete: `play_state='lost_compete'`, status `{outcome: 'timeout'}`. Everyone `{won: false}` — the race ended without a winner; that's a collective loss.
 
 Idempotent — a second concurrent call on the already-terminal game raises `P0001 "game is not in progress"`, which the FE swallows. See [Timer](#timer).
 
@@ -521,7 +521,7 @@ Standard — connections's `PlayArea` + `setupForm.Component` ship as their own 
 |---|---|
 | `tests/connections/create_game_test.sql` | Coop-mode create_game: auth, membership, setup.puzzleId validation (missing / bad uuid / not-found), setup.timer shape validation, returns id row, mistake_count initial values (on connections.players), board shape, games.puzzle_id linkage, setup persistence, active-flag tracking, title formula. |
 | `tests/connections/gameplay_test.sql` | Coop-mode submit_guess: payload validation, member-only enforcement, wrong/oneAway → players.mistake_count++ in lock-step, correct → guesses row + win check, 4-correct → play_state='solved', 4-mistakes → play_state='lost', race idempotency on the coop partial unique index, submit_timeout happy + idempotency. |
-| `tests/connections/compete_test.sql` | Compete-mode delta: mode validation (rejects invalid mode), compete with <2 players rejected, per-player mistake decrement (caller's row only), per-player partial unique index allows different players to match same rank, first-to-all-4 → solved_compete (winner {won:true}, others {won:false}, opponents can't submit post-win), elimination + collective loss → lost_compete, eliminated player's submit rejected, submit_timeout writes lost_compete + lost_compete_timeout, RLS scopes guesses caller-only while leaving players club-wide visible. |
+| `tests/connections/compete_test.sql` | Compete-mode delta: mode validation (rejects invalid mode), compete with <2 players rejected, per-player mistake decrement (caller's row only), per-player partial unique index allows different players to match same rank, first-to-all-4 → solved_compete (winner {won:true}, others {won:false}, opponents can't submit post-win), elimination + collective loss → lost_compete, eliminated player's submit rejected, submit_timeout writes play_state lost_compete + outcome timeout, RLS scopes guesses caller-only while leaving players club-wide visible. |
 | `tests/connections/rls_test.sql` | dee (non-member) sees zero rows from both tables; mutating RPCs throw with 42501; direct INSERT into game tables is blocked at the grant layer. Includes a positive baseline (ada CAN see her own game). |
 
 ### Per-game `setup.psql` helpers

@@ -648,7 +648,7 @@ declare
   revealed_label text;
   green_total int;
   player_results jsonb;
-  end_outcome text;
+  end_state text;
 begin
   if target_position < 0 or target_position > 24 then
     raise exception 'position must be 0..24' using errcode = 'P0001';
@@ -747,7 +747,7 @@ begin
   -- Terminal-transition check. The three terminal cases share a
   -- common.end_game call shape — building player_results once and
   -- branching on the outcome string keeps the branches focused.
-  end_outcome := null;
+  end_state := null;
 
   -- Terminal-transition check. The three terminal cases share a
   -- common.end_game call shape — building player_results once and
@@ -757,27 +757,27 @@ begin
   if revealed_label = 'A' then
     update codenamesduet.games set current_clue_giver = null
       where id = target_game;
-    end_outcome := 'lost_assassin';
+    end_state := 'lost_assassin';
   elsif current_play_state = 'sudden_death' and revealed_label <> 'G' then
     update codenamesduet.games set current_clue_giver = null
       where id = target_game;
-    end_outcome := 'lost_clock';
+    end_state := 'lost_clock';
   elsif revealed_label = 'G' then
     select count(*) into green_total from codenamesduet.words
       where game_id = target_game and revealed_as = 'G';
     if green_total >= 15 then
       update codenamesduet.games set current_clue_giver = null
         where id = target_game;
-      end_outcome := 'won';
+      end_state := 'won';
     end if;
   end if;
 
-  if end_outcome is not null then
+  if end_state is not null then
     -- Cooperative outcome: both players share the same result.
     -- (Duet is co-op: you win together or you lose together.)
     select jsonb_object_agg(
              user_id::text,
-             jsonb_build_object('won', end_outcome = 'won')
+             jsonb_build_object('won', end_state = 'won')
            )
       into player_results
       from common.game_players
@@ -787,9 +787,17 @@ begin
     -- setup location) for the `turns_used` summary field.
     perform common.end_game(
       target_game,
-      end_outcome,
+      end_state,
       jsonb_build_object(
-        'outcome', end_outcome,
+        -- `outcome` names the CAUSE; play_state already carries the verdict, so
+        -- it must not just repeat it (docs/states.md → the outcome vocabulary).
+        -- 'exhausted' is the roster's noun for a spent budget — here the Duet
+        -- turn counter, the same shape as psychicnum/wordle/waffle's guesses.
+        'outcome', case end_state
+                     when 'lost_assassin' then 'assassin'
+                     when 'lost_clock'    then 'exhausted'
+                     else 'solved'
+                   end,
         'turns_used',
           (select (setup->>'turns')::int
              from common.games where id = target_game)
@@ -890,7 +898,7 @@ begin
     target_game,
     'lost_timeout',
     jsonb_build_object(
-      'outcome', 'lost_timeout',
+      'outcome', 'timeout',
       'turns_used',
         (select (setup->>'turns')::int
            from common.games where id = target_game)

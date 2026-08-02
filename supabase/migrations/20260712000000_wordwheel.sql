@@ -1062,7 +1062,7 @@ begin
       perform common.end_game(
         target_game, 'won_compete',
         jsonb_build_object(
-          'outcome', 'won_compete',
+          'outcome', 'target',
           'mode', 'compete',
           'winner_user_id', caller_id,
           -- Named, not just id'd: the club-list label can't resolve a uuid

@@ -659,7 +659,7 @@ begin
     jsonb_build_object('outcome',
       case when not exists (select 1 from common.game_players gp
                              where gp.game_id = target_game and not gp.conceded)
-           then 'lost_compete_conceded' else 'lost_compete_mistakes' end),
+           then 'conceded' else 'mistakes' end),
     player_results
   );
   return true;
@@ -889,7 +889,7 @@ begin
           target_game,
           'solved_compete',
           jsonb_build_object(
-            'outcome', 'solved_compete',
+            'outcome', 'solved',
             'winner_username', winner_name
           ),
           player_results
@@ -966,7 +966,7 @@ begin
         target_game,
         'lost',
         jsonb_build_object(
-          'outcome', 'lost_mistakes',
+          'outcome', 'mistakes',
           'mistake_count', caller_mistakes,
           'matched_count', matched_count
         ),
@@ -1112,7 +1112,7 @@ begin
 
   if g_row.mode = 'coop' then
     terminal_state := 'lost';
-    terminal_outcome := 'lost_timeout';
+    terminal_outcome := 'timeout';
 
     -- Coop final snapshot: mistake_count + matched_count for the
     -- listing label.
@@ -1136,7 +1136,7 @@ begin
     );
   else
     terminal_state := 'lost_compete';
-    terminal_outcome := 'lost_compete_timeout';
+    terminal_outcome := 'timeout';
 
     perform common.end_game(
       target_game,

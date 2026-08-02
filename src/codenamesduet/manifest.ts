@@ -117,9 +117,10 @@ export const codenamesduetGame: GameManifest = {
   },
 
   // Called by common's GamePage when its countdown timer hits 0.
-  // submit_timeout flips codenamesduet.games.status to 'lost_timeout' (distinct
-  // from 'lost_clock', the Duet rulebook's turns-exhausted ending) + writes
-  // common.games.status.outcome='lost_timeout'. Idempotent, so peers racing to
+  // submit_timeout flips play_state to 'lost_timeout' (distinct from
+  // 'lost_clock', the Duet rulebook's turns-exhausted ending) + writes
+  // common.games.status.outcome='timeout' — the play_state carries the verdict,
+  // the outcome names the cause. Idempotent, so peers racing to
   // fire it is fine. end_game is the irreversible in-game "End game" button.
   // Both are the shared one-arg dispatchers (see common/lib/game/manifestRpcs).
   submitTimeout: makeRpcDispatcher(db, 'submit_timeout'),

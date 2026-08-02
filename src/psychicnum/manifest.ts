@@ -125,8 +125,7 @@ function labelMidGame(s: StatusBlob) {
 /** Why a game ended with nobody finding the set (psychicnum's terminals). */
 const LOSS: Record<string, string> = {
   exhausted: 'out of guesses',
-  lost_timeout: 'out of time',
-  lost_compete_timeout: 'out of time',
+  timeout: 'out of time',
   conceded: 'all conceded',
 }
 

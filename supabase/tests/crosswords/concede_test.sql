@@ -59,8 +59,8 @@ select crosswords.end_game(:'gc_id');
 reset role;
 select is((select play_state from common.games where id = :'gc_id'), 'ended',
   'coop give-up → play_state ended (neutral, not lost)');
-select is((select status ->> 'outcome' from common.games where id = :'gc_id'), 'finished',
-  'coop give-up → outcome finished');
+select is((select status ->> 'outcome' from common.games where id = :'gc_id'), 'manual',
+  'coop give-up → outcome manual (the roster''s word for a player-fired stop)');
 select is(
   (select result -> 'won' from common.game_players
      where game_id = :'gc_id' and user_id = 'ada11111-1111-1111-1111-111111111111'),

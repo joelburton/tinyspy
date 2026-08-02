@@ -90,7 +90,7 @@ A consolidated comparison. Anything not listed here is identical across modes.
 | **`submit_guess` budget decrement**    | UPDATE every player row                                     | UPDATE only the caller's row                                         |
 | **`submit_guess` set-complete terminal** | all three found by the team → `play_state='won'`, every player `result={won: true}` | the caller found all three → `play_state='won_compete'`, caller `result={won: true}`, others `{won: false}` |
 | **`submit_guess` all-exhausted terminal** | `play_state='lost'`, every player `result={won: false}`  | `play_state='lost_compete'`, every player `result={won: false}`      |
-| **`submit_timeout` terminal**          | `play_state='lost'`, outcome `lost_timeout`                 | `play_state='lost_compete'`, outcome `lost_compete_timeout`          |
+| **`submit_timeout` terminal**          | `play_state='lost'`, outcome `timeout`                      | `play_state='lost_compete'`, outcome `timeout`                       |
 | **listing-label `status.guesses_remaining`** | Shared value (all rows have it; any row works)        | Sum of all rows (the listing label reflects "total remaining budget across the game") |
 | **FE PlayArea header**                 | "X guesses left" (single shared number)                     | Budget strip: "You: X · Bea: Y · Cade: Z"                            |
 | **FE GameTurnLog**                    | Every guess shown with username                             | Only caller's guesses shown (RLS filters server-side; FE doesn't need to filter) |
@@ -263,8 +263,10 @@ Two helper RPCs, both: pick an as-yet-unfound secret (scoped like the win check 
 ### `psychicnum.submit_timeout(target_game uuid)`
 
 Fires when the FE's count-down timer expires. Calls `common.end_game` with:
-- Coop: `play_state = 'lost'`, `status->>'outcome' = 'lost_timeout'`.
-- Compete: `play_state = 'lost_compete'`, `status->>'outcome' = 'lost_compete_timeout'`.
+- Coop: `play_state = 'lost'`, `status->>'outcome' = 'timeout'`.
+- Compete: `play_state = 'lost_compete'`, `status->>'outcome' = 'timeout'`.
+
+The outcome names the **cause** and never repeats the play_state, so both modes say `timeout`; the win writes `solved` in both modes too.
 
 Either way, **everyone loses** — `common.game_players.result = {won: false}` for every player. Compete-mode players were racing; the clock running out before anyone won is a collective loss.
 

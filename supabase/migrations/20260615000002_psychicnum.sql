@@ -698,7 +698,7 @@ begin
         from common.game_players
        where game_id = target_game;
       terminal_state := 'won';
-      terminal_outcome := 'won';
+      terminal_outcome := 'solved';
     else
       -- Compete: the caller who completed the set wins; everyone else loses.
       select jsonb_object_agg(
@@ -711,7 +711,7 @@ begin
         from common.game_players
        where game_id = target_game;
       terminal_state := 'won_compete';
-      terminal_outcome := 'won_compete';
+      terminal_outcome := 'solved';
     end if;
 
     perform common.end_game(
@@ -1070,10 +1070,10 @@ begin
 
   if g.mode = 'coop' then
     terminal_state := 'lost';
-    terminal_outcome := 'lost_timeout';
+    terminal_outcome := 'timeout';
   else
     terminal_state := 'lost_compete';
-    terminal_outcome := 'lost_compete_timeout';
+    terminal_outcome := 'timeout';
   end if;
 
   perform common.end_game(
