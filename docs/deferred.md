@@ -74,30 +74,8 @@ The shared `WordList` (used by both spellingbee and boggle) now leads each row w
 
 The channel-qualified feedback split shipped — **local** feedback is `useLocalFeedback` (a near-input `<GenericFeedbackPill>`, validity tones, never a player color) and **group/peer** feedback is `useGlobalFeedback` → the header `<StatusSlot>` (the actor's color disc), two separate channels so neither clobbers the other. The naming convention (`Global`/`Local`/`Generic`, never bare "feedback") lives in [code-conventions.md](code-conventions.md).
 
-- **One follow-up remains:** unify the *turn-outcome* vocabulary (TurnLog `good` / `bad` / `near` / `neutral` / `partial`) across games — deliberately deferred.
+- **One follow-up remains:** unify the *turn-outcome* vocabulary across games — deliberately deferred. Concretely, the two channels name the same idea differently: `TurnOutcome` (TurnLog) is `good` / `bad` / `partial` / `neutral`, while the feedback pill's tone vocabulary uses `near` for what the log calls `partial` (connections maps its one-away to `partial`; the pill calls that tone `near`).
 
-## CSS — looked at and deliberately left
-
-From the 2026-07-13 CSS audit, which was worked to completion and retired (2026-08-01). Its
-durable output lives in [`code-conventions.md → CSS Modules + theme`](code-conventions.md#css-modules--theme)
-(the CSS checklist + the z-index ladder), [`src/cssTokens.test.ts`](../src/cssTokens.test.ts)
-(both token guards + the vocabulary-completeness allowlist), and the per-game docs. These are
-the things it examined and decided **not** to change — recorded so a future sweep doesn't
-re-file them as findings:
-
-- **Duplication that shouldn't be shared.** The `.loading` / `.empty` shapes (loading is an
-  explicitly exempted moment), the dashed empty-slot idiom (three different jobs in three
-  games), the bespoke light modals, and the small-caps micro-label (which folds into the
-  already-deferred font-size-token item rather than standing alone).
-- **Deliberate per-game differences that look like drift.** The square-board `--side` math
-  ("NOT identical enough to share", per the scaffold comment), the absence of a shared
-  `--info-col-width` default (each game declares its own on purpose), the two-reds
-  distinction, the per-game vocabulary palettes, the bananagrams + crosswords layout
-  exceptions, and the `.boardCol` debug tint (intentional — keep it).
-- **`Letters.module.css` / `Wheel.module.css`** — the spellingbee/wordwheel pair is
-  deliberately not folded; the reasoning moved to [`wordwheel.md → Deferred`](games/wordwheel.md#deferred).
-- **scrabble's `BlankPicker` at `z-index: 50`** — a full-screen fixed modal below the 500
-  panel tier; recorded in the z-index ladder as a known anomaly rather than bumped blind.
 
 ## Mobile
 

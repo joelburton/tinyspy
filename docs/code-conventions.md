@@ -457,6 +457,41 @@ Tiers, low to high. Most values are in CSS; the panel tiers are set in JS (`Floa
 
 **Known anomaly:** scrabble's `BlankPicker.module.css` overlay sits at `z-index: 50` — a full-screen `position: fixed` modal parked *below* the 500 panel tier, so an open chat or menu would paint over it. Harmless in practice (nothing else is usually up mid-move) and left as-is rather than changed blind; it wants a look, not a reflex bump.
 
+#### Duplication and drift that are deliberate
+
+Repetition is not automatically a finding. The 2026-07-13 CSS audit examined each of
+these and decided **not** to change it; they're recorded so the next sweep recognizes
+them instead of re-filing them.
+
+**Duplication that shouldn't be shared:**
+
+- **`.loading` / `.empty` shapes.** Loading is an explicitly exempted moment — see the
+  CSS checklist above.
+- **The dashed empty-slot idiom.** Three games, three different jobs; the visual rhyme
+  is coincidence.
+- **The bespoke light modals.** Each is small and local; a shared one would need every
+  caller's variations as props.
+- **The small-caps micro-label.** Real repetition, but it folds into the font-size-token
+  question ([`ui.md`](ui.md) → the standardize-when-it's-noise list) rather than standing
+  alone as its own extraction.
+
+**Per-game differences that look like drift but aren't:**
+
+- **The square-board `--side` math** — "NOT identical enough to share," per the scaffold
+  comment that says so at the site.
+- **No shared `--info-col-width` default** — each game declares its own on purpose.
+- **The two-reds distinction** and the **per-game vocabulary palettes** — see
+  [`ui.md`](ui.md)'s two-vocabularies rule: names and colors track each game's own
+  concepts.
+- **bananagrams' and crosswords' layout exceptions** — documented v3 exceptions, not
+  oversights ([`mobile.md`](mobile.md) and each game's doc).
+- **The `.boardCol` debug tint** — intentional; the rule in `PlayArea.module.css` says
+  "do NOT remove" at the site.
+
+One deliberate non-fold lives with its game rather than here, because it's a fork-pair
+question: `Letters.module.css` / `Wheel.module.css` in
+[`wordwheel.md → Deferred`](games/wordwheel.md#deferred).
+
 ### TypeScript naming conventions
 
 Two conventions intersect: TypeScript leans camelCase, SQL leans snake_case. We honor both, with a rule that makes the boundary visible.
