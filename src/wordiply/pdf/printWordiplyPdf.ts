@@ -29,6 +29,11 @@ import type { WordiplyPrintModel } from './model'
 /** Space under the header before the optional reveal / scores blocks. */
 const BLOCK_GAP = 16
 
+/** The reveal word's size. Deliberately BELOW the header title's 16: it's the
+ *  page's payoff, but the title still names the document, and a 18pt answer
+ *  read as shouting next to it. */
+const REVEAL_SIZE = 13
+
 /** Generate the PDF and hand it to the browser as a download. */
 export function printWordiplyPdf(m: WordiplyPrintModel): void {
   const pd = newPrintDoc()
@@ -71,12 +76,15 @@ function drawReveal(
   if (!m.reveal) return y
   doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(BLACK)
   doc.text('Best possible word', x, y)
-  doc.setFont('helvetica', 'bold').setFontSize(18).setTextColor(BLACK)
-  doc.text(m.reveal.word, x, y + 20)
+  const baseline = y + 16
+  doc.setFont('helvetica', 'bold').setFontSize(REVEAL_SIZE).setTextColor(BLACK)
+  doc.text(m.reveal.word, x, baseline)
   const w = doc.getTextWidth(m.reveal.word)
-  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(DARK_GREY)
-  doc.text(`${m.reveal.length} letters`, x + w + 10, y + 20)
-  return y + 20 + BLOCK_GAP + 8
+  doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(DARK_GREY)
+  doc.text(`${m.reveal.length} letters`, x + w + 8, baseline)
+  // A LARGER gap after the block than inside it (label→word is 16), so the
+  // reveal reads as its own thing rather than running into whatever follows.
+  return baseline + BLOCK_GAP + 8
 }
 
 /**
