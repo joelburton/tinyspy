@@ -16,7 +16,7 @@ Line numbers are as-verified on 2026-08-02 and may drift.
 
 ---
 
-## 2. Test gaps
+## Awaiting Joel's call
 
 - [ ] The scrabble_coop `blocked` fixture row (`src/gameStatusLabels.test.ts:~227`,
   rendered as `Ended (no moves left) · 152 pts` with the stale "six scoreless
@@ -25,16 +25,7 @@ Line numbers are as-verified on 2026-08-02 and may drift.
   give coop a blocked end); listed here only so the fixture note isn't missed
   when that call happens.
 
-## 4. Convention loose ends (decide, then act or record)
-
-- [ ] **`_sync_title` convention vs three holdouts.** `common.sql:~280-283` now
-  states the convention ("a rewriting gametype derives the title in one
-  `_sync_title` helper called from every transition") but only waffle + wordle
-  have the wrapper; scrabble assigns inline, stackdown assigns from a pure
-  formatter, bananagrams writes a static id title. Either extend the shape or
-  soften the comment / record the exception.
-
-## 5. states-audit.md — needs an owner decision
+## states-audit.md — needs an owner decision
 
 `docs/states-audit.md` is substantially stale after the audit: still tabulates
 `solved`/`solved_compete` (`:~160-196, ~797`), `winner_id` (`:~325, ~379, ~539`),

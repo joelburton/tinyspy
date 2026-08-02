@@ -277,10 +277,16 @@ revoke execute on function common.default_gametypes_for_club(text) from public;
 --     never carry state a player is meant not to see (a compete
 --     opponent's guesses, a hidden solution). Games that have
 --     nothing public to say hold the placeholder 'New game'.
---   * a rewriting gametype derives the title from state in one
---     `_sync_title` helper and calls it from every transition,
---     rather than assigning it move by move — that's what keeps
---     a replayed game from still advertising the answer.
+--   * a title that can carry HIDDEN state (waffle, wordle — at
+--     terminal the title IS the answer) derives it in one
+--     `_sync_title` helper called from every transition;
+--     recomputing from state everywhere is what keeps a replayed
+--     game from still advertising the answer. A title that only
+--     mirrors already-public play doesn't need the full shape: it
+--     may assign from its move RPC so long as replay resets the
+--     placeholder (scrabble's `_title_for`, stackdown coop's
+--     `_found_title` — deliberate, not drift). A never-rewritten
+--     title (bananagrams' static id) needs nothing at all.
 --
 -- The per-game formulas are tabulated in
 -- docs/game-status-labels.md (kept there, next to the status
