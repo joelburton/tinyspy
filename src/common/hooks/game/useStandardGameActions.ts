@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { END_GAME_CONFIRM, type ConfirmOptions } from '../ui/useConfirmDialog'
 
 /** The shared game-menu actions this hook owns, as fire-and-forget handlers.
@@ -98,18 +98,47 @@ export function useStandardGameActions({
     })()
   }, [db, gameId, isTerminal, myConceded, showError])
 
+  /**
+   * Restart is in flight — drop a second click rather than firing a second
+   * `replay_board`.
+   *
+   * Why this needs a guard and the other two don't: `isTerminal` / `myConceded`
+   * already stop a double End / Concede once the first RPC lands, and a second
+   * call that beats the round trip just errors harmlessly ("game is not
+   * active"). Replay has no such state — a replayed board is a perfectly legal
+   * thing to replay again — so a double-click genuinely runs it twice, and the
+   * second wipe can land *after* someone has started guessing on the fresh
+   * board. At terminal there's no confirm to slow the second click down either.
+   *
+   * A ref, not state: this gates an event handler and drives no UI, so it must
+   * not re-render (and must be readable synchronously by the very next click —
+   * a state update wouldn't have committed yet). Same pattern the games use for
+   * their own submit handlers.
+   */
+  const restarting = useRef(false)
+
   // Restart — restart THIS board for everyone. Confirmed MID-GAME only (it
   // wipes the group's progress); at terminal there's nothing left to lose. The
   // reset arrives via each game's realtime refetch (the RPC's games touch).
   const restart = useCallback(() => {
     void (async () => {
+      // Checked BEFORE the confirm so a second click during the round trip is
+      // dropped silently rather than re-prompting. (`window.confirm` blocks the
+      // main thread, so no click can arrive while it's open.)
+      if (restarting.current) return
       if (!isTerminal && !window.confirm(restartConfirm)) return
-      const { error } = await db.rpc('replay_board', { target_game: gameId })
-      if (error) {
-        showError(`Replay failed: ${error.message}`)
-        return
+      restarting.current = true
+      try {
+        const { error } = await db.rpc('replay_board', { target_game: gameId })
+        if (error) {
+          showError(`Replay failed: ${error.message}`)
+          return
+        }
+        onRestarted?.()
+      } finally {
+        // Cleared on every path — a failed replay must stay retryable.
+        restarting.current = false
       }
-      onRestarted?.()
     })()
   }, [db, gameId, isTerminal, restartConfirm, showError, onRestarted])
 

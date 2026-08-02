@@ -149,4 +149,52 @@ describe('restart', () => {
     expect(showError).toHaveBeenCalledWith('Replay failed: reset failed')
     expect(onRestarted).not.toHaveBeenCalled()
   })
+
+  // ── The in-flight guard ──
+  // Terminal (no confirm) is the realistic double-click: the RestartButton sits
+  // right there in the terminal row and nothing slows the second click down.
+  it('drops a second click while the first replay_board is in flight', async () => {
+    const { result, rpc, onRestarted } = setup({ isTerminal: true })
+    let release!: () => void
+    rpc.mockImplementation(
+      () => new Promise((resolve) => { release = () => resolve({ error: null }) }),
+    )
+
+    act(() => result.current.restart())
+    act(() => result.current.restart())
+    expect(rpc).toHaveBeenCalledTimes(1)
+
+    await act(async () => { release() })
+    expect(onRestarted).toHaveBeenCalledTimes(1)
+  })
+
+  it('is retryable once the first replay settles — including after a failure', async () => {
+    const { result, rpc, showError } = setup({ isTerminal: true })
+    rpc.mockResolvedValue({ error: { message: 'reset failed' } })
+    act(() => result.current.restart())
+    await flush()
+    expect(showError).toHaveBeenCalledTimes(1)
+
+    // The guard must have cleared on the error path, or a failed replay would
+    // wedge the button for the rest of the session.
+    rpc.mockResolvedValue({ error: null })
+    act(() => result.current.restart())
+    await flush()
+    expect(rpc).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not arm the guard when the mid-game confirm is dismissed', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const { result, rpc } = setup({ isTerminal: false })
+    act(() => result.current.restart())
+    await flush()
+    expect(rpc).not.toHaveBeenCalled()
+
+    // Saying "no" must leave restart usable — the guard is only for a call
+    // that actually reached the RPC.
+    confirmSpy.mockReturnValue(true)
+    act(() => result.current.restart())
+    await flush()
+    expect(rpc).toHaveBeenCalledTimes(1)
+  })
 })
