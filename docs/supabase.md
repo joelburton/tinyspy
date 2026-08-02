@@ -169,7 +169,7 @@ The inventory (row counts from a freshly-imported dev DB):
 | import CLIs (`npm run import`) | everything | direct Postgres (`psql \copy`), not PostgREST | no ✓ |
 | connections SetupForm puzzle picker | `connections.puzzles` (**1122** NYT-dated) | plain select, no limit | fits under the 10k cap (1122 rows); needs a paging loop if the library ever nears 10k. A min/max-dates shortcut does NOT work here: the import skips unusable puzzles (image-word days), so dates are sparse, and the calendar needs per-date statuses anyway |
 | connections SetupForm `club_game_status` | grows with the club's games per mode | plain select | headroom to 10k; a club playing daily takes decades, but watch it if clubs binge one mode |
-| crosswords SetupForm library list | `crosswords.puzzles` (3 today; the planned dictionary-puzzle import will be **large**) | plain select | fine until that import — give it a paging loop (or a limit + real picker UI, which >10k puzzles needs regardless) **before** importing in bulk (deferred: [crosswords.md §9](games/crosswords.md#9-deferred--future)) |
+| crosswords SetupForm library list | `crosswords.puzzles` (3 today; the planned dictionary-puzzle import will be **large**) | plain select | fine until that import — give it a paging loop (or a limit + real picker UI, which >10k puzzles needs regardless) **before** importing in bulk (deferred: [crosswords.md §9](games/crosswords.md#9-deferred)) |
 
 ## Realtime
 
@@ -397,7 +397,7 @@ All of these are commented at the site; this table is the index.
 This doc describes the current surface. Deferred bounds/realtime items
 (e.g. the crosswords library-picker bound, owed before the bulk
 dictionary-puzzle import) live in [deferred.md](deferred.md) and the
-per-game deferred registers ([crosswords.md §9](games/crosswords.md#9-deferred--future)).
+per-game deferred registers ([crosswords.md §9](games/crosswords.md#9-deferred)).
 
 Gates for any code change here: `npx tsc -b` (NOT `tsc --noEmit` — the
 root tsconfig checks nothing), `npm test`, and `npm run test:db` for

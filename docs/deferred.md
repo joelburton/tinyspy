@@ -1,27 +1,41 @@
 # Deferred work
 
-Things we explicitly chose NOT to do, with a one-line reminder of what + why. This isn't a roadmap or a "next up" queue — it's the register of decisions made in code review and conversation that we want to remember.
+Things we've chosen not to do *yet*, with a reminder of what + why. This isn't a roadmap or a "next up" queue — it's the register of decisions made in code review and conversation that we want to remember.
 
-When an item gets picked up, delete it from this file. When a new "we'll do this later" decision happens, add it here so future-us doesn't lose track.
+## Where an item goes
 
-For per-feature deep context on each item, follow the link into the relevant feature doc — `codenamesduet.md`'s "Open items," `psychicnum.md`'s "Open items / known scope-creep," `common.md`'s "Deferred / open."
+**This file holds only cross-cutting work** — `common/`, the shell, the theme, tooling, and whole-app design questions.
 
-## codenamesduet
+**A deferral that lives inside one game lives in that game's doc**, under a `## Deferred` heading. Work tends to happen game-by-game, so the item should be in the file you already have open. The sorting key is **which file you'd edit to do the work**, not which game surfaces it: the `WordList` marker ideas below are filed here, not under spellingbee/boggle, because the code is in `common/`.
 
-No outstanding deferred items. Both former entries were **decided against**
-2026-08-02 — mission / campaign mode (won't do; the entry in
-[`codenamesduet.md → Open items`](games/codenamesduet.md#open-items) records why)
-and the tile `aria-label`s (screen readers are out of scope project-wide — see
-[`CLAUDE.md`](../CLAUDE.md)).
+Two headings, and the distinction matters:
 
-## psychicnum
+| heading | meaning |
+|---|---|
+| `## Deferred` | Real work, not done yet. Someone may pick it up. |
+| `## Won't do` | **Decided against.** Kept *only* so reviews and future sessions don't re-propose it. Brief — the decision, the date, one line of why. Not a queue. |
 
-No outstanding deferred items. The budget-exhausting *correct* guess flashing
-"Incorrect" was fixed 2026-08-02 (`submit_guess` no longer returns `'lost'` —
-see [`psychicnum.md → submit_guess`](games/psychicnum.md)), and making the
-`.infoState` readout more visually interesting was dropped as a won't-do.
+Don't put a won't-do under "Deferred," or it reads as a backlog item forever. Games with neither kind of item get neither heading.
 
-Open scope-creep notes also live in [`psychicnum.md → Open items`](games/psychicnum.md#open-items).
+When an item gets picked up, delete it. When a new "we'll do this later" decision happens, add it to the right place.
+
+*(A future pass may split `## Deferred` further into "useful now" vs "far-future idea" — game-by-game, when each is next opened.)*
+
+## Per-game registers
+
+Only these games have open items today; the rest have none.
+
+| game | |
+|---|---|
+| [bananagrams](games/bananagrams.md#deferred) | the peel pill's peer case · won't-do: touch input, replay |
+| [boggle](games/boggle.md#11-deferred) | word-list freshness via Storage · dupes-cancel scoring · a "check board" helper |
+| [codenamesduet](games/codenamesduet.md#deferred) | PDF print · won't-do: missions, tile `aria-label`s |
+| [connections](games/connections.md#deferred) | per-tile match animations · PDF print |
+| [crosswords](games/crosswords.md#9-deferred) | the fullest register — ⌥M, `fetch-nyt-range`, NYT dedup, the library picker bound before the bulk import, the scratchpad lock races, standing schema flags, unpinned tests |
+| [psychicnum](games/psychicnum.md#wont-do) | won't-do only: anti-spam, a livelier `.infoState` |
+| [stackdown](games/stackdown.md#6-deferred) | PDF print |
+| [wordiply](games/wordiply.md#10-open-decisions) | §10's item 9 (PDF print). §10 is a build-time *decision log*, not a deferral register — left as-is |
+| [wordwheel](games/wordwheel.md#deferred) | the `Letters`/`Wheel` CSS fold (owns the spellingbee pair's ledger) · the ≥15 quality gate · `s`-heavy seeds |
 
 ## Common / architecture
 
@@ -49,46 +63,6 @@ The shipped treatment is [`ui.md → Terminal results`](ui.md#terminal-results--
 - **Hide-the-solution-on-loss beyond waffle + wordle.** The other hidden-solution games still reveal at terminal regardless of outcome: stackdown's six words, crosswords' grid, connections' unmatched categories, psychicnum's ringed secrets. The argument for extending it is that it protects the replay's value as much as the emotional beat — force-reveal and a second attempt is theater. Each needs the same two pieces waffle/wordle have: an `answerShown`-style gate (won OR explicitly revealed) and a terminal `RevealButton` as the local display toggle. Not applicable to the word-list games (spellingbee, boggle, wordwheel), where "the solution" isn't a single answer.
 - ~~**Crosswords replay.**~~ **Decided (2026-07-31): won't do**, joining codenamesduet and bananagrams as a deliberate opt-out. Re-solving a grid whose answers you've just read isn't a do-over, a different line, or an optimization — the three players Restart exists for (ui.md → Restart) all need a puzzle that can surprise you twice, and a crossword can't. Building it would also mean a new `replay_board` RPC, where the other twelve games already had one. Someone who wants a fresh grid mid-game has **Clear board**; someone who wants another puzzle has **New game**, which opens the setup so they can pick one.
 - **Keeping a prior attempt's turn log across a replay.** `common.reset_game` wipes the log, which is exactly the artifact the line-explorer wants to compare the new attempt against ("would a different opening have mattered?"). Probably overkill until someone actually asks for the comparison; noted so the cost of replay stays visible.
-
-## connections
-
-The one connections deferral — **per-tile rise-and-fade animations** on category match — has its full entry in [`connections.md → Future work`](games/connections.md#future-work). *(Scheduled puzzle import shipped: [`.github/workflows/connections-import.yml`](../.github/workflows/connections-import.yml) runs the importer daily.)*
-
-## spellingbee
-
-No outstanding deferred items today (see [`spellingbee.md → Open / deferred`](games/spellingbee.md#open--deferred) for context).
-
-## spellingbee + wordwheel (the fork pair)
-
-- **`Letters.module.css` / `Wheel.module.css` are deliberately NOT folded** (2026-07-31, the CSS audit's §2.1). The rest of the pair's CSS is now shared — see [`wordwheel.md → the fork`](games/wordwheel.md) — but these two remain separate copies. They're structurally parallel selector-for-selector (`.board`, `.grid`, `.floatAnchor`, a tile shape / text / flash trio, one keyframe; 73 vs 86 lines with comments stripped), so a fold is mechanically easy. The reason not to: it means picking ONE vocabulary for the shared class names, and a honeycomb has hexes where a wheel has tiles. That trades [ui.md's two-vocabularies rule](ui.md) — names track the game's own concepts — for ~40 lines of dedup, and the geometry inside the rules (`clip-path` hexes with per-position `nth-child` vs SVG circles) doesn't share anyway. **If it's ever revisited**, the tractable middle is sharing only the interaction/flash layer (hover/focus states, the flash overlay + its keyframe) under neutral names, leaving each game's shape rules local. Don't fold the whole file just because the skeletons rhyme.
-
-## waffle (waffle)
-
-No outstanding deferred items today.
-
-## scrabble (scrabble)
-
-No outstanding deferred items today. (The coop-`blocked` phantom was resolved
-2026-08-02 — Joel ruled: drop it. `COOP_END` and the fixture row are gone;
-coop's vocabulary is `ended` complete/manual + `lost` timeout, and `blocked`
-is compete-only.)
-
-## bananagrams (bananagrams)
-
-- **The "🍌 Peel! You drew N" local pill fires for a *peer's* peel too.** A peer peeling grows the caller's own `tiles` (everyone draws on a peel), so the caller's draw-announcement watcher reads it as a draw and shows the peel pill even though the caller didn't peel. Reads slightly oddly ("I didn't peel, why the pill?"). Cosmetic — the tile counts are always correct. Joel hasn't decided whether to reword the peer case (e.g. "🍌 <name> peeled — you drew N") or leave it. Low priority.
-
-## crosswords (crosswords)
-
-The crosswords deferred register now lives in its game doc:
-[docs/games/crosswords.md → §9 Deferred / future](games/crosswords.md#9-deferred--future).
-The build-plan + code-review docs were retired into that file, so §9 is the single
-home for crosswords deferrals — ⌥M, `fetch-nyt-range`, NYT dedup, the **library
-picker bound before the bulk puzzle import** (2026-07-12 supabase review — the
-`SetupForm` library `select` is unbounded; do it *with* the import since >10k
-puzzles needs a real picker UI anyway), the scratchpad lock races (C3b/C3c), the
-standing schema/migration flags (vestigial `'nyt'` constraint, half-frozen
-terminal cursor), and the known unpinned tests. *(The dead `crosswords.games`
-realtime wiring was pruned in the 2026-07-12 supabase review — no longer open.)*
 
 ## Wordlist markers (spellingbee + boggle)
 
@@ -122,7 +96,8 @@ re-file them as findings:
   `--info-col-width` default (each game declares its own on purpose), the two-reds
   distinction, the per-game vocabulary palettes, the bananagrams + crosswords layout
   exceptions, and the `.boardCol` debug tint (intentional — keep it).
-- **`Letters.module.css` / `Wheel.module.css`** — see the spellingbee + wordwheel entry above.
+- **`Letters.module.css` / `Wheel.module.css`** — the spellingbee/wordwheel pair is
+  deliberately not folded; the reasoning moved to [`wordwheel.md → Deferred`](games/wordwheel.md#deferred).
 - **scrabble's `BlankPicker` at `z-index: 50`** — a full-screen fixed modal below the 500
   panel tier; recorded in the z-index ladder as a known anomaly rather than bumped blind.
 
@@ -151,8 +126,9 @@ one-page printout isn't.
 - **wordle** — the game *is* the guess-by-guess progression; a single board can't stand
   in for it.
 
-**Still open** (would fit the existing helpers cleanly, no snapshot problem): codenamesduet
-and connections (turn-log / word-list families) and stackdown.
+**Still open** (would fit the existing helpers cleanly, no snapshot problem): codenamesduet,
+connections, stackdown, and wordiply (turn-log / word-list families). This list is the
+whole-app policy view; the per-game registers carry the same item where a game has one.
 
 ## To discuss
 

@@ -455,8 +455,24 @@ border. See [docs/pdf.md](../pdf.md).
 | pgTAP tests | `supabase/tests/wordwheel/` |
 | Registry | `src/games.ts`; schema in `supabase/config.toml` `[api].schemas` |
 
-## Open / deferred
+## Deferred
 
+- **`Letters.module.css` / `Wheel.module.css` are deliberately NOT folded**
+  (2026-07-31, the CSS audit's §2.1). The rest of the fork pair's CSS is shared
+  with spellingbee (this doc, [Frontend](#frontend)) — but these two remain
+  separate copies. They're
+  structurally parallel selector-for-selector (`.board`, `.grid`, `.floatAnchor`,
+  a tile shape / text / flash trio, one keyframe), so a fold is mechanically easy.
+  The reason not to: it means picking ONE vocabulary for the shared class names,
+  and a honeycomb has hexes where a wheel has tiles. That trades
+  [ui.md's two-vocabularies rule](../ui.md) — names track the game's own concepts —
+  for ~40 lines of dedup, and the geometry inside the rules (`clip-path` hexes with
+  per-position `nth-child` vs SVG circles) doesn't share anyway. **If it's ever
+  revisited**, the tractable middle is sharing only the interaction/flash layer
+  (hover/focus states, the flash overlay + its keyframe) under neutral names,
+  leaving each game's shape rules local. Don't fold the whole file just because the
+  skeletons rhyme. *(Lives here rather than in spellingbee.md because wordwheel is
+  the fork and this doc owns the pair's shared-vs-not ledger.)*
 - The **≥ 15** quality gate (create_game + edge fn + import) is **provisional** — the
   import's percentile print (kept p50 ≈ 107 required words at own band, dropped
   p50 ≈ 11) says it's comfortably placed for now; tune against real play if boards

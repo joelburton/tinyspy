@@ -583,11 +583,10 @@ Promoted out of inline test fixtures because every connections test needs them a
 
 The broadcast / presence *behavior* itself (selection events merging across peers, pause-on-disconnect) still has no FE test — per [testing.md → What we don't test](../testing.md#what-we-dont-test), that integration is covered by manual browser smoke. What `useGame.test.ts` pins is the channel *lifecycle* around it: the stable room name and the resubscription triggers.
 
-## Future work
-
-Tracked in [`deferred.md`](../deferred.md). The connections-specific ones today:
+## Deferred
 
 - **Per-tile rise-and-fade animations** on category match. The wrong-guess shake exists; the match-resolved animation doesn't.
+- **Print to PDF.** Would fit the shared turn-log helpers cleanly (no board-progression problem) — see [`pdf.md`](../pdf.md); just not opted in yet.
 
 ## File locations
 

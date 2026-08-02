@@ -598,9 +598,9 @@ found-words list (pangrams bold, bonus finds dotted; missed required words fold 
 terminal) — `src/spellingbee/pdf/printSpellingbeePdf.ts`. The shared clean-printable design
 language + helpers live in [docs/pdf.md](../pdf.md).
 
-## Open / deferred
+## Deferred
 
-Tracked in [`deferred.md`](../deferred.md) → spellingbee. Today's open items:
+Nothing spellingbee-specific outstanding. Two shared items touch this game:
 
-- ~~**Custom-letters puzzle**~~ **DONE.** `setup.custom_center` + `setup.custom_letters` let a player build a board from their own letters (either mode); see [Custom letters](#custom-letters).
-- ~~**Per-player attribution in the post-terminal reveal**~~ **DONE.** Post-terminal, every found word keeps its **finder's** color (a word more than one player found goes to the first finder by `found_at`); only the never-found required words go grey. (Earlier this merged peers' finds and missed words into one muted "everything that isn't mine" bucket.) A per-player leaderboard panel is still possible on top, but the attribution itself now ships.
+- The **`Letters.module.css` / `Wheel.module.css` fold** with wordwheel — full entry in [`wordwheel.md → Deferred`](wordwheel.md#deferred) (wordwheel is the fork, and owns the pair's shared-vs-not ledger).
+- The **`WordList` marker vocabulary + filter dropdown** (◐, ⦻, the per-player select) — the work is in `common/`, so it stays in [`deferred.md → Wordlist markers`](../deferred.md#wordlist-markers-spellingbee--boggle).

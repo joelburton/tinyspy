@@ -282,6 +282,29 @@ The rest is a plain char array: the fixed 25×25 board stays a char array (a fut
 - **Tiles have no ids:** board + hand are letter strings (tiles are interchangeable by letter).
 - **Touch input:** explicit **non-goal** — desktop-only, cursor-typing needs a keyboard.
 
+## Deferred
+
+- **The "🍌 Peel! You drew N" local pill fires for a *peer's* peel too.** A peer
+  peeling grows the caller's own `tiles` (everyone draws on a peel), so the
+  caller's draw-announcement watcher reads it as a draw and shows the peel pill
+  even though the caller didn't peel. Reads slightly oddly ("I didn't peel, why
+  the pill?"). Cosmetic — the tile counts are always correct. Undecided whether to
+  reword the peer case (e.g. "🍌 &lt;name&gt; peeled — you drew N") or leave it.
+  Low priority.
+
+## Won't do
+
+Decided against, not queued — listed only so reviews don't re-propose them.
+The **Resolved decisions** above cover the design forks; these are the
+recurring suggestions.
+
+- **Touch input / a mobile layout.** Desktop-only by design — cursor-typing on
+  the 25×25 arena needs a keyboard. This is the documented v3 layout exception,
+  not an oversight; see [`mobile.md`](../mobile.md).
+- **Replay (`replay_board`).** Bananagrams opts out with codenamesduet and
+  crosswords — a bag re-deal is a different game, which is what **New game**
+  already is.
+
 ## The board-feel prototype
 
 The fixed 25×25 arena + zoom/scroll shipped after a growing/recentering board was

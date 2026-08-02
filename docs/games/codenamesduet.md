@@ -533,20 +533,21 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 - [`e2e/codenamesduet-history.e2e.ts`](../../e2e/codenamesduet-history.e2e.ts) — the turn-history viewer: clicking a turn-log row replays that turn's board (the reveal state after that turn's guesses, the yellow history frame, the turn's own cells ringed, the description banner overlaying the below-board slot) — and pins the invariant the decomposition rides on: the board must **not** reflow when the viewer opens (the banner overlays the fixed-height slot; it doesn't grow it).
 - [`e2e/codenamesduet-mobile.e2e.ts`](../../e2e/codenamesduet-mobile.e2e.ts) — the phone layout: the board stays full-size and the page scrolls (the clue-giver needs the board's key-card colors while composing in the keyboard-raising clue input, so the board is deliberately not shrunk or clamped), the page doesn't scroll at rest, the info column is the collapsed off-canvas sheet, and the below-board action buttons go icon-only.
 
-## Open items
+## Deferred
 
-Nothing outstanding. Two things that used to sit here are now **decided
-won't-dos** (2026-08-02), recorded so they don't get re-proposed:
+- **Print to PDF.** Would fit the shared turn-log helpers cleanly (no
+  board-progression problem — see [`pdf.md`](../pdf.md)); just not opted in yet.
 
-- **Mission / campaign mode** — the rulebook's mission maps, i.e. variable
-  starting turn counts (`games.turns_remaining` taking a non-9 default from a
-  new mission parameter at `create_game` time). Cheap to build; nobody wants
-  it. The single 9-turn game is what the friends actually play, and a campaign
-  implies persistence across sessions that the club model doesn't carry today.
-  Not "later" — not doing it.
-- **Tile `aria-label`s** — out of scope per the screen-reader prior in
-  [`CLAUDE.md`](../../CLAUDE.md), not a codenamesduet-specific call. The tiles
-  keep their `aria-hidden`.
+## Won't do
+
+Decided against, not queued — listed only so reviews don't re-propose them.
+
+- **Mission / campaign mode** (2026-08-02). The rulebook's mission maps —
+  variable starting turn counts. Cheap to build; nobody wants it, and a
+  campaign implies cross-session persistence the club model doesn't carry.
+- **Tile `aria-label`s** (2026-08-02). Screen readers are out of scope
+  project-wide — see [`CLAUDE.md`](../../CLAUDE.md). The tiles keep their
+  `aria-hidden`.
 
 ## File locations
 

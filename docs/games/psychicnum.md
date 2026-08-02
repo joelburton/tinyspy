@@ -515,9 +515,20 @@ success/miss survives black-and-white printing rather than reading only in color
 (`src/psychicnum/pdf/printPsychicnumPdf.ts`). The shared clean-printable design language +
 helpers live in [docs/pdf.md](../pdf.md).
 
-## Open items
+## Deferred
 
-- **No anti-spam.** Friends-only audience; not a concern. The 7-guess cap caps damage anyway.
+Nothing outstanding. (The budget-exhausting *correct* guess that flashed
+"Incorrect" was fixed 2026-08-02 — see [`submit_guess`](#psychicnumsubmit_guesstarget_game-uuid-guess-text--text).)
+
+## Won't do
+
+Decided against, not queued — listed only so reviews don't re-propose them.
+
+- **Anti-spam on guessing.** Friends-only audience; not a concern, and the
+  7-guess cap caps the damage anyway.
+- **A more visually interesting `.infoState` readout** (2026-08-02). The
+  info-column state line ("N/3 found · M/9 guesses used") is plain on purpose;
+  it doesn't need spellingbee's rank-ladder treatment.
 
 ## File locations
 

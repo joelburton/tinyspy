@@ -490,3 +490,10 @@ lives in `setup.psql` — which **deletes any library boards first** so
 database that has run `stackdown:import` would have real boards in scope and the
 fixture-encoded `sd_seq()` would spell the wrong tiles). FE: the `board.test.ts`
 Vitest above.
+
+## 6. Deferred
+
+- **Print to PDF.** Would fit the shared word-list helpers cleanly — the six
+  cleared words plus the starting stack is a static artifact, no board-progression
+  problem (cf. waffle/wordle, which are excluded permanently). See
+  [`pdf.md`](../pdf.md); just not opted in yet.

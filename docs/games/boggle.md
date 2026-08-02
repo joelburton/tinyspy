@@ -66,7 +66,7 @@ minimum length.
   independently. You see only your **own** words until the game ends; an
   `OpponentStrip` shows peers' live scores (not their words or counts). Most
   points wins. Scoring is **independent per player** — no classic dupes-cancel
-  (deferred, [§11](#11-deferred--future)).
+  (deferred, [§11](#11-deferred)).
 
 ---
 
@@ -215,7 +215,7 @@ rather than queried at cold start:
   88k–267k rows, network-independent, and no Postgres load on every isolate
   spin-up. The dictionary is stable, so "redeploy to update it" costs nothing
   today. (The Supabase Storage middle-ground, if staleness ever bites, is in
-  [§11](#11-deferred--future).)
+  [§11](#11-deferred).)
 
 ---
 
@@ -511,7 +511,7 @@ paths regenerate it first:
 
 ---
 
-## 11. Deferred / future
+## 11. Deferred
 
 - **Word-list freshness via Supabase Storage.** The bundled list is frozen at
   deploy; updating the dictionary means redeploying the function. Since

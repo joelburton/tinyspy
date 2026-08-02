@@ -420,7 +420,7 @@ non-game menus keep standard Esc-restores-focus a11y.)
   upload via the setup form; print-PDF download; no-scroll on a full-size
   puzzle. Plus `e2e/scratchpad.e2e.ts`.
 
-## 9. Deferred / future
+## 9. Deferred
 
 This is the **canonical deferred register** for crosswords — distilled from the
 (now-retired) build plan + the 2026-07-05 / -07-06 review docs.
