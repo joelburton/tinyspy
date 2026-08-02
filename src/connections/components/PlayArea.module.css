@@ -120,12 +120,6 @@
   letter-spacing: 0.02em;
 }
 
-/* End-of-game bands rendered from the unmatched categories — same color, a
- * slightly darker overlay to signal "the game revealed this, you didn't find it." */
-.bandRevealed {
-  box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.1);
-}
-
 /* Wrong-guess shake: a brief horizontal jiggle on the tiles of a rejected
  * guess. Set by PlayArea for ~500ms after the server returns 'wrong', then
  * cleared. The ±4px over 0.4s reads as "no" without being disruptive. */

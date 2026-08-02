@@ -88,10 +88,14 @@ export function Board({
   // category ever isn't exactly four tiles.
   const rows = sortedMatched.length + unmatched.length + Math.ceil(tiles.length / COLS)
 
+  // `revealed` no longer changes how a band LOOKS — a category you solved and
+  // one the game handed you at the end print and render identically, on purpose
+  // (2026-08-02). It survives only to namespace the React keys across the two
+  // disjoint lists.
   const band = (c: Category | MatchedCategory, revealed: boolean) => (
     <div
       key={`${revealed ? 'u' : 'm'}-${c.rank}`}
-      className={cls(styles.band, revealed && styles.bandRevealed)}
+      className={styles.band}
       // --len drives the same auto-fit the tiles use (here for the band name).
       style={{ background: RANK_TOKEN[c.rank], ['--len' as string]: c.name.length }}
     >
