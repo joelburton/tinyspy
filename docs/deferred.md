@@ -74,16 +74,10 @@ No outstanding deferred items today.
 
 ## scrabble (scrabble)
 
-- **scrabble coop can't reach `blocked`, but the label + fixture still describe it.**
-  `blocked` means "every active seat passed in a row", and `pass_turn` rejects coop
-  outright — coop has no turns to pass. So the `COOP_END` map in
-  `src/scrabble/manifest.ts` has no reachable case (its only key is `blocked`), and
-  the coop `blocked → "Ended (no moves left)"` row in `src/gameStatusLabels.test.ts`
-  — and therefore in the generated `game-status-labels.md` — documents a state the
-  server can't write. Two ways out: drop the map entry + the fixture row, or give
-  coop a blocked-end (it has no pass, so it would need a different trigger, e.g.
-  the shared rack being unplayable). Left in place pending Joel's call; found
-  during the 2026-08 pre-freeze audit.
+No outstanding deferred items today. (The coop-`blocked` phantom was resolved
+2026-08-02 — Joel ruled: drop it. `COOP_END` and the fixture row are gone;
+coop's vocabulary is `ended` complete/manual + `lost` timeout, and `blocked`
+is compete-only.)
 
 ## bananagrams (bananagrams)
 

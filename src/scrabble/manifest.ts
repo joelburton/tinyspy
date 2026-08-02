@@ -62,12 +62,10 @@ const endGame = makeRpcDispatcher(db, 'end_game')
  *
  * Coop has NO win state (see scrabble._finish): one shared rack, no opponent,
  * so playing the bag out and stopping early are both just `ended` — the score
- * is the point, not a verdict. Only the clock loses.
- *
- * `status.outcome` still carries HOW it ended, and COOP_END names the endings
- * worth spelling out. It's empty of reachable coop cases today ('blocked' is
- * compete-only — see the flag in docs/db-freeze-audit.md), so the lookup is
- * currently defensive; the shape is what a new coop ending would slot into.
+ * is the point, not a verdict. Only the clock loses. `status.outcome` still
+ * carries HOW it ended, but no coop ending is worth naming: 'complete' (bag
+ * played out) and 'manual' are both the ordinary way a coop table finishes,
+ * and 'blocked' is compete-only (it counts passes; coop has no turns to pass).
  */
 function labelFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
@@ -91,20 +89,13 @@ function labelFor(mode: 'coop' | 'compete') {
         // Everyone conceded: final scoring ran, but nobody was eligible to win.
         return outcome('Lost', 'all conceded')
       case 'ended':
-        // Every coop finish, and compete's whole-table stop. Name HOW only
-        // when it wasn't the ordinary way (coop's 'blocked').
-        return mode === 'coop'
-          ? statusLine(outcome('Ended', COOP_END[s.outcome ?? ''] ?? null), score)
-          : outcome('Ended')
+        // Every coop finish, and compete's whole-table stop. Coop shows the
+        // team score (the score IS the point in coop).
+        return mode === 'coop' ? statusLine(outcome('Ended'), score) : outcome('Ended')
       default:
         return row.play_state
     }
   }
-}
-
-/** How a coop table stopped, when it's worth naming (scrabble._finish). */
-const COOP_END: Record<string, string> = {
-  blocked: 'no moves left',
 }
 
 // Single source of truth for this game's user-facing brand name —

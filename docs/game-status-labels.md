@@ -22,10 +22,13 @@ two strings that make up a row in ClubPage's right-hand games list.
 2. **A title may be a readout.** Games that have nothing to show at create time start on the
    placeholder `'New game'` and rewrite it from play. A mode that holds the placeholder for
    a whole race — wordle compete, waffle compete — says `'New compete'` instead, since
-   that's the label a club list actually sits on. The rewrite is **derived, not
-   assigned** — a `_sync_title` helper recomputes from state and every transition calls it,
-   so a timeout, a concede, a manual end and a **replay** all land on the right string. That
-   last one matters: a replayed game must stop advertising the answer.
+   that's the label a club list actually sits on. When the title can carry **hidden**
+   state (wordle, waffle — at terminal the title IS the answer), the rewrite is derived,
+   not assigned: a `_sync_title` helper recomputes from state and every transition calls
+   it, so a timeout, a concede, a manual end and a **replay** all land on the right
+   string — a replayed game must stop advertising the answer. Titles that only mirror
+   already-public play (scrabble, stackdown coop) assign from their move RPC instead,
+   with replay resetting the placeholder.
 3. **A title can only carry what every player already sees.** `common.games.title` is
    readable club-wide, so a title is a side channel around a game's hidden state. This is
    why wordle compete and stackdown compete stay on the placeholder while private guesses
@@ -163,7 +166,6 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | **scrabble_coop** | playing | `Playing · 152 pts · 7 tiles left` |
 | | ended — manual end | `Ended · 152 pts` |
 | | ended — bag empty | `Ended · 152 pts` |
-| | ended — six scoreless turns | `Ended (no moves left) · 152 pts` |
 | | lost — timeout | `Lost (out of time) · 152 pts` |
 | **scrabble_compete** | playing | `Playing · 7 tiles left` |
 | | ended — manual end | `Ended` |
