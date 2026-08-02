@@ -192,7 +192,7 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | | lost_compete — all conceded | `Lost (all conceded)` |
 | **wordiply_coop** | playing | `Playing · 2/5 guesses` |
 | | ended — guesses used | `Ended (out of guesses) · 60% · 14 letters` |
-| | ended — timeout | `Ended (out of time) · 60% · 14 letters` |
+| | lost — timeout | `Lost (out of time) · 60% · 14 letters` |
 | | ended — manual end | `Ended · 60% · 14 letters` |
 | **wordiply_compete** | playing | `Playing` |
 | | won_compete — one winner | `Won by alice · 60%` |

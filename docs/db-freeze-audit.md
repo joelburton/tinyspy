@@ -41,13 +41,6 @@ deploys, every rename needs a data migration. **Remember: changing a terminal
 play_state means updating BOTH the SQL and the game's `labelFor` (+ the report
 fixtures) — nothing asserts they agree.**
 
-- [ ] **A6. Timeout-with-no-target policy differs per game**: spellingbee/
-  wordwheel/boggle do `lost` if a target was set else `ended`
-  (`…spellingbee:1189`, `…boggle:513-517`); wordiply coop is always `ended`
-  (`…wordiply:615`); scrabble coop is always `lost` (`…scrabble:529`, with a
-  comment arguing its case). Pick the rule — majority is "the clock only loses
-  when there was a target to miss" — and record any surviving exception in
-  states.md.
 - [ ] **A8. wordiply compete reaches `lost_compete` only by concede.** A1 gave it
   that state (every compete gametype's all-conceded end is `lost_compete` now),
   but the CLOCK still can't produce one: timeout-with-winner and

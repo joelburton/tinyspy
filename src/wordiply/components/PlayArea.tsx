@@ -440,13 +440,23 @@ function buildOver({
     return endedCopy('compete')
   }
 
-  // coop — the team's collaborative result. There's no clear "win" in coop (you
-  // just did as well as you did), so the tone is NEUTRAL (a grey outcome colour)
-  // rather than the celebratory green, and the verdict leads with `Ended:` — the
-  // vocabulary's word for "over, nobody won or lost". That covers a manual end
-  // too: reporting the score is more use than "game ended" with the numbers
-  // withheld.
+  // coop — the team's collaborative result. There's no "win" in coop (you just
+  // did as well as you did), so spending the guesses or stopping on purpose are
+  // NEUTRAL (a grey outcome colour, `Ended:` — the vocabulary's word for "over,
+  // nobody won or lost"), and the score is reported either way: the numbers are
+  // more use than a bare "game ended".
+  //
+  // The CLOCK is the one exception, and the one way a coop table loses: the
+  // team set a timer and didn't spend its five guesses inside it (see
+  // wordiply._finish_coop). Same reading scrabble coop gives its own clock.
   const pct = lengthScore(longest, maxWordLength)
+  if (playState === 'lost') {
+    return {
+      verdict: `Lost: out of time, ${pct}%`,
+      message: `Length ${pct}%`,
+      tone: 'lost',
+    }
+  }
   return {
     verdict: `Ended: ${pct}%, ${letters} letters`,
     message: `Length ${pct}%`,

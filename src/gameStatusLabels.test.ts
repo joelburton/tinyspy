@@ -249,7 +249,7 @@ const CASES: Record<string, Family> = {
     playing: { guesses_used: 2, leaderboard: [{ guesses_used: 2 }, { guesses_used: 3 }] },
     coop: [
       ['ended', { length_score: 60, letter_count: 14, outcome: 'complete' }, 'guesses used'],
-      ['ended', { length_score: 60, letter_count: 14, outcome: 'timeout' }, 'timeout'],
+      ['lost', { length_score: 60, letter_count: 14, outcome: 'timeout' }, 'timeout'],
       ['ended', { length_score: 60, letter_count: 14, outcome: 'manual' }, 'manual end'],
     ],
     compete: [

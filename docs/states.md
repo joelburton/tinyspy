@@ -55,6 +55,33 @@ spellingbee's compete variant follows the same suffix convention (its schema dec
 
 **The convention is load-bearing, not just cosmetic:** `common.concede` reads the `_compete` suffix off `common.games.gametype` to decide whether an all-conceded table ends `lost_compete` or plain `lost` (2026-08-01 — before that it hardcoded `lost`, so half the roster ended a concede in one vocabulary and half in another). A **single-mode** gametype has no `_compete` half and keeps plain `lost`: bananagrams is the only one today. So a new compete sibling gets the right terminal for free, and a new single-mode game must not be registered with a `_compete` suffix unless it really means the compete vocabulary.
 
+### When the clock is a LOSS
+
+A countdown expiring doesn't mean the same thing in every game, so the roster
+uses one test: **you lose if the game had a reachable end and you didn't reach
+it before the clock.** Ratified 2026-08-01.
+
+| the game | its reachable end | clock expires |
+|---|---|---|
+| waffle · wordle · crosswords · stackdown · connections · psychicnum · bananagrams · codenamesduet | solve it / find them all / go out | `lost` |
+| spellingbee · wordwheel · boggle **with** a target (`target_rank` / `win_percent`) | cross the bar | `lost` |
+| spellingbee · wordwheel · boggle **without** a target | none — there's always another word to find | `ended` |
+| scrabble coop | play the bag out | `lost` |
+| wordiply coop | spend all five shared guesses | `lost` |
+
+The two goalless-looking cases are the interesting ones, and they land on
+opposite sides for a reason. An open word hunt with no target has nothing to
+finish — the clock is just how the session stops, so it's neutral. scrabble and
+wordiply coop DO have an end (the bag empties; the guesses run out), so setting
+a timer is the team saying "we think we can get there by then", and not getting
+there is a real failure. Neither has a *win* — both report a score — but both
+can lose to the clock.
+
+Note this is narrower than the rule the pre-freeze audit proposed ("the clock
+only loses when there was a target to miss"), which couldn't explain scrabble:
+scrabble coop has no target and still loses. "Reachable end" covers all
+thirteen with no exceptions.
+
 ### `status.outcome` names the CAUSE, never the verdict
 
 `play_state` answers *what happened to the game* (won / lost / ended, per mode).

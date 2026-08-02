@@ -110,8 +110,8 @@ select wordiply.submit_timeout((select id from to_g));
 reset role;
 select is(
   (select play_state from common.games where id = (select id from to_g)),
-  'ended',
-  'coop submit_timeout: play_state flips to "ended"'
+  'lost',
+  'coop submit_timeout: the clock is the ONE coop loss (didn''t finish in time)'
 );
 
 select is(

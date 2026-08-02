@@ -90,15 +90,19 @@ function coopLabel(row: { play_state: string; status?: unknown }): string {
   }
   const ls = `${(s.length_score as number | undefined) ?? 0}%`
   const lc = count(s.letter_count as number | undefined, 'letter')
-  // Coop has no win or loss — every ending is 'ended'; only the REASON differs
-  // ('complete' = all five guesses spent, 'timeout', 'manual').
+  // Coop has no WIN — spending the five guesses ('complete') or stopping on
+  // purpose ('manual') are both a neutral score report. The clock is the one
+  // loss: the team set a timer and didn't finish inside it.
+  if (row.play_state === 'lost') {
+    return statusLine(outcome('Lost', 'out of time'), ls, lc)
+  }
   return statusLine(outcome('Ended', COOP_END[(s.outcome as string) ?? ''] ?? null), ls, lc)
 }
 
-/** How a coop game stopped, when it's worth naming (wordiply._finish_coop). */
+/** How a coop game stopped, when it's worth naming (wordiply._finish_coop).
+ *  'timeout' isn't here: the clock is a LOSS now, handled above. */
 const COOP_END: Record<string, string> = {
   complete: 'out of guesses',
-  timeout: 'out of time',
 }
 
 function competeLabel(row: { play_state: string; status?: unknown }): string {

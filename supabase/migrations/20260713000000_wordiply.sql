@@ -583,7 +583,7 @@ grant execute on function wordiply.create_game(text, jsonb, uuid[], text, jsonb)
 -- Internal helper (not granted to authenticated — only the definer RPCs
 -- below call it). Computes the team's length score + letter count from
 -- the shared guesses and ends the game with the given outcome label
--- ('complete' | 'timeout' | 'manual'). This is where the terminal scores
+-- ('complete' | 'timeout' | 'manual'; only 'timeout' is a LOSS). This is where the terminal scores
 -- (hidden until now on the FE) are finally written to status.
 create function wordiply._finish_coop(target_game uuid, outcome_label text)
 returns void
@@ -611,8 +611,15 @@ begin
     into player_results
     from common.game_players where game_id = target_game;
 
+  -- The clock is the ONE way a coop table loses (2026-08-01). The roster rule:
+  -- you lose if the game had a REACHABLE END and you didn't reach it in time.
+  -- wordiply's end is spending all five shared guesses ('complete'), so a
+  -- countdown expiring on guess three is a real failure to finish — the same
+  -- reading scrabble coop gives its own clock. Spending the guesses, or
+  -- stopping on purpose, are just finishing: neutral 'ended'.
   perform common.end_game(
-    target_game, 'ended',
+    target_game,
+    case when outcome_label = 'timeout' then 'lost' else 'ended' end,
     jsonb_build_object(
       'mode', 'coop',
       'base', g_row.base,

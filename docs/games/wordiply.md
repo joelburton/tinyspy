@@ -232,8 +232,11 @@ Signatures mirror wordwheel one-for-one except the board shape and the validated
     children).
 
 - **`wordiply.submit_timeout(target_game) → jsonb`** — countdown expired → terminal. Coop →
-  `ended` (`outcome:'timeout'`). Compete → **resolve the formula on current scores** →
-  `won_compete` (whoever leads; ties per the comparator).
+  **`lost`** (`outcome:'timeout'`): the clock is the ONE way a coop table loses, because the
+  team had a reachable end (spend the five shared guesses) and didn't reach it — see
+  [states.md → When the clock is a LOSS](../states.md#when-the-clock-is-a-loss). Spending the
+  guesses or stopping on purpose stay neutral `ended`. Compete → **resolve the formula on
+  current scores** → `won_compete` (whoever leads; ties per the comparator).
 
 - **`wordiply.end_game(target_game)`** — coop's neutral mutual "we're done" stop (wordwheel
   parity). **`wordiply.concede(target_game)`** — compete per-player drop = a real loss (via
@@ -300,7 +303,7 @@ JWT carries every authz signal; `common.words` + the helpers are authenticated-r
 | guesses | **5 shared** (the whole team fills the five lines together) | **5 per player** (each has their own five-line board) |
 | visibility | everyone sees every guess live (each row shows its length); **scores + longest word revealed at terminal** | opponents' **guesses + scores hidden** mid-game (an opponent shows only **guesses used `n/5`**); full reveal at terminal |
 | ends | after the team's 5th guess / timeout / manual `end_game` | once every active player has spent 5 / timeout / concede |
-| terminal verdict | "Ended: **N%**, M letters" — neutral tone (coop has no win, you just did as well as you did; the info column fills in the LengthScoreBar + longest word) | "Won: N%" (co-winners "Won: tied at N%"); a loser sees who won, with their identity dot — "● moth won at 78%" |
+| terminal verdict | "Ended: **N%**, M letters" — neutral tone (coop has no win, you just did as well as you did; the info column fills in the LengthScoreBar + longest word). The clock is the exception: "Lost: out of time, **N%**" | "Won: N%" (co-winners "Won: tied at N%"); a loser sees who won, with their identity dot — "● moth won at 78%" |
 | players | `[1, 6]` (solo allowed) | `[2, 6]` |
 
 **Why coop = 5 _shared_ (not 5 each):** the FE board is a single five-row surface, and coop
