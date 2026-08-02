@@ -8,8 +8,7 @@ import type { CoopTurnSetup } from '../../common/components/fields/CoopStyleFiel
  *
  * **Mode is NOT on this type** — it's locked at the gametype level (the
  * sibling-manifest pattern), not a setup-time choice. Both manifests share
- * this same shape. `wordiply.create_game` rejects a `mode` field on setup
- * with a loud P0001, so a stale FE fails fast.
+ * this same shape.
  *
  * There is no `target_rank` (wordiply isn't a race-to-rank) and no
  * separate "base" difficulty (the base is a letter-combination, not a

@@ -229,11 +229,11 @@ as $$
 $$;
 revoke execute on function crosswords._matches(text, jsonb) from public;
 
--- True iff every fillable cell in `p_owner`'s grid matches the solution
+-- True iff every fillable cell in `p_owner_id`'s grid matches the solution
 -- (`isPuzzleSolved`). An empty cell blocks solve; a pencil cell does NOT
 -- (it counts if right). Given cells aren't in the table — they're
 -- author-correct by construction — so they're implicitly satisfied.
-create function crosswords._is_solved(target_game uuid, p_owner uuid)
+create function crosswords._is_solved(target_game uuid, p_owner_id uuid)
 returns boolean
 language sql
 stable
@@ -245,7 +245,7 @@ as $$
       from crosswords.cells c
       join crosswords.games g on g.id = c.game_id
      where c.game_id = target_game
-       and c.owner_id is not distinct from p_owner
+       and c.owner_id is not distinct from p_owner_id
        and (c.fill is null
             or not crosswords._matches(c.fill, g.solution -> c.row::int -> c.col::int))
   );
@@ -333,13 +333,13 @@ end;
 $$;
 revoke execute on function crosswords._finish_compete(uuid, uuid) from public;
 
--- Run the solved-check for `p_owner`'s grid and, if solved, make the
+-- Run the solved-check for `p_owner_id`'s grid and, if solved, make the
 -- terminal transition atomically: lock the common.games row and re-check
 -- play_state under the lock so only the FIRST solver ends the game
 -- (compete first-correct-wins is a race). Returns whether the caller's
 -- grid is solved (regardless of who ended the game).
 create function crosswords._maybe_finish(
-  target_game uuid, p_owner uuid, p_mode text, p_caller uuid
+  target_game uuid, p_owner_id uuid, p_mode text, p_caller uuid
 )
 returns boolean
 language plpgsql
@@ -349,7 +349,7 @@ as $$
 declare
   v_solved boolean;
 begin
-  v_solved := crosswords._is_solved(target_game, p_owner);
+  v_solved := crosswords._is_solved(target_game, p_owner_id);
   if not v_solved then
     return false;
   end if;
@@ -903,9 +903,9 @@ grant execute on function crosswords.export_solution(uuid) to authenticated;
 -- end_game (coop manual give-up) / concede (compete) / submit_timeout
 -- ============================================================
 
--- Coop mutual give-up ends as a NEUTRAL "finished" — not a loss (putting
--- down an unfinished crossword is normal). The solution reveals in the
--- terminal view (games_state) once is_terminal flips.
+-- Coop mutual give-up ends NEUTRALLY ('ended' + outcome 'manual') — not a
+-- loss (putting down an unfinished crossword is normal). The solution
+-- reveals in the terminal view (games_state) once is_terminal flips.
 create function crosswords.end_game(target_game uuid)
 returns void
 language plpgsql
@@ -961,9 +961,9 @@ $$;
 revoke execute on function crosswords.concede(uuid) from public;
 grant execute on function crosswords.concede(uuid) to authenticated;
 
--- Standard manifest requirement. Crosswords has NO timer (timerMode
--- 'none'), so this is never invoked in practice; implemented for the
--- dispatcher interface. If ever called: coop → lost, compete → lost_compete.
+-- Standard manifest requirement, and a live path: the setup form offers the
+-- shared TimerField, so a countdown can expire (timeout_test.sql exercises
+-- it). Coop → lost, compete → lost_compete; outcome 'timeout' both ways.
 create function crosswords.submit_timeout(target_game uuid)
 returns void
 language plpgsql

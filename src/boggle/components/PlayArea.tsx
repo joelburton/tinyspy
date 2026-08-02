@@ -492,7 +492,7 @@ type LeaderRow = { user_id: string; found_words_count: number; found_words_score
  * being reached (`'target'`, when setup.win_percent is set — a real win). Coop is
  * otherwise a neutral shared hunt (no win/loss); compete without a target picks
  * the highest score. A `'target'` compete win names the crosser in
- * `status.winner_id` / `status.winner_username`.
+ * `status.winner_user_id` / `status.winner_username`.
  *
  * `verdict` + `tone` drive the permanent below-board pill; `message` + `tone`
  * drive the short bold line in the info-column action row.

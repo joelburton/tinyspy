@@ -667,7 +667,7 @@ function buildOver({
     return { verdict: 'Completed', message: `${score} pts`, tone: 'won' }
   }
   if (playState === 'ended') return { verdict: 'Ended', message: 'Ended', tone: 'neutral' }
-  // Everyone conceded (play_state 'lost', outcome 'conceded'): a collective
+  // Everyone conceded (play_state 'lost_compete', outcome 'conceded'): a collective
   // loss with no eligible winner. Must precede the winner logic below, which
   // would otherwise fall through to the phantom co-winners tie on null winner.
   if (outcome === 'conceded') return { verdict: 'All conceded', message: 'All conceded', tone: 'lost' }
@@ -684,7 +684,7 @@ function buildOver({
     tone: 'lost' as const,
   })
   if (winner) return named(nameOf(winner))
-  // An AI winner: no human `winner` uuid, but `winner_seat` names the seat and
+  // An AI winner: `status.winner_user_id` is null, but `winner_seat` names the seat and
   // `winner_username` carries its "AI n" label (from scrabble._finish).
   const winnerSeat = status?.winner_seat as number | null | undefined
   if (winnerSeat != null) return named((status?.winner_username as string | undefined) ?? 'The AI')

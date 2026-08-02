@@ -523,8 +523,7 @@ grant execute on function wordwheel.candidate_words(bigint, bigint, int, int) to
 --
 -- `mode` ('coop' | 'compete') is a positional argument, not a
 -- setup field — it routes the gametype string ('wordwheel_' ||
--- mode) and drives the per-mode player-count floor. setup.mode is
--- REJECTED if present (catch a confused FE that still embeds it).
+-- mode) and drives the per-mode player-count floor.
 --
 -- Board shape (built by the wordwheel-build-board edge function):
 --   {
@@ -1310,9 +1309,9 @@ grant execute on function wordwheel.submit_timeout(uuid) to authenticated;
 -- Unlike codenamesduet / psychicnum / connections, wordwheel has no
 -- intrinsic "you lost" or "you won" terminal state in coop: the
 -- only automatic terminals are the compete first-to-target-rank
--- (handled inside submit_word as outcome='won_compete') and the
--- countdown timer expiring (handled by submit_timeout with
--- outcome='timeout'). For all other cases the friends are
+-- (handled inside submit_word: play_state 'won_compete', outcome
+-- 'target') and the countdown timer expiring (handled by
+-- submit_timeout with outcome='timeout'). For all other cases the friends are
 -- expected to play until they're satisfied with their rank and
 -- then explicitly stop the game.
 --

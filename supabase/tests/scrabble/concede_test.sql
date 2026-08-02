@@ -17,7 +17,7 @@ begin;
 set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 
-select plan(6);
+select plan(8);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -61,6 +61,16 @@ select is(
   (select count(*) from common.game_players
     where game_id = (select id from g) and result->>'won' = 'true'),
   0::bigint, 'nobody is recorded a win');
+-- scrabble hand-rolls this path (it needs final scoring first) rather than
+-- delegating to common.concede — so nothing else guarantees it lands the
+-- roster-wide all-conceded terminal. Pin the play_state + outcome pair the
+-- FE verdicts and club-card labels key on.
+select is(
+  (select play_state from common.games where id = (select id from g)),
+  'lost_compete', 'the hand-rolled path lands the roster-wide terminal');
+select is(
+  (select status->>'outcome' from common.games where id = (select id from g)),
+  'conceded', 'status.outcome names the cause');
 
 select * from finish();
 rollback;

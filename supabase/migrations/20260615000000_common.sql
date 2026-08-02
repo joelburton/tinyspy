@@ -1059,8 +1059,8 @@ revoke execute on function common.require_valid_timer(jsonb) from public;
 -- check; centralizing keeps the allowed-mode set — and the error
 -- wording the pgTAP suites pin ('mode must be coop or compete
 -- (got X)') — in one place. Mode is a top-level create_game
--- argument (NOT part of setup: create_game rejects setup.mode), so
--- this takes the text directly rather than a game id.
+-- argument (NOT part of setup), so this takes the text directly
+-- rather than a game id.
 --
 -- Only the sizing rules (compete needs ≥2, codenamesduet is
 -- exactly-2, bananagrams is compete-only) stay per-gametype — those

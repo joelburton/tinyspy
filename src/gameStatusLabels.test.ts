@@ -361,4 +361,38 @@ describe('game status labels', () => {
       `Fixed — remove from UNKNOWN_READS_AS_LIVE: ${fixed.join(', ')}`,
     ).toEqual([])
   })
+
+  /**
+   * states.md's vocabulary invariant: `play_state` names the VERDICT,
+   * `status.outcome` names the CAUSE, and no string may serve both jobs. The
+   * split is load-bearing, not stylistic — status-blob merges mean an
+   * inherited `outcome` key reads as data, so a value that could be either
+   * side would be genuinely ambiguous in a stored row.
+   *
+   * The play_states come from this file's CASES matrix (whose charter is
+   * "every reachable state, per game"); the outcomes are the roster table in
+   * docs/states.md §"status.outcome names the CAUSE" plus every outcome a
+   * fixture row carries — so an outcome first introduced in CASES is checked
+   * even before someone remembers to add it to the transcribed list.
+   */
+  const ROSTER_OUTCOMES = [
+    'timeout', 'manual', 'conceded', 'exhausted', 'mistakes', 'assassin',
+    'solved', 'target', 'cleared', 'complete', 'blocked', 'revealed',
+  ]
+
+  it('no outcome value doubles as a play_state value (states.md)', () => {
+    const playStates = new Set(['playing'])
+    const outcomes = new Set(ROSTER_OUTCOMES)
+    for (const fam of Object.values(CASES)) {
+      for (const [state, status] of [...(fam.shared ?? []), ...(fam.coop ?? []), ...(fam.compete ?? [])]) {
+        playStates.add(state)
+        if (typeof status.outcome === 'string') outcomes.add(status.outcome)
+      }
+    }
+    expect(
+      [...outcomes].filter((o) => playStates.has(o)),
+      'These strings are used as BOTH a play_state and an outcome — states.md forbids ' +
+        'the overlap (the verdict and the cause are different questions):',
+    ).toEqual([])
+  })
 })

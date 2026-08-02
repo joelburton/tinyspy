@@ -11,9 +11,9 @@ two strings that make up a row in ClubPage's right-hand games list.
 ```
 
 **Where each comes from.** The title is `common.games.title`, seeded by the gametype's
-`create_game`. It is **not** immutable, and five gametypes rewrite it as play goes on
-(scrabble, stackdown, wordle, waffle, and — for the terminal reveal — waffle compete).
-Three rules shape every formula:
+`create_game`. It is **not** immutable: four gametypes rewrite it as play goes on
+(scrabble, wordle, waffle, and stackdown coop — stackdown compete keeps its seeded
+`'New game'`). Three rules shape every formula:
 
 1. **A title names the game after its content.** Whatever a player would recognize the game
    by — the board's words, the puzzle's date, the answer — beats an opaque id. Only

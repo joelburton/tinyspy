@@ -479,8 +479,7 @@ grant execute on function spellingbee.candidate_words(bigint, bigint, int, int) 
 --
 -- `mode` ('coop' | 'compete') is a positional argument, not a
 -- setup field — it routes the gametype string ('spellingbee_' ||
--- mode) and drives the per-mode player-count floor. setup.mode is
--- REJECTED if present (catch a confused FE that still embeds it).
+-- mode) and drives the per-mode player-count floor.
 --
 -- Board shape (built by the spellingbee-build-board edge function):
 --   {
@@ -1094,9 +1093,10 @@ grant execute on function spellingbee.submit_word(uuid, text, int, boolean, bool
 -- spellingbee.submit_timeout
 -- ============================================================
 -- Fired by the FE when the count-down timer hits 0. Flips the game terminal
--- with outcome='timeout' — 'ended' (neutral) normally, but 'lost' in a COOP
--- game that set a target rank and didn't reach it (the clock beat them), and
--- 'ended' in compete (nobody reached the target). Multiple peers may
+-- with outcome='timeout' — play_state 'lost' in a COOP game that set a target
+-- rank and didn't reach it (the clock beat them), 'lost_compete' in compete
+-- (a race always has a target rank to miss), and 'ended' (neutral) only in
+-- the open-ended coop hunt with no target. Multiple peers may
 -- race the expiry; the SELECT ... FOR UPDATE serializes them
 -- and the post-lock play_state check rejects everyone after
 -- the first with P0001 (which the FE swallows silently).
@@ -1266,9 +1266,9 @@ grant execute on function spellingbee.submit_timeout(uuid) to authenticated;
 -- Unlike codenamesduet / psychicnum / connections, spellingbee has no
 -- intrinsic "you lost" or "you won" terminal state in coop: the
 -- only automatic terminals are the compete first-to-target-rank
--- (handled inside submit_word as outcome='won_compete') and the
--- countdown timer expiring (handled by submit_timeout with
--- outcome='timeout'). For all other cases the friends are
+-- (handled inside submit_word: play_state 'won_compete', outcome
+-- 'target') and the countdown timer expiring (handled by
+-- submit_timeout with outcome='timeout'). For all other cases the friends are
 -- expected to play until they're satisfied with their rank and
 -- then explicitly stop the game.
 --

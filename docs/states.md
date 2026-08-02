@@ -108,7 +108,9 @@ thing twice. A terminal write states both: `play_state = 'lost_compete'` with
 `outcome = 'timeout'`, not `outcome = 'lost_compete_timeout'`.
 
 The rule, checkable at a glance: **no `outcome` value may also be a `play_state`
-value.** The whole roster's vocabulary today:
+value.** Pinned by the vocabulary-disjointness test in
+`src/gameStatusLabels.test.ts` (which sweeps this table against the reachable
+play_states in its CASES matrix). The whole roster's vocabulary today:
 
 | outcome | the cause it names |
 |---|---|

@@ -404,9 +404,9 @@ grant execute on function wordiply.try_base(text, int, int, int, int) to authent
 --     "difficulty": 1..6,   -- dictionary band the legal child words are drawn from (default 5)
 --     "timer": ( {kind:'none'} | {kind:'countup'} | {kind:'countdown',seconds:int} )
 --   }
--- `mode` ('coop' | 'compete') is a positional argument. setup.mode is
--- REJECTED if present (catch a stale FE). There is NO target_rank —
--- wordiply is not a race-to-rank — so setup.target_rank is rejected too.
+-- `mode` ('coop' | 'compete') is a positional argument, not a setup
+-- field. There is NO target_rank — wordiply is not a race-to-rank —
+-- so setup.target_rank is rejected if present.
 --
 -- Board shape (built by the wordiply-build-board edge function):
 --   {
@@ -964,10 +964,11 @@ grant execute on function wordiply.submit_guess(uuid, text) to authenticated;
 -- Fired by the FE when the count-down hits 0. Multiple peers may race the
 -- expiry; SELECT ... FOR UPDATE serializes them and the post-lock
 -- play_state check rejects everyone after the first (P0001, swallowed by
--- the FE). Coop → ended/timeout with the team score. Compete → resolve
--- the comparator on CURRENT scores (whoever leads wins) → won_compete/
--- timeout. Ends with a guesses realtime touch so compete peers refetch
--- the now-RLS-visible opponents' guesses.
+-- the FE). Coop → lost/timeout with the team score (the clock is a coop
+-- loss — _finish_coop). Compete → resolve the comparator on CURRENT scores
+-- (whoever leads wins) → won_compete/timeout, or lost_compete/timeout when
+-- nobody scored (no leader to crown). Ends with a guesses realtime touch so
+-- compete peers refetch the now-RLS-visible opponents' guesses.
 create function wordiply.submit_timeout(target_game uuid)
 returns void
 language plpgsql

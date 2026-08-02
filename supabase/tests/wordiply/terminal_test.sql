@@ -6,7 +6,7 @@
 -- Covers the non-submit terminal paths (submit_guess's own auto-terminal is
 -- in gameplay_test / winner_test):
 --   1. Coop end_game → ended/manual with the team scores in status.
---   2. Coop submit_timeout → ended/timeout.
+--   2. Coop submit_timeout → lost/timeout (the clock is a coop loss).
 --   3. replay_board wipes guesses, un-terminals the row, reseeds status.
 --   4. Concede (compete): the caller is flagged conceded; the last racer's
 --      concede ends the game as a collective loss.

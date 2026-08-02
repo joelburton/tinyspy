@@ -446,8 +446,8 @@ grant select on connections.club_game_status to authenticated;
 --     )
 --   }
 --
--- Title formula: "#<source_id> <puzzle_date> (<TILE1>/<TILE2>)" where
--- TILE1/TILE2 are the first 2 alphabetical tiles across all 16.
+-- Title formula: "<puzzle_date>: <TILE1>-<TILE2>" where TILE1/TILE2
+-- are the first 2 alphabetical tiles across all 16.
 -- A puzzle is hard to remember by date alone; the tiles ground it
 -- in something memorable ("oh, that one with BUCKS and HAIL").
 
@@ -1204,8 +1204,7 @@ grant execute on function connections.submit_timeout(uuid) to authenticated;
 --     {"won": false}, identical coop and compete — there's no
 --     mistake_count/matched_count snapshot to take because nothing
 --     was "achieved", the friends just stopped)
---   - status.outcome = 'manual' (vs submit_timeout's 'lost_timeout'
---     / 'lost_compete_timeout')
+--   - status.outcome = 'manual' (vs submit_timeout's 'timeout')
 --   - an EXPLICIT Realtime touch at the tail — see the long
 --     comment there; this is the one wrinkle that submit_timeout
 --     doesn't need but end_game does.

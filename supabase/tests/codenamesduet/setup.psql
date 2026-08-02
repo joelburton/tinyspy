@@ -18,10 +18,10 @@
 -- the file without having to chase down what `setup.psql` pulls in.
 --
 -- Promotion from inlined helpers per the threshold in
--- docs/testing.md: codenamesduet now uses three shared helpers
--- (find_position, find_position_set, codenamesduet_setup) — past the
--- "three or more" trigger — so they live here rather than being
--- copy-pasted into each test.
+-- docs/testing.md: codenamesduet now uses four shared helpers
+-- (find_position, find_position_set, codenamesduet_setup,
+-- codenamesduet_players) — past the "three or more" trigger — so they
+-- live here rather than being copy-pasted into each test.
 
 -- ─── find_position ─────────────────────────────────────
 -- "Find the first board position whose label on seat `s`'s view

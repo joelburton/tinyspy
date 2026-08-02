@@ -234,11 +234,12 @@ create policy guesses_select on psychicnum.guesses
   );
 
 -- ============================================================
--- Grants — `target` is column-excluded
+-- Grants — `secrets` is column-excluded
 -- ============================================================
 -- Same column-level grant pattern as before: every column on
--- psychicnum.games EXCEPT `target`. The hidden-target view
--- below is the only authenticated read path for `target`.
+-- psychicnum.games EXCEPT `secrets`. The games_state view below
+-- (via `_secrets_for`) is the only authenticated read path for
+-- `secrets`.
 
 grant select
   (id, club_handle, mode, words, created_at)

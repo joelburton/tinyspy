@@ -264,10 +264,13 @@ select is(
 
 -- Now end the game with play_state + status + per-player results.
 -- The new signature is (target_game, play_state, status, player_results).
+-- The play_state / outcome strings are DELIBERATELY fake: common.end_game
+-- doesn't validate vocabulary (each gametype owns its own — states.md), and
+-- a real roster value here would read as if it did.
 select common.end_game(
   current_setting('test.created_game_id')::uuid,
-  'solved',
-  '{"outcome": "solved", "matched": 4, "mistakes": 1}'::jsonb,
+  'test_terminal',
+  '{"outcome": "test_cause", "matched": 4, "mistakes": 1}'::jsonb,
   format(
     '{"%s": {"won": true}, "%s": {"won": true}}',
     'ada11111-1111-1111-1111-111111111111',
@@ -285,14 +288,14 @@ select isnt(
 select is(
   (select status->>'outcome' from common.games
     where id = current_setting('test.created_game_id')::uuid),
-  'solved',
+  'test_cause',
   'end_game: status persisted'
 );
 
 select is(
   (select play_state from common.games
     where id = current_setting('test.created_game_id')::uuid),
-  'solved',
+  'test_terminal',
   'end_game: play_state written from the new 2nd arg'
 );
 

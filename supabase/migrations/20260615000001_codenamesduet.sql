@@ -848,7 +848,8 @@ grant execute on function codenamesduet.submit_guess(uuid, int) to authenticated
 -- it hits zero, the FE fires this. We flip the game to
 -- `lost_timeout` (distinct from `lost_clock`, which is the
 -- turns-exhausted Duet ending) and call common.end_game
--- with outcome='lost_timeout'.
+-- with outcome='timeout' (the play_state carries the verdict;
+-- the outcome names only the cause — states.md).
 --
 -- Idempotency: the active-state guard means a second concurrent
 -- call from another tab raises P0001 'game is not active'. The
