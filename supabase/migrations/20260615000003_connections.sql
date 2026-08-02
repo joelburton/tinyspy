@@ -679,7 +679,7 @@ revoke execute on function connections._maybe_finish_compete(uuid) from public;
 --
 -- Coop branch:
 --   - correct → insert guesses row (mode=coop, partial unique
---     catches dup-race); count(*) of correct rows; 4 → solved.
+--     catches dup-race); count(*) of correct rows; 4 → won.
 --   - wrong/oneAway → insert row; UPDATE every players row
 --     mistake_count++; if mistake_count >= 4 → lost.
 --
@@ -687,7 +687,7 @@ revoke execute on function connections._maybe_finish_compete(uuid) from public;
 --   - reject if caller's mistake_count >= 4 (eliminated).
 --   - correct → insert row (mode=compete, partial unique on
 --     (game_id, user_id, rank) catches per-player dup); count
---     caller's correct rows; 4 → solved_compete, caller wins,
+--     caller's correct rows; 4 → won_compete, caller wins,
 --     others lose. Race-end: opponents with remaining lives
 --     don't get to keep trying.
 --   - wrong/oneAway → insert row; UPDATE caller's players row
@@ -830,7 +830,7 @@ begin
      where game_id = target_game and user_id = caller_id;
 
     if g_row.mode = 'coop' then
-      -- Coop win check: 4 correct rows total ⇒ solved.
+      -- Coop win check: 4 correct rows total ⇒ won.
       select count(*) into matched_count
         from connections.guesses gu
        where gu.game_id = target_game and gu.result = 'correct';
@@ -841,9 +841,14 @@ begin
           from common.game_players
          where game_id = target_game;
 
+        -- The verdict is the roster's `won`; connections' own word for HOW it
+        -- ended rides in `outcome`. Until 2026-08-01 the play_state was
+        -- 'solved' too — one bit of information spelled twice, and the only
+        -- place on the roster where an outcome value doubled as a play_state
+        -- (docs/states.md → status.outcome names the CAUSE).
         perform common.end_game(
           target_game,
-          'solved',
+          'won',
           jsonb_build_object(
             'outcome', 'solved',
             'mistake_count', caller_mistakes,
@@ -868,7 +873,7 @@ begin
       end if;
     else
       -- Compete win check: caller's own correct count = 4 ⇒
-      -- solved_compete, caller wins, everyone else loses. The
+      -- won_compete, caller wins, everyone else loses. The
       -- race ends instantly — opponents with remaining lives
       -- don't get to keep trying. (caller_matched computed above.)
       if caller_matched >= 4 then
@@ -887,7 +892,7 @@ begin
 
         perform common.end_game(
           target_game,
-          'solved_compete',
+          'won_compete',
           jsonb_build_object(
             'outcome', 'solved',
             'winner_username', winner_name

@@ -227,7 +227,7 @@ export const connectionsCoopGame: GameManifest = {
     switch (row.play_state) {
       case 'playing':
         return statusLine(outcome('Playing'), groups, tally(mistakes, 4, 'mistakes'))
-      case 'solved':
+      case 'won':
         // Solving means 4/4, so the mistakes are the story.
         return statusLine(outcome('Won'), count(mistakes, 'mistake'))
       case 'lost':
@@ -285,7 +285,7 @@ export const connectionsCompeteGame: GameManifest = {
       // an empty mid-game status in compete for the same reason).
       case 'playing':
         return outcome('Playing')
-      case 'solved_compete':
+      case 'won_compete':
         return wonBy(s.winner_username as string | undefined)
       case 'lost_compete':
         return (s.outcome as string) === 'conceded'

@@ -92,12 +92,12 @@ const CASES: Record<string, Family> = {
     playing: { matched_count: 2, mistake_count: 1 },
     shared: [['ended', { outcome: 'manual', matched_count: 2 }, 'manual end']],
     coop: [
-      ['solved', { matched_count: 4, mistake_count: 1 }, 'solved'],
+      ['won', { matched_count: 4, mistake_count: 1 }, 'solved'],
       ['lost', { outcome: 'mistakes', matched_count: 2 }, 'four mistakes'],
       ['lost', { outcome: 'timeout', matched_count: 2 }, 'timeout'],
     ],
     compete: [
-      ['solved_compete', W, 'won the race'],
+      ['won_compete', W, 'won the race'],
       ['lost_compete', { outcome: 'mistakes' }, 'everyone hit four mistakes'],
       ['lost_compete', { outcome: 'timeout' }, 'timeout'],
       ['lost_compete', { outcome: 'conceded' }, 'all conceded'],

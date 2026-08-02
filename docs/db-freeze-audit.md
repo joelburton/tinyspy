@@ -41,12 +41,6 @@ deploys, every rename needs a data migration. **Remember: changing a terminal
 play_state means updating BOTH the SQL and the game's `labelFor` (+ the report
 fixtures) — nothing asserts they agree.**
 
-- [ ] **A2. connections `solved`/`solved_compete` → `won`/`won_compete`.**
-  states.md blesses the divergence, but thinly: the pair isn't self-consistent
-  (coop loss is plain `lost`, not `unsolved`), crosswords writes `won` for the
-  identical event, and every label now reads "Won" anyway. Rename
-  (`…003:846`, `:890`), update both connections `labelFor`s, delete the blessing
-  from states.md:54.
 - [ ] **A6. Timeout-with-no-target policy differs per game**: spellingbee/
   wordwheel/boggle do `lost` if a target was set else `ended`
   (`…spellingbee:1189`, `…boggle:513-517`); wordiply coop is always `ended`

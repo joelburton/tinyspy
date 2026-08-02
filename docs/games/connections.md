@@ -118,12 +118,12 @@ The whole board is publicly readable. The FE reads `board.categories` to evaluat
 
 **Coop:**
 - **playing** — guesses being submitted. The default; no other entry state.
-- **solved** — all 4 categories have been matched. Terminal.
+- **won** — all 4 categories have been matched. Terminal. (`status.outcome = 'solved'` carries connections' own word for the cause; the play_state speaks the roster's vocabulary. Was `solved` until 2026-08-01.)
 - **lost** — mistakes hit 4 (or the countdown timer expired). Terminal.
 
 **Compete:**
 - **playing** — guesses being submitted. Eliminated players (4 mistakes) sit in a spectator state without ending the game.
-- **solved_compete** — a player matched all 4 categories first. Terminal. That player's `common.game_players.result = {won: true}`; everyone else's `= {won: false}`.
+- **won_compete** — a player matched all 4 categories first. Terminal. That player's `common.game_players.result = {won: true}`; everyone else's `= {won: false}`.
 - **lost_compete** — every player exhausted their mistake budget OR the timer expired with nobody having matched all 4. Terminal. Everyone's `result = {won: false}`.
 
 ### Data differences between coop and compete — at a glance
@@ -139,7 +139,7 @@ Anything not listed here is identical across modes. The shape mirrors [`psychicn
 | **`connections.guesses` RLS**                 | Club-wide visible                                           | Caller-only — `using (... and guesses.user_id = auth.uid())`         |
 | **`connections.players` RLS**                 | Club-wide visible                                           | Club-wide visible (same — opponents see each other's mistake counts) |
 | **correct-row partial unique index**       | `(game_id, matched_category_rank)` — one match per rank per game | `(game_id, user_id, matched_category_rank)` — one match per rank PER PLAYER per game |
-| **`submit_guess` correct-guess terminal**  | 4 total correct rows → `play_state='solved'`, all `{won: true}` | Caller's 4th correct → `play_state='solved_compete'`, caller `{won: true}`, others `{won: false}` |
+| **`submit_guess` correct-guess terminal**  | 4 total correct rows → `play_state='won'`, all `{won: true}` | Caller's 4th correct → `play_state='won_compete'`, caller `{won: true}`, others `{won: false}` |
 | **`submit_guess` mistake terminal**        | First row's mistake_count hits 4 → `play_state='lost'`, all `{won: false}` | MIN(mistake_count) across all players ≥ 4 → `play_state='lost_compete'`, all `{won: false}` |
 | **eliminated mid-game**                    | Game would already be terminal — no in-between state        | Caller can no longer submit; game continues for survivors            |
 | **`submit_timeout` terminal**              | `play_state='lost'`, outcome `timeout`                      | `play_state='lost_compete'`, outcome `timeout`                       |
@@ -192,14 +192,14 @@ Reject reasons: not authenticated; not a member; `mode` not in `{coop, compete}`
 The only mid-game action. Validates the payload shape (4 tiles, valid result enum, rank present iff correct), then branches on `connections.games.mode`. `SELECT FOR UPDATE` on the gametype row serializes concurrent submissions in both modes.
 
 **Coop branch:**
-- `correct` → insert a row with `mode='coop'` (partial unique on `(game_id, matched_category_rank)` filtered to `result='correct' AND mode='coop'` catches dup-races); count correct rows; 4 → `play_state='solved'`, all players `{won: true}`.
+- `correct` → insert a row with `mode='coop'` (partial unique on `(game_id, matched_category_rank)` filtered to `result='correct' AND mode='coop'` catches dup-races); count correct rows; 4 → `play_state='won'`, all players `{won: true}`.
 - `wrong` / `oneAway` → insert row; UPDATE every `connections.players` row `mistake_count = mistake_count + 1`; if hits 4 → `play_state='lost'`, all players `{won: false}`.
 
 **Opt-in turn-by-turn coop.** The coop sibling supports the common turn-order primitive (setup `coop_style = 'turns'`): after the lock + caller resolution `submit_guess` gates on `common._require_turn`, and calls `common._advance_turn` on the **two coop non-terminal continue paths** — a fresh correct guess that didn't win, and a fresh wrong/one-away that didn't lose. It deliberately does **not** advance on the dup-race no-op (a `correct` whose row was swallowed by the partial-unique constraint) — a no-op move must not consume anyone's turn. Both a correct and a wrong guess are budget-consuming, so both hand off. See [common.md → Turn-order](../common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 
 **Compete branch:**
 - Caller eliminated check (`connections.players.mistake_count >= 4` for caller) raises P0001 'you are eliminated from this game'.
-- `correct` → insert a row with `mode='compete'` (partial unique on `(game_id, user_id, matched_category_rank)` filtered to `result='correct' AND mode='compete'` catches same-player dup-races; different players can match the same rank, each gets their own row); count caller's correct rows; 4 → `play_state='solved_compete'`, caller `{won: true}`, opponents `{won: false}`. Race ends instantly — survivors with remaining lives no longer get to submit.
+- `correct` → insert a row with `mode='compete'` (partial unique on `(game_id, user_id, matched_category_rank)` filtered to `result='correct' AND mode='compete'` catches same-player dup-races; different players can match the same rank, each gets their own row); count caller's correct rows; 4 → `play_state='won_compete'`, caller `{won: true}`, opponents `{won: false}`. Race ends instantly — survivors with remaining lives no longer get to submit.
 - `wrong` / `oneAway` → insert row; UPDATE only the caller's `connections.players` row; check `MIN(mistake_count)` across all players ≥ 4 → `play_state='lost_compete'`, all `{won: false}`. Caller-just-eliminated-but-others-alive lets the game continue.
 
 The PL/pgSQL **does not re-evaluate** the guess against `board.categories` — that's the FE-knows trade, preserved in both modes (see [the FE-knows section](#the-fe-knows-the-answer-decision) above for the cheating-incentive note that's specific to compete).
@@ -331,7 +331,7 @@ outcome-colored pill carrying `over.verdict`, and the info-column action row swa
 its buttons for the bold `over.message` line + a back-to-club button.
 
 A **coop solve** additionally pops the shared `<CelebrationDialog>` ("You win! 🎉"),
-driven by `useCelebration(playState === 'solved')` — once, at the moment the fourth
+driven by `useCelebration(playState === 'won')` — once, at the moment the fourth
 category falls, on every client via the realtime refetch; it never fires on mount,
 so opening an already-solved game is quiet review.
 
@@ -520,8 +520,8 @@ Standard — connections's `PlayArea` + `setupForm.Component` ship as their own 
 | file | covers |
 |---|---|
 | `tests/connections/create_game_test.sql` | Coop-mode create_game: auth, membership, setup.puzzleId validation (missing / bad uuid / not-found), setup.timer shape validation, returns id row, mistake_count initial values (on connections.players), board shape, games.puzzle_id linkage, setup persistence, active-flag tracking, title formula. |
-| `tests/connections/gameplay_test.sql` | Coop-mode submit_guess: payload validation, member-only enforcement, wrong/oneAway → players.mistake_count++ in lock-step, correct → guesses row + win check, 4-correct → play_state='solved', 4-mistakes → play_state='lost', race idempotency on the coop partial unique index, submit_timeout happy + idempotency. |
-| `tests/connections/compete_test.sql` | Compete-mode delta: mode validation (rejects invalid mode), compete with <2 players rejected, per-player mistake decrement (caller's row only), per-player partial unique index allows different players to match same rank, first-to-all-4 → solved_compete (winner {won:true}, others {won:false}, opponents can't submit post-win), elimination + collective loss → lost_compete, eliminated player's submit rejected, submit_timeout writes play_state lost_compete + outcome timeout, RLS scopes guesses caller-only while leaving players club-wide visible. |
+| `tests/connections/gameplay_test.sql` | Coop-mode submit_guess: payload validation, member-only enforcement, wrong/oneAway → players.mistake_count++ in lock-step, correct → guesses row + win check, 4-correct → play_state='won', 4-mistakes → play_state='lost', race idempotency on the coop partial unique index, submit_timeout happy + idempotency. |
+| `tests/connections/compete_test.sql` | Compete-mode delta: mode validation (rejects invalid mode), compete with <2 players rejected, per-player mistake decrement (caller's row only), per-player partial unique index allows different players to match same rank, first-to-all-4 → won_compete (winner {won:true}, others {won:false}, opponents can't submit post-win), elimination + collective loss → lost_compete, eliminated player's submit rejected, submit_timeout writes play_state lost_compete + outcome timeout, RLS scopes guesses caller-only while leaving players club-wide visible. |
 | `tests/connections/rls_test.sql` | dee (non-member) sees zero rows from both tables; mutating RPCs throw with 42501; direct INSERT into game tables is blocked at the grant layer. Includes a positive baseline (ada CAN see her own game). |
 
 ### Per-game `setup.psql` helpers

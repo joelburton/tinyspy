@@ -256,12 +256,12 @@ export function SetupForm({ brand, clubHandle, mode, players, value, onChange }:
  *   - `solved`            — terminal win (green / won)
  *   - `lost`              — terminal loss (red / lost)
  *
- * If a future play_state lands that isn't `solved` but IS
+ * If a future play_state lands that isn't `won` but IS
  * terminal, we treat it as a loss — same posture as the
  * manifest's `labelFor` fallthrough.
  */
 function bucketForRow(row: ClubGameStatusRow): OutcomeBucket {
   if (!row.is_terminal) return 'active'
-  if (row.play_state === 'solved') return 'won'
+  if (row.play_state === 'won') return 'won'
   return 'lost'
 }

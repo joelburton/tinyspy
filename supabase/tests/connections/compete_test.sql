@@ -16,7 +16,7 @@
 --     once per player (ada and bea both match rank 0 → both rows
 --     persist)
 --   - first-to-all-4 ends the race: caller's 4th correct flips
---     play_state to solved_compete, caller's result {won: true},
+--     play_state to won_compete, caller's result {won: true},
 --     opponents' result {won: false}; surviving players can no
 --     longer submit
 --   - elimination + collective loss: each player's 4 mistakes
@@ -216,7 +216,7 @@ select is(
 -- (9)–(11) First-to-all-4 ends the race
 -- ============================================================
 -- Ada matches the remaining 3 categories. Her 4th correct flips
--- play_state to solved_compete; bea and cade can no longer submit.
+-- play_state to won_compete; bea and cade can no longer submit.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select connections.submit_guess((select id from g),
@@ -229,8 +229,8 @@ select connections.submit_guess((select id from g),
 reset role;
 select is(
   (select play_state from common.games where id = (select id from g)),
-  'solved_compete',
-  'submit_guess (compete): ada''s 4th correct flips play_state to solved_compete'
+  'won_compete',
+  'submit_guess (compete): ada''s 4th correct flips play_state to won_compete'
 );
 
 select is(

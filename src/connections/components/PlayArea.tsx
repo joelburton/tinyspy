@@ -135,7 +135,7 @@ export function PlayArea({
 
   // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the team clears the fourth category (the winning
-  // guess flips playState to 'solved' on every connected client via realtime, so
+  // guess flips playState to 'won' on every connected client via realtime, so
   // the whole group celebrates together); opening an already-solved game stays
   // quiet (useCelebration never pops on mount). It's the ONLY modal at terminal
   // — the verdict itself rides the below-board pill (docs/ui.md → Terminal
@@ -147,7 +147,7 @@ export function PlayArea({
   // fetch lands, so a won-race game opened fresh would go false→true after load
   // and pop confetti at someone merely reviewing it. Same call wordle + waffle
   // made (they celebrate coop only).
-  const celebration = useCelebration(playState === 'solved')
+  const celebration = useCelebration(playState === 'won')
 
   // ─── Commit-slot flash (own-action feedback, local) ─────
   // A transient message shown *in place of the commit buttons* for the
@@ -579,7 +579,7 @@ function buildOver({
   // (green modal, neutral copy). Must come first — 'ended' is mode-independent.
   if (playState === 'ended') return endedCopy(mode)
   if (mode === 'coop') {
-    if (playState === 'solved') {
+    if (playState === 'won') {
       return { verdict: 'You win!', message: 'You won!', tone: 'won' }
     }
     return {
@@ -589,7 +589,7 @@ function buildOver({
     }
   }
   // compete
-  if (playState === 'solved_compete') {
+  if (playState === 'won_compete') {
     if (selfMatched >= CATEGORY_COUNT) {
       return { verdict: 'Won: the race', message: 'You won!', tone: 'won' }
     }

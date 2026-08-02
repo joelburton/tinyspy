@@ -87,7 +87,7 @@ select is(
 -- ============================================================
 -- (2) Terminal-state propagation
 -- ============================================================
--- End the game with play_state='solved'; the view should reflect
+-- End the game with play_state='won'; the view should reflect
 -- both fields on the next read.
 
 reset role;
@@ -95,7 +95,7 @@ select set_config('request.jwt.claims', '', true);
 
 select common.end_game(
   (select id from g),
-  'solved',
+  'won',
   '{"outcome": "solved", "matched_count": 4, "mistake_count": 0}'::jsonb,
   format(
     '{"%s": {"won": true}, "%s": {"won": true}}',
@@ -108,7 +108,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select play_state from connections.club_game_status
     where game_id = (select id from g)),
-  'solved',
+  'won',
   'club_game_status: terminal play_state is visible after end_game'
 );
 

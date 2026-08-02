@@ -91,12 +91,12 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | | lost_compete — all conceded | `Lost (all conceded)` |
 | **connections_coop** | playing | `Playing · 2/4 groups · 1/4 mistakes` |
 | | ended — manual end | `Ended · 2/4 groups` |
-| | solved — solved | `Won · 1 mistake` |
+| | won — solved | `Won · 1 mistake` |
 | | lost — four mistakes | `Lost (4 mistakes) · 2/4 groups` |
 | | lost — timeout | `Lost (out of time) · 2/4 groups` |
 | **connections_compete** | playing | `Playing` |
 | | ended — manual end | `Ended` |
-| | solved_compete — won the race | `Won by alice` |
+| | won_compete — won the race | `Won by alice` |
 | | lost_compete — everyone hit four mistakes | `Lost (4 mistakes) · no winner` |
 | | lost_compete — timeout | `Lost (out of time) · no winner` |
 | | lost_compete — all conceded | `Lost (all conceded)` |

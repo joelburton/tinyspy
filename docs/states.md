@@ -51,7 +51,7 @@ Sibling-manifest pairs that include a compete variant (see [`common.md` → The 
 
 The distinct names matter because the per-player outcome differs: coop's `'won'` means "every player won together"; compete's `'won_compete'` means "one player won, the others lost." Per-player outcome detail goes on `common.game_players.result` jsonb (`{ "won": bool }` shape today); `play_state` carries the **game-level** terminal answer that the listing label needs to render without joining game_players.
 
-spellingbee's compete variant follows the same suffix convention (its schema declares `'won_compete'` as a play_state). connections's compete uses `'solved_compete'` (matching connections's coop terminal naming `'solved'`).
+spellingbee's compete variant follows the same suffix convention (its schema declares `'won_compete'` as a play_state). **Every gametype with a win now uses `won` / `won_compete`** — connections was the last holdout (`solved` / `solved_compete` until 2026-08-01). Its puzzle vocabulary didn't disappear, it moved to where it's true: the play_state carries the verdict in the roster's words, `status.outcome = 'solved'` carries the cause in connections'. The old pair was never self-consistent anyway — the loss side was already plain `lost` / `lost_compete`, not `unsolved`.
 
 **The convention is load-bearing, not just cosmetic:** `common.concede` reads the `_compete` suffix off `common.games.gametype` to decide whether an all-conceded table ends `lost_compete` or plain `lost` (2026-08-01 — before that it hardcoded `lost`, so half the roster ended a concede in one vocabulary and half in another). A **single-mode** gametype has no `_compete` half and keeps plain `lost`: bananagrams is the only one today. So a new compete sibling gets the right terminal for free, and a new single-mode game must not be registered with a `_compete` suffix unless it really means the compete vocabulary.
 
@@ -106,7 +106,7 @@ The schema split: `common.games` is the cross-cutting metadata; `<gametype>.game
 
 - `is_current_view` (boolean)
 - `paused` (boolean — present for any game, but only meaningful when `is_current_view = true`)
-- `play_state` (text — the gametype's enum value, e.g. `'solved'` for connections)
+- `play_state` (text — the gametype's enum value, e.g. `'won_compete'` for a compete race)
 - `is_terminal` (boolean — materialized, in sync with play_state)
 - `status` (jsonb — gametype-specific data needed for the club-page listing label; each gametype consumes its own shape via `manifest.labelFor`)
 - The game clock lives in a **separate table, `common.timers (game_id, ticks, last_tick)`** — NOT on the games row, so the once-per-second tick UPDATE doesn't churn the games realtime stream. `ticks` is an **additive** count of whole seconds of *active play*: every actively-playing client calls `common.tick_timer` once a second, which advances `ticks` by at most 1 per real second (its `now() - last_tick >= 1s` conditional dedupes across players and makes a pause/idle gap cost +1, not the gap). Pauses and "nobody viewing" need **no tracking** — they're just seconds where nobody calls tick_timer, so the clock stops. This replaced the old subtractive `idle_since`/`total_idle_seconds` accumulator; `set_current_view`/`unset_current_view` are now pure pointer-flips with no timer work.

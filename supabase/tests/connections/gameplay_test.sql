@@ -15,7 +15,7 @@
 --     a silent no-op
 --   - 4 mistakes flips play_state to 'lost', clears
 --     is_current_view flipped via common.end_game
---   - 4 matched categories flips play_state to 'solved', clears
+--   - 4 matched categories flips play_state to 'won', clears
 --     is_current_view flipped via common.end_game
 --
 -- See ../codenamesduet/create_game_test.sql for the pgTAP / auth-
@@ -215,7 +215,7 @@ select is(
 );
 
 -- ============================================================
--- (10)–(11) Solve path: match the other 3 categories → solved
+-- (10)–(11) Solve path: match the other 3 categories → won
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -238,8 +238,8 @@ select connections.submit_guess(
 reset role;
 select is(
   (select play_state from common.games where id = (select id from g)),
-  'solved',
-  'submit_guess: 4 matched categories flips play_state to solved'
+  'won',
+  'submit_guess: 4 matched categories flips play_state to won (outcome names the solve)'
 );
 
 -- end_game marks the row terminal (is_current_view is left alone
