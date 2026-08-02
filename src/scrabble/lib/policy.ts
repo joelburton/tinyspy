@@ -175,7 +175,12 @@ export type GameResult = {
 const EXCHANGE_MIN_BAG = RACK_SIZE
 /** End the game after this many consecutive non-scoring (exchange) turns — a
  *  hopeless rack that even swapping can't rescue, and a guard against an
- *  exchange ping-pong that never terminates while the bag has tiles. */
+ *  exchange ping-pong that never terminates while the bag has tiles.
+ *
+ *  This is the SELF-PLAY HARNESS's own stopping rule, not the game's: a real
+ *  game ends when every active seat passes in a row (scrabble._commit_pass),
+ *  which a solo simulation with no opponents can't express. Tuning numbers are
+ *  comparable across strength levels because every level stops the same way. */
 const MAX_SCORELESS = 3
 
 /** Seeded Fisher–Yates. */

@@ -40,7 +40,7 @@ select scrabble.end_game((select id from gm));
 reset role;
 
 select is((select play_state from common.games where id = (select id from gm)),
-  'won', 'coop manual end runs final scoring (play_state won)');
+  'ended', 'coop manual end runs final scoring but stays neutral (play_state ended)');
 select ok((select is_terminal from common.games where id = (select id from gm)),
   'the game is terminal');
 select is((select status->>'outcome' from common.games where id = (select id from gm)),
@@ -52,7 +52,7 @@ select is((select kind || ':' || score from scrabble.plays
   'forfeit:-11', 'the forfeit is logged with the negative value lost');
 select is((select result->>'won' from common.game_players
            where game_id = (select id from gm) and user_id = 'ada11111-1111-1111-1111-111111111111'),
-  'true', 'coop completion is a (neutral green) win');
+  'false', 'nobody wins a coop table — the score, not a verdict, is the result');
 select isnt((select ctid from scrabble.games where id = (select id from gm)),
   (select tid from ct), 'the realtime touch rewrote the scrabble.games row');
 
@@ -76,10 +76,11 @@ update scrabble.games set team_score = 12, shared_rack = array['Q']  -- leftover
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select scrabble.submit_timeout((select id from gt));
 reset role;
--- The clock is the ONE way a coop table can lose. Playing the bag out and
--- grinding to a halt on six scoreless turns are both legitimate finishes and
--- stay a green 'won' (see auto_finish_test); failing to finish in time is a
--- real loss, the same reading every other game gives it.
+-- The clock is the ONE way a coop table can lose — and the only coop ending
+-- that isn't 'ended'. Playing the bag out, grinding to a halt on six scoreless
+-- turns and stopping early are all legitimate finishes (see auto_finish_test);
+-- failing to finish in time is a real loss, the same reading every other game
+-- gives it.
 select is((select play_state from common.games where id = (select id from gt)),
   'lost', 'coop timeout is a loss — the table did not finish in time');
 select is((select (result->>'won')::boolean from common.game_players

@@ -28,13 +28,6 @@ fine. No bugs found in the new work itself.
 
 Three residual oddities it left behind, worth a deliberate decision:
 
-- [ ] **crosswords `reveal_cells` (reveal-all) ends the game as `won`**
-  (`_maybe_finish` → `20260706000000_crosswords.sql:293`). waffle and wordle
-  deliberately chose `ended` + `outcome:'revealed'` for the same gesture — in
-  crosswords, revealing the whole grid puts a green "Won" on the club list.
-- [ ] **scrabble coop's bag-out finish is play_state `won` but renders "Ended"** —
-  the neutral label is intentional (commit `12e8335`), but then the state name is
-  lying. If it's a neutral finish, `ended` is the honest state.
 - [ ] **The wordiply all-conceded fixture doesn't match the SQL**: the generated
   status-lines table shows state `ended`, but `common.concede` actually writes
   `lost`. The label survives only because `competeLabel` keys off
@@ -242,6 +235,16 @@ uniform and the pass is mechanical:
   its claim that child tables use `created_at` (`:256`) is false — they use
   `guessed_at`/`found_at`/`played_at`/`submitted_at` (which is the better
   convention; the doc should describe it).
+- [ ] **scrabble coop can't actually end `blocked`** — found while working the
+  coop-terminal item, and now doubly true: `blocked` means "every active seat
+  passed in a row", and `pass_turn` rejects coop outright
+  (`…scrabble:1259`) — coop has no turns to pass. So the `COOP_END` map in
+  `src/scrabble/manifest.ts` has no reachable case (its lone key is `blocked`),
+  and the coop `blocked → "Ended (no moves left)"` row in
+  `src/gameStatusLabels.test.ts` — and therefore in the generated
+  game-status-labels.md — documents a state the server can't write. Left in
+  place deliberately (not deleted unprompted); decide whether to drop both or
+  give coop a blocked-end.
 - [ ] crosswords.sql refers to `crossplay` 7× as the *source app* — since
   CrossPlay is also the registered brand, the comments read ambiguously. Clarify
   once ("the prior app this was ported from") if touching the file.
@@ -255,6 +258,10 @@ documented-deliberate set holds up:
   (`request_*` vs `reveal_next_*`), `_maybe_finish_compete` vs `_finish`
   (naming.md:235), the `submit_guess`/`submit_word`/`play_word`/`submit_swap`
   verb split (naming.md's canonical table).
+- **crosswords' reveal-all ending as `won` is ratified** (2026-08-01) — a crossword
+  isn't competitive the way waffle/wordle are, so a completed grid counts however
+  it got there. Rationale recorded at `reveal_cells` in the migration + in
+  crosswords.md §9 → Deliberate leaves.
 - **crosswords `clear_board` is NOT a `replay_board` rename candidate** —
   crosswords replay is a documented won't-do (deferred.md); `clear_board` is a
   genuinely different gesture that does not call `common.reset_game`.

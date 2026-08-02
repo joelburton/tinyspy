@@ -135,7 +135,7 @@ $$;
 -- COUNT is ever exposed). `version` is the optimistic-concurrency move
 -- counter. The coop/compete column asymmetry is deliberate (see §4.2):
 -- coop SHARES its rack + score on this row; compete PARTITIONS them onto
--- scrabble.players, and tracks whose turn it is + a scoreless-turn counter
+-- scrabble.players, and tracks whose turn it is + a consecutive-pass counter
 -- for the blocked-game end.
 create table scrabble.games (
   id          uuid primary key references common.games(id) on delete cascade,
@@ -155,9 +155,11 @@ create table scrabble.games (
   shared_rack text[],
   team_score  int,
   -- Compete-only (null in coop): whose turn (by SEAT, not user — a seat may be
-  -- an AI, which has no profile), and the blocked-end counter.
-  current_seat          int,
-  consecutive_scoreless int not null default 0,
+  -- an AI, which has no profile), and the blocked-end counter — passes in a
+  -- row, cleared by any play or exchange. The game ends when it reaches the
+  -- number of active seats (see _commit_pass).
+  current_seat       int,
+  consecutive_passes int not null default 0,
   created_at  timestamptz not null default now()
 );
 
@@ -169,7 +171,7 @@ create index scrabble_games_club_handle_idx on scrabble.games (club_handle);
 -- view; the FE never validates words.)
 grant select
   (id, club_handle, mode, board, version,
-   shared_rack, team_score, current_seat, consecutive_scoreless, created_at)
+   shared_rack, team_score, current_seat, consecutive_passes, created_at)
   on scrabble.games to authenticated;
 
 alter table scrabble.games enable row level security;
@@ -351,7 +353,7 @@ create view scrabble.games_state with (security_invoker = true) as
          g.shared_rack,
          g.team_score,
          g.current_seat,
-         g.consecutive_scoreless,
+         g.consecutive_passes,
          g.created_at,
          scrabble._bag_count_for(g.id) as bag_count
     from scrabble.games g;
@@ -480,8 +482,8 @@ $$;
 -- blocked (NOT manual — manual end is neutral, see scrabble.end_game).
 -- `out_seat` is the seat that emptied its rack (going out), or null; only that
 -- seat collects the going-out bonus.
---   Coop: team_score -= leftover(shared_rack); always a neutral 'won'
---         (no opponent → never a loss, even on timeout).
+--   Coop: team_score -= leftover(shared_rack); a neutral 'ended' (no opponent
+--         → no win), except the clock, which is 'lost'.
 --   Compete: each score -= own leftover; the out-player += everyone's
 --         leftovers; highest score wins ('won_compete'), ties → co-winners.
 create function scrabble._finish(g_id uuid, outcome text, out_seat int)
@@ -512,13 +514,20 @@ begin
      where id = g_id
      returning team_score into v_team_final;
 
-    -- The clock is the only way a coop table can LOSE. Playing the bag out
-    -- ('complete') and grinding to a halt on six scoreless turns ('blocked')
-    -- are both legitimate finishes — nothing ran out, the tiles just stopped
-    -- scoring — so they stay a green score report. Running out of time is a
-    -- real failure to finish, which is how every other game reads it.
-    select jsonb_object_agg(user_id::text,
-                            jsonb_build_object('won', outcome <> 'timeout'))
+    -- COOP HAS NO WIN (ratified 2026-08-01). One shared rack and no opponent,
+    -- so there's nobody to beat: playing the bag out ('complete') and stopping
+    -- early ('manual') are both just *finishing* — a score report, not a
+    -- verdict. Both end `ended`, with every player's result {won:false}.
+    -- ('blocked' is compete-only: coop has no turns to pass.)
+    --
+    -- The clock is the exception, and the only way a coop table can LOSE: the
+    -- team failed to finish in the time it set itself, which is how every other
+    -- game on the roster reads a timeout.
+    --
+    -- The play surface still says more than the state does — it calls a natural
+    -- finish "Completed" rather than "Ended". That detail rides in
+    -- status.outcome; the play_state stays deliberately coarse.
+    select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
       into player_results
       from common.game_players where game_id = g_id;
 
@@ -526,7 +535,7 @@ begin
                                    'team_score', v_team_final);
     perform common.end_game(
       g_id,
-      case when outcome = 'timeout' then 'lost' else 'won' end,
+      case when outcome = 'timeout' then 'lost' else 'ended' end,
       v_status, player_results);
   else
     -- Subtract each player's own leftover tiles.
@@ -953,14 +962,14 @@ begin
            shared_rack = v_new_rack,
            team_score = team_score + p_score,
            version = version + 1,
-           consecutive_scoreless = 0
+           consecutive_passes = 0
      where id = target_game;
   else
     update scrabble.games
        set board = v_board,
            bag = g.bag[v_ndraw+1:],
            version = version + 1,
-           consecutive_scoreless = 0
+           consecutive_passes = 0
      where id = target_game;
     update scrabble.players
        set rack = v_new_rack, score = score + p_score
@@ -1067,8 +1076,8 @@ grant execute on function scrabble.ai_play_word(uuid, int, int, jsonb, text[], i
 -- ============================================================
 -- Return `rack_tiles` (glyphs; `?` for a blank) to the bag, reshuffle, and
 -- redraw the same count. Requires the bag to hold ≥ 7 tiles (standard
--- rule). Compete: costs the turn + counts as a scoreless turn (toward the
--- blocked-game end). Coop: just a rack refresh.
+-- rule). Compete: costs the turn and CLEARS the pass streak (it's a real
+-- attempt to move, not a refusal). Coop: just a rack refresh.
 -- The seat-driven core, shared by exchange_tiles (human) and ai_exchange (AI).
 create function scrabble._commit_exchange(
   target_game  uuid,
@@ -1151,23 +1160,24 @@ begin
   else
     update scrabble.players set rack = v_rack
      where game_id = target_game and seat = p_seat;
+    -- An exchange RESETS the streak: the blocked end is "everyone passed in a
+    -- row", and swapping tiles is a real attempt to get unstuck, not a refusal
+    -- to move. (It can't stall the game forever either — exchanging needs 7+
+    -- tiles in the bag, so the endgame, where blocked-ends actually happen,
+    -- can only be passed through.) Under the old 6-scoreless rule this
+    -- incremented and could end the game.
     update scrabble.games
        set bag = v_bag, version = version + 1,
-           consecutive_scoreless = consecutive_scoreless + 1
+           consecutive_passes = 0
      where id = target_game;
-    -- Blocked game: 6 consecutive scoreless turns and nobody can move.
-    if g.consecutive_scoreless + 1 >= 6 then
-      v_terminal := true;
-      perform scrabble._finish(target_game, 'blocked', null);
-    else
-      perform scrabble._advance_turn(target_game);
-    end if;
+    perform scrabble._advance_turn(target_game);
   end if;
 
-  if not v_terminal then
-    perform common.update_state(target_game, 'playing', scrabble._status(target_game));
-  end if;
+  perform common.update_state(target_game, 'playing', scrabble._status(target_game));
 
+  -- `terminal` is always false now — an exchange can no longer end a game (it
+  -- resets the pass streak rather than feeding it). The key stays in the shape
+  -- because every move RPC returns it and the FE branches on it uniformly.
   return jsonb_build_object('result', 'exchanged', 'drawn', to_jsonb(v_drawn),
                             'version', g.version + 1, 'terminal', v_terminal);
 end;
@@ -1222,7 +1232,8 @@ grant execute on function scrabble.ai_exchange(uuid, int, int, text[]) to authen
 -- scrabble.pass_turn — forfeit a turn (compete only)
 -- ============================================================
 -- Coop has no turns, so passing is meaningless there (the coop "we're
--- stuck" path is exchange or End game). Counts as a scoreless turn.
+-- stuck" path is exchange or End game). Feeds the consecutive-pass streak
+-- that ends a blocked game.
 -- The seat-driven core, shared by pass_turn (human) and ai_pass (AI).
 create function scrabble._commit_pass(target_game uuid, p_seat int, base_version int)
 returns jsonb
@@ -1235,6 +1246,7 @@ declare
   g          scrabble.games%rowtype;
   play_state text;
   v_seq      int;
+  v_active   int;
   v_terminal boolean := false;
 begin
   select user_id into v_user from scrabble.players where game_id = target_game and seat = p_seat;
@@ -1265,10 +1277,26 @@ begin
 
   update scrabble.games
      set version = version + 1,
-         consecutive_scoreless = consecutive_scoreless + 1
+         consecutive_passes = consecutive_passes + 1
    where id = target_game;
 
-  if g.consecutive_scoreless + 1 >= 6 then
+  -- Blocked end: EVERY active seat passed in a row. Tournament Scrabble wants 6
+  -- consecutive scoreless turns; this is the casual house rule (2026-08-01) —
+  -- once the table has been round once with nobody willing to play, it's over.
+  --
+  -- The threshold is the number of seats that can still take a turn, so it
+  -- tracks drop-outs: in a 3-player game where one conceded, two passes end it
+  -- (_advance_turn skips conceders, so a conceded seat can never contribute a
+  -- pass and would otherwise make the streak unreachable). LEFT JOIN because an
+  -- AI seat has no common.game_players row — it holds a seat and passes like
+  -- anyone else.
+  select count(*) into v_active
+    from scrabble.players p
+    left join common.game_players gp
+      on gp.game_id = p.game_id and gp.user_id = p.user_id
+   where p.game_id = target_game and not coalesce(gp.conceded, false);
+
+  if g.consecutive_passes + 1 >= v_active then
     v_terminal := true;
     perform scrabble._finish(target_game, 'blocked', null);
   else
@@ -1432,13 +1460,13 @@ grant execute on function scrabble.submit_timeout(uuid) to authenticated;
 -- ============================================================
 -- scrabble.end_game — the "we're done" action
 -- ============================================================
--- COOP deviates from the uniform neutral stop: ending with tiles still in
--- hand FORFEITS their value from the team score (so a solo/coop team is
--- pushed to find plays for its last tiles rather than just stopping — the
--- same leftover-tile penalty a natural end applies). It runs final scoring
--- (play_state 'won', the adjusted team score) and logs a 'forfeit' row with
--- the lost value as a negative score. COMPETE keeps the uniform neutral
--- terminal ('ended', everyone {won:false}, no scoring). Idempotent.
+-- Both modes land the uniform neutral 'ended', but COOP deviates on the way
+-- there: ending with tiles still in hand FORFEITS their value from the team
+-- score (so a solo/coop team is pushed to find plays for its last tiles rather
+-- than just stopping — the same leftover-tile penalty a natural end applies).
+-- It runs final scoring through _finish and logs a 'forfeit' row with the lost
+-- value as a negative score. COMPETE ends flat: everyone {won:false}, no
+-- scoring, no leaderboard. Idempotent.
 create function scrabble.end_game(target_game uuid)
 returns void
 language plpgsql
@@ -1699,7 +1727,7 @@ begin
     v_first := floor(random() * v_seats)::int;
     update scrabble.games
        set board = v_board, bag = v_bag, version = g_row.version + 1,
-           current_seat = v_first, consecutive_scoreless = 0
+           current_seat = v_first, consecutive_passes = 0
      where id = target_game;
   else
     -- Coop: one shared rack + one team score on the game row; the player rows
@@ -1708,7 +1736,7 @@ begin
     v_bag   := v_bag[8:];
     update scrabble.games
        set board = v_board, bag = v_bag, version = g_row.version + 1,
-           shared_rack = v_drawn, team_score = 0, consecutive_scoreless = 0
+           shared_rack = v_drawn, team_score = 0, consecutive_passes = 0
      where id = target_game;
 
     -- Turn-order coop: rewind the pointer to the original opener (turn_seat 0).

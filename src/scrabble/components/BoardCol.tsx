@@ -663,8 +663,9 @@ export function BoardCol({
   }, [game.version, selected, actingRack, gameId, showLocalFeedback])
 
   const pass = useCallback(async () => {
-    // Confirm — passing forfeits the turn (a scoreless turn toward the blocked-end
-    // counter), and the button is easy to misclick. Exchange needs no confirm: it's
+    // Confirm — passing forfeits the turn AND feeds the blocked-end streak (once
+    // every seat passes in a row the game is over), and the button is easy to
+    // misclick. Exchange needs no confirm: it's
     // disabled until tiles are selected, so it's rarely hit by accident.
     if (!window.confirm('Do you really want to pass your turn?')) return
     const { error } = await db.rpc('pass_turn', { target_game: gameId, base_version: game.version })

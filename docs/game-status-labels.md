@@ -162,8 +162,8 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | | lost — all conceded | `Lost (all conceded)` |
 | **scrabble_coop** | playing | `Playing · 152 pts · 7 tiles left` |
 | | ended — manual end | `Ended · 152 pts` |
-| | won — bag empty | `Ended · 152 pts` |
-| | won — six scoreless turns | `Ended (no moves left) · 152 pts` |
+| | ended — bag empty | `Ended · 152 pts` |
+| | ended — six scoreless turns | `Ended (no moves left) · 152 pts` |
 | | lost — timeout | `Lost (out of time) · 152 pts` |
 | **scrabble_compete** | playing | `Playing · 7 tiles left` |
 | | ended — manual end | `Ended` |

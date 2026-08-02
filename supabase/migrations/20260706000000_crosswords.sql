@@ -730,6 +730,14 @@ begin
         where (e ->> 'row')::int = c.row and (e ->> 'col')::int = c.col
      );
 
+  -- Revealing can complete the grid — including "Reveal puzzle", which fills
+  -- the whole thing. That lands the ordinary coop `won` terminal, and that is
+  -- DELIBERATE (2026-08-01): waffle/wordle treat their reveal-answer gesture as
+  -- a give-up (`ended` + outcome 'revealed') because those are guess-economy
+  -- games where the answer IS the contest. A crossword isn't competitive that
+  -- way — reveal is a scoped, incremental solving aid (letter / word / puzzle),
+  -- and there's no honest line between "revealed one letter" and "gave up". So
+  -- a finished grid is a finished grid. See docs/games/crosswords.md §9.
   perform crosswords._maybe_finish(target_game, null, 'coop', null);
 end;
 $$;

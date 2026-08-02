@@ -2,15 +2,16 @@
 -- Test: scrabble.exchange_tiles + scrabble.pass_turn
 -- ============================================================
 -- Exchange returns tiles to the bag, reshuffles, redraws the same count
--- (needs bag ≥ 7). Pass forfeits a compete turn. Both bump version + the
--- scoreless counter (compete) and advance the turn; coop has no pass.
+-- (needs bag ≥ 7). Pass forfeits a compete turn. Both bump version and
+-- advance the turn (coop has no pass), but they treat the blocked-end
+-- streak oppositely: a pass feeds it, an exchange clears it.
 
 begin;
 set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(12);
+select plan(16);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -55,7 +56,7 @@ select is((select kind || ':' || tile_count from scrabble.plays
            where game_id = (select id from gco)), 'exchange:2',
   'the exchange is logged with its tile count');
 
--- ─── Pass (compete) advances the turn + scoreless count ──
+-- ─── Pass (compete) advances the turn + pass streak ──────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gcp on commit drop as
   select id from scrabble.create_game((select handle from cl),
@@ -68,10 +69,49 @@ select pg_temp.sc_turn((select id from gcp), 'ada11111-1111-1111-1111-1111111111
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select scrabble.pass_turn((select id from gcp), 0);
 reset role;
-select is((select consecutive_scoreless from scrabble.games where id = (select id from gcp)), 1,
-  'pass bumps the scoreless counter');
+select is((select consecutive_passes from scrabble.games where id = (select id from gcp)), 1,
+  'pass bumps the pass streak');
 select is(pg_temp.sc_current_user((select id from gcp)),
   'bea22222-2222-2222-2222-222222222222'::uuid, 'pass advances the turn');
+
+-- ─── The blocked end: everyone passed in a row ───────────
+-- The casual house rule (not tournament Scrabble's 6 scoreless turns): one
+-- lap of the table with nobody willing to play ends it. Two seats here, so
+-- bea's pass is the second and last.
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+create temp table rp2 on commit drop as
+  select scrabble.pass_turn((select id from gcp), 1) as res;
+reset role;
+select is((select res->>'terminal' from rp2), 'true',
+  'a full round of passes ends the game');
+select is((select status->>'outcome' from common.games where id = (select id from gcp)),
+  'blocked', 'the all-passed end is stamped outcome=blocked');
+
+-- ─── An exchange CLEARS the streak ───────────────────────
+-- Two scoreless turns in a row (pass then exchange) must NOT end the game:
+-- swapping tiles is an attempt to get unstuck, not a refusal to move. Under
+-- the old 6-scoreless rule an exchange fed the same counter as a pass.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gcx on commit drop as
+  select id from scrabble.create_game((select handle from cl),
+    '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
+reset role;
+select pg_temp.sc_turn((select id from gcx), 'ada11111-1111-1111-1111-111111111111');
+select pg_temp.sc_rack((select id from gcx), 'bea22222-2222-2222-2222-222222222222',
+  array['A','B','C','D','E','F','G']);
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select scrabble.pass_turn((select id from gcx), 0);
+reset role;
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select scrabble.exchange_tiles((select id from gcx), 1, array['A']);
+reset role;
+select is((select consecutive_passes from scrabble.games where id = (select id from gcx)), 0,
+  'an exchange clears the pass streak');
+select is((select play_state from common.games where id = (select id from gcx)), 'playing',
+  'pass-then-exchange does NOT end the game');
 
 -- ─── Coop has no pass ────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

@@ -153,12 +153,11 @@ select is(pg_temp.sc_current_user((select id from gc)),
 select is((select version from scrabble.games where id = (select id from gc)), 1,
   'compete play bumps version');
 
--- A scoring play resets the scoreless counter (only passes/exchanges raise
--- it). Rig a non-zero count + force ada's turn back, then a valid play zeroes
--- it. (board now holds CAT at the center, so the second word goes elsewhere —
+-- A scoring play resets the pass streak (only passes raise it). Rig a non-zero
+-- count + force ada's turn back, then a valid play zeroes it. (board now holds CAT at the center, so the second word goes elsewhere —
 -- the server trusts geometry, it only needs empty + in-bounds + in-rack.)
 reset role;
-update scrabble.games set consecutive_scoreless = 3 where id = (select id from gc);
+update scrabble.games set consecutive_passes = 3 where id = (select id from gc);
 select pg_temp.sc_turn((select id from gc), 'ada11111-1111-1111-1111-111111111111');
 select pg_temp.sc_rack((select id from gc), 'ada11111-1111-1111-1111-111111111111',
   array['A','T','X','Y','Z','N','M']);
@@ -172,8 +171,8 @@ create temp table creset on commit drop as
 reset role;
 select is((select res->>'result' from creset), 'accepted',
   'compete: a second valid word is accepted');
-select is((select consecutive_scoreless from scrabble.games where id = (select id from gc)), 0,
-  'a scoring play resets the scoreless counter to 0');
+select is((select consecutive_passes from scrabble.games where id = (select id from gc)), 0,
+  'a scoring play resets the pass streak to 0');
 
 -- ─── Game D (coop) — blank tiles + cross-word dictionary check ──
 -- A blank plays as a DECLARED letter (scores 0 — handled FE-side) but

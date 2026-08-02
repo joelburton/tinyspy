@@ -60,11 +60,14 @@ const endGame = makeRpcDispatcher(db, 'end_game')
 /**
  * scrabble's club-page status line.
  *
- * Coop is the odd one: a table with no opponent can't really "win", so playing
- * the bag out ('complete') and grinding to a halt on six scoreless turns
- * ('blocked') are both a neutral score report — the SQL still writes them as
- * `won`, and the label says `Ended`, because the number is the point. The one
- * genuine coop loss is the clock.
+ * Coop has NO win state (see scrabble._finish): one shared rack, no opponent,
+ * so playing the bag out and stopping early are both just `ended` — the score
+ * is the point, not a verdict. Only the clock loses.
+ *
+ * `status.outcome` still carries HOW it ended, and COOP_END names the endings
+ * worth spelling out. It's empty of reachable coop cases today ('blocked' is
+ * compete-only — see the flag in docs/db-freeze-audit.md), so the lookup is
+ * currently defensive; the shape is what a new coop ending would slot into.
  */
 function labelFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
@@ -78,9 +81,6 @@ function labelFor(mode: 'coop' | 'compete') {
         return statusLine(
           outcome('Playing'), mode === 'coop' ? score : null,
           count(s.bag_count, 'tile left', 'tiles left'))
-      case 'won':
-        // Coop finished. Name HOW only when it wasn't the ordinary way.
-        return statusLine(outcome('Ended', COOP_END[s.outcome ?? ''] ?? null), score)
       case 'won_compete':
         return statusLine(wonBy(s.winner_username),
                           s.winner_score != null ? `${s.winner_score} pts` : null)
@@ -90,7 +90,11 @@ function labelFor(mode: 'coop' | 'compete') {
           ? outcome('Lost', 'all conceded')
           : statusLine(outcome('Lost', 'out of time'), score)
       case 'ended':
-        return statusLine(outcome('Ended'), mode === 'coop' ? score : null)
+        // Every coop finish, and compete's whole-table stop. Name HOW only
+        // when it wasn't the ordinary way (coop's 'blocked').
+        return mode === 'coop'
+          ? statusLine(outcome('Ended', COOP_END[s.outcome ?? ''] ?? null), score)
+          : outcome('Ended')
       default:
         return row.play_state
     }

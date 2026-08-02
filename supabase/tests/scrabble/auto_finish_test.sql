@@ -4,8 +4,8 @@
 -- The game-ends-itself paths, as opposed to the player-initiated
 -- end_game / submit_timeout in end_game_test.sql (named the standard
 -- per-game way; this file is split out so the two aren't one keystroke
--- apart). Going-out (bag empty + rack empty) and blocked (6 scoreless
--- turns) trigger _finish: coop is a neutral 'won' score report; compete
+-- apart). Going-out (bag empty + rack empty) and blocked (every active seat
+-- passed in a row) trigger _finish: coop is a neutral 'ended' score report; compete
 -- subtracts each player's leftover tiles, gives the out-player the
 -- opponents' leftovers, and crowns the top score ('won_compete'), ties →
 -- co-winners.
@@ -15,7 +15,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(19);
+select plan(20);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -42,11 +42,16 @@ select is((select res->>'terminal' from rco), 'true', 'coop going-out ends the g
 select ok((select is_terminal from common.games where id = (select id from gco)),
   'common.games is_terminal flips true');
 select is((select play_state from common.games where id = (select id from gco)),
-  'won', 'coop completion is a neutral green "won"');
+  'ended', 'coop completion is a neutral "ended" — coop has no win');
 select is((select team_score from scrabble.games where id = (select id from gco)), 2,
   'team_score = score earned − leftover (0 here)');
 select is((select status->>'outcome' from common.games where id = (select id from gco)),
   'complete', 'status.outcome is complete');
+-- No coop win means no winners either: the ending is a score report, so the
+-- per-player flag stays false even on the best possible finish.
+select ok((select bool_and((result->>'won')::boolean is false) from common.game_players
+           where game_id = (select id from gco)),
+  'coop completion flags every player won=false');
 
 -- ─── Compete going-out + the going-out bonus ─────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -83,7 +88,7 @@ select is((select result->>'won' from common.game_players
 select is((select status->>'winner_username' from common.games where id = (select id from gcp)),
   'ada', 'the winner name lands in status for the club-list label');
 
--- ─── Compete blocked (6 scoreless) ───────────────────────
+-- ─── Compete blocked (everyone passed in a row) ──────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gbl on commit drop as
   select id from scrabble.create_game((select handle from cl),
@@ -91,8 +96,8 @@ create temp table gbl on commit drop as
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
 reset role;
--- One pass away from the 6-scoreless limit; known leftovers.
-update scrabble.games set consecutive_scoreless = 5 where id = (select id from gbl);
+-- Two seats, so one pass is already banked and ada's is the last; known leftovers.
+update scrabble.games set consecutive_passes = 1 where id = (select id from gbl);
 select pg_temp.sc_turn((select id from gbl), 'ada11111-1111-1111-1111-111111111111');
 update scrabble.players set score = 10, rack = array['A']
   where game_id = (select id from gbl) and user_id = 'ada11111-1111-1111-1111-111111111111';
@@ -103,7 +108,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table rbl on commit drop as
   select scrabble.pass_turn((select id from gbl), 0) as res;
 reset role;
-select is((select res->>'terminal' from rbl), 'true', 'the 6th scoreless turn ends the game (blocked)');
+select is((select res->>'terminal' from rbl), 'true', 'the last seat passing ends the game (blocked)');
 select is((select play_state from common.games where id = (select id from gbl)),
   'won_compete', 'blocked compete still crowns the leader');
 select is((select status->>'outcome' from common.games where id = (select id from gbl)),
@@ -120,7 +125,7 @@ create temp table gtie on commit drop as
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
 reset role;
-update scrabble.games set consecutive_scoreless = 5 where id = (select id from gtie);
+update scrabble.games set consecutive_passes = 1 where id = (select id from gtie);
 select pg_temp.sc_turn((select id from gtie), 'ada11111-1111-1111-1111-111111111111');
 update scrabble.players set score = 5, rack = '{}' where game_id = (select id from gtie);
 

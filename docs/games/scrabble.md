@@ -158,10 +158,11 @@ future word validation. The tile scores 0 forever.
 
 - **Exchange:** return some or all rack tiles to the bag, reshuffle, and redraw
   the same count. Legal only when the **bag holds ≥ 7 tiles** (standard rule).
-  Costs the turn (compete) and counts as a **scoreless turn** ([§2.7](#27-ending-the-game)).
+  Costs the turn (compete) but **clears** the pass streak — it's an attempt to
+  get unstuck, not a refusal to move ([§2.7](#27-ending-the-game)).
 - **Pass:** forfeit the turn with no play. Compete only (coop has no turns —
-  the coop "we're stuck" path is exchange-if-possible or **End game**). Counts as
-  a scoreless turn.
+  the coop "we're stuck" path is exchange-if-possible or **End game**). Feeds
+  the **consecutive-pass streak** that ends a blocked game.
 
 ### 2.7 Ending the game
 
@@ -169,8 +170,14 @@ Two natural end triggers, plus the universal manual / timeout paths:
 
 - **Going out:** the bag is empty **and** a player empties their rack (compete) /
   the shared rack is empty (coop). The classic end.
-- **Blocked (compete only):** 6 consecutive scoreless turns (passes + exchanges
-  with no word played) — the standard tournament signal that nobody can move.
+- **Blocked (compete only):** **every active seat passed in a row** — one lap of
+  the table with nobody willing to play. A deliberate *casual* house rule
+  (2026-08-01) in place of tournament Scrabble's 6 consecutive scoreless turns,
+  which drags a decided game out. The threshold is the count of non-conceded
+  seats (humans + AI), so it tracks drop-outs: in a 3-player game where one
+  conceded, two passes end it. An **exchange clears the streak** rather than
+  feeding it — swapping tiles is a real attempt to move, and (needing a 7+ tile
+  bag) it's impossible in the endgame where blocked-ends actually happen.
   **Coop has no blocked-end** (and no turns/passes): it ends *only* on going-out
   or **End game**.
 - **Manual end** (`end_game`): any player stops the game. **Compete** is the
@@ -186,12 +193,17 @@ Two natural end triggers, plus the universal manual / timeout paths:
   leftover values**. Highest final score wins (`won_compete`); a tie crowns
   **co-winners** (all top-scorers get `{won: true}`).
 - **Coop:** leftover shared-rack values subtract from the team score; the final
-  number is reported. Coop has no opponent, so *finishing* isn't a "win" — playing
-  the bag out (`complete`) and grinding to a halt (`blocked`) are both a neutral
-  score report, written as `play_state='won'` and labelled `Ended · 152 pts`.
-  **The clock is the one way a coop table loses** (`play_state='lost'`): failing
-  to finish in time is a real failure to finish, which is how every other game on
-  the roster reads it. **Manual end is NOT neutral in coop**:
+  number is reported. **Coop has no win state at all** (ratified 2026-08-01):
+  one shared rack and no opponent means there's nobody to beat, so playing the
+  bag out (`complete`) and stopping early (`manual`) both write
+  `play_state='ended'` with every player `{won: false}`, labelled
+  `Ended · 152 pts`. The score is the result; the verdict axis doesn't apply.
+  **The clock is the one exception, and the one way a coop table loses**
+  (`play_state='lost'`): failing to finish in time is a real failure to finish,
+  which is how every other game on the roster reads it. The play surface is
+  finer-grained than the state — it reads `status.outcome` to say `Completed:`
+  for a natural finish vs a plain `Ended:` for a manual stop.
+  **Manual end is NOT neutral in coop**:
   ending with tiles still in hand forfeits their value from the team score
   (logged as a `'forfeit'` play, a red "−N tiles unplayed" in the log). This is
   deliberate — it pushes a solo/coop team to find plays for its last tiles
@@ -274,7 +286,7 @@ stackdown's `20260626`).
 
 | table | what it holds | visibility |
 |---|---|---|
-| `games` | one row per game. `mode`, `dict_2` + `dict_3plus` (the two acceptance bands, server-only — not granted), `board` jsonb (the placed tiles, a flat 225-cell array — PUBLIC), `bag` text[] (remaining draw order — **HIDDEN**), `version` int (the move counter for optimistic-concurrency — see [§6](#6-where-validation-lives)). **Coop-only:** `shared_rack` text[] (PUBLIC — the team rack) + `team_score`. **Compete-only:** `current_user_id` (whose turn) + `consecutive_scoreless` (the blocked-end counter — coop has no blocked-end). | `board`/`version` granted; `bag` column-excluded; coop rack/score public |
+| `games` | one row per game. `mode`, `dict_2` + `dict_3plus` (the two acceptance bands, server-only — not granted), `board` jsonb (the placed tiles, a flat 225-cell array — PUBLIC), `bag` text[] (remaining draw order — **HIDDEN**), `version` int (the move counter for optimistic-concurrency — see [§6](#6-where-validation-lives)). **Coop-only:** `shared_rack` text[] (PUBLIC — the team rack) + `team_score`. **Compete-only:** `current_user_id` (whose turn) + `consecutive_passes` (the blocked-end counter — coop has no blocked-end). | `board`/`version` granted; `bag` column-excluded; coop rack/score public |
 | `players` | `(game_id, user_id)` → `seat` (turn order, compete), `score` (compete per-player). **Compete:** `rack` jsonb (**HIDDEN** — own-rack-only mid-game; peers' revealed at terminal for leftover scoring). Coop leaves `rack`/`score` null (they live on `games`). | club members; `rack` column-excluded |
 | `plays` | durable move log `(game_id, user_id, seq)`. `kind`: `'word'` (`placements` jsonb, `words text[]`, `score`) / `'exchange'` (`tile_count`) / `'pass'` / `'forfeit'` (`tile_count` returned, negative `score` for the leftover penalty). | club members, both modes |
 
@@ -368,7 +380,7 @@ declared letter).
    tiles from the rack and **draw replacements from the hidden `bag`** (the
    server owns this — fairness without trust); add the trusted `score` (compete:
    `players.score`; coop: `games.team_score`); insert the `plays` row;
-   `version += 1`; reset `consecutive_scoreless = 0`.
+   `version += 1`; reset `consecutive_passes = 0`.
 7. **Compete:** advance `current_user_id`. **Both:** check end conditions
    ([§2.7](#27-ending-the-game)); end the game if met, else `common.update_state`.
 8. Return `{result:'accepted', drawn, version}` — the newly-drawn tiles (so the
@@ -383,8 +395,8 @@ Lock + version CAS (same stale-guard as `play_word` — it mutates the shared ra
 + bag) + gate + (compete) turn check. `rack_tiles` are the tile glyphs to return
 (`?` for a blank). Requires `bag_count ≥ 7`. Returns the tiles to the bag,
 reshuffles, redraws the same count; `version += 1`; logs `kind='exchange'`.
-**Compete:** `consecutive_scoreless += 1`, advance turn, check the blocked-end
-condition. **Coop:** none of that — it's just a rack refresh (no compete-seat
+**Compete:** `consecutive_passes = 0` (an exchange clears the streak), advance
+turn. **Coop:** none of that — it's just a rack refresh (no compete-seat
 turns, no blocked-end). Under **coop turn-by-turn** (setup `coopStyle = 'turns'`)
 the shared `_commit_exchange` core also gates on `common._require_turn` and hands
 off via `common._advance_turn` — an exchange is a real turn-consuming coop move.
@@ -393,8 +405,8 @@ off via `common._advance_turn` — an exchange is a real turn-consuming coop mov
 
 ### 5.4 `pass_turn(target_game, base_version)` (compete only)
 
-Advances the turn, `consecutive_scoreless += 1`, logs `kind='pass'`, checks the
-blocked-end condition. Like the other moves it takes `base_version` and runs the
+Advances the turn, `consecutive_passes += 1`, logs `kind='pass'`, checks the
+blocked-end condition (streak == active seats). Like the other moves it takes `base_version` and runs the
 optimistic-concurrency stale-guard, returning `{result, version, terminal}`.
 
 ### 5.5 `replay_board`
@@ -433,7 +445,7 @@ replay racing a move must not interleave with it. pgTAP: `replay_test.sql`.
 `submit_timeout` is countdown expiry and always runs final scoring
 ([§2.7](#27-ending-the-game)). `end_game` is the player-fired stop shown in
 **coop** only: it runs final scoring with a leftover-tile **forfeit** (a
-`'forfeit'` play row with the negative value lost, `play_state 'won'`, `outcome
+`'forfeit'` play row with the negative value lost, `play_state 'ended'`, `outcome
 'manual'`). **Compete uses `scrabble.concede`, not `end_game`** — a per-player
 "I quit, the others keep playing". Because scrabble is turn-based, concede is
 more than a flag: `scrabble._advance_turn` **skips** conceders, `scrabble._finish`
@@ -740,7 +752,8 @@ commit), not the TS-owned geometry/scoring:
   free reject** (no row, no state change, no version bump), the happy path (board
   applied, rack drawn from bag, score added, version bumped), compete turn advance,
   and the **title** becoming the first word played.
-- `exchange` / `pass` — bag-≥7 gate, version CAS, scoreless counter, turn advance.
+- `exchange` / `pass` — bag-≥7 gate, version CAS, the pass streak (pass feeds it,
+  exchange clears it), the all-passed blocked end, turn advance.
 - `endgame` — going-out + blocked triggers, final scoring (leftover subtraction +
   going-out bonus, compete; team-score adjust, coop), winner determination + ties,
   and `winner_name` in the status (set on a win, NULL on a tie).

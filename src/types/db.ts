@@ -1667,7 +1667,7 @@ export type Database = {
           bag: string[]
           board: Json
           club_handle: string
-          consecutive_scoreless: number
+          consecutive_passes: number
           created_at: string
           current_seat: number | null
           dict_2: number
@@ -1682,7 +1682,7 @@ export type Database = {
           bag: string[]
           board: Json
           club_handle: string
-          consecutive_scoreless?: number
+          consecutive_passes?: number
           created_at?: string
           current_seat?: number | null
           dict_2: number
@@ -1697,7 +1697,7 @@ export type Database = {
           bag?: string[]
           board?: Json
           club_handle?: string
-          consecutive_scoreless?: number
+          consecutive_passes?: number
           created_at?: string
           current_seat?: number | null
           dict_2?: number
@@ -1813,7 +1813,7 @@ export type Database = {
           bag_count: number | null
           board: Json | null
           club_handle: string | null
-          consecutive_scoreless: number | null
+          consecutive_passes: number | null
           created_at: string | null
           current_seat: number | null
           id: string | null
@@ -1826,7 +1826,7 @@ export type Database = {
           bag_count?: never
           board?: Json | null
           club_handle?: string | null
-          consecutive_scoreless?: number | null
+          consecutive_passes?: number | null
           created_at?: string | null
           current_seat?: number | null
           id?: string | null
@@ -1839,7 +1839,7 @@ export type Database = {
           bag_count?: never
           board?: Json | null
           club_handle?: string | null
-          consecutive_scoreless?: number | null
+          consecutive_passes?: number | null
           created_at?: string | null
           current_seat?: number | null
           id?: string | null

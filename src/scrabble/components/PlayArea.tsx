@@ -660,9 +660,10 @@ function buildOver({
     if (outcome === 'timeout') {
       return { verdict: 'Lost: out of time', message: `${score} pts`, tone: 'lost' }
     }
-    // Played all the way out, or ground to a halt on six scoreless turns —
-    // not a WIN (coop has no opponent), but a real completion, and the coop
-    // ending worth distinguishing from "it just stopped".
+    // Played all the way out (coop's only automatic ending — the blocked end
+    // needs passes, and coop has no turns to pass). Not a WIN (coop has no
+    // opponent), but a real completion, worth distinguishing from "it just
+    // stopped".
     return { verdict: 'Completed', message: `${score} pts`, tone: 'won' }
   }
   if (playState === 'ended') return { verdict: 'Ended', message: 'Ended', tone: 'neutral' }

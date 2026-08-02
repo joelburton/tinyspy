@@ -221,8 +221,9 @@ const CASES: Record<string, Family> = {
     playing: { team_score: 152, bag_count: 7 },
     shared: [['ended', { outcome: 'manual', team_score: 152 }, 'manual end']],
     coop: [
-      ['won', { outcome: 'complete', team_score: 152 }, 'bag empty'],
-      ['won', { outcome: 'blocked', team_score: 152 }, 'six scoreless turns'],
+      // No coop win state: every finish is `ended`, only the clock loses.
+      ['ended', { outcome: 'complete', team_score: 152 }, 'bag empty'],
+      ['ended', { outcome: 'blocked', team_score: 152 }, 'six scoreless turns'],
       ['lost', { outcome: 'timeout', team_score: 152 }, 'timeout'],
     ],
     compete: [

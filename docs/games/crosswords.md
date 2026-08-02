@@ -119,7 +119,7 @@ plain RPCs — no edge function needed.
 | `reveal_solved_word(target_game, cells jsonb)` | **Leak-safe** answer read for the AI "Explain clue" feature: returns the canonical answer for `cells` **only if the caller has already filled them all correctly** (`_matches`, honoring givens) — else `solved = false`, no letters. So it can only surface a word you've already solved (safe in compete too). Also returns the puzzle note (not secret). Consumed by the `crosswords-explain-clue` edge function. |
 | `solution_for(target_game)` | **Member-gated full-solution read** (definer; `require_game_player`), available at **any** time — unlike `games_state`, which gates the solution to terminal. Feeds the "Download as .ipuz" export and the answer-key PDF (§7, §9), both of which need real answers before the game ends. Handing the solution to the client on demand relaxes the shielding, which the friends-only trust model tolerates (see [CLAUDE.md → trust model](../../CLAUDE.md)); a deliberate, member-gated exception, not the solving path. |
 | `check_cells(target_game, cells jsonb)` | FE resolves letter/word/puzzle scope via `cursor.ts` and sends coordinates; server sets/clears `wrong` (skipping empty/pencil). Both modes. |
-| `reveal_cells(target_game, cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil. **Coop only** (reveal-all would trivially win the compete race). On success the FE broadcasts the revealed coords on the peer channel so teammates flash them in the actor's color (the CDC arrives colorless). |
+| `reveal_cells(target_game, cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil. **Coop only** (reveal-all would trivially win the compete race). Runs the solve check afterwards, since a reveal can complete the grid — including "Reveal puzzle", which ends the game as a normal `won` (deliberate; §9). On success the FE broadcasts the revealed coords on the peer channel so teammates flash them in the actor's color (the CDC arrives colorless). |
 | `clear_board(target_game)` | Destructive "start over" (crossplay parity): blanks every fillable cell on the caller's grid (the shared grid in coop, own in compete) and drops its `pencil` / `wrong` / `revealed` flags + cryptic edge marks. Givens live on the template, so they're preserved; the answer is untouched. Guards: membership, `play_state = playing`, not conceded. No solve check (clearing only removes fills). FE surfaces it as a **confirmed** game-menu item. |
 | `end_game(target_game)` | Coop mutual give-up → neutral `ended` ("finished"). Terminal unshields the solution (`games_state`), but the FE only shows it on demand — the "Reveal board" menu item (§7 → Terminal). |
 | `concede` / `submit_timeout` | Standard. The setup form offers the shared `<TimerField>` like every other game; a countdown expiring takes the whole table down (coop → `lost`, compete → `lost_compete`), stamped `outcome: 'timeout'` so the verdict reads "Out of time" rather than the concede wording those same states otherwise carry. |
@@ -460,6 +460,16 @@ future cleanup pass:
   (`#333` on the `.circle` decoration IS byte-identical to crossplay's `Cell.module.css`,
   and the grid's `#fff` / `#000` / `#111` are structural black-and-white, so all of those
   stay literal.)
+- **A revealed grid still ends as `won`** (ratified 2026-08-01). `reveal_cells` runs
+  the ordinary solve check, so "Reveal puzzle" fills the grid and trips
+  `_finish_coop_won` → `play_state = 'won'`, `outcome: 'solved'`, everyone
+  `won: true`, and a green "Won" on the club list. waffle and wordle deliberately
+  went the other way for the same gesture (`ended` + `outcome: 'revealed'`, nobody
+  won) — don't "align" crosswords with them. Those are guess-economy games where
+  the hidden answer is the whole contest; a crossword isn't competitive in that
+  way. Reveal here is a scoped solving aid (letter / word / puzzle) with no honest
+  boundary between using it once and giving up, so a completed grid counts as
+  completed however it got there.
 - **Vestigial `'nyt'` in `crosswords.puzzles.source`'s check constraint.** Nothing
   writes `'nyt'` anymore (NYT games are self-contained — no `puzzles` row; the CLI
   only writes `'library'`). A harmless spare; drop it from the constraint if you want
