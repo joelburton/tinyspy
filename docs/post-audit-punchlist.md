@@ -25,13 +25,6 @@ Line numbers are as-verified on 2026-08-02 and may drift.
   give coop a blocked end); listed here only so the fixture note isn't missed
   when that call happens.
 
-## states-audit.md — needs an owner decision
-
-`docs/states-audit.md` is substantially stale after the audit: still tabulates
-`solved`/`solved_compete` (`:~160-196, ~797`), `winner_id` (`:~325, ~379, ~539`),
-crosswords `outcome 'finished'` (`:~615`), `_finish_coop_won`/`_finish_compete_won`
-(`:~614-616`), and boggle's "sole terminal is `ended`" (`:~30`). Left strictly
-untouched here — it was declared Joel's-sprint material, though `fc4f92b` did
-update it once since. **Decide: is it maintained (then it needs a real refresh
-pass) or retired (then delete it and move anything durable)?** Nothing links to
-it today.
+(states-audit.md: RETIRED — Joel ruled it "hopelessly historical" 2026-08-02;
+deleted. Its territory is covered by states.md + game-status-labels.md + the
+per-game docs.)
