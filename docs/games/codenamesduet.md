@@ -535,10 +535,18 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 
 ## Open items
 
-Deferred or sketched but not built:
+Nothing outstanding. Two things that used to sit here are now **decided
+won't-dos** (2026-08-02), recorded so they don't get re-proposed:
 
-- **Mission / campaign mode.** Variable starting turn counts per the rulebook's mission maps. Schema isn't built — `games.turns_remaining` would just take a non-9 default at create_game time, controlled by a new mission parameter. Worth doing when there's real demand.
-- **Tile `aria-label` for screen readers.** Board tiles in `Board.tsx` carry only `aria-hidden` — a screen-reader user hears the word but not whether it's revealed, and as what role. Adding an `aria-label` like `${word}, revealed as green agent` would need a narrow `'G' | 'N' | 'A' → 'green agent' | 'neutral' | 'assassin'` helper — there's none today (colored words don't need text labels on the visual surface), so one would be added for this.
+- **Mission / campaign mode** — the rulebook's mission maps, i.e. variable
+  starting turn counts (`games.turns_remaining` taking a non-9 default from a
+  new mission parameter at `create_game` time). Cheap to build; nobody wants
+  it. The single 9-turn game is what the friends actually play, and a campaign
+  implies persistence across sessions that the club model doesn't carry today.
+  Not "later" — not doing it.
+- **Tile `aria-label`s** — out of scope per the screen-reader prior in
+  [`CLAUDE.md`](../../CLAUDE.md), not a codenamesduet-specific call. The tiles
+  keep their `aria-hidden`.
 
 ## File locations
 

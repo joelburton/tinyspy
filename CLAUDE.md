@@ -55,6 +55,32 @@ The metaphor that anchors design decisions: this app **replaces a group of frien
 
 The social primitive is the **club**: a named, persistent group of friends who play games together. The club IS the Zoom call — a venue that exists between sessions, where chat threads across every game the friends play. See [docs/common.md](docs/common.md) for the model. Clubs invite friends to join; games happen inside clubs. Chat, presence, "people you've played with," and game invitations are organized by club, not by individual game. This shapes UX decisions: e.g., a game's "share" affordance is "play with a club," not "post to a public list." 
 
+## Screen readers are out of scope
+
+**Screen-reader support is not a goal of this project. Don't propose it.** No
+`aria-label`s for board tiles, no live regions for turn announcements, no
+"a screen-reader user would hear X" findings in reviews, and no accessibility
+items in [docs/deferred.md](docs/deferred.md). This follows from the audience
+prior above: the user population is known and none of them use one.
+
+These games are also intensely visual — a grid of colored tiles, a crossword,
+a rack of letters you drag. Making them work non-visually isn't an
+`aria-label` pass, it's a different app. Half-doing it produces markup that
+claims an experience the app can't deliver.
+
+What this **doesn't** mean:
+
+- **Keep the ARIA that's already there.** `aria-hidden` on decorative glyphs,
+  `role="dialog"` + `aria-modal` on sheets, `aria-label` on icon-only buttons —
+  these ship today, some of them load-bearing for tests. Don't strip them (see
+  the "don't remove unprompted" prior in spirit); just don't extend the set.
+- **Keyboard support is a separate thing, and it matters.** Crosswords is
+  keyboard-first by design, wordle/wordiply take physical keys, and the clue
+  form traps Tab on purpose. That's for sighted keyboard users and stays.
+- **Contrast and legibility still matter** — the member-color palette, the
+  tile ramp, and the two-vocabularies rule in [docs/ui.md](docs/ui.md) are
+  about people *seeing* the board clearly.
+
 ## Alpha software — break things freely
 
 The actual user population is Joel plus a handful of friends who *know* this is alpha-stage and have signed up for the bumpy ride. There are no production users to protect.

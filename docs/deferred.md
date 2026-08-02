@@ -8,7 +8,11 @@ For per-feature deep context on each item, follow the link into the relevant fea
 
 ## codenamesduet
 
-The codenamesduet deferrals — **mission / campaign mode** and a **tile `aria-label` for screen readers** — have their full entries in [`codenamesduet.md → Open items`](games/codenamesduet.md#open-items).
+No outstanding deferred items. Both former entries were **decided against**
+2026-08-02 — mission / campaign mode (won't do; the entry in
+[`codenamesduet.md → Open items`](games/codenamesduet.md#open-items) records why)
+and the tile `aria-label`s (screen readers are out of scope project-wide — see
+[`CLAUDE.md`](../CLAUDE.md)).
 
 ## psychicnum
 
