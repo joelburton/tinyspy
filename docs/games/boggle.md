@@ -51,7 +51,7 @@ minimum length.
   found only** — bonus finds don't count, so 100 % means every required word and
   50 % means required finds worth half the required total. Compete is a race —
   the first player to cross wins outright, regardless of the others' private
-  scores (`submit_word` decides it; see [§10](#10-the-server-rpcs)).
+  scores (`submit_word` decides it; see [§7](#7-rpcs-all-security-definer)).
 - **Ending.** With no win target, you hunt until the timer expires, a player
   hits **End game**, or (compete) everyone's done — a neutral end. With a target
   set, reaching it ends the game as a win (`status.outcome = 'target'`). Either
@@ -412,8 +412,9 @@ board), swapped in for spellingbee's hex flower.
 **End game** is surfaced in both places per the common convention (see
 [common.md → Manual end](../common.md#manual-end--every-gametypes-end_gametarget_game)):
 an info-column action-row button *and* a GamePage menu item wired through `buildGameMenu`.
-The terminal copy comes from a unified `buildOver` (`{outcome, verdict, verdictNode?,
-message, tone}`) driving the below-board pill + the action-row line. **No modal
+The terminal copy comes from a unified `buildOver` — the shared `TerminalCopy`
+shape (`{verdict, message, tone}`, `src/common/lib/game/terminalCopy.ts`) plus
+boggle's local `verdictNode?` — driving the below-board pill + the action-row line. **No modal
 carries the verdict** ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)
 — it would duplicate the pill). Without a win
 target, coop is a neutral shared hunt and compete picks the highest score;
@@ -424,8 +425,9 @@ That gate reads `status.mode` + `status.outcome`, both off the common row GamePa
 waits for — deliberately not boggle's own `game.mode`, which arrives later and
 would pop confetti at someone opening a finished game.
 
-Verdicts are terse and lead with the outcome word ("Won: 12 words, 34 points",
-"Ended: no words found", "Lost: conceded"); a loss to a named player is a widget,
+Verdicts are terse and lead with the outcome word ("Won: 12 words, 34 points";
+the coop neutral end "Ended: 12 words, 34 points"; the nobody-scored compete race
+"Lost: no words found"; "Lost: conceded"); a loss to a named player is a widget,
 "● alice won", carried in `verdictNode`.
 
 **Mobile status block.** Below `--mobile` the info column moves off-canvas, taking
@@ -477,11 +479,17 @@ language + helpers live in [docs/pdf.md](../pdf.md).
   `displayRows.test.ts`, `setup.test.ts` (the cross-field band guard).
 
 **pgTAP** (`supabase/tests/boggle/`):
-- `create_game_test` — board validation, band / `legal_band` (rejects below the
-  required band) / ladder / player-count guards, stale `setup.mode` rejection.
-- `gameplay_test` — required vs bonus classification, the `legal_band` ceiling (a
-  real word above it → `notAWord`), dedup, soft rejections, manual end →
-  terminal.
+- `create_game_test` — the happy paths (header + per-game row + status) and the
+  validation guards: mode, compete player floor, band / `legal_band` (rejects
+  below the required band), ladder, dice set, non-member.
+- `gameplay_test` — trusting-commit coverage: required vs bonus recording (the
+  RPC trusts the FE's word + points + `is_bonus` and does **no** content
+  validation), dedup (coop per-team / compete per-player), `gameOver` after
+  terminal, status refresh, `end_game` / `submit_timeout` transitions +
+  idempotency, non-player rejection.
+- `win_test` — the win-on-target (`setup.win_percent`) play_state matrix: the
+  team (coop) or the first player to cross (compete) wins the moment the
+  required-words score reaches the target; compete is a race naming the crosser.
 - `rls_test` — coop sees all / compete own-only-until-terminal.
 
 **e2e** (`e2e/boggle.e2e.ts`) — drives the running app: the board renders, a

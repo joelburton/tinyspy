@@ -129,7 +129,7 @@ exactly how `connections` handles its coop counters. The only cost is storing th
 | `waffle.games` → `common.games(id)` | `club_handle`, `mode` (`coop`/`compete`), `scramble` (exposed), `par_swaps`, `max_swaps`, and **`solution` (grant-hidden** — column-grant revoked; read only via
 `_solution_for`, which exposes it in coop always / compete post-terminal). The board (solution/scramble/par) is built on demand by the `waffle-build-board` edge function and stored here, so the game is self-contained. There is **no** `waffle.puzzles` table — boards aren't pre-generated. |
 | `waffle.players` PK `(game_id, user_id)` | Per-player working state: `board` (25-char, starts = `scramble`), `swaps_used`, `solved`, `solved_at`. **Coop:** every row updates in lock-step. **Compete:** rows are independent. |
-| `waffle.swaps` PK `(game_id, seq)` | The coop move log: one row per swap — `user_id`, `seq` (1-based, the shared coop count), `pos_a`/`pos_b`, and `letter_a`/`letter_b` (the letters on those cells *before* the swap, stored so the entry is self-contained). **Coop only** — compete writes none (a swap sequence would leak an opponent's hidden board). Read directly (no gated columns); RLS is club-member-wide. |
+| `waffle.swaps` PK `(game_id, seq)` | The coop move log: one row per swap — `user_id`, `seq` (1-based, the shared coop count), `pos_a`/`pos_b`, `letter_a`/`letter_b` (the letters on those cells *before* the swap, stored so the entry is self-contained), and a `swapped_at` timestamp. **Coop only** — compete writes none (a swap sequence would leak an opponent's hidden board). Read directly (no gated columns); RLS is club-member-wide. |
 
 ### Views (`security_invoker`)
 
@@ -158,12 +158,18 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   par_swaps}`) built by the `waffle-build-board` edge function. Validates
   `require_club_member`, `require_player_count_max`, `require_valid_timer`; validates
   `setup.extra_swaps` (0..15, default 5) and `setup.difficulty` (band **1–6**,
-  default 2 — server accepts the full range; the dialog offers 1–5, a FE/UI
-  choice); sanity-checks the board structure (25-char strings, holes at the four
+  default 2 — the dialog's `DifficultyField` offers the same full 1–6 range);
+  sanity-checks the board structure (25-char strings, holes at the four
   interior cells, scramble is a rearrangement of the solution); stores it on
   `waffle.games`; sets `max_swaps = par_swaps + setup.extra_swaps`; seeds the
   title placeholder (see [Title formula](#title-formula)); seeds one
-  `waffle.players` row per player with `board = scramble`.
+  `waffle.players` row per player with `board = scramble`. Two common-layer
+  details: the saved per-club setup default is `setup - 'first_turn_user_id'`
+  ("who goes first" is a per-game pick, not a club preference; `coop_style`
+  rides along), and when `setup.coop_style = 'turns'` (coop only) it seats the
+  common turn rotation via `common._assign_turn_order` — after validating that
+  `setup.first_turn_user_id` is one of the players — so `submit_swap` can gate
+  each swap.
 - **`submit_swap(game, pos_a, pos_b) → jsonb`** — the core move. Guards: playing
   state, `require_game_player`, both positions filled (non-hole) and distinct,
   swaps remaining. Then:
@@ -265,15 +271,11 @@ game-level terminal → `play_state` (the `_compete` suffix convention from
 `common.end_game`.
 
 Timer is optional (`none` / `countup` / `countdown`, via `common.require_valid_timer`).
-A countdown is a pace/cap: on expiry, coop → `lost`; compete forces any
-not-yet-done player to "done" (failed) and computes the winner among solvers.
-
-### Title formula
-
-The difficulty **band name**: `create_game` maps `setup.difficulty` (1–6) to
-one of Universal / Common / Familiar / Uncommon / Obscure / Expert. Same in
-both modes — the band is the one player-facing knob, so it's what names the
-game in the club list.
+A countdown is a pace/cap: on expiry, coop → `lost`; compete simply ends the
+race where it stands — `submit_timeout` picks the fewest-swaps winner (then
+earliest `solved_at`) among players who had already **solved** and not conceded,
+→ `won_compete`, or `lost_compete` if nobody had. Unfinished boards are left
+as-is; being mid-solve at the buzzer just means you're not in the running.
 
 ## Board generation: `waffle-build-board` (edge function)
 
@@ -452,7 +454,14 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
 - **Feedback split** — own errors (rejected swap / failed End) flash **locally**
   below the board; the header pill carries **peer** news (compete: an opponent
   solved or ran out of swaps; coop needs none — the swap log shows every move).
-- `SetupForm` (timer + the extra-swaps difficulty knob) and `Help` round it out.
+- `SetupForm` and `Help` round it out. The form (shared by both modes) offers
+  four knobs: the `CoopStyleField` first (the opt-in turn-by-turn coop pacing +
+  its first-turn picker — self-gates to nothing for compete / solo), a
+  word-difficulty `DifficultyField` (which vocabulary band the six words come
+  from, 1–6), the extra-swaps `RadioRow` (the budget knob — fewer is harder),
+  and the shared `TimerField`. The two disclosure sections carry their current
+  values in their summaries ("Dictionary: Familiar", "Swap budget: Tight +3")
+  so the form reads without opening anything.
 
 **Terminal flow — the prototype for the app-wide treatment**
 (see [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)).
@@ -478,11 +487,21 @@ nice-to-have, not shipped.
 ## Testing
 
 - **pgTAP:** `colors_test` (the duplicate-letter algorithm — *the* priority),
-  `create_game_test`, `gameplay_test` (coop lock-step + compete independence),
+  `create_game_test`, `validation_test` (create_game's reject paths — one broken
+  field per case, the board-integrity guards being the point),
+  `gameplay_test` (coop lock-step + compete independence),
   `compete_test` (fewest-swaps winner + `solved_at` tie-break + all-fail),
   `timeout_test`, `end_game_test` (manual neutral end → `'ended'`, both modes:
   `is_terminal`, `status.outcome='manual'`, all players `{"won":false}`,
-  idempotency, non-player rejected).
+  idempotency, non-player rejected), `concede_test` (elimination-game concede: a
+  drop-out keeps the race going but forfeits any win; everyone conceding is a
+  collective loss; coop rejected), `replay_test` (replay_board resets both modes
+  to the scramble on the same game row, any state, non-player rejected),
+  `reveal_test` (reveal_answer fills every board with the solution and ends as a
+  neutral give-up), `solution_hide_test` (the answer key's per-mode visibility:
+  column-grant excluded everywhere; coop exposed during play, compete only once
+  terminal), `turn_order_test` (the opt-in turn-by-turn coop wiring: seating,
+  out-of-turn reject, advance only on an accepted non-terminal swap).
 - **Vitest:** `waffle.ts` geometry, `manifest` (color rendering is the shared
   `common/lib/color/tileColor.ts`, covered by its own test). The
   generator's `minSwaps` par lives in the edge function, covered by

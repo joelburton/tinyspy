@@ -41,7 +41,7 @@ There is no scalar "final score", so compete is a **lexicographic comparator**, 
 1. **Higher length score wins.**
 2. Tie → **higher letter count** wins. *(Rewards using long words across all five lines,
    not just landing one lucky long one. Direction is a flagged decision — see
-   [Open decisions](#open-decisions).)*
+   [Open decisions](#10-open-decisions).)*
 3. Still tied **and the game is timed** → **less time wins** (earlier `finished_at`, i.e.
    the player who completed their five guesses in less elapsed time).
 4. Still tied → **co-winners** (all tied-at-top marked won).
@@ -173,8 +173,9 @@ schema (see §2).
   ```
   `useGame` subscribes to `guesses` (live guesses) **and** `games` (replay/terminal touch);
   if either is missing the updated Realtime image drops the **whole** subscription and live
-  updates silently die. **`schema_test.sql` must assert both memberships** (guard, like
-  wordwheel's).
+  updates silently die. Both memberships are pinned by the central
+  `supabase/tests/common/realtime_publication_test.sql` (which `schema_test.sql`
+  defers to).
 
 ---
 
@@ -184,8 +185,8 @@ Signatures mirror wordwheel one-for-one except the board shape and the validated
 
 - **`wordiply.create_game(target_club text, setup jsonb, player_user_ids uuid[], mode text, board jsonb) → table(id uuid)`**
   - Validates: membership; player counts (coop `[1,6]`, compete `[2,6]`); `mode`; **rejects
-    `setup.mode`** and **`setup.target_rank`** (stale-FE guards; not a race-to-rank); one
-    `difficulty` band 1..6; timer via `common.require_valid_timer`.
+    `setup.target_rank`** (wordiply isn't a race-to-rank); one `difficulty` band 1..6;
+    timer via `common.require_valid_timer`.
   - Validates `board`: `base` 2–4 lowercase letters; `max_word_length ≥ base_len + 2`
     (headroom gate); `longest_words` **and** `legal_words` non-empty. Board content is taken
     at face value (the edge fn computed it under the caller's JWT), structure is
@@ -241,8 +242,11 @@ Signatures mirror wordwheel one-for-one except the board shape and the validated
   everyone `won:false` (the same guard boggle's score race carries; see
   [states.md → Compete is different](../states.md#compete-is-different-the-clock-resolves-a-race)).
 
-- **`wordiply.end_game(target_game)`** — coop's neutral mutual "we're done" stop (wordwheel
-  parity). **`wordiply.concede(target_game)`** — compete per-player drop = a real loss (via
+- **`wordiply.end_game(target_game)`** — the manual "we're done" stop, in **both** modes:
+  coop → `_finish_coop(…, 'manual')`, the neutral `ended`; compete →
+  `_finish_compete(…, 'manual', pick_winner => false)` — also `ended`, everyone
+  `won: false`, **no winner crowned** (agreeing to stop isn't a race resolution).
+  **`wordiply.concede(target_game)`** — compete per-player drop = a real loss (via
   `common.concede`; others race on). **`wordiply.replay_board(target_game)`** — same base
   word, wipe guesses, un-terminal (wordwheel parity).
 
@@ -260,16 +264,29 @@ Signatures mirror wordwheel one-for-one except the board shape and the validated
       "letter_count": 22, "guesses_used": 5, "finished_at": "…", "won": true }
   ],
   "winner_user_id": "…",                            // compete terminal (null on co-winners)
+  "winner_username": "alice",                       // cached at finish time — the club-list
+                                                    // label is a pure function of this row
+                                                    // and can't resolve a uuid
   "outcome": "complete" | "timeout" | "manual" | "conceded"
 }
 ```
 (coop status is simpler: `{ mode, base, max_word_length, guesses_used }`, plus
-`length_score` / `letter_count` / `longest` / `outcome` at terminal. Usernames are resolved
-FE-side from the club roster, not stored.)
+`length_score` / `letter_count` / `longest` / `outcome` at terminal. Leaderboard usernames
+are resolved FE-side from the club roster; only the winner's is cached, in
+`winner_username`.)
 
-`labelFor` (manifest) reads this for the club-page row — **mid-game shows only guesses used**
-(coop "3/5 guesses" / compete "3/5 · 2/5"), because scores are terminal-only; terminal
-"done · 78% · 22 letters" (coop) / "winner · 78%" (compete).
+`labelFor` (manifest) reads this for the club-page row, in the shared status-label
+vocabulary ([docs/game-status-labels.md](../game-status-labels.md)). Mid-game, coop shows
+the shared budget — `Playing · 3/5 guesses` — while compete shows a bare `Playing`:
+per-player progress is **deliberately withheld** (a status line may only say what every
+player already sees, and compete counts are private). Terminal, coop (which has no win):
+`Ended (out of guesses) · 78% · 22 letters` when the five guesses were spent,
+`Ended · 78% · 22 letters` for a manual stop, and the one coop loss
+`Lost (out of time) · 78% · 22 letters`. Terminal, compete: `Won by alice · 78%` /
+`Won (co-winners) · 78%` (ties leave `winner_user_id` null, so the label counts the
+`won` flags); `Lost (all conceded)` when the race emptied out;
+`Lost (out of time) · nobody scored` when the clock ran out with no score to crown;
+and `Ended · no winner` for a manual compete stop.
 
 ---
 
@@ -312,7 +329,7 @@ JWT carries every authz signal; `common.words` + the helpers are authenticated-r
 **Why coop = 5 _shared_ (not 5 each):** the FE board is a single five-row surface, and coop
 here means the collaborative shared board (like spellingbee coop's shared find list). Five
 shared lines makes a tight "let's find the best word together" puzzle that fits the one
-board. Flagged in [Open decisions](#open-decisions) since it's a real fork.
+board. Flagged in [Open decisions](#10-open-decisions) since it's a real fork.
 
 ---
 
@@ -327,13 +344,17 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   `makeRpcDispatcher`, per-mode `labelFor`. Register both in the games registry + add to the
   CLAUDE.md doc map.
 - **`db.ts`** — typed client on schema `wordiply`.
-- **`lib/setup.ts`** — `WordiplySetup = { difficulty, timer }` (no `target_rank`, no base
-  band). `wordiplySetupError` (difficulty 1..6). Both manifests default `difficulty 5`.
+- **`lib/setup.ts`** — `WordiplySetup = CoopTurnSetup & { timer, difficulty }`: the
+  intersected `CoopTurnSetup` carries the opt-in turn-by-turn fields (`coop_style`,
+  `first_turn_user_id`) documented in §4's turn-order note. No `target_rank`, no base
+  band. `wordiplySetupError` (difficulty 1..6). Both manifests default `difficulty 5`;
+  the coop default seeds `coop_style: 'free-for-all'`.
 - **`lib/scoring.ts`** — `lengthScore(longest, maxLen)`, `letterCount(lengths)`,
   `compareCompetitors(a, b, timed)` (the comparator, **documented as "must match
   `_finish_compete`"**).
-- **`components/SetupForm.tsx`** — one `<DifficultyField>` ("Dictionary") + `<TimerField>`.
-  No rank picker, no base band, no custom-letters.
+- **`components/SetupForm.tsx`** — one `<DifficultyField>` ("Dictionary") + `<TimerField>` +
+  the shared `<CoopStyleField>` (the coop free-for-all vs turn-by-turn picker, which also
+  seeds `first_turn_user_id`). No rank picker, no base band, no custom-letters.
 - **`hooks/useGame.ts`** — subscribe to `wordiply.guesses` (+ `wordiply.games` for the
   replay/terminal touch), fetch `games_state` + guesses; derive per-track length score +
   letter count (or read `status.leaderboard`).
@@ -375,7 +396,14 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   a conceded compete player (the others race on) gets the `LocalTerminalRow` "You conceded"
   + the below-board out-of-race pill —
   then the **`<SetupDisclosure>`** (difficulty band, timer), then the **terminal reveal**
-  ("Best possible word: **HANGARS** (7)" — full-colour, no card) — there is **no `<WordList>`**
+  ("Best possible word: **HANGARS** (7)" — full-colour, no card) and, in compete, the
+  **`<OpponentReveal>`** (`components/OpponentReveal.tsx`): each opponent's actual guessed
+  words, rendered **only at terminal** — all game long a compete player sees opponents'
+  guess *counts* only (the words are RLS-hidden and never ship); when the RLS opens the
+  rows at terminal, this is where the words land. Self is excluded (my own words are
+  already the board), coop never renders it (one shared live board), and each row mirrors
+  the board's look — `<DimmedBaseWord>` + the plain teal length — so an opponent's row
+  reads the same as one of mine. There is **no `<WordList>`**
   (the board rows are the words). **The info column is a FIXED width** (`--info-col-width` on
   `.layout`) so it never shifts as the state readout changes.
 - **`components/Help.tsx`** — rules modal (shared by both manifests).
@@ -387,23 +415,39 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
 
 **pgTAP** (`supabase/tests/wordiply/`, ported from the wordwheel suite against a fixture in
 `setup.psql`):
-- `schema_test` — tables/cols/RLS-enabled/grants; **realtime publication includes
-  `wordiply.games` AND `wordiply.guesses`** (the invariant guard); `games` (or `games_state`)
-  exposes `max_word_length` / `longest_words` / `legal_words` to club members (nothing is
-  column-hidden — the terminal-only reveal is an FE choice, §2).
-- `create_game_test` — valid coop/compete create; rejects `legal < base`, `setup.mode`, bad
-  player counts, malformed board (`base` not 2–4 letters, `max_word_length` too small);
-  seeds `status`; title formula.
-- `submit_guess_test` — trusting-commit: accepts a valid guess; the **free server guards**
-  reject missing-base substring and `word == base` / too short **without inserting** (dupes
-  too); dictionary legality is trusted from the FE, so a non-word is a **Vitest** concern, not
-  a pgTAP one. Enforces the 5-guess budget; **coop shared budget vs compete per-user budget**;
-  recomputes the leaderboard; RLS: compete hides opponents' guesses mid-game, reveals at
-  terminal; coop shows all.
+- `schema_test` — both gametypes registered; tables exist with RLS enabled + the
+  `authenticated` SELECT grants; nothing is column-hidden — `games_state` exposes `base` /
+  `difficulty` / `max_word_length` / `longest_words` / `legal_words` (the terminal-only
+  reveal is an FE choice, §2). The realtime-publication memberships are guarded centrally
+  in `common/realtime_publication_test.sql`.
+- `create_game_test` — the coop + compete happy paths (rows, gametypes, seeded `status`
+  shapes, title = just the uppercased base — no length leak); the guards: an outsider
+  (42501), an **invalid positional `mode` arg**, `setup.target_rank`, compete `< 2`
+  players, difficulty outside 1..6, malformed board (`base` not 2–4 lowercase letters,
+  `max_word_length` below `base_len + 2`, empty `longest_words` / empty `legal_words`),
+  player count over 6.
+- `gameplay_test` — `submit_guess` trusting-commit: a valid guess → `{ok:true}` + one row +
+  status bump; the **free server guards** (longer-than-base, contains-base, mode-aware
+  dedup) reject **without inserting or spending budget**; dictionary legality is trusted
+  from the FE (guesses in the test are synthetic non-words), so a non-word is a **Vitest**
+  concern, not a pgTAP one; the 5-guess budget — **coop shared vs compete per-user**.
+- `rls_test` — the compete `guesses_select` policy is a **game rule**, not just privacy:
+  mid-game a player reads only their OWN guess rows (opponents surface as counts);
+  everyone's open at terminal; coop shows all. Direct-INSERT setup so the read policy is
+  exercised in isolation.
+- `try_base_test` — the board-build gate (wordiply's board-quality logic is SQL, not TS,
+  so it's pinned here): `try_base` returns one board row iff the child count is in
+  `[min, max]` (the **max** bound is the load-bearing one) and
+  `max_word_length ≥ base_len + headroom`, zero rows otherwise; plus `candidate_bases`.
+  Assertions are deliberately count-independent of the real dictionary.
+- `turn_order_test` — the opt-in turn-by-turn coop wiring: `create_game` seats the
+  rotation on `setup.coop_style = 'turns'`; an out-of-turn guess is rejected; an accepted
+  guess advances the pointer, a soft-reject doesn't; free-for-all leaves it null.
 - `winner_test` — compete winner by length score; **tiebreak letter count**, then **time**;
   co-winner case; timeout resolves the formula.
-- `terminal_test` — coop ends after the 5th shared guess; timeout; manual `end_game`;
-  `replay_board` wipes guesses + un-terminals; `concede`.
+- `terminal_test` — coop `end_game` (→ `ended`/`manual`); coop timeout (the one coop
+  loss); `replay_board` wipes guesses + un-terminals; `concede`, including the
+  last-racer's concede resolving the race rather than hanging it.
 
 **Vitest** (`src/wordiply/`):
 - `setup.test` — `wordiplySetupError` (difficulty 1..6) + defaults.
@@ -419,27 +463,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
 
 ---
 
-## 9. Build order
-
-1. **Migration** — schema, RLS, publication, `games_state` view, all RPCs + `matching_words`
-   → `db:reset` → pgTAP green (remember `npm run import` after a reset — `common.words` must
-   be populated or `create_game`/build tests fail spuriously).
-2. **Edge function** `wordiply-build-board` + `create_game` wiring; smoke a build locally.
-3. **FE plumbing** — `db.ts`, `manifest.ts` (register both), `lib/setup.ts`,
-   `lib/scoring.ts`, `useGame` (submit reuses the shared `useWordSubmit`, no bespoke hook).
-4. **FE components** — `DimmedBaseWord`, `GuessBoard`/`BoardCol`, `LengthScoreBar`,
-   `InfoCol`, `PlayArea`, `Help`, `theme.css`.
-5. **Register** in the games registry + club-label; verify a full game end-to-end in both
-   modes (headless Playwright — **layout stability + the dimmed-base rendering must be
-   _looked at_, not reasoned about**, per the verify-layout-headless memory).
-6. **Gates** — `npx tsc -b`, eslint, Vitest, pgTAP all green.
-7. **Docs** — promote this file to `docs/games/wordiply.md`; add the row to CLAUDE.md's doc
-   map; note the realtime-publication invariant in the shared memory; update the game-roster
-   count (would be the **13th** game).
-
----
-
-## 10. Reuse map (don't rebuild these)
+## 9. Reuse map (don't rebuild these)
 
 - **Shell / lifecycle:** `<GamePage>`, `useCommonGame`, the manifest/registry + sibling
   pattern, `common.concede` / `end_game` / timers / presence-pause (inherited).
@@ -460,7 +484,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
 
 ---
 
-## 11. Open decisions
+## 10. Open decisions
 
 Recommended default in **bold**; each is a real fork worth a nod before/at build.
 

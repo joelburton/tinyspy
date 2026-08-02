@@ -286,9 +286,9 @@ stackdown's `20260626`).
 
 | table | what it holds | visibility |
 |---|---|---|
-| `games` | one row per game. `mode`, `dict_2` + `dict_3plus` (the two acceptance bands, server-only — not granted), `board` jsonb (the placed tiles, a flat 225-cell array — PUBLIC), `bag` text[] (remaining draw order — **HIDDEN**), `version` int (the move counter for optimistic-concurrency — see [§6](#6-where-validation-lives)). **Coop-only:** `shared_rack` text[] (PUBLIC — the team rack) + `team_score`. **Compete-only:** `current_user_id` (whose turn) + `consecutive_passes` (the blocked-end counter — coop has no blocked-end). | `board`/`version` granted; `bag` column-excluded; coop rack/score public |
-| `players` | `(game_id, user_id)` → `seat` (turn order, compete), `score` (compete per-player). **Compete:** `rack` jsonb (**HIDDEN** — own-rack-only mid-game; peers' revealed at terminal for leftover scoring). Coop leaves `rack`/`score` null (they live on `games`). | club members; `rack` column-excluded |
-| `plays` | durable move log `(game_id, user_id, seq)`. `kind`: `'word'` (`placements` jsonb, `words text[]`, `score`) / `'exchange'` (`tile_count`) / `'pass'` / `'forfeit'` (`tile_count` returned, negative `score` for the leftover penalty). | club members, both modes |
+| `games` | one row per game. `mode`, `dict_2` + `dict_3plus` (the two acceptance bands, server-only — not granted), `board` jsonb (the placed tiles, a flat 225-cell array — PUBLIC), `bag` text[] (remaining draw order — **HIDDEN**), `version` int (the move counter for optimistic-concurrency — see [§6](#6-where-validation-lives)). **Coop-only:** `shared_rack` text[] (PUBLIC — the team rack) + `team_score`. **Compete-only:** `current_seat int` (whose turn — by **seat**, not user, so a seat may be an AI) + `consecutive_passes` (the blocked-end counter — coop has no blocked-end). | `board`/`version` granted; `bag` column-excluded; coop rack/score public |
+| `players` | PK `(game_id, seat)` — `seat` is the turn order (compete) **and the identity key**: a seat may be an AI player, which has no profile, so `user_id` is **nullable** and an `ai_level` column names the AI's strength. The `players_human_xor_ai` check pins exactly one of `user_id`/`ai_level` per row (a seat is human XOR AI). `score` (compete per-seat). **Compete:** `rack` (**HIDDEN** — own-rack-only mid-game; peers' revealed at terminal for leftover scoring). Coop leaves `rack`/`score` null (they live on `games`). | club members; `rack` column-excluded (`ai_level` public — the FE labels AI seats) |
+| `plays` | durable move log, PK `(game_id, seq)`. Each row carries `seat` (always set — the real attribution key; the FE labels an AI seat "AI 1"…) and a nullable `user_id` (the human actor, null for an AI seat). `kind`: `'word'` (`placements` jsonb, `words text[]`, `score`) / `'exchange'` (`tile_count`) / `'pass'` / `'forfeit'` (`tile_count` returned, negative `score` for the leftover penalty). | club members, both modes |
 
 **Why `plays` is public in both modes** (unlike spellingbee's mid-game-private
 `found_words`): every committed word is *on the shared board*, which is public —
@@ -330,14 +330,19 @@ The FE reads `games_state` / `players_state`, never the base tables.
 
 ### 5.1 `create_game(target_club, setup, player_user_ids, mode)`
 
-Club-member + player-count (compete 1–4, coop 1–4) + timer validation, reads
+Club-member + player-count + timer validation. The count rules speak in
+**humans and AI seats**: `require_player_count_max` caps the *humans* at 4 (and
+at least one human always — an empty roster is rejected); compete additionally
+requires the **total** (humans + `setup.ai_count`) to be 2–4, so a solo human
+vs an AI is a legal compete table but a 1-seat "race" is not. Reads
 `setup.dict_2` / `setup.dict_3plus` (each 1–6, default 3), then:
 
 - Builds the 100-tile bag and **shuffles** it (`order by random()`); the shuffle
   is the only randomness — no board library, no builder edge function.
 - **Deals racks:** compete → 7 tiles into each `players.rack`; coop → 7 into
   `games.shared_rack`.
-- Sets the first turn (compete: a **random** seated player).
+- Sets the first turn (compete: a **random seat** among *all* seats — humans
+  then AI — so an AI may open; see [§12](#12-the-ai-opponent-compete)).
 - Inserts the `games` row + one `players` row per uid, seeds `common.update_state`
   with the initial status ([§9](#9-status-jsonb--labels)).
 
@@ -355,8 +360,9 @@ declared letter).
    moved first → return `{result:'stale'}` (the FE refetches + recomputes). This
    is the race handler — it also rejects a *stale* client that computed against
    an old board.
-3. **Compete:** reject unless `current_user_id = caller` (`P0001`), keyed on the
-   scrabble-local seat system. **Coop:** free-for-all by default (any player), but
+3. **Compete:** reject unless it's the acting seat's turn — the check is
+   `g.mode = 'compete' and p_seat is distinct from g.current_seat` →
+   `'not your turn'` (`P0001`), keyed on the scrabble-local seat system. **Coop:** free-for-all by default (any player), but
    the coop sibling also supports **opt-in turn-by-turn** play (setup `coop_style =
    'turns'`) — when on, the shared `_commit_word` core gates on the **common**
    `common._require_turn` and advances `common._advance_turn` on an accepted,
@@ -381,7 +387,8 @@ declared letter).
    server owns this — fairness without trust); add the trusted `score` (compete:
    `players.score`; coop: `games.team_score`); insert the `plays` row;
    `version += 1`; reset `consecutive_passes = 0`.
-7. **Compete:** advance `current_user_id`. **Both:** check end conditions
+7. **Compete:** advance the seat pointer via `scrabble._advance_seat(target_game)`.
+   **Both:** check end conditions
    ([§2.7](#27-ending-the-game)); end the game if met, else `common.update_state`.
 8. Return `{result:'accepted', drawn, version}` — the newly-drawn tiles (so the
    FE updates the rack without leaking the rest of the bag) and the new version.
@@ -401,7 +408,12 @@ turns, no blocked-end). Under **coop turn-by-turn** (setup `coop_style = 'turns'
 the shared `_commit_exchange` core also gates on `common._require_turn` and hands
 off via `common._advance_turn` — an exchange is a real turn-consuming coop move.
 (There's no coop pass — `pass_turn` is compete-only — so only `_commit_word` and
-`_commit_exchange` carry the common gate.) Returns `{drawn, version}`.
+`_commit_exchange` carry the common gate.) Returns
+`{result:'exchanged', drawn, version, terminal}` — `terminal` is always false
+now (an exchange resets the pass streak rather than feeding it, so it can no
+longer end a game), but the key stays in the shape because every move RPC
+returns it and the FE branches on it uniformly — or `{result:'stale', version}`
+on a CAS miss.
 
 ### 5.4 `pass_turn(target_game, base_version)` (compete only)
 
@@ -443,11 +455,17 @@ replay racing a move must not interleave with it. pgTAP: `replay_test.sql`.
 ### 5.6 `end_game` / `concede` / `submit_timeout`
 
 `submit_timeout` is countdown expiry and always runs final scoring
-([§2.7](#27-ending-the-game)). `end_game` is the player-fired stop shown in
-**coop** only: it runs final scoring with a leftover-tile **forfeit** (a
-`'forfeit'` play row with the negative value lost, `play_state 'ended'`, `outcome
-'manual'`). **Compete uses `scrabble.concede`, not `end_game`** — a per-player
-"I quit, the others keep playing". Because scrabble is turn-based, concede is
+([§2.7](#27-ending-the-game)). `end_game` is the player-fired stop and **serves
+both modes** — the RPC branches. **Coop** runs final scoring with a
+leftover-tile **forfeit** (a `'forfeit'` play row with the negative value lost,
+`play_state 'ended'`, `outcome 'manual'`). **Compete** is the uniform neutral
+stop ([§2.7](#27-ending-the-game)): a flat `'ended'` with every player
+`{won: false}` and **no scoring** — the group agreeing there's no result.
+The FE **menu** surfaces one exit per mode: **End game** in coop, **Concede**
+in compete (`buildGameMenu` offers compete's whole-table End only behind the
+opt-in `offerEndInCompete`, which scrabble doesn't pass — so the neutral
+compete branch is live server-side but has no FE button today).
+`scrabble.concede` is the per-player "I quit, the others keep playing". Because scrabble is turn-based, concede is
 more than a flag: `scrabble._advance_seat` **skips** conceders, `scrabble._finish`
 picks the winner among **non-conceded** players (a drop-out forfeits even a tying
 score), and `scrabble.concede` hands the turn off if it was the conceder's, or
@@ -608,9 +626,17 @@ board rotation) — never shared, never persisted, doesn't pause.
   premiums-only-on-new-tiles; bingo +50; blanks = 0. Plus **`boardUpToSeq`** (the
   turn-viewer replay): word plays fold in, pass/exchange add nothing, blanks keep
   their declared letter.
-- **`lib/setup.ts`** — `ScrabbleSetup` (the two difficulty bands + timer).
-- **`hooks/useGame.ts`** — postgres-changes on `scrabble.{games_state,
-  players_state, plays}` (Pattern A, per-tab UUID-suffixed channel).
+- **`lib/setup.ts`** — `ScrabbleSetup` (the two difficulty bands + timer +
+  the AI opponents' `ai_count`/`ai_level`, plus `coop_style` /
+  `first_turn_user_id` via the extended `CoopTurnSetup`). Also the
+  `AI_LEVELS`/`AI_BAND` constants and `validateScrabbleSetup` (the friendly
+  front-door check `create_game` re-runs as the authority).
+- **`hooks/useGame.ts`** — postgres-changes on the **base tables**
+  `scrabble.{games, players, plays}` (Pattern A, per-tab UUID-suffixed channel);
+  the refetch *reads* the views `games_state` / `players_state` (so the bag
+  stays a count and a compete opponent's rack reads null until terminal —
+  subscriptions watch tables, reads go through views, per the
+  view-reads/table-subscribes convention).
 - **`hooks/useSharedMove.ts`** — the coop "show a move" transport: a **stable-name**
   Broadcast channel (`scrabble:${gameId}`, so teammates merge into one room, like
   connections' peer-selection channel), separate from `useGame`'s postgres-changes
@@ -645,7 +671,8 @@ board rotation) — never shared, never persisted, doesn't pause.
   below-board feedback channel [both columns write it], the coop `useSharedMove`
   transport, the terminal copy + the compete-win `CelebrationDialog`, and the
   board-viewer state), `SetupForm`
-  (two `<DifficultyField>`s + timer), `Help`.
+  (`<CoopStyleField>` [coop pacing + first turn], two `<DifficultyField>`s,
+  the AI opponent count/level controls [compete], + timer), `Help`.
 
 **Tentative placement is local state** (and private in coop until commit — per the
 "should this survive a pause?" rule it lives in `BoardCol` [the turn machine],
@@ -717,15 +744,32 @@ The `status` jsonb (written by the state-transition RPCs) drives the club-list
 
 - **Coop:** `{ mode:'coop', team_score, bag_count, outcome? }` (`outcome` ∈
   `complete` / `timeout` / `manual` at terminal).
-- **Compete:** `{ mode:'compete', leaderboard:[{user_id, score}], current_user_id,
-  bag_count, winner?, winner_username?, outcome? }` — the leaderboard drives the
-  in-game `OpponentStrip` (scores aren't hidden — the board reveals them);
-  `winner_name` (NULL on a tie) lets the label name the winner.
+- **Compete, mid-game:** `{ mode:'compete', current_seat, bag_count,
+  leaderboard:[{seat, user_id, ai_level, score}] }` — the leaderboard is
+  seat-keyed (an AI seat has a null `user_id` and its `ai_level`) and drives the
+  in-game `OpponentStrip` (scores aren't hidden — the board reveals them).
+- **Compete, terminal** (`scrabble._finish`): adds `outcome` plus the winner
+  quartet — `winner_user_id` (a *human* winner's uuid; null if an AI won or on
+  a tie), `winner_seat` (the winning seat, human or AI; null on a tie),
+  `winner_username` (the display name — a human's username or `"AI k"`; **NULL
+  on a tie** / all-conceded), and `winner_score` (the top score, denormalized so
+  the label needn't scan the leaderboard).
 
-`labelFor` shows, **mid-game**, the tiles left in the bag (coop prepends the team
-score: `"124 pts · 30 tiles left"`); **at terminal**, the result — `"ended"`
-(compete manual stop), `"won by <name>"` / `"tie"` (compete), or the final
-`"N pts"` (coop).
+`labelFor` builds the club-card line from those keys. **Mid-game:** the tiles
+left in the bag, coop prepending the team score — `Playing · 152 pts · 7 tiles
+left` (coop) / `Playing · 7 tiles left` (compete). **At terminal:**
+
+- compete `won_compete` → `Won by alice · 312 pts`; on a **tie**
+  `winner_username` is null and `wonBy(null)` degrades to the bare word, so the
+  label reads `Won · 312 pts` — there is no separate "tie" string;
+- compete manual stop (`ended`) → a plain `Ended`;
+- coop `ended` → `Ended · 152 pts` (the score IS the result — coop has no win
+  state), or `Ended (no moves left) · 152 pts` when `outcome` is `'blocked'`
+  (the `COOP_END` lookup — currently defensive, since coop has no pass to feed
+  a blocked-end);
+- coop `lost` (the clock, coop's one loss) → `Lost (out of time) · 152 pts`;
+- compete `lost_compete` (everyone conceded — nobody eligible to win) →
+  `Lost (all conceded)`.
 
 ---
 
@@ -752,16 +796,38 @@ commit), not the TS-owned geometry/scoring:
   free reject** (no row, no state change, no version bump), the happy path (board
   applied, rack drawn from bag, score added, version bumped), compete turn advance,
   and the **title** becoming the first word played.
-- `exchange` / `pass` — bag-≥7 gate, version CAS, the pass streak (pass feeds it,
-  exchange clears it), the all-passed blocked end, turn advance.
-- `endgame` — going-out + blocked triggers, final scoring (leftover subtraction +
-  going-out bonus, compete; team-score adjust, coop), winner determination + ties,
-  and `winner_username` in the status (set on a win, NULL on a tie).
+- `exchange_pass` — both move RPCs in one file: bag-≥7 gate, version CAS, the
+  pass streak (pass feeds it, exchange clears it), turn advance.
+- `auto_finish` — the game-ends-**itself** paths (`_finish`): going-out + the
+  all-passed blocked trigger, final scoring (leftover subtraction + the
+  going-out bonus, compete; the neutral score report, coop), winner
+  determination + ties, and `winner_username` in the status (set on a win,
+  NULL on a tie).
+- `end_game` — the **player-initiated** ends, split from `auto_finish` so the
+  two aren't one keystroke apart: `end_game`'s **coop manual-end forfeit** of
+  the leftover-tile value (the `forfeit` log row + `5 − 11 = −6` team score) vs
+  compete's neutral stop, `submit_timeout`'s final scoring, and the
+  realtime touch.
+- `turn_order` — coop's **opt-in turn-by-turn** (the reconciliation case:
+  compete keeps its own `current_seat`, coop rides the common pointer):
+  `create_game` seats the rotation under `coop_style='turns'`, and the shared
+  move cores gate on `_require_turn` + advance the common pointer (exercised
+  via exchange — no dictionary needed).
+- `replay` — the re-deal ([§5.5](#55-replay_board)): setup restored, version
+  **bumped** not zeroed, compete's first seat re-randomized, coop turn-order
+  rewound.
+- `concede` — the turn-based concede ([§5.6](#56-end_game--concede--submit_timeout)):
+  the rotation skips conceders, a conceder forfeits the win, the turn hands off,
+  the last active player's concede ends the game with nobody eligible to win.
+- `ai_players` — AI seats ([§12](#12-the-ai-opponent-compete)): `create_game`
+  seats them (and rejects a dictionary narrower than the AI's band, bad counts,
+  and coop), `get_ai_context` is the member-gated, AI-seat-only, its-turn-only
+  door to the AI's hidden rack, and the `ai_*` RPCs act for the seat.
+- `get_suggest_context` — the move suggester's definer door ([§11](#11-the-move-suggester-ai)):
+  membership + `playing` + coop-only gates; the happy path returns its five
+  keys atomically.
 - `rls` — own rack only mid-game / peers' revealed at terminal; bag never
   revealed (only `bag_count`); board + plays public; club-membership gates.
-- `end_game` / `submit_timeout` — **coop manual end forfeits** the leftover-tile
-  value (the `forfeit` log row + `5 − 11 = −6` team score), compete manual stays
-  neutral; the realtime touch.
 
 (No TS↔SQL mirror test — there's no SQL scoring to mirror. `lib/play.test.ts` is
 the single source of truth for geometry + scoring.)
@@ -834,9 +900,12 @@ built on the same engine.
 int), not a user id, so a seat can be an AI. AI seats are rows in
 `scrabble.players` with a null `user_id` + an `ai_level`, and are **not** in
 `common.game_players` / `common.profiles` — so presence-pause and the club
-roster ignore them for free. `create_game` seats humans then AI; `_advance_turn`
+roster ignore them for free. `create_game` seats humans then AI; `_advance_seat`
 / `_finish` / the turn checks all rotate + resolve by seat (an AI can win — the
-terminal reads "AI 1"). The human move RPCs (`play_word` / `exchange_tiles` /
+terminal reads "AI 1"). (The helper is deliberately named `_advance_seat`, not
+`_advance_turn`: `common._advance_turn` — the coop turn-order pointer — is
+called nearby in the same file, and the rename [2026-08-02] stops the two
+shadowing each other.) The human move RPCs (`play_word` / `exchange_tiles` /
 `pass_turn`) and the AI twins (`ai_play_word` / `ai_exchange_tiles` / `ai_pass_turn`) share
 one seat-driven core (`_commit_word` / `_commit_exchange` / `_commit_pass`), so
 there's no second copy of the trusting-commit logic.

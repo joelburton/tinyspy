@@ -93,11 +93,11 @@ Green (agent contacted) and assassin are **global** — true for both players th
 | Reveal label comes from the clue-giver's view | `submit_guess` picks `games.key_card_a` or `games.key_card_b` based on `current_clue_giver`, indexes by position |
 | Neutral is per-direction (partner can still guess) | `submit_guess` sets `words.neutral_a` / `neutral_b` for the *guesser's* seat (not global `revealed_as`); the "already resolved" check blocks only that seat |
 | Both players hit a word as neutral → dead for both | `neutral_a AND neutral_b` (the FE greys it for both) |
-| Sudden death on turns = 0 | `_end_turn` flips `status = 'sudden_death'` when `turns_remaining` hits 0 |
+| Sudden death on turns = 0 | `_end_turn` flips `play_state = 'sudden_death'` when `turns_remaining` hits 0 |
 | Sudden-death reveal uses partner's view | `submit_guess` picks the `key_card_*` column for the seat *opposite* to the caller |
 | Win: 15 greens revealed | `submit_guess` counts global `revealed_as = 'G'` after every green reveal |
-| Lose on assassin | `submit_guess` flips `status = 'lost_assassin'` on `revealed_label = 'A'` |
-| Lose on clock | `submit_guess` flips `status = 'lost_clock'` on any non-green during `sudden_death` |
+| Lose on assassin | `submit_guess` flips `play_state = 'lost_assassin'` on `revealed_label = 'A'` |
+| Lose on clock | `submit_guess` flips `play_state = 'lost_clock'` on any non-green during `sudden_death` |
 | Every guess replayable in the Game Log | one row per guess in `codenamesduet.guesses` (a word can be guessed twice) |
 
 The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not the guesser's."** This sits in [`codenamesduet.submit_guess`](../../supabase/migrations/20260615000001_codenamesduet.sql) as a single line that picks `key_owner_seat`, and the test for it is in [`game_loop_test.sql`](../../supabase/tests/codenamesduet/game_loop_test.sql) and [`win_test.sql`](../../supabase/tests/codenamesduet/win_test.sql).
@@ -111,7 +111,7 @@ The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not 
 | `games` | One row per match. `club_handle` (not null) ties to `common.clubs`. Tracks `turn_number`, `turns_remaining`, `current_clue_giver`. **Seats live on this row as columns** (`user_a_id`, `user_b_id`) alongside each seat's key view (`key_card_a`, `key_card_b` — jsonb arrays of 25 `'G' \| 'N' \| 'A'` labels matching `words.position`). Play-state (`play_state` + `is_terminal`) lives on `common.games`. |
 | `word_pool` | The static Duet word list (390 words, seeded by migration). Read only by security-definer RPCs; clients have no SELECT grant. |
 | `words` | 25 rows per game — the board, with denormalized reveal state. `revealed_as` (`'G'`/`'A'`/null) is the **global** reveal (agent contacted / assassin); `neutral_a` / `neutral_b` are **per-seat** bystander marks (a neutral on the giver's key may be the partner's agent, so it only locks the guesser's seat). |
-| `guesses` | One row per guess — the append-only history the Game Log replays. A word can appear twice (once per seat), which is why this is separate from the per-word `words` row. Holds `position`, `guesser_seat`, `outcome` (`'G'`/`'N'`/`'A'`), `turn_number`. |
+| `guesses` | One row per guess — the append-only history the Game Log replays. A word can appear twice (once per seat), which is why this is separate from the per-word `words` row. Holds `position`, `guesser_seat`, `result` (`'G'`/`'N'`/`'A'` — named `result`, not `outcome`, to stay clear of the status-jsonb `outcome` key), `turn_number`. |
 | `clues` | One row per turn, enforced by `unique (game_id, turn_number)`. Holds the clue word + count + which seat gave it. |
 
 There's no `codenamesduet.game_players` table. The "who played this game" record lives at the common layer in `common.game_players` (cross-game, used for the player roster + RLS membership checks). Seat *assignment* — which player is in seat A vs B, and what each seat's key view is — is gameplay state and lives as columns on `codenamesduet.games` directly. The two roles don't overlap: `common.game_players` answers "did this user participate"; `codenamesduet.games`'s seat columns answer "in which seat, with what key view."
@@ -151,17 +151,17 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `codenamesduet.create_game(target_club text, setup jsonb, player_user_ids uuid[]) → table(id uuid)`
 
-The one entry point. Verifies caller is in a 2-member club, seats both, validates `setup.turns` + `setup.first_clue_giver_user_id` + `setup.timer` shape (the timer shape is shared validation via `common.require_valid_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (the 3 first picked words alphabetically, dash-joined — the board is shared, so naming the game after three of its words leaks nothing; the key card is what stays secret), calls `common.create_game(target_club, 'codenamesduet', player_user_ids, title, setup)` for the common header half (see [common.md → Game-RPC helpers](../common.md#game-rpc-helpers-called-by-per-game-rpcs)), then inserts the codenamesduet detail row. Finally calls `common.update_state(new_id, 'playing', jsonb_build_object(...))` to seed `common.games.status` with the initial label payload (turn_number, turns_remaining, greens_found). One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
+The one entry point. Verifies the roster is exactly 2 club members (any club size — the pair, not the club, is what's constrained), seats both, validates `setup.turns` + `setup.first_clue_giver_user_id` + `setup.timer` shape (the timer shape is shared validation via `common.require_valid_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (the 3 first picked words alphabetically, dash-joined — the board is shared, so naming the game after three of its words leaks nothing; the key card is what stays secret), calls `common.create_game(target_club, 'codenamesduet', player_user_ids, title, setup, setup - 'first_clue_giver_user_id')` for the common header half (the last arg is the saved club default, stripped of the per-game first-giver pick) (see [common.md → Game-RPC helpers](../common.md#game-rpc-helpers-called-by-per-game-rpcs)), then inserts the codenamesduet detail row. Finally calls `common.update_state(new_id, 'playing', jsonb_build_object(...))` to seed `common.games.status` with the initial label payload (turn_number, turns_remaining, greens_found). One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
 
-Reject reasons: not authenticated; non-member; club doesn't have exactly 2 members; bad `setup.timer` shape (see [Timer](#timer-server-authoritative-ticks)).
+Reject reasons: not authenticated; non-member; the roster isn't exactly 2 players; bad `setup.timer` shape (see [Timer](#timer-server-authoritative-ticks)).
 
 The key-card generation is the algorithmically interesting bit: build the 25-element multiset matching the distribution, shuffle Fisher-Yates, project to the two seat views. Inlined directly in `create_game` rather than extracted into a helper — `create_game` is the only place that generates a board, so there's no duplication to factor out.
 
 ### Title formula
 
-`"<seatA-username>-v-<seatB-username>: <4 picked words alphabetically, comma-separated>"`. The two-player invariant means seats are stable across a game's life, so the formula reads as a duel ("ada-v-bea"); the 4 picked words anchor recognizing one game vs. another in a club's history.
+`"WORD1-WORD2-WORD3"` — the first three picked words alphabetically, dash-joined. The words are on the shared board every player sees, so the title leaks nothing (the key card is what stays secret); three words are enough to recognize one game vs. another in a club's history.
 
-### `codenamesduet.submit_clue(target_game uuid, word text, clue_count int)`
+### `codenamesduet.submit_clue(target_game uuid, clue_word text, clue_count int)`
 
 Inserts a clue for the current turn. Reject reasons:
 
@@ -170,7 +170,7 @@ Inserts a clue for the current turn. Reject reasons:
 - a clue already exists for this `turn_number` (enforced by the `unique (game_id, turn_number)` constraint, but checked explicitly in the RPC for a cleaner error message)
 - play_state ≠ playing (no clues in sudden death — guesses come from memory only)
 
-Parameter is `clue_count` (not `count`) to avoid shadowing the SQL aggregate; the matching column on `codenamesduet.clues` stays `count` since it's only referenced in column lists.
+Both parameters are prefixed — `clue_word` (not `word`) and `clue_count` (not `count`, which would shadow the SQL aggregate); the matching columns on `codenamesduet.clues` stay `word` / `count` since they're only referenced in column lists.
 
 ### `codenamesduet.submit_guess(target_game uuid, target_position int) → text`
 
@@ -193,7 +193,7 @@ Logic in order:
    - Green → check if `count(revealed_as = 'G') >= 15` → `common.end_game(target_game, 'won', …)`; otherwise mid-game `common.update_state(target_game, 'playing'|'sudden_death', …)`. Return `'G'`.
    - Neutral (in regular play) → `_end_turn`, then mid-game `common.update_state(…)`, return `'N'`.
 
-Terminal transitions write `common.games.play_state` + `is_terminal = true` + the `status` jsonb (`{outcome, greens_found, turns_used}`) via `common.end_game`. They do **not** clear `is_current_view` — a terminal game stays in the club's current slot until the last viewer leaves.
+Terminal transitions write `common.games.play_state` + `is_terminal = true` + the `status` jsonb (`{outcome, turns_used}`) via `common.end_game`. The terminal write doesn't repeat `greens_found` — `common.end_game` **merges** into `status` (`status = coalesce(games.status, '{}') || …`) rather than assigning, so the tally the last mid-game `update_state` wrote survives into the terminal blob. They do **not** clear `is_current_view` — a terminal game stays in the club's current slot until the last viewer leaves.
 
 ### `codenamesduet.pass_turn(target_game uuid)`
 
@@ -219,7 +219,7 @@ The friends' explicit "we're done" button — the **End game** header-menu item 
 
 Same shape as `submit_timeout` — accepts both active states (`playing` / `sudden_death`), same `require_game_player` gate, same idempotency (a second call raises `P0001 'game is not in progress'`, swallowed by the FE). Differences: it writes `play_state = 'ended'` with `status->>'outcome' = 'manual'`, and every player's `common.game_players.result = {won: false}` (cooperative game: nobody wins a manually-stopped game — agreeing to stop is a valid outcome, not a loss).
 
-The terminal renders **neutral**, not as a loss: `buildOver('ended')` returns the shared `endedCopy('coop')` — a neutral-toned below-board pill reading "Game ended" — and `manifest.STATUS_LABEL.ended = 'ended'`.
+The terminal renders **neutral**, not as a loss: `buildOver('ended')` returns the shared `endedCopy('coop')` — a neutral-toned below-board pill reading "Game ended" — and the manifest's `STATUS_LABEL` map renders the club-card line as `Ended` (`ended: outcome('Ended')`).
 
 **Realtime touch at the tail**: a no-op self-write on `codenamesduet.games` (`set turn_number = turn_number`) so the FE's schema-scoped `useGame` subscription wakes to refetch and flip into review mode — the uniform trick documented at [common.md → Manual end, step 6](../common.md#manual-end--every-gametypes-end_gametarget_game). (`submit_timeout`'s `current_clue_giver = null` write provides the same wake incidentally.) Tested in `tests/codenamesduet/end_game_test.sql`.
 
@@ -326,7 +326,17 @@ src/codenamesduet/
                           End / help / setup) above the GameTurnLog. Near-zero state —
                           arranges shared pieces + emits `onSelectTurn` / `onEndGame` up.
     InfoCol.module.css
+    StateLine.tsx         The core live-state readout — "3/15 agents · 4/9 turns"
+                          ("sudden death" replaces the turn counter once the budget
+                          is spent). Its own component because it renders TWICE, in
+                          two places that must never drift: the info column's
+                          `.infoState` line (desktop) and the mobile
+                          <MobileStatusBar> above the board.
     PlayArea.module.css
+    PlayArea.test.tsx     The synchronous guess in-flight guard (a second tile
+                          click while a guess is in flight fires no second
+                          submit_guess) + tile input gating (clickable on my
+                          guess turn, blocked at terminal).
     Board.tsx         The 5×5 board, PRESENTATIONAL: receives the board to render
                           (live or a history snapshot) + `pendingPos` + an
                           `onGuess(position)` callback (BoardCol owns the submit) + an
@@ -357,6 +367,9 @@ src/codenamesduet/
                           never as a second row (the slot is fixed-height — the
                           board must not reflow).
     CluePanel.module.css
+    CluePanel.test.tsx    Pins the data-game-input tag on both clue inputs
+                          (count + word) so the global / ? ~ shortcuts still
+                          fire while typing a clue.
     GameTurnLog.tsx       Turn-by-turn replay in the shared <TurnLog> panel.
                           codenamesduet renders its OWN rows (row anatomy is the
                           game's — see ui.md → Turn log): a TWO-<tr> turn per
@@ -373,7 +386,6 @@ src/codenamesduet/
     GameTurnLog.module.css
     GameTurnLog.test.tsx
     SetupForm.tsx         The setup form mounted in the common SetupGameDialog.
-    SetupForm.module.css
     Help.tsx              Per-game rules modal — opened from the common "Help"
                           item in the GamePage menu. Receives { onClose }.
                           Implements the manifest's required
@@ -484,11 +496,12 @@ See [`testing.md`](../testing.md) for the theory and shared setup. codenamesduet
 
 ### codenamesduet-specific test helpers
 
-Three helpers shared across codenamesduet tests, promoted to [`supabase/tests/codenamesduet/setup.psql`](../../supabase/tests/codenamesduet/setup.psql) per the promotion threshold in [`testing.md`](../testing.md). Each codenamesduet test starts with two includes — `\ir ../_shared/setup.psql` for the personas + `as_user`, then `\ir setup.psql` for these:
+Four helpers shared across codenamesduet tests, promoted to [`supabase/tests/codenamesduet/setup.psql`](../../supabase/tests/codenamesduet/setup.psql) per the promotion threshold in [`testing.md`](../testing.md). Each codenamesduet test starts with two includes — `\ir ../_shared/setup.psql` for the personas + `as_user`, then `\ir setup.psql` for these:
 
 - **`pg_temp.find_position(g uuid, s text, target text) → int`** — "Find the first board position whose label on seat `s`'s view is `target`." The key card is random per-game, so tests can't hardcode positions.
 - **`pg_temp.find_position_set(g uuid, s text, target text) → int[]`** — array-returning variant. Used by `win_test.sql` to walk all 9 green agents on a side. The positional `unnest with ordinality` avoids the `row_number()`-vs-SRF trap.
 - **`pg_temp.codenamesduet_setup(turns int default 9, first_user uuid default ada) → jsonb`** — build a valid `create_game` setup payload. Defaults to the standard 9-turn game with ada as first clue-giver and `timer.kind = 'none'`; override turns or first_user to test variations (`codenamesduet_setup(11)`, `codenamesduet_setup(9, bea_uuid)`). Timer-specific tests pass a literal jsonb so the timer mode is explicit.
+- **`pg_temp.codenamesduet_players() → uuid[]`** — the standard 2-player roster (`[ada, bea]`), passed as `create_game`'s `player_user_ids` argument so tests don't repeat the two persona UUIDs.
 
 ### The key-card distribution test
 
@@ -510,8 +523,15 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 | `src/codenamesduet/lib/turnOutcome.test.ts` | Every branch of the per-turn outcome verdict (assassin / only-neutrals / mixed / all-agents / passed). Pure, no DOM. |
 | `src/codenamesduet/hooks/useBoard.test.ts` | The board hook's data flow — initial fetch, realtime append, refetch on resubscribe. |
 | `src/codenamesduet/components/GameTurnLog.test.tsx` | Per-turn grouping (each turn = two `<tr>`s), oldest-first chronological order, within-turn guess sort by `guessed_at`, and the guess-line state: "(clue given)" while the turn is the current live one vs "(no guesses)" once it has ended (or the game is over). |
+| `src/codenamesduet/components/PlayArea.test.tsx` | The synchronous `guessInFlight` guard — a second tile click while a guess is in flight fires no second `submit_guess` (the pending-tile disable is async, so it misses a same-tick double-tap, and only disables the one clicked tile) — plus tile input gating: clickable on my guess turn, blocked at terminal. |
+| `src/codenamesduet/components/CluePanel.test.tsx` | The two-kinds-of-text-input contract: both clue inputs (count + word) carry `data-game-input`, so the global `/ ? ~` shortcuts still fire while typing a clue. (`isNonGameField`'s logic is covered in `useAppShortcuts.test.ts`; this pins that the actual inputs carry the tag.) |
 
-**Plus one Playwright e2e** — [`e2e/codenamesduet.e2e.ts`](../../e2e/codenamesduet.e2e.ts) — a deliberate, narrow exception to the "e2e = realtime/presence only" charter. It guards a real **layout** property jsdom can't see (`getBoundingClientRect` is all zeros there): the below-board slot is fixed-height, so the `flex: 1` board must not change height as the slot cycles through its states (clue form → waiting → own-action flash → clue + Pass). It also asserts the AI suggestion `<FloatingPanel>` renders fully on-screen — the regression guard for the react-rnd static-position gotcha (see [ui.md → Components](../ui.md#components)).
+**Plus four Playwright e2e specs** — each a deliberate, narrow exception to the "e2e = realtime/presence only" charter, guarding real-browser behavior jsdom can't see:
+
+- [`e2e/codenamesduet.e2e.ts`](../../e2e/codenamesduet.e2e.ts) — guards a real **layout** property jsdom can't see (`getBoundingClientRect` is all zeros there): the below-board slot is fixed-height, so the `flex: 1` board must not change height as the slot cycles through its states (clue form → waiting → own-action flash → clue + Pass). It also asserts the AI suggestion `<FloatingPanel>` renders fully on-screen — the regression guard for the react-rnd static-position gotcha (see [ui.md → Components](../ui.md#components)).
+- [`e2e/codenamesduet-clueform.e2e.ts`](../../e2e/codenamesduet-clueform.e2e.ts) — the clue form keeps Tab to itself: `trapTab` in CluePanel makes Tab and Shift+Tab toggle between the two clue inputs (count + word) and nowhere else — without it, Tab walks off onto the turn-log `#N` handles, page links, and the browser tab bar. Native Tab traversal is a real-browser behavior jsdom can't simulate.
+- [`e2e/codenamesduet-history.e2e.ts`](../../e2e/codenamesduet-history.e2e.ts) — the turn-history viewer: clicking a turn-log row replays that turn's board (the reveal state after that turn's guesses, the yellow history frame, the turn's own cells ringed, the description banner overlaying the below-board slot) — and pins the invariant the decomposition rides on: the board must **not** reflow when the viewer opens (the banner overlays the fixed-height slot; it doesn't grow it).
+- [`e2e/codenamesduet-mobile.e2e.ts`](../../e2e/codenamesduet-mobile.e2e.ts) — the phone layout: the board stays full-size and the page scrolls (the clue-giver needs the board's key-card colors while composing in the keyboard-raising clue input, so the board is deliberately not shrunk or clamped), the page doesn't scroll at rest, the info column is the collapsed off-canvas sheet, and the below-board action buttons go icon-only.
 
 ## Open items
 

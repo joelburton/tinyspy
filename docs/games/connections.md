@@ -2,7 +2,7 @@
 
 A NYT-Connections-style word-grouping puzzle. The third gametype family in this monorepo (after codenamesduet and psychicnum), now registered as a sibling-manifest pair — `connections_coop` + `connections_compete`. connections was the first place in this codebase to introduce several patterns: FE-evaluated rules, shared selection state via Supabase Realtime Broadcast (coop only), and the "pause the game when a peer disconnects" pattern.
 
-"connections" is the codename (analogous to how "codenamesduet" is the codename for Codenames Duet). User-facing copy is "connections"; folder / schema / RPC names are all `connections`.
+"connections" is the codename (analogous to how "codenamesduet" is the codename for Codenames Duet). The user-facing **brand** is **WordKnit** — the manifest's `BRAND` const, surfaced as both siblings' `name` (see [manifest.ts](../../src/connections/manifest.ts)); folder / schema / RPC names are all `connections`.
 
 For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](../common.md). For testing conventions + persona shapes see [`testing.md`](../testing.md). For per-gametype comparisons see [`codenamesduet.md`](codenamesduet.md) and [`psychicnum.md`](psychicnum.md).
 
@@ -18,7 +18,7 @@ connections exports two manifest entries from one folder, mirroring psychicnum's
 | `schema`             | `connections`              | `connections`                  |
 | `baseGametype`       | `connections`              | `connections`                  |
 | `mode`               | `'coop'`                | `'compete'`                 |
-| `name`               | `connections`              | `connections`                  |
+| `name`               | `WordKnit` (the `BRAND`)   | `WordKnit` (the `BRAND`)       |
 | `numberOfPlayers`    | `[1, 6]`                | `[2, 6]`                    |
 
 The two siblings share the same `name` — the coop/compete distinction is shown at presentation time via the `<ModePill>` (read from `mode`), not baked into the name string. See [ui.md → Mode pills](../ui.md#mode-pills).
@@ -67,7 +67,7 @@ In scope today:
 - Compete OpponentStrip showing per-player mistake counts (the entire "what opponents know about you" surface — guesses + matched-categories stay private)
 - Shared selection across connected players via Broadcast in coop; private per-player selection in compete (broadcast send suppressed)
 - Per-player local-shuffle button
-- Hint dialog (reveal-on-demand modal: one row per category, each gated behind a "Reveal" button that surfaces that category's first tile when clicked; client-side and per-player, never broadcast or persisted; opened from the **Hints button** in the info-column action row)
+- Hint list (reveal-on-demand, rendered **inline in the info column**: one row per category, each gated behind a "Reveal" button that surfaces that category's first tile when clicked; client-side and per-player, never broadcast or persisted; toggled by the **Hints button** in the info-column action row)
 - Pause-on-disconnect overlay via Presence
 - Common chat (the floating, draggable, resizable `<FloatingChat>` panel)
 
@@ -120,11 +120,13 @@ The whole board is publicly readable. The FE reads `board.categories` to evaluat
 - **playing** — guesses being submitted. The default; no other entry state.
 - **won** — all 4 categories have been matched. Terminal. (`status.outcome = 'solved'` carries connections' own word for the cause; the play_state speaks the roster's vocabulary. Was `solved` until 2026-08-01.)
 - **lost** — mistakes hit 4 (or the countdown timer expired). Terminal.
+- **ended** — the manual End button (`connections.end_game`). Terminal, NEUTRAL — the friends agreed to stop, so nobody won and nobody lost; `status.outcome = 'manual'`.
 
 **Compete:**
 - **playing** — guesses being submitted. Eliminated players (4 mistakes) sit in a spectator state without ending the game.
 - **won_compete** — a player matched all 4 categories first. Terminal. That player's `common.game_players.result = {won: true}`; everyone else's `= {won: false}`.
 - **lost_compete** — every player exhausted their mistake budget OR the timer expired with nobody having matched all 4. Terminal. Everyone's `result = {won: false}`.
+- **ended** — the same manual, neutral `connections.end_game` terminal as coop (`status.outcome = 'manual'`); mode-independent by design.
 
 ### Data differences between coop and compete — at a glance
 
@@ -140,18 +142,18 @@ Anything not listed here is identical across modes. The shape mirrors [`psychicn
 | **`connections.players` RLS**                 | Club-wide visible                                           | Club-wide visible (same — opponents see each other's mistake counts) |
 | **correct-row partial unique index**       | `(game_id, matched_category_rank)` — one match per rank per game | `(game_id, user_id, matched_category_rank)` — one match per rank PER PLAYER per game |
 | **`submit_guess` correct-guess terminal**  | 4 total correct rows → `play_state='won'`, all `{won: true}` | Caller's 4th correct → `play_state='won_compete'`, caller `{won: true}`, others `{won: false}` |
-| **`submit_guess` mistake terminal**        | First row's mistake_count hits 4 → `play_state='lost'`, all `{won: false}` | MIN(mistake_count) across all players ≥ 4 → `play_state='lost_compete'`, all `{won: false}` |
+| **`submit_guess` mistake terminal**        | First row's mistake_count hits 4 → `play_state='lost'`, all `{won: false}` | `connections._maybe_finish_compete`: nobody still alive (alive = not conceded AND mistake_count < 4) → `play_state='lost_compete'`, all `{won: false}` |
 | **eliminated mid-game**                    | Game would already be terminal — no in-between state        | Caller can no longer submit; game continues for survivors            |
 | **`submit_timeout` terminal**              | `play_state='lost'`, outcome `timeout`                      | `play_state='lost_compete'`, outcome `timeout`                       |
 | **FE opponent visibility**                 | N/A (everyone's on the same team)                           | OpponentStrip showing per-player mistake counts; no peer guesses, no peer matched-counts |
 | **FE GameTurnLog**                        | Every guess with username attribution                       | Only caller's guesses (RLS filters server-side)                      |
-| **Terminal verdict** (below-board pill; no modal) | "You win!" / "Lost: out of mistakes/time" (team) — a solve also pops the `<CelebrationDialog>` | "You won the race!" / "Beaten to the punch" / "Everyone eliminated" / "Out of time — nobody won" (no celebration — see Terminal state) |
+| **Terminal verdict** (below-board pill; no modal) | "You win!" / "Lost: out of mistakes" / "Lost: out of time" (team) — a solve also pops the `<CelebrationDialog>` | "Won: the race" / "Beaten to the punch" / "Lost: out of mistakes" (a self-eliminated loser when someone else won) / "Everyone eliminated" / "Out of time — no winner" (no celebration — see Terminal state) |
 
 The shape that's the same in both modes:
 - The `connections.games` table (modulo the `mode` value).
 - The `connections.players` table structure (one row per player; only the update mechanics differ).
 - The `connections.guesses` table rows (modulo the `mode` denorm + RLS).
-- The setup blob (`{ puzzleId, timer }`) — same fields, same defaults.
+- The setup blob (`ConnectionsSetup = CoopTurnSetup & { puzzleId, timer }` — the coop-style fields ride along; the default includes `coop_style: 'free-for-all'`) — same fields, same defaults.
 - The `board` jsonb stays publicly readable in both modes (FE-knows holds — see below).
 - `common.games.title` formula and the per-game `common.game_players.result` shape.
 
@@ -179,7 +181,7 @@ The one entry point. **One RPC for both modes** — the `mode` parameter:
 - Triggers the player-count check (compete requires ≥2).
 - Drives the per-mode terminal-state vocabulary that `submit_guess` writes later.
 
-Verifies caller is a club member, validates `setup.puzzleId` (must be a uuid that exists in `connections.puzzles`) and `setup.timer` shape (see [Timer](#timer)), loads the puzzle's categories, shuffles the 16 tiles into `board.tileOrder`, builds the title as `"<puzzle_date>: <TILE1>-<TILE2>"` where TILE1/TILE2 are the first 2 alphabetical tiles across all 16 (the date says which puzzle; the two tiles are a peek at the board). Calls `common.create_game(target_club, 'connections_<mode>', player_user_ids, title, setup, setup)` for the common header half (see [common.md → Game-RPC helpers](../common.md#game-rpc-helpers-called-by-per-game-rpcs)), then inserts the `connections.games` row with `mode`, `puzzle_id`, and the frozen `puzzle_date` (a copy of the puzzle's `puzzle_date`), then inserts one `connections.players` row per player_user_ids entry with `mistake_count=0`, and **seeds `common.games.status`** in the same shape `submit_guess` maintains — coop `{matched_count: 0, mistake_count: 0}`, compete a deliberately EMPTY `{}` (each racer's counts are their own and this column is club-wide readable, so the compete writer publishes nothing either). The point of the compete seed is that `status` is never NULL (2026-08-01; pinned in `create_game_test.sql`). The board is a copy of the puzzle's categories + this game's shuffled tileOrder; on a correct guess `submit_guess` bumps the caller's `matched_count`. Everything the game needs is copied onto the row — the puzzle row stays pristine and is a soft, deletable provenance link (see [common.md → Library-puzzle games](../common.md#library-puzzle-games-provenance-not-dependency)).
+Verifies caller is a club member, validates `setup.puzzleId` (must be a uuid that exists in `connections.puzzles`) and `setup.timer` shape (see [Timer](#timer)), loads the puzzle's categories, shuffles the 16 tiles into `board.tileOrder`, builds the title as `"<puzzle_date>: <TILE1>-<TILE2>"` where TILE1/TILE2 are the first 2 alphabetical tiles across all 16 (the date says which puzzle; the two tiles are a peek at the board). Calls `common.create_game(target_club, 'connections_<mode>', player_user_ids, title, setup, setup - 'first_turn_user_id')` for the common header half — the saved-default arg strips `first_turn_user_id` (a per-game "who goes first" pick, not a per-club preference; the `coop_style` toggle rides) (see [common.md → Game-RPC helpers](../common.md#game-rpc-helpers-called-by-per-game-rpcs)), then inserts the `connections.games` row with `mode`, `puzzle_id`, and the frozen `puzzle_date` (a copy of the puzzle's `puzzle_date`), then inserts one `connections.players` row per player_user_ids entry with `mistake_count=0`, and **seeds `common.games.status`** in the same shape `submit_guess` maintains — coop `{matched_count: 0, mistake_count: 0}`, compete a deliberately EMPTY `{}` (each racer's counts are their own and this column is club-wide readable, so the compete writer publishes nothing either). The point of the compete seed is that `status` is never NULL (2026-08-01; pinned in `create_game_test.sql`). The board is a copy of the puzzle's categories + this game's shuffled tileOrder; on a correct guess `submit_guess` bumps the caller's `matched_count`. Everything the game needs is copied onto the row — the puzzle row stays pristine and is a soft, deletable provenance link (see [common.md → Library-puzzle games](../common.md#library-puzzle-games-provenance-not-dependency)).
 
 Reject reasons: not authenticated; not a member; `mode` not in `{coop, compete}`; compete with <2 players; >6 players; missing/malformed `setup.puzzleId`; `setup.puzzleId` doesn't reference a known puzzle (P0002 `'puzzle not found'`); bad `setup.timer` shape.
 
@@ -200,7 +202,9 @@ The only mid-game action. Validates the payload shape (4 tiles, valid result enu
 **Compete branch:**
 - Caller eliminated check (`connections.players.mistake_count >= 4` for caller) raises P0001 'you are eliminated from this game'.
 - `correct` → insert a row with `mode='compete'` (partial unique on `(game_id, user_id, matched_category_rank)` filtered to `result='correct' AND mode='compete'` catches same-player dup-races; different players can match the same rank, each gets their own row); count caller's correct rows; 4 → `play_state='won_compete'`, caller `{won: true}`, opponents `{won: false}`. Race ends instantly — survivors with remaining lives no longer get to submit.
-- `wrong` / `oneAway` → insert row; UPDATE only the caller's `connections.players` row; check `MIN(mistake_count)` across all players ≥ 4 → `play_state='lost_compete'`, all `{won: false}`. Caller-just-eliminated-but-others-alive lets the game continue.
+- `wrong` / `oneAway` → insert row; UPDATE only the caller's `connections.players` row; then `connections._maybe_finish_compete` — the terminal check shared with `connections.concede` — ends the game only when NO player is still alive (alive = not conceded AND `mistake_count < 4`): `play_state='lost_compete'`, all `{won: false}`, with `status.outcome = 'conceded'` when every player conceded and `'mistakes'` otherwise (somebody played it out). Caller-just-eliminated-but-others-alive lets the game continue.
+
+**Duplicate wrong guesses don't double-charge.** Before costing a mistake, `submit_guess` no-ops an order-insensitive repeat of the same 4-tile set — coop scopes the check to *anyone's* prior guess (the shared selection means two players can Submit the identical tiles at once), compete to the caller's own. The FE already blocks repeats ("You already tried that"); this is the authoritative, race-safe backstop — the wrong/oneAway analog of the correct branch's partial-unique-index guard.
 
 The PL/pgSQL **does not re-evaluate** the guess against `board.categories` — that's the FE-knows trade, preserved in both modes (see [the FE-knows section](#the-fe-knows-the-answer-decision) above for the cheating-incentive note that's specific to compete).
 
@@ -263,7 +267,7 @@ All three tables (`games`, `players`, `guesses`) have RLS enabled.
 
 No INSERT/UPDATE/DELETE policies. All writes go through the security-definer RPCs.
 
-`grant select` lists all columns on each table — `board` is publicly readable, unlike `psychicnum.games.target` (which is column-grant-excluded). See "FE-knows" above for the rationale; the trade is preserved in compete despite the cheating incentive.
+The SELECT grants are plain table-level (`grant select on connections.games / guesses / players to authenticated`) — no column list, because nothing here is secret: `board` is fully readable, unlike `psychicnum.games.secrets` (the column-grant-excluded canonical example). See "FE-knows" above for the rationale; the trade is preserved in compete despite the cheating incentive.
 
 `connections.puzzles` has no RLS — puzzles are public knowledge. The `service_role` separately has INSERT (used by the import script); `authenticated` has only SELECT.
 
@@ -296,7 +300,7 @@ For v1 this script is run manually. It graduates to a scheduled job (GitHub Acti
 
 ### Title formula
 
-`"#<source_id> <puzzle_date> (<TILE1>/<TILE2>)"` where TILE1/TILE2 are the first 2 alphabetical tiles across all 16. Example: `"#1 2023-06-12 (BUCKS/HAIL)"`. Built at create_game time from the puzzle's data, so it carries forward unchanged for the life of the game. Each puzzle's NYT number + date is the canonical identity; the 2 tiles ground it in something memorable ("oh, the one with BUCKS and HAIL").
+`"<puzzle_date>: <TILE1>-<TILE2>"` where TILE1/TILE2 are the first 2 alphabetical tiles across all 16, dash-joined. Example: `"2023-06-12: BUCKS-HAIL"`. Built at create_game time from the puzzle's data (before the shuffle — alphabetical order is order-independent), so it carries forward unchanged for the life of the game. The date says which daily puzzle; the 2 tiles are a peek at the board, grounding it in something memorable ("oh, the one with BUCKS and HAIL").
 
 ## Frontend
 
@@ -348,9 +352,12 @@ call for the same reason.
 ```
 src/connections/
   manifest.ts             TWO GameManifest entries (connectionsCoopGame + connectionsCompeteGame)
-                          sharing all the loaders below; differ on gametype string, name,
-                          numberOfPlayers, and the mode passed to startGameInClub. See the
-                          sibling-manifest pattern section above.
+                          sharing all the loaders below; differ on gametype string,
+                          numberOfPlayers, and the mode passed to startGameInClub (both name
+                          the BRAND, WordKnit). See the sibling-manifest pattern section above.
+  manifest.test.ts        startGameInClub's "this puzzle already has a game with a DIFFERENT
+                          roster" path: the rich error naming the players the existing game
+                          needs, instead of silently loading it.
   db.ts                   export const db = supabase.schema('connections')
   theme.css               JUST the NYT rank palette (yellow/green/blue/purple =
                           --connections-rank-0..3). The tile chrome (beige resting, dark hover
@@ -381,6 +388,17 @@ src/connections/
                           guess is a header pill ("● Bea found category"). Only coop reaches
                           the header — compete's guesses log is RLS-scoped to the caller.
     PlayArea.module.css
+    PlayArea.test.tsx     Render + concede-wiring tests (useGame + db mocked; everything else
+                          renders for real). Deliberately shallow — game logic lives in pgTAP +
+                          evaluate.test.ts; this proves the tree mounts and that compete wires
+                          Concede → connections.concede while coop wires End.
+    BoardCol.tsx          The board column of the PlayArea decomposition: bands + tile grid +
+                          floating Shuffle + the Clear/Submit input engine; renders the live
+                          board OR a history snapshot (PlayArea picks via `snap`).
+    InfoCol.tsx           The info column: near-zero state, the shared readouts in the fixed
+                          order (state readout → OpponentStrip (compete) → action row → help →
+                          setup disclosure → turn log). Every mutation is a named callback up;
+                          PlayArea owns the RPCs.
     Board.tsx             The board as ONE grid: solved/revealed categories as full-width
                           colored band rows (grid-column: 1 / -1, sorted by rank — the
                           unmatched ones revealed on game-over loss OR compete elimination)
@@ -404,18 +422,19 @@ src/connections/
                           Stateless/presentational. Clicking a `#N` opens that turn on the
                           board via the shared history viewer (see lib/history.ts).
     GameTurnLog.module.css
-    HintModal.tsx         Reveal-on-demand hint panel: one row per category, each gated behind
-                          a "Reveal" button that surfaces that category's first tile. Purely
-                          client-side per-player state (a Set of revealed ranks) — never
-                          broadcast or persisted. Uses the shared <FloatingPanel> shell; opened
-                          from the Hints button in the info-column action row.
-    HintModal.module.css
+    HintList.tsx          Reveal-on-demand hint list, rendered INLINE in the info column (the
+                          Hints button in the action row toggles it — no FloatingPanel, no
+                          modal; a hint reads as one more info-column readout): one row per
+                          category, each gated behind a "Reveal" button that surfaces that
+                          category's first tile. Purely client-side per-player state (a Set of
+                          revealed ranks) — never broadcast or persisted; the revealed set
+                          survives hide/show and clears when the play surface unmounts.
+    HintList.module.css
     SetupForm.tsx         Puzzle date picker + timer-mode field. Fetches the puzzle list +
                           (mode-scoped) club_game_status for the calendar overlay. Defaults
                           to the club's saved-default puzzle (last one started), stepping
                           one day forward if it's already finished; most-recent import for
                           a never-played club.
-    SetupForm.module.css
     Help.tsx              connections's help / rules modal (placeholder content), opened from the
                           GamePage menu — implements the manifest's `help` contract.
 
@@ -427,23 +446,35 @@ src/connections/
                           opponentMistakes (Map for compete; empty in coop), isEliminated.
                           Cross-cutting state (presence, manual-pause, members, timer) lives
                           on common's useCommonGame, consumed by GamePage.
+    useGame.test.ts       Realtime-channel lifecycle tests: one stable `connections:<gameId>`
+                          room per game (all coop peers must share the selection-Broadcast
+                          room), and the effect's dependency array is load-bearing — keyed on
+                          gameId, not on values the body never reads.
 
   lib/
     board.ts              Wire types for the `board` jsonb (Category, Board, CategoryRank).
     evaluate.ts           Pure rules engine: 4-of-4 → correct, 3-of-4 → oneAway.
     evaluate.test.ts      Unit tests for the boundary cases.
-    setup.ts              ConnectionsSetup type (puzzleId + timer) + defaults.
+    setup.ts              ConnectionsSetup type (CoopTurnSetup & { puzzleId, timer }) +
+                          DEFAULT_CONNECTIONS_SETUP (empty puzzleId, timer 'none',
+                          coop_style 'free-for-all').
     rankColors.ts         RANK_TOKEN: rank 0..3 → `--connections-rank-N` CSS-variable lookup.
                           Standalone file so components can import it without tripping Vite
                           Fast Refresh's "components-only file" rule. Consumed by Board
-                          and HintModal.
+                          and HintList.
     localOrder.ts         Per-player local-shuffle ordering helpers (Fisher–Yates shuffle +
                           reset). Purely view-local — no broadcast, no server write; losing
                           the order on pause is fine.
     localOrder.test.ts    Unit tests for the shuffle/reset helpers.
-    ownGuess.ts           Builds the caller's own below-board guess pill (correct / one-away /
-                          wrong) — the local half of the feedback split, pulled out of PlayArea
-                          so BoardCol and PlayArea share one builder.
+    defaultPuzzle.ts      Pure resolution of the setup dialog's DEFAULT puzzle pick (the club's
+                          saved default → step one day forward if that game's finished → most-
+                          recent import for a never-played club), extracted from SetupForm so
+                          the fiddly rules are unit-testable without the DB-fetching component.
+    defaultPuzzle.test.ts Unit tests for those default-pick rules.
+    nextPuzzle.ts         nextUnplayedPuzzle — the New-game walk-forward rule: the earliest
+                          puzzle after this game's puzzle_date that this club has no game for
+                          in this mode (see "New game" above).
+    nextPuzzle.test.ts    Unit tests for the walk-forward + fallback cases.
     history.ts            The turn-history replay (pure + unit-tested). Given the guess log + the
                           static board + a turn's **position** in the log, reconstruct the board
                           *as it was when that turn was submitted*: the bands matched by correct
@@ -506,7 +537,7 @@ Pause is common machinery — the presence/manual trigger sources, the overlay, 
 
 The additive server-authoritative tick model (`common.timers.ticks`, `tick_timer`, `useGameTimer`, the idempotent `submit_timeout`) is common machinery, documented once in [common.md → Idle accounting](../common.md#idle-accounting-timer-state-preservation). connections's specifics:
 
-- The timer is a **per-game setup choice** (the shared `<TimerField>`: None / Up / Down radio + MM:SS for countdown, 1s–60min), stored on `common.games.setup.timer` and validated in `create_game`. **Default: countdown 10:00.**
+- The timer is a **per-game setup choice** (the shared `<TimerField>`: None / Up / Down radio + MM:SS for countdown, 1s–60min), stored on `common.games.setup.timer` and validated in `create_game`. **Default: no timer** (`DEFAULT_CONNECTIONS_SETUP` seeds `timer: { kind: 'none' }`; the 10-minute countdown is only the pgTAP helper's default — see Tests below).
 - On countdown expiry the FE fires `connections.submit_timeout`, flipping play_state to the mode-appropriate terminal value — `lost` in coop, `lost_compete` in compete.
 
 ### Code-splitting
@@ -523,6 +554,11 @@ Standard — connections's `PlayArea` + `setupForm.Component` ship as their own 
 | `tests/connections/gameplay_test.sql` | Coop-mode submit_guess: payload validation, member-only enforcement, wrong/oneAway → players.mistake_count++ in lock-step, correct → guesses row + win check, 4-correct → play_state='won', 4-mistakes → play_state='lost', race idempotency on the coop partial unique index, submit_timeout happy + idempotency. |
 | `tests/connections/compete_test.sql` | Compete-mode delta: mode validation (rejects invalid mode), compete with <2 players rejected, per-player mistake decrement (caller's row only), per-player partial unique index allows different players to match same rank, first-to-all-4 → won_compete (winner {won:true}, others {won:false}, opponents can't submit post-win), elimination + collective loss → lost_compete, eliminated player's submit rejected, submit_timeout writes play_state lost_compete + outcome timeout, RLS scopes guesses caller-only while leaving players club-wide visible. |
 | `tests/connections/rls_test.sql` | dee (non-member) sees zero rows from both tables; mutating RPCs throw with 42501; direct INSERT into game tables is blocked at the grant layer. Includes a positive baseline (ada CAN see her own game). |
+| `tests/connections/end_game_test.sql` | The manual, NEUTRAL stop: `play_state='ended'`, status `{outcome:'manual', mode}`, every player's result `{won:false}` — plus the Realtime self-touch and already-terminal idempotency. |
+| `tests/connections/concede_test.sql` | The elimination-game concede: flips the shared conceded flag then re-runs `_maybe_finish_compete` (a conceder counts as not-alive); a concede keeps the game going while an opponent is still alive; both conceding ends it (nobody alive, nobody solved → `lost_compete`); coop is rejected. |
+| `tests/connections/replay_test.sql` | `replay_board` resets the working state on the SAME game row (the frozen board — categories AND tileOrder — stays; deleting the guess log is also what un-matches the categories); both modes reset ALL players; any game player, mid-game or finished; a non-player is rejected. |
+| `tests/connections/turn_order_test.sql` | Opt-in turn-by-turn coop: create_game seats the pointer on the chosen first player, an out-of-turn guess is rejected, and the turn advances on a fresh guess (correct or wrong — both consume the budget) but NOT on the duplicate-tile-set no-op. |
+| `tests/connections/club_game_status_test.sql` | The `club_game_status` view behind the setup form's calendar: the five-column shape (`game_id, club_handle, play_state, is_terminal, puzzle_date`) + RLS (a member sees their club's rows; a non-member sees none). |
 
 ### Per-game `setup.psql` helpers
 
@@ -536,8 +572,15 @@ Promoted out of inline test fixtures because every connections test needs them a
 | file | covers |
 |---|---|
 | `src/connections/lib/evaluate.test.ts` | The pure-function evaluator: 4-of-4 → correct (with rank + name + tiles), 3-of-4 → oneAway, 0..2 overlap → wrong, fewer-than-4 input → wrong (defensive), order independence, returned-tiles defensive-copy. |
+| `src/connections/lib/localOrder.test.ts` | The per-player local-shuffle ordering helpers (shuffle + reset). |
+| `src/connections/lib/history.test.ts` | The turn-history snapshot boundary (bands strictly-before, THIS turn's tiles still on the grid) + outcome tinting. |
+| `src/connections/lib/nextPuzzle.test.ts` | `nextUnplayedPuzzle` — the New-game walk-forward rule + the no-date fallback. |
+| `src/connections/lib/defaultPuzzle.test.ts` | The setup dialog's default-puzzle pick (saved default → step forward if finished → most-recent import). |
+| `src/connections/hooks/useGame.test.ts` | The realtime-channel lifecycle: the stable `connections:<gameId>` room and the effect's load-bearing dependency array (resubscribes on gameId, not on unread values). |
+| `src/connections/components/PlayArea.test.tsx` | Render + concede wiring (useGame/db mocked): the tree mounts; compete → `connections.concede`, coop → End. |
+| `src/connections/manifest.test.ts` | `startGameInClub`'s existing-game-different-roster path: the rich error naming the players the existing game needs. |
 
-No FE test for the broadcast / presence plumbing — per [testing.md → What we don't test](../testing.md#what-we-dont-test), realtime is the kind of integration the project covers by manual browser smoke. The hooks are exercised through the PlayArea there.
+The broadcast / presence *behavior* itself (selection events merging across peers, pause-on-disconnect) still has no FE test — per [testing.md → What we don't test](../testing.md#what-we-dont-test), that integration is covered by manual browser smoke. What `useGame.test.ts` pins is the channel *lifecycle* around it: the stable room name and the resubscription triggers.
 
 ## Future work
 

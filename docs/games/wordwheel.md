@@ -84,7 +84,7 @@ to spellingbee.
 | **outer tiles** | the eight ring tiles |
 | **pangram** | a word using all nine tiles (any 9-letter word fitting the wheel's multiset); +15 bonus |
 | **required / legal bands** | vocabulary difficulty bands (see spellingbee.md → *Vocabulary*): `required` (default 3) = the displayed goal words; `legal` (default 5) = the wider accepted set. Words above `required` but ≤ `legal` are **bonus** (accepted + scored, but not part of the goal). |
-| **rank ladder** | Start · Good · Solid · Nice · Great · Amazing · Genius (7 tiers); Genius at 70% of the required score. `src/wordwheel/lib/ranks.ts`. |
+| **rank ladder** | Start · Good · Solid · Nice · Great · Amazing · Genius (7 tiers); Genius at 70% of the required score. Shared with spellingbee: `src/common/lib/game/rankLadder.ts`. |
 
 ## Schema: `wordwheel.*`
 
@@ -102,9 +102,12 @@ spellingbee; the deltas:
 - **`wordwheel.games_state`** — the view the FE reads. Exposes the header columns
   **plus both word lists unconditionally** (during play and at terminal). The word
   lists are **not hidden**: the FE validates + scores guesses locally against them,
-  and the missed-words reveal at terminal is a client-side `required − found`. (The
-  base `games` table has a column-level grant blocking `authenticated`; the view is
-  the only read path.)
+  and the missed-words reveal at terminal is a client-side `required − found`. The
+  base table's column-level grant lists **every** column (nothing is withheld), so
+  the view is a **pure pass-through** — deliberately kept as one: every game's FE
+  reads `<schema>.games_state`, so the uniform seam is worth a view that currently
+  adds nothing but `security_invoker`. If a column ever needs hiding again, it goes
+  here and no FE changes.
 
 ### The seeds table: `wordwheel.pangrams`
 
@@ -257,8 +260,10 @@ word never appears in the list.
 > supabase start`**. If live updates seem broken right after adding this game, restart
 > the stack.
 
-`schema_test.sql` asserts the publication membership so a *dropped* publish line (the
-permanent version of this failure) is caught in CI.
+The central `supabase/tests/common/realtime_publication_test.sql` pins the
+publication membership (both `wordwheel.games` and `wordwheel.found_words`) so a
+*dropped* publish line (the permanent version of this failure) is caught in CI;
+`schema_test.sql` defers to it.
 
 ## Frontend
 
@@ -386,11 +391,13 @@ wordwheel-specific tests:
   returns both a fitting word *and* an over-demanding (letter-repeating) one, proving
   the multiset-fit filter is **not** in the SQL helper (it's in the edge function);
   plus the centre + subset exclusions.
-- **`schema_test.sql`** — includes the **realtime publication membership** assertion
-  described above, alongside the gametype registration, readable seeds (keyed by
+- **`schema_test.sql`** — the gametype registration, readable seeds (keyed by
   `letters`, with a guard that the generated `mask` matches
   `common.word_letter_mask`), and the unconditional word-list exposure on
-  `games_state`.
+  `games_state`. The **realtime publication membership** assertion described
+  above now lives in the central
+  `supabase/tests/common/realtime_publication_test.sql`, which `schema_test.sql`
+  defers to.
 - **`create_game_test.sql`** — accepts duplicate outers + a centre repeating an outer
   (title `E·ABCDEFGG` — duplicates appear twice, sorted); `custom_letters_test.sql`
   accepts duplicate custom letters; `gameplay_test.sql` smokes a repeat-letter word
@@ -406,11 +413,14 @@ wordwheel-specific tests:
 
 ### FE Vitest (`src/wordwheel/`)
 
-Ports of spellingbee's suite (`ranks`, `letterMask`, `setup`, `displayRows`,
-`PlayArea`) adjusted for nine tiles / +15 / tile-spending (the old `pangram.ts` lib +
-test were deleted — "is a pangram" can't be answered from the word alone under
-multisets, and the shipped entry's `is_pangram` was already the authority
-everywhere), plus:
+The wordwheel suite — `lib/letterMask.test.ts`, `lib/setup.test.ts`,
+`lib/tiles.test.ts`, plus the component tests below — is spellingbee's shape
+adjusted for nine tiles / +15 / tile-spending. The rank-ladder and display-rows
+coverage moved to `common/` with the hoisted shared modules
+(`src/common/lib/game/rankLadder.test.ts`, `foundWordsDisplayRows.test.ts`), so
+it isn't duplicated here. (The old `pangram.ts` lib + test were deleted — "is a
+pangram" can't be answered from the word alone under multisets, and the shipped
+entry's `is_pangram` was already the authority everywhere.)
 
 - **`TypedWord.test.tsx`** — count-based dimming: off-wheel dims; on a single-tile
   wheel the 2nd occurrence dims; on a two-e/two-g wheel `BEE` and `EGGED` are fully

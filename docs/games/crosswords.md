@@ -37,8 +37,8 @@ This is a **documented v3 layout exception** (see §7).
 
 - **`crosswords_coop`** (`[1, 8]`) — one **shared** grid; everyone's keystrokes
   are visible live (free-for-all). Solved → the team `won`. A manual mutual
-  give-up (`end_game`) ends as a neutral **`ended`** ("finished") — not a loss;
-  putting an unfinished crossword down is normal.
+  give-up (`end_game`) ends as a neutral **`ended`** (`outcome: 'manual'`) — not
+  a loss; putting an unfinished crossword down is normal.
 - **`crosswords_compete`** (`[2, 8]`) — the same puzzle, each player fills a
   **private** grid. The **first fully-correct grid wins outright** (`won_compete`
   + `status.winner_username`). Per-player **concede** (`common.concede`);
@@ -55,7 +55,8 @@ Two puzzle sources, ONE table for only one of them:
   (`crosswords:import`, `source = 'library'`). `meta` is the whole template
   (`PuzzleTemplate` = PuzzleMeta + the initial grid cells) in one jsonb column;
   `solution` is a **shielded** jsonb column (column grants: `authenticated` gets
-  every column *except* `solution`; a pgTAP `throws_ok` pins that).
+  only `(id, source, meta, created_at)` — `solution` *and* `content_hash` are
+  both withheld; a pgTAP `throws_ok` pins the `solution` shield).
 - **NYT games carry their puzzle inline** — an NYT import does **not** write a
   `puzzles` row (that's the curated library). It passes the fetched
   `{ meta, solution }` straight into `create_game`'s inline `board` arg (like
@@ -121,7 +122,7 @@ plain RPCs — no edge function needed.
 | `check_cells(target_game, cells jsonb)` | FE resolves letter/word/puzzle scope via `cursor.ts` and sends coordinates; server sets/clears `wrong` (skipping empty/pencil). Both modes. |
 | `reveal_cells(target_game, cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil. **Coop only** (reveal-all would trivially win the compete race). Runs the solve check afterwards, since a reveal can complete the grid — including "Reveal puzzle", which ends the game as a normal `won` (deliberate; §9). On success the FE broadcasts the revealed coords on the peer channel so teammates flash them in the actor's color (the CDC arrives colorless). |
 | `clear_board(target_game)` | Destructive "start over" (crossplay parity): blanks every fillable cell on the caller's grid (the shared grid in coop, own in compete) and drops its `pencil` / `wrong` / `revealed` flags + cryptic edge marks. Givens live on the template, so they're preserved; the answer is untouched. Guards: membership, `play_state = playing`, not conceded. No solve check (clearing only removes fills). FE surfaces it as a **confirmed** game-menu item. |
-| `end_game(target_game)` | Coop mutual give-up → neutral `ended` ("finished"). Terminal unshields the solution (`games_state`), but the FE only shows it on demand — the "Reveal board" menu item (§7 → Terminal). |
+| `end_game(target_game)` | Coop mutual give-up → neutral `ended` (`outcome: 'manual'`). Terminal unshields the solution (`games_state`), but the FE only shows it on demand — the "Reveal board" menu item (§7 → Terminal). |
 | `concede` / `submit_timeout` | Standard. The setup form offers the shared `<TimerField>` like every other game; a countdown expiring takes the whole table down (coop → `lost`, compete → `lost_compete`), stamped `outcome: 'timeout'` so the verdict reads "Out of time" rather than the concede wording those same states otherwise carry. |
 
 ## 5. Puzzle sourcing
@@ -305,11 +306,12 @@ sizing).
 - **Terminal** — no modal carries the verdict
   ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
   `buildOver`'s terse copy lands as a permanent pill in the active-clue slot
-  ("Won: grid complete" / "Won: solved it first" / "Lost: out of the race" /
-  a compete loss naming the winner with their identity dot — "● moth solved it
-  first"; "Everyone conceded" carries no `Lost:` prefix, nobody was beaten; a
-  countdown expiring reads "Lost: out of time" in coop and "Out of time — no
-  winner" in compete, the roster's shared phrasing, keyed off
+  ("Won: grid complete" / "Won: solved it first" / a compete loss naming the
+  winner with their identity dot — "● moth solved it first"; a compete race
+  that empties out because everyone conceded lands on `lost_compete` —
+  `common.concede` names the collective loss — and reads "Lost: out of the
+  race"; a countdown expiring reads "Lost: out of time" in coop and "Out of
+  time — no winner" in compete, the roster's shared phrasing, keyed off
   `status.outcome === 'timeout'`). A **coop solve** pops the shared
   `<CelebrationDialog>` via `useCelebration(playState === 'won')` — coop-only by
   the states vocabulary (compete writes `won_compete`), at the moment of the
@@ -398,11 +400,18 @@ non-game menus keep standard Esc-restores-focus a11y.)
 
 - pgTAP `supabase/tests/crosswords/` — create (library + inline board) / gameplay
   (set_cell, check, reveal, set_mark, `_matches`) / win (solve, pencil-counts,
-  first-correct-wins) / rls (compete privacy) / concede + give-up. Plus
+  first-correct-wins) / rls (compete privacy) / concede + give-up / timeout
+  (countdown expiry → a loss for everyone, coop `lost` / compete `lost_compete`
+  with `outcome: 'timeout'`; idempotent by no-op on a second call). Plus
   `common/scratchpad_test.sql`.
-- Vitest — `lib/` (`cursor`, `nyt`, `importFile`, `marks`, `enumeration`),
-  `hooks/useCells.test.ts`, `pdf/*.test.ts`, and the parser + content-hash tests
-  next to the CLI (`supabase/scripts/crosswords/`).
+- Vitest — `lib/` (`cursor`, `nyt`, `importFile`, `marks`, `enumeration`,
+  `guardian` — the entry-based Guardian conversion incl. the
+  answers-withheld `GuardianConvertError` throw, `nytOverlay` — the
+  overlay-PNG circle/bar detector pinned against real NYT fixtures, byte-for-byte
+  with crossplay's, `clueRuns` — the PDF clue-text italic-run parse/wrap
+  arithmetic under a fake text measure), `hooks/useCells.test.ts` +
+  `hooks/useGridKeyboard.test.ts`, `pdf/*.test.ts`, and the parser +
+  content-hash tests next to the CLI (`supabase/scripts/crosswords/`).
 - e2e `e2e/crosswords.e2e.ts` — solve; check/reveal + the terminal "Reveal
   board" menu flow (disabled mid-game, blanks stay blank until clicked);
   compete win; compete privacy (opponent never sees your letters); coop peer
@@ -470,10 +479,6 @@ future cleanup pass:
   way. Reveal here is a scoped solving aid (letter / word / puzzle) with no honest
   boundary between using it once and giving up, so a completed grid counts as
   completed however it got there.
-- **Vestigial `'nyt'` in `crosswords.puzzles.source`'s check constraint.** Nothing
-  writes `'nyt'` anymore (NYT games are self-contained — no `puzzles` row; the CLI
-  only writes `'library'`). A harmless spare; drop it from the constraint if you want
-  the schema to state the truth (a schema change, hence not done as a comment fix).
 - ~~**Dead `crosswords.games` Realtime wiring.**~~ **Resolved (2026-07-12 supabase
   review).** `crosswords.games` was published + touched by four no-op "Realtime touch"
   self-updates in the terminal RPCs to wake FE subscribers that never existed (`useGame`
@@ -481,7 +486,8 @@ future cleanup pass:
   four touches were removed to lean the migration; `crosswords` now publishes only
   `cells`. Re-add both together (publication line + a writing-RPC touch) if a feature
   ever needs the FE to react to a `crosswords.games` change. Membership is pinned by
-  `tests/crosswords/publication_test.sql`.
+  the central `supabase/tests/common/realtime_publication_test.sql` (the
+  `crosswords.cells` row — and `crosswords.games` deliberately absent).
 - **Terminal cursor navigation is half-frozen.** At terminal the keyboard is disabled
   but a mouse click still moves the cursor (`onCellClick` isn't gated on
   `isPlayable`). Inconsistent, not a bug — decide fully-freeze vs fully-allow
