@@ -358,7 +358,7 @@ Enforced by ESLint's `no-restricted-imports` (see [`eslint.config.js`](../eslint
 
 If you find yourself wanting to import a component from another game, that's a signal to promote it to `common/`. If a `common/` piece wants to import from a game, the abstraction is wrong — generalize the common piece (often: take a `db` handle or a render prop) so it doesn't need to know the game.
 
-`GAMETYPES` in `eslint.config.js` is the single source of truth for the rule. When a new game lands, add it there too.
+`GAMETYPES` in `eslint.config.js` is the list the rule works from, and it's **derived** — a regex over `src/games.ts`'s manifest imports, cross-checked against the `src/<name>/manifest.ts` folders on disk. A new game needs no lint edit; a folder registered in neither place throws at config-load time (`npm run lint` fails with the mismatch). It's derived because a hand-maintained copy drifted twice, and drift here is silent: a game missing from the forbidden list produces no error, it just stops being guarded.
 
 ### CSS Modules + theme
 

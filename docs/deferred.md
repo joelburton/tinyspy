@@ -178,7 +178,6 @@ and connections (turn-log / word-list families) and stackdown.
 ## Tooling
 
 - **pgTAP coverage gaps around the replay RPCs** (2026-07-31 review). Three known-thin spots, none of them a bug: the non-player rejection tests use `throws_ok(…, NULL, NULL, …)`, so *any* error passes and the 42501 errcode isn't pinned; mid-game restart (as opposed to at-terminal) is asserted only implicitly, and only in scrabble; and a coop `target_rank` carried through a restart is untested in spellingbee/wordwheel (`coop_target_test` never restarts, `restart_test` never sets a coop target), as is an explicit `"target_rank": null` in coop. Worth tightening next time those files are open.
-- **Generate ESLint `GAMETYPES` from `src/games.ts`.** Currently the games list is hand-maintained in two places (`src/games.ts` + `eslint.config.js`). A tiny script could derive the ESLint list from the registry. Now worth doing: with thirteen games registered the dup has already drifted **silently** — a stretch where five games were missing from `GAMETYPES` left their cross-game imports unguarded, and nothing failed (a game simply absent from the forbidden list produces no lint error). So the old "a missed update is obvious" assumption was wrong; deriving from the registry is the real fix (the list was manually re-synced in the meantime).
 
 ## Far future
 

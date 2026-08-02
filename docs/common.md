@@ -490,7 +490,7 @@ Each gametype's manifest implements [`GameManifest`](../src/common/lib/games.ts)
 
 Adding a game is one line in `src/games.ts` plus the new folder. Removing a game is one line removed plus `rm -rf` the folder plus dropping the schema. Nothing else in the codebase names a specific game.
 
-ESLint enforces the import-direction rules; see [`eslint.config.js`](../eslint.config.js) for the `no-restricted-imports` configuration. `GAMETYPES` in that file is the source of truth for which folders count as games.
+ESLint enforces the import-direction rules; see [`eslint.config.js`](../eslint.config.js) for the `no-restricted-imports` configuration. Which folders count as games is **derived** there from `src/games.ts` (and cross-checked against the folders holding a `manifest.ts`), so adding a game stays one line in the registry — the lint list follows, and a mismatch fails `npm run lint` rather than silently unguarding a game.
 
 ### Joining a game — the invitation popup
 

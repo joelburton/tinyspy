@@ -53,7 +53,10 @@ import { wordiplyCoopGame, wordiplyCompeteGame } from './wordiply/manifest'
  *
  * ESLint's `no-restricted-imports` carves this file out as the one
  * place allowed to import from every `<game>/` folder. Don't replicate
- * those imports elsewhere.
+ * those imports elsewhere. `eslint.config.js` also *reads* this file to
+ * derive that rule's game list — it regexes the `from './<name>/manifest'`
+ * specifiers below, so keep them in that literal shape (no aliasing the
+ * path, no computed imports) or a game silently stops being guarded.
  */
 export const games: GameManifest[] = [
   codenamesduetGame,

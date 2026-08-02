@@ -1,3 +1,6 @@
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
@@ -5,32 +8,68 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
+const SRC = join(dirname(fileURLToPath(import.meta.url)), 'src')
+
 /**
- * Registered game folders in this monorepo. Single source of truth for
- * the cross-feature import-direction rules below. When a new game
- * arrives (e.g. boggle), append its name here AND in `src/games.ts`.
+ * Registered game folders in this monorepo — the input to the cross-feature
+ * import-direction rules below. **Derived, not hand-maintained.**
  *
- * This list SHOULD be derived from `src/games.ts` so the two can't drift —
- * and they did: for a while this list was missing five games, silently
- * unguarding their cross-game imports (nothing fails when a game is simply
- * absent from the forbidden list). Generating it from the registry is
- * tracked in deferred.md. Until then, adding a game means editing both.
+ * This used to be a literal array, which drifted twice: once missing five
+ * games, later missing wordwheel + wordiply. Drift here is *silent* by
+ * construction — a game absent from the forbidden list simply produces no
+ * lint error, so nothing fails and nobody notices. Hence deriving it.
+ *
+ * We read `src/games.ts` (the registry, and the app's own single source of
+ * truth) rather than importing it: this config is plain JS loaded by Node,
+ * and `games.ts` pulls in every game's manifest, which pulls in React
+ * components. A regex over the import specifiers costs nothing and can't
+ * fail on a broken game.
+ *
+ * Matching `from './<name>/manifest'` means a game contributes exactly one
+ * entry however many manifests it exports (psychicnum's coop + compete pair
+ * ship from one import), and the result comes out in registry order.
  */
-// Keep in registry order, mirroring `src/games.ts`. All ten folders must be
-// listed — a missing one silently unguards cross-game imports of it.
 const GAMETYPES = [
-  'codenamesduet',
-  'psychicnum',
-  'connections',
-  'spellingbee',
-  'bananagrams',
-  'waffle',
-  'wordle',
-  'stackdown',
-  'scrabble',
-  'boggle',
-  'crosswords',
+  ...new Set(
+    Array.from(
+      readFileSync(join(SRC, 'games.ts'), 'utf8').matchAll(
+        /from '\.\/([a-z0-9]+)\/manifest'/g,
+      ),
+      (m) => m[1],
+    ),
+  ),
 ]
+
+/**
+ * Cross-check the derived list against the filesystem, and fail loudly on a
+ * mismatch.
+ *
+ * Deriving alone fixes the *copy* that drifts, but not the case the rule
+ * actually cares about: a `src/<game>/` folder that exists on disk and isn't
+ * in the registry is still unguarded. A game folder is exactly one with a
+ * `manifest.ts` (`common/` and `types/` have none), so the two sets must
+ * agree in both directions. Throwing at config-load time turns what was a
+ * silent hole into a broken `npm run lint` — the whole point of the exercise.
+ */
+const manifestFolders = readdirSync(SRC, { withFileTypes: true })
+  .filter((e) => e.isDirectory() && existsSync(join(SRC, e.name, 'manifest.ts')))
+  .map((e) => e.name)
+
+const missing = manifestFolders.filter((g) => !GAMETYPES.includes(g))
+const extra = GAMETYPES.filter((g) => !manifestFolders.includes(g))
+if (missing.length || extra.length) {
+  throw new Error(
+    `eslint.config.js: the game registry and src/ disagree.\n` +
+      (missing.length
+        ? `  Folders with a manifest.ts but NOT in src/games.ts: ${missing.join(', ')}\n` +
+          `  (their cross-game imports would be unguarded — register them.)\n`
+        : '') +
+      (extra.length
+        ? `  In src/games.ts but no src/<name>/manifest.ts: ${extra.join(', ')}\n` +
+          `  (a half-finished removal? the app won't build either.)\n`
+        : ''),
+  )
+}
 
 /**
  * Build the `patterns` array for `no-restricted-imports` that blocks
