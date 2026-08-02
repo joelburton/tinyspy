@@ -61,8 +61,8 @@ export function turnSnapshot(
     // A green / assassin reveal is GLOBAL + permanent; a neutral marks only the
     // guesser's own seat (the Duet per-direction rule — the partner can still
     // contact the word as their agent).
-    if (g.outcome === 'G') revealedAs.set(g.position, 'G')
-    else if (g.outcome === 'A') revealedAs.set(g.position, 'A')
+    if (g.result === 'G') revealedAs.set(g.position, 'G')
+    else if (g.result === 'A') revealedAs.set(g.position, 'A')
     else if (g.guesser_seat === 'A') neutralA.add(g.position)
     else neutralB.add(g.position)
   }

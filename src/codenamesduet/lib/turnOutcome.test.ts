@@ -8,11 +8,11 @@ import { turnOutcome } from './turnOutcome'
 import type { GuessRow } from '../hooks/useBoard'
 
 /** A guess with just the field turnOutcome reads; the rest is filler. */
-const g = (outcome: GuessRow['outcome']): GuessRow => ({
+const g = (result: GuessRow['result']): GuessRow => ({
   position: 0,
   word: 'WORD',
   guesser_seat: 'B',
-  outcome,
+  result,
   turn_number: 1,
   guessed_at: '2026-06-12T18:00:00Z',
 })

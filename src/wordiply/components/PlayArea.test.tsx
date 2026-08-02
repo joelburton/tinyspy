@@ -42,7 +42,7 @@ function loadedGame(over: Partial<WordiplyGame> = {}): WordiplyGame {
 }
 
 function guess(word: string, i: number, userId = 'u1'): GuessRow {
-  return { id: i, game_id: 'g1', user_id: userId, word, length: word.length, guess_index: i, guessed_at: `2026-01-01T00:0${i}:00Z` }
+  return { id: i, game_id: 'g1', user_id: userId, word, length: word.length, seq: i, guessed_at: `2026-01-01T00:0${i}:00Z` }
 }
 
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]

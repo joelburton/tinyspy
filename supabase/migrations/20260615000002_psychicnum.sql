@@ -53,7 +53,7 @@
 --   - The hidden-wordlist-style reveal pattern (secrets column
 --     gated through a SECURITY DEFINER helper called inside a
 --     security_invoker view)
---   - A public per-player progress counter (players.secrets_found)
+--   - A public per-player progress counter (players.found_secrets_count)
 --     that leaks the COUNT but not the values — the smallest
 --     "show opponents your progress, not your answers" surface
 --
@@ -146,8 +146,8 @@ create table psychicnum.players (
   -- compete it's what powers opponent tension: the FE watches an opponent's
   -- count tick up and announces "X guessed a secret number" without leaking
   -- which one. (In coop it's incidental — coop shows the actual guesses.)
-  secrets_found int not null default 0
-    check (secrets_found between 0 and 3),
+  found_secrets_count int not null default 0
+    check (found_secrets_count between 0 and 3),
   primary key (game_id, user_id)
 );
 
@@ -521,8 +521,8 @@ begin
     case when mode = 'coop'
          then jsonb_build_object(
                 'guesses_remaining', s_guesses,
-                'secrets_found', 0,
-                'total_secrets', array_length(s_secrets, 1))
+                'found_secrets_count', 0,
+                'required_secrets_count', array_length(s_secrets, 1))
          else jsonb_build_object(
                 'guesses_remaining', s_guesses * array_length(player_user_ids, 1))
     end
@@ -563,7 +563,7 @@ grant execute on function psychicnum.create_game(text, jsonb, uuid[], text) to a
 --   compete — the CALLER's own distinct correct guesses; each
 --             racer must find all three themselves.
 --
--- A correct guess bumps the caller's players.secrets_found (the
+-- A correct guess bumps the caller's players.found_secrets_count (the
 -- public per-player count that drives compete opponent tension).
 --
 -- A word already guessed (in scope) is rejected — the FE disables
@@ -591,7 +591,7 @@ declare
   caller_remaining int;
   total_remaining int;
   found_count int;
-  total_secrets int;
+  required_secrets_count int;
   player_results jsonb;
   winner_name text;
   terminal_state text;
@@ -684,7 +684,7 @@ begin
   -- it's genuinely new) — bump the caller's public found-count.
   if is_correct then
     update psychicnum.players
-       set secrets_found = secrets_found + 1
+       set found_secrets_count = found_secrets_count + 1
      where game_id = target_game and user_id = caller_id;
   end if;
 
@@ -699,7 +699,7 @@ begin
    where pp.game_id = target_game and not gp.conceded;
 
   -- Distinct secrets found in scope (coop: the team; compete: the caller).
-  -- Counting real guesses keeps this independent of the secrets_found tally.
+  -- Counting real guesses keeps this independent of the found_secrets_count tally.
   -- `guesses.is_correct` is QUALIFIED on purpose: this function also holds a
   -- local `is_correct` for the caller's own verdict, and PL/pgSQL treats an
   -- unqualified match as an error rather than picking one. (The column was
@@ -708,10 +708,10 @@ begin
     from psychicnum.guesses
    where game_id = target_game and kind = 'guess' and guesses.is_correct
      and (g.mode = 'coop' or user_id = caller_id);
-  total_secrets := array_length(g.secrets, 1);
+  required_secrets_count := array_length(g.secrets, 1);
 
   -- ─── All three found: caller (compete) / team (coop) wins ─
-  if found_count >= total_secrets then
+  if found_count >= required_secrets_count then
     select username into winner_name
       from common.profiles where user_id = caller_id;
 
@@ -784,8 +784,8 @@ begin
       -- mid-game update_state below is never reached on a terminal guess, so
       -- the merged-in value would otherwise be one behind.
       || case when g.mode = 'coop'
-              then jsonb_build_object('secrets_found', found_count,
-                                      'total_secrets', total_secrets)
+              then jsonb_build_object('found_secrets_count', found_count,
+                                      'required_secrets_count', required_secrets_count)
               else '{}'::jsonb
          end,
       player_results
@@ -814,11 +814,11 @@ begin
       -- How far along the team is, for the club-list readout. COOP ONLY: in
       -- compete each racer hunts the same three secrets on their own, and this
       -- column is club-wide readable, so a shared count would tell you exactly
-      -- how close your opponent is. `total_secrets` rides along so the label
+      -- how close your opponent is. `required_secrets_count` rides along so the label
       -- can render "2/3" without knowing the rules.
       || case when g.mode = 'coop'
-              then jsonb_build_object('secrets_found', found_count,
-                                      'total_secrets', total_secrets)
+              then jsonb_build_object('found_secrets_count', found_count,
+                                      'required_secrets_count', required_secrets_count)
               else '{}'::jsonb
          end
   );
@@ -1282,7 +1282,7 @@ begin
 
   update psychicnum.players
      set guesses_remaining = v_guesses,
-         secrets_found = 0
+         found_secrets_count = 0
    where game_id = target_game;
 
   delete from psychicnum.guesses where game_id = target_game;

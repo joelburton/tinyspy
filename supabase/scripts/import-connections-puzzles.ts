@@ -21,7 +21,7 @@
  * Our target shape is `connections.puzzles`:
  *
  *     { source_id: text,      // String(record.id)
- *       nyt_date:  date,      // record.date
+ *       puzzle_date:  date,      // record.date
  *       categories: jsonb }   // record.answers, normalized
  *
  * Mapping notes:
@@ -89,7 +89,7 @@ type Category = {
 
 type PuzzleRow = {
   source_id: string
-  nyt_date: string
+  puzzle_date: string
   categories: Category[]
 }
 
@@ -149,7 +149,7 @@ function validateShape(record: unknown): asserts record is UpstreamRecord {
 function toPuzzleRow(record: UpstreamRecord): PuzzleRow {
   return {
     source_id: String(record.id),
-    nyt_date: record.date,
+    puzzle_date: record.date,
     categories: record.answers.map((ans, rank) => ({
       // Rank derived from array index per Joel's note: NYT dropped
       // `level` in later puzzles but `answers[]` is always

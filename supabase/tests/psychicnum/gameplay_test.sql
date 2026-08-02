@@ -21,7 +21,7 @@
 --   - a word not on the board is rejected
 --   - wrong guess decrements EVERYONE's budget, returns 'wrong'
 --   - finding a secret (not the last) returns 'correct', game continues,
---     and bumps the caller's players.secrets_found
+--     and bumps the caller's players.found_secrets_count
 --   - re-guessing a taken word (game-wide) is rejected
 --   - request_hint logs a kind='hint' row with the secret's CLUE (or the
 --     "No hint available" fallback); request_reveal logs a kind='reveal' row
@@ -113,13 +113,13 @@ select is(
   'coop: one secret found keeps play_state=playing'
 );
 
--- (5) ada's secrets_found bumped to 1
+-- (5) ada's found_secrets_count bumped to 1
 select is(
-  (select secrets_found from psychicnum.players
+  (select found_secrets_count from psychicnum.players
     where game_id = (select id from coop_g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1,
-  'coop: a correct guess bumps the caller''s secrets_found'
+  'coop: a correct guess bumps the caller''s found_secrets_count'
 );
 
 -- (6) re-guessing a taken word (game-wide in coop) is rejected

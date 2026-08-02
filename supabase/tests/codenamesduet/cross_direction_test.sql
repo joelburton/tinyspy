@@ -77,7 +77,7 @@ select is(
 select is(
   (select count(*)::int from codenamesduet.guesses
     where game_id = (select id from g1) and position = (select p_ng from cells)
-      and guesser_seat = 'B' and outcome = 'N'),
+      and guesser_seat = 'B' and result = 'N'),
   1,
   'the guess was logged to codenamesduet.guesses'
 );

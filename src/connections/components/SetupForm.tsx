@@ -11,10 +11,10 @@ import styles from '../../common/components/fields/setupForm.module.css'
 /** A puzzle entry as the form needs it — id + date. Date is
  *  nullable on the table now (non-NYT puzzles may carry NULL),
  *  but the date-picker and calendar only ever care about
- *  rows whose nyt_date IS NOT NULL, so we narrow at fetch time. */
+ *  rows whose puzzle_date IS NOT NULL, so we narrow at fetch time. */
 type PuzzleEntry = {
   id: string
-  nyt_date: string
+  puzzle_date: string
 }
 
 /** Per-club game-state row from `connections.club_game_status`. */
@@ -22,7 +22,7 @@ type ClubGameStatusRow = {
   game_id: string
   play_state: string
   is_terminal: boolean
-  nyt_date: string
+  puzzle_date: string
 }
 
 /**
@@ -44,7 +44,7 @@ type ClubGameStatusRow = {
  *     component (None / Up / Down with MM:SS input).
  *
  * On mount we fetch two lists:
- *   1. All puzzles (id + nyt_date), filtered to non-NULL dates
+ *   1. All puzzles (id + puzzle_date), filtered to non-NULL dates
  *      — drives both the date input's min/max and the calendar
  *      square selectability.
  *   2. Per-club game statuses (`connections.club_game_status`) —
@@ -79,9 +79,9 @@ export function SetupForm({ brand, clubHandle, mode, players, value, onChange }:
   useEffect(function loadPuzzleList() {
     let cancelled = false
     db.from('puzzles')
-      .select('id, nyt_date')
-      .not('nyt_date', 'is', null)
-      .order('nyt_date', { ascending: false })
+      .select('id, puzzle_date')
+      .not('puzzle_date', 'is', null)
+      .order('puzzle_date', { ascending: false })
       .then(({ data, error }) => {
         if (cancelled) return
         if (error || !data) {
@@ -111,7 +111,7 @@ export function SetupForm({ brand, clubHandle, mode, players, value, onChange }:
   useEffect(function loadClubGameStatuses() {
     let cancelled = false
     db.from('club_game_status')
-      .select('game_id, play_state, is_terminal, nyt_date')
+      .select('game_id, play_state, is_terminal, puzzle_date')
       .eq('club_handle', clubHandle)
       .eq('mode', mode)
       .then(({ data, error }) => {
@@ -146,7 +146,7 @@ export function SetupForm({ brand, clubHandle, mode, players, value, onChange }:
 
     // Dates the club has FINISHED (won/lost) — the step-forward trigger.
     const finishedDates = new Set(
-      statuses.filter((r) => r.is_terminal).map((r) => r.nyt_date),
+      statuses.filter((r) => r.is_terminal).map((r) => r.puzzle_date),
     )
     const pickId = resolveDefaultPuzzle(puzzles, finishedDates, s.puzzleId)
     if (pickId && pickId !== s.puzzleId) onChange({ ...s, puzzleId: pickId })
@@ -158,12 +158,12 @@ export function SetupForm({ brand, clubHandle, mode, players, value, onChange }:
   //   - clubGameStatuses: per-date outcome bucket for THIS club's
   //     connections games. Drives which squares are colored.
   const puzzleDates = useMemo(
-    () => new Set((puzzles ?? []).map((p) => p.nyt_date)),
+    () => new Set((puzzles ?? []).map((p) => p.puzzle_date)),
     [puzzles],
   )
   const clubGameStatuses = useMemo(() => {
     const m = new Map<string, OutcomeBucket>()
-    for (const row of statuses ?? []) m.set(row.nyt_date, bucketForRow(row))
+    for (const row of statuses ?? []) m.set(row.puzzle_date, bucketForRow(row))
     return m
   }, [statuses])
 
@@ -191,14 +191,14 @@ export function SetupForm({ brand, clubHandle, mode, players, value, onChange }:
   // The `<input type="date">` constraints. min/max bound the
   // picker to the dates we actually have; the JS-side check on
   // change re-resolves to a puzzle id.
-  const dates = puzzles.map((p) => p.nyt_date)
+  const dates = puzzles.map((p) => p.puzzle_date)
   const minDate = dates[dates.length - 1]
   const maxDate = dates[0]
   const selectedDate =
-    puzzles.find((p) => p.id === s.puzzleId)?.nyt_date ?? maxDate
+    puzzles.find((p) => p.id === s.puzzleId)?.puzzle_date ?? maxDate
 
   function handleDateChange(nextDate: string) {
-    const match = puzzles?.find((p) => p.nyt_date === nextDate)
+    const match = puzzles?.find((p) => p.puzzle_date === nextDate)
     if (!match) return  // out-of-range date typed into the field
     onChange({ ...s, puzzleId: match.id })
   }

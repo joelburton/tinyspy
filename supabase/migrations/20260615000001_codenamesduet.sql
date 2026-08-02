@@ -79,7 +79,7 @@ create table codenamesduet.games (
   check (user_a_id <> user_b_id)
 );
 
-create index games_club_handle_idx on codenamesduet.games (club_handle);
+create index codenamesduet_games_club_handle_idx on codenamesduet.games (club_handle);
 
 -- ============================================================
 -- codenamesduet.word_pool — source of words to pick 25 from
@@ -145,7 +145,9 @@ create table codenamesduet.clues (
 -- history the Game Log replays. A word can legitimately be guessed
 -- TWICE — neutral by one player, then agent/neutral/assassin by the
 -- other — so the per-word row can't hold the history. `guesser_seat`
--- is the seat that made the guess; `outcome` is the label on the
+-- is the seat that made the guess; `result` is the label on the (connections'
+-- name for the same per-guess verdict; it also keeps the column clear of the
+-- status-jsonb `outcome` key, which names why a GAME ended)
 -- clue-giver's (i.e., the partner's) key.
 
 create table codenamesduet.guesses (
@@ -153,12 +155,12 @@ create table codenamesduet.guesses (
   game_id uuid not null references codenamesduet.games(id) on delete cascade,
   position int not null check (position between 0 and 24),
   guesser_seat text not null check (guesser_seat in ('A', 'B')),
-  outcome text not null check (outcome in ('G', 'N', 'A')),
+  result text not null check (result in ('G', 'N', 'A')),
   turn_number int not null,
   guessed_at timestamptz not null default now()
 );
 
-create index codenamesduet_guesses_game_idx on codenamesduet.guesses (game_id);
+create index codenamesduet_guesses_game_id_idx on codenamesduet.guesses (game_id);
 
 -- ============================================================
 -- RLS
@@ -724,7 +726,7 @@ begin
 
   -- Log every guess (full per-guess history for the Game Log; a word can be
   -- guessed twice — once per seat).
-  insert into codenamesduet.guesses (game_id, position, guesser_seat, outcome, turn_number)
+  insert into codenamesduet.guesses (game_id, position, guesser_seat, result, turn_number)
   values (target_game, target_position, caller_seat, revealed_label, g_row.turn_number);
 
   -- Denormalize the board state onto codenamesduet.words. Green (agent contacted) and

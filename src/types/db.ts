@@ -73,26 +73,26 @@ export type Database = {
       }
       progress: {
         Row: {
-          done: boolean
           finished_at: string | null
           game_id: string
           placed: number
+          solved: boolean
           unplaced: number
           user_id: string
         }
         Insert: {
-          done?: boolean
           finished_at?: string | null
           game_id: string
           placed?: number
+          solved?: boolean
           unplaced: number
           user_id: string
         }
         Update: {
-          done?: boolean
           finished_at?: string | null
           game_id?: string
           placed?: number
+          solved?: boolean
           unplaced?: number
           user_id?: string
         }
@@ -356,8 +356,8 @@ export type Database = {
           guessed_at: string
           guesser_seat: string
           id: string
-          outcome: string
           position: number
+          result: string
           turn_number: number
         }
         Insert: {
@@ -365,8 +365,8 @@ export type Database = {
           guessed_at?: string
           guesser_seat: string
           id?: string
-          outcome: string
           position: number
+          result: string
           turn_number: number
         }
         Update: {
@@ -374,8 +374,8 @@ export type Database = {
           guessed_at?: string
           guesser_seat?: string
           id?: string
-          outcome?: string
           position?: number
+          result?: string
           turn_number?: number
         }
         Relationships: [
@@ -1118,21 +1118,21 @@ export type Database = {
           categories: Json
           id: string
           imported_at: string
-          nyt_date: string | null
+          puzzle_date: string | null
           source_id: string
         }
         Insert: {
           categories: Json
           id?: string
           imported_at?: string
-          nyt_date?: string | null
+          puzzle_date?: string | null
           source_id: string
         }
         Update: {
           categories?: Json
           id?: string
           imported_at?: string
-          nyt_date?: string | null
+          puzzle_date?: string | null
           source_id?: string
         }
         Relationships: []
@@ -1145,8 +1145,8 @@ export type Database = {
           game_id: string | null
           is_terminal: boolean | null
           mode: string | null
-          nyt_date: string | null
           play_state: string | null
+          puzzle_date: string | null
         }
         Relationships: []
       }
@@ -1541,21 +1541,21 @@ export type Database = {
       }
       players: {
         Row: {
+          found_secrets_count: number
           game_id: string
           guesses_remaining: number
-          secrets_found: number
           user_id: string
         }
         Insert: {
+          found_secrets_count?: number
           game_id: string
           guesses_remaining: number
-          secrets_found?: number
           user_id: string
         }
         Update: {
+          found_secrets_count?: number
           game_id?: string
           guesses_remaining?: number
-          secrets_found?: number
           user_id?: string
         }
         Relationships: [
@@ -2747,28 +2747,28 @@ export type Database = {
       guesses: {
         Row: {
           game_id: string
-          guess_index: number
           guessed_at: string
           id: number
           length: number
+          seq: number
           user_id: string
           word: string
         }
         Insert: {
           game_id: string
-          guess_index: number
           guessed_at?: string
           id?: never
           length: number
+          seq: number
           user_id: string
           word: string
         }
         Update: {
           game_id?: string
-          guess_index?: number
           guessed_at?: string
           id?: never
           length?: number
+          seq?: number
           user_id?: string
           word?: string
         }

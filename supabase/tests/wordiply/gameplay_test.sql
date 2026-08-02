@@ -147,7 +147,7 @@ select is(
 -- 6th must throw.
 
 reset role;
-insert into wordiply.guesses (game_id, user_id, word, length, guess_index)
+insert into wordiply.guesses (game_id, user_id, word, length, seq)
 select (select id from g),
        'ada11111-1111-1111-1111-111111111111'::uuid,
        w, char_length(w), gi

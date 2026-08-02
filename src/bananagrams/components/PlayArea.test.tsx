@@ -51,7 +51,7 @@ function loaded(tiles = 'ABCDEFG'): GameHook {
 }
 
 function progressRow(over: Partial<ProgressRow> & { user_id: string }): ProgressRow {
-  return { unplaced: 0, placed: 0, done: false, ...over }
+  return { unplaced: 0, placed: 0, solved: false, ...over }
 }
 
 const SETUP = {

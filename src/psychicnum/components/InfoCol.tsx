@@ -83,7 +83,7 @@ export function InfoCol({
   /** The roster (identity + per-player concede flags). */
   players: Player[]
   selfId: string
-  /** Per-player budget rows — read for the strip's public `secrets_found` count. */
+  /** Per-player budget rows — read for the strip's public `found_secrets_count` count. */
   playerBudgets: PlayerRow[]
   /** Who has conceded (drives the OpponentStrip "out" mid-game). */
   concededIds: Set<string>
@@ -169,7 +169,7 @@ export function InfoCol({
               // whatever their found count was); everyone else shows progress.
               concededIds.has(p.user_id)
                 ? 'out'
-                : (playerBudgets.find((b) => b.user_id === p.user_id)?.secrets_found ?? 0)
+                : (playerBudgets.find((b) => b.user_id === p.user_id)?.found_secrets_count ?? 0)
             }
           />
         )}

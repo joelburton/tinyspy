@@ -549,7 +549,7 @@ create table common.messages (
   sent_at timestamptz not null default now()
 );
 
-create index messages_club_handle_sent_at_idx
+create index common_messages_club_handle_sent_at_idx
   on common.messages (club_handle, sent_at);
 
 -- ============================================================
@@ -2525,8 +2525,8 @@ create table common.words (
 -- build index lands with spellingbee's queries in a later migration — it
 -- wants a partial index tuned to the spellingbee universe (len, no-'s'),
 -- so it's defined where that query lives, not here.
-create index words_difficulty_idx on common.words (difficulty);
-create index words_len_idx        on common.words (len);
+create index common_words_difficulty_idx on common.words (difficulty);
+create index common_words_len_idx  on common.words (len);
 
 -- Public reference data: an English dictionary isn't secret and
 -- leaks no per-game answer key (a spellingbee board's legal words live

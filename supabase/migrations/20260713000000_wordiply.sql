@@ -125,7 +125,7 @@ grant select
 -- policy narrows by user_id during play). `length` is stored (=
 -- char_length(word)) so the max/sum the scores need are trivial.
 --
--- guess_index is 1..5 WITHIN THE TRACK — coop shares one 1..5 sequence
+-- seq is 1..5 WITHIN THE TRACK — coop shares one 1..5 sequence
 -- across the team; compete gives each player their own 1..5. It's
 -- computed in submit_guess as (current track count + 1).
 --
@@ -139,7 +139,7 @@ create table wordiply.guesses (
   user_id     uuid not null references common.profiles(user_id) on delete cascade,
   word        text not null,
   length      int not null,
-  guess_index smallint not null,
+  seq smallint not null,
   guessed_at  timestamptz not null default now(),
   unique (game_id, user_id, word)
 );
@@ -885,7 +885,7 @@ begin
 
   -- ─── Insert (trusted word) ───────────────────────────────
   ins_length := char_length(w_lower);
-  insert into wordiply.guesses (game_id, user_id, word, length, guess_index)
+  insert into wordiply.guesses (game_id, user_id, word, length, seq)
     values (target_game, caller_id, w_lower, ins_length, track_count + 1);
 
   -- ─── Recompute status + terminal check ───────────────────

@@ -42,7 +42,7 @@ export function PeersStrip({ players, progress, selfId }: Props) {
             <Dot color={p.color} className={styles.dot} />
             <span className={styles.name}>{p.username}</span>
             <span className={styles.count} data-count>
-              {p.conceded ? 'out' : pr?.done ? 'done!' : (pr?.unplaced ?? '—')}
+              {p.conceded ? 'out' : pr?.solved ? 'done!' : (pr?.unplaced ?? '—')}
             </span>
           </div>
         )

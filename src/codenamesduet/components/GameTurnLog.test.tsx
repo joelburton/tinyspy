@@ -61,7 +61,7 @@ function guess(overrides: Partial<GuessRow>): GuessRow {
     position: 0,
     word: 'STEEL',
     guesser_seat: 'B',
-    outcome: 'G',
+    result: 'G',
     turn_number: 1,
     guessed_at: '2026-06-12T18:00:00Z',
     ...overrides,
@@ -109,12 +109,12 @@ describe('GameTurnLog', () => {
     const guesses = [
       guess({
         position: 5, word: 'HAMMER',
-        outcome: 'G', guesser_seat: 'B',
+        result: 'G', guesser_seat: 'B',
         guessed_at: '2026-06-12T18:01:00Z', turn_number: 1,
       }),
       guess({
         position: 11, word: 'COFFEE',
-        outcome: 'N', guesser_seat: 'A',
+        result: 'N', guesser_seat: 'A',
         guessed_at: '2026-06-12T18:03:00Z', turn_number: 2,
       }),
     ]
@@ -144,12 +144,12 @@ describe('GameTurnLog', () => {
     const guesses = [
       guess({
         position: 2, word: 'LATER',
-        outcome: 'G', guesser_seat: 'B',
+        result: 'G', guesser_seat: 'B',
         guessed_at: '2026-06-12T18:00:20Z', turn_number: 1,
       }),
       guess({
         position: 1, word: 'FIRST',
-        outcome: 'G', guesser_seat: 'B',
+        result: 'G', guesser_seat: 'B',
         guessed_at: '2026-06-12T18:00:10Z', turn_number: 1,
       }),
     ]

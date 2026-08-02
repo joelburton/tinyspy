@@ -771,7 +771,7 @@ export function setScrabbleRack(gameId: string, rack: string[]): void {
  * × 4 tiles, mirroring the pgTAP `connections_puzzle` helper. The insert uses the
  * admin (service-role) client because connections.puzzles has no INSERT grant to
  * `authenticated`. `source_id` is randomized per call so repeated runs (no
- * db:reset between) don't collide on its UNIQUE constraint; `nyt_date` is left
+ * db:reset between) don't collide on its UNIQUE constraint; `puzzle_date` is left
  * null (NULLs are distinct under UNIQUE) to stay clear of real imported dates.
  * Returns id + gametype for `/g/connections_<mode>/<id>`.
  */
@@ -781,7 +781,7 @@ export async function createConnectionsGame(
   playerUserIds: string[] = club.members.map((m) => m.userId),
   /** Use an EXISTING puzzle (by id) instead of inserting the undated A/B/C/D
    *  fixture. Needed by the "New game" tests, which turn on where the game sits
-   *  in the DATED archive — the fixture puzzle has `nyt_date: null` and so has
+   *  in the DATED archive — the fixture puzzle has `puzzle_date: null` and so has
    *  no place in it. */
   existingPuzzleId?: string,
 ): Promise<{ id: string; gametype: string }> {
@@ -791,7 +791,7 @@ export async function createConnectionsGame(
     .from('puzzles')
     .insert({
       source_id: `E2E-${randomUUID().slice(0, 8)}`,
-      nyt_date: null,
+      puzzle_date: null,
       categories: [
         { rank: 0, name: 'Words starting with A', tiles: ['ALPHA', 'ANGEL', 'APPLE', 'ARROW'] },
         { rank: 1, name: 'Words starting with B', tiles: ['BANANA', 'BIRCH', 'BREAD', 'BRICK'] },
@@ -844,9 +844,9 @@ export async function connectionsArchiveEdge(which: 'first' | 'last'): Promise<s
   const res = await admin
     .schema('connections')
     .from('puzzles')
-    .select('id, nyt_date')
-    .not('nyt_date', 'is', null)
-    .order('nyt_date', { ascending: which === 'first' })
+    .select('id, puzzle_date')
+    .not('puzzle_date', 'is', null)
+    .order('puzzle_date', { ascending: which === 'first' })
     .limit(1)
     .single()
   if (res.error || !res.data) throw new Error(`connections archive ${which}: ${res.error?.message}`)

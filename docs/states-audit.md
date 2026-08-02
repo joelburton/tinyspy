@@ -112,7 +112,7 @@ Fixed literal **`in progress`** (or `sudden death` if shelved mid-sudden-death).
 
 ### How each terminal state is reached
 Migration `…002_psychicnum.sql`, in `submit_guess` / `submit_timeout` / `concede` / `end_game`:
-- **coop `won`** — team's distinct-correct set reaches all 3 secrets (`found_count >= total_secrets`, :666, committed :683-691).
+- **coop `won`** — team's distinct-correct set reaches all 3 secrets (`found_count >= required_secrets_count`, :666, committed :683-691).
 - **coop `lost`** — the guess that drops total remaining budget to 0 (:704); **or** timer expiry (`submit_timeout` coop, :1003).
 - **compete `won_compete`** — the caller's *own* distinct-correct set reaches 3 (:679); caller is winner, everyone else `{"won": false}`.
 - **compete `lost_compete`** — all budgets exhausted (:711); **or** timer expiry (:1006); **or** last-player concede with nobody having won (:794).

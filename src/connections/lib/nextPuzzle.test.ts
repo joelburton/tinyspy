@@ -3,10 +3,10 @@ import { nextUnplayedPuzzle } from './nextPuzzle'
 
 // ASCENDING by date — the order PlayArea queries them in.
 const PUZZLES = [
-  { id: 'p1', nyt_date: '2024-01-01' },
-  { id: 'p2', nyt_date: '2024-01-02' },
-  { id: 'p3', nyt_date: '2024-01-03' },
-  { id: 'p4', nyt_date: '2024-01-04' },
+  { id: 'p1', puzzle_date: '2024-01-01' },
+  { id: 'p2', puzzle_date: '2024-01-02' },
+  { id: 'p3', puzzle_date: '2024-01-03' },
+  { id: 'p4', puzzle_date: '2024-01-04' },
 ]
 
 describe('nextUnplayedPuzzle', () => {

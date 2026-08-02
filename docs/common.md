@@ -85,7 +85,7 @@ Some games source their board from a **curated library** instead of random gener
 Concretely, freeze onto the game row at create time:
 
 - the **gameplay data** — connections copies the puzzle's `categories` into `games.board`; stackdown copies `tiles`/`solution`/`wordlist`. Gameplay code reads these frozen copies, never the library table.
-- the **identifying provenance** — connections copies the puzzle's `nyt_date` into `games.puzzle_date` (the bit a player reads to know *which* puzzle it is).
+- the **identifying provenance** — connections copies `puzzles.puzzle_date` onto `games.puzzle_date` — one name for one value, on both sides of the copy (the bit a player reads to know *which* puzzle it is).
 
 **stackdown is the template** — its `board_id` is `on delete set null` with the board data copied (see its schema comment). **connections was the cautionary case**: it hard-FK'd the puzzle (`on delete restrict`) and left the date un-frozen, so it couldn't retire a puzzle and had to *join* `puzzles` just to show the date — since fixed to match this rule. The payoff: puzzles can be cleaned up / re-imported freely, and in-flight games never break.
 

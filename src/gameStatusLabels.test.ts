@@ -74,12 +74,12 @@ const CASES: Record<string, Family> = {
     ],
   },
   psychicnum: {
-    playing: { guesses_remaining: 5, secrets_found: 2, total_secrets: 3 },
-    shared: [['ended', { outcome: 'manual', secrets_found: 2, total_secrets: 3 }, 'manual end']],
+    playing: { guesses_remaining: 5, found_secrets_count: 2, required_secrets_count: 3 },
+    shared: [['ended', { outcome: 'manual', found_secrets_count: 2, required_secrets_count: 3 }, 'manual end']],
     coop: [
       ['won', W, 'found it'],
-      ['lost', { outcome: 'exhausted', secrets_found: 2, total_secrets: 3 }, 'out of guesses'],
-      ['lost', { outcome: 'timeout', secrets_found: 2, total_secrets: 3 }, 'timeout'],
+      ['lost', { outcome: 'exhausted', found_secrets_count: 2, required_secrets_count: 3 }, 'out of guesses'],
+      ['lost', { outcome: 'timeout', found_secrets_count: 2, required_secrets_count: 3 }, 'timeout'],
     ],
     compete: [
       ['won_compete', W, 'won the race'],

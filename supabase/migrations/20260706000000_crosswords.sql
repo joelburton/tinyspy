@@ -31,14 +31,16 @@ grant usage on schema crosswords to authenticated;
 -- One row per imported puzzle. `meta` is the whole immutable template
 -- (PuzzleMeta + the initial grid cells — numbers, blocks, circles,
 -- shading, givens); `solution` is the shielded answer grid;
--- `content_hash` dedups re-imports. `source` currently only ever takes
--- 'library': every row here comes from the CLI import. NYT-by-date games
--- are SELF-CONTAINED (the puzzle rides inline on the game, no row here),
--- so the 'nyt' check value is vestigial — nothing writes it today.
+-- `content_hash` dedups re-imports. `source` only ever takes 'library':
+-- every row here comes from the CLI import. NYT-by-date and Guardian games
+-- are SELF-CONTAINED (the puzzle rides inline on the game, no row here), so
+-- the constraint says exactly that. NOT to be confused with `setup.source`
+-- on the game, which DOES take 'nyt' / 'guardian' — that names how a game
+-- was started, not who wrote a library row.
 create table crosswords.puzzles (
   id           uuid primary key default gen_random_uuid(),
   content_hash text not null unique,
-  source       text not null check (source in ('library', 'nyt')),
+  source       text not null check (source in ('library')),
   meta         jsonb not null,
   solution     jsonb not null,
   created_at   timestamptz not null default now()

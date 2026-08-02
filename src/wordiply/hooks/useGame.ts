@@ -44,7 +44,7 @@ export type GuessRow = {
   user_id: string
   word: string
   length: number
-  guess_index: number
+  seq: number
   guessed_at: string
 }
 
@@ -117,7 +117,7 @@ export function useGame(gameId: string): {
     load: async ({ mounted }) => {
       const { data } = await db
         .from('guesses')
-        .select('id, game_id, user_id, word, length, guess_index, guessed_at')
+        .select('id, game_id, user_id, word, length, seq, guessed_at')
         .eq('game_id', gameId)
         .order('guessed_at', { ascending: true })
       if (!mounted()) return

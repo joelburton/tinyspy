@@ -100,7 +100,7 @@ values (
 );
 
 -- A guess row so the guesses grant is exercised too.
-insert into wordiply.guesses (game_id, user_id, word, length, guess_index)
+insert into wordiply.guesses (game_id, user_id, word, length, seq)
 values (
   (select id from common_g),
   'ada11111-1111-1111-1111-111111111111',

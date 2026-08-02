@@ -60,7 +60,7 @@ export type ProgressRow = {
   user_id: string
   unplaced: number
   placed: number
-  done: boolean
+  solved: boolean
 }
 
 /**
@@ -79,7 +79,7 @@ export function useProgress(gameId: string): ProgressRow[] {
     load: async ({ mounted }) => {
       const { data } = await db
         .from('progress')
-        .select('user_id, unplaced, placed, done')
+        .select('user_id, unplaced, placed, solved')
         .eq('game_id', gameId)
       if (!mounted()) return
       setRows(data ?? [])

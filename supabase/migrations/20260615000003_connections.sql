@@ -91,7 +91,7 @@ grant usage on schema connections to authenticated;
 --   - `source_id` — the NYT puzzle number ("1", "500"). Text
 --     because it's used as a number-in-display but a future NYT
 --     could publish "500-bonus" without breaking the schema.
---   - `nyt_date`  — the calendar date NYT published. Drives the
+--   - `puzzle_date`  — the calendar date NYT published. Drives the
 --     setup-form date picker.
 --
 -- `categories` is a jsonb array matching the shape of
@@ -104,7 +104,7 @@ create table connections.puzzles (
   id uuid primary key default gen_random_uuid(),
   source_id text not null unique,
   -- Nullable on purpose. Today every puzzle comes from the NYT
-  -- importer and carries the puzzle's nyt_date — the date picker
+  -- importer and carries the puzzle's puzzle_date — the date picker
   -- + calendar widget in the setup form anchor on this column.
   -- The decision (per Joel): non-NYT puzzles MAY land later (no
   -- UI for them today; only the date picker), and they'd carry
@@ -112,9 +112,9 @@ create table connections.puzzles (
   -- still enforces "at most one puzzle per calendar date" for
   -- the dated subset; Postgres treats NULLs as distinct under
   -- UNIQUE by default, so multiple non-dated rows coexist fine.
-  -- The setup form's date-picker query (`.eq('nyt_date', d)
+  -- The setup form's date-picker query (`.eq('puzzle_date', d)
   -- .maybeSingle()`) then trivially returns 0-or-1 row.
-  nyt_date date unique,
+  puzzle_date date unique,
   categories jsonb not null,
   imported_at timestamptz not null default now()
 );
@@ -180,7 +180,7 @@ create table connections.games (
   board jsonb not null,
   -- Frozen copy of the puzzle's NYT date — its provenance ("which daily
   -- puzzle"), copied so the game stays self-describing after the puzzle is
-  -- deleted. Null for a non-NYT puzzle (puzzles.nyt_date is nullable).
+  -- deleted. Null for a non-NYT puzzle (puzzles.puzzle_date is nullable).
   puzzle_date date,
   created_at timestamptz not null default now(),
   -- Sibling-manifest mode axis; agrees with the gametype string
@@ -285,7 +285,7 @@ create table connections.players (
   -- mistake_count, so a compete opponent strip can show race progress ("Found")
   -- — the guess log itself is RLS-scoped to the caller in compete, so this row
   -- is the only public window onto an opponent's progress (mirrors
-  -- psychicnum.players.secrets_found). Maintained by submit_guess on a correct
+  -- psychicnum.players.found_secrets_count). Maintained by submit_guess on a correct
   -- guess.
   matched_count int not null default 0
     check (matched_count between 0 and 4),
@@ -369,7 +369,7 @@ alter publication supabase_realtime add table connections.players;
 -- answer the question the connections setup-form calendar asks:
 -- "for this club, which puzzle-dates already have a game, and
 -- in what state?" The FE reads this once on dialog-open, builds
--- a Map<nyt_date, status>, and colors each calendar square
+-- a Map<puzzle_date, status>, and colors each calendar square
 -- accordingly (won / lost / in-progress). The `mode` column lets
 -- the FE calendar filter to the current dialog's mode.
 --
@@ -389,7 +389,7 @@ alter publication supabase_realtime add table connections.players;
 -- Filtered to gametype in ('connections_coop', 'connections_compete')
 -- (defensive; common.games.id ↔ connections.games.id is one-to-one
 -- by FK, but the join condition doesn't say "and only connections,"
--- so the filter makes the intent visible) and nyt_date IS NOT NULL
+-- so the filter makes the intent visible) and puzzle_date IS NOT NULL
 -- (a calendar-anchored view doesn't include rows whose puzzles
 -- have no date).
 
@@ -400,12 +400,12 @@ select
   cg.play_state  as play_state,
   cg.is_terminal as is_terminal,
   wg.mode        as mode,
-  p.nyt_date     as nyt_date
+  p.puzzle_date     as puzzle_date
 from connections.games wg
 join connections.puzzles p on p.id = wg.puzzle_id
 join common.games cg on cg.id = wg.id
 where cg.gametype in ('connections_coop', 'connections_compete')
-  and p.nyt_date is not null;
+  and p.puzzle_date is not null;
 
 grant select on connections.club_game_status to authenticated;
 
@@ -446,7 +446,7 @@ grant select on connections.club_game_status to authenticated;
 --     )
 --   }
 --
--- Title formula: "#<source_id> <nyt_date> (<TILE1>/<TILE2>)" where
+-- Title formula: "#<source_id> <puzzle_date> (<TILE1>/<TILE2>)" where
 -- TILE1/TILE2 are the first 2 alphabetical tiles across all 16.
 -- A puzzle is hard to remember by date alone; the tiles ground it
 -- in something memorable ("oh, that one with BUCKS and HAIL").
@@ -529,7 +529,7 @@ begin
     from jsonb_array_elements(board_categories) c,
          jsonb_array_elements_text(c->'tiles') t;
 
-  -- Title = "<nyt_date>: <TILE1>-<TILE2>" — same formula in both modes; the
+  -- Title = "<puzzle_date>: <TILE1>-<TILE2>" — same formula in both modes; the
   -- puzzle's NYT date is mode-independent, and players still want a memorable
   -- handle on the game in the club list regardless of mode. The two tiles are
   -- a peek at the board — a date alone says which puzzle, not what's in it.
@@ -540,7 +540,7 @@ begin
       order by 1
       limit 2
     ) first2;
-  game_title := format('%s: %s', puzzle_row.nyt_date, first_two_tiles);
+  game_title := format('%s: %s', puzzle_row.puzzle_date, first_two_tiles);
 
   -- Fisher-Yates shuffle for the display order.
   for i in reverse 16..2 loop
@@ -597,7 +597,7 @@ begin
     target_club,
     mode,
     s_puzzle_id,
-    puzzle_row.nyt_date,
+    puzzle_row.puzzle_date,
     jsonb_build_object('categories', board_categories,
                        'tileOrder',  to_jsonb(tile_order))
   );

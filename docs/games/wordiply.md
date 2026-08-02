@@ -152,7 +152,7 @@ schema (see §2).
 | `user_id` | uuid | who guessed |
 | `word` | text not null | the full guessed word (lowercase) |
 | `length` | int not null | `char_length(word)` — stored so max/sum are trivial |
-| `guess_index` | smallint | 1..5 within the track (coop: shared 1..5; compete: per-user 1..5) |
+| `seq` | smallint | 1..5 within the track (coop: shared 1..5; compete: per-user 1..5) |
 | `guessed_at` | timestamptz default now() | doubles as the per-player finish time (5th row) |
 
 - Backstop unique `(game_id, user_id, word)`; **mode-aware dedup** is enforced in
@@ -204,7 +204,7 @@ Signatures mirror wordwheel one-for-one except the board shape and the validated
      mode-aware **dedup**. Dictionary legality is **trusted from the FE** (shipped list),
      exactly as wordwheel trusts its FE. A guess that fails a guard returns `{ok:false,
      reason}` and records nothing.
-  3. **Insert** the guess (next `guess_index`), recompute this track's leaderboard entry,
+  3. **Insert** the guess (next `seq`), recompute this track's leaderboard entry,
      check the **end condition**, and if met transition to terminal + (compete) **resolve the
      winner via the formula**. Return `{ok:true, length, guesses_used, is_terminal, ...}` —
      `length` (the one live readout); `length_score` / `letter_count` are returned only on the

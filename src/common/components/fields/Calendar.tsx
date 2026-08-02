@@ -56,7 +56,7 @@ type Props = {
  * to find the date they want.
  *
  * Date string format throughout is `YYYY-MM-DD` (e.g. matches
- * `connections.puzzles.nyt_date::text`). All Date construction
+ * `connections.puzzles.puzzle_date::text`). All Date construction
  * goes through `Date.UTC(...)` so we never trip on local-tz
  * offsets — these dates are calendar coordinates, not
  * timestamps.

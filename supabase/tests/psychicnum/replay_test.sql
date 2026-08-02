@@ -45,7 +45,7 @@ update psychicnum.games
 
 -- One right, then two wrong → the shared budget (3) is spent → coop loss.
 -- (EVERY guess spends budget, correct or not.) That leaves guess rows,
--- secrets_found = 1, a zeroed budget and a terminal game: the full state a
+-- found_secrets_count = 1, a zeroed budget and a terminal game: the full state a
 -- replay must undo.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from g1), 'zalpha');
@@ -72,7 +72,7 @@ select is((select count(*) from psychicnum.guesses where game_id = (select id fr
   0::bigint, 'coop: replay → the guess log is cleared');
 select is(
   (select count(*) from psychicnum.players
-    where game_id = (select id from g1) and guesses_remaining = 3 and secrets_found = 0),
+    where game_id = (select id from g1) and guesses_remaining = 3 and found_secrets_count = 0),
   2::bigint, 'coop: replay → both players back to the full budget, nothing found');
 select is(
   (select (status->>'guesses_remaining')::int from common.games where id = (select id from g1)),

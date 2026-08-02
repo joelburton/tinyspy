@@ -25,7 +25,7 @@ export type GuessRow = {
   position: number
   word: string
   guesser_seat: Seat
-  outcome: KeyLabel
+  result: KeyLabel
   turn_number: number
   guessed_at: string
 }
@@ -103,7 +103,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
           .single(),
         db
           .from('guesses')
-          .select('position, guesser_seat, outcome, turn_number, guessed_at')
+          .select('position, guesser_seat, result, turn_number, guessed_at')
           .eq('game_id', gameId),
       ])
       if (!mounted()) return
@@ -116,7 +116,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
             position: g.position,
             word: wordAt.get(g.position) ?? '',
             guesser_seat: g.guesser_seat as Seat,
-            outcome: g.outcome as KeyLabel,
+            result: g.result as KeyLabel,
             turn_number: g.turn_number,
             guessed_at: g.guessed_at,
           })),

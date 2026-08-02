@@ -162,13 +162,13 @@ create table bananagrams.player_boards (
 -- bananagrams.progress — the public projection peers read
 -- ============================================================
 -- The club-visible counters derived from each player's board:
--- unplaced/placed tile counts + the done flag. This is what the
+-- unplaced/placed tile counts + the solved flag. This is what the
 -- peer strip and the winner surface read — the board itself stays
 -- hidden on player_boards.
 --
 -- `unplaced` is the race signal (count ticking toward zero).
 -- save_player_board recomputes these on every snapshot; the win
--- inside peel sets done + finished_at on the winner.
+-- inside peel sets solved + finished_at on the winner.
 --
 -- The per-player DROP-OUT flag is NOT here — it lives on
 -- `common.game_players.conceded` (the shared concede mechanism every
@@ -184,7 +184,7 @@ create table bananagrams.progress (
   user_id uuid not null references common.profiles(user_id) on delete cascade,
   unplaced int not null,
   placed int not null default 0,
-  done boolean not null default false,
+  solved boolean not null default false,
   finished_at timestamptz,
   primary key (game_id, user_id)
 );
@@ -451,7 +451,7 @@ begin
     )
   from unnest(player_user_ids) with ordinality as pu(uid, pi);
 
-  insert into bananagrams.progress (game_id, user_id, unplaced, placed, done)
+  insert into bananagrams.progress (game_id, user_id, unplaced, placed, solved)
   select new_id, uid, s_hand_size, 0, false
     from unnest(player_user_ids) as uid;
 
@@ -792,7 +792,7 @@ begin
     end if;
 
     update bananagrams.progress
-       set done = true, finished_at = now()
+       set solved = true, finished_at = now()
      where game_id = target_game and user_id = caller_id;
 
     select username into winner_name

@@ -3,11 +3,11 @@ import { resolveDefaultPuzzle } from './defaultPuzzle'
 
 // Date-DESCENDING, like the list SetupForm holds (index 0 = most recent).
 const PUZZLES = [
-  { id: 'p5', nyt_date: '2024-01-05' },
-  { id: 'p4', nyt_date: '2024-01-04' },
-  { id: 'p3', nyt_date: '2024-01-03' },
-  { id: 'p2', nyt_date: '2024-01-02' },
-  { id: 'p1', nyt_date: '2024-01-01' },
+  { id: 'p5', puzzle_date: '2024-01-05' },
+  { id: 'p4', puzzle_date: '2024-01-04' },
+  { id: 'p3', puzzle_date: '2024-01-03' },
+  { id: 'p2', puzzle_date: '2024-01-02' },
+  { id: 'p1', puzzle_date: '2024-01-01' },
 ]
 
 describe('resolveDefaultPuzzle', () => {
@@ -59,9 +59,9 @@ describe('resolveDefaultPuzzle', () => {
     // No puzzle imported for 2024-01-04; finishing p3 steps to p5 (the next
     // date that actually exists), since 01-04 can't be defaulted to.
     const gapped = [
-      { id: 'p5', nyt_date: '2024-01-05' },
-      { id: 'p3', nyt_date: '2024-01-03' },
-      { id: 'p2', nyt_date: '2024-01-02' },
+      { id: 'p5', puzzle_date: '2024-01-05' },
+      { id: 'p3', puzzle_date: '2024-01-03' },
+      { id: 'p2', puzzle_date: '2024-01-02' },
     ]
     expect(resolveDefaultPuzzle(gapped, new Set(['2024-01-03']), 'p3')).toBe('p5')
   })

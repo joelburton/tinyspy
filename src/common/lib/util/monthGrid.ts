@@ -15,7 +15,7 @@
  *     UTC day-of-week).
  *   - Trailing nulls: round up to the next multiple of 7.
  *   - All date strings: `YYYY-MM-DD` (e.g. matching
- *     `connections.puzzles.nyt_date::text`).
+ *     `connections.puzzles.puzzle_date::text`).
  *
  * UTC throughout so the grid is the same regardless of the
  * user's clock zone — these dates are calendar coordinates,

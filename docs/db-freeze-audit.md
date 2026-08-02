@@ -34,38 +34,6 @@ One residual oddity it left behind, worth a deliberate decision:
 
 ---
 
-## Tier B — column renames (need a migration later)
-
-- [ ] **B4.** `codenamesduet.guesses.outcome` (text enum, `…001:156`) → `result`
-  (connections' name for the same concept, `…003:217`; also stops colliding with
-  the status-jsonb `outcome` key).
-- [ ] **B5.** `psychicnum.players.secrets_found` — an int with a plural-noun name
-  (`…002:149`); violates naming.md's own `_count` rule. (The status key of the
-  same name rides along, and its partner `total_secrets` uses `total_` where the
-  word games use `required_`.)
-- [ ] **B6.** `wordiply.guesses.guess_index` → `seq` (`…wordiply:142`; waffle/
-  wordle/stackdown/scrabble all use `seq`).
-- [ ] **B7.** `bananagrams.progress.done` → `solved` (`…bananagrams:187`;
-  waffle/wordle/stackdown's name for the same per-player finished flag).
-- [ ] **B8.** connections `puzzles.nyt_date` vs `games.puzzle_date`
-  (`…003:117` / `:184`) — same value, two names, and a vendor name in an
-  identifier (crosswords keeps NYT provenance inside `meta` jsonb). Unify on
-  `puzzle_date`; `club_game_status` re-exposes `nyt_date` (`:403`) so the FE
-  reader changes too.
-- [ ] **B9.** Drop crosswords' vestigial `'nyt'` check value
-  (`…crosswords:41`; the comment at `:35-37` already admits nothing writes it).
-  Known item, now's the moment.
-- [ ] **B10.** Index-name strays (prevailing pattern `<schema>_<table>_<cols>_idx`):
-  `games_club_handle_idx` on codenamesduet (`…001:82`, no schema prefix),
-  `codenamesduet_guesses_game_idx` (`…001:161`, `game` not `game_id`),
-  `messages_club_handle_sent_at_idx` / `words_difficulty_idx` / `words_len_idx`
-  (common.sql, missing the `common_` prefix its other indexes use). Cheap,
-  matters only if ever referenced by name — do while the files are open.
-- [ ] **B11.** Write the `owner_id` convention down in naming.md (nullable =
-  the shared/team row, non-null = a per-player copy). Used consistently in
-  `common.game_scratchpads` (`common.sql:710`) and `crosswords.cells`
-  (`…crosswords:111`), recorded nowhere.
-
 ## Tier C — function surface (appendable later, tidier now)
 
 - [ ] **C1. `crosswords.solution_for` vs `crosswords._solution_for`** — one
@@ -193,11 +161,12 @@ documented-deliberate set holds up:
 
 ## Suggested order of attack
 
-**Tier A and B1–B3 are DONE** (2026-08-01) — every persisted-vocabulary item
-and the three event-timestamp / tense renames are worked, with their decisions
-recorded in states.md / naming.md / the per-game docs. **Nothing left here
-blocks leaving alpha**: B4–B11 are further column renames (cheaper now than
-after the freeze, but none of them wrong today). Tiers C–E are worth a sweep while
+**Tiers A and B are DONE** — every persisted-row item (play_state values,
+status/setup jsonb keys) and every column rename is worked, with the durable
+decisions recorded in states.md / naming.md / the per-game docs. **Nothing
+left blocks leaving alpha.** C–E are worth a sweep while editing baselines is
+still free: C is function/param naming (C1 is the one with a plausible route
+to a real bug), D is one mechanical grant/revoke pass, E is comments. Tiers C–E are worth a sweep while
 editing baselines is still free, but wouldn't block leaving alpha. Every SQL change here re-runs the usual gates
 (`npm run db:reset` + `npm run import`, `npm run test:db`, `npx tsc -b`,
 `npm test`, `npm run report:labels` for anything touching status/labels).

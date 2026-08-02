@@ -11,8 +11,8 @@
  * Pure + unit-tested, like its sibling `resolveDefaultPuzzle` (the setup form's
  * date-picker default) — the queries live in PlayArea, the rule lives here.
  *
- * @param puzzles     every dated puzzle, **ascending** by `nyt_date`.
- * @param playedDates the `nyt_date`s this club already has a game for, in this
+ * @param puzzles     every dated puzzle, **ascending** by `puzzle_date`.
+ * @param playedDates the `puzzle_date`s this club already has a game for, in this
  *                    MODE — a coop game doesn't use up the compete side, and
  *                    another club's play doesn't use up ours (clubs are
  *                    independent groups of friends; see CLAUDE.md → Audience).
@@ -23,12 +23,12 @@
  * @returns the puzzle to start, or **null** when there's nothing left — which
  *          the caller surfaces as a notice rather than starting anything.
  */
-export function nextUnplayedPuzzle<T extends { id: string; nyt_date: string }>(
+export function nextUnplayedPuzzle<T extends { id: string; puzzle_date: string }>(
   puzzles: readonly T[],
   playedDates: ReadonlySet<string>,
   afterDate: string | null,
 ): T | null {
   // ISO `YYYY-MM-DD` strings compare correctly as strings, so no Date parsing.
-  const candidates = afterDate === null ? puzzles : puzzles.filter((p) => p.nyt_date > afterDate)
-  return candidates.find((p) => !playedDates.has(p.nyt_date)) ?? null
+  const candidates = afterDate === null ? puzzles : puzzles.filter((p) => p.puzzle_date > afterDate)
+  return candidates.find((p) => !playedDates.has(p.puzzle_date)) ?? null
 }

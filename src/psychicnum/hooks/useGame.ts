@@ -62,7 +62,7 @@ export type PlayerRow = {
   guesses_remaining: number
   /** How many distinct secrets this player has found (0..3). Public to the
    *  club; drives the compete opponent-progress feedback. */
-  secrets_found: number
+  found_secrets_count: number
 }
 
 /**
@@ -141,7 +141,7 @@ export function useGame(gameId: string): {
       const [{ data: playerRows }, { data: guessRows }] = await Promise.all([
         db
           .from('players')
-          .select('user_id, guesses_remaining, secrets_found')
+          .select('user_id, guesses_remaining, found_secrets_count')
           .eq('game_id', gameId),
         db
           .from('guesses')

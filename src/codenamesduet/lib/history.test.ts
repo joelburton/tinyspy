@@ -23,7 +23,7 @@ const WORDS: WordRow[] = [
 
 function guess(o: Partial<GuessRow>): GuessRow {
   return {
-    position: 0, word: 'ALPHA', guesser_seat: 'B', outcome: 'G',
+    position: 0, word: 'ALPHA', guesser_seat: 'B', result: 'G',
     turn_number: 1, guessed_at: '2026-06-12T18:00:00Z', ...o,
   }
 }
@@ -34,9 +34,9 @@ describe('turnSnapshot', () => {
   // Turn 1: B contacts ALPHA (green). Turn 2: A neutrals BRAVO. Turn 3: B hits
   // the assassin on CIDER.
   const guesses: GuessRow[] = [
-    guess({ position: 0, outcome: 'G', guesser_seat: 'B', turn_number: 1 }),
-    guess({ position: 1, outcome: 'N', guesser_seat: 'A', turn_number: 2 }),
-    guess({ position: 2, outcome: 'A', guesser_seat: 'B', turn_number: 3 }),
+    guess({ position: 0, result: 'G', guesser_seat: 'B', turn_number: 1 }),
+    guess({ position: 1, result: 'N', guesser_seat: 'A', turn_number: 2 }),
+    guess({ position: 2, result: 'A', guesser_seat: 'B', turn_number: 3 }),
   ]
 
   it('folds only guesses up to and including the viewed turn (inclusive)', () => {

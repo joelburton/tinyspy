@@ -355,7 +355,7 @@ select is(
   'create_game: current-view common.games row has gametype = connections_coop'
 );
 
--- Title = "<nyt_date>: <TILE1>-<TILE2>" where TILE1/TILE2 are the first
+-- Title = "<puzzle_date>: <TILE1>-<TILE2>" where TILE1/TILE2 are the first
 -- 2 alphabetical tiles across all 16. For the fixture puzzle (date
 -- 1900-01-01, tiles starting with A include ALPHA + ANGEL), the title
 -- is deterministic.

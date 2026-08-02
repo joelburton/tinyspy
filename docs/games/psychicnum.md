@@ -47,7 +47,7 @@ Both siblings share the same `name` (`psychicnum`); the coop/compete distinction
 - Each guess decrements only the submitter's budget.
 - A player sees:
   - **Their own** guesses + results + hints (the turn log + board filter server-side via RLS).
-  - **Opponents' remaining budget** (a strip in the action slot) AND a header pill when an opponent finds a secret — "● X guessed a word" — the *count*, never *which* word (`players.secrets_found` is public; the values stay hidden).
+  - **Opponents' remaining budget** (a strip in the action slot) AND a header pill when an opponent finds a secret — "● X guessed a word" — the *count*, never *which* word (`players.found_secrets_count` is public; the values stay hidden).
   - **NOT** opponents' guesses, hints, or which numbers they've found.
 - **Win:** the first player to find all three ends the game for everyone. That player wins; everyone else loses immediately, even if they had budget remaining.
 - **Lose (collective):** all player budgets reach zero with nobody having completed the set. Everyone loses.
@@ -66,7 +66,7 @@ Both siblings share the same `name` (`psychicnum`); the coop/compete distinction
 | table | purpose |
 |---|---|
 | `games` | One row per playing. `club_handle` ties to `common.clubs`. Holds `words text[]` (the N board words, PUBLIC), `secrets text[]` (the three secret words, a subset of `words`, hidden), and `mode` ('coop' or 'compete', denormalized for RLS branching). Play-state (`play_state` + `is_terminal`) and the setup blob both live on `common.games`. |
-| `players` | Per-player budget + progress tracking. One row per (game, player), with `guesses_remaining` and `secrets_found` (0..3, public — the compete opponent-progress count). Seeded at create-game time from `setup.guesses`. Coop decrements every row in lock-step; compete decrements only the guesser's row. Per-player outcome (`won` / `lost`) is NOT here — it goes on `common.game_players.result` at game-end via `common.end_game`. |
+| `players` | Per-player budget + progress tracking. One row per (game, player), with `guesses_remaining` and `found_secrets_count` (0..3, public — the compete opponent-progress count). Seeded at create-game time from `setup.guesses`. Coop decrements every row in lock-step; compete decrements only the guesser's row. Per-player outcome (`won` / `lost`) is NOT here — it goes on `common.game_players.result` at game-end via `common.end_game`. |
 | `guesses` | Append-only log of every guess **and helper**. One row per event, with `user_id`, `word`, `is_correct`, `kind` ('guess' \| 'hint' \| 'reveal'), `guessed_at`. `'reveal'` rows carry the answer word; `'hint'` rows carry the *clue text* in `word` (not the secret — no leak); both render amber in the turn log. Everything that computes from real guesses filters `kind='guess'`. RLS in compete mode scopes visibility to caller only. |
 
 There is no separate `boards` table. The "board" (the static starting state — see [`codenamesduet.md`](codenamesduet.md) for the gametype/game/board distinction) is just the `words` array on the game row, too small to warrant its own table.
@@ -142,7 +142,7 @@ grant select
 
 A direct `SELECT secrets FROM psychicnum.games WHERE id = ?` as `authenticated` raises SQLSTATE 42501 ("permission denied for column secrets"). The RPCs (which run as `postgres` via `security definer`) can still read it. This is tested in [`tests/psychicnum/create_game_test.sql`](../../supabase/tests/psychicnum/create_game_test.sql).
 
-(`players.secrets_found` is a deliberately *public* companion — the count of secrets each player has found, 0..3. It leaks how many, never which: enough for compete opponent tension, the smallest "show progress, not answers" surface.)
+(`players.found_secrets_count` is a deliberately *public* companion — the count of secrets each player has found, 0..3. It leaks how many, never which: enough for compete opponent tension, the smallest "show progress, not answers" surface.)
 
 ### Layer 2 — `psychicnum.games_state` view + `_secrets_for` helper (conditional exposure)
 
@@ -198,7 +198,7 @@ Caller must be a club member. **One RPC for both modes** — the `mode` paramete
 
 Each FE manifest's `startGameInClub` passes its own per-manifest mode constant — the caller doesn't pick mode interactively.
 
-After validation, samples `word_count` distinct board words from `common.words` (clean + american + non-slang + `difficulty ≤ band`), then three of those as the secrets, then calls `common.create_game(...)` for the common header half (see [common.md → Game-RPC helpers](../common.md#game-rpc-helpers-called-by-per-game-rpcs)), then inserts the psychicnum.games row (`words` + `secrets`), then inserts one `psychicnum.players` row per player_user_ids entry with `guesses_remaining` seeded from `setup.guesses`. Finally it **seeds `common.games.status`** in the same shape `submit_guess` maintains — coop `{guesses_remaining, secrets_found: 0, total_secrets}`, compete just the SUMMED `{guesses_remaining}` (a shared found-count would leak how close an opponent is). Without that seed the status stayed NULL until the first guess and a brand-new game rendered a bare `Playing` in the club list while every other game showed its opening state (fixed 2026-08-01; pinned in `create_game_test.sql`).
+After validation, samples `word_count` distinct board words from `common.words` (clean + american + non-slang + `difficulty ≤ band`), then three of those as the secrets, then calls `common.create_game(...)` for the common header half (see [common.md → Game-RPC helpers](../common.md#game-rpc-helpers-called-by-per-game-rpcs)), then inserts the psychicnum.games row (`words` + `secrets`), then inserts one `psychicnum.players` row per player_user_ids entry with `guesses_remaining` seeded from `setup.guesses`. Finally it **seeds `common.games.status`** in the same shape `submit_guess` maintains — coop `{guesses_remaining, found_secrets_count: 0, required_secrets_count}`, compete just the SUMMED `{guesses_remaining}` (a shared found-count would leak how close an opponent is). Without that seed the status stayed NULL until the first guess and a brand-new game rendered a bare `Playing` in the club list while every other game showed its opening state (fixed 2026-08-01; pinned in `create_game_test.sql`).
 
 **Player-count gates:**
 - Coop: `common.require_player_count_max(player_user_ids, 6)`. Matches `numberOfPlayers: [1, 6]`.
@@ -227,7 +227,7 @@ The FE flashes green for `'won'`/`'correct'`, red for `'wrong'`; the terminal tr
 - Coop: decrements every `psychicnum.players` row.
 - Compete: decrements only the caller's row.
 
-A correct guess bumps the caller's `players.secrets_found`. "Found all three" is scoped per mode — coop counts the **team's** distinct correct guesses; compete counts the **caller's** own.
+A correct guess bumps the caller's `players.found_secrets_count`. "Found all three" is scoped per mode — coop counts the **team's** distinct correct guesses; compete counts the **caller's** own.
 
 **Mode-aware terminal-on-set-complete:**
 - Coop: the team found all three → `play_state='won'`, every player's `result = {won: true}`.
@@ -276,7 +276,7 @@ Reject reasons: not authenticated; not a game player; game not found; game statu
 
 ### `psychicnum.replay_board(target_game uuid)`
 
-The **Restart** button in the terminal action row + the "Restart" menu item. Resets the working state on the SAME game row: the frozen puzzle (`words` / `secrets` / `mode`) stays, so it's the same board and the same three secrets hunted again, and everything the players did is wiped — guess log cleared, every player back to a full budget with `secrets_found = 0`. Any game player, from a finished game OR mid-game (mid-game confirms, since it wipes the group's progress; at terminal there's nothing left to lose).
+The **Restart** button in the terminal action row + the "Restart" menu item. Resets the working state on the SAME game row: the frozen puzzle (`words` / `secrets` / `mode`) stays, so it's the same board and the same three secrets hunted again, and everything the players did is wiped — guess log cleared, every player back to a full budget with `found_secrets_count = 0`. Any game player, from a finished game OR mid-game (mid-game confirms, since it wipes the group's progress; at terminal there's nothing left to lose).
 
 The budget is re-read from `common.games.setup->>'guesses'`, **not** from `psychicnum.players` — those rows have been decremented all game and can't say what the budget was. Turn-order coop rewinds the pointer to the player seated first (`game_players.turn_seat = 0`); a free-for-all game's null pointer stays null. The common half (un-terminal, fresh status, per-player results + concede cleared, clock zeroed) is `common.reset_game`; the secrets re-hide on their own, since `games_state` gates them on `is_terminal`.
 
@@ -436,7 +436,7 @@ A two-column composition. Reads `playState`, `isTerminal`, `timer`, `setup`, `st
 
 ### `useGame`
 
-Reads from `psychicnum.games_state` (the view that exposes `secrets` conditionally on terminal status — see [The hidden-secrets mechanic](#the-hidden-secrets-mechanic)). `game.words: string[]` is the public board; `game.secrets: string[] | null` comes back `null` while active, the actual three words once terminal. No separate reveal effect. Also reads `players` (with the public `secrets_found` count) and `guesses` (each carrying `word` + `kind: 'guess' | 'hint'`).
+Reads from `psychicnum.games_state` (the view that exposes `secrets` conditionally on terminal status — see [The hidden-secrets mechanic](#the-hidden-secrets-mechanic)). `game.words: string[]` is the public board; `game.secrets: string[] | null` comes back `null` while active, the actual three words once terminal. No separate reveal effect. Also reads `players` (with the public `found_secrets_count` count) and `guesses` (each carrying `word` + `kind: 'guess' | 'hint'`).
 
 Drives off the shared [`useRealtimeRefetch`](../../src/common/hooks/realtime/useRealtimeRefetch.ts) factory with a three-table subscription on `psychicnum.{games, players, guesses}`. The factory owns the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, and the cleanup; this hook just declares its tables + writes the `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract.
 
@@ -455,7 +455,7 @@ See [`testing.md`](../testing.md) for theory and shared setup. Psychic-num-speci
 | file | covers |
 |---|---|
 | `tests/psychicnum/create_game_test.sql` | Auth, membership, happy path, `setup.{guesses,word_count}` validation, `setup.timer` shape spot-checks (the shared validator's full grid lives in connections's create_game test), `is_current_view` flips via `common.games`, title formula, `word_count` board words + three secrets drawn from them, column-level grant blocks SELECT of `secrets`. |
-| `tests/psychicnum/gameplay_test.sql` | Board-word guard (a word not on the board rejected), finding a secret returns `'correct'` and bumps `secrets_found`, finding the last returns `'won'` and flips `play_state`, wrong guess decrements (per-mode), re-guessing a taken word rejected, `request_hint` logs the clue (or "No hint available" fallback) and `request_reveal` logs the answer word — both `kind` rows, neither spends budget, budget-exhausted loss, `submit_timeout` happy path. |
+| `tests/psychicnum/gameplay_test.sql` | Board-word guard (a word not on the board rejected), finding a secret returns `'correct'` and bumps `found_secrets_count`, finding the last returns `'won'` and flips `play_state`, wrong guess decrements (per-mode), re-guessing a taken word rejected, `request_hint` logs the clue (or "No hint available" fallback) and `request_reveal` logs the answer word — both `kind` rows, neither spends budget, budget-exhausted loss, `submit_timeout` happy path. |
 | `tests/psychicnum/rls_test.sql` | dee (non-member) sees zero rows from both tables and from `games_state`, mutating RPCs throw. Members reading `games_state` see `secrets IS NULL` while active and the actual array once status is terminal — exercising both the `security_invoker` row-gating and the `_secrets_for` helper's CASE. |
 
 ### Pinning the board + secrets in tests

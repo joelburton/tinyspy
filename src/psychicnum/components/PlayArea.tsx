@@ -253,7 +253,7 @@ export function PlayArea({
   })
 
   // ─── Compete opponent progress (group feedback) ────────
-  // When an opponent's public secrets_found count ticks up, narrate "X guessed a
+  // When an opponent's public found_secrets_count count ticks up, narrate "X guessed a
   // secret word" — the COUNT, never which word (that stays private). GREEN
   // (success), the SAME tone coop uses for a peer's correct guess: green means
   // "they found a word" in both modes, so the player doesn't maintain a
@@ -264,9 +264,9 @@ export function PlayArea({
     for (const p of playerBudgets) {
       if (p.user_id === session.user.id) continue
       const prev = seenOpponentFoundRef.current.get(p.user_id)
-      seenOpponentFoundRef.current.set(p.user_id, p.secrets_found)
+      seenOpponentFoundRef.current.set(p.user_id, p.found_secrets_count)
       if (prev === undefined) continue  // first sighting — seed, don't announce
-      if (p.secrets_found <= prev) continue
+      if (p.found_secrets_count <= prev) continue
       const member = memberById(players, p.user_id)
       globalFeedback.show({
         tone: 'success',
@@ -366,7 +366,7 @@ export function PlayArea({
     playerBudgets.find((p) => p.user_id === session.user.id)
       ?.guesses_remaining ?? 0
   const selfSecretsFound =
-    playerBudgets.find((p) => p.user_id === session.user.id)?.secrets_found ?? 0
+    playerBudgets.find((p) => p.user_id === session.user.id)?.found_secrets_count ?? 0
 
   // Concede lives on the common roster (ctx `players` = GamePlayer[]), NOT on
   // psychicnum.players (the budget rows). `myConceded` is derived above (the menu
@@ -377,7 +377,7 @@ export function PlayArea({
   // Per-status modal + indicator copy. Mode-aware so compete-mode
   // winners get the "you won the race" vs "Bea won the race"
   // distinction, while coop stays the simple team verdict. In compete the
-  // winner is the one who completed the set (their secrets_found hit 3).
+  // winner is the one who completed the set (their found_secrets_count hit 3).
   const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
   const over = isTerminal ? buildOver({
     mode: game.mode,

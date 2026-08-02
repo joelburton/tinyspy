@@ -101,8 +101,8 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
 // shared helper below covers what's identical between them.
 type StatusBlob = {
   guesses_remaining?: number
-  secrets_found?: number
-  total_secrets?: number
+  found_secrets_count?: number
+  required_secrets_count?: number
   winner_username?: string
   outcome?: string
 }
@@ -117,7 +117,7 @@ type StatusBlob = {
 function labelMidGame(s: StatusBlob) {
   return statusLine(
     outcome('Playing'),
-    tally(s.secrets_found, s.total_secrets, 'found'),
+    tally(s.found_secrets_count, s.required_secrets_count, 'found'),
     count(s.guesses_remaining, 'guess left', 'guesses left'),
   )
 }
@@ -165,7 +165,7 @@ export const psychicnumCoopGame: GameManifest = {
 
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
-    const found = tally(s.secrets_found, s.total_secrets, 'found')
+    const found = tally(s.found_secrets_count, s.required_secrets_count, 'found')
     switch (row.play_state) {
       case 'playing':
         return labelMidGame(s)

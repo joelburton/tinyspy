@@ -65,7 +65,7 @@ values (
 );
 
 -- One guess per player. Branch (a) (coop) means each member sees ALL three.
-insert into wordiply.guesses (game_id, user_id, word, length, guess_index) values
+insert into wordiply.guesses (game_id, user_id, word, length, seq) values
   ((select id from coop_game), 'ada11111-1111-1111-1111-111111111111', 'bar',  3, 1),
   ((select id from coop_game), 'bea22222-2222-2222-2222-222222222222', 'cars', 4, 1),
   ((select id from coop_game), 'cade3333-3333-3333-3333-333333333333', 'arcs', 4, 1);
@@ -121,7 +121,7 @@ select is(
 
 select throws_ok(
   format(
-    $$ insert into wordiply.guesses (game_id, user_id, word, length, guess_index)
+    $$ insert into wordiply.guesses (game_id, user_id, word, length, seq)
        values (%L::uuid, 'dee44444-4444-4444-4444-444444444444', 'sneak', 5, 1) $$,
     (select id from coop_game)
   ),
@@ -175,7 +175,7 @@ values (
   '["hangars"]'::jsonb, '["bar","car","arc","hangars"]'::jsonb
 );
 
-insert into wordiply.guesses (game_id, user_id, word, length, guess_index) values
+insert into wordiply.guesses (game_id, user_id, word, length, seq) values
   ((select id from compete_game), 'ada11111-1111-1111-1111-111111111111', 'bar',  3, 1),
   ((select id from compete_game), 'bea22222-2222-2222-2222-222222222222', 'cars', 4, 1),
   ((select id from compete_game), 'cade3333-3333-3333-3333-333333333333', 'arcs', 4, 1);

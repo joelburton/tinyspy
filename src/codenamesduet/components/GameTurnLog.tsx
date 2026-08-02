@@ -142,9 +142,9 @@ export function GameTurnLog({
                       <span
                         className={cls(
                           styles.guessWord,
-                          g.outcome === 'G' && styles.guessWord_G,
-                          g.outcome === 'N' && styles.guessWord_N,
-                          g.outcome === 'A' && styles.guessWord_A,
+                          g.result === 'G' && styles.guessWord_G,
+                          g.result === 'N' && styles.guessWord_N,
+                          g.result === 'A' && styles.guessWord_A,
                         )}
                       >
                         {g.word.toUpperCase()}

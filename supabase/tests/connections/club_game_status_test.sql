@@ -4,7 +4,7 @@
 --
 -- The view powers the calendar widget in the setup form. For each
 -- club's connections games, it returns `(game_id, club_handle, play_state,
--- is_terminal, nyt_date)` so the FE can color a calendar square
+-- is_terminal, puzzle_date)` so the FE can color a calendar square
 -- by status: won (green), lost (red), or in-progress (yellow).
 --
 -- Properties to pin:
@@ -12,7 +12,7 @@
 --   2. RLS — a club member sees their own rows; a non-member
 --      sees zero. Inherited from the underlying connections.games
 --      + common.games RLS via security_invoker.
---   3. NULL-nyt_date puzzles are filtered out (the view is for a
+--   3. NULL-puzzle_date puzzles are filtered out (the view is for a
 --      DATE-anchored calendar; undated puzzles have no square to
 --      color).
 --   4. is_terminal + play_state propagate from common.games.
@@ -30,7 +30,7 @@ select plan(8);
 
 -- ============================================================
 -- Set up: ada+bea's club, one game in progress on the fixture
--- puzzle (which has nyt_date='1900-01-01').
+-- puzzle (which has puzzle_date='1900-01-01').
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -62,10 +62,10 @@ select is(
 );
 
 select is(
-  (select nyt_date::text from connections.club_game_status
+  (select puzzle_date::text from connections.club_game_status
     where game_id = (select id from g)),
   '1900-01-01',
-  'club_game_status: nyt_date propagates from connections.puzzles'
+  'club_game_status: puzzle_date propagates from connections.puzzles'
 );
 
 -- New game starts in 'playing' (non-terminal). The view should
@@ -136,9 +136,9 @@ select is(
 );
 
 -- ============================================================
--- (4) NULL-nyt_date puzzles are excluded
+-- (4) NULL-puzzle_date puzzles are excluded
 -- ============================================================
--- The view's WHERE clause includes `nyt_date is not null`.
+-- The view's WHERE clause includes `puzzle_date is not null`.
 -- Insert a second puzzle with NULL date, create a game using
 -- it, and verify the view doesn't surface the row.
 --
@@ -151,7 +151,7 @@ select set_config('request.jwt.claims', '', true);
 
 -- Insert directly as postgres (the import-script uses
 -- service_role, which is fine here too — we just need a row).
-insert into connections.puzzles (source_id, nyt_date, categories) values (
+insert into connections.puzzles (source_id, puzzle_date, categories) values (
   'TEST-NULL-DATE',
   null,
   $cats$[
@@ -178,7 +178,7 @@ select is(
   (select count(*)::int from connections.club_game_status
     where game_id = (select id from g2)),
   0,
-  'club_game_status: rows whose puzzle has nyt_date IS NULL are excluded from the calendar view'
+  'club_game_status: rows whose puzzle has puzzle_date IS NULL are excluded from the calendar view'
 );
 
 -- ============================================================

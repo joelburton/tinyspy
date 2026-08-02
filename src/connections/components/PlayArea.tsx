@@ -283,14 +283,14 @@ export function PlayArea({
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
     const [{ data: puzzleRows }, { data: statusRows }] = await Promise.all([
-      db.from('puzzles').select('id, nyt_date').not('nyt_date', 'is', null).order('nyt_date'),
-      db.from('club_game_status').select('nyt_date').eq('club_handle', clubHandle).eq('mode', gameMode),
+      db.from('puzzles').select('id, puzzle_date').not('puzzle_date', 'is', null).order('puzzle_date'),
+      db.from('club_game_status').select('puzzle_date').eq('club_handle', clubHandle).eq('mode', gameMode),
     ])
     const played = new Set(
-      ((statusRows ?? []) as { nyt_date: string }[]).map((r) => r.nyt_date),
+      ((statusRows ?? []) as { puzzle_date: string }[]).map((r) => r.puzzle_date),
     )
     const next = nextUnplayedPuzzle(
-      ((puzzleRows ?? []) as { id: string; nyt_date: string }[]),
+      ((puzzleRows ?? []) as { id: string; puzzle_date: string }[]),
       played,
       puzzleDateRef.current,
     )

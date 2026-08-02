@@ -13,9 +13,9 @@ import type { GuessRow } from '../hooks/useBoard'
  */
 export function turnOutcome(guesses: GuessRow[]): TurnOutcome {
   if (guesses.length === 0) return 'neutral'
-  if (guesses.some((g) => g.outcome === 'A')) return 'bad'
-  const hasAgent = guesses.some((g) => g.outcome === 'G')
-  const hasNeutral = guesses.some((g) => g.outcome === 'N')
+  if (guesses.some((g) => g.result === 'A')) return 'bad'
+  const hasAgent = guesses.some((g) => g.result === 'G')
+  const hasNeutral = guesses.some((g) => g.result === 'N')
   if (hasAgent && hasNeutral) return 'partial'
   return hasAgent ? 'good' : 'bad'
 }

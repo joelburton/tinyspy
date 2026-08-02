@@ -41,8 +41,8 @@ const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
 // Budget rows (psychicnum.players): guesses_remaining > 0 so the viewer can act
 // (the "playing" action row with its End/Concede button shows).
-const me: PlayerRow = { user_id: 'u1', guesses_remaining: 7, secrets_found: 0 }
-const moth: PlayerRow = { user_id: 'u2', guesses_remaining: 7, secrets_found: 0 }
+const me: PlayerRow = { user_id: 'u1', guesses_remaining: 7, found_secrets_count: 0 }
+const moth: PlayerRow = { user_id: 'u2', guesses_remaining: 7, found_secrets_count: 0 }
 
 /** A loaded game-hook result; override the game header + budget rows per test. */
 function loaded(game: PsychicnumGame, players: PlayerRow[] = [me]): GameHook {
