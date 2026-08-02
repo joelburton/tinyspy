@@ -130,7 +130,7 @@ update scrabble.players set rack = '{}', score = 50
   where game_id = (select id from gwin) and seat = 1;
 select scrabble._finish((select id from gwin), 'complete', null);
 
-select is((select status->>'winner' from common.games where id = (select id from gwin)),
+select is((select status->>'winner_user_id' from common.games where id = (select id from gwin)),
   null, 'no human winner uuid when the AI wins');
 select is((select status->>'winner_seat' from common.games where id = (select id from gwin)),
   '1', 'the winning seat is the AI seat');

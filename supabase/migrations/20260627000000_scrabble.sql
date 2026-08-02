@@ -609,7 +609,7 @@ begin
 
     v_status := jsonb_build_object(
       'mode', 'compete', 'outcome', outcome,
-      'winner', v_winner_user,        -- a HUMAN winner's uuid; null if AI won / tie
+      'winner_user_id', v_winner_user,        -- a HUMAN winner's uuid; null if AI won / tie
       'winner_seat', v_winner_seat,   -- the winning seat (human or AI); null on tie
       'winner_username', v_winner_name,
       -- The winning score, for the club-list label. The leaderboard below

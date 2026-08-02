@@ -756,7 +756,7 @@ commit), not the TS-owned geometry/scoring:
   exchange clears it), the all-passed blocked end, turn advance.
 - `endgame` — going-out + blocked triggers, final scoring (leftover subtraction +
   going-out bonus, compete; team-score adjust, coop), winner determination + ties,
-  and `winner_name` in the status (set on a win, NULL on a tie).
+  and `winner_username` in the status (set on a win, NULL on a tie).
 - `rls` — own rack only mid-game / peers' revealed at terminal; bag never
   revealed (only `bag_count`); board + plays public; club-membership gates.
 - `end_game` / `submit_timeout` — **coop manual end forfeits** the leftover-tile

@@ -275,16 +275,16 @@ game is terminal, then all.
      `ceil(win_percent% × required_words_score)`; when the score of the **required
      words found** (`not is_bonus`) by the team (coop) or the caller (compete)
      reaches it — bonus finds don't count — it calls `_finish(…, 'target'[,
-     winner_id])` to end the game as a win. Compete is a race — the caller who
-     just crossed is the `winner_id`, and the non-`playing` guard makes a
+     winner_user_id])` to end the game as a win. Compete is a race — the caller who
+     just crossed is the `winner_user_id`, and the non-`playing` guard makes a
      near-simultaneous second crosser a no-op.
 
   No word-content or dictionary check, and no scoring, in plpgsql — it does not
   read `common.words` at all anymore. (Drives off the shared `useWordSubmit` hook,
   same as spellingbee.)
-- **`_finish(target_game, outcome, winner_id default null)`** — the terminal
+- **`_finish(target_game, outcome, winner_user_id default null)`** — the terminal
   transition. `outcome` ∈ `manual` / `timeout` / `target`; a `target` compete win
-  passes the crosser as `winner_id` (they win outright, others lose regardless of
+  passes the crosser as `winner_user_id` (they win outright, others lose regardless of
   banked score). Coop has no per-player result.
 
   **The play_state depends on whether a TARGET was set** (`setup.win_percent`) —

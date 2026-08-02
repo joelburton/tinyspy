@@ -440,7 +440,7 @@ describe('wordwheel PlayArea — concede', () => {
           ],
           setup: competeSetup,
           status: {
-            winner: 'u3',
+            winner_user_id: 'u3',
             leaderboard: [
               { user_id: 'u2', rank_idx: 4, found_words_score: 40, found_words_count: 4 },
               { user_id: 'u3', rank_idx: 5, found_words_score: 60, found_words_count: 6 },

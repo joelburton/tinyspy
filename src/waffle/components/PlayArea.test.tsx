@@ -349,7 +349,7 @@ describe('waffle PlayArea — terminal flow', () => {
 
   it('does not celebrate a compete win', () => {
     h.result = loaded(competeGame, [me, moth])
-    const ctx = { players: twoMembers, status: { winner: 'u1' } }
+    const ctx = { players: twoMembers, status: { winner_user_id: 'u1' } }
     const { rerender } = render(<PlayArea {...makeCtx(ctx)} />)
 
     rerender(

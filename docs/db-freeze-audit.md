@@ -47,13 +47,6 @@ fixtures) — nothing asserts they agree.**
   identical event, and every label now reads "Won" anyway. Rename
   (`…003:846`, `:890`), update both connections `labelFor`s, delete the blessing
   from states.md:54.
-- [ ] **A3. Winner-uuid status key has three names**: `winner` (waffle `:698`,
-  wordle `:497`, crosswords `:320`, stackdown `:520`, scrabble `:607`),
-  `winner_user_id` (spellingbee `:1023`, wordwheel `:1067`, wordiply `:743`),
-  `winner_id` (boggle `:585`). Pick one — recommendation: `winner_user_id`
-  (self-describing, matches the `user_id` column convention, doesn't read as a
-  name next to the universal `winner_username`). Majority-rules `winner` also
-  defensible; one name, whichever.
 - [ ] **A4. `outcome` values split into two philosophies.** Most games write the
   *cause* (`timeout`, `manual`, `conceded`, `exhausted`); connections, psychicnum
   and codenamesduet write play_state duplicates (`lost_timeout`,

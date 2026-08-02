@@ -695,7 +695,7 @@ begin
   perform common.end_game(
     target_game, term_state,
     jsonb_build_object('mode', 'compete', 'outcome', v_outcome,
-                       'winner', winner_id,
+                       'winner_user_id', winner_id,
                        'winner_username', (select username from common.profiles where user_id = winner_id),
                        -- The WINNER's own count — `swaps_used` in a compete
                        -- status is meaningless (each racer has their own board,
@@ -1007,7 +1007,7 @@ begin
     perform common.end_game(
       target_game, term_state,
       jsonb_build_object('mode', 'compete', 'outcome', 'timeout',
-                         'winner', winner_id, 'winner_username', (select username from common.profiles where user_id = winner_id)),
+                         'winner_user_id', winner_id, 'winner_username', (select username from common.profiles where user_id = winner_id)),
       player_results
     );
   end if;

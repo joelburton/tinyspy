@@ -311,7 +311,7 @@ describe('wordle PlayArea — terminal flow', () => {
     ])
     rerender(
       <PlayArea
-        {...makeCtx({ ...base, isTerminal: true, playState: 'won_compete', status: { winner: 'u1' } })}
+        {...makeCtx({ ...base, isTerminal: true, playState: 'won_compete', status: { winner_user_id: 'u1' } })}
       />,
     )
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()

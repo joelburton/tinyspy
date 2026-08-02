@@ -234,7 +234,7 @@ export type Database = {
     }
     Functions: {
       _finish: {
-        Args: { outcome: string; target_game: string; winner_id?: string }
+        Args: { outcome: string; target_game: string; winner_user_id?: string }
         Returns: undefined
       }
       _refresh_status: { Args: { target_game: string }; Returns: undefined }

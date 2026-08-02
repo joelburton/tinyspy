@@ -114,12 +114,12 @@ export function PlayArea({
   // that's where the confetti goes, for the player who won.
   //
   // Both inputs come off the `common.games` row GamePage already waited for
-  // (`playState`, `status.winner`), so this is correct on the very FIRST render
+  // (`playState`, `status.winner_user_id`), so this is correct on the very FIRST render
   // — which is what makes a per-player gate safe here (the usual objection is
   // per-player data arriving empty and faking a flip). `useCelebration` never
   // pops on mount besides, so opening a finished game stays quiet.
   const celebration = useCelebration(
-    playState === 'won_compete' && (status?.winner as string | undefined) === session.user.id,
+    playState === 'won_compete' && (status?.winner_user_id as string | undefined) === session.user.id,
   )
 
   // Board-viewer coordination (shared hook): which read-only overlay is open — a
@@ -465,7 +465,7 @@ export function PlayArea({
   // "AI n" member. Undefined on a tie / all-conceded / coop, where nobody is named.
   const winnerSeat = status?.winner_seat as number | null | undefined
   const winnerMember =
-    players.find((m: Member) => m.user_id === (status?.winner as string | undefined)) ??
+    players.find((m: Member) => m.user_id === (status?.winner_user_id as string | undefined)) ??
     (winnerSeat != null ? aiMemberOfSeat(winnerSeat) : undefined)
   const over = isTerminal
     ? buildOver({
@@ -671,7 +671,7 @@ function buildOver({
   // loss with no eligible winner. Must precede the winner logic below, which
   // would otherwise fall through to the phantom co-winners tie on null winner.
   if (outcome === 'conceded') return { verdict: 'All conceded', message: 'All conceded', tone: 'lost' }
-  const winner = status?.winner as string | null | undefined
+  const winner = status?.winner_user_id as string | null | undefined
   if (winner === selfId) return { verdict: 'You won', message: 'You won!', tone: 'won' }
   const named = (name: string) => ({
     verdict: `${name} won`,

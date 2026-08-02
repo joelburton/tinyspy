@@ -86,7 +86,7 @@ select is(
   (select play_state from common.games where id = (select id from g2)),
   'lost_compete', 'everyone conceding → no winner (lost_compete)');
 select is(
-  (select status->>'winner' from common.games where id = (select id from g2)),
+  (select status->>'winner_user_id' from common.games where id = (select id from g2)),
   null, 'no winner recorded when all conceded');
 -- The two ways a race ends with nobody winning used to be indistinguishable
 -- on the row (both wrote lost_compete with NO outcome key), so the club list

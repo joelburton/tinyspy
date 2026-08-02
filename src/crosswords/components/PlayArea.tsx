@@ -987,7 +987,7 @@ function buildOver(
   myId: string,
   players: Member[],
 ): TerminalCopy & { verdictNode?: ReactNode } {
-  const winner = status?.winner as string | undefined
+  const winner = status?.winner_user_id as string | undefined
   // The handle cached in `status` at finish time — a rename is rare enough that a
   // stale name beats a follow-up query. The roster row drives the identity DOT.
   const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'

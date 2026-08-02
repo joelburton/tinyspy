@@ -341,7 +341,7 @@ export function PlayArea({
   // only grows the log past `viewingId`, so a past turn holds.
   const snap = viewing && viewingId !== null ? turnSnapshot(myGuesses, viewingId) : null
 
-  const winnerId = status?.winner as string | undefined
+  const winnerId = status?.winner_user_id as string | undefined
   const selfWon = winnerId === session.user.id
   // Tie-break inference (no backend flag needed): the server picks the winner by fewest
   // guesses, then earliest solved_at. So if any OTHER solver used the same guess count

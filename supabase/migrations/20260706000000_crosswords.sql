@@ -317,7 +317,7 @@ begin
     target_game, 'won_compete',
     jsonb_build_object(
       'mode', 'compete',
-      'winner', p_winner,
+      'winner_user_id', p_winner,
       'winner_username', (select username from common.profiles where user_id = p_winner)
     ),
     v_results

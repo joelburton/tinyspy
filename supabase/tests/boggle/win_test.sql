@@ -5,7 +5,7 @@
 -- or a player (compete) reaches win_percent% of the required-words SCORE.
 -- The fixture's required set is 9 points (see setup.psql), so a 50% target is
 -- ceil(0.5 * 9) = 5 points. Compete is a race: the first player to cross wins
--- outright (status.winner_id), regardless of the others' private scores.
+-- outright (status.winner_user_id), regardless of the others' private scores.
 
 begin;
 set search_path = boggle, common, public, extensions;
@@ -99,7 +99,7 @@ select is((select is_terminal from common.games where id = (select id from gp)),
   'compete: a player reaching the target ends the game');
 select is((select status->>'outcome' from common.games where id = (select id from gp)), 'target',
   'compete: the terminal outcome is target');
-select is((select status->>'winner_id' from common.games where id = (select id from gp)),
+select is((select status->>'winner_user_id' from common.games where id = (select id from gp)),
   'ada11111-1111-1111-1111-111111111111', 'compete: the crosser is named as the winner');
 select is((select play_state from common.games where id = (select id from gp)), 'won_compete',
   'compete: reaching the target is won_compete, not a neutral end');

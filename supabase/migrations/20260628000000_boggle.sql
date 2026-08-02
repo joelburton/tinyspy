@@ -465,10 +465,10 @@ grant execute on function boggle.submit_word(uuid, text, int, boolean) to authen
 -- expires (`'timeout'`), or a score TARGET is reached (`'target'`, see
 -- submit_word — only when setup.win_percent is set). Coop has no individual
 -- winner (the team's total is the score); compete without a target ranks by
--- score (ties share the win). A `'target'` compete win passes `winner_id` — the
+-- score (ties share the win). A `'target'` compete win passes `winner_user_id` — the
 -- player who crossed the bar first — and THEY win outright (others lose
 -- regardless of their private banked score).
-create function boggle._finish(target_game uuid, outcome text, winner_id uuid default null)
+create function boggle._finish(target_game uuid, outcome text, winner_user_id uuid default null)
 returns void
 language plpgsql
 security definer
@@ -556,8 +556,8 @@ begin
     -- (score race) the sole player on the top score. A tie leaves it null and
     -- the label reads "co-winners" — the leaderboard is privacy-scoped, so a
     -- label can't recompute this itself.
-    if winner_id is not null then
-      top_user := winner_id;
+    if winner_user_id is not null then
+      top_user := winner_user_id;
     elsif term_state = 'won_compete' then
       with tops as (
         select t.user_id
@@ -581,7 +581,7 @@ begin
     );
     if top_user is not null then
       final_status := final_status || jsonb_build_object(
-        'winner_id', top_user,
+        'winner_user_id', top_user,
         'winner_username', (select username from common.profiles where user_id = top_user)
       );
     end if;
@@ -594,7 +594,7 @@ begin
     select coalesce(jsonb_object_agg(p.user_id::text,
              jsonb_build_object(
                'won', case
-                        when winner_id is not null then p.user_id = winner_id
+                        when winner_user_id is not null then p.user_id = winner_user_id
                         when term_state <> 'won_compete' then false
                         else not p.conceded and coalesce(t.sc, 0) >= max_score
                       end,

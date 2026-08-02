@@ -404,7 +404,7 @@ export function PlayArea({
   const swapsUsed = self?.swaps_used ?? 0
   const remaining = Math.max(0, game.max_swaps - swapsUsed)
 
-  const selfWon = (status?.winner as string | undefined) === session.user.id
+  const selfWon = (status?.winner_user_id as string | undefined) === session.user.id
   // Coop swaps for the win-vs-par verdict: coop rows are kept in lock-step, so
   // any row carries the group's count — falling back to row 0 keeps the label
   // honest for a non-player watcher (whose `self` is undefined).

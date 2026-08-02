@@ -412,11 +412,11 @@ export function PlayArea({
     for (const id of currentWord) offBoard.add(id)
   }
 
-  // The compete winner, for the loser's named verdict. `status.winner` is the id
+  // The compete winner, for the loser's named verdict. `status.winner_user_id` is the id
   // and `status.winner_username` the handle cached at finish time (a rename is
   // rare enough that a stale name beats a follow-up query); the roster row is
   // looked up for the identity DOT, falling back to the cached name.
-  const winnerId = status?.winner as string | undefined
+  const winnerId = status?.winner_user_id as string | undefined
   const selfWon = winnerId === session.user.id
   const over = isTerminal
     ? buildOver({

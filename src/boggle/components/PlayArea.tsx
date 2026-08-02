@@ -563,7 +563,7 @@ function buildOver({
   // A target win is a RACE the server already decided: the crosser (named in the
   // status) wins outright, everyone else loses — no leaderboard comparison.
   if (isTarget) {
-    const winnerId = status?.winner_id as string | undefined
+    const winnerId = status?.winner_user_id as string | undefined
     const winner = players.find((p) => p.user_id === winnerId)
     const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
     if (winnerId === selfId) {
