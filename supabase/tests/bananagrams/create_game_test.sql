@@ -19,7 +19,7 @@ begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(30);
+select plan(32);
 
 \ir ../_shared/setup.psql
 
@@ -248,6 +248,20 @@ select is(
   (select gametype from common.games where id = (select id from mg_game)),
   'bananagrams',
   'common.games row gets the bananagrams gametype'
+);
+
+-- The title is a pure identifier: bananagrams has no shared content to name a
+-- game after (private grids, private hands), so it takes the first six hex
+-- digits of its own uuid — which also makes it a DB lookup key.
+select ok(
+  (select title ~ '^#[0-9A-F]{6}$'
+     from common.games where id = (select id from mg_game)),
+  'title is a #HEXHEX handle, not the shared "New game" placeholder'
+);
+select is(
+  (select title from common.games where id = (select id from mg_game)),
+  '#' || upper(left((select id from mg_game)::text, 6)),
+  'the handle is the head of the game''s own uuid'
 );
 
 select is(

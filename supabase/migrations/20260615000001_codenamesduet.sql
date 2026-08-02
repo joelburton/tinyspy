@@ -388,8 +388,6 @@ declare
   s_first uuid;
   seat_a uuid;
   seat_b uuid;
-  seat_a_username text;
-  seat_b_username text;
   game_title text;
 begin
   -- ─── Validate setup shape ────────────────────────────
@@ -455,23 +453,16 @@ begin
   end if;
 
   -- ─── Build title ────────────────────────────────────
-  -- Format: "<seatA-username>-v-<seatB-username>: WORD1, WORD2, WORD3, WORD4"
-  -- (first 4 picked words alphabetically). Cooperative game; the
-  -- `-v-` is a stylized separator, not a literal "versus."
-  select username into seat_a_username
-    from common.profiles where user_id = seat_a;
-  select username into seat_b_username
-    from common.profiles where user_id = seat_b;
-
-  game_title := seat_a_username || '-v-' || seat_b_username || ': '
-    || (
-      select string_agg(w, ', ' order by w)
-        from (
-          select unnest(picked_words) as w
-          order by 1
-          limit 4
-        ) first4
-    );
+  -- Format: "WORD1-WORD2-WORD3" — the first three picked words alphabetically.
+  -- The 25 words are on the shared board every player sees, so naming the game
+  -- after three of them leaks nothing; what IS secret is the key card (who's
+  -- an agent, who's the assassin), and that never touches the title.
+  select string_agg(w, '-' order by w) into game_title
+    from (
+      select unnest(picked_words) as w
+      order by 1
+      limit 3
+    ) first3;
 
   -- Common-side coordination: validates auth + caller club-
   -- membership + both player uids are club members, inserts

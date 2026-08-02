@@ -8,7 +8,7 @@
 
 begin;
 set search_path = boggle, common, public, extensions;
-select plan(17);
+select plan(19);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -50,6 +50,26 @@ select is(
 select is(
   (select (status->>'found_words_count')::int from common.games where id = (select id from g)), 0,
   'status found_words_count starts at 0');
+-- Club-list title = size + the board's top row. The fixture board is
+-- 'CATRSEXOTMPLNGDB' at n=4, so the first four faces are C A T R.
+select is(
+  (select title from common.games where id = (select id from g)), '4×4 CATR',
+  'title is "<n>×<n> <top row>"');
+
+-- A multiface die is stored as a digit (1 = Qu) but a player sees two letters
+-- on the tile, so the title expands it — see src/boggle/lib/dice.ts.
+create temp table qg on commit drop as
+select * from boggle.create_game(
+  (select handle from club),
+  pg_temp.boggle_setup(),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'coop',
+  pg_temp.boggle_board() || jsonb_build_object('board', '1ATRSEXOTMPLNGDB')
+);
+select is(
+  (select title from common.games where id = (select id from qg)), '4×4 QuATR',
+  'title expands a multiface die to the faces on the tile');
 
 -- ── Compete happy path ────────────────────────────────────
 create temp table cg on commit drop as

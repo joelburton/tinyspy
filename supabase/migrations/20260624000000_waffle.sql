@@ -324,6 +324,109 @@ grant execute on function waffle._solution_for(uuid) to authenticated;
 grant execute on function waffle._player_board_for(uuid, uuid) to authenticated;
 grant execute on function waffle._player_colors_for(uuid, uuid) to authenticated;
 
+-- ============================================================
+-- Club-list title helpers
+-- ============================================================
+-- The 6 words of a solved waffle, as (first cell, stride) over the 1-based
+-- 25-char board: 3 across (rows 0/2/4) then 3 down (cols 0/2/4). Mirrors the
+-- cell tuples at the top of this file.
+create function waffle._word_slots()
+returns table(start1 int, stride int)
+language sql
+immutable
+as $$
+  values (1, 1), (11, 1), (21, 1),   -- across: rows 0, 2, 4
+         (1, 5), (3, 5), (5, 5);     -- down:   cols 0, 2, 4
+$$;
+
+-- The words the player has actually GOT RIGHT: a word counts once all five of
+-- its cells match the solution. Uppercased, alphabetical. An unsolved board
+-- typically returns a few of them (the greens cluster into whole words long
+-- before the puzzle falls), which is exactly what makes it a progress readout.
+create function waffle._correct_words(board text, solution text)
+returns text[]
+language sql
+immutable
+as $$
+  select coalesce(array_agg(word order by word), '{}'::text[])
+    from (
+      select upper(string_agg(substr(solution, s.start1 + i * s.stride, 1), ''
+                              order by i)) as word
+        from waffle._word_slots() s, generate_series(0, 4) i
+       group by s.start1, s.stride
+      having bool_and(substr(board,    s.start1 + i * s.stride, 1)
+                    = substr(solution, s.start1 + i * s.stride, 1))
+    ) w;
+$$;
+
+-- Format a word list as a title: the first three, dash-joined ("ARENA-EAGER-
+-- TOTEM"), or the placeholder when nothing qualifies yet.
+create function waffle._title(words text[], placeholder text)
+returns text
+language sql
+immutable
+as $$
+  select case
+    when coalesce(array_length(words, 1), 0) = 0 then placeholder
+    else array_to_string(words[1:3], '-')
+  end;
+$$;
+
+-- Recompute the club-list title from state. The title is a READOUT, not a
+-- fixed name (the scrabble/stackdown pattern):
+--
+--   coop            → the correct words so far    "ARENA-EAGER-TOTEM"
+--                     (falling back to "New game" before any word lands)
+--   compete, mid-game → "New compete"
+--   compete, terminal → the puzzle's own words    "ARENA-EAGER-TOTEM"
+--
+-- Coop shares one board, so its correct words are already on every screen —
+-- surfacing them costs nothing. Compete does NOT get a mid-game readout: the
+-- words ARE the solution, each racer has their own board, and the title is
+-- club-wide readable — so a leader's progress would hand the trailing player
+-- the answer. Compete waits for the terminal reveal, then names the game after
+-- the puzzle it was.
+--
+-- Derived rather than assigned, so it's correct after ANY transition — a swap,
+-- a timeout, a manual end, a give-up reveal, or a replay that rewinds the board
+-- (which must un-tell the words). Every one of those calls this instead of
+-- remembering its own formula.
+create function waffle._sync_title(g_id uuid)
+returns void
+language sql
+security definer
+set search_path = waffle, common, public, extensions
+as $$
+  update common.games cg
+     set title = case
+           when wg.mode = 'coop' then waffle._title(
+             -- Any players row will do: coop rows are kept in lock-step.
+             --
+             -- The swaps_used gate keeps this a readout of what the players
+             -- have DONE. A scramble can hand them a whole correct word for
+             -- free, and naming an untouched game after it would be a lie —
+             -- worse, a replayed board and a fresh board are in identical
+             -- state, so they must read identically. A terminal game is
+             -- exempt: its board is final, whatever the players did to it
+             -- (a "reveal answer" writes the solution without a single swap).
+             (select case when wp.swaps_used > 0 or cg.is_terminal
+                          then waffle._correct_words(wp.board, wg.solution)
+                          else '{}'::text[] end
+                from waffle.players wp
+               where wp.game_id = g_id limit 1),
+             'New game')
+           when cg.is_terminal then waffle._title(
+             -- Terminal compete: every word is correct BY DEFINITION of the
+             -- solution, so the solution against itself is the full six.
+             waffle._correct_words(wg.solution, wg.solution), 'New compete')
+           else 'New compete'
+         end
+    from waffle.games wg
+   where cg.id = g_id and wg.id = g_id;
+$$;
+
+revoke execute on function waffle._sync_title(uuid) from public;
+
 create view waffle.games_state with (security_invoker = true) as
   select wg.id,
          wg.club_handle,
@@ -374,8 +477,8 @@ on conflict do nothing;
 -- We store it (the game is self-contained) and seed one players row per
 -- player (board = scramble). Board CONTENT is taken at face value (we
 -- don't re-derive par in SQL — that's why generation is an edge
--- function); we sanity-check structure. The game title is the band's
--- label, derived from setup.difficulty.
+-- function); we sanity-check structure. The game title starts as a
+-- placeholder and is rewritten from play (see waffle._sync_title).
 create function waffle.create_game(
   target_club     text,
   setup           jsonb,
@@ -457,10 +560,12 @@ begin
 
   budget := b_par + s_extra;
 
-  -- Game title = the band's label (the difficulty the player picked).
-  game_title := case s_difficulty
-    when 1 then 'Universal' when 2 then 'Common' when 3 then 'Familiar'
-    when 4 then 'Uncommon' when 5 then 'Obscure' else 'Expert' end;
+  -- Game title: a placeholder that play rewrites — see waffle._sync_title for
+  -- the two modes' formulas. Coop starts at the app-wide 'New game'; compete
+  -- says 'New compete' because it KEEPS the placeholder for the whole race
+  -- (its words can't be shown until the end), so the label may as well say
+  -- which kind of game is sitting there.
+  game_title := case mode when 'coop' then 'New game' else 'New compete' end;
 
   new_id := common.create_game(
     target_club, 'waffle_' || mode, player_user_ids, game_title, setup,
@@ -743,6 +848,11 @@ begin
     out_terminal := waffle._maybe_finish_compete(target_game);
   end if;
 
+  -- Club-list title: coop now reads the words this swap got right; a compete
+  -- race that just ended now reads the puzzle's words. Runs after the terminal
+  -- branches so it sees the settled is_terminal.
+  perform waffle._sync_title(target_game);
+
   return jsonb_build_object(
     'colors',     waffle.compute_colors(new_board, g_row.solution),
     'swaps_used', new_swaps,
@@ -773,6 +883,9 @@ begin
   perform common.require_compete((select mode from waffle.games where id = target_game));
   perform common._set_conceded(target_game);
   perform waffle._maybe_finish_compete(target_game);
+  -- A concede can be the move that empties the racing set, ending the game —
+  -- in which case the title becomes the puzzle's words.
+  perform waffle._sync_title(target_game);
 end;
 $$;
 
@@ -855,6 +968,9 @@ begin
     );
   end if;
 
+  -- The game is over either way — a compete title stops saying "New compete".
+  perform waffle._sync_title(target_game);
+
   -- Realtime touch: common.end_game writes common.games, not waffle.*,
   -- so the FE's useGame subscription (on waffle.{games,players}) would
   -- never wake. A no-op self-update produces a WAL entry it picks up,
@@ -931,6 +1047,9 @@ begin
     jsonb_build_object('outcome', 'manual', 'mode', g_row.mode),
     player_results
   );
+
+  -- Terminal now, so a compete title stops saying "New compete".
+  perform waffle._sync_title(target_game);
 
   -- Realtime touch: same trick as submit_timeout. common.end_game
   -- writes common.games, not waffle.*, so the FE's useGame
@@ -1013,6 +1132,10 @@ begin
     jsonb_build_object('outcome', 'revealed', 'mode', g_row.mode),
     player_results
   );
+
+  -- Every board IS the solution now, so coop's correct-words title fills in
+  -- with the puzzle's words — as does compete's, which was terminal-gated.
+  perform waffle._sync_title(target_game);
 end;
 $$;
 
@@ -1086,6 +1209,11 @@ begin
       'solved', false
     )
   );
+
+  -- Back to the placeholder: every board is the scramble again (no word is
+  -- correct) and reset_game cleared is_terminal, so the title must stop
+  -- advertising words the players no longer have.
+  perform waffle._sync_title(target_game);
 end;
 $$;
 

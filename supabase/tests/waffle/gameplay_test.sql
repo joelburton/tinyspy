@@ -9,7 +9,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(19);
+select plan(21);
 
 -- ── Game 1: validation + lock-step + win ────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -59,6 +59,15 @@ select is(
   (select play_state from common.games where id = (select id from g1)),
   'playing',
   'game still in progress after a non-solving swap');
+-- The club-list title becomes a progress readout: the correct words so far,
+-- alphabetical, capped at three. ada's swap of cells 2,3 broke the across
+-- row (ABCDE) and the middle down (CGKOS); the scramble's own 0,1 swap
+-- already broke the first down (AFINQ). What's left correct: EHMPU (down
+-- col 4), IJKLM (across row 2), QRSTU (across row 4).
+select is(
+  (select title from common.games where id = (select id from g1)),
+  'EHMPU-IJKLM-QRSTU',
+  'coop: the title reads the correct words so far');
 -- Coop exposes the solution during play (the turn-history viewer recomputes past
 -- boards' colors on the FE, which needs the answer; we don't gate this against
 -- friends). Compete's mid-game hiding lives in solution_hide_test.
@@ -92,6 +101,12 @@ select is(
   (select solution from waffle.games_state where id = (select id from g1))::text,
   'abcdef.g.hijklmn.o.pqrstu',
   'solution revealed once the game is terminal');
+-- A solved board has all six words correct, so the title settles on the
+-- alphabetical first three of the puzzle itself.
+select is(
+  (select title from common.games where id = (select id from g1)),
+  'ABCDE-AFINQ-CGKOS',
+  'coop: a solved board titles the game after the puzzle''s first three words');
 
 -- ── Game 1: the move log ────────────────────────────────────
 -- Three swaps happened: ada (2,3), bea (2,3 undo), bea (0,1 solve).

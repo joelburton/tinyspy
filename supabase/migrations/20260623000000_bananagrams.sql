@@ -401,13 +401,28 @@ begin
   -- ─── Common header + gametype rows ───────────────────
   new_id := common.create_game(
     target_club, 'bananagrams', player_user_ids,
-    -- Instance label for common.games.title (the club card's heading).
-    -- Neutral, like stackdown/scrabble — the brand is shown from the FE
-    -- manifest, never stored here.
+    -- Placeholder: the real title needs the game's id, which only exists once
+    -- common.create_game has inserted the row (rewritten just below).
     'New game',
     setup,
     setup
   );
+
+  -- Instance label for common.games.title (the club card's heading). Every
+  -- other game names itself after its content, but bananagrams has no shared
+  -- content to name: each player builds a private grid from a private hand, so
+  -- anything drawn from play would be either meaningless or a leak. So the
+  -- title is a pure IDENTIFIER — the first six hex digits of the game's own
+  -- uuid, like a short commit hash. Two games in a club list are always
+  -- tellable apart, and the handle doubles as a lookup key when Joel goes
+  -- digging in the DB for the game a friend is asking about. (Six hex digits
+  -- collide at ~1-in-16M; a club would need thousands of games to notice.)
+  -- The brand is shown from the FE manifest, never stored here.
+  -- Aliased: this function `returns table(id uuid)`, so a bare `id` in the
+  -- where clause is ambiguous between that OUT parameter and the column.
+  update common.games cg
+     set title = '#' || upper(left(new_id::text, 6))
+   where cg.id = new_id;
 
   -- The bunch = every tile past the dealt slices
   -- (shuffled[player_count*hand_size + 1 .. bunch_size]). coalesce to '' for

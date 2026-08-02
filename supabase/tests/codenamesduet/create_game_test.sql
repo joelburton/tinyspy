@@ -415,21 +415,24 @@ select is(
   'create_game: current-view common.games row has gametype = codenamesduet'
 );
 
--- Title shape: "<seatA-username>-v-<seatB-username>: 4 words".
--- Words are randomly drawn from a 390-word pool so we can't
--- pin the exact words; assert the prefix (which is deterministic
--- — ada is first-clue-giver, bea is the other) and the comma count.
-select is(
-  (select substring(title from 1 for 11)
+-- Title shape: "WORD1-WORD2-WORD3" — the first three picked words
+-- alphabetically. Words are randomly drawn from a 390-word pool so we
+-- can't pin the exact words; assert the shape (three dash-joined
+-- uppercase words) and that they're the ones actually on the board,
+-- in ascending order.
+select ok(
+  (select title ~ '^[A-Z]+-[A-Z]+-[A-Z]+$'
      from common.games where id = (select id from created)),
-  'ada-v-bea: ',
-  'create_game: title starts with "<seatA>-v-<seatB>: "'
+  'create_game: title is three dash-joined uppercase words'
 );
-select is(
-  (select length(title) - length(replace(title, ', ', ''))
-     from common.games where id = (select id from created)),
-  6,  -- 3 commas × 2 chars each = 6 (between 4 words)
-  'create_game: title body has 4 comma-separated words'
+select ok(
+  (select title = (
+     select string_agg(w, '-' order by w)
+       from (select word as w from codenamesduet.words
+              where game_id = created.id
+              order by word limit 3) first3)
+     from common.games, created where common.games.id = created.id),
+  'create_game: the title words are the board''s first three, alphabetically'
 );
 
 -- ============================================================

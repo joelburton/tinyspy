@@ -203,6 +203,51 @@ $$;
 revoke execute on function wordle._target_for(uuid) from public;
 grant execute on function wordle._target_for(uuid) to authenticated;
 
+-- ============================================================
+-- wordle._sync_title — recompute the club-list title from state
+-- ============================================================
+-- The title is a READOUT, not a fixed name (the scrabble/stackdown pattern):
+--
+--   terminal          → the answer            "SLATE"
+--   coop, mid-game    → the most recent guess "CRANE"
+--   coop, no guesses  → "New game"
+--   compete, mid-race → "New compete"
+--
+-- Compete gets no mid-game readout on purpose: guesses are private until the
+-- end-of-game reveal (see the guesses RLS policy above), and the title is
+-- club-wide readable, so publishing the latest guess would hand a racing
+-- opponent your letters. Compete holds its placeholder for the whole race —
+-- and since that's the label a club list actually sits on, it says which kind
+-- of game is sitting there (the same choice waffle compete makes).
+--
+-- Derived rather than assigned, so it's correct after ANY transition —
+-- a guess, a timeout, a manual end, a concede that finishes the race, or a
+-- replay that rewinds the board (which must un-tell the answer). Every one of
+-- those calls this instead of remembering its own formula.
+create function wordle._sync_title(g_id uuid)
+returns void
+language sql
+security definer
+set search_path = wordle, common, public, extensions
+as $$
+  update common.games cg
+     set title = case
+           when cg.is_terminal then upper(wg.target::text)
+           when wg.mode = 'coop' then coalesce(
+             (select upper(gx.guess::text)
+                from wordle.guesses gx
+               where gx.game_id = g_id
+               order by gx.seq desc
+               limit 1),
+             'New game')
+           else 'New compete'
+         end
+    from wordle.games wg
+   where cg.id = g_id and wg.id = g_id;
+$$;
+
+revoke execute on function wordle._sync_title(uuid) from public;
+
 create view wordle.games_state with (security_invoker = true) as
   select wg.id,
          wg.club_handle,
@@ -313,11 +358,16 @@ begin
   end if;
 
   new_id := common.create_game(
-    -- 'New game' is the instance label for common.games.title (the club
-    -- card heading); the brand is shown from the FE manifest, not stored.
+    -- The starting value of common.games.title (the club card heading); play
+    -- rewrites it — see wordle._sync_title, which owns both placeholders.
+    -- Compete says 'New compete' because it KEEPS the placeholder for the whole
+    -- race (its guesses are private), so the label may as well say which kind
+    -- of game is sitting there. The brand is shown from the FE manifest, not
+    -- stored.
     -- saved_default strips firstTurnUserId (the turn-order "who goes first"
     -- pick is a per-game choice, not a per-club preference; coopStyle rides).
-    target_club, 'wordle_' || mode, player_user_ids, 'New game', setup,
+    target_club, 'wordle_' || mode, player_user_ids,
+    case mode when 'coop' then 'New game' else 'New compete' end, setup,
     setup - 'firstTurnUserId'
   );
 
@@ -604,6 +654,11 @@ begin
     out_terminal := wordle._maybe_finish_compete(target_game);
   end if;
 
+  -- Club-list title: coop now reads the guess just made; either mode that
+  -- just ended now reads the answer. Runs after the terminal branches so it
+  -- sees the settled is_terminal.
+  perform wordle._sync_title(target_game);
+
   return jsonb_build_object(
     'result',       case when did_solve then 'correct' else 'incorrect' end,
     'colors',       v_colors,
@@ -637,6 +692,9 @@ begin
   perform common.require_compete((select mode from wordle.games where id = target_game));
   perform common._set_conceded(target_game);
   perform wordle._maybe_finish_compete(target_game);
+  -- A concede can be the move that empties the racing set, ending the game —
+  -- in which case the title becomes the answer.
+  perform wordle._sync_title(target_game);
 end;
 $$;
 
@@ -717,6 +775,9 @@ begin
     );
   end if;
 
+  -- The game is over either way — the title becomes the answer.
+  perform wordle._sync_title(target_game);
+
   -- Realtime touch — common.end_game writes common.games, not wordle.*,
   -- so the FE's wordle.{games,...} subscription would never wake. A
   -- no-op self-update produces a WAL entry it picks up, refetching
@@ -767,6 +828,9 @@ begin
     jsonb_build_object('outcome', 'manual'),
     player_results
   );
+
+  -- Terminal now, so the title becomes the answer (see _sync_title).
+  perform wordle._sync_title(target_game);
 
   -- Realtime touch (see submit_timeout).
   update wordle.games set club_handle = club_handle where id = target_game;
@@ -821,6 +885,10 @@ begin
     jsonb_build_object('outcome', 'revealed'),
     player_results
   );
+
+  -- Terminal now, so the title becomes the answer (see _sync_title) — the
+  -- club list tells the same story the board just did.
+  perform wordle._sync_title(target_game);
 
   -- Realtime touch (see submit_timeout) — wakes useGame so games_state
   -- refetches and the now-unshielded target lands on every client.
@@ -897,6 +965,11 @@ begin
       'solved', false
     )
   );
+
+  -- Back to "New game": the guess log is empty and reset_game cleared
+  -- is_terminal, so the title must stop advertising the answer (the whole
+  -- point of a replay is that the word is a secret again).
+  perform wordle._sync_title(target_game);
 end;
 $$;
 

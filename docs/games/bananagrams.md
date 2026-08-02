@@ -219,10 +219,17 @@ The locally-terminal row (conceded, the others still racing) is the shared `<Loc
 
 ### Title formula
 
-Static: the string **"bananagrams"**, passed verbatim by `create_game`. Each
-game is the player's own random tile draw — there's nothing puzzle-specific to
-name — so the gametype logo carries identity in the club list and the title
-stays constant.
+A pure **identifier**: `'#'` + the first six hex digits of the game's own uuid,
+uppercased (`#3F9A2C`), written by `create_game` right after
+`common.create_game` returns the id.
+
+bananagrams is the one game on the roster with no shareable content to name
+itself after: every player builds a private grid from a private hand, so
+anything drawn from play would be either meaningless (whose grid?) or a leak.
+So instead of naming the game, the title *identifies* it — two games in a club
+list are always tellable apart, and the handle doubles as a lookup key when
+digging through the DB for the game a friend is asking about. Six hex digits
+collide at ~1-in-16M, which a club of friends will never reach.
 
 ### Realtime + FE
 

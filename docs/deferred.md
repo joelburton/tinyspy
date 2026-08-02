@@ -167,13 +167,14 @@ and connections (turn-log / word-list families) and stackdown.
   `seed.dev.sql` change for a database that must survive; and whether the friends get one
   last "everything resets" warning before the freeze. Until then, the alpha prior in
   CLAUDE.md still holds — keep editing baselines.
-- **Choose better titles + status lines**, walking the table in
+- **Choose better status lines**, walking the table in
   [`game-status-labels.md`](game-status-labels.md) game by game. Its "Known
-  inconsistencies" section is the punch list (one real bug, two games with no title at
-  all, and a compete-win phrased four different ways). Note that scrabble + stackdown
-  already show the pattern worth copying: seed a placeholder, then rewrite the title from
-  play. Any change to a status line means regenerating the doc (`npm run report:labels`);
-  a title change means SQL, so it interacts with the migration-policy question above.
+  inconsistencies" section is the punch list — one real bug (connections's
+  `1 mistakes`), six games giving no mid-game progress, a compete win phrased four
+  different ways, and four games whose unknown-state fallback renders a finished game as
+  live. Regenerating the doc after any change is `npm run report:labels`. (**Titles were
+  done on 2026-08-01** — every game now names itself after its content, five rewrite from
+  play, and the leak rule is written up in [common.md → Title formulas](common.md#title-formulas).)
 
 ## Tooling
 

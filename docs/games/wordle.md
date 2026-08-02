@@ -64,12 +64,31 @@ Mirrors waffle's hidden-answer pattern (a HIDDEN `target`) plus spellingbee's pe
 
 ### Title formula
 
-Static: the string **`'New game'`**, passed verbatim by `create_game` in both
-modes as `common.games.title` (the club-card heading; the brand is shown from
-the FE manifest, not stored). There's nothing per-game to put in the club list —
-the target is hidden (it can't sit in a club-wide-readable column), and the
-gametype logo already identifies the game — so the title carries no
-board-specific info.
+A **readout**, not a fixed name. `create_game` seeds a placeholder (the
+club-card heading; the brand is shown from the FE manifest, not stored) and
+`wordle._sync_title` recomputes it from state:
+
+| state | title |
+|---|---|
+| terminal | **the answer** (`SLATE`) |
+| coop, mid-game | **the most recent guess** (`CRANE`) |
+| coop, before any guess | `'New game'` |
+| compete, mid-race | `'New compete'` |
+
+Compete gets no mid-game readout on purpose: guesses are private until the
+end-of-game reveal (the `wordle.guesses` RLS policy), and `common.games.title`
+is club-wide readable — publishing the latest guess would hand a racing
+opponent your letters. It therefore holds its placeholder for the whole race,
+and says `'New compete'` rather than `'New game'` since that's the label a club
+list will actually sit on (waffle compete makes the same call).
+
+The helper is **derived, not assigned**, so every transition just calls it and
+gets the right answer: `submit_guess`, `concede`, `submit_timeout`, `end_game`,
+`reveal_answer`, and `replay_board` — that last one matters, because a replayed
+game must stop advertising the answer (the title re-hides alongside the
+`target` column). pgTAP covers the coop readout + terminal answer
+(`gameplay_test.sql`), the compete non-leak (`compete_test.sql`), and the
+replay reset (`replay_test.sql`).
 
 ## Frontend (`src/wordle/`)
 

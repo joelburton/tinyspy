@@ -529,21 +529,18 @@ begin
     from jsonb_array_elements(board_categories) c,
          jsonb_array_elements_text(c->'tiles') t;
 
-  -- Title = "#<source_id> <nyt_date> (<TILE1>/<TILE2>)" — same
-  -- formula in both modes; the puzzle's NYT identity is mode-
-  -- independent, and players still want a memorable handle on the
-  -- game in the club list regardless of mode. Built BEFORE the
-  -- shuffle since alphabetical order is order-independent.
-  select string_agg(t, '/' order by t) into first_two_tiles
+  -- Title = "<nyt_date>: <TILE1>-<TILE2>" — same formula in both modes; the
+  -- puzzle's NYT date is mode-independent, and players still want a memorable
+  -- handle on the game in the club list regardless of mode. The two tiles are
+  -- a peek at the board — a date alone says which puzzle, not what's in it.
+  -- Built BEFORE the shuffle since alphabetical order is order-independent.
+  select string_agg(t, '-' order by t) into first_two_tiles
     from (
       select unnest(tile_order) as t
       order by 1
       limit 2
     ) first2;
-  game_title := format('#%s %s (%s)',
-                       puzzle_row.source_id,
-                       puzzle_row.nyt_date,
-                       first_two_tiles);
+  game_title := format('%s: %s', puzzle_row.nyt_date, first_two_tiles);
 
   -- Fisher-Yates shuffle for the display order.
   for i in reverse 16..2 loop

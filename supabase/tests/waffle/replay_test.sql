@@ -14,7 +14,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(14);
+select plan(18);
 
 -- ── Coop: solve, then replay → fully reset + un-terminal ────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -39,6 +39,10 @@ reset role;
 select is(
   (select is_terminal from common.games where id = (select id from g1)),
   true, 'coop: precondition — solved game is terminal');
+select is(
+  (select title from common.games where id = (select id from g1)),
+  'ABCDE-AFINQ-CGKOS',
+  'coop: precondition — the title was rewritten to the solved words');
 
 -- Age the shared clock (as if a timed game had been running a while) so the
 -- replay's clock-zeroing is observable.
@@ -76,6 +80,11 @@ select is(
 select is(
   (select ticks from common.timers where game_id = (select id from g1)),
   0, 'coop: replay → the shared clock is zeroed (a timed game restarts full)');
+-- The title must stop advertising words the players no longer have — a
+-- replayed board reads exactly like a freshly created one.
+select is(
+  (select title from common.games where id = (select id from g1)),
+  'New game', 'coop: replay → the title stops advertising the solved words');
 
 -- ── Compete: solve + concede → terminal, then replay resets all ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -98,6 +107,13 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select waffle.concede((select id from g2));
 reset role;
 
+-- Compete holds the placeholder for the whole race (its correct words would
+-- leak the solution to a trailing racer) and fills in at the terminal reveal.
+select is(
+  (select title from common.games where id = (select id from g2)),
+  'ABCDE-AFINQ-CGKOS',
+  'compete: precondition — ending the race names the game after the puzzle');
+
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select waffle.replay_board((select id from g2));
 reset role;
@@ -119,6 +135,9 @@ select is(
      where game_id = (select id from g2) and result is null
        and not conceded and conceded_at is null),
   2::bigint, 'compete: replay → results + concede (incl. conceded_at) cleared');
+select is(
+  (select title from common.games where id = (select id from g2)),
+  'New compete', 'compete: replay → the title stops advertising the solution');
 
 -- ── Non-player rejected ─────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');

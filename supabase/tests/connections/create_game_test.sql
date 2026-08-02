@@ -355,15 +355,14 @@ select is(
   'create_game: current-view common.games row has gametype = connections_coop'
 );
 
--- Title = "#<source_id> <nyt_date> (<TILE1>/<TILE2>)" where
--- TILE1/TILE2 are the first 2 alphabetical tiles across all 16.
--- For the fixture puzzle (source_id=TEST-1, date=2026-01-01,
--- tiles starting with A include ALPHA + ANGEL), the title is
--- deterministic.
+-- Title = "<nyt_date>: <TILE1>-<TILE2>" where TILE1/TILE2 are the first
+-- 2 alphabetical tiles across all 16. For the fixture puzzle (date
+-- 1900-01-01, tiles starting with A include ALPHA + ANGEL), the title
+-- is deterministic.
 select is(
   (select title from common.games where id = (select id from created)),
-  '#TEST-FIXTURE 1900-01-01 (ALPHA/ANGEL)',
-  'create_game: title is "#<source_id> <date> (<TILE1>/<TILE2>)"'
+  '1900-01-01: ALPHA-ANGEL',
+  'create_game: title is "<date>: <TILE1>-<TILE2>"'
 );
 
 -- ============================================================

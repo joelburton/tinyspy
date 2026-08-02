@@ -687,7 +687,8 @@ helpers live in [docs/pdf.md](../pdf.md).
 ## 8. Title formula
 
 The `common.games.title` is the **first three words played**, uppercased and
-`·`-joined (e.g. `"SCOWL · TABLE · QUARTZ"`), built by `scrabble._title` and
+dash-joined (e.g. `"SCOWL-TABLE-QUARTZ"` — the app-wide separator for a title
+built from several words), built by `scrabble._title` and
 rewritten by `play_word` in **both** modes — a game is recognizable at a glance
 in the club list. No spoiler risk: the board is public, so the words are already
 visible. A fresh game stays `"New game"` until the first word lands.

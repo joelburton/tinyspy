@@ -262,7 +262,9 @@ game is terminal, then all.
   (1–6), `legal_band` (band..6), `scoring_ladder`, `min_word_length` (3–9),
   `win_percent` (null or 50..100 in steps of 5), and the board structure; inserts
   the `common.games` header + the `boggle.games` row (`win_percent` denormalized
-  onto it); titles the game `Boggle n×n`.
+  onto it); titles the game `n×n <top row>` (e.g. `4×4 ABQuD` — the board's first
+  `n` faces, with a multiface die expanded to the two letters a player sees on the
+  tile). The board is public, so nothing is leaked.
 - **`submit_word(target_game, word, points, is_bonus)`** — the **trusting commit**.
   The FE validated the word against the shipped legal list (required ∪ bonus) and
   scored it, so the RPC trusts `word` + `points` + `is_bonus` and only:

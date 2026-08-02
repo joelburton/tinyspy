@@ -11,11 +11,28 @@ two strings that make up a row in ClubPage's right-hand games list.
 ```
 
 **Where each comes from.** The title is `common.games.title`, seeded by the gametype's
-`create_game`. It is **not** immutable: nothing stops a gametype updating it, and **two
-already do** — scrabble and stackdown seed the placeholder `'New game'` and then rewrite it
-as play reveals something worth naming the game after (and reset it on Restart). So the
-title is a *name* that MAY become a readout; a game whose title never changes is a choice,
-not a constraint.
+`create_game`. It is **not** immutable, and five gametypes rewrite it as play goes on
+(scrabble, stackdown, wordle, waffle, and — for the terminal reveal — waffle compete).
+Three rules shape every formula:
+
+1. **A title names the game after its content.** Whatever a player would recognize the game
+   by — the board's words, the puzzle's date, the answer — beats an opaque id. Only
+   bananagrams has no shareable content to name (private grids, private hands), so it alone
+   takes a pure identifier: the head of its own uuid.
+2. **A title may be a readout.** Games that have nothing to show at create time start on the
+   placeholder `'New game'` and rewrite it from play. A mode that holds the placeholder for
+   a whole race — wordle compete, waffle compete — says `'New compete'` instead, since
+   that's the label a club list actually sits on. The rewrite is **derived, not
+   assigned** — a `_sync_title` helper recomputes from state and every transition calls it,
+   so a timeout, a concede, a manual end and a **replay** all land on the right string. That
+   last one matters: a replayed game must stop advertising the answer.
+3. **A title can only carry what every player already sees.** `common.games.title` is
+   readable club-wide, so a title is a side channel around a game's hidden state. This is
+   why wordle compete and stackdown compete stay on the placeholder while private guesses
+   are in flight, why waffle compete waits for the terminal reveal, and why psychicnum names
+   itself after board words rather than its secrets.
+
+Multi-word titles join with a dash: `APPLE-BERRY-CHERRY`.
 
 The status line is `manifest.labelFor(row)`, a **pure, synchronous** function of one
 `common.games` row (see [common.md → labelFor](common.md)); ClubPage dispatches each row to
@@ -31,19 +48,22 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 
 | game | format | example |
 |---|---|---|
-| bananagrams | *literal, never changes* | `New game` |
-| wordle | *literal, never changes* | `New game` |
-| scrabble | `'New game'`, then **the first 3 words played** | `CRANE · BOXY · JET` |
-| stackdown | `'New game'`, then **the first 3 words found** (`…` past 3) | `CAT-DOGS-BIRD…` |
-| psychicnum | random 6 digits | `#012345` |
-| boggle | board size | `Boggle 4×4` |
-| waffle | difficulty name | `Familiar` |
+| bananagrams | `#` + the first 6 hex digits of the game's uuid | `#3F9A2C` |
+| wordle **coop** | `'New game'` → **the most recent guess** → **the answer** at terminal | `CRANE` → `SLATE` |
+| wordle **compete** | `'New compete'` (guesses are private) → **the answer** at terminal | `SLATE` |
+| scrabble | `'New game'`, then **the first 3 words played** | `CRANE-BOXY-JET` |
+| stackdown **coop** | `'New game'`, then **the first 3 words found** (`…` past 3) | `CAT-DOGS-BIRD…` |
+| stackdown **compete** | `'New game'` (found words are private) | `New game` |
+| psychicnum | **the first 3 board words**, alphabetical | `APPLE-BERRY-CHERRY` |
+| boggle | board size + **the top row** (multiface dice expanded) | `4×4 ABQuD` |
+| waffle **coop** | `'New game'`, then **the correct words so far** (first 3, alphabetical) | `ARENA-EAGER-TOTEM` |
+| waffle **compete** | `'New compete'` (the words are the solution) → **the puzzle's words** at terminal | `ARENA-EAGER-TOTEM` |
 | wordiply | the base, uppercased | `ARM` |
 | spellingbee | centre·outer letters | `A·BCDEFG` |
 | wordwheel | centre·outer letters | `A·BCDEFGH` |
-| crosswords | puzzle title (fallback `Crossword`) | `Sun 2026-07-04` |
-| connections | `#id date (first two tiles)` | `#123 2026-07-04 (APPLE, BANANA)` |
-| codenamesduet | seats + the picked words | `alice-v-bob: APPLE, BANANA, …` |
+| crosswords | puzzle title (fallback `Crossword`) | `NYT Sat 8/1/26: Untitled` |
+| connections | the puzzle's date + **the first two tiles** | `2026-07-04: APPLE-BANANA` |
+| codenamesduet | **the first 3 board words**, alphabetical | `APPLE-BERRY-CHERRY` |
 
 ## Status lines
 
@@ -162,18 +182,6 @@ fixed** — this section is a punch list, not documentation.
 - **connections coop: `solved · 1 mistakes`.** No pluralization, where psychicnum's
   `1 guess left` handles it. (Real: `connections.submit_guess` writes `mistake_count` on
   the solved row, so a one-mistake solve prints exactly this.)
-
-**Titles**
-
-- **Two games never get a title**: bananagrams and wordle keep the literal `'New game'`
-  forever, so every card of those types reads identically — two suspended wordle games are
-  indistinguishable in the club list. (scrabble and stackdown start there too, but fill it
-  in from play, so their placeholder only shows on a game nobody has moved in yet.)
-- **The rest mean seven different things** — an opaque id, board content, difficulty,
-  puzzle name, opponents-plus-words, or the first words played. Worth deciding what a title
-  is *for*: identity (tell two games apart) or preview (what am I coming back to?). The
-  scrabble/stackdown "fill it in from play" pattern is the strongest answer to both, and is
-  the obvious model if bananagrams and wordle ever get one.
 
 **Status lines**
 

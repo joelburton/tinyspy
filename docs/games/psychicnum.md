@@ -102,7 +102,7 @@ The shape that's the same in both modes:
 - The `psychicnum.guesses` table (rows look the same; RLS hides them differently).
 - The setup blob (`{ guesses, timer }`) — same fields, same defaults.
 - The hidden-secrets mechanic — both modes reveal the three secrets post-terminal via `games_state`.
-- `common.games.title` formula (a random `#NNNNNN` id — see [Title formula](#title-formula)).
+- `common.games.title` formula (the first three board words — see [Title formula](#title-formula)).
 - `common.game_players.result` shape (`{ won: bool }`).
 - `common.update_state` mid-game listing-label payload structure.
 
@@ -208,7 +208,9 @@ Reject reasons: not authenticated; not a member; `mode` not in `{coop, compete}`
 
 ### Title formula
 
-A random short numeric id, formatted `#NNNNNN` (six zero-padded digits, e.g. `#042317`). The title is purely a human-readable label for the game row in club lists — it must **not** reference the secrets, because `common.games.title` is club-wide readable and would put them in plain sight. The column-level grant on `psychicnum.games.secrets` (described in [The hidden-secrets mechanic](#the-hidden-secrets-mechanic)) is the canonical "true server-side secret." (We don't care about friends peeking via devtools — see [CLAUDE.md → Trust model](../../CLAUDE.md) — but the secrets shouldn't sit in a label-shaped column that exists for a different purpose.)
+The first three **board** words alphabetically, uppercased and dash-joined (e.g. `APPLE-BERRY-CHERRY`) — so the game row in a club list is recognizable by what's on its board.
+
+It must **not** reference the secrets, because `common.games.title` is club-wide readable and would put them in plain sight — and it doesn't: the board words are shown to every player anyway, and three of them in alphabetical order say nothing about *which* three are secret. The column-level grant on `psychicnum.games.secrets` (described in [The hidden-secrets mechanic](#the-hidden-secrets-mechanic)) stays the canonical "true server-side secret." (We don't care about friends peeking via devtools — see [CLAUDE.md → Trust model](../../CLAUDE.md) — but the secrets shouldn't sit in a label-shaped column that exists for a different purpose.)
 
 ### `psychicnum.submit_guess(target_game uuid, guess text) → text`
 

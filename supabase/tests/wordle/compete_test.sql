@@ -12,7 +12,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(11);
+select plan(13);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -65,6 +65,14 @@ select is(
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   0::bigint,
   'mid-game: bea cannot see ada''s guesses (RLS hides them)');
+-- …and the club-list title must not do the leaking for her: common.games.title
+-- is readable club-wide (bea reads it here as herself, which is the point),
+-- so compete keeps the placeholder for the whole race rather than publishing
+-- whoever guessed last.
+select is(
+  (select title from common.games where id = (select id from g)),
+  'New compete',
+  'compete: a mid-race guess never lands in the club-wide title');
 
 -- ── bea solves in 3 guesses (so ada wins on fewest) ─────────
 select wordle.submit_guess((select id from g), (select word from vals where rn = 1));
@@ -97,6 +105,11 @@ select is(
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1::bigint,
   'post-terminal: ada''s guesses are revealed to bea');
+-- The race is over, so the title can finally say what the word was.
+select is(
+  (select title from common.games where id = (select id from g)),
+  (select upper(w) from tgt),
+  'compete: the finished race titles the game with the answer');
 select is(
   (select target from wordle.games_state where id = (select id from g))::text,
   (select w from tgt),

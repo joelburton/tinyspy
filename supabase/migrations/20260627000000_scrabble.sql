@@ -414,9 +414,11 @@ begin
 end;
 $$;
 
--- The club-list title: the first three words played, uppercased — so a game
--- is recognizable at a glance (the board is public, so no spoiler concern in
--- either mode). NULL until the first word is played.
+-- The club-list title: the first three words played, uppercased and dash-
+-- joined ("CRANE-BOXY-JET") — so a game is recognizable at a glance (the board
+-- is public, so no spoiler concern in either mode). The dash is the app-wide
+-- separator for a title built from several words. NULL until the first word
+-- is played.
 create function scrabble._title(g_id uuid)
 returns text
 language sql
@@ -424,7 +426,7 @@ stable
 security definer
 set search_path = scrabble, common, public, extensions
 as $$
-  select string_agg(upper(p.words[1]), ' · ' order by p.seq)
+  select string_agg(upper(p.words[1]), '-' order by p.seq)
     from (
       select seq, words
         from scrabble.plays

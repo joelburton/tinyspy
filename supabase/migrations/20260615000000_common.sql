@@ -264,27 +264,26 @@ $$;
 
 -- `title` is a per-game identity string the FE renders in lists
 -- as "<Manifest.name>: <title>" — gametype is the prefix, title
--- is the disambiguator. Set at create_game time by the gametype's
--- own RPC, never updated automatically afterward (a future
--- player-rename RPC could update it, but isn't planned today).
+-- is the disambiguator. Seeded at create_game time by the
+-- gametype's own RPC, which also owns the formula; several
+-- gametypes then REWRITE it as play reveals something worth
+-- naming the game after (scrabble's first words played, wordle's
+-- answer at terminal, …), and reset it on replay.
 --
--- Each gametype owns its title formula. Today's conventions:
+-- Two constraints every formula lives under:
 --
---   codenamesduet:     "<seatA>-v-<seatB>: WORD1, WORD2, WORD3, WORD4"
---                (alphabetical first 4 of the picked 25)
---   psychicnum:  "<target-number-as-text>"
---                (the target IS leaked — psychicnum is a toy
---                 game; the column-grant pattern on `target` is
---                 retained for educational value but not for
---                 actual secrecy)
---   connections:    "TILE1, TILE2, TILE3, TILE4"
---                (alphabetical first 4 of the 16 board tiles —
---                 degenerate in the POC since the board is
---                 hardcoded, but the rule travels forward when
---                 real puzzles arrive)
+--   * this column is readable by the whole club, so a title must
+--     never carry state a player is meant not to see (a compete
+--     opponent's guesses, a hidden solution). Games that have
+--     nothing public to say hold the placeholder 'New game'.
+--   * a rewriting gametype derives the title from state in one
+--     `_sync_title` helper and calls it from every transition,
+--     rather than assigning it move by move — that's what keeps
+--     a replayed game from still advertising the answer.
 --
--- Future puzzle-based games (crosswords, connections, etc.)
--- will pull title from the puzzle source ("NYT Sun 2026-06-14").
+-- The per-game formulas are tabulated in
+-- docs/game-status-labels.md (kept there, next to the status
+-- lines, since the two are read together).
 
 -- `setup jsonb` is the frozen-at-create-time player choices for
 -- this game — the payload the start-game dialog produced. Stored

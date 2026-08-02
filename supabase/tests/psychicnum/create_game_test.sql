@@ -19,7 +19,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(25);
+select plan(26);
 
 \ir ../_shared/setup.psql
 
@@ -315,11 +315,26 @@ select is(
   'compete: initial play_state is playing'
 );
 
--- (18) Title is a random short numeric id (#NNNNNN) — NOT the target,
--- so the secret never lands in the club-wide-readable common.games.title.
+-- (18) Title is the first three BOARD words alphabetically, dash-joined.
+-- The board is public, so this leaks nothing; what must never land in the
+-- club-wide-readable common.games.title is the SECRETS, and three words in
+-- alphabetical order say nothing about which of them are secret.
+select is(
+  (select title from common.games where id = (select id from compete_game)),
+  (select string_agg(upper(w), '-' order by w)
+     from (select unnest(words) as w
+             from psychicnum.games where id = (select id from compete_game)
+            order by 1 limit 3) first3),
+  'title is the first three board words, alphabetical + dash-joined'
+);
+-- …and it is NOT any single secret verbatim (the shape makes that impossible,
+-- but assert it: this is the property that actually matters).
 select ok(
-  (select title ~ '^#[0-9]{6}$' from common.games where id = (select id from compete_game)),
-  'title is a random #NNNNNN id, not the target'
+  (select not exists (
+     select 1 from psychicnum.games g, unnest(g.secrets) s
+      where g.id = (select id from compete_game)
+        and (select title from common.games where id = g.id) = upper(s))),
+  'title is never a bare secret word'
 );
 
 -- (19) common.game_players seeded with both players, result=null mid-game

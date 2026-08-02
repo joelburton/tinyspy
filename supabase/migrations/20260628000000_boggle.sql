@@ -248,9 +248,22 @@ begin
   b_required_score := (board->>'required_words_score')::int;
 
   -- ─── Title + gametype ────────────────────────────────────
-  -- Brand ("MothCubes") lives only in the manifest; the stored title is a
-  -- neutral descriptor (the real-game name + size).
-  game_title := 'Boggle ' || b_n || '×' || b_n;
+  -- Brand ("MothCubes") lives only in the manifest; the stored title is the
+  -- board's size and its top row — "4×4 ABQuD" — which both sizes a game and
+  -- makes two same-size games tellable apart. The board is shown to every
+  -- player, so nothing is leaked.
+  --
+  -- The stored board packs a multiface die as a single digit (1=Qu 2=In 3=Th
+  -- 4=Er 5=He 6=An, 0=blank — see src/boggle/lib/dice.ts), so the title
+  -- expands them to the faces a player actually sees on the tile.
+  select b_n || '×' || b_n || ' ' || string_agg(
+           case substr(b_board, i, 1)
+             when '0' then '?'  when '1' then 'Qu' when '2' then 'In'
+             when '3' then 'Th' when '4' then 'Er' when '5' then 'He'
+             when '6' then 'An' else upper(substr(b_board, i, 1))
+           end, '' order by i)
+    into game_title
+    from generate_series(1, b_n) i;
   effective_gametype := 'boggle_' || mode;
 
   -- ─── common.games header (saves setup as the club default) ─

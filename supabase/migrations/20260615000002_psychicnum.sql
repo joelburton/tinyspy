@@ -449,14 +449,21 @@ begin
        limit 3
     ) picked;
 
-  -- The title is purely a human-readable label for the game row;
-  -- it must NOT carry the secrets (that would put them in the
-  -- club-wide-readable common.games.title). Use a random short
-  -- numeric id so games are distinguishable in lists without
-  -- leaking anything. The column-level grant on
-  -- psychicnum.games.secrets stays the canonical "true server-side
-  -- secret" — title is just a label.
-  game_title := '#' || lpad((floor(random() * 1000000))::int::text, 6, '0');
+  -- The title is a human-readable label for the game row: the first three
+  -- BOARD words alphabetically, dash-joined ("APPLE-BERRY-CHERRY"), so a game
+  -- is recognizable in the club list by what's on its board.
+  --
+  -- It must NOT carry the secrets (that would put them in the club-wide-
+  -- readable common.games.title) — and it doesn't: the board words are shown
+  -- to every player anyway, and three of them in alphabetical order says
+  -- nothing about WHICH three are the secrets. The column-level grant on
+  -- psychicnum.games.secrets stays the canonical "true server-side secret".
+  select string_agg(upper(w), '-' order by w) into game_title
+    from (
+      select unnest(s_words) as w
+      order by 1
+      limit 3
+    ) first3;
 
   effective_gametype := 'psychicnum_' || mode;
 

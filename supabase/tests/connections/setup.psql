@@ -37,7 +37,7 @@
 -- predictable:
 --
 --   alphabetical first 2 of all 16 = ALPHA, ANGEL
---   → title = "#TEST-FIXTURE 1900-01-01 (ALPHA/ANGEL)"
+--   → title = "1900-01-01: ALPHA-ANGEL"
 --
 -- Idempotency: the source_id and nyt_date are constants, so the
 -- INSERT would fail on a second call within the same

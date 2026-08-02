@@ -12,7 +12,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(13);
+select plan(15);
 
 -- ── Coop: lose (burn the budget), then replay → fully reset ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -51,6 +51,10 @@ reset role;
 select is(
   (select play_state from common.games where id = (select id from g1)),
   'lost', 'coop: precondition — budget burned, game lost');
+select is(
+  (select title from common.games where id = (select id from g1)),
+  (select upper(w) from tgt),
+  'coop: precondition — the finished game is titled with the answer');
 
 -- Age the shared clock so the replay's clock-zeroing is observable.
 update common.timers set ticks = 99 where game_id = (select id from g1);
@@ -95,6 +99,11 @@ select is(
 select is(
   (select ticks from common.timers where game_id = (select id from g1)),
   0, 'coop: replay → the shared clock is zeroed (a timed game restarts full)');
+-- The title must un-tell the answer along with the target column — the whole
+-- point of a replay is that the word is a secret again.
+select is(
+  (select title from common.games where id = (select id from g1)),
+  'New game', 'coop: replay → the title stops advertising the answer');
 
 -- ── Mid-game replay (no play_state guard) ────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

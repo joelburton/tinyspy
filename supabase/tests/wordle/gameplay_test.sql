@@ -11,7 +11,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(14);
+select plan(16);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -77,6 +77,12 @@ select is(
   (select length(colors) from wordle.guesses
     where game_id = (select id from g) and seq = 1),
   5, 'the guess row stores 5-char colors');
+-- The club-list title becomes a readout of the shared board: the most recent
+-- guess. (Coop only — compete's guesses are private; see compete_test.)
+select is(
+  (select title from common.games where id = (select id from g)),
+  (select upper(word) from valw),
+  'coop: the title reads the most recent guess');
 
 -- ── Duplicate (same word again): soft reject, no burn ──────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -113,6 +119,12 @@ select is(
   (select target from wordle.games_state where id = (select id from g))::text,
   (select w from tgt),
   'target revealed once the game is terminal');
+-- Terminal → the title stops being the latest guess and becomes the answer
+-- (which the solving guess happens to equal, so assert against the target).
+select is(
+  (select title from common.games where id = (select id from g)),
+  (select upper(w) from tgt),
+  'terminal: the title becomes the answer');
 
 select * from finish();
 rollback;

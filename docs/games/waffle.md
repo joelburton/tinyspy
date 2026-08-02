@@ -161,9 +161,9 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   default 2 — server accepts the full range; the dialog offers 1–5, a FE/UI
   choice); sanity-checks the board structure (25-char strings, holes at the four
   interior cells, scramble is a rearrangement of the solution); stores it on
-  `waffle.games`; sets `max_swaps = par_swaps + setup.extra_swaps`; titles the
-  game from the band; seeds one `waffle.players` row per player with
-  `board = scramble`.
+  `waffle.games`; sets `max_swaps = par_swaps + setup.extra_swaps`; seeds the
+  title placeholder (see [Title formula](#title-formula)); seeds one
+  `waffle.players` row per player with `board = scramble`.
 - **`submit_swap(game, pos_a, pos_b) → jsonb`** — the core move. Guards: playing
   state, `require_game_player`, both positions filled (non-hole) and distinct,
   swaps remaining. Then:
@@ -326,8 +326,42 @@ can't drift). `minSwaps` is covered by `gen_test.ts` (`deno test`).
    `board = { solution, scramble, par_swaps }`. The RPC sanity-checks structure
    (25-char strings, holes at the four interior cells, scramble is a
    rearrangement of the solution) but takes `par_swaps` at face value — it never
-   re-derives par in SQL (that's the whole reason for the edge function). The
-   game title is the band's label, derived from `setup.difficulty`.
+   re-derives par in SQL (that's the whole reason for the edge function).
+
+## Title formula
+
+A **readout**, not a fixed name. `create_game` seeds a placeholder and
+`waffle._sync_title` recomputes `common.games.title` from state:
+
+| mode / state | title |
+|---|---|
+| coop | **the correct words so far** — first three, alphabetical, dash-joined (`ARENA-EAGER-TOTEM`) |
+| coop, before any swap | `'New game'` |
+| compete, mid-race | `'New compete'` |
+| compete, terminal | **the puzzle's words** (its first three, alphabetical) |
+
+A word counts as correct once all five of its cells match the solution, which
+happens well before the puzzle falls — so in coop the title is a live progress
+readout. Coop can afford that because the board is shared: those words are
+already on every screen. **Compete can't** — the words ARE the solution, each
+racer has their own board, and `common.games.title` is club-wide readable, so a
+leader's progress would hand the trailing player the answer. Compete therefore
+holds its placeholder for the whole race (and says `'New compete'` rather than
+`'New game'`, since that's the label a club list will actually sit on) and fills
+in at the terminal reveal.
+
+Two details the formula is careful about:
+
+- The coop readout is gated on `swaps_used > 0`: a scramble can hand the players
+  a whole correct word for free, and a **replayed** board is in identical state
+  to a fresh one — they must read identically. A terminal game is exempt from the
+  gate, since `reveal_answer` writes the solution onto every board without a
+  single swap.
+- Every transition calls the helper rather than assigning its own string —
+  `submit_swap`, `concede`, `submit_timeout`, `end_game`, `reveal_answer`, and
+  `replay_board` (which must un-tell the words). pgTAP: `gameplay_test.sql`
+  (coop readout), `compete_test.sql` (a solved leader doesn't leak), and
+  `replay_test.sql` (both modes reset).
 
 ## Frontend (`src/waffle/`)
 
