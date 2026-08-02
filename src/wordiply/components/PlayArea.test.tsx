@@ -183,3 +183,56 @@ describe('wordiply PlayArea — terminal reveal', () => {
     expect(section.textContent).not.toContain('BAR')
   })
 })
+
+/**
+ * The compete collective losses all land on play_state `lost_compete` and are
+ * told apart only by `status.outcome` — the two-places trap's third surface
+ * (labelFor and the report fixtures assert the club card; nothing else asserts
+ * the in-game verdict). These pin buildOver to the terminals the server
+ * actually writes: common.concede → 'lost_compete' + outcome 'conceded',
+ * wordiply._finish_compete's best_score=0 path → 'lost_compete' + 'timeout'
+ * (the clock) or 'complete' (all guesses spent, nobody scored).
+ */
+describe('wordiply PlayArea — compete terminal verdicts', () => {
+  const competeCtx = (outcome: string) =>
+    makeCtx({
+      players: twoMembers,
+      isTerminal: true,
+      playState: 'lost_compete',
+      status: { outcome, leaderboard: [] },
+    })
+
+  beforeEach(() => {
+    h.result = { game: loadedGame({ mode: 'compete' }), guesses: [], loading: false }
+  })
+
+  it('all-conceded (outcome conceded) says so', () => {
+    render(<PlayArea {...competeCtx('conceded')} />)
+    expect(screen.getByText('Lost: all conceded')).toBeInTheDocument()
+  })
+
+  it('nobody-scored timeout (outcome timeout) blames the clock', () => {
+    render(<PlayArea {...competeCtx('timeout')} />)
+    expect(screen.getByText('Lost: out of time, nobody scored')).toBeInTheDocument()
+  })
+
+  it('nobody-scored guess exhaustion (outcome complete) blames the guesses', () => {
+    render(<PlayArea {...competeCtx('complete')} />)
+    expect(screen.getByText('Lost: out of guesses, nobody scored')).toBeInTheDocument()
+  })
+
+  it('manual end (ended + outcome manual) stays neutral', () => {
+    h.result = { game: loadedGame({ mode: 'compete' }), guesses: [], loading: false }
+    render(
+      <PlayArea
+        {...makeCtx({
+          players: twoMembers,
+          isTerminal: true,
+          playState: 'ended',
+          status: { outcome: 'manual', leaderboard: [] },
+        })}
+      />,
+    )
+    expect(screen.getByText(/game ended/i)).toBeInTheDocument()
+  })
+})

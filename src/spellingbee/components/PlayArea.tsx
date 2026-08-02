@@ -586,9 +586,9 @@ export function PlayArea(ctx: GamePageCtx) {
  *   - `won_compete`, beaten → `● alice won at "Amazing"` (a WIDGET — the
  *     opponent's identity dot — hence `verdictNode`; `verdict` carries the
  *     plain-text twin for anything that needs a string)
- *   - `ended` + timeout → `Lost: ran out of time`
- *   - `ended` + manual → the shared `endedCopy('compete')` → `Game ended — no winner`
- *   - `lost` (everyone conceded) → `Lost: all conceded`
+ *   - `lost_compete` + outcome `conceded` (everyone dropped) → `Lost: all conceded`
+ *   - `lost_compete` + outcome `timeout` → `Lost: ran out of time`
+ *   - `ended` + outcome `manual` → the shared `endedCopy('compete')` → `Game ended — no winner`
  */
 function buildOver({
   mode,
@@ -650,21 +650,20 @@ function buildOver({
       }
     }
 
-    // 'lost' in compete is the all-conceded terminal (common.concede ends the
-    // race as a collective loss when the last racer drops).
-    if (playState === 'lost') {
+    // What's left in compete is the two collective losses — both land on
+    // play_state 'lost_compete' — and manual ('ended'). The play_state can't
+    // tell the losses apart, so all three key on `outcome`: 'conceded' (the
+    // last racer dropped, via common.concede), 'timeout' (the clock beat
+    // everyone to the target), or 'manual'. The clock and attrition are
+    // losses; agreeing to stop isn't.
+    const outcome = (status?.outcome as string | undefined) ?? 'ended'
+    if (outcome === 'conceded') {
       return {
         verdict: 'Lost: all conceded',
         message: 'All conceded',
         tone: 'lost',
       }
     }
-
-    // What's left in compete is timeout ('lost_compete') and manual ('ended').
-    // No winner either way — the race didn't finish. The clock is a loss (a
-    // race always has a target rank to miss); agreeing to stop isn't. Keyed on
-    // `outcome` rather than play_state so both land in the right branch.
-    const outcome = (status?.outcome as string | undefined) ?? 'ended'
     if (outcome === 'timeout') {
       return {
         verdict: 'Lost: ran out of time',

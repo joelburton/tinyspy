@@ -143,6 +143,37 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     expect(screen.queryByRole('button', { name: /check word/i })).not.toBeInTheDocument()
   })
 
+  /**
+   * The compete collective losses both land on play_state `lost_compete` and
+   * are told apart only by `status.outcome` — the two-places trap's third
+   * surface (labelFor asserts the club card; nothing else asserts the in-game
+   * verdict). These pin buildOver to the terminals the server actually writes:
+   * common.concede → 'lost_compete' + outcome 'conceded',
+   * crosswords.submit_timeout → 'lost_compete' + 'timeout' (compete) /
+   * 'lost' + 'timeout' (coop).
+   */
+  describe('terminal loss verdicts', () => {
+    const terminalCtx = (playState: string, outcome: string) =>
+      makeCtx({ isTerminal: true, playState, status: { outcome } })
+
+    it('compete all-conceded (lost_compete + outcome conceded) says so', () => {
+      h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
+      render(<PlayArea {...terminalCtx('lost_compete', 'conceded')} />)
+      expect(screen.getAllByText('Lost: all conceded').length).toBeGreaterThan(0)
+    })
+
+    it('compete timeout (lost_compete + outcome timeout) blames the clock', () => {
+      h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
+      render(<PlayArea {...terminalCtx('lost_compete', 'timeout')} />)
+      expect(screen.getAllByText('Out of time — no winner').length).toBeGreaterThan(0)
+    })
+
+    it('coop clock (lost + outcome timeout) is a plain loss', () => {
+      render(<PlayArea {...terminalCtx('lost', 'timeout')} />)
+      expect(screen.getAllByText('Lost: out of time').length).toBeGreaterThan(0)
+    })
+  })
+
   /** A CellState with the given overrides (defaults = empty writable cell). */
   function cellState(over: Partial<CellState> = {}): CellState {
     return {

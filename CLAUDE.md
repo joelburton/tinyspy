@@ -18,6 +18,7 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/features.md](docs/features.md) | Games categorized by feature: dimensions (every game has exactly one value — a game missing from one is a gap to notice) vs tags (a game has the feature or not) |
 | [docs/game-status-labels.md](docs/game-status-labels.md) | What every game writes as its **title** and renders as its club-page **status line**, per play state — plus the known inconsistencies between them |
 | [docs/deferred.md](docs/deferred.md) | Things explicitly deferred from code reviews and conversations |
+| [docs/post-audit-punchlist.md](docs/post-audit-punchlist.md) | **Working doc**: small code-side residue from verifying the worked pre-freeze audit (two `buildOver` verdict bugs, stale comments, fixture/test gaps, convention loose ends). Work an item → delete it; delete the file when empty |
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command + file lookup |
 | [README.md](README.md) | Narrative + stack |
 | [docs/games/codenamesduet.md](docs/games/codenamesduet.md) | Codenames Duet rules + codenamesduet schema, RPCs, FE, Edge Function, tests |

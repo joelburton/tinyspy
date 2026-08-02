@@ -991,8 +991,9 @@ function buildOver(
   // The handle cached in `status` at finish time — a rename is rare enough that a
   // stale name beats a follow-up query. The roster row drives the identity DOT.
   const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
-  // `submit_timeout` stamps this; the two `lost*` states are reachable both by
-  // the clock and by conceding, and they read very differently.
+  // `submit_timeout` stamps this. Of the two `lost*` states only
+  // `lost_compete` has a second way in (all-conceded, via common.concede);
+  // coop's `lost` is clock-only — coop has no concede.
   const timedOut = status?.outcome === 'timeout'
   switch (playState) {
     case 'won':
@@ -1013,21 +1014,20 @@ function buildOver(
         tone: 'lost',
       }
     case 'lost_compete':
-      // A countdown running out takes the whole compete table down together
-      // (crosswords.submit_timeout). The roster's shared no-winner phrasing.
+      // Both compete collective losses land here, told apart by `outcome`:
+      // the countdown taking the whole table down together
+      // (crosswords.submit_timeout, the roster's shared no-winner phrasing),
+      // or the last active player conceding (common.concede's
+      // last-active-conceder path — the same `Lost: all conceded` verdict
+      // spellingbee/wordwheel use, matching the club card's label).
       if (timedOut) {
         return { verdict: 'Out of time — no winner', message: 'Out of time', tone: 'lost' }
       }
-      return { verdict: 'Lost: out of the race', message: 'You lost', tone: 'lost' }
+      return { verdict: 'Lost: all conceded', message: 'All conceded', tone: 'lost' }
     case 'lost':
-      // Two ways here: the coop countdown expiring, or every remaining compete
-      // player conceding (common.concede's last-active-conceder path). The
-      // concede one gets no `Lost:` prefix — nobody was beaten, the race just
-      // emptied out.
-      if (timedOut) {
-        return { verdict: 'Lost: out of time', message: 'Out of time', tone: 'lost' }
-      }
-      return { verdict: 'All conceded', message: 'Game over', tone: 'lost' }
+      // Coop only, and clock-only: the countdown expired before the grid was
+      // done (crosswords.concede is compete-gated, so no concede path here).
+      return { verdict: 'Lost: out of time', message: 'Out of time', tone: 'lost' }
     case 'ended':
     default:
       return endedCopy(mode)

@@ -258,7 +258,7 @@ const CASES: Record<string, Family> = {
       ['won_compete', { leaderboard: [{ won: true, length_score: 60 }, { won: true, length_score: 60 }] }, 'co-winners'],
       ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
       ['lost_compete', { outcome: 'timeout', leaderboard: [] }, 'timeout, nobody scored'],
-      ['ended', { outcome: 'timeout' }, 'timeout, no winner'],
+      ['lost_compete', { outcome: 'complete', leaderboard: [] }, 'out of guesses, nobody scored'],
       ['ended', { outcome: 'manual' }, 'manual end'],
     ],
   },

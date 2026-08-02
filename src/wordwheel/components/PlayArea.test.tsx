@@ -130,6 +130,44 @@ describe('wordwheel PlayArea — render smoke', () => {
 })
 
 /**
+ * The compete collective losses both land on play_state `lost_compete` and are
+ * told apart only by `status.outcome` — the two-places trap's third surface
+ * (labelFor and the report fixtures assert the club card; nothing else asserts
+ * the in-game verdict). These pin buildOver to the terminals the server
+ * actually writes: common.concede → 'lost_compete' + outcome 'conceded',
+ * submit_timeout → 'lost_compete' + outcome 'timeout'.
+ */
+describe('wordwheel PlayArea — compete terminal verdicts', () => {
+  const competeCtx = (playState: string, outcome: string) =>
+    makeCtx({
+      players: twoMembers,
+      isTerminal: true,
+      playState,
+      status: { outcome },
+      setup: { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } },
+    })
+
+  beforeEach(() => {
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+  })
+
+  it('all-conceded (lost_compete + outcome conceded) says so', () => {
+    render(<PlayArea {...competeCtx('lost_compete', 'conceded')} />)
+    expect(screen.getByText('Lost: all conceded')).toBeInTheDocument()
+  })
+
+  it('timeout (lost_compete + outcome timeout) blames the clock', () => {
+    render(<PlayArea {...competeCtx('lost_compete', 'timeout')} />)
+    expect(screen.getByText('Lost: ran out of time')).toBeInTheDocument()
+  })
+
+  it('manual end (ended + outcome manual) stays neutral', () => {
+    render(<PlayArea {...competeCtx('ended', 'manual')} />)
+    expect(screen.getByText(/game ended/i)).toBeInTheDocument()
+  })
+})
+
+/**
  * The icon-only action rows (the waffle arrangement — labels live in
  * tooltips): PLAYING = End/Concede + Back-to-club (the shell's
  * suspend-confirm flow); TERMINAL = Restart + New game + Back-to-club.

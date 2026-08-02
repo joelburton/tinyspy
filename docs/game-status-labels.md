@@ -200,7 +200,7 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | | won_compete — co-winners | `Won (co-winners) · 60%` |
 | | lost_compete — all conceded | `Lost (all conceded)` |
 | | lost_compete — timeout, nobody scored | `Lost (out of time) · nobody scored` |
-| | ended — timeout, no winner | `Ended (out of time) · no winner` |
+| | lost_compete — out of guesses, nobody scored | `Lost (out of guesses) · nobody scored` |
 | | ended — manual end | `Ended · no winner` |
 
 <!-- END GENERATED status-lines -->

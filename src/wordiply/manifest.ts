@@ -120,13 +120,17 @@ function competeLabel(row: { play_state: string; status?: unknown }): string {
       ? statusLine(outcome('Won', 'co-winners'), ls)
       : statusLine(wonBy(name), ls)
   }
-  // The clock with NOBODY on the board: no score to crown, and the table never
-  // spent its guesses — a collective loss (wordiply._finish_compete).
+  // NOBODY on the board: no score to crown, so the race is a collective loss
+  // (wordiply._finish_compete's best_score=0 path) — reached two ways, and the
+  // label names which: the clock ('timeout'), or the table spending all its
+  // guesses scoreless ('complete').
   if (row.play_state === 'lost_compete') {
-    return statusLine(outcome('Lost', 'out of time'), 'nobody scored')
+    return statusLine(
+      outcome('Lost', (s.outcome as string) === 'timeout' ? 'out of time' : 'out of guesses'),
+      'nobody scored')
   }
-  return statusLine(
-    outcome('Ended', (s.outcome as string) === 'timeout' ? 'out of time' : null), 'no winner')
+  // 'ended' is only the manual stop (_finish_compete's pick_winner=false path).
+  return statusLine(outcome('Ended'), 'no winner')
 }
 
 export const wordiplyCoopGame: GameManifest = {

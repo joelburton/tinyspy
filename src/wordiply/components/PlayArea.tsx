@@ -369,9 +369,12 @@ export function PlayArea(ctx: GamePageCtx) {
  * a plain string (a row of dots would read as noise).
  *
  * Coop: no clear win — the team just did as well as it did — so every coop
- * terminal reports the result neutrally, manual end included.
- * Compete: `won_compete` → self won / tied vs a named winner; anything else →
- * no winner.
+ * terminal reports the result neutrally, manual end included; the clock is
+ * the one coop loss.
+ * Compete: `won_compete` → self won / tied vs a named winner;
+ * `lost_compete` → a collective loss naming its cause (all conceded, or a
+ * nobody-scored race that ran out of time / guesses); `ended` + manual → the
+ * shared neutral copy.
  */
 function buildOver({
   mode,
@@ -434,6 +437,21 @@ function buildOver({
         message: `${label} won`,
         tone: 'lost',
       }
+    }
+    // The three compete collective losses all land on `lost_compete`, told
+    // apart by `outcome`: the last racer dropping out (common.concede), or a
+    // nobody-scored race ending by the clock / by the table spending all its
+    // guesses (wordiply._finish_compete's best_score=0 path). Each names its
+    // cause, agreeing with the club card's `Lost (…)` label.
+    if (playState === 'lost_compete') {
+      const outcome = (status?.outcome as string | undefined) ?? ''
+      if (outcome === 'conceded') {
+        return { verdict: 'Lost: all conceded', message: 'All conceded', tone: 'lost' }
+      }
+      if (outcome === 'timeout') {
+        return { verdict: 'Lost: out of time, nobody scored', message: 'Out of time', tone: 'lost' }
+      }
+      return { verdict: 'Lost: out of guesses, nobody scored', message: 'Nobody scored', tone: 'lost' }
     }
     // ended / manual — no winner. The shared neutral copy, so the one terminal
     // every game has stays worded in one place.
