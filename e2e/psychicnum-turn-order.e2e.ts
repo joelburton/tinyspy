@@ -4,7 +4,7 @@ import { signIn } from './helpers/session'
 
 /**
  * The opt-in turn-by-turn coop mode, driven live on psychicnum (the pilot game).
- * A coop game created with setup.coopStyle='turns' rotates the guess through the
+ * A coop game created with setup.coop_style='turns' rotates the guess through the
  * players; the FE gates input on whose turn it is and shows a shared
  * TurnStatusLine ("Your turn" / "Waiting for ● Name…"). This is a live-stack,
  * two-client behaviour the mocked unit tests can't cover: the server turn pointer

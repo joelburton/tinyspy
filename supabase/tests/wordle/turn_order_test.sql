@@ -2,14 +2,14 @@
 -- Test: wordle turn-order (opt-in turn-by-turn coop)
 -- ============================================================
 -- The per-game wiring for the common turn primitive: create_game seats
--- the rotation when setup.coopStyle='turns', and submit_guess gates on
+-- the rotation when setup.coop_style='turns', and submit_guess gates on
 -- _require_turn + advances on an accepted, non-terminal guess.
 -- Covers:
 --   1. create_game seats the pointer on the chosen first player
 --   2. an out-of-turn guess is rejected ('not your turn')
 --   3. an accepted (incorrect but valid) guess advances the pointer
 --   4. a soft-rejected guess (duplicate) does NOT advance
---   5. free-for-all (no coopStyle) leaves the pointer null and ungated
+--   5. free-for-all (no coop_style) leaves the pointer null and ungated
 --
 -- The target is random; we read it back as superuser and pick TWO valid
 -- non-target words (one per player) so each turn's guess is accepted.
@@ -30,8 +30,8 @@ as $$
   select jsonb_build_object(
     'max_guesses', 6,
     'timer', jsonb_build_object('kind', 'none'),
-    'coopStyle', 'turns',
-    'firstTurnUserId', first::text
+    'coop_style', 'turns',
+    'first_turn_user_id', first::text
   );
 $$;
 
@@ -116,7 +116,7 @@ select is(
   'turns: bea''s valid guess wraps the turn back to ada'
 );
 
--- ── FREE-FOR-ALL (no coopStyle) — pointer null, ungated ──
+-- ── FREE-FOR-ALL (no coop_style) — pointer null, ungated ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ffa on commit drop as
 select * from wordle.create_game(

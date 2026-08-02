@@ -190,7 +190,7 @@ export async function createGame(
 
 /**
  * Start a psychicnum COOP game with the opt-in turn-by-turn mode on
- * (setup.coopStyle='turns'), seating the club's FIRST member as the
+ * (setup.coop_style='turns'), seating the club's FIRST member as the
  * first player. All members are players. Used by the turn-order e2e to
  * drive the live turn gate across two clients.
  */
@@ -206,8 +206,8 @@ export async function createTurnGame(
         word_count: 10,
         difficulty: 3,
         timer: { kind: 'none' },
-        coopStyle: 'turns',
-        firstTurnUserId: creator.userId,
+        coop_style: 'turns',
+        first_turn_user_id: creator.userId,
       },
       target_club: club.handle,
       player_user_ids: club.members.map((m) => m.userId),
@@ -991,7 +991,7 @@ export async function seedStackdownFirstWord(member: E2EMember, gameId: string):
 
 /**
  * Start a codenamesduet game in the club (exactly 2 players — it's a fixed-seat
- * game). `firstClueGiverUserId` is seated as A (opens the game); the other
+ * game). `first_clue_giver_user_id` is seated as A (opens the game); the other
  * member is B. Returns id + gametype for `/g/codenamesduet/<id>`.
  */
 export async function createCodenamesduetGame(
@@ -1003,7 +1003,7 @@ export async function createCodenamesduetGame(
     .schema('codenamesduet')
     .rpc('create_game', {
       target_club: club.handle,
-      setup: { turns: 9, firstClueGiverUserId, timer: { kind: 'none' } },
+      setup: { turns: 9, first_clue_giver_user_id: firstClueGiverUserId, timer: { kind: 'none' } },
       player_user_ids: club.members.map((m) => m.userId),
     })
   if (res.error) throw new Error(`codenamesduet.create_game: ${res.error.message}`)

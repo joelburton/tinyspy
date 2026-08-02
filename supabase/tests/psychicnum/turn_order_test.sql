@@ -2,7 +2,7 @@
 -- Test: psychicnum turn-order (opt-in turn-by-turn coop)
 -- ============================================================
 -- psychicnum is the pilot for the common turn primitive. This pins the
--- per-game wiring: create_game seats the rotation when setup.coopStyle=
+-- per-game wiring: create_game seats the rotation when setup.coop_style=
 -- 'turns', and submit_guess gates on _require_turn + advances on an
 -- accepted, non-terminal guess.
 -- Covers:
@@ -12,8 +12,8 @@
 --   4. a soft-rejected guess (duplicate word) does NOT advance — the
 --      same player keeps the turn
 --   5. a finding-but-not-terminal guess still advances
---   6. create_game rejects a firstTurnUserId that isn't a player
---   7. free-for-all (no coopStyle) leaves the pointer null and ungated
+--   6. create_game rejects a first_turn_user_id that isn't a player
+--   7. free-for-all (no coop_style) leaves the pointer null and ungated
 --   8. solo turn game: the pointer wraps back to the lone player
 --
 -- Board is pinned (postgres UPDATE) to the same fake NATO words the
@@ -29,7 +29,7 @@ select plan(16);
 \ir ../_shared/setup.psql
 
 -- 3-member club: cade is a member but NOT a player in the games below,
--- so he exercises the "firstTurnUserId must be a player" guard.
+-- so he exercises the "first_turn_user_id must be a player" guard.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select common.create_club('test club', array['ada','bea','cade']) as handle;
@@ -42,8 +42,8 @@ create temp table turn_g on commit drop as
 select * from psychicnum.create_game(
   (select handle from club),
   ('{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"},'
-   || '"coopStyle": "turns",'
-   || '"firstTurnUserId": "ada11111-1111-1111-1111-111111111111"}')::jsonb,
+   || '"coop_style": "turns",'
+   || '"first_turn_user_id": "ada11111-1111-1111-1111-111111111111"}')::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
@@ -137,7 +137,7 @@ select is(
 );
 
 -- ============================================================
--- (9) create_game rejects a firstTurnUserId that isn't a player
+-- (9) create_game rejects a first_turn_user_id that isn't a player
 -- ============================================================
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
@@ -145,19 +145,19 @@ select throws_ok(
     select psychicnum.create_game(
       %L,
       ('{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"},'
-       || '"coopStyle": "turns",'
-       || '"firstTurnUserId": "cade3333-3333-3333-3333-333333333333"}')::jsonb,
+       || '"coop_style": "turns",'
+       || '"first_turn_user_id": "cade3333-3333-3333-3333-333333333333"}')::jsonb,
       array['ada11111-1111-1111-1111-111111111111'::uuid,
             'bea22222-2222-2222-2222-222222222222'::uuid],
       'coop'
     )
   $$, (select handle from club)),
-  'P0001', 'setup.firstTurnUserId must be one of the players',
+  'P0001', 'setup.first_turn_user_id must be one of the players',
   'turns: create_game rejects a first player who is not in the game'
 );
 
 -- ============================================================
--- (10) FREE-FOR-ALL (no coopStyle) — pointer null, ungated
+-- (10) FREE-FOR-ALL (no coop_style) — pointer null, ungated
 -- ============================================================
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ffa_g on commit drop as
@@ -196,8 +196,8 @@ create temp table solo_g on commit drop as
 select * from psychicnum.create_game(
   (select handle from club),
   ('{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"},'
-   || '"coopStyle": "turns",'
-   || '"firstTurnUserId": "ada11111-1111-1111-1111-111111111111"}')::jsonb,
+   || '"coop_style": "turns",'
+   || '"first_turn_user_id": "ada11111-1111-1111-1111-111111111111"}')::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid],
   'coop'
 );

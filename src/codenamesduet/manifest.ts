@@ -76,7 +76,7 @@ export const codenamesduetGame: GameManifest = {
   // Called by SetupGameDialog when the player clicks Start. The
   // RPC validates the setup shape server-side and uses it to
   // initialize the game (turns_remaining from s.turns; seat A
-  // assigned to s.firstClueGiverUserId). See
+  // assigned to s.first_clue_giver_user_id). See
   // supabase/migrations/20260615000001_codenamesduet.sql.
   //
   // The `unknown` → CodenamesduetSetup cast is safe because we own

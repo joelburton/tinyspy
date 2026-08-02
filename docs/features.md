@@ -130,7 +130,7 @@ grid; clue lists fill the info side)
 
 ## Opt-in turn-by-turn coop (the common turn-order primitive)
 PN WN WK SS WW  RA (coop)
-(A per-game setup choice — `coopStyle: 'turns'` — that rotates moves through the
+(A per-game setup choice — `coop_style: 'turns'` — that rotates moves through the
 players instead of free-for-all. Discrete-move coop games only; the shared
 primitive lives on `common.games.current_turn_user_id` + `common.game_players.
 turn_seat`. See docs/common.md → Turn-order. Distinct from TS, whose turns are

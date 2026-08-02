@@ -44,10 +44,10 @@ export function SetupForm({ value, onChange, mode, players, playerCount }: Setup
       <CoopStyleField
         mode={mode}
         players={players}
-        coopStyle={s.coopStyle ?? 'free-for-all'}
-        firstTurnUserId={s.firstTurnUserId ?? ''}
+        coopStyle={s.coop_style ?? 'free-for-all'}
+        firstTurnUserId={s.first_turn_user_id ?? ''}
         onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coopStyle, firstTurnUserId })
+          onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
         }
       />
       <p className="muted">

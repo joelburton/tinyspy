@@ -22,7 +22,7 @@ type Props = {
  * scrabble compete's InfoCol state line (the literal template) so all
  * six opting-in games render an identical indicator.
  *
- * Rendered by an InfoCol ONLY for a turn game (setup.coopStyle ===
+ * Rendered by an InfoCol ONLY for a turn game (setup.coop_style ===
  * 'turns'). Whether a game is turn-ordered is fixed at create-time, so
  * this line's presence never changes mid-game — no reflow from it
  * appearing/disappearing. Within a turn game it renders in EVERY state

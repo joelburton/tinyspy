@@ -14,8 +14,8 @@
 --   - rejection: caller is not a member of the target club
 --   - rejection: club has != 2 members
 --   - rejection: setup.turns out of {9, 10, 11}
---   - rejection: setup.firstClueGiverUserId not a uuid
---   - rejection: setup.firstClueGiverUserId not in club
+--   - rejection: setup.first_clue_giver_user_id not a uuid
+--   - rejection: setup.first_clue_giver_user_id not in club
 --   - happy path: returns one row, play_state='playing', club_handle
 --     correct, both seats filled, 25 words inserted,
 --     common.games row created with is_current_view=true
@@ -120,7 +120,7 @@ select throws_ok(
       %L,
       jsonb_build_object(
         'turns', 7,
-        'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111'
+        'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111'
       ),
       pg_temp.codenamesduet_players()
     ) $q$,
@@ -137,7 +137,7 @@ select throws_ok(
     $q$ select codenamesduet.create_game(
       %L,
       jsonb_build_object(
-        'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111'
+        'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111'
       ),
       pg_temp.codenamesduet_players()
     ) $q$,
@@ -148,7 +148,7 @@ select throws_ok(
   'create_game: missing setup.turns is rejected with its own message'
 );
 
--- firstClueGiverUserId missing entirely
+-- first_clue_giver_user_id missing entirely
 select throws_ok(
   format(
     $q$ select codenamesduet.create_game(
@@ -159,29 +159,29 @@ select throws_ok(
     (select handle from club2)
   ),
   'P0001',
-  'setup.firstClueGiverUserId is required',
-  'create_game: missing firstClueGiverUserId is rejected with its own message'
+  'setup.first_clue_giver_user_id is required',
+  'create_game: missing first_clue_giver_user_id is rejected with its own message'
 );
 
--- firstClueGiverUserId not a uuid
+-- first_clue_giver_user_id not a uuid
 select throws_ok(
   format(
     $q$ select codenamesduet.create_game(
       %L,
       jsonb_build_object(
         'turns', 9,
-        'firstClueGiverUserId', 'not-a-uuid'
+        'first_clue_giver_user_id', 'not-a-uuid'
       ),
       pg_temp.codenamesduet_players()
     ) $q$,
     (select handle from club2)
   ),
   'P0001',
-  'setup.firstClueGiverUserId must be a uuid',
-  'create_game: malformed firstClueGiverUserId is rejected'
+  'setup.first_clue_giver_user_id must be a uuid',
+  'create_game: malformed first_clue_giver_user_id is rejected'
 );
 
--- firstClueGiverUserId is a uuid, but it's dee — who isn't in
+-- first_clue_giver_user_id is a uuid, but it's dee — who isn't in
 -- player_user_ids (dee is also not in club2, but the
 -- "must be one of player_user_ids" check fires first under the
 -- new validation order).
@@ -195,8 +195,8 @@ select throws_ok(
     (select handle from club2)
   ),
   'P0001',
-  'setup.firstClueGiverUserId must be one of player_user_ids',
-  'create_game: firstClueGiverUserId not in player_user_ids is rejected'
+  'setup.first_clue_giver_user_id must be one of player_user_ids',
+  'create_game: first_clue_giver_user_id not in player_user_ids is rejected'
 );
 
 -- ============================================================
@@ -216,7 +216,7 @@ select throws_ok(
       %L,
       jsonb_build_object(
         'turns', 9,
-        'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111'
+        'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111'
       ),
       pg_temp.codenamesduet_players()
     ) $q$,
@@ -234,7 +234,7 @@ select throws_ok(
       %L,
       jsonb_build_object(
         'turns', 9,
-        'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111',
+        'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111',
         'timer', jsonb_build_object('kind', 'fast')
       ),
       pg_temp.codenamesduet_players()
@@ -253,7 +253,7 @@ select throws_ok(
       %L,
       jsonb_build_object(
         'turns', 9,
-        'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111',
+        'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111',
         'timer', jsonb_build_object('kind', 'countdown')
       ),
       pg_temp.codenamesduet_players()
@@ -272,7 +272,7 @@ select throws_ok(
       %L,
       jsonb_build_object(
         'turns', 9,
-        'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111',
+        'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111',
         'timer', jsonb_build_object('kind', 'countdown', 'seconds', 0)
       ),
       pg_temp.codenamesduet_players()
@@ -291,7 +291,7 @@ select lives_ok(
       %L,
       jsonb_build_object(
         'turns', 9,
-        'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111',
+        'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111',
         'timer', jsonb_build_object('kind', 'countup')
       ),
       pg_temp.codenamesduet_players()
@@ -345,9 +345,9 @@ select is(
   'create_game: setup column persists the starting turns value'
 );
 select is(
-  (select setup->>'firstClueGiverUserId' from common.games where id = (select id from created)),
+  (select setup->>'first_clue_giver_user_id' from common.games where id = (select id from created)),
   'ada11111-1111-1111-1111-111111111111',
-  'create_game: setup column persists firstClueGiverUserId'
+  'create_game: setup column persists first_clue_giver_user_id'
 );
 
 -- Both players are recorded in common.game_players (one row each).
@@ -506,9 +506,9 @@ select is(
 -- Saved-defaults auto-save in clubs_gametypes
 -- ============================================================
 -- codenamesduet saves a SUBSET of setup: {turns, timer} — strips
--- firstClueGiverUserId, which is a per-game decision (who opens
+-- first_clue_giver_user_id, which is a per-game decision (who opens
 -- this round), not a per-club preference. Verify both: the
--- savable fields round-trip, and firstClueGiverUserId is absent
+-- savable fields round-trip, and first_clue_giver_user_id is absent
 -- from the saved blob (so the dialog's auto-pick logic fills
 -- the gap on next open instead of inheriting a stale uid).
 --
@@ -534,10 +534,10 @@ select is(
 );
 
 select is(
-  (select default_setup ? 'firstClueGiverUserId' from common.clubs_gametypes
+  (select default_setup ? 'first_clue_giver_user_id' from common.clubs_gametypes
     where club_handle = (select handle from club2) and gametype = 'codenamesduet'),
   false,
-  'saved defaults: codenamesduet STRIPS firstClueGiverUserId (per-game decision, not a per-club preference)'
+  'saved defaults: codenamesduet STRIPS first_clue_giver_user_id (per-game decision, not a per-club preference)'
 );
 
 select * from finish();

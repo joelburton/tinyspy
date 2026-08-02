@@ -46,8 +46,8 @@ export const DEFAULT_WORDIPLY_SETUP_COOP: WordiplySetup = {
   timer: { kind: 'none' },
   difficulty: 5,
   // Coop pacing: free-for-all by default; the "Co-op" setup section (coop,
-  // 2+ players) offers turn-by-turn. firstTurnUserId is seeded by the field.
-  coopStyle: 'free-for-all',
+  // 2+ players) offers turn-by-turn. first_turn_user_id is seeded by the field.
+  coop_style: 'free-for-all',
 }
 
 /**

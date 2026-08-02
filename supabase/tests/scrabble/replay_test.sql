@@ -122,8 +122,8 @@ create temp table g3 on commit drop as
   select id from scrabble.create_game((select handle from cl),
     jsonb_build_object('dict_2', 6, 'dict_3plus', 6,
                        'timer', jsonb_build_object('kind', 'none'),
-                       'coopStyle', 'turns',
-                       'firstTurnUserId', 'ada11111-1111-1111-1111-111111111111'),
+                       'coop_style', 'turns',
+                       'first_turn_user_id', 'ada11111-1111-1111-1111-111111111111'),
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
 reset role;

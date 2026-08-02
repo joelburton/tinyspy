@@ -59,9 +59,9 @@ export const DEFAULT_PSYCHICNUM_SETUP: PsychicnumSetup = {
   timer: { kind: 'countdown', seconds: 15 },
   // Coop pacing defaults to the historical free-for-all; the setup
   // dialog's "Co-op" section (coop, 2+ players) offers turn-by-turn.
-  // firstTurnUserId is omitted here — the field seeds it to a real
+  // first_turn_user_id is omitted here — the field seeds it to a real
   // player once turns is picked (a member id can't live in a default).
-  coopStyle: 'free-for-all',
+  coop_style: 'free-for-all',
 }
 
 /** The allowed `guesses` values — drives the radio rendering. */

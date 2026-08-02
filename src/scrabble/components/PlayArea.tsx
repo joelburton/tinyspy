@@ -402,7 +402,7 @@ export function PlayArea({
   // un-currents this game into the club list), so no confirm.
   //
   // `setup` is passed through verbatim, AI seats included — "same again" means
-  // the same opponents. It carries `firstTurnUserId` for a turn-order coop game;
+  // the same opponents. It carries `first_turn_user_id` for a turn-order coop game;
   // create_game re-reads it, so the rotation is seeded exactly as before.
   //
   // The roster is the FULL roster, conceded players included (as in every

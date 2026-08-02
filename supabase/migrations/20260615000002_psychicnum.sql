@@ -471,27 +471,27 @@ begin
   -- full responsibilities (auth, membership, vacate prior
   -- current-view game, insert common.games + game_players,
   -- return canonical id).
-  -- Saved-default arg strips firstTurnUserId — the turn-order "who goes
+  -- Saved-default arg strips first_turn_user_id — the turn-order "who goes
   -- first" pick is a per-game choice, not a per-club preference (same
-  -- treatment codenamesduet gives firstClueGiverUserId). The coopStyle
+  -- treatment codenamesduet gives first_clue_giver_user_id). The coop_style
   -- toggle itself DOES round-trip, so a club that likes turns keeps it.
   new_id := common.create_game(
     target_club, effective_gametype, player_user_ids,
     game_title,
     setup,
-    setup - 'firstTurnUserId'
+    setup - 'first_turn_user_id'
   );
 
-  -- Opt-in turn-by-turn coop. When setup.coopStyle='turns', seat the
+  -- Opt-in turn-by-turn coop. When setup.coop_style='turns', seat the
   -- common rotation (seat 0 = the chosen first player, the rest shuffled)
   -- so submit_guess gates each guess on whose turn it is. Free-for-all
   -- (the default, or any compete game) leaves the pointer null — inert.
   -- The players + the pointer live on the common tables that
   -- common.create_game just populated, so this runs after it.
-  if mode = 'coop' and setup->>'coopStyle' = 'turns' then
-    first_turn := (setup->>'firstTurnUserId')::uuid;
+  if mode = 'coop' and setup->>'coop_style' = 'turns' then
+    first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'setup.firstTurnUserId must be one of the players'
+      raise exception 'setup.first_turn_user_id must be one of the players'
         using errcode = 'P0001';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
@@ -1222,7 +1222,7 @@ on conflict do nothing;
 -- Turn-order coop rewinds the pointer to the player seated first
 -- (`game_players.turn_seat = 0`). The rotation was assigned at create
 -- time and doesn't change, so this restores the original opener without
--- re-reading `setup.firstTurnUserId`; a free-for-all game's null pointer
+-- re-reading `setup.first_turn_user_id`; a free-for-all game's null pointer
 -- stays null.
 --
 -- The secrets re-hide on their own: games_state gates them on

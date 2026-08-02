@@ -3,7 +3,7 @@
 -- ============================================================
 -- scrabble is the reconciliation case: compete keeps its OWN seat pointer
 -- (scrabble.games.current_seat), while coop opts into the COMMON pointer.
--- create_game seats the common rotation when setup.coopStyle='turns', and
+-- create_game seats the common rotation when setup.coop_style='turns', and
 -- the shared-rack move cores (_commit_word / _commit_exchange) gate on
 -- _require_turn + advance the common pointer. Exchange is the move exercised
 -- here (no dictionary/placement needed); the gate + advance sit in the same
@@ -13,7 +13,7 @@
 --   2. an out-of-turn coop move is rejected ('not your turn')
 --   3. an accepted coop move advances the common pointer
 --   4. a soft-rejected move (invalid tile) does NOT advance
---   5. free-for-all coop (no coopStyle) leaves the pointer null and ungated
+--   5. free-for-all coop (no coop_style) leaves the pointer null and ungated
 -- ============================================================
 
 begin;
@@ -33,8 +33,8 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g on commit drop as
   select id from scrabble.create_game((select handle from cl),
     ('{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"},'
-     || '"coopStyle": "turns",'
-     || '"firstTurnUserId": "ada11111-1111-1111-1111-111111111111"}')::jsonb,
+     || '"coop_style": "turns",'
+     || '"first_turn_user_id": "ada11111-1111-1111-1111-111111111111"}')::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
 reset role;
@@ -98,7 +98,7 @@ select is(
   'turns: bea''s valid move wraps the turn back to ada'
 );
 
--- ── FREE-FOR-ALL coop (no coopStyle) — pointer null, ungated ──
+-- ── FREE-FOR-ALL coop (no coop_style) — pointer null, ungated ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ffa on commit drop as
   select id from scrabble.create_game((select handle from cl),

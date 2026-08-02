@@ -355,7 +355,7 @@ create table common.games (
   started_at timestamptz not null default now(),
   ended_at timestamptz,
   -- Whose turn it is right now, for the opt-in turn-by-turn coop mode
-  -- (setup coopStyle='turns'). NULL ⇒ free-for-all — the default and the
+  -- (setup coop_style='turns'). NULL ⇒ free-for-all — the default and the
   -- behaviour of every game that doesn't opt in — so this column is inert
   -- for them. Set at create-time by common._assign_turn_order and rotated
   -- by common._advance_turn; gated on by common._require_turn. Directly
@@ -1206,7 +1206,7 @@ create function common.create_game(
   -- The savable subset of `setup` for the saved-defaults feature
   -- (see common.clubs_gametypes.default_setup). Each gametype's
   -- create_game decides what to pass: most pass `setup` verbatim;
-  -- codenamesduet strips its `firstClueGiverUserId` (per-game decision,
+  -- codenamesduet strips its `first_clue_giver_user_id` (per-game decision,
   -- not a per-club preference). Pass NULL to opt out of auto-save
   -- entirely for this call.
   saved_default jsonb
@@ -1351,7 +1351,7 @@ revoke execute on function common.require_game_player(uuid) from public;
 -- ============================================================
 -- Free-for-all is the default and unchanged: common.games.current_turn_user_id
 -- stays NULL and all three helpers below are inert. A coop game that opts in
--- (setup coopStyle='turns') calls _assign_turn_order once at create-time to
+-- (setup coop_style='turns') calls _assign_turn_order once at create-time to
 -- seat the rotation; each ACCEPTED, non-terminal move then calls _advance_turn;
 -- and each move RPC gates on _require_turn right after it locks the game row +
 -- resolves the caller.

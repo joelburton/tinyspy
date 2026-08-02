@@ -76,7 +76,7 @@ select set_config(
       'cade3333-3333-3333-3333-333333333333'::uuid
     ],
     'turn-title',
-    '{"coopStyle": "turns"}'::jsonb,
+    '{"coop_style": "turns"}'::jsonb,
     null
   ))::text,
   true
@@ -190,7 +190,7 @@ select set_config(
     'spellingbee_coop',
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'solo-title',
-    '{"coopStyle": "turns"}'::jsonb,
+    '{"coop_style": "turns"}'::jsonb,
     null
   ))::text,
   true

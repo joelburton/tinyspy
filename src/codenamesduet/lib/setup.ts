@@ -32,7 +32,7 @@ export type CodenamesduetSetup = {
    * (a UI race condition decided who went first). The dialog
    * makes it an explicit player choice.
    */
-  firstClueGiverUserId: string
+  first_clue_giver_user_id: string
   /**
    * Browser-side wall-clock timer mode. `none` (no clock) and
    * `countup` (informational) are display-only; `countdown`
@@ -50,7 +50,7 @@ export type CodenamesduetSetup = {
 
 /**
  * Initial setup the manifest hands the SetupGameDialog wrapper
- * as `defaults`. `firstClueGiverUserId` starts empty — the
+ * as `defaults`. `first_clue_giver_user_id` starts empty — the
  * defaults are evaluated at module-load time, before any club
  * is known, so a real user-id can't be filled in until the body
  * mounts inside a specific club's dialog. The SetupForm
@@ -62,7 +62,7 @@ export type CodenamesduetSetup = {
  */
 export const DEFAULT_CODENAMESDUET_SETUP: CodenamesduetSetup = {
   turns: 9,
-  firstClueGiverUserId: '',
+  first_clue_giver_user_id: '',
   timer: { kind: 'none' },
 }
 

@@ -12,7 +12,7 @@
 --   2. an out-of-turn guess is rejected ('not your turn')
 --   3. an accepted (wrong) guess advances the pointer
 --   4. a duplicate (soft no-op) does NOT advance
---   5. free-for-all (no coopStyle) leaves the pointer null and ungated
+--   5. free-for-all (no coop_style) leaves the pointer null and ungated
 -- ============================================================
 
 begin;
@@ -34,8 +34,8 @@ select * from connections.create_game(
   (select handle from club),
   pg_temp.connections_setup((select id from puzzle), jsonb_build_object('kind','none'))
     || jsonb_build_object(
-         'coopStyle', 'turns',
-         'firstTurnUserId', 'ada11111-1111-1111-1111-111111111111'::text),
+         'coop_style', 'turns',
+         'first_turn_user_id', 'ada11111-1111-1111-1111-111111111111'::text),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
@@ -101,7 +101,7 @@ select is(
   'turns: a fresh guess from bea wraps the turn back to ada'
 );
 
--- ── FREE-FOR-ALL (no coopStyle) — pointer null, ungated ──
+-- ── FREE-FOR-ALL (no coop_style) — pointer null, ungated ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ffa on commit drop as
 select * from connections.create_game(

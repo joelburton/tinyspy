@@ -409,7 +409,7 @@ export function PlayArea({
   const mySeat = me?.seat
   const peer = players.find((p) => p.user_id !== session.user.id)
   const firstClueGiver = players.find(
-    (p) => p.user_id === codenamesduetSetup.firstClueGiverUserId,
+    (p) => p.user_id === codenamesduetSetup.first_clue_giver_user_id,
   )
   const greenFound = words.filter((w) => w.revealed_as === 'G').length
 

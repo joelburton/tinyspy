@@ -210,10 +210,10 @@ export function SetupForm({ brand, clubHandle, mode, players, value, onChange }:
       <CoopStyleField
         mode={mode}
         players={players}
-        coopStyle={s.coopStyle ?? 'free-for-all'}
-        firstTurnUserId={s.firstTurnUserId ?? ''}
+        coopStyle={s.coop_style ?? 'free-for-all'}
+        firstTurnUserId={s.first_turn_user_id ?? ''}
         onChange={({ coopStyle, firstTurnUserId }) =>
-          onChange({ ...s, coopStyle, firstTurnUserId })
+          onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
         }
       />
       <fieldset className={styles.fieldset}>

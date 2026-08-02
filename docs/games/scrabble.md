@@ -357,7 +357,7 @@ declared letter).
    an old board.
 3. **Compete:** reject unless `current_user_id = caller` (`P0001`), keyed on the
    scrabble-local seat system. **Coop:** free-for-all by default (any player), but
-   the coop sibling also supports **opt-in turn-by-turn** play (setup `coopStyle =
+   the coop sibling also supports **opt-in turn-by-turn** play (setup `coop_style =
    'turns'`) — when on, the shared `_commit_word` core gates on the **common**
    `common._require_turn` and advances `common._advance_turn` on an accepted,
    non-terminal commit. The two turn systems coexist deliberately: compete keeps
@@ -397,7 +397,7 @@ Lock + version CAS (same stale-guard as `play_word` — it mutates the shared ra
 reshuffles, redraws the same count; `version += 1`; logs `kind='exchange'`.
 **Compete:** `consecutive_passes = 0` (an exchange clears the streak), advance
 turn. **Coop:** none of that — it's just a rack refresh (no compete-seat
-turns, no blocked-end). Under **coop turn-by-turn** (setup `coopStyle = 'turns'`)
+turns, no blocked-end). Under **coop turn-by-turn** (setup `coop_style = 'turns'`)
 the shared `_commit_exchange` core also gates on `common._require_turn` and hands
 off via `common._advance_turn` — an exchange is a real turn-consuming coop move.
 (There's no coop pass — `pass_turn` is compete-only — so only `_commit_word` and
@@ -432,7 +432,7 @@ every seat. Three subtleties:
   new, so who opens is drawn afresh.
 - **Coop turn-order rewinds** to the player seated first (`game_players.turn_seat
   = 0`). The rotation was assigned at create time and doesn't change, so this
-  restores the original opener without re-reading `setup.firstTurnUserId`. A
+  restores the original opener without re-reading `setup.first_turn_user_id`. A
   free-for-all game's null pointer stays null.
 
 It also puts `common.games.title` back to `"New game"` (the title is the first

@@ -50,7 +50,7 @@ export type CommonGame = {
   started_at: string
   ended_at: string | null
   /** Whose turn it is, for the opt-in turn-by-turn coop mode
-   *  (setup coopStyle='turns'). NULL for free-for-all games (the
+   *  (setup coop_style='turns'). NULL for free-for-all games (the
    *  default) — i.e. every game that doesn't opt in. Rotated
    *  server-side by common._advance_turn; the FE reads it only to
    *  gate input + render the waiting line. Compare to

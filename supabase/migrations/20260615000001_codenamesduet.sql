@@ -31,7 +31,7 @@ grant usage on schema codenamesduet to authenticated;
 -- club model.
 --
 -- Setup lives on common.games.setup — the canonical home for the
--- frozen-at-create-time player choices {turns, firstClueGiverUserId,
+-- frozen-at-create-time player choices {turns, first_clue_giver_user_id,
 -- (future) timer}. Server-side validated in create_game.
 
 -- codenamesduet.games.id is FK'd to common.games(id) — the canonical
@@ -351,7 +351,7 @@ revoke execute on function codenamesduet._end_turn(uuid) from public;
 -- Setup shape:
 --   {
 --     "turns": 9 | 10 | 11,
---     "firstClueGiverUserId": "<uuid; must be one of player_user_ids>"
+--     "first_clue_giver_user_id": "<uuid; must be one of player_user_ids>"
 --   }
 --
 -- Why a jsonb setup column rather than discrete columns
@@ -404,14 +404,14 @@ begin
       using errcode = 'P0001';
   end if;
 
-  if (setup->>'firstClueGiverUserId') is null then
-    raise exception 'setup.firstClueGiverUserId is required'
+  if (setup->>'first_clue_giver_user_id') is null then
+    raise exception 'setup.first_clue_giver_user_id is required'
       using errcode = 'P0001';
   end if;
   begin
-    s_first := (setup->>'firstClueGiverUserId')::uuid;
+    s_first := (setup->>'first_clue_giver_user_id')::uuid;
   exception when invalid_text_representation then
-    raise exception 'setup.firstClueGiverUserId must be a uuid'
+    raise exception 'setup.first_clue_giver_user_id must be a uuid'
       using errcode = 'P0001';
   end;
 
@@ -431,7 +431,7 @@ begin
       using errcode = 'P0001';
   end if;
   if s_first <> player_user_ids[1] and s_first <> player_user_ids[2] then
-    raise exception 'setup.firstClueGiverUserId must be one of player_user_ids'
+    raise exception 'setup.first_clue_giver_user_id must be one of player_user_ids'
       using errcode = 'P0001';
   end if;
 
@@ -469,16 +469,16 @@ begin
   -- common.games (with title + setup) + game_players rows,
   -- returns canonical id.
   --
-  -- Saved-default arg: codenamesduet strips firstClueGiverUserId before
+  -- Saved-default arg: codenamesduet strips first_clue_giver_user_id before
   -- saving — that's a per-game decision (who opens this round),
   -- not a per-club preference. The two fields that ARE per-club
   -- preferences (turns count, timer mode) round-trip cleanly. The
-  -- dialog's auto-pick logic for firstClueGiverUserId fills the
+  -- dialog's auto-pick logic for first_clue_giver_user_id fills the
   -- gap on next open. See docs/deferred.md → "Setup-shape
   -- evolution" for the policy on saved-shape changes.
   new_id := common.create_game(
     target_club, 'codenamesduet', player_user_ids, game_title, setup,
-    setup - 'firstClueGiverUserId'
+    setup - 'first_clue_giver_user_id'
   );
 
   -- ─── Duet key-card distribution ───────────────────────

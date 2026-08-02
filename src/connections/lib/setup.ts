@@ -40,6 +40,6 @@ export const DEFAULT_CONNECTIONS_SETUP: ConnectionsSetup = {
   puzzleId: '',
   timer: { kind: 'none' },
   // Coop pacing: free-for-all by default; the "Co-op" setup section (coop,
-  // 2+ players) offers turn-by-turn. firstTurnUserId is seeded by the field.
-  coopStyle: 'free-for-all',
+  // 2+ players) offers turn-by-turn. first_turn_user_id is seeded by the field.
+  coop_style: 'free-for-all',
 }

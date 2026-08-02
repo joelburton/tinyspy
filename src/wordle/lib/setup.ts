@@ -44,9 +44,9 @@ export const DEFAULT_WORDLE_SETUP: WordleSetup = {
   legal_guess: 4,
   timer: { kind: 'none' },
   // Coop pacing: free-for-all by default; the setup dialog's "Co-op"
-  // section (coop, 2+ players) offers turn-by-turn. firstTurnUserId is
+  // section (coop, 2+ players) offers turn-by-turn. first_turn_user_id is
   // seeded by the field when turns is picked.
-  coopStyle: 'free-for-all',
+  coop_style: 'free-for-all',
 }
 
 /** The guess-budget choices the form offers (5–8; 6 is classic). */

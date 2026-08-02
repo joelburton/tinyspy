@@ -125,8 +125,8 @@ select * from psychicnum.create_game(
   (select handle from club),
   jsonb_build_object('guesses', 3, 'word_count', 8, 'difficulty', 3,
                      'timer', jsonb_build_object('kind', 'none'),
-                     'coopStyle', 'turns',
-                     'firstTurnUserId', 'ada11111-1111-1111-1111-111111111111'),
+                     'coop_style', 'turns',
+                     'first_turn_user_id', 'ada11111-1111-1111-1111-111111111111'),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'

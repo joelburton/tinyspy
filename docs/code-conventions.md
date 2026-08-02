@@ -162,10 +162,10 @@ export const psychicnumCompeteGame: GameManifest = {
 
 Two setup keys are a **common convention** any coop game can adopt to opt into turn-by-turn play (see [`common.md` → Turn-order](common.md#turn-order--opt-in-turn-by-turn-for-coop-games) for the mechanism):
 
-- `setup.coopStyle: 'turns' | 'free-for-all'` — the pacing choice (default `'free-for-all'`). It **DOES round-trip** as a `saved_default` — "we like taking turns" is a reusable club preference.
-- `setup.firstTurnUserId: string (uuid)` — who goes first. It is **stripped from `saved_default`** server-side in each game's `create_game` (`setup - 'firstTurnUserId'`), exactly like codenamesduet strips `firstClueGiverUserId`: a specific person isn't a reusable club preference — the club default should remember the *style*, not who happened to go first last time.
+- `setup.coop_style: 'turns' | 'free-for-all'` — the pacing choice (default `'free-for-all'`). It **DOES round-trip** as a `saved_default` — "we like taking turns" is a reusable club preference.
+- `setup.first_turn_user_id: string (uuid)` — who goes first. It is **stripped from `saved_default`** server-side in each game's `create_game` (`setup - 'first_turn_user_id'`), exactly like codenamesduet strips `first_clue_giver_user_id`: a specific person isn't a reusable club preference — the club default should remember the *style*, not who happened to go first last time.
 
-This is the general rule for what makes it into `saved_default`: **style/mode preferences round-trip; specific-person picks don't.** The per-game `create_game` controls what's passed as the `saved_setup` argument to `common.create_game`, so it does the strip. The shared `CoopStyleField` writes both keys; only `coopStyle` survives into `common.clubs_gametypes.default_setup`.
+This is the general rule for what makes it into `saved_default`: **style/mode preferences round-trip; specific-person picks don't.** The per-game `create_game` controls what's passed as the `saved_setup` argument to `common.create_game`, so it does the strip. The shared `CoopStyleField` writes both keys; only `coop_style` survives into `common.clubs_gametypes.default_setup`.
 
 ### Realtime channel names
 
@@ -406,6 +406,16 @@ Two conventions intersect: TypeScript leans camelCase, SQL leans snake_case. We 
 > **snake_case** for type fields that mirror a Postgres row's shape. **camelCase** for fields on TS-native shapes (component props, FE-built normalizations, manifest types, anything we designed in TS).
 
 The "how to tell" test: if the field names would match what `supabase gen types` emits for that table, the type is DB-shaped and uses snake_case. Otherwise it's a TS abstraction and uses camelCase.
+
+**Keys inside a jsonb blob are DB-shaped too** — `setup`, `status`, `result`, `meta`. They read the same in SQL as in TS (`setup->>'coop_style'`, `s.coop_style`), they persist in rows, and `gen types` can't type them, so nothing catches drift: **snake_case, always.** This is the rule that got broken — `coopStyle` / `firstTurnUserId` / `firstClueGiverUserId` lived in `setup` as camelCase until 2026-08-01, and because setup keys also round-trip into `clubs_gametypes.default_setup` they'd have been the most expensive thing on the roster to rename after the baselines froze. Where a camelCase React prop feeds a snake_case setup key, spell the mapping out at the seam rather than reaching for object shorthand:
+
+```tsx
+// The prop is TS-native (camelCase); the setup key is DB-shaped (snake_case).
+coopStyle={s.coop_style ?? 'free-for-all'}
+onChange={({ coopStyle, firstTurnUserId }) =>
+  onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
+}
+```
 
 ```ts
 // DB-shape — fields match the Postgres row exactly

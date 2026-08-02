@@ -172,7 +172,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
     letters).
   - **compete:** apply to the caller's row only (no log row).
   - Returns `{ colors, swaps_used, solved, terminal }`.
-  - **Opt-in turn-by-turn coop** (setup `coopStyle = 'turns'`): after the
+  - **Opt-in turn-by-turn coop** (setup `coop_style = 'turns'`): after the
     lock + caller, `submit_swap` gates on `common._require_turn`, and calls
     `common._advance_turn` only on an accepted, non-terminal swap — never on a
     guard reject (bad position, hole, out of swaps) or the swap that solves /

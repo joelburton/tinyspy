@@ -2,14 +2,14 @@
 -- Test: waffle turn-order (opt-in turn-by-turn coop)
 -- ============================================================
 -- The per-game wiring for the common turn primitive: create_game seats
--- the rotation when setup.coopStyle='turns', and submit_swap gates on
+-- the rotation when setup.coop_style='turns', and submit_swap gates on
 -- _require_turn + advances on an accepted, non-terminal swap.
 -- Covers:
 --   1. create_game seats the pointer on the chosen first player
 --   2. an out-of-turn swap is rejected ('not your turn')
 --   3. an accepted (non-solving) swap advances the pointer
 --   4. a soft-rejected swap (a hole cell) does NOT advance
---   5. free-for-all (no coopStyle) leaves the pointer null and ungated
+--   5. free-for-all (no coop_style) leaves the pointer null and ungated
 --
 -- A generous swap budget (extra=5) keeps every swap non-terminal.
 -- Positions 2,3 are non-hole cells (holes are 6,8,16,18).
@@ -32,8 +32,8 @@ select * from waffle.create_game(
   (select handle from club),
   pg_temp.waffle_setup(5)
     || jsonb_build_object(
-         'coopStyle', 'turns',
-         'firstTurnUserId', 'ada11111-1111-1111-1111-111111111111'::text),
+         'coop_style', 'turns',
+         'first_turn_user_id', 'ada11111-1111-1111-1111-111111111111'::text),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
@@ -94,7 +94,7 @@ select is(
   'turns: bea''s valid swap wraps the turn back to ada'
 );
 
--- ── FREE-FOR-ALL (no coopStyle) — pointer null, ungated ──
+-- ── FREE-FOR-ALL (no coop_style) — pointer null, ungated ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ffa on commit drop as
 select * from waffle.create_game(

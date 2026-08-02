@@ -569,18 +569,18 @@ begin
 
   new_id := common.create_game(
     target_club, 'waffle_' || mode, player_user_ids, game_title, setup,
-    -- saved_default strips firstTurnUserId (per-game "who goes first" pick,
-    -- not a per-club preference; coopStyle rides).
-    setup - 'firstTurnUserId'
+    -- saved_default strips first_turn_user_id (per-game "who goes first" pick,
+    -- not a per-club preference; coop_style rides).
+    setup - 'first_turn_user_id'
   );
 
-  -- Opt-in turn-by-turn coop: when setup.coopStyle='turns', seat the common
+  -- Opt-in turn-by-turn coop: when setup.coop_style='turns', seat the common
   -- rotation so submit_swap gates each swap. Free-for-all / compete leave the
   -- pointer null. Runs after common.create_game seeds game_players.
-  if mode = 'coop' and setup->>'coopStyle' = 'turns' then
-    first_turn := (setup->>'firstTurnUserId')::uuid;
+  if mode = 'coop' and setup->>'coop_style' = 'turns' then
+    first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'setup.firstTurnUserId must be one of the players'
+      raise exception 'setup.first_turn_user_id must be one of the players'
         using errcode = 'P0001';
     end if;
     perform common._assign_turn_order(new_id, first_turn);

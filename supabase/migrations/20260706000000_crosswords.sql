@@ -435,7 +435,7 @@ begin
   end if;
 
   -- Saved-default arg: strip `puzzle_id` (like codenamesduet strips
-  -- `firstClueGiverUserId`). Which puzzle you play is a per-game choice, not a
+  -- `first_clue_giver_user_id`). Which puzzle you play is a per-game choice, not a
   -- club preference — the setup dialog picks a puzzle each time; persisting one
   -- as the club default would silently re-pick a specific (possibly already
   -- played) puzzle.

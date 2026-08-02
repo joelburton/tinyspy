@@ -251,7 +251,7 @@ Reject reasons:
 - word already guessed (in scope)
 - caller has 0 guesses remaining
 
-**Opt-in turn-by-turn coop.** The coop sibling supports the common turn-order primitive (setup `coopStyle = 'turns'`): `submit_guess` gates on `common._require_turn` right after the row lock + caller resolution (out-of-turn → `'not your turn'`), and calls `common._advance_turn` only on an accepted, non-terminal guess — so a soft-reject (not-a-board-word, duplicate, exhausted) lets the same player retry, and the pointer isn't touched when the guess ends the game. As the reference minimal game, psychicnum was the pilot for this common feature; see [common.md → Turn-order](../common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
+**Opt-in turn-by-turn coop.** The coop sibling supports the common turn-order primitive (setup `coop_style = 'turns'`): `submit_guess` gates on `common._require_turn` right after the row lock + caller resolution (out-of-turn → `'not your turn'`), and calls `common._advance_turn` only on an accepted, non-terminal guess — so a soft-reject (not-a-board-word, duplicate, exhausted) lets the same player retry, and the pointer isn't touched when the guess ends the game. As the reference minimal game, psychicnum was the pilot for this common feature; see [common.md → Turn-order](../common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 
 ### `psychicnum.request_hint(target_game uuid) → text` and `request_reveal(target_game uuid) → text`
 

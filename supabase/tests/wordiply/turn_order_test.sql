@@ -2,14 +2,14 @@
 -- Test: wordiply turn-order (opt-in turn-by-turn coop)
 -- ============================================================
 -- The per-game wiring for the common turn primitive: create_game seats
--- the rotation when setup.coopStyle='turns', and submit_guess gates on
+-- the rotation when setup.coop_style='turns', and submit_guess gates on
 -- _require_turn + advances on an accepted, non-terminal guess.
 -- Covers:
 --   1. create_game seats the pointer on the chosen first player
 --   2. an out-of-turn guess is rejected ('not your turn')
 --   3. an accepted guess advances the pointer
 --   4. a soft-rejected guess (duplicate) does NOT advance
---   5. free-for-all (no coopStyle) leaves the pointer null and ungated
+--   5. free-for-all (no coop_style) leaves the pointer null and ungated
 --
 -- Base is 'ar'; any longer word containing it is accepted (trusting-commit).
 -- ============================================================
@@ -31,8 +31,8 @@ select * from wordiply.create_game(
   (select handle from club),
   pg_temp.wordiply_setup()
     || jsonb_build_object(
-         'coopStyle', 'turns',
-         'firstTurnUserId', 'ada11111-1111-1111-1111-111111111111'::text),
+         'coop_style', 'turns',
+         'first_turn_user_id', 'ada11111-1111-1111-1111-111111111111'::text),
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop',
@@ -94,7 +94,7 @@ select is(
   'turns: bea''s fresh guess wraps the turn back to ada'
 );
 
--- ── FREE-FOR-ALL (no coopStyle) — pointer null, ungated ──
+-- ── FREE-FOR-ALL (no coop_style) — pointer null, ungated ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ffa on commit drop as
 select * from wordiply.create_game(

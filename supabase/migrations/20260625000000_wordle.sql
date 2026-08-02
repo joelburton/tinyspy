@@ -364,20 +364,20 @@ begin
     -- race (its guesses are private), so the label may as well say which kind
     -- of game is sitting there. The brand is shown from the FE manifest, not
     -- stored.
-    -- saved_default strips firstTurnUserId (the turn-order "who goes first"
-    -- pick is a per-game choice, not a per-club preference; coopStyle rides).
+    -- saved_default strips first_turn_user_id (the turn-order "who goes first"
+    -- pick is a per-game choice, not a per-club preference; coop_style rides).
     target_club, 'wordle_' || mode, player_user_ids,
     case mode when 'coop' then 'New game' else 'New compete' end, setup,
-    setup - 'firstTurnUserId'
+    setup - 'first_turn_user_id'
   );
 
-  -- Opt-in turn-by-turn coop: when setup.coopStyle='turns', seat the common
+  -- Opt-in turn-by-turn coop: when setup.coop_style='turns', seat the common
   -- rotation so submit_guess gates each guess. Free-for-all / compete leave the
   -- pointer null (inert). Runs after common.create_game seeds game_players.
-  if mode = 'coop' and setup->>'coopStyle' = 'turns' then
-    first_turn := (setup->>'firstTurnUserId')::uuid;
+  if mode = 'coop' and setup->>'coop_style' = 'turns' then
+    first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'setup.firstTurnUserId must be one of the players'
+      raise exception 'setup.first_turn_user_id must be one of the players'
         using errcode = 'P0001';
     end if;
     perform common._assign_turn_order(new_id, first_turn);

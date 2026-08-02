@@ -10,7 +10,7 @@ import styles from './CoopStyleField.module.css'
  * default) is the historical behaviour — anyone acts whenever.
  * `'turns'` opts into the common turn-order primitive (one player
  * at a time, in a rotation seeded at create-time). Stored on
- * `common.games.setup.coopStyle`, so the value doubles as the
+ * `common.games.setup.coop_style`, so the value doubles as the
  * server-side opt-in flag (see each game's create_game). Compete
  * games never carry it — they either have their own turns
  * (scrabble) or are simultaneous by nature.
@@ -25,8 +25,8 @@ export type CoopStyle = 'turns' | 'free-for-all'
  * share one definition rather than re-declaring the pair.
  */
 export type CoopTurnSetup = {
-  coopStyle?: CoopStyle
-  firstTurnUserId?: string
+  coop_style?: CoopStyle
+  first_turn_user_id?: string
 }
 
 type Props = {
@@ -40,8 +40,10 @@ type Props = {
   players: Member[]
   coopStyle: CoopStyle
   firstTurnUserId: string
-  /** Emits BOTH keys together so the parent can merge them into its
-   *  setup in one `onChange({ ...s, coopStyle, firstTurnUserId })`. */
+  /** Emits BOTH keys together so the parent can merge them into its setup in
+   *  one call. The props are camelCase (React) while the setup keys they map to
+   *  are snake_case (the DB vocabulary — see docs/naming.md), so each parent
+   *  spells the mapping out: `{ ...s, coop_style: coopStyle, … }`. */
   onChange: (next: { coopStyle: CoopStyle; firstTurnUserId: string }) => void
 }
 

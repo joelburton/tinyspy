@@ -61,14 +61,6 @@ fixtures) — nothing asserts they agree.**
   `…003:662/:1115`), and crosswords writes `finished` where everyone else says
   `manual` (`…crosswords:917`). Converge on cause-only — play_state already
   carries the verdict, and the status-line grammar wants the reason noun.
-- [ ] **A5. Three camelCase keys inside otherwise-snake_case `setup`**:
-  `coopStyle` (psychicnum, connections, waffle, wordle, wordiply),
-  `firstTurnUserId` (those five + scrabble), `firstClueGiverUserId`
-  (codenamesduet). These also persist in saved club defaults
-  (`clubs_gametypes.default_setup`), and deferred.md already names setup-key
-  renames as the post-freeze breakage case — the single worst category to leave
-  inconsistent. Snake_case them now (SQL readers + FE writers + saved-defaults
-  blobs in dev DBs; a `db:reset` clears the latter).
 - [ ] **A6. Timeout-with-no-target policy differs per game**: spellingbee/
   wordwheel/boggle do `lost` if a target was set else `ended`
   (`…spellingbee:1189`, `…boggle:513-517`); wordiply coop is always `ended`

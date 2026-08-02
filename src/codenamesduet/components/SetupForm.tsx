@@ -19,7 +19,7 @@ import styles from '../../common/components/fields/setupForm.module.css'
  *     members. `create_game` seats the chosen user as A
  *     (since A always opens the game), the other as B.
  *
- * On mount we auto-seed `firstClueGiverUserId` to the first
+ * On mount we auto-seed `first_clue_giver_user_id` to the first
  * club member. The manifest's defaults can't carry a member id
  * (defaults are evaluated before any club is known), so the
  * resolution happens here. The user can still flip the radio
@@ -44,11 +44,11 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
 
   // Auto-pick the first member as first-clue-giver when the form
   // first sees a populated member list with an empty selection.
-  // Once firstClueGiverUserId is set, the inner condition is
+  // Once first_clue_giver_user_id is set, the inner condition is
   // false and this is a no-op — including on s-change reruns.
   useEffect(function seedFirstClueGiver() {
-    if (s.firstClueGiverUserId === '' && members.length > 0) {
-      onChange({ ...s, firstClueGiverUserId: members[0].user_id })
+    if (s.first_clue_giver_user_id === '' && members.length > 0) {
+      onChange({ ...s, first_clue_giver_user_id: members[0].user_id })
     }
   }, [s, members, onChange])
 
@@ -77,8 +77,8 @@ export function SetupForm({ members, value, onChange }: SetupBodyProps) {
         <RadioRow
           name="firstClueGiver"
           options={members.map((m) => ({ value: m.user_id, label: m.username }))}
-          value={s.firstClueGiverUserId}
-          onChange={(firstClueGiverUserId) => onChange({ ...s, firstClueGiverUserId })}
+          value={s.first_clue_giver_user_id}
+          onChange={(id) => onChange({ ...s, first_clue_giver_user_id: id })}
         />
       </fieldset>
 

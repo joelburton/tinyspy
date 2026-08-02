@@ -69,8 +69,8 @@ export const DEFAULT_SCRABBLE_SETUP: ScrabbleSetup = {
   ai_count: 0,
   ai_level: 'strong',
   // Coop pacing: free-for-all by default; the "Co-op" setup section (coop,
-  // 2+ players) offers turn-by-turn. firstTurnUserId is seeded by the field.
-  coopStyle: 'free-for-all',
+  // 2+ players) offers turn-by-turn. first_turn_user_id is seeded by the field.
+  coop_style: 'free-for-all',
 }
 
 /**

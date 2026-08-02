@@ -45,7 +45,7 @@ select * from codenamesduet.create_game(
   -- the RPC itself doesn't actually wait for time to pass.
   jsonb_build_object(
     'turns', 9,
-    'firstClueGiverUserId', 'ada11111-1111-1111-1111-111111111111',
+    'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111',
     'timer', jsonb_build_object('kind', 'countdown', 'seconds', 600)
   ),
   pg_temp.codenamesduet_players()

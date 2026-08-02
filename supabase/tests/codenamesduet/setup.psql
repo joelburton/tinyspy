@@ -82,7 +82,7 @@ language sql as $$
   -- explicit countdown timer where they need it.
   select jsonb_build_object(
     'turns', turns,
-    'firstClueGiverUserId', first_user,
+    'first_clue_giver_user_id', first_user,
     'timer', jsonb_build_object('kind', 'none')
   );
 $$;

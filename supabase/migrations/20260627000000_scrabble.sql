@@ -755,9 +755,9 @@ begin
 
   new_id := common.create_game(
     target_club, 'scrabble_' || mode, player_user_ids, 'New game', setup,
-    -- saved_default strips firstTurnUserId (per-game "who goes first" pick,
-    -- not a per-club preference; coopStyle rides).
-    setup - 'firstTurnUserId');
+    -- saved_default strips first_turn_user_id (per-game "who goes first" pick,
+    -- not a per-club preference; coop_style rides).
+    setup - 'first_turn_user_id');
 
   if mode = 'compete' then
     -- Random first seat among ALL seats (humans 0..h-1, then AI) — an AI may open.
@@ -797,14 +797,14 @@ begin
       v_seat := v_seat + 1;
     end loop;
 
-    -- Opt-in turn-by-turn coop: when setup.coopStyle='turns', seat the COMMON
+    -- Opt-in turn-by-turn coop: when setup.coop_style='turns', seat the COMMON
     -- rotation so _commit_word / _commit_exchange gate the shared-rack moves.
     -- (Coop uses the common pointer; compete keeps scrabble.games.current_seat.)
     -- Free-for-all coop leaves the pointer null. Compete never reaches here.
-    if setup->>'coopStyle' = 'turns' then
-      first_turn := (setup->>'firstTurnUserId')::uuid;
+    if setup->>'coop_style' = 'turns' then
+      first_turn := (setup->>'first_turn_user_id')::uuid;
       if first_turn is null or not (first_turn = any(player_user_ids)) then
-        raise exception 'setup.firstTurnUserId must be one of the players'
+        raise exception 'setup.first_turn_user_id must be one of the players'
           using errcode = 'P0001';
       end if;
       perform common._assign_turn_order(new_id, first_turn);
@@ -1680,7 +1680,7 @@ grant execute on function scrabble.get_ai_context(uuid) to authenticated;
 --   - **coop turn-order rewinds** to the player seated first
 --     (`game_players.turn_seat = 0`). The rotation itself was assigned at
 --     create time and doesn't change, so this restores the original
---     opener without re-reading `setup.firstTurnUserId`. A free-for-all
+--     opener without re-reading `setup.first_turn_user_id`. A free-for-all
 --     game has a null pointer and stays null.
 --
 -- No realtime touch needed: the games/players update + plays delete wake
