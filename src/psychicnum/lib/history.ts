@@ -6,7 +6,7 @@
  *
  * ADD-style replay (like scrabble/waffle/codenamesduet, unlike stackdown's removal):
  * a guess only ever ADDS a permanent green/red mark, so a past board is the guesses
- * up to that turn folded into the same `word → was_correct` map the live board uses.
+ * up to that turn folded into the same `word → is_correct` map the live board uses.
  * A word is guessable only once (the server rejects re-guesses), so the fold never
  * overwrites. Hint / reveal turns mark no tile (they're free helpers), so they leave
  * the map unchanged and highlight nothing.
@@ -47,7 +47,7 @@ export function turnSnapshot(
   const results = new Map<string, boolean>()
   for (let i = 0; i <= index && i < guesses.length; i++) {
     const g = guesses[i]
-    if (g.kind === 'guess') results.set(g.word, g.was_correct)
+    if (g.kind === 'guess') results.set(g.word, g.is_correct)
   }
   const turn = guesses[index]
   const highlightWord = turn && turn.kind === 'guess' ? turn.word : null
@@ -61,5 +61,5 @@ function describe(turn: GuessRow | undefined): string {
   const word = turn.word.toUpperCase()
   if (turn.kind === 'hint') return `Hint: ${turn.word}`
   if (turn.kind === 'reveal') return `Revealed ${word}`
-  return turn.was_correct ? `${word} — a secret!` : `${word} — not a secret`
+  return turn.is_correct ? `${word} — a secret!` : `${word} — not a secret`
 }

@@ -94,7 +94,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // The board's rows. Coop shares one track (every guess); compete shows only
   // the caller's own (opponents' rows are RLS-hidden mid-game and, once the
   // reveal opens them at terminal, must NOT crowd my board — my five guesses
-  // stay mine). Already ordered by created_at from useGame.
+  // stay mine). Already ordered by guessed_at from useGame.
   const myGuesses = useMemo<GuessRow[]>(
     () =>
       game?.mode === 'compete'
@@ -110,7 +110,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // Compete terminal reveal — each opponent's words. Mid-game their rows are
   // RLS-hidden so `guesses` holds only mine; at terminal the RLS opens them,
   // so group the now-visible non-self rows by player (in play order — useGame
-  // orders by created_at). Empty in coop / mid-game → the reveal renders null.
+  // orders by guessed_at). Empty in coop / mid-game → the reveal renders null.
   const opponentReveal = useMemo(() => {
     if (game?.mode !== 'compete' || !isTerminal) return []
     const byUser = new Map<string, { word: string; length: number }[]>()

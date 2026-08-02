@@ -153,7 +153,7 @@ schema (see §2).
 | `word` | text not null | the full guessed word (lowercase) |
 | `length` | int not null | `char_length(word)` — stored so max/sum are trivial |
 | `guess_index` | smallint | 1..5 within the track (coop: shared 1..5; compete: per-user 1..5) |
-| `created_at` | timestamptz default now() | doubles as the per-player finish time (5th row) |
+| `guessed_at` | timestamptz default now() | doubles as the per-player finish time (5th row) |
 
 - Backstop unique `(game_id, user_id, word)`; **mode-aware dedup** is enforced in
   `submit_guess` (coop dedups across the whole team, compete per-user) — a partial index

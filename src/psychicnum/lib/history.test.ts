@@ -12,16 +12,16 @@ import type { GuessRow } from '../hooks/useGame'
 
 function g(o: Partial<GuessRow>): GuessRow {
   return {
-    id: 'id', user_id: 'u', word: 'apple', was_correct: false,
+    id: 'id', user_id: 'u', word: 'apple', is_correct: false,
     kind: 'guess', guessed_at: '2026-06-12T18:00:00Z', ...o,
   }
 }
 
 // Turn 0: APPLE is a secret (correct). Turn 1: a hint. Turn 2: BERRY misses.
 const GUESSES: GuessRow[] = [
-  g({ word: 'apple', was_correct: true, kind: 'guess' }),
+  g({ word: 'apple', is_correct: true, kind: 'guess' }),
   g({ word: 'a fruit', kind: 'hint' }),
-  g({ word: 'berry', was_correct: false, kind: 'guess' }),
+  g({ word: 'berry', is_correct: false, kind: 'guess' }),
 ]
 
 describe('turnSnapshot', () => {

@@ -170,7 +170,7 @@ create table psychicnum.guesses (
   -- "No hint available") — NOT the secret word, so a hint never leaks the
   -- answer into the row data.
   word text not null,
-  was_correct boolean not null,
+  is_correct boolean not null,
   -- 'guess'  = a real guess (counts toward finding the secrets, colors the
   --            board tile green/red, can't be repeated).
   -- 'reveal' = the player asked to reveal an answer: request_reveal picks an
@@ -666,7 +666,7 @@ begin
 
   is_correct := (w = any(g.secrets));
 
-  insert into psychicnum.guesses (game_id, user_id, word, was_correct, kind)
+  insert into psychicnum.guesses (game_id, user_id, word, is_correct, kind)
   values (target_game, caller_id, w, is_correct, 'guess');
 
   -- ─── Budget decrement: coop = everyone, compete = caller ─
@@ -700,9 +700,13 @@ begin
 
   -- Distinct secrets found in scope (coop: the team; compete: the caller).
   -- Counting real guesses keeps this independent of the secrets_found tally.
+  -- `guesses.is_correct` is QUALIFIED on purpose: this function also holds a
+  -- local `is_correct` for the caller's own verdict, and PL/pgSQL treats an
+  -- unqualified match as an error rather than picking one. (The column was
+  -- `was_correct` until 2026-08-01, which is what hid the collision.)
   select count(distinct word) into found_count
     from psychicnum.guesses
-   where game_id = target_game and kind = 'guess' and was_correct
+   where game_id = target_game and kind = 'guess' and guesses.is_correct
      and (g.mode = 'coop' or user_id = caller_id);
   total_secrets := array_length(g.secrets, 1);
 
@@ -915,7 +919,7 @@ as $$
     from unnest(g.secrets) as s
    where s not in (
      select word from psychicnum.guesses
-      where game_id = g.id and kind = 'guess' and was_correct
+      where game_id = g.id and kind = 'guess' and is_correct
         and (g.mode = 'coop' or user_id = caller_id)
    )
    order by random()
@@ -966,7 +970,7 @@ begin
     raise exception 'nothing left to reveal' using errcode = 'P0001';
   end if;
 
-  insert into psychicnum.guesses (game_id, user_id, word, was_correct, kind)
+  insert into psychicnum.guesses (game_id, user_id, word, is_correct, kind)
   values (target_game, caller_id, reveal_word, true, 'reveal');
 
   return reveal_word;
@@ -1026,7 +1030,7 @@ begin
     from common.words where word = secret_word;
   clue_text := coalesce(clue_text, 'No hint available');  -- word not in dict
 
-  insert into psychicnum.guesses (game_id, user_id, word, was_correct, kind)
+  insert into psychicnum.guesses (game_id, user_id, word, is_correct, kind)
   values (target_game, caller_id, clue_text, true, 'hint');
 
   return clue_text;

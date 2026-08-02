@@ -78,7 +78,7 @@ export type GuessRow = {
   /** The text this row carries. For 'guess'/'reveal' it's a board word
    *  (lowercase); for 'hint' it's the CLUE text (or "No hint available"). */
   word: string
-  was_correct: boolean
+  is_correct: boolean
   /** 'guess' = a real guess (colors the board, counts toward the win);
    *  'reveal' = a revealed secret word (the answer), amber in the turn log;
    *  'hint' = a clue for a secret, amber in the turn log. */
@@ -145,7 +145,7 @@ export function useGame(gameId: string): {
           .eq('game_id', gameId),
         db
           .from('guesses')
-          .select('id, user_id, word, was_correct, kind, guessed_at')
+          .select('id, user_id, word, is_correct, kind, guessed_at')
           .eq('game_id', gameId)
           .order('guessed_at', { ascending: true }),
       ])

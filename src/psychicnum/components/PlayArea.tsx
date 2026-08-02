@@ -129,7 +129,7 @@ export function PlayArea({
     // Board results: fold the 'guess' turns into word → was-a-secret (the same
     // rule the live board + lib/history use).
     const results = new Map<string, boolean>()
-    for (const g of guesses) if (g.kind === 'guess') results.set(g.word, g.was_correct)
+    for (const g of guesses) if (g.kind === 'guess') results.set(g.word, g.is_correct)
     const found = [...results.values()].filter(Boolean).length
     const guessesUsed = guesses.filter((g) => g.kind === 'guess').length
     const s = setup as unknown as PsychicnumSetup
@@ -151,7 +151,7 @@ export function PlayArea({
             ? `Hint: ${g.word}`
             : g.kind === 'reveal'
               ? `${g.word.toUpperCase()} — Answer`
-              : `${g.word.toUpperCase()} — ${g.was_correct ? 'Correct' : 'Incorrect'}`,
+              : `${g.word.toUpperCase()} — ${g.is_correct ? 'Correct' : 'Incorrect'}`,
       })),
       // Relevant setup only (the timer isn't relevant on a print).
       setup: [
@@ -234,7 +234,7 @@ export function PlayArea({
         }
       }
       return {
-        tone: g.was_correct ? 'success' : 'error',
+        tone: g.is_correct ? 'success' : 'error',
         variant: 'outline',
         // "Correct: WORD" / "Wrong: WORD" — the label carries the outcome (with
         // the tone), leaving the header pill's ~26 phone characters for the word
@@ -242,7 +242,7 @@ export function PlayArea({
         text: (
           <>
             <ActorDot actor={member} fallback="Someone" />{' '}
-            {g.was_correct ? 'Correct: ' : 'Wrong: '}
+            {g.is_correct ? 'Correct: ' : 'Wrong: '}
             {g.word.toUpperCase()}
           </>
         ),
@@ -391,7 +391,7 @@ export function PlayArea({
   // Hint rows are excluded (a hint reveals but doesn't mark a tile). In compete
   // RLS scopes `guesses` to the caller, so this is the viewer's own board.
   const results = new Map(
-    guesses.filter((g) => g.kind === 'guess').map((g) => [g.word, g.was_correct]),
+    guesses.filter((g) => g.kind === 'guess').map((g) => [g.word, g.is_correct]),
   )
 
   // Turn-history: when a past turn is open, `snap` is that turn's board (else null =
@@ -402,7 +402,7 @@ export function PlayArea({
   // Progress toward the 3 secrets. Coop = the team's distinct finds (everyone's
   // correct guesses are visible); compete = the caller's own count.
   const teamFound = new Set(
-    guesses.filter((g) => g.kind === 'guess' && g.was_correct).map((g) => g.word),
+    guesses.filter((g) => g.kind === 'guess' && g.is_correct).map((g) => g.word),
   ).size
   const found = game.mode === 'coop' ? teamFound : selfSecretsFound
 

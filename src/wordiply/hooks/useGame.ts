@@ -45,7 +45,7 @@ export type GuessRow = {
   word: string
   length: number
   guess_index: number
-  created_at: string
+  guessed_at: string
 }
 
 /**
@@ -117,9 +117,9 @@ export function useGame(gameId: string): {
     load: async ({ mounted }) => {
       const { data } = await db
         .from('guesses')
-        .select('id, game_id, user_id, word, length, guess_index, created_at')
+        .select('id, game_id, user_id, word, length, guess_index, guessed_at')
         .eq('game_id', gameId)
-        .order('created_at', { ascending: true })
+        .order('guessed_at', { ascending: true })
       if (!mounted()) return
       setGuesses((data ?? []) as GuessRow[])
       setRowsLoaded(true)

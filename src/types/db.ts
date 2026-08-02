@@ -1499,27 +1499,27 @@ export type Database = {
           game_id: string
           guessed_at: string
           id: string
+          is_correct: boolean
           kind: string
           user_id: string
-          was_correct: boolean
           word: string
         }
         Insert: {
           game_id: string
           guessed_at?: string
           id?: string
+          is_correct: boolean
           kind?: string
           user_id: string
-          was_correct: boolean
           word: string
         }
         Update: {
           game_id?: string
           guessed_at?: string
           id?: string
+          is_correct?: boolean
           kind?: string
           user_id?: string
-          was_correct?: boolean
           word?: string
         }
         Relationships: [
@@ -2510,33 +2510,33 @@ export type Database = {
       }
       swaps: {
         Row: {
-          created_at: string
           game_id: string
           letter_a: string
           letter_b: string
           pos_a: number
           pos_b: number
           seq: number
+          swapped_at: string
           user_id: string
         }
         Insert: {
-          created_at?: string
           game_id: string
           letter_a: string
           letter_b: string
           pos_a: number
           pos_b: number
           seq: number
+          swapped_at?: string
           user_id: string
         }
         Update: {
-          created_at?: string
           game_id?: string
           letter_a?: string
           letter_b?: string
           pos_a?: number
           pos_b?: number
           seq?: number
+          swapped_at?: string
           user_id?: string
         }
         Relationships: [
@@ -2746,27 +2746,27 @@ export type Database = {
       }
       guesses: {
         Row: {
-          created_at: string
           game_id: string
           guess_index: number
+          guessed_at: string
           id: number
           length: number
           user_id: string
           word: string
         }
         Insert: {
-          created_at?: string
           game_id: string
           guess_index: number
+          guessed_at?: string
           id?: never
           length: number
           user_id: string
           word: string
         }
         Update: {
-          created_at?: string
           game_id?: string
           guess_index?: number
+          guessed_at?: string
           id?: never
           length?: number
           user_id?: string

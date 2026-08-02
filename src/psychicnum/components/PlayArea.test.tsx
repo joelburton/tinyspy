@@ -205,8 +205,8 @@ describe('psychicnum PlayArea — click-to-define (turn log)', () => {
       game: coopGame,
       players: [me],
       guesses: [
-        { id: 'g-1', user_id: 'u1', word: 'bravo', was_correct: false, kind: 'guess', guessed_at: '2026-07-02' },
-        { id: 'h-1', user_id: 'u1', word: 'a paid assassin', was_correct: false, kind: 'hint', guessed_at: '2026-07-02' },
+        { id: 'g-1', user_id: 'u1', word: 'bravo', is_correct: false, kind: 'guess', guessed_at: '2026-07-02' },
+        { id: 'h-1', user_id: 'u1', word: 'a paid assassin', is_correct: false, kind: 'hint', guessed_at: '2026-07-02' },
       ],
       loading: false,
     }

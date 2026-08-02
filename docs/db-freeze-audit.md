@@ -36,13 +36,6 @@ One residual oddity it left behind, worth a deliberate decision:
 
 ## Tier B — column renames (need a migration later)
 
-- [ ] **B1.** `wordiply.guesses.created_at` → `guessed_at` (`…wordiply:143`; the
-  other four `guesses` tables — codenamesduet, psychicnum, connections, wordle —
-  all say `guessed_at`).
-- [ ] **B2.** `waffle.swaps.created_at` → `swapped_at` (`…waffle:220`; siblings:
-  `scrabble.plays.played_at`, `stackdown.submissions.submitted_at`).
-- [ ] **B3.** `psychicnum.guesses.was_correct` → `is_correct` (`…002:173`;
-  wordle's name, `…wordle:143`. Pure tense drift).
 - [ ] **B4.** `codenamesduet.guesses.outcome` (text enum, `…001:156`) → `result`
   (connections' name for the same concept, `…003:217`; also stops colliding with
   the status-jsonb `outcome` key).
@@ -155,10 +148,8 @@ uniform and the pass is mechanical:
   migration-era scaffolding.
 - [ ] **docs/naming.md predates the last two games**: wordwheel + wordiply are
   missing from the gametype list (`:23`, `:251`), the codename↔brand table
-  (`:47-54` — MooseWheel, WordWire), and the `submit_word` canonical entry; and
-  its claim that child tables use `created_at` (`:256`) is false — they use
-  `guessed_at`/`found_at`/`played_at`/`submitted_at` (which is the better
-  convention; the doc should describe it).
+  (`:47-54` — MooseWheel, WordWire), and the `submit_word` canonical entry.
+  (The false `created_at` claim was corrected with B1–B3.)
 - [ ] **scrabble coop can't actually end `blocked`** — found while working the
   coop-terminal item, and now doubly true: `blocked` means "every active seat
   passed in a row", and `pass_turn` rejects coop outright
@@ -202,10 +193,11 @@ documented-deliberate set holds up:
 
 ## Suggested order of attack
 
-**Tier A is DONE** (2026-08-01) — every persisted-vocabulary item is worked and
-its decision recorded in states.md / naming.md / the per-game docs. **B1–B3 are
-what's left of the "do before freeze" set**: they change column names, so
-they'd need a data migration afterwards. Tiers C–E are worth a sweep while
+**Tier A and B1–B3 are DONE** (2026-08-01) — every persisted-vocabulary item
+and the three event-timestamp / tense renames are worked, with their decisions
+recorded in states.md / naming.md / the per-game docs. **Nothing left here
+blocks leaving alpha**: B4–B11 are further column renames (cheaper now than
+after the freeze, but none of them wrong today). Tiers C–E are worth a sweep while
 editing baselines is still free, but wouldn't block leaving alpha. Every SQL change here re-runs the usual gates
 (`npm run db:reset` + `npm run import`, `npm run test:db`, `npx tsc -b`,
 `npm test`, `npm run report:labels` for anything touching status/labels).

@@ -140,7 +140,7 @@ create table wordiply.guesses (
   word        text not null,
   length      int not null,
   guess_index smallint not null,
-  created_at  timestamptz not null default now(),
+  guessed_at  timestamptz not null default now(),
   unique (game_id, user_id, word)
 );
 
@@ -681,7 +681,7 @@ begin
            coalesce(max(gg.length), 0) as longest,
            coalesce(sum(gg.length), 0) as letter_count,
            count(gg.id) as guesses_used,
-           max(gg.created_at) as finished_at
+           max(gg.guessed_at) as finished_at
       from common.game_players gp
       left join wordiply.guesses gg
         on gg.game_id = target_game and gg.user_id = gp.user_id

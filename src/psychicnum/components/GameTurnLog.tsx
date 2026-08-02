@@ -93,7 +93,7 @@ export function GameTurnLog({ guesses, players, viewingIndex, onSelectTurn }: Pr
         const isReveal = g.kind === 'reveal'
         return (
           <tr key={g.id} className={turnLog.turnLogDivider}>
-            <TurnLogBar outcome={isReveal ? 'partial' : g.was_correct ? 'good' : 'bad'} />
+            <TurnLogBar outcome={isReveal ? 'partial' : g.is_correct ? 'good' : 'bad'} />
             <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
             {/* word = sized-to-fit (`.other`) + the bold lead look (`.primary`);
                 result = the main column, absorbing the slack so the word + result
@@ -101,7 +101,7 @@ export function GameTurnLog({ guesses, players, viewingIndex, onSelectTurn }: Pr
             <td className={cls(turnLog.other, turnLog.primary)}>
               <span {...defineProps(g.word)}>{g.word.toUpperCase()}</span>
             </td>
-            <td className={turnLog.main}>{isReveal ? 'Answer' : g.was_correct ? 'Correct' : 'Incorrect'}</td>
+            <td className={turnLog.main}>{isReveal ? 'Answer' : g.is_correct ? 'Correct' : 'Incorrect'}</td>
             {whoCell(g.user_id)}
           </tr>
         )

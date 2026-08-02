@@ -67,7 +67,7 @@ Both siblings share the same `name` (`psychicnum`); the coop/compete distinction
 |---|---|
 | `games` | One row per playing. `club_handle` ties to `common.clubs`. Holds `words text[]` (the N board words, PUBLIC), `secrets text[]` (the three secret words, a subset of `words`, hidden), and `mode` ('coop' or 'compete', denormalized for RLS branching). Play-state (`play_state` + `is_terminal`) and the setup blob both live on `common.games`. |
 | `players` | Per-player budget + progress tracking. One row per (game, player), with `guesses_remaining` and `secrets_found` (0..3, public — the compete opponent-progress count). Seeded at create-game time from `setup.guesses`. Coop decrements every row in lock-step; compete decrements only the guesser's row. Per-player outcome (`won` / `lost`) is NOT here — it goes on `common.game_players.result` at game-end via `common.end_game`. |
-| `guesses` | Append-only log of every guess **and helper**. One row per event, with `user_id`, `word`, `was_correct`, `kind` ('guess' \| 'hint' \| 'reveal'), `guessed_at`. `'reveal'` rows carry the answer word; `'hint'` rows carry the *clue text* in `word` (not the secret — no leak); both render amber in the turn log. Everything that computes from real guesses filters `kind='guess'`. RLS in compete mode scopes visibility to caller only. |
+| `guesses` | Append-only log of every guess **and helper**. One row per event, with `user_id`, `word`, `is_correct`, `kind` ('guess' \| 'hint' \| 'reveal'), `guessed_at`. `'reveal'` rows carry the answer word; `'hint'` rows carry the *clue text* in `word` (not the secret — no leak); both render amber in the turn log. Everything that computes from real guesses filters `kind='guess'`. RLS in compete mode scopes visibility to caller only. |
 
 There is no separate `boards` table. The "board" (the static starting state — see [`codenamesduet.md`](codenamesduet.md) for the gametype/game/board distinction) is just the `words` array on the game row, too small to warrant its own table.
 
@@ -239,7 +239,7 @@ A correct guess bumps the caller's `players.secrets_found`. "Found all three" is
 
 Locks the gametype row with `SELECT ... FOR UPDATE` to serialize concurrent guesses. If two compete-mode players complete their sets at the same instant, whichever transaction commits first wins; the second sees `play_state != 'playing'` and raises `'game is not active'`.
 
-Records every guess in `psychicnum.guesses` (`kind='guess'`, `word` lowercased, `was_correct` set). A word already taken (game-wide in coop, caller's own in compete) is **rejected** (`'word already guessed'`) — the FE disables guessed tiles, this is the server guard. Hint rows don't count, so a hinted word can still be guessed.
+Records every guess in `psychicnum.guesses` (`kind='guess'`, `word` lowercased, `is_correct` set). A word already taken (game-wide in coop, caller's own in compete) is **rejected** (`'word already guessed'`) — the FE disables guessed tiles, this is the server guard. Hint rows don't count, so a hinted word can still be guessed.
 
 Reject reasons:
 
@@ -420,7 +420,7 @@ src/psychicnum/
                           (The pill builder itself is now the shared common/lib/game/
                           localPills `stickyPill`, not a psychicnum-local file.)
     history.ts            The turn-history replay (pure + unit-tested). Given the guess log
-                          + a turn's **position** in it, reconstruct the `word → was_correct`
+                          + a turn's **position** in it, reconstruct the `word → is_correct`
                           map as of that turn — ADD-style (a guess only ever ADDS a permanent
                           green/red mark, so a past board is the guesses folded up to that
                           turn), boundary **inclusive** (viewing turn N shows the board AFTER

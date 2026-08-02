@@ -217,7 +217,7 @@ create table waffle.swaps (
   pos_b      int  not null,          -- 0..24
   letter_a   char(1) not null,       -- letter on pos_a before the swap
   letter_b   char(1) not null,       -- letter on pos_b before the swap
-  created_at timestamptz not null default now(),
+  swapped_at timestamptz not null default now(),
   primary key (game_id, seq)
 );
 
