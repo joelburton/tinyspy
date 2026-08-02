@@ -1,8 +1,8 @@
-import { useState } from 'react'
 import type { MouseEvent } from 'react'
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
 import { cls } from '../../common/lib/util/cls'
-import { memberById, orderSelfFirst } from '../../common/lib/game/peers'
+import { memberById } from '../../common/lib/game/peers'
+import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/game/lists/TurnLog'
 import turnLog from '../../common/components/game/lists/TurnLog.module.css'
@@ -66,21 +66,18 @@ export function GameTurnLog({
   viewingIndex,
   onSelectTurn,
 }: Props) {
-  // Coop with 2+ players is one shared board → a single "Team" option. Every
-  // OTHER case (compete, or a SOLO coop game) lists the actual players, so a
-  // viewer — including a club member spectating — can pick whose board to see.
-  const teamView = mode === 'coop' && players.length >= 2
-
-  const ordered = orderSelfFirst(players, selfId)
-  const viewerIsPlayer = players.some((p) => p.user_id === selfId)
-  // Whose guesses the log shows. Default to the viewer's own board when they're a
-  // player; for a spectator (a club member not in the game), default to the first
-  // listed player (the only one, in a solo game). The "Team" view ignores this.
-  const [picked, setPicked] = useState(
-    viewerIsPlayer ? selfId : (ordered[0]?.user_id ?? ''),
-  )
-
-  const shown = teamView ? guesses : guesses.filter((g) => g.user_id === picked)
+  // Whose guesses to show. The control, its default, the coop-is-one-"Team"
+  // collapse, the row filter and the honest empty line all come from the shared
+  // hook — see useTurnLogPlayerPicker.
+  const who = useTurnLogPlayerPicker<GuessRow>({
+    players,
+    selfId,
+    mode,
+    isTerminal,
+    label: 'Whose guesses to show',
+    emptyLabel: 'No guesses yet.',
+  })
+  const shown = who.filter(guesses)
 
   // The turn-history `#N` is a LIVE (clickable) control only when the log is showing
   // the same board that replays on the main grid — the coop team board, or my own
@@ -88,7 +85,7 @@ export function GameTurnLog({
   // position lines up 1:1 with the board row and clicking `#N` opens the right turn.
   // When an OPPONENT's board is picked (compete, at terminal), the main grid still
   // shows MY board, so their rows stay a plain, read-only `#N` (no replay).
-  const boardIsShown = teamView || picked === selfId
+  const boardIsShown = who.boardIsShown
 
   // Click-to-define (a common feature — see common/hooks/definitions/useDefinePopover). Every
   // wordle guess is a legal dictionary word, so the whole guess is definable — the
@@ -103,42 +100,13 @@ export function GameTurnLog({
     onClick: (e: MouseEvent<HTMLSpanElement>) => define(word, e.currentTarget),
   })
 
-  // In compete an opponent's guesses are RLS-hidden until the game ends, so an
-  // empty log for a player who isn't me means "hidden", not "none made" (they're
-  // present and guessing; pause guarantees presence). At terminal their rows
-  // reveal, so an empty log then really is "no guesses". Coop is club-readable,
-  // so this only applies to compete.
-  const emptyText =
-    mode === 'compete' && picked !== selfId && !isTerminal
-      ? 'Hidden until game ends.'
-      : 'No guesses yet.'
-
-  const picker = (
-    <select
-      className={styles.whoSelect}
-      aria-label="Whose guesses to show"
-      value={teamView ? 'team' : picked}
-      onChange={(e) => setPicked(e.target.value)}
-    >
-      {teamView ? (
-        <option value="team">Team</option>
-      ) : (
-        ordered.map((p) => (
-          <option key={p.user_id} value={p.user_id}>
-            {p.user_id === selfId ? 'You' : p.username}
-          </option>
-        ))
-      )}
-    </select>
-  )
-
   return (
     <>
     <TurnLog
       heading="Guesses"
-      headerAction={picker}
+      headerAction={who.picker}
       empty={shown.length === 0}
-      emptyText={emptyText}
+      emptyText={who.emptyText}
       scrollKey={shown}
     >
       {shown.map((g, i) => (
