@@ -75,7 +75,12 @@ const endGame = makeRpcDispatcher(db, 'end_game')
 function labelFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
     const s = (row.status ?? {}) as {
-      winner_username?: string; outcome?: string; guesses_used?: number; max_guesses?: number
+      winner_username?: string; outcome?: string
+      // Coop only — compete never updates these (a live count leaks how close
+      // a racer is), so they're absent there rather than a permanent 0.
+      guesses_used?: number; max_guesses?: number
+      /** The WINNER's own count, written at terminal (see _maybe_finish_compete). */
+      winner_guesses?: number
     }
     const dict = answerSourceLabel(setupNum(row.setup, 'answer_source'))
     const used =
@@ -88,7 +93,7 @@ function labelFor(mode: 'coop' | 'compete') {
       case 'won':
         return statusLine(outcome('Won'), used, dict)
       case 'won_compete':
-        return statusLine(wonBy(s.winner_username), count(s.guesses_used, 'guess', 'guesses'), dict)
+        return statusLine(wonBy(s.winner_username), count(s.winner_guesses, 'guess', 'guesses'), dict)
       case 'lost':
         // The guess count is redundant once the reason IS "out of guesses".
         return s.outcome === 'timeout'

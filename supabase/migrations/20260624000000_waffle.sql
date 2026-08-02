@@ -595,15 +595,19 @@ begin
   select new_id, uid, b_scramble
     from unnest(player_user_ids) uid;
 
+  -- The listing-label payload. The swap COUNTERS are coop-only: compete
+  -- deliberately never updates them (a live count would leak how far along a
+  -- racer is — see submit_swap), so seeding them there would leave a permanent
+  -- 0 for a label to read as fact. Absent is honest; the label omits what
+  -- isn't there.
   perform common.update_state(
     new_id,
     'playing',
-    jsonb_build_object(
-      'mode', mode,
-      'max_swaps', budget,
-      'swaps_used', 0,
-      'solved', false
-    )
+    jsonb_build_object('mode', mode, 'solved', false)
+      || case when mode = 'coop'
+              then jsonb_build_object('max_swaps', budget, 'swaps_used', 0)
+              else '{}'::jsonb
+         end
   );
 
   return query select new_id;
@@ -692,7 +696,14 @@ begin
     target_game, term_state,
     jsonb_build_object('mode', 'compete', 'outcome', v_outcome,
                        'winner', winner_id,
-                       'winner_username', (select username from common.profiles where user_id = winner_id)),
+                       'winner_username', (select username from common.profiles where user_id = winner_id),
+                       -- The WINNER's own count — `swaps_used` in a compete
+                       -- status is meaningless (each racer has their own board,
+                       -- and a live count would leak their progress), so the
+                       -- winning number is named separately at terminal.
+                       'winner_swaps', (select wp.swaps_used from waffle.players wp
+                                         where wp.game_id = target_game
+                                           and wp.user_id = winner_id)),
     player_results
   );
 
@@ -1233,14 +1244,15 @@ begin
          )
    where id = target_game and current_turn_user_id is not null;
 
+  -- Same shape create_game seeds (counters coop-only) — a restart must land on
+  -- a status indistinguishable from a fresh game's.
   perform common.reset_game(
     target_game,
-    jsonb_build_object(
-      'mode', g_row.mode,
-      'max_swaps', g_row.max_swaps,
-      'swaps_used', 0,
-      'solved', false
-    )
+    jsonb_build_object('mode', g_row.mode, 'solved', false)
+      || case when g_row.mode = 'coop'
+              then jsonb_build_object('max_swaps', g_row.max_swaps, 'swaps_used', 0)
+              else '{}'::jsonb
+         end
   );
 
   -- Back to the placeholder: every board is the scramble again (no word is

@@ -12,7 +12,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(13);
+select plan(15);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -73,6 +73,15 @@ select is(
   (select title from common.games where id = (select id from g)),
   'New compete',
   'compete: a mid-race guess never lands in the club-wide title');
+-- …and the club-wide STATUS carries no guess counter either. It used to seed
+-- `guesses_used: 0` at create and never update it in compete (the update is
+-- coop-only for the same leak reason), so the club card read a permanent
+-- "0 guesses" — including on a game someone had just WON in three.
+reset role;
+select ok(
+  (select not (status ? 'guesses_used') from common.games where id = (select id from g)),
+  'compete: no guesses_used on the status — absent, not a stale 0');
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 
 -- ── bea solves in 3 guesses (so ada wins on fewest) ─────────
 select wordle.submit_guess((select id from g), (select word from vals where rn = 1));
@@ -114,6 +123,11 @@ select is(
   (select target from wordle.games_state where id = (select id from g))::text,
   (select w from tgt),
   'post-terminal: the target is revealed');
+-- The WINNER's own count, named at terminal — the number the club-list label
+-- prints ("Won by ada · 1 guess"). ada solved on her first guess.
+select is(
+  (select (status->>'winner_guesses')::int from common.games where id = (select id from g)),
+  1, 'the terminal status names the winner''s guess count');
 
 select * from finish();
 rollback;

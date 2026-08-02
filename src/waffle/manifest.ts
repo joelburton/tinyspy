@@ -67,7 +67,12 @@ const endGame = makeRpcDispatcher(db, 'end_game')
 function labelFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
     const s = (row.status ?? {}) as {
-      winner_username?: string; outcome?: string; swaps_used?: number; max_swaps?: number
+      winner_username?: string; outcome?: string
+      // Coop only — compete never updates these (a live count leaks a racer's
+      // progress), so they're absent there rather than a permanent 0.
+      swaps_used?: number; max_swaps?: number
+      /** The WINNER's own count, written at terminal (see _maybe_finish_compete). */
+      winner_swaps?: number
     }
     const dict = dictLabel(setupNum(row.setup, 'difficulty'))
     const left =
@@ -80,7 +85,7 @@ function labelFor(mode: 'coop' | 'compete') {
       case 'won':
         return statusLine(outcome('Won'), left, dict)
       case 'won_compete':
-        return statusLine(wonBy(s.winner_username), count(s.swaps_used, 'swap', 'swaps'), dict)
+        return statusLine(wonBy(s.winner_username), count(s.winner_swaps, 'swap', 'swaps'), dict)
       case 'lost':
         // Coop: the shared board ran out of swaps, or the clock beat it.
         return statusLine(outcome('Lost', s.outcome === 'timeout' ? 'out of time' : 'out of swaps'), dict)

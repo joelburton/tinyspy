@@ -16,7 +16,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(16);
+select plan(18);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -61,6 +61,12 @@ select is(
   (select title from common.games where id = (select id from g)),
   'New compete',
   'compete: a solved leader does NOT leak their words into the title');
+-- …and no swap counter on the status either. It used to seed `swaps_used: 0`
+-- at create and never update it in compete (the update is coop-only, same leak
+-- reason), so the club card read a permanent "0 swaps" on a won race.
+select ok(
+  (select not (status ? 'swaps_used') from common.games where id = (select id from g)),
+  'compete: no swaps_used on the status — absent, not a stale 0');
 
 -- ── Opponent visibility mid-game (as ada) ───────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -108,6 +114,11 @@ select is(
   (select (result->>'won')::boolean from common.game_players
     where game_id = (select id from g) and user_id = 'bea22222-2222-2222-2222-222222222222'),
   false, 'bea did not win');
+-- The WINNER's own count, named at terminal — the number the club-list label
+-- prints ("Won by ada · 1 swap"). ada solved in one.
+select is(
+  (select (status->>'winner_swaps')::int from common.games where id = (select id from g)),
+  1, 'the terminal status names the winner''s swap count');
 
 -- ── Post-terminal: the opponent board is now revealed ───────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

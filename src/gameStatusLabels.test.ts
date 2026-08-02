@@ -176,7 +176,7 @@ const CASES: Record<string, Family> = {
       ['lost', { outcome: 'timeout' }, 'timeout'],
     ],
     compete: [
-      ['won_compete', { outcome: 'solved', swaps_used: 8, ...W }, 'someone won'],
+      ['won_compete', { outcome: 'solved', winner_swaps: 8, ...W }, 'someone won'],
       ['lost_compete', { outcome: 'exhausted' }, 'everyone out of swaps'],
       ['lost_compete', { outcome: 'timeout' }, 'timeout'],
       ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
@@ -195,7 +195,7 @@ const CASES: Record<string, Family> = {
       ['lost', { outcome: 'timeout', guesses_used: 3, max_guesses: 6 }, 'timeout'],
     ],
     compete: [
-      ['won_compete', { outcome: 'solved', guesses_used: 4, ...W }, 'someone won'],
+      ['won_compete', { outcome: 'solved', winner_guesses: 4, ...W }, 'someone won'],
       ['lost_compete', { outcome: 'exhausted' }, 'everyone out of guesses'],
       ['lost_compete', { outcome: 'timeout' }, 'timeout'],
       ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
