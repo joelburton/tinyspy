@@ -67,6 +67,7 @@ export function InfoCol({
   onConcede,
   onRestart,
   onNewGame,
+  startingNewGame,
   onBackToClub,
   suggest,
   canSuggest,
@@ -118,6 +119,10 @@ export function InfoCol({
   onRestart: () => void
   /** Start a fresh follow-up game — same setup + roster, a NEW game id. */
   onNewGame: () => void
+  /** New game is mid-flight — disables the button so a slow network reads as
+   *  "working", not "nothing happened". Paired with the menu item's own
+   *  `disabled`; see useSingleFlight in this game's PlayArea. */
+  startingNewGame?: boolean
   onBackToClub: () => void
 
   // ── Suggest-a-move (docs/scrabble-ai.md S5) ──
@@ -220,7 +225,7 @@ export function InfoCol({
             {/* Stay-here options left of the leave option (Club): deal this table
                 again, or spin up the next game. */}
             <RestartButton iconOnly onClick={onRestart} />
-            <NewGameButton iconOnly onClick={onNewGame} />
+            <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : isCompete && myConceded ? (
           <LocalTerminalRow label="You conceded">

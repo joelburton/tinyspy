@@ -30,6 +30,7 @@ import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
+import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 
 /** Build waffle's own-action local pill: outline + TIMED (auto-clears after a
  *  beat — waffle's only own-move feedback is a rejected swap / failed End, a
@@ -242,7 +243,7 @@ export function PlayArea({
   useEffect(() => {
     newGameArgsRef.current = { setup, playerIds: players.map((p) => p.user_id) }
   })
-  const handleNewGame = useCallback(async () => {
+  const createNewGame = useCallback(async () => {
     // Starting a new game mid-play SHELVES this one (create_game clears the
     // club's current-view flag; it stays resumable from the club page). Confirm
     // anyway so an accidental `+` doesn't read as "I just lost my game" — the
@@ -266,6 +267,20 @@ export function PlayArea({
     }
     goToGame(`waffle_${gameMode}`, res.id)
   }, [gameMode, clubHandle, brand, goToGame, showLocalFeedback, confirmAction, isTerminal])
+
+  // Single-flight guard. New game has THREE triggers (the terminal button, the
+  // game-menu item, and the global `+` shortcut), and `common.create_game` is
+  // NOT idempotent — every call shelves the club's current game and starts
+  // another, orphaning the last in the club list and toasting every peer.
+  // Guarding the HANDLER covers all three triggers at once, which a `disabled`
+  // button could never do. `startingNewGame` then greys the button so a slow
+  // network reads as "working" rather than "nothing happened".
+  //
+  // The MENU ITEM deliberately takes no `disabled`: its effect is built above
+  // this line and is kept independent of handler identity on purpose (the
+  // actionsRef indirection). It doesn't need one — `+` and the menu both route
+  // through this same guarded handler.
+  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
 
   // Reveal answer — two shapes behind one action (the wordle pattern,
   // docs/ui.md → Terminal results):
@@ -495,7 +510,8 @@ export function PlayArea({
         onRestart={restart}
         onRevealAnswer={() => void handleRevealAnswer()}
         revealDisabled={revealDisabled}
-        onNewGame={() => void handleNewGame()}
+        onNewGame={handleNewGame}
+        startingNewGame={startingNewGame}
         onBackToClub={goToClub}
         onRequestBackToClub={menu.requestBackToClub}
         setup={waffleSetup}

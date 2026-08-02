@@ -49,6 +49,7 @@ export function InfoCol({
   onConcede,
   onRestart,
   onNewGame,
+  startingNewGame,
   onBackToClub,
   setup,
   solution,
@@ -94,6 +95,10 @@ export function InfoCol({
   onRestart: () => void
   /** Start a fresh follow-up game — same setup + roster, a newly claimed board. */
   onNewGame: () => void
+  /** New game is mid-flight — disables the button so a slow network reads as
+   *  "working", not "nothing happened". Paired with the menu item's own
+   *  `disabled`; see useSingleFlight in this game's PlayArea. */
+  startingNewGame?: boolean
   onBackToClub: () => void
 
   // ── Setup disclosure + terminal words reveal ──
@@ -159,7 +164,7 @@ export function InfoCol({
             {/* Stay-here options left of the leave option (Club): run this stack
                 back, or claim the next one. */}
             <RestartButton iconOnly onClick={onRestart} />
-            <NewGameButton iconOnly onClick={onNewGame} />
+            <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           // I conceded; the others race on. Terminal LOOK (a status line + the

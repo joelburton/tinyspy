@@ -38,6 +38,7 @@ export function InfoCol({
   peer,
   onEndGame,
   onNewGame,
+  startingNewGame,
   onBackToClub,
   setup,
   firstClueGiver,
@@ -73,6 +74,10 @@ export function InfoCol({
   onEndGame: () => void
   /** Start a fresh follow-up game — same setup + roster, a newly sampled board. */
   onNewGame: () => void
+  /** New game is mid-flight — disables the button so a slow network reads as
+   *  "working", not "nothing happened". Paired with the menu item's own
+   *  `disabled`; see useSingleFlight in this game's PlayArea. */
+  startingNewGame?: boolean
   onBackToClub: () => void
 
   // ── Setup disclosure ──
@@ -140,7 +145,7 @@ export function InfoCol({
           <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
             {/* The one stay-here option, left of the leave option (Club): deal a
                 fresh board. No Restart twin — see PlayArea's handleNewGame. */}
-            <NewGameButton iconOnly onClick={onNewGame} />
+            <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : (
           <div className={shared.infoActions}>

@@ -55,6 +55,7 @@ export function InfoCol({
   onConcede,
   onRestart,
   onNewGame,
+  startingNewGame,
   onBackToClub,
   onRequestBackToClub,
   // ── Setup disclosure ──
@@ -97,6 +98,10 @@ export function InfoCol({
   onConcede: () => void
   onRestart: () => void
   onNewGame: () => void
+  /** New game is mid-flight — disables the button so a slow network reads as
+   *  "working", not "nothing happened". Paired with the menu item's own
+   *  `disabled`; see useSingleFlight in this game's PlayArea. */
+  startingNewGame?: boolean
   onBackToClub: () => void
   onRequestBackToClub: () => void
 
@@ -164,7 +169,7 @@ export function InfoCol({
         {over ? (
           <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
             <RestartButton iconOnly onClick={onRestart} />
-            <NewGameButton iconOnly onClick={onNewGame} />
+            <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : isLocallyDone ? (
           <LocalTerminalRow label="You conceded">

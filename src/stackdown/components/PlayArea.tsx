@@ -23,6 +23,7 @@ import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
+import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { type WordFlash } from './WordEntry'
 import { BoardCol } from './BoardCol'
@@ -302,7 +303,7 @@ export function PlayArea({
   // confirm; the creator jumps in via ctx.goToGame, peers arrive via the
   // game-invitation toast.
   const gameMode = game?.mode
-  const handleNewGame = useCallback(async () => {
+  const createNewGame = useCallback(async () => {
     // Starting a new game mid-play SHELVES this one (create_game clears the
     // club's current-view flag; it stays resumable from the club page). Confirm
     // anyway so an accidental `+` doesn't read as "I just lost my game" — the
@@ -323,6 +324,20 @@ export function PlayArea({
     }
     goToGame(`stackdown_${gameMode}`, (data as { id: string }).id)
   }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
+
+  // Single-flight guard. New game has THREE triggers (the terminal button, the
+  // game-menu item, and the global `+` shortcut), and `common.create_game` is
+  // NOT idempotent — every call shelves the club's current game and starts
+  // another, orphaning the last in the club list and toasting every peer.
+  // Guarding the HANDLER covers all three triggers at once, which a `disabled`
+  // button could never do. `startingNewGame` then greys the button so a slow
+  // network reads as "working" rather than "nothing happened".
+  //
+  // The MENU ITEM deliberately takes no `disabled`: its effect is built above
+  // this line and is kept independent of handler identity on purpose (the
+  // actionsRef indirection). It doesn't need one — `+` and the menu both route
+  // through this same guarded handler.
+  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
 
   // ─── Header menu (every game owns its whole menu now) ─────────
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
@@ -519,7 +534,8 @@ export function PlayArea({
         onEndGame={endGame}
         onConcede={concede}
         onRestart={restart}
-        onNewGame={() => void handleNewGame()}
+        onNewGame={handleNewGame}
+        startingNewGame={startingNewGame}
         onBackToClub={goToClub}
         setup={setup as unknown as StackdownSetup}
         solution={game.solution}

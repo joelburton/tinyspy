@@ -19,6 +19,7 @@ import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
+import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -174,7 +175,7 @@ export function PlayArea(ctx: GamePageCtx) {
   })
 
   const gameMode = game?.mode
-  const handleNewGame = useCallback(async () => {
+  const createNewGame = useCallback(async () => {
     // Starting a new game mid-play SHELVES this one (create_game clears the
     // club's current-view flag; it stays resumable from the club page). Confirm
     // anyway so an accidental `+` doesn't read as "I just lost my game" — the
@@ -192,6 +193,20 @@ export function PlayArea(ctx: GamePageCtx) {
     }
     goToGame(`wordiply_${gameMode}`, res.id)
   }, [gameMode, clubHandle, setup, players, brand, goToGame, showLocalFeedback, confirmAction, isTerminal])
+
+  // Single-flight guard. New game has THREE triggers (the terminal button, the
+  // game-menu item, and the global `+` shortcut), and `common.create_game` is
+  // NOT idempotent — every call shelves the club's current game and starts
+  // another, orphaning the last in the club list and toasting every peer.
+  // Guarding the HANDLER covers all three triggers at once, which a `disabled`
+  // button could never do. `startingNewGame` then greys the button so a slow
+  // network reads as "working" rather than "nothing happened".
+  //
+  // The MENU ITEM deliberately takes no `disabled`: its effect is built above
+  // this line and is kept independent of handler identity on purpose (the
+  // actionsRef indirection). It doesn't need one — `+` and the menu both route
+  // through this same guarded handler.
+  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
 
   useEffect(() => {
     actionsRef.current = {
@@ -340,7 +355,8 @@ export function PlayArea(ctx: GamePageCtx) {
           onEndGame={endGame}
           onConcede={concede}
           onRestart={restart}
-          onNewGame={() => void handleNewGame()}
+          onNewGame={handleNewGame}
+        startingNewGame={startingNewGame}
           onBackToClub={goToClub}
           onRequestBackToClub={menu.requestBackToClub}
           setup={wordiplySetup}

@@ -32,6 +32,7 @@ import shared from '../../common/components/game/PlayArea.module.css'
 import '../theme.css' // bananagrams tokens + the global drag-cursor rule
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { useConfirmDialog, NEW_GAME_CONFIRM, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 
 /**
  * bananagrams play surface (v3).
@@ -243,7 +244,7 @@ export function PlayArea(ctx: GamePageCtx) {
   }, [handleEndGame])
 
   const newGameRef = useRef<() => void>(() => {})
-  const handleNewGame = useCallback(async () => {
+  const createNewGame = useCallback(async () => {
     // Starting a new game mid-play SHELVES this one (create_game clears the
     // club's current-view flag; it stays resumable from the club page). Confirm
     // anyway so an accidental `+` doesn't read as "I just lost my game" — the
@@ -267,6 +268,20 @@ export function PlayArea(ctx: GamePageCtx) {
     }
     ctx.goToGame('bananagrams', (data as { id: string }).id)
   }, [ctx, showLocalFeedback, confirmAction])
+
+  // Single-flight guard. New game has THREE triggers (the terminal button, the
+  // game-menu item, and the global `+` shortcut), and `common.create_game` is
+  // NOT idempotent — every call shelves the club's current game and starts
+  // another, orphaning the last in the club list and toasting every peer.
+  // Guarding the HANDLER covers all three triggers at once, which a `disabled`
+  // button could never do. `startingNewGame` then greys the button so a slow
+  // network reads as "working" rather than "nothing happened".
+  //
+  // The MENU ITEM deliberately takes no `disabled`: its effect is built above
+  // this line and is kept independent of handler identity on purpose (the
+  // actionsRef indirection). It doesn't need one — `+` and the menu both route
+  // through this same guarded handler.
+  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
   useEffect(() => {
     newGameRef.current = () => void handleNewGame()
   }, [handleNewGame])
@@ -491,7 +506,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // to start a different game there would be a distraction.
   const infoActions = over ? (
     <TerminalActionRow over={over} onBackToClub={ctx.goToClub} iconOnly>
-      <NewGameButton iconOnly onClick={() => void handleNewGame()} />
+      <NewGameButton iconOnly onClick={handleNewGame} disabled={startingNewGame} />
     </TerminalActionRow>
   ) : isConceded ? (
     // No Concede button to carry: bananagrams' conceded row is the status line

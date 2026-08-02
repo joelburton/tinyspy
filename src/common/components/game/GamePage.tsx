@@ -306,6 +306,14 @@ export function GamePage({
   // its keys, so an open menu won't reach here. See docs/ui.md → GamePage menu.
   useEffect(function globalMenuShortcuts() {
     function onKeyDown(e: KeyboardEvent) {
+      // Auto-repeat is never wanted here. Every shortcut below is a discrete,
+      // one-shot command — leave, start a game, end a game — and none is
+      // meaningfully repeatable. Without this, HOLDING a key fires at the OS
+      // repeat rate (~30/s): `+` at terminal has no confirm to slow it down, so
+      // a leaning finger would start dozens of games, each one orphaning the
+      // last in the club list and toasting every peer. One line, all four
+      // shortcuts.
+      if (e.repeat) return
       const t = e.target
       const editable =
         t instanceof HTMLElement &&

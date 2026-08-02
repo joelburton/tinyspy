@@ -360,6 +360,29 @@ If you find yourself wanting to import a component from another game, that's a s
 
 `GAMETYPES` in `eslint.config.js` is the list the rule works from, and it's **derived** — a regex over `src/games.ts`'s manifest imports, cross-checked against the `src/<name>/manifest.ts` folders on disk. A new game needs no lint edit; a folder registered in neither place throws at config-load time (`npm run lint` fails with the mismatch). It's derived because a hand-maintained copy drifted twice, and drift here is silent: a game missing from the forbidden list produces no error, it just stops being guarded.
 
+### Guarding a non-idempotent action
+
+An action whose second call does real, unwanted work needs an in-flight guard,
+and the guard belongs on the **handler**, not the button. New game is the worked
+example: it has three triggers (the terminal `NewGameButton`, the game-menu item,
+and the global `+` shortcut), and `common.create_game` shelves the club's current
+game on every call — so two calls really do make two games, the first orphaned in
+the club list, with a second invitation toast to every peer. A `disabled` prop
+would have covered one trigger of three.
+
+Use [`useSingleFlight`](../src/common/hooks/ui/useSingleFlight.ts): it returns the
+guarded handler plus a `pending` flag for the button's `disabled`, gates on a ref
+(readable synchronously by the very next event, unlike state) and reports through
+state, and clears in a `finally` so a failure stays retryable.
+
+Don't reach for it when a state flag already gates the action — End and Concede
+stop themselves once `isTerminal` / `myConceded` flips — or for idempotent calls
+every client fires (`submit_timeout`). `useStandardGameActions.restart` holds its
+own equivalent ref inline, since it's already inside a shared hook.
+
+Related: `GamePage`'s global shortcut listener drops `e.repeat`, so *holding* a
+key can't machine-gun a one-shot command.
+
 ### CSS Modules + theme
 
 This section covers the *file mechanics* only. For the design philosophy — desktop-first, the two-vocabularies rule for global vs per-game tokens, what's deferred — see [`ui.md`](ui.md).

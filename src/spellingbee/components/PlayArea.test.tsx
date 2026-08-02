@@ -16,7 +16,7 @@
  * needed; everything else — the honeycomb, RankBar, entry row, word list — renders
  * real.
  */
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
@@ -103,6 +103,10 @@ beforeEach(() => {
   h.result = loaded(loadedGame())
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null }) // trusting-commit succeeds by default
+  // Reset the edge-fn mock too: without this its call COUNT leaks between
+  // tests, which silently breaks any toHaveBeenCalledTimes assertion (each
+  // New-game test sets its own resolved value, so clearing is safe).
+  startEdgeFn.mockReset()
 })
 
 describe('spellingbee PlayArea — render smoke', () => {
@@ -216,6 +220,33 @@ describe('spellingbee PlayArea — icon-only action rows', () => {
     await waitFor(() =>
       expect(ctx.goToGame).toHaveBeenCalledWith('spellingbee_coop', 'fresh-game-id'),
     )
+  })
+
+  /**
+   * The single-flight guard, checked once end-to-end through a real game rather
+   * than only on the hook (`common/hooks/ui/useSingleFlight.test.ts`). It matters
+   * here because `create_game` is NOT idempotent: a second call shelves the game
+   * the first one just made, orphaning it in the club list and toasting every
+   * peer a second time. Terminal is the case to test — that's where New game
+   * lives and where the handler skips its confirm, so nothing else slows a
+   * double-click down.
+   */
+  it('drops a second "New game" click while the first is still in flight', async () => {
+    let release!: (v: { id: string }) => void
+    startEdgeFn.mockImplementation(() => new Promise((resolve) => (release = resolve)))
+    const user = userEvent.setup()
+    const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
+    render(<PlayArea {...ctx} />)
+
+    const button = screen.getByRole('button', { name: 'New game' })
+    await user.click(button)
+    await waitFor(() => expect(button).toBeDisabled()) // `startingNewGame` reached the button
+    await user.click(button)
+    await user.click(button)
+
+    expect(startEdgeFn).toHaveBeenCalledTimes(1)
+    await act(async () => release({ id: 'fresh-game-id' }))
+    expect(ctx.goToGame).toHaveBeenCalledTimes(1)
   })
 })
 

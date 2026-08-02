@@ -15,6 +15,7 @@ import { memberById } from '../../common/lib/game/peers'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/game/useWordSubmit'
+import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
 import { traceableStr } from '../lib/boardTrace'
 import { type LadderName } from '../lib/solver'
@@ -285,7 +286,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // un-currents into the club list), so no confirm; the creator jumps in via
   // ctx.goToGame, peers arrive via the game-invitation toast.
   const gameMode = game?.mode
-  const handleNewGame = useCallback(async () => {
+  const createNewGame = useCallback(async () => {
     // Starting a new game mid-play SHELVES this one (create_game clears the
     // club's current-view flag; it stays resumable from the club page). Confirm
     // anyway so an accidental `+` doesn't read as "I just lost my game" — the
@@ -308,6 +309,20 @@ export function PlayArea(ctx: GamePageCtx) {
     }
     goToGame(`boggle_${gameMode}`, res.id)
   }, [gameMode, clubHandle, setup, players, brand, goToGame, showLocalFeedback, confirmAction, isTerminal])
+
+  // Single-flight guard. New game has THREE triggers (the terminal button, the
+  // game-menu item, and the global `+` shortcut), and `common.create_game` is
+  // NOT idempotent — every call shelves the club's current game and starts
+  // another, orphaning the last in the club list and toasting every peer.
+  // Guarding the HANDLER covers all three triggers at once, which a `disabled`
+  // button could never do. `startingNewGame` then greys the button so a slow
+  // network reads as "working" rather than "nothing happened".
+  //
+  // The MENU ITEM deliberately takes no `disabled`: its effect is built above
+  // this line and is kept independent of handler identity on purpose (the
+  // actionsRef indirection). It doesn't need one — `+` and the menu both route
+  // through this same guarded handler.
+  const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
 
   // Keep the menu's actions current (read via the stable actionsRef, so the
   // menu effect above never re-runs to pick up a new closure).
@@ -453,7 +468,8 @@ export function PlayArea(ctx: GamePageCtx) {
         onEndGame={endGame}
         onConcede={concede}
         onRestart={restart}
-        onNewGame={() => void handleNewGame()}
+        onNewGame={handleNewGame}
+        startingNewGame={startingNewGame}
         onBackToClub={goToClub}
         onRequestBackToClub={menu.requestBackToClub}
         // ── Setup disclosure ──

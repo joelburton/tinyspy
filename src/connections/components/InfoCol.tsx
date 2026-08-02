@@ -64,6 +64,7 @@ export function InfoCol({
   onConcede,
   onRestart,
   onNewGame,
+  startingNewGame,
   onBackToClub,
   setup,
   puzzleDate,
@@ -114,6 +115,10 @@ export function InfoCol({
   /** Start the NEXT unplayed daily puzzle — connections' archive is dated, so
    *  this walks forward rather than re-rolling a board. */
   onNewGame: () => void
+  /** New game is mid-flight — disables the button so a slow network reads as
+   *  "working", not "nothing happened". Paired with the menu item's own
+   *  `disabled`; see useSingleFlight in this game's PlayArea. */
+  startingNewGame?: boolean
   onBackToClub: () => void
 
   // ── Setup disclosure ──
@@ -196,7 +201,7 @@ export function InfoCol({
             {/* Stay-here options left of the leave option (Club): run this
                 puzzle back, or move on to the next unplayed date. */}
             <RestartButton iconOnly onClick={onRestart} />
-            <NewGameButton iconOnly onClick={onNewGame} />
+            <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : !showInput ? (
           <LocalTerminalRow label={myConceded ? 'You conceded' : 'You’re out'}>
