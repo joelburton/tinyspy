@@ -15,43 +15,22 @@ The reason to care about the list at all is the alpha prior in
 everything, so schema work is free right now and stops being free when we leave
 alpha ([`deferred.md → To discuss`](deferred.md#to-discuss)).
 
-**Nothing here is urgent.** The sweep found one small constraint (shipped
-2026-08-03 — the club-name cap, which also closed a live 23514 on long names)
-plus a set of decisions that would need SQL *only if reversed*, and a few items
-whose DB half is data rather than schema.
+**Nothing here is urgent, and nothing here is decided-and-unbuilt.** The sweep
+turned up one real constraint (the club-name cap — shipped 2026-08-03, and it
+closed a live 23514 on long names), one set of unratified rules (wordiply's —
+ratified the same day, no code change), and one column worth reserving ahead of
+its feature (`common.profiles.theme`, also shipped). What's left is a feature
+nobody has committed to and two items whose DB half is data rather than schema.
 
 | # | item | owner doc | the DB change |
 |---|---|---|---|
-| 1 | wordiply's four unconfirmed rules | [wordiply.md → Open decisions](games/wordiply.md#10-open-decisions) | `_finish_compete`'s comparator / the word-band filter — **only if a decision flips** |
-| 2 | bananagrams + boggle "check board" helper | [bananagrams.md](games/bananagrams.md) · [boggle.md → Deferred](games/boggle.md#11-deferred) | a new RPC per game (the stackdown `reveal_next_word` shape) |
-| 3 | Per-user theme setting | [ui.md → User-selectable themes](ui.md#user-selectable-themes-deferred) | a `common.profiles` column — explicitly YAGNI'd |
-| 4 | crosswords dictionary-puzzle bulk import | [crosswords.md → §9](games/crosswords.md#9-deferred) | data, not schema — but it's the trigger for the picker bound |
-| 5 | boggle word-list freshness via Storage | [boggle.md → Deferred](games/boggle.md#11-deferred) | Supabase Storage + the edge fn; no SQL |
+| 1 | bananagrams + boggle "check board" helper | [bananagrams.md](games/bananagrams.md) · [boggle.md → Deferred](games/boggle.md#11-deferred) | a new RPC per game (the stackdown `reveal_next_word` shape) |
+| 2 | crosswords dictionary-puzzle bulk import | [crosswords.md → §9](games/crosswords.md#9-deferred) | data, not schema — but it's the trigger for the picker bound |
+| 3 | boggle word-list freshness via Storage | [boggle.md → Deferred](games/boggle.md#11-deferred) | Supabase Storage + the edge fn; no SQL |
 
 ---
 
-## 1. wordiply's four unconfirmed rules
-
-`§10 Open decisions` lists ten forks; six are marked resolved and four still say
-*"confirm"*. They're all **implemented** — the game ships the recommended
-default — so this is a ratify-or-change list, not unbuilt work. Three of the four
-live in SQL:
-
-- **#3 letter-count tiebreak direction** (higher wins) and **#4 unresolved-tie
-  result** (co-winners) are steps 2 and 4 of `wordiply._finish_compete`'s
-  lexicographic comparator. Changing either is a migration — *and* an FE change:
-  `lib/scoring.ts`'s `compareCompetitors` MUST match the SQL order, which the
-  function's own comment calls out.
-- **#7 legal-band cleanliness** (exclude slang/slur/crude, stricter than
-  `candidate_words`) is a filter in the board builder + import, so a change means
-  regenerating boards rather than altering schema.
-- **#6 guess count fixed at 5** is a constant; exposing it as a setup option
-  would touch `create_game`'s validator and the setup form.
-
-The cheap resolution is to confirm all four and mark them resolved like the other
-six, at which point this entry disappears.
-
-## 2. A "check board" helper for bananagrams + boggle
+## 1. A "check board" helper for bananagrams + boggle
 
 Both docs record the same planned feature, and bananagrams has already *paid*
 for it: its setup form shows the two `DifficultyField` word-band pickers
@@ -65,15 +44,7 @@ bananagrams' would validate the caller's placed board.
 
 Worth deciding *whether* first — this is a hint mechanic, not a fix.
 
-## 3. A per-user theme setting
-
-`ui.md` names the shape while telling you not to build it: dark/light/pink as a
-user setting needs a switching mechanism, a UI, and *"a per-user setting in
-`common.profiles`"* — the DB half. It's listed here only so the column is on the
-radar if the theme work ever starts; the doc's instruction stands, and it's the
-right one. **Don't pre-engineer.**
-
-## 4. crosswords' dictionary-puzzle bulk import
+## 2. crosswords' dictionary-puzzle bulk import
 
 Not schema — the import writes rows into the existing `crosswords.puzzles`. It's
 here because it's the **trigger** for a bound that's deliberately unfixed:
@@ -86,7 +57,7 @@ does.
 `fetch-nyt-range` (the bulk NYT CLI) is the same category — a script blocked on
 the `NYT_COOKIE_JAR` secret, writing data, touching no schema.
 
-## 5. boggle word-list freshness via Storage
+## 3. boggle word-list freshness via Storage
 
 Also not SQL: the bundled word list is frozen at deploy, and the proposed middle
 ground is a gzipped list in a **Supabase Storage** bucket fetched at edge-fn cold

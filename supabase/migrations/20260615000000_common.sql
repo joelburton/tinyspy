@@ -113,6 +113,28 @@ create table common.profiles (
   color text not null check (color in (
     'red', 'orange', 'yellow', 'green', 'brown', 'blue', 'purple', 'pink'
   )),
+  -- RESERVED (2026-08-03): the user's chosen theme. Deliberately free-form
+  -- text with no CHECK and no default — there are no alternate themes yet, no
+  -- picker on the profile form, and nothing reads this column. It exists so
+  -- that when theming does happen, the column is already here and the shape of
+  -- the setting isn't being invented under time pressure.
+  --
+  -- NULL means "no preference — use the app default", which is what every row
+  -- says today. Keep it that way rather than seeding a magic string: a named
+  -- default would have to be guessed now and migrated later, and NULL already
+  -- reads as unset. Constrain it (a CHECK, or an enum) when the real theme
+  -- names exist; free-form is right for a placeholder, not for a shipped
+  -- setting.
+  --
+  -- Adding it is allowed under the standing rule on the SELECT policy below
+  -- (a non-public column on this table would mean building
+  -- `common.profiles_public` first): a theme preference is not sensitive —
+  -- it's the same kind of fact as `color`, which every club member already
+  -- reads. Nothing changes about the exposure story.
+  --
+  -- The write path, when it lands, is an RPC like `update_profile_color`, not
+  -- a direct UPDATE — this table has no UPDATE policy on purpose.
+  theme text,
   created_at timestamptz not null default now()
 );
 

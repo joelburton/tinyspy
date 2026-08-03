@@ -40,8 +40,8 @@ There is no scalar "final score", so compete is a **lexicographic comparator**, 
 
 1. **Higher length score wins.**
 2. Tie → **higher letter count** wins. *(Rewards using long words across all five lines,
-   not just landing one lucky long one. Direction is a flagged decision — see
-   [Open decisions](#10-open-decisions).)*
+   not just landing one lucky long one. Direction was a flagged fork, ratified
+   2026-08-03 — see [Decisions](#10-decisions).)*
 3. Still tied **and the game is timed** → **less time wins** (earlier `finished_at`, i.e.
    the player who completed their five guesses in less elapsed time).
 4. Still tied → **co-winners** (all tied-at-top marked won).
@@ -336,7 +336,7 @@ JWT carries every authz signal; `common.words` + the helpers are authenticated-r
 **Why coop = 5 _shared_ (not 5 each):** the FE board is a single five-row surface, and coop
 here means the collaborative shared board (like spellingbee coop's shared find list). Five
 shared lines makes a tight "let's find the best word together" puzzle that fits the one
-board. Flagged in [Open decisions](#10-open-decisions) since it's a real fork.
+board. A real fork, resolved in [Decisions](#10-decisions).
 
 ---
 
@@ -591,23 +591,43 @@ Mid-game compete needs no filter: RLS means you only *have* your own rows.
 
 ---
 
-## 10. Open decisions
+## 10. Decisions
 
-Recommended default in **bold**; each is a real fork worth a nod before/at build.
+Every fork this game had is **resolved** (the last four ratified 2026-08-03).
+Kept as a list rather than folded into the prose above because each one is a
+real alternative someone will re-propose, and the answer is easier to defend
+next to the thing it was chosen over. The chosen option is in **bold**.
 
 1. **Brand name** — **resolved: "WordWire".** Lives only in the manifest `BRAND` const.
 2. **Validation model** — **resolved: ship-list trusting-commit** (§2). Per the trust model
    we don't care about cheating, so the legal list ships to the FE (simpler build, reuses
    `useWordSubmit`, no per-guess round-trip). Scores + longest word are hidden until terminal
    as a *display* choice, not a security one.
-3. **Letter-count tiebreak direction** — **higher wins** (more/longer words = more
-   wordplay). Could argue lower = efficiency; confirm.
-4. **Unresolved-tie result** — **co-winners** vs seat-order tiebreak.
+3. **Letter-count tiebreak direction** — **resolved 2026-08-03: higher wins**
+   (more/longer words = more wordplay). The alternative reading — lower = efficiency,
+   "I got there with fewer letters" — loses because the game's whole scoring axis is
+   *length*: the primary sort already rewards the longest single word, so rewarding
+   brevity at the tiebreak would contradict the line above it. Step 2 of
+   `_finish_compete`'s comparator; changing it means the SQL **and**
+   `lib/scoring.ts`'s `compareCompetitors`, which must stay in lockstep.
+4. **Unresolved-tie result** — **resolved 2026-08-03: co-winners.** Everyone tied at
+   the top is marked `won`. The alternative, a seat-order tiebreak, breaks a genuine
+   tie on something arbitrary and invisible to the players — nobody can see the seat
+   order, so the loser of that tiebreak just sees an unexplained loss. Two friends who
+   played identically well both won. Step 4 of the same comparator, same lockstep rule.
 5. **Coop budget** — **5 shared** (team fills one board, §6) vs 5-per-player. The shared
    choice is what makes the single five-row board coherent.
-6. **Guess count** — **fixed at 5** (a constant, not a setup option). Could expose later.
-7. **Legal-band cleanliness** — **exclude slang/slur/crude** (stricter than
-   `candidate_words`' legal side) so a slur can't be the longest word. Confirm.
+6. **Guess count** — **resolved 2026-08-03: fixed at 5**, a constant rather than a
+   setup option. Five is the Guardian original's number and the board is built around
+   it (five rows, `MAX_GUESSES`); making it a knob would add a setup field, a
+   `create_game` validator branch, and a variable-height board for a variation nobody
+   has asked for. Expose it if someone does.
+7. **Legal-band cleanliness** — **resolved 2026-08-03: exclude slang/slur/crude**
+   (stricter than `candidate_words`' legal side) so a slur can't come back as the
+   "best possible word" at terminal. This is the one fork where the alternative is
+   actively worse: the reveal puts that word on screen, unprompted, in front of the
+   whole club. A change here regenerates boards (a filter in the builder + import),
+   not schema.
 8. **What ships to the FE** — **resolved: everything** (`legal_words`, `longest_words`,
    `max_word_length` are all club-member-readable). The FE gates *display* of scores + the
    longest word to terminal (§2); the data itself isn't hidden.

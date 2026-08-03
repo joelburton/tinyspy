@@ -801,18 +801,21 @@ export type Database = {
         Row: {
           color: string
           created_at: string
+          theme: string | null
           user_id: string
           username: string
         }
         Insert: {
           color: string
           created_at?: string
+          theme?: string | null
           user_id: string
           username: string
         }
         Update: {
           color?: string
           created_at?: string
+          theme?: string | null
           user_id?: string
           username?: string
         }

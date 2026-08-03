@@ -273,9 +273,13 @@ The safety net is build-time, not a fallback: [`src/cssTokens.test.ts`](../src/c
 
 The theme is light: `common/theme.css` sets the surface tokens light and declares `color-scheme: light`, and each game's palette is tuned against that background. A dark theme is not a separate near-term task — it folds into the user-selectable-themes work below (dark becomes one selectable option, not a global re-swap).
 
-### User-selectable themes (deferred)
+### User-selectable themes (deferred, with the column reserved)
 
-Dark / light / pink / etc. as a *user setting* is deferred. The foundation is there — CSS vars at `:root`, semantic names — but the switching mechanism (a `[data-theme]` selector, `prefers-color-scheme`, a per-user setting in `common.profiles`) is YAGNI until somebody actually wants it. Don't pre-engineer.
+Dark / light / pink / etc. as a *user setting* is still deferred: there are no alternate themes, no picker on the profile form, and no switching mechanism (a `[data-theme]` selector, `prefers-color-scheme`). The foundation that does exist is the CSS side — vars at `:root`, semantic names — plus, since 2026-08-03, **`common.profiles.theme`**: a reserved free-form `text` column, nullable, unread by anything.
+
+Reserving a column while deferring the feature is deliberate and worth distinguishing from pre-engineering. It costs one line and no behaviour, and it means the *shape* of the setting ("a per-user string on the profile") isn't being invented later under whatever pressure prompts the theming work. NULL means "no preference — use the app default", which is what every row says today; don't seed a magic default name, and constrain the column (a CHECK or an enum) once real theme names exist.
+
+Everything else about the feature stays YAGNI. **Don't pre-engineer the mechanism.**
 
 ## Two vocabularies
 
