@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf'
 import { BLACK, DARK_GREY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
 import { drawTurnLog, twoColGeom, type TurnRow } from '../../common/pdf/turnLog'
+import { drawCheck, drawCross } from '../../common/pdf/marks'
 
 /**
  * psychicnum's print-to-PDF, composed from the shared `common/pdf` helpers (docs/pdf.md):
@@ -68,28 +69,14 @@ function drawBoard(doc: jsPDF, m: PsychicnumPrintModel, x0: number, y0: number, 
     doc.setLineWidth(BORDER_W).setDrawColor(DARK_GREY).rect(px, py, cellW, cellH, 'S')
     // Word a hair below center so it clears the top-corner mark.
     doc.text(tile.word, px + cellW / 2, py + cellH / 2 + size * 0.35 + 2, { align: 'center' })
-    if (tile.state === 'correct') drawCheck(doc, px, py, cellW, cellH, MARK_CORRECT)
-    else if (tile.state === 'miss') drawCross(doc, px, py, cellW, cellH, MARK_MISS)
+    // Top-right corner of the cell — psychicnum's own placement; the shared
+    // marks take a centre, so the corner math lives here now.
+    const markSize = Math.min(cellW, cellH) * 0.22
+    const mark = { cx: px + cellW - markSize, cy: py + markSize, size: markSize }
+    if (tile.state === 'correct') drawCheck({ ...mark, color: MARK_CORRECT }, doc)
+    else if (tile.state === 'miss') drawCross({ ...mark, color: MARK_MISS }, doc)
   })
   doc.setLineWidth(lw0)
 }
 
-/** A checkmark in the tile's top-right corner (drawn — Helvetica has no ✓ glyph). */
-function drawCheck(doc: jsPDF, px: number, py: number, cw: number, ch: number, color: [number, number, number]): void {
-  const s = Math.min(cw, ch) * 0.22
-  const mx = px + cw - s - 3
-  const my = py + 3
-  doc.setDrawColor(...color).setLineWidth(s * 0.18)
-  // Down-right to the V, then up-right to the tip.
-  doc.lines([[s * 0.28, s * 0.3], [s * 0.55, -s * 0.72]], mx + s * 0.1, my + s * 0.52, [1, 1], 'S')
-}
 
-/** A cross in the tile's top-right corner (drawn — Helvetica has no ✗ glyph). */
-function drawCross(doc: jsPDF, px: number, py: number, cw: number, ch: number, color: [number, number, number]): void {
-  const s = Math.min(cw, ch) * 0.2
-  const mx = px + cw - s - 4
-  const my = py + 4
-  doc.setDrawColor(...color).setLineWidth(s * 0.2)
-  doc.line(mx, my, mx + s, my + s)
-  doc.line(mx + s, my, mx, my + s)
-}

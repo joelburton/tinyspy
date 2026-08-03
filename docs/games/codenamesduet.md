@@ -533,10 +533,43 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 - [`e2e/codenamesduet-history.e2e.ts`](../../e2e/codenamesduet-history.e2e.ts) — the turn-history viewer: clicking a turn-log row replays that turn's board (the reveal state after that turn's guesses, the yellow history frame, the turn's own cells ringed, the description banner overlaying the below-board slot) — and pins the invariant the decomposition rides on: the board must **not** reflow when the viewer opens (the banner overlays the fixed-height slot; it doesn't grow it).
 - [`e2e/codenamesduet-mobile.e2e.ts`](../../e2e/codenamesduet-mobile.e2e.ts) — the phone layout: the board stays full-size and the page scrolls (the clue-giver needs the board's key-card colors while composing in the keyboard-raising clue input, so the board is deliberately not shrunk or clamped), the page doesn't scroll at rest, the info column is the collapsed off-canvas sheet, and the below-board action buttons go icon-only.
 
+## Printing the board (PDF)
+
+`src/codenamesduet/pdf/` — a **"Print board (PDF)"** GamePage menu item, the
+eleventh and last game to print (docs/pdf.md). Turn-log family: the 5×5 board in
+the left column, the clue log beneath.
+
+**It exists to be thought about away from a screen**, which drives the one place
+it deliberately shows MORE than the app: the board hides your own key while
+you're mid-guess (it's a distraction there), and the print always shows it.
+
+Three independent facts share every tile, and none may lean on colour — a mono
+printer flattens the palette to one grey. So each becomes a drawn mark (✓ agent /
+– bystander / ✗ assassin from [`common/pdf/marks.ts`](../../src/common/pdf/marks.ts)),
+separated by **position**, matching the screen's corners:
+
+| corner | fact |
+|---|---|
+| tile border + top-left mark | what HAPPENED here (contacted / assassin / burned / untouched) |
+| bottom-left inset | **your** key |
+| top-right inset | your **partner's** key — terminal only |
+
+The two bystander **triangles** print as well (yours below the word, your
+partner's above). They're not decoration: a word your partner burned is still
+yours to guess, while one you burned is locked to you, and that asymmetry is
+exactly what clue-planning turns on.
+
+The partner's key is **terminal-only**, twice over: `useBoard` only fetches it
+post-game (`revealPeer`), and the print model refuses it before terminal
+regardless — so a refactor there can't put the other half of the answer on paper
+mid-game. That's the main thing `model.test.ts` pins.
+
+A legend prints under the board, because the marks are a private vocabulary and
+a printout gets read where nothing else explains them.
+
 ## Deferred
 
-- **Print to PDF.** Would fit the shared turn-log helpers cleanly (no
-  board-progression problem — see [`pdf.md`](../pdf.md)); just not opted in yet.
+Nothing outstanding.
 
 ## Won't do
 

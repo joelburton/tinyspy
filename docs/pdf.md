@@ -8,14 +8,14 @@ like it belongs to the same system (the on-screen consistency goal — see
 
 ## Which games print
 
-Printing is a **per-game opt-in**, so this is the at-a-glance answer. Ten of the
-thirteen print today.
+Printing is a **per-game opt-in**, so this is the at-a-glance answer. Eleven of the
+thirteen print today — every game except the two permanent exclusions.
 
 | game | prints? | notes |
 |---|---|---|
 | bananagrams | ✅ | word-list family (6 columns; bare words, no score/finder) |
 | boggle | ✅ | word-list family |
-| codenamesduet | ❌ | **deferred** — would fit the turn-log family cleanly |
+| codenamesduet | ✅ | turn-log family — three facts per tile, all carried by drawn marks (see below) |
 | connections | ✅ | turn-log family — category bands as coloured **borders** + an A–D letter (see below) |
 | crosswords | ✅ | its own third body family (a whole-cloth ported printer); the only game with **two** print items — the puzzle and a separate answer key |
 | psychicnum | ✅ | turn-log family |
@@ -31,11 +31,8 @@ thirteen print today.
 *board progressions* where one static snapshot can't represent the game — you'd need a
 board per turn for it to mean anything on paper, which a one-page printout isn't.
 waffle is a sequence of tile *swaps*, so a lone end-board doesn't capture the solve;
-wordle *is* the guess-by-guess progression. The one ❌ game marked **deferred**
-(codenamesduet) has no such problem — it'd compose from the existing helpers — it
-just hasn't opted in.
-Those live in each game's own `## Deferred` section (see [deferred.md](deferred.md) for
-how that's organized).
+wordle *is* the guess-by-guess progression. Nothing else is outstanding — every other
+game prints.
 
 Status: **shared `common/pdf/` helpers**. **Joel picked jsPDF** over react-pdf (see
 [project memory] / the
@@ -49,8 +46,9 @@ atoms and each game composes them with its OWN board renderer + a plain-data mod
 
 | module | used by | what it does |
 |---|---|---|
+| `common/pdf/marks.ts` | psychicnum, codenamesduet | `drawCheck` / `drawCross` / `drawDash` — the ✓ / ✗ / – outcome marks, DRAWN from line segments because jsPDF's core fonts are WinAnsi and have no such glyphs. Each takes a centre + size, so the caller owns placement (a cell corner, a keycard inset) |
 | `common/pdf/frame.ts` | **all** | the shade constants, `PrintHeader` base model, `newPrintDoc`, `drawHeader`, `drawSetup`, `fit`, `savePrint` |
-| `common/pdf/turnLog.ts` | scrabble, psychicnum, wordiply, connections, stackdown | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
+| `common/pdf/turnLog.ts` | scrabble, psychicnum, wordiply, connections, stackdown, codenamesduet | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
 | `common/pdf/wordColumns.ts` | boggle, spellingbee, wordwheel, bananagrams | `drawWordColumns` — the balanced N-column alphabetical word list; per-word flags `bonus` (a dot) and `pangram` (bold) let each game opt in, and a `found: null` row is a bare word (no score/finder — every bananagrams row) |
 | `common/pdf/wordListBody.ts` | boggle, spellingbee, wordwheel, bananagrams | `drawWordListBody` — the **whole word-list body skeleton** (board top-left / Setup to its right / `drawWordColumns` below), pinning the shared layout offsets in one place. The caller passes a `drawBoard(x, y) → { w, h }` callback (its only real difference) plus two knobs: `cols` (4, or bananagrams' 6) and `emptyText` |
 
@@ -134,7 +132,7 @@ above) — a game picks one.
 - **Margins** are tight-ish (~28pt) so content uses more of the paper, while staying
   inside a printer-safe edge.
 
-**Body family 1 — turn-log games (`turnLog.ts`; scrabble, psychicnum, wordiply, connections, stackdown).**
+**Body family 1 — turn-log games (`turnLog.ts`; scrabble, psychicnum, wordiply, connections, stackdown, codenamesduet).**
 connections is the worked example of the colour rules two sections up. A solved
 category is a full-bleed coloured band on screen; on paper it becomes a **thick
 coloured border** (four full-width fills is an enormous amount of ink, and
@@ -156,6 +154,22 @@ rule bent. It shares `letterCorner` with the board component, so a partly covere
 tile tucks its letter into the same visible quadrant on paper as on screen. The
 screen's depth ramp is deliberately dropped — the overlap already says what's on
 top, so a shade would be decoration.
+
+**codenamesduet** is the densest case: three independent facts share every tile —
+what HAPPENED on it, what it is on *your* key, and (at terminal) what it is on
+your partner's. All three become the same three drawn marks (✓ agent / – bystander
+/ ✗ assassin), separated by POSITION rather than colour: the outcome top-left,
+your key bottom-left, your partner's top-right, matching the screen's corners. The
+two bystander triangles survive too, because a word your partner burned is still
+yours to guess while one you burned is locked — an asymmetry you need when
+planning a clue on paper. It's the one printout that deliberately shows MORE than
+the screen: the board hides your own key mid-guess, and the print always shows it,
+since thinking about clues away from a screen is the whole reason it exists.
+
+**A hard constraint worth knowing before adding text to any printer:** jsPDF's
+core fonts are **WinAnsi**. Characters outside it don't print — they come out as
+mojibake. `→` did exactly that (as `!'`) and became `->`. `·` is fine; arrows,
+checks and crosses are not, which is why `marks.ts` draws them.
 wordiply is the **board-less** case: it has no board worth printing (its five guess
 lines carry no state of their own), so it passes `startY: colTop` and the log begins
 straight under the header. `drawTurnLog` needed no change — the parameter already

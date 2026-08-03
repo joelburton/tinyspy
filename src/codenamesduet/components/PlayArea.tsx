@@ -13,6 +13,8 @@ import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, END_GAME_CONFIRM, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
+import { buildDuetPrintModel } from '../pdf/model'
+import { printCodenamesduetPdf } from '../pdf/printCodenamesduetPdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import type { ClueRow } from '../hooks/useClues'
@@ -219,6 +221,10 @@ function useTurnPill(args: {
   }, [key, tone, node, outline, feedback])
 }
 
+/** Every duet board has fifteen green agents (the StateLine prints the same
+ *  fixed total); named so the print model and the readout can't disagree. */
+const TOTAL_AGENTS = 15
+
 export function PlayArea({
   session,
   gameId,
@@ -231,6 +237,8 @@ export function PlayArea({
   goToGame,
   players: members,
   menu,
+  brand,
+  title,
 }: GamePageCtx) {
   // Per-game setup blob — opaque on GamePageCtx, cast to codenamesduet's
   // shape here. Read-only at this layer; the only field we read
@@ -385,7 +393,39 @@ export function PlayArea({
   // useCallback and `menu` is stable, so this effect re-runs only when
   // `isTerminal` flips — no setState loop. Placed above the loading early-return
   // to keep hook order stable.
+  // Seat/roster derivations, hoisted above the early return so the print model
+  // (built in the menu effect, a hook) reads the SAME values the render does.
+  const me = players.find((p) => p.user_id === session.user.id)
+  const mySeat = me?.seat
+  const peer = players.find((p) => p.user_id !== session.user.id)
+  const greenFound = words.filter((w) => w.revealed_as === 'G').length
+
   useEffect(() => {
+    // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). The peer's
+    // key is a secret mid-game; useBoard only hands it over post-game and the
+    // model refuses it before terminal regardless, so it can't reach paper early.
+    const printModel =
+      game && myKey && words.length >= 25
+        ? buildDuetPrintModel({
+            brand,
+            gameTitle: title,
+            date: new Date().toLocaleDateString(),
+            words,
+            myKey,
+            peerKey,
+            mySeat,
+            isTerminal,
+            clues,
+            guesses,
+            nameForSeat: (seat) =>
+              (players.find((p) => p.seat === seat)?.username) ?? `Seat ${seat}`,
+            greenFound,
+            totalAgents: TOTAL_AGENTS,
+            turnNumber: game.turn_number,
+            turnCap: codenamesduetSetup.turns,
+            setup: [{ label: 'Turns', value: String(codenamesduetSetup.turns) }],
+          })
+        : null
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -397,11 +437,20 @@ export function PlayArea({
           ...infoSheet.menuSections,
           // The same action the terminal row offers, reachable mid-game too.
           { items: [{ id: 'new-game', label: 'New game', shortcut: '+', onClick: () => void handleNewGame() }] },
+          ...(printModel
+            ? [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printCodenamesduetPdf(printModel) }] }]
+            : []),
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, isTerminal, handleEndGame, handleNewGame, infoSheet.menuSections])
+  }, [
+    menu, isTerminal, handleEndGame, handleNewGame, infoSheet.menuSections,
+    // The print model's inputs — rebuilt whenever the printable state moves,
+    // which is what keeps the snapshot current at click time.
+    brand, title, game, words, myKey, peerKey, mySeat, clues, guesses, players,
+    greenFound, codenamesduetSetup.turns,
+  ])
 
   // Announce turn-state changes in the header feedback pill — it's easy to miss
   // "the other player ended their turn, it's your turn now" otherwise. Called
@@ -420,14 +469,9 @@ export function PlayArea({
     return <p>Loading board…</p>
   }
 
-  const me = players.find((p) => p.user_id === session.user.id)
-  const mySeat = me?.seat
-  const peer = players.find((p) => p.user_id !== session.user.id)
   const firstClueGiver = players.find(
     (p) => p.user_id === codenamesduetSetup.first_clue_giver_user_id,
   )
-  const greenFound = words.filter((w) => w.revealed_as === 'G').length
-
   // Phase derivation: a turn is in "guess phase" iff a clue already
   // exists for games.turn_number. The submit_clue RPC enforces the
   // one-per-turn unique constraint, so we can trust this at the
