@@ -108,6 +108,28 @@
   min-height: 0;
 }
 
+/* Each column's heading row: the section h3 on the left, that list's filter
+ * control on the right (ModeFilter / GametypeFilter — see clubFilters.module.css).
+ * The h3 keeps its own default margins, which is what keeps the two columns'
+ * list frames aligned with each other: both rows are built the same way, so
+ * both are the same height. */
+.headingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* The h3 inside a .headingRow. A named class rather than `.headingRow h3` so
+ * the JSX says which headings are COLUMN LABELS — the "Join the active game"
+ * h3 deliberately isn't one (it's a live call to action, and it survives the
+ * mobile breakpoint that hides these). min-width: 0 lets it shrink instead of
+ * pushing the filter out of a narrow column. */
+.sectionHeading {
+  min-width: 0;
+}
+
 /* The two scrolling card frames — the start-buttons card (left) and
  * the games list (right). One rule so the paired panels can't drift
  * apart cosmetically: fixed-size visual container (flex: 1 takes the
@@ -164,11 +186,19 @@
  * On desktop the tab bar is hidden and both body columns show side by
  * side. Below the breakpoint the two columns would be too cramped, so
  * the body stacks to a single column and this tab bar switches between
- * the "New game" (.left) and "Completed/shelved" (.right) views — only
+ * the "New game" (.left) and "Your games" (.right) views — only
  * one renders at a time, so the page still fits the viewport without
  * scrolling. */
 .tabs {
   /* Desktop: no tabs. The mobile query below flips this to flex. */
+  display: none;
+}
+
+/* The mobile filter row — the showing tab's filter, directly under the tab
+ * bar. Desktop puts each filter in its column's .headingRow instead (and
+ * hides that row here, below), so exactly one instance of each control is
+ * ever visible. */
+.mobileFilters {
   display: none;
 }
 
@@ -212,13 +242,27 @@
     display: none;
   }
 
-  /* Drop the per-section h3s ("Start a new game" / "Completed/shelved
-   * games (N)") — the tab above already names the view, so the heading
-   * just repeats it and costs vertical space. Desktop keeps them (they
-   * label the two side-by-side columns). The "Join the active game" h3
-   * is NOT a .sectionHeading, so it stays — it's a live call to action,
-   * not a column label. */
-  .sectionHeading {
+  /* Drop the per-section heading rows ("Start a new game" / "Your games
+   * (N)") — the tab above already names the view, so the heading just
+   * repeats it and costs vertical space. Desktop keeps them (they label the
+   * two side-by-side columns). Hiding the whole ROW takes each column's
+   * filter with it; the .mobileFilters row below the tabs is where the
+   * filter lives here instead. The "Join the active game" h3 is NOT in a
+   * .headingRow, so it stays — it's a live call to action, not a column
+   * label. */
+  .headingRow {
     display: none;
+  }
+
+  /* Filter for the showing tab, in the same content well as the tabs it sits
+   * under. Left-aligned: it's a control belonging to the list below, not a
+   * second row of tabs, and the tab bar's full-width split already owns the
+   * "these divide the page" look. */
+  .mobileFilters {
+    display: flex;
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 62.5rem;
+    margin-inline: auto;
   }
 }

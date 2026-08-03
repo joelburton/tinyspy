@@ -1,0 +1,101 @@
+/* Shared styles for ClubPage's two list filters — the mode segmented buttons
+ * (ModeFilter, over "Start a new game") and the gametype dropdown
+ * (GametypeFilter, over "Your games").
+ *
+ * ONE file for both, for the same reason ClubPage.module.css shares a rule
+ * between `.startList` and `.gamesList`: the two controls sit in matching
+ * heading rows one column apart, so anything that lets them drift apart
+ * cosmetically is a bug. They share a font size, a height, and the
+ * surface/border treatment.
+ *
+ * Both are sized DOWN from the app's standard controls (theme.css's <button>,
+ * fields/SelectField). A filter is chrome ON a heading, not something you came
+ * to the page to press — it should read as quieter than the game buttons and
+ * game cards it's filtering.
+ */
+
+/* ─── ModeFilter — the All / Co-op / Compete segmented buttons ───────────── */
+
+.modeFilter {
+  display: flex;
+  gap: 0.25rem;
+  /* Never squeezed by a long heading — the heading wraps first. */
+  flex-shrink: 0;
+}
+
+/* Deliberately NOT named `.button`: ClubPage's keyboard e2e finds the start
+ * buttons by `[class*="_button_"]` and a filter button would join that set. */
+.modeOption {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.55rem;
+  cursor: pointer;
+}
+
+/* The theme's base <button> rule already paints accent + white — that IS the
+ * selected look, so (exactly like the mobile tab bar) only the UNselected
+ * option is overridden back to the surface treatment. */
+.modeOption[aria-pressed='false'] {
+  background: var(--color-surface);
+  border-color: var(--color-surface-border);
+  color: var(--color-text);
+}
+
+.modeOption[aria-pressed='false']:hover {
+  background: var(--color-surface-hover);
+}
+
+/* ─── GametypeFilter — the compact dropdown ──────────────────────────────── */
+
+/* The small sibling of fields/SelectField (the chunky setup-form select):
+ * same custom chevron and the same tokens, at filter size. It is NOT a
+ * SelectField with overrides because the two differ in every size value —
+ * padding, font, width — and only agree on the look. */
+.select {
+  font: inherit;
+  font-size: 0.8rem;
+  /* Extra right room for the chevron. */
+  padding: 0.25rem 1.6rem 0.25rem 0.55rem;
+  max-width: 11rem;
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+
+  /* Same inline-SVG chevron as SelectField (stroke #555 ≈ --color-control-text-2). */
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%23555555' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.55rem center;
+}
+
+.select:hover {
+  background-color: var(--color-surface-hover);
+}
+
+/* 1px, not the 2px the setup-form select uses: on THIS page a 2px accent ring
+ * means "the keyboard cursor is here" (docs/ui.md → ClubPage keyboard
+ * navigation), and the filter must not impersonate it — the same reason the
+ * active-game card's prominence border is a dark neutral. */
+.select:focus {
+  outline: 1px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+/* iOS focus-zoom floor — the same trap theme.css handles for text fields
+ * (docs/mobile.md → Decisions #3), which its `input, textarea` rule doesn't
+ * cover: focusing a sub-16px <select> zooms mobile Safari in and never back
+ * out. On touch the filter select goes back up to full size; it's the mobile
+ * layout's only filter control, sitting alone under the tab bar, so it can
+ * afford the room (and it's a tap target there, not heading chrome). */
+@media (--touch) {
+  .select {
+    font-size: max(16px, 1em);
+    padding: 0.4rem 1.8rem 0.4rem 0.7rem;
+  }
+
+  .modeOption {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.75rem;
+  }
+}

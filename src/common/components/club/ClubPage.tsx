@@ -7,7 +7,7 @@ import { Link } from '../../lib/routing/Link'
 import { navigate } from '../../lib/routing/router'
 import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
 import { useAppShortcuts, isNonGameField } from '../../hooks/input/useAppShortcuts'
-import { playerCountFits } from '../../lib/games'
+import { MODE_LABEL, playerCountFits } from '../../lib/games'
 import { useClubPresence } from '../../hooks/realtime/useClubPresence'
 import { useClubSetupPresence } from '../../hooks/realtime/useClubSetupPresence'
 import { ChatBubble } from '../chat/ChatBubble'
@@ -15,6 +15,8 @@ import { FloatingChat } from '../chat/FloatingChat'
 import { ClubGameCard } from './ClubGameCard'
 import { ClubHelp } from './ClubHelp'
 import { EditClubDialog } from './EditClubDialog'
+import { GametypeFilter, type GametypeOption } from './GametypeFilter'
+import { ModeFilter, type ModeFilterValue } from './ModeFilter'
 import { Menu, type MenuHandle } from '../panels/Menu'
 import { TriggerWithChevron } from '../panels/TriggerWithChevron'
 import { PuzpuzpuzLogo } from '../branding/PuzpuzpuzLogo'
@@ -59,6 +61,12 @@ type ListedGame = {
   lastActiveAt: string
   isTerminal: boolean
   statusLabel: string
+  /** The manifest's `baseGametype` + `name` (its brand), copied onto the row
+   *  where the manifest is already in hand. The "Your games" gametype filter
+   *  groups by the family and labels by the brand, so a coop/compete sibling
+   *  pair is ONE choice in its dropdown. */
+  baseGametype: string
+  brand: string
 }
 
 type Props = {
@@ -109,9 +117,25 @@ export function ClubPage({ handle, session }: Props) {
   // that drives it is display:none there (see ClubPage.module.css's mobile
   // breakpoint). Below the breakpoint only one column renders at a time so the
   // page still fits the viewport; the tabs pick which. 'new' = the left column
-  // (active game + start-a-new-game); 'completed' = the right column
-  // (completed/shelved list).
+  // (active game + start-a-new-game); 'completed' = the right column ("Your
+  // games" — the club's completed + shelved games). It also picks which
+  // filter the mobile filter row shows, since only one list is on screen.
   const [mobileTab, setMobileTab] = useState<'new' | 'completed'>('new')
+
+  // ─── The two list filters ────────────────────────────────────────────────
+  // One per column, each narrowing only its own list, both purely FE state
+  // (nothing is refetched — the club's games are already all in hand).
+  //
+  //   • start-a-new-game → by interaction mode ('all' | 'coop' | 'compete')
+  //   • your games       → by gametype FAMILY (a baseGametype, or 'all'), so
+  //                        "Wordle" covers wordle_coop + wordle_compete
+  //
+  // Deliberately NOT persisted (no localStorage, no clubs_gametypes column):
+  // a filter is a way to find something right now, not a preference about the
+  // club, and a club page that remembers it was filtered a week ago looks
+  // broken ("where did our games go?").
+  const [modeFilter, setModeFilter] = useState<ModeFilterValue>('all')
+  const [gametypeFilter, setGametypeFilter] = useState<string>('all')
 
   // Club presence: who's in the club orbit right now (this page, or
   // any game page of the club) and which game they're viewing. We
@@ -650,6 +674,8 @@ export function ClubPage({ handle, session }: Props) {
           lastActiveAt: r.last_active_at,
           isTerminal: r.is_terminal,
           statusLabel: manifest.labelFor(listRow),
+          baseGametype: manifest.baseGametype,
+          brand: manifest.name,
         })
       }
       setActiveGameId(currentId)
@@ -718,16 +744,53 @@ export function ClubPage({ handle, session }: Props) {
     : null
   const otherGames = allGames.filter((g) => g.gameId !== activeGameId)
 
+  // ─── Apply the two filters ───────────────────────────────────────
+  // Everything downstream — rendering AND the keyboard cursors — reads the
+  // VISIBLE lists, so a filtered-out game is unreachable by arrow keys too
+  // (the cursor indexes exactly what's on screen; see docs/ui.md → "A click
+  // selects, the same as an arrow key").
+  // A solo club only ever renders the "All" option (mode is noise with one
+  // player — see ModeFilter), so pin the filter open there rather than trusting
+  // that nothing can have set it: the alternative failure is a list filtered
+  // with no visible control to unfilter it.
+  const effectiveMode = soloClub ? 'all' : modeFilter
+  const visibleStartable = startableGames.filter(
+    (g) => effectiveMode === 'all' || g.mode === effectiveMode,
+  )
+
+  // The gametype families present in "Your games", as dropdown options —
+  // built from the games actually listed, so the dropdown can never offer a
+  // choice that empties the list. One entry per family (the Map dedupes the
+  // coop/compete siblings onto their shared baseGametype), ordered by brand
+  // to match the alphabetical-by-brand start list.
+  const gametypeOptions: GametypeOption[] = [
+    ...new Map(otherGames.map((g) => [g.baseGametype, g.brand])).entries(),
+  ]
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+
+  // Deleting the last game of the filtered family (or a realtime refetch that
+  // drops it) leaves the selection pointing at a family that's no longer an
+  // option. Fall back to showing everything, DERIVED here rather than repaired
+  // by an effect — this repo bans setState-in-effect (see the eslint rule),
+  // and a stale selection is a render-time question anyway.
+  const selectedGametype = gametypeOptions.some((o) => o.value === gametypeFilter)
+    ? gametypeFilter
+    : 'all'
+  const visibleGames = otherGames.filter(
+    (g) => selectedGametype === 'all' || g.baseGametype === selectedGametype,
+  )
+
   // ─── Keyboard navigation: the list containers' key handling ──────
   // (State + the Tab toggler live above the loading guard; these handlers
-  // need `otherGames`, so they live here.) The CONTAINERS are the only tab
-  // stops; items are reached by the cursor, never focused. While one of our
-  // dialogs is up, it owns Enter/arrows (focus may still sit on a container,
-  // since a dialog opened by Enter never stole it).
+  // need the visible lists, so they live here.) The CONTAINERS are the only
+  // tab stops; items are reached by the cursor, never focused. While one of
+  // our dialogs is up, it owns Enter/arrows (focus may still sit on a
+  // container, since a dialog opened by Enter never stole it).
   const kbDialogUp = activeSetup !== null || editing || helpOpen
   const listKeyDown = (list: 'start' | 'games') => (e: ReactKeyboardEvent) => {
     if (kbDialogUp) return
-    const len = list === 'start' ? startableGames.length : otherGames.length
+    const len = list === 'start' ? visibleStartable.length : visibleGames.length
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault() // don't ALSO scroll the list's frame
       const delta = e.key === 'ArrowDown' ? 1 : -1
@@ -737,13 +800,13 @@ export function ClubPage({ handle, session }: Props) {
     } else if (e.key === 'Enter') {
       e.preventDefault()
       if (list === 'start') {
-        const g = startableGames[Math.min(startCursor, startableGames.length - 1)]
+        const g = visibleStartable[Math.min(startCursor, visibleStartable.length - 1)]
         // A doesn't-fit gametype renders disabled — Enter no-ops like a click.
         if (g && playerCountFits(g.numberOfPlayers, members.length)) {
           handleStartSetup(g.gametype)
         }
       } else {
-        const g = otherGames[Math.min(gamesCursor, otherGames.length - 1)]
+        const g = visibleGames[Math.min(gamesCursor, visibleGames.length - 1)]
         if (g) navigate(`/g/${g.gametype}/${g.gameId}`)
       }
     }
@@ -751,12 +814,12 @@ export function ClubPage({ handle, session }: Props) {
   // The cursor each list SHOWS: clamped to the (live-updating) list length,
   // and hidden entirely while the list isn't the focused one.
   const startKbCursor =
-    focusedList === 'start' && startableGames.length > 0
-      ? Math.min(startCursor, startableGames.length - 1)
+    focusedList === 'start' && visibleStartable.length > 0
+      ? Math.min(startCursor, visibleStartable.length - 1)
       : -1
   const gamesKbCursor =
-    focusedList === 'games' && otherGames.length > 0
-      ? Math.min(gamesCursor, otherGames.length - 1)
+    focusedList === 'games' && visibleGames.length > 0
+      ? Math.min(gamesCursor, visibleGames.length - 1)
       : -1
 
   // Menu sections for the club logo's dropdown. Mirrors the
@@ -861,7 +924,7 @@ export function ClubPage({ handle, session }: Props) {
           is the honest shape: two independent toggle buttons whose pressed
           state says which view is showing. `role="group"` + a label ties
           them together for assistive tech without over-claiming behavior. */}
-      <div className={styles.tabs} role="group" aria-label="Show new or completed games">
+      <div className={styles.tabs} role="group" aria-label="Show new game or your games">
         <button
           type="button"
           aria-pressed={mobileTab === 'new'}
@@ -878,6 +941,29 @@ export function ClubPage({ handle, session }: Props) {
         >
           Your games
         </button>
+      </div>
+
+      {/* Mobile-only filter row. On desktop each filter lives at the right of
+          its column's heading (below); on mobile those headings are gone —
+          the tab bar names the view — so the filter for the SHOWING tab goes
+          directly under the tabs, where the heading would have been.
+
+          Both filters are therefore in the tree twice, one instance hidden by
+          the breakpoint. The alternative — a single instance moved by CSS —
+          isn't available: the desktop home is inside a column, the mobile one
+          is a sibling of the tab bar, and no CSS relocates an element across
+          containers. The components are stateless (all state lives here), so
+          the two instances can't disagree. */}
+      <div className={styles.mobileFilters}>
+        {mobileTab === 'new' ? (
+          <ModeFilter value={effectiveMode} onChange={setModeFilter} soloClub={soloClub} />
+        ) : (
+          <GametypeFilter
+            value={selectedGametype}
+            options={gametypeOptions}
+            onChange={setGametypeFilter}
+          />
+        )}
       </div>
 
       {/* Two-column body that takes the rest of the viewport height
@@ -906,7 +992,13 @@ export function ClubPage({ handle, session }: Props) {
           )}
 
           <div className={styles.startBlock}>
-            <h3 className={styles.sectionHeading}>Start a new game</h3>
+            {/* Heading + its filter, one row. The whole row is hidden on
+                mobile (the tab bar names the view and the mobile filter row
+                above carries the control). */}
+            <div className={styles.headingRow}>
+              <h3 className={styles.sectionHeading}>Start a new game</h3>
+              <ModeFilter value={effectiveMode} onChange={setModeFilter} soloClub={soloClub} />
+            </div>
             {/* The scrolling card: the heading above stays put; only the
                 button list inside this frame scrolls (mirrors the right
                 column's heading + gamesList split). Also one of the page's
@@ -934,21 +1026,32 @@ export function ClubPage({ handle, session }: Props) {
                   setFocusedList((f) => (f === 'start' ? null : f))
               }}
             >
-              {/* startableGames = the registry filtered by the club's
-                  allowed-gametype m2m, in display order (see the kb-nav
-                  block); StartGameButtons handles the rendering, in-flight
+              {/* visibleStartable = the registry filtered by the club's
+                  allowed-gametype m2m AND by the mode filter, in display order
+                  (see the kb-nav block); StartGameButtons handles the rendering, in-flight
                   state, and disabled-for-doesn't-fit tooltip. ClubPage stays
                   game-agnostic; the RPC call lives inside the manifest.
                   Add boggle later and (assuming the m2m is populated for
                   this club) a button appears here automatically. */}
-              <StartGameButtons
-                games={startableGames}
-                memberCount={members.length}
-                onStartSetup={handleStartSetup}
-                soloClub={soloClub}
-                cursor={startKbCursor}
-                onCursorTo={setStartCursor}
-              />
+              {/* Unlike the games list, THIS one a filter really can empty: a
+                  club enrolled in only coop gametypes, filtered to Compete.
+                  Say so rather than showing a blank card. */}
+              {visibleStartable.length === 0 ? (
+                <p className="muted">
+                  {effectiveMode === 'all'
+                    ? 'No games available in this club.'
+                    : `No ${MODE_LABEL[effectiveMode]} games in this club.`}
+                </p>
+              ) : (
+                <StartGameButtons
+                  games={visibleStartable}
+                  memberCount={members.length}
+                  onStartSetup={handleStartSetup}
+                  soloClub={soloClub}
+                  cursor={startKbCursor}
+                  onCursorTo={setStartCursor}
+                />
+              )}
             </div>
             {activeGame && (
               <p className="muted">
@@ -961,7 +1064,19 @@ export function ClubPage({ handle, session }: Props) {
         </section>
 
         <section className={styles.right}>
-          <h3 className={styles.sectionHeading}>Completed/shelved games ({otherGames.length})</h3>
+          {/* "Your games" = everything this club has played that isn't the
+              current game — completed AND shelved, the split being a CSS
+              treatment rather than two sections (docs/states.md). The count
+              is of what's SHOWING, so it agrees with the list under a
+              filter. */}
+          <div className={styles.headingRow}>
+            <h3 className={styles.sectionHeading}>Your games ({visibleGames.length})</h3>
+            <GametypeFilter
+              value={selectedGametype}
+              options={gametypeOptions}
+              onChange={setGametypeFilter}
+            />
+          </div>
           {/* Fixed-size frame with internal scroll. The frame has
               flex: 1 inside the column, which has its own flex: 1
               inside the body, which is bounded by the .frame's
@@ -975,7 +1090,7 @@ export function ClubPage({ handle, session }: Props) {
             className={styles.gamesList}
             tabIndex={0}
             role="group"
-            aria-label="Completed and shelved games"
+            aria-label="Your games"
             onKeyDown={listKeyDown('games')}
             onFocus={(e) => {
               if (e.target === e.currentTarget) setFocusedList('games')
@@ -985,10 +1100,14 @@ export function ClubPage({ handle, session }: Props) {
                 setFocusedList((f) => (f === 'games' ? null : f))
             }}
           >
-            {otherGames.length === 0 ? (
+            {/* No "nothing matches that filter" case here: the dropdown only
+                offers families that ARE in the list, so a selection can't
+                empty it (and a selection that goes stale falls back to
+                'all' — see selectedGametype). */}
+            {visibleGames.length === 0 ? (
               <p className="muted">No other games yet.</p>
             ) : (
-              otherGames.map((g, i) => (
+              visibleGames.map((g, i) => (
                 <ClubGameCard
                   key={g.gameId}
                   gameId={g.gameId}

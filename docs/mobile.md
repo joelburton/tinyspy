@@ -229,14 +229,27 @@ PostCSS pipeline resolves them.
 ### Club page — tabs instead of two columns
 
 [`ClubPage`](../src/common/components/club/ClubPage.tsx) is a two-column body on
-desktop (left = active game + start-a-new-game; right = completed/shelved list).
+desktop (left = active game + start-a-new-game; right = the "Your games" list).
 On a phone the two columns are too cramped, so below the breakpoint the body
 becomes a **single column with a tab switcher**: a "New game" tab (the left
-column) and a "Completed/shelved (N)" tab (the right column). Only the selected
+column) and a "Your games" tab (the right column). Only the selected
 column renders, so the page still fits the viewport. The tab bar is
 `display: none` on desktop, where both columns show side by side unchanged. State
 lives in `mobileTab`; a `data-tab` attribute on the body drives the CSS that
 hides the inactive column.
+
+**The list filters move with the tabs.** Each column's filter (see
+[ui.md → Filtering the two lists](ui.md#clubpage-header)) lives at the right of
+its section heading on desktop — and the breakpoint hides those heading *rows*
+entirely, since the tab already names the view. So the filter for the showing
+tab renders instead in a row directly under the tab bar, left-aligned (it
+belongs to the list below it; the full-width split is the tab bar's look, not
+its). Both filters are therefore in the tree twice, one instance hidden: no CSS
+relocates an element from inside a column to a sibling of the tab bar, and the
+controls are stateless, so the two instances can't disagree. The gametype
+`<select>` goes back up to full control size on touch — it's the only control
+in that row, and a sub-16px select would trigger the iOS focus-zoom trap
+(Decision #3 below), which theme.css's `input, textarea` floor doesn't cover.
 
 ### Player strip — dots only on mobile
 

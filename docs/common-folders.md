@@ -48,7 +48,8 @@ components/
   home/          # the landing page after login (your clubs)
       HomePage
   club/          # the club "room": its page + everything shown on it
-      ClubPage, CreateClubPage, ClubGameCard, ClubHelp, EditClubDialog, StartGameButtons
+      ClubPage, CreateClubPage, ClubGameCard, ClubHelp, EditClubDialog, StartGameButtons,
+      ModeFilter, GametypeFilter
   account/       # your own menu + profile editing
       UserMenu, EditProfileDialog, ColorChoiceList
   chat/          # the club chat panel

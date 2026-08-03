@@ -209,7 +209,7 @@ Game-by-game and page-by-page, not a global `body { overflow: hidden }` bomb. Pa
 
 Today this principle binds on:
 
-- **ClubPage** — fits the viewport via `height: calc(100vh - body padding)`; the "Other games" list is a fixed-size frame with internal scroll. See [ClubPage header](#clubpage-header) below.
+- **ClubPage** — fits the viewport via `height: calc(100vh - body padding)`; the "Your games" list is a fixed-size frame with internal scroll. See [ClubPage header](#clubpage-header) below.
 
 Future targets:
 
@@ -422,12 +422,19 @@ The club page wears the same chrome the game page does. Same "no title in the he
 **Layout.** ClubPage's header is layout-static and fills the full content width (respecting the body's outer padding, same as the GamePage header). The body below the header is a two-column flex row that takes the rest of the viewport height (per [Page-height fits the viewport](#page-height-fits-the-viewport)):
 
 - **Left column** — the club name + handle, the active game card (when there is one), and the per-gametype Start buttons. Stacked content, no internal scroll. **Sibling-manifest families** (coop + compete variants of the same `baseGametype` — see [`common.md` → The sibling-manifest pattern](common.md#the-sibling-manifest-pattern)) render today as two independent buttons, sorted in registry order. Future treatment may group siblings as a single visual block (one logo + two side-by-side Start buttons labeled "coop" / "compete") — the `baseGametype` field on each manifest is the hook for that grouping.
-- **Right column** — the "Other games" list as a fixed-size frame with internal `overflow-y: auto`. Suspended games carry their yellow corner flag; completed games sit alongside, muted. The friends can scroll back through history without the rest of the page moving.
+- **Right column** — the **"Your games (N)"** list as a fixed-size frame with internal `overflow-y: auto`. Everything the club has played that isn't the current game: suspended games carry their yellow corner flag; completed games sit alongside, muted. The friends can scroll back through history without the rest of the page moving.
 
 The body Members list and the `/c/<handle>` URL line are gone — the header's `<PlayersStrip>` carries identity, and the URL is in the browser address bar already.
 
+**Filtering the two lists.** Each column's heading is a row: the `h3` on the left, that list's filter on the right ([`ModeFilter`](../src/common/components/club/ModeFilter.tsx) / [`GametypeFilter`](../src/common/components/club/GametypeFilter.tsx), sharing `clubFilters.module.css` so the paired controls can't drift). Both are pure FE state over data already in hand — nothing refetches — and neither is persisted: a filter is how you find something *now*, and a club page that remembered last week's filter would read as "where did our games go?"
+
+- **Start a new game → by mode.** Three `aria-pressed` toggle buttons, `All | Co-op | Compete`, mirroring the mobile tab bar's shape one size down. They decline focus on mousedown, exactly like the start buttons below them, so narrowing the list doesn't blank the keyboard cursor you were about to arrow with. **In a solo club only "All" renders, always selected** — mode is noise with one player, the same call [`<ModePill>`](#mode-pills) makes when it drops the "Co-op" badge there. Keeping the lone "All" (rather than dropping the control) holds the heading row's shape and says "showing everything" instead of reading as a missing feature; ClubPage also pins the effective mode to `all` for a solo club, so there's no state a hidden button could have left the list filtered by.
+- **Your games → by gametype family.** A compact `<select>`, one choice per `baseGametype` **present in the list** (so a choice can never empty it), labelled with the brand and sorted by it. **Siblings collapse:** one "WordNerd" covers `wordle_coop` *and* `wordle_compete` — the friends think in games, not manifest entries, and the mode axis already has its own filter on the other column. A native select rather than more buttons because this is a list of up to thirteen, not a switch; the cost is that it can't decline focus (a select needs the press to open), so using it hides the games list's cursor until you go back to the list.
+
+The heading's count and the keyboard cursors both read the **visible** list, so a filtered-out game is unreachable by arrow keys too. Guarded by [`club-filters.e2e.ts`](../e2e/club-filters.e2e.ts).
+
 **Keyboard navigation.** The page has exactly TWO keyboard tab stops: the
-start-a-new-game list and the completed/shelved list (the containers
+start-a-new-game list and the "Your games" list (the containers
 themselves, `tabIndex=0`). **Focus starts on the start list on load** (no
 first Tab needed), and a window-level handler swallows every other Tab on
 the page — focus toggles between the two lists and can't wander into other

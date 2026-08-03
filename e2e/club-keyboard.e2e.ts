@@ -32,7 +32,7 @@ test.describe('club page keyboard nav', () => {
     // games list and back — never anything else.
     expect(await focusedLabel()).toBe('Start a new game')
     await page.keyboard.press('Tab')
-    expect(await focusedLabel()).toBe('Completed and shelved games')
+    expect(await focusedLabel()).toBe('Your games')
     await page.keyboard.press('Tab')
     expect(await focusedLabel()).toBe('Start a new game')
 
@@ -66,7 +66,7 @@ test.describe('club page keyboard nav', () => {
     await expect(chatInput).toBeVisible()
     await page.keyboard.press('Tab')
     expect(await focusedLabel()).not.toBe('Start a new game')
-    expect(await focusedLabel()).not.toBe('Completed and shelved games')
+    expect(await focusedLabel()).not.toBe('Your games')
     // Chat deliberately ignores Escape (closeOnEsc: false) — close via its ✕.
     await page.getByRole('button', { name: 'Close chat' }).click()
     await expect(chatInput).toBeHidden()
@@ -75,7 +75,7 @@ test.describe('club page keyboard nav', () => {
     // the two SHELVED games (never the active g3; that card is mouse-only).
     await page.keyboard.press('Tab') // start list
     await page.keyboard.press('Tab') // games list
-    expect(await focusedLabel()).toBe('Completed and shelved games')
+    expect(await focusedLabel()).toBe('Your games')
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(/\/g\/waffle_coop\//, { timeout: 10000 })
     expect(page.url()).not.toContain(g3.id)
