@@ -102,10 +102,20 @@ STAMPS := .make/$(ENV)
 
 .PHONY: all-words
 all-words: $(STAMPS)/words.stamp ## import common.words — the list every word game reads
-$(STAMPS)/words.stamp: $(WORDS_SRC) | $(STAMPS)
 
-	@$(PRELUDE)
-	echo "── words → $(ENV)"
+# A PATTERN rule over the env, not a rule for $(ENV) — the stamp's PATH names
+# the database it describes, so the recipe derives its connection from `$*`
+# rather than from ENV. That's what makes `.make/local/words.stamp` buildable
+# during a PROD deploy, which it has to be: the trie bundles are pinned to
+# local, so `gmake deploy ENV=prod` on a checkout that never ran a local
+# import used to die with "No rule to make target '.make/local/words.stamp'".
+.make/%/words.stamp: $(WORDS_SRC) | .make/%
+	@if [ "$*" = "local" ]; then
+	  export SUPABASE_DB_URL=$(LOCAL_DB_URL)
+	else
+	  . supabase/deploy/env.sh; require_project; derive_db_url
+	fi
+	echo "── all-words → $*"
 	npm run words:import
 	touch $@
 	echo
@@ -115,17 +125,20 @@ $(STAMPS)/words.stamp: $(WORDS_SRC) | $(STAMPS)
 	echo "  Run \`gmake g-stackdown-audit\` to see the size of it; rebuilding is"
 	echo "  slow and often not worth it. Your call."
 
+# Same pattern-over-env shape as the words stamp above, for the same reason.
 .PHONY: g-spellingbee-pangrams
 g-spellingbee-pangrams: $(STAMPS)/spellingbee-pangrams.stamp ## rebuild the spellingbee board-seed pool
-$(STAMPS)/spellingbee-pangrams.stamp: $(STAMPS)/words.stamp
-	@$(PRELUDE)
+.make/%/spellingbee-pangrams.stamp: .make/%/words.stamp
+	@if [ "$*" = "local" ]; then export SUPABASE_DB_URL=$(LOCAL_DB_URL)
+	else . supabase/deploy/env.sh; require_project; derive_db_url; fi
 	npm run spellingbee:import
 	touch $@
 
 .PHONY: g-wordwheel-pangrams
 g-wordwheel-pangrams: $(STAMPS)/wordwheel-pangrams.stamp ## rebuild the wordwheel board-seed pool
-$(STAMPS)/wordwheel-pangrams.stamp: $(STAMPS)/words.stamp
-	@$(PRELUDE)
+.make/%/wordwheel-pangrams.stamp: .make/%/words.stamp
+	@if [ "$*" = "local" ]; then export SUPABASE_DB_URL=$(LOCAL_DB_URL)
+	else . supabase/deploy/env.sh; require_project; derive_db_url; fi
 	npm run wordwheel:import
 	touch $@
 
@@ -244,6 +257,18 @@ db: db-schema db-sql ## the whole database definition: migrations, then supabase
 db-seed: ## local only: the dev personas + clubs (seed.dev.sql)
 	@SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run seed
 
+# An interactive shell on whichever database ENV names — the thing you reach
+# for when a target did something surprising. SQL="..." runs one statement and
+# exits instead. It announces the target first: `gmake db-psql ENV=prod` is a
+# prompt on the friends' real data, and which one you're typing into should
+# never be a guess.
+.PHONY: db-psql
+db-psql: ## psql on ENV's database — SQL="select 1" to run one statement
+	@$(PRELUDE)
+	echo "── psql → $(ENV)"
+	[[ "$(ENV)" == "local" ]] || announce_target
+	psql "$$SUPABASE_DB_URL" $(if $(SQL),-c "$(SQL)",)
+
 .PHONY: db-reset
 db-reset: ## local only: db + all data + dev seed (what `npm run db:reset` does)
 	@[[ "$(ENV)" == "local" ]] || { echo "db-reset is local-only; use db + db-data for prod" >&2; exit 1; }
@@ -288,7 +313,10 @@ deploy-fe: ## build the FE and push to Netlify
 	bash supabase/deploy/fe.sh
 
 .PHONY: deploy
-deploy: db-schema db-sql deploy-funcs deploy-fe ## the routine push: schema + code + functions + FE (NOT data)
+# project-link first: `db push` and `functions deploy` both go through the
+# linked project, and a fresh checkout has no link. Idempotent, so the cost is
+# one no-op CLI call.
+deploy: project-link db-schema db-sql deploy-funcs deploy-fe ## the routine push: schema + code + functions + FE (NOT data)
 
 # ════════════════════════════════════════════════════════════════
 # Hosted project configuration

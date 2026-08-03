@@ -90,10 +90,15 @@ if [[ -f "$CREDENTIALS_FILE" ]]; then
   _user_PUBLISHABLE="${SUPABASE_PUBLISHABLE_KEY:-}"
   # shellcheck disable=SC1090
   source "$CREDENTIALS_FILE"
-  [[ "$_user_PROJECT_REF" != *"REPLACE-WITH"* && -n "$_user_PROJECT_REF" ]] && PROJECT_REF="$_user_PROJECT_REF"
-  [[ -n "$_user_DB_PASSWORD"  ]] && DB_PASSWORD="$_user_DB_PASSWORD"
-  [[ -n "$_user_SERVICE_ROLE" ]] && SUPABASE_SERVICE_ROLE_KEY="$_user_SERVICE_ROLE"
-  [[ -n "$_user_PUBLISHABLE"  ]] && SUPABASE_PUBLISHABLE_KEY="$_user_PUBLISHABLE"
+  # Written as `if` blocks, not `[[ … ]] && assign`. Under `set -e` that idiom
+  # is fine mid-script but returns 1 when the test fails — so the day one of
+  # them ends up last in a function or in this file, the sourced prelude exits
+  # non-zero and every deploy target dies for no visible reason. Don't
+  # reintroduce the short form.
+  if [[ "$_user_PROJECT_REF" != *"REPLACE-WITH"* && -n "$_user_PROJECT_REF" ]]; then PROJECT_REF="$_user_PROJECT_REF"; fi
+  if [[ -n "$_user_DB_PASSWORD"  ]]; then DB_PASSWORD="$_user_DB_PASSWORD"; fi
+  if [[ -n "$_user_SERVICE_ROLE" ]]; then SUPABASE_SERVICE_ROLE_KEY="$_user_SERVICE_ROLE"; fi
+  if [[ -n "$_user_PUBLISHABLE"  ]]; then SUPABASE_PUBLISHABLE_KEY="$_user_PUBLISHABLE"; fi
 fi
 
 # Defaults so `set -u` can't trip on an optional field.
@@ -163,10 +168,12 @@ fetch_api_keys() {
   if [[ -n "$SUPABASE_SERVICE_ROLE_KEY" && -n "$SUPABASE_PUBLISHABLE_KEY" ]]; then return; fi
   local resp
   resp=$(api "https://api.supabase.com/v1/projects/${PROJECT_REF}/api-keys")
-  [[ -z "$SUPABASE_SERVICE_ROLE_KEY" ]] && \
+  if [[ -z "$SUPABASE_SERVICE_ROLE_KEY" ]]; then
     SUPABASE_SERVICE_ROLE_KEY=$(jq -r '.[] | select(.name == "service_role") | .api_key' <<< "$resp")
-  [[ -z "$SUPABASE_PUBLISHABLE_KEY" ]] && \
+  fi
+  if [[ -z "$SUPABASE_PUBLISHABLE_KEY" ]]; then
     SUPABASE_PUBLISHABLE_KEY=$(jq -r '.[] | select(.name == "anon") | .api_key' <<< "$resp")
+  fi
   if [[ -z "$SUPABASE_SERVICE_ROLE_KEY" || "$SUPABASE_SERVICE_ROLE_KEY" == "null" ]]; then
     echo "ERROR: couldn't fetch the service_role key for ${PROJECT_REF}." >&2
     exit 1
@@ -204,6 +211,5 @@ derive_db_url() {
 # habit that keeps a partial deploy from hitting the wrong database.
 announce_target() {
   echo "    project : ${PROJECT_REF}"
-  [[ -n "$SUPABASE_DB_URL" ]] && echo "    database: $(mask "$SUPABASE_DB_URL")"
-  return 0
+  if [[ -n "$SUPABASE_DB_URL" ]]; then echo "    database: $(mask "$SUPABASE_DB_URL")"; fi
 }

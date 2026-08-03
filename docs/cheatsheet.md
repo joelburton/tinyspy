@@ -71,6 +71,7 @@ definition. The full list:
 | **prod by definition** (ENV is checked, not chosen) | every `project-*`, `deploy-*`, `deploy` |
 | **reads prod with `ENV=prod`** | `g-stackdown-audit` |
 | **can never reach prod** | `all-tries`, `g-boggle-trie`, `g-scrabble-trie`, `g-stackdown-genpuzzles` (pinned local — they build local files from the local dictionary), `db-seed` (pinned), `db-reset` (refuses), `dev*`, `test*`, `help`, `_stamps-clean` |
+| **reads OR writes, you choose** | `db-psql` — a prompt on whichever database `ENV` names; it announces the target before connecting |
 
 Two that destroy rather than write: **`project-db-destroy`** and
 **`project-bootstrap MIGRATIONS=destroy`** wipe the hosted database, auth
@@ -90,6 +91,8 @@ gmake g-connections-puzzles                  # the NYT Connections archive
 gmake g-crosswords-puzzles                   # supabase/data/crosswords/*.puz|.ipuz
 
 # the database — `gmake db-<TAB>`
+gmake db-psql                                # a psql prompt on ENV's database
+gmake db-psql SQL="select 1"                 # …or one statement
 gmake db-data                                # every table's DATA (no schema, no code)
 gmake db-schema                              # migrations only
 gmake db-sql                                 # supabase/sql/ only
