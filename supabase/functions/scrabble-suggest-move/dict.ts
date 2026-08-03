@@ -1,9 +1,12 @@
 /**
  * Bundled-dictionary access for the scrabble move suggester.
  *
- * `wordlist.ts` is a gzip+base64 blob of play_word's exact word universe
- * (len 2..15, american OR british, all difficulty bands — one line per word,
- * `"<difficulty><word>"`). It is GENERATED and git-ignored (~1.2 MB): run
+ * `wordlist.ts` is a gzip+base64 blob of the AI's word universe (len 2..15,
+ * american OR british, all difficulty bands, minus slurs + profanity — one
+ * line per word, `"<difficulty><word>"`). That last clause makes it NARROWER
+ * than play_word's: a player may play a crude word, the AI may not (see
+ * generate-scrabble-wordlist.ts, and docs/common.md → Which words a game may
+ * use). It is GENERATED and git-ignored (~1.2 MB): run
  * `npm run scrabble:wordlist` to (re)create it from `common.words` before
  * `supabase functions serve`; `npm run deploy` does it automatically.
  *

@@ -17,7 +17,7 @@
  * What it does:
  *   1. Loads the lexicon at the chosen BAND — clean 5-letter american words
  *      with `difficulty = band` EXACTLY (`american AND slur = 0 AND crude = 0
- *      AND len = 5`) — from `common.words` over a direct psql connection
+ *      AND NOT slang AND len = 5`) — from `common.words` over a direct psql connection
  *      (read-only). A band-N board is made of band-N words only. This IS the
  *      set the no-trap validation runs against — boards come out solvable and
  *      fork-free with respect to exactly these words.
@@ -509,13 +509,17 @@ console.log(
 // against, so generated boards are solvable and fork-free with respect to
 // exactly these words. (Runtime no longer consults a lexicon — submit_word
 // accepts only the next solution word.)
+//
+// `not slang` joined the filter 2026-08-03: every word here is one a player
+// MUST spell to clear the stack, which is the app-wide clean-filter rule
+// (docs/common.md → Which words a game may use). It was the lone omission.
 const raw = execFileSync(
   'psql',
   [
     '-X', // skip ~/.psqlrc — its echoed settings would leak in as junk "words"
     DB_URL,
     '-tAc',
-    `select word from common.words where slur = 0 and crude = 0 and american and difficulty = ${BAND} and len = 5`,
+    `select word from common.words where slur = 0 and crude = 0 and american and not slang and difficulty = ${BAND} and len = 5`,
   ],
   { encoding: 'utf8' },
 )

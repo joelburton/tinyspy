@@ -83,8 +83,8 @@ test.describe('waffle replay board', () => {
     await page.keyboard.press('Escape')
 
     // End it for the table (the neutral 'ended' terminal).
-    await page.getByRole('button', { name: /^end$/i }).click()
-    await page.getByRole('button', { name: 'End game' }).click()
+    await page.getByRole('button', { name: 'End game' }).first().click()
+    await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
     await expect(page.getByText('Game ended', { exact: true }).first()).toBeVisible({ timeout: 8000 })
 
     // A manual end is not a win, so the answer stays covered until asked for…

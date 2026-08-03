@@ -16,35 +16,25 @@ everything, so schema work is free right now and stops being free when we leave
 alpha ([`deferred.md → To discuss`](deferred.md#to-discuss)).
 
 **Nothing here is urgent, and nothing here is decided-and-unbuilt.** The sweep
-turned up one real constraint (the club-name cap — shipped 2026-08-03, and it
-closed a live 23514 on long names), one set of unratified rules (wordiply's —
-ratified the same day, no code change), and one column worth reserving ahead of
-its feature (`common.profiles.theme`, also shipped). What's left is a feature
-nobody has committed to and two items whose DB half is data rather than schema.
+turned up one real constraint (the club-name cap), one set of unratified rules
+(wordiply's — ratified, no code change), one column worth reserving ahead of its
+feature (`common.profiles.theme`), and one helper worth building
+(bananagrams' `check_board`) — all shipped 2026-08-03. Both boggle items are now
+[won't-do](games/boggle.md#12-wont-do), decided the same day: a boggle twin of
+the check helper (bananagrams' check has an objective answer, boggle's would only
+be a hint) and word-list freshness via Storage (`npm run deploy` already
+regenerates the bundled asset, and the bundle is the faster option anyway).
+
+**One item is left**, and its DB half is data rather than schema — so nothing in
+this file is a reason to hold the alpha schema freeze.
 
 | # | item | owner doc | the DB change |
 |---|---|---|---|
-| 1 | bananagrams + boggle "check board" helper | [bananagrams.md](games/bananagrams.md) · [boggle.md → Deferred](games/boggle.md#11-deferred) | a new RPC per game (the stackdown `reveal_next_word` shape) |
-| 2 | crosswords dictionary-puzzle bulk import | [crosswords.md → §9](games/crosswords.md#9-deferred) | data, not schema — but it's the trigger for the picker bound |
-| 3 | boggle word-list freshness via Storage | [boggle.md → Deferred](games/boggle.md#11-deferred) | Supabase Storage + the edge fn; no SQL |
+| 1 | crosswords dictionary-puzzle bulk import | [crosswords.md → §9](games/crosswords.md#9-deferred) | data, not schema — but it's the trigger for the picker bound |
 
 ---
 
-## 1. A "check board" helper for bananagrams + boggle
-
-Both docs record the same planned feature, and bananagrams has already *paid*
-for it: its setup form shows the two `DifficultyField` word-band pickers
-**regardless of mode**, explicitly so a future opt-in "check board" helper has
-bands to check against. So the setup surface exists and the DB side doesn't.
-
-Shape, if it lands: an RPC per game in the stackdown mould (`reveal_next_word` /
-`reveal_next_hint` — a server-side cheat that reads the game's own words and
-logs the request), gated like a move. boggle's would sit beside `submit_word`;
-bananagrams' would validate the caller's placed board.
-
-Worth deciding *whether* first — this is a hint mechanic, not a fix.
-
-## 2. crosswords' dictionary-puzzle bulk import
+## 1. crosswords' dictionary-puzzle bulk import
 
 Not schema — the import writes rows into the existing `crosswords.puzzles`. It's
 here because it's the **trigger** for a bound that's deliberately unfixed:
@@ -56,14 +46,6 @@ does.
 
 `fetch-nyt-range` (the bulk NYT CLI) is the same category — a script blocked on
 the `NYT_COOKIE_JAR` secret, writing data, touching no schema.
-
-## 3. boggle word-list freshness via Storage
-
-Also not SQL: the bundled word list is frozen at deploy, and the proposed middle
-ground is a gzipped list in a **Supabase Storage** bucket fetched at edge-fn cold
-start. It's in this file because "Supabase change that isn't the FE" is what
-someone scanning this list is looking for — but it needs no migration, and the
-doc's measurements say the bundled list is fine while `common.words` is stable.
 
 ---
 

@@ -121,6 +121,7 @@ export type Database = {
         }
         Returns: number[]
       }
+      check_board: { Args: { target_game: string }; Returns: Json }
       concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: { player_user_ids: string[]; setup: Json; target_club: string }

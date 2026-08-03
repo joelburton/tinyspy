@@ -12,13 +12,18 @@
 --      'win'/'strict' additionally require real words, and 'strict' runs the
 --      SAME check on every CONTINUING peel too. Either failure returns the
 --      offending cells and leaves the game in progress.
+--   3. check_board: the same validator, on demand, against the CALLER's own
+--      board — the "Check words" button. Its point of difference from (2) is
+--      that it ignores setup.word_check entirely: that option says when the
+--      SERVER enforces words, not whether a player may ask about their own
+--      board. So a word_check='off' game still gets real answers.
 -- ============================================================
 
 begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(25);
+select plan(31);
 
 \ir ../_shared/setup.psql
 
@@ -298,6 +303,66 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table pg on commit drop as select bananagrams.peel((select id from gg)) as res;
 select is((select res->>'result' from pg), 'dealt',
   'word_check win does NOT check a continuing peel (only the winning one)');
+
+-- ── check_board: the on-demand check, in a word_check='off' game ──
+-- The setup that enforces the LEAST is the interesting one: peel never looks at
+-- words there, so if check_board respected the option it would be useless in
+-- exactly the game where a player most wants to self-serve.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gh on commit drop as
+select * from bananagrams.create_game('=ada',
+  '{"hand_size": 15, "bunch_size": 144, "word_check": "off", "timer": {"kind": "none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid]);
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+-- An empty board: no blockers, but `placed` = 0 so the FE can say "nothing to
+-- check yet" instead of congratulating a blank grid.
+update bananagrams.player_boards set board = pg_temp.empty_board()
+ where game_id = (select id from gh);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(
+  (select (bananagrams.check_board((select id from gh)))->>'placed'), '0',
+  'check_board: an empty board reports placed = 0');
+select is(
+  (select jsonb_array_length((bananagrams.check_board((select id from gh)))->'invalid_cells')), 0,
+  'check_board: an empty board has no blockers');
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+-- A real word, connected → clean, even though word_check is 'off'.
+update bananagrams.player_boards
+   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'CAT')
+ where game_id = (select id from gh);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(
+  (select jsonb_array_length((bananagrams.check_board((select id from gh)))->'invalid_cells')), 0,
+  'check_board: a legal board comes back clean');
+select is(
+  (select (bananagrams.check_board((select id from gh)))->>'placed'), '3',
+  'check_board: placed counts the tiles on the board');
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+-- A non-word → flagged, in a game whose peel would have let it through.
+update bananagrams.player_boards
+   set board = pg_temp.mg_h(pg_temp.empty_board(), 0, 0, 'XQJ')
+ where game_id = (select id from gh);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(
+  (select jsonb_array_length((bananagrams.check_board((select id from gh)))->'invalid_cells')), 3,
+  'check_board: flags a non-word even when setup.word_check is off');
+reset role;
+select set_config('request.jwt.claims', '', true);
+
+-- Caller-scoped: a non-player can't inspect anyone's board.
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
+select throws_ok(
+  format($$ select bananagrams.check_board(%L::uuid) $$, (select id from gh)),
+  '42501', 'not playing this game',
+  'check_board: a non-player is rejected');
+reset role;
+select set_config('request.jwt.claims', '', true);
 
 select * from finish();
 rollback;

@@ -26,6 +26,7 @@ import { boardLetters, boardToGrid } from '../lib/board'
 import { boardWords } from '../lib/words'
 import { printBananagramsPdf } from '../pdf/printBananagramsPdf'
 import { PlayerBoard } from './PlayerBoard'
+import type { BananagramsCheckResult } from '../hooks/usePlayerBoard'
 import { PeersStrip } from './PeersStrip'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import shared from '../../common/components/game/PlayArea.module.css'
@@ -128,6 +129,29 @@ export function PlayArea(ctx: GamePageCtx) {
     }
     return null
   }, [gameId, showLocalFeedback])
+
+  // Check words → the local pill. Four outcomes, and the wording matters more than
+  // usual because the RED CELLS are the real answer — the pill only says how to read
+  // them. A clean board says so plainly (there's nothing on screen to notice
+  // otherwise), and an empty board is called out separately so "all good" can't
+  // congratulate someone who hasn't placed a tile.
+  const showCheckResult = useCallback(
+    (r: BananagramsCheckResult) => {
+      const msg =
+        r.kind === 'clean'
+          ? { tone: 'success' as const, text: 'Every word checks out, and the grid is one piece.' }
+          : r.kind === 'empty'
+            ? { tone: 'info' as const, text: 'Nothing on the board to check yet.' }
+            : r.kind === 'invalid'
+              ? {
+                  tone: 'error' as const,
+                  text: `${r.count} tile${r.count === 1 ? '' : 's'} highlighted — either not a real word, or not joined to the grid.`,
+                }
+              : { tone: 'error' as const, text: `Check failed: ${r.message}` }
+      showLocalFeedback({ ...msg, variant: 'outline', dismiss: { kind: 'sticky' } })
+    },
+    [showLocalFeedback],
+  )
 
   // A dump also grows MY `tiles` (−1 dumped + dump_count drawn). We flag it so
   // the announcement below reads the next growth as a dump rather than a peel.
@@ -551,6 +575,7 @@ export function PlayArea(ctx: GamePageCtx) {
         isTerminal={ctx.isTerminal}
         isConceded={isConceded}
         onPeel={peel}
+        onCheckResult={showCheckResult}
         onDump={dump}
         bunchCount={bunchCount}
         bagCount={bagCount}

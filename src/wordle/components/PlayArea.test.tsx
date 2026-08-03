@@ -94,6 +94,10 @@ beforeEach(() => {
   h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null })
+  // The reveal handler destructures `{ error }` off the awaited call, so the
+  // common spy has to resolve to a PostgREST-shaped result, not `undefined`.
+  commonRpc.mockReset()
+  commonRpc.mockResolvedValue({ error: null })
 })
 
 describe('wordle PlayArea — render smoke', () => {
@@ -484,8 +488,13 @@ describe('wordle PlayArea — concede', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
     render(<PlayArea {...makeCtx()} />)
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /^end$/i }))
-    await user.click(await screen.findByRole('button', { name: 'End game' }))
+    // The trigger and the modal's confirm now share the name "End game" (the
+    // button label went from "End" to the full phrase, since icon-only buttons
+    // make the label the accessible name). The confirm is the one the dialog
+    // adds, so it's last in the DOM.
+    await user.click(screen.getByRole('button', { name: 'End game' }))
+    const confirms = await screen.findAllByRole('button', { name: 'End game' })
+    await user.click(confirms[confirms.length - 1])
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
   })
 

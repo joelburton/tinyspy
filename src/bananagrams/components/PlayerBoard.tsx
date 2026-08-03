@@ -1,7 +1,8 @@
 import type { ReactNode, RefObject } from 'react'
+import { WordCheckButton } from '../../common/components/buttons/WordCheckButton'
 import { PeelButton } from '../../common/components/buttons/PeelButton'
 import { cls } from '../../common/lib/util/cls'
-import { usePlayerBoard, LETTER_SCALE } from '../hooks/usePlayerBoard'
+import { usePlayerBoard, LETTER_SCALE, type BananagramsCheckResult } from '../hooks/usePlayerBoard'
 import { BoardArena } from './BoardArena'
 import { HandCard } from './HandCard'
 import shared from '../../common/components/game/PlayArea.module.css'
@@ -59,6 +60,8 @@ type Props = {
    *  Resolves to `{ illegalCells }` when a winning peel was BLOCKED (those cells paint
    *  red); `null` otherwise. */
   onPeel?: () => Promise<{ illegalCells: number[] } | null>
+  /** Report a Check-words outcome up, so the coordinator can pill it. */
+  onCheckResult?: (r: BananagramsCheckResult) => void
   /** Dump a tile: swap it for DUMP_COUNT from the bunch. */
   onDump?: (letter: string) => void | Promise<void>
   /** Tiles left in the shared bunch (status.bunch_remaining), or undefined pre-load.
@@ -82,6 +85,7 @@ export function PlayerBoard({
   isTerminal,
   isConceded,
   onPeel,
+  onCheckResult,
   onDump,
   bunchCount,
   bagCount,
@@ -94,6 +98,7 @@ export function PlayerBoard({
     isTerminal,
     isConceded,
     onPeel,
+    onCheckResult,
     onDump,
     bunchCount,
     bagCount,
@@ -160,6 +165,21 @@ export function PlayerBoard({
             row becomes the outcome line + back-to-club (no Peel). */}
         <div className={cls(shared.infoActions, (isTerminal || isConceded) && shared.terminalActions)}>
           {infoActions}
+          {/* Check words sits LEFT of Peel: it's the question you ask before
+              committing to the move on its right. Unlike Peel it has no
+              enabled-condition beyond the game being live — checking a
+              half-built board is exactly when you want it — and unlike the
+              hint-flavoured buttons in other games it's always offered,
+              whatever `setup.word_check` says (that option governs when the
+              SERVER enforces words, not whether you may ask). */}
+          {!isTerminal && !isConceded && (
+            <WordCheckButton
+              iconOnly
+              className={shared.helperButton}
+              disabled={arena.checking}
+              onClick={() => void arena.doWordCheck()}
+            />
+          )}
           {onPeel && !isTerminal && !isConceded && (
             <PeelButton
               className={shared.helperButton}

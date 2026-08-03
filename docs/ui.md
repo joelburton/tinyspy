@@ -741,8 +741,10 @@ icon buttons).
 | Get hint | `Lightbulb` | Dump | `ArrowLeftRight` |
 | Use AI (e.g. clue suggester) | `Sparkles` | Pause | `Pause` |
 | Spoiler — one item, mid-game | `Eye` (`IconSpoiler`) | Peel | `Banana` (`IconPeel`) |
+| Check my own work against the rules | `SpellCheck` (`IconWordCheck`) | | |
 | Reveal — the whole solution, at game-over | `View` (`IconReveal`) | | |
-| End game | `Flag` | Zoom to fit | `Fullscreen` (`IconZoomFit`) |
+| End game | `OctagonX` (`IconEnd`) | Zoom to fit | `Fullscreen` (`IconZoomFit`) |
+| Concede | `Flag` (`IconConcede`) | | |
 | Clear selection | `Eraser` | Help / rules | `CircleQuestionMark` (`IconHelp`) |
 | Restart board | `SkipBack` (`IconRestart`) | New game (fresh board + id) | `SquarePlus` (`IconNewGame`) |
 
@@ -824,10 +826,28 @@ short one"). Need a button with no semantic component yet? **Create one** (a one
 wrapper around `<ActionButton>`) — never hand-roll a one-off `<button>` in a game.
 
 **End vs Concede** are distinct components for distinct actions: **End**
-(`EndGameButton`) is the neutral mutual "we're done" for solo / coop; **Concede**
-(`ConcedeGameButton`) is "I give up, you win" for compete. Same flag glyph + `error`
-tone today, kept separate so they can diverge later (a concede should hand the
-opponent the win).
+(`EndGameButton`) is the neutral mutual "we're done" that stops the game for
+everyone; **Concede** (`ConcedeGameButton`) is one player dropping out of a race
+that continues without them. They were near-identical buttons — same flag, same
+red — on the assumption that a game shows one *or* the other. **bananagrams
+shows both at once** (its compete row has End alongside Concede), where two red
+flags read as the same act twice, so they diverged 2026-08-03:
+
+- **End** took `OctagonX` — the stop sign, crossed out — putting it in a family
+  with `IconEndTurn`'s plain octagon (Pass ends just your turn; the X marks the
+  bigger stop). Both are on screen together in scrabble, and they also differ by
+  tone: Pass is amber, End is red.
+- **Concede** kept the **flag**: surrender, one player, not a stop for the table.
+
+They still share the `error` red — both are irreversible — and stay separate
+components so they can diverge further (a concede should hand the opponent the
+win).
+
+**End's label is the full "End game"**, not a bare "End". Most games render it
+icon-only, where the label *is* the accessible name and the tooltip, and "End"
+alone doesn't say end what. It also stopped substring-matching the pause
+overlay's "Susp**end** and return to club", which an e2e had been working around
+with `exact: true`.
 
 ## Explicitly deferred
 

@@ -118,7 +118,7 @@ function rpcNames(): string[] {
 describe('crosswords PlayArea — render smoke + wiring', () => {
   it('coop play shows End, not Concede, and offers Reveal', () => {
     render(<PlayArea {...makeCtx()} />)
-    expect(screen.getByRole('button', { name: /^end$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'End game' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
     // Reveal is coop-only.
     expect(screen.getByRole('button', { name: /reveal word/i })).toBeInTheDocument()

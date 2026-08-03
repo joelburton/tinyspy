@@ -45,7 +45,8 @@ create table stackdown.boards (
   tiles      jsonb not null,          -- [{id,x,y,z,letter} x30]
   words      text[] not null,         -- 6 solution words, in play order
   -- The word-difficulty BAND the board was generated against — all six words
-  -- are EXACTLY `common.words.difficulty = band` (american, clean, 5-letter).
+  -- are EXACTLY `common.words.difficulty = band` (american, clean = no
+  -- crude/slur/slang, 5-letter — the app-wide must-spell filter).
   -- band 1 = the common everyday set; band 2 = the next tier (no band-1 words
   -- mixed in); 3..6 widen further. This is BOTH provenance AND the pool
   -- create_game filters on — a game claims a random board OF THE CHOSEN BAND.

@@ -398,7 +398,6 @@ All of these are commented at the site; this table is the index.
 | Direct CDC apply instead of refetch | crosswords `useCells`, scratchpad body | per-keystroke frequency; version-merge ("newer wins") + optimistic echo + rollback |
 | Append-on-INSERT instead of refetch | `useClubChat` | chat volume; requires merge-on-refetch (see the rule) |
 | Find-or-create instead of create | connections `startGameInClub` | one game per puzzle per mode per club |
-| No whole-game `end_game` | bananagrams | per-player concede IS the drop-out model |
 | Shared `useGame` factory across two games | `makeFoundWordsGame` (spellingbee + wordwheel) | byte-identical lifecycle; fork it back if they diverge |
 | One-shot on-demand fetch | crosswords Reveal (`games_state.solution`) | solution is gated; fetched only when the button is pressed |
 | Stable-name temp channel | ClubPage delete-current-game broadcast | borrows `useCommonGame`'s room name to reach peers, send-only, ~1s lifetime |

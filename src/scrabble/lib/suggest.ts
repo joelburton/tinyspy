@@ -28,11 +28,17 @@ export type Bands = { dict2: number; dict3plus: number }
 
 /**
  * The legality predicate the whole suggester hangs on: is the word ending at
- * this trie node playable in this game? Matches `play_word`'s SQL by
- * construction — `difficulty <= (len = 2 ? dict_2 : dict_3plus)` — given a
- * rated trie built from the same `american OR british` word set the server
- * checks against (the dialect filter is applied at bundle time, so the trie
- * only contains eligible words; see generate-scrabble-wordlist.ts).
+ * this trie node playable in this game? Mirrors `play_word`'s band SQL —
+ * `difficulty <= (len = 2 ? dict_2 : dict_3plus)` — over a rated trie whose
+ * membership was decided at bundle time (`american OR british`, so the dialect
+ * filter never appears here; see generate-scrabble-wordlist.ts).
+ *
+ * The trie is a STRICT SUBSET of what `play_word` accepts: slurs + profanity
+ * are excluded from the bundle, so this predicate answers "may the AI play
+ * it?", not "is it legal?". A human may still play a word the AI can't find —
+ * and the AI won't extend one already on the board, since the cross-word it
+ * would form isn't in its trie. That's intended (docs/common.md → Which words
+ * a game may use).
  *
  * Applied to EVERY word a placement forms: main words and the perpendicular
  * cross-words alike. Cross-words are routinely 2 letters — that's why the

@@ -341,7 +341,7 @@ test.describe('bananagrams end game', () => {
     await page.getByRole('menuitem', { name: 'End game' }).click()
 
     // Irreversible, so it asks first (the shared END_GAME_CONFIRM modal).
-    await page.getByRole('button', { name: 'End game' }).click()
+    await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
 
     // Neutral terminal: the row offers New game + Back to club, and Peel is gone.
     await expect(page.getByRole('button', { name: /New game/ })).toBeVisible({ timeout: 15000 })

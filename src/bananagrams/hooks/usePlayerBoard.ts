@@ -102,6 +102,17 @@ export function blurActiveField(): void {
 }
 
 /** What the engine needs from PlayArea (the outer coordinator). */
+/**
+ * What a **Check words** round trip found. `clean` and `empty` are separated on
+ * purpose — an empty board has no blockers either, and telling someone their
+ * blank grid checks out is worse than saying nothing.
+ */
+export type BananagramsCheckResult =
+  | { kind: 'clean' }
+  | { kind: 'empty' }
+  | { kind: 'invalid'; count: number }
+  | { kind: 'error'; message: string }
+
 export type UsePlayerBoardInput = {
   gameId: string
   /** The FE-owned placement grid at load — seeds local board state ONCE. */
@@ -118,6 +129,8 @@ export type UsePlayerBoardInput = {
    *  Resolves to `{ illegalCells }` when a winning peel was BLOCKED by the legal-board
    *  check (those cells get painted red); `null` otherwise. */
   onPeel?: () => Promise<{ illegalCells: number[] } | null>
+  /** Report a Check-words outcome so the coordinator can pill it. */
+  onCheckResult?: (r: BananagramsCheckResult) => void
   /** Dump a tile: swap it for DUMP_COUNT from the bunch. */
   onDump?: (letter: string) => void | Promise<void>
   /** Tiles left in the shared bunch (status.bunch_remaining), or undefined pre-load. */
@@ -156,6 +169,13 @@ export type PlayerBoardEngine = {
   // ── Actions ──
   declaring: boolean
   doPeel: () => Promise<void>
+  /** Ask the server whether the board is legal right now and paint what isn't
+   *  (the **Check words** button). Always offered, whatever `setup.word_check`
+   *  says — that option governs when the server ENFORCES words, not whether you
+   *  may ask about your own board. */
+  doWordCheck: () => Promise<void>
+  /** A Check-words round trip is in flight (greys its button). */
+  checking: boolean
 }
 
 export function usePlayerBoard({
@@ -165,6 +185,7 @@ export function usePlayerBoard({
   isTerminal,
   isConceded,
   onPeel,
+  onCheckResult,
   onDump,
   bunchCount,
   bagCount,
@@ -190,6 +211,7 @@ export function usePlayerBoard({
   const [errFlash, setErrFlash] = useState(false)
   const [errNonce, setErrNonce] = useState(0)
   const [declaring, setDeclaring] = useState(false) // Done click in flight
+  const [checking, setChecking] = useState(false) // Check-words click in flight
 
   // The derived hand: held tiles minus what's on the board. `displayedHand` applies the
   // local shuffle order on top (reconciled so it never drifts from the canonical
@@ -204,6 +226,7 @@ export function usePlayerBoard({
   const tilesRef = useRef(tiles)
   const cursorRef = useRef(cursor)
   const declaringRef = useRef(declaring) // lets the peel shortcut see an in-flight peel
+  const checkingRef = useRef(checking) // same, for the check-words round trip
   // The board is frozen when the player is out of the game — either they
   // conceded OR the game is over. Freezing at TERMINAL too matters: otherwise
   // post-game keystrokes/drags keep mutating the local board (which
@@ -218,9 +241,10 @@ export function usePlayerBoard({
     tilesRef.current = tiles
     cursorRef.current = cursor
     declaringRef.current = declaring
+    checkingRef.current = checking
     frozenRef.current = frozen
     if (reportBoardRef) reportBoardRef.current = board // expose the live board upward
-  }, [board, tiles, cursor, declaring, frozen, reportBoardRef])
+  }, [board, tiles, cursor, declaring, checking, frozen, reportBoardRef])
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -452,6 +476,40 @@ export function usePlayerBoard({
     }
   }, [onPeel, isTerminal, isConceded, gameId])
 
+  // Check words — the same legality test a winning peel runs (one connected mass,
+  // every word real), on demand and read-only. Flushes the board first for the same
+  // reason doPeel does: the server judges what it HAS, and the board is FE-owned.
+  //
+  // The flags land in the same `invalid` slot a blocked peel uses, tagged with the
+  // board they were judged against — so they paint identically and clear themselves
+  // on the player's next edit, with no second mechanism to keep in step.
+  const doWordCheck = useCallback(async () => {
+    if (isTerminal || isConceded || checkingRef.current) return
+    setChecking(true)
+    try {
+      await db.rpc('save_player_board', { target_game: gameId, board: boardRef.current })
+      const { data, error } = await db.rpc('check_board', { target_game: gameId })
+      if (error) {
+        onCheckResult?.({ kind: 'error', message: error.message })
+        return
+      }
+      const res = data as { invalid_cells: number[]; placed: number } | null
+      const cells = res?.invalid_cells ?? []
+      if (cells.length > 0) {
+        setInvalid({ board: boardRef.current, cells: new Set(cells) })
+        onCheckResult?.({ kind: 'invalid', count: cells.length })
+      } else {
+        // A clean board and an EMPTY board both come back with no blockers;
+        // `placed` is what tells them apart, so "all good" can't congratulate
+        // someone who hasn't put a tile down.
+        setInvalid(null)
+        onCheckResult?.({ kind: (res?.placed ?? 0) === 0 ? 'empty' : 'clean' })
+      }
+    } finally {
+      setChecking(false)
+    }
+  }, [isTerminal, isConceded, gameId, onCheckResult])
+
   // Board-cursor keyboard — the shared 2-D placement engine (scrabble's twin; it owns
   // the modifier bail, the focused-input guard, arrows→cursor, and the skip-Enter/
   // Space-when-a-<button>-is-focused so a focused Peel button doesn't double-fire).
@@ -565,5 +623,7 @@ export function usePlayerBoard({
     onShuffle,
     declaring,
     doPeel,
+    doWordCheck,
+    checking,
   }
 }

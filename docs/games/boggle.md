@@ -214,8 +214,9 @@ rather than queried at cold start:
 - **Why bundle vs query the DB:** ~2×+ faster cold start than bulk-reading
   88k–267k rows, network-independent, and no Postgres load on every isolate
   spin-up. The dictionary is stable, so "redeploy to update it" costs nothing
-  today. (The Supabase Storage middle-ground, if staleness ever bites, is in
-  [§11](#11-deferred).)
+  today — and "I changed the word list" is answered by re-running `npm run
+  deploy`. (The Supabase Storage middle-ground was considered and decided
+  against: [§12](#12-wont-do).)
 
 ---
 
@@ -513,13 +514,26 @@ paths regenerate it first:
 
 ## 11. Deferred
 
-- **Word-list freshness via Supabase Storage.** The bundled list is frozen at
-  deploy; updating the dictionary means redeploying the function. Since
-  `common.words` is stable that's fine today. If frequent updates ever matter, the
-  middle ground is a gzipped list in a Storage bucket, `fetch`ed at cold start —
-  refresh by re-uploading one file, no redeploy and no DB scan. (Sits between
-  "bundle": fastest/stale, and "query the DB at startup": always-fresh/slowest.
-  Measured cold-start floors: bundled ~21 ms required / ~76 ms full; DB query
-  ~48 ms / ~128 ms local, more on hosted.)
 - **Compete classic dupes-cancel** scoring as an opt-in — moved to [`deferred.md → Far future`](../deferred.md#far-future) (2026-08-03): the open question is whether we want the rule at all, not how to build it.
-- **A "check board" / hint helper** (cf. MonkeyGrams' planned one).
+
+## 12. Won't do
+
+- **Word-list freshness via Supabase Storage** (2026-08-03). The bundled list is
+  frozen at deploy, so editing the dictionary doesn't reach boggle until the
+  function is redeployed. The proposed middle ground was a gzipped list in a
+  Storage bucket `fetch`ed at cold start — refresh by re-uploading one file, no
+  redeploy and no DB scan. **`npm run deploy` already regenerates the asset**
+  (§5), so the answer to "I changed the word list" is to run it, and the bundle
+  is also the *fastest* of the three (measured cold-start floors: bundled ~21 ms
+  required / ~76 ms full; DB query at startup ~48 ms / ~128 ms local, more on
+  hosted; Storage sits between). Buying staleness-immunity we don't need with
+  cold-start time we'd rather keep is the wrong trade.
+- **A "check board" helper** (2026-08-03). It was listed here as a sibling of
+  MonkeyGrams' — that one shipped, and building it made clear the two aren't
+  siblings at all. bananagrams' check answers an objective question about a
+  board **you** built ("are these strings words, is the grid connected?"), so
+  there's a right answer to paint. A boggle grid can't be wrong: the dice are
+  what they are, and every legal word is already in a list the FE holds. A
+  "check" here could only mean *"tell me a word I haven't found"* — that's a
+  hint, i.e. the solver playing for you, and this game already reveals every
+  missed word at terminal. No helper.

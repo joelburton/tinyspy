@@ -79,9 +79,9 @@ test.describe('crosswords play loop', () => {
     // Give up (coop End) → terminal, but the blanks do NOT auto-fill; the
     // answers wait behind the "Reveal board" menu item.
     const cell11 = page.locator('[data-xw-cell][data-row="1"][data-col="1"]')
-    await page.getByRole('button', { name: /^End$/ }).click()
+    await page.getByRole('button', { name: 'End game' }).first().click()
     // End now confirms through the shared modal (docs/ui.md → Confirm modals).
-    await page.getByRole('button', { name: 'End game' }).click()
+    await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
     // No game-over modal any more (the sweep treatment) — the neutral verdict
     // lands in the active-clue slot's pill.
     await expect(page.getByText('Game ended').first()).toBeVisible({ timeout: 8000 })

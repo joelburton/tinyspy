@@ -46,6 +46,7 @@ vi.mock('../../common/db', () => ({ db: { rpc: vi.fn() } }))
 vi.mock('../../common/lib/game/manifestRpcs', () => ({ invokeStartGameEdgeFn: vi.fn() }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
+const commonRpc = commonDb.rpc as unknown as ReturnType<typeof vi.fn>
 const startEdgeFn = invokeStartGameEdgeFn as unknown as ReturnType<typeof vi.fn>
 
 // A 25-char board (holes at 6/8/16/18); the exact letters don't matter for these
@@ -108,6 +109,10 @@ beforeEach(() => {
   h.result = loaded(coopGame)
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null })
+  // The reveal handler destructures `{ error }` off the awaited call, so the
+  // common spy has to resolve to a PostgREST-shaped result, not `undefined`.
+  commonRpc.mockReset()
+  commonRpc.mockResolvedValue({ error: null })
 })
 
 describe('waffle PlayArea — render smoke', () => {
@@ -158,8 +163,13 @@ describe('waffle PlayArea — concede', () => {
     h.result = loaded(coopGame)
     render(<PlayArea {...makeCtx()} />)
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /^end$/i }))
-    await user.click(await screen.findByRole('button', { name: 'End game' }))
+    // The trigger and the modal's confirm now share the name "End game" (the
+    // button label went from "End" to the full phrase, since icon-only buttons
+    // make the label the accessible name). The confirm is the one the dialog
+    // adds, so it's last in the DOM.
+    await user.click(screen.getByRole('button', { name: 'End game' }))
+    const confirms = await screen.findAllByRole('button', { name: 'End game' })
+    await user.click(confirms[confirms.length - 1])
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
   })
 
@@ -269,8 +279,6 @@ describe('waffle PlayArea — icon-only action rows', () => {
 
   it('terminal "Reveal answer" opens it for the table — common RPC, no confirm', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
-    const commonRpc = commonDb.rpc as unknown as ReturnType<typeof vi.fn>
-    commonRpc.mockClear()
     const user = userEvent.setup()
     h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION })
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)

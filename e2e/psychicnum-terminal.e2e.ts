@@ -39,8 +39,8 @@ test('terminal: secrets stay hidden until Reveal, then ring the tiles', async ({
 
   // End the game (the neutral 'ended' terminal) — that flips is_terminal, and the
   // secrets arrive on the next realtime refetch.
-  await page.getByRole('button', { name: /^end$/i }).click()
-  await page.getByRole('button', { name: 'End game' }).click()
+  await page.getByRole('button', { name: 'End game' }).first().click()
+  await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
 
   // The terminal row is up, and the secrets are STILL not ringed: a manual end
   // isn't a win, and Restart re-hunts this very board.

@@ -893,6 +893,69 @@ grant execute on function bananagrams.peel(uuid) to authenticated;
 -- ============================================================
 -- bananagrams.dump — swap one tile for three from the bunch
 -- ============================================================
+-- bananagrams.check_board — "is my board legal?", on demand
+-- ============================================================
+-- The **Check words** action button (2026-08-03). Runs the same legality test
+-- a winning peel runs — one connected mass, every word real — against the
+-- caller's own board, and hands back the offending cells so the FE can paint
+-- them red exactly as a blocked peel does.
+--
+-- **Always available, whatever `setup.word_check` says.** That option governs
+-- when the server ENFORCES words (never / on the winning peel / on every
+-- peel); this is the player asking a question about their own board, and the
+-- answer is useful in all three. So `check_words` is passed `true`
+-- unconditionally, and the bands fall back to 4 — the FE's default and the
+-- reason its two `DifficultyField` pickers show regardless of mode, which the
+-- setup form has been doing since before this existed.
+--
+-- Read-only: no state, no log, no peer effect. It can't be a cheat in the
+-- sense the hint RPCs are — it reveals nothing the player doesn't already have
+-- on screen, it just applies the rule they'd hit anyway on a peel. Caller-
+-- scoped, so it can't inspect a peer's board.
+create function bananagrams.check_board(target_game uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = bananagrams, common, public, extensions
+as $$
+declare
+  v_caller     uuid;
+  v_board      text;
+  v_setup      jsonb;
+  v_dict_2     int;
+  v_dict_3plus int;
+  v_blockers   int[];
+begin
+  v_caller := common.require_game_player(target_game);
+
+  select board into v_board
+    from bananagrams.player_boards
+   where game_id = target_game and user_id = v_caller;
+  if v_board is null then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  select setup into v_setup from common.games where id = target_game;
+  v_dict_2     := coalesce((v_setup->>'dict_2')::int, 4);
+  v_dict_3plus := coalesce((v_setup->>'dict_3plus')::int, 4);
+
+  v_blockers := bananagrams._win_blockers(v_board, v_dict_2, v_dict_3plus, true);
+
+  -- `placed` lets the FE tell "your board is fine" from "you haven't put
+  -- anything down yet" — an empty board has no blockers, which would otherwise
+  -- read as a clean bill of health.
+  return jsonb_build_object(
+    'invalid_cells', to_jsonb(v_blockers),
+    'placed', length(replace(v_board, '.', ''))
+  );
+end;
+$$;
+
+revoke execute on function bananagrams.check_board(uuid) from public;
+grant execute on function bananagrams.check_board(uuid) to authenticated;
+
+-- ============================================================
 --
 -- A player stuck with an awkward tile (a Q, a lone consonant) trades it: they
 -- draw dump_count (default 3) in return — a net +2 to the hand, the cost of

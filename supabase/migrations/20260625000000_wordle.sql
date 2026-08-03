@@ -310,7 +310,7 @@ on conflict do nothing;
 --     "timer": (none | countup | countdown{seconds}) }
 -- `mode` ('coop' | 'compete') routes the gametype string and the
 -- working-state semantics. Picks a hidden target per `answer_source`
--- (minus slurs) and seeds one players row per player.
+-- (always clean — see the pick below) and seeds one players row per player.
 create function wordle.create_game(
   target_club     text,
   setup           jsonb,
@@ -368,17 +368,31 @@ begin
   perform common.require_valid_timer(setup->'timer');
 
   -- ─── Pick a random target ────────────────────────────────
-  -- answer_source 0: the curated 5-letter NYT answers (any crude/slur level —
-  -- wordle stays permissive, like the original). 1..6: any clean 5-letter
-  -- word of that band or easier (a higher band can be obscure).
+  -- BOTH branches use the app-wide CLEAN filter — `slur = 0 AND crude = 0 AND
+  -- american AND NOT slang` — because the target is a word every player is
+  -- required to arrive at, which is the rule's whole domain (docs/common.md →
+  -- Which words a game may use). The permissive half of that rule governs
+  -- GUESSES, not the answer: submit_guess deliberately filters on difficulty
+  -- alone, so you may still type a slur at the board, it just won't be right.
+  --
+  -- answer_source 0: the curated 5-letter NYT answers. Clean-filtering the
+  -- curated list is a deliberate ~1% divergence from the original (2026-08-03):
+  -- it drops 26 of 2315 — 5 slurs, 4 non-american spellings, and 17 the `slang`
+  -- tag catches for a slang SENSE (ONION, OWNER, GOOSE), which is the part of
+  -- the trade we're accepting rather than the part we want.
+  -- 1..6: any clean 5-letter word of that band or easier (a higher band can be
+  -- obscure).
   if s_answer_source = 0 then
     select word into v_target
-      from common.words where wordle and len = 5
+      from common.words
+     where wordle and len = 5
+       and slur = 0 and crude = 0 and american and not slang
      order by random() limit 1;
   else
     select word into v_target
       from common.words
-     where len = 5 and difficulty <= s_answer_source and slur = 0 and crude = 0
+     where len = 5 and difficulty <= s_answer_source
+       and slur = 0 and crude = 0 and american and not slang
      order by random() limit 1;
   end if;
   if v_target is null then

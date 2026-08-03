@@ -584,7 +584,7 @@ The master playable-word list, read by every game that needs a dictionary: spell
 **The categorization columns are the filtering knobs:**
 - `difficulty` (**1–6 recognizability band**: 1 universal, 2 common, 3 familiar, 4 uncommon, 5 obscure, 6 expert/SOWPODS-only) — "would a player *know* this word," not how often it appears in text (so `igloo`/`snuck` are easy, `ordure` hard). Lower = more recognizable; a single threshold controls how hard the playable set is. This backs the per-game difficulty choice (e.g. waffle's tier picker, spellingbee's required/legal bands). **Codebase convention: validation always allows the full 1–6 range; which bands a game *offers* is a FE/UI choice.**
 - `american` / `british` / `canadian` / `australian` — dialect validity. Mostly a *spelling* filter (`colour`/`color`); a word like `lorry` is `american=true` too. Default play is `american OR british`.
-- `crude` / `slur` — **smallint levels** (0 none, 1 mild, 2 strong): `crude` is profanity (`damn` → 1, `shit` → 2), `slur` is identity-slurs (`fatty` → 1, strong → 2). The **"clean" filter** most games want is `crude = 0 AND slur = 0` — what required / board / answer words draw from. They're still legal words (enterable), just kept off the must-find / answer set. (Per-game: spellingbee required + waffle board + stackdown words are clean; spellingbee legal and wordle answers allow any level.)
+- `crude` / `slur` — **smallint levels** (0 none, 1 mild, 2 strong): `crude` is profanity (`damn` → 1, `shit` → 2), `slur` is identity-slurs (`fatty` → 1, strong → 2). The **"clean" filter** most games want is `crude = 0 AND slur = 0` — what required / board / answer words draw from. They're still legal words (enterable), just kept off the must-find / answer set. Which side a given list falls on is the rule below, not a per-game taste.
 - `slang` — chiefly slang (`dude`, `aggro`). Lets a game offer a "no slang" filter; **orthogonal to difficulty** (slang can be band 1 or band 6).
 - `wordle` — in the fixed NYT Wordle answer/guess list. A future Wordle game pulls exactly `WHERE wordle`.
 - `len` — char length, so per-game length floors (spellingbee ≥4, Boggle ≥3, bananagrams ≥2) filter cheaply.
@@ -592,6 +592,35 @@ The master playable-word list, read by every game that needs a dictionary: spell
 - `definition` / `definition_source` — the click-to-define payload (see [Word definitions](#word-definitions-click-to-define--lookup) below).
 - `hint` — a guessing-game clue that **hides** the word (the inverse of `definition`): a category / near-synonym nudge ("A hooded snake" → cobra). Present for the **hint set** (`len = 5 AND (wordle OR difficulty = 1)`), NULL elsewhere — the upstream build guarantees completeness for that set. Drives stackdown's "Reveal hint" (`reveal_next_hint`).
 - `letter_mask` — a **generated** column: the 26-bit set of distinct letters in the word (bit 0 = `a`), via `common.word_letter_mask`. Powers the "find every word whose letters fit this puzzle" subset query (`letter_mask & ~puzzle_mask = 0`) that spellingbee's board builder runs.
+
+### Which words a game may use — the two-tier rule
+
+**Decided 2026-08-03.** Every dictionary read in the app is one of two kinds, and
+the kind decides the filter. This replaces "each game filters to its own taste":
+
+| tier | the filter | what it governs |
+|---|---|---|
+| **must-reach** — a word the game *makes* a player produce, or puts on screen as important | `slur = 0 AND crude = 0 AND slang = false AND american` | wordle's answer, wordiply's longest word, psychicnum's board, stackdown's six words, waffle's board, the required sets in spellingbee / wordwheel / boggle, wordiply's legal set (it also picks the showcased longest word) |
+| **may-enter** — a word a player *chooses* to type, scoring or not | anything: `slur` / `crude` / `slang` / dialect unrestricted, `difficulty` alone gates it | wordle's guesses, boggle's bonus list, spellingbee + wordwheel's legal sets, scrabble's `play_word`, bananagrams' board check |
+
+A word the **app** produces follows the must-reach tier even when the equivalent
+player action is may-enter, because nobody chose it: scrabble's AI (both the
+suggester and the autonomous opponent) plays off a bundled vocabulary with
+`slur = 0 AND crude = 0`, while `play_word` keeps accepting them from a human.
+`not slang` is deliberately absent there — slang isn't offensive, and the AI
+would lose ~1.2k ordinary words for nothing.
+
+The asymmetry is the point: we don't put a slur in front of you, and we don't
+stop you from typing one. A game may be more restrictive than the may-enter
+tier for its own reasons (scrabble adds `american OR british`, because that IS
+the Scrabble rule), but nothing may be *less* restrictive than the must-reach
+filter on a must-reach list.
+
+Two omissions were corrected the day the rule was written: wordle's answer pick
+was missing `american` and `slang` on both branches (clean-filtering the curated
+NYT list drops 26 of 2315 — a deliberate ~1% divergence from the original), and
+stackdown's board generator was missing `slang`, which meant regenerating 92 of
+its 1204 pre-generated boards.
 
 **How a game uses it.** spellingbee defines its slice in `spellingbee.candidate_words`: legal = `difficulty ≤ 5`, required = `difficulty ≤ 3 AND american AND NOT slang AND slur = 0 AND crude = 0`, `len ≥ 4`. waffle picks a pre-generated puzzle whose hardest word is exactly the chosen band. Bands a game uses (or offers) are a per-game choice; the list itself holds every band.
 

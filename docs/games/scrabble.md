@@ -257,7 +257,10 @@ two-band split (the same bananagrams uses) exists because 2-letter words are a
 thin, separate vocabulary you usually want to gate independently of the rest. No
 clean filter — among friends, crude words are legal Scrabble plays (standard
 dictionaries include them), the same way spellingbee's *legal* tier carries no clean
-restriction.
+restriction. **The AI is held to a stricter bar than the players** (2026-08-03):
+its bundled vocabulary drops slurs + profanity, because a word the app puts on a
+shared board is the app's, not the player's — see [§11](#11-the-move-suggester-ai)
+and [common.md → Which words a game may use](../common.md#which-words-a-game-may-use--the-two-tier-rule).
 
 **The bands are the acceptance gate — scrabble deviates from the roster default
 here.** The general convention (common.md) is "validation accepts the *full* 1–6
@@ -868,8 +871,15 @@ reuses:
 **The edge function `scrabble-suggest-move`** hosts the engine (the dictionary
 deliberately never ships to the game FE). It builds ONE all-bands rated trie at
 cold start from a bundled word list (`npm run scrabble:wordlist` generates it —
-`play_word`'s exact word universe: len 2..15, american OR british, all bands;
-git-ignored, rebuilt on deploy). Calling shape:
+len 2..15, american OR british, all bands, **minus slurs + profanity**
+(`slur = 0 AND crude = 0`, 612 of ~277k); git-ignored, rebuilt on deploy).
+That last filter makes the trie a **strict subset of what `play_word` accepts**,
+and deliberately so: a player may play a crude word, the AI may not. The same
+trie backs the autonomous opponent ([§12](#12-the-ai-opponent-compete)), so this one asset
+decides it for both. Consequences worth knowing: the suggester will miss a few
+high-scoring plays a human could make, and the AI won't *extend* a crude word
+already on the board (the cross-word it would form isn't in its trie, so it
+plays elsewhere). Calling shape:
 
 ```
 POST /functions/v1/scrabble-suggest-move   { game_id }

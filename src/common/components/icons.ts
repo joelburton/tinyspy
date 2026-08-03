@@ -29,15 +29,34 @@ export {
   // a spoiler hands it over.
   Eye as IconSpoiler,
   View as IconReveal,
-  Flag as IconEnd, // end the game (manual stop)
+  // check my own work against the rules — bananagrams' "Check words". NOT an
+  // eye: it reveals nothing, it marks what's already on screen as failing a
+  // rule the player could have applied themselves. The spell-check glyph (a
+  // tick over text) is the near-universal idiom for exactly that.
+  SpellCheck as IconWordCheck,
+  // End the GAME: an octagon with an X — the stop sign, crossed out. It sits
+  // next to IconEndTurn's plain octagon (Pass / end just your turn) on purpose:
+  // one family, "stop", with the X marking the bigger stop. Both are visible at
+  // once in scrabble (Pass in the board controls, End in the info column), so
+  // they also differ by tone — Pass is amber, End is destructive red.
+  //
+  // It was the flag until 2026-08-03, which it now shares with nothing:
+  // Concede kept the flag (below), and two red flag buttons in the same row
+  // read as the same act.
+  OctagonX as IconEnd,
+  // Concede — drop out of a race while it continues without you. The white
+  // flag: surrender, one player, not a stop for the table. Distinct from
+  // IconEnd since bananagrams shows BOTH in one row.
+  Flag as IconConcede,
   // submit a game move/guess/clue — an UP-pointing triangle: it "sends" the move
   // up to the other players (boards put YOU at the bottom, others above), and
   // keeps the RIGHT-pointing play triangle free for the play/resume idiom. Only
   // for sending a move — not the setup dialog or other form submits.
   Triangle as IconSubmit,
   // end the current turn without making (another) move — a stop-sign octagon.
-  // Distinct from IconEnd's flag (end the whole GAME): this ends just your turn
-  // and hands play on. codenamesduet's "Pass" is the first user.
+  // The plain half of the octagon pair (see IconEnd above): this stops just your
+  // turn and hands play on, so it carries no X and wears amber rather than red.
+  // codenamesduet's "Pass" is the first user.
   Octagon as IconEndTurn,
   Eraser as IconClear, // clear the current selection
   // swap/exchange tiles for new ones — the two-way horizontal arrows are the

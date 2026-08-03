@@ -77,8 +77,8 @@ test('coop: with no target, ending is neutral and nothing celebrates', async ({ 
   await expect(page.getByRole('dialog', { name: /you win/i })).toHaveCount(0)
   await expect(page.getByText(/^Won:/)).toHaveCount(0)
 
-  await page.getByRole('button', { name: /^end$/i }).click()
-  await page.getByRole('button', { name: 'End game' }).click()
+  await page.getByRole('button', { name: 'End game' }).first().click()
+  await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
 
   await expect(page.getByText(/^Ended: \w+ \d+\/59 points$/)).toBeVisible({ timeout: 8000 })
   await expect(page.getByRole('dialog', { name: /you win/i })).toHaveCount(0)

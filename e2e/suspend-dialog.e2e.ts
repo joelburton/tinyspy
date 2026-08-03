@@ -161,18 +161,21 @@ test.describe('confirm modals — suspend + end game', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.getByRole('button', { name: 'End' })).toBeVisible({ timeout: 15000 })
+    await expect(page.getByRole('button', { name: 'End game' })).toBeVisible({ timeout: 15000 })
 
-    // Cancel is a no-op — still playing.
-    await page.getByRole('button', { name: 'End' }).click()
+    // Cancel is a no-op — still playing. (The trigger and the modal's confirm
+    // share the name "End game" since the label went from "End" to the full
+    // phrase — so the trigger is `.first()` and the confirm comes from inside
+    // the panel.)
+    await page.getByRole('button', { name: 'End game' }).first().click()
     await expect(page.getByText('End this game?')).toBeVisible()
     await page.getByRole('button', { name: 'Keep playing' }).click()
     await expect(page.getByText('End this game?')).toBeHidden()
-    await expect(page.getByRole('button', { name: 'End' })).toBeVisible() // not ended
+    await expect(page.getByRole('button', { name: 'End game' })).toBeVisible() // not ended
 
     // Confirm → the game ends.
-    await page.getByRole('button', { name: 'End' }).click()
-    await page.getByRole('button', { name: 'End game' }).click()
+    await page.getByRole('button', { name: 'End game' }).first().click()
+    await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
     await expect(page.getByText('Game ended', { exact: false }).first()).toBeVisible({ timeout: 10000 })
     await ctx.close()
   })
@@ -180,15 +183,16 @@ test.describe('confirm modals — suspend + end game', () => {
   test('back-to-club from an ENDED game: no dialog, and peers are NOT kicked', async ({ browser }) => {
     const { alice, bob, club } = await twoUp(browser, (c) => createWaffleGame(c))
     // Wait for alice's board to render — it only exists when un-paused (the
-    // pause overlay replaces PlayArea), so this absorbs presence-sync. `End`
-    // must be `exact` — otherwise it substring-matches the pause overlay's
-    // "Susp[end] and return to club" escape hatch. Bob needn't be un-paused
-    // first: ending short-circuits pause on his side too.
+    // pause overlay replaces PlayArea), so this absorbs presence-sync. Bob
+    // needn't be un-paused first: ending short-circuits pause on his side too.
+    // (The old `exact` note is moot — the label is "End game" now, which no
+    // longer substring-matches the pause overlay's "Suspend and return to
+    // club"; the disambiguation that remains is trigger-vs-modal-confirm.)
     await alice.getByRole('grid', { name: /waffle board/i }).waitFor({ timeout: 15000 })
 
     // Alice ends the game (through the modal) → terminal for both.
-    await alice.getByRole('button', { name: 'End', exact: true }).click()
-    await alice.getByRole('button', { name: 'End game' }).click()
+    await alice.getByRole('button', { name: 'End game' }).first().click()
+    await alice.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
     await expect(alice.getByText('Game ended', { exact: false }).first()).toBeVisible({ timeout: 10000 })
     await expect(bob.getByText('Game ended', { exact: false }).first()).toBeVisible({ timeout: 10000 })
 
