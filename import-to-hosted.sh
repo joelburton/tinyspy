@@ -14,21 +14,21 @@
 # The entry point survives because it's what the docs and muscle memory
 # say. It is exactly equivalent to:
 #
-#   gmake bootstrap ENV=prod MIGRATIONS=keep     (or =destroy)
+#   gmake project-bootstrap ENV=prod MIGRATIONS=keep     (or =destroy)
 #
 # Prefer the make targets for anything narrower — that's the whole point
 # of the split:
 #
-#   gmake sql ENV=prod                 # just re-apply functions/policies
-#   gmake functions ENV=prod           # just re-push edge functions
-#   gmake function-waffle-build-board ENV=prod    # just one of them
-#   gmake fe ENV=prod                  # just rebuild + redeploy the FE
-#   gmake db-data ENV=prod             # just reload the data tables
-#   gmake stackdown-upload ENV=prod    # just the stackdown board library
-#   gmake config-api ENV=prod          # just the PostgREST settings
-#   gmake help                         # everything
+#   gmake db-sql ENV=prod                      # just functions/views/policies
+#   gmake functions ENV=prod                   # just the edge functions
+#   gmake function-waffle-build-board ENV=prod # just one of them
+#   gmake fe ENV=prod                          # just rebuild + redeploy the FE
+#   gmake db-data ENV=prod                     # just reload the data tables
+#   gmake stackdown-puzzles ENV=prod           # just the stackdown boards
+#   gmake project-config-api ENV=prod          # just the PostgREST settings
+#   gmake help                                 # everything
 #
-# What `bootstrap` does, in order:
+# What `project-bootstrap` does, in order:
 #   0.  create the project (skipped when PROJECT_REF is already set)
 #   1.  link this checkout to it
 #   2.  apply migrations — the SHAPE half (--destroy wipes first)
@@ -62,7 +62,7 @@ usage() {
   echo "  --keep     Apply only new (unrecorded) migrations, preserving data." >&2
   echo "             Fails on edited-migration drift (that's what --destroy fixes)." >&2
   echo >&2
-  echo "Equivalent to: gmake bootstrap ENV=prod MIGRATIONS=destroy|keep" >&2
+  echo "Equivalent to: gmake project-bootstrap ENV=prod MIGRATIONS=destroy|keep" >&2
   echo "For narrower operations run \`gmake help\`." >&2
 }
 
@@ -91,4 +91,4 @@ if [[ -z "$MAKE_BIN" ]]; then
   exit 1
 fi
 
-exec "$MAKE_BIN" bootstrap ENV=prod MIGRATIONS="$MODE"
+exec "$MAKE_BIN" project-bootstrap ENV=prod MIGRATIONS="$MODE"

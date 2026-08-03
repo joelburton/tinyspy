@@ -67,7 +67,7 @@ STACKDOWN_JSONL := supabase/data/stackdown-boards.jsonl
 BOGGLE_TRIE     := supabase/functions/boggle-build-board/wordlist.ts
 SCRABBLE_TRIE   := supabase/functions/scrabble-suggest-move/wordlist.ts
 
-# Board generation knobs (gmake stackdown-boards COUNT=50 BAND=2)
+# Board generation knobs (gmake stackdown-genpuzzles COUNT=50 BAND=2)
 COUNT ?= 10
 BAND  ?= 1
 SEED  ?= $(shell date +%s)
@@ -133,7 +133,7 @@ pangrams: spellingbee-pangrams wordwheel-pangrams ## both seed pools
 # ALWAYS BUILT FROM LOCAL, whatever ENV says — note the hardcoded
 # .make/local stamp and the pinned URL. The bundles are derived from the
 # canonical dictionary (words.tsv → local common.words), and during a
-# fresh bootstrap the hosted common.words isn't loaded until step 8,
+# fresh project-bootstrap the hosted common.words isn't loaded until step 8,
 # several steps after the functions deploy. Depending on the per-ENV
 # stamp would make `gmake functions ENV=prod` try to import 283k words
 # INTO PROD first, which is neither wanted nor implied.
@@ -150,25 +150,25 @@ $(SCRABBLE_TRIE): .make/local/words.stamp
 .PHONY: tries
 tries: boggle-trie scrabble-trie ## both edge-function word bundles
 
-# stackdown-boards APPENDS (it adds COUNT boards and dedups by word-set;
+# stackdown-genpuzzles APPENDS (it adds COUNT boards and dedups by word-set;
 # it does not rebuild), so it must never be a timestamp-driven rule —
 # that would grow the library every time the generator was touched. It's
 # .PHONY and explicit. The FILE rule below has no prerequisites, so make
 # builds it only when it's actually missing, which is the
-# generate-if-absent behaviour `stackdown-upload` wants.
-.PHONY: stackdown-boards
-stackdown-boards: $(STAMPS)/words.stamp ## generate COUNT=n BAND=b boards (APPENDS to the library)
+# generate-if-absent behaviour `stackdown-puzzles` wants.
+.PHONY: stackdown-genpuzzles
+stackdown-genpuzzles: $(STAMPS)/words.stamp ## generate COUNT=n BAND=b boards (APPENDS to the library)
 	@$(PRELUDE)
 	echo "── generating $(COUNT) band-$(BAND) board(s), seed $(SEED) (appending)"
 	npm run stackdown:gen -- $(COUNT) $(SEED) $(BAND)
 
 $(STACKDOWN_JSONL):
 	@echo "── $(STACKDOWN_JSONL) is missing (fresh clone?) — generating a starter set"
-	$(MAKE) stackdown-boards COUNT=25 BAND=1
-	$(MAKE) stackdown-boards COUNT=25 BAND=2
+	$(MAKE) stackdown-genpuzzles COUNT=25 BAND=1
+	$(MAKE) stackdown-genpuzzles COUNT=25 BAND=2
 
-.PHONY: stackdown-upload
-stackdown-upload: $(STACKDOWN_JSONL) ## delete + reload stackdown.boards (generates the library iff missing)
+.PHONY: stackdown-puzzles
+stackdown-puzzles: $(STACKDOWN_JSONL) ## delete + reload stackdown.boards (generates the library iff missing)
 	@$(PRELUDE)
 	echo "── stackdown.boards → $(ENV)"
 	npm run stackdown:import
@@ -192,24 +192,31 @@ crosswords-puzzles: ## import supabase/data/crosswords/*.puz|.ipuz
 	npm run crosswords:import
 
 .PHONY: db-data
-db-data: words pangrams stackdown-upload connections-puzzles crosswords-puzzles ## load every table's DATA (no schema, no code)
+db-data: words pangrams stackdown-puzzles connections-puzzles crosswords-puzzles ## load every table's DATA (no schema, no code)
 
 # ════════════════════════════════════════════════════════════════
 # Schema + code   (docs/supabase.md → Schema vs code)
 # ════════════════════════════════════════════════════════════════
 
-.PHONY: schema
-schema: ## apply the SHAPE half — migrations (local: reset; prod: push)
+.PHONY: db-schema
+db-schema: ## apply the SHAPE half — migrations (local: reset; prod: push)
 	@$(PRELUDE)
 ifeq ($(ENV),local)
+	# `db reset` DROPS the database, so every stamp claiming a table is
+	# loaded became a lie the instant it ran. Forget them FIRST — otherwise
+	# `db-reset` skips the word import it just destroyed and leaves
+	# common.words empty, with nothing to indicate it. This is the one place
+	# the stamps' weakness is guaranteed rather than hypothetical, so it's
+	# handled at the source instead of being left to the operator.
+	rm -f $(STAMPS)/*.stamp
 	supabase db reset
 else
 	echo "── db push → $(PROJECT_REF)"
 	supabase db push --linked <<< y
 endif
 
-.PHONY: sql
-sql: ## re-apply the CODE half — supabase/sql/*.sql (functions, views, policies, grants)
+.PHONY: db-sql
+db-sql: ## re-apply the CODE half — supabase/sql/*.sql (functions, views, policies, grants)
 	@$(PRELUDE)
 ifeq ($(ENV),local)
 	npm run sql:apply
@@ -218,18 +225,18 @@ else
 endif
 
 .PHONY: db
-db: schema sql ## schema + code
+db: db-schema db-sql ## shape + code
 
-.PHONY: seed
-seed: ## local only: the dev personas + clubs (seed.dev.sql)
+.PHONY: db-seed
+db-seed: ## local only: the dev personas + clubs (seed.dev.sql)
 	@npm run seed
 
-.PHONY: reset
-reset: ## local only: db + all data + dev seed (what `npm run db:reset` does)
-	@[[ "$(ENV)" == "local" ]] || { echo "reset is local-only; use db + db-data for prod" >&2; exit 1; }
+.PHONY: db-reset
+db-reset: ## local only: db + all data + dev seed (what `npm run db:reset` does)
+	@[[ "$(ENV)" == "local" ]] || { echo "db-reset is local-only; use db + db-data for prod" >&2; exit 1; }
 	$(MAKE) db ENV=local
 	$(MAKE) db-data ENV=local
-	$(MAKE) seed
+	$(MAKE) db-seed
 
 # ════════════════════════════════════════════════════════════════
 # Deploy
@@ -261,7 +268,7 @@ fe: ## build the FE and push to Netlify
 	bash supabase/deploy/fe.sh
 
 .PHONY: deploy
-deploy: schema sql functions fe ## the routine push: schema + code + functions + FE (NOT data)
+deploy: db-schema db-sql functions fe ## the routine push: schema + code + functions + FE (NOT data)
 
 # ════════════════════════════════════════════════════════════════
 # Hosted project configuration
@@ -271,24 +278,24 @@ deploy: schema sql functions fe ## the routine push: schema + code + functions +
 project-create: ## create a NEW hosted project (costs money; no-ops if one is set)
 	@bash supabase/deploy/project-create.sh
 
-.PHONY: link
-link: ## link this checkout to the hosted project
+.PHONY: project-link
+project-link: ## link this checkout to the hosted project
 	@bash supabase/deploy/link.sh
 
-.PHONY: config-api
-config-api: ## PostgREST: exposed schemas + search path + max_rows
+.PHONY: project-config-api
+project-config-api: ## PostgREST: exposed schemas + search path + max_rows
 	@bash supabase/deploy/config-api.sh
 
-.PHONY: config-auth
-config-auth: ## auth: site URL, redirect allowlist, Resend SMTP, email template
+.PHONY: project-config-auth
+project-config-auth: ## auth: site URL, redirect allowlist, Resend SMTP, email template
 	@bash supabase/deploy/config-auth.sh
 
-.PHONY: config-secrets
-config-secrets: ## edge-function secrets (ANTHROPIC_API_KEY)
+.PHONY: project-config-secrets
+project-config-secrets: ## edge-function secrets (ANTHROPIC_API_KEY)
 	@bash supabase/deploy/config-secrets.sh
 
-.PHONY: wait-cache
-wait-cache: ## pause for PostgREST's schema-cache reload (needed before connections-puzzles)
+.PHONY: project-wait-cache
+project-wait-cache: ## pause for PostgREST's schema-cache reload (needed before connections-puzzles)
 	@bash supabase/deploy/wait-cache.sh
 
 # Everything, in the order a fresh project needs it — what
@@ -300,9 +307,9 @@ wait-cache: ## pause for PostgREST's schema-cache reload (needed before connecti
 # no default: you type it.
 MIGRATIONS ?= keep
 
-.PHONY: bootstrap
-bootstrap: ## stand up a hosted project end to end (MIGRATIONS=keep|destroy)
-	@[[ "$(ENV)" == "prod" ]] || { echo "bootstrap targets prod only (ENV=prod)" >&2; exit 1; }
+.PHONY: project-bootstrap
+project-bootstrap: ## stand up a hosted project end to end (MIGRATIONS=keep|destroy)
+	@[[ "$(ENV)" == "prod" ]] || { echo "project-bootstrap targets prod only (ENV=prod)" >&2; exit 1; }
 	case "$(MIGRATIONS)" in
 	  keep)    ;;
 	  destroy) echo "!! MIGRATIONS=destroy — the hosted DB and ALL auth accounts will be WIPED"
@@ -310,23 +317,24 @@ bootstrap: ## stand up a hosted project end to end (MIGRATIONS=keep|destroy)
 	  *) echo "MIGRATIONS must be keep or destroy (got '$(MIGRATIONS)')" >&2; exit 1 ;;
 	esac
 	$(MAKE) project-create
-	$(MAKE) link
+	$(MAKE) project-link
 	if [[ "$(MIGRATIONS)" == "destroy" ]]; then
 	  . supabase/deploy/env.sh; require_project
 	  supabase db reset --linked --yes --no-seed
+	  rm -f .make/prod/*.stamp   # same reason as db-schema: the wipe invalidates them
 	else
-	  $(MAKE) schema ENV=prod
+	  $(MAKE) db-schema ENV=prod
 	fi
-	$(MAKE) sql ENV=prod
-	$(MAKE) config-api
-	$(MAKE) config-auth
-	$(MAKE) config-secrets
+	$(MAKE) db-sql ENV=prod
+	$(MAKE) project-config-api
+	$(MAKE) project-config-auth
+	$(MAKE) project-config-secrets
 	$(MAKE) functions ENV=prod
-	$(MAKE) wait-cache
+	$(MAKE) project-wait-cache
 	$(MAKE) db-data ENV=prod
 	$(MAKE) fe ENV=prod
 	echo
-	echo "═══ bootstrap complete ═══"
+	echo "═══ project-bootstrap complete ═══"
 	echo "  Manual follow-up: verify the Resend sender domain (DNS, one-time)."
 
 # ════════════════════════════════════════════════════════════════

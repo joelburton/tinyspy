@@ -42,23 +42,44 @@ misbehaving. `gmake help` lists every target.
 `ENV=local` (default) or `ENV=prod`. Prod is never inferred — you type it, and
 every writing target echoes its resolved target (password masked) first.
 
+**Names are prefixed for tab-completion**, since that's how you actually find a
+target: `<game>-<verb>` for per-game work (`stackdown-puzzles`,
+`boggle-trie`), `db-*` for the database (`db-schema`, `db-sql`, `db-data`,
+`db-seed`, `db-reset`), `project-*` for the hosted project itself
+(`project-link`, `project-config-auth`, `project-bootstrap`). `gmake help`
+lists them alphabetically, so the prefixes group there too.
+
 ```
-gmake help                          # every target, with descriptions
-gmake words                         # import common.words — only if words.tsv changed
-gmake pangrams                      # spellingbee + wordwheel seeds (rebuilds if words did)
-gmake tries                         # both edge-function word bundles
-gmake stackdown-boards COUNT=50 BAND=2   # generate boards — APPENDS to the library
-gmake stackdown-upload              # delete + reload the table (generates iff missing)
-gmake stackdown-audit               # which committed boards hold words we'd no longer pick
-gmake db-data                       # every table's DATA (no schema, no code)
-gmake db                            # schema + supabase/sql/
-gmake reset                         # local: db + db-data + dev seed
-gmake deploy ENV=prod               # schema + sql + functions + FE (NOT data)
-gmake sql ENV=prod                  # just re-apply functions/views/policies
+gmake help                                   # every target, with descriptions
+
+# data + assets — <game>-<verb>, so `gmake stackdown-<TAB>` narrows
+gmake words                                  # common.words — only if words.tsv changed
+gmake pangrams                               # spellingbee + wordwheel seeds (follows words)
+gmake tries                                  # both edge-function word bundles
+gmake stackdown-genpuzzles COUNT=50 BAND=2   # generate boards — APPENDS to the library
+gmake stackdown-puzzles                      # delete + reload the table (generates iff missing)
+gmake stackdown-audit                        # boards holding words we'd no longer pick
+gmake connections-puzzles                    # the NYT Connections archive
+gmake crosswords-puzzles                     # supabase/data/crosswords/*.puz|.ipuz
+
+# the database — `gmake db-<TAB>`
+gmake db-data                                # every table's DATA (no schema, no code)
+gmake db-schema                              # migrations only
+gmake db-sql                                 # supabase/sql/ only
+gmake db                                     # both halves
+gmake db-reset                               # local: db + db-data + db-seed
+
+# deploying
+gmake deploy ENV=prod                        # schema + code + functions + FE (NOT data)
+gmake db-sql ENV=prod                        # just re-apply functions/views/policies
 gmake function-waffle-build-board ENV=prod   # just one edge function
-gmake bootstrap ENV=prod MIGRATIONS=destroy  # stand up a project from nothing
-gmake -B <target>                   # force, ignoring stamps
-gmake stamps-clean                  # forget what we think is loaded
+
+# the hosted project itself — `gmake project-<TAB>`
+gmake project-bootstrap ENV=prod MIGRATIONS=destroy   # stand one up from nothing
+gmake project-config-api ENV=prod            # just the PostgREST settings
+
+gmake -B <target>                            # force, ignoring stamps
+gmake stamps-clean                           # forget what we think is loaded
 ```
 
 **Stamps.** A database table has no mtime, so `.make/$(ENV)/*.stamp` stands in

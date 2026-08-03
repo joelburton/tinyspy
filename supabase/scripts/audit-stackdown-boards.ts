@@ -94,6 +94,6 @@ for (const [w, why] of [...bad].sort()) console.log(`  ${w.padEnd(8)} ${why}`)
 console.log(
   '\nThese boards are still SOLVABLE — this is a "would we pick these words today?"\n' +
     'judgment, not a bug. To rebuild: drop the affected lines, then\n' +
-    '`gmake stackdown-boards COUNT=<n> BAND=<b>` to top back up, then `gmake stackdown-upload`.',
+    '`gmake stackdown-genpuzzles COUNT=<n> BAND=<b>` to top back up, then `gmake stackdown-puzzles`.',
 )
 process.exit(1)
