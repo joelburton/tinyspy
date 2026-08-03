@@ -438,10 +438,31 @@ as $$
                 from waffle.players wp
                where wp.game_id = g_id limit 1),
              'New game')
+           -- Terminal compete: the correct words on the FURTHEST player's own
+           -- board — never the solution itself.
+           --
+           -- It used to read `_correct_words(wg.solution, wg.solution)`, i.e.
+           -- the full six unconditionally, which spoiled a race nobody solved:
+           -- waffle hides the answer on a loss so a Restart is a genuine second
+           -- try, and the club-list title undid that from the outside where the
+           -- board couldn't. (Fixed 2026-08-02, alongside the same bug in
+           -- wordle._sync_title.)
+           --
+           -- One expression covers every ending, because a board is the
+           -- evidence: a WINNER's board IS the solution, so a solved race still
+           -- titles with all six; `reveal_answer` writes the solution to every
+           -- board, so a revealed one does too; and an unsolved, unrevealed race
+           -- names only what somebody actually got right — which is honest,
+           -- since every board is visible at terminal anyway. The title can no
+           -- longer name a word no player ever had.
            when cg.is_terminal then waffle._format_title(
-             -- Terminal compete: every word is correct BY DEFINITION of the
-             -- solution, so the solution against itself is the full six.
-             waffle._correct_words(wg.solution, wg.solution), 'New compete')
+             (select waffle._correct_words(wp.board, wg.solution)
+                from waffle.players wp
+               where wp.game_id = g_id
+               order by coalesce(
+                 array_length(waffle._correct_words(wp.board, wg.solution), 1), 0) desc
+               limit 1),
+             'New compete')
            else 'New compete'
          end
     from waffle.games wg

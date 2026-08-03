@@ -16,7 +16,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(23);
+select plan(27);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -175,6 +175,67 @@ select is(
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1::bigint,
   'ada''s single swap is logged under her own seq 1');
+
+-- ── The terminal title must not spoil an unsolved race ──────
+-- common.games.title is readable club-wide. It used to read
+-- `_correct_words(solution, solution)` at terminal — the full six, whatever
+-- happened — which spoiled a race nobody solved: waffle hides the answer on a
+-- loss so Restart stays a genuine second try, and the title undid that from the
+-- outside. It now names the correct words on the FURTHEST player's own board,
+-- so it can never name a word nobody actually had.
+
+-- (a) The race above was won by ada, whose board IS the solution — so the six
+--     words are legitimately hers and the title says them.
+reset role;
+select isnt(
+  (select title from common.games where id = (select id from g)),
+  'New compete',
+  'terminal compete: a SOLVED race is titled with the winner''s words');
+
+-- (b) A race nobody solves. The title must name what a PLAYER'S BOARD actually
+--     has, not the solution's six.
+--
+--     Note this fixture's scramble is one swap from solved, so an untouched
+--     board already shows five correct words — those are the player's own
+--     greens, visible from move zero, so naming them leaks nothing. What must
+--     NOT appear is the sixth: the word only the solution has.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g2 on commit drop as
+select * from waffle.create_game(
+  (select handle from club), pg_temp.waffle_setup(5),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'compete',
+  pg_temp.waffle_board()
+);
+select waffle.concede((select id from g2));
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select waffle.concede((select id from g2));
+
+reset role;
+select is(
+  (select play_state from common.games where id = (select id from g2)),
+  'lost_compete',
+  'precondition: nobody solved it');
+select is(
+  (select title from common.games where id = (select id from g2)),
+  (select waffle._format_title(
+            waffle._correct_words(wp.board, wg.solution), 'New compete')
+     from waffle.players wp
+     join waffle.games wg on wg.id = wp.game_id
+    where wp.game_id = (select id from g2)
+    limit 1),
+  'terminal compete: the title names a real board''s correct words');
+
+-- …and that is genuinely NOT the all-six title the old code produced. Without
+-- this the assertion above would pass on any board that happened to be solved.
+select isnt(
+  (select title from common.games where id = (select id from g2)),
+  (select waffle._format_title(
+            waffle._correct_words(wg.solution, wg.solution), 'New compete')
+     from waffle.games wg where wg.id = (select id from g2)),
+  'terminal compete: an unsolved race is NOT titled with the solution''s words');
+
 
 select * from finish();
 rollback;

@@ -23,7 +23,8 @@ two strings that make up a row in ClubPage's right-hand games list.
    placeholder `'New game'` and rewrite it from play. A mode that holds the placeholder for
    a whole race — wordle compete, waffle compete — says `'New compete'` instead, since
    that's the label a club list actually sits on. When the title can carry **hidden**
-   state (wordle, waffle — at terminal the title IS the answer), the rewrite is derived,
+   state (wordle, waffle — at terminal the title may become the answer, but only once it's
+   legitimately shown; see the per-game rows), the rewrite is derived,
    not assigned: a `_sync_title` helper recomputes from state and every transition calls
    it, so a timeout, a concede, a manual end and a **replay** all land on the right
    string — a replayed game must stop advertising the answer. Titles that only mirror
@@ -52,15 +53,15 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | game | format | example |
 |---|---|---|
 | bananagrams | `#` + the first 6 hex digits of the game's uuid | `#3F9A2C` |
-| wordle **coop** | `'New game'` → **the most recent guess** → **the answer** at terminal | `CRANE` → `SLATE` |
-| wordle **compete** | `'New compete'` (guesses are private) → **the answer** at terminal | `SLATE` |
+| wordle **coop** | `'New game'` → **the most recent guess** → **the answer**, but only once WON or explicitly revealed. A lost game keeps the last guess: wordle hides the answer on a loss so Restart is a real second try, and a title would undo that from outside | `CRANE` → `SLATE` |
+| wordle **compete** | `'New compete'` while racing (guesses are private) → **the answer** if someone won or revealed it, else the **last guess** | `SLATE` |
 | scrabble | `'New game'`, then **the first 3 words played** | `CRANE-BOXY-JET` |
 | stackdown **coop** | `'New game'`, then **the first 3 words found** (`…` past 3) | `CAT-DOGS-BIRD…` |
 | stackdown **compete** | `'New game'` (found words are private) | `New game` |
 | psychicnum | **the first 3 board words**, alphabetical | `APPLE-BERRY-CHERRY` |
 | boggle | board size + **the top row** (multiface dice expanded) | `4×4 ABQuD` |
 | waffle **coop** | `'New game'`, then **the correct words so far** (first 3, alphabetical) | `ARENA-EAGER-TOTEM` |
-| waffle **compete** | `'New compete'` (the words are the solution) → **the puzzle's words** at terminal | `ARENA-EAGER-TOTEM` |
+| waffle **compete** | `'New compete'` while racing (a leader's words would leak progress) → at terminal, **the correct words on the furthest player's own board** — never the solution's, so an unsolved race isn't spoiled | `ARENA-EAGER-TOTEM` |
 | wordiply | the base, uppercased | `ARM` |
 | spellingbee | centre·outer letters | `A·BCDEFG` |
 | wordwheel | centre·outer letters | `A·BCDEFGH` |
