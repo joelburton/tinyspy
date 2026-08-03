@@ -54,7 +54,6 @@ export function InfoCol({
   setup,
   solution,
   submissions,
-  showWho,
   viewingIndex,
   onSelectTurn,
 }: {
@@ -109,7 +108,6 @@ export function InfoCol({
   // ── Turn-history log (GameTurnLog) ──
   /** The submission log the log renders + the viewer indexes (by position). */
   submissions: SubmissionRow[]
-  showWho: boolean
   /** The log row currently open in the board viewer, or null. */
   viewingIndex: number | null
   onSelectTurn: (index: number) => void
@@ -234,7 +232,9 @@ export function InfoCol({
       <GameTurnLog
         submissions={submissions}
         players={players}
-        showWho={showWho}
+        selfId={selfId}
+        mode={isCompete ? 'compete' : 'coop'}
+        isTerminal={isTerminal}
         viewingIndex={viewingIndex}
         onSelectTurn={onSelectTurn}
       />

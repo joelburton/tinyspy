@@ -319,7 +319,12 @@ export function InfoCol({
       <GameTurnLog
         plays={plays}
         players={players}
+        // The bots as pickable actors — the same synthetic Members the log's
+        // rows resolve to, so "AI 1" filters like any other player.
+        aiMembers={aiSeats.flatMap((a) => aiMemberOfSeat(a.seat) ?? [])}
         aiMemberOfSeat={aiMemberOfSeat}
+        selfId={selfId}
+        mode={isCompete ? 'compete' : 'coop'}
         viewingSeq={viewingSeq}
         onSelectTurn={onSelectTurn}
       />

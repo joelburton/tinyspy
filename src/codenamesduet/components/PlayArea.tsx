@@ -591,6 +591,7 @@ export function PlayArea({
         clues={clues}
         guesses={guesses}
         players={players}
+        selfId={session.user.id}
         gameOver={gameOver}
         viewingSeq={viewingId}
         onSelectTurn={selectTurn}

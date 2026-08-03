@@ -59,8 +59,9 @@ const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
  * NYT-canonical copy.
  *
  * **Whose guesses** are shown is picked by the shared
- * `useTurnLogPlayerPicker` dropdown in the header — solo "You", coop "Team",
- * compete "All" plus each player (defaulting to yourself). In compete an
+ * `useTurnLogPlayerPicker` dropdown in the header — solo is your handle, coop is
+ * "Team" plus each player, compete is "All" plus each player (defaulting to your
+ * own board). In compete an
  * opponent's rows are empty during play (RLS hides them) and fill in once the
  * game ends, which is exactly what the picker's empty text says.
  */

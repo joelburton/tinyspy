@@ -27,6 +27,7 @@
  */
 
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { GameTurnLog } from './GameTurnLog'
 import type { GuessRow } from '../hooks/useBoard'
@@ -86,6 +87,7 @@ function renderLog(props: {
       clues={props.clues}
       guesses={props.guesses}
       players={PLAYERS}
+      selfId="ada"
       currentTurn={props.currentTurn ?? 99}
       gameOver={props.gameOver ?? false}
       viewingSeq={null}
@@ -180,5 +182,45 @@ describe('GameTurnLog', () => {
     const clues = [clue({ id: 'c1', turn_number: 4, by_seat: 'A', word: 'DONE', count: 1 })]
     renderLog({ clues, guesses: [], currentTurn: 4, gameOver: true })
     expect(screen.getByText('(no guesses)')).toBeInTheDocument()
+  })
+})
+
+/**
+ * The shared "whose turns?" picker (2026-08-02). duet is coop-only, so the list
+ * is Team + both players — and a turn is filed under its **clue-giver**, since
+ * that's the person the row's actor column names. See the component docstring.
+ */
+describe('GameTurnLog — the clue-giver picker', () => {
+  const clues = [
+    clue({ id: 'c1', turn_number: 1, by_seat: 'A', word: 'MINE' }),
+    clue({ id: 'c2', turn_number: 2, by_seat: 'B', word: 'THEIRS' }),
+  ]
+
+  it('lists Team plus both players by handle, and defaults to Team', () => {
+    renderLog({ clues, guesses: [] })
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'Team',
+      'ada',
+      'bea',
+    ])
+    // Team is the shared game — both turns on show.
+    expect(screen.getByText('2 MINE')).toBeInTheDocument()
+    expect(screen.getByText('2 THEIRS')).toBeInTheDocument()
+  })
+
+  it('narrows to the turns that player CLUED', async () => {
+    const user = userEvent.setup()
+    renderLog({ clues, guesses: [] })
+    await user.selectOptions(screen.getByRole('combobox'), 'bea')
+    expect(screen.queryByText('2 MINE')).not.toBeInTheDocument()
+    expect(screen.getByText('2 THEIRS')).toBeInTheDocument()
+  })
+
+  it('says the log is empty (not hidden) when a player has clued nothing', async () => {
+    const user = userEvent.setup()
+    renderLog({ clues: [clues[0]], guesses: [] })
+    await user.selectOptions(screen.getByRole('combobox'), 'bea')
+    // Coop hides nothing, so the honest line is the plain empty one.
+    expect(screen.getByText('No clues yet.')).toBeInTheDocument()
   })
 })

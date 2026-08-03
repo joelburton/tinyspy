@@ -11,7 +11,9 @@
 --   - games_state hides secrets while playing, surfaces post-terminal
 --   - **Mode-aware guess RLS**:
 --       coop:    ada sees bea's guesses and vice versa
---       compete: each player sees ONLY their own guesses
+--       compete: each player sees ONLY their own guesses DURING
+--                play, and everyone's once the game is terminal
+--                (what the turn log's "whose turns?" picker reads)
 --   - players table is club-wide visible in BOTH modes (the
 --     "opponents see my budget but not my guesses" property)
 --
@@ -22,7 +24,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(16);
+select plan(19);
 
 \ir ../_shared/setup.psql
 
@@ -188,6 +190,48 @@ select throws_ok(
   '42501',
   'not playing this game',
   'dee cannot call submit_guess (require_game_player gate)'
+);
+
+-- ============================================================
+-- Compete guesses OPEN at terminal
+-- ============================================================
+-- The during-play gate (tests 4-6) is the real rule: an
+-- opponent's guesses are their strategy. Once the game has ENDED
+-- there's nothing left to protect, and the turn log's "whose
+-- turns?" picker exists precisely to read the other player's game
+-- back — so guesses_select carries an `or cg.is_terminal` arm
+-- (2026-08-02, matching stackdown / connections / waffle).
+--
+-- Deliberately LAST: ending comp_g would change what the earlier
+-- during-play assertions mean.
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select psychicnum.end_game((select id from comp_g));
+
+-- (15) ada now sees BOTH guesses — hers and bea's
+select is(
+  (select count(*)::int from psychicnum.guesses where game_id = (select id from comp_g)),
+  2,
+  'compete: ada sees both guesses once the game is terminal'
+);
+
+-- (16) and bea sees ada's, symmetrically
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select is(
+  (select count(*)::int from psychicnum.guesses
+    where game_id = (select id from comp_g)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  1,
+  'compete: bea sees ada''s guess once the game is terminal'
+);
+
+-- (17) but a NON-member still sees nothing: the terminal arm
+-- widens the MODE gate, not the club gate.
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
+select is(
+  (select count(*)::int from psychicnum.guesses where game_id = (select id from comp_g)),
+  0,
+  'compete: terminal does NOT open guesses to non-members'
 );
 
 -- ============================================================

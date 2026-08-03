@@ -2,6 +2,7 @@ import { Fragment } from 'react'
 import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/game/lists/TurnLog'
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
 import turnLog from '../../common/components/game/lists/TurnLog.module.css'
+import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
 import { cls } from '../../common/lib/util/cls'
 import type { ClueRow } from '../hooks/useClues'
 import type { GuessRow } from '../hooks/useBoard'
@@ -18,6 +19,8 @@ type Props = {
   /** Both seated players, with usernames + profile colors — used to resolve a
    *  clue's seat letter ('A'/'B') back to the human-facing clue-giver. */
   players: Player[]
+  /** The viewer, so the picker can order them first. */
+  selfId: string
   /** The game's current (in-progress) turn number (`games.turn_number`). Lets a
    *  guess-less turn read "(clue given)" while it's still live vs "(no guesses)"
    *  once it's ended — see the guess-line note below. */
@@ -36,6 +39,16 @@ type Props = {
  * codenamesduet's turn log — its turns rendered with the shared `<TurnLog>`
  * table (same chrome psychicnum + connections use). The outcome bar carries the
  * turn verdict (see {@link turnOutcome}).
+ *
+ * **Whose turns** are shown is the shared `useTurnLogPlayerPicker` dropdown, one
+ * vocabulary across every turn-log game — here "Team" plus each of the two
+ * players (duet is coop-only). A turn is filed under its **clue-giver**, which is
+ * the person the row's actor column already names: picking someone answers "which
+ * clues did I give?", not "which words did I guess". That's the useful question,
+ * since a duet turn is one clue and the guesses that answered it.
+ *
+ * It ignores the hook's `boardIsShown`: the `#N` handle addresses a turn by
+ * `turn_number`, not by log position, so filtering can't misaddress it.
  *
  * Stateless + presentational. codenamesduet *chooses* a **two-`<tr>`** turn (the
  * row anatomy is the game's — see TurnLog.tsx) so the pieces sit in real table
@@ -61,11 +74,22 @@ export function GameTurnLog({
   clues,
   guesses,
   players,
+  selfId,
   currentTurn,
   gameOver,
   viewingSeq,
   onSelectTurn,
 }: Props) {
+  const who = useTurnLogPlayerPicker({
+    players,
+    selfId,
+    mode: 'coop',
+    // Coop: every clue and guess is shared, so nothing is ever RLS-hidden and
+    // the honest-hidden empty text can't apply.
+    isTerminal: true,
+    label: 'Whose clues to show',
+    emptyLabel: 'No clues yet.',
+  })
   // seat letter → Player, so each clue row resolves to its clue-giver's
   // identity. Key type `string` (not the narrower 'A'|'B') so it matches the
   // db-derived `by_seat` without a cast. Both seats are always populated.
@@ -88,14 +112,25 @@ export function GameTurnLog({
     ]),
   ).sort((a, b) => a - b)
 
+  // Filtered by CLUE-GIVER (see the docstring). Filtered by hand rather than
+  // through `who.filter`, because the log's unit is a turn number, not a row
+  // with a `user_id` — reading `picked` / `showsEveryone` keeps the one
+  // selection the hook owns without inventing a row shape to satisfy it.
+  const shownTurns = turnNumbers.filter((t) => {
+    if (who.showsEveryone) return true
+    const seat = clues.find((c) => c.turn_number === t)?.by_seat
+    return playerBySeat.get(seat ?? '')?.user_id === who.picked
+  })
+
   return (
     <TurnLog
       heading="Clues"
-      empty={clues.length === 0}
-      emptyText="No clues yet."
+      headerAction={who.picker}
+      empty={shownTurns.length === 0}
+      emptyText={who.emptyText}
       scrollKey={clues.length + sortedGuesses.length}
     >
-      {turnNumbers.map((t) => {
+      {shownTurns.map((t) => {
         const clue = clues.find((c) => c.turn_number === t)
         if (!clue) return null
         const clueGiver = playerBySeat.get(clue.by_seat)

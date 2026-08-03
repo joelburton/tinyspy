@@ -45,6 +45,7 @@ export function InfoCol({
   clues,
   guesses,
   players,
+  selfId,
   gameOver,
   viewingSeq,
   onSelectTurn,
@@ -89,6 +90,8 @@ export function InfoCol({
   clues: ClueRow[]
   guesses: GuessRow[]
   players: Player[]
+  /** The viewer — the log's player picker orders them first. */
+  selfId: string
   gameOver: boolean
   /** The turn currently open in the board viewer (by turn_number), or null. */
   viewingSeq: number | null
@@ -191,6 +194,7 @@ export function InfoCol({
         clues={clues}
         guesses={guesses}
         players={players}
+        selfId={selfId}
         currentTurn={turnNumber}
         gameOver={gameOver}
         viewingSeq={viewingSeq}

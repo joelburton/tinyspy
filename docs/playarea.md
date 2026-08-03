@@ -372,6 +372,52 @@ the "item, not guess" vocabulary was named for — a **two-`<tr>`** turn (the ba
 guesses spanning beneath on row 2 (its per-turn outcome derived in
 `codenamesduet/lib/turnOutcome.ts`).
 
+### Whose turns? — the shared player picker
+
+Every turn-log game carries the same **"whose turns?"** dropdown in its log
+header, from
+[`useTurnLogPlayerPicker`](../src/common/hooks/game/useTurnLogPlayerPicker.tsx).
+One vocabulary, settled 2026-08-02:
+
+| game shape | options |
+|---|---|
+| solo | *your handle* |
+| co-op | **Team**, then every player by handle |
+| compete | **All**, then every player by handle |
+
+The aggregate leads and is normally the default; the per-player entries are for
+pulling one thread out — "which clues did I give?", "just my own scrabble plays",
+"how did moth spend their psychicnum budget?". **Players are named by handle,
+including you.** An earlier version labelled the viewer "You", which made your own
+row read as a different *kind* of thing from everyone else's; a list of handles is
+one list. You're still ordered first.
+
+Six things travel with the hook, and re-deriving any of them per game is how they
+drift: the `<select>`, its default selection, the aggregate label (mode-dependent),
+the row filter, whether `#N` may be a live history handle, and the empty-state
+wording. Two of those need care:
+
+- **`emptyText` stays honest.** In compete, RLS hides an opponent's rows until the
+  game ends, so an empty opponent log mid-game means *"hidden"*, not *"they
+  haven't played"*. At terminal their rows reveal and empty really is empty. Which
+  is why the compete games' row policies all carry an `or cg.is_terminal` arm —
+  psychicnum's was added when it got the picker.
+- **`boardIsShown` gates the `#N` handle**, and only matters for the games whose
+  turn-history viewer indexes the log by **position**: a filtered list's row 3
+  isn't the board's turn 3, so the handle degrades to a plain number rather than
+  replaying the wrong turn. scrabble and codenamesduet address a turn by `seq` /
+  `turn_number` instead, so filtering can't misaddress them and they ignore it.
+
+Two games bend the defaults, both documented at their call site:
+
+- **scrabble** passes `competeSharesOneGame` — even its compete race happens on
+  one public board, so `All` is what you're actually looking at. It also makes
+  **AI seats pickable people**, keyed by the synthetic `ai:<seat>` id (a bot's
+  play has `user_id: null`).
+- **codenamesduet** files a turn under its **clue-giver** — the person the row's
+  actor column already names — since a duet turn is one clue plus the guesses that
+  answered it.
+
 **`<TurnLogItem>` has been deleted.** It was a thin legacy single-row wrapper
 (one `<tr>` = `<TurnLogBar>` + `.turnLogDivider` + the game's cells) kept only for
 games not yet converted; **waffle** was the last caller, and converting it to its

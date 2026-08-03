@@ -410,10 +410,14 @@ describe('wordle PlayArea — opponent picker (compete)', () => {
 })
 
 describe('wordle PlayArea — turn-log picker label', () => {
-  it('labels the player "You" in a solo game the player is viewing', () => {
-    // makeCtx defaults to viewer u1 as the only player.
+  it('names the player by HANDLE in a solo game, even when it’s you', () => {
+    // makeCtx defaults to viewer u1 as the only player. The shared vocabulary
+    // names everyone the same way — "You" made your own row read as a different
+    // KIND of thing from everyone else's (useTurnLogPlayerPicker).
     render(<PlayArea {...makeCtx()} />)
-    expect(screen.getByRole('option', { name: 'You' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'me' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'You' })).not.toBeInTheDocument()
+    // No aggregate in a solo game — "Team" of one is the same list twice.
     expect(screen.queryByRole('option', { name: 'Team' })).not.toBeInTheDocument()
   })
 
@@ -433,9 +437,11 @@ describe('wordle PlayArea — turn-log picker label', () => {
     expect(screen.queryByRole('option', { name: 'You' })).not.toBeInTheDocument()
   })
 
-  it('shows "Team" in a multi-player coop game', () => {
+  it('shows "Team" AND each player in a multi-player coop game', () => {
     render(<PlayArea {...makeCtx({ players: twoMembers })} />)
     expect(screen.getByRole('option', { name: 'Team' })).toBeInTheDocument()
+    // Per-player entries pull one thread out of the shared log.
+    expect(screen.getByRole('option', { name: 'moth' })).toBeInTheDocument()
   })
 })
 

@@ -5,12 +5,19 @@ import { memberById } from '../../common/lib/game/peers'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import { TurnLog, TurnLogBar, TurnLogNumber } from '../../common/components/game/lists/TurnLog'
 import turnLog from '../../common/components/game/lists/TurnLog.module.css'
+import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
 import type { Player, GuessRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
 
 type Props = {
+  /** Every turn the viewer can see. Coop: the whole shared game. Compete: the
+   *  viewer's own during play, and (once terminal, when RLS opens) everyone's. */
   guesses: GuessRow[]
   players: Player[]
+  selfId: string
+  mode: 'coop' | 'compete'
+  /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
+  isTerminal: boolean
   /** Turn-history: the turn currently open in the board viewer (by log position),
    *  or null when live. Its `#N` handle wears the shared yellow ring. */
   viewingIndex: number | null
@@ -41,10 +48,30 @@ type Props = {
  *     a single colspan** cell "Hint: <clue>" (the row carries the clue text, not
  *     a word).
  *
- * In compete mode RLS scopes all to the caller, so this shows only the viewer's
- * own attempts + helpers.
+ * **Whose turns** are shown is picked by the shared `useTurnLogPlayerPicker`
+ * dropdown in the header — one vocabulary across every turn-log game (solo: your
+ * handle; coop: "Team" plus each player; compete: "All" plus each player). In
+ * compete an opponent's rows are RLS-hidden during play and open at terminal,
+ * which is exactly what the picker's empty text says.
  */
-export function GameTurnLog({ guesses, players, viewingIndex, onSelectTurn }: Props) {
+export function GameTurnLog({
+  guesses,
+  players,
+  selfId,
+  mode,
+  isTerminal,
+  viewingIndex,
+  onSelectTurn,
+}: Props) {
+  const who = useTurnLogPlayerPicker<GuessRow>({
+    players,
+    selfId,
+    mode,
+    isTerminal,
+    emptyLabel: 'No turns yet.',
+  })
+  const shown = who.filter(guesses)
+
   // The actor's identity cell — shared by every row kind. The shared
   // <TurnLogActor> is the right-aligned `.who` <td> wrapping the name + disc;
   // this local helper just resolves the userId to a member first.
@@ -64,22 +91,35 @@ export function GameTurnLog({ guesses, players, viewingIndex, onSelectTurn }: Pr
     onClick: (e: MouseEvent<HTMLSpanElement>) => define(word.toLowerCase(), e.currentTarget),
   })
 
+  // The "#N" cell, shared by both row kinds. It's a LIVE handle (opens that turn
+  // on the board viewer) only when the rows on show ARE the board's sequence —
+  // the viewer indexes by log POSITION, so a filtered list's row 3 isn't turn 3.
+  // Otherwise it degrades to a plain read-only number rather than disappearing,
+  // which keeps the column's width and the row's shape identical either way.
+  const turnNumber = (i: number) =>
+    who.boardIsShown ? (
+      <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
+    ) : (
+      <td className={turnLog.meta}>#{i + 1}</td>
+    )
+
   return (
     <>
     <TurnLog
       heading="Turns"
-      empty={guesses.length === 0}
-      emptyText="No turns yet."
-      scrollKey={guesses}
+      headerAction={who.picker}
+      empty={shown.length === 0}
+      emptyText={who.emptyText}
+      scrollKey={shown}
     >
-      {guesses.map((g, i) => {
+      {shown.map((g, i) => {
         // Hint: the word + result columns collapse into one colspan cell, since
         // the row carries a clue sentence, not a word + a one-word result.
         if (g.kind === 'hint') {
           return (
             <tr key={g.id} className={turnLog.turnLogDivider}>
               <TurnLogBar outcome="partial" />
-              <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
+              {turnNumber(i)}
               {/* The hint sentence spans the word+result columns; it's the row's
                   main column (absorbs the slack so `who` stays snug). */}
               <td colSpan={2} className={cls(turnLog.main, styles.hint)}>
@@ -94,7 +134,7 @@ export function GameTurnLog({ guesses, players, viewingIndex, onSelectTurn }: Pr
         return (
           <tr key={g.id} className={turnLog.turnLogDivider}>
             <TurnLogBar outcome={isReveal ? 'partial' : g.is_correct ? 'good' : 'bad'} />
-            <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
+            {turnNumber(i)}
             {/* word = sized-to-fit (`.other`) + the bold lead look (`.primary`);
                 result = the main column, absorbing the slack so the word + result
                 stay clustered and `who` sits snug at the right. */}

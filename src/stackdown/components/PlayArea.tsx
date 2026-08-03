@@ -598,7 +598,6 @@ export function PlayArea({
         setup={setup as unknown as StackdownSetup}
         solution={game.solution}
         submissions={logWords}
-        showWho={!isCompete}
         viewingIndex={viewingIndex}
         onSelectTurn={setViewingIndex}
         />

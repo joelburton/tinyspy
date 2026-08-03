@@ -6,25 +6,33 @@ import styles from '../../components/game/lists/TurnLog.module.css'
 /** The minimum a row needs for this hook to filter it: who made it. */
 type ActorRow = { user_id: string }
 
-/** The compete "everyone" selection. Not a user id, so it can't collide. */
+/** The two aggregate selections. Neither is a user id, so they can't collide. */
 const ALL = 'all'
+const TEAM = 'team'
 
 export type TurnLogPlayerPicker<R extends ActorRow> = {
   /** The `<select>`, for `<TurnLog headerAction>`. */
   picker: React.ReactNode
-  /** Rows narrowed to the current selection (all of them in the Team view). */
+  /** Rows narrowed to the current selection. */
   filter: (rows: readonly R[]) => R[]
-  /** Whose log is showing: a user id, `'all'` (compete's everyone view), or
-   *  meaningless while `teamView` is true. */
+  /** What's selected: a user id, or `'team'` / `'all'`. */
   picked: string
-  /** Coop with 2+ players: one shared board, so one "Team" option. */
-  teamView: boolean
+  /** True while an aggregate view (`Team` / `All`) is selected. */
+  showsEveryone: boolean
   /**
-   * True when the rows on show are the SAME board the main surface is
-   * replaying — the team board, or my own. Only games with a turn-history
-   * viewer care: they make `#N` a live handle when this is true and a plain
-   * number otherwise (an opponent's rows can't drive MY board). Games without
-   * a viewer ignore it.
+   * True when the rows on show are the SAME sequence the board is replaying.
+   * Only games with a turn-history viewer care: they make `#N` a live handle
+   * when this is true and a plain number otherwise.
+   *
+   * Note this is FALSE whenever a single player is picked out of a shared,
+   * multi-player coop game. The viewer indexes the log by position, so a
+   * filtered list's row 3 isn't the board's turn 3 — offering the handle there
+   * would replay the wrong turn. Coop's default `Team` keeps it live, which is
+   * the common case, and a SOLO game is always live (its filter is a no-op).
+   *
+   * Games whose viewer addresses a turn by a stable id — scrabble by `seq`,
+   * codenamesduet by `turn_number` — can't be misaddressed by filtering, so they
+   * ignore this and leave the handle live throughout.
    */
   boardIsShown: boolean
   /**
@@ -40,26 +48,39 @@ export type TurnLogPlayerPicker<R extends ActorRow> = {
  * The "whose turns am I looking at?" dropdown for a `<TurnLog>`, plus the
  * filtering and the honesty rules that travel with it.
  *
- * Shipped first in wordle and extracted when wordiply became the second
- * consumer. Six pieces have to move together or a caller gets a subtly wrong
- * log: the control, its default selection, the coop-is-one-team collapse, the
- * row filter, whether `#N` may be a live history handle, and the empty-state
- * wording. Re-deriving any of those per game is how they drift.
+ * **One vocabulary, every turn-log game** (settled 2026-08-02):
+ *
+ *   solo     →  [ your handle ]
+ *   co-op    →  [ Team, …every player by handle ]
+ *   compete  →  [ All,  …every player by handle ]
+ *
+ * The aggregate comes first, and is the default everywhere EXCEPT compete —
+ * there each player has their own board, so your own log is the thing you came
+ * to read (`competeSharesOneGame` opts scrabble back out of that). The
+ * per-player entries are for the times you want one thread out of the whole:
+ * "what did Leah actually play?", or "just my own moves" in a game like scrabble
+ * where the shared log interleaves everyone.
+ *
+ * **Players are named by handle, including you.** An earlier version labelled
+ * the viewer "You", which made your own row read as a different KIND of thing
+ * from everyone else's; a list of handles is one list. You're still ordered
+ * first, and still the default in compete.
+ *
+ * Six things travel together here, and re-deriving any of them per game is how
+ * they drift: the control, its default selection, the aggregate label (which
+ * differs by mode), the row filter, whether `#N` may be a live history handle,
+ * and the empty-state wording.
  *
  *     const who = useTurnLogPlayerPicker({ players, selfId, mode, isTerminal })
- *     const shown = who.filter(guesses)
+ *     const shown = who.filter(rows)
  *     <TurnLog headerAction={who.picker} empty={!shown.length} emptyText={who.emptyText}>
- *
- * **The default selection is the interesting bit.** A player sees their own log
- * first (labelled "You"). A club member *spectating* a game they're not in has
- * no "own" log, so they default to the first listed player — which in a solo
- * game is the only one, and is why the control still makes sense there.
  */
 export function useTurnLogPlayerPicker<R extends ActorRow>({
   players,
   selfId,
   mode,
   isTerminal,
+  competeSharesOneGame = false,
   label = 'Whose turns to show',
   emptyLabel = 'Nothing yet.',
 }: {
@@ -68,65 +89,92 @@ export function useTurnLogPlayerPicker<R extends ActorRow>({
   mode: 'coop' | 'compete'
   /** Distinguishes an RLS-hidden opponent log from a genuinely empty one. */
   isTerminal: boolean
+  /**
+   * True when compete is still ONE shared game. scrabble's race is turn-based on
+   * a single public board, so `All` is literally what you're looking at and the
+   * picker defaults there; the per-player entries are the extra ("just my own
+   * plays"). Every other compete game gives each player their own private board,
+   * where your own log is the thing you came to read — hence the default.
+   */
+  competeSharesOneGame?: boolean
   /** Override for a game whose rows aren't "turns" (wordle says "guesses"). */
   label?: string
   /** The empty line when nothing is HIDDEN — the honest-hidden case overrides it. */
   emptyLabel?: string
 }): TurnLogPlayerPicker<R> {
-  // Coop with 2+ players is ONE shared board, so there's nothing to pick
-  // between — collapse to a single "Team" option. Every other case (compete,
-  // or a solo coop game) lists the real players.
-  const teamView = mode === 'coop' && players.length >= 2
-
   const ordered = orderSelfFirst(players, selfId)
-  const viewerIsPlayer = players.some((p) => p.user_id === selfId)
-  const [picked, setPicked] = useState(
-    viewerIsPlayer ? selfId : (ordered[0]?.user_id ?? ''),
-  )
 
-  // Compete lists everyone's runs at once as well as one at a time. NOT offered
-  // in coop: "Team" already IS everyone, so an "All" beside it would be the same
-  // list under two names. Multi-player only — with one player it'd duplicate
-  // "You".
-  const offersAll = mode === 'compete' && players.length >= 2
-  const isAll = offersAll && picked === ALL
+  // A solo game has nobody to pick between: one player, one option, no
+  // aggregate (a "Team" of one, or "All" of one, would be the same list twice).
+  const solo = players.length < 2
+  const aggregate = solo ? null : mode === 'coop' ? TEAM : ALL
+
+  const viewerIsPlayer = players.some((p) => p.user_id === selfId)
+
+  // The aggregate is the default in coop — it IS the shared game. In compete
+  // your own board is what you're looking at, so that's the default there
+  // (unless the whole race happens on one board — see competeSharesOneGame).
+  const fallback = solo
+    ? (ordered[0]?.user_id ?? '')
+    : mode === 'coop'
+      ? TEAM
+      : competeSharesOneGame
+        ? ALL
+        : viewerIsPlayer
+          ? selfId
+          : ALL
+
+  // State holds only what the USER picked; the default is DERIVED every render.
+  // Freezing the default into `useState(initializer)` looked equivalent and
+  // wasn't: the roster arrives asynchronously, so the first render often has
+  // zero players, and the frozen default was then `''` — an option that exists
+  // nowhere, which silently filtered the whole log to nothing once the players
+  // landed. (Caught by codenamesduet-history.e2e, which flaked on the race.)
+  // Deriving also means a selection that stops being offered — a player who
+  // left — degrades to the default instead of showing an empty log forever.
+  const [chosen, setChosen] = useState<string | null>(null)
+  const offered = new Set<string>([
+    ...(aggregate ? [aggregate] : []),
+    ...players.map((p) => p.user_id),
+  ])
+  const picked = chosen !== null && offered.has(chosen) ? chosen : fallback
+
+  // With no roster loaded yet there's nobody to filter BY, so show everything —
+  // blanking the log for a frame would read as "nothing happened here".
+  const showsEveryone = players.length === 0 || picked === TEAM || picked === ALL
 
   const picker = (
     <select
       className={styles.whoSelect}
       aria-label={label}
-      value={teamView ? 'team' : picked}
-      onChange={(e) => setPicked(e.target.value)}
+      value={picked}
+      onChange={(e) => setChosen(e.target.value)}
     >
-      {teamView ? (
-        <option value="team">Team</option>
-      ) : (
-        <>
-          {offersAll && <option value={ALL}>All</option>}
-          {ordered.map((p) => (
-            <option key={p.user_id} value={p.user_id}>
-              {p.user_id === selfId ? 'You' : p.username}
-            </option>
-          ))}
-        </>
+      {aggregate && (
+        <option value={aggregate}>{aggregate === TEAM ? 'Team' : 'All'}</option>
       )}
+      {ordered.map((p) => (
+        <option key={p.user_id} value={p.user_id}>
+          {p.username}
+        </option>
+      ))}
     </select>
   )
 
   return {
     picker,
-    filter: (rows) =>
-      teamView || isAll ? [...rows] : rows.filter((r) => r.user_id === picked),
+    filter: (rows) => (showsEveryone ? [...rows] : rows.filter((r) => r.user_id === picked)),
     picked,
-    teamView,
-    // "All" is nobody's board in particular, so a history handle would have
-    // nothing to open — same as picking an opponent.
-    boardIsShown: teamView || picked === selfId,
+    showsEveryone,
+    // Live only when the shown rows are the board's whole sequence: a solo game
+    // (the filter is a no-op — one player, one board), coop's shared Team view,
+    // or — in compete, where the board IS one player's — your own.
+    boardIsShown: solo || picked === TEAM || (mode === 'compete' && picked === selfId),
     emptyText:
-      // Only a SINGLE opponent's log is honestly "hidden": the All view still
-      // carries my own rows mid-game (RLS gives me those), so an empty All view
-      // really does mean nobody has played yet.
-      mode === 'compete' && !isAll && picked !== selfId && !isTerminal
+      // Only a SINGLE opponent's log is honestly "hidden": an aggregate view
+      // still carries my own rows mid-game, so an empty one really does mean
+      // nobody has played.
+      mode === 'compete' && !showsEveryone && picked !== selfId && !isTerminal
         ? 'Hidden until game ends.'
         : emptyLabel,
   }

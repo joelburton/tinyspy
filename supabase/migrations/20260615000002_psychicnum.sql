@@ -216,20 +216,31 @@ create policy players_select on psychicnum.players
 
 -- Guesses: branch on the parent game's mode.
 --   coop    — every club member sees every guess (default).
---   compete — each player sees only their own guesses; opponents'
---             guess values + correctness are private.
+--   compete — each player sees only their own guesses DURING PLAY;
+--             everyone's open once the game is terminal.
 --
--- The branching reads `g.mode` from the parent psychicnum.games
+-- The mode test reads `g.mode` from the parent psychicnum.games
 -- row — denormalized expressly to avoid joining common.games on
--- every guess select.
+-- every guess select. The terminal arm is what forces the join
+-- back in: `is_terminal` lives on common.games and there's no
+-- point denormalizing a flag that flips mid-game.
+--
+-- Why compete opens at terminal (2026-08-02): the turn log grew
+-- the shared "whose turns?" picker, and its whole value in compete
+-- is the post-game read-through — "how did moth spend their
+-- budget?". Hiding an opponent's guesses DURING play is the real
+-- rule (their guesses are their strategy); hiding them after the
+-- game has ended just withholds the interesting part. Same shape
+-- as stackdown / connections / waffle.
 create policy guesses_select on psychicnum.guesses
   for select to authenticated
   using (
     exists (
       select 1 from psychicnum.games g
+       join common.games cg on cg.id = g.id
        where g.id = guesses.game_id
          and common.is_club_member(g.club_handle)
-         and (g.mode = 'coop' or guesses.user_id = auth.uid())
+         and (g.mode = 'coop' or guesses.user_id = auth.uid() or cg.is_terminal)
     )
   );
 

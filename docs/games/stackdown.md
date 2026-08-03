@@ -418,9 +418,13 @@ pill.
   the shared `<TurnLog>`: a `<tr>` per submission with the shared outcome bar:
   valid words green + clickable to define, invalid attempts red + struck through +
   tagged, cheat requests amber showing the revealed text ("Hint: <clue>" /
-  "Revealed: <WORD>"); coop shows the actor via the shared `<ActorTag>`, compete
-  suppresses it. Each row's `#N` is the shared `<TurnLogNumber>` history handle — see
-  `lib/history.ts`), `BoardCol` (the board + WordEntry input engine + the local
+  "Revealed: <WORD>"); every row names its actor via the shared `<ActorTag>`, in
+  both modes. The header carries the shared "whose turns?" picker
+  (`useTurnLogPlayerPicker` — Team/All + each player); in compete an opponent's
+  rows are RLS-hidden during play and open at terminal, which the picker's empty
+  text says. Each row's `#N` is the shared `<TurnLogNumber>` history handle, live
+  only while the rows on show ARE the board's sequence — the viewer indexes by
+  POSITION, so a filtered row 3 isn't the board's turn 3 — see `lib/history.ts`), `BoardCol` (the board + WordEntry input engine + the local
   feedback slot; takes the board to render — live or a `lib/history` snapshot — plus
   `readOnly`, and emits the completed word up), `InfoCol` (the info column: state,
   compete OpponentStrip, action row of Reveal-hint/Reveal-word cheats + End/Concede

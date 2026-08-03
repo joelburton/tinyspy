@@ -50,12 +50,12 @@ type Props = {
  * own identity on each row.
  *
  * **Whose guesses** are shown is picked by a small dropdown in the header
- * (right-aligned, kept understated — a rarely-used control). A coop game with 2+
- * players is one shared "Team". Every other case lists the actual players (the
- * viewer first + default when they're playing, labelled "You"; a spectating club
- * member instead sees the player's name and defaults to them). Compete is the
- * "see opponents' boards" affordance — an opponent's rows are empty during play
- * (RLS hides them) and fill in once the game ends and their guesses reveal.
+ * (right-aligned, kept understated — a rarely-used control): the shared
+ * `useTurnLogPlayerPicker`, on one vocabulary across every turn-log game — solo
+ * is your handle, coop is "Team" plus each player, compete is "All" plus each
+ * player, defaulting to your own board. Compete is the "see opponents' boards"
+ * affordance — an opponent's rows are empty during play (RLS hides them) and fill
+ * in once the game ends and their guesses reveal.
  */
 export function GameTurnLog({
   guesses,
@@ -66,9 +66,9 @@ export function GameTurnLog({
   viewingIndex,
   onSelectTurn,
 }: Props) {
-  // Whose guesses to show. The control, its default, the coop-is-one-"Team"
-  // collapse, the row filter and the honest empty line all come from the shared
-  // hook — see useTurnLogPlayerPicker.
+  // Whose guesses to show. The control, its default, the aggregate label, the row
+  // filter, the `#N`-handle gate and the honest empty line all come from the
+  // shared hook — see useTurnLogPlayerPicker.
   const who = useTurnLogPlayerPicker<GuessRow>({
     players,
     selfId,

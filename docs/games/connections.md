@@ -618,9 +618,10 @@ newspaper flow.)
 ## Turn log — whose guesses?
 
 The log carries the shared [`useTurnLogPlayerPicker`](../../src/common/hooks/game/useTurnLogPlayerPicker.tsx)
-dropdown, the same one wordle and wordiply use, so the vocabulary is identical
-everywhere: **solo → "You"**, **team coop → "Team"**, **compete → "All" plus each
-player**, defaulting to yourself.
+dropdown — the one **every** turn-log game uses, so the vocabulary is identical
+everywhere: **solo → your handle**, **co-op → "Team" plus each player**,
+**compete → "All" plus each player**, defaulting to your own board. See
+[playarea.md → Whose turns?](../playarea.md#whose-turns--the-shared-player-picker).
 
 The compete options only mean anything because the RLS opens at terminal. Mid-game
 an opponent's log is empty and says *"Hidden until game ends."* rather than "no

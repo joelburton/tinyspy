@@ -387,6 +387,14 @@ src/codenamesduet/
                           turn is still live, "(no guesses)" once it ended empty.
                           turnLog.turnLogDivider on row 1 draws the between-turns
                           line. Per-turn outcome from lib/turnOutcome.ts.
+                          Header carries the shared "whose turns?" picker
+                          (useTurnLogPlayerPicker — Team + both players; duet is
+                          coop-only). A turn is filed under its CLUE-GIVER — the
+                          person row 1's actor column already names — so picking
+                          someone answers "which clues did I give?". It ignores the
+                          hook's boardIsShown: the #n handle addresses a turn by
+                          turn_number, not log position, so filtering can't
+                          misaddress it.
     GameTurnLog.module.css
     GameTurnLog.test.tsx
     SetupForm.tsx         The setup form mounted in the common SetupGameDialog.
@@ -526,7 +534,7 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 | `src/codenamesduet/lib/phase.test.ts` | Every branch of phase derivation. Pure, no DOM. |
 | `src/codenamesduet/lib/turnOutcome.test.ts` | Every branch of the per-turn outcome verdict (assassin / only-neutrals / mixed / all-agents / passed). Pure, no DOM. |
 | `src/codenamesduet/hooks/useBoard.test.ts` | The board hook's data flow — initial fetch, realtime append, refetch on resubscribe. |
-| `src/codenamesduet/components/GameTurnLog.test.tsx` | Per-turn grouping (each turn = two `<tr>`s), oldest-first chronological order, within-turn guess sort by `guessed_at`, and the guess-line state: "(clue given)" while the turn is the current live one vs "(no guesses)" once it has ended (or the game is over). |
+| `src/codenamesduet/components/GameTurnLog.test.tsx` | Per-turn grouping (each turn = two `<tr>`s), oldest-first chronological order, within-turn guess sort by `guessed_at`, the guess-line state ("(clue given)" while the turn is the current live one vs "(no guesses)" once it has ended, or the game is over), and the shared player picker (Team + both handles, defaulting to Team; picking a player narrows to the turns they CLUED). |
 | `src/codenamesduet/components/PlayArea.test.tsx` | The synchronous `guessInFlight` guard — a second tile click while a guess is in flight fires no second `submit_guess` (the pending-tile disable is async, so it misses a same-tick double-tap, and only disables the one clicked tile) — plus tile input gating: clickable on my guess turn, blocked at terminal. |
 | `src/codenamesduet/components/CluePanel.test.tsx` | The two-kinds-of-text-input contract: both clue inputs (count + word) carry `data-game-input`, so the global `/ ? ~` shortcuts still fire while typing a clue. (`isNonGameField`'s logic is covered in `useAppShortcuts.test.ts`; this pins that the actual inputs carry the tag.) |
 

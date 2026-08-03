@@ -38,8 +38,8 @@ type Props = {
  * draws the between-turns line.
  *
  * **Both modes** since 2026-08-02 (compete used to write no swaps at all). Whose
- * swaps show is picked by the shared `useTurnLogPlayerPicker` — solo "You", coop
- * "Team", compete "All" plus each player. In compete an opponent's rows are
+ * swaps show is picked by the shared `useTurnLogPlayerPicker` — solo is your
+ * handle, coop is "Team" plus each player, compete is "All" plus each player. In compete an opponent's rows are
  * RLS-hidden during play and open at terminal, which is exactly what the
  * picker's empty text says; the gate is load-bearing, since replaying someone's
  * swaps from the shared scramble rebuilds their board.

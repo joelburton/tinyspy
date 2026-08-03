@@ -57,6 +57,7 @@ export function InfoCol({
   setup,
   wordCount,
   guesses,
+  isTerminal,
   viewingIndex,
   onSelectTurn,
 }: {
@@ -114,6 +115,9 @@ export function InfoCol({
 
   // ── Turn-history log (GameTurnLog) ──
   guesses: GuessRow[]
+  /** Terminal yet? The log's player picker uses it to distinguish an opponent's
+   *  RLS-hidden rows (during play) from a genuinely empty log (at terminal). */
+  isTerminal: boolean
   /** The turn currently open in the board viewer (by log position), or null. */
   viewingIndex: number | null
   onSelectTurn: (index: number) => void
@@ -226,6 +230,9 @@ export function InfoCol({
       <GameTurnLog
         guesses={guesses}
         players={players}
+        selfId={selfId}
+        mode={isCompete ? 'compete' : 'coop'}
+        isTerminal={isTerminal}
         viewingIndex={viewingIndex}
         onSelectTurn={onSelectTurn}
       />

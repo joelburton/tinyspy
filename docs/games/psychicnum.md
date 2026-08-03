@@ -46,7 +46,7 @@ Both siblings share the same display `name` — the brand, `PsychicNum`, read fr
 - Each player gets their own guess budget (initial value = `setup.guesses` per player) **and their own private board**; each races to find all three themselves.
 - Each guess decrements only the submitter's budget.
 - A player sees:
-  - **Their own** guesses + results + hints (the turn log + board filter server-side via RLS).
+  - **Their own** guesses + results + hints (the turn log + board filter server-side via RLS) — until the game ends, when every player's log opens and the turn log's player picker can read them back.
   - **Opponents' remaining budget** (a strip in the action slot) AND a header pill when an opponent finds a secret — "● X guessed a word" — the *count*, never *which* word (`players.found_secrets_count` is public; the values stay hidden).
   - **NOT** opponents' guesses, hints, or which numbers they've found.
 - **Win:** the first player to find all three ends the game for everyone. That player wins; everyone else loses immediately, even if they had budget remaining.
@@ -93,7 +93,7 @@ A consolidated comparison. Anything not listed here is identical across modes.
 | **`submit_timeout` terminal**          | `play_state='lost'`, outcome `timeout`                      | `play_state='lost_compete'`, outcome `timeout`                       |
 | **listing-label `status.guesses_remaining`** | Shared value (all rows have it; any row works)        | Sum of all rows (the listing label reflects "total remaining budget across the game") |
 | **FE PlayArea header**                 | "X guesses left" (single shared number)                     | Budget strip: "You: X · Bea: Y · Cade: Z"                            |
-| **FE GameTurnLog**                    | Every guess shown with username                             | Only caller's guesses shown (RLS filters server-side; FE doesn't need to filter) |
+| **FE GameTurnLog**                    | "Team" + each player in the shared picker                   | "All" + each player; RLS still hides opponents' rows until terminal |
 | **Terminal outcome line** (info column) | "You won!" / "Out of guesses" / "Timer elapsed" (team)      | "You won!" / "${winner} won" (per-self)                              |
 
 The shape that's the same in both modes:
@@ -329,14 +329,17 @@ All three tables (`games`, `players`, `guesses`) have RLS enabled, with SELECT p
     using (
       exists (
         select 1 from psychicnum.games g
+         join common.games cg on cg.id = g.id
          where g.id = guesses.game_id
            and common.is_club_member(g.club_handle)
-           and (g.mode = 'coop' or guesses.user_id = auth.uid())
+           and (g.mode = 'coop' or guesses.user_id = auth.uid() or cg.is_terminal)
       )
     );
   ```
 
-  Coop: any club member sees any guess. Compete: club members only see their own guesses. The `g.mode` read is denormalized expressly to avoid joining `common.games` on every visibility check.
+  Coop: any club member sees any guess. Compete: club members see only their own **during play** — and everyone's **once the game is terminal** (2026-08-02, when the turn log gained the shared player picker; the same shape stackdown / connections / waffle use). Hiding an opponent's guesses mid-game is the real rule — their guesses are their strategy — but hiding them afterwards just withholds the interesting part.
+
+  The `g.mode` read is denormalized expressly to avoid joining `common.games` for the mode; the terminal arm is what forces that join back in, since `is_terminal` lives on `common.games` and there's no point denormalizing a flag that flips mid-game. Guarded by [`rls_test.sql`](../../supabase/tests/psychicnum/rls_test.sql) — including that terminal widens the *mode* gate, not the *club* gate.
 
 Realtime publication includes all three tables so the FE can subscribe to terminal-state flips (games), budget decrement (players), and new-guess appends (guesses). In compete mode the realtime payload for an opponent's guess still arrives, but the RLS-filtered refetch hides it from rendering.
 
@@ -416,6 +419,11 @@ src/psychicnum/
                           word+result columns into a colspan "Hint: <clue>". The
                           guessed/revealed WORD is click-to-define (useDefinePopover)
                           — a real dictionary word; the hint's clue sentence is NOT.
+                          Header carries the shared "whose turns?" picker
+                          (useTurnLogPlayerPicker — Team/All + each player); when a
+                          single player is filtered out of a shared coop log the
+                          `#n` handle goes inert, since the viewer indexes by
+                          POSITION and a filtered row 3 isn't the board's turn 3.
     GameTurnLog.module.css
     SetupForm.tsx         The setup form (guesses + word_count + difficulty + timer)
                           mounted in the common SetupGameDialog. (No per-game .module.css.)
