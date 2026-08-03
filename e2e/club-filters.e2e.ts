@@ -90,6 +90,11 @@ test.describe('club page list filters', () => {
     await select.selectOption('wordle')
     // BOTH wordle games survive the family filter; the waffles don't.
     await expect(gameCards).toHaveCount(2)
+    // ...and committing a choice hands the keyboard straight back to the games
+    // list, so the arrow-key cursor is live again without a click or a Tab.
+    expect(
+      await page.evaluate(() => document.activeElement?.getAttribute('aria-label')),
+    ).toBe('Your games')
     expect(await startButtons.count()).toBe(allStart) // start list untouched
 
     await select.selectOption('all')
@@ -100,11 +105,11 @@ test.describe('club page list filters', () => {
 
   /**
    * A solo club draws no coop/compete distinction anywhere (`<ModePill>`
-   * suppresses the badge there), so the mode filter collapses to the one
-   * always-selected "All" — the control keeps its slot in the heading row
-   * without offering to sort by something the page isn't showing.
+   * suppresses the badge there), so it gets NO mode filter — offering to sort
+   * by a distinction the page isn't showing is worse than the empty space.
+   * The start list still shows everything.
    */
-  test('a solo club gets only the always-selected All', async ({ browser }) => {
+  test('a solo club gets no mode filter at all', async ({ browser }) => {
     const club = await createSoloClub('flsolo')
 
     const ctx = await browser.newContext()
@@ -113,20 +118,13 @@ test.describe('club page list filters', () => {
     await page.goto(`/c/${club.handle}`)
     await expect(page.getByText('Start a new game')).toBeVisible({ timeout: 20000 })
 
-    const modeButtons = page
-      .locator('[class*="_headingRow_"]')
-      .getByRole('group', { name: 'Filter games by mode' })
-      .getByRole('button')
-    await expect(modeButtons).toHaveCount(1)
-    await expect(modeButtons).toHaveText('All')
-    await expect(modeButtons).toHaveAttribute('aria-pressed', 'true')
-
-    // Pressing it is a no-op — it stays selected and the list is unchanged.
-    const startButtons = page.locator('[class*="_startList_"] [class*="_button_"]')
-    const before = await startButtons.count()
-    await modeButtons.click()
-    await expect(modeButtons).toHaveAttribute('aria-pressed', 'true')
-    expect(await startButtons.count()).toBe(before)
+    // Neither instance renders — not the desktop heading-row one, not the
+    // mobile under-the-tabs one.
+    await expect(page.getByRole('group', { name: 'Filter games by mode' })).toHaveCount(0)
+    // ...and the solo club's whole startable set is listed, unfiltered.
+    await expect(
+      page.locator('[class*="_startList_"] [class*="_button_"]'),
+    ).not.toHaveCount(0)
 
     await ctx.close()
   })

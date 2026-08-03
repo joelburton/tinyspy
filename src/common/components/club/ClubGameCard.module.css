@@ -1,13 +1,31 @@
-/* One card per game entry on ClubPage. Three states, same shape;
- * the per-state visual tier is in this stylesheet, not in JSX.
+/* One entry per game on ClubPage.
  *
- * Layout: mirrors the StartGameButtons cards — the gametype's logo on
- * the left, then the algorithmic title (with the mode pill) over a muted
- * status · started-at line.
+ * Layout: mirrors StartGameButtons — the gametype's logo on the left, then
+ * the algorithmic title (with the mode pill) over a muted status ·
+ * started-at line.
  *
- * .wrapper sits outside the Link so the hover-revealed delete
- * affordance can absolute-position over the corner of the card
- * without fighting the Link's click target.
+ * TWO AXES, deliberately independent (they used to be one, which is why the
+ * active game could only be shown one way):
+ *
+ *   - **`variant`** = which visual register — where this instance is being
+ *     rendered. `.row` inside either panel: no border or radius of its own,
+ *     one hairline underneath, tight padding — the same treatment as the
+ *     start-a-new-game rows, and for the same reason (a club with a long
+ *     history showed barely half its games). `.standalone` for the
+ *     active-game callout above the start list: full card chrome, a step
+ *     larger, because it's a single call to action with nothing to be dense
+ *     against.
+ *   - **`state`** = the game's standing (active / suspended / completed),
+ *     which drives ONLY the corner flag — orange for the current game,
+ *     yellow for a shelved one, none for a finished one. It carries no type
+ *     or color treatment of its own: see the flag note further down.
+ *
+ * The active game is rendered TWICE — once as the standalone callout, once as
+ * an ordinary row in "Your games" (where it keeps its orange flag, so the row
+ * that's live is still findable at a glance).
+ *
+ * .wrapper sits outside the Link so the hover-revealed delete affordance can
+ * absolute-position over the corner without fighting the Link's click target.
  */
 
 .wrapper {
@@ -15,13 +33,13 @@
 }
 
 .card {
-  border: 1px solid var(--color-surface-border);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
+  /* Shape only — no border/radius here; the two variants add their own (the
+   * row a bottom rule, the standalone a full border). Padding matches the
+   * start rows exactly, so the two panels' rhythms line up. */
+  padding: 0.4rem 0.9rem;
   background: var(--color-surface);
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
   /* Position + overflow so the corner-flag triangle (rendered
    * for the 'suspended' state) anchors to the card and clips
    * to the card's rounded corner cleanly. The delete affordance
@@ -39,8 +57,11 @@
   color: inherit;
 }
 
+/* Hover tints the row, the same as a start row — a bottom-rule-only item has
+ * no border to light, and lighting just the underline would read as
+ * highlighting the item BELOW. */
 .link:hover .card {
-  border-color: var(--color-text);
+  background: var(--color-surface-hover);
 }
 
 /* Logo + content row — mirrors the StartGameButtons cards so the
@@ -56,7 +77,9 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  /* No gap: the two lines' own line-heights are the leading (see the start
+   * rows — a gap here separated a title from its OWN status line more than
+   * the hairline separates one game from the next). */
   flex: 1;
   min-width: 0;
 }
@@ -69,11 +92,14 @@
   flex-wrap: wrap;
 }
 
-/* The algorithmic title — the largest text in the card. Per-state
- * sizing below scales this. word-break since some gametypes
- * generate long titles. */
+/* The algorithmic title — the largest text in a row. Same size, weight and
+ * leading as a start-list row's title (StartGameButtons/.title), so the two
+ * panels' rows are the same object seen twice; only .active scales it up.
+ * word-break since some gametypes generate long titles. */
 .title {
   font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.2;
   word-break: break-word;
 }
 
@@ -88,7 +114,7 @@
   flex-wrap: wrap;
   font-size: 0.85rem;
   color: var(--color-muted);
-  line-height: 1.3;
+  line-height: 1.25;
 }
 
 /* Right-justified even if the status is short or the line wraps. */
@@ -97,37 +123,51 @@
   white-space: nowrap;
 }
 
-/* ─── State-specific treatments ────────────────────────────── */
+/* ─── The two variants ─────────────────────────────────────── */
 
-/* Active: this is the game the user is in right now. Bigger title +
- * thicker border for prominence — but NOT the accent blue: since the
- * keyboard list-nav arrived, a blue ring means "the keyboard cursor is
- * here / Enter acts on this", and the active card isn't keyboard-reachable.
- * A dark neutral border keeps the prominence without lying about that. */
-.active {
-  border-color: var(--color-text);
-  border-width: 2px;
-  padding: 1rem 1.25rem;
+/* A row in either panel: a hairline underneath, and none under the last one
+ * (the frame's own border already closes the block). Keyed on the VARIANT,
+ * not the state — a `.wrapper:last-child .card` rule would also strip the
+ * bottom off the standalone card's four-sided border, since that one is the
+ * only child of its own block. */
+.row {
+  border-bottom: 1px solid var(--color-control-border);
 }
 
-.active .title {
-  font-size: 1.5rem;
+.wrapper:last-child .row {
+  border-bottom: none;
 }
 
-/* Suspended: a real card you can resume. Default treatment. */
-.suspended .title {
-  font-size: 1.1rem;
+/* The standalone active-game callout above the start list. Thick border for
+ * prominence — but NOT the accent blue: since the keyboard list-nav arrived,
+ * a blue ring means "the keyboard cursor is here / Enter acts on this", and
+ * this callout isn't in either list. A dark neutral border keeps the
+ * prominence without lying about that. */
+.standalone {
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius-md);
+  /* Even on all four sides, at the rows' horizontal inset — so its logo +
+   * text start on the same vertical line as every row in the two lists below
+   * it, and the box is no taller than its contents need. The border and the
+   * larger title are what make it prominent; padding was just making it
+   * bulky. */
+  padding: 0.9rem;
 }
 
-/* Completed: history. Muted so it doesn't shout from the list. */
-.completed {
-  opacity: 0.7;
+/* A step up from a row's 1rem, not a headline. At 1.5rem the algorithmic
+ * titles that run long — connections' three words, scrabble's opening
+ * three — wrapped to a second line and shoved the callout's own height
+ * around; it's prominent enough from its border and its position. */
+.standalone .title {
+  font-size: 1.25rem;
 }
 
-.completed .title {
-  font-size: 1rem;
-  font-weight: 500;
-}
+/* No state carries a type treatment of its own — no fade for a finished
+ * game, no larger title for a live one. The corner flag is the whole signal
+ * (orange = the current game, yellow = shelved, none = done), and every extra
+ * channel saying the same thing only cost the two panels their shared rhythm:
+ * a list whose rows are three different heights reads as noise, not
+ * hierarchy. */
 
 /* Top-right corner flag indicating "this game is open."
  * Rendered for state='suspended' (yellow) and state='active'
@@ -254,11 +294,15 @@
 }
 
 /* ClubPage's keyboard list-nav cursor — the ring marking which game Enter
- * would open (the LIST container holds the actual focus). On the wrapper
- * (not the card) so it also rings a corner-flagged suspended card; radius
- * matches the card's so the ring hugs it. */
-.kbCursor {
+ * would open (the LIST container holds the actual focus). INSET, like the
+ * start list's cursor: a full-bleed row has no margin for an outward ring to
+ * sit in, and the scrolling frame would clip one.
+ *
+ * The CLASS lands on the wrapper (that's what the JSX toggles, and the wrapper
+ * is what owns the row's full box), but the ring has to be drawn on the .card
+ * INSIDE it: the card is positioned + opaque, so it paints over an inset
+ * outline on its parent and the ring simply never appeared. */
+.kbCursor .card {
   outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
-  border-radius: var(--radius-md);
+  outline-offset: -2px;
 }

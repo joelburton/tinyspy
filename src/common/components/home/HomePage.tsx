@@ -205,9 +205,14 @@ export function HomePage({ session }: Props) {
                   to={`/c/${c.handle}`}
                   className={cls(styles.clubItem, i === kbCursor && styles.kbCursor)}
                 >
+                  {/* Name + (for a solo club) its pill, and nothing else. The
+                      row used to end with the club's `/c/<handle>` URL — the
+                      same thing ClubPage dropped from its own body: it's what
+                      the browser's address bar will say the moment you click,
+                      and a monospace URL is a developer's view of a venue the
+                      friends know by name. */}
                   <span className={styles.clubName}>{c.name}</span>
                   {c.handle.startsWith('=') && <span className={styles.soloBadge}>Solo</span>}
-                  <span className={styles.handle}>/c/{c.handle}</span>
                 </Link>
               </li>
             ))}

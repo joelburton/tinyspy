@@ -141,8 +141,25 @@
   min-height: 0;
   overflow-y: auto;
   background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  /* A step darker than the usual --color-surface-border: these two frames are
+   * the page's main structure (they're what makes the body read as two
+   * columns), and the pale card border let them fade into the background.
+   * Same token as the row rules inside the start list, so the frame and its
+   * contents' lines agree. */
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-lg);
+  /* NEITHER frame owns padding: the rows inside carry their own, so the space
+   * above the first item equals the space between any two (a frame padding on
+   * top of that made the first row sit noticeably lower than the rhythm below
+   * it), and the row rules + hover tint run the full width of the panel
+   * instead of floating inside an inset. An empty list's message supplies its
+   * own inset — see .emptyList. */
+  padding: 0;
+}
+
+/* An empty list's message — the one thing in either frame that ISN'T a
+ * self-padding row, so it supplies the inset the container no longer does. */
+.emptyList {
   padding: 1rem;
 }
 
@@ -160,7 +177,8 @@
 .gamesList {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  /* No gap — like the start list, the rows abut and the rule between them is
+   * the separation. */
 }
 
 /* Club title block — a full-width row of the .frame column (between

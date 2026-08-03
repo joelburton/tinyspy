@@ -25,11 +25,21 @@ type Props = {
   /** `common.games.last_active_at`, ISO — the last status/progress write
    *  (or end time), a "last played" proxy. Rendered via friendlyDate. */
   lastActiveAt: string
-  /** Where in the lifecycle this game sits. Drives both the
-   *  action affordance (link vs not) and CSS treatment:
-   *  prominent for current, regular for non-terminal-non-current,
-   *  muted for terminal. */
+  /** Where in the lifecycle this game sits. Drives exactly one thing: the
+   *  corner flag (orange = the club's current game, yellow = shelved but
+   *  still open, none = finished). NOT the size or color of anything else —
+   *  see the CSS's two-axes note. */
   state: State
+  /** Which visual register to render in — INDEPENDENT of `state`:
+   *
+   *    - `'row'` (default) — a dense list row, the shape used inside both of
+   *      ClubPage's panels.
+   *    - `'standalone'` — the bordered active-game callout above the start
+   *      list, which is the only instance rendered outside a list.
+   *
+   *  The current game appears as BOTH: the callout, and an ordinary row in
+   *  "Your games" carrying its orange flag. */
+  variant?: 'row' | 'standalone'
   /** Called when the user confirms the delete affordance. The
    *  parent (ClubPage) is responsible for the actual mechanics:
    *  for the active game, broadcasting a `suspend` event so peers
@@ -51,9 +61,8 @@ type Props = {
 }
 
 /**
- * One game's entry in a club's games list — the shared card shape
- * for the current game and every game in the merged "other games"
- * list on ClubPage.
+ * One game's entry on ClubPage — the shared shape for the active-game
+ * callout and for every row of the "Your games" list.
  *
  * Mirrors the StartGameButtons cards (logo + stacked content) so the
  * played-games list reads as their sibling. One component, three states.
@@ -67,10 +76,10 @@ type Props = {
  *     produced by `manifest.labelFor`.
  *   - **Last-active** date (last play / end time), smaller / muted.
  *
- * What varies by state, all in CSS:
- *   - `active` — larger font, accent treatment.
- *   - `suspended` — regular treatment.
- *   - `completed` — muted treatment.
+ * `state` varies only the corner flag; `variant` varies the register (dense
+ * row vs bordered callout). The two are independent, which is what lets the
+ * current game show up in the list looking like every other row while still
+ * flying its orange flag.
  *
  * All three are clickable. Each game's PlayArea already handles
  * the terminal play_state as a "view the final state" mode — no
@@ -99,6 +108,7 @@ export function ClubGameCard({
   statusLabel,
   lastActiveAt,
   state,
+  variant = 'row',
   onDelete,
   soloClub,
   kbCursor = false,
@@ -156,7 +166,7 @@ export function ClubGameCard({
       ref={kbCursor ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
     >
       <Link to={`/g/${gametype}/${gameId}`} className={styles.link}>
-        <div className={cls(styles.card, styles[state])}>
+        <div className={cls(styles.card, styles[variant])}>
           {state === 'suspended' && (
             // Yellow corner-flag triangle: "still open for play."
             // See the openFlag base class in CSS for the geometry

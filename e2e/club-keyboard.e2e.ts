@@ -4,7 +4,7 @@ import { signIn } from './helpers/session'
 
 /**
  * ClubPage keyboard navigation: Tab toggles between the page's TWO lists
- * (start-a-new-game / completed-shelved) and nothing else; Up/Down move a
+ * (start-a-new-game / "Your games") and nothing else; Up/Down move a
  * per-list cursor (clamped, no wrap); Enter starts (setup dialog) / opens
  * (navigate) the item under the cursor. Everything else is mouse-only,
  * while overlays (chat input, dialogs) keep native keys and the global
@@ -14,7 +14,7 @@ test.describe('club page keyboard nav', () => {
   test('tab toggles lists; arrows move; enter starts/opens', async ({ browser }) => {
     const club = await createSoloClub('ckbn')
     // Three games: creating each un-currents the previous, so the club shows
-    // one active game + TWO completed/shelved rows.
+    // one active game — as a callout AND as a row — plus two shelved rows.
     const g1 = await createWaffleGame(club)
     const g2 = await createWaffleGame(club)
     const g3 = await createWaffleGame(club)
@@ -71,15 +71,21 @@ test.describe('club page keyboard nav', () => {
     await page.getByRole('button', { name: 'Close chat' }).click()
     await expect(chatInput).toBeHidden()
 
-    // Tab to the games list; Enter opens the game under the cursor — one of
-    // the two SHELVED games (never the active g3; that card is mouse-only).
+    // Tab to the games list; Enter opens the game under the cursor. "Your
+    // games" lists ALL the club's games — the current one included, as an
+    // ordinary row — so any of the three is a legitimate destination; what
+    // matters is that Enter opens the row the RING is on. Read that row's own
+    // link target first, then assert we landed there.
     await page.keyboard.press('Tab') // start list
     await page.keyboard.press('Tab') // games list
     expect(await focusedLabel()).toBe('Your games')
+    const ringedHref = await page.evaluate(
+      () => document.querySelector('[class*="_kbCursor_"] a')?.getAttribute('href') ?? null,
+    )
+    expect(ringedHref).toMatch(/^\/g\/waffle_coop\//)
+    expect([g1.id, g2.id, g3.id].some((id) => ringedHref!.includes(id))).toBe(true)
     await page.keyboard.press('Enter')
-    await expect(page).toHaveURL(/\/g\/waffle_coop\//, { timeout: 10000 })
-    expect(page.url()).not.toContain(g3.id)
-    expect([g1.id, g2.id].some((id) => page.url().includes(id))).toBe(true)
+    await expect(page).toHaveURL(new RegExp(`${ringedHref}$`), { timeout: 10000 })
   })
 
   test('a mouse click on a start button leaves no focus ring and keeps the cursor', async ({

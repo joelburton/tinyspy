@@ -154,14 +154,17 @@ Because every meaningful event writes this row — a move (`update_state`), shel
 
 ### Club-level game lifecycle
 
-Game instances within a club fall into one of two display buckets on the club page, derived from the view-state + play-state pair:
+Game instances within a club carry one of three club-level states, derived from the view-state + play-state pair:
 
 | club-level state | derivation |
 |---|---|
 | **current** | `is_current_view = true` |
-| **other** | everything else, split by CSS treatment into terminal vs non-terminal (per [`states.md`](states.md)) |
+| **shelved** | non-current, `is_terminal = false` |
+| **finished** | non-current, `is_terminal = true` |
 
-The transitions that move a row between buckets:
+The state is a *rendering* distinction, not a schema one (per [`states.md`](states.md)); on the club page it drives exactly one thing, the corner flag on a game's row (orange / yellow / none). **"Your games" lists every game the club has, the current one included** — it also gets the prominent callout above the start list, but it is not withheld from the list itself, which would make the club's one live game the single thing missing from the list of the club's games (and put it out of the gametype filter's reach).
+
+The transitions that move a row between states:
 - `common.create_game` — vacates the prior current-view row (set false), inserts new row with `is_current_view = true`, `play_state = 'playing'`, `is_terminal = false`, and seeds the game's `common.timers` row at `ticks = 0`.
 - `common.set_current_view(target_game)` — same vacate-others + set-target. Pure pointer flip, no timer work.
 - `common.unset_current_view(target_game)` — clears the target (set false). Pure pointer flip.

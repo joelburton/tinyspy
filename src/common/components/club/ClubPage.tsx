@@ -334,6 +334,20 @@ export function ClubPage({ handle, session }: Props) {
   // stale ring elsewhere in the list).
   const [focusedList, setFocusedList] = useState<'start' | 'games' | null>(null)
 
+  /** Apply the gametype filter, then hand the keyboard back to the games list.
+   *
+   *  The `<select>` has to TAKE focus to open its popup (unlike the mode
+   *  buttons, which decline it on mousedown) — so touching it costs the games
+   *  list its cursor ring and leaves the arrow keys pointing at nothing. Moving
+   *  focus back the moment a choice is committed makes the detour round-trip:
+   *  narrow the list, keep arrowing it. Same hand-back, same reason, as
+   *  `closeSetup`'s return to the start list. `preventScroll` because the list
+   *  is already in view and a focus-scroll would fight the layout. */
+  const handleGametypeFilter = useCallback((value: string) => {
+    setGametypeFilter(value)
+    gamesListRef.current?.focus({ preventScroll: true })
+  }, [])
+
   // The startable games in DISPLAY order — alphabetical by brand (registry
   // order means nothing to a player scanning for a game; the stable sort
   // keeps a coop/compete sibling pair coop-first within the brand tie).
@@ -733,16 +747,25 @@ export function ClubPage({ handle, session }: Props) {
     )
   }
 
-  // Classify games. The current game is the one whose id matches
-  // the is_current_view=true row from common.games — that one
-  // gets its own prominent section. Everything else collapses
-  // into a single "other games" list, with terminal vs non-
-  // terminal distinguished by CSS (per docs/states.md → "no
-  // special 'suspended' category in the schema or the listing").
+  // The current game — the one whose id matches the is_current_view=true row
+  // from common.games. It gets its own prominent callout above the start list.
   const activeGame = activeGameId
     ? allGames.find((g) => g.gameId === activeGameId) ?? null
     : null
-  const otherGames = allGames.filter((g) => g.gameId !== activeGameId)
+
+  /** How a game reads in the list: the club's current game, a shelved one, or
+   *  a finished one. Only the corner flag varies (orange / yellow / none) —
+   *  see ClubGameCard. Terminal vs non-terminal is a rendering distinction,
+   *  not a schema one (docs/states.md → "no special 'suspended' category in
+   *  the schema or the listing"). */
+  const gameState = (g: ListedGame) =>
+    g.gameId === activeGameId ? 'active' : g.isTerminal ? 'completed' : 'suspended'
+
+  // "Your games" lists EVERY game the club has, the current one included. It
+  // was excluded back when it lived only in the callout, which made the club's
+  // one live game the single thing missing from the list of the club's games —
+  // and it dropped out of the gametype filter's reach along with it. It's an
+  // ordinary row here (same size as the rest), told apart by its orange flag.
 
   // ─── Apply the two filters ───────────────────────────────────────
   // Everything downstream — rendering AND the keyboard cursors — reads the
@@ -764,7 +787,7 @@ export function ClubPage({ handle, session }: Props) {
   // coop/compete siblings onto their shared baseGametype), ordered by brand
   // to match the alphabetical-by-brand start list.
   const gametypeOptions: GametypeOption[] = [
-    ...new Map(otherGames.map((g) => [g.baseGametype, g.brand])).entries(),
+    ...new Map(allGames.map((g) => [g.baseGametype, g.brand])).entries(),
   ]
     .map(([value, label]) => ({ value, label }))
     .sort((a, b) => a.label.localeCompare(b.label))
@@ -777,7 +800,7 @@ export function ClubPage({ handle, session }: Props) {
   const selectedGametype = gametypeOptions.some((o) => o.value === gametypeFilter)
     ? gametypeFilter
     : 'all'
-  const visibleGames = otherGames.filter(
+  const visibleGames = allGames.filter(
     (g) => selectedGametype === 'all' || g.baseGametype === selectedGametype,
   )
 
@@ -953,18 +976,24 @@ export function ClubPage({ handle, session }: Props) {
           isn't available: the desktop home is inside a column, the mobile one
           is a sibling of the tab bar, and no CSS relocates an element across
           containers. The components are stateless (all state lives here), so
-          the two instances can't disagree. */}
-      <div className={styles.mobileFilters}>
-        {mobileTab === 'new' ? (
-          <ModeFilter value={effectiveMode} onChange={setModeFilter} soloClub={soloClub} />
-        ) : (
-          <GametypeFilter
-            value={selectedGametype}
-            options={gametypeOptions}
-            onChange={setGametypeFilter}
-          />
-        )}
-      </div>
+          the two instances can't disagree.
+
+          The ROW ITSELF is conditional, not just its contents: a solo club has
+          no mode filter (see ModeFilter), and an empty row would still take the
+          .frame's 1rem gap — a mystery band of space under the tabs. */}
+      {!(mobileTab === 'new' && soloClub) && (
+        <div className={styles.mobileFilters}>
+          {mobileTab === 'new' ? (
+            <ModeFilter value={effectiveMode} onChange={setModeFilter} soloClub={soloClub} />
+          ) : (
+            <GametypeFilter
+              value={selectedGametype}
+              options={gametypeOptions}
+              onChange={handleGametypeFilter}
+            />
+          )}
+        </div>
+      )}
 
       {/* Two-column body that takes the rest of the viewport height
           (per docs/ui.md → "Page-height fits the viewport"). Left
@@ -978,6 +1007,10 @@ export function ClubPage({ handle, session }: Props) {
           {activeGame && (
             <div>
               <h3>Join the active game</h3>
+              {/* The prominent callout — UNCHANGED by the current game also
+                  being listed on the right. `variant="standalone"` is what
+                  keeps it a bordered, larger-titled card; the copy of it in
+                  "Your games" takes the default row register. */}
               <ClubGameCard
                 gameId={activeGame.gameId}
                 gametype={activeGame.gametype}
@@ -985,6 +1018,7 @@ export function ClubPage({ handle, session }: Props) {
                 statusLabel={activeGame.statusLabel}
                 lastActiveAt={activeGame.lastActiveAt}
                 state="active"
+                variant="standalone"
                 soloClub={soloClub}
                 onDelete={() => handleDelete(activeGame.gameId, true)}
               />
@@ -1037,7 +1071,7 @@ export function ClubPage({ handle, session }: Props) {
                   club enrolled in only coop gametypes, filtered to Compete.
                   Say so rather than showing a blank card. */}
               {visibleStartable.length === 0 ? (
-                <p className="muted">
+                <p className={`muted ${styles.emptyList}`}>
                   {effectiveMode === 'all'
                     ? 'No games available in this club.'
                     : `No ${MODE_LABEL[effectiveMode]} games in this club.`}
@@ -1053,28 +1087,21 @@ export function ClubPage({ handle, session }: Props) {
                 />
               )}
             </div>
-            {activeGame && (
-              <p className="muted">
-                Starting a new game will suspend the currently active
-                one (you can resume it later from this page).
-              </p>
-            )}
             {startError && <p className="error">{startError}</p>}
           </div>
         </section>
 
         <section className={styles.right}>
-          {/* "Your games" = everything this club has played that isn't the
-              current game — completed AND shelved, the split being a CSS
-              treatment rather than two sections (docs/states.md). The count
-              is of what's SHOWING, so it agrees with the list under a
-              filter. */}
+          {/* "Your games" = every game this club has, the current one
+              included — current / shelved / finished being a flag on the row
+              rather than three sections (docs/states.md). The count is of
+              what's SHOWING, so it agrees with the list under a filter. */}
           <div className={styles.headingRow}>
             <h3 className={styles.sectionHeading}>Your games ({visibleGames.length})</h3>
             <GametypeFilter
               value={selectedGametype}
               options={gametypeOptions}
-              onChange={setGametypeFilter}
+              onChange={handleGametypeFilter}
             />
           </div>
           {/* Fixed-size frame with internal scroll. The frame has
@@ -1105,7 +1132,7 @@ export function ClubPage({ handle, session }: Props) {
                 empty it (and a selection that goes stale falls back to
                 'all' — see selectedGametype). */}
             {visibleGames.length === 0 ? (
-              <p className="muted">No other games yet.</p>
+              <p className={`muted ${styles.emptyList}`}>No games yet.</p>
             ) : (
               visibleGames.map((g, i) => (
                 <ClubGameCard
@@ -1115,9 +1142,13 @@ export function ClubPage({ handle, session }: Props) {
                   title={g.title}
                   statusLabel={g.statusLabel}
                   lastActiveAt={g.lastActiveAt}
-                  state={g.isTerminal ? 'completed' : 'suspended'}
+                  // The current game is a row like any other here — only its
+                  // orange flag (from state='active') sets it apart.
+                  state={gameState(g)}
                   soloClub={soloClub}
-                  onDelete={() => handleDelete(g.gameId, false)}
+                  // Deleting the CURRENT game has to move its viewers out
+                  // first, so the flag that drives that is per-row now.
+                  onDelete={() => handleDelete(g.gameId, g.gameId === activeGameId)}
                   kbCursor={i === gamesKbCursor}
                   // Clicking a card selects it too, so mouse and keyboard agree
                   // on "the selected game" (this list navigates away on click,

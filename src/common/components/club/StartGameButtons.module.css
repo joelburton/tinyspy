@@ -1,36 +1,46 @@
-/* Per-gametype Start buttons on ClubPage. Outline-style cards
- * stacked vertically — see StartGameButtons.tsx for the
- * "options to consider, not actions to take" framing.
+/* Per-gametype Start buttons on ClubPage. A DENSE LIST — rows separated by a
+ * hairline rule, not a stack of outline cards.
  *
- * The .list wrapper replaces the previous `className="actions"`
- * usage. Using a local class lets us tune the gap to suit these
- * outline cards specifically (slightly tighter than .actions's
- * generous 1rem, which is meant for primary buttons).
+ * The cards were the earlier treatment ("options to consider, not actions to
+ * take" — see StartGameButtons.tsx). They read well at three games and badly
+ * at thirteen: each row carried a full border plus its own gap, so the frame
+ * showed barely half the roster and every game past MooseWheel needed a
+ * scroll. A rule between rows draws the same "these are separate things"
+ * boundary in a third of the vertical space, and it's the ordinary idiom for
+ * a list you SCAN (which is what picking a game is) rather than a set of
+ * primary actions. The frame around the whole list still carries the card
+ * chrome, so the block reads as one panel instead of thirteen.
  */
 
 .list {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  /* No outer margin: the list sits inside ClubPage's .startList card,
+  /* No gap: rows abut, and the bottom rule below IS the separation. A gap
+   * here would float the rules away from the rows they divide. */
+  /* No outer margin either: the list sits inside ClubPage's .startList card,
    * whose padding owns the breathing room on all four sides. */
 }
 
-/* The outline card itself. Resets the global filled-blue button
- * styling — we want a flat transparent surface with a border
- * that pops on hover. Specificity wins over `button { ... }` in
- * theme.css thanks to the class selector.
+/* One row. Resets the global filled-blue button styling down to a bare
+ * surface with a hairline underneath.  Specificity wins over
+ * `button { ... }` in theme.css thanks to the class selector.
  *
- * Flex row: [logo] + [content stack]. The logo is fixed-width
- * (32px); .content takes the rest. align-items: center so the
- * 32px logo lines up vertically against the two-line text
- * stack to its right. */
+ * Flex row: [logo] + [content stack]. The logo is fixed-width (32px);
+ * .content takes the rest. align-items: center so the 32px logo lines up
+ * vertically against the two-line text stack to its right. */
 .button {
   background: transparent;
-  border: 1.5px solid var(--color-surface-border);
+  border: none;
+  border-bottom: 1px solid var(--color-control-border);
+  border-radius: 0;
   color: var(--color-text);
-  padding: 0.7rem 0.95rem;
-  border-radius: var(--radius-md);
+  /* The row owns ALL the list's padding — its frame (ClubPage's .startList)
+   * has none, so this is what holds the first row off the top border by
+   * exactly the half-gap every other row is held off its neighbour by.
+   * Vertical is tight (the two-line text stack sets the height and the rules
+   * do the separating); horizontal is the frame inset the container used to
+   * supply. */
+  padding: 0.4rem 0.9rem;
   text-align: left;
   display: flex;
   flex-direction: row;
@@ -38,7 +48,13 @@
   gap: 0.85rem;
   width: 100%;
   cursor: pointer;
-  transition: border-color 100ms ease;
+  transition: background-color 100ms ease;
+}
+
+/* The last row's rule would be a line under the list with nothing below it —
+ * the frame's own border already closes the block. */
+.button:last-child {
+  border-bottom: none;
 }
 
 /* Stacked title + meta to the right of the logo. flex: 1 so the
@@ -47,18 +63,21 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  /* No gap — the two lines' own line-heights are the whole leading. A gap on
+   * top of them separated a title from its OWN description more than the
+   * hairline separates one game from the next. */
   flex: 1;
   min-width: 0;
 }
 
-/* Hover: border lights up to the accent. NO background fill —
- * the global button:hover rule would otherwise paint this blue;
- * we explicitly hold background transparent so the outline-style
- * stays consistent through interaction. */
+/* Hover: the row tints. The old card lit its BORDER to the accent, which a
+ * row with only a bottom rule can't do (lighting just the underline reads as
+ * highlighting the row below). A background tint is the list idiom, and it's
+ * the same `--color-surface-hover` the club's other hoverable surfaces use.
+ * Still no accent FILL — the global button:hover would paint this blue, and
+ * these stay quiet until pressed. */
 .button:hover:not(:disabled) {
-  background: transparent;
-  border-color: var(--color-accent);
+  background: var(--color-surface-hover);
 }
 
 /* NO focus style here, deliberately. These buttons are not a keyboard
@@ -77,7 +96,6 @@
  * tooltip on the parent <button> explains why. */
 .button:disabled {
   background: transparent;
-  border-color: var(--color-surface-border);
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -94,16 +112,16 @@
   font-weight: 600;
   font-size: 1rem;
   color: var(--color-text);
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 /* Subtle second line: short description · player-count badge.
  * Muted color so the prominent first line stays the visual
- * anchor of each card. */
+ * anchor of each row. */
 .meta {
   color: var(--color-muted);
   font-size: 0.85rem;
-  line-height: 1.3;
+  line-height: 1.25;
 }
 
 /* ClubPage's keyboard list-nav cursor — the ring marking which button

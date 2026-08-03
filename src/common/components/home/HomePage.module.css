@@ -46,7 +46,7 @@
  *
  * Each row is the Link itself — the whole tinted surface is the
  * click target, so a user can click anywhere on the row (name,
- * handle, whitespace) to navigate, not just the text label.
+ * badge, whitespace) to navigate, not just the text label.
  * Browser middle-click / cmd-click for "open in new tab" still
  * works because the row IS an anchor.
  *
@@ -93,13 +93,6 @@
 
 .clubName {
   font-weight: 500;
-}
-
-.handle {
-  margin-left: auto;
-  color: var(--color-muted);
-  font-size: 0.85rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 /* Solo pill — outlined accent rather than filled. Quieter than

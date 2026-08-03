@@ -17,8 +17,8 @@ const OPTIONS: { value: ModeFilterValue; label: string }[] = [
 type Props = {
   value: ModeFilterValue
   onChange: (value: ModeFilterValue) => void
-  /** Whether this is a solo club (handle starts with '='). Collapses the
-   *  control to the always-selected "All" — see the docstring. */
+  /** Whether this is a solo club (handle starts with '='). Renders nothing —
+   *  see the docstring. */
   soloClub: boolean
 }
 
@@ -31,20 +31,19 @@ type Props = {
  * pattern — the same shape, and the same reasoning, as ClubPage's mobile tab
  * bar: exactly one is pressed at a time, and pressed-ness is the whole state.
  *
- * **In a solo club, only "All" renders, permanently selected.** Mode is noise
- * with one player — the same call `<ModePill>` makes when it suppresses the
- * "Co-op" badge there — so offering to filter by it would be offering to
- * sort a distinction the page isn't drawing. The lone "All" stays rather than
- * the whole control vanishing, so the heading row keeps its shape and reads
- * as "showing everything" rather than as a missing feature. It's still a
- * button (not disabled, not a label): pressing it is a no-op that re-selects
- * what's already selected, which is exactly what pressing "All" does anywhere.
+ * **A solo club gets no filter at all.** Mode is noise with one player — the
+ * same call `<ModePill>` makes when it suppresses the "Co-op" badge there — so
+ * offering to filter by it would be offering to sort a distinction the page
+ * isn't drawing. A lone always-selected "All" was the first shape of that, and
+ * it just left a button that did nothing; the heading row is happier with the
+ * space. (ClubPage still pins the effective mode to `all` for a solo club, so
+ * nothing can be left filtered by a control that isn't on screen.)
  */
 export function ModeFilter({ value, onChange, soloClub }: Props) {
-  const options = OPTIONS.filter((o) => !soloClub || o.value === 'all')
+  if (soloClub) return null
   return (
     <div className={styles.modeFilter} role="group" aria-label="Filter games by mode">
-      {options.map((o) => (
+      {OPTIONS.map((o) => (
         <button
           key={o.value}
           type="button"

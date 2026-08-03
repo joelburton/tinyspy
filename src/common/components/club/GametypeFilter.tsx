@@ -27,9 +27,10 @@ type Props = {
  * A native `<select>` rather than a second row of segmented buttons: this one
  * has as many choices as the club has played games (up to thirteen families),
  * which is a list, not a switch. Unlike ModeFilter it can't decline focus on
- * mousedown — a `<select>` needs the press to open its popup — so using it
- * does take focus off the games list and hide that list's keyboard cursor.
- * Clicking (or Tab-ing) back into the list restores it.
+ * mousedown — a `<select>` needs the press to open its popup — so it borrows
+ * focus from the games list (and with it that list's keyboard cursor) while
+ * it's open. ClubPage hands focus back the moment a choice is committed; see
+ * `handleGametypeFilter`.
  */
 export function GametypeFilter({ value, options, onChange }: Props) {
   return (
