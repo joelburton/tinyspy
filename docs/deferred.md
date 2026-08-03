@@ -89,13 +89,10 @@ Carried over from the 2026-07-10 mobile-FE review (that review doc has since bee
 The per-game table (all thirteen, ✅/❌) now leads [`pdf.md`](pdf.md#which-games-print) —
 that's the one place to check or update. What's a *decision* rather than a status:
 
-**waffle and wordle are permanently excluded** (a "won't do", not a deferral): both are
-turn-by-turn *board progressions* where a single static snapshot can't represent the
-game — you'd need a board snapshot per turn for it to mean anything on paper, which a
-one-page printout isn't. waffle is a sequence of tile *swaps*, so a lone end-board
-doesn't capture the solve; wordle *is* the guess-by-guess progression.
-
-**Nothing outstanding** — every game that can print, does.
+**Nothing outstanding — all thirteen games print.** waffle and wordle were a
+permanent exclusion until 2026-08-02; the 4-state tile encoding
+([`pdf.md`](pdf.md#backgrounds-are-white)) removed what actually blocked them, which
+was their green/yellow/grey feedback flattening to one grey in mono.
 
 ## To discuss
 

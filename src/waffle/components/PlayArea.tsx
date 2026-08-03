@@ -8,6 +8,8 @@ import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
+import { buildWafflePrintModel } from '../pdf/model'
+import { printWafflePdf } from '../pdf/printWafflePdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
@@ -69,6 +71,7 @@ export function PlayArea({
   session,
   gameId,
   brand,
+  title,
   players,
   playState,
   isTerminal,
@@ -332,6 +335,32 @@ export function PlayArea({
   const revealDisabled = isTerminal ? answerShown : !solutionKnown
   const menuMode: 'coop' | 'compete' = game?.mode === 'compete' ? 'compete' : 'coop'
   useEffect(() => {
+    // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). The server
+    // already withholds a compete opponent's board AND their swaps until the
+    // game ends, so what the viewer may see is what prints; the model refuses
+    // the solution before terminal on top of that.
+    const printModel = game
+      ? buildWafflePrintModel({
+          brand,
+          gameTitle: title,
+          date: new Date().toLocaleDateString(),
+          mode: menuMode,
+          isTerminal,
+          maxSwaps: game.max_swaps,
+          parSwaps: game.par_swaps,
+          playerBoards: playerStates,
+          swaps,
+          players,
+          selfId: session.user.id,
+          // The six words, derived the same way the on-screen reveal derives
+          // them: every word is fully green against the solution itself.
+          solutionWords: game.solution
+            ? (solvedWords(game.solution, computeColors(game.solution, game.solution))
+                .filter((w): w is string => w !== null))
+            : null,
+          setup: [{ label: 'Extra swaps', value: String(game.max_swaps - game.par_swaps) }],
+        })
+      : null
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -355,6 +384,9 @@ export function PlayArea({
               },
             ],
           },
+          ...(printModel
+            ? [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printWafflePdf(printModel) }] }]
+            : []),
         ],
       }),
     )
@@ -371,6 +403,15 @@ export function PlayArea({
     isTerminal,
     revealDisabled,
     infoSheet.menuSections,
+    // The print model's inputs — rebuilt whenever the printable state moves, so
+    // the snapshot is current at click time.
+    brand,
+    title,
+    game,
+    playerStates,
+    swaps,
+    players,
+    session.user.id,
   ])
 
   if (loading) return <p>Loading game…</p>

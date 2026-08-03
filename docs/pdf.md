@@ -8,8 +8,8 @@ like it belongs to the same system (the on-screen consistency goal — see
 
 ## Which games print
 
-Printing is a **per-game opt-in**, so this is the at-a-glance answer. Eleven of the
-thirteen print today — every game except the two permanent exclusions.
+**All thirteen games print.** (waffle and wordle were a documented permanent
+exclusion until 2026-08-02 — see the note under the table for what changed.)
 
 | game | prints? | notes |
 |---|---|---|
@@ -22,17 +22,19 @@ thirteen print today — every game except the two permanent exclusions.
 | scrabble | ✅ | turn-log family |
 | spellingbee | ✅ | word-list family |
 | stackdown | ✅ | turn-log family — the stack drawn in layer order; white fill IS the occlusion |
-| waffle | ❌ | **won't do** — see below |
+| waffle | ✅ | **track family** — one column per board; the 4-state tile encoding |
 | wordiply | ✅ | turn-log family — the only printer with **no board**: its page *is* the log |
-| wordle | ❌ | **won't do** — see below |
+| wordle | ✅ | **track family** — board + QWERTY keyboard + guesses, per player |
 | wordwheel | ✅ | word-list family (forked from spellingbee's printer) |
 
-**waffle and wordle are permanent exclusions, not deferrals.** Both are turn-by-turn
-*board progressions* where one static snapshot can't represent the game — you'd need a
-board per turn for it to mean anything on paper, which a one-page printout isn't.
-waffle is a sequence of tile *swaps*, so a lone end-board doesn't capture the solve;
-wordle *is* the guess-by-guess progression. Nothing else is outstanding — every other
-game prints.
+**What changed for waffle and wordle.** They were excluded on the reasoning that both
+are *board progressions* a single snapshot can't represent. That reasoning was about
+the BOARD, and it turned out to be answerable: a wordle grid already IS its own
+history — six rows of what you tried and what came back — and a waffle board plus its
+swap log says the same. What actually blocked them was the **colour**: their feedback
+is entirely green/yellow/grey, which a mono printer flattens to one grey, and the games
+are meaningless without it. The 4-state tile encoding below solves that, so the
+exclusion no longer holds.
 
 Status: **shared `common/pdf/` helpers**. **Joel picked jsPDF** over react-pdf (see
 [project memory] / the
@@ -46,6 +48,8 @@ atoms and each game composes them with its OWN board renderer + a plain-data mod
 
 | module | used by | what it does |
 |---|---|---|
+| `common/pdf/tiles.ts` | wordle, waffle | `drawTile` / `drawTileLegend` — the four Wordle-style letter states as **border + fill weight** rather than colour (see the exception note below) |
+| `common/pdf/columns.ts` | wordle, waffle | `drawInTracks` — lays a page out as N side-by-side player tracks, capped at 3 per page, spilling onto further pages |
 | `common/pdf/marks.ts` | psychicnum, codenamesduet | `drawCheck` / `drawCross` / `drawDash` — the ✓ / ✗ / – outcome marks, DRAWN from line segments because jsPDF's core fonts are WinAnsi and have no such glyphs. Each takes a centre + size, so the caller owns placement (a cell corner, a keycard inset) |
 | `common/pdf/frame.ts` | **all** | the shade constants, `PrintHeader` base model, `newPrintDoc`, `drawHeader`, `drawSetup`, `fit`, `savePrint` |
 | `common/pdf/turnLog.ts` | scrabble, psychicnum, wordiply, connections, stackdown, codenamesduet | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
@@ -114,6 +118,24 @@ something (and even then, prefer a mark or a shade over a fill). In particular:
   medium-grey rule instead.
 - **No outcome fills** on tiles — the ✓/✗ mark alone says correct vs miss.
 
+**The agreed exception: Wordle-style letter tiles** (`common/pdf/tiles.ts`, used by
+wordle and waffle). Those four states — not-yet-used, not-in-word, wrong-place,
+right-place — are the entire game, not a decoration, and a letter tile has no room
+for a mark beside its letter: the letter IS the content. So they're carried by
+border-and-fill weight, read as an intensity ordering, darkest = best:
+
+| state | printed as |
+|---|---|
+| not used yet | **no border at all** — an empty slot, not a result |
+| not in word | border only, white inside |
+| wrong place | light grey fill |
+| right place | dark grey fill, white letter |
+
+Using **greys rather than hues** is what keeps this honest: a colour printer and a
+mono one produce the same page, so there's no signal that can be lost. This is the
+same "unless a filled background is specifically agreed to communicate something"
+carve-out scrabble's premium squares use — deliberate, and narrow.
+
 (scrabble's board is the agreed exception: its premium-square colors + tan tiles are
 *meaningful* board features, not decoration — and they live in scrabble's own board
 renderer, not the shared frame, so the exception can't leak to other games.)
@@ -131,6 +153,17 @@ above) — a game picks one.
   (e.g. the dictionary/difficulty bands); the **timer is excluded** (not relevant on paper).
 - **Margins** are tight-ish (~28pt) so content uses more of the paper, while staying
   inside a printer-safe edge.
+
+**Body family 3 — track games (`columns.ts`; wordle, waffle).** One column per
+BOARD: its grid, then whatever belongs to that grid (wordle adds its QWERTY
+keyboard), then that board's own log. The newspaper flow is wrong here — it's one
+stream wrapping between columns, which in compete would file one player's guesses
+under another player's grid. Coop is a single track (one shared board); compete is
+one per player at terminal, and just yours during play, since RLS means you hold
+nobody else's until the game ends. **Capped at 3 tracks per page**: compete allows
+six players, and six columns on a letter page puts a wordle keyboard under 9pt per
+key. Three keeps the realistic two-or-three-player game on one sheet and spills the
+rest rather than shrinking past legibility.
 
 **Body family 1 — turn-log games (`turnLog.ts`; scrabble, psychicnum, wordiply, connections, stackdown, codenamesduet).**
 connections is the worked example of the colour rules two sections up. A solved

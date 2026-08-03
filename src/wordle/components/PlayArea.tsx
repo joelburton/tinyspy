@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
+import { buildWordlePrintModel } from '../pdf/model'
+import { printWordlePdf } from '../pdf/printWordlePdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
@@ -42,10 +44,16 @@ import '../theme.css'
  * team budget; compete shows only the caller's own guesses (RLS hides opponents) plus
  * an OpponentStrip of their guess counts.
  */
+/** Every wordle answer is five letters — the board renders a fixed 5 columns
+ *  (Board.tsx) and the word lists are 5-letter. Named here so the printed grid
+ *  and the on-screen one can't disagree. */
+const WORD_LENGTH = 5
+
 export function PlayArea({
   session,
   gameId,
   brand,
+  title,
   players: members,
   playState,
   isTerminal,
@@ -301,6 +309,27 @@ export function PlayArea({
   const mode = game?.mode
   useEffect(() => {
     if (!mode) return // wait for the game to load before there's a real menu
+    // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). RLS already
+    // scopes `guesses` to what the viewer may see (own only in compete until
+    // terminal), and the model refuses to print the target before terminal, so
+    // neither the boards nor the answer can leak onto paper early.
+    const printModel = game
+      ? buildWordlePrintModel({
+          brand,
+          gameTitle: title,
+          date: new Date().toLocaleDateString(),
+          mode,
+          isTerminal,
+          maxGuesses,
+          wordLength: WORD_LENGTH,
+          guesses,
+          players: members,
+          selfId: session.user.id,
+          target: game.target,
+          solvedBy: new Set(solvedIds),
+          setup: [{ label: 'Guesses', value: String(maxGuesses) }],
+        })
+      : null
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -326,11 +355,19 @@ export function PlayArea({
               },
             ],
           },
+          ...(printModel
+            ? [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printWordlePdf(printModel) }] }]
+            : []),
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, mode, isTerminal, myConceded, answerShown, infoSheet.menuSections])
+  }, [
+    menu, mode, isTerminal, myConceded, answerShown, infoSheet.menuSections,
+    // The print model's inputs — rebuilt whenever the printable state moves, so
+    // the snapshot is current at click time.
+    brand, title, game, guesses, members, session.user.id, maxGuesses, solvedIds,
+  ])
 
   // Keep the ref's action closures current so the menu effect above never
   // needs the (identity-changing) handlers in its own dep array.

@@ -105,6 +105,34 @@ Chat / pause / timer are inherited via `<GamePage>` / `useCommonGame`. **End gam
 
 **Terminal flow — the waffle treatment** (see [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)). No modal carries the verdict — it's in-page (below-board pill + action-row outcome line). A **coop solve** pops the shared **`CelebrationDialog`** via `useCelebration`, only at the moment of the win (the `playState → 'won'` flip; gated on playState alone — the waffle loading-race lesson), never on opening an already-won game. And **the word stays hidden on a loss** (and on a manual end): `answerShown` = won (either mode) OR `status.outcome='revealed'` OR this client clicked the terminal "Reveal answer". The losers' paths to closure sit in BOTH the menu and the terminal action row — **"Restart"** / `RestartButton` (a genuine second try, which the hidden word keeps honest), **"Reveal answer"** / `RevealButton` (at terminal a *local* display toggle — no RPC, no confirm; the target is already on the client post-terminal, so showing it is a display decision under the friends trust model — and mid-game the group give-up RPC above), or **"New game"** / `NewGameButton` (the follow-up game).
 
+## Printing the board (PDF)
+
+`src/wordle/pdf/` — a **"Print board (PDF)"** GamePage menu item (docs/pdf.md).
+The **track family**: one page column per BOARD, its grid, the QWERTY keyboard beneath it, then that board's guesses.
+
+The tiles use the shared 4-state encoding — **border and fill weight, not
+colour**. That's what makes wordle printable at all: its feedback is entirely
+green/yellow/grey, which a mono printer flattens to a single grey, and wordle
+without its feedback is a list of five-letter words. See
+[`pdf.md` → Backgrounds are white](../pdf.md#backgrounds-are-white) for the rule
+this is the agreed exception to, and why greys rather than hues keep it honest.
+
+**Coop is one track** (a single shared board). **Compete is one per player at
+terminal**, and just yours during play — mid-game you hold nobody else's guesses (RLS),
+so an opponent column would be an empty grid rather than information. Capped at
+three tracks per page; a fourth player spills onto a second page at the same size.
+
+The keyboard prints in its **on-screen QWERTY shape**, three centred rows, rather
+than a denser A–Z run: it's the layout your eye already knows, so you recognise the
+pattern instead of hunting for each letter. A letter never tried has no state and
+draws as the borderless blank.
+
+The guess list prints **plain words, no tile treatment**: the grid above already
+carries every colour, and repeating it in the log would be noise.
+
+The **answer is terminal-only**, twice over — the FE only holds `target` post-game,
+and the model refuses to emit it before terminal regardless.
+
 ## Tests
 
 - **pgTAP** (`tests/wordle/`): `colors` (the algorithm incl. duplicates), `create_game` (validation incl. answer_source/legal_guess bands + the target-source routing + hidden-target grant), `legal_guess` (the same band-3 word is notAWord at legal_guess 2, legal at 6), `gameplay` (coop soft-rejects don't burn, shared board, win + reveal), `compete` (independent boards, mid-game opponent-hidden RLS, fewest-guesses winner, post-terminal reveal), `end_game` (timeout → lost / manual → ended, idempotency, non-player rejected), `replay` (full reset incl. the target re-shielding + same-word survival, mid-game replay, non-player rejected), `reveal` (ended + `outcome='revealed'` + unshield, idempotency, non-player rejected), `loss` (the natural loss boundary: coop's last wrong guess flips the board to `lost` + reveals the target; a compete player exhausting their own budget doesn't end the race, and their next guess hits the compete-only 'no guesses remaining' guard), `concede` (elimination-game concede: a drop-out keeps the race going but forfeits any win — recorded a loss even when the game had a winner; everyone conceding is a collective loss; coop rejected), `turn_order` (the opt-in turn-by-turn coop wiring: seating, out-of-turn reject, advance only on an accepted non-terminal guess). Tests read the random target back as the superuser to craft a winning guess.
