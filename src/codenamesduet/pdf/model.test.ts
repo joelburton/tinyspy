@@ -129,8 +129,9 @@ describe('buildDuetPrintModel — the clue log', () => {
       ],
     })
     // Guesses in the order they were made, not the order they arrived.
-    // ASCII arrow: jsPDF's WinAnsi core fonts have no U+2192 (it printed as `!'`).
-    expect(m.turns[0].text).toBe('OCEAN 2 -> SALT, WAVE')
+    // '»', not '→': jsPDF's core fonts are WinAnsi, which has the guillemet but
+    // not the arrow (U+2192 printed as `!'`). Verified by rendering.
+    expect(m.turns[0].text).toBe('OCEAN 2 » SALT, WAVE')
     expect(m.turns[0].who).toBe('me')
     expect(m.turns[0].seq).toBe(1)
   })

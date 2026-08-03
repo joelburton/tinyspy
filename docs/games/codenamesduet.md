@@ -151,7 +151,7 @@ All `security definer`, granted only to `authenticated`, search_path pinned to `
 
 ### `codenamesduet.create_game(target_club text, setup jsonb, player_user_ids uuid[]) → table(id uuid)`
 
-The one entry point. Verifies the roster is exactly 2 club members (any club size — the pair, not the club, is what's constrained), seats both, validates `setup.turns` + `setup.first_clue_giver_user_id` + `setup.timer` shape (the timer shape is shared validation via `common.require_valid_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (the 3 first picked words alphabetically, dash-joined — the board is shared, so naming the game after three of its words leaks nothing; the key card is what stays secret), calls `common.create_game(target_club, 'codenamesduet', player_user_ids, title, setup, setup - 'first_clue_giver_user_id')` for the common header half (the last arg is the saved club default, stripped of the per-game first-giver pick) (see [common.md → Game-RPC helpers](../common.md#game-rpc-helpers-called-by-per-game-rpcs)), then inserts the codenamesduet detail row. Finally calls `common.update_state(new_id, 'playing', jsonb_build_object(...))` to seed `common.games.status` with the initial label payload (turn_number, turns_remaining, greens_found). One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
+The one entry point. Verifies the roster is exactly 2 club members (any club size — the pair, not the club, is what's constrained), seats both, validates `setup.turns` + `setup.first_clue_giver_user_id` + `setup.timer` shape (the timer shape is shared validation via `common.require_valid_timer`), picks 25 words, generates the Duet key-card distribution, builds the title (the first 3 words in BOARD order, dash-joined — the board is shared, so naming the game after three of its words leaks nothing; the key card is what stays secret), calls `common.create_game(target_club, 'codenamesduet', player_user_ids, title, setup, setup - 'first_clue_giver_user_id')` for the common header half (the last arg is the saved club default, stripped of the per-game first-giver pick) (see [common.md → Game-RPC helpers](../common.md#game-rpc-helpers-called-by-per-game-rpcs)), then inserts the codenamesduet detail row. Finally calls `common.update_state(new_id, 'playing', jsonb_build_object(...))` to seed `common.games.status` with the initial label payload (turn_number, turns_remaining, greens_found). One call, no lobby state. (Mid-game RPCs that need to read setup — `submit_guess` reading `turns_used` for the result payload — query `common.games.setup` via a subquery.)
 
 Reject reasons: not authenticated; non-member; the roster isn't exactly 2 players; bad `setup.timer` shape (see [Timer](#timer-server-authoritative-ticks)).
 
@@ -159,7 +159,11 @@ The key-card generation is the algorithmically interesting bit: build the 25-ele
 
 ### Title formula
 
-`"WORD1-WORD2-WORD3"` — the first three picked words alphabetically, dash-joined. The words are on the shared board every player sees, so the title leaks nothing (the key card is what stays secret); three words are enough to recognize one game vs. another in a club's history.
+`"WORD1-WORD2-WORD3"` — the first three words **in board order**, dash-joined: the top-left three cells exactly as every player sees them.
+
+**Board order, not alphabetical** (changed 2026-08-02). A duet board is never shuffled or rotated, so its first three cells are a stable, recognizable handle — you can glance at the grid and know which game the title names. Games whose boards *do* get reordered sort their title words instead, because there the on-screen first-three would drift.
+
+The words are on the shared board every player sees, so the title leaks nothing (the key card is what stays secret); three words are enough to tell one game from another in a club's history.
 
 ### `codenamesduet.submit_clue(target_game uuid, clue_word text, clue_count int)`
 
@@ -550,8 +554,8 @@ separated by **position**, matching the screen's corners:
 
 | corner | fact |
 |---|---|
-| tile border + top-left mark | what HAPPENED here (contacted / assassin / burned / untouched) |
-| bottom-left inset | **your** key |
+| top-left mark (+ the tile's border colour) | what HAPPENED here (contacted / assassin / burned / untouched). Drawn largest of the three — it's what you scan the grid for |
+| bottom-left inset | **your** key. Small on purpose: a reference you consult, kept out of the word's way |
 | top-right inset | your **partner's** key — terminal only |
 
 The two bystander **triangles** print as well (yours below the word, your

@@ -457,16 +457,20 @@ begin
   end if;
 
   -- ─── Build title ────────────────────────────────────
-  -- Format: "WORD1-WORD2-WORD3" — the first three picked words alphabetically.
+  -- Format: "WORD1-WORD2-WORD3" — the first three words IN BOARD ORDER, i.e.
+  -- the top-left three cells as everyone actually sees them (position 0/1/2 map
+  -- to picked_words[1..3] at the insert below).
+  --
+  -- Board order, not alphabetical (changed 2026-08-02): a duet board is never
+  -- shuffled or rotated, so the first three cells are a stable, recognizable
+  -- handle — you can glance at the grid and know which game this is. Games whose
+  -- boards DO get reordered sort the title words instead, because there the
+  -- on-screen first-three would drift.
+  --
   -- The 25 words are on the shared board every player sees, so naming the game
   -- after three of them leaks nothing; what IS secret is the key card (who's
   -- an agent, who's the assassin), and that never touches the title.
-  select string_agg(w, '-' order by w) into game_title
-    from (
-      select unnest(picked_words) as w
-      order by 1
-      limit 3
-    ) first3;
+  game_title := array_to_string(picked_words[1:3], '-');
 
   -- Common-side coordination: validates auth + caller club-
   -- membership + both player uids are club members, inserts

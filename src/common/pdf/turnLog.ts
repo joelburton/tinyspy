@@ -39,6 +39,11 @@ export function drawTurnLog(
     startY: number
     /** The third column's header ("Move" for scrabble, "Guess" for psychicnum). */
     moveLabel: string
+    /** The actor column's header. Defaults to "Player", which is right wherever
+     *  a turn has one actor. codenamesduet overrides it because its turn has
+     *  TWO — one player gives the clue, the other guesses — so a bare "Player"
+     *  would be ambiguous about which one the column names. */
+    whoLabel?: string
     rows: TurnRow[]
     setup: { label: string; value: string }[]
     /** Shown as the sole row when there are no turns yet. */
@@ -69,13 +74,14 @@ export function drawTurnLog(
       col = 0
     }
   }
-  let cy = drawTurnsHeader(pd, leftX, ly, colW, o.moveLabel)
+  const whoLabel = o.whoLabel ?? 'Player'
+  let cy = drawTurnsHeader(pd, leftX, ly, colW, o.moveLabel, whoLabel)
   let firstInColumn = true
 
   rows.forEach((row) => {
     if (cy + ROW_H > pageBottom) {
       nextColumn()
-      cy = drawTurnsHeader(pd, colX(), columnTop(), colW, o.moveLabel)
+      cy = drawTurnsHeader(pd, colX(), columnTop(), colW, o.moveLabel, whoLabel)
       firstInColumn = true
     }
     const x = colX()
@@ -102,12 +108,19 @@ export function drawTurnLog(
   }
 }
 
-/** Draw the "# Player <move>" column header + a rule at (x, y). Returns the first row's top y. */
-function drawTurnsHeader(pd: PrintDoc, x: number, y: number, w: number, moveLabel: string): number {
+/** Draw the "# <who> <move>" column header + a rule at (x, y). Returns the first row's top y. */
+function drawTurnsHeader(
+  pd: PrintDoc,
+  x: number,
+  y: number,
+  w: number,
+  moveLabel: string,
+  whoLabel: string,
+): number {
   const { doc } = pd
   doc.setFont('helvetica', 'bold').setFontSize(8.5).setTextColor(DARK_GREY)
   doc.text('#', x + SEQ_X, y + 9)
-  doc.text('Player', x + WHO_X, y + 9)
+  doc.text(whoLabel, x + WHO_X, y + 9)
   doc.text(moveLabel, x + MOVE_X, y + 9)
   doc.setDrawColor(MEDIUM_GREY).setLineWidth(0.5).line(x, y + 13, x + w, y + 13)
   return y + 16

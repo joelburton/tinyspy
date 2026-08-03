@@ -40,7 +40,11 @@ const MARK_RGB: Record<Mark, [number, number, number]> = {
 
 const COLS = 5
 const CELL_GAP = 3
-const INSET = 9 // side of a keycard inset box
+// A keycard inset is deliberately SMALL: it's a reference you consult, sitting
+// out of the way of the word. The outcome mark is deliberately BIGGER — it's
+// what you scan the grid for.
+const INSET = 7 // side of a keycard inset box
+const OUTCOME_MARK = 8
 
 /** Generate the PDF and hand it to the browser as a download. */
 export function printCodenamesduetPdf(m: DuetPrintModel): void {
@@ -65,6 +69,9 @@ export function printCodenamesduetPdf(m: DuetPrintModel): void {
     startY: y,
     // A duet turn IS a clue plus what it got, so the column is "Clue".
     moveLabel: 'Clue',
+    // A duet turn has TWO actors — one gives the clue, the other guesses — so a
+    // bare "Player" wouldn't say which this column names. It's the clue-giver.
+    whoLabel: 'Giver',
     rows: m.turns,
     setup: m.setup,
     emptyText: 'No clues yet.',
@@ -96,7 +103,7 @@ function drawCell(doc: jsPDF, c: PrintCell, x: number, y: number, w: number, h: 
 
   // …and its mark repeats it in shape, top-LEFT — the corner the two keycard
   // insets leave free.
-  if (c.outcome) mark(doc, c.outcome, x + 7, y + 7, 6)
+  if (c.outcome) mark(doc, c.outcome, x + 8, y + 8, OUTCOME_MARK)
 
   // The word, centred, shrunk to fit the cell.
   doc.setFont('helvetica', 'bold').setFontSize(8).setTextColor(BLACK)
@@ -121,7 +128,7 @@ function drawCell(doc: jsPDF, c: PrintCell, x: number, y: number, w: number, h: 
 /** A keycard inset: a small bordered box carrying its mark. */
 function drawInset(doc: jsPDF, kind: Mark, x: number, y: number): void {
   doc.setLineWidth(1).setDrawColor(...MARK_RGB[kind]).rect(x, y, INSET, INSET, 'S')
-  mark(doc, kind, x + INSET / 2, y + INSET / 2, INSET * 0.55)
+  mark(doc, kind, x + INSET / 2, y + INSET / 2, INSET * 0.6)
 }
 
 /** A small filled triangle — the "someone burned this" marker. */
@@ -158,8 +165,8 @@ function drawLegend(doc: jsPDF, m: DuetPrintModel, x: number, y: number, colW: n
   // printed text gains from risking the encoding — see model.ts on the arrow,
   // which did print as mojibake.
   const corners = m.showsBothKeys
-    ? "Bottom-left = your key · top-right = partner's · tile border = what happened"
-    : 'Bottom-left = your key · tile border = what happened'
+    ? "Bottom-left = your key · top-right = partner's · top-left = what happened"
+    : 'Bottom-left = your key · top-left = what happened'
   doc.text(fit(doc, corners, colW), x, y + 17)
   return y + 20
 }

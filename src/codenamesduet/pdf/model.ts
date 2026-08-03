@@ -124,11 +124,13 @@ export function buildDuetPrintModel(o: {
         // The clue leads; it's the part that can't be reconstructed from the
         // board, and drawTurnLog truncates the tail.
         //
-        // ASCII '->', not '→': jsPDF's core fonts are WinAnsi, so U+2192 isn't
-        // in them and prints as mojibake (it came out as `!'`). Only characters
-        // WinAnsi actually has may go in printed text — '·' is fine, arrows and
-        // check/cross marks are not, which is why marks.ts DRAWS those.
-        text: `${c.word.toUpperCase()} ${c.count}${got.length ? ` -> ${got.join(', ')}` : ''}`,
+        // The separator is '»' (U+00BB), not '→' (U+2192): jsPDF's core fonts
+        // are WinAnsi, which HAS the guillemet but not the arrow — U+2192 came
+        // out as mojibake (`!'`). It's the closest real character to an arrow
+        // the encoding offers, and beats a hand-made '->'. Check the same way
+        // before putting any new symbol in printed text; that's also why
+        // marks.ts DRAWS its check and cross rather than typing them.
+        text: `${c.word.toUpperCase()} ${c.count}${got.length ? ` » ${got.join(', ')}` : ''}`,
       }
     })
 

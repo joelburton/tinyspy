@@ -36,7 +36,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(34);
+select plan(35);
 
 -- Cast: ada + bea form the 2-member club used for the happy
 -- path. cade is the in-club third member for the wrong-size
@@ -415,11 +415,12 @@ select is(
   'create_game: current-view common.games row has gametype = codenamesduet'
 );
 
--- Title shape: "WORD1-WORD2-WORD3" — the first three picked words
--- alphabetically. Words are randomly drawn from a 390-word pool so we
--- can't pin the exact words; assert the shape (three dash-joined
--- uppercase words) and that they're the ones actually on the board,
--- in ascending order.
+-- Title shape: "WORD1-WORD2-WORD3" — the first three words IN BOARD ORDER
+-- (positions 0/1/2), i.e. the top-left three cells as everyone sees them.
+-- Board order, not alphabetical (2026-08-02): a duet board is never shuffled or
+-- rotated, so the first three cells are a stable handle you can match by
+-- glancing at the grid. Words are randomly drawn from a 390-word pool so we
+-- can't pin the exact words; assert the shape and that they're positions 0-2.
 -- Three parts, two dashes, all uppercase. NOT `^[A-Z]+-[A-Z]+-[A-Z]+$`: the
 -- pool holds multi-word entries ("BIG BANG", "ST.PATRICK"), so a per-part
 -- letters-only pattern fails on whichever draw happens to include one.
@@ -431,12 +432,29 @@ select ok(
 );
 select ok(
   (select title = (
+     select string_agg(w, '-' order by pos)
+       from (select word as w, position as pos from codenamesduet.words
+              where game_id = created.id
+              order by position limit 3) first3)
+     from common.games, created where common.games.id = created.id),
+  'create_game: the title words are the board''s first three IN BOARD ORDER'
+);
+
+-- …and that's a real distinction, not a coincidence of the draw: a title built
+-- from the alphabetical first-three would differ whenever positions 0-2 aren't
+-- already sorted, which is almost always. Skip the assert on the rare draw
+-- where they happen to coincide.
+select ok(
+  (select title <> (
      select string_agg(w, '-' order by w)
        from (select word as w from codenamesduet.words
               where game_id = created.id
-              order by word limit 3) first3)
+              order by word limit 3) alpha)
+     or (select array_agg(word order by position) = array_agg(word order by word)
+           from (select word, position from codenamesduet.words
+                  where game_id = created.id order by position limit 3) t)
      from common.games, created where common.games.id = created.id),
-  'create_game: the title words are the board''s first three, alphabetically'
+  'create_game: board order is distinguishable from alphabetical order'
 );
 
 -- ============================================================

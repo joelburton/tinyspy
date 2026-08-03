@@ -66,7 +66,7 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | wordwheel | centre·outer letters | `A·BCDEFGH` |
 | crosswords | puzzle title (fallback `Crossword`) | `NYT Sat 8/1/26: Untitled` |
 | connections | the puzzle's date + **the first two tiles** | `2026-07-04: APPLE-BANANA` |
-| codenamesduet | **the first 3 board words**, alphabetical | `APPLE-BERRY-CHERRY` |
+| codenamesduet | **the first 3 board words**, in **board order** (the top-left three cells as shown — the board is never shuffled, so they're a handle you can match by glancing at the grid) | `VALENTINE-GANGSTER-GUM` |
 
 ## Status lines
 
