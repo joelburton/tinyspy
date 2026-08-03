@@ -9,6 +9,7 @@ import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { HintButton } from '../../common/components/buttons/HintButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
+import { SpoilerButton } from '../../common/components/buttons/SpoilerButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
@@ -24,7 +25,7 @@ import styles from './InfoCol.module.css'
  * scaffold pieces in the fixed order (docs/playarea.md → Info-column readouts):
  * state readout → OpponentStrip → action row → help → setup disclosure → terminal
  * words reveal → GameTurnLog log. Every mutation is a named callback up
- * (`onHint`/`onReveal`/`onEndGame`/`onConcede`/`onSelectTurn`); PlayArea owns the
+ * (`onHint`/`onSpoiler`/`onReveal`/`onEndGame`/`onConcede`/`onSelectTurn`); PlayArea owns the
  * RPCs and the coordination state. See docs/playarea-decomposition-plan.md.
  */
 export function InfoCol({
@@ -38,13 +39,13 @@ export function InfoCol({
   isLocallyDone,
   foundCount,
   hintCount,
-  revealCount,
+  spoilerCount,
   players,
   selfId,
   playerStates,
   concededIds,
   onHint,
-  onReveal,
+  onSpoiler,
   onEndGame,
   onConcede,
   onRestart,
@@ -53,6 +54,8 @@ export function InfoCol({
   onBackToClub,
   setup,
   solution,
+  onReveal,
+  revealDisabled,
   submissions,
   viewingIndex,
   onSelectTurn,
@@ -73,7 +76,11 @@ export function InfoCol({
   foundCount: number
   /** Cheat tallies shown beneath the count. */
   hintCount: number
-  revealCount: number
+  /** How many times a player took the "just tell me the next word" spoiler.
+   *  The submission rows still carry `kind='reveal'` server-side (renaming the
+   *  stored value would be a migration for a label); only the word the players
+   *  read changed, so "reveal" can mean the whole solution at game-over. */
+  spoilerCount: number
 
   // ── Players (the OpponentStrip + the log's identity discs) ──
   /** The roster (identity + per-player concede flags). */
@@ -86,7 +93,10 @@ export function InfoCol({
 
   // ── Action row (cheats + End/Concede, back-to-club at terminal) ──
   onHint: () => void
-  onReveal: () => void
+  /** Mid-game cheat: hand over the next word (the amber bare-eye SpoilerButton).
+   *  Named for what it does to a LIVE game — distinct from `onReveal` below,
+   *  which opens the whole solution once the game is over. */
+  onSpoiler: () => void
   onEndGame: () => void
   onConcede: () => void
   /** Restart THIS stack — same tiles, same solution — from scratch (the menu's
@@ -102,8 +112,15 @@ export function InfoCol({
 
   // ── Setup disclosure + terminal words reveal ──
   setup: StackdownSetup
-  /** The six solution words, revealed at game-over (terminal only). */
+  /** The six solution words — non-null ONLY when they should be on screen: a
+   *  clean win, or after someone asked. A plain loss keeps them hidden so
+   *  Restart (same stack, same solution) stays a genuine second try. */
   solution: string[] | null
+  /** Open the solution at game-over (the red boxed-eye RevealButton + its menu
+   *  twin). Local display toggle — nothing is written. */
+  onReveal: () => void
+  /** The solution is already showing, so the reveal control self-disables. */
+  revealDisabled: boolean
 
   // ── Turn-history log (GameTurnLog) ──
   /** The submission log the log renders + the viewer indexes (by position). */
@@ -121,13 +138,13 @@ export function InfoCol({
             state → opponent strip → action row → help → setup disclosure → log. */}
 
         {/* State — words cleared out of six, plus the cheat tallies (hints /
-            reveals used). Always shown (even at 0) so using one doesn't shift
+            spoilers used). Always shown (even at 0) so using one doesn't shift
             the rows below. */}
         <p className={shared.infoState}>
           <strong>{foundCount}</strong> / 6 words cleared
           <br />
           <strong>{hintCount}</strong> hint{hintCount === 1 ? '' : 's'} ·{' '}
-          <strong>{revealCount}</strong> reveal{revealCount === 1 ? '' : 's'} used
+          <strong>{spoilerCount}</strong> spoiler{spoilerCount === 1 ? '' : 's'} used
         </p>
 
         {/* Opponent strip (compete) — each player's found-word count, identity
@@ -161,6 +178,9 @@ export function InfoCol({
           <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
             {/* Stay-here options left of the leave option (Club): run this stack
                 back, or claim the next one. */}
+            {/* Reveal first: it's the one that acts on THIS finished game.
+                Restart / New game are both "move on", and they leave. */}
+            <RevealButton iconOnly onClick={onReveal} disabled={revealDisabled} />
             <RestartButton iconOnly onClick={onRestart} />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
@@ -168,6 +188,13 @@ export function InfoCol({
           // I conceded; the others race on. Terminal LOOK (a status line + the
           // now-disabled Concede) so the drop-out reads loudly.
           <LocalTerminalRow label="You conceded">
+            {/* Reveal keeps its slot while the others race, but inert: the
+                solution opens only when the game is over for EVERYONE
+                (common.reveal_solution enforces the same rule server-side), so
+                a player who dropped out can't spoil a live race. Present
+                rather than absent so the row doesn't change shape when the
+                last racer finishes — the button is simply enabled then. */}
+            <RevealButton iconOnly disabled tooltip="Can't reveal until all end" />
             <ConcedeGameButton iconOnly className={shared.helperButton} disabled />
           </LocalTerminalRow>
         ) : isPlayer ? (
@@ -180,13 +207,16 @@ export function InfoCol({
               iconOnly
               onClick={onHint}
               className={shared.helperButton}
-              tooltip="Cheat: show the next word's definition (not the word)"
+              tooltip="Hint for next word"
             />
-            <RevealButton
+            {/* The bare eye, not the boxed one: this hands over ONE word of a
+                live game. The boxed-eye RevealButton is reserved for the whole
+                solution at game-over (see the icon registry). */}
+            <SpoilerButton
               iconOnly
-              onClick={onReveal}
+              onClick={onSpoiler}
               className={shared.helperButton}
-              tooltip="Cheat: peek at the next word (for verifying boards)"
+              tooltip="Cheat for next word"
             />
             {isCompete ? (
               <ConcedeGameButton iconOnly onClick={onConcede} className={shared.helperButton} />
@@ -220,8 +250,9 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      {/* Terminal-only reveal of the six solution words — the one info-column
-          region allowed to grow at game-over (docs/ui.md → Layout stability). */}
+      {/* The six solution words — the one info-column region allowed to grow at
+          game-over (docs/ui.md → Layout stability). Shown only once `solution`
+          is non-null, which PlayArea gates on won-or-revealed. */}
       {over && solution && (
         <div className={cls(shared.terminalExtra, styles.reveal)}>
           <span className="muted">The words were</span>{' '}

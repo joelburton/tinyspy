@@ -58,6 +58,22 @@ export type GamePageCtx = {
   /** Materialized "any terminal play_state" from
    *  `common.games.is_terminal`. */
   isTerminal: boolean
+  /** `common.games.solution_revealed` — **the** answer to "may the players see
+   *  the solution?", for every game that has one to hide.
+   *
+   *  Set by `common.end_game` (a win, or an ending that reveals by itself) and
+   *  by the `common.reveal_solution` RPC behind the terminal RevealButton;
+   *  cleared by `common.reset_game`, so a replayed board starts blind. SHARED —
+   *  one player revealing opens it for everyone, which is what a post-mortem
+   *  wants — and it arrives on every client through the same realtime refetch
+   *  as the rest of this row.
+   *
+   *  Games with no solution (bananagrams, scrabble) simply never set it, the
+   *  same way `currentTurnUserId` is inert for the free-for-all games. It is
+   *  NOT a shield: each gametype withholds the solution itself via its
+   *  column-grant + `_x_for()` terminal gate. See docs/ui.md → Terminal
+   *  results. */
+  solutionRevealed: boolean
   timer: {
     displaySeconds: number
     expired: boolean

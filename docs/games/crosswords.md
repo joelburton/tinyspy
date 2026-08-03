@@ -364,7 +364,16 @@ ported (`pdf/solution.ts`): a solved-grid PDF (every open cell filled with the
 canonical answer, the note flowed through the clue regions), driven by a "Print
 answer key (PDF)" menu item that fetches the grid via `export_solution` — coop any
 time, compete only at terminal (a UI gate; `export_solution` itself isn't
-terminal-gated, same as Download-as-.ipuz). Both PDFs are exposed as
+terminal-gated, same as Download-as-.ipuz).
+
+**Coop's any-time answer key is deliberate — don't "fix" it** (confirmed
+2026-08-03). It looks like it contradicts the reveal gate that the other
+solution-hiding games got, and it doesn't: the use case is printing the puzzle
+*and* its key together to solve on paper, where you simply don't look at the
+second sheet until you're done. Withholding it until terminal would break that
+without protecting anything — the person printing it is the person choosing not
+to read it. Compete keeps its gate, since there an answer key mid-race is a
+giveaway to someone else's disadvantage. Both PDFs are exposed as
 `setGameSections` menu items; the grid is snapshotted at click-time. See
 [docs/pdf.md](../pdf.md) → the grid-plus-clue-columns body family.
 

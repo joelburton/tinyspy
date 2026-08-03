@@ -688,8 +688,7 @@ begin
       case when not exists (select 1 from common.game_players gp
                              where gp.game_id = target_game and not gp.conceded)
            then 'conceded' else 'mistakes' end),
-    player_results
-  );
+    player_results);
   return true;
 end;
 $$;
@@ -882,8 +881,7 @@ begin
             'mistake_count', caller_mistakes,
             'matched_count', 4
           ),
-          player_results
-        );
+          player_results);
       else
         -- Turn-order: an accepted, non-terminal coop guess (a fresh correct
         -- group that doesn't yet complete the puzzle) hands the turn on
@@ -925,8 +923,7 @@ begin
             'outcome', 'solved',
             'winner_username', winner_name
           ),
-          player_results
-        );
+          player_results);
       else
         -- Mid-game compete listing-label payload is intentionally
         -- minimal — "compete · in progress" doesn't need per-
@@ -1003,8 +1000,7 @@ begin
           'mistake_count', caller_mistakes,
           'matched_count', matched_count
         ),
-        player_results
-      );
+        player_results);
     else
       -- Turn-order: an accepted, non-terminal coop guess (a fresh wrong/
       -- oneAway that costs a mistake but doesn't hit the 4th) hands the turn
@@ -1165,8 +1161,7 @@ begin
         'mistake_count', caller_mistakes,
         'matched_count', matched_count
       ),
-      player_results
-    );
+      player_results);
   else
     terminal_state := 'lost_compete';
     terminal_outcome := 'timeout';
@@ -1177,8 +1172,7 @@ begin
       jsonb_build_object(
         'outcome', terminal_outcome
       ),
-      player_results
-    );
+      player_results);
   end if;
 end;
 $$;
@@ -1273,8 +1267,7 @@ begin
       'outcome', 'manual',
       'mode', g_row.mode
     ),
-    player_results
-  );
+    player_results);
 
   -- Realtime touch — REQUIRED here, and the one place connections's
   -- termination path differs from submit_guess/submit_timeout.

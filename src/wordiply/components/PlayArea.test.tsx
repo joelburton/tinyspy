@@ -78,6 +78,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     players: [gp('u1', 'me', 'red')],
     playState: 'playing',
     isTerminal: false,
+    solutionRevealed: false,
     timer: { displaySeconds: 0, expired: false },
     isMyTurn: true,
     currentTurnUserId: null,
@@ -159,6 +160,9 @@ describe('wordiply PlayArea — terminal reveal', () => {
         {...makeCtx({
           isTerminal: true,
           playState: 'ended',
+          // wordiply never hides its answer, so end_game sets the common flag
+          // at every ending — and the best-possible-word reveal reads it.
+          solutionRevealed: true,
           status: { outcome: 'complete', length_score: 71, letter_count: 8 },
         })}
       />,

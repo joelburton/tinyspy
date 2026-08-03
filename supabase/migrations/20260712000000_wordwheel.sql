@@ -988,8 +988,7 @@ begin
         ),
         (select jsonb_object_agg(gp.user_id, jsonb_build_object('won', true))
            from common.game_players gp
-          where gp.game_id = target_game)
-      );
+          where gp.game_id = target_game));
       return jsonb_build_object(
         'result', 'accepted', 'points', coalesce(points, 0), 'won', true
       );
@@ -1075,8 +1074,7 @@ begin
                     'rank_idx', (entry->>'rank_idx')::int
                   )
                 )
-           from jsonb_array_elements(player_results) entry)
-      );
+           from jsonb_array_elements(player_results) entry));
     else
       -- Build the full leaderboard for the status label.
       select jsonb_agg(
@@ -1233,8 +1231,7 @@ begin
         'required_words_count', g_row.required_words_count,
         'target_rank', current_target_rank
       ),
-      player_results
-    );
+      player_results);
   else
     -- compete: freeze the leaderboard at timeout, no winner. common.end_game
     -- REPLACES status wholesale, so we must re-emit target_rank + the display
@@ -1288,8 +1285,7 @@ begin
                   'rank_idx', (entry->>'rank_idx')::int
                 )
               )
-         from jsonb_array_elements(status_leaderboard) entry)
-    );
+         from jsonb_array_elements(status_leaderboard) entry));
   end if;
 
   -- Realtime touch on found_words so peers refetch and the now-RLS-visible
@@ -1405,8 +1401,7 @@ begin
         'required_words_count', g_row.required_words_count,
         'target_rank', current_target_rank
       ),
-      player_results
-    );
+      player_results);
   else
     -- compete: per-player aggregates, no winner (the players agreed to stop).
     -- Same shape as submit_timeout's compete branch — re-emit target_rank +
@@ -1451,8 +1446,7 @@ begin
                   'rank_idx', (entry->>'rank_idx')::int
                 )
               )
-         from jsonb_array_elements(status_leaderboard) entry)
-    );
+         from jsonb_array_elements(status_leaderboard) entry));
   end if;
 
   -- Realtime touch on found_words so compete peers refetch the now-RLS-visible

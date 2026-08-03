@@ -270,11 +270,13 @@ creation, so it's self-contained; `board_id` is provenance only.
   may be removed once boards are trusted. Gated like a move (game player,
   in-progress only). Because strict validity forces clearing in solution order,
   the count of cleared words is exactly the index of the next one. The FE surfaces
-  it as a **Reveal word** action button in the info-column action row during play
+  it as a **Spoiler** action button (amber, bare-eye — see [ui.md → Button
+  iconography](../ui.md#button-iconography)) in the info-column action row during play
   (writing its answer to the **local** below-board feedback slot — it's the
   player's own request). It also **logs the request** — a `kind='reveal'`
-  submission row storing the revealed word (shown in the log as "Revealed:
-  <WORD>") so the ask persists in the game log; deduped
+  submission row storing the revealed word (shown in the log as "Spoiler:
+  <WORD>"; the stored `kind` stays `'reveal'` — renaming it would be a migration
+  for a label) so the ask persists in the game log; deduped
   per `(player, for_word_index)` so repeated clicks don't spam, and serialized by
   the games-row `for update` lock (for a collision-free `seq`).
 - **`reveal_next_hint(target_game) → text`** — the softer sibling: returns the
@@ -428,7 +430,7 @@ pill.
   feedback slot; takes the board to render — live or a `lib/history` snapshot — plus
   `readOnly`, and emits the completed word up), `InfoCol` (the info column: state,
   compete OpponentStrip, action row of Reveal-hint/Reveal-word cheats + End/Concede
-  via the semantic buttons, help, setup, terminal words-reveal, and the GameTurnLog
+  via the semantic buttons, help, setup, the asked-for words reveal, and the GameTurnLog
   log), `PlayArea` (the thin two-column coordinator: `useGame` + the submit + game-over
   + the history `viewingIndex`; in compete it filters the log to the caller's own so
   it doesn't swap to an everyone's-words view at terminal), `SetupForm` (the
@@ -517,9 +519,12 @@ playing, tiles spent on accepted words (and the ones picked into the word being
 built) are hidden; **at terminal the original board comes back**, since a won
 game has cleared every tile and would otherwise print blank.
 
-The six words are **terminal-only**, twice over: the server withholds `solution`
-until the row is terminal (`games_state` gates it), and the print model refuses
-to emit it before then regardless — so a future schema change can't quietly put
-the answer on paper. The log prints all three submission kinds, with the
+The six words are **terminal-only**, three times over: the server withholds
+`solution` until the row is terminal (`games_state` gates it), the FE holds it
+back further until `common.games.solution_revealed` says otherwise — a clean win
+or an explicit Reveal (docs/ui.md → Terminal results; `replay_board` re-runs this
+very stack, and `reset_game` clears the flag so it does so blind), and the print model refuses to
+emit it before then regardless — so neither a lost-game printout nor a future
+schema change can quietly put the answer on paper. The log prints all three submission kinds, with the
 valid/invalid/cheat distinction carried in **text** rather than colour, since a
 mono printer flattens the outcome bar's green and red to one grey.

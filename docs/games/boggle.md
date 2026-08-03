@@ -521,5 +521,5 @@ paths regenerate it first:
   "bundle": fastest/stale, and "query the DB at startup": always-fresh/slowest.
   Measured cold-start floors: bundled ~21 ms required / ~76 ms full; DB query
   ~48 ms / ~128 ms local, more on hosted.)
-- **Compete classic dupes-cancel** scoring as an opt-in — full entry (the ⦻ marker + the scoring-mode change) in [`deferred.md → Wordlist markers`](../deferred.md#wordlist-markers-spellingbee--boggle).
+- **Compete classic dupes-cancel** scoring as an opt-in — moved to [`deferred.md → Far future`](../deferred.md#far-future) (2026-08-03): the open question is whether we want the rule at all, not how to build it.
 - **A "check board" / hint helper** (cf. MonkeyGrams' planned one).

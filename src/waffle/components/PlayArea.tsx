@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
@@ -20,6 +20,7 @@ import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useCon
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { db } from '../db'
+import { db as commonDb } from '../../common/db'
 import { useGame } from '../hooks/useGame'
 import { turnSnapshot } from '../lib/history'
 import { computeColors } from '../lib/colors'
@@ -75,6 +76,7 @@ export function PlayArea({
   players,
   playState,
   isTerminal,
+  solutionRevealed,
   timer,
   isMyTurn,
   currentTurnUserId,
@@ -198,7 +200,6 @@ export function PlayArea({
   // Post-game local answer reveal — set by the TERMINAL branch of
   // handleRevealAnswer (below), cleared by replay. Swaps the DISPLAYED board
   // for the solution; see the derivation past the loading guard.
-  const [revealedLocally, setRevealedLocally] = useState(false)
 
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); waffle's own
@@ -209,10 +210,11 @@ export function PlayArea({
     (m: string) => showLocalFeedback(ownAction('error', m)),
     [showLocalFeedback],
   )
+  // (The new run starts blind on every client: `common.reset_game` clears
+  //  solution_revealed, so there's no local flag to re-hide here.)
   const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
-    setRevealedLocally(false) // the new run starts blind again
   }, [exitViewing, clearLocalFeedback])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
@@ -285,54 +287,39 @@ export function PlayArea({
   // through this same guarded handler.
   const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
 
-  // Reveal answer — two shapes behind one action (the wordle pattern,
-  // docs/ui.md → Terminal results):
-  //   MID-GAME: give up — server-side `reveal_answer` overwrites every
-  //   `waffle.players.board` with the solution (the board the players are
-  //   looking at literally becomes the answer, all green) then ends the game
-  //   as a neutral give-up (nobody wins). Confirmed since it ends the game for
-  //   the whole group + wipes progress; the answer board + terminal state
-  //   arrive via the realtime refetch.
-  //   AT TERMINAL (a loss / manual end left words hidden): show THIS client
-  //   the solution — no RPC, no confirm; post-terminal the solution is already
-  //   on the client (coop always, compete unshields), so it's purely a display
-  //   decision. Sets `revealedLocally` (declared above handleRestart, which
-  //   clears it), which swaps the DISPLAYED board below.
+  // Reveal answer — TERMINAL ONLY, like every other game (docs/ui.md →
+  // Terminal results). There used to be a mid-game shape as well: a give-up
+  // that rewrote every `waffle.players.board` to the solution and ended the
+  // game in one confirmed click. It's gone, so the order is the same
+  // everywhere — End the game (which ends it for everyone), then Reveal — and
+  // the FE display swap below covers what the board rewrite used to do,
+  // without destroying the boards the players actually built.
+  //
+  // No confirm: post-terminal the solution is already on every client (coop
+  // always, compete unshields), so this writes no game state — it flips the
+  // shared display flag and each client swaps its DISPLAYED board.
   const handleRevealAnswer = useCallback(async () => {
-    if (isTerminal) {
-      setRevealedLocally(true)
-      return
-    }
-    if (!window.confirm('Reveal the answer? This ends the game and fills the board with the solution.'))
-      return
-    const { error } = await db.rpc('reveal_answer', { target_game: gameId })
-    if (error) {
-      showLocalFeedback(ownAction('error', `Reveal failed: ${error.message}`))
-      return
-    }
-    exitViewing()
-    clearLocalFeedback()
-  }, [isTerminal, gameId, showLocalFeedback, clearLocalFeedback, exitViewing])
+    const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
+    if (error) showLocalFeedback(ownAction('error', `Reveal failed: ${error.message}`))
+  }, [gameId, showLocalFeedback])
 
   // Game menu: waffle now owns its FULL menu (Help + its own items + End/Concede +
   // Back to club) via `buildGameMenu`. Its own items are "Restart" (both
   // modes, any state), "New game" (same setup, fresh board + id — see
-  // handleNewGame), and "Reveal answer". Reveal is offered MID-GAME only while
-  // the caller actually holds the solution (compete shields it during play —
-  // no leak: you can't reveal what wasn't sent; in practice coop-in-progress),
-  // and AT TERMINAL until the answer is already showing (a win's board IS the
-  // solution; the give-up RPC tagged status.outcome='revealed'; or this client
-  // already clicked it).
+  // handleNewGame), and "Reveal answer" — offered once the game is over for
+  // everyone, until the answer is already showing (a win's board IS the
+  // solution, or somebody already asked).
   //
   // menuMode is derived up here (not the below-guard copy) so the effect can
   // pick coop End vs compete Concede. Every handler in the deps is a stable
   // useCallback (or a one-shot transition value like `isTerminal`), so this
   // effect only re-runs on real menu-affecting changes — never every render —
   // keeping the setState loop-free. (`myConceded` is derived at the top.)
-  const solutionKnown = game?.solution != null
-  const answerShown =
-    revealedLocally || playState === 'won' || (status?.outcome as string | undefined) === 'revealed'
-  const revealDisabled = isTerminal ? answerShown : !solutionKnown
+  // `common.games.solution_revealed` is the whole answer: end_game sets it on a
+  // win, common.reveal_solution on the ask — no local state, no status string.
+  const answerShown = solutionRevealed
+  // Terminal-only, matching common.reveal_solution's own gate.
+  const revealDisabled = !isTerminal || answerShown
   const menuMode: 'coop' | 'compete' = game?.mode === 'compete' ? 'compete' : 'coop'
   useEffect(() => {
     // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). The server
@@ -448,10 +435,11 @@ export function PlayArea({
   // The grid shows the caller's own board + live colors (including at game-over) — OR,
   // while viewing, the historical snapshot. After the MID-GAME "Reveal answer" the
   // caller's own board IS the solution (the RPC overwrote it), so that needs no
-  // special case. The TERMINAL reveal is display-only: `revealedLocally` swaps the
-  // shown board for the (post-terminal, unshielded) solution, colored all-green by
-  // the same FE colorizer the history viewer uses — waffle.players is untouched.
-  const revealSolution = revealedLocally && isTerminal ? game.solution : null
+  // special case. The TERMINAL reveal is display-only: the common
+  // `solution_revealed` flag swaps the shown board for the (post-terminal,
+  // unshielded) solution, colored all-green by the same FE colorizer the history
+  // viewer uses — waffle.players is untouched.
+  const revealSolution = solutionRevealed && isTerminal ? game.solution : null
   const board = snap ? snap.board : (revealSolution ?? self?.board ?? game.scramble)
   const colors = snap
     ? snap.colors

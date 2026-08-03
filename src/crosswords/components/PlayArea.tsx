@@ -53,6 +53,7 @@ import { ClueText } from './ClueText'
 import { stripClueEmphasis } from '../lib/clueRuns'
 import { Controls } from './Controls'
 import { db } from '../db'
+import { db as commonDb } from '../../common/db'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
@@ -80,7 +81,7 @@ function fileStem(id: string | undefined): string {
  * when set_cell ends the game), so this component just reacts to `isTerminal`.
  */
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, playState, goToClub, session, status, menu, clubHandle } =
+  const { gameId, players, isTerminal, playState, solutionRevealed, goToClub, session, status, menu, clubHandle } =
     ctx
   const myId = session.user.id
 
@@ -147,15 +148,38 @@ export function PlayArea(ctx: GamePageCtx) {
   const [peek, setPeek] = useState<{ row: number; col: number; value: string } | null>(null)
   // The answer grid — shielded mid-game; the server unshields it at terminal
   // (games_state.solution) but the FE does NOT fetch it automatically. The
-  // blanks stay blank until someone picks "Reveal board" from the game menu,
-  // so ending a game doesn't spoil a puzzle the group may want to keep
-  // chewing on. (Errors are tolerated silently, like the old auto-fetch was:
-  // solution stays null and the menu item stays enabled for a retry.)
+  // blanks stay blank until someone asks, so ending a game doesn't spoil a
+  // puzzle the group may want to keep chewing on. Crosswords is the one game
+  // that never auto-shows on a win either: rebuses and quantum clues mean the
+  // players' grid can legitimately differ from the author's, so their fill
+  // stays on screen until they ask to see his.
+  //
+  // "Asked" is the common flag (`common.games.solution_revealed`), so the ask
+  // is SHARED — one solver reveals and everyone's grid fills. The click writes
+  // the flag; the effect below does the fetching, for the caller and for peers
+  // alike. (Errors are tolerated silently, like the old auto-fetch was:
+  // solution stays null and the control stays enabled for a retry.)
   const [solution, setSolution] = useState<(string[] | null)[][] | null>(null)
   const handleRevealBoard = useCallback(async () => {
-    const { data } = await db.from('games_state').select('solution').eq('id', gameId).single()
-    if (data?.solution) setSolution(data.solution as unknown as (string[] | null)[][])
+    await commonDb.rpc('reveal_solution', { target_game: gameId })
   }, [gameId])
+  useEffect(() => {
+    if (!solutionRevealed || solution) return
+    let alive = true
+    void db
+      .from('games_state')
+      .select('solution')
+      .eq('id', gameId)
+      .single()
+      .then(({ data }) => {
+        if (alive && data?.solution) {
+          setSolution(data.solution as unknown as (string[] | null)[][])
+        }
+      })
+    return () => {
+      alive = false
+    }
+  }, [solutionRevealed, solution, gameId])
 
   const grid = game?.meta.cells ?? null
   const [cursor, setCursor] = useState<Cursor | null>(null)
@@ -616,7 +640,7 @@ export function PlayArea(ctx: GamePageCtx) {
                 // only unshields the solution then); disables itself once shown.
                 id: 'reveal-board',
                 label: 'Reveal board',
-                disabled: !isTerminal || solution !== null,
+                disabled: !isTerminal || solutionRevealed,
                 onClick: () => void handleRevealBoard(),
               },
               {
@@ -635,7 +659,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, hasNote, pencil, collapseRebus, mode, myConceded, handleShowNote, handleExplain, handleRevealBoard, handleClear, handleDownloadIpuz, handlePrintSolution, isPlayable, isTerminal, solution, infoSheet.menuSections])
+  }, [menu, game, hasNote, pencil, collapseRebus, mode, myConceded, handleShowNote, handleExplain, handleRevealBoard, handleClear, handleDownloadIpuz, handlePrintSolution, isPlayable, isTerminal, solutionRevealed, infoSheet.menuSections])
 
   const over: (TerminalCopy & { verdictNode?: ReactNode }) | null = isTerminal
     ? buildOver(playState, status, mode, myId, players)
@@ -881,7 +905,7 @@ export function PlayArea(ctx: GamePageCtx) {
                     label="Reveal solution"
                     iconOnly
                     // Self-disables once shown, like its game-menu twin.
-                    disabled={solution !== null}
+                    disabled={solutionRevealed}
                     onClick={() => void handleRevealBoard()}
                   />
                   <NewGameButton iconOnly onClick={handleNewGame} disabled={startingNewGame} />
@@ -889,6 +913,12 @@ export function PlayArea(ctx: GamePageCtx) {
                 </div>
               ) : myConceded ? (
                 <LocalTerminalRow label="You conceded">
+                  {/* Inert, but present: the solution opens only when the game
+                      is over for EVERYONE (common.reveal_solution enforces it
+                      server-side too), so a player who dropped out can't spoil
+                      a live race — and the row keeps its shape for when the
+                      last solver finishes. */}
+                  <RevealButton iconOnly disabled tooltip="Can't reveal until all end" />
                   <ConcedeGameButton iconOnly disabled />
                 </LocalTerminalRow>
               ) : (

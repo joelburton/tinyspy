@@ -131,26 +131,22 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | | ended — manual end | `Ended` |
 | **waffle_coop** | playing | `Playing · 8 swaps left · dict "Familiar"` |
 | | ended — manual end | `Ended · dict "Familiar"` |
-| | ended — answer revealed | `Ended (answer revealed) · dict "Familiar"` |
 | | won — solved | `Won · 3 swaps left · dict "Familiar"` |
 | | lost — out of swaps | `Lost (out of swaps) · dict "Familiar"` |
 | | lost — timeout | `Lost (out of time) · dict "Familiar"` |
 | **waffle_compete** | playing | `Playing · dict "Familiar"` |
 | | ended — manual end | `Ended · dict "Familiar"` |
-| | ended — answer revealed | `Ended (answer revealed) · dict "Familiar"` |
 | | won_compete — someone won | `Won by alice · 8 swaps · dict "Familiar"` |
 | | lost_compete — everyone out of swaps | `Lost (out of swaps) · no winner` |
 | | lost_compete — timeout | `Lost (out of time) · no winner` |
 | | lost_compete — all conceded | `Lost (all conceded)` |
 | **wordle_coop** | playing | `Playing · 3/6 guesses · dict "Wordle"` |
 | | ended — manual end | `Ended · dict "Wordle"` |
-| | ended — answer revealed | `Ended (answer revealed) · dict "Wordle"` |
 | | won — solved | `Won · 4/6 guesses · dict "Wordle"` |
 | | lost — out of guesses | `Lost (out of guesses) · dict "Wordle"` |
 | | lost — timeout | `Lost (out of time) · 3/6 guesses · dict "Wordle"` |
 | **wordle_compete** | playing | `Playing · dict "Wordle"` |
 | | ended — manual end | `Ended · dict "Wordle"` |
-| | ended — answer revealed | `Ended (answer revealed) · dict "Wordle"` |
 | | won_compete — someone won | `Won by alice · 4 guesses · dict "Wordle"` |
 | | lost_compete — everyone out of guesses | `Lost (out of guesses) · no winner` |
 | | lost_compete — timeout | `Lost (out of time) · no winner` |

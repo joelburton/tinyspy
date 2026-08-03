@@ -21,7 +21,7 @@
   color: var(--color-outcome-lost-strong);
 }
 
-/* A logged cheat request row ("Hint: <clue>" / "Revealed: <WORD>"). Normal
+/* A logged cheat request row ("Hint: <clue>" / "Spoiler: <WORD>"). Normal
  * weight + full text color — it's information the player asked for, not an
  * error, so it reads plainly (the amber outcome bar already marks it as a cheat
  * request). */

@@ -266,26 +266,16 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   there's no confirm. `clubHandle` + `goToGame` are new `GamePageCtx` fields
   (see [common.md](../common.md)) so any game can adopt the same "same again!"
   item later.
-- **`reveal_answer(game)`** — the **"Reveal answer"** game-menu item: give up,
-  **show the solution, end the game**. Where `end_game` leaves each board as-is,
-  this overwrites every `waffle.players.board` with `games.solution` and *then*
-  ends the game — so the board the players are looking at literally becomes the
-  answer (`games_state` colors it all-green for free), with no FE overlay. A
-  give-up, so like `end_game` it's a neutral `play_state='ended'` with every player
-  `{"won": false}`, but tagged `status.outcome='revealed'`. Same `play_state`
-  guard + `P0001` idempotency as `end_game`; any game player may call it. **No
-  realtime touch needed** (unlike `end_game`): the `waffle.players` board rewrite
-  already wakes `useGame`, and `common.end_game`'s `common.games` write wakes
-  `useCommonGame`. Mid-game the FE only offers it while the **solution is on
-  the client** — compete shields it during play, so in practice it's a coop
-  action; you can't reveal what the server never sent. **At terminal the same
-  action is FE-local instead** (the wordle pattern): no RPC, no confirm — the
-  solution unshields post-terminal in both modes, so `revealedLocally` just
-  swaps the DISPLAYED board for it (colored all-green by the FE `lib/colors`
-  port; `waffle.players` untouched) and fills the answer list. Disabled once
-  the answer is already showing (a win's board IS the solution / the give-up
-  tagged `outcome='revealed'` / already clicked); replay clears it (the new
-  run starts blind). Offered from the game menu AND the terminal action row's
+- ~~**`reveal_answer(game)`**~~ — **removed 2026-08-03.** It was a mid-game
+  give-up that overwrote every `waffle.players.board` with the solution and then
+  ended the game. Waffle now matches every other game: **End the game, then
+  Reveal**, where Reveal is the common `common.reveal_solution`
+  ([common.md → Revealing the solution](../common.md#revealing-the-solution)),
+  terminal-only by construction and shared across the table. The FE swaps what
+  it DRAWS (the solution board, colored all-green by the `lib/colors` port),
+  which is strictly better than the rewrite: the players' own boards survive, so
+  the turn-history viewer still replays real swaps against the board they
+  actually played. Offered from the game menu AND the terminal action row's
   `RevealButton`. pgTAP: `reveal_test.sql`.
 
 ### Terminal logic
@@ -556,8 +546,9 @@ The **six answer words are terminal-only**, twice over: the server gates
   drop-out keeps the race going but forfeits any win; everyone conceding is a
   collective loss; coop rejected), `replay_test` (replay_board resets both modes
   to the scramble on the same game row, any state, non-player rejected),
-  `reveal_test` (reveal_answer fills every board with the solution and ends as a
-  neutral give-up), `solution_hide_test` (the answer key's per-mode visibility:
+  `reveal_test` (end-then-reveal: the players' boards are UNTOUCHED and the
+  common `solution_revealed` flag carries the display decision),
+  `solution_hide_test` (the answer key's per-mode visibility:
   column-grant excluded everywhere; coop exposed during play, compete only once
   terminal), `turn_order_test` (the opt-in turn-by-turn coop wiring: seating,
   out-of-turn reject, advance only on an accepted non-terminal swap).

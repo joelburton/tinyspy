@@ -42,6 +42,11 @@ export type CommonGame = {
    *  Lets consumers gate on a uniform boolean without needing to
    *  know each gametype's vocabulary. */
   is_terminal: boolean
+  /** `common.games.solution_revealed` — the one common answer to "may the
+   *  players see the solution?". See GamePageCtx's field of the same name (in
+   *  lib/games.ts) for the full story; it rides this row's realtime refetch, so
+   *  a peer's Reveal opens the solution on every client. */
+  solution_revealed: boolean
   /** Free-form per-gametype outcome detail. Each gametype writes
    *  its own shape; the matching manifest's `labelFor` reads
    *  it back to render the club-page listing row. Kept current
@@ -259,7 +264,7 @@ export function useCommonGame(
         commonDb
           .from('games')
           .select(
-            'id, club_handle, gametype, title, setup, is_current_view, play_state, is_terminal, status, started_at, ended_at, current_turn_user_id',
+            'id, club_handle, gametype, title, setup, is_current_view, play_state, is_terminal, solution_revealed, status, started_at, ended_at, current_turn_user_id',
           )
           .eq('id', gameId)
           .maybeSingle(),

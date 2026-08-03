@@ -19,6 +19,7 @@ import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { db } from '../db'
+import { db as commonDb } from '../../common/db'
 import { useGame } from '../hooks/useGame'
 import { printPsychicnumPdf } from '../pdf/printPsychicnumPdf'
 import { turnSnapshot } from '../lib/history'
@@ -62,6 +63,7 @@ export function PlayArea({
   players,
   playState,
   isTerminal,
+  solutionRevealed,
   timer,
   isMyTurn,
   currentTurnUserId,
@@ -117,8 +119,22 @@ export function PlayArea({
     concede: () => void
     restart: () => void
     newGame: () => void
+    reveal: () => void
   } | null>(null)
 
+  // ─── Terminal secrets reveal ─────────────────────────────────────
+  // The three secrets are NOT ringed just because the game ended:
+  // `replay_board` hunts the SAME board and the SAME three secrets again (see
+  // its RPC comment), so auto-revealing on a loss would leave Restart with
+  // nothing to find.
+  //
+  // `secretsShown` is `common.games.solution_revealed`, straight off the row —
+  // the ONE common answer to "may they see it?" (docs/ui.md → Terminal
+  // results). end_game sets it on a win, reveal_solution on the ask, and
+  // reset_game clears it, so Restart re-hides with nothing to remember here.
+  // Being on the row also makes it SHARED: a teammate's Reveal rings the tiles
+  // on this client too, via the same realtime refetch.
+  const secretsShown = solutionRevealed
   // The FULL psychicnum game menu (Help + Print + End/Concede + Back to club).
   // `buildGameMenu` supplies the framing; `extra` is our one Print item. Print
   // builds its model from the live state (RLS already scoped `guesses`/`results`
@@ -177,21 +193,31 @@ export function PlayArea({
               // The same pair the terminal action row offers, reachable mid-game too.
               { id: 'restart', label: 'Restart', onClick: () => actionsRef.current?.restart() },
               { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
+              // The menu twin of the terminal row's boxed-eye button — the same
+              // local toggle, so a player who's scrolled past the row can still
+              // reach it. Inert mid-game: there's nothing to ring until the
+              // server unshields the secrets at terminal.
+              {
+                id: 'reveal',
+                label: 'Reveal secrets',
+                disabled: !isTerminal || secretsShown,
+                onClick: () => actionsRef.current?.reveal(),
+              },
             ],
           },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, mode, isTerminal, myConceded, game, guesses, players, brand, title, setup, infoSheet.menuSections])
+  }, [menu, mode, isTerminal, myConceded, secretsShown, game, guesses, players, brand, title, setup, infoSheet.menuSections])
 
   // Per-opponent secrets-found count we've already announced (compete tension).
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
 
-  // The Hint / Reveal in-flight flags (their buttons live in InfoCol; the RPCs stay
+  // The Hint / Spoiler in-flight flags (their buttons live in InfoCol; the RPCs stay
   // here in the coordinator). The guess input + the board shuffle moved into BoardCol.
   const [hinting, setHinting] = useState(false)
-  const [revealing, setRevealing] = useState(false)
+  const [spoiling, setSpoiling] = useState(false)
 
   // ─── Local feedback (own-action) — the coordinator owns the channel ────
   // The below-board own-move pill ("Correct"/"Incorrect", a validation error) is the
@@ -204,6 +230,15 @@ export function PlayArea({
 
   // ─── Coop peer events (group feedback) ─────────────────
   // A teammate's guess (green correct / red not) or hint request (amber) is
+  // Open the secrets for everyone — the terminal RevealButton + its menu twin.
+  // The RPC is common (not psychicnum's), because the flag is
+  // (`common.games.solution_revealed`); it's terminal-only server-side, so the
+  // disabled-until-terminal menu item is a UI convenience, not the gate.
+  const revealSecrets = useCallback(async () => {
+    const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
+    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
+  }, [gameId, showLocalFeedback])
+
   // narrated in the header. My own events are excluded — my guesses get the
   // local flash, my hint shows in my own turn log. Compete never reaches here:
   // RLS scopes both guesses AND hints to the caller, and we gate on coop.
@@ -307,6 +342,8 @@ export function PlayArea({
     (m: string) => showLocalFeedback(stickyPill('error', capitalize(m))),
     [showLocalFeedback],
   )
+  // (No reveal-flag reset here: `common.reset_game` clears solution_revealed
+  //  server-side, so the same three secrets are hunted blind again.)
   const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
@@ -371,8 +408,9 @@ export function PlayArea({
       concede,
       restart,
       newGame: () => void handleNewGame(),
+      reveal: () => void revealSecrets(),
     }
-  }, [endGame, concede, restart, handleNewGame])
+  }, [endGame, concede, restart, handleNewGame, revealSecrets])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -433,9 +471,11 @@ export function PlayArea({
   // Turn-order gates the actual input separately (`isMyTurn`, passed to BoardCol).
   const canGuess = !over && selfBudget > 0 && !myConceded
 
-  // Hint (a clue) and reveal (the answer word) both land in the turn log via
-  // realtime; coop teammates get a header pill. Nothing to do with the return
-  // value here — the helper rows arrive over the subscription.
+  // Hint (a clue) and spoiler (the answer word itself) both land in the turn log
+  // via realtime; coop teammates get a header pill. Nothing to do with the
+  // return value here — the helper rows arrive over the subscription. The RPC
+  // keeps its `request_reveal` name; only the FE vocabulary moved, so that "reveal"
+  // on this page means the whole solution at game-over.
   const getHint = async () => {
     setHinting(true)
     const { error } = await db.rpc('request_hint', { target_game: gameId })
@@ -443,10 +483,10 @@ export function PlayArea({
     if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
   }
 
-  const getReveal = async () => {
-    setRevealing(true)
+  const getSpoiler = async () => {
+    setSpoiling(true)
     const { error } = await db.rpc('request_reveal', { target_game: gameId })
-    setRevealing(false)
+    setSpoiling(false)
     if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
   }
 
@@ -497,7 +537,7 @@ export function PlayArea({
         localPill={boardPill}
         // ── Below-board slot content ──
         over={over}
-        secrets={game.secrets}
+        secrets={secretsShown ? game.secrets : null}
         myConceded={myConceded}
       />
       {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}
@@ -523,8 +563,10 @@ export function PlayArea({
         // ── Action row ──
         onHint={() => void getHint()}
         hinting={hinting}
-        onReveal={() => void getReveal()}
-        revealing={revealing}
+        onSpoiler={() => void getSpoiler()}
+        spoiling={spoiling}
+        onReveal={() => void revealSecrets()}
+        revealDisabled={secretsShown}
         onEndGame={endGame}
         onConcede={concede}
         onRestart={restart}

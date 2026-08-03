@@ -55,7 +55,7 @@ import '../theme.css'
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, playState, players, session, status,
+    gameId, isTerminal, playState, solutionRevealed, players, session, status,
     setup, goToClub, clubHandle, goToGame, menu, brand, title,
     // The COMMON header slot (peer/opponent events, via useGlobalFeedback + the compete rank effect) — as
     // opposed to the local in-body `localFeedback` state below, which carries
@@ -148,7 +148,13 @@ export function PlayArea(ctx: GamePageCtx) {
     // fold in (`buildDisplayRows` dedups found + appends the unfound). Look up each
     // found word's points (the shared row type carries finder/bonus/pangram, not score).
     const foundSet = new Set(foundWords.map((w) => w.word))
-    const reveal = isTerminal ? game.requiredWords.filter((w) => !foundSet.has(w.word)) : null
+    // Gated on the COMMON flag, not `isTerminal`: this game doesn't hide its
+    // solution (gametypes.hides_solution = false), so end_game sets
+    // solution_revealed at every ending — and if that ever changes, it changes
+    // in one place instead of in each of these expressions.
+    const reveal = solutionRevealed
+      ? game.requiredWords.filter((w) => !foundSet.has(w.word))
+      : null
     const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
     const words = buildDisplayRows(foundWords, reveal).map((r) => ({
       word: r.word.toUpperCase(),
@@ -206,7 +212,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, spellingbeeSetup, isTerminal, myConceded, foundWordsScore, foundWordsCount, infoSheet.menuSections])
+  }, [menu, game, foundWords, players, brand, title, spellingbeeSetup, isTerminal, solutionRevealed, myConceded, foundWordsScore, foundWordsCount, infoSheet.menuSections])
 
   // ─── Allowed-letter set (drives illegal-letter dim) ────
   const allowedLetters = useMemo(() => {
@@ -485,7 +491,7 @@ export function PlayArea(ctx: GamePageCtx) {
     : null
 
   // Merged, alphabetized rows for the shared WordList (found + the terminal reveal).
-  const wordRows = buildDisplayRows(foundWords, isTerminal ? game.requiredWords : null)
+  const wordRows = buildDisplayRows(foundWords, solutionRevealed ? game.requiredWords : null)
 
   return (
     <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>
@@ -559,7 +565,7 @@ export function PlayArea(ctx: GamePageCtx) {
         setup={spellingbeeSetup}
         // ── Found-words list ──
         wordRows={wordRows}
-        reveal={isTerminal}
+        reveal={solutionRevealed}
         />
       </InfoSheet>
       {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried

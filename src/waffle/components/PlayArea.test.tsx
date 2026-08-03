@@ -21,6 +21,7 @@ import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
 import type { WaffleGame, WafflePlayerState, SwapRow } from '../hooks/useGame'
 import { db } from '../db'
+import { db as commonDb } from '../../common/db'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { PlayArea } from './PlayArea'
 
@@ -37,6 +38,9 @@ type GameHook = {
 const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
 vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
+// The terminal reveal is a COMMON RPC now (common.reveal_solution flips the one
+// shared `solution_revealed` flag), so it needs its own mock.
+vi.mock('../../common/db', () => ({ db: { rpc: vi.fn() } }))
 // PlayArea's "New game" calls the start-game edge function directly (the same
 // helper the manifest uses); mocked so no edge runtime is needed.
 vi.mock('../../common/lib/game/manifestRpcs', () => ({ invokeStartGameEdgeFn: vi.fn() }))
@@ -83,6 +87,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     players: [gp('u1', 'me', 'red')],
     playState: 'playing',
     isTerminal: false,
+    solutionRevealed: false,
     timer: { displaySeconds: 0, expired: false },
     isMyTurn: true,
     currentTurnUserId: null,
@@ -243,9 +248,9 @@ describe('waffle PlayArea — new game (menu)', () => {
  * The icon-only action rows (waffle's experiment — labels live in tooltips):
  * PLAYING = End/Concede + Back-to-club (via the shell's suspend-confirm flow,
  * NOT direct navigation); TERMINAL = Restart + Reveal answer + New game +
- * Back-to-club. The terminal Reveal is LOCAL (no RPC, no confirm — the
- * solution is already on the client post-terminal) and disables once the
- * answer is showing.
+ * Back-to-club. The terminal Reveal writes only the shared display flag
+ * (common.reveal_solution — no confirm, no game state: the solution is already
+ * on every client post-terminal) and disables once the answer is showing.
  */
 describe('waffle PlayArea — icon-only action rows', () => {
   // A hole-correct solution (the pgTAP/e2e fixture shape): across words are
@@ -262,8 +267,10 @@ describe('waffle PlayArea — icon-only action rows', () => {
     expect(ctx.goToClub).not.toHaveBeenCalled() // mid-game never direct-navigates
   })
 
-  it('terminal "Reveal answer" shows the solution locally — no RPC, no confirm', async () => {
+  it('terminal "Reveal answer" opens it for the table — common RPC, no confirm', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
+    const commonRpc = commonDb.rpc as unknown as ReturnType<typeof vi.fn>
+    commonRpc.mockClear()
     const user = userEvent.setup()
     h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION })
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
@@ -271,16 +278,26 @@ describe('waffle PlayArea — icon-only action rows', () => {
     // The loss keeps the answer hidden (em dashes)…
     expect(screen.queryByText('ABCDE')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Reveal answer' }))
-    // …the local reveal fills in the words, with no server call and no confirm.
-    expect(screen.getByText('ABCDE')).toBeInTheDocument()
-    expect(screen.getByText('QRSTU')).toBeInTheDocument()
+    // …and the click flips the shared flag rather than a waffle-side thing.
+    expect(commonRpc).toHaveBeenCalledWith('reveal_solution', { target_game: 'g1' })
     expect(confirm).not.toHaveBeenCalled()
     expect(rpc).not.toHaveBeenCalled()
   })
 
+  it('shows the solution once the shared flag comes back', () => {
+    // What the RPC above causes, arriving via the common realtime refetch.
+    h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION })
+    render(
+      <PlayArea {...makeCtx({ isTerminal: true, playState: 'lost', solutionRevealed: true })} />,
+    )
+    expect(screen.getByText('ABCDE')).toBeInTheDocument()
+    expect(screen.getByText('QRSTU')).toBeInTheDocument()
+  })
+
   it('terminal Reveal is disabled once the answer is showing (a win)', () => {
+    // end_game sets solution_revealed on any win, so the ctx arrives with both.
     h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION }, [{ ...me, solved: true }])
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won', solutionRevealed: true })} />)
     expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeDisabled()
   })
 

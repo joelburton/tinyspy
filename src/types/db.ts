@@ -665,6 +665,7 @@ export type Database = {
           paused: boolean
           play_state: string
           setup: Json
+          solution_revealed: boolean
           started_at: string
           status: Json | null
           title: string
@@ -682,6 +683,7 @@ export type Database = {
           paused?: boolean
           play_state?: string
           setup: Json
+          solution_revealed?: boolean
           started_at?: string
           status?: Json | null
           title: string
@@ -699,6 +701,7 @@ export type Database = {
           paused?: boolean
           play_state?: string
           setup?: Json
+          solution_revealed?: boolean
           started_at?: string
           status?: Json | null
           title?: string
@@ -943,6 +946,7 @@ export type Database = {
         Args: {
           play_state: string
           player_results: Json
+          reveals_solution?: boolean
           status: Json
           target_game: string
         }
@@ -962,6 +966,7 @@ export type Database = {
         Args: { status: Json; target_game: string }
         Returns: undefined
       }
+      reveal_solution: { Args: { target_game: string }; Returns: undefined }
       send_message: {
         Args: { content: string; target_club: string }
         Returns: undefined
@@ -2692,7 +2697,6 @@ export type Database = {
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       replay_board: { Args: { target_game: string }; Returns: undefined }
-      reveal_answer: { Args: { target_game: string }; Returns: undefined }
       submit_swap: {
         Args: { pos_a: number; pos_b: number; target_game: string }
         Returns: Json
@@ -3070,7 +3074,6 @@ export type Database = {
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       replay_board: { Args: { target_game: string }; Returns: undefined }
-      reveal_answer: { Args: { target_game: string }; Returns: undefined }
       submit_guess: {
         Args: { guess: string; target_game: string }
         Returns: Json

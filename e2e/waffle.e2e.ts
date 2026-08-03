@@ -60,7 +60,7 @@ test.describe('waffle replay board', () => {
     await expect(page.getByText('No swaps yet.')).toBeVisible()
   })
 
-  test('coop: "Reveal answer" ends the game and fills the board with the solution', async ({
+  test('coop: end the game, THEN reveal — the answer fills the info list', async ({
     browser,
   }) => {
     const club = await createSoloClub('wfrv')
@@ -68,23 +68,29 @@ test.describe('waffle replay board', () => {
     const ctx = await browser.newContext()
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
-    // Auto-confirm the "Reveal the answer?" window.confirm.
-    page.on('dialog', (d) => void d.accept())
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
     // The scramble swaps cells 0,1, so 'A' starts at position 1 (top-left tile is
     // "B (…)"), and the across word a0 reads as an em dash in the info list.
     await expect(page.getByRole('button', { name: /^B \(/ })).toBeVisible({ timeout: 15000 })
 
+    // Reveal is TERMINAL-ONLY now — waffle's mid-game give-up was removed
+    // 2026-08-03 so every game has the same order: End, then Reveal. The menu
+    // item is present mid-game but inert, matching common.reveal_solution's own
+    // server-side gate.
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await page.getByRole('menuitem', { name: 'Reveal answer' }).click()
+    await expect(page.getByRole('menuitem', { name: 'Reveal answer' })).toBeDisabled()
+    await page.keyboard.press('Escape')
 
-    // The game ends (neutral terminal) → the "Game ended" verdict shows in the
-    // below-board pill (no modal carries the verdict; `.first()` kept in case
-    // the copy ever appears twice)...
+    // End it for the table (the neutral 'ended' terminal).
+    await page.getByRole('button', { name: /^end$/i }).click()
+    await page.getByRole('button', { name: 'End game' }).click()
     await expect(page.getByText('Game ended', { exact: true }).first()).toBeVisible({ timeout: 8000 })
-    // ...AND the board is now the solution — so the previously-hidden across word a0
-    // (ABCDE) now appears in the info-column answer list.
+
+    // A manual end is not a win, so the answer stays covered until asked for…
+    await expect(page.getByText('ABCDE', { exact: true })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Reveal answer' }).click()
+    // …and then the across word a0 (ABCDE) fills the info-column answer list.
     await expect(page.getByText('ABCDE', { exact: true })).toBeVisible({ timeout: 8000 })
   })
 })

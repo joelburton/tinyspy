@@ -3,19 +3,21 @@ import { createSoloClub, createGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * psychicnum's terminal reveal: the board IS the answer key.
+ * psychicnum's terminal reveal: the board becomes the answer key — but only when
+ * asked. The server exposes `secrets` at game over (the `psychicnum.games_view`
+ * terminal gate), and the FE holds them back on anything but a clean win, because
+ * `replay_board` hunts the SAME three secrets again (docs/ui.md → Terminal
+ * results). Pressing Reveal rings every secret's tile bright green — over
+ * whatever background it already had, so "was it found?" still reads.
  *
- * At game over the server exposes `secrets` (the `psychicnum.games_view` terminal
- * gate), and every secret's tile gets a bright-green ring — over whatever
- * background it already had, so "was it found?" still reads. This replaced a text
- * list in the below-board pill ("The words were APPLE, RIVER, STONE"), which had
- * no room on a phone and made the player map words back to tiles by eye; the pill
- * now carries the terse verdict like every other game.
+ * The ring replaced a text list in the below-board pill ("The words were APPLE,
+ * RIVER, STONE"), which had no room on a phone and made the player map words back
+ * to tiles by eye; the pill now carries the terse verdict like every other game.
  *
  * Browser-only: the ring is CSS (`outline` on a tile), which jsdom can't see, and
  * the "background unchanged" half is only checkable by reading computed styles.
  */
-test('terminal: secret tiles are ringed and the pill carries the verdict', async ({
+test('terminal: secrets stay hidden until Reveal, then ring the tiles', async ({
   browser,
 }) => {
   const club = await createSoloClub('pnterm')
@@ -40,8 +42,17 @@ test('terminal: secret tiles are ringed and the pill carries the verdict', async
   await page.getByRole('button', { name: /^end$/i }).click()
   await page.getByRole('button', { name: 'End game' }).click()
 
-  // Exactly the three secrets are ringed…
+  // The terminal row is up, and the secrets are STILL not ringed: a manual end
+  // isn't a win, and Restart re-hunts this very board.
+  const reveal = page.getByRole('button', { name: /^reveal/i })
+  await expect(reveal).toBeVisible({ timeout: 8000 })
+  expect(await ringed()).toHaveLength(0)
+
+  // Asking for them rings exactly the three secrets…
+  await reveal.click()
   await expect.poll(async () => (await ringed()).length, { timeout: 8000 }).toBe(3)
+  // …the control self-disables once they're on screen…
+  await expect(reveal).toBeDisabled()
   // …and their BACKGROUNDS are untouched by the ring: this game was ended without
   // a single guess, so every tile — secrets included — still wears the plain tile
   // fill, not a result color.

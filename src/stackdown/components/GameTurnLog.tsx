@@ -128,7 +128,7 @@ export function GameTurnLog({
                 {isRequest ? (
                   // A logged cheat request, now carrying the text it revealed
                   // (stored on the row by reveal_next_hint / reveal_next_word):
-                  // "Hint: <clue>" or "Revealed: <WORD>". Normal weight/color —
+                  // "Hint: <clue>" or "Spoiler: <WORD>". Normal weight/color —
                   // it's information, not an error. (Falls back to the bare label
                   // if a legacy row has no stored text.)
                   <span className={styles.request}>
@@ -137,7 +137,7 @@ export function GameTurnLog({
                         ? `Hint: ${s.word}`
                         : 'Requested hint'
                       : s.word
-                        ? `Revealed: ${s.word.toUpperCase()}`
+                        ? `Spoiler: ${s.word.toUpperCase()}`
                         : 'Requested word'}
                   </span>
                 ) : s.valid && s.word ? (

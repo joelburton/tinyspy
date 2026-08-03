@@ -27,7 +27,7 @@ Both siblings share the same display `name` — the brand, `PsychicNum`, read fr
 - A guessed word colors its board tile **permanently** — green if it's a secret, red if not. A guess must be one of the board words.
 - **Two helpers, both free + logged amber in the turn log, neither finds the secret or decrements the budget:**
   - **Hint** (`request_hint`): shows the *clue* for an unfound secret (`common.words.hint` — a category/near-synonym nudge). Many words have no clue, so it falls back to the literal "No hint available". The clue (not the word) is what's logged, so a hint never leaks the answer.
-  - **Reveal** (`request_reveal`): shows the *answer* — an unfound secret word itself. The toy "hint that's really the answer."
+  - **Spoiler** (`request_reveal`): shows the *answer* — an unfound secret word itself. The toy "hint that's really the answer." The FE button is the amber bare-eye `SpoilerButton`; the red boxed-eye `RevealButton` is a different thing (the whole board's secrets, terminal only). The RPC keeps its `request_reveal` name — only the player-facing vocabulary moved.
 - Setup form collects: **guess budget** (one of 3/5/7/9), **words on the board** (`word_count`, 5–20), **word difficulty** (the shared `<DifficultyField>` band), **timer** (none/countup/countdown, MM:SS for countdown).
 - The mode (coop vs compete) is **NOT** a setup field — it's locked at the gametype level, picked by which Start button the player clicks. See [The sibling-manifest pattern](#the-sibling-manifest-pattern) above.
 
@@ -101,7 +101,7 @@ The shape that's the same in both modes:
 - The `psychicnum.players` table (one row per player; structurally identical).
 - The `psychicnum.guesses` table (rows look the same; RLS hides them differently).
 - The setup blob (`PsychicnumSetup` = `CoopTurnSetup & { guesses, word_count, difficulty, timer }` — see `lib/setup.ts`) — same fields, same defaults (`coop_style: 'free-for-all'`; the turn toggle only means something in coop).
-- The hidden-secrets mechanic — both modes reveal the three secrets post-terminal via `games_state`.
+- The hidden-secrets mechanic — both modes unshield the three secrets post-terminal via `games_state`. The FE then rings them only when `common.games.solution_revealed` says so — a clean win or an explicit Reveal: `replay_board` hunts the SAME three again, so auto-ringing a lost board would leave Restart nothing to find (docs/ui.md → Terminal results). The flag is common, shared, and cleared by `reset_game`.
 - `common.games.title` formula (the first three board words — see [Title formula](#title-formula)).
 - `common.game_players.result` shape (`{ won: bool }`).
 - `common.update_state` mid-game listing-label payload structure.
@@ -258,7 +258,7 @@ Reject reasons:
 
 Two helper RPCs, both: pick an as-yet-unfound secret (scoped like the win check — coop = the team's, compete = the caller's — via the shared `_unfound_secret(g, caller)` helper); log a row that flows into the turn log over realtime; cost **nothing** (no budget decrement) and do **not** find the secret. Coop teammates get a header pill; compete scopes the row to the caller via RLS. Guarded like a move (game player, status = playing).
 
-- **`request_reveal`** logs a `kind='reveal'` row with the secret **word** (the answer) and returns it. Teammate pill: "X revealed a word".
+- **`request_reveal`** logs a `kind='reveal'` row with the secret **word** (the answer) and returns it. Teammate pill: "X revealed a word". Surfaced as the mid-game **Spoiler** button.
 - **`request_hint`** looks up that word's **clue** (`common.words.hint`), logs a `kind='hint'` row with the *clue text* (or the literal "No hint available" when the word has none — the row never carries the secret word), and returns the clue. Teammate pill: "● X got hint".
 
 ### `psychicnum.submit_timeout(target_game uuid)`
@@ -289,7 +289,7 @@ The **End** button in the info-column action row (coop; compete shows **Concede*
 
 Unlike `submit_timeout`, a manual stop is **neither a win nor a loss**, so it writes the uniform terminal `play_state = 'ended'` with `status = {outcome:'manual', mode}` and `result = {won: false}` for every player (psychicnum tracks no per-player score, so there's nothing richer to record). Same shape across both modes. The FE renders `'ended'` neutrally — green "Game ended" copy, not the red loss treatment.
 
-Idempotent on the terminal-state guard: a second concurrent call raises `P0001 'game is not in progress'`, which the FE swallows. **Realtime touch at the tail** — a no-op self-write on `psychicnum.games` (`set club_handle = club_handle`) wakes the FE's schema-scoped subscription to refetch and reveal the secrets — the uniform trick at [common.md → Manual end, step 6](../common.md#manual-end--every-gametypes-end_gametarget_game).
+Idempotent on the terminal-state guard: a second concurrent call raises `P0001 'game is not in progress'`, which the FE swallows. **Realtime touch at the tail** — a no-op self-write on `psychicnum.games` (`set club_handle = club_handle`) wakes the FE's schema-scoped subscription to refetch the now-unshielded secrets (which the FE still holds back until a win or a Reveal) — the uniform trick at [common.md → Manual end, step 6](../common.md#manual-end--every-gametypes-end_gametarget_game).
 
 Reject reasons: not authenticated; not a game player; game not found; game status ≠ playing.
 
@@ -366,7 +366,7 @@ src/psychicnum/
                             <EntryRow> (the shared capture-entry control: icon Delete +
                               EntryBox + icon Submit + keyboard) + submit_guess RPC — during play
                             info readouts (setup details / state / help) +
-                              action row: Hint / Reveal / End — playing
+                              action row: Hint / Spoiler / End — playing
                             Shuffle button — FLOATS over the board top-right
                               (board-visual, not a turn action); always live
                             terminal: outcome line + "‹ club" button (in action row)
@@ -397,7 +397,7 @@ src/psychicnum/
                           turn-order UI gating (waiting vs your-turn vs no line),
                           and click-to-define in the log (the guessed word, not
                           the hint sentence).
-    InfoCol.tsx           The info column: setup details / state / Hint / Reveal / End
+    InfoCol.tsx           The info column: setup details / state / Hint / Spoiler / End
                           action row / GameTurnLog / terminal outcome line.
     StateLine.tsx         The core live-state readout — "1/3 found · 4/7 guesses
                           used" (per-viewer in compete, team-wide in coop; the

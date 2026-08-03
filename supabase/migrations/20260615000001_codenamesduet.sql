@@ -1183,7 +1183,12 @@ grant execute on function codenamesduet.get_clue_context(uuid) to authenticated;
 -- Register codenamesduet with common.gametypes
 -- ============================================================
 
-insert into common.gametypes (gametype, min_players) values ('codenamesduet', 2)
+-- `hides_solution`: this game keeps its answer covered when a game ends without
+-- a win, so a replay of the same board is a genuine second try. The players
+-- open it with the terminal Reveal (common.reveal_solution). See
+-- common.md → Revealing the solution.
+insert into common.gametypes (gametype, min_players, hides_solution)
+values ('codenamesduet', 2, true)
 on conflict do nothing;
 
 -- ============================================================

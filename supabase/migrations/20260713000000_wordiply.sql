@@ -656,8 +656,7 @@ begin
       'longest', team_longest,
       'guesses_used', team_guesses
     ),
-    player_results
-  );
+    player_results);
 end;
 $$;
 
@@ -797,8 +796,7 @@ begin
                            where user_id = winner_uid),
       'leaderboard', status_leaderboard
     ),
-    player_results
-  );
+    player_results);
 end;
 $$;
 

@@ -74,7 +74,7 @@ function rejectReason(reason: string | undefined, base: string): string {
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, playState, players, session, status,
+    gameId, isTerminal, playState, solutionRevealed, players, session, status,
     isMyTurn, currentTurnUserId,
     setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback, title,
   } = ctx
@@ -260,6 +260,7 @@ export function PlayArea(ctx: GamePageCtx) {
       base,
       maxWordLength: game.max_word_length,
       longestWord: game.longestWords[0] ?? null,
+      solutionRevealed,
       mode: game.mode,
       isTerminal,
       guesses,
@@ -295,7 +296,7 @@ export function PlayArea(ctx: GamePageCtx) {
     )
     return () => menu.setGameSections([])
   }, [
-    menu, game, isTerminal, myConceded, infoSheet.menuSections,
+    menu, game, isTerminal, solutionRevealed, myConceded, infoSheet.menuSections,
     brand, title, base, guesses, players, session.user.id, guessesUsed,
     longest, letters, leaderboard, wordiplySetup,
   ])
@@ -402,6 +403,7 @@ export function PlayArea(ctx: GamePageCtx) {
           letters={letters}
           maxWordLength={game.max_word_length}
           longestWord={game.longestWords[0] ?? null}
+          solutionRevealed={solutionRevealed}
           base={base}
           opponentReveal={opponentReveal}
           players={players}

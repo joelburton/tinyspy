@@ -232,15 +232,20 @@ set search_path = wordle, common, public, extensions
 as $$
   update common.games cg
      set title = case
-           -- The answer, but ONLY once it's legitimately on screen: a win, or
-           -- an explicit reveal. Terminal alone is NOT enough — wordle hides
-           -- the answer on a loss so a Restart is a genuine second try
-           -- (docs/ui.md → Terminal results), and a club-list title spelling it
-           -- out would undo that from the outside. (2026-08-02: it used to key
-           -- on is_terminal and spoiled every lost game.)
-           when cg.play_state in ('won', 'won_compete')
-             or cg.status->>'outcome' = 'revealed'
-             then upper(wg.target::text)
+           -- The answer, but ONLY once it's legitimately on screen — the same
+           -- common flag the board reads (common.md → Revealing the solution).
+           -- Terminal alone is NOT enough: wordle hides the answer on a loss so
+           -- a Restart is a genuine second try (docs/ui.md → Terminal results),
+           -- and a club-list title spelling it out would undo that from the
+           -- outside. (2026-08-02: it used to key on is_terminal and spoiled
+           -- every lost game.)
+           --
+           -- A post-game reveal doesn't re-title on its own: common.reveal_solution
+           -- can't call a gametype's function (the removability invariant), and
+           -- this only runs from wordle's own RPCs. The failure is the SAFE
+           -- direction — the club list keeps showing the last guess rather than
+           -- the answer — so it stays a known gap, not a bug.
+           when cg.solution_revealed then upper(wg.target::text)
            -- Otherwise the most recent guess — a readout of what's been DONE,
            -- which is already on the board in front of the players.
            when wg.mode = 'coop' then coalesce(
@@ -284,9 +289,13 @@ grant select on wordle.games_state to authenticated;
 -- ============================================================
 -- The sibling-manifest pair: coop (shared board, solo allowed) and
 -- compete (own board each, fewest-guesses winner — needs ≥2).
-insert into common.gametypes (gametype, min_players) values
-  ('wordle_coop', 1),
-  ('wordle_compete', 2)
+-- `hides_solution`: this game keeps its answer covered when a game ends without
+-- a win, so a replay of the same board is a genuine second try. The players
+-- open it with the terminal Reveal (common.reveal_solution). See
+-- common.md → Revealing the solution.
+insert into common.gametypes (gametype, min_players, hides_solution) values
+  ('wordle_coop', 1, true),
+  ('wordle_compete', 2, true)
 on conflict do nothing;
 
 -- ============================================================
@@ -902,63 +911,15 @@ revoke execute on function wordle.end_game(uuid) from public;
 grant execute on function wordle.end_game(uuid) to authenticated;
 
 -- ============================================================
--- wordle.reveal_answer — give up: end the game, reveal the word
+-- (removed 2026-08-03) wordle.reveal_answer — the mid-game give-up
 -- ============================================================
--- The "Reveal answer" game-menu item, mid-game. Unlike waffle (which
--- must overwrite boards with the solution), wordle needs no state
--- rewrite: the target's reveal is intrinsic — _target_for / games_state
--- expose it the moment the game is terminal. So this is end_game with
--- the INTENT made legible: the same uniform neutral 'ended' terminal,
--- everyone {"won": false}, but status.outcome = 'revealed' (vs
--- 'manual') — which the FE keys on: a loss or a manual end no longer
--- displays the word; only a win or an explicit reveal does. Any game
--- player may fire it; idempotent on the play_state check (a second
--- click raises P0001, swallowed by the FE).
-create function wordle.reveal_answer(target_game uuid)
-returns void
-language plpgsql
-security definer
-set search_path = wordle, common, public, extensions
-as $$
-declare
-  current_play_state text;
-  player_results     jsonb;
-begin
-  if not exists (select 1 from wordle.games where id = target_game) then
-    raise exception 'game not found' using errcode = 'P0002';
-  end if;
+-- Was: end the game AND reveal the word in one click, tagging
+-- status.outcome='revealed'. Gone so wordle matches every other game:
+-- End the game (which ends it for everyone), THEN Reveal. The reveal is
+-- now `common.reveal_solution`, which is terminal-only by construction —
+-- see common.md → Revealing the solution. Nothing gametype-specific was
+-- lost: the target unshields at terminal either way.
 
-  perform common.require_game_player(target_game);
-
-  select play_state into current_play_state
-    from common.games where id = target_game;
-  if current_play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
-  end if;
-
-  -- A give-up — nobody won.
-  select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
-    into player_results
-    from common.game_players
-   where game_id = target_game;
-  perform common.end_game(
-    target_game, 'ended',
-    jsonb_build_object('outcome', 'revealed'),
-    player_results
-  );
-
-  -- Terminal now, so the title becomes the answer (see _sync_title) — the
-  -- club list tells the same story the board just did.
-  perform wordle._sync_title(target_game);
-
-  -- Realtime touch (see submit_timeout) — wakes useGame so games_state
-  -- refetches and the now-unshielded target lands on every client.
-  update wordle.games set club_handle = club_handle where id = target_game;
-end;
-$$;
-
-revoke execute on function wordle.reveal_answer(uuid) from public;
-grant execute on function wordle.reveal_answer(uuid) to authenticated;
 
 -- ============================================================
 -- wordle.replay_board — restart this game from scratch

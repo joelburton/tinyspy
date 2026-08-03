@@ -225,6 +225,13 @@ export function InfoCol({
           </TerminalActionRow>
         ) : isLocallyDone ? (
           <LocalTerminalRow label={myConceded ? 'You conceded' : 'Waiting for others'}>
+            {/* Reveal keeps its slot while the others race, but inert: the
+                solution opens only when the game is over for EVERYONE
+                (common.reveal_solution enforces the same rule server-side), so
+                a player who dropped out can't spoil a live race. Present
+                rather than absent so the row doesn't change shape when the
+                last racer finishes — the button is simply enabled then. */}
+            <RevealButton iconOnly disabled tooltip="Can't reveal until all end" />
             {endButton}
           </LocalTerminalRow>
         ) : (

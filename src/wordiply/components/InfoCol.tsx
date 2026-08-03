@@ -35,6 +35,7 @@ import styles from './PlayArea.module.css'
 export function InfoCol({
   isCompete,
   isTerminal,
+  solutionRevealed,
   over,
   isLocallyDone,
   currentTurnUserId,
@@ -66,6 +67,12 @@ export function InfoCol({
 }: {
   isCompete: boolean
   isTerminal: boolean
+  /** `common.games.solution_revealed` — the common "may they see the solution?"
+   *  flag. wordiply doesn't hide its answer (gametypes.hides_solution = false),
+   *  so end_game sets it at every ending and this reads like `isTerminal`
+   *  today; it's here so the best-possible-word gate lives in the one canonical
+   *  place rather than in a per-game expression. */
+  solutionRevealed: boolean
   over: TerminalCopy | null
   /** Compete: I conceded but the others race on — the terminal LOOK. */
   isLocallyDone: boolean
@@ -199,9 +206,9 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      {/* Terminal reveal — the longest possible word (hidden until now).
-          There is no WordList: the board rows are the words. */}
-      {isTerminal && longestWord && (
+      {/* The reveal — the longest possible word (hidden until now). There is
+          no WordList: the board rows are the words. */}
+      {solutionRevealed && longestWord && (
         <div className={styles.reveal}>
           <span className={styles.revealLabel}>
             Best possible word: <span className={styles.revealLen}>{maxWordLength}</span>

@@ -207,7 +207,20 @@ create table common.gametypes (
   -- Fewest players a game of this gametype needs. Defaults to 1
   -- (solo-playable) so a forgotten value fails open to "offered
   -- everywhere" rather than silently hiding a game.
-  min_players smallint not null default 1
+  min_players smallint not null default 1,
+  -- Does this gametype WITHHOLD its solution from a game that ended without a
+  -- win? A registry fact, not a per-ending decision: it's a property of the
+  -- game (waffle, wordle, stackdown, psychicnum, crosswords, codenamesduet all
+  -- have a single answer worth replaying blind), so common.end_game reads it
+  -- once and no ending path can forget to pass it — including
+  -- common.concede's all-conceded terminal, which no gametype calls directly.
+  --
+  -- Defaults FALSE = "reveal at any ending", which is both the majority
+  -- (the word-find trio, connections, wordiply) and the safe direction for a
+  -- forgotten value: a game that shows its answer when it shouldn't is a
+  -- visible bug someone reports, while one that hides an answer it has no
+  -- reason to hide looks like the feature working.
+  hides_solution boolean not null default false
 );
 
 -- Which gametypes a freshly-created club should be enrolled in
@@ -352,6 +365,25 @@ create table common.games (
   paused boolean not null default false,
   play_state text not null default 'playing',
   is_terminal boolean not null default false,
+  -- "May the players see the solution?" — the ONE place that answers it, for
+  -- every gametype that has a solution to hide (waffle, wordle, stackdown,
+  -- psychicnum, crosswords, codenamesduet) and, deliberately, for the ones
+  -- that don't hide it either (the word-find games set it true at their
+  -- ending, so "should they see it?" has the same canonical answer everywhere
+  -- rather than living in per-game FE logic). False for games with no
+  -- solution at all (bananagrams, scrabble) — nothing to reveal.
+  --
+  -- Set by common.end_game (true on a win, or when the ending auto-reveals)
+  -- and by common.reveal_solution (the explicit control); cleared by
+  -- common.reset_game, so a replay of the same board starts blind again —
+  -- which is the whole reason the flag is common rather than per-game FE
+  -- state that each game has to remember to reset.
+  --
+  -- NOT a shield: the solution itself is withheld by each gametype's
+  -- column-grant + `_x_for()` terminal gate. This is the DISPLAY answer, and
+  -- it's shared — one player revealing opens it for the group, because a
+  -- post-mortem is something the friends do together.
+  solution_revealed boolean not null default false,
   status jsonb,
   -- `started_at` is the game-start time; it is NOT the timer source
   -- (the games list now orders by `last_active_at` below). Elapsed game
@@ -605,13 +637,24 @@ grant execute on function common.is_club_member(text) to authenticated;
 -- a club with" row-tightening. The right axis is which COLUMNS
 -- get exposed, not which rows.
 --
--- If profile data ever grows sensitive (real names, settings,
--- email-derived metadata, etc.), the hardening move is to revoke
--- direct SELECT on common.profiles from authenticated and expose
--- a `common.profiles_public` view that selects only the safe
--- columns (username + whatever else is genuinely public). The FE
--- queries the view; security-definer RPCs that need the full row
--- read the base table directly.
+-- ┌─ STANDING RULE, and the reason this is a comment and not a
+-- │  deferred-register entry: it has a TRIGGER, not a due date.
+-- │
+-- │  ADDING A COLUMN TO THIS TABLE THAT ISN'T PUBLIC MEANS DOING
+-- │  THE VIEW FIRST. All four columns today (user_id, username,
+-- │  color, created_at) are public by design — username + color
+-- │  ARE the player-identity vocabulary rendered to every club
+-- │  member, and user_id has to be resolvable for club creation —
+-- │  so a "safe columns only" view would select 4 of 4 and reduce
+-- │  exposure by exactly nothing. That's why it isn't built.
+-- │
+-- │  The move, when a real-name / settings / email-derived column
+-- │  arrives: revoke SELECT on common.profiles from authenticated,
+-- │  add a `common.profiles_public` view over the genuinely public
+-- │  columns, and point the FE's profile reads at it (~11 call
+-- │  sites). Security-definer RPCs that need the full row keep
+-- │  reading the base table, so they're unaffected.
+-- └─ (Reviewed 2026-08-02: still nothing sensitive here.)
 create policy profiles_select_authenticated on common.profiles
   for select to authenticated using (true);
 
@@ -1646,6 +1689,19 @@ begin
      set ended_at = coalesce(games.ended_at, now()),
          play_state = end_game.play_state,
          is_terminal = true,
+         -- May they see the solution now? A WIN always reveals: you can only
+         -- win these games by producing the solution, so it's already in front
+         -- of you (compete included — the race is over for everyone).
+         -- Otherwise it's the gametype's standing disposition
+         -- (gametypes.hides_solution), so every ending path gets this right
+         -- without passing anything — including common.concede's all-conceded
+         -- terminal. `or`, never overwrite: a second ending can't un-reveal
+         -- what's already on screen.
+         solution_revealed = games.solution_revealed
+           or end_game.play_state in ('won', 'won_compete')
+           or not (select gt.hides_solution
+                     from common.gametypes gt
+                    where gt.gametype = games.gametype),
          status = coalesce(games.status, '{}'::jsonb) || end_game.status
    where games.id = target_game;
 
@@ -1668,6 +1724,50 @@ $$;
 
 -- No grant to authenticated; internal helper.
 revoke execute on function common.end_game(uuid, text, jsonb, jsonb) from public;
+
+-- ─── common.reveal_solution ────────────────────────────────
+-- The explicit "show us the answer" control: the boxed-eye RevealButton in a
+-- game's terminal action row, and its game-menu twin. Flips the one common
+-- flag; the FE reads `common.games.solution_revealed` and draws the solution
+-- it already holds (each gametype's `_x_for()` unshields at terminal — see
+-- docs/ui.md → Terminal results).
+--
+-- TERMINAL-ONLY, and that's the whole simplification: "ended for everyone" is
+-- `is_terminal`, so a compete player who conceded or ran out while the others
+-- race on CANNOT reveal — there's no per-game "am I locally done?" reasoning
+-- anywhere in this path. Every game therefore has the same two-step order:
+-- End the game (which ends it for everyone), then Reveal.
+--
+-- SHARED on purpose: one player reveals and the group's boards open together,
+-- because the post-mortem is something the friends do on the call. Any game
+-- player may fire it; idempotent, so a second click (or a peer's) is a no-op.
+create function common.reveal_solution(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  terminal boolean;
+begin
+  perform common.require_game_player(target_game);
+
+  select is_terminal into terminal from common.games where id = target_game;
+  if terminal is null then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+  if not terminal then
+    raise exception 'game is not over' using errcode = 'P0001';
+  end if;
+
+  update common.games
+     set solution_revealed = true
+   where id = target_game and not solution_revealed;
+end;
+$$;
+
+revoke execute on function common.reveal_solution(uuid) from public;
+grant execute on function common.reveal_solution(uuid) to authenticated;
 
 -- ─── common.reset_game ─────────────────────────────────────
 -- The INVERSE of end_game: return a game to fresh, in-progress
@@ -1708,6 +1808,11 @@ begin
      set play_state = 'playing',
          is_terminal = false,
          ended_at = null,
+         -- The same board, hunted blind again — a replay whose answer is still
+         -- on screen isn't a second try. This one line is why the flag is a
+         -- common column instead of per-game FE state: every game gets the
+         -- re-hide for free, and none of them can forget it.
+         solution_revealed = false,
          status = reset_game.status
    where id = target_game;
 

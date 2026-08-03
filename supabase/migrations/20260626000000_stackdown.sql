@@ -276,9 +276,13 @@ grant select on stackdown.games_state to authenticated;
 -- ============================================================
 -- Register the gametype(s)
 -- ============================================================
-insert into common.gametypes (gametype, min_players) values
-  ('stackdown_coop', 1),
-  ('stackdown_compete', 2)
+-- `hides_solution`: this game keeps its answer covered when a game ends without
+-- a win, so a replay of the same board is a genuine second try. The players
+-- open it with the terminal Reveal (common.reveal_solution). See
+-- common.md → Revealing the solution.
+insert into common.gametypes (gametype, min_players, hides_solution) values
+  ('stackdown_coop', 1, true),
+  ('stackdown_compete', 2, true)
 on conflict do nothing;
 
 -- ============================================================

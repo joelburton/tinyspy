@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { buildWordlePrintModel } from '../pdf/model'
 import { printWordlePdf } from '../pdf/printWordlePdf'
@@ -17,6 +17,7 @@ import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { db } from '../db'
+import { db as commonDb } from '../../common/db'
 import { useGame } from '../hooks/useGame'
 import { turnSnapshot } from '../lib/history'
 import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
@@ -57,6 +58,7 @@ export function PlayArea({
   players: members,
   playState,
   isTerminal,
+  solutionRevealed,
   timer,
   isMyTurn,
   currentTurnUserId,
@@ -109,18 +111,17 @@ export function PlayArea({
   // ─── The hidden word stays hidden on a loss ────────────
   // The word is DISPLAYED at terminal only when it was earned or asked for:
   // a win (either mode — coop guessed it; compete's winner row shows in the
-  // opened-up turn log anyway), an explicit reveal (the mid-game give-up RPC
-  // tags status.outcome='revealed'), or this client's post-game "Reveal
-  // answer" menu click (answerRevealed — FE-local: the target is already on
-  // the client post-terminal, so showing it is a display decision, per the
-  // friends trust model). A plain loss / manual end keeps it hidden so
-  // "Restart" stays a genuine second try (docs/ui.md → Terminal results).
-  const [answerRevealed, setAnswerRevealed] = useState(false)
-  const answerShown =
-    playState === 'won' ||
-    playState === 'won_compete' ||
-    (status?.outcome as string | undefined) === 'revealed' ||
-    answerRevealed
+  // opened-up turn log anyway), the mid-game give-up, or someone's post-game
+  // "Reveal answer". A plain loss / manual end keeps it hidden so "Restart"
+  // stays a genuine second try (docs/ui.md → Terminal results). The reveal is
+  // SHARED: the target is already on every client post-terminal, so this is a
+  // display decision under the friends trust model — and one the group makes
+  // together, since the post-mortem is a group activity.
+  // `common.games.solution_revealed` is the whole answer (docs/ui.md → Terminal
+  // results): end_game sets it on a win, common.reveal_solution on the ask —
+  // and reset_game clears it, so a Restart re-hides on every client with no
+  // local flag to remember.
+  const answerShown = solutionRevealed
 
   // ─── Derived (null-safe; real values after the loading guard) ──
   const self = playerStates.find((p) => p.user_id === session.user.id)
@@ -204,10 +205,11 @@ export function PlayArea({
   // locally-revealed answer so the new run starts blind). New game + Reveal
   // answer stay below — their paths diverge (new game is a direct create_game).
   const showError = useCallback((m: string) => showLocalFeedback(stickyPill('error', m)), [showLocalFeedback])
+  // (No local re-hide: `common.reset_game` clears solution_revealed, so the
+  //  replayed word is hidden again on every client.)
   const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
-    setAnswerRevealed(false)
   }, [exitViewing, clearLocalFeedback])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
@@ -267,21 +269,20 @@ export function PlayArea({
   // through this same guarded handler.
   const [handleNewGame, startingNewGame] = useSingleFlight(createNewGame)
 
-  // Reveal answer — two shapes behind one menu item:
-  //   MID-GAME: a group give-up — ends the game for everyone (confirmed,
-  //   irreversible), tagged status.outcome='revealed' so the word displays.
-  //   AT TERMINAL (a loss / manual end left the word hidden): just show it to
-  //   THIS client — no RPC, no confirm; the target is already here, this is
-  //   purely "okay, what was it?".
+  // Reveal answer — TERMINAL ONLY, like every other game (docs/ui.md →
+  // Terminal results). There used to be a mid-game shape too: a group give-up
+  // that ended the game and revealed in one click. It's gone, so the order is
+  // the same everywhere — End the game (which ends it for everyone), then
+  // Reveal. One less confirm, one less irreversible thing behind a menu item
+  // that reads like a display toggle, and one less path that could reveal
+  // while somebody was still playing.
+  //
+  // No confirm here: post-terminal the target is already on every client, so
+  // this only flips the shared display flag.
   const handleReveal = useCallback(async () => {
-    if (isTerminal) {
-      setAnswerRevealed(true)
-      return
-    }
-    if (!window.confirm('Reveal the answer? This ends the game for everyone.')) return
-    const { error } = await db.rpc('reveal_answer', { target_game: gameId })
+    const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
     if (error) showLocalFeedback(stickyPill('error', `Reveal failed: ${error.message}`))
-  }, [isTerminal, gameId, showLocalFeedback])
+  }, [gameId, showLocalFeedback])
 
   // ─── Header menu (each game owns its whole menu) ───────────────
   // The shared frame (Help / End-or-Concede / Back to club) plus wordle's two
@@ -351,7 +352,8 @@ export function PlayArea({
               {
                 id: 'reveal',
                 label: 'Reveal answer',
-                disabled: answerShown,
+                // Terminal-only, matching common.reveal_solution's own gate.
+                disabled: !isTerminal || answerShown,
                 onClick: () => actionsRef.current.reveal(),
               },
             ],

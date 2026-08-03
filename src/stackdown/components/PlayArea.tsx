@@ -20,6 +20,7 @@ import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { db } from '../db'
+import { db as commonDb } from '../../common/db'
 import { turnSnapshot } from '../lib/history'
 import type { StackdownSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
@@ -75,6 +76,7 @@ export function PlayArea({
   players,
   playState,
   isTerminal,
+  solutionRevealed,
   timer,
   setup,
   status,
@@ -237,12 +239,14 @@ export function PlayArea({
     [gameId, clearWord, commitWord, showFlash, showLocalFeedback, clearLocalFeedback],
   )
 
-  // ─── Reveal next word (a CHEAT — see stackdown.reveal_next_word) ──
-  // Peeks at the next solution word the caller still has to clear. Used to verify
+  // ─── Spoiler: the next word (a CHEAT — see stackdown.reveal_next_word) ──
+  // Hands over the next solution word the caller still has to clear. Used to verify
   // generated boards are solvable in order; may be removed once boards are trusted.
+  // Named `spoilNext`, not `revealNext`: "reveal" on this page now means the WHOLE
+  // solution at game-over (the red boxed-eye button below).
   // Surfaced in the LOCAL feedback slot (the player's own request) — closeable so it
   // lingers while they hunt for the tiles.
-  const revealNext = useCallback(async () => {
+  const spoilNext = useCallback(async () => {
     const { data, error } = await db.rpc('reveal_next_word', { target_game: gameId })
     if (error) {
       showLocalFeedback(error.message, 'error')
@@ -251,10 +255,11 @@ export function PlayArea({
     const word = data as string | null
     showLocalFeedback(
       word ? `Next word: ${word.toUpperCase()}` : 'All words cleared',
-      'warning', // a reveal is a "help, not good-or-bad" action — amber like the button
+      'warning', // a spoiler is a "help, not good-or-bad" action — amber like the button
       { kind: 'closeable' },
     )
   }, [gameId, showLocalFeedback])
+
 
   // ─── Reveal hint (the next word's HINT — a nudge, not the word) ──
   // A softer reveal than "Reveal word": shows the curated hint for the next solution
@@ -273,9 +278,27 @@ export function PlayArea({
     const hint = data as string | null
     showLocalFeedback(
       hint ? `Hint: ${hint}` : 'No hint for this word yet',
-      'warning', // a reveal is a "help, not good-or-bad" action — amber like the button
+      'warning', // a hint is a "help, not good-or-bad" action — amber like the button
       { kind: 'closeable' },
     )
+  }, [gameId, showLocalFeedback])
+
+  // ─── Terminal solution reveal ────────────────────────────────────
+  // The six words are NOT shown just because the game ended: `replay_board`
+  // re-runs this very stack with the same solution (see its RPC comment), so
+  // auto-revealing on a loss would make Restart theater — you'd be shuffling
+  // tiles you already know the answer to.
+  //
+  // `solutionShown` is `common.games.solution_revealed`, straight off the row —
+  // the ONE common answer to "may they see it?" (docs/ui.md → Terminal
+  // results). end_game sets it on a win, reveal_solution on the ask, and
+  // reset_game clears it, so Restart re-hides with nothing to remember here.
+  // Being on the row also makes it SHARED: a peer's Reveal arrives on the same
+  // realtime refetch and opens this client's board too.
+  const solutionShown = solutionRevealed
+  const revealSolution = useCallback(async () => {
+    const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
+    if (error) showLocalFeedback(error.message, 'error')
   }, [gameId, showLocalFeedback])
 
   // ─── End / Concede / Replay — the shared trio ─────────────────
@@ -284,11 +307,13 @@ export function PlayArea({
   // compete's per-player drop-out; Replay restarts THIS stack — same tiles, same
   // solution, everything the players did wiped. stackdown's own bits are the
   // failure-pill format, the replay sentence, and the post-replay cleanup
-  // (leave the turn-history view, clear the pill).
+  // (leave the turn-history view, clear the pill, re-hide a revealed solution).
   const showError = useCallback(
     (m: string) => showLocalFeedback(m, 'error'),
     [showLocalFeedback],
   )
+  // (No reveal-flag reset here: `common.reset_game` clears solution_revealed
+  //  server-side, so the new run starts blind on every client at once.)
   const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
@@ -392,15 +417,16 @@ export function PlayArea({
   const menuMode = game?.mode === 'compete' ? 'compete' : 'coop'
   useEffect(() => {
     // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). RLS already
-    // scopes the submissions to what the viewer may see, and the SERVER withholds
-    // `solution` until terminal, so neither can leak onto paper.
+    // scopes the submissions to what the viewer may see, the SERVER withholds
+    // `solution` until terminal, and `solutionShown` withholds it on a loss —
+    // so a printout can't spoil a stack you're about to run back either.
     const printModel = game
       ? buildStackdownPrintModel({
           brand,
           gameTitle: title,
           date: new Date().toLocaleDateString(),
           tiles: shownTiles,
-          solution: game.solution,
+          solution: solutionShown ? game.solution : null,
           submissions,
           players,
           selfId: session.user.id,
@@ -426,6 +452,16 @@ export function PlayArea({
               { id: 'restart', label: 'Restart', onClick: restart },
               // Same setup + roster, a freshly claimed board, a NEW game id.
               { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
+              // The menu twin of the terminal row's boxed-eye button — same
+              // local toggle, reachable from the menu the whole time so a
+              // player who dismissed the row can still get to it. Mid-game it's
+              // inert: there's nothing to reveal until the server unshields.
+              {
+                id: 'reveal',
+                label: 'Reveal solution',
+                disabled: !isTerminal || solutionShown,
+                onClick: () => void revealSolution(),
+              },
             ],
           },
           ...(printModel
@@ -437,7 +473,7 @@ export function PlayArea({
     return () => menu.setGameSections([])
   }, [
     menu, menuMode, isTerminal, myConceded, endGame, concede, restart, handleNewGame,
-    infoSheet.menuSections,
+    revealSolution, solutionShown, infoSheet.menuSections,
     // The print model's inputs. It's rebuilt whenever the printable state moves,
     // which is what makes the snapshot current at click time.
     brand, title, game, shownTiles, submissions, players, session.user.id, foundCount, setup,
@@ -459,7 +495,7 @@ export function PlayArea({
       if (s.kind === 'hint')
         return { tone: 'warning', text: <>{who} revealed a hint</>, dismiss: { kind: 'timed' } }
       if (s.kind === 'reveal')
-        return { tone: 'warning', text: <>{who} revealed a word</>, dismiss: { kind: 'timed' } }
+        return { tone: 'warning', text: <>{who} took a spoiler</>, dismiss: { kind: 'timed' } }
       // kind === 'word': ALSO flash the letters green/red in the WordEntry ring (an
       // ambient cue, not the pill). Safe to fire here — the hook calls messageFor
       // exactly once per NEW peer submission, mirroring the one pill.
@@ -514,7 +550,9 @@ export function PlayArea({
   // coop = the shared team total, compete = the caller's own (RLS already scopes the
   // list), matching how foundCount reads per mode.
   const hintCount = submissions.filter((s) => s.kind === 'hint').length
-  const revealCount = submissions.filter((s) => s.kind === 'reveal').length
+  // `kind='reveal'` is the stored value for a mid-game spoiler (renaming it
+  // would be a migration for a label); the READOUT says "spoilers".
+  const spoilerCount = submissions.filter((s) => s.kind === 'reveal').length
 
   // The submission log. Compete RLS opens every player's submissions once the game is
   // terminal, but the log should keep showing just the caller's own — the same list
@@ -582,13 +620,13 @@ export function PlayArea({
         isLocallyDone={isLocallyDone}
         foundCount={foundCount}
         hintCount={hintCount}
-        revealCount={revealCount}
+        spoilerCount={spoilerCount}
         players={players}
         selfId={session.user.id}
         playerStates={playerStates}
         concededIds={concededIds}
         onHint={() => void revealHint()}
-        onReveal={() => void revealNext()}
+        onSpoiler={() => void spoilNext()}
         onEndGame={endGame}
         onConcede={concede}
         onRestart={restart}
@@ -596,7 +634,9 @@ export function PlayArea({
         startingNewGame={startingNewGame}
         onBackToClub={goToClub}
         setup={setup as unknown as StackdownSetup}
-        solution={game.solution}
+        solution={solutionShown ? game.solution : null}
+        onReveal={() => void revealSolution()}
+        revealDisabled={solutionShown}
         submissions={logWords}
         viewingIndex={viewingIndex}
         onSelectTurn={setViewingIndex}

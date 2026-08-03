@@ -53,7 +53,7 @@ import '../theme.css'
  * `<EntryBox>` display), the same as spellingbee — boggle's structural twin.
  */
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, playState, setup, goToClub, clubHandle, goToGame, session, status, globalFeedback, menu, brand, title } = ctx
+  const { gameId, players, isTerminal, playState, solutionRevealed, setup, goToClub, clubHandle, goToGame, session, status, globalFeedback, menu, brand, title } = ctx
   const { game, foundWords, loading, rowsLoaded } = useGame(gameId)
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
@@ -202,7 +202,13 @@ export function PlayArea(ctx: GamePageCtx) {
     // there's no reveal, so only found words show. Look up each found word's points
     // (the shared row type carries the finder/bonus but not the score).
     const foundSet = new Set(foundWords.map((w) => w.word))
-    const revealWords = isTerminal ? game.required_words.filter((r) => !foundSet.has(r.word)) : null
+    // Gated on the COMMON flag, not `isTerminal`: this game doesn't hide its
+    // solution (gametypes.hides_solution = false), so end_game sets
+    // solution_revealed at every ending — and if that ever changes, it changes
+    // in one place instead of in each of these expressions.
+    const revealWords = solutionRevealed
+      ? game.required_words.filter((r) => !foundSet.has(r.word))
+      : null
     const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
     const words = buildDisplayRows(foundWords, revealWords).map((r) => ({
       word: r.word.toUpperCase(),
@@ -257,7 +263,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, boggleSetup, ladder, isTerminal, myConceded, myCount, myScore, infoSheet.menuSections])
+  }, [menu, game, foundWords, players, brand, title, boggleSetup, ladder, isTerminal, solutionRevealed, myConceded, myCount, myScore, infoSheet.menuSections])
 
   // Every visible found word (used for the missed-words reveal; in compete this
   // is self-only mid-game and everyone's post-terminal — exactly "words nobody
@@ -388,8 +394,12 @@ export function PlayArea(ctx: GamePageCtx) {
   // Suppress the Bonus Words / Bonus Score cells in that case.
   const hasBonusDifficulty = boggleSetup.legal_band !== boggleSetup.band
 
-  // Post-terminal reveal: the required words nobody found.
-  const revealWords = isTerminal
+  // The reveal: the required words nobody found. Gated on the COMMON flag
+  // (`common.games.solution_revealed`), not `isTerminal` — boggle doesn't hide
+  // its solution (gametypes.hides_solution = false), so end_game sets the flag
+  // at every ending and this reads the same today. If that ever changes, it
+  // changes in the registry, not in this expression.
+  const revealWords = solutionRevealed
     ? game.required_words.filter((r) => !foundSet.has(r.word))
     : null
   // Merged, alphabetized rows for the shared WordList (found + the reveal).

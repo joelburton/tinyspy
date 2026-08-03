@@ -3,6 +3,7 @@ import type { GenericFeedbackApi, GenericFeedbackMsg, GenericFeedbackTone, GameP
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
+import { db as commonDb } from '../../common/db'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
@@ -230,6 +231,7 @@ export function PlayArea({
   gameId,
   playState,
   isTerminal,
+  solutionRevealed,
   setup,
   globalFeedback,
   goToClub,
@@ -264,8 +266,28 @@ export function PlayArea({
   // gametype-specific value ('playing', 'sudden_death', 'won', ...)
   // for the phase derivation and the terminal copy.
   const gameOver = isTerminal
+
+  // ─── Terminal partner-key reveal ─────────────────────────────────
+  // The partner's key card is NOT opened the instant the game ends. The seconds
+  // right after an assassin are the best part of a Duet post-mortem — "wait, I
+  // was about to pick APPLE" — and that conversation only happens while the card
+  // is still covered. Reveal opens it, and the post-mortem continues with
+  // everything on the table.
+  //
+  // Not about protecting a replay: Duet deliberately has none (its board IS the
+  // secret — docs/ui.md → Restart).
+  //
+  // The answer lives on the row — `common.games.solution_revealed`, the one
+  // common "may they see it?" flag — so a win opens it automatically
+  // (`end_game`), Reveal opens it for BOTH players at once (the partner is the
+  // person you're doing the post-mortem with, so a one-sided reveal would be
+  // the wrong shape), and there's no per-game state to keep in sync. Not a
+  // shield: both key columns are readable by every club member under the
+  // friends trust model.
+  const peerKeyShown = solutionRevealed
+
   const { words, guesses, myKey, peerKey, myAgentsDone, peerAgentsDone, loading } =
-    useBoard(gameId, session.user.id, gameOver)
+    useBoard(gameId, session.user.id, peerKeyShown)
   const { clues } = useClues(gameId)
 
   // ─── Win celebration ───────────────────────────────────
@@ -329,6 +351,14 @@ export function PlayArea({
   // modal (ending is harmful for the whole group, even coop/solo); it's
   // irreversible. An error is an own-action error → the same local flash as a
   // rejected guess.
+  /** Open the partner's key for BOTH players — the terminal RevealButton and
+   *  its menu twin. Common RPC, because the flag is common
+   *  (`common.games.solution_revealed`); terminal-only server-side. */
+  const revealPeerKey = useCallback(async () => {
+    const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
+    if (error) showLocalFeedback(ownAction('error', `Reveal failed: ${error.message}`))
+  }, [gameId, showLocalFeedback])
+
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
     if (!(await confirmAction(END_GAME_CONFIRM))) return
@@ -435,8 +465,21 @@ export function PlayArea({
         extra: [
           // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
           ...infoSheet.menuSections,
-          // The same action the terminal row offers, reachable mid-game too.
-          { items: [{ id: 'new-game', label: 'New game', shortcut: '+', onClick: () => void handleNewGame() }] },
+          // The same actions the terminal row offers, reachable mid-game too.
+          {
+            items: [
+              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
+              // The menu twin of the terminal row's boxed-eye button. Inert
+              // until the game's over — mid-game the partner's card is the
+              // whole point of the game.
+              {
+                id: 'reveal',
+                label: "Reveal partner's key",
+                disabled: !isTerminal || peerKeyShown,
+                onClick: () => void revealPeerKey(),
+              },
+            ],
+          },
           ...(printModel
             ? [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printCodenamesduetPdf(printModel) }] }]
             : []),
@@ -445,7 +488,8 @@ export function PlayArea({
     )
     return () => menu.setGameSections([])
   }, [
-    menu, isTerminal, handleEndGame, handleNewGame, infoSheet.menuSections,
+    menu, isTerminal, handleEndGame, handleNewGame, revealPeerKey, peerKeyShown,
+    infoSheet.menuSections,
     // The print model's inputs — rebuilt whenever the printable state moves,
     // which is what keeps the snapshot current at click time.
     brand, title, game, words, myKey, peerKey, mySeat, clues, guesses, players,
@@ -581,6 +625,8 @@ export function PlayArea({
         peer={peer}
         // ── Action row ──
         onEndGame={() => void handleEndGame()}
+        onReveal={() => void revealPeerKey()}
+        revealDisabled={peerKeyShown}
         onNewGame={handleNewGame}
         startingNewGame={startingNewGame}
         onBackToClub={goToClub}

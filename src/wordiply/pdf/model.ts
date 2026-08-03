@@ -68,8 +68,13 @@ export function buildWordiplyPrintModel(o: {
   date: string
   base: string
   maxWordLength: number
-  /** The longest possible word, from the board. Revealed only at terminal. */
+  /** The longest possible word, from the board — the game's solution. */
   longestWord: string | null
+  /** `common.games.solution_revealed`: may the solution be shown? wordiply
+   *  doesn't hide it (gametypes.hides_solution = false), so this is true at
+   *  every ending — but the printout reads the same canonical flag the screen
+   *  does rather than re-deciding with `isTerminal`. */
+  solutionRevealed: boolean
   mode: 'coop' | 'compete'
   isTerminal: boolean
   /** EVERY row the viewer may see — the log prints rejects too. */
@@ -144,7 +149,7 @@ export function buildWordiplyPrintModel(o: {
     base: o.base.toUpperCase(),
     turns,
     reveal:
-      o.isTerminal && o.longestWord
+      o.solutionRevealed && o.longestWord
         ? { word: o.longestWord.toUpperCase(), length: o.maxWordLength }
         : null,
     scores,

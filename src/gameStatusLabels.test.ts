@@ -168,8 +168,10 @@ const CASES: Record<string, Family> = {
     playing: { swaps_used: 4, max_swaps: 12 },
     setup: { difficulty: 3 },
     shared: [
+      // No 'revealed' case: the mid-game give-up that wrote it is gone
+      // (2026-08-03) — revealing is a display decision on an already-ended
+      // game now, so the only outcome a manual end can carry is 'manual'.
       ['ended', { outcome: 'manual' }, 'manual end'],
-      ['ended', { outcome: 'revealed' }, 'answer revealed'],
     ],
     coop: [
       ['won', { swaps_used: 9, max_swaps: 12 }, 'solved'],
@@ -187,8 +189,10 @@ const CASES: Record<string, Family> = {
     playing: { guesses_used: 3, max_guesses: 6 },
     setup: { answer_source: 0 },
     shared: [
+      // No 'revealed' case: the mid-game give-up that wrote it is gone
+      // (2026-08-03) — revealing is a display decision on an already-ended
+      // game now, so the only outcome a manual end can carry is 'manual'.
       ['ended', { outcome: 'manual' }, 'manual end'],
-      ['ended', { outcome: 'revealed' }, 'answer revealed'],
     ],
     coop: [
       ['won', { outcome: 'solved', guesses_used: 4, max_guesses: 6 }, 'solved'],

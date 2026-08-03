@@ -7,6 +7,7 @@ import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTer
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { HintButton } from '../../common/components/buttons/HintButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
+import { SpoilerButton } from '../../common/components/buttons/SpoilerButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
@@ -21,7 +22,7 @@ import shared from '../../common/components/game/PlayArea.module.css'
  * psychicnum's info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): state readout →
  * OpponentStrip (compete) → action row → help → setup disclosure → turn log. Every
- * mutation is a named callback up (`onHint`/`onReveal`/`onEndGame`/`onConcede`/
+ * mutation is a named callback up (`onHint`/`onSpoiler`/`onReveal`/`onEndGame`/`onConcede`/
  * `onSelectTurn`); PlayArea owns the RPCs + coordination. Shared between coop and
  * compete: `isCompete` picks the OpponentStrip + Concede (vs End). Prop names match
  * the other games' columns for the same idea (docs/playarea-decomposition-plan.md).
@@ -46,8 +47,10 @@ export function InfoCol({
   concededIds,
   onHint,
   hinting,
+  onSpoiler,
+  spoiling,
   onReveal,
-  revealing,
+  revealDisabled,
   onEndGame,
   onConcede,
   onRestart,
@@ -93,8 +96,15 @@ export function InfoCol({
   // ── Action row (Hint / Reveal + End/Concede, back-to-club at terminal) ──
   onHint: () => void
   hinting: boolean
+  /** Mid-game cheat: hand over the answer word for one board word (the amber
+   *  bare-eye SpoilerButton). Logs to the turn log like a hint does. */
+  onSpoiler: () => void
+  spoiling: boolean
+  /** Ring the three secrets at game-over (the red boxed-eye RevealButton + its
+   *  menu twin). Local display toggle — nothing is written. */
   onReveal: () => void
-  revealing: boolean
+  /** The secrets are already ringed, so the reveal control self-disables. */
+  revealDisabled: boolean
   onEndGame: () => void
   onConcede: () => void
   /** Hunt the SAME board + secrets again from scratch (the menu's Restart item;
@@ -185,7 +195,7 @@ export function InfoCol({
 
         {/* The action row has three states. TERMINAL (game over): a bold,
             outcome-colored result line + a compact back-to-club button. PLAYING (can
-            guess): Hint / Reveal + End/Concede. WAITING (out of guesses OR conceded
+            guess): Hint / Spoiler + End/Concede. WAITING (out of guesses OR conceded
             but the game's still going — basically terminal for ME): reuse the terminal
             LOOK (a bold status line + the action on the right) so the state change
             reads loudly, not as a silently-swapped help line. */}
@@ -193,20 +203,33 @@ export function InfoCol({
           <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
             {/* Stay-here options left of the leave option (Club): hunt this board
                 again, or deal a new one. */}
+            {/* Reveal first: it acts on THIS finished board. Restart / New game
+                are both "move on", and they leave. */}
+            <RevealButton iconOnly onClick={onReveal} disabled={revealDisabled} />
             <RestartButton iconOnly onClick={onRestart} />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : canGuess ? (
           <div className={shared.infoActions}>
-            {/* Hint = a clue (common.words.hint); Reveal = the answer word. Both log
-                to the turn log, cost nothing — and both are warning-toned (amber) via
-                the semantic button components. */}
+            {/* Hint = a clue (common.words.hint); Spoiler = the answer word
+                itself. Both log to the turn log, cost nothing — and both are
+                warning-toned (amber) via the semantic button components; the
+                lightbulb-vs-bare-eye glyph is what separates them. The boxed-eye
+                RevealButton is a different thing entirely (the whole solution,
+                terminal only) and never appears in this row. */}
             <HintButton iconOnly onClick={onHint} disabled={hinting} className={shared.helperButton} />
-            <RevealButton iconOnly onClick={onReveal} disabled={revealing} className={shared.helperButton} />
+            <SpoilerButton iconOnly onClick={onSpoiler} disabled={spoiling} className={shared.helperButton} />
             {endButton}
           </div>
         ) : (
           <LocalTerminalRow label={myConceded ? 'You conceded' : 'Waiting for others'}>
+            {/* Reveal keeps its slot while the others race, but inert: the
+                solution opens only when the game is over for EVERYONE
+                (common.reveal_solution enforces the same rule server-side), so
+                a player who dropped out can't spoil a live race. Present
+                rather than absent so the row doesn't change shape when the
+                last racer finishes — the button is simply enabled then. */}
+            <RevealButton iconOnly disabled tooltip="Can't reveal until all end" />
             {endButton}
           </LocalTerminalRow>
         )}

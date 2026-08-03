@@ -21,6 +21,7 @@ import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
 import type { WordleGame, WordlePlayerState, GuessRow } from '../hooks/useGame'
 import { db } from '../db'
+import { db as commonDb } from '../../common/db'
 import { PlayArea } from './PlayArea'
 
 // Feedback `text` is now a ReactNode (an <ActorDot> widget + sentence) rather
@@ -40,8 +41,13 @@ type GameHook = {
 const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
 vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
+// The reveal is a COMMON RPC now (common.reveal_solution writes the one shared
+// `solution_revealed` flag), so it needs its own mock — a wordle-schema spy
+// would never see it.
+vi.mock('../../common/db', () => ({ db: { rpc: vi.fn() } }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
+const commonRpc = commonDb.rpc as unknown as ReturnType<typeof vi.fn>
 
 const me: WordlePlayerState = { user_id: 'u1', guesses_used: 0, solved: false, solved_at: null }
 const moth: WordlePlayerState = { user_id: 'u2', guesses_used: 0, solved: false, solved_at: null }
@@ -67,6 +73,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     players: [gp('u1', 'me', 'red')],
     playState: 'playing',
     isTerminal: false,
+    solutionRevealed: false,
     timer: { displaySeconds: 0, expired: false },
     isMyTurn: true,
     currentTurnUserId: null,
@@ -108,7 +115,7 @@ describe('wordle PlayArea — render smoke', () => {
 
   it('renders the terminal state without crashing', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won', solutionRevealed: true })} />)
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
     // The info-column outcome line + the answer reveal (the terminalExtra region —
     // the only place the word shows; the below-board pill carries the verdict alone).
@@ -136,22 +143,25 @@ describe('wordle PlayArea — icon-only action rows', () => {
     expect(ctx.goToClub).not.toHaveBeenCalled() // mid-game never direct-navigates
   })
 
-  it('terminal "Reveal answer" button shows the word locally — no RPC, no confirm', async () => {
+  it('terminal "Reveal answer" button opens it for the table, unconfirmed', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
+    commonRpc.mockClear()
     const user = userEvent.setup()
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
     expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Reveal answer' }))
-    expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
+    // The common flag, not a wordle RPC, and no confirm — the word lands when
+    // the flag comes back (see the terminal-flow test for that half).
+    expect(commonRpc).toHaveBeenCalledWith('reveal_solution', { target_game: 'g1' })
     expect(confirm).not.toHaveBeenCalled()
     expect(rpc).not.toHaveBeenCalled()
   })
 
   it('terminal Reveal button is disabled once the word is showing (a win)', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won', solutionRevealed: true })} />)
     expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeDisabled()
   })
 
@@ -207,8 +217,9 @@ describe('wordle PlayArea — terminal flow', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('"Reveal answer" at a lost terminal shows the word locally, with no RPC and no confirm', () => {
+  it('"Reveal answer" at a lost terminal opens it for the table, unconfirmed', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
+    commonRpc.mockClear()
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...ctx} />)
@@ -216,13 +227,26 @@ describe('wordle PlayArea — terminal flow', () => {
     const reveal = menuItems(ctx).find((i) => i.id === 'reveal')!
     expect(reveal.disabled).toBeFalsy() // word hidden → reveal is offered
     act(() => reveal.onClick())
-    expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
+    // A common RPC, not a wordle one, and no confirm: post-terminal the target
+    // is already on every client, so this only flips the shared display flag.
+    await waitFor(() =>
+      expect(commonRpc).toHaveBeenCalledWith('reveal_solution', { target_game: 'g1' }),
+    )
     expect(confirm).not.toHaveBeenCalled()
     expect(rpc).not.toHaveBeenCalled()
   })
 
+  it('shows the word once the shared flag comes back', () => {
+    // What the RPC above causes, arriving via the common realtime refetch —
+    // on the revealer's client and every peer's alike.
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost', solutionRevealed: true })} />)
+    expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
+  })
+
   it('"Reveal answer" is disabled once the word is showing (a win)', () => {
-    const ctx = makeCtx({ isTerminal: true, playState: 'won' })
+    // end_game sets solution_revealed on any win, so the ctx arrives with both.
+    const ctx = makeCtx({ isTerminal: true, playState: 'won', solutionRevealed: true })
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...ctx} />)
     expect(menuItems(ctx).find((i) => i.id === 'reveal')!.disabled).toBe(true)

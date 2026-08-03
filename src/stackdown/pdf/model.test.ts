@@ -82,7 +82,7 @@ describe('buildStackdownPrintModel — the log', () => {
       'STACK',
       'QQQQ — not a word',
       'Hint: a pile of things',
-      'Revealed: CRANE',
+      'Spoiler: CRANE',
     ])
   })
 

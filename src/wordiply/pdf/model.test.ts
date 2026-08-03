@@ -34,6 +34,7 @@ const base = {
   longestWord: 'hangaring',
   mode: 'coop' as const,
   isTerminal: false,
+  solutionRevealed: false,
   guesses: [] as GuessRow[],
   players: [
     { user_id: 'u1', username: 'me' },
@@ -67,6 +68,9 @@ describe('buildWordiplyPrintModel — the terminal-only rule', () => {
     const m = buildWordiplyPrintModel({
       ...base,
       isTerminal: true,
+      // wordiply never hides its answer, so end_game sets the common flag at
+      // every ending — the printout reads it, not `isTerminal`.
+      solutionRevealed: true,
       guessesUsed: 5,
       lengthScore: 78,
       letterCount: 24,

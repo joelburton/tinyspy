@@ -71,7 +71,9 @@ export function buildDuetPrintModel(o: {
   words: WordRow[]
   /** The caller's key — 25 labels, indexed by board position. */
   myKey: KeyLabel[]
-  /** The partner's key. The FE only holds this once the game is over. */
+  /** The partner's key. The FE only holds this once the game is over AND it's
+   *  been revealed (a clean win, or the Reveal control) — so a print of a lost,
+   *  unrevealed game carries no peer column. */
   peerKey: KeyLabel[] | null
   mySeat: Seat | undefined
   isTerminal: boolean
@@ -85,10 +87,12 @@ export function buildDuetPrintModel(o: {
   turnCap: number
   setup: { label: string; value: string }[]
 }): DuetPrintModel {
-  // The peer's key is a SECRET while the game is live. The FE is already only
-  // handed it post-game (useBoard gates on revealPeer), so this is the second
-  // lock — a printer that asked for it regardless would be one refactor away
-  // from putting the answer on paper mid-game.
+  // The peer's key is a SECRET while the game is live, and post-game it's held
+  // back until someone presses Reveal (useBoard's `revealPeer` is PlayArea's
+  // win-or-asked `peerKeyShown`) — so `o.peerKey` is already null in both cases
+  // and a printout can't spoil the post-mortem either. This terminal check is
+  // the second lock: a printer that asked for the key regardless would be one
+  // refactor away from putting the answer on paper mid-game.
   const peerKey = o.isTerminal ? o.peerKey : null
 
   const cells: PrintCell[] = [...o.words]

@@ -146,7 +146,12 @@ both a fitting word *and* an over-demanding word come back).
 
 ### `create_game` gate, custom letters, play states, status, title
 
-- **Quality gate:** a random board must have **≥ 15** required words (`required_words_count`),
+- **Quality gate:** a random board must have **≥ 15** required words (`required_words_count`).
+  **Settled** (2026-08-03) — it was carried as provisional pending real play; the
+  boards have felt right, and the import's percentile print backs it up (kept
+  p50 ≈ 107 required words at own band, dropped p50 ≈ 11). It's three hand-synced
+  copies (`create_game`, the board-builder edge fn, the import script), so change
+  all three or none.
   vs spellingbee's ≥ 30 — tile-spending yields fewer words per board than unbounded
   reuse. (The import's distribution print shows kept seeds clear it comfortably —
   median ~107 at their own band.) A **custom** board relaxes to ≥ 1.
@@ -473,10 +478,6 @@ border. See [docs/pdf.md](../pdf.md).
   leaving each game's shape rules local. Don't fold the whole file just because the
   skeletons rhyme. *(Lives here rather than in spellingbee.md because wordwheel is
   the fork and this doc owns the pair's shared-vs-not ledger.)*
-- The **≥ 15** quality gate (create_game + edge fn + import) is **provisional** — the
-  import's percentile print (kept p50 ≈ 107 required words at own band, dropped
-  p50 ≈ 11) says it's comfortably placed for now; tune against real play if boards
-  feel thin or bloated.
 - **`s`-heavy seeds**: an `s` tile lets each word pluralise once — the classic
   wheel's behavior, kept deliberately. If wheels with an `s` (especially an `s`
   *centre*, which makes every word an s-word) feel too plural-y in play, a

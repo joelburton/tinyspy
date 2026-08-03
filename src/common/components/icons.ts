@@ -16,7 +16,19 @@ export {
   // sparkles glyph is the near-universal "AI / magic" idiom — kept DISTINCT from
   // IconHint's lightbulb so "ask the AI" reads differently from "give me a hint".
   Sparkles as IconAI,
-  Eye as IconReveal, // reveal the answer
+  // The two eyes, and the difference between them is load-bearing:
+  //
+  //   IconSpoiler (bare Eye)  — mid-game "just tell me THIS one": stackdown's
+  //     next word, psychicnum's answer word. One item, while the game is live.
+  //   IconReveal (boxed View) — post-game "show me the whole solution". The box
+  //     is the magnitude signal: same eye, but framed, so it reads as MORE
+  //     without needing a caption (and still reads as more in greyscale).
+  //
+  // Keep them adjacent here — the pair only works if both stay in the eye
+  // family. A spoiler is NOT IconHint's lightbulb: a hint points AT the answer,
+  // a spoiler hands it over.
+  Eye as IconSpoiler,
+  View as IconReveal,
   Flag as IconEnd, // end the game (manual stop)
   // submit a game move/guess/clue — an UP-pointing triangle: it "sends" the move
   // up to the other players (boards put YOU at the bottom, others above), and
