@@ -8,7 +8,7 @@ like it belongs to the same system (the on-screen consistency goal — see
 
 ## Which games print
 
-Printing is a **per-game opt-in**, so this is the at-a-glance answer. Nine of the
+Printing is a **per-game opt-in**, so this is the at-a-glance answer. Ten of the
 thirteen print today.
 
 | game | prints? | notes |
@@ -21,7 +21,7 @@ thirteen print today.
 | psychicnum | ✅ | turn-log family |
 | scrabble | ✅ | turn-log family |
 | spellingbee | ✅ | word-list family |
-| stackdown | ❌ | **deferred** — the six cleared words + the starting stack are a static artifact |
+| stackdown | ✅ | turn-log family — the stack drawn in layer order; white fill IS the occlusion |
 | waffle | ❌ | **won't do** — see below |
 | wordiply | ✅ | turn-log family — the only printer with **no board**: its page *is* the log |
 | wordle | ❌ | **won't do** — see below |
@@ -31,8 +31,9 @@ thirteen print today.
 *board progressions* where one static snapshot can't represent the game — you'd need a
 board per turn for it to mean anything on paper, which a one-page printout isn't.
 waffle is a sequence of tile *swaps*, so a lone end-board doesn't capture the solve;
-wordle *is* the guess-by-guess progression. The two ❌ games marked **deferred** have
-no such problem — they'd compose from the existing helpers — they just haven't opted in.
+wordle *is* the guess-by-guess progression. The one ❌ game marked **deferred**
+(codenamesduet) has no such problem — it'd compose from the existing helpers — it
+just hasn't opted in.
 Those live in each game's own `## Deferred` section (see [deferred.md](deferred.md) for
 how that's organized).
 
@@ -49,7 +50,7 @@ atoms and each game composes them with its OWN board renderer + a plain-data mod
 | module | used by | what it does |
 |---|---|---|
 | `common/pdf/frame.ts` | **all** | the shade constants, `PrintHeader` base model, `newPrintDoc`, `drawHeader`, `drawSetup`, `fit`, `savePrint` |
-| `common/pdf/turnLog.ts` | scrabble, psychicnum, wordiply, connections | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
+| `common/pdf/turnLog.ts` | scrabble, psychicnum, wordiply, connections, stackdown | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
 | `common/pdf/wordColumns.ts` | boggle, spellingbee, wordwheel, bananagrams | `drawWordColumns` — the balanced N-column alphabetical word list; per-word flags `bonus` (a dot) and `pangram` (bold) let each game opt in, and a `found: null` row is a bare word (no score/finder — every bananagrams row) |
 | `common/pdf/wordListBody.ts` | boggle, spellingbee, wordwheel, bananagrams | `drawWordListBody` — the **whole word-list body skeleton** (board top-left / Setup to its right / `drawWordColumns` below), pinning the shared layout offsets in one place. The caller passes a `drawBoard(x, y) → { w, h }` callback (its only real difference) plus two knobs: `cols` (4, or bananagrams' 6) and `emptyText` |
 
@@ -133,7 +134,7 @@ above) — a game picks one.
 - **Margins** are tight-ish (~28pt) so content uses more of the paper, while staying
   inside a printer-safe edge.
 
-**Body family 1 — turn-log games (`turnLog.ts`; scrabble, psychicnum, wordiply, connections).**
+**Body family 1 — turn-log games (`turnLog.ts`; scrabble, psychicnum, wordiply, connections, stackdown).**
 connections is the worked example of the colour rules two sections up. A solved
 category is a full-bleed coloured band on screen; on paper it becomes a **thick
 coloured border** (four full-width fills is an enormous amount of ink, and
@@ -145,6 +146,16 @@ colour encodes — and it does double duty in the turn log, where a correct gues
 is labelled by the letter of the band it solved. The screen tokens are re-darkened
 for print (`BORDER_RGB`): they're tuned as pale fills and nearly vanish stroked as
 a line.
+
+**stackdown** is the happy case where the house rules pay for themselves. A
+mahjong-style stack is defined by *occlusion* — a raised tile hides what's under
+it — and "every printed surface is white" turns out to be exactly the tool: a
+white-filled tile painted over a lower one occludes it just as the screen does.
+So drawing the tiles in `z` order reproduces the stack with no shading, and no
+rule bent. It shares `letterCorner` with the board component, so a partly covered
+tile tucks its letter into the same visible quadrant on paper as on screen. The
+screen's depth ramp is deliberately dropped — the overlap already says what's on
+top, so a shade would be decoration.
 wordiply is the **board-less** case: it has no board worth printing (its five guess
 lines carry no state of their own), so it passes `startY: colTop` and the log begins
 straight under the header. `drawTurnLog` needed no change — the parameter already

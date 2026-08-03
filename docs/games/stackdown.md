@@ -491,9 +491,31 @@ database that has run `stackdown:import` would have real boards in scope and the
 fixture-encoded `sd_seq()` would spell the wrong tiles). FE: the `board.test.ts`
 Vitest above.
 
-## 6. Deferred
+## 6. Printing the board (PDF)
 
-- **Print to PDF.** Would fit the shared word-list helpers cleanly — the six
-  cleared words plus the starting stack is a static artifact, no board-progression
-  problem (cf. waffle/wordle, which are excluded permanently). See
-  [`pdf.md`](../pdf.md); just not opted in yet.
+`src/stackdown/pdf/` — a **"Print board (PDF)"** GamePage menu item, the tenth
+game to print (docs/pdf.md). Turn-log family: the stack in the left column, the
+word log beneath.
+
+**The stack prints almost for free**, because `pdf.md`'s "every surface is white"
+rule is exactly what a mahjong board needs. Occlusion is what makes the stack
+legible — a raised tile hides what's under it — and a white-filled tile painted
+over a lower one occludes it the same way the screen does. So the renderer just
+paints in `z` order and the stacking falls out; no shading, no rule bent. It
+shares [`letterCorner`](../../src/stackdown/lib/board.ts) with the board
+component, so a partly covered tile tucks its letter into the same visible
+quadrant on paper as on screen — sharing that function is what stops the two
+drifting. The screen's warm depth ramp is deliberately NOT carried over: the
+overlap already says what's on top, so a shade would be decoration.
+
+Which tiles print follows the screen exactly, including its terminal rule: while
+playing, tiles spent on accepted words (and the ones picked into the word being
+built) are hidden; **at terminal the original board comes back**, since a won
+game has cleared every tile and would otherwise print blank.
+
+The six words are **terminal-only**, twice over: the server withholds `solution`
+until the row is terminal (`games_state` gates it), and the print model refuses
+to emit it before then regardless — so a future schema change can't quietly put
+the answer on paper. The log prints all three submission kinds, with the
+valid/invalid/cheat distinction carried in **text** rather than colour, since a
+mono printer flattens the outcome bar's green and red to one grey.

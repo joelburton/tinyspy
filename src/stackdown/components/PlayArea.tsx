@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type {
   GenericFeedbackMsg,
@@ -8,6 +8,9 @@ import type {
 } from '../../common/lib/games'
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
+import { difficultyValue } from '../../common/lib/game/difficulty'
+import { buildStackdownPrintModel } from '../pdf/model'
+import { printStackdownPdf } from '../pdf/printStackdownPdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
@@ -61,6 +64,11 @@ const NO_TILES: ReadonlySet<number> = new Set()
  * renders the SHARED stack + log; compete renders the caller's own copy + an
  * OpponentStrip (first to clear all six wins). Mode is read from `game.mode`.
  */
+/** Every stackdown board is exactly six words (docs/games/stackdown.md). The
+ *  info column prints the same six; named here so the print model and the
+ *  readout can't disagree. */
+const SOLUTION_WORDS = 6
+
 export function PlayArea({
   session,
   gameId,
@@ -75,6 +83,8 @@ export function PlayArea({
   clubHandle,
   goToGame,
   menu,
+  brand,
+  title,
 }: GamePageCtx) {
   // Tab does nothing while the board has the keyboard — this play surface is
   // not a form, so native Tab would walk out to the header buttons and on into
@@ -357,8 +367,50 @@ export function PlayArea({
   // facts actually change, not every render. `game?.mode` is null until loaded;
   // default to coop so the menu exists during the loading beat and re-runs once
   // the real mode arrives.
+  // Words cleared. Coop counts the shared valid submissions; compete reads the
+  // caller's public tally (found_count is authoritative there). Hoisted with
+  // shownTiles below, for the same reason — the print model needs it.
+  const foundCount = isCompete
+    ? self?.found_count ?? 0
+    : submissions.filter((s) => s.valid).length
+
+  // The tiles to SHOW — hoisted above the early return so the print model (built
+  // in the menu effect, a hook, which can't move below one) draws exactly what
+  // the board draws rather than a second copy that could drift.
+  //
+  // Mirrors the screen's rule: while playing, hide tiles spent on accepted words
+  // plus the ones picked up into the word being built. At terminal show the
+  // ORIGINAL board — a won game has cleared every tile, so it would otherwise
+  // print blank.
+  const shownTiles = useMemo(() => {
+    if (!game) return []
+    if (isTerminal) return game.tiles
+    const off = new Set<number>([...removedTileIds, ...currentWord])
+    return game.tiles.filter((t) => !off.has(t.id))
+  }, [game, isTerminal, removedTileIds, currentWord])
+
   const menuMode = game?.mode === 'compete' ? 'compete' : 'coop'
   useEffect(() => {
+    // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). RLS already
+    // scopes the submissions to what the viewer may see, and the SERVER withholds
+    // `solution` until terminal, so neither can leak onto paper.
+    const printModel = game
+      ? buildStackdownPrintModel({
+          brand,
+          gameTitle: title,
+          date: new Date().toLocaleDateString(),
+          tiles: shownTiles,
+          solution: game.solution,
+          submissions,
+          players,
+          selfId: session.user.id,
+          mode: menuMode,
+          isTerminal,
+          found: foundCount,
+          target: SOLUTION_WORDS,
+          setup: [{ label: 'Difficulty', value: difficultyValue((setup as StackdownSetup).band) }],
+        })
+      : null
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -376,11 +428,20 @@ export function PlayArea({
               { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
             ],
           },
+          ...(printModel
+            ? [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printStackdownPdf(printModel) }] }]
+            : []),
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, menuMode, isTerminal, myConceded, endGame, concede, restart, handleNewGame, infoSheet.menuSections])
+  }, [
+    menu, menuMode, isTerminal, myConceded, endGame, concede, restart, handleNewGame,
+    infoSheet.menuSections,
+    // The print model's inputs. It's rebuilt whenever the printable state moves,
+    // which is what makes the snapshot current at click time.
+    brand, title, game, shownTiles, submissions, players, session.user.id, foundCount, setup,
+  ])
 
   // ─── Coop: narrate teammates' moves ───────────────────────────
   // The player who DIDN'T make a move otherwise saw nothing but the log quietly
@@ -448,9 +509,6 @@ export function PlayArea({
   // (every valid submission is visible); compete reads the caller's own public tally
   // (submissions are RLS-scoped to the caller, so its valid count matches, but
   // found_count is the authoritative number).
-  const foundCount = isCompete
-    ? self?.found_count ?? 0
-    : submissions.filter((s) => s.valid).length
 
   // Cheat tallies for the status line. Counted off the caller's visible submissions —
   // coop = the shared team total, compete = the caller's own (RLS already scopes the
