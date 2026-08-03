@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react'
-import { END_GAME_CONFIRM, type ConfirmOptions } from '../ui/useConfirmDialog'
+import { END_GAME_CONFIRM, RESTART_CONFIRM, type ConfirmOptions } from '../ui/useConfirmDialog'
 
 /** The shared game-menu actions this hook owns, as fire-and-forget handlers.
  *  A game wires these into its own `actionsRef` alongside any game-specific
@@ -35,7 +35,6 @@ type GameRpcClient = {
  * callbacks/params, so no deliberate difference is flattened:
  *   - `showError` formats the game's own failure pill (the games differ:
  *      `showLocalFeedback('error', m)` vs a `stickyPill` / `ownAction` pill);
- *   - `restartConfirm` is the per-game replay sentence;
  *   - `onRestarted` runs a game's post-replay cleanup (wordle/waffle re-hide the
  *      answer + leave the history view; the others pass nothing).
  *
@@ -59,7 +58,6 @@ export function useStandardGameActions({
   isTerminal,
   myConceded,
   confirm,
-  restartConfirm,
   showError,
   onRestarted,
 }: {
@@ -70,8 +68,7 @@ export function useStandardGameActions({
   myConceded: boolean
   /** The styled end-game confirm (a game's `useConfirmDialog().confirm`). */
   confirm: (opts: ConfirmOptions) => Promise<boolean>
-  /** The per-game restart sentence shown in `window.confirm`. */
-  restartConfirm: string
+
   /** Show a failure message as this game's own local pill. */
   showError: (message: string) => void
   /** Optional post-restart cleanup (wordle/waffle re-hide the answer, etc.). */
@@ -120,13 +117,18 @@ export function useStandardGameActions({
   // Restart — restart THIS board for everyone. Confirmed MID-GAME only (it
   // wipes the group's progress); at terminal there's nothing left to lose. The
   // reset arrives via each game's realtime refetch (the RPC's games touch).
+  //
+  // The mid-game question goes through the styled modal now (2026-08-03) — it
+  // was one of the legacy `window.confirm` calls docs/ui.md flagged to migrate
+  // when touched, and this is the touch: Restart became reachable in all
+  // thirteen games, so the destructive one deserved a real dialog with a named
+  // confirm button rather than a browser alert with an "OK".
   const restart = useCallback(() => {
     void (async () => {
       // Checked BEFORE the confirm so a second click during the round trip is
-      // dropped silently rather than re-prompting. (`window.confirm` blocks the
-      // main thread, so no click can arrive while it's open.)
+      // dropped silently rather than re-prompting.
       if (restarting.current) return
-      if (!isTerminal && !window.confirm(restartConfirm)) return
+      if (!isTerminal && !(await confirm(RESTART_CONFIRM))) return
       restarting.current = true
       try {
         const { error } = await db.rpc('replay_board', { target_game: gameId })
@@ -140,7 +142,7 @@ export function useStandardGameActions({
         restarting.current = false
       }
     })()
-  }, [db, gameId, isTerminal, restartConfirm, showError, onRestarted])
+  }, [db, gameId, isTerminal, confirm, showError, onRestarted])
 
   return { endGame, concede, restart }
 }

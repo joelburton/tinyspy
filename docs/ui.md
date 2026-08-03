@@ -148,7 +148,15 @@ Games with no solution (bananagrams, scrabble) simply never set it, the way `cur
 
 **codenamesduet is gated for a different reason.** It has no Restart to protect (its board *is* the secret). The seconds right after an assassin are the post-mortem — "wait, I was about to pick APPLE" — and that conversation only happens while the partner's card is still covered. Reveal opens it and the post-mortem continues with everything on the table.
 
-**Restart** (`RestartButton` + the per-game `<gametype>.replay_board` RPC on top of `common.reset_game`) serves three different players: the do-over (we lost, let us finish), the line-explorer (same puzzle, different tree), and the optimizer (I won, but I want to beat my swap count) — so it shows at *any* terminal, not just losses. Two accepted costs: replay wipes the win (the game sits "unwon" until re-solved) and wipes the previous attempt's turn log. Ten games have it; three deliberately don't — duet's board *is* the secret, bananagrams has no puzzle to re-run, and crosswords can't surprise you twice once the answers have been read (decided 2026-07-31; see [deferred.md → Terminal results](deferred.md#terminal-results-whole-app)).
+**Restart** (`RestartButton` + the per-game `<gametype>.replay_board` RPC on top of `common.reset_game`) serves three different players: the do-over (we lost, let us finish), the line-explorer (same puzzle, different tree), and the optimizer (I won, but I want to beat my swap count) — so it shows at *any* terminal, not just losses. Two accepted costs: replay wipes the win (the game sits "unwon" until re-solved) and wipes the previous attempt's turn log.
+
+**All thirteen games have it** (2026-08-03). The three that didn't were each opted out for a good local reason, and each reason lost to the same argument — a player who can't find Restart where every other game puts it concludes the app is broken, not that this game is special:
+
+- **codenamesduet** — its board *is* the secret, so a replay keeps the key cards and you know where the assassin is. Kept anyway, as an explicit **mulligan**: a first-guess assassin ends a game nobody got to play, and "let's just run it back" is what the friends actually say. Someone wanting a blind board has New game, one item down.
+- **bananagrams** — no shared puzzle, so a restart deals what New game would. Kept anyway because of the missing-affordance problem above, and built as a *real* reset (same row, same hands re-dealt from the immutable `bunch_seed`) rather than an alias, so the club list doesn't grow an entry.
+- **crosswords** — "can't surprise you twice once the answers have been read" (decided 2026-07-31, reversed 2026-08-03). It turned out to already *have* the feature under another name: **Clear board** wiped the fill and kept the grid. That's a restart with a different label and one missing power — it couldn't un-terminal a finished puzzle. Clear board is gone; Restart is the one name and one path.
+
+**Two surfaces, one rule.** The `RestartButton` shows **only at terminal**, so mid-game boards aren't cluttered with an action nobody's reaching for. The **game-menu item is always there** — that's where a mid-game restart lives — and mid-game it asks `RESTART_CONFIRM` first ("This clears everyone's progress and starts the same board again — you can't undo it"). At terminal it goes straight through, because there's nothing left to lose. No `replay_board` guards on `play_state`: it's a restart, and the confirm is the protection.
 
 ### Confirm modals — never `window.confirm`
 
@@ -188,8 +196,10 @@ Three standing users:
   suspend immediately, no dialog; multiplayer mid-game → the
   `SuspendConfirmDialog` (a wrapper over ConfirmDialog).
 
-The window.confirm calls still in the codebase (concede, replay mid-game,
-reveal mid-game, clear board) predate this and migrate as they're touched.
+One `window.confirm` is left — **concede** — and it migrates when it's next
+touched. The others have gone as their features were worked: replay mid-game
+now asks `RESTART_CONFIRM` through the modal (2026-08-03), reveal mid-game no
+longer exists (End the game, then Reveal), and Clear board became Restart.
 
 ### Dialog buttons
 

@@ -3,7 +3,7 @@
  * by the found-words + board games (spellingbee, wordwheel, wordiply, boggle,
  * waffle, wordle). Each was hand-rolled identically before; this owns the one
  * copy, so its guards (terminal / already-conceded), its two confirm paths
- * (styled modal for End, window.confirm for Concede + Replay), and its
+ * (the styled modal for End + Replay, window.confirm for Concede), and its
  * error-surfacing are worth pinning once.
  *
  * The handlers are fire-and-forget (`void (async () => …)()`), so each test
@@ -31,7 +31,6 @@ function setup(overrides: Overrides = {}) {
       isTerminal: overrides.isTerminal ?? false,
       myConceded: overrides.myConceded ?? false,
       confirm,
-      restartConfirm: 'Replay this board?',
       showError,
       onRestarted,
     }),
@@ -114,27 +113,30 @@ describe('concede', () => {
 })
 
 describe('restart', () => {
-  it('confirms MID-GAME, fires replay_board, then runs onRestarted', async () => {
-    const { result, rpc, onRestarted } = setup({ isTerminal: false })
+  it('confirms MID-GAME through the styled modal, fires replay_board, then runs onRestarted', async () => {
+    const { result, rpc, confirm, onRestarted } = setup({ isTerminal: false })
     act(() => result.current.restart())
     await flush()
-    expect(window.confirm).toHaveBeenCalledTimes(1)
-    expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' })
-    expect(onRestarted).toHaveBeenCalledTimes(1)
-  })
-
-  it('skips the confirm at terminal (nothing left to lose)', async () => {
-    const { result, rpc, onRestarted } = setup({ isTerminal: true })
-    act(() => result.current.restart())
-    await flush()
+    // The styled ConfirmDialog, not window.confirm — Restart migrated off the
+    // browser alert when it became reachable in all thirteen games.
+    expect(confirm).toHaveBeenCalledTimes(1)
+    expect(confirm.mock.calls[0][0]).toMatchObject({ confirmLabel: 'Restart' })
     expect(window.confirm).not.toHaveBeenCalled()
     expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' })
     expect(onRestarted).toHaveBeenCalledTimes(1)
   })
 
+  it('skips the confirm at terminal (nothing left to lose)', async () => {
+    const { result, rpc, confirm, onRestarted } = setup({ isTerminal: true })
+    act(() => result.current.restart())
+    await flush()
+    expect(confirm).not.toHaveBeenCalled()
+    expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' })
+    expect(onRestarted).toHaveBeenCalledTimes(1)
+  })
+
   it('does nothing if the mid-game confirm is dismissed', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
-    const { result, rpc, onRestarted } = setup({ isTerminal: false })
+    const { result, rpc, onRestarted } = setup({ isTerminal: false, confirmResult: false })
     act(() => result.current.restart())
     await flush()
     expect(rpc).not.toHaveBeenCalled()
@@ -184,15 +186,14 @@ describe('restart', () => {
   })
 
   it('does not arm the guard when the mid-game confirm is dismissed', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
-    const { result, rpc } = setup({ isTerminal: false })
+    const { result, rpc, confirm } = setup({ isTerminal: false, confirmResult: false })
     act(() => result.current.restart())
     await flush()
     expect(rpc).not.toHaveBeenCalled()
 
     // Saying "no" must leave restart usable — the guard is only for a call
     // that actually reached the RPC.
-    confirmSpy.mockReturnValue(true)
+    confirm.mockResolvedValue(true)
     act(() => result.current.restart())
     await flush()
     expect(rpc).toHaveBeenCalledTimes(1)

@@ -298,7 +298,6 @@ export function PlayArea(ctx: GamePageCtx) {
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    restartConfirm: "Restart? This clears everyone's found words and restarts the board.",
     showError,
   })
 

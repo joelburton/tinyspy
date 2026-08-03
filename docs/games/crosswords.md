@@ -393,9 +393,15 @@ board — template + fills + the answer grid (fetched via the `export_solution` 
 which relaxes the shielding on demand) — via the ported `writeIpuz`, re-uploadable
 to continue; **Show note** (`NoteDialog`) also
 broadcasts a `showNotes` event in coop so teammates open it together;
-**Clear board** is the destructive `clear_board` "start over" (`window.confirm`
--gated); **Reveal board** is the terminal-only answer key (see *Terminal*
-above). The menu is long, so the popover scrolls — the page never does.
+**Restart** is the destructive "start over" — `replay_board`, confirmed through
+the styled modal mid-game, straight through at terminal. It replaced **Clear
+board** on 2026-08-03: the same wipe under the name every other game uses, plus
+two powers the old one lacked — it clears EVERY grid (a restart is for the
+table, so a compete restart re-opens the race) and it un-terminals a finished
+puzzle, which is what let crosswords join the other twelve in having a replay at
+all ([ui.md → Restart](../ui.md#terminal-results--the-moment-vs-the-record)).
+**Reveal board** is the terminal-only answer key (see *Terminal* above). The menu
+is long, so the popover scrolls — the page never does.
 
 Because the board reads `window` keydowns for cursor movement, the shared
 `Menu` is given **`returnFocusOnClose={false}`** by GamePage: on close the

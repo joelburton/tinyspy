@@ -390,8 +390,6 @@ export function PlayArea({
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    restartConfirm:
-      "Restart? This clears the grid and everyone's score, and deals fresh racks.",
     showError,
     onRestarted,
   })

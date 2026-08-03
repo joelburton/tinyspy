@@ -648,6 +648,8 @@ grant execute on function crosswords.set_mark(uuid, int, int, text, text) to aut
 -- ============================================================
 -- check_cells / reveal_cells
 -- ============================================================
+-- check_cells / reveal_cells
+-- ============================================================
 -- The FE resolves letter/word/puzzle scope via cursor.ts and sends the
 -- target coordinates as a jsonb array of {row, col}. The server never
 -- trusts the FE about correctness — only about which cells were asked.
@@ -752,48 +754,62 @@ $$;
 revoke execute on function crosswords.reveal_cells(uuid, jsonb) from public;
 grant execute on function crosswords.reveal_cells(uuid, jsonb) to authenticated;
 
--- Clear board — restore the caller's grid to its initial (post-import) state:
--- blank every fillable cell and drop its per-cell flags (pencil / wrong /
--- revealed) and cryptic edge marks. Givens live on the template, not in the
--- cells table, so they're preserved automatically; the answer is untouched.
--- Works in both modes on the appropriate grid (the shared grid in coop, the
--- caller's own in compete) — a "start over" gesture, mirroring crossplay's
--- Clear menu item. Clearing can only ever REMOVE fills, so no solve check.
-create function crosswords.clear_board(target_game uuid)
+
+-- ============================================================
+-- crosswords.replay_board — solve this puzzle again from scratch
+-- ============================================================
+-- The "Restart" game-menu item / terminal-row Restart, and the ONLY board-
+-- clearing action: it replaced a separate `clear_board` (2026-08-03), which did
+-- the same job under a different name and couldn't un-terminal a finished game.
+-- One name, one path, the same as the other twelve games.
+--
+-- Wipes every cell of the puzzle — fill, pencil, wrong/revealed marks, and the
+-- scribbled edge marks — for EVERY owner, then hands the common half to
+-- `common.reset_game` (un-terminal, fresh status, results + concede cleared,
+-- clock zeroed). Note the widening from `clear_board`: that cleared only the
+-- CALLER's grid in compete, because it was a mid-race convenience. A restart is
+-- a whole-table thing in every game, so a compete restart re-opens the race for
+-- everyone.
+--
+-- The solution re-shields on its own: `_solution_for` gates on `is_terminal`,
+-- which the reset clears — and `reset_game` puts `solution_revealed` back to
+-- false, so a replayed puzzle starts covered.
+--
+-- Any game player may call it, from a finished game OR mid-game (no play_state
+-- guard — it's a restart; the FE confirms mid-game).
+create function crosswords.replay_board(target_game uuid)
 returns void
 language plpgsql
 security definer
 set search_path = crosswords, common, public, extensions
 as $$
 declare
-  v_caller    uuid;
-  v_mode      text;
-  v_playstate text;
-  v_owner     uuid;
+  v_mode  text;
+  v_title text;
 begin
-  v_caller := common.require_game_player(target_game);
+  perform common.require_game_player(target_game);
+
   select mode into v_mode from crosswords.games where id = target_game;
-  select play_state into v_playstate from common.games where id = target_game;
-  if v_playstate is distinct from 'playing' then
-    raise exception 'game is not in play' using errcode = 'P0001';
+  if v_mode is null then
+    raise exception 'game not found' using errcode = 'P0002';
   end if;
-  -- A conceded compete player is out — their grid is frozen (same guard as
-  -- set_cell / check_cells).
-  if (select conceded from common.game_players
-        where game_id = target_game and user_id = v_caller) then
-    raise exception 'you have conceded' using errcode = 'P0001';
-  end if;
-  v_owner := case when v_mode = 'coop' then null else v_caller end;
+  -- The status blob create_game seeds, rebuilt: `reset_game` ASSIGNS status, so
+  -- anything the listing label reads has to be restated here or it's lost.
+  select status ->> 'title' into v_title from common.games where id = target_game;
 
   update crosswords.cells c
      set fill = null, pencil = false, wrong = false, revealed = false,
          mark_right = null, mark_bottom = null
-   where c.game_id = target_game
-     and c.owner_id is not distinct from v_owner;
+   where c.game_id = target_game;
+
+  perform common.reset_game(
+    target_game,
+    jsonb_build_object('mode', v_mode, 'title', coalesce(v_title, 'Crossword'))
+  );
 end;
 $$;
-revoke execute on function crosswords.clear_board(uuid) from public;
-grant execute on function crosswords.clear_board(uuid) to authenticated;
+revoke execute on function crosswords.replay_board(uuid) from public;
+grant execute on function crosswords.replay_board(uuid) to authenticated;
 
 -- ============================================================
 -- reveal_solved_word — leak-safe answer read for the "Explain clue" feature

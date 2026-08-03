@@ -1,6 +1,6 @@
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(50);
+select plan(51);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -273,7 +273,11 @@ select is(crosswords._matches('H', '["HEART","LUNGS"]'::jsonb), true,
 select is(crosswords._matches(null, '["A"]'::jsonb), false,
   '_matches: empty fill never matches');
 
--- ── clear_board (restore my grid to initial) ─────────────────────────
+-- ── replay_board (restart: restore the grid to initial) ──────────────
+-- Replaced `clear_board` 2026-08-03 — one name, one path, like every other
+-- game. Two differences from what it replaced: it works at ANY play state (a
+-- finished puzzle can be run back), and it clears EVERY owner's grid, because a
+-- restart is a whole-table thing.
 -- Fresh games so the resets don't disturb the shared gc/gp fixtures above.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select id as gcl_id from crosswords.create_game(
@@ -286,32 +290,36 @@ select set_cell from crosswords.set_cell(:'gcl_id', 0, 1, 'z', true);
 select crosswords.reveal_cells(:'gcl_id', '[{"row":1,"col":0}]'::jsonb);
 select crosswords.check_cells(:'gcl_id', '[{"row":0,"col":1}]'::jsonb);
 select set_mark from crosswords.set_mark(:'gcl_id', 0, 0, 'right', 'break');
-select crosswords.clear_board(:'gcl_id');
+select crosswords.replay_board(:'gcl_id');
 reset role;
 select is(
   (select count(*)::int from crosswords.cells
      where game_id = :'gcl_id' and owner_id is null and fill is not null),
-  0, 'clear_board blanks every fill on the shared grid');
+  0, 'replay_board blanks every fill on the shared grid');
 select is(
   (select bool_or(revealed or wrong or pencil) from crosswords.cells
      where game_id = :'gcl_id' and owner_id is null),
-  false, 'clear_board resets the revealed / wrong / pencil flags');
+  false, 'replay_board resets the revealed / wrong / pencil flags');
 select is(
   (select mark_right from crosswords.cells
      where game_id = :'gcl_id' and owner_id is null and row = 0 and col = 0),
-  null, 'clear_board drops cryptic edge marks');
+  null, 'replay_board drops cryptic edge marks');
 select is(
   (select count(*)::int from crosswords.cells where game_id = :'gcl_id'),
-  4, 'clear_board keeps the cell rows (givens live on the template, untouched)');
+  4, 'replay_board keeps the cell rows (givens live on the template, untouched)');
+select is(
+  (select play_state from common.games where id = :'gcl_id'),
+  'playing', 'replay_board leaves the game playing');
 
--- Non-player cannot clear.
+-- Non-player cannot restart.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
-  format('select crosswords.clear_board(%L)', :'gcl_id'),
-  '42501', null, 'clear_board: a non-player is rejected');
+  format('select crosswords.replay_board(%L)', :'gcl_id'),
+  '42501', null, 'replay_board: a non-player is rejected');
 reset role;
 
--- Compete: clear affects ONLY the caller's own grid.
+-- Compete: a restart re-opens the race for EVERYONE (the widening from
+-- clear_board, which only ever touched the caller's own grid).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select id as gpcl_id from crosswords.create_game(
   :'club_handle', pg_temp.xw_setup(:'pz_id'),
@@ -323,18 +331,18 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select set_cell from crosswords.set_cell(:'gpcl_id', 0, 0, 'c', false);
 reset role;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select crosswords.clear_board(:'gpcl_id');
+select crosswords.replay_board(:'gpcl_id');
 reset role;
 select is(
   (select count(*)::int from crosswords.cells
      where game_id = :'gpcl_id' and owner_id = 'ada11111-1111-1111-1111-111111111111'
        and fill is not null),
-  0, 'clear_board (compete): the caller''s grid is blanked');
+  0, 'replay_board (compete): the caller''s grid is blanked');
 select is(
   (select count(*)::int from crosswords.cells
      where game_id = :'gpcl_id' and owner_id = 'bea22222-2222-2222-2222-222222222222'
        and fill is not null),
-  1, 'clear_board (compete): an opponent''s grid is untouched');
+  0, 'replay_board (compete): the opponent''s grid is blanked too — a restart is for the table');
 
 -- ── export_solution (the .ipuz-export answer read — review M4) ──────────
 -- A game player gets the full solution ANY time (unlike games_state, which

@@ -324,8 +324,6 @@ export function PlayArea({
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    restartConfirm:
-      "Restart? This clears everyone's words and hints, and rebuilds the stack.",
     showError,
     onRestarted,
   })

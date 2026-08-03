@@ -219,7 +219,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
       'note', 'explain', 'scratchpad', 'print', 'download-ipuz', 'print-solution',
       'check-letter', 'check-word', 'check-puzzle',
       'reveal-letter', 'reveal-word', 'reveal-puzzle',
-      'clear-board', 'reveal-board', 'new-game',
+      'restart', 'reveal-board', 'new-game',
       'end-game', 'back',
     ])
     // Corrected shortcut hints: ⌥C = check letter, ⌥⇧C = check word.
@@ -230,8 +230,9 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     // All the former placeholders are now wired (enabled).
     expect(items.find((i) => i.id === 'collapse-rebuses')?.disabled).toBeFalsy()
     expect(items.find((i) => i.id === 'download-ipuz')?.disabled).toBeFalsy()
-    // Clear enabled during coop play; Reveal-board terminal-only.
-    expect(items.find((i) => i.id === 'clear-board')?.disabled).toBe(false)
+    // Restart (what "Clear board" became) is live mid-game — it's confirmed,
+    // not disabled; Reveal-board stays terminal-only.
+    expect(items.find((i) => i.id === 'restart')?.disabled).toBeFalsy()
     expect(items.find((i) => i.id === 'reveal-board')?.disabled).toBe(true)
     // Answer-key PDF is always available in coop (even mid-play).
     expect(items.find((i) => i.id === 'print-solution')?.disabled).toBeFalsy()

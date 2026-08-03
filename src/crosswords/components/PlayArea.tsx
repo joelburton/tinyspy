@@ -7,11 +7,12 @@ import { BackToClubButton } from '../../common/components/buttons/BackToClubButt
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { NewGameButton } from '../../common/components/buttons/NewGameButton'
+import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, END_GAME_CONFIRM, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog, END_GAME_CONFIRM, NEW_GAME_CONFIRM, RESTART_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
@@ -460,13 +461,17 @@ export function PlayArea(ctx: GamePageCtx) {
   // the server restores the grid to its initial state and the CDC stream
   // repaints. In coop this clears the SHARED grid for everyone. Declared here
   // (above the menu effect that lists it) so it's in scope for the effect.
-  const handleClear = useCallback(async () => {
-    const shared = mode === 'coop' ? ' This clears the shared grid for everyone.' : ''
-    if (!window.confirm(`Clear the board?${shared} You can't undo this.`)) return
+  // Restart — what used to be "Clear board" (2026-08-03). Same act, the name
+  // and path every other game uses, and two things the old one couldn't do: it
+  // clears EVERY grid (a restart is for the table, not just the caller) and it
+  // un-terminals a finished puzzle, so a solved crossword can be run back.
+  // Confirmed mid-game through the styled modal, like everywhere else.
+  const handleRestart = useCallback(async () => {
+    if (!isTerminal && !(await confirmAction(RESTART_CONFIRM))) return
     clearLocalFeedback()
-    const { error } = await db.rpc('clear_board', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', `Clear failed: ${error.message}`))
-  }, [mode, gameId, showLocalFeedback, clearLocalFeedback])
+    const { error } = await db.rpc('replay_board', { target_game: gameId })
+    if (error) showLocalFeedback(stickyPill('error', `Replay failed: ${error.message}`))
+  }, [isTerminal, gameId, confirmAction, showLocalFeedback, clearLocalFeedback])
 
   // Show note — open the setter's note locally AND (in coop) broadcast so
   // teammates open it too ("read it together", crossplay's showNotes). A no-op
@@ -634,7 +639,9 @@ export function PlayArea(ctx: GamePageCtx) {
           {
             items: [
               // Destructive "start over": blank my grid (givens + answer kept).
-              { id: 'clear-board', label: 'Clear board', disabled: !isPlayable, onClick: () => void handleClear() },
+              // Restart replaced "Clear board": the same wipe, under the name
+              // the other twelve games use, and reachable at terminal too.
+              { id: 'restart', label: 'Restart', onClick: () => void handleRestart() },
               {
                 // Post-game answer key — disabled until terminal (the server
                 // only unshields the solution then); disables itself once shown.
@@ -659,7 +666,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, hasNote, pencil, collapseRebus, mode, myConceded, handleShowNote, handleExplain, handleRevealBoard, handleClear, handleDownloadIpuz, handlePrintSolution, isPlayable, isTerminal, solutionRevealed, infoSheet.menuSections])
+  }, [menu, game, hasNote, pencil, collapseRebus, mode, myConceded, handleShowNote, handleExplain, handleRevealBoard, handleRestart, handleDownloadIpuz, handlePrintSolution, isPlayable, isTerminal, solutionRevealed, infoSheet.menuSections])
 
   const over: (TerminalCopy & { verdictNode?: ReactNode }) | null = isTerminal
     ? buildOver(playState, status, mode, myId, players)
@@ -908,6 +915,7 @@ export function PlayArea(ctx: GamePageCtx) {
                     disabled={solutionRevealed}
                     onClick={() => void handleRevealBoard()}
                   />
+                  <RestartButton iconOnly onClick={() => void handleRestart()} />
                   <NewGameButton iconOnly onClick={handleNewGame} disabled={startingNewGame} />
                   <BackToClubButton onClick={goToClub} variant="primary" compact iconOnly />
                 </div>

@@ -11,7 +11,7 @@ import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDis
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
-import { useConfirmDialog, END_GAME_CONFIRM, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog, END_GAME_CONFIRM, NEW_GAME_CONFIRM, RESTART_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { buildDuetPrintModel } from '../pdf/model'
@@ -359,6 +359,18 @@ export function PlayArea({
     if (error) showLocalFeedback(ownAction('error', `Reveal failed: ${error.message}`))
   }, [gameId, showLocalFeedback])
 
+  /** Restart — run this board back with the same key cards (2026-08-03).
+   *  A MULLIGAN, not a fresh puzzle: you keep the cards, so the second run is
+   *  played knowing where the assassin sits. That's the deliberate trade — a
+   *  first-guess assassin ends a game nobody got to play, and "let's just run
+   *  it back" is what the friends actually say. Someone who wants a blind board
+   *  has New game, the next item down. Confirmed mid-game like everywhere. */
+  const handleRestart = useCallback(async () => {
+    if (!isTerminal && !(await confirmAction(RESTART_CONFIRM))) return
+    const { error } = await db.rpc('replay_board', { target_game: gameId })
+    if (error) showLocalFeedback(ownAction('error', `Replay failed: ${error.message}`))
+  }, [gameId, isTerminal, confirmAction, showLocalFeedback])
+
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
     if (!(await confirmAction(END_GAME_CONFIRM))) return
@@ -468,6 +480,7 @@ export function PlayArea({
           // The same actions the terminal row offers, reachable mid-game too.
           {
             items: [
+              { id: 'restart', label: 'Restart', onClick: () => void handleRestart() },
               { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
               // The menu twin of the terminal row's boxed-eye button. Inert
               // until the game's over — mid-game the partner's card is the
@@ -488,7 +501,7 @@ export function PlayArea({
     )
     return () => menu.setGameSections([])
   }, [
-    menu, isTerminal, handleEndGame, handleNewGame, revealPeerKey, peerKeyShown,
+    menu, isTerminal, handleEndGame, handleNewGame, handleRestart, revealPeerKey, peerKeyShown,
     infoSheet.menuSections,
     // The print model's inputs — rebuilt whenever the printable state moves,
     // which is what keeps the snapshot current at click time.
@@ -625,6 +638,7 @@ export function PlayArea({
         peer={peer}
         // ── Action row ──
         onEndGame={() => void handleEndGame()}
+        onRestart={() => void handleRestart()}
         onReveal={() => void revealPeerKey()}
         revealDisabled={peerKeyShown}
         onNewGame={handleNewGame}

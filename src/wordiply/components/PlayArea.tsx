@@ -189,7 +189,6 @@ export function PlayArea(ctx: GamePageCtx) {
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    restartConfirm: "Restart? This clears everyone's guesses and restarts the same starter.",
     showError,
   })
 

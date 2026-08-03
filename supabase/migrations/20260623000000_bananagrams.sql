@@ -250,6 +250,28 @@ alter publication supabase_realtime add table bananagrams.progress;
 alter publication supabase_realtime add table bananagrams.player_boards;
 
 -- ============================================================
+-- bananagrams._full_bag — the standard 144-tile letter distribution
+-- ============================================================
+-- One source for the tile set: create_game shuffles it to build a game, and
+-- replay_board subtracts the recorded `bunch_seed` from it to rebuild the
+-- out-of-play bag. Immutable, so it folds at plan time.
+create function bananagrams._full_bag()
+returns text
+language sql
+immutable
+as $$
+  select
+    repeat('A', 13) || repeat('B', 3)  || repeat('C', 3)  || repeat('D', 6)  ||
+    repeat('E', 18) || repeat('F', 3)  || repeat('G', 4)  || repeat('H', 3)  ||
+    repeat('I', 12) || repeat('J', 2)  || repeat('K', 2)  || repeat('L', 5)  ||
+    repeat('M', 3)  || repeat('N', 8)  || repeat('O', 11) || repeat('P', 3)  ||
+    repeat('Q', 2)  || repeat('R', 9)  || repeat('S', 6)  || repeat('T', 9)  ||
+    repeat('U', 6)  || repeat('V', 3)  || repeat('W', 3)  || repeat('X', 2)  ||
+    repeat('Y', 3)  || repeat('Z', 2);
+$$;
+revoke execute on function bananagrams._full_bag() from public;
+
+-- ============================================================
 -- bananagrams.create_game(target_club, setup, player_user_ids)
 -- ============================================================
 -- Compete-only, single gametype 'bananagrams' (no mode parameter —
@@ -376,14 +398,7 @@ begin
   -- ─── Build the bunch: shuffle the 144-tile bag, take bunch_size ──
   -- Standard Bananagrams letter distribution. string_to_array(_, NULL)
   -- splits the concatenated string into one element per char.
-  bag_text :=
-    repeat('A', 13) || repeat('B', 3)  || repeat('C', 3)  || repeat('D', 6)  ||
-    repeat('E', 18) || repeat('F', 3)  || repeat('G', 4)  || repeat('H', 3)  ||
-    repeat('I', 12) || repeat('J', 2)  || repeat('K', 2)  || repeat('L', 5)  ||
-    repeat('M', 3)  || repeat('N', 8)  || repeat('O', 11) || repeat('P', 3)  ||
-    repeat('Q', 2)  || repeat('R', 9)  || repeat('S', 6)  || repeat('T', 9)  ||
-    repeat('U', 6)  || repeat('V', 3)  || repeat('W', 3)  || repeat('X', 2)  ||
-    repeat('Y', 3)  || repeat('Z', 2);
+  bag_text := bananagrams._full_bag();
   letters := string_to_array(bag_text, NULL);
 
   -- A fresh seed makes the shuffle order unpredictable. setseed wants a
@@ -1090,6 +1105,108 @@ grant execute on function bananagrams.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
 -- bananagrams.concede — a player drops out of the race
+-- ============================================================
+-- bananagrams.replay_board — deal this game again from scratch
+-- ============================================================
+-- The "Restart" game-menu item / terminal-row Restart. Same game row, same
+-- tiles: every board is emptied, every hand is re-dealt from `bunch_seed` (the
+-- immutable record of this game's shuffled deal — see its column comment,
+-- which reserved it for exactly this), and the draw pile + out-of-play bag go
+-- back to their opening sizes.
+--
+-- **Why bananagrams has a restart at all**, when a fresh deal would be nearly
+-- the same game: because *every other game has one*, and a player who can't
+-- find "Restart" where they expect it doesn't conclude "this game is different"
+-- — they conclude the app is broken (2026-08-03). It's a real reset, not an
+-- alias for New game: same row, so the club list doesn't grow an entry and
+-- everyone stays in the game they're already in.
+--
+-- Re-dealing from the seed rather than reshuffling keeps it a *restart*: the
+-- same hands come back, so "we all misread the rules, start over" returns you
+-- to the game you just had. The bag is rebuilt as the full 144-tile
+-- distribution minus the seed — dumps may have shuffled tiles between bunch and
+-- bag, and tile identity is only ever a multiset, so subtracting is exact.
+--
+-- Any game player may call it, from a finished game OR mid-game (no play_state
+-- guard — it's a restart; the FE confirms mid-game). Resets ALL players.
+create function bananagrams.replay_board(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = bananagrams, common, public, extensions
+as $$
+declare
+  g_row       bananagrams.games%rowtype;
+  n_players   int;
+  new_bunch   text;
+  new_bag     text;
+begin
+  perform common.require_game_player(target_game);
+
+  select * into g_row from bananagrams.games where id = target_game;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  select count(*) into n_players
+    from common.game_players where game_id = target_game;
+
+  -- Re-deal: player i (1-based, ordered by user_id so the split is stable
+  -- across calls) takes seed[(i-1)*hand + 1 .. i*hand]; the rest of the seed is
+  -- the draw pile again.
+  update bananagrams.player_boards pb
+     set board = repeat('.', 25 * 25),
+         tiles = substr(g_row.bunch_seed,
+                        ((ord.i - 1) * g_row.hand_size + 1)::int, g_row.hand_size),
+         updated_at = now()
+    from (
+      select user_id, row_number() over (order by user_id) as i
+        from bananagrams.player_boards where game_id = target_game
+    ) ord
+   where pb.game_id = target_game and pb.user_id = ord.user_id;
+
+  new_bunch := substr(g_row.bunch_seed, n_players * g_row.hand_size + 1);
+
+  -- The out-of-play reserve = everything the seed left behind. Multiset
+  -- subtraction, one letter at a time: the order was random to begin with, so
+  -- any order is a faithful reserve.
+  select coalesce(string_agg(ch, ''), '') into new_bag
+    from (
+      select ch, row_number() over (partition by ch order by n) as k
+        from (select ch, generate_series as n
+                from unnest(string_to_array(bananagrams._full_bag(), NULL))
+                       with ordinality as t(ch, generate_series)) full_t
+    ) full_ranked
+   where not exists (
+     select 1
+       from (
+         select ch, row_number() over (partition by ch order by n) as k
+           from (select ch, generate_series as n
+                   from unnest(string_to_array(g_row.bunch_seed, NULL))
+                          with ordinality as t(ch, generate_series)) seed_t
+       ) seed_ranked
+      where seed_ranked.ch = full_ranked.ch and seed_ranked.k = full_ranked.k
+   );
+
+  update bananagrams.games
+     set bunch = new_bunch, bag = new_bag
+   where id = target_game;
+
+  update bananagrams.progress
+     set unplaced = g_row.hand_size, placed = 0, solved = false, finished_at = null
+   where game_id = target_game;
+
+  perform common.reset_game(
+    target_game,
+    jsonb_build_object('bunch_remaining', length(new_bunch),
+                       'bag_remaining', length(new_bag))
+  );
+end;
+$$;
+
+revoke execute on function bananagrams.replay_board(uuid) from public;
+grant execute on function bananagrams.replay_board(uuid) to authenticated;
+
 -- ============================================================
 -- bananagrams is compete-only with no per-player "eliminated" state (a
 -- player is only ever done by peeling out — a win — or by conceding), so

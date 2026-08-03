@@ -84,11 +84,12 @@ test.describe('scrabble replay + new game', () => {
     await expect(page.getByText(/CAT \+\d/i)).toBeVisible({ timeout: 10000 })
     await expect(center).toContainText('C')
 
-    // Mid-game replay confirms — arm the handler BEFORE the click, or
-    // Playwright's default auto-dismiss cancels it.
-    page.once('dialog', (d) => void d.accept())
+    // Mid-game restart is confirmed through the styled ConfirmDialog (it wipes
+    // the group's progress) — the browser alert went away 2026-08-03, so the
+    // dialog is a real button in the page.
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'Restart' }).click()
+    await page.getByRole('button', { name: 'Restart', exact: true }).click()
 
     // The centre square is empty again — the re-deal landed.
     await expect(center).not.toContainText('C', { timeout: 10000 })

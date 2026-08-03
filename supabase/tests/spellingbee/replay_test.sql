@@ -12,7 +12,7 @@ set search_path = spellingbee, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(10);
+select plan(13);
 
 -- ── Coop: find words, manual-end, then replay → fully reset ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -83,6 +83,48 @@ reset role;
 select is(
   (select status->>'target_rank' from common.games where id = (select id from g2)),
   '3', 'compete replay → target_rank survives in the fresh status');
+
+-- ── Coop: the reset status carries the frozen target_rank too ──
+-- The compete case above is the one that was covered; coop has its own branch
+-- in replay_board with a comment promising the target survives, and nothing
+-- checked it. It matters because the club-list label reads the target from
+-- status: lose it and a replayed game stops advertising what it's aiming at.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g3 on commit drop as
+select * from spellingbee.create_game(
+  (select handle from club),
+  pg_temp.spellingbee_setup() || '{"target_rank": 4}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'coop',
+  pg_temp.spellingbee_board()
+);
+select spellingbee.replay_board((select id from g3));
+reset role;
+select is(
+  (select status->>'target_rank' from common.games where id = (select id from g3)),
+  '4', 'coop replay → target_rank survives in the fresh status');
+select is(
+  (select status->>'mode' from common.games where id = (select id from g3)),
+  'coop', 'coop replay → the status is the coop shape');
+
+-- ── Coop with NO target: the key is present and null, not missing ──
+-- `target_rank` absent and `target_rank: null` mean the same thing to the FE,
+-- but only one of them survives a jsonb round trip unchanged — pin it.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g4 on commit drop as
+select * from spellingbee.create_game(
+  (select handle from club),
+  pg_temp.spellingbee_setup() || '{"target_rank": null}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid],
+  'coop',
+  pg_temp.spellingbee_board()
+);
+select spellingbee.replay_board((select id from g4));
+reset role;
+select is(
+  (select status->>'target_rank' from common.games where id = (select id from g4)),
+  null, 'coop replay (no target) → target_rank stays null, not invented');
 
 -- ── Non-player rejected ─────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');

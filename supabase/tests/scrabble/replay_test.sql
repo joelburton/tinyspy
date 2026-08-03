@@ -18,7 +18,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(17);
+select plan(19);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -104,6 +104,11 @@ create temp table g2 on commit drop as
 reset role;
 update scrabble.players set score = 42 where game_id = (select id from g2);
 
+-- Capture the version an in-flight client would be holding, so we can prove
+-- the bump below actually invalidates it.
+select set_config('test.v2',
+  (select version::text from scrabble.games where id = (select id from g2)), true);
+
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select scrabble.replay_board((select id from g2));
 reset role;
@@ -112,6 +117,23 @@ select is(
   (select count(*) from scrabble.players
     where game_id = (select id from g2) and score = 0 and array_length(rack, 1) = 7),
   2::bigint, 'compete: replay → every seat zeroed + re-dealt 7 tiles');
+
+-- ─── The mid-game bump, which is the whole reason `version` isn't zeroed ──
+-- This game was never ended: a restart mid-race is legal (no play_state guard),
+-- and it's the ONLY case where the counter matters — at terminal there are no
+-- in-flight moves. A client that had already read the pre-restart version must
+-- be told 'stale' rather than committing its move against the fresh deal.
+select ok(
+  (select version from scrabble.games where id = (select id from g2))
+    > current_setting('test.v2')::int,
+  'compete: a MID-GAME replay bumps version (never zeroes it)');
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(
+  (select scrabble.play_word((select id from g2), current_setting('test.v2')::int,
+     '[{"x":7,"y":7,"letter":"C","blank":false}]'::jsonb, array['CAT'], 5) ->> 'result'),
+  'stale',
+  'compete: a move carrying the pre-restart version is rejected as stale');
+reset role;
 select is(
   (select array_length(bag, 1) from scrabble.games where id = (select id from g2)),
   86, 'compete: replay → the bag is 100 minus two dealt racks');

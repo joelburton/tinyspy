@@ -222,8 +222,6 @@ export function PlayArea({
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    restartConfirm:
-      "Restart? This clears everyone's progress and the turn log, and restarts from the original scramble.",
     showError,
     onRestarted,
   })

@@ -211,11 +211,11 @@ Accepts `playing` and `sudden_death` (both non-terminal); idempotent on the term
 
 Reject reasons: not authenticated; not a game player; game not found; already terminal.
 
-### New game — a fresh board, no Replay twin
+### New game — a fresh board; Restart — the same board as a mulligan
 
 The **New game** button in the terminal action row + the matching menu item: a FRESH game (new id, a newly sampled board) with this game's setup + roster, in the same club. A direct `create_game` RPC — codenamesduet samples its board inline, and takes no `mode` (coop-only, one gametype). Non-destructive: `common.create_game` un-currents this game into the club's list, so there's no confirm; the creator jumps in via `ctx.goToGame` and the peer arrives via the game-invitation toast.
 
-**There is deliberately no "Restart" twin**, unlike the ten games that have one. Their replay re-runs the SAME puzzle; duet's whole board — including which word is the assassin — is the secret, so replaying it would hand both players a board they'd already learned. A new sample is the only meaningful "again".
+**Restart** (`replay_board`, added 2026-08-03) is its twin, and it is deliberately a **mulligan** rather than a fresh puzzle. Duet was the one game with a principled reason not to have a replay: the whole board — including which word is the assassin — is the secret, so running it back hands both players a board they've partly learned. What overrules that is the accident: an assassin on the first guess ends a game nobody got to play, and *"let's just run it back"* is what the friends actually say. The key cards and the 25 words stay; every reveal, neutral, clue and guess is wiped, the turn budget is re-read from setup and seat A clues again. Someone who wants a genuinely blind board has **New game**, the next item down in the same menu. Any player, mid-game or at terminal; mid-game the FE confirms. pgTAP: `replay_test.sql`.
 
 ### `codenamesduet.end_game(target_game uuid) → void`
 

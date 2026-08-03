@@ -924,6 +924,69 @@ grant execute on function codenamesduet.submit_timeout(uuid) to authenticated;
 -- ============================================================
 -- codenamesduet.end_game — manual stop
 -- ============================================================
+-- codenamesduet.replay_board — run this board back from scratch
+-- ============================================================
+-- The "Restart" game-menu item / terminal-row Restart: reset the working state
+-- on the SAME game row. The frozen puzzle stays — the same 25 words and the
+-- same two key cards — with every reveal, neutral, clue and guess wiped, the
+-- turn counter back to 1 and seat A clueing again.
+--
+-- **This is a mulligan, not a fresh puzzle, and that's the point.** Duet was
+-- the one game deliberately left without a replay, on the grounds that its
+-- board IS the secret: you keep the key cards, so the second run is played
+-- with knowledge of where the assassin sits. The case that overrules it is the
+-- accident — a first-guess assassin ends a game nobody got to play, and "let's
+-- just run it back" is what the friends actually say (2026-08-03). Under the
+-- friends trust model that's a fine trade; someone who wants a genuinely blind
+-- board has **New game**, one item below it in the same menu.
+--
+-- Any game player may call it, from a finished game OR mid-game (no play_state
+-- guard — it's a restart; the FE confirms mid-game). Resets BOTH players, per
+-- the whole-table restart convention.
+create function codenamesduet.replay_board(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = codenamesduet, common, public, extensions
+as $$
+declare
+  s_turns int;
+begin
+  perform common.require_game_player(target_game);
+
+  if not exists (select 1 from codenamesduet.games where id = target_game) then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  -- The turn budget is re-read from setup, not from the row: turns_remaining
+  -- has been decremented all game, so it can't say what the budget WAS.
+  select (setup->>'turns')::int into s_turns
+    from common.games where id = target_game;
+
+  update codenamesduet.words
+     set revealed_as = null, neutral_a = false, neutral_b = false
+   where game_id = target_game;
+
+  delete from codenamesduet.clues   where game_id = target_game;
+  delete from codenamesduet.guesses where game_id = target_game;
+
+  update codenamesduet.games
+     set turns_remaining = s_turns,
+         turn_number = 1,
+         current_clue_giver = 'A'
+   where id = target_game;
+
+  perform common.reset_game(
+    target_game,
+    jsonb_build_object('turn_number', 1, 'turns_remaining', s_turns, 'greens_found', 0)
+  );
+end;
+$$;
+
+revoke execute on function codenamesduet.replay_board(uuid) from public;
+grant execute on function codenamesduet.replay_board(uuid) to authenticated;
+
+-- ============================================================
 --
 -- The friends' explicit "we're done here" button. codenamesduet has
 -- plenty of *automatic* terminals (won / lost_assassin / lost_clock

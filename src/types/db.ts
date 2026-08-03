@@ -111,6 +111,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _full_bag: { Args: never; Returns: string }
       _win_blockers: {
         Args: {
           board: string
@@ -130,6 +131,7 @@ export type Database = {
       dump: { Args: { target_game: string; tile: string }; Returns: undefined }
       end_game: { Args: { target_game: string }; Returns: undefined }
       peel: { Args: { target_game: string }; Returns: Json }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
       save_player_board: {
         Args: { board: string; target_game: string }
         Returns: undefined
@@ -450,6 +452,7 @@ export type Database = {
       end_game: { Args: { target_game: string }; Returns: undefined }
       get_clue_context: { Args: { target_game: string }; Returns: Json }
       pass_turn: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
       submit_clue: {
         Args: { clue_count: number; clue_word: string; target_game: string }
         Returns: undefined
@@ -740,14 +743,17 @@ export type Database = {
       gametypes: {
         Row: {
           gametype: string
+          hides_solution: boolean
           min_players: number
         }
         Insert: {
           gametype: string
+          hides_solution?: boolean
           min_players?: number
         }
         Update: {
           gametype?: string
+          hides_solution?: boolean
           min_players?: number
         }
         Relationships: []
@@ -946,7 +952,6 @@ export type Database = {
         Args: {
           play_state: string
           player_results: Json
-          reveals_solution?: boolean
           status: Json
           target_game: string
         }
@@ -1383,7 +1388,6 @@ export type Database = {
         Args: { p_cells: Json; target_game: string }
         Returns: undefined
       }
-      clear_board: { Args: { target_game: string }; Returns: undefined }
       concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: {
@@ -1399,6 +1403,7 @@ export type Database = {
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       export_solution: { Args: { target_game: string }; Returns: Json }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
       reveal_cells: {
         Args: { p_cells: Json; target_game: string }
         Returns: undefined

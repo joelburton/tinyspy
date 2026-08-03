@@ -31,7 +31,7 @@ import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import shared from '../../common/components/game/PlayArea.module.css'
 import '../theme.css' // bananagrams tokens + the global drag-cursor rule
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
-import { useConfirmDialog, NEW_GAME_CONFIRM, END_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
+import { useConfirmDialog, NEW_GAME_CONFIRM, END_GAME_CONFIRM, RESTART_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 
 /**
@@ -215,13 +215,8 @@ export function PlayArea(ctx: GamePageCtx) {
   // confirm; the creator jumps in via ctx.goToGame, peers arrive via the
   // game-invitation toast.
   //
-  // NOTE there is deliberately no "Restart" twin (Joel's call). The other
-  // games' replay re-runs the SAME puzzle; bananagrams has no puzzle to re-run —
-  // the bunch is dealt at random and the whole game is the race to consume it, so
-  // "again" can only mean a fresh deal, which is what New game already is.
-  // Shared confirm modal — bananagrams' only use is the new-game question
-  // below (its End/Concede go through useStandardGameActions, which owns its
-  // own). Render {confirmDialog} in the tree, as the other games do.
+  // Shared confirm modal — used by the new-game question below and by Restart
+  // (mid-game). Render {confirmDialog} in the tree, as the other games do.
   const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
 
   // ─── End game — the whole table stops, with no result for anyone ────────
@@ -242,6 +237,26 @@ export function PlayArea(ctx: GamePageCtx) {
   useEffect(() => {
     endGameRef.current = () => void handleEndGame()
   }, [handleEndGame])
+
+  // ─── Restart — deal this game again from the same tiles ────────────────
+  // bananagrams is the game where a restart looks least necessary: with no
+  // shared puzzle it deals what a New game would. It's here anyway because
+  // every other game has one, and a player who can't find Restart where they
+  // expect it concludes the app is broken, not that this game is special
+  // (2026-08-03). `replay_board` makes it a real reset rather than an alias —
+  // same game row, same hands back — so the club list doesn't grow an entry
+  // and nobody has to re-navigate.
+  const handleRestart = useCallback(async () => {
+    if (!isTerminal && !(await confirmAction(RESTART_CONFIRM))) return
+    const { error } = await db.rpc('replay_board', { target_game: gameId })
+    if (error) {
+      showLocalFeedback({ tone: 'error', text: `Replay failed: ${error.message}`, variant: 'outline', dismiss: { kind: 'sticky' } })
+    }
+  }, [gameId, isTerminal, showLocalFeedback, confirmAction])
+  const restartRef = useRef<() => void>(() => {})
+  useEffect(() => {
+    restartRef.current = () => void handleRestart()
+  }, [handleRestart])
 
   const newGameRef = useRef<() => void>(() => {})
   const createNewGame = useCallback(async () => {
@@ -342,8 +357,13 @@ export function PlayArea(ctx: GamePageCtx) {
         offerEndInCompete: true,
         extra: [
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: doPrint }] },
-          // The same action the terminal row offers, reachable mid-game too.
-          { items: [{ id: 'new-game', label: 'New game', shortcut: '+', onClick: () => newGameRef.current() }] },
+          // The same pair the terminal row offers, reachable mid-game too.
+          {
+            items: [
+              { id: 'restart', label: 'Restart', onClick: () => restartRef.current() },
+              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => newGameRef.current() },
+            ],
+          },
         ],
       }),
     )

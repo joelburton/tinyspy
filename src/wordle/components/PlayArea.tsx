@@ -217,7 +217,6 @@ export function PlayArea({
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    restartConfirm: "Restart? This clears everyone's guesses and restarts with the same word.",
     showError,
     onRestarted,
   })

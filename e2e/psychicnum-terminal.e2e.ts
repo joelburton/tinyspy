@@ -102,11 +102,12 @@ test.describe('psychicnum replay + new game', () => {
     await page.getByRole('button', { name: 'Submit' }).click()
     await expect(page.getByText('No turns yet.')).toBeHidden({ timeout: 10000 })
 
-    // Mid-game replay confirms — arm the handler BEFORE the click, or
-    // Playwright's default auto-dismiss cancels it.
-    page.once('dialog', (d) => void d.accept())
+    // Mid-game restart is confirmed through the styled ConfirmDialog (it wipes
+    // the group's progress) — the browser alert went away 2026-08-03, so the
+    // dialog is a real button in the page.
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'Restart' }).click()
+    await page.getByRole('button', { name: 'Restart', exact: true }).click()
 
     await expect(page.getByText('No turns yet.')).toBeVisible({ timeout: 10000 })
     await ctx.close()

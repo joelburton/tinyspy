@@ -3,6 +3,7 @@ import { timerLabel } from '../../common/lib/game/timerLabel'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { NewGameButton } from '../../common/components/buttons/NewGameButton'
+import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
@@ -38,6 +39,7 @@ export function InfoCol({
   peerFinished,
   peer,
   onEndGame,
+  onRestart,
   onReveal,
   revealDisabled,
   onNewGame,
@@ -79,6 +81,8 @@ export function InfoCol({
   /** Open the partner's key card at game-over (the red boxed-eye RevealButton +
    *  its menu twin). Local display toggle — nothing is written, and the partner
    *  sees nothing. */
+  /** Run this board back — same words, same key cards (a mulligan). */
+  onRestart: () => void
   onReveal: () => void
   /** The partner's card is already open (a win, or a prior reveal), so the
    *  control self-disables. */
@@ -158,14 +162,15 @@ export function InfoCol({
           <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
             {/* Stay-here options, left of the leave option (Club): open the
                 partner's key card (the post-mortem, once you've talked through
-                what you'd have played next), or deal a fresh board. No Restart
-                twin — see PlayArea's handleNewGame. */}
+                what you'd have played next), run the same board back, or deal a
+                fresh one. */}
             <RevealButton
               iconOnly
               label="Reveal partner's key"
               onClick={onReveal}
               disabled={revealDisabled}
             />
+            <RestartButton iconOnly onClick={onRestart} />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : (

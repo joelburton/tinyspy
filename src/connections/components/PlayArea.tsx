@@ -251,7 +251,6 @@ export function PlayArea({
       isTerminal,
       myConceded,
       confirm: confirmAction,
-      restartConfirm: "Restart? This clears everyone's guesses and mistakes.",
       showError: (message) => showLocalFeedback(stickyPill('error', message)),
       onRestarted: () => {
         exitViewing()
