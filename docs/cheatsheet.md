@@ -48,20 +48,39 @@ target. Five families:
 | prefix | what |
 |---|---|
 | `g-` | one game's data or assets — `g-stackdown-puzzles`, `g-boggle-trie` |
-| `all-` | the cross-game aggregates — `all-pangrams`, `all-tries` |
+| `all-` | cross-game — `all-words`, `all-pangrams`, `all-tries` |
 | `db-` | the database — `db-schema`, `db-sql`, `db-data`, `db-seed`, `db-reset` |
 | `deploy-` | pushing to a target — `deploy-funcs`, `deploy-func-<name>`, `deploy-fe` |
+| `dev-` | the local loop — `dev-lint`, `dev-types` |
 | `project-` | the hosted project itself — `project-link`, `project-config-auth`, `project-bootstrap` |
 
 `gmake help` lists alphabetically, so the prefixes group there too. Unprefixed
-targets are the ones that belong to no family: `words` (it's `common`, not a
-game), `db`, `deploy`, `dev`, `test*`, `types`, `help`.
+targets belong to no family: `db`, `deploy`, `dev`, `test*`, `help`.
+`_stamps-clean` leads with an underscore because it's an escape hatch, not
+daily vocabulary.
+
+### Which targets can touch prod
+
+`deploy-*` is not the whole answer — **anything that writes to a database does,
+when you pass `ENV=prod`**, and every `project-*` target is about prod by
+definition. The full list:
+
+| | targets |
+|---|---|
+| **writes prod with `ENV=prod`** | `all-words`, `all-pangrams`, `g-spellingbee-pangrams`, `g-wordwheel-pangrams`, `g-stackdown-puzzles`, `g-connections-puzzles`, `g-crosswords-puzzles`, `db-data`, `db-schema`, `db-sql`, `db` |
+| **prod by definition** (ENV is checked, not chosen) | every `project-*`, `deploy-*`, `deploy` |
+| **reads prod with `ENV=prod`** | `g-stackdown-audit` |
+| **can never reach prod** | `all-tries`, `g-boggle-trie`, `g-scrabble-trie`, `g-stackdown-genpuzzles` (pinned local — they build local files from the local dictionary), `db-seed` (pinned), `db-reset` (refuses), `dev*`, `test*`, `help`, `_stamps-clean` |
+
+Two that destroy rather than write: **`project-db-destroy`** and
+**`project-bootstrap MIGRATIONS=destroy`** wipe the hosted database, auth
+accounts included.
 
 ```
 gmake help                                   # every target, with descriptions
 
 # data + assets — `gmake g-<TAB>` narrows to one game
-gmake words                                  # common.words — only if words.tsv changed
+gmake all-words                                  # common.words — only if words.tsv changed
 gmake all-pangrams                           # spellingbee + wordwheel seeds (follows words)
 gmake all-tries                              # both edge-function word bundles
 gmake g-stackdown-genpuzzles COUNT=50 BAND=2 # generate boards — APPENDS to the library
@@ -89,7 +108,7 @@ gmake project-bootstrap ENV=prod MIGRATIONS=destroy   # stand one up from nothin
 gmake project-config-api ENV=prod            # just the PostgREST settings
 
 gmake -B <target>                            # force, ignoring stamps
-gmake stamps-clean                           # forget what we think is loaded
+gmake _stamps-clean                           # forget what we think is loaded
 ```
 
 **Stamps.** A database table has no mtime, so `.make/$(ENV)/*.stamp` stands in

@@ -88,7 +88,7 @@ SEED  ?= $(shell date +%s)
 # one: a stamp records what WE last did, not what the database holds.
 # Someone else's `db:reset`, a colleague's import, a restored snapshot —
 # all make it lie. Escape hatches: `gmake -B <target>` forces, and
-# `gmake stamps-clean` forgets everything. Per-ENV, because "loaded to
+# `gmake _stamps-clean` forgets everything. Per-ENV, because "loaded to
 # local" says nothing about prod. The failure mode is a needless
 # re-import (a couple of minutes), never corruption — which is the only
 # reason stamps are acceptable here at all.
@@ -100,8 +100,8 @@ STAMPS := .make/$(ENV)
 # Data + assets
 # ════════════════════════════════════════════════════════════════
 
-.PHONY: words
-words: $(STAMPS)/words.stamp ## import common.words from the gamelist working copy
+.PHONY: all-words
+all-words: $(STAMPS)/words.stamp ## import common.words — the list every word game reads
 $(STAMPS)/words.stamp: $(WORDS_SRC) | $(STAMPS)
 
 	@$(PRELUDE)
@@ -163,11 +163,14 @@ all-tries: g-boggle-trie g-scrabble-trie ## both edge-function word bundles
 # .PHONY and explicit. The FILE rule below has no prerequisites, so make
 # builds it only when it's actually missing, which is the
 # generate-if-absent behaviour `g-stackdown-puzzles` wants.
+# Reads the lexicon LOCALLY and writes a local file, whatever ENV says —
+# same pinning as the tries, and for the same reason: depending on the
+# per-ENV stamp would make `ENV=prod` import 283k words into prod first,
+# to build something that never leaves this machine.
 .PHONY: g-stackdown-genpuzzles
-g-stackdown-genpuzzles: $(STAMPS)/words.stamp ## generate COUNT=n BAND=b boards (APPENDS to the library)
-	@$(PRELUDE)
-	echo "── generating $(COUNT) band-$(BAND) board(s), seed $(SEED) (appending)"
-	npm run stackdown:gen -- $(COUNT) $(SEED) $(BAND)
+g-stackdown-genpuzzles: .make/local/words.stamp ## generate COUNT=n BAND=b boards (APPENDS to the library)
+	@echo "── generating $(COUNT) band-$(BAND) board(s), seed $(SEED) (appending)"
+	SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run stackdown:gen -- $(COUNT) $(SEED) $(BAND)
 
 $(STACKDOWN_JSONL):
 	@echo "── $(STACKDOWN_JSONL) is missing (fresh clone?) — generating a starter set"
@@ -199,7 +202,7 @@ g-crosswords-puzzles: ## import supabase/data/crosswords/*.puz|.ipuz
 	npm run crosswords:import
 
 .PHONY: db-data
-db-data: words all-pangrams g-stackdown-puzzles g-connections-puzzles g-crosswords-puzzles ## load every table's DATA (no schema, no code)
+db-data: all-words all-pangrams g-stackdown-puzzles g-connections-puzzles g-crosswords-puzzles ## load every table's DATA (no schema, no code)
 
 # ════════════════════════════════════════════════════════════════
 # Schema + code   (docs/supabase.md → Schema vs code)
@@ -232,11 +235,14 @@ else
 endif
 
 .PHONY: db
-db: db-schema db-sql ## shape + code
+db: db-schema db-sql ## the whole database definition: migrations, then supabase/sql/
 
+# Pinned to LOCAL rather than merely documented as local-only: seeding the
+# dev personas into a real database would be a mess to unpick, and an
+# exported SUPABASE_DB_URL in the caller's shell is all it would take.
 .PHONY: db-seed
 db-seed: ## local only: the dev personas + clubs (seed.dev.sql)
-	@npm run seed
+	@SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run seed
 
 .PHONY: db-reset
 db-reset: ## local only: db + all data + dev seed (what `npm run db:reset` does)
@@ -364,7 +370,7 @@ project-bootstrap: ## stand up a hosted project end to end (MIGRATIONS=keep|dest
 # Dev loop — thin wrappers; `npm run …` remains the documented entry
 # ════════════════════════════════════════════════════════════════
 
-.PHONY: dev test test-fe test-db test-e2e dev-lint types
+.PHONY: dev test test-fe test-db test-e2e dev-lint dev-types
 dev:     ## vite dev server
 	@npm run dev
 test:    ## FE + DB tests
@@ -377,11 +383,13 @@ test-e2e: ## playwright
 	@npm run test:e2e
 dev-lint: ## eslint
 	@npm run lint
-types:   ## regenerate src/types/db.ts from the live local schema
+dev-types: ## regenerate src/types/db.ts from the live local schema
 	@npm run types:gen
 
-.PHONY: stamps-clean
-stamps-clean: ## forget every stamp, so the next data target re-runs
+# Leading underscore: an escape hatch, not part of the daily vocabulary — it
+# sorts to the top of `help` and out of the way of every prefix.
+.PHONY: _stamps-clean
+_stamps-clean: ## forget every stamp, so the next data target re-runs
 	@rm -rf .make/$(ENV)
 	echo "forgot the $(ENV) stamps"
 
