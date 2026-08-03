@@ -292,7 +292,7 @@ This currently yields ~2.1k seed rows.
 
 **Why COPY, not the REST API.** The loader connects directly to Postgres as the superuser and streams rows over one connection. This is what makes bulk loading to a *hosted* project fast (~1s) and reliable: the earlier supabase-js batch-upsert path choked on `TypeError: fetch failed` mid-import when the hosted API gateway closed reused keep-alive connections between batches.
 
-**Connection:** `SUPABASE_DB_URL` (a Postgres connection string), defaulting to the local stack. Requires `psql` on PATH. The deploy script (`import-to-hosted.sh`) sets it to the hosted project's direct connection.
+**Connection:** `SUPABASE_DB_URL` (a Postgres connection string), defaulting to the local stack. Requires `psql` on PATH. `gmake … ENV=prod` sets it to the hosted project's direct connection (supabase/deploy/env.sh).
 
 ## Row-level security
 

@@ -63,7 +63,7 @@ Two operational invariants ride on this:
   truncated and every legitimately-growing query has years of headroom.
   Two gotchas (both in the config.toml comment): applied only at
   `supabase stop && supabase start`, and the hosted project's Max Rows is
-  a separate setting — `import-to-hosted.sh` step 3 sets it to match
+  a separate setting — `gmake config-api ENV=prod` sets it to match
   config.toml; if you change one, change both.
 
 ## Schema vs code
@@ -116,7 +116,7 @@ columns that call it. The table can't be created before the function exists, so
 it stays in the migration and changing it needs a migration like any other DDL.
 
 **Applying it.** `npm run sql:apply` (local by default, `SUPABASE_DB_URL` to
-point elsewhere). `npm run db:reset` chains it after `supabase db reset`, so the
+point elsewhere; `gmake sql ENV=prod` is the composable form). `npm run db:reset` chains it after `supabase db reset`, so the
 local flow is unchanged. `npm run deploy` runs it after `supabase db push` with
 `--require-url`, which makes an unset `SUPABASE_DB_URL` a hard error rather than
 a silent re-apply to localhost. Each file runs in a single transaction, so a

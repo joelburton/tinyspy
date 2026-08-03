@@ -25,8 +25,51 @@
 | `npm run boggle:wordlist` | bundle boggle's solver dictionary into the git-ignored `boggle-build-board/wordlist.ts`. Needed before the edge function can serve locally; `deploy` runs it automatically |
 | `npm run scrabble:wordlist` | bundle the scrabble AI's dictionary (`play_word`'s universe minus slurs + profanity) into the git-ignored `scrabble-suggest-move/wordlist.ts`. Needed before the edge function can serve locally; `deploy` runs it automatically |
 | `npm run scrabble:selfplay` | run the AI-vs-AI self-play tuning harness (calibrates the compete opponent's strength levels — see scrabble.md §12) |
-| `npm run deploy` | full prod push: `boggle:wordlist` + `scrabble:wordlist` (regenerate the git-ignored edge-function word bundles) → `supabase db push` (schema deltas) → `sql:apply --require-url` (the repeatable SQL, onto the hosted DB — errors if `SUPABASE_DB_URL` is unset rather than re-applying to localhost) → `supabase functions deploy` (all functions) → `vite build` → `netlify deploy -p -d dist` |
+| `npm run deploy` | full prod push (`gmake deploy ENV=prod` is the composable equivalent): `boggle:wordlist` + `scrabble:wordlist` (regenerate the git-ignored edge-function word bundles) → `supabase db push` (schema deltas) → `sql:apply --require-url` (the repeatable SQL, onto the hosted DB — errors if `SUPABASE_DB_URL` is unset rather than re-applying to localhost) → `supabase functions deploy` (all functions) → `vite build` → `netlify deploy -p -d dist` |
 | `deno test supabase/functions/waffle-build-board/gen_test.ts` | unit-test waffle's `minSwaps` par (the generation logic lives in the edge function, not under Vitest) |
+
+## `gmake …`
+
+Make owns **edges and environment** — the two things npm scripts can't
+express. Every recipe shells out to the npm script that already exists;
+nothing is reimplemented. **The dev loop stays on npm** (`npm run dev`,
+`npm test`) — make is for data pipelines and deploys.
+
+**GNU Make 4+ required** (`brew install make` → `gmake`). macOS ships 3.81,
+which has no `.ONESHELL`; the Makefile refuses to run on it rather than
+misbehaving. `gmake help` lists every target.
+
+`ENV=local` (default) or `ENV=prod`. Prod is never inferred — you type it, and
+every writing target echoes its resolved target (password masked) first.
+
+```
+gmake help                          # every target, with descriptions
+gmake words                         # import common.words — only if words.tsv changed
+gmake pangrams                      # spellingbee + wordwheel seeds (rebuilds if words did)
+gmake tries                         # both edge-function word bundles
+gmake stackdown-boards COUNT=50 BAND=2   # generate boards — APPENDS to the library
+gmake stackdown-upload              # delete + reload the table (generates iff missing)
+gmake stackdown-audit               # which committed boards hold words we'd no longer pick
+gmake db-data                       # every table's DATA (no schema, no code)
+gmake db                            # schema + supabase/sql/
+gmake reset                         # local: db + db-data + dev seed
+gmake deploy ENV=prod               # schema + sql + functions + FE (NOT data)
+gmake sql ENV=prod                  # just re-apply functions/views/policies
+gmake function-waffle-build-board ENV=prod   # just one edge function
+gmake bootstrap ENV=prod MIGRATIONS=destroy  # stand up a project from nothing
+gmake -B <target>                   # force, ignoring stamps
+gmake stamps-clean                  # forget what we think is loaded
+```
+
+**Stamps.** A database table has no mtime, so `.make/$(ENV)/*.stamp` stands in
+for one — touched after a load, with the real inputs as prerequisites. It
+records *what we last did*, not what the database holds: someone else's
+`db:reset` makes it lie. `-B` and `stamps-clean` are the escape hatches; the
+failure mode is a needless re-import, never corruption.
+
+**The one non-obvious edge:** `functions` depends on `tries`, because the
+boggle and scrabble functions compile their word bundles in — deploying without
+regenerating ships a stale dictionary and nothing errors.
 
 ## `supabase …`
 

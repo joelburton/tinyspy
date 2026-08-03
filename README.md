@@ -54,8 +54,10 @@ src/
   connections/  spellingbee/  bananagrams/  waffle/  wordle/  stackdown/
   scrabble/  boggle/  crosswords/  wordwheel/  wordiply/   # the other live games (one folder each)
 
+Makefile                          # data + deploy targets (GNU Make 4+; `gmake help`)
 supabase/
   config.toml, seed.sql
+  deploy/                         # sourced prelude + one script per hosted-deploy step
   migrations/                     # per-schema SHAPE: tables, indexes, publication, seeds
   sql/                            # per-schema CODE: functions, views, policies, grants
                                   #   re-applied in full on every deploy (never a migration)
@@ -99,6 +101,12 @@ npm run test:fe      # Vitest only (add --watch for the dev loop)
 npm run test:db      # pgTAP only (needs Docker + the local stack)
 npm run db:reset     # wipe local DB, replay migrations, re-apply supabase/sql/, import + seed
 npm run sql:apply    # re-apply supabase/sql/ alone — how an RPC change ships (docs/supabase.md)
+
+# Composable data + deploy steps live in the Makefile (GNU Make 4+, `gmake`):
+gmake help                    # every target
+gmake db-data                 # load every table's data, rebuilding only what's stale
+gmake sql ENV=prod            # re-apply just the functions/policies to prod
+gmake deploy ENV=prod         # schema + sql + functions + FE
 npm run db:diff      # drift vs migrations (noisy: supabase/sql/ objects always show)
 npm run db:lint      # supabase db lint --level warning
 npm run types:gen    # regenerate src/types/db.ts from local DB
