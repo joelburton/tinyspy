@@ -326,6 +326,7 @@ export function PlayArea({
           players: members,
           selfId: session.user.id,
           target: game.target,
+          answerShown,
           solvedBy: new Set(solvedIds),
           setup: [{ label: 'Guesses', value: String(maxGuesses) }],
         })

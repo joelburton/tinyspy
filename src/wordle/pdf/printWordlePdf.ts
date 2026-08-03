@@ -1,5 +1,5 @@
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GREY, drawHeader, fit, newPrintDoc, savePrint } from '../../common/pdf/frame'
+import { BLACK, DARK_GREY, drawHeader, drawSetup, fit, newPrintDoc, savePrint } from '../../common/pdf/frame'
 import { drawInTracks, type Track } from '../../common/pdf/columns'
 import { drawTile, drawTileLegend } from '../../common/pdf/tiles'
 import type { TileColor } from '../../common/lib/color/tileColor'
@@ -32,13 +32,19 @@ export function printWordlePdf(m: WordlePrintModel): void {
 
   drawHeader(pd, m)
 
-  drawInTracks(pd, m.tracks, (t, track) => drawTrack(doc, t, track, m))
+  const { bottom, left } = drawInTracks(pd, m.tracks, (t, track) =>
+    drawTrack(doc, t, track, m),
+  )
+
+  // Setup, once per document under the tracks — the same block every other
+  // printer ends with, so a reader finds the game's options where they expect.
+  if (m.setup.length) drawSetup(doc, m.setup, left, bottom + 18)
 
   savePrint(pd, m, 'wordle')
 }
 
 /** One player's column: name, board, keyboard, guesses. */
-function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WordlePrintModel): void {
+function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WordlePrintModel): number {
   const cols = t.rows[0]?.states.length ?? 5
   const gap = 2
   const tile = (track.width - gap * (cols - 1)) / cols
@@ -57,6 +63,9 @@ function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WordlePrintModel)
         size: tile,
         letter: row.letters[c] ?? '',
         state,
+        // Un-played rows print as empty outlined slots, so the grid keeps its
+        // full six-row shape instead of floating above a void.
+        outlineBlank: true,
       })
     })
     y += tile + gap
@@ -78,7 +87,7 @@ function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WordlePrintModel)
   }
 
   y = drawTileLegend(doc, track.x, y, 7) + 8
-  drawGuessList(doc, t, track, y)
+  return drawGuessList(doc, t, track, y)
 }
 
 /**
@@ -118,14 +127,14 @@ function drawKeyboard(
  * That board's guesses, as plain words — no tile treatment, since the grid above
  * already carries every colour and repeating it here would be noise.
  */
-function drawGuessList(doc: jsPDF, t: PrintTrack, track: Track, y: number): void {
+function drawGuessList(doc: jsPDF, t: PrintTrack, track: Track, y: number): number {
   doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
   doc.text('Guesses', track.x, y)
   let cy = y + 12
   if (!t.turns.length) {
     doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
     doc.text('None yet.', track.x, cy)
-    return
+    return cy
   }
   t.turns.forEach((turn) => {
     doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(DARK_GREY)
@@ -134,4 +143,5 @@ function drawGuessList(doc: jsPDF, t: PrintTrack, track: Track, y: number): void
     doc.text(fit(doc, turn.text, track.width - 14), track.x + 12, cy)
     cy += 11
   })
+  return cy
 }

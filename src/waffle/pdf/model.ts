@@ -65,8 +65,14 @@ export function buildWafflePrintModel(o: {
   swaps: SwapRow[]
   players: { user_id: string; username: string }[]
   selfId: string
-  /** The six words, from the gated view — null until terminal. */
+  /** The six words, from the gated view — null until the server releases them. */
   solutionWords: string[] | null
+  /**
+   * Is the answer legitimately on screen? Solved or explicitly revealed — NOT
+   * merely terminal. waffle hides the solution on a loss for the same reason
+   * wordle does, and paper has to hold the same line.
+   */
+  answerShown: boolean
   setup: { label: string; value: string }[]
 }): WafflePrintModel {
   const nameOf = (id: string) => o.players.find((p) => p.user_id === id)?.username ?? 'someone'
@@ -125,8 +131,8 @@ export function buildWafflePrintModel(o: {
         : `Compete · par ${o.parSwaps} · ${o.maxSwaps} swaps allowed`,
     setup: o.setup,
     tracks,
-    // The solution is the answer. Terminal only — the server gates it too, so
-    // this is the second lock.
-    solutionWords: o.isTerminal ? o.solutionWords : null,
+    // The solution is the answer, printed under the same rule the screen uses:
+    // solved or revealed. Terminal alone is NOT enough.
+    solutionWords: o.answerShown ? o.solutionWords : null,
   }
 }

@@ -44,15 +44,25 @@ export type Track = {
 export function drawInTracks<T>(
   pd: PrintDoc,
   items: readonly T[],
-  draw: (item: T, track: Track, index: number) => void,
-): void {
+  /** Draw one track; return the y its content ended at, so a page-wide block
+   *  (the Setup summary) can sit below the tallest column. */
+  draw: (item: T, track: Track, index: number) => number,
+): { bottom: number; left: number; width: number } {
   const usable = pd.pageW - 2 * pd.margin
   const width = (usable - GUTTER * (MAX_TRACKS - 1)) / MAX_TRACKS
   const top = pd.margin + 44 // clears the header, matching twoColGeom's colTop
 
+  // Track the tallest column ON THE LAST PAGE — a page break resets it, since
+  // the earlier pages' heights say nothing about where this one's content ends.
+  let bottom = top
   items.forEach((item, i) => {
     const slot = i % MAX_TRACKS
-    if (i > 0 && slot === 0) pd.doc.addPage()
-    draw(item, { x: pd.margin + slot * (width + GUTTER), width, top }, i)
+    if (i > 0 && slot === 0) {
+      pd.doc.addPage()
+      bottom = top
+    }
+    const end = draw(item, { x: pd.margin + slot * (width + GUTTER), width, top }, i)
+    bottom = Math.max(bottom, end)
   })
+  return { bottom, left: pd.margin, width: usable }
 }

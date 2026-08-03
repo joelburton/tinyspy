@@ -1,5 +1,5 @@
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GREY, drawHeader, fit, newPrintDoc, savePrint } from '../../common/pdf/frame'
+import { BLACK, DARK_GREY, drawHeader, drawSetup, fit, newPrintDoc, savePrint } from '../../common/pdf/frame'
 import { drawInTracks, type Track } from '../../common/pdf/columns'
 import { drawTile, drawTileLegend } from '../../common/pdf/tiles'
 import { GRID } from '../lib/waffle'
@@ -29,13 +29,19 @@ export function printWafflePdf(m: WafflePrintModel): void {
   const { doc } = pd
 
   drawHeader(pd, m)
-  drawInTracks(pd, m.tracks, (t, track) => drawTrack(doc, t, track, m))
+  const { bottom, left } = drawInTracks(pd, m.tracks, (t, track) =>
+    drawTrack(doc, t, track, m),
+  )
+
+  // Setup, once per document under the tracks — the same block every other
+  // printer ends with.
+  if (m.setup.length) drawSetup(doc, m.setup, left, bottom + 18)
 
   savePrint(pd, m, 'waffle')
 }
 
 /** One player's column: name, 5×5 board, result, legend, swaps. */
-function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WafflePrintModel): void {
+function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WafflePrintModel): number {
   doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(BLACK)
   doc.text(fit(doc, t.who, track.width), track.x, track.top)
 
@@ -76,18 +82,18 @@ function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WafflePrintModel)
     y += 4
   }
 
-  drawSwapList(doc, t, track, y)
+  return drawSwapList(doc, t, track, y)
 }
 
 /** That board's swaps, one per line. */
-function drawSwapList(doc: jsPDF, t: PrintTrack, track: Track, y: number): void {
+function drawSwapList(doc: jsPDF, t: PrintTrack, track: Track, y: number): number {
   doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
   doc.text('Swaps', track.x, y)
   let cy = y + 12
   if (!t.turns.length) {
     doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
     doc.text('None yet.', track.x, cy)
-    return
+    return cy
   }
   t.turns.forEach((turn) => {
     doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
@@ -99,4 +105,5 @@ function drawSwapList(doc: jsPDF, t: PrintTrack, track: Track, y: number): void 
     doc.text(fit(doc, line, track.width - 14), track.x + 12, cy)
     cy += 10
   })
+  return cy
 }

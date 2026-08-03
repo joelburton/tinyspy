@@ -358,6 +358,7 @@ export function PlayArea({
             ? (solvedWords(game.solution, computeColors(game.solution, game.solution))
                 .filter((w): w is string => w !== null))
             : null,
+          answerShown,
           setup: [{ label: 'Extra swaps', value: String(game.max_swaps - game.par_swaps) }],
         })
       : null
@@ -402,6 +403,7 @@ export function PlayArea({
     handleRevealAnswer,
     isTerminal,
     revealDisabled,
+    answerShown,
     infoSheet.menuSections,
     // The print model's inputs — rebuilt whenever the printable state moves, so
     // the snapshot is current at click time.

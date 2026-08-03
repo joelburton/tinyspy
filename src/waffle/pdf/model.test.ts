@@ -29,6 +29,7 @@ const base = {
   players: [{ user_id: 'u1', username: 'me' }, { user_id: 'u2', username: 'moth' }],
   selfId: 'u1',
   solutionWords: ['ABCDE', 'FGHIJ'],
+  answerShown: false,
   setup: [{ label: 'Extra swaps', value: '5' }],
 }
 
@@ -36,8 +37,17 @@ describe('buildWafflePrintModel — the solution is a secret', () => {
   it('withholds it mid-game, even when handed it', () => {
     expect(buildWafflePrintModel({ ...base }).solutionWords).toBeNull()
   })
-  it('prints it at terminal', () => {
-    expect(buildWafflePrintModel({ ...base, isTerminal: true }).solutionWords).toEqual(['ABCDE', 'FGHIJ'])
+
+  it('withholds it on a LOST game — terminal is not enough', () => {
+    // Same rule as wordle's: waffle hides the solution on a loss, and paper has
+    // to hold the same line.
+    expect(buildWafflePrintModel({ ...base, isTerminal: true }).solutionWords).toBeNull()
+  })
+
+  it('prints it once the answer is legitimately shown (solved or revealed)', () => {
+    expect(
+      buildWafflePrintModel({ ...base, isTerminal: true, answerShown: true }).solutionWords,
+    ).toEqual(['ABCDE', 'FGHIJ'])
   })
 })
 

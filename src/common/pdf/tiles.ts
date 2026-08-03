@@ -1,6 +1,6 @@
 import type { jsPDF } from 'jspdf'
 import type { TileColor } from '../lib/color/tileColor'
-import { BLACK, DARK_GREY } from './frame'
+import { BLACK, DARK_GREY, MEDIUM_GREY } from './frame'
 
 /**
  * The printed form of a **Wordle-style letter tile** — the four states wordle
@@ -35,6 +35,17 @@ export type TileBox = {
   size: number
   letter: string
   state: TileColor
+  /**
+   * Draw a `blank` tile as an empty OUTLINED box instead of nothing.
+   *
+   * For the keyboard, blank means "never tried" and no box is right — the
+   * letters just sit there. For a BOARD it's different: wordle's unplayed rows
+   * are real slots you're going to fill, and leaving them invisible turns the
+   * grid into a short block floating above a void. An outlined empty box can't
+   * be confused with "not in word" either, because that state always carries a
+   * letter and this one never does.
+   */
+  outlineBlank?: boolean
 }
 
 /** Fill levels, chosen so the two filled states stay distinct after the ~15%
@@ -61,8 +72,13 @@ export function drawTile(doc: jsPDF, t: TileBox): void {
   } else if (state === 'gray') {
     doc.setDrawColor(DARK_GREY).setLineWidth(0.6)
     doc.rect(x, y, size, size, 'S')
+  } else if (t.outlineBlank) {
+    // A slot still to fill — lighter than a played tile's border so the grid
+    // reads as "three rows played, three to go" at a glance.
+    doc.setDrawColor(MEDIUM_GREY).setLineWidth(0.5)
+    doc.rect(x, y, size, size, 'S')
   }
-  // 'blank' draws no box at all.
+  // An un-outlined 'blank' draws no box at all.
 
   if (!t.letter.trim()) return
   // White on the dark fill, black everywhere else — the only place the letter's

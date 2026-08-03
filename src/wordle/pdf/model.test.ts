@@ -24,6 +24,7 @@ const base = {
   players: [{ user_id: 'u1', username: 'me' }, { user_id: 'u2', username: 'moth' }],
   selfId: 'u1',
   target: 'crane',
+  answerShown: false,
   solvedBy: new Set<string>(),
   setup: [{ label: 'Guesses', value: '6' }],
 }
@@ -32,8 +33,18 @@ describe('buildWordlePrintModel — the target is a secret', () => {
   it('withholds it mid-game, even when handed it', () => {
     expect(buildWordlePrintModel({ ...base }).target).toBeNull()
   })
-  it('prints it at terminal', () => {
-    expect(buildWordlePrintModel({ ...base, isTerminal: true }).target).toBe('CRANE')
+
+  it('withholds it on a LOST game — terminal is not enough', () => {
+    // wordle hides the answer on a loss so Restart is a real second try; a
+    // printout spelling it out would undo that from the outside. (This is the
+    // bug that shipped: the gate was `isTerminal`.)
+    expect(buildWordlePrintModel({ ...base, isTerminal: true }).target).toBeNull()
+  })
+
+  it('prints it once the answer is legitimately shown (won or revealed)', () => {
+    expect(
+      buildWordlePrintModel({ ...base, isTerminal: true, answerShown: true }).target,
+    ).toBe('CRANE')
   })
 })
 

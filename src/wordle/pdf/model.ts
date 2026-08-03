@@ -84,6 +84,14 @@ export function buildWordlePrintModel(o: {
   selfId: string
   /** From the game row — the FE only holds it post-game. */
   target: string | null
+  /**
+   * Is the answer legitimately on screen? A WIN or an explicit reveal — NOT
+   * merely terminal. wordle hides the answer on a loss so a Restart is a real
+   * second try (docs/ui.md → Terminal results), and a printout that spelled it
+   * out would undo that from the outside. (The same reasoning fixed the
+   * club-list title in `_sync_title`, which had exactly this bug.)
+   */
+  answerShown: boolean
   /** Per-player solved flags, for the outcome line. */
   solvedBy: ReadonlySet<string>
   setup: { label: string; value: string }[]
@@ -152,9 +160,8 @@ export function buildWordlePrintModel(o: {
         : `Compete · ${o.players.length} players`,
     setup: o.setup,
     tracks,
-    // The answer is the game. It prints only once the game is over — the same
-    // rule the screen follows, and the model won't emit it earlier even if the
-    // caller hands it over.
-    target: o.isTerminal ? (o.target?.toUpperCase() ?? null) : null,
+    // The answer is the game, and it prints under exactly the rule the screen
+    // uses: won or revealed. Terminal is NOT enough — see `answerShown`.
+    target: o.answerShown ? (o.target?.toUpperCase() ?? null) : null,
   }
 }

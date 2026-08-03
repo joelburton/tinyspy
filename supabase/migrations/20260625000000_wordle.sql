@@ -208,7 +208,7 @@ grant execute on function wordle._target_for(uuid) to authenticated;
 -- ============================================================
 -- The title is a READOUT, not a fixed name (the scrabble/stackdown pattern):
 --
---   terminal          → the answer            "SLATE"
+--   won / revealed    → the answer            "SLATE"
 --   coop, mid-game    → the most recent guess "CRANE"
 --   coop, no guesses  → "New game"
 --   compete, mid-race → "New compete"
@@ -232,7 +232,17 @@ set search_path = wordle, common, public, extensions
 as $$
   update common.games cg
      set title = case
-           when cg.is_terminal then upper(wg.target::text)
+           -- The answer, but ONLY once it's legitimately on screen: a win, or
+           -- an explicit reveal. Terminal alone is NOT enough — wordle hides
+           -- the answer on a loss so a Restart is a genuine second try
+           -- (docs/ui.md → Terminal results), and a club-list title spelling it
+           -- out would undo that from the outside. (2026-08-02: it used to key
+           -- on is_terminal and spoiled every lost game.)
+           when cg.play_state in ('won', 'won_compete')
+             or cg.status->>'outcome' = 'revealed'
+             then upper(wg.target::text)
+           -- Otherwise the most recent guess — a readout of what's been DONE,
+           -- which is already on the board in front of the players.
            when wg.mode = 'coop' then coalesce(
              (select upper(gx.guess::text)
                 from wordle.guesses gx
@@ -240,6 +250,16 @@ as $$
                order by gx.seq desc
                limit 1),
              'New game')
+           -- Compete stays deliberately blank WHILE PLAYING: a leader's guess
+           -- would leak their progress to the club list. Once the race is over
+           -- there's nothing left to protect, so it reads like coop's.
+           when cg.is_terminal then coalesce(
+             (select upper(gx.guess::text)
+                from wordle.guesses gx
+               where gx.game_id = g_id
+               order by gx.seq desc
+               limit 1),
+             'New compete')
            else 'New compete'
          end
     from wordle.games wg
