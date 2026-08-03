@@ -19,14 +19,14 @@
 # Prefer the make targets for anything narrower — that's the whole point
 # of the split:
 #
-#   gmake db-sql ENV=prod                      # just functions/views/policies
-#   gmake functions ENV=prod                   # just the edge functions
-#   gmake function-waffle-build-board ENV=prod # just one of them
-#   gmake fe ENV=prod                          # just rebuild + redeploy the FE
-#   gmake db-data ENV=prod                     # just reload the data tables
-#   gmake stackdown-puzzles ENV=prod           # just the stackdown boards
-#   gmake project-config-api ENV=prod          # just the PostgREST settings
-#   gmake help                                 # everything
+#   gmake db-sql ENV=prod                         # just functions/views/policies
+#   gmake deploy-funcs ENV=prod                   # just the edge functions
+#   gmake deploy-func-waffle-build-board ENV=prod # just one of them
+#   gmake deploy-fe ENV=prod                      # just rebuild + redeploy the FE
+#   gmake db-data ENV=prod                        # just reload the data tables
+#   gmake g-stackdown-puzzles ENV=prod            # just the stackdown boards
+#   gmake project-config-api ENV=prod             # just the PostgREST settings
+#   gmake help                                    # everything
 #
 # What `project-bootstrap` does, in order:
 #   0.  create the project (skipped when PROJECT_REF is already set)

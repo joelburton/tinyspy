@@ -43,24 +43,32 @@ misbehaving. `gmake help` lists every target.
 every writing target echoes its resolved target (password masked) first.
 
 **Names are prefixed for tab-completion**, since that's how you actually find a
-target: `<game>-<verb>` for per-game work (`stackdown-puzzles`,
-`boggle-trie`), `db-*` for the database (`db-schema`, `db-sql`, `db-data`,
-`db-seed`, `db-reset`), `project-*` for the hosted project itself
-(`project-link`, `project-config-auth`, `project-bootstrap`). `gmake help`
-lists them alphabetically, so the prefixes group there too.
+target. Five families:
+
+| prefix | what |
+|---|---|
+| `g-` | one game's data or assets — `g-stackdown-puzzles`, `g-boggle-trie` |
+| `all-` | the cross-game aggregates — `all-pangrams`, `all-tries` |
+| `db-` | the database — `db-schema`, `db-sql`, `db-data`, `db-seed`, `db-reset` |
+| `deploy-` | pushing to a target — `deploy-funcs`, `deploy-func-<name>`, `deploy-fe` |
+| `project-` | the hosted project itself — `project-link`, `project-config-auth`, `project-bootstrap` |
+
+`gmake help` lists alphabetically, so the prefixes group there too. Unprefixed
+targets are the ones that belong to no family: `words` (it's `common`, not a
+game), `db`, `deploy`, `dev`, `test*`, `types`, `help`.
 
 ```
 gmake help                                   # every target, with descriptions
 
-# data + assets — <game>-<verb>, so `gmake stackdown-<TAB>` narrows
+# data + assets — `gmake g-<TAB>` narrows to one game
 gmake words                                  # common.words — only if words.tsv changed
-gmake pangrams                               # spellingbee + wordwheel seeds (follows words)
-gmake tries                                  # both edge-function word bundles
-gmake stackdown-genpuzzles COUNT=50 BAND=2   # generate boards — APPENDS to the library
-gmake stackdown-puzzles                      # delete + reload the table (generates iff missing)
-gmake stackdown-audit                        # boards holding words we'd no longer pick
-gmake connections-puzzles                    # the NYT Connections archive
-gmake crosswords-puzzles                     # supabase/data/crosswords/*.puz|.ipuz
+gmake all-pangrams                           # spellingbee + wordwheel seeds (follows words)
+gmake all-tries                              # both edge-function word bundles
+gmake g-stackdown-genpuzzles COUNT=50 BAND=2 # generate boards — APPENDS to the library
+gmake g-stackdown-puzzles                    # delete + reload the table (generates iff missing)
+gmake g-stackdown-audit                      # boards holding words we'd no longer pick
+gmake g-connections-puzzles                  # the NYT Connections archive
+gmake g-crosswords-puzzles                   # supabase/data/crosswords/*.puz|.ipuz
 
 # the database — `gmake db-<TAB>`
 gmake db-data                                # every table's DATA (no schema, no code)
@@ -69,10 +77,12 @@ gmake db-sql                                 # supabase/sql/ only
 gmake db                                     # both halves
 gmake db-reset                               # local: db + db-data + db-seed
 
-# deploying
+# deploying — `gmake deploy-<TAB>`
 gmake deploy ENV=prod                        # schema + code + functions + FE (NOT data)
 gmake db-sql ENV=prod                        # just re-apply functions/views/policies
-gmake function-waffle-build-board ENV=prod   # just one edge function
+gmake deploy-funcs ENV=prod                  # just the edge functions
+gmake deploy-func-waffle-build-board ENV=prod  # just one of them
+gmake deploy-fe ENV=prod                     # just rebuild + redeploy the FE
 
 # the hosted project itself — `gmake project-<TAB>`
 gmake project-bootstrap ENV=prod MIGRATIONS=destroy   # stand one up from nothing
@@ -88,7 +98,7 @@ records *what we last did*, not what the database holds: someone else's
 `db:reset` makes it lie. `-B` and `stamps-clean` are the escape hatches; the
 failure mode is a needless re-import, never corruption.
 
-**The one non-obvious edge:** `functions` depends on `tries`, because the
+**The one non-obvious edge:** `deploy-funcs` depends on `tries`, because the
 boggle and scrabble functions compile their word bundles in — deploying without
 regenerating ships a stale dictionary and nothing errors.
 

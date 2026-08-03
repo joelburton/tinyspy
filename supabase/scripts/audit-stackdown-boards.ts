@@ -24,7 +24,7 @@
  * Connection: SUPABASE_DB_URL (defaults to the local stack). Needs psql
  * and a populated common.words.
  *
- * Usage:  gmake stackdown-audit          (or: npx tsx this-file.ts)
+ * Usage:  gmake g-stackdown-audit          (or: npx tsx this-file.ts)
  * Exit:   0 = clean, 1 = boards affected (so it can gate a script)
  */
 
@@ -94,6 +94,6 @@ for (const [w, why] of [...bad].sort()) console.log(`  ${w.padEnd(8)} ${why}`)
 console.log(
   '\nThese boards are still SOLVABLE — this is a "would we pick these words today?"\n' +
     'judgment, not a bug. To rebuild: drop the affected lines, then\n' +
-    '`gmake stackdown-genpuzzles COUNT=<n> BAND=<b>` to top back up, then `gmake stackdown-puzzles`.',
+    '`gmake g-stackdown-genpuzzles COUNT=<n> BAND=<b>` to top back up, then `gmake g-stackdown-puzzles`.',
 )
 process.exit(1)

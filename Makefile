@@ -18,6 +18,13 @@
 #
 # ENV=local (default) or ENV=prod. Prod is never inferred — you type it,
 # and every writing target echoes its resolved target first.
+#
+# `gmake -n <target>` is a real dry run here, and staying that way takes
+# care: GNU Make executes a recipe that mentions $(MAKE) even under -n, and
+# .ONESHELL makes that the WHOLE recipe. So composite targets contain
+# nothing but sub-makes and echoes, and anything that actually writes lives
+# in its own target reached BY a sub-make (which inherits -n and only
+# prints). See deploy-func-% and project-db-destroy.
 
 # ── GNU Make 4+ required ────────────────────────────────────────
 # macOS ships 3.81 (2006), which has no .ONESHELL. That matters here
@@ -67,7 +74,7 @@ STACKDOWN_JSONL := supabase/data/stackdown-boards.jsonl
 BOGGLE_TRIE     := supabase/functions/boggle-build-board/wordlist.ts
 SCRABBLE_TRIE   := supabase/functions/scrabble-suggest-move/wordlist.ts
 
-# Board generation knobs (gmake stackdown-genpuzzles COUNT=50 BAND=2)
+# Board generation knobs (gmake g-stackdown-genpuzzles COUNT=50 BAND=2)
 COUNT ?= 10
 BAND  ?= 1
 SEED  ?= $(shell date +%s)
@@ -105,94 +112,94 @@ $(STAMPS)/words.stamp: $(WORDS_SRC) | $(STAMPS)
 	echo "  NOTE: the committed stackdown boards were built against the OLD"
 	echo "  word list. They are not broken — still solvable, still real words —"
 	echo "  but they may hold words this list would no longer choose."
-	echo "  Run \`gmake stackdown-audit\` to see the size of it; rebuilding is"
+	echo "  Run \`gmake g-stackdown-audit\` to see the size of it; rebuilding is"
 	echo "  slow and often not worth it. Your call."
 
-.PHONY: spellingbee-pangrams
-spellingbee-pangrams: $(STAMPS)/spellingbee-pangrams.stamp ## rebuild the spellingbee board-seed pool
+.PHONY: g-spellingbee-pangrams
+g-spellingbee-pangrams: $(STAMPS)/spellingbee-pangrams.stamp ## rebuild the spellingbee board-seed pool
 $(STAMPS)/spellingbee-pangrams.stamp: $(STAMPS)/words.stamp
 	@$(PRELUDE)
 	npm run spellingbee:import
 	touch $@
 
-.PHONY: wordwheel-pangrams
-wordwheel-pangrams: $(STAMPS)/wordwheel-pangrams.stamp ## rebuild the wordwheel board-seed pool
+.PHONY: g-wordwheel-pangrams
+g-wordwheel-pangrams: $(STAMPS)/wordwheel-pangrams.stamp ## rebuild the wordwheel board-seed pool
 $(STAMPS)/wordwheel-pangrams.stamp: $(STAMPS)/words.stamp
 	@$(PRELUDE)
 	npm run wordwheel:import
 	touch $@
 
-.PHONY: pangrams
-pangrams: spellingbee-pangrams wordwheel-pangrams ## both seed pools
+.PHONY: all-pangrams
+all-pangrams: g-spellingbee-pangrams g-wordwheel-pangrams ## both seed pools
 
 # The two edge-function dictionaries. Real files, but derived from a
 # DATABASE — so the stamp, not the .ts, is the prerequisite. They're
 # gitignored build artifacts, and their functions won't compile without
-# them, which is why `functions` depends on them.
+# them, which is why `deploy-funcs` depends on them.
 #
 # ALWAYS BUILT FROM LOCAL, whatever ENV says — note the hardcoded
 # .make/local stamp and the pinned URL. The bundles are derived from the
 # canonical dictionary (words.tsv → local common.words), and during a
 # fresh project-bootstrap the hosted common.words isn't loaded until step 8,
 # several steps after the functions deploy. Depending on the per-ENV
-# stamp would make `gmake functions ENV=prod` try to import 283k words
+# stamp would make `gmake deploy-funcs ENV=prod` try to import 283k words
 # INTO PROD first, which is neither wanted nor implied.
-.PHONY: boggle-trie
-boggle-trie: $(BOGGLE_TRIE) ## bundle boggle's solver dictionary (from LOCAL common.words)
+.PHONY: g-boggle-trie
+g-boggle-trie: $(BOGGLE_TRIE) ## bundle boggle's solver dictionary (from LOCAL common.words)
 $(BOGGLE_TRIE): .make/local/words.stamp
 	@SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run boggle:wordlist
 
-.PHONY: scrabble-trie
-scrabble-trie: $(SCRABBLE_TRIE) ## bundle the scrabble AI's dictionary (from LOCAL common.words)
+.PHONY: g-scrabble-trie
+g-scrabble-trie: $(SCRABBLE_TRIE) ## bundle the scrabble AI's dictionary (from LOCAL common.words)
 $(SCRABBLE_TRIE): .make/local/words.stamp
 	@SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run scrabble:wordlist
 
-.PHONY: tries
-tries: boggle-trie scrabble-trie ## both edge-function word bundles
+.PHONY: all-tries
+all-tries: g-boggle-trie g-scrabble-trie ## both edge-function word bundles
 
-# stackdown-genpuzzles APPENDS (it adds COUNT boards and dedups by word-set;
+# g-stackdown-genpuzzles APPENDS (it adds COUNT boards and dedups by word-set;
 # it does not rebuild), so it must never be a timestamp-driven rule —
 # that would grow the library every time the generator was touched. It's
 # .PHONY and explicit. The FILE rule below has no prerequisites, so make
 # builds it only when it's actually missing, which is the
-# generate-if-absent behaviour `stackdown-puzzles` wants.
-.PHONY: stackdown-genpuzzles
-stackdown-genpuzzles: $(STAMPS)/words.stamp ## generate COUNT=n BAND=b boards (APPENDS to the library)
+# generate-if-absent behaviour `g-stackdown-puzzles` wants.
+.PHONY: g-stackdown-genpuzzles
+g-stackdown-genpuzzles: $(STAMPS)/words.stamp ## generate COUNT=n BAND=b boards (APPENDS to the library)
 	@$(PRELUDE)
 	echo "── generating $(COUNT) band-$(BAND) board(s), seed $(SEED) (appending)"
 	npm run stackdown:gen -- $(COUNT) $(SEED) $(BAND)
 
 $(STACKDOWN_JSONL):
 	@echo "── $(STACKDOWN_JSONL) is missing (fresh clone?) — generating a starter set"
-	$(MAKE) stackdown-genpuzzles COUNT=25 BAND=1
-	$(MAKE) stackdown-genpuzzles COUNT=25 BAND=2
+	$(MAKE) g-stackdown-genpuzzles COUNT=25 BAND=1
+	$(MAKE) g-stackdown-genpuzzles COUNT=25 BAND=2
 
-.PHONY: stackdown-puzzles
-stackdown-puzzles: $(STACKDOWN_JSONL) ## delete + reload stackdown.boards (generates the library iff missing)
+.PHONY: g-stackdown-puzzles
+g-stackdown-puzzles: $(STACKDOWN_JSONL) ## delete + reload stackdown.boards (generates the library iff missing)
 	@$(PRELUDE)
 	echo "── stackdown.boards → $(ENV)"
 	npm run stackdown:import
 
-.PHONY: stackdown-audit
-stackdown-audit: ## report boards holding words the CURRENT dictionary wouldn't choose
+.PHONY: g-stackdown-audit
+g-stackdown-audit: ## report boards holding words the CURRENT dictionary wouldn't choose
 	@$(PRELUDE)
 	npx tsx supabase/scripts/audit-stackdown-boards.ts || \
 	  echo "(informational — those boards still play fine; rebuilding is your call)"
 
-.PHONY: connections-puzzles
-connections-puzzles: ## import the NYT Connections archive (remote source, incremental)
+.PHONY: g-connections-puzzles
+g-connections-puzzles: ## import the NYT Connections archive (remote source, incremental)
 	@$(PRELUDE)
 	echo "── connections.puzzles → $(ENV)"
 	npm run connections:import
 
-.PHONY: crosswords-puzzles
-crosswords-puzzles: ## import supabase/data/crosswords/*.puz|.ipuz
+.PHONY: g-crosswords-puzzles
+g-crosswords-puzzles: ## import supabase/data/crosswords/*.puz|.ipuz
 	@$(PRELUDE)
 	echo "── crosswords.puzzles → $(ENV)"
 	npm run crosswords:import
 
 .PHONY: db-data
-db-data: words pangrams stackdown-puzzles connections-puzzles crosswords-puzzles ## load every table's DATA (no schema, no code)
+db-data: words all-pangrams g-stackdown-puzzles g-connections-puzzles g-crosswords-puzzles ## load every table's DATA (no schema, no code)
 
 # ════════════════════════════════════════════════════════════════
 # Schema + code   (docs/supabase.md → Schema vs code)
@@ -247,28 +254,35 @@ db-reset: ## local only: db + all data + dev seed (what `npm run db:reset` does)
 # deploying without regenerating ships a stale dictionary and nothing
 # errors. --use-api bundles server-side, avoiding the ECR image pull
 # (and its anonymous rate limits) plus the Docker dependency.
-.PHONY: functions
-functions: tries ## deploy all edge functions (regenerates the word bundles first)
+.PHONY: deploy-funcs
+deploy-funcs: all-tries ## deploy all edge functions (regenerates the word bundles first)
 	@$(PRELUDE)
 	echo "── edge functions → $(ENV)"
 	supabase functions deploy --use-api
 
-.PHONY: function-%
-function-%: ## deploy ONE edge function by name (gmake function-waffle-build-board)
+# Which bundle a given function compiles in, if any. A LOOKUP rather than a
+# `case` in the recipe, because of a GNU Make rule with teeth: a recipe
+# containing `$(MAKE)` is executed even under `-n`, and with .ONESHELL that
+# means the WHOLE recipe runs — so a dry run of this target would really
+# deploy. Prerequisites are inert under `-n`; recipes mentioning $(MAKE) are
+# not. Keep it this way.
+TRIE_boggle-build-board    := $(BOGGLE_TRIE)
+TRIE_scrabble-suggest-move := $(SCRABBLE_TRIE)
+TRIE_scrabble-ai-move      := $(SCRABBLE_TRIE)
+
+.SECONDEXPANSION:
+.PHONY: deploy-func-%
+deploy-func-%: $$(TRIE_$$*) ## deploy ONE edge function by name (gmake deploy-func-waffle-build-board)
 	@$(PRELUDE)
-	case "$*" in
-	  boggle-build-board)     $(MAKE) boggle-trie ;;
-	  scrabble-suggest-move|scrabble-ai-move) $(MAKE) scrabble-trie ;;
-	esac
 	supabase functions deploy "$*" --use-api
 
-.PHONY: fe
-fe: ## build the FE and push to Netlify
-	@[[ "$(ENV)" == "prod" ]] || { echo "fe targets prod only (ENV=prod)" >&2; exit 1; }
+.PHONY: deploy-fe
+deploy-fe: ## build the FE and push to Netlify
+	@[[ "$(ENV)" == "prod" ]] || { echo "deploy-fe targets prod only (ENV=prod)" >&2; exit 1; }
 	bash supabase/deploy/fe.sh
 
 .PHONY: deploy
-deploy: db-schema db-sql functions fe ## the routine push: schema + code + functions + FE (NOT data)
+deploy: db-schema db-sql deploy-funcs deploy-fe ## the routine push: schema + code + functions + FE (NOT data)
 
 # ════════════════════════════════════════════════════════════════
 # Hosted project configuration
@@ -295,7 +309,7 @@ project-config-secrets: ## edge-function secrets (ANTHROPIC_API_KEY)
 	@bash supabase/deploy/config-secrets.sh
 
 .PHONY: project-wait-cache
-project-wait-cache: ## pause for PostgREST's schema-cache reload (needed before connections-puzzles)
+project-wait-cache: ## pause for PostgREST's schema-cache reload (needed before g-connections-puzzles)
 	@bash supabase/deploy/wait-cache.sh
 
 # Everything, in the order a fresh project needs it — what
@@ -306,6 +320,17 @@ project-wait-cache: ## pause for PostgREST's schema-cache reload (needed before 
 # baselines are still editable, and catastrophic afterwards, so it has
 # no default: you type it.
 MIGRATIONS ?= keep
+
+# Its own target so that the WIPE is a plain sub-make from project-bootstrap
+# rather than a raw command inside that recipe — see the -n note above
+# deploy-func-%. Deliberately absent from `help`: reachable, not advertised.
+.PHONY: project-db-destroy
+project-db-destroy:
+	@$(PRELUDE)
+	echo "── WIPING the hosted database (all data, auth accounts included)"
+	announce_target
+	supabase db reset --linked --yes --no-seed
+	rm -f .make/prod/*.stamp   # same reason as db-schema: the wipe invalidates them
 
 .PHONY: project-bootstrap
 project-bootstrap: ## stand up a hosted project end to end (MIGRATIONS=keep|destroy)
@@ -319,9 +344,7 @@ project-bootstrap: ## stand up a hosted project end to end (MIGRATIONS=keep|dest
 	$(MAKE) project-create
 	$(MAKE) project-link
 	if [[ "$(MIGRATIONS)" == "destroy" ]]; then
-	  . supabase/deploy/env.sh; require_project
-	  supabase db reset --linked --yes --no-seed
-	  rm -f .make/prod/*.stamp   # same reason as db-schema: the wipe invalidates them
+	  $(MAKE) project-db-destroy
 	else
 	  $(MAKE) db-schema ENV=prod
 	fi
@@ -329,10 +352,10 @@ project-bootstrap: ## stand up a hosted project end to end (MIGRATIONS=keep|dest
 	$(MAKE) project-config-api
 	$(MAKE) project-config-auth
 	$(MAKE) project-config-secrets
-	$(MAKE) functions ENV=prod
+	$(MAKE) deploy-funcs ENV=prod
 	$(MAKE) project-wait-cache
 	$(MAKE) db-data ENV=prod
-	$(MAKE) fe ENV=prod
+	$(MAKE) deploy-fe ENV=prod
 	echo
 	echo "═══ project-bootstrap complete ═══"
 	echo "  Manual follow-up: verify the Resend sender domain (DNS, one-time)."
@@ -341,7 +364,7 @@ project-bootstrap: ## stand up a hosted project end to end (MIGRATIONS=keep|dest
 # Dev loop — thin wrappers; `npm run …` remains the documented entry
 # ════════════════════════════════════════════════════════════════
 
-.PHONY: dev test test-fe test-db test-e2e lint types
+.PHONY: dev test test-fe test-db test-e2e dev-lint types
 dev:     ## vite dev server
 	@npm run dev
 test:    ## FE + DB tests
@@ -352,7 +375,7 @@ test-db: ## pgTAP
 	@npm run test:db
 test-e2e: ## playwright
 	@npm run test:e2e
-lint:    ## eslint
+dev-lint: ## eslint
 	@npm run lint
 types:   ## regenerate src/types/db.ts from the live local schema
 	@npm run types:gen
