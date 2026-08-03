@@ -783,10 +783,28 @@ mobile and tightens the rosters, chat, and club lists everywhere.
   `=<username>` solo form and slugified club names, which is a separate cap.
   Alpha prior applied: the constraint just re-narrowed; any over-long handle
   gets re-picked.
-- [ ] **Cap club names at 20 characters.** The club name headlines the club page
-  and appears in the home clubs list. A 20-char ceiling keeps the title on one
-  line on a phone. Enforced at `create_club` (and wherever a rename lands, once
-  that exists).
+- [x] **Cap club names — done at 20 characters** (2026-08-03). The club name
+  headlines the club page (a 1.5rem `h1`) and the home clubs list. Enforced the
+  same four ways the handle cap is: a `CHECK` on `common.clubs.name`
+  (`char_length between 1 and 20`), a clean `P0001` in `create_club` so the
+  create form doesn't render a raw 23514, `maxLength` on the input, and a help
+  line under it. Wherever a rename lands (the menu item is still a placeholder),
+  it inherits the CHECK for free and should raise the same friendly error.
+
+  Two things the measurement turned up, both worth keeping in mind for the next
+  cap:
+
+  - **20 also fixes a live bug.** `slugify_club_name` truncates the derived
+    handle at 40 characters but the handle `CHECK` allows at most 30, so a
+    ~31–40 character name failed on *that* constraint with a raw 23514. A name
+    that can't exceed 20 can't slugify past 20.
+  - **A cap alone does NOT buy the no-scroll invariant.** 20 characters of
+    ordinary words fit one line at 390px, but 20 wide capitals with no spaces
+    (`MWWMWWMWWMWWMWWMWWMW`) is one unbreakable token that pushed the document
+    wider than the viewport. `.title` now carries `overflow-wrap: anywhere`; the
+    cap bounds how tall the wrap gets, the wrap rule is what stops the sideways
+    scroll. Guarded by [`page-no-scroll.e2e.ts`](../e2e/page-no-scroll.e2e.ts).
+
 - [ ] **Audit local/global feedback message COPY for length.** Dropping the name
   to a dot (the actor-mention widgets) handles the *name* half, but some messages
   are just wordy. The pill is `nowrap` +

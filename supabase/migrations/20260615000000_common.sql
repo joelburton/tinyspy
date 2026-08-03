@@ -145,7 +145,20 @@ create table common.profiles (
 create table common.clubs (
   handle text primary key
     check (handle ~ '^=?[a-z][a-z0-9-]{2,29}$'),
-  name text not null,
+  -- The display name, bounded at 20 characters (2026-08-03). It headlines the
+  -- club page ("Club: <name>", a 1.5rem h1) and every row of the home clubs
+  -- list, so an unbounded one is the classic way a long user string breaks the
+  -- no-scroll invariant on a phone (docs/mobile.md → the caps).
+  --
+  -- 20 also keeps the derived HANDLE legal without anyone thinking about it:
+  -- `slugify_club_name` truncates at 40, but the handle check above allows at
+  -- most 30, so a ~31-40 character name used to fail this table's constraint
+  -- with a raw 23514 that the create-club form rendered verbatim. A name that
+  -- can't exceed 20 can't slugify past 20.
+  --
+  -- Solo clubs are unaffected: `claim_username` names them after the username,
+  -- which its own check already caps at 15.
+  name text not null check (char_length(name) between 1 and 20),
   created_by uuid not null references common.profiles(user_id) on delete cascade,
   created_at timestamptz not null default now()
 );
@@ -2238,6 +2251,14 @@ begin
   caller_id := auth.uid();
   if caller_id is null then
     raise exception 'must be authenticated' using errcode = '42501';
+  end if;
+
+  -- Length first, and as a clean P0001 like the two name errors below: the
+  -- table's own CHECK would raise 23514, which CreateClubPage renders verbatim
+  -- ("new row for relation \"clubs\" violates check constraint …").
+  if char_length(club_name) > 20 then
+    raise exception 'club name must be 20 characters or fewer'
+      using errcode = 'P0001';
   end if;
 
   new_handle := common.slugify_club_name(club_name);

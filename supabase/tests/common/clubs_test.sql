@@ -32,7 +32,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(21);
+select plan(23);
 
 -- Cast: ada/bea/cade are the three in-club personas this test
 -- uses (creating clubs, being members, exercising the handle-
@@ -82,6 +82,21 @@ select throws_ok(
   'P0001',
   'club name must contain alphanumeric characters',
   'create_club: name with no alphanumerics is rejected'
+);
+
+-- The name ceiling (20). Rejected as a clean P0001 rather than the table's own
+-- 23514, because CreateClubPage renders the message verbatim. It also keeps the
+-- DERIVED HANDLE legal: slugify truncates at 40 but the handle check allows 30,
+-- so a ~31-40 character name used to die on that constraint instead.
+select throws_ok(
+  $$ select common.create_club('The Wednesday Night Word Game Society', array['bea']) $$,
+  'P0001',
+  'club name must be 20 characters or fewer',
+  'create_club: a name over 20 characters is rejected'
+);
+select lives_ok(
+  $$ select common.create_club('Twenty Chars Exactly', array['bea']) $$,
+  'create_club: exactly 20 characters is accepted'
 );
 
 select throws_ok(

@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Locator } from '@playwright/test'
-import { createClubWithMembers } from './helpers/fixtures'
+import { createClubWithMembers, renameClub } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
@@ -88,6 +88,36 @@ test.describe('page never scrolls', () => {
     // corner and the document must still not scroll.
     await dragHeaderTo(page, header, 1085, 785)
     await expectNoPageScroll(page, 'chat parked bottom-right')
+
+    await ctx.close()
+  })
+
+  /**
+   * A club NAME is user-supplied text in the biggest type on the page (the
+   * club-page h1). It's capped at 20 characters server-side (2026-08-03), which
+   * keeps a realistic name on one line at 390px — but 20 characters can still
+   * be ONE unbreakable token, and a run of wide capitals pushed the document
+   * wider than the viewport before `.title` gained `overflow-wrap: anywhere`.
+   * The cap bounds the damage; the wrap rule is what makes the invariant hold.
+   *
+   * Headless-only: it's a text-measurement bug, invisible to jsdom.
+   */
+  test('a max-length unbreakable club name does not scroll a phone sideways', async ({
+    browser,
+  }) => {
+    const club = await createClubWithMembers(['cnx', 'cny'])
+    // Exactly 20 characters, no spaces, all wide capitals — the worst name the
+    // CHECK still allows.
+    await renameClub(club.handle, 'MWWMWWMWWMWWMWWMWWMW')
+
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/c/${club.handle}`)
+    await expect(page.getByRole('button', { name: 'New game', exact: true })).toBeVisible({
+      timeout: 20000,
+    })
+    await expectNoPageScroll(page, 'club page with a max-length unbreakable name')
 
     await ctx.close()
   })

@@ -682,6 +682,29 @@ export async function seedWaffleSwap(
 }
 
 /**
+ * Rename a club straight through psql as the superuser.
+ *
+ * There is no rename RPC yet (the club menu's "Rename club" is still a
+ * placeholder), and `create_club` derives the handle from the name — so a test
+ * that needs a SPECIFIC display name, independent of the handle, has to write
+ * it. The 20-character CHECK on `common.clubs.name` still applies: pass a name
+ * a real player could pick, or the update fails like it should.
+ */
+export function renameClub(handle: string, name: string): void {
+  if (!/^=?[a-z][a-z0-9-]{2,29}$/.test(handle)) throw new Error(`bad club handle: ${handle}`)
+  if (/'/.test(name)) throw new Error(`quote in club name: ${name}`)
+  execFileSync(
+    'psql',
+    [
+      process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
+      '-v', 'ON_ERROR_STOP=1', '-q',
+      '-c', `update common.clubs set name = '${name}' where handle = '${handle}'`,
+    ],
+    { stdio: 'ignore' },
+  )
+}
+
+/**
  * Stuff N synthetic rows into a waffle game's swap log, straight through psql as
  * the superuser. The real RPC can't do this — a game only has `par + extra`
  * swaps before it ends — but a LAYOUT spec needs a log long enough to overflow

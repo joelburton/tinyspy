@@ -190,6 +190,13 @@
 
 .title {
   margin: 0;
+  /* The 20-character cap on club names (common.clubs.name) keeps a realistic
+   * name on one line at 390px — but a capped name can still be ONE unbroken
+   * token, and 20 wide capitals overflowed the viewport horizontally, which
+   * breaks the no-scroll invariant (docs/ui.md → Page-height fits the
+   * viewport). The cap bounds how bad it gets; this makes it impossible: an
+   * unbreakable run wraps rather than pushing the page wider. */
+  overflow-wrap: anywhere;
 }
 
 /* ─── Mobile tab switcher ────────────────────────────────────────────

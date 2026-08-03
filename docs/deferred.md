@@ -19,12 +19,13 @@ Don't put a won't-do under "Deferred," or it reads as a backlog item forever. Ga
 
 When an item gets picked up, delete it. When a new "we'll do this later" decision happens, add it to the right place.
 
-*(A database-work queue lived in `db-work.md` (deleted) from 2026-08-02 to 2026-08-03,
+**Database-touching items are indexed in [`db-work-2.md`](db-work-2.md)** — a whole-docs sweep (every game's `## Deferred`, not just this file), kept while migrations are still free under the alpha prior. Delete it when it empties.
+
+*(An earlier queue lived in `db-work.md` (deleted) from 2026-08-02 to 2026-08-03,
 while the alpha prior made migrations free. It emptied — the solution-reveal
 flag shipped, the profile-hardening and `default_setup` items were settled as
 standing rules rather than work, and the last pgTAP gaps were closed — so the
-file is gone. Anything DB-shaped that comes up next goes in the sections below
-like any other deferral.)*
+file is gone; `db-work-2.md` is its successor with a wider net.)*
 
 *(A future pass may split `## Deferred` further into "useful now" vs "far-future idea" — game-by-game, when each is next opened.)*
 

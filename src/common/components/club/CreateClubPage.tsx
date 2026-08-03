@@ -49,6 +49,12 @@ function handleError(slug: string): string | null {
   return `That makes the handle “${slug}”, which is too long — please shorten the name.`
 }
 
+/** Club-name ceiling, mirroring the `char_length(name) between 1 and 20` CHECK
+ *  on `common.clubs.name`. Bounded because the name headlines the club page and
+ *  the home clubs list, where an unbounded string is the classic way a phone
+ *  ends up scrolling sideways (docs/mobile.md). */
+const CLUB_NAME_MAX = 20
+
 /**
  * Create-club form. POSTs to common.create_club; on success,
  * navigates to the new club's page.
@@ -190,15 +196,23 @@ export function CreateClubPage({ session: _session }: Props) {
               </span>
             )}
           </span>
+          {/* maxLength mirrors the CHECK on common.clubs.name — the same
+              belt-and-braces the handle field uses (ClaimHandleScreen). The
+              server is the authority; this just means you can't type a name
+              only to be told no. */}
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={busy}
             placeholder="Joel and Leah"
+            maxLength={CLUB_NAME_MAX}
             autoFocus
             required
           />
+          <span className="muted">
+            Up to {CLUB_NAME_MAX} characters — it headlines the club page.
+          </span>
         </label>
 
         <label className={styles.field}>
