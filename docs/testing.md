@@ -286,7 +286,7 @@ supabase test db --local supabase/tests/codenamesduet/create_game_test.sql
 
 `supabase test db` does its own `create extension if not exists pgtap` against the local DB before invoking pg_prove, so individual test files don't need to install the extension themselves.
 
-After SQL changes, `npm run db:reset` to replay all migrations against a fresh DB. The reset wipes everything in the local DB; that's accepted under the alpha-software prior.
+After SQL changes, `npm run db:reset` to replay all migrations against a fresh DB. The reset wipes everything in the local DB; that's accepted under the alpha-software prior. **A change confined to `supabase/sql/` needs only `npm run sql:apply`** — functions, views, policies and grants are re-applied in place, no reset and no data loss ([supabase.md → Schema vs code](supabase.md#schema-vs-code)). `npm run test:db` never re-applies either, so run one of them first.
 
 ## Test failure debugging
 

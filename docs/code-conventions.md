@@ -8,7 +8,7 @@ For terminology and the architectural backdrop see [`naming.md`](naming.md). For
 
 The explanation bar in this codebase is higher than the average TypeScript project — see [`../CLAUDE.md → Educational priority`](../CLAUDE.md#educational-priority--clarity-over-brevity) for the prior. What that looks like in practice:
 
-- **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The codenamesduet RPCs in [`supabase/migrations/20260615000001_codenamesduet.sql`](../supabase/migrations/20260615000001_codenamesduet.sql) and components like [`src/codenamesduet/components/CluePanel.tsx`](../src/codenamesduet/components/CluePanel.tsx) are the model — generous prose, examples, references to related pieces.
+- **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The codenamesduet RPCs in [`supabase/sql/codenamesduet.sql`](../supabase/sql/codenamesduet.sql) and components like [`src/codenamesduet/components/CluePanel.tsx`](../src/codenamesduet/components/CluePanel.tsx) are the model — generous prose, examples, references to related pieces.
 - **Code comments where the WHY isn't obvious.** Design decisions, subtle invariants, non-obvious trade-offs ("we refetch on SUBSCRIBED because broadcasts can be missed during reconnect"), workarounds for specific platform behavior.
 - **Names describe role, not implementation.** `isClueGiver` not `playerA`. See [`naming.md`](naming.md) for the terminology lexicon.
 - **Prefer one clear path over a clever one.** A few extra lines of straightforward code beat a tight expression that requires the reader to pause.
@@ -72,7 +72,7 @@ Canonical example: `psychicnum.games_state` + `psychicnum._secrets_for(uuid)` �
 
 ### Every function gets an explicit revoke
 
-Postgres grants EXECUTE **to PUBLIC by default** on every new function, so a helper is world-callable unless its migration says otherwise. The default is backwards for us, so the pair goes right after each definition:
+Postgres grants EXECUTE **to PUBLIC by default** on every new function, so a helper is world-callable unless its file says otherwise (functions and their grants live together in `supabase/sql/<game>.sql` — [supabase.md → Schema vs code](supabase.md#schema-vs-code)). The default is backwards for us, so the pair goes right after each definition:
 
 ```sql
 revoke execute on function <schema>.<fn>(<types>) from public;

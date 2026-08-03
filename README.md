@@ -56,7 +56,9 @@ src/
 
 supabase/
   config.toml, seed.sql
-  migrations/                     # per-schema baselines + future deltas
+  migrations/                     # per-schema SHAPE: tables, indexes, publication, seeds
+  sql/                            # per-schema CODE: functions, views, policies, grants
+                                  #   re-applied in full on every deploy (never a migration)
   tests/                          # pgTAP — per-schema folders + _shared/
   functions/                      # Edge Functions (Deno)
 
@@ -64,7 +66,7 @@ docs/                             # see Documentation below
 CLAUDE.md                         # project priors for AI / contributors
 ```
 
-The structural integrity check: **removing a game should be three actions** — delete its folder, delete its line from `src/games.ts`, drop its Postgres schema in a migration. ESLint's `no-restricted-imports` rules enforce this at lint time; the games registry pattern (one manifest per game, shell never names a game) enforces it structurally. See [`docs/common.md`](docs/common.md) for the removability invariant and [`docs/code-conventions.md`](docs/code-conventions.md) for the lint rules.
+The structural integrity check: **removing a game should be three actions** — delete its folder, delete its line from `src/games.ts`, drop its Postgres schema (its migration, its `supabase/sql/` file, and a `drop schema` migration). ESLint's `no-restricted-imports` rules enforce this at lint time; the games registry pattern (one manifest per game, shell never names a game) enforces it structurally. See [`docs/common.md`](docs/common.md) for the removability invariant and [`docs/code-conventions.md`](docs/code-conventions.md) for the lint rules.
 
 ## Quick start
 
@@ -76,7 +78,7 @@ git clone <this repo>
 cd codenames
 npm install
 supabase start             # pulls Docker images on first run (~slow); ~30s after
-npm run db:reset           # applies migrations (does NOT seed data)
+npm run db:reset           # migrations + supabase/sql/ + import + seed
 npm run import             # populates common.words + the puzzle libraries (required after every reset)
 npm run types:gen          # generates src/types/db.ts from the live schema
 npm run dev                # http://localhost:5173
@@ -95,8 +97,9 @@ npm run lint         # ESLint (incl. cross-feature import-direction rules)
 npm test             # FE + DB tests (Vitest, then pgTAP)
 npm run test:fe      # Vitest only (add --watch for the dev loop)
 npm run test:db      # pgTAP only (needs Docker + the local stack)
-npm run db:reset     # wipe local DB, replay migrations + seed
-npm run db:diff      # show schema drift vs migrations
+npm run db:reset     # wipe local DB, replay migrations, re-apply supabase/sql/, import + seed
+npm run sql:apply    # re-apply supabase/sql/ alone — how an RPC change ships (docs/supabase.md)
+npm run db:diff      # drift vs migrations (noisy: supabase/sql/ objects always show)
 npm run db:lint      # supabase db lint --level warning
 npm run types:gen    # regenerate src/types/db.ts from local DB
 npm run deploy       # boggle/scrabble wordlists → db push + functions deploy + build + Netlify deploy

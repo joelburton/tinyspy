@@ -113,11 +113,21 @@ was their green/yellow/grey feedback flattening to one grey in mono.
   game plus one for `common`, frozen as-is, and new work appends. A single squashed v1
   would be a wall of SQL you have to read end-to-end to understand how one game works;
   the per-game split is what makes each game's schema, RPCs, and RLS legible in one
-  sitting — the same removability property the FE has (docs/common.md). **Still to
-  decide together:** what counts as "out of alpha"; how `db:reset` + `npm run import` +
-  `seed.dev.sql` change for a database that must survive; and whether the friends get one
-  last "everything resets" warning before the freeze. Until then, the alpha prior in
-  CLAUDE.md still holds — keep editing baselines.
+  sitting — the same removability property the FE has (docs/common.md).
+
+  **Most of the sting is now gone (2026-08-03): the schema-vs-code split shipped.**
+  Each game's SQL is two files — `supabase/migrations/<ts>_<game>.sql` for shape,
+  `supabase/sql/<game>.sql` for functions/views/policies/grants — and the second is
+  re-applied in full on every deploy, so it is edited in place *forever, alpha or
+  not* ([supabase.md → Schema vs code](supabase.md#schema-vs-code)). That's roughly
+  two-thirds of each game's SQL by line count. Leaving alpha therefore only changes
+  what happens to **shape** changes, which are rare now that the roster is complete.
+
+  **Still to decide together:** what counts as "out of alpha"; how `db:reset` +
+  `npm run import` + `seed.dev.sql` change for a database that must survive; and
+  whether the friends get one last "everything resets" warning before the freeze.
+  Until then, the alpha prior in CLAUDE.md still holds — keep editing the schema
+  migrations in place too.
 
 ## Tooling
 

@@ -66,6 +66,67 @@ Two operational invariants ride on this:
   a separate setting — `import-to-hosted.sh` step 3 sets it to match
   config.toml; if you change one, change both.
 
+## Schema vs code
+
+Each game's SQL lives in **two files**, split by whether a statement can be
+re-run:
+
+| | file | lifecycle |
+|---|---|---|
+| **schema** | `supabase/migrations/<ts>_<game>.sql` | applied **once**, then frozen |
+| **code** | `supabase/sql/<game>.sql` | re-applied **in full on every deploy** |
+
+The schema file holds what describes *shape* — `create table`, constraints,
+indexes, `alter publication` (the Realtime membership), and seed rows including
+the `common.gametypes` registration. None of it can be re-run, so it accumulates:
+a post-freeze column change appends a new migration.
+
+The code file holds what describes *behavior* — functions, views, RLS policies,
+triggers, and grants. All of it is drop-and-recreate safe, so it is not a delta
+at all: it is the **current definition**, edited in place forever. This is why
+changing an RPC adds no migration. You edit the game's one file, and
+`npm run sql:apply` re-runs it.
+
+Roughly two-thirds of each game's SQL is code by line count (scrabble 69%,
+wordle 63%, common 38%), so the part that accumulates is the small part.
+
+**Three rules that make it work:**
+
+- **Order inside a file is load-bearing.** A policy can only reference a
+  function that already exists, and a function can only select from a view that
+  already exists — so statements stay in the order they were written, and
+  `common.sql` is applied before any game (`apply-sql.ts` sorts it first). Games
+  never reference each other, so the rest is alphabetical.
+- **A signature change needs an explicit drop.** `create or replace function`
+  keys on (name, argument types): rename an argument or change a return type and
+  you get a *second* function beside the first, which PostgREST then refuses to
+  choose between. Put a `drop function if exists <schema>.<name>(<old types>);`
+  above the create and leave it there — the file runs against databases of every
+  age. [`supabase/tests/common/function_overloads_test.sql`](../supabase/tests/common/function_overloads_test.sql)
+  fails if one ever slips through.
+- **Views, policies and triggers are dropped, not replaced.** `create or replace
+  view` can't drop or reorder columns, and policies/triggers have no replace
+  form, so each is preceded by its `drop … if exists`. Functions use
+  `create or replace` (a bare drop would cascade into the generated column and
+  triggers that depend on them).
+
+**One function is pinned to the schema side:** `common.word_letter_mask`, because
+`common.words.letter_mask` and `wordwheel.pangrams.mask` are `generated always as`
+columns that call it. The table can't be created before the function exists, so
+it stays in the migration and changing it needs a migration like any other DDL.
+
+**Applying it.** `npm run sql:apply` (local by default, `SUPABASE_DB_URL` to
+point elsewhere). `npm run db:reset` chains it after `supabase db reset`, so the
+local flow is unchanged. `npm run deploy` runs it after `supabase db push` with
+`--require-url`, which makes an unset `SUPABASE_DB_URL` a hard error rather than
+a silent re-apply to localhost. Each file runs in a single transaction, so a
+syntax error rolls the whole file back instead of leaving a half-updated schema.
+
+**What this trades away:** the migration table no longer records which version of
+a function was live on a given date — git does. That's the deliberate exchange
+for one readable file per game, which is the property
+[CLAUDE.md](../CLAUDE.md)'s per-game-baseline decision exists to protect.
+
 ## Query conventions
 
 ### Explicit columns, always

@@ -24,6 +24,10 @@
 #                   recorded yet (`db push`), preserving data.
 #      Passing neither is a hard error — the two behaviors are too
 #      different (one wipes everything) to guess a default.
+#   2b. Apply the repeatable SQL (supabase/sql/*.sql) — every
+#      function, view, RLS policy, trigger and grant. Migrations
+#      carry only the schema's SHAPE; without this the remote has
+#      tables and no RPCs. See docs/supabase.md → Schema vs code.
 #   3. PATCH the PostgREST config to add our schemas to the
 #      "exposed schemas" allowlist + extra search path, and set
 #      Max Rows to match local config.toml.
@@ -447,6 +451,27 @@ if [[ "$MIGRATION_MODE" == "destroy" ]]; then
 else
   supabase db push --linked <<< y
 fi
+echo
+
+# ════════════════════════════════════════════════════════════════
+# 2b. Apply the repeatable SQL (supabase/sql/*.sql)
+# ════════════════════════════════════════════════════════════════
+# Migrations carry only the SHAPE (tables, constraints, indexes, the
+# Realtime publication, seeds). Every function, view, RLS policy,
+# trigger and grant lives in supabase/sql/<game>.sql and is re-applied
+# IN FULL here — see docs/supabase.md → "Schema vs code". Without this
+# step the remote has tables and no RPCs, so nothing works.
+#
+# Required after BOTH modes: --destroy replays migrations onto an empty
+# database (which no longer contain the functions), and --keep pushes
+# schema deltas that say nothing about a changed function body.
+# Idempotent by construction, so re-running the script is safe.
+#
+# SUPABASE_DB_URL was exported above; --require-url makes an unset one
+# a hard error rather than a silent re-apply to localhost.
+
+echo "═══ 2b. Applying repeatable SQL (functions, views, policies, grants) ═══"
+npm run sql:apply -- --require-url
 echo
 
 # ════════════════════════════════════════════════════════════════

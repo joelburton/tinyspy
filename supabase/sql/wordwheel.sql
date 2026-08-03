@@ -1,0 +1,1305 @@
+-- ============================================================
+-- wordwheel — the REPEATABLE half
+-- ============================================================
+-- Functions, views, RLS policies, triggers and grants for wordwheel. Everything
+-- here is drop-and-recreate safe, so this file is **re-applied in full on
+-- every deploy** (`npm run sql:apply`) — it is the CURRENT definition, not a
+-- delta. Edit it in place forever; it never becomes a migration.
+--
+-- Its other half is the one-shot schema migration
+-- `supabase/migrations/20260712000000_wordwheel.sql` — tables, constraints, indexes,
+-- the Realtime publication and seed rows. That one is applied once and then
+-- frozen, because `alter table` cannot be re-run.
+--
+-- Order is load-bearing: a policy can only reference a function that already
+-- exists, so statements stay in the order they were written. See
+-- docs/supabase.md → Schema vs code.
+-- ============================================================
+
+grant usage on schema wordwheel to authenticated;
+
+-- The pangram import (supabase/scripts/import-wordwheel-pangrams.ts)
+-- connects as the superuser (bypasses grants), so service_role only
+-- needs schema USAGE for any incidental PostgREST access.
+grant usage on schema wordwheel to service_role;
+
+-- wordwheel.pangrams: public reference data, no RLS. The edge
+-- function samples seeds as the caller (authenticated SELECT). The
+-- pangram import connects as the superuser and bypasses grants, so
+-- no service_role INSERT is needed.
+grant select on wordwheel.pangrams to authenticated;
+
+-- Column-level grant. The word lists are no longer hidden (the FE needs them to
+-- validate guesses locally), so all columns are readable — but we keep the
+-- explicit column list per docs/code-conventions.md → "Avoid SELECT *". `mode` is
+-- included so the games_state view's `g.mode` and the found_words_select RLS
+-- policy's `fg.mode` resolve for `authenticated` (both run in the caller's context).
+grant select
+  (id, club_handle, mode, outer_letters, center_letter,
+   required_words_score, required_words_count, created_at,
+   required_words, bonus_words)
+  on wordwheel.games to authenticated;
+
+grant select on wordwheel.found_words to authenticated;
+
+-- Membership-gated read on games. Co-op + compete behave
+-- identically here: anyone in the club can see the game's
+-- header (letters, totals, etc.). The wordlists are gated
+-- separately at the column level + games_state view.
+drop policy if exists games_select on wordwheel.games;
+create policy games_select on wordwheel.games
+  for select to authenticated
+  using (common.is_club_member(club_handle));
+
+-- found_words RLS is the load-bearing piece for compete. Reads
+-- the mode off wordwheel.games.mode directly (denormalized), so
+-- the visibility check is a single join to common.games for the
+-- is_terminal branch rather than digging into setup. Three OR
+-- branches inside the EXISTS, in evaluation order:
+--
+--   (1) mode='coop' — everyone in the club sees everyone's
+--       finds.
+--   (2) user_id = auth.uid() — you always see your own finds.
+--       In compete mid-game, this is your private list.
+--   (3) is_terminal — once the game ends, everyone sees
+--       everyone's finds (the "what I missed" reveal in
+--       compete; harmless in coop since (1) already covered it).
+--
+-- Club membership is the outer gate; the mode/visibility
+-- discrimination is the inner condition. Mirrors the
+-- connections.guesses_select shape.
+drop policy if exists found_words_select on wordwheel.found_words;
+create policy found_words_select on wordwheel.found_words
+  for select to authenticated
+  using (
+    exists (
+      select 1 from wordwheel.games fg
+       join common.games cg on cg.id = fg.id
+       where fg.id = found_words.game_id
+         and common.is_club_member(fg.club_handle)
+         and (
+               fg.mode = 'coop'
+            or found_words.user_id = auth.uid()
+            or cg.is_terminal
+             )
+    )
+  );
+
+-- No INSERT/UPDATE/DELETE policies — writes go through the
+-- security-definer RPCs below.
+
+-- ============================================================
+-- games_state view
+-- ============================================================
+-- The FE's read path for a wordwheel game header. `security_invoker = true` so
+-- RLS on the base table evaluates as the caller (games_select still gates row
+-- visibility). The word lists are no longer hidden — required_words + bonus_words
+-- ship to the FE from game start so it can validate + score guesses locally — so
+-- the view exposes both directly (no terminal-gated reveal helper anymore; the
+-- missed-words reveal is a client-side `required − found` computed at terminal).
+--
+-- So this is now a PURE PASS-THROUGH, and deliberately kept as one: every
+-- game's FE reads `<schema>.games_state`, so the uniform seam is worth a view
+-- that currently adds nothing but `security_invoker`. If a column ever needs
+-- hiding again, it goes here and no FE changes.
+
+drop view if exists wordwheel.games_state;
+create view wordwheel.games_state with (security_invoker = true) as
+select
+  g.id,
+  g.club_handle,
+  g.mode,
+  g.outer_letters,
+  g.center_letter,
+  g.required_words_score,
+  g.required_words_count,
+  g.created_at,
+  g.required_words,
+  g.bonus_words
+  from wordwheel.games g;
+
+grant select on wordwheel.games_state to authenticated;
+
+-- ============================================================
+-- _rank_idx — the rank ladder (0..6) as integer math
+-- ============================================================
+-- 7 named ranks: Start(0), Good(1), Solid(2), Nice(3), Great(4),
+-- Amazing(5), Genius(6). Each one unlocks at i/6 * 0.70 of the
+-- max score; Genius at 70%. The formula:
+--
+--   threshold_i = i / 6 * 0.7
+--   rank(score, total) = max i such that score >= threshold_i * total
+--                      = floor(score * 6 / (total * 0.7))
+--                      = floor(score * 60 / (total * 7))      (×100/×100 to remove the decimal)
+--
+-- LEAST(6, ...) caps the result — a 100%-of-max score yields
+-- score*60/(total*7) ≈ 8.57, so we clamp.
+--
+-- Why integer math: avoiding floating point makes the result
+-- bit-for-bit reproducible across implementations (the FE port
+-- of this in ranks.ts uses the same expression). Numerical
+-- correctness, not performance — the savings here are
+-- nanoseconds, but the determinism matters.
+
+create or replace function wordwheel._rank_idx(score int, total int)
+returns int
+language sql
+immutable
+set search_path = wordwheel, common, public, extensions
+as $$
+  select case
+           when total <= 0 then 0
+           else least(6, (score * 60) / (total * 7))
+         end;
+$$;
+
+revoke execute on function wordwheel._rank_idx(int, int) from public;
+
+-- ============================================================
+-- wordwheel.candidate_words — edge-function board-build helper
+-- ============================================================
+--
+-- Reason this exists: the edge function's "given a puzzle,
+-- return every legal word that fits" query was being silently
+-- truncated by PostgREST's `max_rows = 1000` cap when run against
+-- the table directly. The fix: push the bitmask intersection into
+-- Postgres via this small SQL function. It does the filter
+-- server-side and returns only the candidate rows (typically a few
+-- hundred, well under max_rows); the edge function reads back
+-- through supabase.rpc(...) in one round-trip.
+--
+-- This is also where wordwheel's slice of the shared common.words
+-- list is defined, on the 1..6 recognizability bands. Both bands are now a
+-- per-game setup choice (`required` 1..6, `legal` required..6), threaded in by
+-- the edge function:
+--   - legal      difficulty <= legal_band  (returned at all = enterable). No
+--                dialect / slang / crude / slur restriction — anything up
+--                to the legal band counts if you play it.
+--   - required   difficulty <= required_band AND american AND NOT slang AND
+--                clean (slur = 0 AND crude = 0) — the is_required flag; counts
+--                toward the displayed goal + rank denominator. Crude/slur
+--                words are legal but never required. Words that are legal
+--                but not required (above the required band, or band <=required
+--                that's non-american / slang / crude / a slur) come back as
+--                BONUS (is_required false): legal − required. Bonus words
+--                still SCORE (length + pangram bonus); they just don't
+--                count toward the required goal.
+--   - length     len >= 4  (the Spelling-Bee minimum)
+--
+-- Unlike spellingbee, wordwheel does NOT special-case 's': a tile is
+-- spendable ONCE per word, so 's' can only pluralize as many words as
+-- there are 's' tiles (usually one), not explosively the way it does
+-- when letters may repeat freely. A board can contain 's', and
+-- 's'-words are ordinary candidates — no exclusion here.
+--
+-- Note this returns the pure SUBSET set (word letter-SET ⊆ puzzle
+-- letter-set + centre) — `puzzle_mask` is the wheel's DISTINCT-letter
+-- mask, so this is a superset of the true answer key. It does NOT
+-- enforce tile multiplicity — that post-filter (per-letter counts of
+-- the word <= the wheel's tile counts) lives in the edge function,
+-- where the counts are cheap to compare in TS. A word like "seeded"
+-- is a subset of a wheel containing s+e+d but may demand more e/d
+-- tiles than the wheel carries, so the edge builder drops it. See
+-- wordwheel-build-board.
+--
+-- The function is `security invoker` + `stable`:
+--   - invoker so it runs with the caller's access to common.words
+--     (public reference data, RLS off) — no privilege escalation.
+--   - stable so a single SELECT can call it once per row of its
+--     enclosing query without repeated re-execution.
+
+create or replace function wordwheel.candidate_words(
+  puzzle_mask bigint,
+  center_bit bigint,
+  required_band int,
+  legal_band int
+)
+returns table(word text, letter_mask bigint, is_required boolean)
+language sql
+stable
+security invoker
+set search_path = wordwheel, common, public, extensions
+as $$
+  select w.word,
+         w.letter_mask,
+         (w.difficulty <= required_band and w.american and not w.slang
+            and w.slur = 0 and w.crude = 0)
+           as is_required
+    from common.words w
+   where w.len >= 4
+     and w.difficulty <= legal_band
+     -- Subset of puzzle: every letter bit of the word must be
+     -- present in the puzzle's bitmask (reads the generated
+     -- common.words.letter_mask). Not sargable, so this is a
+     -- seq-scan-with-filter — fine at a few calls per board build.
+     and (w.letter_mask & ~puzzle_mask) = 0
+     -- Must contain the center letter — the wordwheel rule.
+     and (w.letter_mask & center_bit) <> 0;
+$$;
+
+revoke execute on function wordwheel.candidate_words(bigint, bigint, int, int) from public;
+grant execute on function wordwheel.candidate_words(bigint, bigint, int, int) to authenticated;
+
+-- ============================================================
+-- wordwheel.create_game — mode is a positional arg
+-- ============================================================
+--
+-- Setup shape (server validates):
+--   {
+--     "target_rank": 0..6 | null,           -- compete: required (the race's
+--                                           --   finish line). coop: OPTIONAL —
+--                                           --   reach it together and you WIN;
+--                                           --   null/absent = open-ended hunt.
+--     "timer": (
+--         { "kind": "none" }
+--       | { "kind": "countup" }
+--       | { "kind": "countdown", "seconds": int }
+--     )
+--   }
+--
+-- `mode` ('coop' | 'compete') is a positional argument, not a
+-- setup field — it routes the gametype string ('wordwheel_' ||
+-- mode) and drives the per-mode player-count floor.
+--
+-- Board shape (built by the wordwheel-build-board edge function):
+--   {
+--     "outer_letters": "abbcdefg",          -- 8 lowercase (duplicates allowed)
+--     "center_letter": "i",                 -- 1 lowercase
+--     "required_words_score":   int,
+--     "required_words_count":   int,
+--     "required_words": [
+--       { "word": text, "points": int, "is_pangram": bool },
+--       …
+--     ],
+--     "bonus_words":   [text, …]            -- the bonus set (legal − required)
+--   }
+--
+-- The board's wordlists are taken at face value: they were
+-- computed by the edge function from common.words (via the
+-- candidate_words RPC, read under the caller's JWT, so the grant
+-- gates still applied). The RPC just sanity-checks structure, not
+-- content.
+--
+-- Title formula:  "<CENTER>·<OUTER-SORTED>"  e.g.,  "E·CABDNO".
+-- The center letter, dot, then the 8 outer letters alphabetized.
+-- Identifies a board at a glance in the club's history list.
+--
+-- Reject reasons (all 'P0001' unless noted):
+--   - 42501 not authenticated
+--   - 42501 not a member of this club
+--   - mode must be 'coop' or 'compete'
+--   - compete mode requires at least 2 players
+--   - more than 6 players (require_player_count_max)
+--   - setup.target_rank is required when mode='compete' / must be 0..6
+--     (coop may set it too: it becomes the coop WIN threshold)
+--   - timer shape errors (delegated to common.require_valid_timer)
+--   - board.outer_letters must be 8 lowercase ASCII letters
+--     (duplicates allowed — the wheel is a multiset; 's' is allowed
+--     — see the candidate_words note)
+--   - board.center_letter must be 1 lowercase ASCII letter (it may
+--     also appear among outer_letters; 's' is allowed)
+--   - board.required_words_count must be ≥ 15 (the puzzle-quality gate
+--     the edge function already applies; recheck here so a
+--     misbehaving builder can't sneak a degenerate puzzle past) —
+--     EXCEPT for a custom board (setup.custom_letters set), where the
+--     player picked the letters and the gate relaxes to ≥ 1
+--   - board.required_words / board.bonus_words must be arrays
+
+create or replace function wordwheel.create_game(
+  target_club text,
+  setup jsonb,
+  player_user_ids uuid[],
+  mode text,
+  board jsonb
+)
+returns table(id uuid)
+language plpgsql
+security definer
+set search_path = wordwheel, common, public, extensions
+as $$
+declare
+  new_id uuid;
+  s_target_rank int;
+  s_required int;
+  s_legal int;
+  b_outer text;
+  b_center text;
+  b_required_words_score int;
+  b_required_words_count int;
+  game_title text;
+  effective_gametype text;
+  -- A player-specified letter set (setup.custom_letters non-empty) — the board was
+  -- built from the player's own letters, not a random seed. Relaxes the ≥15 gate.
+  is_custom_board boolean;
+begin
+  perform common.require_club_member(target_club);
+
+  -- ─── Validate mode + player-count ────────────────────────
+  perform common.require_valid_mode(mode);
+
+  if mode = 'compete' then
+    -- Compete needs an opposing PLAYER. The FE manifest hides the
+    -- compete Start button in 1-player clubs; this is the
+    -- server-side catch. Matches psychicnum + connections.
+    if coalesce(array_length(player_user_ids, 1), 0) < 2 then
+      raise exception 'compete mode requires at least 2 players'
+        using errcode = 'P0001';
+    end if;
+  end if;
+
+  perform common.require_player_count_max(player_user_ids, 6);
+
+
+  -- ─── Validate setup.target_rank (BOTH modes) ─────────────
+  -- compete: REQUIRED — it's the finish line of the race.
+  -- coop:    OPTIONAL — present means "reach this rank together and you WIN"
+  --          (the game ends the moment the TEAM rank reaches it); absent/null
+  --          means the open-ended word hunt that only ends on the clock or the
+  --          End button. Absent and explicit null are the same thing, so a FE
+  --          that always sends the key can send null for "none".
+  if mode = 'compete' and (setup->>'target_rank') is null then
+    raise exception 'setup.target_rank is required when mode=compete'
+      using errcode = 'P0001';
+  end if;
+  if (setup->>'target_rank') is not null then
+    begin
+      s_target_rank := (setup->>'target_rank')::int;
+    exception when invalid_text_representation then
+      raise exception 'setup.target_rank must be an integer'
+        using errcode = 'P0001';
+    end;
+    if s_target_rank < 0 or s_target_rank > 6 then
+      raise exception 'setup.target_rank must be 0..6 (got %)', s_target_rank
+        using errcode = 'P0001';
+    end if;
+  end if;
+
+  -- ─── Validate the word bands ─────────────────────────────
+  -- required: the band the displayed/required goal words are drawn from (1..6;
+  -- band 1 is the floor the board pool was selected at). legal: how obscure an
+  -- accepted word may be (required..6, so the legal set always contains the
+  -- required set). Both optional — default to the classic 3 / 5. The edge
+  -- function builds the board's word lists from these; create_game is the
+  -- authority on the shape.
+  s_required := coalesce((setup->>'required')::int, 3);
+  if s_required < 1 or s_required > 6 then
+    raise exception 'setup.required must be 1..6 (got %)', s_required
+      using errcode = 'P0001';
+  end if;
+  s_legal := coalesce((setup->>'legal')::int, 5);
+  if s_legal < s_required or s_legal > 6 then
+    raise exception 'setup.legal (%) must be between required (%) and 6',
+      s_legal, s_required using errcode = 'P0001';
+  end if;
+
+  perform common.require_valid_timer(setup->'timer');
+
+  -- ─── Board structure validation ──────────────────────────
+  b_outer := board->>'outer_letters';
+  b_center := board->>'center_letter';
+
+  if b_outer is null or length(b_outer) <> 8 then
+    raise exception 'board.outer_letters must be 8 characters (got %)',
+                    coalesce(length(b_outer)::text, 'null')
+      using errcode = 'P0001';
+  end if;
+  -- Any 8 lowercase ASCII letters — duplicates allowed (the wheel is a
+  -- multiset; a wheel with two 'b' tiles is a legal, ordinary board).
+  -- Unlike spellingbee, word wheel does NOT exclude 's': spellingbee bars it
+  -- because 's' is always reusable there and would let you pluralize almost
+  -- any word; word wheel spends a tile per use, so 's' pluralizes at most
+  -- once per 's' tile (as the classic wheel has it).
+  if b_outer !~ '^[a-z]{8}$' then
+    raise exception 'board.outer_letters must be 8 lowercase ASCII letters'
+      using errcode = 'P0001';
+  end if;
+
+  if b_center is null or length(b_center) <> 1 then
+    raise exception 'board.center_letter must be 1 character'
+      using errcode = 'P0001';
+  end if;
+  -- The centre MAY also appear among the outer letters — that's just a wheel
+  -- with two tiles carrying the same letter, one of them the centre.
+  if b_center !~ '^[a-z]$' then
+    raise exception 'board.center_letter must be a lowercase ASCII letter'
+      using errcode = 'P0001';
+  end if;
+
+  b_required_words_score := (board->>'required_words_score')::int;
+  b_required_words_count := (board->>'required_words_count')::int;
+  -- Custom (player-specified) letters skip the ≥15 quality gate — the player
+  -- chose these letters, so we build whatever puzzle they yield. It must still
+  -- have ≥1 required word, or the rank ladder is degenerate (Genius at 0 pts).
+  -- Random boards keep the ≥15 gate the edge function's builder targets.
+  is_custom_board := coalesce(setup->>'custom_letters', '') <> '';
+  if is_custom_board then
+    if b_required_words_count < 1 then
+      raise exception 'those custom letters yield no required words; pick different letters or a lower required band'
+        using errcode = 'P0001';
+    end if;
+  elsif b_required_words_count < 15 then
+    -- PROVISIONAL threshold: a 9-tile wheel where each tile is spent per use
+    -- yields far fewer words than a spellingbee board (which allows unbounded
+    -- reuse), so the ≥15 floor is lower than spellingbee's ≥30. Tune against
+    -- the seed data's word_counts once the import has run; the edge function's
+    -- builder must target the same number.
+    raise exception 'board.required_words_count must be ≥ 15 (got %); the edge function''s gate must agree',
+                    b_required_words_count
+      using errcode = 'P0001';
+  end if;
+
+  if jsonb_typeof(board->'required_words') <> 'array' then
+    raise exception 'board.required_words must be an array'
+      using errcode = 'P0001';
+  end if;
+  if jsonb_typeof(board->'bonus_words') <> 'array' then
+    raise exception 'board.bonus_words must be an array'
+      using errcode = 'P0001';
+  end if;
+
+  -- ─── Title ───────────────────────────────────────────────
+  -- Outer letters alphabetized, uppercased, dot-prefixed by the
+  -- uppercased center.
+  select upper(b_center) || '·' || string_agg(upper(c), '' order by c)
+    into game_title
+    from unnest(string_to_array(b_outer, null)) c;
+
+  -- Mode-suffixed gametype string for common.games.gametype.
+  effective_gametype := 'wordwheel_' || mode;
+
+  -- ─── Coordinate with common.create_game ──────────────────
+  -- Inserts common.games (is_current_view=true, play_state=
+  -- 'playing'), validates player_user_ids are all in
+  -- clubs_members, inserts common.game_players. Returns the
+  -- canonical id we'll FK from.
+  --
+  -- Saved-default arg: persist the whole setup as the club's
+  -- next default. target_rank + timer are all things a friend
+  -- group settles on; no point asking again next time. BUT strip the
+  -- one-off custom letters — a hand-picked board is a one-time choice, so the
+  -- NEXT game should start from a random board again (the SetupForm shows the
+  -- custom fields blank).
+  new_id := common.create_game(
+    target_club, effective_gametype, player_user_ids, game_title, setup,
+    setup - 'custom_letters' - 'custom_center'
+  );
+
+  -- ─── Insert the per-gametype row, now with mode ──────────
+  insert into wordwheel.games (
+    id, club_handle, mode, outer_letters, center_letter,
+    required_words_score, required_words_count, required_words, bonus_words
+  )
+  values (
+    new_id,
+    target_club,
+    mode,
+    b_outer,
+    b_center,
+    b_required_words_score,
+    b_required_words_count,
+    board->'required_words',
+    -- bonus_words is a jsonb array of { word, points, is_pangram } now (same
+    -- shape as required_words) — stored directly so the FE can score bonus finds.
+    coalesce(board->'bonus_words', '[]'::jsonb)
+  );
+
+  -- ─── Seed common.games.status for the club-page label ────
+  -- Coop label needs found_words_score / required_words_score /
+  -- rank_idx / found_words_count / required_words_count. Compete
+  -- label only needs target_rank + required_words_count (the
+  -- leaderboard is built on first submission).
+  if mode = 'coop' then
+    perform common.update_state(
+      new_id,
+      'playing',
+      jsonb_build_object(
+        'mode', 'coop',
+        'found_words_score', 0,
+        'required_words_score', b_required_words_score,
+        'rank_idx', 0,
+        'found_words_count', 0,
+        'required_words_count', b_required_words_count,
+        -- null when the team picked "none" — the FE reads this to know whether
+        -- there's a win condition at all (and the listing label to name it).
+        'target_rank', s_target_rank
+      )
+    );
+  else
+    perform common.update_state(
+      new_id,
+      'playing',
+      jsonb_build_object(
+        'mode', 'compete',
+        'target_rank', s_target_rank,
+        'required_words_score', b_required_words_score,
+        'required_words_count', b_required_words_count,
+        'leaderboard', '[]'::jsonb
+      )
+    );
+  end if;
+
+  return query select new_id;
+end;
+$$;
+
+revoke execute on function wordwheel.create_game(text, jsonb, uuid[], text, jsonb) from public;
+grant execute on function wordwheel.create_game(text, jsonb, uuid[], text, jsonb) to authenticated;
+
+-- ============================================================
+-- wordwheel.submit_word
+-- ============================================================
+-- The only mid-game action. Validates the word in the order
+-- wordwheel-ws uses (chosen so each rejection gives the friendliest
+-- feedback when multiple things are wrong):
+--
+--   1. tooShort         length < 4
+--   2. badLetters       uses a letter that isn't on the board
+--   3. missingCenter    doesn't include the center letter
+--   4. notAWord         not in required_words and not in bonus_words (i.e. not legal)
+--   5. alreadyFound     per mode rule (see below)
+--   6. accepted / bonus / pangram
+--
+-- "Per mode rule":
+--   - coop:    duplicate iff ANY row exists with this game_id
+--              and word (anyone can find a word; once found
+--              by anyone, it's locked).
+--   - compete: duplicate iff a row exists with this game_id,
+--              user_id=caller, word (each player has their
+--              own list; finding a word someone else has
+--              found is still a fresh point for you).
+--
+-- Mode comes off wordwheel.games.mode (which we already lock with
+-- FOR UPDATE) — one fewer cross-schema read per submission than
+-- digging into common.games.setup.
+--
+-- Returns jsonb `{ result, points }` rather than a bare result enum,
+-- so the FE can show points earned (and call out a pangram) in the
+-- entry feedback WITHOUT re-deriving the point/pangram rules on the
+-- client. The `result` vocabulary gains `'pangram'` (a required OR
+-- bonus word using all 9 letters; takes precedence over the
+-- accepted/bonus distinction, which the FE doesn't surface anyway).
+-- Rejected results (notAWord, tooShort, …) carry `points: 0`.
+--
+-- Throws (hard rejections):
+--   42501 not authenticated, not a game player
+--   P0001 'game is not in progress'  (post-terminal call)
+--   P0002 'game not found'
+--
+-- ───────────────────────────────────────────────────────────
+-- Concurrency
+-- ───────────────────────────────────────────────────────────
+-- SELECT … FOR UPDATE on the wordwheel.games row serializes
+-- concurrent submissions. The PK on found_words is the
+-- (game_id, user_id, word) triple, so a same-player double-
+-- submit of the same word is also caught at the constraint
+-- level if the lock somehow missed it.
+
+-- Trusting-commit: the FE validated the word against the board's shipped legal
+-- list (required ∪ bonus) and scored it, so this trusts word + points +
+-- is_pangram + is_bonus and only enforces the live-game check, dedups, records,
+-- and recomputes aggregates / the compete win. It does NOT re-validate letters /
+-- center / min length / dictionary membership. (See docs/games/wordwheel.md.)
+create or replace function wordwheel.submit_word(
+  target_game uuid,
+  word text,
+  points int,
+  is_pangram boolean,
+  is_bonus boolean
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = wordwheel, common, public, extensions
+as $$
+declare
+  caller_id uuid;
+  g_row wordwheel.games%rowtype;
+  current_play_state text;
+  current_target_rank int;
+  w_lower text;
+  duplicate_count int;
+
+  team_score int;
+  team_found_words_count int;     -- count of ALL rows; for the status display
+  team_rank_idx int;
+  caller_score int;
+  caller_found_words_count int;   -- caller's all-rows count (display + leaderboard)
+  caller_rank_idx int;
+  player_results jsonb;
+begin
+  -- Lock the gametype row. Mode is on it, so we pick it up "for
+  -- free" in the same SELECT.
+  select * into g_row from wordwheel.games
+   where wordwheel.games.id = target_game
+   for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  caller_id := common.require_game_player(target_game);
+
+  -- target_rank still lives on setup (it's per-game config, not a
+  -- gametype-axis); play_state still lives on common.games.
+  select play_state, (setup->>'target_rank')::int
+    into current_play_state, current_target_rank
+    from common.games where id = target_game;
+
+  if current_play_state <> 'playing' then
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  -- A conceded player is out of the race — no more words. The FE gates
+  -- on myConceded, so this only fires on a race (a submit in flight when
+  -- concede commits, or a stale second tab). Without it a conceder could
+  -- reach the target rank and be recorded the winner.
+  if (select conceded from common.game_players
+        where game_id = target_game and user_id = caller_id) then
+    raise exception 'you have conceded' using errcode = 'P0001';
+  end if;
+
+  -- Normalize for storage + dedup (the FE already validated legality).
+  w_lower := lower(coalesce(word, ''));
+
+  -- alreadyFound (per mode rule, reading off g_row.mode). Table alias `fw` is
+  -- mandatory: the function parameter is also named `word`, and PL/pgSQL's
+  -- column-resolution rule raises "column reference word is ambiguous" without
+  -- the alias even though we mean `w_lower` below.
+  if g_row.mode = 'coop' then
+    select count(*) into duplicate_count
+      from wordwheel.found_words fw
+     where fw.game_id = target_game and fw.word = w_lower;
+  else
+    select count(*) into duplicate_count
+      from wordwheel.found_words fw
+     where fw.game_id = target_game
+       and fw.user_id = caller_id
+       and fw.word = w_lower;
+  end if;
+  if duplicate_count > 0 then
+    return jsonb_build_object('result', 'alreadyFound', 'points', 0);
+  end if;
+
+  -- ─── Insert the row (trusted word + points + flags) ──────
+  insert into wordwheel.found_words
+    (game_id, user_id, word, points, is_pangram, is_bonus)
+  values
+    (target_game, caller_id, w_lower,
+     coalesce(points, 0), coalesce(is_pangram, false), coalesce(is_bonus, false));
+
+  -- ─── Recompute aggregates + status ──────────────────────
+  -- Coop ends on a submission ONLY when the team picked a target rank and this
+  -- word carried them to it. Without a target (the open-ended hunt) coop still
+  -- only ends via timer expiry or the manual End button: players keep finding
+  -- bonus words past the displayed `Y / required_words_count` denominator and
+  -- the score overshoots `required_words_score` (the wordwheel-ws design —
+  -- see the bonus-scoring write-up above).
+  if g_row.mode = 'coop' then
+    -- Alias `fw` so `points` resolves to the column, not the same-named function
+    -- parameter (PL/pgSQL would otherwise raise "column reference is ambiguous").
+    select coalesce(sum(fw.points), 0),
+           count(*)
+      into team_score, team_found_words_count
+      from wordwheel.found_words fw
+     where fw.game_id = target_game;
+    team_rank_idx := wordwheel._rank_idx(team_score, g_row.required_words_score);
+
+    if current_target_rank is not null and team_rank_idx >= current_target_rank then
+      -- Coop win: the TEAM reached the rank they set out for. Everyone wins
+      -- together (coop has no individual result), and the game is over — the
+      -- team chose a finish line, so this is it. `_rank_idx` is monotonic in the
+      -- score, so this fires exactly once: the first word that crosses the line
+      -- ends the game and every later submit_word hits the not-in-progress gate.
+      perform common.end_game(
+        target_game,
+        'won',
+        jsonb_build_object(
+          'mode', 'coop',
+          'outcome', 'target',
+          'found_words_score', team_score,
+          'required_words_score', g_row.required_words_score,
+          'rank_idx', team_rank_idx,
+          'found_words_count', team_found_words_count,
+          'required_words_count', g_row.required_words_count,
+          'target_rank', current_target_rank
+        ),
+        (select jsonb_object_agg(gp.user_id, jsonb_build_object('won', true))
+           from common.game_players gp
+          where gp.game_id = target_game));
+      return jsonb_build_object(
+        'result', 'accepted', 'points', coalesce(points, 0), 'won', true
+      );
+    end if;
+
+    perform common.update_state(
+      target_game, 'playing',
+      jsonb_build_object(
+        'mode', 'coop',
+        'found_words_score', team_score,
+        'required_words_score', g_row.required_words_score,
+        'rank_idx', team_rank_idx,
+        'found_words_count', team_found_words_count,
+        'required_words_count', g_row.required_words_count,
+        'target_rank', current_target_rank
+      )
+    );
+
+  else
+    -- compete: per-player aggregates. caller_found_words_count counts
+    -- ALL of caller's rows (required + bonus) — matches the
+    -- wordwheel-ws "found.length" stat. The target-rank check
+    -- below uses caller_score (which already includes bonus
+    -- points after the bonus-scoring fix in the validation
+    -- block above), so a player who finds bonus pangrams can
+    -- legitimately rocket past target faster than the displayed
+    -- max score would suggest.
+    select coalesce(sum(fw.points), 0),
+           count(*)
+      into caller_score, caller_found_words_count
+      from wordwheel.found_words fw
+     where fw.game_id = target_game and fw.user_id = caller_id;
+    caller_rank_idx := wordwheel._rank_idx(caller_score, g_row.required_words_score);
+
+    if caller_rank_idx >= current_target_rank then
+      -- Compete win: caller hit the target rank first. Freeze the
+      -- leaderboard at the moment of victory.
+      select jsonb_agg(
+               jsonb_build_object(
+                 'user_id', p.user_id,
+                 'found_words_score', coalesce(p.found_words_score, 0),
+                 'rank_idx', wordwheel._rank_idx(coalesce(p.found_words_score, 0), g_row.required_words_score),
+                 'found_words_count', coalesce(p.found_words_count, 0)
+               )
+             )
+        into player_results
+        from (
+          select gp.user_id,
+                 coalesce(sum(fw.points), 0)::int as found_words_score,
+                 -- All rows (required + bonus) to mirror wordwheel-ws's
+                 -- found.length stat surfaced in the leaderboard
+                 -- display. Scoring-only count would diverge from
+                 -- what the player sees in their own Stats card.
+                 count(fw.word)::int as found_words_count
+            from common.game_players gp
+            left join wordwheel.found_words fw
+                   on fw.game_id = target_game and fw.user_id = gp.user_id
+           where gp.game_id = target_game
+           group by gp.user_id
+        ) p;
+
+      perform common.end_game(
+        target_game, 'won_compete',
+        jsonb_build_object(
+          'outcome', 'target',
+          'mode', 'compete',
+          'winner_user_id', caller_id,
+          -- Named, not just id'd: the club-list label can't resolve a uuid
+          -- (labelFor is a pure function of this one row), and the
+          -- leaderboard it would otherwise dig through is privacy-scoped.
+          'winner_username', (select username from common.profiles
+                               where user_id = caller_id),
+          'target_rank', current_target_rank,
+          'leaderboard', player_results
+        ),
+        -- Re-key the leaderboard into the per-player {won, score,
+        -- rank_idx} shape that common.end_game expects.
+        (select jsonb_object_agg(
+                  (entry->>'user_id'),
+                  jsonb_build_object(
+                    'won', (entry->>'user_id')::uuid = caller_id,
+                    'found_words_score', (entry->>'found_words_score')::int,
+                    'rank_idx', (entry->>'rank_idx')::int
+                  )
+                )
+           from jsonb_array_elements(player_results) entry));
+    else
+      -- Build the full leaderboard for the status label.
+      select jsonb_agg(
+               jsonb_build_object(
+                 'user_id', p.user_id,
+                 'found_words_score', p.found_words_score,
+                 'rank_idx', wordwheel._rank_idx(p.found_words_score, g_row.required_words_score),
+                 'found_words_count', p.found_words_count
+               )
+             )
+        into player_results
+        from (
+          select gp.user_id,
+                 coalesce(sum(fw.points), 0)::int as found_words_score,
+                 -- All rows (required + bonus) to mirror wordwheel-ws's
+                 -- found.length stat surfaced in the leaderboard
+                 -- display. Scoring-only count would diverge from
+                 -- what the player sees in their own Stats card.
+                 count(fw.word)::int as found_words_count
+            from common.game_players gp
+            left join wordwheel.found_words fw
+                   on fw.game_id = target_game and fw.user_id = gp.user_id
+           where gp.game_id = target_game
+           group by gp.user_id
+        ) p;
+
+      perform common.update_state(
+        target_game, 'playing',
+        jsonb_build_object(
+          'mode', 'compete',
+          'target_rank', current_target_rank,
+          'leaderboard', player_results,
+          'required_words_score', g_row.required_words_score,
+          'required_words_count', g_row.required_words_count
+        )
+      );
+    end if;
+  end if;
+
+  -- Echo back a classification (the FE drives its own optimistic feedback, so this
+  -- is mostly for tests / debugging). `points` is the trusted value on the row.
+  return jsonb_build_object(
+    'result',
+    case
+      when coalesce(is_pangram, false) then 'pangram'
+      when coalesce(is_bonus, false) then 'bonus'
+      else 'accepted'
+    end,
+    'points', coalesce(points, 0)
+  );
+end;
+$$;
+
+revoke execute on function wordwheel.submit_word(uuid, text, int, boolean, boolean) from public;
+grant execute on function wordwheel.submit_word(uuid, text, int, boolean, boolean) to authenticated;
+
+-- ============================================================
+-- wordwheel.submit_timeout
+-- ============================================================
+-- Fired by the FE when the count-down timer hits 0. Flips the game terminal
+-- with outcome='timeout' — 'ended' (neutral) normally, but 'lost' in a COOP
+-- game that set a target rank and didn't reach it (the clock beat them), and
+-- 'ended' in compete (nobody reached the target). Multiple peers may
+-- race the expiry; the SELECT ... FOR UPDATE serializes them
+-- and the post-lock play_state check rejects everyone after
+-- the first with P0001 (which the FE swallows silently).
+--
+-- Mode comes off wordwheel.games.mode. This is identical in shape
+-- to connections / psychicnum's submit_timeout, just with wordwheel's
+-- status payload.
+-- common.end_game flips common.games to ended/terminal; the FE's useCommonGame
+-- hook (subscribed to common.games) sees that and enters review mode.
+--
+-- A wordwheel-table "realtime touch" on found_words IS needed for compete:
+-- opponents' found_words rows are RLS-hidden during play and become SELECT-able
+-- only at terminal, and the FE's useGame subscribes to found_words alone. On a
+-- non-submit_word terminal (timeout here) no found_words event fires on its own,
+-- so peers never refetch and every opponent find renders as a grey "missed" row.
+-- A no-op self-update fires the WAL events. (The header word lists ship at game
+-- start, so THAT needs no touch — but the per-player finds do.)
+
+create or replace function wordwheel.submit_timeout(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = wordwheel, common, public, extensions
+as $$
+declare
+  g_row wordwheel.games%rowtype;
+  current_play_state text;
+  current_target_rank int;
+  team_score int;
+  team_found_words_count int;
+  status_leaderboard jsonb;
+  player_results jsonb;
+begin
+  select * into g_row from wordwheel.games
+   where wordwheel.games.id = target_game
+   for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  perform common.require_game_player(target_game);
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+
+  if current_play_state <> 'playing' then
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  if g_row.mode = 'coop' then
+    -- Status display uses the ALL-rows count to match the
+    -- live Stats card (wordwheel-ws semantics — see submit_word
+    -- for the rationale).
+    select coalesce(sum(points), 0),
+           count(*)
+      into team_score, team_found_words_count
+      from wordwheel.found_words
+     where game_id = target_game;
+
+    select (setup->>'target_rank')::int into current_target_rank
+      from common.games where id = target_game;
+
+    -- The clock beat a team that set out for a rank → a real LOSS ('lost').
+    -- With no target there was nothing to fail at, so the same expiry is just
+    -- the neutral stop ('ended'). (A team that had already REACHED its target
+    -- can't be here: submit_word ends the game the moment they cross.)
+    select jsonb_object_agg(
+             user_id::text,
+             jsonb_build_object(
+               'won', false,
+               'finished', true,
+               'team_score', team_score,
+               'team_rank_idx',
+                 wordwheel._rank_idx(team_score, g_row.required_words_score)
+             )
+           )
+      into player_results
+      from common.game_players
+     where game_id = target_game;
+
+    perform common.end_game(
+      target_game,
+      case when current_target_rank is not null then 'lost' else 'ended' end,
+      jsonb_build_object(
+        'outcome', 'timeout',
+        'mode', 'coop',
+        'found_words_score', team_score,
+        'required_words_score', g_row.required_words_score,
+        'rank_idx', wordwheel._rank_idx(team_score, g_row.required_words_score),
+        'found_words_count', team_found_words_count,
+        'required_words_count', g_row.required_words_count,
+        'target_rank', current_target_rank
+      ),
+      player_results);
+  else
+    -- compete: freeze the leaderboard at timeout, no winner. common.end_game
+    -- REPLACES status wholesale, so we must re-emit target_rank + the display
+    -- leaderboard the mid-game status carried — otherwise the club label reads
+    -- "no winner at Start" (target_rank ?? 0) and the terminal OpponentStrip
+    -- shows every player "Lost at Start" (empty leaderboard). Same array shape
+    -- as submit_word's win path.
+    select (setup->>'target_rank')::int into current_target_rank
+      from common.games where id = target_game;
+
+    select jsonb_agg(
+             jsonb_build_object(
+               'user_id', p.user_id,
+               'found_words_score', p.found_words_score,
+               'rank_idx', wordwheel._rank_idx(p.found_words_score, g_row.required_words_score),
+               'found_words_count', p.found_words_count
+             )
+           )
+      into status_leaderboard
+      from (
+        select gp.user_id,
+               coalesce(sum(fw.points), 0)::int as found_words_score,
+               count(fw.word)::int as found_words_count
+          from common.game_players gp
+          left join wordwheel.found_words fw
+                 on fw.game_id = target_game and fw.user_id = gp.user_id
+         where gp.game_id = target_game
+         group by gp.user_id
+      ) p;
+
+    -- A compete race always has a target rank, so the clock beating everyone
+    -- to it is a real LOSS for the table — the same rule coop already applies
+    -- (see the coop branch's play_state), and the same rule boggle applies to
+    -- its score target. Only a game with nothing to reach ends neutrally.
+    perform common.end_game(
+      target_game,
+      case when current_target_rank is not null then 'lost_compete' else 'ended' end,
+      jsonb_build_object(
+        'outcome', 'timeout',
+        'mode', 'compete',
+        'target_rank', current_target_rank,
+        'leaderboard', status_leaderboard
+      ),
+      -- Re-key the display array into the per-player {won:false, score,
+      -- rank_idx} shape common.end_game expects (no winner at a timeout).
+      (select jsonb_object_agg(
+                (entry->>'user_id'),
+                jsonb_build_object(
+                  'won', false,
+                  'found_words_score', (entry->>'found_words_score')::int,
+                  'rank_idx', (entry->>'rank_idx')::int
+                )
+              )
+         from jsonb_array_elements(status_leaderboard) entry));
+  end if;
+
+  -- Realtime touch on found_words so peers refetch and the now-RLS-visible
+  -- opponents' finds appear (see header). Harmless in coop (teammates already
+  -- see each other's words live); load-bearing in compete.
+  update wordwheel.found_words set user_id = user_id where game_id = target_game;
+end;
+$$;
+
+revoke execute on function wordwheel.submit_timeout(uuid) from public;
+grant execute on function wordwheel.submit_timeout(uuid) to authenticated;
+
+-- ============================================================
+-- wordwheel.end_game — manual stop
+-- ============================================================
+--
+-- Unlike codenamesduet / psychicnum / connections, wordwheel has no
+-- intrinsic "you lost" or "you won" terminal state in coop: the
+-- only automatic terminals are the compete first-to-target-rank
+-- (handled inside submit_word: play_state 'won_compete', outcome
+-- 'target') and the countdown timer expiring (handled by
+-- submit_timeout with outcome='timeout'). For all other cases the friends are
+-- expected to play until they're satisfied with their rank and
+-- then explicitly stop the game.
+--
+-- This RPC is that explicit stop. The FE's GamePage menu has an
+-- "End game" item (per-game, declared by wordwheel's PlayArea via
+-- ctx.menu.setGameItems) that fires this. Distinct from suspend
+-- (which leaves play_state='playing' and is the path "back to
+-- club" + start-a-new-game takes): end_game writes a terminal
+-- play_state='ended' with status.outcome='manual', so the game
+-- appears in the club's "completed" section forever after and the
+-- terminal verdict renders.
+--
+-- Same shape as submit_timeout, with two differences:
+--   - status.outcome='manual' (vs 'timeout')
+--   - any game player can fire it (vs the FE's timer-driven
+--     dispatch)
+-- Ends with a found_words realtime touch, same as submit_timeout: the compete
+-- opponents'-finds reveal is RLS-gated on terminal and useGame subscribes to
+-- found_words alone, so a manual end needs the no-op self-update to wake peers.
+
+create or replace function wordwheel.end_game(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = wordwheel, common, public, extensions
+as $$
+declare
+  g_row wordwheel.games%rowtype;
+  current_play_state text;
+  current_target_rank int;
+  team_score int;
+  team_found_words_count int;
+  status_leaderboard jsonb;
+  player_results jsonb;
+begin
+  select * into g_row from wordwheel.games
+   where wordwheel.games.id = target_game
+   for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  perform common.require_game_player(target_game);
+
+  select play_state into current_play_state
+    from common.games where id = target_game;
+
+  if current_play_state <> 'playing' then
+    -- Idempotency: a second click (or a concurrent click + timer
+    -- expiry) raises this and the FE swallows it the same way
+    -- it does for submit_timeout's "already terminal" race.
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  if g_row.mode = 'coop' then
+    -- All-rows count for display, matching wordwheel-ws.
+    select coalesce(sum(points), 0),
+           count(*)
+      into team_score, team_found_words_count
+      from wordwheel.found_words
+     where game_id = target_game;
+
+    select (setup->>'target_rank')::int into current_target_rank
+      from common.games where id = target_game;
+
+    select jsonb_object_agg(
+             user_id::text,
+             jsonb_build_object(
+               'won', false,
+               'finished', true,
+               'team_score', team_score,
+               'team_rank_idx',
+                 wordwheel._rank_idx(team_score, g_row.required_words_score)
+             )
+           )
+      into player_results
+      from common.game_players
+     where game_id = target_game;
+
+    -- Manual End is NEUTRAL even when a target was set and missed: the friends
+    -- chose to stop, which isn't losing (only the clock running out is).
+    perform common.end_game(
+      target_game, 'ended',
+      jsonb_build_object(
+        'outcome', 'manual',
+        'mode', 'coop',
+        'found_words_score', team_score,
+        'required_words_score', g_row.required_words_score,
+        'rank_idx', wordwheel._rank_idx(team_score, g_row.required_words_score),
+        'found_words_count', team_found_words_count,
+        'required_words_count', g_row.required_words_count,
+        'target_rank', current_target_rank
+      ),
+      player_results);
+  else
+    -- compete: per-player aggregates, no winner (the players agreed to stop).
+    -- Same shape as submit_timeout's compete branch — re-emit target_rank +
+    -- the display leaderboard so the terminal label + OpponentStrip don't fall
+    -- back to "Start" (common.end_game replaces status wholesale).
+    select (setup->>'target_rank')::int into current_target_rank
+      from common.games where id = target_game;
+
+    select jsonb_agg(
+             jsonb_build_object(
+               'user_id', p.user_id,
+               'found_words_score', p.found_words_score,
+               'rank_idx', wordwheel._rank_idx(p.found_words_score, g_row.required_words_score),
+               'found_words_count', p.found_words_count
+             )
+           )
+      into status_leaderboard
+      from (
+        select gp.user_id,
+               coalesce(sum(fw.points), 0)::int as found_words_score,
+               count(fw.word)::int as found_words_count
+          from common.game_players gp
+          left join wordwheel.found_words fw
+                 on fw.game_id = target_game and fw.user_id = gp.user_id
+         where gp.game_id = target_game
+         group by gp.user_id
+      ) p;
+
+    perform common.end_game(
+      target_game, 'ended',
+      jsonb_build_object(
+        'outcome', 'manual',
+        'mode', 'compete',
+        'target_rank', current_target_rank,
+        'leaderboard', status_leaderboard
+      ),
+      (select jsonb_object_agg(
+                (entry->>'user_id'),
+                jsonb_build_object(
+                  'won', false,
+                  'found_words_score', (entry->>'found_words_score')::int,
+                  'rank_idx', (entry->>'rank_idx')::int
+                )
+              )
+         from jsonb_array_elements(status_leaderboard) entry));
+  end if;
+
+  -- Realtime touch on found_words so compete peers refetch the now-RLS-visible
+  -- opponents' finds (see submit_timeout's header for the full rationale).
+  update wordwheel.found_words set user_id = user_id where game_id = target_game;
+end;
+$$;
+
+revoke execute on function wordwheel.end_game(uuid) from public;
+grant execute on function wordwheel.end_game(uuid) to authenticated;
+
+-- ============================================================
+-- wordwheel.replay_board — restart this board from scratch
+-- ============================================================
+-- The "Replay board" game-menu item / terminal RestartButton (the waffle
+-- feature — docs/celebration-ideas.md). Restarts the SAME board — same
+-- letters + word lists — for everyone: the found-words log (the game's
+-- only working state) is cleared, and common.reset_game un-terminals the
+-- row with the same initial status create_game seeds (mode-branched; the
+-- compete target_rank re-read from the frozen common.games.setup) and
+-- zeroes the shared clock. Any game player may call it, mid-game or after
+-- game-over (no play_state guard — it's a restart).
+--
+-- The realtime touch at the end is LOAD-BEARING here (unlike waffle,
+-- whose players UPDATE wakes its hook for free): replay only DELETEs
+-- found_words rows, and realtime filters don't reliably match DELETE
+-- events — so useGame also subscribes to wordwheel.games, and this
+-- no-op write is what wakes every client to refetch the now-empty list.
+create or replace function wordwheel.replay_board(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = wordwheel, common, public, extensions
+as $$
+declare
+  g_row wordwheel.games;
+  s_target_rank int;
+  new_status jsonb;
+begin
+  perform common.require_game_player(target_game);
+  -- FOR UPDATE: a replay racing a move must not interleave with it (the move
+  -- RPCs lock the same row), or the reset could land on a half-applied move —
+  -- a stray log row in the "fresh" game, or worse, an in-flight game-ENDING
+  -- move re-terminalling the board that was just reset.
+  select * into g_row from wordwheel.games where id = target_game for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  delete from wordwheel.found_words where game_id = target_game;
+
+  -- The fresh initial status — the exact shapes create_game seeds.
+  select (setup->>'target_rank')::int into s_target_rank
+    from common.games where id = target_game;
+
+  if g_row.mode = 'coop' then
+    new_status := jsonb_build_object(
+      'mode', 'coop',
+      'found_words_score', 0,
+      'required_words_score', g_row.required_words_score,
+      'rank_idx', 0,
+      'found_words_count', 0,
+      'required_words_count', g_row.required_words_count,
+      -- Carried over: replay re-runs the SAME game (same board, same setup), so
+      -- a coop win target survives the restart.
+      'target_rank', s_target_rank
+    );
+  else
+    new_status := jsonb_build_object(
+      'mode', 'compete',
+      'target_rank', s_target_rank,
+      'required_words_score', g_row.required_words_score,
+      'required_words_count', g_row.required_words_count,
+      'leaderboard', '[]'::jsonb
+    );
+  end if;
+
+  perform common.reset_game(target_game, new_status);
+
+  -- Realtime touch (see the header) — wakes useGame's games subscription.
+  update wordwheel.games set club_handle = club_handle where id = target_game;
+end;
+$$;
+
+revoke execute on function wordwheel.replay_board(uuid) from public;
+grant execute on function wordwheel.replay_board(uuid) to authenticated;
+
+-- ============================================================
+-- wordwheel.concede — a player drops out of a compete race
+-- ============================================================
+-- wordwheel has NO independent per-player "eliminated" state (a
+-- player is only ever done by winning — first to the target rank —
+-- which ends the game, or by conceding), so the active set is exactly
+-- "not conceded" and the generic common.concede handles everything:
+-- mark the caller out, and if that was the last racer, end the game
+-- as a collective loss. This wrapper just keeps the FE uniform (every
+-- game calls its own-schema `concede`) and gates concede to compete —
+-- coop is a team, it ends via the shared End, never a concede.
+create or replace function wordwheel.concede(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = wordwheel, common, public, extensions
+as $$
+begin
+  perform common.require_compete((select mode from wordwheel.games where id = target_game));
+  perform common.concede(target_game);
+
+  -- If that was the last racer, common.concede ended the game. Wake the
+  -- found_words subscription (same reveal as submit_timeout/end_game) so the
+  -- remaining clients refetch the now-RLS-visible opponents' finds. common.*
+  -- writes only common.games, so without this the reveal never loads.
+  if (select play_state from common.games where id = target_game) <> 'playing' then
+    update wordwheel.found_words set user_id = user_id where game_id = target_game;
+  end if;
+end;
+$$;
+
+revoke execute on function wordwheel.concede(uuid) from public;
+grant execute on function wordwheel.concede(uuid) to authenticated;

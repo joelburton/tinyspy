@@ -11,8 +11,9 @@
 | `npm run test:fe` | Vitest only; add `-- --watch` for the dev loop |
 | `npm run test:db` | pgTAP only (needs Docker + the local Supabase stack) |
 | `npm run test:e2e` | Playwright realtime smoke tests (needs the local stack running) |
-| `npm run db:reset` | wipe the local DB and replay every migration + seed |
-| `npm run db:diff` | show what the local schema has that migrations don't |
+| `npm run db:reset` | wipe the local DB, replay every migration, re-apply `supabase/sql/`, import + seed |
+| `npm run sql:apply` | re-apply the repeatable SQL (`supabase/sql/*.sql` — functions/views/policies/grants) without touching data. The whole point of the [schema-vs-code split](supabase.md#schema-vs-code): an RPC change is an edit here, never a migration |
+| `npm run db:diff` | show what the local schema has that migrations don't. **Noisy since the [schema-vs-code split](supabase.md#schema-vs-code)** — every function, view and policy lives outside the migration history by design, so they all report as drift (~440 KB). Read it for TABLE drift only |
 | `npm run db:lint` | Supabase's schema linter — warnings + errors |
 | `npm run types:gen` | regenerate `src/types/db.ts` from the live local schema |
 | `npm run connections:import` | populate `connections.puzzles` from the NYT Connections archive (one-shot per environment; idempotent) |
@@ -22,9 +23,9 @@
 | `npm run spellingbee:import` | rebuild `spellingbee.pangrams` (the board-seed pool) from the scoring slice of `common.words`. **Run after `words:import`.** psql `COPY` reseed; needs `psql` |
 | `npm run stackdown:import` | populate the pre-generated `stackdown.boards` library (part of the `import` chain; `stackdown:gen` regenerates the board file it loads) |
 | `npm run boggle:wordlist` | bundle boggle's solver dictionary into the git-ignored `boggle-build-board/wordlist.ts`. Needed before the edge function can serve locally; `deploy` runs it automatically |
-| `npm run scrabble:wordlist` | bundle the scrabble move-suggester dictionary (`play_word`'s exact word universe) into the git-ignored `scrabble-suggest-move/wordlist.ts`. Needed before the edge function can serve locally; `deploy` runs it automatically |
+| `npm run scrabble:wordlist` | bundle the scrabble AI's dictionary (`play_word`'s universe minus slurs + profanity) into the git-ignored `scrabble-suggest-move/wordlist.ts`. Needed before the edge function can serve locally; `deploy` runs it automatically |
 | `npm run scrabble:selfplay` | run the AI-vs-AI self-play tuning harness (calibrates the compete opponent's strength levels — see scrabble.md §12) |
-| `npm run deploy` | full prod push: `boggle:wordlist` + `scrabble:wordlist` (regenerate the git-ignored edge-function word bundles) → `supabase db push` → `supabase functions deploy` (all functions) → `vite build` → `netlify deploy -p -d dist` |
+| `npm run deploy` | full prod push: `boggle:wordlist` + `scrabble:wordlist` (regenerate the git-ignored edge-function word bundles) → `supabase db push` (schema deltas) → `sql:apply --require-url` (the repeatable SQL, onto the hosted DB — errors if `SUPABASE_DB_URL` is unset rather than re-applying to localhost) → `supabase functions deploy` (all functions) → `vite build` → `netlify deploy -p -d dist` |
 | `deno test supabase/functions/waffle-build-board/gen_test.ts` | unit-test waffle's `minSwaps` par (the generation logic lives in the edge function, not under Vitest) |
 
 ## `supabase …`
@@ -38,11 +39,18 @@ supabase status -o env                          # same but env-format for script
 
 ### Migrations & schema
 
+> **Which file?** Functions / views / policies / triggers / grants → edit
+> `supabase/sql/<game>.sql` and run `npm run sql:apply`; that is never a
+> migration. Tables / columns / constraints / indexes / the publication /
+> seeds → a migration. See [supabase.md → Schema vs code](supabase.md#schema-vs-code).
+> Note `supabase db diff` reports the repeatable objects as "drift" — they live
+> outside the migration history by design.
+
 ```
 supabase migration new <name>                   # create a timestamped empty .sql file
 supabase migration list --linked                # which migrations are applied on prod
 supabase db reset                               # local: drop, replay migrations + seed
-supabase db diff                                # show drift between local and migrations
+supabase db diff                                # drift vs migrations — now dominated by the repeatable objects (see the note above)
 supabase db push                                # apply pending migrations to the linked project
 supabase db push --dry-run                      # preview what would be applied (recommended first!)
 supabase db lint --local --level warning        # static schema checks
