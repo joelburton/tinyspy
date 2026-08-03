@@ -129,7 +129,7 @@ export function InfoCol({
    *  or null for one still hidden. Revealed progressively throughout the game. */
   answerWords: (string | null)[]
 
-  // ── Turn-history log (GameTurnLog — coop only) ──
+  // ── Turn-history log (GameTurnLog — both modes) ──
   swaps: SwapRow[]
   /** The swap currently open in the board viewer (by log position), or null. */
   viewingIndex: number | null
@@ -266,17 +266,20 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      {/* The shared swap log — coop only (compete writes none, and a swap sequence
-          would leak an opponent's hidden board). Rows are clickable to restart that
-          swap on the board. */}
-      {!isCompete && (
-        <GameTurnLog
-          swaps={swaps}
-          players={players}
-          viewingIndex={viewingIndex}
-          onSelectTurn={onSelectTurn}
-        />
-      )}
+      {/* The swap log — BOTH modes since 2026-08-02 (compete used to write none).
+          Compete carries the shared "whose swaps?" picker: an opponent's rows are
+          RLS-hidden during play and open at terminal, which is what makes logging
+          them safe — replaying someone's swaps from the shared scramble would
+          otherwise rebuild their board. Rows are clickable to replay that swap. */}
+      <GameTurnLog
+        swaps={swaps}
+        players={players}
+        selfId={selfId}
+        mode={isCompete ? 'compete' : 'coop'}
+        isTerminal={over !== null}
+        viewingIndex={viewingIndex}
+        onSelectTurn={onSelectTurn}
+      />
     </div>
   )
 }

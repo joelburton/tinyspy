@@ -16,7 +16,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/setup.psql
 \ir setup.psql
 
-select plan(18);
+select plan(23);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -86,6 +86,20 @@ select ok(
       and user_id = 'ada11111-1111-1111-1111-111111111111') is not null,
   'a player always sees her own board');
 
+-- The SWAP LOG has to agree with the board rule above, or the weaker one
+-- decides: every compete player solves the same puzzle from the same scramble,
+-- so replaying an opponent's swaps rebuilds their board — and their green tiles
+-- are correct letter positions. A readable log would hand an honest player the
+-- answer, which is why swaps_select gates on it. ada sees her own swap only.
+select is(
+  (select count(*) from waffle.swaps where game_id = (select id from g)),
+  1::bigint,
+  'mid-game: a player sees only their OWN swaps');
+select is(
+  (select count(distinct user_id) from waffle.swaps where game_id = (select id from g)),
+  1::bigint,
+  'mid-game: no opponent rows leak into the log');
+
 -- A solved player is locked out of further swaps.
 select throws_ok(
   format($$ select waffle.submit_swap(%L::uuid, 2, 3) $$, (select id from g)),
@@ -129,13 +143,38 @@ select is(
   'abcdef.g.hijklmn.o.pqrstu',
   'post-terminal: the opponent board is revealed');
 
--- Compete never writes the move log (it's coop-only; a swap sequence
--- would leak an opponent's hidden board).
+-- ── The compete move log (added 2026-08-02) ─────────────────
+-- Compete now logs swaps too. ada made 1, bea made 3 — four rows, and each
+-- player's `seq` counts from 1 independently, which is exactly why user_id had
+-- to join the primary key (without it bea's seq 1 would collide with ada's).
 reset role;
 select is(
   (select count(*) from waffle.swaps where game_id = (select id from g)),
-  0::bigint,
-  'compete writes no swap-log rows (4 swaps happened, none logged)');
+  4::bigint,
+  'compete logs every swap (ada 1 + bea 3)');
+
+-- …and at TERMINAL both players' logs open up — the point of logging them, and
+-- safe because the boards themselves are revealed by then anyway.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(
+  (select count(distinct user_id) from waffle.swaps where game_id = (select id from g)),
+  2::bigint,
+  'at terminal: a player sees BOTH logs');
+reset role;
+
+select is(
+  (select array_agg(seq order by seq) from waffle.swaps
+    where game_id = (select id from g)
+      and user_id = 'bea22222-2222-2222-2222-222222222222'),
+  array[1, 2, 3],
+  'compete seq counts per PLAYER, not game-wide (the PK change)');
+
+select is(
+  (select count(*) from waffle.swaps
+    where game_id = (select id from g)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  1::bigint,
+  'ada''s single swap is logged under her own seq 1');
 
 select * from finish();
 rollback;

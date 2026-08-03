@@ -220,7 +220,11 @@ create table waffle.swaps (
   letter_a   char(1) not null,       -- letter on pos_a before the swap
   letter_b   char(1) not null,       -- letter on pos_b before the swap
   swapped_at timestamptz not null default now(),
-  primary key (game_id, seq)
+  -- user_id is in the key because `seq` is the CALLER's swap count
+  -- (p_swaps + 1), not a game-wide ordinal. Coop's rows move in lock-step so
+  -- it happens to be game-wide there; in compete each player counts
+  -- independently, and without user_id two players' swap #3 would collide.
+  primary key (game_id, user_id, seq)
 );
 
 create index waffle_swaps_game_id_idx on waffle.swaps (game_id);
@@ -230,13 +234,26 @@ create index waffle_swaps_game_id_idx on waffle.swaps (game_id);
 grant select on waffle.swaps to authenticated;
 
 alter table waffle.swaps enable row level security;
+-- Swaps: mode-aware, mirroring the board's own visibility.
+--   coop    — one shared board, so the log is shared too.
+--   compete — DURING PLAY you see only your own; at terminal everyone's open.
+--
+-- This is not politeness, and not anti-cheat either: every compete player
+-- solves the SAME puzzle from the same scramble, and a swap carries both
+-- positions and both letters — so replaying an opponent's log reconstructs
+-- their board exactly, and their green tiles ARE correct letter positions.
+-- A club-wide log would hand the answer to an honest player just reading it.
+-- Same reason `_board_visible` hides the board itself; these two must agree,
+-- or the weaker one decides.
 create policy swaps_select on waffle.swaps
   for select to authenticated
   using (
     exists (
       select 1 from waffle.games g
+       join common.games cg on cg.id = g.id
        where g.id = swaps.game_id
          and common.is_club_member(g.club_handle)
+         and (g.mode = 'coop' or swaps.user_id = auth.uid() or cg.is_terminal)
     )
   );
 
@@ -824,6 +841,17 @@ begin
   new_swaps := p_swaps + 1;
   did_solve := (new_board = g_row.solution);
 
+  -- Append to the move log, in BOTH modes (compete gained one 2026-08-02).
+  -- The letters come from the PRE-swap board (p_board) so the entry is
+  -- self-contained, and `new_swaps` is the caller's own count — which is why
+  -- user_id is in the primary key. Compete's rows are RLS-private until the
+  -- game ends; see the swaps_select policy for why that's load-bearing.
+  insert into waffle.swaps
+    (game_id, user_id, seq, pos_a, pos_b, letter_a, letter_b)
+  values
+    (target_game, caller_id, new_swaps, pos_a, pos_b,
+     substr(p_board, a1, 1), substr(p_board, b1, 1));
+
   if g_row.mode = 'coop' then
     -- Lock-step: every player's row mirrors the shared board + count.
     update waffle.players
@@ -832,14 +860,6 @@ begin
            solved     = did_solve,
            solved_at  = case when did_solve then now() else solved_at end
      where game_id = target_game;
-
-    -- Append to the shared move log. Coop only; the letters are read
-    -- from the PRE-swap board (p_board) so the entry is self-contained.
-    insert into waffle.swaps
-      (game_id, user_id, seq, pos_a, pos_b, letter_a, letter_b)
-    values
-      (target_game, caller_id, new_swaps, pos_a, pos_b,
-       substr(p_board, a1, 1), substr(p_board, b1, 1));
 
     if did_solve then
       term_state := 'won';

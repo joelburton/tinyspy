@@ -385,11 +385,22 @@ export function PlayArea({
   // (`myConceded` — my own drop-out flag — is derived at the top.)
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
-  // Turn viewer (coop only): the historical board for the swap being viewed, or null
-  // when live. Replayed from the scramble + swap log, colored on the FE (coop exposes
-  // the solution). Works at terminal too (reviewing the finished solve).
+  // Turn viewer: the historical board for the swap being viewed, or null when
+  // live. Replayed from the scramble + swap log, colored on the FE.
+  //
+  // The log now carries EVERY player's swaps in compete (2026-08-02), and a
+  // replay must apply only ONE player's — applying an opponent's transpositions
+  // to my scramble would produce a board nobody ever saw. Whose is never in
+  // doubt: the log makes `#N` clickable only when the rows on show are the
+  // board's own (coop's shared game, or my own rows — the picker's
+  // `boardIsShown`), so the replay list is exactly this.
+  const replaySwaps = isCompete
+    ? swaps.filter((sw) => sw.user_id === session.user.id)
+    : swaps
   const snap =
-    viewingIndex !== null ? turnSnapshot(game.scramble, game.solution, swaps, viewingIndex) : null
+    viewingIndex !== null
+      ? turnSnapshot(game.scramble, game.solution, replaySwaps, viewingIndex)
+      : null
 
   // The grid shows the caller's own board + live colors (including at game-over) — OR,
   // while viewing, the historical snapshot. After the MID-GAME "Reveal answer" the

@@ -129,7 +129,7 @@ exactly how `connections` handles its coop counters. The only cost is storing th
 | `waffle.games` → `common.games(id)` | `club_handle`, `mode` (`coop`/`compete`), `scramble` (exposed), `par_swaps`, `max_swaps`, and **`solution` (grant-hidden** — column-grant revoked; read only via
 `_solution_for`, which exposes it in coop always / compete post-terminal). The board (solution/scramble/par) is built on demand by the `waffle-build-board` edge function and stored here, so the game is self-contained. There is **no** `waffle.puzzles` table — boards aren't pre-generated. |
 | `waffle.players` PK `(game_id, user_id)` | Per-player working state: `board` (25-char, starts = `scramble`), `swaps_used`, `solved`, `solved_at`. **Coop:** every row updates in lock-step. **Compete:** rows are independent. |
-| `waffle.swaps` PK `(game_id, seq)` | The coop move log: one row per swap — `user_id`, `seq` (1-based, the shared coop count), `pos_a`/`pos_b`, `letter_a`/`letter_b` (the letters on those cells *before* the swap, stored so the entry is self-contained), and a `swapped_at` timestamp. **Coop only** — compete writes none (a swap sequence would leak an opponent's hidden board). Read directly (no gated columns); RLS is club-member-wide. |
+| `waffle.swaps` PK `(game_id, user_id, seq)` | The move log, **both modes** (compete gained one 2026-08-02): one row per swap — `user_id`, `seq`, `pos_a`/`pos_b`, `letter_a`/`letter_b` (the letters on those cells *before* the swap, so the entry is self-contained), `swapped_at`. `seq` is the **caller's own** swap count, not a game-wide ordinal — coop's rows move in lock-step so it happens to be game-wide there, but in compete each player counts from 1, which is why `user_id` is in the primary key. RLS is mode-aware: see [The compete swap log](#the-compete-swap-log-and-why-it-is-private) below. |
 
 ### Views (`security_invoker`)
 
@@ -142,6 +142,37 @@ exactly how `connections` handles its coop counters. The only cost is storing th
   `_player_colors_for(g_id, row_user)` that reads the hidden `games.solution`
   and wraps the pure `board_colors(board, solution)`). Colors are visible
   during play (they *are* the gameplay); the full solution is not.
+
+### The compete swap log, and why it is private
+
+Compete used to write **no** move log at all, on the reasoning that a swap
+sequence leaks an opponent's board. That reasoning is right — it's why the log
+now exists behind a gate rather than not at all:
+
+Every compete player solves the **same puzzle from the same scramble**, and a
+swap row carries both positions and both letters. So replaying an opponent's log
+forward from the scramble reconstructs their board exactly, and their green tiles
+are correct letter positions. A club-wide readable log wouldn't be so much a
+cheating opportunity as a **spoiler handed to an honest player** who just reads
+the turn log.
+
+So `swaps_select` mirrors `_board_visible`, and the two must agree or the weaker
+one decides what's actually secret:
+
+    coop                 →  shared, like the board
+    compete during play  →  your own rows only
+    compete at terminal  →  everyone's, since the boards are revealed then anyway
+
+Two consequences worth knowing:
+
+- **The FE must never replay a mixed list.** `lib/history.ts` reconstructs a past
+  board by applying swaps to the scramble; applying two players' transpositions
+  to one board produces a state nobody ever saw. PlayArea filters to a single
+  player's swaps before calling it, and the log offers a clickable `#N` only when
+  the rows shown are the board's own (the picker's `boardIsShown`).
+- **The log carries the shared "whose swaps?" picker** in compete — "All", plus
+  each player — with an honest *"Hidden until game ends"* for an opponent
+  mid-game rather than a misleading "no swaps yet".
 
 ### RLS (mode-aware)
 

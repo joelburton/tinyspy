@@ -68,3 +68,48 @@ describe('turnSnapshot', () => {
     expect(snap.description).toBe('This swap')
   })
 })
+
+/**
+ * Compete logs swaps too since 2026-08-02, so `waffle.swaps` can hold several
+ * players' independent sequences. Replaying a MIXED list against one scramble
+ * would apply an opponent's transpositions to my board and produce a state
+ * nobody ever saw — so callers filter first (PlayArea's `replaySwaps`). These
+ * pin what that filtering has to achieve.
+ */
+describe('compete: one player’s swaps at a time', () => {
+  // Both players solve the same puzzle, so their logs interleave in the table
+  // and each counts its OWN seq from 1.
+  const MIXED: SwapRow[] = [
+    swap({ user_id: 'u1', seq: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
+    swap({ user_id: 'u2', seq: 1, pos_a: 4, pos_b: 5, letter_a: 'e', letter_b: 'f' }),
+    swap({ user_id: 'u1', seq: 2, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
+    swap({ user_id: 'u2', seq: 2, pos_a: 9, pos_b: 10, letter_a: 'i', letter_b: 'j' }),
+  ]
+
+  it('replays MY two swaps to the solved board', () => {
+    const mine = MIXED.filter((s) => s.user_id === 'u1')
+    expect(boardAfter(SCRAMBLE, mine, mine.length - 1)).toBe(SOLUTION)
+  })
+
+  it('a MIXED list produces a board nobody played — the bug the filter prevents', () => {
+    // Same scramble, same index, unfiltered: the opponent's 4↔5 and 9↔10 land on
+    // my board too. Not a subtle difference — it is simply not my game state.
+    expect(boardAfter(SCRAMBLE, MIXED, MIXED.length - 1)).not.toBe(SOLUTION)
+  })
+
+  it('each player’s log replays independently from the same scramble', () => {
+    const theirs = MIXED.filter((s) => s.user_id === 'u2')
+    // u2 swapped 4↔5 (e↔f) then 9↔10 (h↔i), from the shared scramble.
+    expect(boardAfter(SCRAMBLE, theirs, theirs.length - 1)).toBe(
+      'badcfe.g.ihjklmn.o.pqrstu',
+    )
+  })
+
+  it('turnSnapshot indexes the FILTERED list, so #N lines up with the row', () => {
+    const mine = MIXED.filter((s) => s.user_id === 'u1')
+    const snap = turnSnapshot(SCRAMBLE, SOLUTION, mine, 0)
+    // My first swap is 2↔3 — NOT the opponent's 4↔5, which sits between them in
+    // the unfiltered table.
+    expect(snap.highlight).toEqual(new Set([2, 3]))
+  })
+})

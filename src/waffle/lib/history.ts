@@ -10,11 +10,18 @@
  * swap — they're a pure function of `(board, solution)`, recomputed here via the TS
  * `computeColors` port (see lib/colors).
  *
- * **Coop only.** Only coop writes `waffle.swaps` (compete records none — a swap
- * sequence would leak an opponent's hidden board), so there's history to replay only
- * in coop. In coop the board is shared and `seq` is a single game-wide ordinal,
- * so — unlike stackdown, whose per-user seq forced a log-position id — a swap's
- * position in the ordered log IS its chronological order; we index the log directly.
+ * **One player's swaps at a time.** Compete logs swaps too since 2026-08-02, so
+ * `waffle.swaps` can hold several players' independent sequences — and each
+ * player's `seq` counts from 1 (it's their own swap count, which is why user_id
+ * is in the table's primary key). Applying a mixed list to the scramble would
+ * produce a board nobody ever saw, so **callers pass an already-filtered list**:
+ * coop's shared log, or one player's own. Given that, a swap's position in the
+ * list IS its chronological order and we index it directly.
+ *
+ * What makes logging compete swaps safe at all is the RLS, not this file: an
+ * opponent's rows are invisible until the game ends, because replaying them from
+ * the shared scramble rebuilds their board — and their green tiles are correct
+ * letter positions. See the `swaps_select` policy.
  *
  * **The boundary is INCLUSIVE**: viewing the swap at `index` shows the board *after*
  * that swap, with the two cells it moved ringed — "this is what swap #N did", the
@@ -59,8 +66,8 @@ export function boardAfter(
 }
 
 /**
- * Reconstruct the board + colors + description for the swap at `index` in the coop
- * swap log. An out-of-range `index` (shouldn't happen — the caller passes a real
+ * Reconstruct the board + colors + description for the swap at `index` in a
+ * single player's swap log (see the module note — never a mixed list). An out-of-range `index` (shouldn't happen — the caller passes a real
  * row's position) clamps naturally: past the end applies every swap (the final
  * board), and there's no `swaps[index]`, so the highlight is empty and the
  * description neutral.
