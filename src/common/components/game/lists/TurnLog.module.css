@@ -26,20 +26,10 @@
   min-height: 0;
 }
 
-/* (The heading itself is the shared `infoPanel.heading`; this module only styles
- * the heading ROW variant below, and the box's interior.) */
-
-/* Heading row used only when a consumer passes a `headerAction` (e.g. wordle's
- * "whose guesses" dropdown): the heading on the left, the control on the right.
- * Without an action the bare <h3> renders instead, so this never affects the
- * other turn logs. */
-.turnLogHeaderRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
+/* (The heading itself is the shared `infoPanel.heading`, and the heading ROW a
+ * `headerAction` renders into is `infoPanel.headerRow` — the word list wears the
+ * same pair. This module styles only the box's interior and the row vocabulary
+ * below it.) */
 
 /* The scroll box: an EVIDENT bordered frame (2px medium-grey, not a hairline) so
  * players read it as a contained, scrollable region. Fixed height (`flex: 1` +
@@ -222,21 +212,5 @@
   white-space: nowrap;
 }
 
-/* The "whose guesses" dropdown in the turn-log header (compete: You + opponents;
- * coop: just "Team"). Deliberately small + understated — about the height of the
- * heading, muted, no button chrome — since it's a rarely-used control we don't
- * want drawing the eye. */
-.whoSelect {
-  font: inherit;
-  font-size: 0.8rem;
-  /* Normal text color — the selected name is a real value, not de-emphasized
-   * info; the control reads as understated from its small size + subtle border,
-   * not from muting the text. */
-  color: var(--color-text);
-  background: transparent;
-  border: 1px solid var(--color-divider);
-  border-radius: 4px;
-  padding: 0.05rem 0.3rem;
-  max-width: 9rem;
-  cursor: pointer;
-}
+/* (The "whose turns?" dropdown itself is the shared `infoPanel.select` — see the
+ * note there on why the select lives with the panel chrome and not here.) */

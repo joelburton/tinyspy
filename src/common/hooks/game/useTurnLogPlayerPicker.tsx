@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { orderSelfFirst } from '../../lib/game/peers'
 import type { Member } from '../../lib/games'
-import styles from '../../components/game/lists/TurnLog.module.css'
+import infoPanel from '../../components/game/infoPanel.module.css'
 
 /** The minimum a row needs for this hook to filter it: who made it. */
 type ActorRow = { user_id: string }
@@ -145,7 +145,7 @@ export function useTurnLogPlayerPicker<R extends ActorRow>({
 
   const picker = (
     <select
-      className={styles.whoSelect}
+      className={infoPanel.select}
       aria-label={label}
       value={picked}
       onChange={(e) => setChosen(e.target.value)}

@@ -57,6 +57,7 @@ export function InfoCol({
   setup,
   wordRows,
   reveal,
+  hasBonus,
 }: {
   // ── Mode + phase ──
   isCompete: boolean
@@ -112,7 +113,10 @@ export function InfoCol({
   // ── Found-words list ──
   wordRows: WordListRow[]
   /** True at terminal — folds the missed-words reveal into `wordRows`. */
+  /** True once the terminal missed-words reveal is folded into `wordRows`. */
   reveal: boolean
+  /** Does this board have a bonus word list? Drops the list's KIND filter when not. */
+  hasBonus: boolean
 }) {
   return (
     <div className={shared.infoCol}>
@@ -195,7 +199,15 @@ export function InfoCol({
       {/* The required-words answer key ships from game start, so the missed-words
           reveal is gated on terminal: during play only found rows show; at terminal
           the unfound required words are revealed (bonus words are never revealed). */}
-      <WordList rows={wordRows} players={players} reveal={reveal} />
+      <WordList
+        rows={wordRows}
+        players={players}
+        reveal={reveal}
+        selfId={selfId}
+        isCompete={isCompete}
+        isTerminal={isTerminal}
+        hasBonus={hasBonus}
+      />
     </div>
   )
 }

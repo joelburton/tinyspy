@@ -675,7 +675,8 @@ tile's size.
 ## The play surface → playarea.md
 
 The play-surface reference — the two-column PlayArea layout, the info-column
-readouts, text entry (capture, not `<input>`), the turn log, the turn-history
+readouts, text entry (capture, not `<input>`), the turn log, the word list (its
+two-axis KIND/WHO filter + the both-lists terminal reveal), the turn-history
 viewer, and board sizing — lives in **[playarea.md](playarea.md)**, which also
 documents how each game's PlayArea is decomposed into `BoardCol` / `InfoCol`. This
 doc keeps the visual language around it: theme/tokens, tiles + the warm ramp, page

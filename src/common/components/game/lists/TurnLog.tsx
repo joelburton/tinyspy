@@ -78,7 +78,7 @@ export function TurnLog({
       {headerAction ? (
         // Heading + a right-aligned control on one line. Only when an action is
         // passed, so the bare-heading layout is untouched for everyone else.
-        <div className={styles.turnLogHeaderRow}>
+        <div className={infoPanel.headerRow}>
           <h3 className={infoPanel.heading}>{heading}</h3>
           {headerAction}
         </div>

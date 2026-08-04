@@ -21,6 +21,7 @@ import { traceableStr } from '../lib/boardTrace'
 import { type LadderName } from '../lib/solver'
 import type { BoggleSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
+import { buildRevealWords } from '../../common/lib/game/revealWords'
 import { buildDisplayRows } from '../lib/displayRows'
 import { printBogglePdf } from '../pdf/printBogglePdf'
 import { db } from '../db'
@@ -90,6 +91,14 @@ export function PlayArea(ctx: GamePageCtx) {
   // which TS won't treat as index-compatible with Record, so route through unknown.
   const boggleSetup = setup as unknown as BoggleSetup
   const ladder: LadderName = (boggleSetup.scoring_ladder as LadderName) ?? 'basic'
+
+  // When the legal band equals the required band, bonus words are only words the
+  // clean filter removed from the required set — not an intentional wider
+  // dictionary. Declared up here because THREE things read it: the Bonus stat
+  // cells, the missed-word reveal, and the word list's kind filter. They must
+  // agree, or the UI claims this board has bonus words in one place and denies it
+  // in another.
+  const hasBonusDifficulty = boggleSetup.legal_band !== boggleSetup.band
 
   // ─── Move entry + own-move feedback (shared engine) ────
   // The board ships with its full legal list (required ∪ bonus), so a guess is
@@ -197,22 +206,23 @@ export function PlayArea(ctx: GamePageCtx) {
   // click time — works mid-game or at the end. See docs/pdf.md.
   useEffect(() => {
     if (!game) return
-    // The same reveal the on-screen list uses: at terminal, required-but-missed words
-    // are folded in (`buildDisplayRows` dedups found + appends the unfound); mid-game
-    // there's no reveal, so only found words show. Look up each found word's points
-    // (the shared row type carries the finder/bonus but not the score).
-    const foundSet = new Set(foundWords.map((w) => w.word))
+    // The same reveal the on-screen list uses: at terminal every missed word folds
+    // in (`buildDisplayRows` dedups found + appends the unfound) — required always,
+    // bonus only on a board with a genuinely wider legal band; mid-game there's no
+    // reveal, so only found words show. The print follows the screen deliberately:
+    // the missed-word list IS the post-game artifact. Look up each found word's
+    // points (the shared row type carries the finder/bonus but not the score).
     // Gated on the COMMON flag, not `isTerminal`: this game doesn't hide its
     // solution (gametypes.hides_solution = false), so end_game sets
     // solution_revealed at every ending — and if that ever changes, it changes
     // in one place instead of in each of these expressions.
     const revealWords = solutionRevealed
-      ? game.required_words.filter((r) => !foundSet.has(r.word))
+      ? buildRevealWords(game.required_words, hasBonusDifficulty ? game.bonus_words : [], foundWords)
       : null
     const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
     const words = buildDisplayRows(foundWords, revealWords).map((r) => ({
       word: r.word.toUpperCase(),
-      bonus: r.kind === 'found' ? (r.isBonus ?? false) : false,
+      bonus: r.isBonus ?? false,
       // A found word carries score + finder; an unfound (missed) reveal entry is bare.
       found:
         r.kind === 'found'
@@ -263,12 +273,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, boggleSetup, ladder, isTerminal, solutionRevealed, myConceded, myCount, myScore, infoSheet.menuSections])
-
-  // Every visible found word (used for the missed-words reveal; in compete this
-  // is self-only mid-game and everyone's post-terminal — exactly "words nobody
-  // found").
-  const foundSet = useMemo(() => new Set(foundWords.map((f) => f.word)), [foundWords])
+  }, [menu, game, foundWords, players, brand, title, boggleSetup, hasBonusDifficulty, ladder, isTerminal, solutionRevealed, myConceded, myCount, myScore, infoSheet.menuSections])
 
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); only the
@@ -388,18 +393,24 @@ export function PlayArea(ctx: GamePageCtx) {
   // others. boggle has no elimination, so conceding is the only path to it.
   const isLocallyDone = isCompete && myConceded && !isTerminal
 
-  // When the legal band equals the required band, bonus words are only words the
-  // clean filter removed from the required set — not an intentional wider dictionary.
-  // Suppress the Bonus Words / Bonus Score cells in that case.
-  const hasBonusDifficulty = boggleSetup.legal_band !== boggleSetup.band
-
-  // The reveal: the required words nobody found. Gated on the COMMON flag
+  // The reveal: every word nobody found. Gated on the COMMON flag
   // (`common.games.solution_revealed`), not `isTerminal` — boggle doesn't hide
   // its solution (gametypes.hides_solution = false), so end_game sets the flag
   // at every ending and this reads the same today. If that ever changes, it
   // changes in the registry, not in this expression.
+  //
+  // The missed BONUS words fold in too — but only when the board actually has a
+  // wider legal band. With the bands equal, "bonus" means nothing but the words
+  // the clean filter removed from required (crude / slang / slur), and printing
+  // those as a list of things you might have played is not the post-game read
+  // anyone wants. Same `hasBonusDifficulty` flag that suppresses the Bonus stat
+  // cells, so the two can't disagree about whether this board has bonus words.
   const revealWords = solutionRevealed
-    ? game.required_words.filter((r) => !foundSet.has(r.word))
+    ? buildRevealWords(
+      game.required_words,
+      hasBonusDifficulty ? game.bonus_words : [],
+      foundWords,
+    )
     : null
   // Merged, alphabetized rows for the shared WordList (found + the reveal).
   const wordRows = buildDisplayRows(foundWords, revealWords)
@@ -489,6 +500,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // ── Found-words list ──
         wordRows={wordRows}
         reveal={revealWords !== null}
+        hasBonus={hasBonusDifficulty}
         />
       </InfoSheet>
 

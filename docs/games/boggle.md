@@ -246,7 +246,10 @@ word lists to the FE from the start — hiding them would be anti-cheat contorti
 the trust model rejects, and shipping them makes the FE simpler (instant
 validation + scoring against required ∪ bonus, client-side missed-words reveal, in
 one shared TS hook). So there's no reveal view: the **missed-words list is
-computed client-side** as `required − found` (bonus words are never revealed).
+computed client-side** as `(required ∪ bonus) − found` — missed **bonus** words are
+revealed too, except on a board whose `legal_band` equals its `band`, where "bonus"
+means only the words the clean filter removed from required (the same
+`hasBonusDifficulty` flag that suppresses the Bonus stat cells).
 *(spellingbee now works the same way — the two converged.)*
 
 **`boggle.found_words`** — `(game_id, user_id, word, points, is_bonus, found_at)`,
@@ -406,9 +409,11 @@ board), swapped in for spellingbee's hex flower.
   - **`WordList`:** the **shared `common/components/game/lists/WordList`** (identical to
     spellingbee's, since it IS the same component) — finder color (coop), a bonus
     dot, a 5 s new-word flash (`common/hooks/game/useRecentlyFound`), click-to-define via
-    the shared `DefinitionPopover`, and the post-terminal missed-words reveal. boggle
-    builds its rows via `lib/displayRows` → `WordListRow[]` (the live count moved to
-    the info-column state line, so the list header is just a label now).
+    the shared `DefinitionPopover`, the post-terminal missed-words reveal, and the
+    two-axis KIND/WHO filter (`common/hooks/game/useWordListFilter` — see
+    [playarea.md → Word list](../playarea.md#word-list)). boggle builds its rows via
+    `lib/displayRows` → `WordListRow[]` (the live count moved to the info-column state
+    line, so the list header carries the label + the two selects).
 
 **End game** is surfaced in both places per the common convention (see
 [common.md → Manual end](../common.md#manual-end--every-gametypes-end_gametarget_game)):

@@ -102,7 +102,8 @@ spellingbee; the deltas:
 - **`wordwheel.games_state`** — the view the FE reads. Exposes the header columns
   **plus both word lists unconditionally** (during play and at terminal). The word
   lists are **not hidden**: the FE validates + scores guesses locally against them,
-  and the missed-words reveal at terminal is a client-side `required − found`. The
+  and the missed-words reveal at terminal is a client-side `(required ∪ bonus) − found`
+  (missed bonus words are revealed too). The
   base table's column-level grant lists **every** column (nothing is withheld), so
   the view is a **pure pass-through** — deliberately kept as one: every game's FE
   reads `<schema>.games_state`, so the uniform seam is worth a view that currently

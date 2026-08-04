@@ -427,6 +427,91 @@ own `<tr>` rows the same way — there's no wrapper to fall back on. (The older
 `HistoryPanel` predecessor this whole system replaced was already **deleted** —
 scrabble's framed `GameTurnLog` is separate and unaffected.)
 
+## Word list
+
+The shared **`<WordList>`** (`common/components/game/lists/WordList.tsx`) is the
+alphabetical counterpart to the turn log, worn by the three word-hunt games —
+spellingbee, wordwheel, boggle. A column-major grid in a fixed-height card; each
+row leads with a **circle marker** carrying attribution (a filled ● in the finder's
+color for a find, a hollow ○ in grey for a missed word), with the word itself plain
+black so identity rides the disc, not the text ([ui.md → Player identity](ui.md)).
+
+### The reveal covers BOTH shipped lists
+
+At terminal, every word **nobody found** folds in — required *and* bonus. The
+missed-bonus half is the point as much as the required half: it's where the
+interesting vocabulary lives (`ACRITARCH`, `CACCIATORA`, `ARRACACHA`), and seeing
+it is a real part of the post-game read. Both lists are already on the client from
+game start (the FE validates and scores guesses against them locally), so
+`buildRevealWords` is a pure client-side fold — nothing new crosses the wire at
+game end, and the gate stays the common `solution_revealed` flag.
+
+Sizing, measured against the local dictionary at the default bands (required 3 /
+legal 5): the bonus set is roughly the **same size** as the required set, not the
+multiple it looks like — band 3→5 is a narrow widening, and what really separates
+the two is the `american / not slang / clean` filter. So the terminal list roughly
+doubles. The grid is fixed-height and column-major, so that reads as *more
+columns*, never a taller panel — no vertical reflow.
+
+**When a board has no real bonus list**, the reveal skips it and the KIND filter
+disappears. That's `legal_band === band` (boggle) / `legal === required`
+(spellingbee, wordwheel), where "bonus" degenerates to nothing but the words the
+clean filter removed from required — crude/slang/slur, not a wider dictionary, and
+not a list to hand anyone as "here's what you missed." One flag per game gates the
+reveal, the KIND select, and (in boggle) the Bonus stat cells, so the three can't
+disagree about whether this board has bonus words.
+
+### The two-axis filter
+
+The list header carries **two** selects, from
+[`useWordListFilter`](../src/common/hooks/game/useWordListFilter.tsx):
+
+| axis | options | gated? |
+|---|---|---|
+| **KIND** | **Legal** · Required · Bonus | never — only hidden entirely when the board has no bonus list |
+| **WHO** | **All** · Found · Missed · *every player by handle* | yes — see below |
+
+Resting state reads **"Legal · All"**. The aggregates are the defaults in both
+modes (unlike the turn log's compete default — here the list already *is* yours).
+
+- **Why two controls and not one flat list.** They answer independent questions, so
+  one select can't express "leah's bonus words" — and worse, picking `Bonus` would
+  silently discard a `leah` selection with nothing on screen admitting it. Two
+  controls make the whole state readable at rest.
+- **Why WHO is one axis and not two.** `Missed` looks like it belongs on a separate
+  found-vs-missed axis beside a person, but a missed word *has* no finder:
+  `Missed × leah` is a contradiction and `All × leah` is just `Found × leah` again.
+  "Everyone / somebody / nobody / this person" is one proper enumeration.
+- **`Legal`, not a second "All".** Both selects render bare and side by side; two
+  adjacent dropdowns reading "All" can't be told apart at a glance. `Legal` is also
+  the games' own word — boggle's setup disclosure already says "Dictionary
+  (required) / Dictionary (legal)".
+- **Which axis needs gating.** KIND is always live: it narrows whatever rows you can
+  already see, which is correct mid-game in compete too (RLS has scoped them to
+  you). WHO carries the honesty rules — `Found`/`Missed` appear only once a missed
+  row actually exists (derived from the rows, so a team that found everything isn't
+  offered a `Missed` that resolves to nothing), and the per-player entries only in
+  coop or compete-post-terminal, never solo. Because an option that would be
+  dishonest simply *isn't offered*, this hook needs no "hidden until the game ends"
+  empty line — unlike the turn log's picker, every empty it explains is a real one.
+- **The empty line names the axis that emptied the list.** "No words yet" is a lie
+  when you've picked Bonus and simply have none.
+
+**Two things it does differently from the turn log's picker**, both deliberate: the
+hook is called **inside** `<WordList>` rather than by the game, since nothing
+outside the list consumes the selection (a word list isn't chronological — there's
+no history viewer to misaddress, hence no `boardIsShown` analogue), and keeping it
+in there guarantees the **PDF prints the full list** no matter what's filtered on
+screen — the printers build their own rows from the same `buildDisplayRows` and
+never see this state.
+
+**`finderIds` on a found row.** A word several people found shows **once**,
+attributed to the first finder — that's whose color the dot carries. But every
+finder is kept on the row, because the WHO filter matches against the whole list:
+without it, filtering to *yourself* would hide a word you genuinely found because
+someone else got there a second earlier. Compete-post-terminal only (coop's
+`submit_word` rejects a word anyone already found).
+
 ## Turn-history viewer
 
 Every game whose board can replay past turns (scrabble, stackdown, connections,

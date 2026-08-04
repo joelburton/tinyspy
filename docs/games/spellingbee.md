@@ -73,7 +73,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Manual end-game** (menu item; confirms then writes terminal) | shipped | Per-game menu item; outcome = `'manual'` |
 | **Pause-on-disconnect + manual pause** | shipped (via common) | Free from the common shell |
 | **Chat** (incl. `!`-prefix force-open) | shipped (via common) | In `FloatingChat` |
-| **Reveal the required wordlist on game end** | shipped | Client-side `required − found` at `isTerminal` (the list ships from game start; bonus words aren't revealed) |
+| **Reveal the missed wordlist on game end** | shipped | Client-side `(required ∪ bonus) − found` at `isTerminal` — both lists ship from game start. Missed **bonus** words are revealed too (that vocabulary is half the post-game read); skipped on a board whose `legal` band equals `required`, where bonus means only the words the clean filter removed |
 | **In-page terminal verdict** (below-board pill + info-column outcome line) | shipped | Terse verdict copy leading with the outcome word: `Won: "Genius" 47/50 points` / `Lost: ran out of time` / `Ended: Solid 12/50 points` |
 | **Diverse board-builder** (rare-letter weighting, ING dampening, previous-board overlap cap) | shipped | The only builder; "default" strategy dropped |
 | **Compete mode** (per-player found list, target-rank race, OpponentStrip, RLS-narrowed WordList) | **shipped** | Sibling-manifest pair; both modes live in the consolidated `20260617000000_spellingbee.sql`. See [Compete mode](#compete-mode). |
@@ -108,7 +108,7 @@ Both manifests share the same `PlayArea`, `SetupForm`, `Help`, and `useGame`. Th
 - **Timeout → the table lost**: the countdown firing before anyone hits target is `play_state='lost_compete'` (coop: `'lost'`) with `outcome='timeout'`, every player `{won: false}`. There WAS something to reach and nobody reached it.
 - **Manual end → no winner, no loss**: any player ending the game writes the neutral `play_state='ended'` with `outcome='manual'`. Friends-agreed-to-stop is a valid outcome, not a "you lose" punishment.
 - **Opponent visibility = rank only**: the `OpponentStrip` rendered between the RankBar and the Stats card shows each player's current rank (and the target). The exact score, words-found count, and guesses stay private. The strip reads from `common.games.status.leaderboard` (RLS-permissive — it's on the cross-cutting common row, not the per-game found_words).
-- **Post-terminal reveal**: at `isTerminal` the WordList interleaves the required words nobody found (from the always-present `games_state.required_words`, computed FE-side as `required − found`) into the alphabetical list, rendered **medium grey**. Found words keep their **finder's** color throughout — and a word more than one player found (compete, once the `found_words` RLS `is_terminal` branch exposes every player's rows) is colored by the **first finder** (earliest `found_at`); `buildDisplayRows` dedups it to one row. The caller's own score/rank/stats stay caller-only across the terminal transition (`PlayArea` filters `found_words` to the caller in compete rather than leaning on the now-relaxed RLS).
+- **Post-terminal reveal**: at `isTerminal` the WordList interleaves the words nobody found — **required and bonus**, from the always-present `games_state` lists, computed FE-side by `buildRevealWords` as `(required ∪ bonus) − found` — into the alphabetical list, rendered **medium grey** (a missed bonus word keeps the trailing `•`). Found words keep their **finder's** color throughout — and a word more than one player found (compete, once the `found_words` RLS `is_terminal` branch exposes every player's rows) is colored by the **first finder** (earliest `found_at`); `buildDisplayRows` dedups it to one row while keeping every finder in `finderIds`, so the list's WHO filter still matches the later ones. The caller's own score/rank/stats stay caller-only across the terminal transition (`PlayArea` filters `found_words` to the caller in compete rather than leaning on the now-relaxed RLS).
 - **Word lists shipped, not hidden**: both `required_words` + `bonus_words` ship to the FE from game start (the FE validates locally); the compete reveal of *peers' finds* is still gated by the `found_words` RLS `is_terminal` branch.
 
 ### Mode is denormalized onto the game row
@@ -127,7 +127,7 @@ The word list itself is **not** a spellingbee table — it's the shared `common.
 
 ### The word lists ship to the FE (not hidden)
 
-`required_words` + `bonus_words` are the board's answer key, and both ship to the FE from game start — the FE validates + scores every guess against required ∪ bonus locally (via the shared `useWordSubmit` hook) and submits trusting-commit. Per [CLAUDE.md → Trust model](../../CLAUDE.md) we don't withhold them (friends, not anti-cheat), so there's no column-grant gate and no `SECURITY DEFINER` reveal helper: the FE reads both lists straight off `games_state`, and the missed-words reveal is a **client-side** `required − found` computed at `isTerminal` (bonus words are never shown in the reveal — a FE display choice, not a server gate).
+`required_words` + `bonus_words` are the board's answer key, and both ship to the FE from game start — the FE validates + scores every guess against required ∪ bonus locally (via the shared `useWordSubmit` hook) and submits trusting-commit. Per [CLAUDE.md → Trust model](../../CLAUDE.md) we don't withhold them (friends, not anti-cheat), so there's no column-grant gate and no `SECURITY DEFINER` reveal helper: the FE reads both lists straight off `games_state`, and the missed-words reveal is a **client-side** `(required ∪ bonus) − found` computed at `isTerminal` — a FE display choice throughout, not a server gate.
 
 This is a deliberate convergence with boggle (which also ships its lists): `games_state` selects both lists unconditionally, and the FE's `useGame` loads the immutable header once (nothing to re-reveal). `candidate_words` is a `SECURITY DEFINER`-free helper the edge-function builder uses at board-build time.
 
@@ -415,10 +415,11 @@ src/spellingbee/
                           common/components/game/lists/WordList (used by spellingbee + boggle, so the
                           list looks identical across games). PlayArea builds its rows via
                           the shared common/lib/game/foundWordsDisplayRows.buildDisplayRows
-                          (foundWords, game.requiredWords)
-                          and passes `reveal`. Per-finder color, pangram bold, bonus dot,
-                          5s recently-found underline (the now-shared common/hooks/
-                          useRecentlyFound), and the post-terminal grey reveal all live in
+                          (foundWords, buildRevealWords(required, bonus, found))
+                          and passes `reveal` + `hasBonus`. Per-finder color, pangram bold,
+                          bonus dot, 5s recently-found underline (the now-shared common/hooks/
+                          useRecentlyFound), the post-terminal grey reveal, and the two-axis
+                          KIND/WHO filter (common/hooks/game/useWordListFilter) all live in
                           the common component. In compete the foundWords input is already
                           caller-only (RLS hides peers' rows mid-game).
     SetupForm.tsx         The setup dialog body (lazy-loaded inside the common
@@ -510,7 +511,7 @@ When `isTerminal` flips true:
 1. A **coop win** pops the shared `<CelebrationDialog>` via `useCelebration` — only at the moment of the win, never on opening an already-won game. Nothing else pops: the verdict is carried in-page ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)).
 2. The below-board slot swaps the input row for a **permanent fill `<FeedbackPill>`** (outcome-colored) carrying the terse `verdict` (`Won: "Genius" 47/50 points`). Per the v3 rule, the terminal state shows in BOTH places — this local pill *and* the info-column `<TerminalActionRow>`'s bold `message` line + compact Back-to-club button (the Back-to-club button is in the action row, not the below-board slot).
 3. The input row's Delete + Submit buttons disable; the floating Shuffle stays clickable.
-4. `game.requiredWords` is already present (both word lists ship from game start — see [The word lists ship to the FE](#the-word-lists-ship-to-the-fe-not-hidden)); the terminal reveal is the client-side `required − found`, no refetch needed.
+4. `game.requiredWords` is already present (both word lists ship from game start — see [The word lists ship to the FE](#the-word-lists-ship-to-the-fe-not-hidden)); the terminal reveal is the client-side `(required ∪ bonus) − found`, no refetch needed.
 5. `<WordList revealWords={game.requiredWords}>` merges the unfound required words into the alphabetical render as gray rows.
 
 The verdict copy is computed by `buildOver({mode, playState, status, targetRankIdx, ...})`. Rank names come straight off the shared ladder — `RANKS[idx]` from [`rankLadder`](../../src/common/lib/game/rankLadder.ts) — and a rank naming the GOAL is quoted (`"Amazing"`); the neutral `Ended:` verdict names the rank reached, unquoted.

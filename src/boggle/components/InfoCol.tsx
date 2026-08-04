@@ -52,6 +52,7 @@ export function InfoCol({
   minWordLength,
   wordRows,
   reveal,
+  hasBonus,
 }: {
   // ── Mode + phase ──
   isCompete: boolean
@@ -110,6 +111,8 @@ export function InfoCol({
   wordRows: WordListRow[]
   /** True once the terminal missed-words reveal is folded into `wordRows`. */
   reveal: boolean
+  /** Does this board have a bonus word list? Drops the list's KIND filter when not. */
+  hasBonus: boolean
 }) {
   return (
     <div className={shared.infoCol}>
@@ -186,7 +189,15 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-      <WordList rows={wordRows} players={players} reveal={reveal} />
+      <WordList
+        rows={wordRows}
+        players={players}
+        reveal={reveal}
+        selfId={selfId}
+        isCompete={isCompete}
+        isTerminal={isTerminal}
+        hasBonus={hasBonus}
+      />
     </div>
   )
 }

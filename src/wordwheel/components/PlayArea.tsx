@@ -18,6 +18,7 @@ import type { WordwheelSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { buildDisplayRows } from '../../common/lib/game/foundWordsDisplayRows'
+import { buildRevealWords } from '../../common/lib/game/revealWords'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
@@ -65,6 +66,14 @@ export function PlayArea(ctx: GamePageCtx) {
   const { game, foundWords, loading, rowsLoaded } = useGame(gameId)
 
   const wordwheelSetup = setup as WordwheelSetup
+
+  // Does this board have a genuinely wider bonus dictionary? With the legal band
+  // equal to the required band, "bonus" degenerates to nothing but the words the
+  // clean filter removed from required (non-american / slang / crude / slur) —
+  // which is not a list to hand anyone as "here's what you missed". Gates BOTH the
+  // missed-bonus reveal and the word list's KIND filter, so the two can't disagree
+  // about whether this board has bonus words. Same rule as boggle's.
+  const hasBonus = wordwheelSetup.legal !== wordwheelSetup.required
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the wheel
   // fills the screen and the info column moves into an off-canvas <InfoSheet>,
@@ -145,22 +154,24 @@ export function PlayArea(ctx: GamePageCtx) {
   // hands it to the jsPDF renderer. A snapshot at click time. See docs/pdf.md.
   useEffect(() => {
     if (!game) return
-    // The same reveal the on-screen list uses: at terminal, required-but-missed words
-    // fold in (`buildDisplayRows` dedups found + appends the unfound). Look up each
-    // found word's points (the shared row type carries finder/bonus/pangram, not score).
-    const foundSet = new Set(foundWords.map((w) => w.word))
+    // The same reveal the on-screen list uses: at terminal, every missed word —
+    // required AND bonus — folds in (`buildDisplayRows` dedups found + appends the
+    // unfound). The print deliberately follows the screen here: the missed-word
+    // list IS the post-game artifact, so a printout that quietly dropped the bonus
+    // half would be a different document from the one on screen. Look up each found
+    // word's points (the shared row type carries finder/bonus/pangram, not score).
     // Gated on the COMMON flag, not `isTerminal`: this game doesn't hide its
     // solution (gametypes.hides_solution = false), so end_game sets
     // solution_revealed at every ending — and if that ever changes, it changes
     // in one place instead of in each of these expressions.
     const reveal = solutionRevealed
-      ? game.requiredWords.filter((w) => !foundSet.has(w.word))
+      ? buildRevealWords(game.requiredWords, hasBonus ? game.bonusWords : [], foundWords)
       : null
     const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
     const words = buildDisplayRows(foundWords, reveal).map((r) => ({
       word: r.word.toUpperCase(),
       pangram: r.isPangram ?? false, // wordwheel's own difference: pangrams print bold
-      bonus: r.kind === 'found' ? (r.isBonus ?? false) : false,
+      bonus: r.isBonus ?? false,
       found:
         r.kind === 'found'
           ? { points: pointsByWord.get(r.word) ?? 0, who: memberById(players, r.userId)?.username ?? 'someone' }
@@ -213,7 +224,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, wordwheelSetup, isTerminal, solutionRevealed, myConceded, foundWordsScore, foundWordsCount, infoSheet.menuSections])
+  }, [menu, game, foundWords, players, brand, title, wordwheelSetup, hasBonus, isTerminal, solutionRevealed, myConceded, foundWordsScore, foundWordsCount, infoSheet.menuSections])
 
   // ─── Wheel tile counts (drive the illegal-letter dim + tile spending) ────
   // The wheel is a MULTISET — the same letter may sit on two tiles — so the
@@ -501,8 +512,14 @@ export function PlayArea(ctx: GamePageCtx) {
     })
     : null
 
-  // Merged, alphabetized rows for the shared WordList (found + the terminal reveal).
-  const wordRows = buildDisplayRows(foundWords, solutionRevealed ? game.requiredWords : null)
+  // Merged, alphabetized rows for the shared WordList (found + the terminal
+  // reveal). The reveal covers BOTH shipped lists — the missed bonus words are
+  // half the fun of the post-game read, and they're the same client-side data the
+  // required half comes from.
+  const wordRows = buildDisplayRows(
+    foundWords,
+    solutionRevealed ? buildRevealWords(game.requiredWords, hasBonus ? game.bonusWords : [], foundWords) : null,
+  )
 
   return (
     <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>
@@ -577,6 +594,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // ── Found-words list ──
         wordRows={wordRows}
         reveal={solutionRevealed}
+        hasBonus={hasBonus}
         />
       </InfoSheet>
       {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
