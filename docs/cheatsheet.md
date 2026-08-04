@@ -63,7 +63,7 @@ target. Five families:
 |---|---|
 | `g-` | one game's data or assets — `g-stackdown-puzzles`, `g-boggle-trie` |
 | `all-` | cross-game — `all-words`, `all-pangrams`, `all-tries` |
-| `db-` | the database — `db-schema`, `db-sql`, `db-data`, `db-seed`, `db-reset` |
+| `db-` | the database — `db-schema`, `db-sql`, `db-schema-sql`, `db-data`, `db-seed`, `db-reset`, `db-psql` |
 | `deploy-` | pushing to a target — `deploy-funcs`, `deploy-func-<name>`, `deploy-fe` |
 | `dev-` | the local loop — `dev-lint`, `dev-types` |
 | `project-` | the hosted project itself — `project-link`, `project-config-auth`, `project-bootstrap` |
@@ -107,11 +107,12 @@ gmake g-crosswords-puzzles ENV=local         # supabase/data/crosswords/*.puz|.i
 # the database — `gmake db-<TAB>`
 gmake db-psql ENV=local                      # a psql prompt on that database
 gmake db-psql ENV=prod SQL="select 1"        # …or one statement
-gmake db-data ENV=local                      # every table's DATA (no schema, no code)
+gmake db ENV=local                           # a WORKING database: structure + data
+gmake db-schema-sql ENV=local                # structure only — an EMPTY database
 gmake db-schema ENV=local                    # migrations only
 gmake db-sql ENV=local                       # supabase/sql/ only
-gmake db ENV=local                           # both halves
-gmake db-reset ENV=local                     # db + db-data + db-seed
+gmake db-data ENV=local                      # every table's DATA (no structure)
+gmake db-reset ENV=local                     # db + the dev personas
 
 # deploying — `gmake deploy-<TAB>`
 gmake deploy ENV=prod                        # schema + code + functions + FE (NOT data)
@@ -144,6 +145,12 @@ targets refuse the wrong `ENV` **deliberately** — printing `REFUSED:` — rath
 than by crashing into a guard that isn't one. Everything runs behind PATH shims,
 so it reaches no database, and it restores the stamp mtimes it disturbs. Each
 check was verified by planting the bug it looks for.
+
+**`db` means a database you can play on** — structure *and* data. It used to
+mean structure only, which read as "ready" while `common.words` sat empty and
+every word game failed inside `create_game`. The structure-only half is
+`db-schema-sql`, named for exactly what it runs; `deploy` uses that one, since
+shipping code shouldn't reload 283k words.
 
 **The one non-obvious edge:** `deploy-funcs` depends on `all-tries`, because the
 boggle and scrabble functions compile their word bundles in — deploying without

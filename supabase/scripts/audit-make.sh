@@ -175,8 +175,8 @@ check_refuses_no_env() { # target
     pass "$1 refuses a missing ENV"
   fi
 }
-for t in db-sql db-schema db-data all-words db-psql g-stackdown-puzzles \
-         g-connections-puzzles all-pangrams db-reset deploy; do
+for t in db-sql db-schema db-schema-sql db db-data all-words db-psql \
+         g-stackdown-puzzles g-connections-puzzles all-pangrams db-reset deploy; do
   check_refuses_no_env "$t"
 done
 

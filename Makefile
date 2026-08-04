@@ -285,6 +285,20 @@ ifeq ($(ENV),local)
 	# handled at the source instead of being left to the operator.
 	rm -f $(STAMPS)/*.stamp
 	supabase $(SUPA_FLAGS) db reset
+	# `db reset` RESTARTS the containers, and the CLI returns before PostgREST
+	# is answering again. Everything that talks to Postgres directly is fine —
+	# but the connections importer goes through the REST API, and it failed
+	# with "Could not query the database for the schema cache" when it landed
+	# in that window. A target that restarts the stack owes its callers a
+	# stack that works, so wait here rather than making each consumer retry.
+	printf '   waiting for PostgREST'
+	for i in $$(seq 1 60); do
+	  code=$$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:54321/rest/v1/ || echo 000)
+	  # Any HTTP answer means it's up — 401 (no apikey) counts.
+	  if [ "$$code" != "000" ]; then echo " ok ($$code)"; break; fi
+	  printf '.'; sleep 1
+	  if [ $$i = 60 ]; then echo " TIMED OUT after 60s" >&2; exit 1; fi
+	done
 else
 	echo "── db push → $(PROJECT_REF)"
 	supabase $(SUPA_FLAGS) db push --linked <<< y
@@ -299,8 +313,18 @@ else
 	npm run sql:apply -- --require-url
 endif
 
+# The STRUCTURE only — every table and function, and nothing in them. Named
+# for exactly what it runs, because the honest description of the result is
+# "an empty database": no word list, no puzzle libraries, no boards. Wanted on
+# its own mainly by `deploy`, which ships definitions and leaves data alone.
+.PHONY: db-schema-sql
+db-schema-sql: db-schema db-sql ## structure only: migrations, then supabase/sql/ (NO data)
+
+# A database you can actually play on. `db` used to mean structure-only, which
+# read as "the database is ready" while common.words sat empty and every word
+# game failed at create_game. If it's called db, it should be usable.
 .PHONY: db
-db: db-schema db-sql ## the whole database definition: migrations, then supabase/sql/
+db: db-schema-sql db-data ## a WORKING database: structure + every table's data
 
 # Pinned to LOCAL rather than merely documented as local-only: seeding the
 # dev personas into a real database would be a mess to unpick, and an
@@ -322,11 +346,10 @@ db-psql: ## psql on ENV's database — SQL="select 1" to run one statement
 	psql "$$SUPABASE_DB_URL" $(if $(SQL),-c "$(SQL)",)
 
 .PHONY: db-reset
-db-reset: ## local only: db + all data + dev seed (what `npm run db:reset` does)
+db-reset: ## local only: db (structure + data) + the dev personas
 	@[[ "$(ENV)" == "local" ]] || { echo "REFUSED: db-reset is local-only; use db + db-data for prod" >&2; exit 1; }
 	$(MAKE) db ENV=local
-	$(MAKE) db-data ENV=local
-	$(MAKE) db-seed
+	$(MAKE) db-seed ENV=local
 
 # ════════════════════════════════════════════════════════════════
 # Deploy
@@ -390,7 +413,7 @@ deploy-fe: ## build the FE and push to Netlify
 # project-link second: `db push` and `functions deploy` both go through the
 # linked project, and a fresh checkout has no link. Idempotent, so the cost is
 # one no-op CLI call.
-deploy: _require-prod project-link db-schema db-sql deploy-funcs deploy-fe ## the routine push: schema + code + functions + FE (NOT data)
+deploy: _require-prod project-link db-schema-sql deploy-funcs deploy-fe ## the routine push: structure + functions + FE (NOT data)
 
 # ════════════════════════════════════════════════════════════════
 # Hosted project configuration

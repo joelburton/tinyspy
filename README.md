@@ -104,7 +104,8 @@ npm run sql:apply    # re-apply supabase/sql/ alone — how an RPC change ships 
 
 # Composable data + deploy steps live in the Makefile (GNU Make 4+, `gmake`):
 gmake help                          # every target
-gmake db-data ENV=local             # load every table's data, rebuilding only what's stale
+gmake db ENV=local                  # a working database: structure + data
+gmake db-data ENV=local             # just the data, rebuilding only what's stale
 gmake db-sql ENV=prod               # re-apply just the functions/policies to prod
 gmake deploy ENV=prod               # schema + code + functions + FE
 # ENV is REQUIRED — no default. DEBUG=1 adds --debug to the supabase CLI.
