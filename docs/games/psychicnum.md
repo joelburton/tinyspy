@@ -2,6 +2,12 @@
 
 A tiny word-guessing game with two modes: **psychicnum_coop** (team plays together with a shared budget) and **psychicnum_compete** (players race independently). The reference minimal surface for exercising the multi-game architecture — and the first to exercise the **coop/compete sibling-manifest pattern** that every multiplayer game now follows. Read this file before touching anything in `psychicnum/` or `supabase/migrations/*_psychicnum_*.sql`.
 
+**Not auto-enrolled in new clubs.** Both gametypes register
+`common.gametypes.default_enroll = false` — it's the architecture toy, not a
+game a fresh club of friends should find on its Start list. A club that wants
+it opts in via the "Edit club" games editor (`common.set_club_gametypes`); see
+[common.md → schema tables](../common.md) for the flag.
+
 For the shared layer see [`common.md`](../common.md). For testing theory + persona conventions see [`testing.md`](../testing.md). For comparison with the richer-shape gametype see [`codenamesduet.md`](codenamesduet.md).
 
 ## The sibling-manifest pattern

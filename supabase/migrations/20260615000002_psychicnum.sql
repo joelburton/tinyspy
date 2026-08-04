@@ -221,7 +221,10 @@ alter publication supabase_realtime add table psychicnum.guesses;
 -- a win, so a replay of the same board is a genuine second try. The players
 -- open it with the terminal Reveal (common.reveal_solution). See
 -- common.md → Revealing the solution.
-insert into common.gametypes (gametype, min_players, hides_solution) values
-  ('psychicnum_coop', 1, true),
-  ('psychicnum_compete', 2, true)
+-- default_enroll false: psychicnum is the deliberately-minimal toy that
+-- exercises the multi-game architecture, not a game a new club should be
+-- handed. Clubs that want it opt in via the club-settings games editor.
+insert into common.gametypes (gametype, min_players, hides_solution, default_enroll) values
+  ('psychicnum_coop', 1, true, false),
+  ('psychicnum_compete', 2, true, false)
 on conflict do nothing;

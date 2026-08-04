@@ -207,12 +207,14 @@ select is(
 );
 
 -- clubs_gametypes fans out across the solo-playable registry — a
--- solo club only enrolls in gametypes one person can play.
+-- solo club only enrolls in gametypes one person can play, and only
+-- the default-enroll ones (psychicnum's pair opts out).
 select is(
   (select count(*) from common.clubs_gametypes
     where club_handle = '=fia'),
-  (select count(*) from common.gametypes where min_players <= 1),
-  'solo club opted in to every solo-playable gametype'
+  (select count(*) from common.gametypes
+    where min_players <= 1 and default_enroll),
+  'solo club opted in to every solo-playable default-enroll gametype'
 );
 
 -- ============================================================

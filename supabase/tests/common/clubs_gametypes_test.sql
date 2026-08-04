@@ -12,7 +12,8 @@
 --      club it creates — one row per SOLO-PLAYABLE gametype
 --      (min_players <= 1), not the full registry
 --   3. create_club populates clubs_gametypes for each new (friend)
---      club — the full registry, since it always has ≥2 members
+--      club — every default-enroll gametype (psychicnum's pair opts
+--      out: it's the architecture toy, opt-in via club settings)
 --   4. RLS: a non-member cannot see clubs_gametypes rows for a
 --      club they're outside; a member can
 --   5. RLS: common.gametypes is permissively readable (sanity
@@ -25,7 +26,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(17);
+select plan(18);
 
 -- Cast: ada + bea form the test club; dee is the outsider used
 -- for the RLS-negative assertions. The personas come from
@@ -61,7 +62,8 @@ select is(
 -- A solo club only enrolls in solo-playable gametypes (min_players
 -- <= 1): the coop/solo variants — plus scrabble_compete, which is
 -- solo-playable because you can race an AI opponent alone
--- (docs/scrabble-ai-strength.md).
+-- (docs/scrabble-ai-strength.md). psychicnum_coop is solo-playable
+-- but default_enroll = false, so it's absent too.
 select is(
   (
     select count(*)
@@ -69,8 +71,8 @@ select is(
     join common.clubs c on c.handle = k.club_handle
     where c.handle = '=ada'
   ),
-  14::bigint,
-  'claim_username populated 14 (solo-playable) clubs_gametypes rows for ada''s solo club'
+  13::bigint,
+  'claim_username populated 13 (solo-playable, default-enroll) clubs_gametypes rows for ada''s solo club'
 );
 
 select is(
@@ -80,8 +82,8 @@ select is(
     join common.clubs c on c.handle = k.club_handle
     where c.handle = '=ada'
   ),
-  array['bananagrams','boggle_coop','connections_coop','crosswords_coop','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_coop','stackdown_coop','strands_coop','waffle_coop','wordiply_coop','wordle_coop','wordwheel_coop'],
-  'ada''s solo club has m2m rows for the fourteen solo-playable gametypes (incl. scrabble_compete vs AI)'
+  array['bananagrams','boggle_coop','connections_coop','crosswords_coop','scrabble_compete','scrabble_coop','spellingbee_coop','stackdown_coop','strands_coop','waffle_coop','wordiply_coop','wordle_coop','wordwheel_coop'],
+  'ada''s solo club has m2m rows for the thirteen solo-playable default-enroll gametypes (incl. scrabble_compete vs AI)'
 );
 
 -- ============================================================
@@ -99,8 +101,8 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  26::bigint,
-  'create_club populated 26 m2m rows for the new club'
+  24::bigint,
+  'create_club populated 24 m2m rows for the new club (the registry minus psychicnum''s opt-out pair)'
 );
 
 select is(
@@ -109,8 +111,8 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_compete','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordle_coop','wordwheel_compete','wordwheel_coop'],
-  'new club has m2m rows for all twenty-six registered gametypes'
+  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_compete','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordle_coop','wordwheel_compete','wordwheel_coop'],
+  'new club has m2m rows for the twenty-four default-enroll gametypes — no psychicnum'
 );
 
 -- ============================================================
@@ -125,7 +127,7 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  26::bigint,
+  24::bigint,
   'sanity: ada (a member) sees her club''s m2m rows'
 );
 
@@ -189,6 +191,19 @@ select is(
 );
 
 -- ============================================================
+-- (11b) default_enroll: exactly psychicnum's pair opts out
+-- ============================================================
+-- The registry fact behind (3)/(5) above. Asserting the exact set (not just
+-- the count) means a new game accidentally registering false shows up here
+-- by name.
+select is(
+  (select array_agg(gametype order by gametype)
+     from common.gametypes where not default_enroll),
+  array['psychicnum_compete', 'psychicnum_coop'],
+  'default_enroll is false for exactly psychicnum''s pair — the architecture toy'
+);
+
+-- ============================================================
 -- (12)-(14) set_club_gametypes — the club-settings games editor
 -- ============================================================
 -- Seed a default_setup on one row first, so we can prove an edit
@@ -202,21 +217,23 @@ update common.clubs_gametypes
  where club_handle = (select handle from club)
    and gametype = 'codenamesduet';
 
--- Ada (a member) trims the friend club down to three gametypes.
+-- Ada (a member) trims the friend club down to four gametypes — including
+-- psychicnum_coop, proving default_enroll = false means off-by-default,
+-- not banned: a club that wants the toy can opt in.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select lives_ok(
   $$ select common.set_club_gametypes(
        (select handle from club),
-       array['codenamesduet', 'connections_coop', 'spellingbee_coop']) $$,
-  'set_club_gametypes: a member can replace the club''s gametype set'
+       array['codenamesduet', 'connections_coop', 'psychicnum_coop', 'spellingbee_coop']) $$,
+  'set_club_gametypes: a member can replace the club''s gametype set (incl. opting into an off-by-default game)'
 );
 
 select is(
   (select array_agg(gametype order by gametype)
      from common.clubs_gametypes
     where club_handle = (select handle from club)),
-  array['codenamesduet', 'connections_coop', 'spellingbee_coop'],
-  'set_club_gametypes replaced the set with exactly the passed gametypes'
+  array['codenamesduet', 'connections_coop', 'psychicnum_coop', 'spellingbee_coop'],
+  'set_club_gametypes replaced the set with exactly the passed gametypes — psychicnum_coop opted in'
 );
 
 select is(

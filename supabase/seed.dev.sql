@@ -106,8 +106,9 @@ insert into common.clubs_members (club_handle, user_id) values
 on conflict (club_handle, user_id) do nothing;
 
 -- ── Enroll every club in its gametypes — solo clubs get the solo-playable
--- ones, shared clubs get all — exactly what claim_username / create_club do
--- (via common.default_gametypes_for_club, the single source of truth). ──
+-- ones, shared clubs every default-enroll gametype (so no psychicnum, the
+-- opt-in toy) — exactly what claim_username / create_club do (via
+-- common.default_gametypes_for_club, the single source of truth). ──
 insert into common.clubs_gametypes (club_handle, gametype)
   select c.handle, gt.gametype
     from (values ('=joel'), ('=moth'), ('=leah'), ('joel-moth'), ('all-3')) as c(handle)

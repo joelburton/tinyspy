@@ -743,16 +743,19 @@ export type Database = {
       }
       gametypes: {
         Row: {
+          default_enroll: boolean
           gametype: string
           hides_solution: boolean
           min_players: number
         }
         Insert: {
+          default_enroll?: boolean
           gametype: string
           hides_solution?: boolean
           min_players?: number
         }
         Update: {
+          default_enroll?: boolean
           gametype?: string
           hides_solution?: boolean
           min_players?: number

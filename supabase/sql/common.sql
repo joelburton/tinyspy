@@ -21,12 +21,15 @@
 grant usage on schema common to authenticated;
 
 -- Which gametypes a freshly-created club should be enrolled in
--- (i.e. which Start buttons it should offer). Solo clubs — handle
--- prefixed '=', see common.clubs — have a single member, so they
--- only get gametypes playable by one person (`min_players <= 1`);
--- friend clubs get the whole registry. Centralizing the solo-filter
--- rule here keeps claim_username, create_club, and the per-game
--- backfills from drifting apart.
+-- (i.e. which Start buttons it should offer). Two filters:
+--   - `default_enroll` — the registry's off-by-default flag (psychicnum,
+--     the architecture-exercise toy). Off-by-default, not banned: the
+--     club-settings games editor (set_club_gametypes) can opt back in.
+--   - Solo clubs — handle prefixed '=', see common.clubs — have a single
+--     member, so they only get gametypes playable by one person
+--     (`min_players <= 1`); friend clubs get everything that remains.
+-- Centralizing both rules here keeps claim_username, create_club, and
+-- the per-game backfills from drifting apart.
 -- Returns a one-column `gametype` set so callers can `select ...,
 -- gametype from common.default_gametypes_for_club(handle)` directly
 -- (a bare `returns setof text` would expose the column under the
@@ -39,7 +42,8 @@ set search_path = common, public, extensions
 as $$
   select gametype
     from common.gametypes
-   where target_handle not like '=%' or min_players <= 1
+   where default_enroll
+     and (target_handle not like '=%' or min_players <= 1)
 $$;
 revoke execute on function common.default_gametypes_for_club(text) from public;
 
@@ -1607,9 +1611,10 @@ grant execute on function common.delete_game(uuid) to authenticated;
 -- have to remember to also include themselves.
 --
 -- clubs_gametypes is seeded via common.default_gametypes_for_club:
--- a friend club (always ≥2 members) gets every registered gametype.
+-- a friend club (always ≥2 members) gets every default-enroll
+-- gametype (psychicnum opts out — it's the architecture toy).
 -- Members can edit the set afterward from the club-settings UI
--- (common.set_club_gametypes).
+-- (common.set_club_gametypes), including opting INTO the opt-outs.
 
 create or replace function common.create_club(
   club_name text,
@@ -1693,11 +1698,12 @@ begin
   select new_handle, member_id from unnest(resolved_ids) as member_id;
 
   -- Enroll the club in its default gametype set. A friend club
-  -- (always ≥2 members) gets every registered gametype; the helper
-  -- only trims the set for solo clubs, which create_club never makes.
-  -- We route through it anyway so both club-creation paths share one
-  -- rule. Per-club opt-out beyond this is now possible via the
-  -- club-settings UI (common.set_club_gametypes).
+  -- (always ≥2 members) gets every default-enroll gametype; the
+  -- helper additionally trims the set for solo clubs, which
+  -- create_club never makes. We route through it anyway so both
+  -- club-creation paths share one rule. Per-club edits beyond this
+  -- — dropping a game, or opting into an off-by-default one — go
+  -- through the club-settings UI (common.set_club_gametypes).
   insert into common.clubs_gametypes (club_handle, gametype)
   select new_handle, gametype
     from common.default_gametypes_for_club(new_handle);

@@ -262,7 +262,17 @@ create table common.gametypes (
   -- forgotten value: a game that shows its answer when it shouldn't is a
   -- visible bug someone reports, while one that hides an answer it has no
   -- reason to hide looks like the feature working.
-  hides_solution boolean not null default false
+  hides_solution boolean not null default false,
+  -- Does a NEW club get enrolled in this gametype automatically?
+  -- Read by common.default_gametypes_for_club (the one enrollment rule);
+  -- a club can still opt IN afterward via the club-settings games editor
+  -- (common.set_club_gametypes) — false means off-by-default, not banned.
+  -- psychicnum registers false: it's the architecture-exercise toy, not a
+  -- game a fresh club of friends should find on its Start list. Defaults
+  -- TRUE for the same fail-open reason as min_players: a forgotten value
+  -- makes a game visible everywhere (a reportable oddity), never silently
+  -- missing.
+  default_enroll boolean not null default true
 );
 
 -- ============================================================
