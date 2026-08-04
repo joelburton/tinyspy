@@ -9,13 +9,16 @@
  * exactly the kind of thing that should fail loudly rather than land in a table.
  */
 
-/** `[row, col]`, 0-based — the convention the NYT feed uses throughout. */
-export type Coord = [number, number]
-
-/** Board geometry. Fixed by the game, and asserted on every puzzle. */
-export const ROWS = 8
-export const COLS = 6
-export const CELLS = ROWS * COLS
+/**
+ * Geometry + adjacency come from the GAME's own module, not a copy. Two
+ * implementations of "which cells touch" is exactly the drift worth avoiding:
+ * the importer decides what a valid puzzle is, and the FE decides what a valid
+ * trace is, and those must be the same rule. (This repo already imports `src/`
+ * from scripts and edge functions — see import-crosswords-puzzles.ts and
+ * boggle-build-board.)
+ */
+export { adjacent, CELLS, COLS, ROWS, type Coord } from '../../../src/strands/lib/board'
+import { adjacent, CELLS, COLS, ROWS, type Coord } from '../../../src/strands/lib/board'
 
 /** The upstream record, narrowed to the fields we keep. */
 export type Feed = {
@@ -45,18 +48,6 @@ export type PuzzleRow = {
   board: string[]
   clue: string
   solution: Solution
-}
-
-/**
- * Two cells are adjacent iff they touch on any of the 8 sides or corners —
- * **diagonals included**. Verified against the real archive: every sampled
- * puzzle uses diagonal steps (3–15 of ~40), so a 4-way rule would reject most
- * genuine answers rather than a few exotic ones.
- */
-export function adjacent([r1, c1]: Coord, [r2, c2]: Coord): boolean {
-  const dr = Math.abs(r1 - r2)
-  const dc = Math.abs(c1 - c2)
-  return (dr | dc) !== 0 && dr <= 1 && dc <= 1
 }
 
 /**
