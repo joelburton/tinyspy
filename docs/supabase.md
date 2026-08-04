@@ -55,6 +55,11 @@ Two operational invariants ride on this:
   schema fails every request with `PGRST106`.
   [`src/schemaExposure.e2e.test.ts`](../src/schemaExposure.e2e.test.ts)
   probes every registered game's schema over real HTTP to pin this.
+  **The hosted project has its own copy of this list**: `EXPOSED_SCHEMAS` in
+  `supabase/deploy/env.sh`, applied by `gmake project-config-api` — config.toml
+  only governs the local stack. A new game must be added to BOTH, or prod fails
+  with `Invalid schema: <name>` on that game's first request (how strands'
+  first deploy failed, 2026-08-04, while every local gate was green).
 - **`max_rows = 10000`** (config.toml): PostgREST silently caps every
   response at this many rows. It's a backstop against a missing-filter
   bug fetching a whole seed table, not a license to skip `.limit()` —

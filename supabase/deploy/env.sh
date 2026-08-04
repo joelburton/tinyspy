@@ -87,7 +87,7 @@ export SUPABASE_ACCESS_TOKEN="$PERSONAL_ACCESS_TOKEN"   # what the supabase CLI 
 # are Supabase defaults we keep so their features keep working.
 # ADDING A GAME MEANS ADDING IT HERE — the same list config.toml
 # carries locally, and src/schemaExposure.e2e.test.ts probes.
-EXPOSED_SCHEMAS="public,graphql_public,common,codenamesduet,psychicnum,connections,spellingbee,wordwheel,bananagrams,waffle,wordle,stackdown,scrabble,boggle,crosswords,wordiply"
+EXPOSED_SCHEMAS="public,graphql_public,common,codenamesduet,psychicnum,connections,spellingbee,wordwheel,bananagrams,waffle,wordle,stackdown,scrabble,boggle,crosswords,wordiply,strands"
 
 # Not strictly needed (every common.* reference in RLS and RPCs is
 # fully qualified) but matching local keeps behavior identical.
