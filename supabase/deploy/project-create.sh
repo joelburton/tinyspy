@@ -10,7 +10,7 @@
 # Discovers the org, generates a DB password if none was given, POSTs
 # /v1/projects, polls to ACTIVE_HEALTHY (~60-120s in practice, 5 min
 # ceiling), then fetches both API keys and saves everything to
-# hosted-credentials.local before returning — so a crash in any later
+# .deploy-credentials.cache before returning — so a crash in any later
 # step still leaves a clean resume point.
 
 . "$(dirname "$0")/env.sh"

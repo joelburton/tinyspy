@@ -41,18 +41,18 @@ PROJECT_PLAN="free"
 ORG_ID=""
 
 # DB password. Blank = `gmake project-create` generates a 32-char random
-# one and saves it to hosted-credentials.local.
+# one and saves it to .deploy-credentials.cache.
 #
 # **This is the one field nothing can recover.** Supabase hashes it, and the
 # dashboard's reveal is one-shot — so if the only copy is in
-# hosted-credentials.local (gitignored, one machine, one file) and that file
+# .deploy-credentials.cache (gitignored, one machine, one file) and that file
 # goes, your only move is Settings → Database → Reset password, which
 # invalidates the connection string everywhere. Once a project exists, PASTE
 # IT HERE. This file is the durable, hand-edited one; that one is a cache.
 DB_PASSWORD=""
 
 # Optional API keys. Blank = auto-fetch from the Management API with the PAT
-# above, whenever they're needed, and cached to hosted-credentials.local.
+# above, whenever they're needed, and cached to .deploy-credentials.cache.
 # Genuinely optional — unlike DB_PASSWORD, these are always recoverable.
 SUPABASE_SERVICE_ROLE_KEY=""
 SUPABASE_PUBLISHABLE_KEY=""

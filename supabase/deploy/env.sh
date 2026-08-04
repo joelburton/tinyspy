@@ -38,7 +38,7 @@ if [[ ! -f "$SECRETS_FILE" ]]; then
   exit 1
 fi
 # The secrets file is hand-created, so nothing has ever chmodded it — unlike
-# hosted-credentials.local, which save_credentials() writes at 600. It carries
+# .deploy-credentials.cache, which save_credentials() writes at 600. It carries
 # the Supabase PAT plus the Resend and Anthropic keys, so a default-umask 644
 # leaves all three readable by anyone with an account on the machine. Tighten
 # it rather than just complaining: the only reason it's ever loose is that
@@ -87,11 +87,19 @@ EXTRA_SEARCH_PATH="common,public,extensions"
 # the two in sync (docs/supabase.md → the max_rows trap).
 MAX_ROWS=10000
 
-# ── credentials file (resume across partial runs) ────────────────
-# Where project-create.sh stashes what it generated, so a later step
-# — or a re-run after a failure — picks up the ref, password and keys
-# without re-creating anything. Gitignored via *.local.
-CREDENTIALS_FILE="hosted-credentials.local"
+# ── credentials CACHE (resume across partial runs) ───────────────
+# Where project-create.sh stashes what it GENERATED — a new project's
+# random DB password and its fetched API keys exist nowhere else the
+# second they're made — so a later step, or a re-run after a failure,
+# picks them up instead of creating a second project.
+#
+# The leading dot and the word "cache" are the contract: nobody edits
+# this, and deleting it loses nothing that deploy.secrets.sh (the
+# durable, hand-edited file, which WINS on every field it sets) or a
+# refetch can't supply. The one exception is a password you never
+# copied out — see the DB_PASSWORD note in deploy.secrets.example.sh.
+# Gitignored by name.
+CREDENTIALS_FILE=".deploy-credentials.cache"
 
 # Values typed into the secrets file win over the saved ones; the
 # saved file only fills what the user left blank or placeholdered.
@@ -142,9 +150,10 @@ mask() { sed -E 's#:[^:@/]*@#:****@#g' <<< "$1"; }
 # resume point. 600 because the service-role key is god-mode.
 save_credentials() {
   cat > "$CREDENTIALS_FILE" <<EOF
-# Hosted Supabase credentials, written by supabase/deploy/env.sh.
-# Auto-loaded on the next run. Edit by hand to point at a different
-# project. NEVER commit (gitignored via *.local).
+# GENERATED CACHE — written by supabase/deploy/env.sh, do not edit.
+# Auto-loaded on the next run so a half-finished deploy can resume.
+# To change any of this, edit deploy.secrets.sh instead: it wins over
+# every field here. Safe to delete. NEVER commit (gitignored).
 
 PROJECT_REF="${PROJECT_REF}"
 DB_PASSWORD="${DB_PASSWORD}"

@@ -49,6 +49,12 @@ supabase/functions/scrabble-suggest-move/wordlist.ts
 # deploy.secrets.sh (never committed).
 deploy.secrets.sh
 
+# The generated resume cache beside it — a new project's DB password and
+# its service-role key land here. Named explicitly rather than leaning on
+# the *.local rule above, so renaming it can never quietly un-ignore a
+# file full of credentials.
+.deploy-credentials.cache
+
 # Playwright (e2e smoke tests)
 /test-results/
 /playwright-report/
