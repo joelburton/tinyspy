@@ -11,6 +11,10 @@ import { NEW_GAME_CONFIRM, useConfirmDialog } from '../../common/hooks/ui/useCon
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { buildPrintModel } from '../pdf/model'
+import { printStrandsPdf } from '../pdf/printStrandsPdf'
+import { difficultyValue } from '../../common/lib/game/difficulty'
+import { timerLabel } from '../../common/lib/game/timerLabel'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { consumedCells, coordKey, wordFromPath, type Coord } from '../lib/board'
@@ -134,7 +138,7 @@ function buildOver(
 export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, solutionRevealed, players, session,
-    setup, goToClub, clubHandle, goToGame, menu,
+    setup, goToClub, clubHandle, goToGame, menu, brand, title,
   } = ctx
 
   const selfId = session.user.id
@@ -400,6 +404,38 @@ export function PlayArea(ctx: GamePageCtx) {
     concededRef.current = players.find((p) => p.user_id === selfId)?.conceded ?? false
   })
   useEffect(() => {
+    // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). Nothing has
+    // to be re-shielded here: `guesses` is already whatever RLS let through
+    // (own only, in compete, until terminal) and `game.solution` is null until
+    // the reveal, so the model simply has nothing early to leak.
+    const printModel = game
+      ? buildPrintModel({
+        header: {
+          brand,
+          gameTitle: title,
+          date: new Date().toLocaleDateString(),
+          // The clue leads, then the count. The clue is in the title too, but
+          // that truncates to clear the date — this line doesn't, so it's the
+          // one that can be relied on to carry the theme.
+          summary: `“${game.clue}” · ${found.length} word${found.length === 1 ? '' : 's'}`,
+          setup: [
+            { label: 'Hint dictionary', value: difficultyValue(game.band) },
+            { label: 'Words per hint', value: String(game.hint_cost) },
+            { label: 'Shortest word', value: `${game.min_word_length} letters` },
+            { label: 'Timer', value: timerLabel(strandsSetup.timer) },
+          ],
+        },
+        board: game.board,
+        mode: game.mode,
+        isTerminal,
+        guesses,
+        players,
+        playerStates,
+        selfId,
+        solution: game.solution,
+      })
+      : null
+
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -408,10 +444,20 @@ export function PlayArea(ctx: GamePageCtx) {
         conceded: concededRef.current,
         onEndGame: () => actionsRef.current.endGame(),
         onConcede: () => actionsRef.current.concede(),
-        extra: infoSheet.menuSections,
+        extra: [
+          ...infoSheet.menuSections,
+          ...(printModel
+            ? [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printStrandsPdf(printModel) }] }]
+            : []),
+        ],
       }),
     )
-  }, [menu, isTerminal, infoSheet.menuSections])
+  }, [
+    menu, isTerminal, infoSheet.menuSections,
+    // The print model's inputs — rebuilt whenever the printable state moves, so
+    // the snapshot is current at click time.
+    brand, title, game, guesses, players, playerStates, selfId, strandsSetup, found.length,
+  ])
 
   if (loading || !game) return <div className={styles.loading}>Loading…</div>
 

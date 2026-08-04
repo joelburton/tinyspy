@@ -201,9 +201,12 @@ TS WK PN RA SD SS WN PP
 "the board at turn N" is a slice of the log rather than a reconstruction.)
 
 ## Print to PDF
-RA PN MC FB MG CP MW
+RA PN MC FB MG CP MW PP
 Deliberately excluded (turn-by-turn progressions): SS WN
-Candidates, not built: TS* WK* SD* WW* PP*
+Candidates, not built: TS* WK* SD* WW*
+(PP prints one TRACK PER BOARD like WN/SS's compete layout — coop is one column,
+compete one per player — and moves its purple/gold encoding onto line WEIGHT and
+dashing, since on a mono printer the two are one grey.)
 
 ## Player-tunable difficulty
 Dictionary/difficulty band at setup:  PN FB MC RA SD SS WN MG MW WW PP

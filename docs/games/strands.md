@@ -271,6 +271,40 @@ word-for-word boggle's.
 forward, and the confirm names the date. Restart is for replaying the same board.
 At the end of the archive it says so as a one-button notice.
 
+### Print to PDF
+
+One **track per board** (`common/pdf/columns`, three to a page): coop's team
+board is a single column, compete gets one per player — there each racer really
+does have a different board over the same letters, and a merged column would
+file one player's words under another's grid. Same reasoning wordle and waffle
+print by.
+
+Printing a board whose meaning is COLOUR needs the encoding to move to **shape**
+(pdf.md — colour only for meaning, never as the only carrier):
+
+| on screen | on paper |
+|---|---|
+| purple disc + line (theme word) | a solid grey line through the letters |
+| gold (the spangram) | the same line, drawn **heavier** |
+| grey (a missed word, at the reveal) | a **dashed** line |
+
+Letters print black throughout, over a **white knock-out disc** on every traced
+cell — the mono equivalent of the on-screen coloured disc, and the reason a
+connector doesn't run straight through the glyph it connects. Circling every
+found tile instead would ink most of the page: the hidden words tile the board
+exactly, so a solved board is entirely covered.
+
+The log's verdict glyphs are the vector marks from `common/pdf/marks` (a filled
+square for a find, bigger for the spangram, ✓ for a valid word, ✗ for a
+rejection) — jsPDF's core fonts are WinAnsi, so a unicode star or trophy would
+not render at all. That non-colour encoding is why the on-screen glyphs were
+added when they were.
+
+The shield applies here too, and needs no separate rule: missed words come from
+`solution`, which is null until the reveal, and mid-game compete prints only the
+caller's track because RLS hasn't handed over anyone else's guesses — a rival's
+column would be an empty grid claiming they found nothing.
+
 ### Turn-history replay
 
 Click any `#N` in the log to see the board as it stood at that submission
@@ -418,7 +452,5 @@ at terminal names the MARGIN (`Won · 0 hints`) rather than the finish order.
 Catch-up work — each is a thing the other games already have, so none is new
 invention:
 
-- **Print to PDF** ([pdf.md](../pdf.md)). Composes from the shared `common/pdf/`
-  helpers: the board grid, the found words, the theme clue.
 - **Mobile on-device pass.** The recipe is composed and the shape is friendly (a
   portrait 6×8, tap input), but it hasn't been checked on real hardware.
