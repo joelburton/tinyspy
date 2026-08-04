@@ -3,19 +3,22 @@
 
 /* ─── Board sizing — TINKER HERE ──────────────────────────────────────────────
  * strands' board is 6 wide × 8 tall — PORTRAIT, unlike the square boards
- * (waffle/boggle), so height is the binding dimension and width follows from
- * the 6/8 ratio rather than being chosen.
+ * (waffle/boggle), so height is usually the binding dimension and width follows
+ * from the 6/8 ratio rather than being chosen.
  *
- * `--board-h` takes the smallest of three: the vertical room above the
- * below-board stack, the per-tile cap, and whatever height the AVAILABLE WIDTH
- * can afford at 6/8. That last term is what keeps a narrow window from
- * producing a board wider than its column. Result is a DEFINITE size, which is
- * what `.boardCol { flex: 0 0 auto }` needs to hug (playarea.md → Board sizing).
+ * `--board-h` is the INNER height (the letter grid). The frame around it —
+ * padding plus border — sits OUTSIDE that under `box-sizing: content-box`, so
+ * both terms below subtract `--board-frame` first. Forgetting it is not a
+ * cosmetic error: on a 390px phone the board came out 415px wide and the page
+ * scrolled in both directions, which the hard no-scroll invariant forbids
+ * (docs/ui.md → Page-height fits the viewport).
  *
- * The below-board stack is the echo/pill slot (2.5rem) + the hint row (2.25rem)
- * + two 0.75rem column gaps ≈ 6.25rem, plus 1rem of breathing room top and
- * bottom so the board isn't flush against the chrome. Keep in sync with
- * `.echoSlot` and HintBar.module.css. */
+ * Content-box (rather than sizing the outer box) is deliberate: it keeps the
+ * INNER area exactly 6:8, so the cells stay square and the SVG's cell-unit
+ * viewBox maps 1:1.
+ *
+ * The three terms: the vertical room left above the below-board stack, the
+ * per-tile cap, and whatever height the available WIDTH can afford at 6/8. */
 .layout {
   /* A FIXED info column, like wordle / connections / waffle. strands does NOT
    * compose the shared `.responsiveInfoCol` — that one is for the three
@@ -26,18 +29,18 @@
    * mandatory: leave it out and --avail-w is invalid at computed-value time,
    * which silently collapses the board to zero height rather than erroring. */
   --info-col-width: 22rem;
-  /* Raised so --avail-h is normally the BINDING term: on a laptop the board
-   * should use the height it has rather than sitting in a band of whitespace.
-   * The cap only takes over on a very tall window, where an 8-row board would
-   * otherwise grow past comfortable reading size. */
   --max-tile-size: 6rem;
-  /* +1.8rem for the board frame's vertical padding (0.9rem × 2), which is
-   * outside --board-h under `box-sizing: content-box`. */
-  --avail-h: calc(100svh - var(--game-chrome-height) - 10.05rem);
+  /* The board's own chrome: 0.9rem padding a side + a 2px border a side. Keep
+   * in sync with `.board` in Board.module.css — they describe one box. */
+  --board-frame: 2.05rem;
+  /* The below-board stack: the echo/pill slot (2.5rem) + the hint row (2.25rem)
+   * + two 0.75rem column gaps, plus ~1rem of breathing room. Keep in sync with
+   * `.echoSlot` and HintBar.module.css. */
+  --avail-h: calc(100svh - var(--game-chrome-height) - 8.25rem);
   --board-h: min(
-    var(--avail-h),
+    calc(var(--avail-h) - var(--board-frame)),
     calc(8 * var(--max-tile-size)),
-    calc(var(--avail-w) * 8 / 6)
+    calc((var(--avail-w) - var(--board-frame)) * 8 / 6)
   );
 }
 

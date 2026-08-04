@@ -203,7 +203,13 @@
   color: var(--strands-on-disc);
 }
 
-/* Hover only where a click can do something. */
-.tile:not(:disabled):hover {
-  opacity: 0.75;
+/* Hover only where a click can do something — and only on a device that really
+ * hovers. A touchscreen keeps `:hover` on the last-tapped element until you tap
+ * somewhere else, so ungated this leaves one dimmed tile sitting on the board
+ * after every submission. Same `(hover: hover)` gate, for the same reason, as
+ * the tooltip bubble (docs/ui.md → Tooltips). */
+@media (hover: hover) {
+  .tile:not(:disabled):hover {
+    opacity: 0.75;
+  }
 }

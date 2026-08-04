@@ -634,6 +634,45 @@ tablet-p + phone on a generated full-size 15×15 board
 can't exercise width-bound sizing): no page scroll, width-bound grid, the bar
 under the grid at its reserved height, the sheet round-trip, typed entry.
 
+**strands** was the plain recipe — it composes `useInfoSheet` + `<InfoSheet>` +
+`mobileFill` unchanged, its input is tap-a-letter (touch-native, no keyboard and
+no drag), and its below-board furniture (the echo/verdict slot + the hint bar)
+is already fixed-height, so nothing needed a phone variant. Two things came out
+of the on-device pass, and both are worth recording because neither is
+strands-specific reasoning:
+
+- **The board's FRAME has to be in the height budget.** strands has the tallest
+  board on the roster — portrait 6 wide × 8 tall — and `.board` is
+  `box-sizing: content-box` with `0.9rem` of padding plus a 2px border, so its
+  outer box is ~2rem larger than the number `--board-h` names. The sizing
+  formula budgeted only the inner box, so a 390px phone got a **415px-wide
+  board** and the page scrolled in *both* axes. Fixed with a `--board-frame`
+  token subtracted from both `min()` terms, kept in sync with `.board` by
+  comment. Content-box is deliberate and stays: it keeps the inner area exactly
+  6:8, so cells stay square and the SVG's cell-unit viewBox maps 1:1. **Any
+  game whose board wears a frame owes the same subtraction** — desktop has slack
+  to hide it, a phone does not.
+- **`:hover` needs the `(hover: hover)` gate on anything tappable.** The tiles
+  dimmed to 0.75 on hover, which on a touchscreen *sticks to the last-tapped
+  element* until you tap elsewhere — so every submission left one dimmed tile
+  sitting on the board. Same gate, same reason, as the tooltip bubble (docs/ui.md
+  → Tooltips). Other games have ungated `:hover` on board-ish elements
+  (stackdown's `Board`, spellingbee's `Letters`, wordwheel's `Wheel`) and would
+  likely show the same thing; not touched here, recorded in
+  [deferred.md](deferred.md) → Mobile.
+
+Guarded by [`strands-mobile.e2e.ts`](../e2e/strands-mobile.e2e.ts) at tall +
+short: no page scroll in either axis, the board's **bounding rect** (frame
+included) inside the viewport, the sheet round-trip, a tapped trace committing,
+and — with the log padded past what any sheet can show — that the turn log's own
+box takes the overflow rather than the sheet. Both halves were verified by
+planting: restoring the un-framed formula fails the width assertion at 415px,
+and making `.turnLogBox` non-scrolling fails the sheet assertion.
+
+Landscape phones were checked (844×390) and are fine — no scroll, everything
+reachable — just height-bound to a small board, which is inherent to an 8-row
+grid on a 390px-tall viewport and not something this doc's breakpoints address.
+
 ### The mobile status bar — core state above the board
 
 The info-sheet recipe has a cost: the moment the info column goes off-canvas, the

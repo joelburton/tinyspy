@@ -229,9 +229,6 @@ the board.)
 # Mobile suitability
 Twelve games are phone-converted via the info-sheet recipe (docs/mobile.md):
 PN FB TS WK MC SD SS WN CP MW WW PP.
-(PP composes the recipe but hasn't had its on-device pass — the board is a
-portrait 6×8, which is the friendliest shape on the roster for a phone, and its
-input is taps rather than typing, so nothing structural is expected.)
 Keyboard-required, NOT desktop-only (fits a tablet with a hardware keyboard;
 deliberately not device-gated):  CP (its conversion is a layout for
 keyboard-attached devices, not a touch-entry mode)  RA (not phone-converted;
