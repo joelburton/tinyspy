@@ -121,7 +121,7 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
             })
           }
         >
-          NYT by date
+          NYT
         </button>
         <button
           type="button"
@@ -145,7 +145,7 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
           aria-pressed={source === 'upload'}
           onClick={() => onChange({ ...s, source: 'upload' })}
         >
-          Upload file
+          Upload
         </button>
       </div>
 
