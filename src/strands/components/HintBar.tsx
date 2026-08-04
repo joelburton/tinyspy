@@ -52,6 +52,7 @@ export function HintBar({ points, cost, showing, disabled, onSpend }: Props) {
           tone (ui.md → Button iconography). NOT icon-only: this is the one
           control the whole hint economy exists to reach, so it says its name. */}
       <HintButton
+        className={cls(styles.hint, full && !showing && styles.hintReady)}
         onClick={onSpend}
         // A hint already on the board blocks a second one: the board can only
         // ring one word legibly, and the server refuses anyway.

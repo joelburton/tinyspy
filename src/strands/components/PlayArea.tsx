@@ -174,6 +174,13 @@ export function PlayArea(ctx: GamePageCtx) {
   useGlobalKeyHandler(
     useCallback(
       (e: KeyboardEvent) => {
+        // ANY key dismisses the last verdict, matching every other game: the
+        // own-move pill is `sticky`, which by convention means "stays until the
+        // next move dismisses it — a keystroke or a tile click routed through
+        // clearLocalFeedback" (common/lib/game/localPills). Done first, and
+        // outside the terminal/busy gate, so the pill clears even for keys that
+        // then do nothing.
+        clearLocalFeedback()
         if (e.key === 'Tab') {
           e.preventDefault()
           return
@@ -181,7 +188,6 @@ export function PlayArea(ctx: GamePageCtx) {
         if (isTerminal || busy) return
         if (e.key === 'Backspace') {
           e.preventDefault()
-          clearLocalFeedback()
           setTrace((t) => t.slice(0, -1))
           return
         }
