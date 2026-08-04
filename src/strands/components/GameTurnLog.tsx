@@ -39,12 +39,20 @@ const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
   invalid: 'bad',
 }
 
-/** The short body after the word, matching the own-move pill's wording so the
- *  log and the pill say the same thing about the same submission. */
-const BODY: Record<GuessRow['result'], string> = {
-  spangram: 'spangram',
-  theme: 'theme',
-  hint_word: 'valid word',
+/**
+ * The short body after the word — but ONLY where it says something the colour
+ * doesn't.
+ *
+ * A find needs no label: green bar + purple word IS "theme", green bar + gold
+ * word IS "spangram", and an amber bar IS "valid word". Spelling those out
+ * again cost the width that a long word needs on a phone, to repeat what the
+ * row already showed.
+ *
+ * A reject is the opposite case. All three paint the same red bar, so the
+ * colour narrows it to "this missed" and the label is the only thing saying
+ * WHY — too short, already counted, or not a word at all.
+ */
+const BODY: Partial<Record<GuessRow['result'], string>> = {
   duplicate: 'already found',
   too_short: 'too short',
   invalid: 'not a word',
@@ -117,7 +125,9 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
               >
                 {g.word.toUpperCase()}
               </span>
-              <span className={turnLog.meta}> — {BODY[g.result]}</span>
+              {BODY[g.result] && (
+                <span className={turnLog.meta}> — {BODY[g.result]}</span>
+              )}
             </td>
             <TurnLogActor actor={memberById(players, g.user_id)} />
           </tr>

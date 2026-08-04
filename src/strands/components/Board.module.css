@@ -25,7 +25,16 @@
   position: relative;
   /* Breathing room so the outermost discs + the last-tile ring aren't clipped
    * by the box edge: a ring at r=0.47 of a cell overhangs the letter grid. */
-  padding: 0.25rem;
+  /* Padding is bigger than the 0.25rem the discs strictly need now that there
+   * is a frame: the outermost disc shouldn't sit against the border. */
+  padding: 0.9rem;
+  /* A real frame. Without it the letters floated in the page with nothing
+   * saying where the board began or ended — the other grid games get that for
+   * free from their tile boxes, and strands, having none, has to say it once
+   * at the edge. */
+  border: 2px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
   box-sizing: content-box;
   /* Letters scale off the BOARD, not the page (Board.module.css .tile). */
   container-type: inline-size;
@@ -34,7 +43,7 @@
 .paths,
 .grid {
   position: absolute;
-  inset: 0.25rem;
+  inset: 0.9rem;
   /* Explicit, not inferred: an <svg> does not reliably take its size from
    * inset offsets alone, and without this it lays out at its default
    * intrinsic size in a corner of the board. */

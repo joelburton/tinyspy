@@ -1,15 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <!-- A traced path across a grid of dots: strands' core gesture. -->
-  <polyline points="7,8 13,8 19,14 25,14 25,22"
-            stroke="#6d3fc0" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="7" cy="8" r="3.2" fill="#6d3fc0"/>
-  <circle cx="13" cy="8" r="3.2" fill="#6d3fc0"/>
-  <circle cx="19" cy="14" r="3.2" fill="#6d3fc0"/>
-  <circle cx="25" cy="14" r="3.2" fill="#6d3fc0"/>
-  <circle cx="25" cy="22" r="3.2" fill="#d9a520"/>
-  <circle cx="7" cy="20" r="1.8" fill="#c9c4d6"/>
-  <circle cx="13" cy="20" r="1.8" fill="#c9c4d6"/>
-  <circle cx="7" cy="26" r="1.8" fill="#c9c4d6"/>
-  <circle cx="13" cy="26" r="1.8" fill="#c9c4d6"/>
-  <circle cx="19" cy="26" r="1.8" fill="#c9c4d6"/>
+<!-- strands (PaulPath) logo — the game's core gesture at the smallest size that
+     still reads: a traced path across a grid of letters.
+
+     A 3×3, not the 4×4 first drawn: at the ~32px the app actually renders a
+     logo at, four rows of discs plus a polyline turned into texture rather
+     than a shape. Three rows leave each disc big enough to be a disc.
+
+         P P .        P — a found theme word (purple), joined by the path
+         . . P        . — an untouched tile (small, grey)
+         . . G        G — the spangram (gold), the word that names the theme
+
+     The purple line joins only the P discs, so the mark says "these were
+     traced in order" while the gold disc still reads as its own, special
+     thing. Rounded-rect frame with a little padding, matching the other game
+     logos (boggle, spellingbee). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="strands">
+  <rect x="3" y="3" width="94" height="94" rx="16"
+        fill="#ffffff" stroke="#6d3fc0" stroke-width="5"/>
+
+  <!-- Untouched tiles. Under everything, and small, so they read as the board
+       the path is drawn ON rather than as marks of their own. -->
+  <g fill="#c9c4d6">
+    <circle cx="73" cy="27" r="5"/>
+    <circle cx="27" cy="50" r="5"/>
+    <circle cx="50" cy="50" r="5"/>
+    <circle cx="27" cy="73" r="5"/>
+    <circle cx="50" cy="73" r="5"/>
+  </g>
+
+  <!-- The traced path, under its discs (as on the real board). -->
+  <polyline points="27,27 50,27 73,50" fill="none" stroke="#6d3fc0"
+            stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <g fill="#6d3fc0">
+    <circle cx="27" cy="27" r="12"/>
+    <circle cx="50" cy="27" r="12"/>
+    <circle cx="73" cy="50" r="12"/>
+  </g>
+
+  <!-- The spangram: gold, unjoined. -->
+  <circle cx="73" cy="73" r="12" fill="#d9a520"/>
 </svg>

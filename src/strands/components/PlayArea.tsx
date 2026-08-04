@@ -286,6 +286,28 @@ export function PlayArea(ctx: GamePageCtx) {
   const wordsTotal = (status?.words_total as number | undefined) ?? 0
   const over = isTerminal ? buildOver(playState, found.length, wordsTotal) : null
 
+  /**
+   * What the below-board slot shows, in priority order: the permanent terminal
+   * verdict, then your last move's result, then — on an untouched board — the
+   * THEME, quoted.
+   *
+   * The clue also sits in the info column, but that column is off-canvas on a
+   * phone: without this a mobile player would open the game with no idea what
+   * they were looking for until they thought to open the sheet. Showing it here
+   * puts the prompt where the eyes already are.
+   *
+   * DERIVED, not shown by an effect on mount. It simply is what an empty slot
+   * displays while nothing has happened yet, so the first submission replaces
+   * it and it never comes back — no timer, no "have I shown this?" flag, and no
+   * setState-in-effect (which this repo bans outright).
+   */
+  const pill = over
+    ? terminalPill(over.tone, over.verdict)
+    : localFeedback
+      ?? (guesses.length === 0 && trace.length === 0
+        ? { tone: 'neutral' as const, text: `Theme: “${game.clue}”`, variant: 'outline' as const, dismiss: { kind: 'sticky' as const } }
+        : null)
+
   // At the reveal, the words nobody found. `game.solution` is null until then,
   // so this is empty for the whole game by construction rather than by a flag
   // we have to remember to check.
@@ -313,7 +335,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // The word being traced. Shares its slot with the verdict pill — you are
         // either building a word or reading what the last one did.
         echo={trace.length ? wordFromPath(game.board, trace) : ''}
-        pill={over ? terminalPill(over.tone, over.verdict) : localFeedback}
+        pill={pill}
         onDismissPill={clearLocalFeedback}
         hintPoints={game.hint_points}
         hintCost={game.hint_cost}

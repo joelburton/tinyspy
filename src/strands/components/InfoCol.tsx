@@ -77,7 +77,9 @@ export function InfoCol({
     <div className={shared.infoCol}>
       <div className={shared.actionSlot}>
         {/* ── State ── */}
-        <p className={styles.clue}>{clue}</p>
+        {/* Quoted: the clue is the puzzle's own words, not ours, and unquoted
+            it reads as a heading the app wrote. */}
+        <p className={styles.clue}>“{clue}”</p>
         <p className={shared.infoState}>
           {wordsFound} / {wordsTotal} words
           {hintsSpent > 0 && <span className={styles.hintsUsed}> · {hintsSpent} hint{hintsSpent === 1 ? '' : 's'} used</span>}

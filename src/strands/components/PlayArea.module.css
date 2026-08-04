@@ -31,7 +31,9 @@
    * The cap only takes over on a very tall window, where an 8-row board would
    * otherwise grow past comfortable reading size. */
   --max-tile-size: 6rem;
-  --avail-h: calc(100svh - var(--game-chrome-height) - 8.25rem);
+  /* +1.8rem for the board frame's vertical padding (0.9rem × 2), which is
+   * outside --board-h under `box-sizing: content-box`. */
+  --avail-h: calc(100svh - var(--game-chrome-height) - 10.05rem);
   --board-h: min(
     var(--avail-h),
     calc(8 * var(--max-tile-size)),
