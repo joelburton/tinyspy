@@ -19,7 +19,7 @@ begin;
 
 set search_path = strands, common, public, extensions;
 
-select plan(19);
+select plan(22);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -219,6 +219,60 @@ select is(
     where game_id = (select id from game) and result in ('invalid','duplicate')),
   3::bigint,
   'soft rejects ARE logged (2 invalid + 1 duplicate) — the log records what was tried'
+);
+
+-- ============================================================
+-- (20)–(23) REGRESSION: an equivalent trace of the same tiles
+-- ============================================================
+-- The 2026-08-02 bug. A theme word with a repeated letter can sit on two
+-- interchangeable tiles, and then more than one legal trace covers the IDENTICAL
+-- cells and spells the IDENTICAL word. Comparing the stored coord ARRAY rejected
+-- one of them and scored it as an ordinary dictionary find — telling a player
+-- who had genuinely found the word, in its place, that they hadn't.
+--
+-- A find is identified by WHICH TILES it consumes plus the word they spell,
+-- never by the order they were visited in.
+
+create temp table amb on commit drop as select pg_temp.strands_ambiguous_puzzle() as puzzle_id;
+create temp table ambgame on commit drop as
+select id from strands.create_game(
+  (select handle from club), pg_temp.strands_setup((select puzzle_id from amb)),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+
+select is(
+  strands.submit_path((select id from ambgame), pg_temp.strands_abba_equivalent())->>'result',
+  'theme',
+  'the EQUIVALENT trace is a theme word — same tiles, same word, other order'
+);
+
+-- Its tiles are now spent, so the CANONICAL trace can no longer be run — which
+-- is the proof the equivalent one really consumed the placement rather than
+-- being scored as some unrelated find that happened to say "theme".
+select throws_ok(
+  format($$ select strands.submit_path(%L, %L::jsonb) $$,
+         (select id from ambgame), pg_temp.strands_abba_canonical()::text),
+  'P0001',
+  'path crosses an already-found word',
+  'and it consumed the tiles — the canonical trace can''t be run afterwards'
+);
+
+-- The order still has to SPELL the word. Uses row 2 (KLMNOP) reversed rather
+-- than ABBA reversed — ABBA reads the same both ways, so "backwards" is a
+-- genuine find there and asserting otherwise would be asserting a bug. Needs a
+-- fresh board too: on the one above those tiles are spent, and the structural
+-- check would reject the trace before classification ever ran.
+create temp table ambgame2 on commit drop as
+select id from strands.create_game(
+  (select handle from club), pg_temp.strands_setup((select puzzle_id from amb)),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
+
+select is(
+  strands.submit_path(
+    (select id from ambgame2), '[[2,5],[2,4],[2,3],[2,2],[2,1],[2,0]]'::jsonb)->>'result',
+  'invalid',
+  'but cells alone are not enough — KLMNOP''s tiles read backwards are not a find'
 );
 
 select * from finish();

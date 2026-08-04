@@ -429,6 +429,35 @@ revoke execute on function strands.create_game(text, jsonb, uuid[], text) from p
 grant execute on function strands.create_game(text, jsonb, uuid[], text) to authenticated;
 
 -- ============================================================
+-- strands._path_key — a path's PLACEMENT, order-independent
+-- ============================================================
+-- The sorted set of cells a path covers, as "r,c" text. Two paths with the same
+-- key occupy exactly the same tiles, whatever order they were traced in.
+--
+-- THIS EXISTS BECAUSE ORDERED COMPARISON WAS WRONG. A word with a repeated
+-- letter can have two interchangeable tiles, and then more than one legal trace
+-- spells the same word over the identical cells. Real case (2026-08-02,
+-- "Eyes on the prize"): INTENTION runs through two N's at [5,1] and [6,1], each
+-- adjacent to both of the other's neighbours —
+--
+--   I[5,0] N[6,1] T[6,2] E[7,3] N[7,2] T[7,1] I[7,0] O[6,0] N[5,1]
+--   I[5,0] N[5,1] T[6,2] E[7,3] N[7,2] T[7,1] I[7,0] O[6,0] N[6,1]
+--
+-- — the same nine tiles, differing only in which N was touched first. Matching
+-- the stored coord ARRAY rejected the first as "not a theme word" and scored it
+-- as an ordinary dictionary find, which is simply wrong: the player had found
+-- the word, in its place. What identifies a find is WHICH TILES it consumes,
+-- and the word those tiles spell — never the order they were visited in.
+create or replace function strands._path_key(coords jsonb)
+returns text[]
+language sql
+immutable
+as $$
+  select array_agg((e->>0) || ',' || (e->>1) order by (e->>0)::int, (e->>1)::int)
+    from jsonb_array_elements(coords) e;
+$$;
+
+-- ============================================================
 -- strands._consumed_keys — cells locked by found theme words
 -- ============================================================
 -- "r,c" keys for every cell a found theme word occupies. Those tiles are
@@ -684,18 +713,27 @@ begin
     into norm_path
     from unnest(rs, cs) with ordinality as t(r, c, ord);
 
-  -- ─── 1. A theme word? Matched BY PATH, not by string ─────
-  -- Theme words often appear in an ordinary dictionary too (in one sampled
-  -- puzzle, all 8 did), so string matching would misclassify. The path is
-  -- unambiguous — and it also means tracing the right letters through the
-  -- wrong cells is not a find.
-  if g_row.solution->'spangram'->'coords' = norm_path then
+  -- ─── 1. A theme word? Matched by PLACEMENT + WORD ────────
+  -- Two conditions, and both are needed:
+  --
+  --   the CELLS  — a find is identified by which tiles it consumes, compared
+  --                order-independently (see _path_key: a repeated letter can
+  --                make two traces cover the same tiles);
+  --   the WORD   — so that tracing those same tiles in an order spelling
+  --                something else isn't a find.
+  --
+  -- String alone would misclassify: theme words often appear in an ordinary
+  -- dictionary too (in one sampled puzzle, all 8 did). Cells alone would accept
+  -- a scramble. Together they're exact.
+  if strands._path_key(g_row.solution->'spangram'->'coords') = strands._path_key(norm_path)
+     and g_row.solution->'spangram'->>'word' = v_word then
     matched := true;
     is_spangram := true;
     v_result := 'spangram';
   elsif exists (
     select 1 from jsonb_array_elements(g_row.solution->'themeWords') tw
-     where tw->'coords' = norm_path
+     where strands._path_key(tw->'coords') = strands._path_key(norm_path)
+       and tw->>'word' = v_word
   ) then
     matched := true;
     v_result := 'theme';
@@ -754,10 +792,13 @@ begin
   if matched then
     -- A spent hint retires the moment its word is found — for whoever was
     -- looking at it (everyone in coop, just you in compete).
+    -- By PLACEMENT, for the same reason as the match above: the hint stores the
+    -- canonical coords, and a player who traced the word the other way round
+    -- would otherwise be left staring at a hint for a word they'd just found.
     update strands.players sp
        set active_hint_coords = null
      where sp.game_id = target_game
-       and sp.active_hint_coords = norm_path
+       and strands._path_key(sp.active_hint_coords) = strands._path_key(norm_path)
        and (g_row.mode = 'coop' or sp.user_id = caller_id);
     -- FOUND is PL/pgSQL's "did the last statement touch a row?" — spelled out
     -- rather than assigned straight through, because reading `hint_cleared :=
@@ -896,10 +937,12 @@ begin
            g_row.solution->'themeWords' || jsonb_build_array(g_row.solution->'spangram')
          ) tw
    where not exists (
+     -- Again by PLACEMENT: comparing stored arrays would think a word found via
+     -- the other equivalent trace was still unfound, and cheerfully hint at it.
      select 1 from strands.guesses gu
       where gu.game_id = target_game
         and gu.result in ('theme', 'spangram')
-        and gu.path = tw->'coords'
+        and strands._path_key(gu.path) = strands._path_key(tw->'coords')
         and (g_row.mode = 'coop' or gu.user_id = caller_id)
    )
    order by random()

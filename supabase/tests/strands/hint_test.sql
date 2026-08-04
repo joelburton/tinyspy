@@ -37,7 +37,24 @@ select id from strands.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
 
 -- ============================================================
--- (1)–(2) You cannot spend what you have not earned
+-- (1) Both players can act on the shared board
+-- ============================================================
+-- Done FIRST, before anything is found, and that ordering is the point: the
+-- hint below reveals a RANDOM word, and finding it consumes that row — so an
+-- equivalent check afterwards passed or failed on the shuffle. (It did, about
+-- one run in ten, and chasing the mechanism cost more than removing the
+-- dependency.) Row 5's prefix is in no seeded word list, so the verdict here
+-- is deterministic whatever else happens later.
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select is(
+  strands.submit_path((select id from game), pg_temp.strands_prefix_path(5, 4))->>'result',
+  'invalid',
+  'the other player can act on the shared board too (coop is shared state)'
+);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+
+-- ============================================================
+-- (2)–(3) You cannot spend what you have not earned
 -- ============================================================
 
 select throws_ok(
@@ -158,28 +175,6 @@ select throws_ok(
   '42501',
   'not playing this game',
   'an outsider cannot spend the club''s hint'
-);
-
--- The hint above revealed a RANDOM word, and finding it consumed that row —
--- so the row this assertion traces has to be chosen, not assumed. Picking a
--- fixed row made the test pass or fail depending on the shuffle, which is the
--- kind of flake that only shows up later on someone else's machine.
-create temp table free_row on commit drop as
-select r from generate_series(0, 7) r
- where not exists (
-   select 1 from strands.guesses g, lateral jsonb_array_elements(g.path) e
-    where g.game_id = (select id from game)
-      and g.result in ('theme', 'spangram')
-      and (e->>0)::int = r
- )
- order by r limit 1;
-
-select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select lives_ok(
-  format($$ select strands.submit_path(%L, %L::jsonb) $$,
-         (select id from game),
-         pg_temp.strands_prefix_path((select r from free_row), 4)::text),
-  'the other player can act on the shared board too (coop is shared state)'
 );
 
 select * from finish();

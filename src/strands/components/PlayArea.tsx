@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
+import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { outOfRacePill, stickyPill, terminalPill } from '../../common/lib/game/localPills'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -138,6 +140,26 @@ export function PlayArea(ctx: GamePageCtx) {
   // Mode comes off the loaded game row (denormalized from strands.games.mode),
   // which is how every sibling-pair game branches.
   const isCompete = game?.mode === 'compete'
+
+  /**
+   * Confetti at the MOMENT a win lands — coop clearing the board, or being the
+   * compete player who took it. `useCelebration` only fires on the false→true
+   * TRANSITION, so opening an already-won game stays quiet: it's a celebration,
+   * not a status.
+   *
+   * The compete arm reads `game_players.result`, which `_maybe_finish_compete`
+   * writes at the same moment it flips play_state — so by the time this is true
+   * the verdict is settled, not inferred. That ordering matters: waffle's
+   * loading-race taught the roster not to celebrate off data that isn't right
+   * on the first render, and a per-player `won` flag that arrives WITH the
+   * terminal state can't be half-there.
+   *
+   * A compete LOSER sees nothing, deliberately — a race has someone watching.
+   */
+  const iWonCompete =
+    playState === 'won_compete'
+    && players.find((p) => p.user_id === session.user.id)?.result?.won === true
+  const celebration = useCelebration(playState === 'won' || iWonCompete)
   // `locked` at terminal, like every other game: the permanent verdict owns the
   // slot then, so a stale own-move pill must not be able to replace it.
   const { localFeedback, showLocalFeedback, clearLocalFeedback } =
@@ -457,6 +479,17 @@ export function PlayArea(ctx: GamePageCtx) {
       </InfoSheet>
 
       {confirmDialog}
+      {celebration.show && (
+        <CelebrationDialog
+          title={isCompete ? 'You win!' : 'You found them all!'}
+          body={
+            isCompete
+              ? `Solved on ${me?.hints_spent ?? 0} hint${(me?.hints_spent ?? 0) === 1 ? '' : 's'}.`
+              : `Every word on the board — ${found.length} of them.`
+          }
+          onClose={celebration.close}
+        />
+      )}
     </div>
   )
 }

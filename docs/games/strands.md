@@ -86,10 +86,30 @@ otherwise. Since that directory is the authoritative current definition, the
 shield starts by clearing whatever came before. (Found by planting exactly that
 break and watching the file fail to heal it.)
 
-**Match by path, not by string.** In one sampled puzzle all 8 theme words also
-appear in NYT's own solutions list, so string matching would misclassify. Path
-matching also means tracing the right letters through the wrong cells is not a
-find.
+**Match by PLACEMENT + word**, not by ordered path and not by string alone.
+
+A find is identified by *which tiles it consumes* and *what those tiles spell* —
+never by the order they were visited in. Both halves are needed: string alone
+misclassifies (in one sampled puzzle all 8 theme words also appear in NYT's own
+solutions list), and cells alone would accept a scramble.
+
+The ordering half was a **bug**, fixed 2026-08-04. A word with a repeated letter
+can sit on two interchangeable tiles, and then more than one legal trace covers
+the identical cells and spells the identical word. Real case (2026-08-02, "Eyes
+on the prize") — INTENTION runs through two `N`s at `[5,1]` and `[6,1]`, each
+adjacent to both of the other's neighbours:
+
+```
+I[5,0] N[6,1] T[6,2] E[7,3] N[7,2] T[7,1] I[7,0] O[6,0] N[5,1]   ← was rejected
+I[5,0] N[5,1] T[6,2] E[7,3] N[7,2] T[7,1] I[7,0] O[6,0] N[6,1]   ← was accepted
+```
+
+Same nine tiles; the only difference is which `N` was touched first. Comparing
+the stored coord array scored the first as an ordinary dictionary word, telling
+a player who *had* found the word, in its place, that they hadn't. `_path_key`
+now compares the sorted cell set, and the same fix applies to the two other
+places that compared paths: clearing a spent hint, and deciding whether a word
+is still worth hinting at.
 
 **No Realtime Broadcast channel.** A peer sees your word when you **submit** it;
 nobody watches anyone else's tiles light up mid-trace. That is the opposite of

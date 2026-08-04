@@ -127,3 +127,65 @@ language sql immutable as $$
     'timer', jsonb_build_object('kind', 'none')
   )
 $$;
+
+-- ─── The AMBIGUOUS-PATH fixture ─────────────────────────────
+-- A second board, built to reproduce the 2026-08-02 INTENTION bug: a theme word
+-- whose repeated letter sits on two interchangeable tiles, so more than one
+-- legal trace covers the identical cells and spells the identical word.
+--
+--        col:  0 1 2 3 4 5
+--      row 0:  A B C D E F
+--      row 1:  A B G H I J
+--      row 2:  K L M N O P
+--      row 3:  Q R S T U V
+--      row 4:  W X Y Z A B   ← spangram (spans col 0 → 5)
+--      row 5:  C D E F G H
+--      row 6:  I J K L M N
+--      row 7:  O P Q R S T
+--
+-- The 2×2 block at rows 0–1 / cols 0–1 is the word ABBA, and BOTH of these
+-- trace it over the same four tiles:
+--
+--   canonical  A[0,0] B[0,1] B[1,1] A[1,0]
+--   equivalent A[0,0] B[1,1] B[0,1] A[1,0]   ← diagonals; same cells, same word
+--
+-- Everything else tiles the rest: an 8-cell snake across rows 0–1 cols 2–5,
+-- then one word per row for rows 2–7. 4 + 8 + 36 = 48.
+create function pg_temp.strands_ambiguous_board() returns text[]
+language sql immutable as $$
+  select array['ABCDEF','ABGHIJ','KLMNOP','QRSTUV','WXYZAB','CDEFGH','IJKLMN','OPQRST']
+$$;
+
+/** The canonical ABBA trace, and the equivalent one the old rule rejected. */
+create function pg_temp.strands_abba_canonical() returns jsonb
+language sql immutable as $$ select '[[0,0],[0,1],[1,1],[1,0]]'::jsonb $$;
+
+create function pg_temp.strands_abba_equivalent() returns jsonb
+language sql immutable as $$ select '[[0,0],[1,1],[0,1],[1,0]]'::jsonb $$;
+
+create function pg_temp.strands_ambiguous_puzzle() returns uuid
+language plpgsql security definer as $$
+declare new_id uuid;
+begin
+  insert into strands.puzzles (source_id, puzzle_date, board, clue, solution)
+  values (
+    'strands-ambiguous-fixture', '1999-01-02', pg_temp.strands_ambiguous_board(),
+    'Two ways round',
+    jsonb_build_object(
+      'spangram', jsonb_build_object(
+        'word', 'WXYZAB', 'coords', pg_temp.strands_row_path(4)),
+      'themeWords', jsonb_build_array(
+        jsonb_build_object('word', 'ABBA', 'coords', pg_temp.strands_abba_canonical()),
+        jsonb_build_object('word', 'CDEFJIHG',
+          'coords', '[[0,2],[0,3],[0,4],[0,5],[1,5],[1,4],[1,3],[1,2]]'::jsonb),
+        jsonb_build_object('word', 'KLMNOP', 'coords', pg_temp.strands_row_path(2)),
+        jsonb_build_object('word', 'QRSTUV', 'coords', pg_temp.strands_row_path(3)),
+        jsonb_build_object('word', 'CDEFGH', 'coords', pg_temp.strands_row_path(5)),
+        jsonb_build_object('word', 'IJKLMN', 'coords', pg_temp.strands_row_path(6)),
+        jsonb_build_object('word', 'OPQRST', 'coords', pg_temp.strands_row_path(7))
+      ))
+  )
+  returning id into new_id;
+  return new_id;
+end;
+$$;
