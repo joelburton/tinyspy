@@ -1119,3 +1119,72 @@ export async function sendMessage(
     .rpc('send_message', { target_club: club.handle, content })
   if (res.error) throw new Error(`send_message: ${res.error.message}`)
 }
+
+/**
+ * Start a strands game on a KNOWN puzzle from the imported archive, and hand
+ * back its answer key so a spec can trace real theme words.
+ *
+ * `puzzleDate` defaults to 2025-06-15 — FATHERSDAY, a puzzle whose coords are
+ * quoted in docs/games/strands.md. Reading the solution back as the SERVICE
+ * ROLE is the point: a player can't (it's shielded by a column grant, which
+ * strands' rls_test pins), so the spec has to be handed it out of band rather
+ * than scraping it off the page.
+ */
+export async function createStrandsGame(
+  club: E2EClub,
+  puzzleDate = '2025-06-15',
+): Promise<{
+  id: string
+  gametype: string
+  clue: string
+  /** Every hidden word, first the theme words then the spangram. */
+  words: Array<{ word: string; coords: Array<[number, number]>; isSpangram: boolean }>
+}> {
+  const { data, error } = await admin
+    .schema('strands')
+    .from('puzzles')
+    .select('id, clue, solution')
+    .eq('puzzle_date', puzzleDate)
+    .maybeSingle()
+  if (error || !data) {
+    throw new Error(
+      `no strands puzzle for ${puzzleDate} — run \`gmake g-strands-puzzles ENV=local\` (${error?.message ?? ''})`,
+    )
+  }
+  const row = data as {
+    id: string
+    clue: string
+    solution: {
+      spangram: { word: string; coords: Array<[number, number]> }
+      themeWords: Array<{ word: string; coords: Array<[number, number]> }>
+    }
+  }
+
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('strands')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: {
+        puzzleId: row.id,
+        band: 5,
+        hint_cost: 3,
+        min_word_length: 4,
+        timer: { kind: 'none' },
+      },
+      player_user_ids: club.members.map((m) => m.userId),
+      mode: 'coop',
+    })
+  if (res.error) throw new Error(`strands.create_game: ${res.error.message}`)
+  const game = Array.isArray(res.data) ? res.data[0] : res.data
+
+  return {
+    id: (game as { id: string }).id,
+    gametype: 'strands_coop',
+    clue: row.clue,
+    words: [
+      ...row.solution.themeWords.map((w) => ({ ...w, isSpangram: false })),
+      { ...row.solution.spangram, isSpangram: true },
+    ],
+  }
+}

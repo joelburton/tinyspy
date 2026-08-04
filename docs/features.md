@@ -3,7 +3,7 @@ are general about-the-game qualities.
 
 Two kinds of category:
 - **Dimensions** — every game has exactly one value; a dimension should list all
-  13 games (a game missing from one is a gap to notice).
+  14 games (a game missing from one is a gap to notice).
 - **Tags** — a game either has the feature or not.
 
 `*` = a future / possible feature (not built).
@@ -23,26 +23,27 @@ WN WordNerd     (wordle)
 CP CrossPlay    (crosswords)
 MW MooseWheel   (wordwheel)
 WW WordWire     (wordiply)
+PP PaulPath     (strands)
 
 
 # Dimensions
 
 ## Modes offered
 Coop + compete pair:  PN FB WK MC RA SD SS WN CP MW WW
-Coop only (no compete):  TS
+Coop only (no compete):  TS PP  (PP ships coop-first; its compete sibling is planned)
 Compete only (no coop):  MG
 
 ## Co-op interaction (games that have coop)
 This is the DEFAULT pacing; six of the free-for-all games also offer opt-in
 turn-by-turn play at setup (see the "Opt-in turn-by-turn coop" tag below).
-Free-for-all (shared board, everyone acts anytime):  PN FB WK MC RA SD SS WN CP MW WW
+Free-for-all (shared board, everyone acts anytime):  PN FB WK MC RA SD SS WN CP MW WW PP
 Turn-based (fixed seats, alternating):  TS
 
 ## Board origin
 Generated fresh at start:  PN FB TS MC SS WN MW WW
   (MW samples from a pangram-seed table, WW from candidate bases — but the
   board itself is built fresh per game by an edge fn, not picked whole)
-Pre-generated puzzle library:  WK SD
+Pre-generated puzzle library:  WK SD PP (`strands.puzzles`, the NYT archive)
 Open/empty grid you build on:  MG RA
 Multi-source (library OR NYT-generated OR uploaded):  CP
 
@@ -51,11 +52,14 @@ Where to look when a board is wrong — distinct from "Board origin" above.
 Dedicated `<codename>-build-board` edge fn computes the board, then calls `create_game`:  FB MC SS MW WW
 Built inline in `create_game` (plpgsql, sampling `common.words` / a tile distribution):  PN TS RA MG WN
 Picked from a CLI-imported library table:  WK (`connections.puzzles`)  SD (`stackdown.boards`)
+  PP (`strands.puzzles`)
 Multi-source:  CP (CLI-imported `crosswords.puzzles` library, OR NYT-by-date via
 the `crosswords-import-nyt` edge fn — fetched on demand, stored inline on the game)
 
 ## Board change during play
-Unchanged — you just find words in it:  MC FB MW
+Unchanged — you just find words in it:  MC FB MW PP
+  (PP's tiles LOCK as words are found — the letters never change, but a found
+  word's cells leave play, which is how the board is "consumed")
 Fill / annotate — fixed cells, contents change:  PN TS SS WN CP WW
 Shrinks — tiles removed/collapsed as you solve:  SD WK
 Grows — you add tiles to it:  RA MG
@@ -65,13 +69,14 @@ Type a word (keyboard grab):  FB MC MW
 Type a number (keyboard grab):  PN
 Type free text (a clue field):  TS
 Type / click a letter into a slot:  RA SD SS WN CP WW
-Click tiles to select:  WK
+Click tiles to select:  WK  PP (the only game with NO text entry at all —
+  a board repeats letters, so a typed string can't identify a path)
 Drag tiles to place:  MG
 (TS also clicks board cells when guessing; CP/WN/WW are keyboard-first; FB/MW
 tiles are also clickable; WN + WW share the on-screen `GuessKeyboard`.)
 
 ## Solution & trust model — where the answer lives, who validates
-Hidden server-side solution, revealed at terminal:  PN SD SS WN CP
+Hidden server-side solution, revealed at terminal:  PN SD SS WN CP PP
 Solution FE-readable all along, but not shown ("FE-knows"; server still
 validates moves — devtools could peek, and per the trust model that's fine):  TS WK
 FE holds the full word list, self-scores ("trusting-commit"):  MC FB MW WW
@@ -80,7 +85,7 @@ No fixed answer — server just validates each move's legality:  RA MG
 ## Hidden-solution machinery (the schema pattern behind the row above)
 Column-level grant blocks the solution column on the base table; a
 terminal-gated `games_state` view / helper reveals it:  PN (`secrets`)
-SD  SS (`_solution_for`)  WN (`_target_for`)  CP
+SD  SS (`_solution_for`)  WN (`_target_for`)  CP  PP (`_solution_for`)
 Everything readable; the FE just doesn't render it mid-game:  TS (both key
 cards)  WK (`board.categories`)  WW (scores + the best word)
 Nothing hidden by design (lists ship for local validation / no fixed
@@ -92,7 +97,9 @@ solution.)
 ## Win / score metric shape
 Points accumulation (high score wins; FB/MW via a rank ladder):  RA MC FB MW
 Binary solve (you finished the puzzle, or didn't):  TS WK SS WN CP
-Count to a target:  PN (find N secrets)  SD (clear 6 words)
+Count to a target:  PN (find N secrets)  SD (clear 6 words)  PP (find every theme
+  word — which, since the words tile the board exactly, is the same as consuming
+  all 48 cells)
 Race to empty your hand:  MG
 Best-word comparator (no scalar score; length score → letter count → time):  WW
 
@@ -100,14 +107,14 @@ Best-word comparator (no scalar score; length score → letter count → time): 
 Fixed guess budget:  WN (5–8 at setup, default 6)  WW (5, hardcoded)  PN (3/5/7/9 at setup)
 Resource budget:  SS (swaps: par + extra, extra 0–15 at setup, default 5)
 WK (4 mistakes, fixed)  TS (9 turns, fixed)
-Unbounded — play to terminal / timer:  MC FB MW RA SD MG CP
+Unbounded — play to terminal / timer:  MC FB MW RA SD MG CP PP
 
 ## Seat & information model
-Variable N players (1–8; MW WW cap at 6), full shared info in coop:  PN FB WK MC RA SD SS WN CP MG MW WW
+Variable N players (1–8; MW WW PP cap at 6), full shared info in coop:  PN FB WK MC RA SD SS WN CP MG MW WW PP
 Fixed 2 seats, asymmetric info (each partner sees a different key):  TS
 
 ## History log in the info column
-TurnLog (chronological turns):  PN TS WK RA SD SS WN
+TurnLog (chronological turns):  PN TS WK RA SD SS WN PP
 WordList (alphabetical finds):  MC FB MW
 Neither:  MG CP WW (WW's five guess rows on the board ARE the record)
 
@@ -120,7 +127,7 @@ Broadcast-coupled peer tile-selection:  WK
 the `supabase_realtime` publication — see docs/supabase.md.)
 
 ## PlayArea layout
-Standard v3 two-column (board column hugs the board, fixed-width info column):  PN FB TS WK MC RA SD SS WN MW WW
+Standard v3 two-column (board column hugs the board, fixed-width info column):  PN FB TS WK MC RA SD SS WN MW WW PP
 Documented exceptions (docs/playarea.md + the game docs):  MG (board FILLS the
 column + zoom/scroll; hand + peel/dump live in the info column)  CP (keyboard-first
 grid; clue lists fill the info side)
@@ -129,7 +136,7 @@ grid; clue lists fill the info side)
 # Tags
 
 ## Opt-in turn-by-turn coop (the common turn-order primitive)
-PN WN WK SS WW  RA (coop)
+PN WN WK SS WW  RA (coop)  PP
 (A per-game setup choice — `coop_style: 'turns'` — that rotates moves through the
 players instead of free-for-all. Discrete-move coop games only; the shared
 primitive lives on `common.games.current_turn_user_id` + `common.game_players.
@@ -138,6 +145,8 @@ fixed at the gametype level, not an opt-in.)
 
 ## Word-finding as core play
 MC FB MW (find many words)  WW (find the longest word)
+PP (find the words HIDDEN in a grid — the only one where a word's PLACEMENT,
+not just its letters, is what you're looking for)
 
 ## Shared entry / submit machinery (who consumes what from `common/`)
 `useWordSubmit` (shipped-list lookup + optimistic trusting-commit):  FB MC MW WW
@@ -147,8 +156,10 @@ MC FB MW (find many words)  WW (find the longest word)
 `GuessKeyboard` (shared on-screen QWERTY):  WN WW
 
 ## Hints
-PN SD WK RA CP
+PN SD WK RA CP  PP
 SS* FB*(hint for the pangram) MC*(first 2 letters?)
+(PP's is the only EARNED one: valid non-theme words fill a bar, and cashing it
+rings a theme word's tiles without giving their order.)
 
 ## AI
 TS (clue suggester)  RA (suggester + opponent)  CP (explain-cryptic-clue)
@@ -158,19 +169,21 @@ MG
 
 ## Leans on the shared dictionary (`common.words`)
 Everything except TS WK CP (those bring their own word lists / puzzle sources).
+PP is a hybrid: its THEME words come with the puzzle, and only the hint words are
+looked up in common.words.
 FE-validation via a shipped list built from it:  MC FB MW WW
-Server-side move validation:  RA MG WN
+Server-side move validation:  RA MG WN PP
 Board build / secrets / hints:  PN SD SS WN MW WW
 
 ## Reveal-at-terminal (shows the answer when done)
-PN TS WK SD SS WN CP
+PN TS WK SD SS WN CP PP
 (A UX tag; the enforcement varies — see the trust + machinery dimensions. For
 TS WK the data was FE-readable all along. The trusting-commit games also
 reveal at terminal — missed words for MC FB MW, the best possible word for
 WW — same story: a display choice, not a security boundary.)
 
 ## Restart (`<gametype>.replay_board` + the terminal `RestartButton`)
-PN WK FB MC RA SD SS WN MW WW
+PN WK FB MC RA SD SS WN MW WW PP
 Deliberately without: TS (the board IS the secret), MG (no puzzle to re-run —
 its New game is the fresh deal), CP (a re-read grid can't surprise you twice —
 Clear board covers a fresh grid, New game covers another puzzle)
@@ -178,8 +191,9 @@ Clear board covers a fresh grid, New game covers another puzzle)
 ## New game from the terminal row (`NewGameButton`)
 Everything. CP is the odd one: its button opens the club's SETUP dialog
 (`/c/<handle>?new=<gametype>`) instead of creating a game directly, because
-`setup` names a puzzle rather than a shuffle. All thirteen also carry it as a
-game-menu item.
+`setup` names a puzzle rather than a shuffle. PP is the other library game and
+takes a third route: its button starts the NEXT DAY'S puzzle directly, and says
+so in the confirm. All fourteen also carry it as a game-menu item.
 
 ## Turn-history replay (`useHistoryViewer`)
 TS WK PN RA SD SS WN
@@ -187,10 +201,12 @@ TS WK PN RA SD SS WN
 ## Print to PDF
 RA PN MC FB MG CP MW
 Deliberately excluded (turn-by-turn progressions): SS WN
-Candidates, not built: TS* WK* SD* WW*
+Candidates, not built: TS* WK* SD* WW* PP*
 
 ## Player-tunable difficulty
-Dictionary/difficulty band at setup:  PN FB MC RA SD SS WN MG MW WW
+Dictionary/difficulty band at setup:  PN FB MC RA SD SS WN MG MW WW PP
+  (PP's band runs the OTHER way: a wider dictionary means more hint words, so a
+  HIGHER band makes it easier)
 Custom letters too:  FB MW (MW also a "unique letters only" board constraint)
 (library games WK/CP pick a puzzle instead; TS has no difficulty knob)
 
@@ -206,8 +222,11 @@ the board.)
 
 
 # Mobile suitability
-Eleven games are phone-converted via the info-sheet recipe (docs/mobile.md):
-PN FB TS WK MC SD SS WN CP MW WW.
+Twelve games are phone-converted via the info-sheet recipe (docs/mobile.md):
+PN FB TS WK MC SD SS WN CP MW WW PP.
+(PP composes the recipe but hasn't had its on-device pass — the board is a
+portrait 6×8, which is the friendliest shape on the roster for a phone, and its
+input is taps rather than typing, so nothing structural is expected.)
 Keyboard-required, NOT desktop-only (fits a tablet with a hardware keyboard;
 deliberately not device-gated):  CP (its conversion is a layout for
 keyboard-attached devices, not a touch-entry mode)  RA (not phone-converted;
@@ -216,7 +235,8 @@ Desktop-only, hard-blocked on all touch via the shared `DeviceBlockNotice`:  MG
 
 
 # Clear win condition in compete
-(TS is coop-only, so it has none.)
+(TS and PP are coop-only, so they have none — PP's compete sibling is planned,
+not built.)
 - PN: guessed all secrets (race ends)
 - FB: first to reach the target rank (race continues)
 - WK: first to find all categories (race ends)
