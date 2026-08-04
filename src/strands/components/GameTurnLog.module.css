@@ -6,15 +6,18 @@
   letter-spacing: 0.02em;
 }
 
-/* Found words carry their board colour into the log, so scanning it reads the
- * same way as scanning the grid. Rejects stay plain body text — the outcome bar
- * already says they missed, and colouring them too would double the signal. */
+/* Found words carry their board hue into the log, so scanning it reads the same
+ * way as scanning the grid — but in the darker TEXT variants, not the disc
+ * fills: a colour chosen to sit under white letters is not the same colour that
+ * reads as 15px type on a white row (see theme.css). Rejects stay plain body
+ * text — the outcome bar already says they missed, and colouring them too would
+ * double the signal. */
 .theme {
-  color: var(--strands-theme);
+  color: var(--strands-theme-text);
 }
 
 .spangram {
-  color: var(--strands-spangram);
+  color: var(--strands-spangram-text);
 }
 
 /* Click-to-define, on dictionary words only. Pointer-only and NOT focusable —

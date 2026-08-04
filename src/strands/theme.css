@@ -29,6 +29,17 @@
   /* A spent hint's dashed ring. Neutral on purpose: a hint is not an outcome,
    * so it must not borrow the purple/gold vocabulary of a found word. */
   --strands-hint-ring: #8a8a94;
+  /* TEXT variants of the two board colours, for the turn log.
+   *
+   * The board colours above are tuned as DISC FILLS with white letters on top,
+   * where a lighter, more saturated tone reads best. The same values as TEXT on
+   * a white row are noticeably harder to read — the gold especially, which is a
+   * mid-tone against paper. So the log gets darker companions rather than the
+   * fills: same hues, so a word still reads as "the purple one" / "the gold
+   * one", but at a weight that survives being 15px type instead of a 40px disc.
+   */
+  --strands-theme-text: #56309c;
+  --strands-spangram-text: #8a6410;
   /* Words nobody found, drawn at the reveal. Deliberately grey rather than a
    * fourth hue: a miss is the ABSENCE of an outcome, so it must not borrow the
    * purple/gold vocabulary that means "you got this". */

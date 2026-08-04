@@ -305,7 +305,9 @@ export function PlayArea(ctx: GamePageCtx) {
     ? terminalPill(over.tone, over.verdict)
     : localFeedback
       ?? (guesses.length === 0 && trace.length === 0
-        ? { tone: 'neutral' as const, text: `Theme: “${game.clue}”`, variant: 'outline' as const, dismiss: { kind: 'sticky' as const } }
+        // The quotes carry it: no "Theme:" prefix, which a phone has no room
+        // for and which a quoted phrase under the board doesn't need.
+        ? { tone: 'neutral' as const, text: `“${game.clue}”`, variant: 'outline' as const, dismiss: { kind: 'sticky' as const } }
         : null)
 
   // At the reveal, the words nobody found. `game.solution` is null until then,
