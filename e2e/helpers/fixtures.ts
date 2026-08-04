@@ -139,11 +139,34 @@ export async function createUnclaimedUser(name: string): Promise<{ session: Sess
 }
 
 /**
- * Delete a user from auth.users (cascades to their profile + solo club).
- * Simulates a `db-reset` or admin-delete that happens while a still-validly-
- * signed JWT lingers in a browser's localStorage — the "stale session" state.
+ * Delete a user — auth.users row AND their app data — simulating a
+ * `db-reset` that happens while a still-validly-signed JWT lingers in a
+ * browser's localStorage: the "stale session" state.
+ *
+ * This is an ORDERED teardown, not one delete: the FK firewall
+ * (tests/common/fk_delete_rules_test.sql) deliberately makes users,
+ * clubs-with-members, and clubs-with-games undeletable by a single
+ * statement, so the cascade this helper once leaned on now refuses.
+ * Bottom-up through psql as the superuser (the fixture-only pattern used
+ * throughout this file): membership out, then the clubs this user
+ * created, then the profile, then the auth user. Games are NOT handled —
+ * if a club still has games the RESTRICT stops the transaction loudly,
+ * which for a fixture is the correct answer (delete the games first or
+ * use a fresh club).
  */
 export async function deleteUser(userId: string): Promise<void> {
+  if (!/^[0-9a-f-]{36}$/.test(userId)) throw new Error(`bad userId: ${userId}`)
+  execFileSync(
+    'psql',
+    [
+      process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
+      '-v', 'ON_ERROR_STOP=1', '-q', '--single-transaction',
+      '-c', `delete from common.clubs_members where user_id = '${userId}'`,
+      '-c', `delete from common.clubs where created_by = '${userId}'`,
+      '-c', `delete from common.profiles where user_id = '${userId}'`,
+    ],
+    { stdio: 'ignore' },
+  )
   const res = await admin.auth.admin.deleteUser(userId)
   if (res.error) throw new Error(`deleteUser(${userId}): ${res.error.message}`)
 }

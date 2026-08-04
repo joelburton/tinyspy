@@ -881,15 +881,6 @@ export function ClubPage({ handle, session }: Props) {
             dismiss: { kind: 'timed' },
           }),
         },
-        {
-          id: 'delete',
-          label: 'Delete club',
-          onClick: () => setGlobalFeedback({
-            tone: 'info',
-            text: 'Delete club: coming soon',
-            dismiss: { kind: 'timed' },
-          }),
-        },
       ],
     },
   ]

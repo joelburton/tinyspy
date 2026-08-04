@@ -105,7 +105,7 @@ Trust model: the lock is FE-only arbitration (friends, not adversaries) — `set
 
 | table | purpose |
 |---|---|
-| `profiles` | One row per auth user. Holds `username` (unique, CHECK-validated against the canonical regex `^[a-z][a-z0-9-]{2,14}$` — 3–15 chars, capped for mobile legibility) + `color` (from the 8-entry palette CHECK). Materialized by the `common.claim_username` RPC the user calls themselves on first sign-in (no trigger; see [Username claim flow](#username-claim-flow)). `username` is immutable in v1; `color` is editable via the caller-scoped `common.update_profile_color` RPC (the "Edit profile" dialog). Also carries `theme` — a **reserved** free-form nullable `text` column (2026-08-03) that nothing reads yet, held for a future theme picker; NULL means "use the app default" (see [`ui.md → User-selectable themes`](ui.md#user-selectable-themes-deferred-with-the-column-reserved)). No UPDATE policy — every write goes through an RPC. Cascades from `auth.users`. |
+| `profiles` | One row per auth user. Holds `username` (unique, CHECK-validated against the canonical regex `^[a-z][a-z0-9-]{2,14}$` — 3–15 chars, capped for mobile legibility) + `color` (from the 8-entry palette CHECK). Materialized by the `common.claim_username` RPC the user calls themselves on first sign-in (no trigger; see [Username claim flow](#username-claim-flow)). `username` is immutable in v1; `color` is editable via the caller-scoped `common.update_profile_color` RPC (the "Edit profile" dialog). Also carries `theme` — a **reserved** free-form nullable `text` column (2026-08-03) that nothing reads yet, held for a future theme picker; NULL means "use the app default" (see [`ui.md → User-selectable themes`](ui.md#user-selectable-themes-deferred-with-the-column-reserved)). No UPDATE policy — every write goes through an RPC. Its FK to `auth.users` is ON DELETE **RESTRICT** — the top of the deletion firewall (see below). |
 | `clubs` | A fixed-membership room formed by one creator. `handle` (unique, URL-safe) drives `/c/<handle>` routes. Solo clubs use the reserved handle `=<username>` so user-typed names can't collide. `name` is capped at **20 characters** by a `CHECK` (2026-08-03) — it headlines the club page and the home list, and 20 also keeps the derived handle inside its own 30-character check, which a longer name used to blow with a raw 23514. |
 | `clubs_members` | M2M between clubs and profiles. Membership is fixed at creation in v1 — no add/remove RPCs. The relational shape exists because (a) it's the right model and (b) future member-listing UI wants it. |
 | `gametypes` | The registered-gametype list (`gametype text PK`, `min_players smallint`, `hides_solution boolean`). Authoritative SQL-side mirror of `src/games.ts`. Each gametype's schema migration registers itself with an `INSERT ... ON CONFLICT DO NOTHING` (a seed row, so it stays on the migration side), declaring its `min_players` (the lower bound of the manifest's `numberOfPlayers` — coop/solo games register 1, two-player games 2). Sibling families register one row per variant — psychicnum's migration inserts both `psychicnum_coop` and `psychicnum_compete`. `min_players` is the one fact the server needs from the player-count range: `common.default_gametypes_for_club` uses it to keep solo clubs out of two-player games. `hides_solution` says whether this gametype withholds its answer from a game that ended without a win — read by `common.end_game`; see [Revealing the solution](#revealing-the-solution). Permissive SELECT — gametype identifiers aren't sensitive. |
@@ -113,6 +113,34 @@ Trust model: the lock is FE-only arbitration (friends, not adversaries) — `set
 | `game_players` | M2M between games and profiles, recording who played each game. Frozen at game-create time — distinct from `clubs_members`, which is current membership of the club. The `result jsonb` column carries each player's outcome (won/lost flag, score, etc.), populated by `common.end_game` at terminal transition. `conceded` / `conceded_at` are the per-player drop-out flag (see [Concede](#concede--per-player-drop-out)) — the one bit of per-player terminal state that exists *before* `end_game`, because peers must see who bowed out and the flag distinguishes "Quit" from "Lost" at game-over. `turn_seat` (nullable) is the player's position in a turn-order game's rotation (see [Turn-order](#turn-order--opt-in-turn-by-turn-for-coop-games)). |
 | `clubs_gametypes` | M2M between clubs and gametypes. Row existence answers "is this club allowed to play this gametype?" — the FE filter for which Start buttons to surface in a club. Seeded at club-creation via `common.default_gametypes_for_club` (friend clubs via `create_club` get every registered gametype; solo clubs via `claim_username` get only the `min_players <= 1` subset, since their lone member can't field a two-player game). Members edit the set afterward through the "Edit club" dialog (`common.set_club_gametypes`). Sibling-variant pairs get one row per gametype string (`psychicnum_coop` AND `psychicnum_compete` both land here when the club is created). A `default_setup jsonb` column on each row carries the friends' last-used setup choices for that (club, gametype) — auto-written by `common.create_game` on every successful start, read by the FE on dialog-open and merged under the manifest's static defaults. Sibling variants get independent defaults (coop's last `setup.guesses` choice doesn't affect compete's). Each gametype decides what fields of its setup are per-club preferences vs per-game decisions (e.g., codenamesduet strips `first_clue_giver_user_id` before saving since the seat picker is per-game); the per-game `create_game` RPC controls what gets passed as the `saved_default` argument. See `deferred.md` for the setup-shape evolution policy. |
 | `messages` | Per-club chat. Single persistent thread per club, spans games and gametypes within the club's lifetime. 1–1000 character constraint on `content`. **Important-prefix:** a message starting with `!` is treated as important — `<FloatingChat>` force-opens the chat popover for every other player when one arrives (the panel stays open until they dismiss it), and `<ChatBody>` styles the message text differently. Useful for "Hey everyone — I'm back!" or "Pause please." Implemented in `FloatingChat.tsx` (`startsWith('!')` check on the latest message) + `ChatBody.tsx` (display strip the `!` + apply `.importantContent` class). |
+
+### Deletion rules — the FK firewall (2026-08-04)
+
+Users, clubs, and gametypes are never deleted through the app, so the only
+thing that could delete one is a bug or a fat-fingered psql statement — and
+under the original all-CASCADE design, deleting one user would have silently
+taken every club they created and every game in those clubs, for everyone.
+Six FKs are therefore ON DELETE **RESTRICT**, so that delete fails loudly
+instead:
+
+- `profiles → auth.users` (an auth user with a profile is undeletable)
+- `clubs.created_by → profiles` and both `clubs_members` FKs (a profile in
+  any club, and any club with members — which is every club, since the
+  creator is always a member)
+- `games → clubs` and `games → gametypes` (a club or gametype with games
+  refuses to die; **removing a gametype from the roster means deliberately
+  deleting its games first**)
+
+Everything *below* the firewall stays CASCADE on purpose: those edges can't
+be reached by an accidental top-level delete anymore, but a deliberate
+ordered teardown still gets clean leaf removal — `common.delete_game()`'s
+one-statement total teardown depends on every FK into `common.games`
+cascading. Both sides are pinned by
+`supabase/tests/common/fk_delete_rules_test.sql`; the e2e fixture
+`deleteUser` (e2e/helpers/fixtures.ts) shows what an ordered teardown looks
+like. A future "Delete club" feature must be an RPC that detaches top-down
+(games, members, then the club) — the firewall is what guarantees nothing
+can shortcut it.
 
 ### The view-state pair on common.games
 

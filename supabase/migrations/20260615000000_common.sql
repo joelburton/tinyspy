@@ -87,7 +87,13 @@ create schema if not exists common;
 -- taken; pick another."
 
 create table common.profiles (
-  user_id uuid primary key references auth.users(id) on delete cascade,
+  -- RESTRICT, not cascade: users are never deleted through the app, so
+  -- the only thing that could delete one is a bug or a fat-fingered
+  -- psql statement — and cascading from here would take the profile,
+  -- every club they created, and every game in those clubs, silently.
+  -- This is the top of the deletion firewall (see
+  -- tests/common/fk_delete_rules_test.sql, which pins all six edges).
+  user_id uuid primary key references auth.users(id) on delete restrict,
   username text unique not null
     check (username ~ '^[a-z][a-z0-9-]{2,14}$'),
   -- Visual identity color, drawn from a fixed 8-name palette.
@@ -177,7 +183,9 @@ create table common.clubs (
   -- Solo clubs are unaffected: `claim_username` names them after the username,
   -- which its own check already caps at 15.
   name text not null check (char_length(name) between 1 and 20),
-  created_by uuid not null references common.profiles(user_id) on delete cascade,
+  -- RESTRICT (firewall): deleting a profile must not silently take the
+  -- clubs it created — and with them, everyone else's games.
+  created_by uuid not null references common.profiles(user_id) on delete restrict,
   created_at timestamptz not null default now()
 );
 
@@ -192,8 +200,11 @@ create table common.clubs (
 -- UI wants the relational structure.
 
 create table common.clubs_members (
-  club_handle text not null references common.clubs(handle) on delete cascade,
-  user_id uuid not null references common.profiles(user_id) on delete cascade,
+  -- Both RESTRICT (firewall): the creator is always a member, so these
+  -- make every real club and every enrolled profile undeletable by a
+  -- single statement. A deliberate teardown detaches membership first.
+  club_handle text not null references common.clubs(handle) on delete restrict,
+  user_id uuid not null references common.profiles(user_id) on delete restrict,
   joined_at timestamptz not null default now(),
   primary key (club_handle, user_id)
 );
@@ -361,8 +372,14 @@ create table common.gametypes (
 --                      common.games status in one transaction.
 create table common.games (
   id uuid primary key default gen_random_uuid(),
-  club_handle text not null references common.clubs(handle) on delete cascade,
-  gametype text not null references common.gametypes(gametype) on delete cascade,
+  -- Both RESTRICT (firewall): a club or gametype with games refuses to
+  -- die. Removing a gametype from the roster means deleting its games
+  -- FIRST, deliberately (delete_game or an explicit bulk delete) — the
+  -- one-statement version once meant "every game of that type in every
+  -- club, gone." Below common.games the cascades stay: delete_game
+  -- relies on them for its one-statement total teardown.
+  club_handle text not null references common.clubs(handle) on delete restrict,
+  gametype text not null references common.gametypes(gametype) on delete restrict,
   -- Who started the game (the player who clicked Start). Drives the
   -- "<name> added you to a new <game>" join-invitation popup. Nullable +
   -- ON DELETE SET NULL so a departed creator doesn't cascade the game.
