@@ -358,9 +358,17 @@ MIGRATIONS ?= keep
 # Its own target so that the WIPE is a plain sub-make from project-bootstrap
 # rather than a raw command inside that recipe — see the -n note above
 # deploy-func-%. Deliberately absent from `help`: reachable, not advertised.
+#
+# The ENV=prod guard is not ceremony. `supabase db reset --linked` targets the
+# LINKED PROJECT and ignores SUPABASE_DB_URL entirely — so ENV, which is only
+# a connection string, cannot protect this the way it protects every other
+# target here. Without the explicit check, `gmake project-db-destroy` with the
+# default ENV=local would cheerfully wipe production. (It happened to fail
+# today on an undefined announce_target, which is not a safety mechanism.)
 .PHONY: project-db-destroy
 project-db-destroy:
-	@$(PRELUDE)
+	@[[ "$(ENV)" == "prod" ]] || { echo "project-db-destroy needs ENV=prod, typed out." >&2; exit 1; }
+	$(PRELUDE)
 	echo "── WIPING the hosted database (all data, auth accounts included)"
 	announce_target
 	supabase db reset --linked --yes --no-seed

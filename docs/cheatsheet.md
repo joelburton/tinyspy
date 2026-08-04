@@ -68,7 +68,7 @@ definition. The full list:
 | | targets |
 |---|---|
 | **writes prod with `ENV=prod`** | `all-words`, `all-pangrams`, `g-spellingbee-pangrams`, `g-wordwheel-pangrams`, `g-stackdown-puzzles`, `g-connections-puzzles`, `g-crosswords-puzzles`, `db-data`, `db-schema`, `db-sql`, `db` |
-| **prod by definition** (ENV is checked, not chosen) | every `project-*`, `deploy-*`, `deploy` |
+| **prod by definition** | every `project-*`, `deploy-*`, `deploy`. Note the `project-*` ones **ignore `ENV`** rather than checking it — they act on the project named by the secrets file / the CLI link, and `supabase … --linked` doesn't read a connection string at all. The two destructive ones demand `ENV=prod` explicitly, precisely because ENV can't protect them on its own |
 | **reads prod with `ENV=prod`** | `g-stackdown-audit` |
 | **can never reach prod** | `all-tries`, `g-boggle-trie`, `g-scrabble-trie`, `g-stackdown-genpuzzles` (pinned local — they build local files from the local dictionary), `db-seed` (pinned), `db-reset` (refuses), `dev*`, `test*`, `help`, `_stamps-clean` |
 | **reads OR writes, you choose** | `db-psql` — a prompt on whichever database `ENV` names; it announces the target before connecting |
