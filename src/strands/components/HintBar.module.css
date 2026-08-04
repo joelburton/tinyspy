@@ -7,12 +7,12 @@
   gap: 0.6rem;
   width: 100%;
   /* Fixed height so the row never reshapes as the bar fills. */
-  min-height: 2rem;
+  min-height: 2.25rem;
 }
 
 .track {
   flex: 1;
-  height: 0.75rem;
+  height: 1.25rem;
   border-radius: var(--radius-sm);
   /* Deliberately lighter than --color-divider: at zero points the track IS the
    * whole bar, and a dark empty track reads as a FULL one — exactly backwards
@@ -34,26 +34,4 @@
  * visually distinct rather than merely 100% wide. */
 .fillFull {
   background: var(--strands-theme);
-}
-
-.button {
-  font: inherit;
-  font-size: 0.85rem;
-  padding: 0.2rem 0.75rem;
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-text);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.button:disabled {
-  cursor: default;
-  color: var(--color-muted);
-}
-
-.button:not(:disabled):hover {
-  border-color: var(--strands-theme);
-  color: var(--strands-theme);
 }

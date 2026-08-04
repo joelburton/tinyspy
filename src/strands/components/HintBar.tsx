@@ -1,4 +1,5 @@
 import { cls } from '../../common/lib/util/cls'
+import { HintButton } from '../../common/components/buttons/HintButton'
 import styles from './HintBar.module.css'
 
 type Props = {
@@ -47,9 +48,10 @@ export function HintBar({ points, cost, showing, disabled, onSpend }: Props) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <button
-        type="button"
-        className={styles.button}
+      {/* The shared HintButton — icon + label, in the roster's amber "help"
+          tone (ui.md → Button iconography). NOT icon-only: this is the one
+          control the whole hint economy exists to reach, so it says its name. */}
+      <HintButton
         onClick={onSpend}
         // A hint already on the board blocks a second one: the board can only
         // ring one word legibly, and the server refuses anyway.
@@ -61,9 +63,7 @@ export function HintBar({ points, cost, showing, disabled, onSpend }: Props) {
               ? 'Reveal the tiles of one theme word'
               : `Find ${cost - points} more valid word${cost - points === 1 ? '' : 's'}`
         }
-      >
-        Hint
-      </button>
+      />
     </div>
   )
 }

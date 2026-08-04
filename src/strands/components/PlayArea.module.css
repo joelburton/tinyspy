@@ -12,8 +12,10 @@
  * producing a board wider than its column. Result is a DEFINITE size, which is
  * what `.boardCol { flex: 0 0 auto }` needs to hug (playarea.md → Board sizing).
  *
- * The below-board stack is the echo/pill slot (2.5rem) + the hint row (2rem) +
- * two 0.75rem column gaps ≈ 6rem. Keep in sync with `.echoSlot` and HintBar. */
+ * The below-board stack is the echo/pill slot (2.5rem) + the hint row (2.25rem)
+ * + two 0.75rem column gaps ≈ 6.25rem, plus 1rem of breathing room top and
+ * bottom so the board isn't flush against the chrome. Keep in sync with
+ * `.echoSlot` and HintBar.module.css. */
 .layout {
   /* A FIXED info column, like wordle / connections / waffle. strands does NOT
    * compose the shared `.responsiveInfoCol` — that one is for the three
@@ -24,8 +26,12 @@
    * mandatory: leave it out and --avail-w is invalid at computed-value time,
    * which silently collapses the board to zero height rather than erroring. */
   --info-col-width: 22rem;
-  --max-tile-size: 3.5rem;
-  --avail-h: calc(100svh - var(--game-chrome-height) - 6rem);
+  /* Raised so --avail-h is normally the BINDING term: on a laptop the board
+   * should use the height it has rather than sitting in a band of whitespace.
+   * The cap only takes over on a very tall window, where an 8-row board would
+   * otherwise grow past comfortable reading size. */
+  --max-tile-size: 6rem;
+  --avail-h: calc(100svh - var(--game-chrome-height) - 8.25rem);
   --board-h: min(
     var(--avail-h),
     calc(8 * var(--max-tile-size)),

@@ -51,8 +51,10 @@
 
 .line {
   fill: none;
-  /* Cell units: 0.3 of a cell reads as a thick connector at any board size. */
-  stroke-width: 0.3;
+  /* Cell units, so the weight is proportional at any board size. 0.22 of a
+   * cell: clearly a connector, but narrower than the discs it joins, so the
+   * discs stay the emphasis and the path reads as a thread between them. */
+  stroke-width: 0.22;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -118,9 +120,11 @@
   justify-content: center;
   font: inherit;
   font-weight: 700;
-  /* Scales with the board rather than the page, so the letters stay
-   * proportionate as the column resizes. */
-  font-size: clamp(0.85rem, 4.2cqw, 1.6rem);
+  /* Scales with the BOARD (cqw against `.board`'s inline size), not the page,
+   * so the letters stay proportionate as the column resizes. ~9% of the board
+   * width puts a letter at roughly half a cell — the cell is 1/6 of the width,
+   * so this reads as a full-size letter rather than a label. */
+  font-size: clamp(1rem, 9cqw, 2.75rem);
   color: var(--color-text);
   cursor: pointer;
   user-select: none;
