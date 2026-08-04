@@ -279,6 +279,17 @@ db-reset: ## local only: db + all data + dev seed (what `npm run db:reset` does)
 # ════════════════════════════════════════════════════════════════
 # Deploy
 # ════════════════════════════════════════════════════════════════
+# Everything here reaches production whatever ENV says — `supabase functions
+# deploy` and `netlify deploy` both read a link, not a connection string. ENV
+# can't route them, so it guards them instead: the deploy targets refuse
+# outright unless you typed ENV=prod.
+.PHONY: _require-prod
+_require-prod:
+ifneq ($(ENV),prod)
+	@echo "REFUSED: deploy targets need ENV=prod — they reach production" >&2
+	echo "         whatever ENV says, so ENV must say so too." >&2
+	exit 1
+endif
 
 # `functions: tries` is a CORRECTNESS edge, not a convenience: the
 # boggle and scrabble functions compile their word bundles in, so
@@ -286,7 +297,7 @@ db-reset: ## local only: db + all data + dev seed (what `npm run db:reset` does)
 # errors. --use-api bundles server-side, avoiding the ECR image pull
 # (and its anonymous rate limits) plus the Docker dependency.
 .PHONY: deploy-funcs
-deploy-funcs: all-tries ## deploy all edge functions (regenerates the word bundles first)
+deploy-funcs: _require-prod all-tries ## deploy all edge functions (regenerates the word bundles first)
 	@$(PRELUDE)
 	echo "── edge functions → $(ENV)"
 	supabase functions deploy --use-api
@@ -303,7 +314,7 @@ TRIE_scrabble-ai-move      := $(SCRABBLE_TRIE)
 
 .SECONDEXPANSION:
 .PHONY: deploy-func-%
-deploy-func-%: $$(TRIE_$$*) ## deploy ONE edge function by name (gmake deploy-func-waffle-build-board)
+deploy-func-%: _require-prod $$(TRIE_$$*) ## deploy ONE edge function by name (gmake deploy-func-waffle-build-board)
 	@$(PRELUDE)
 	supabase functions deploy "$*" --use-api
 
@@ -313,10 +324,21 @@ deploy-fe: ## build the FE and push to Netlify
 	bash supabase/deploy/fe.sh
 
 .PHONY: deploy
-# project-link first: `db push` and `functions deploy` both go through the
+# ENV=prod, or nothing happens. `gmake deploy` with the default ENV=local was
+# incoherent AND destructive: db-schema took its local branch and wiped the
+# local database, then deploy-funcs pushed to PRODUCTION anyway — because
+# `supabase functions deploy` targets the CLI link and ignores ENV, exactly
+# like `db reset --linked`. It even printed "→ local" while uploading to prod.
+#
+# _require-prod is a PREREQUISITE, not a line in the recipe, because a recipe
+# guard fires after every prerequisite has already been built — by which point
+# db-schema has done the wiping. Prerequisites are built in the order written
+# (serial make), so this one refuses before anything else runs.
+#
+# project-link second: `db push` and `functions deploy` both go through the
 # linked project, and a fresh checkout has no link. Idempotent, so the cost is
 # one no-op CLI call.
-deploy: project-link db-schema db-sql deploy-funcs deploy-fe ## the routine push: schema + code + functions + FE (NOT data)
+deploy: _require-prod project-link db-schema db-sql deploy-funcs deploy-fe ## the routine push: schema + code + functions + FE (NOT data)
 
 # ════════════════════════════════════════════════════════════════
 # Hosted project configuration

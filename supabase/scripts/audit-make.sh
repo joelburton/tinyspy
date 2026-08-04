@@ -146,6 +146,15 @@ check_refuses() { # target, ENV, description
 }
 check_refuses project-db-destroy local "would wipe prod from a local-looking command"
 check_refuses db-reset prod "would wipe the hosted DB expecting the local one"
+# The deploy family reaches production whatever ENV says — `supabase functions
+# deploy` and `netlify deploy` read a link, not a connection string. `gmake
+# deploy` with the default ENV=local once wiped the LOCAL database (db-schema
+# took its local branch) and then pushed to PRODUCTION anyway. Both halves of
+# that, from one un-suffixed command.
+check_refuses deploy local "wipes local via db-schema, then deploys to prod"
+check_refuses deploy-funcs local "says '→ local' while uploading to prod"
+check_refuses deploy-fe local "netlify deploy ignores ENV"
+check_refuses deploy-func-waffle-build-board local "same, for one function"
 
 # ────────────────────────────────────────────────────────────────
 echo
