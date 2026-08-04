@@ -54,7 +54,8 @@ select set_eq(
        and n.nspname = any (array[
          'common', 'codenamesduet', 'psychicnum', 'connections',
          'spellingbee', 'bananagrams', 'waffle', 'wordle', 'stackdown',
-         'scrabble', 'boggle', 'crosswords', 'wordwheel', 'wordiply'])
+         'scrabble', 'boggle', 'crosswords', 'wordwheel', 'wordiply',
+         'strands'])
   $$,
   $$
     values
@@ -94,6 +95,7 @@ select set_eq(
       ('scrabble.games'),
       ('spellingbee.games'),
       ('stackdown.games'),
+      ('strands.games'),
       ('waffle.games'),
       ('wordiply.games'),
       ('wordle.games'),

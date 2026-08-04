@@ -280,8 +280,14 @@ g-crosswords-puzzles: ## import supabase/data/crosswords/*.puz|.ipuz
 	echo "── crosswords.puzzles → $(ENV)"
 	npm run _crosswords:import
 
+.PHONY: g-strands-puzzles
+g-strands-puzzles: ## import the NYT Strands archive (public feed, incremental)
+	@$(PRELUDE)
+	echo "── strands.puzzles → $(ENV)"
+	npm run _strands:import
+
 .PHONY: db-data
-db-data: all-words all-pangrams g-stackdown-puzzles g-connections-puzzles g-crosswords-puzzles ## load every table's DATA (no schema, no code)
+db-data: all-words all-pangrams g-stackdown-puzzles g-connections-puzzles g-crosswords-puzzles g-strands-puzzles ## load every table's DATA (no schema, no code)
 
 # ════════════════════════════════════════════════════════════════
 # Schema + code   (docs/supabase.md → Schema vs code)
