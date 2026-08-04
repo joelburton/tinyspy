@@ -37,6 +37,18 @@ if [[ ! -f "$SECRETS_FILE" ]]; then
   echo "       then fill it in. See docs/cheatsheet.md → gmake." >&2
   exit 1
 fi
+# The secrets file is hand-created, so nothing has ever chmodded it — unlike
+# hosted-credentials.local, which save_credentials() writes at 600. It carries
+# the Supabase PAT plus the Resend and Anthropic keys, so a default-umask 644
+# leaves all three readable by anyone with an account on the machine. Tighten
+# it rather than just complaining: the only reason it's ever loose is that
+# nobody thought about it.
+_perm=$(stat -f '%Lp' "$SECRETS_FILE" 2>/dev/null || stat -c '%a' "$SECRETS_FILE" 2>/dev/null || echo "")
+if [[ -n "$_perm" && "$_perm" != "600" && "$_perm" != "400" ]]; then
+  echo "NOTE: $SECRETS_FILE was mode $_perm — tightening to 600 (it holds your PAT)." >&2
+  chmod 600 "$SECRETS_FILE" 2>/dev/null ||     echo "WARNING: couldn't chmod $SECRETS_FILE; it stays world-readable." >&2
+fi
+
 # shellcheck disable=SC1090
 source "$SECRETS_FILE"
 

@@ -15,6 +15,10 @@
 #
 # Anything left as a REPLACE-WITH placeholder or blank is treated as
 # "not set": optional steps that depend on it log "skipped" and move on.
+#
+# Keep this file at mode 600 — it carries your Supabase PAT and, once
+# filled in, the Resend and Anthropic keys. supabase/deploy/env.sh checks
+# on every prod target and tightens it if it isn't.
 
 # ─── Required ──────────────────────────────────────────────────
 # PERSONAL_ACCESS_TOKEN — supabase.com/dashboard/account/tokens →
@@ -36,13 +40,20 @@ PROJECT_PLAN="free"
 # returns (fine for single-org accounts).
 ORG_ID=""
 
-# Optional DB password for a new project. Blank = auto-generate a
-# 32-char random one (logged at the end of the run so you can save it).
+# DB password. Blank = `gmake project-create` generates a 32-char random
+# one and saves it to hosted-credentials.local.
+#
+# **This is the one field nothing can recover.** Supabase hashes it, and the
+# dashboard's reveal is one-shot — so if the only copy is in
+# hosted-credentials.local (gitignored, one machine, one file) and that file
+# goes, your only move is Settings → Database → Reset password, which
+# invalidates the connection string everywhere. Once a project exists, PASTE
+# IT HERE. This file is the durable, hand-edited one; that one is a cache.
 DB_PASSWORD=""
 
-# Optional API keys. Blank = auto-fetch from the Management API once
-# the project is healthy. Provide values only to reuse an existing
-# project and skip the API call.
+# Optional API keys. Blank = auto-fetch from the Management API with the PAT
+# above, whenever they're needed, and cached to hosted-credentials.local.
+# Genuinely optional — unlike DB_PASSWORD, these are always recoverable.
 SUPABASE_SERVICE_ROLE_KEY=""
 SUPABASE_PUBLISHABLE_KEY=""
 
