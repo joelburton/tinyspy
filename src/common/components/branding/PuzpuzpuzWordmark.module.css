@@ -1,7 +1,7 @@
-/* The big PuzPuzPuz wordmark image. A wide, short SVG (it carries its own aspect
- * ratio via its viewBox), so we only constrain the width and let the height
- * follow. Fills the card, centered, with clear space below before the screen's
- * heading / sign-in copy. */
+/* The big PuzPuzPuz wordmark image. A wide, short PNG shipped at 2x, so we only
+ * constrain the width and let the height follow its intrinsic aspect ratio.
+ * Fills the card, centered, with clear space below before the screen's heading /
+ * sign-in copy. */
 .wordmark {
   display: block;
   width: 100%;

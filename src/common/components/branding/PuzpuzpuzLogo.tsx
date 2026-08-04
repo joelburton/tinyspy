@@ -13,14 +13,19 @@ import styles from './PuzpuzpuzLogo.module.css'
  * Source SVG is at `src/common/puzpuzpuz.svg`, imported as `?url`
  * so Vite hashes the asset and the URL works in build output.
  *
- * The colorful "P!" mark sits inside a themed rounded-rect frame (the
- * `.frame` span) — carrying over the rounded-square look of the earlier
- * line-art logo, now as a real border around the image.
+ * The mark is a self-contained tile — a white "P" on its own rounded
+ * indigo square — so it needs no chrome around it, and this renders
+ * as a bare 32×32 image exactly like `<GameLogo>`. That keeps the two
+ * trigger shapes interchangeable inside the `<Menu>` wrapping button.
  */
 export function PuzpuzpuzLogo() {
   return (
-    <span className={styles.frame}>
-      <img src={puzpuzpuzLogo} alt="PuzPuzPuz" className={styles.mark} />
-    </span>
+    <img
+      src={puzpuzpuzLogo}
+      alt="PuzPuzPuz"
+      className={styles.logo}
+      width={32}
+      height={32}
+    />
   )
 }

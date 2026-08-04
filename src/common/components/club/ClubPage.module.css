@@ -33,7 +33,13 @@
 .header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  /* Tighter than the 0.75rem the GamePage header's left group uses. The two
+   * headers hold the same shapes, but the club logo is a full-bleed tile that
+   * inks all the way to its 32px box, where a game logo is line art floating
+   * inside one — so the same gap reads wider here. Both the menu trigger and
+   * the chat bubble also carry their own hover padding (0.25 / 0.3rem), which
+   * lands between the two marks on top of this. */
+  gap: 0.375rem;
   /* Don't shrink: even if the body's columns are tall the
    * header keeps its intrinsic height. flex-shrink: 0 + auto
    * height is the standard "fixed chrome strip" recipe. */

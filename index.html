@@ -50,10 +50,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="PuzPuzPuz" />
     <!-- Home-screen icons must be raster PNGs — iOS rasterizes an SVG
-         apple-touch-icon into a blurry mess. These are the logo padded onto an
-         opaque ground so it clears iOS's rounded-corner mask; iOS picks the
-         size closest to the device (iPhone @3x 180 / iPad 152 / iPad Pro 167)
-         and also auto-discovers /apple-touch-icon.png by name. Regenerate with
+         apple-touch-icon into a blurry mess. These are the logo full-bleed on
+         its indigo ground, with the favicon's own painted corners stripped so
+         iOS's rounded-corner mask is the only one in play (two mismatched radii
+         leave pale slivers). iOS picks the size closest to the device (iPhone
+         @3x 180 / iPad 152 / iPad Pro 167) and also auto-discovers
+         /apple-touch-icon.png by name. Regenerate with
          scripts/generate-icons.sh after changing the logo. -->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167.png" />
