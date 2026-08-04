@@ -103,10 +103,11 @@ npm run db:reset     # wipe local DB, replay migrations, re-apply supabase/sql/,
 npm run sql:apply    # re-apply supabase/sql/ alone — how an RPC change ships (docs/supabase.md)
 
 # Composable data + deploy steps live in the Makefile (GNU Make 4+, `gmake`):
-gmake help                    # every target
-gmake db-data                 # load every table's data, rebuilding only what's stale
-gmake db-sql ENV=prod         # re-apply just the functions/policies to prod
-gmake deploy ENV=prod         # schema + code + functions + FE
+gmake help                          # every target
+gmake db-data ENV=local             # load every table's data, rebuilding only what's stale
+gmake db-sql ENV=prod               # re-apply just the functions/policies to prod
+gmake deploy ENV=prod               # schema + code + functions + FE
+# ENV is REQUIRED — no default. DEBUG=1 adds --debug to the supabase CLI.
 npm run db:diff      # drift vs migrations (noisy: supabase/sql/ objects always show)
 npm run db:lint      # supabase db lint --level warning
 npm run types:gen    # regenerate src/types/db.ts from local DB

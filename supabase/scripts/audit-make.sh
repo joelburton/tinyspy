@@ -157,6 +157,30 @@ check_refuses deploy-fe local "netlify deploy ignores ENV"
 check_refuses deploy-func-waffle-build-board local "same, for one function"
 
 # ────────────────────────────────────────────────────────────────
+echo "4. database targets refuse a MISSING ENV"
+# There is no default ENV, because a default is a guess about which database
+# you meant. Anything that talks to one must say so rather than pick.
+check_refuses_no_env() { # target
+  : > "$SHIM_LOG"
+  local out
+  out=$(PATH="$SHIMS:$PATH" "$MAKE_BIN" "$1" 2>&1) && {
+    note "$1 with no ENV SUCCEEDED — it must refuse"
+    return
+  }
+  if [[ -s "$SHIM_LOG" ]]; then
+    note "$1 with no ENV failed, but only AFTER running: $(head -1 "$SHIM_LOG" | cut -f1,3 | mask)"
+  elif ! grep -q 'REFUSED:' <<< "$out"; then
+    note "$1 with no ENV failed without refusing — no usable message"
+  else
+    pass "$1 refuses a missing ENV"
+  fi
+}
+for t in db-sql db-schema db-data all-words db-psql g-stackdown-puzzles \
+         g-connections-puzzles all-pangrams db-reset deploy; do
+  check_refuses_no_env "$t"
+done
+
+# ────────────────────────────────────────────────────────────────
 echo
 if (( fails )); then
   echo "make audit: ${fails} problem(s)"

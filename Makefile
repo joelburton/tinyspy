@@ -16,8 +16,19 @@
 # missing", "rebuild everything downstream of the word list", "push only
 # the functions".
 #
-# ENV=local (default) or ENV=prod. Prod is never inferred — you type it,
-# and every writing target echoes its resolved target first.
+# ENV=local or ENV=prod, REQUIRED — there is no default. Anything that talks
+# to a database refuses without it, and every writing target echoes its
+# resolved target first.
+#
+# TROUBLESHOOTING. The supabase CLI's errors end with "Try rerunning the
+# command with --debug", which does NOT work here: `gmake … --debug` hands the
+# flag to make, whose --debug means something else entirely. The two knobs:
+#   DEBUG=1            → passes --debug to the supabase CLI (its own verbose
+#                        HTTP/API trace, which is what that hint meant)
+#   gmake --trace …    → make's side: prints each recipe line with the target
+#                        and the prerequisite that triggered it. This is the
+#                        one for "why did that rebuild / why didn't it"
+#   gmake -n …         → print without running (safe: see the -n note below)
 #
 # `gmake -n <target>` is a real dry run here, and staying that way takes
 # care: GNU Make executes a recipe that mentions $(MAKE) even under -n, and
@@ -43,10 +54,23 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 # ── environment ─────────────────────────────────────────────────
-ENV ?= local
+# NO DEFAULT, deliberately. `gmake deploy` once meant ENV=local, which wiped
+# the local database via db-schema and then pushed to production anyway — the
+# worst of both, from a command that named neither. A default is a guess about
+# which database you meant, and there is no safe guess.
+#
+# Only targets that TALK to a database demand it (they all go through
+# $(PRELUDE), which refuses when ENV is unset). `help`, `dev-*`, `test-*`,
+# `_audit` and the local-pinned artefact builders don't care and don't ask.
+ENV ?=
 LOCAL_DB_URL := postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
-ifeq ($(ENV),local)
+ifeq ($(ENV),)
+  # Not a $(error): that fires at PARSE time and would break `gmake help` and
+  # every ENV-free target. Refusing inside the recipe means only the targets
+  # that actually need ENV are the ones that insist on it.
+  PRELUDE := echo "REFUSED: pass ENV=local or ENV=prod — there is no default" >&2; exit 1
+else ifeq ($(ENV),local)
   # Plain export: the local stack needs no secrets and no discovery.
   PRELUDE := export SUPABASE_DB_URL=$(LOCAL_DB_URL)
 else ifeq ($(ENV),prod)
@@ -56,6 +80,12 @@ else ifeq ($(ENV),prod)
 else
   $(error ENV must be `local` or `prod` (got `$(ENV)`))
 endif
+
+# DEBUG=1 threads `--debug` into the supabase CLI. Worth knowing because the
+# CLI's own error text says "Try rerunning the command with --debug" — advice
+# that does NOT work here: `gmake … --debug` hands the flag to make, which has
+# its own unrelated meaning for it. See the header for make-side tracing.
+SUPA_FLAGS := $(if $(DEBUG),--debug,)
 
 # Where the word list actually lives — read LIVE from the gamelist
 # working copy, never vendored into this repo (import-words.ts). This is
@@ -92,9 +122,24 @@ SEED  ?= $(shell date +%s)
 # local" says nothing about prod. The failure mode is a needless
 # re-import (a couple of minutes), never corruption — which is the only
 # reason stamps are acceptable here at all.
-STAMPS := .make/$(ENV)
+# With no ENV this is `.make/_no_env`, whose pattern rule below refuses with
+# the same message as everything else. Without the sentinel, $(STAMPS) would be
+# a bare `.make/` and a stamp target would fail with make's own
+# "No rule to make target '.make//words.stamp'" — technically safe (it stops)
+# but it tells you nothing about what you did wrong.
+ifeq ($(ENV),)
+  STAMPS := .make/_no_env
+else
+  STAMPS := .make/$(ENV)
+endif
+
 .make/local .make/prod:
 	@mkdir -p $@
+
+# Shorter stem wins in GNU make, so this beats the generic `.make/%/…` rules.
+.make/_no_env/%.stamp:
+	@echo "REFUSED: pass ENV=local or ENV=prod — there is no default" >&2
+	exit 1
 
 # ════════════════════════════════════════════════════════════════
 # Data + assets
@@ -112,8 +157,13 @@ all-words: $(STAMPS)/words.stamp ## import common.words — the list every word 
 .make/%/words.stamp: $(WORDS_SRC) | .make/%
 	@if [ "$*" = "local" ]; then
 	  export SUPABASE_DB_URL=$(LOCAL_DB_URL)
-	else
+	elif [ "$*" = "prod" ]; then
 	  . supabase/deploy/env.sh; require_project; derive_db_url
+	else
+	  # Fail CLOSED. With no ENV, $(STAMPS) is `.make/` and $* comes out
+	  # empty — an `else` that meant "prod" would have made a bare
+	  # `gmake all-words` import 283k rows into production.
+	  echo "REFUSED: unknown stamp env '$*' — pass ENV=local or ENV=prod" >&2; exit 1
 	fi
 	echo "── all-words → $*"
 	npm run words:import
@@ -130,7 +180,8 @@ all-words: $(STAMPS)/words.stamp ## import common.words — the list every word 
 g-spellingbee-pangrams: $(STAMPS)/spellingbee-pangrams.stamp ## rebuild the spellingbee board-seed pool
 .make/%/spellingbee-pangrams.stamp: .make/%/words.stamp
 	@if [ "$*" = "local" ]; then export SUPABASE_DB_URL=$(LOCAL_DB_URL)
-	else . supabase/deploy/env.sh; require_project; derive_db_url; fi
+	elif [ "$*" = "prod" ]; then . supabase/deploy/env.sh; require_project; derive_db_url
+	else echo "REFUSED: unknown stamp env '$*'" >&2; exit 1; fi
 	npm run spellingbee:import
 	touch $@
 
@@ -138,7 +189,8 @@ g-spellingbee-pangrams: $(STAMPS)/spellingbee-pangrams.stamp ## rebuild the spel
 g-wordwheel-pangrams: $(STAMPS)/wordwheel-pangrams.stamp ## rebuild the wordwheel board-seed pool
 .make/%/wordwheel-pangrams.stamp: .make/%/words.stamp
 	@if [ "$*" = "local" ]; then export SUPABASE_DB_URL=$(LOCAL_DB_URL)
-	else . supabase/deploy/env.sh; require_project; derive_db_url; fi
+	elif [ "$*" = "prod" ]; then . supabase/deploy/env.sh; require_project; derive_db_url
+	else echo "REFUSED: unknown stamp env '$*'" >&2; exit 1; fi
 	npm run wordwheel:import
 	touch $@
 
@@ -232,10 +284,10 @@ ifeq ($(ENV),local)
 	# the stamps' weakness is guaranteed rather than hypothetical, so it's
 	# handled at the source instead of being left to the operator.
 	rm -f $(STAMPS)/*.stamp
-	supabase db reset
+	supabase $(SUPA_FLAGS) db reset
 else
 	echo "── db push → $(PROJECT_REF)"
-	supabase db push --linked <<< y
+	supabase $(SUPA_FLAGS) db push --linked <<< y
 endif
 
 .PHONY: db-sql
@@ -300,7 +352,7 @@ endif
 deploy-funcs: _require-prod all-tries ## deploy all edge functions (regenerates the word bundles first)
 	@$(PRELUDE)
 	echo "── edge functions → $(ENV)"
-	supabase functions deploy --use-api
+	supabase $(SUPA_FLAGS) functions deploy --use-api
 
 # Which bundle a given function compiles in, if any. A LOOKUP rather than a
 # `case` in the recipe, because of a GNU Make rule with teeth: a recipe
@@ -316,7 +368,7 @@ TRIE_scrabble-ai-move      := $(SCRABBLE_TRIE)
 .PHONY: deploy-func-%
 deploy-func-%: _require-prod $$(TRIE_$$*) ## deploy ONE edge function by name (gmake deploy-func-waffle-build-board)
 	@$(PRELUDE)
-	supabase functions deploy "$*" --use-api
+	supabase $(SUPA_FLAGS) functions deploy "$*" --use-api
 
 .PHONY: deploy-fe
 deploy-fe: ## build the FE and push to Netlify
@@ -394,7 +446,7 @@ project-db-destroy:
 	$(PRELUDE)
 	echo "── WIPING the hosted database (all data, auth accounts included)"
 	announce_target
-	supabase db reset --linked --yes --no-seed
+	supabase $(SUPA_FLAGS) db reset --linked --yes --no-seed
 	rm -f .make/prod/*.stamp   # same reason as db-schema: the wipe invalidates them
 
 .PHONY: project-bootstrap
@@ -470,5 +522,7 @@ help: ## list every target
 	  | sort \
 	  | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	echo
+	echo "  ENV=local|prod is REQUIRED by anything that talks to a database."
+	echo "  DEBUG=1 adds --debug to the supabase CLI; gmake --trace explains make."
 	echo "  The dev loop stays on npm (npm run dev / npm test)."
 	echo "  Docs: docs/cheatsheet.md · docs/supabase.md#schema-vs-code"

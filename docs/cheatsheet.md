@@ -39,8 +39,22 @@ nothing is reimplemented. **The dev loop stays on npm** (`npm run dev`,
 which has no `.ONESHELL`; the Makefile refuses to run on it rather than
 misbehaving. `gmake help` lists every target.
 
-`ENV=local` (default) or `ENV=prod`. Prod is never inferred — you type it, and
-every writing target echoes its resolved target (password masked) first.
+**`ENV=local` or `ENV=prod` is required — there is no default.** A default is a
+guess about which database you meant, and `gmake deploy` once meant `ENV=local`:
+it wiped the local database via `db-schema` and pushed to production anyway.
+Anything that talks to a database now refuses without `ENV`; `help`, `dev-*`,
+`test-*`, `_audit` and the local-pinned artefact builders don't care and don't
+ask. Every writing target echoes its resolved target (password masked) first.
+
+**Troubleshooting.** The supabase CLI ends its errors with *"Try rerunning the
+command with `--debug`"* — which does **not** work through make: `gmake …
+--debug` hands the flag to make, whose `--debug` means something else. Use:
+
+| | |
+|---|---|
+| `DEBUG=1` | passes `--debug` to the supabase CLI — the verbose API/HTTP trace that hint meant |
+| `gmake --trace …` | make's side: each recipe line with the target and prerequisite that triggered it. The one for "why did that rebuild, or not" |
+| `gmake -n …` | print without running (`_audit` check 1 keeps this honest) |
 
 **Names are prefixed for tab-completion**, since that's how you actually find a
 target. Five families:
@@ -81,23 +95,23 @@ accounts included.
 gmake help                                   # every target, with descriptions
 
 # data + assets — `gmake g-<TAB>` narrows to one game
-gmake all-words                                  # common.words — only if words.tsv changed
-gmake all-pangrams                           # spellingbee + wordwheel seeds (follows words)
+gmake all-words ENV=local                    # common.words — only if words.tsv changed
+gmake all-pangrams ENV=local                 # spellingbee + wordwheel seeds (follows words)
 gmake all-tries                              # both edge-function word bundles
 gmake g-stackdown-genpuzzles COUNT=50 BAND=2 # generate boards — APPENDS to the library
-gmake g-stackdown-puzzles                    # delete + reload the table (generates iff missing)
-gmake g-stackdown-audit                      # boards holding words we'd no longer pick
-gmake g-connections-puzzles                  # the NYT Connections archive
-gmake g-crosswords-puzzles                   # supabase/data/crosswords/*.puz|.ipuz
+gmake g-stackdown-puzzles ENV=local          # delete + reload the table (generates iff missing)
+gmake g-stackdown-audit ENV=local            # boards holding words we'd no longer pick
+gmake g-connections-puzzles ENV=local        # the NYT Connections archive
+gmake g-crosswords-puzzles ENV=local         # supabase/data/crosswords/*.puz|.ipuz
 
 # the database — `gmake db-<TAB>`
-gmake db-psql                                # a psql prompt on ENV's database
-gmake db-psql SQL="select 1"                 # …or one statement
-gmake db-data                                # every table's DATA (no schema, no code)
-gmake db-schema                              # migrations only
-gmake db-sql                                 # supabase/sql/ only
-gmake db                                     # both halves
-gmake db-reset                               # local: db + db-data + db-seed
+gmake db-psql ENV=local                      # a psql prompt on that database
+gmake db-psql ENV=prod SQL="select 1"        # …or one statement
+gmake db-data ENV=local                      # every table's DATA (no schema, no code)
+gmake db-schema ENV=local                    # migrations only
+gmake db-sql ENV=local                       # supabase/sql/ only
+gmake db ENV=local                           # both halves
+gmake db-reset ENV=local                     # db + db-data + db-seed
 
 # deploying — `gmake deploy-<TAB>`
 gmake deploy ENV=prod                        # schema + code + functions + FE (NOT data)
