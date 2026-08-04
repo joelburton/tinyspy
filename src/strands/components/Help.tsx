@@ -1,9 +1,22 @@
+import { HelpPanel } from '../../common/components/game/HelpPanel'
+
+type Props = {
+  onClose: () => void
+  brand: string
+}
+
 /**
- * strands' help panel, lazy-loaded by the manifest.
+ * strands' help / rules modal — opened from the "Help" item in the
+ * GamePage menu. Implements the common `help` contract on `GameManifest`.
  */
-export function Help() {
+export function Help({ onClose, brand }: Props) {
   return (
-    <div>
+    <HelpPanel
+      brand={brand}
+      onClose={onClose}
+      size={{ width: 460, height: 460 }}
+      minSize={{ width: 300, height: 260 }}
+    >
       <p>
         Every letter on the board belongs to exactly one hidden word. Find them all
         and the board is cleared.
@@ -32,6 +45,6 @@ export function Help() {
         The clue at the top of the info column is the theme, not a spoiler — it's there
         from the start.
       </p>
-    </div>
+    </HelpPanel>
   )
 }

@@ -2492,6 +2492,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "games_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "club_game_status"
+            referencedColumns: ["game_id"]
+          },
+          {
             foreignKeyName: "games_puzzle_id_fkey"
             columns: ["puzzle_id"]
             isOneToOne: false
@@ -2622,6 +2629,17 @@ export type Database = {
       }
     }
     Views: {
+      club_game_status: {
+        Row: {
+          club_handle: string | null
+          game_id: string | null
+          is_terminal: boolean | null
+          mode: string | null
+          play_state: string | null
+          puzzle_date: string | null
+        }
+        Relationships: []
+      }
       games_state: {
         Row: {
           band: number | null
@@ -2666,6 +2684,13 @@ export type Database = {
           solution?: never
         }
         Relationships: [
+          {
+            foreignKeyName: "games_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "club_game_status"
+            referencedColumns: ["game_id"]
+          },
           {
             foreignKeyName: "games_puzzle_id_fkey"
             columns: ["puzzle_id"]
@@ -2738,6 +2763,7 @@ export type Database = {
         Args: { target_game: string; timed_out?: boolean }
         Returns: boolean
       }
+      _path_key: { Args: { coords: Json }; Returns: string[] }
       _player_state_visible: {
         Args: { g_id: string; row_user: string }
         Returns: boolean

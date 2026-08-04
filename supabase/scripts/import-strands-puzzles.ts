@@ -81,21 +81,25 @@ async function main() {
   })
 
   // Batched so a full ~900-puzzle load doesn't build one enormous request body.
+  // UPDATE on conflict (not ignoreDuplicates): "the archive can be re-imported
+  // freely" is the library-puzzle promise, and it includes a re-fetch carrying
+  // a corrected puzzle — games in flight are untouched either way, since every
+  // game plays from its own frozen copy.
   const BATCH = 200
-  let inserted = 0
+  let upserted = 0
   for (let i = 0; i < rows.length; i += BATCH) {
     const { data, error } = await supabase
       .from('puzzles')
-      .upsert(rows.slice(i, i + BATCH), { onConflict: 'source_id', ignoreDuplicates: true })
+      .upsert(rows.slice(i, i + BATCH), { onConflict: 'source_id' })
       .select('id')
     if (error) {
       console.error('upsert failed:', error.message)
       process.exit(1)
     }
-    inserted += data?.length ?? 0
+    upserted += data?.length ?? 0
   }
 
-  console.log(`✓ inserted ${inserted}, skipped ${rows.length - inserted} already present`)
+  console.log(`✓ upserted ${upserted} puzzles (inserted or refreshed in place)`)
 }
 
 main().catch((e) => {

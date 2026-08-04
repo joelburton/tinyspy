@@ -99,11 +99,12 @@ const BODY: Partial<Record<GuessRow['result'], string>> = {
  * table at all; those raise, because only a broken client can produce one.)
  *
  * **Coop shows everyone's rows.** Joel's ruling: a peer sees your word when you
- * submit it, so there is no per-player split to make here. The compete sibling
- * will need the mode-aware RLS arm the other compete games carry.
+ * submit it, so there is no per-player split to make here. Compete's rows are
+ * scoped to your own mid-race by the mode-aware RLS arm (and open up at
+ * terminal — which is why PlayArea filters `historyRows` explicitly).
  *
- * No `#N` handle: strands has no turn-history viewer yet (see the plan's
- * after-the-POC list), so a row's ordinal is a plain muted number.
+ * A row's `#N` is the turn-history handle (shared `TurnLogNumber`), offered
+ * when the visible rows are the viewer's own sequence.
  */
 export function GameTurnLog({
   guesses,

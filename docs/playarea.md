@@ -8,7 +8,7 @@ modals, mode pills, iconography), see [ui.md](ui.md).
 
 ## PlayArea layout
 
-The shape every game's play surface takes — **all thirteen games** are on it. The
+The shape every game's play surface takes — **all fourteen games** are on it. The
 scaffold + readout classes live in
 [`common/components/game/PlayArea.module.css`](../src/common/components/game/PlayArea.module.css)
 (a CSS-only module imported the way `setupForm.module.css` is, composed with a thin
@@ -252,10 +252,10 @@ The pill is driven by the shared **`useLocalFeedback`** hook (holds one
 `GenericFeedbackMsg`, auto-clears on the next move / any key via
 `useDismissLocalFeedbackOnKey`, and is permanent at terminal — see [Terminal local
 feedback is permanent](#text-entry--capture-not-input) above). The slot reserves its
-height so swapping the pill in for the move controls never reflows the board. All thirteen
-games share this (nine drive `useLocalFeedback` directly, the four word-list games via
+height so swapping the pill in for the move controls never reflows the board. All fourteen
+games share this (ten drive `useLocalFeedback` directly, the four word-list games via
 `useWordSubmit`); the earlier per-game full-width `<ResultFlash>` bar has been
-removed. In the six turn-order coop games the same slot also carries the sticky
+removed. In the seven turn-order coop games the same slot also carries the sticky
 "Waiting for ● Name…" pill (the shared `waitingTurnPill` in
 `common/components/game/turnCopy.tsx`), slotted into the precedence chain as
 terminal verdict → locally-done → **waiting-for-turn** → own-move
@@ -515,8 +515,8 @@ someone else got there a second earlier. Compete-post-terminal only (coop's
 ## Turn-history viewer
 
 Every game whose board can replay past turns (scrabble, stackdown, connections,
-psychicnum, codenamesduet, wordle, waffle) lets you **click a past turn to see the
-board as it was then**. The affordance is shared and looks identical everywhere:
+psychicnum, codenamesduet, wordle, waffle, strands) lets you **click a past turn to
+see the board as it was then**. The affordance is shared and looks identical everywhere:
 
 - **The `#N` handle** (`<TurnLogNumber>` in `common/components/game/lists/TurnLog.tsx`) — each
   turn's number cell is the click target; clicking it opens that turn on the board.
@@ -673,11 +673,11 @@ A-game letter) with the tile via `cqmin`/`cqi`; multi-char content auto-fits via
 
 Every standard game is decomposed into `BoardCol` / `InfoCol` (bananagrams via its
 own engine-hook + views shape — see below). The shared turn-history viewer
-(`useHistoryViewer` + a per-game replay helper) ships in the **seven** games whose
+(`useHistoryViewer` + a per-game replay helper) ships in the **eight** games whose
 board can replay a past turn — stackdown, connections, psychicnum, codenamesduet,
-wordle, waffle (each via its own `lib/history.ts`) and scrabble (via `boardUpToSeq`
-in `lib/play.ts`); spellingbee + boggle are decomposed but have **no** viewer (a
-`WordList` isn't chronological).
+wordle, waffle, strands (each via its own `lib/history.ts`) and scrabble (via
+`boardUpToSeq` in `lib/play.ts`); spellingbee + boggle are decomposed but have
+**no** viewer (a `WordList` isn't chronological).
 
 **Read [What building it taught us](#what-building-it-taught-us) before extracting
 `InfoCol` / `BoardCol` for a new game** — it records where the "target architecture"

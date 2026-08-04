@@ -73,11 +73,9 @@ const CASES: Record<string, Family> = {
       ['ended', { greens_found: 12 }, 'manual end'],
     ],
   },
-  // strands ships COOP-ONLY (the compete sibling isn't registered), so it has no
-  // `compete` arm — the only game besides codenamesduet without one. Its single
-  // loss is the clock: the roster's rule is "you lose if the game had a
-  // reachable end and you didn't reach it", and finding every theme word is
-  // exactly such an end (docs/states.md).
+  // strands' coop loss is the clock alone: the roster's rule is "you lose if
+  // the game had a reachable end and you didn't reach it", and finding every
+  // theme word is exactly such an end (docs/states.md).
   strands: {
     // words_found ONLY — the TOTAL never reaches `status`, because a
     // club-readable blob announcing "this board holds 6 words" would leak part

@@ -779,10 +779,10 @@ same three (they're not the shared `.tile`, so they replicate it locally). The
 zoom-suppression *feel* is an on-device check — Playwright can't reproduce
 Safari's gesture heuristics (recorded in [deferred.md](deferred.md)).
 
-**The pass now covers every game except one.** Twelve games follow the
+**The pass now covers every game except one.** Thirteen games follow the
 info-sheet recipe: the wide-sheet trio **spellingbee / boggle / crosswords**,
 and the plain-sheet games **psychicnum / wordle / codenamesduet / stackdown /
-waffle / connections / wordwheel / wordiply / scrabble**.
+waffle / connections / wordwheel / wordiply / scrabble / strands**.
 
 - **scrabble** is **keyboard-required, NOT desktop-only** — like crosswords, its
   conversion is a layout for keyboard-attached devices, not a touch-entry mode

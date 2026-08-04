@@ -63,7 +63,7 @@ it before the clock.** Ratified 2026-08-01.
 
 | the game | its reachable end | clock expires |
 |---|---|---|
-| waffle · wordle · crosswords · stackdown · connections · psychicnum · bananagrams · codenamesduet | solve it / find them all / go out | `lost` |
+| waffle · wordle · crosswords · stackdown · connections · psychicnum · bananagrams · codenamesduet · strands | solve it / find them all / go out | `lost` |
 | spellingbee · wordwheel · boggle **with** a target (`target_rank` / `win_percent`) | cross the bar | `lost` |
 | spellingbee · wordwheel · boggle **without** a target | none — there's always another word to find | `ended` |
 | scrabble coop | play the bag out | `lost` |
@@ -80,7 +80,7 @@ can lose to the clock.
 Note this is narrower than the rule the pre-freeze audit proposed ("the clock
 only loses when there was a target to miss"), which couldn't explain scrabble:
 scrabble coop has no target and still loses. "Reachable end" covers all
-thirteen with no exceptions.
+fourteen with no exceptions.
 
 #### Compete is different: the clock resolves a race
 
@@ -90,7 +90,10 @@ failing everyone — scrabble, boggle (no target) and wordiply all do this, and
 [scrabble.md](games/scrabble.md) argues the case: a score accumulated over real
 plays is meaningful, and voiding it would reward stalling. (boggle *with* a
 target is the exception that proves it — there the bar, not the leader, is what
-the clock beat, so it's `lost_compete`.)
+the clock beat, so it's `lost_compete`.) strands compete has its own flavor: the
+race is fewest hints *among solvers*, so the clock crowns a player who has
+already solved (`won_compete`); with no solver there's nobody to crown and it's
+`lost_compete` (outcome `timeout`).
 
 **Unless there's no leader to crown.** The win test in a score race is "your
 score is the best score", which is true for *everyone* when every score is 0 —

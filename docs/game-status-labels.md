@@ -43,7 +43,7 @@ The status line is `manifest.labelFor(row)`, a **pure, synchronous** function of
 its gametype's implementation. Everything `labelFor` needs must therefore already be on the
 row, which is why the terminal RPCs write a `status` jsonb blob for it to read.
 
-The status table below is **generated** — `npm run report:labels` runs all 24 manifests'
+The status table below is **generated** — `npm run report:labels` runs all 26 manifests'
 `labelFor` over representative rows and rewrites it in place, so the strings are literal
 output rather than transcription. A test fails if it's stale. The titles table is
 hand-maintained: those expressions live in SQL, out of reach of the FE.
@@ -67,6 +67,7 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | wordwheel | centre·outer letters | `A·BCDEFGH` |
 | crosswords | puzzle title (fallback `Crossword`) | `NYT Sat 8/1/26: Untitled` |
 | connections | the puzzle's date + **the first two tiles** | `2026-07-04: APPLE-BANANA` |
+| strands | the puzzle's date + **the clue** | `2024-03-04: Better said than done` |
 | codenamesduet | **the first 3 board words**, in **board order** (the top-left three cells as shown — the board is never shuffled, so they're a handle you can match by glancing at the grid) | `VALENTINE-GANGSTER-GUM` |
 
 ## Status lines

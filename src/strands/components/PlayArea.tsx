@@ -6,6 +6,9 @@ import { CelebrationDialog } from '../../common/components/game/CelebrationDialo
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { outOfRacePill, stickyPill, terminalPill } from '../../common/lib/game/localPills'
+import { waitingTurnPill } from '../../common/components/game/turnCopy'
+import { memberById } from '../../common/lib/game/peers'
+import { nextUnplayedPuzzle } from '../../common/lib/game/nextPuzzle'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { NEW_GAME_CONFIRM, useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
@@ -95,6 +98,7 @@ function buildOver(
   isCompete: boolean,
   players: GamePlayer[],
   selfId: string,
+  playerStates: readonly { user_id: string; hints_spent: number; solved: boolean }[],
 ): TerminalCopy {
   // ── Coop ──
   if (playState === 'won') {
@@ -112,9 +116,22 @@ function buildOver(
     const iWon = players.find((p) => p.user_id === selfId)?.result?.won === true
     const winners = players.filter((p) => p.result?.won === true)
     const names = winners.map((p) => p.username).join(' + ')
-    return iWon
-      ? { verdict: 'Won: fewest hints', message: 'You win!', tone: 'won' }
-      : { verdict: `Lost: ${names} used fewer hints`, message: `${names} won`, tone: 'lost' }
+    if (iWon) return { verdict: 'Won: fewest hints', message: 'You win!', tone: 'won' }
+    // Three ways to lose, and the verdict names the one that happened: the
+    // winner beat you on hints; they MATCHED your hints and the earlier solve
+    // broke the tie (saying "fewer hints" there would be flatly false); or you
+    // never solved at all. Terminal-time RLS has opened every player row, so
+    // the counts are readable here.
+    const mine = playerStates.find((p) => p.user_id === selfId)
+    const winnerHints = playerStates.find(
+      (p) => p.user_id === winners[0]?.user_id,
+    )?.hints_spent
+    const verdict = !mine?.solved
+      ? `Lost: ${names} solved it`
+      : mine.hints_spent === winnerHints
+        ? `Lost: ${names} solved it sooner`
+        : `Lost: ${names} used fewer hints`
+    return { verdict, message: `${names} won`, tone: 'lost' }
   }
   if (playState === 'lost_compete') {
     return { verdict: 'Lost: nobody solved it', message: 'Nobody solved it', tone: 'lost' }
@@ -123,11 +140,10 @@ function buildOver(
 }
 
 /**
- * strands' play surface.
- *
- * Coop-first (the compete sibling is not registered yet). The board column
- * holds the grid, a fixed-height echo/pill slot, and the hint bar; the info
- * column carries the clue and progress.
+ * strands' play surface, both modes: coop shares one board, compete races
+ * per-player boards over the same letters. The board column holds the grid, a
+ * fixed-height echo/pill slot, and the hint bar; the info column carries the
+ * clue and progress.
  *
  * **Acceptance is the server's**, so a trace round-trips through
  * `strands.submit_path` rather than being scored here. That is not a passing
@@ -139,6 +155,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, solutionRevealed, players, session,
     setup, goToClub, clubHandle, goToGame, menu, brand, title,
+    isMyTurn, currentTurnUserId,
   } = ctx
 
   const selfId = session.user.id
@@ -223,10 +240,15 @@ export function PlayArea(ctx: GamePageCtx) {
         showLocalFeedback(stickyPill('error', error.message))
         return
       }
-      showLocalFeedback(pillFor(data as SubmitResult))
-      // Only a found word keeps its tiles; everything else clears the trace,
+      const r = data as SubmitResult
+      showLocalFeedback(pillFor(r))
+      // Only a found word keeps its tiles: they stay lit as the in-progress
+      // thread until the guesses refetch lands and the derived clear above
+      // hands them over to their found colors — no blank flash in between.
+      // (The success pill outranks the echo in BoardCol's slot, so keeping the
+      // trace doesn't delay the verdict.) Everything else clears at once,
       // which is what stops the board filling with non-theme paths.
-      setTrace([])
+      if (r.result !== 'theme' && r.result !== 'spangram') setTrace([])
     },
     [gameId, showLocalFeedback],
   )
@@ -284,10 +306,13 @@ export function PlayArea(ctx: GamePageCtx) {
           e.preventDefault()
           return
         }
-        if (isTerminal || busy) return
+        if (isTerminal || busy || !isMyTurn) return
         if (e.key === 'Backspace') {
           e.preventDefault()
-          setTrace((t) => t.slice(0, -1))
+          // Pop the DERIVED trace, not the raw state: after a peer's find
+          // consumes my selected tiles the visible trace is already empty, and
+          // popping the raw one would resurrect its stale prefix.
+          setTrace(trace.slice(0, -1))
           return
         }
         if (e.key === 'Enter' && trace.length) {
@@ -295,7 +320,7 @@ export function PlayArea(ctx: GamePageCtx) {
           void submit(trace)
         }
       },
-      [isTerminal, busy, trace, submit, clearLocalFeedback, viewer],
+      [isTerminal, busy, isMyTurn, trace, submit, clearLocalFeedback, viewer],
     ),
   )
 
@@ -308,11 +333,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // error handling match the other games'.
   const { endGame: handleEndGame, concede: handleConcede, restart: handleRestart } =
     useStandardGameActions({
-    // The hook's client type also lists `concede`, which strands has no RPC
-    // for (coop-only). Cast rather than widen the shared type: the hook never
-    // CALLS concede in coop, and every other coop-only game would need the
-    // same widening for nothing.
-    db: db as unknown as Parameters<typeof useStandardGameActions>[0]['db'],
+    db,
     gameId,
     isTerminal,
     myConceded: players.find((p) => p.user_id === session.user.id)?.conceded ?? false,
@@ -346,23 +367,34 @@ export function PlayArea(ctx: GamePageCtx) {
   const [startNewGame, startingNewGame] = useSingleFlight(async () => {
     if (!game) return
 
-    const { data: next, error: lookupError } = await db
-      .from('puzzles')
-      .select('id, puzzle_date')
-      .gt('puzzle_date', game.puzzle_date ?? '')
-      .order('puzzle_date', { ascending: true })
-      .limit(1)
-      .maybeSingle()
+    // Two reads feed the pure rule (`nextUnplayedPuzzle`, unit-tested in
+    // common — the connections shape): the dated archive, and which dates this
+    // club already has a game for IN THIS MODE — a coop game doesn't use up
+    // the compete side, and skipping played dates is the point: a "New game"
+    // that re-dealt a board the club has seen isn't new.
+    const [{ data: puzzleRows, error: lookupError }, { data: statusRows }] = await Promise.all([
+      db.from('puzzles').select('id, puzzle_date').order('puzzle_date', { ascending: true }),
+      db.from('club_game_status').select('puzzle_date')
+        .eq('club_handle', clubHandle).eq('mode', game.mode),
+    ])
     if (lookupError) {
       showLocalFeedback(stickyPill('error', lookupError.message))
       return
     }
+    const played = new Set(
+      ((statusRows ?? []) as { puzzle_date: string }[]).map((r) => r.puzzle_date),
+    )
+    const next = nextUnplayedPuzzle(
+      (puzzleRows ?? []) as { id: string; puzzle_date: string }[],
+      played,
+      game.puzzle_date ?? null,
+    )
     if (!next) {
       await confirmAction({
-        title: 'No newer puzzle',
+        title: 'No unplayed puzzle',
         message:
-          'This is the most recent puzzle we have. Run `gmake g-strands-fetch` to pick up new '
-          + 'ones, or start an older date from the club page.',
+          "You've played every puzzle after this one that we have. Run `gmake g-strands-fetch` "
+          + 'to pick up new ones, or start an older date from the club page.',
         confirmLabel: 'OK',
         cancelLabel: null,
       })
@@ -378,19 +410,21 @@ export function PlayArea(ctx: GamePageCtx) {
       }))
     ) return
 
+    // The current MODE rides along — a finished compete race's "New game" is
+    // the next race, not a quiet switch to coop.
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,
         setup: { ...strandsSetup, puzzleId: next.id },
         player_user_ids: players.map((p) => p.user_id),
-        mode: 'coop',
+        mode: game.mode,
       })
       .single()
     if (error || !data) {
       showLocalFeedback(stickyPill('error', error?.message ?? 'could not start a new game'))
       return
     }
-    goToGame('strands_coop', data.id)
+    goToGame(`strands_${game.mode}`, data.id)
   })
 
   // The GamePage menu. Held in a ref so the effect needn't list the per-render
@@ -502,7 +536,9 @@ export function PlayArea(ctx: GamePageCtx) {
 
   if (loading || !game) return <div className={styles.loading}>Loading…</div>
 
-  const over = isTerminal ? buildOver(playState, found.length, isCompete, players, selfId) : null
+  const over = isTerminal
+    ? buildOver(playState, found.length, isCompete, players, selfId, playerStates)
+    : null
 
   // COMPETE: solving (or conceding) ends YOUR race while the others keep going.
   // The board freezes and the standard "you're out" look applies, but the game
@@ -510,10 +546,18 @@ export function PlayArea(ctx: GamePageCtx) {
   const myConceded = players.find((p) => p.user_id === selfId)?.conceded ?? false
   const isLocallyDone = !isTerminal && isCompete && ((me?.solved ?? false) || myConceded)
 
+  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // is null in a free-for-all game, so this is false there — the pill's
+  // presence is fixed for the game's life, no reflow. (wordle's shape.)
+  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
+
   /**
    * What the below-board slot shows, in priority order: the permanent terminal
-   * verdict, then your last move's result, then — on an untouched board — the
-   * THEME, quoted.
+   * verdict, then the locally-done pill, then the waiting-for-turn pill, then
+   * your last move's result, then — on an untouched board — the THEME, quoted.
+   * Waiting out-ranks own-move because a waiting player has no fresh own-move
+   * result to lose, and a stale one would bury the answer to "why can't I
+   * trace?" — the shared precedence chain (see turnCopy).
    *
    * The clue also sits in the info column, but that column is off-canvas on a
    * phone: without this a mobile player would open the game with no idea what
@@ -528,8 +572,15 @@ export function PlayArea(ctx: GamePageCtx) {
   const pill = over
     ? terminalPill(over.tone, over.verdict)
     : isLocallyDone
-      ? outOfRacePill(myConceded)
-      : localFeedback
+      // `isLocallyDone` folds solved and conceded together, and solving is the
+      // GOOD one — compete is won by fewest hints, decided when everyone
+      // finishes, so a solver may well be winning. The default 'Lost — race
+      // continues' would be flatly wrong for them (wordle/waffle's identical
+      // branch makes the same call).
+      ? outOfRacePill(myConceded, 'Solved — waiting on the rest')
+      : waiting
+        ? waitingTurnPill(memberById(players, currentTurnUserId))
+        : localFeedback
         ?? (guesses.length === 0 && trace.length === 0
         // The quotes carry it: no "Theme:" prefix, which a phone has no room
         // for and which a quoted phrase under the board doesn't need.
@@ -559,11 +610,21 @@ export function PlayArea(ctx: GamePageCtx) {
       <BoardCol
         board={game.board}
         found={snap?.found ?? foundPaths}
-        missed={missed}
+        // The missed-word reveal is a TERMINAL artifact — drawing it on a
+        // historic snapshot would mix the endgame's grey lines into a board
+        // that hadn't reached it.
+        missed={viewer.viewing ? [] : missed}
         trace={viewer.viewing ? EMPTY_TRACE : trace}
         hintCoords={viewer.viewing ? null : me?.active_hint_coords ?? null}
         onTileClick={onTileClick}
-        disabled={isTerminal || isLocallyDone || busy}
+        // `waiting` folds in turn-order (coop only): a waiting player's board
+        // is inert, and the pill below says why.
+        disabled={isTerminal || isLocallyDone || busy || waiting}
+        // The hint bar keeps its own gate: spend_hint is deliberately NOT
+        // turn-gated (a team decision, not a move), so waiting must not dim
+        // it — but replaying history must, or a click meant to exit the viewer
+        // would irreversibly spend a hint.
+        hintDisabled={isTerminal || isLocallyDone || busy || viewer.viewing}
         viewing={viewer.viewing}
         highlight={snap?.highlight ?? []}
         viewingDescription={snap?.description ?? ''}

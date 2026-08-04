@@ -55,20 +55,23 @@ export type PuzzleRow = {
  * attached. This is THE import guard — the table's CHECK constraints can only
  * see shape, not whether the coordinates tell the truth.
  *
- * Four things, in increasing order of interestingness:
+ * Five things, in increasing order of interestingness:
  *
  *  1. the board is 8 rows of 6;
  *  2. every path is contiguous under 8-way adjacency;
  *  3. every path actually SPELLS its word on this board — the check that would
  *     catch a feed change silently flipping coordinates to `[col,row]`, which
  *     no amount of shape-checking would notice;
- *  4. the theme words plus the spangram TILE the board exactly: all 48 cells,
+ *  4. the spangram SPANS: it touches two opposite edges of the board (that is
+ *     what makes it the spangram — the FE's help and the terminal reveal both
+ *     say so, and all ~900 archived puzzles satisfy it);
+ *  5. the theme words plus the spangram TILE the board exactly: all 48 cells,
  *     each covered once. That's the invariant the whole gametype leans on —
  *     winning IS consuming the board, and found tiles lock — so a puzzle
  *     violating it is malformed and must not be stored.
  *
- * All three failure modes were verified by planting them before the guard was
- * trusted on ~900 puzzles.
+ * Each failure mode was verified by planting it before the guard was trusted
+ * on ~900 puzzles.
  */
 export function validatePuzzle(f: Feed, label: string): void {
   const bad = (msg: string): never => {
@@ -116,6 +119,16 @@ export function validatePuzzle(f: Feed, label: string): void {
 
   if (seen.size !== CELLS) {
     bad(`theme words cover ${seen.size}/${CELLS} cells — the board must tile exactly`)
+  }
+
+  // The spangram must live up to its name: touching two OPPOSITE edges
+  // (top-and-bottom, or left-and-right).
+  const spanRows = f.spangramCoords.map(([r]) => r)
+  const spanCols = f.spangramCoords.map(([, c]) => c)
+  const spansRows = Math.min(...spanRows) === 0 && Math.max(...spanRows) === ROWS - 1
+  const spansCols = Math.min(...spanCols) === 0 && Math.max(...spanCols) === COLS - 1
+  if (!spansRows && !spansCols) {
+    bad(`spangram ${f.spangram} does not span opposite edges of the board`)
   }
 }
 

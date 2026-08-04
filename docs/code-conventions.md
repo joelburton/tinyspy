@@ -314,7 +314,7 @@ Two-rule heuristic for deciding where a piece of UI / logic lives:
 
 2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `GameTurnLog`, `Help`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`CodenamesduetPlayArea`, `ConnectionsSetupForm`) — the folder already says which game.
 
-The reason both rules matter: this codebase is shaped to host a roster of games (the original ~7–8 target has since been exceeded — thirteen are live), most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the connections version of the same thing codenamesduet does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
+The reason both rules matter: this codebase is shaped to host a roster of games (the original ~7–8 target has since been exceeded — fourteen are live), most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the connections version of the same thing codenamesduet does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
 
 #### Per-game `useGame` shape — pick the right template
 

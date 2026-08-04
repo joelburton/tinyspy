@@ -55,7 +55,9 @@ create policy puzzles_select on strands.puzzles
 -- only writer — there is no INSERT grant to authenticated). It needs schema
 -- USAGE plus full column access, including `solution`, to seed the library.
 grant usage on schema strands to service_role;
-grant insert, select on strands.puzzles to service_role;
+-- update too: the importer upserts, and a re-fetch may carry a corrected
+-- puzzle that should refresh its row in place.
+grant insert, update, select on strands.puzzles to service_role;
 
 -- ============================================================
 -- strands.games
@@ -268,6 +270,29 @@ create view strands.games_state with (security_invoker = true) as
 grant select on strands.games_state to authenticated;
 
 -- ============================================================
+-- strands.club_game_status — which dates has this club played?
+-- ============================================================
+-- The connections shape (see connections.club_game_status for the full
+-- rationale): "for this club and mode, which puzzle-dates already have a
+-- game?" New game reads it to advance to the next UNPLAYED date rather than
+-- re-dealing a board the club has seen. security_invoker, so both tables'
+-- RLS gate visibility; nothing shielded is exposed (dates and states only).
+drop view if exists strands.club_game_status;
+create view strands.club_game_status with (security_invoker = true) as
+select
+  cg.id          as game_id,
+  cg.club_handle as club_handle,
+  cg.play_state  as play_state,
+  cg.is_terminal as is_terminal,
+  sg.mode        as mode,
+  sg.puzzle_date as puzzle_date
+from strands.games sg
+join common.games cg on cg.id = sg.id
+where cg.gametype in ('strands_coop', 'strands_compete');
+
+grant select on strands.club_game_status to authenticated;
+
+-- ============================================================
 -- strands.create_game — start a new game in a club
 -- ============================================================
 -- Setup shape (server-validated):
@@ -379,7 +404,11 @@ begin
   -- and free-for-all leaves the pointer null, making common._require_turn a
   -- no-op in submit_path.
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
-    first_turn := (setup->>'first_turn_user_id')::uuid;
+    begin
+      first_turn := (setup->>'first_turn_user_id')::uuid;
+    exception when invalid_text_representation then
+      raise exception 'setup.first_turn_user_id must be a uuid' using errcode = 'P0001';
+    end;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
       raise exception 'setup.first_turn_user_id must be one of the players'
         using errcode = 'P0001';
@@ -529,9 +558,14 @@ begin
     return false;
   end if;
 
+  -- A drop-out forfeits: conceded players are excluded from the ranking even
+  -- if a solved row exists for them (belt to submit_path's conceded guard —
+  -- and the ruling for the odd case of a player who solved and THEN conceded).
   select min(sp.hints_spent) into best_hints
     from strands.players sp
-   where sp.game_id = target_game and sp.solved;
+    join common.game_players gp
+      on gp.game_id = sp.game_id and gp.user_id = sp.user_id
+   where sp.game_id = target_game and sp.solved and not gp.conceded;
   any_solved := best_hints is not null;
 
   if any_solved then
@@ -541,14 +575,20 @@ begin
     -- the tie.
     with ranked as (
       select sp.user_id,
-             sp.solved
+             sp.solved and not gp.conceded
                and sp.hints_spent = best_hints
                and sp.solved_at = (
-                 select min(s2.solved_at) from strands.players s2
+                 select min(s2.solved_at)
+                   from strands.players s2
+                   join common.game_players g2
+                     on g2.game_id = s2.game_id and g2.user_id = s2.user_id
                   where s2.game_id = target_game and s2.solved
+                    and not g2.conceded
                     and s2.hints_spent = best_hints
                ) as won
         from strands.players sp
+        join common.game_players gp
+          on gp.game_id = sp.game_id and gp.user_id = sp.user_id
        where sp.game_id = target_game
     )
     select jsonb_object_agg(user_id::text, jsonb_build_object('won', won))
@@ -604,11 +644,15 @@ revoke execute on function strands._maybe_finish_compete(uuid, boolean) from pub
 -- to 5 would otherwise have real answers rejected as "too short".
 --
 -- HARD vs SOFT rejects. A structurally impossible path (off-board,
--- non-adjacent, self-crossing, through a spent tile) RAISES: the FE's reducer
--- cannot produce one, so it means a broken or hostile client, and logging it
--- would pollute a turn log that players read. A word that is merely wrong —
--- too short, unknown, already counted — is a legitimate move, so it returns
--- softly and IS logged.
+-- non-adjacent, self-crossing) RAISES: the FE's reducer cannot produce one, so
+-- it means a broken or hostile client, and logging it would pollute a turn log
+-- that players read. A path through a SPENT tile also raises, but with one
+-- honest route in: a coop submit in flight while a peer's find lands can cross
+-- tiles the sender didn't yet see consumed. That window is realtime-lag sized,
+-- the raise's message reads fine in the error pill, and nothing commits — so
+-- it stays a raise rather than earning a logged soft-reject. A word that is
+-- merely wrong — too short, unknown, already counted — is a legitimate move,
+-- so it returns softly and IS logged.
 --
 -- The `for update` lock serializes concurrent coop submissions against the
 -- shared hint bar and the found set.
@@ -655,6 +699,15 @@ begin
     raise exception 'game is not in progress' using errcode = 'P0001';
   end if;
 
+  -- A conceded player is out of the race — no more traces. The FE freezes the
+  -- board on myConceded, so this only fires on a race (a submit in flight when
+  -- the concede commits, or a stale second tab). Without it a conceder could
+  -- complete the win condition and be recorded the winner.
+  if (select conceded from common.game_players
+        where game_id = target_game and user_id = caller_id) then
+    raise exception 'you have conceded' using errcode = 'P0001';
+  end if;
+
   -- Turn-order gate (no-op for free-for-all). Before classification, so an
   -- out-of-turn trace is refused outright rather than quietly scored.
   perform common._require_turn(target_game, caller_id);
@@ -668,13 +721,27 @@ begin
     raise exception 'path must have at least one cell' using errcode = 'P0001';
   end if;
 
-  select array_agg((e->>0)::int order by ord), array_agg((e->>1)::int order by ord)
-    into rs, cs
-    from jsonb_array_elements(path) with ordinality as t(e, ord);
-
-  if array_length(rs, 1) is distinct from n or rs @> array[null]::int[] then
+  -- Every element must be a two-number [row, col] BEFORE the casts below, so a
+  -- malformed cell gets this designed error rather than a raw cast failure
+  -- (jsonb has no integer type of its own, so integer-ness is "equals its own
+  -- floor"; the ::numeric::int cast then accepts an integral 2.0 as 2, which
+  -- is what the normalization comment further down promises).
+  if exists (
+    select 1 from jsonb_array_elements(path) e
+     where jsonb_typeof(e) <> 'array'
+        or jsonb_array_length(e) <> 2
+        or jsonb_typeof(e->0) <> 'number'
+        or jsonb_typeof(e->1) <> 'number'
+        or (e->>0)::numeric <> floor((e->>0)::numeric)
+        or (e->>1)::numeric <> floor((e->>1)::numeric)
+  ) then
     raise exception 'each path cell must be [row, col]' using errcode = 'P0001';
   end if;
+
+  select array_agg(((e->>0)::numeric)::int order by ord),
+         array_agg(((e->>1)::numeric)::int order by ord)
+    into rs, cs
+    from jsonb_array_elements(path) with ordinality as t(e, ord);
 
   consumed := strands._consumed_keys(target_game, caller_id);
 
@@ -914,6 +981,12 @@ begin
     raise exception 'game is not in progress' using errcode = 'P0001';
   end if;
 
+  -- Same guard as submit_path: a conceded player has no race left to hint.
+  if (select conceded from common.game_players
+        where game_id = target_game and user_id = caller_id) then
+    raise exception 'you have conceded' using errcode = 'P0001';
+  end if;
+
   select * into p_row from strands.players
    where game_id = target_game and user_id = caller_id;
   if p_row.solved then
@@ -1046,7 +1119,13 @@ as $$
 declare
   g_mode text;
 begin
-  select mode into g_mode from strands.games where id = target_game;
+  -- FOR UPDATE: serialize against submit_path (and end_game), which lock this
+  -- same row. Without it a last solve and a last concede run on disjoint locks
+  -- (submit_path on strands.games, _set_conceded on common.games), each
+  -- snapshots the other as "still racing", and BOTH finishers decline — the
+  -- game sticks in `playing` with nobody left to end it. Lock order is
+  -- strands.games → common.games on every path, so no deadlock.
+  select mode into g_mode from strands.games where id = target_game for update;
   if g_mode is null then
     raise exception 'game not found' using errcode = 'P0002';
   end if;

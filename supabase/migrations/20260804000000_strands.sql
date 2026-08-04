@@ -171,7 +171,7 @@ create table strands.games (
   id uuid primary key references common.games(id) on delete cascade,
   club_handle text not null references common.clubs(handle) on delete cascade,
   -- Sibling-manifest mode axis; agrees with the gametype string by
-  -- construction in create_game. Only 'coop' is reachable today.
+  -- construction in create_game.
   mode text not null check (mode in ('coop', 'compete')),
 
   -- ── Provenance (soft) + the frozen playable copy ──
@@ -257,7 +257,7 @@ create index strands_players_game_id_idx on strands.players (game_id);
 -- `result in ('theme','spangram')`, and the credited hint words are
 -- the distinct `result = 'hint_word'` set. Only the state that
 -- genuinely cannot be derived (the capped bar, the spend count, the
--- active hint) lives as columns on strands.games.
+-- active hint) lives as columns on strands.players.
 --
 -- Every submission is logged, including the rejects — the turn log
 -- shows good and bad alike, and "what did we already try?" is the

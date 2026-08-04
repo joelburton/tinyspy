@@ -2,14 +2,15 @@
  * Pick the puzzle a "New game" should start: the NEXT one by date that this
  * club hasn't played yet.
  *
- * connections is the one game whose boards are a **dated archive** rather than
- * something generated per game — every other game's New game just re-rolls a
- * fresh board from the same setup. So "same again" here means "the next daily
- * puzzle", and it has to skip the ones the club already has a game for, or the
- * button would hand them a board they've seen.
+ * connections and strands are the games whose boards are a **dated archive**
+ * rather than something generated per game — every other game's New game just
+ * re-rolls a fresh board from the same setup. So "same again" here means "the
+ * next daily puzzle", and it has to skip the ones the club already has a game
+ * for, or the button would hand them a board they've seen.
  *
- * Pure + unit-tested, like its sibling `resolveDefaultPuzzle` (the setup form's
- * date-picker default) — the queries live in PlayArea, the rule lives here.
+ * Pure + unit-tested, like connections' `resolveDefaultPuzzle` (its setup
+ * form's date-picker default) — the queries live in each game's PlayArea, the
+ * rule lives here.
  *
  * @param puzzles     every dated puzzle, **ascending** by `puzzle_date`.
  * @param playedDates the `puzzle_date`s this club already has a game for, in this

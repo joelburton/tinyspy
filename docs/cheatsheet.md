@@ -74,10 +74,10 @@ definition. The full list:
 
 | | targets |
 |---|---|
-| **writes prod with `ENV=prod`** | `all-words`, `all-pangrams`, `g-spellingbee-pangrams`, `g-wordwheel-pangrams`, `g-stackdown-puzzles`, `g-connections-puzzles`, `g-crosswords-puzzles`, `db-data`, `db-schema`, `db-sql`, `db` |
+| **writes prod with `ENV=prod`** | `all-words`, `all-pangrams`, `g-spellingbee-pangrams`, `g-wordwheel-pangrams`, `g-stackdown-puzzles`, `g-connections-puzzles`, `g-crosswords-puzzles`, `g-strands-puzzles`, `db-data`, `db-schema`, `db-sql`, `db` |
 | **prod by definition** | every `project-*`, `deploy-*`, `deploy`. Note the `project-*` ones **ignore `ENV`** rather than checking it — they act on the project named by the secrets file / the CLI link, and `supabase … --linked` doesn't read a connection string at all. The two destructive ones demand `ENV=prod` explicitly, precisely because ENV can't protect them on its own |
 | **reads prod with `ENV=prod`** | `g-stackdown-audit` |
-| **can never reach prod** | `all-tries`, `g-boggle-trie`, `g-scrabble-trie`, `g-stackdown-genpuzzles` (pinned local — they build local files from the local dictionary), `db-seed` (pinned), `db-reset` (refuses), `dev*`, `test*`, `help`, `_stamps-clean` |
+| **can never reach prod** | `all-tries`, `g-boggle-trie`, `g-scrabble-trie`, `g-stackdown-genpuzzles` (pinned local — they build local files from the local dictionary), `g-strands-fetch` (no `ENV` at all — it writes only the local archive file, from the NYT endpoint), `db-seed` (pinned), `db-reset` (refuses), `dev*`, `test*`, `help`, `_stamps-clean` |
 | **reads OR writes, you choose** | `db-psql` — a prompt on whichever database `ENV` names; it announces the target before connecting |
 
 Two that destroy rather than write: **`project-db-destroy`** and
@@ -99,6 +99,9 @@ gmake g-stackdown-audit ENV=local            # boards holding words we'd no long
 gmake g-connections-puzzles ENV=local        # the NYT Connections archive (idempotent)
 gmake g-crosswords-puzzles ENV=local         # supabase/data/crosswords/*.puz|.ipuz (idempotent
                                              #   via content_hash; NYT-by-date games skip this)
+gmake g-strands-fetch                        # fetch NEW NYT Strands puzzles into the local
+                                             #   archive (network; incremental; no ENV)
+gmake g-strands-puzzles ENV=local            # load strands.puzzles from the archive (NO network)
 
 # the database — `gmake db-<TAB>`
 gmake db-psql ENV=local                      # a psql prompt on that database

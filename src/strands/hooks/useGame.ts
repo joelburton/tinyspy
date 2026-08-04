@@ -69,8 +69,9 @@ export type StrandsPlayer = {
  * There is **no Broadcast channel**, deliberately. A peer sees your word when
  * you SUBMIT it; nobody watches anyone else's tiles light up mid-trace. That is
  * the opposite of connections (which shares partial selection so coop players
- * build a guess together), and it means postgres_changes on these two tables
- * carries everything. Recorded here so the absence doesn't read as an oversight.
+ * build a guess together), and it means postgres_changes on the three strands
+ * tables (plus common.games) carries everything. Recorded here so the absence
+ * doesn't read as an oversight.
  */
 export function useGame(gameId: string, selfId: string): {
   game: StrandsGame | null

@@ -22,7 +22,7 @@ import { useStandardGameActions } from '../../common/hooks/game/useStandardGameA
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import type { ConnectionsSetup } from '../lib/setup'
-import { nextUnplayedPuzzle } from '../lib/nextPuzzle'
+import { nextUnplayedPuzzle } from '../../common/lib/game/nextPuzzle'
 import { turnSnapshot } from '../lib/history'
 import { stickyPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'

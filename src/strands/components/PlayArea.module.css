@@ -84,10 +84,6 @@
   color: var(--color-text);
 }
 
-.outcome {
-  font-weight: 700;
-}
-
 /* Hints-used, appended to the progress line. Muted because it's a footnote on
  * the count, not a second stat competing with it. */
 .hintsUsed {

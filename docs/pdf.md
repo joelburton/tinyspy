@@ -8,7 +8,7 @@ like it belongs to the same system (the on-screen consistency goal — see
 
 ## Which games print
 
-**All thirteen games print.** (waffle and wordle were a documented permanent
+**All fourteen games print.** (waffle and wordle were a documented permanent
 exclusion until 2026-08-02 — see the note under the table for what changed.)
 
 | game | prints? | notes |
@@ -22,6 +22,7 @@ exclusion until 2026-08-02 — see the note under the table for what changed.)
 | scrabble | ✅ | turn-log family |
 | spellingbee | ✅ | word-list family |
 | stackdown | ✅ | turn-log family — the stack drawn in layer order; white fill IS the occlusion |
+| strands | ✅ | **track family** — one track per board; colour encoded as shape |
 | waffle | ✅ | **track family** — one column per board; the 4-state tile encoding |
 | wordiply | ✅ | turn-log family — the only printer with **no board**: its page *is* the log |
 | wordle | ✅ | **track family** — board + QWERTY keyboard + guesses, per player |
@@ -49,7 +50,7 @@ atoms and each game composes them with its OWN board renderer + a plain-data mod
 | module | used by | what it does |
 |---|---|---|
 | `common/pdf/tiles.ts` | wordle, waffle | `drawTile` / `drawTileLegend` — the four Wordle-style letter states as **border + fill weight** rather than colour (see the exception note below) |
-| `common/pdf/columns.ts` | wordle, waffle | `drawInTracks` — lays a page out as N side-by-side player tracks, capped at 3 per page, spilling onto further pages |
+| `common/pdf/columns.ts` | wordle, waffle, strands | `drawInTracks` — lays a page out as N side-by-side player tracks, capped at 3 per page, spilling onto further pages |
 | `common/pdf/marks.ts` | psychicnum, codenamesduet | `drawCheck` / `drawCross` / `drawDash` — the ✓ / ✗ / – outcome marks, DRAWN from line segments because jsPDF's core fonts are WinAnsi and have no such glyphs. Each takes a centre + size, so the caller owns placement (a cell corner, a keycard inset) |
 | `common/pdf/frame.ts` | **all** | the shade constants, `PrintHeader` base model, `newPrintDoc`, `drawHeader`, `drawSetup`, `fit`, `savePrint` |
 | `common/pdf/turnLog.ts` | scrabble, psychicnum, wordiply, connections, stackdown, codenamesduet | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
@@ -154,7 +155,7 @@ above) — a game picks one.
 - **Margins** are tight-ish (~28pt) so content uses more of the paper, while staying
   inside a printer-safe edge.
 
-**Body family 3 — track games (`columns.ts`; wordle, waffle).** One column per
+**Body family 3 — track games (`columns.ts`; wordle, waffle, strands).** One column per
 BOARD: its grid, then whatever belongs to that grid (wordle adds its QWERTY
 keyboard), then that board's own log. The newspaper flow is wrong here — it's one
 stream wrapping between columns, which in compete would file one player's guesses

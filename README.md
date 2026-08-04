@@ -2,7 +2,7 @@
 
 A monorepo for online collaborative games among groups of friends. The shell, auth, clubs, and chat are common; each game lives in its own folder + Postgres schema + lazy chunk. Adding or removing a game is a folder-and-one-line operation; the architecture's removability is the structural integrity check (enforced by ESLint).
 
-Thirteen games are live today (the parenthetical is each game's in-app brand):
+Fourteen games are live today (the parenthetical is each game's in-app brand):
 
 - **bananagrams** (MonkeyGrams) — Bananagrams-style: build your own crossword from a shared tile bank.
 - **boggle** (MothCubes) — Boggle-style: find words in a grid of lettered dice.
@@ -13,6 +13,7 @@ Thirteen games are live today (the parenthetical is each game's in-app brand):
 - **scrabble** (RackAttack) — Scrabble-style on the standard 15×15 premium board, with an AI opponent.
 - **spellingbee** (FreeBee) — Spelling-Bee-style: make words from seven letters around a required centre.
 - **stackdown** (StackDown) — a mahjong-style word game: clear a stack of lettered tiles by spelling words off the exposed ones.
+- **strands** (PaulPath) — Strands-style word search: trace hidden theme words that tile the whole board.
 - **waffle** (SyrupSwap) — Waffle-style swap-to-solve grid puzzle.
 - **wordiply** (WordWire) — Wordiply-style: make the longest words that contain a short base.
 - **wordle** (WordNerd) — Wordle-style guess-the-word.
@@ -162,6 +163,6 @@ The detail behind everything above lives in `docs/`. **[CLAUDE.md](CLAUDE.md) ca
 
 ## Status
 
-Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). Thirteen games are live — bananagrams, boggle, codenamesduet, connections, crosswords, psychicnum, scrabble, spellingbee, stackdown, waffle, wordiply, wordle, wordwheel — most multiplayer ones a coop + compete sibling pair (codenamesduet is coop-only, bananagrams a single competitive race); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest. Further games slot into the same shape — one new folder under `src/`, one new line in `src/games.ts`, one new Postgres schema.
+Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). Fourteen games are live — bananagrams, boggle, codenamesduet, connections, crosswords, psychicnum, scrabble, spellingbee, stackdown, strands, waffle, wordiply, wordle, wordwheel — most multiplayer ones a coop + compete sibling pair (codenamesduet is coop-only, bananagrams a single competitive race); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest. Further games slot into the same shape — one new folder under `src/`, one new line in `src/games.ts`, one new Postgres schema.
 
 Known cosmetic gaps and deferred work are in [`docs/deferred.md`](docs/deferred.md).

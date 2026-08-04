@@ -17,6 +17,10 @@ type Props = {
   hintCoords: Coord[] | null
   onTileClick: (at: Coord) => void
   disabled: boolean
+  /** The hint bar's own gate — NOT `disabled`: spending isn't turn-gated (a
+   *  team decision, not a move), but it IS blocked while replaying history,
+   *  where a click means "exit the viewer", never "spend a hint". */
+  hintDisabled: boolean
   /** Replaying a past turn. */
   viewing: boolean
   /** The viewed turn's traced cells, ringed. */
@@ -57,6 +61,7 @@ export function BoardCol({
   hintCoords,
   onTileClick,
   disabled,
+  hintDisabled,
   viewing,
   highlight,
   viewingDescription,
@@ -121,7 +126,7 @@ export function BoardCol({
         points={hintPoints}
         cost={hintCost}
         showing={hintShowing}
-        disabled={disabled}
+        disabled={hintDisabled}
         onSpend={onSpendHint}
       />
     </div>

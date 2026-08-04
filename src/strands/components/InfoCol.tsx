@@ -58,8 +58,9 @@ type Props = {
 
 /**
  * strands' info column, in the canonical order (docs/playarea.md → Info-column
- * readouts): **state → action row → help → setup disclosure → turn log**. No
- * OpponentStrip — coop has no opponents, and the compete sibling isn't built.
+ * readouts): **state → opponents (compete) → action row → help → setup
+ * disclosure → turn log**. The OpponentStrip is compete-only — coop has no
+ * opponents — and shows a rival exactly one number mid-race: hints spent.
  *
  * The **clue** leads the state region. It is the theme PROMPT, not the answer,
  * so it belongs on screen from the first second; putting it anywhere else would

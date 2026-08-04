@@ -68,7 +68,7 @@ tracing is deliberate and infrequent.
 `solution`, plus a `SECURITY DEFINER` `_solution_for` surfaced through the
 `security_invoker` `games_state` view, gated on `common.games.solution_revealed`.
 Reading that shared flag (rather than re-deriving "is it over?") is what keeps
-strands consistent with the other twelve games; `gametypes.hides_solution = true`
+strands consistent with the other thirteen games; `gametypes.hides_solution = true`
 earns the shared `RevealButton` + `reveal_solution` for free.
 
 > **Recorded as provisional.** If the verdict ever feels laggy, the fallback is
@@ -114,8 +114,9 @@ is still worth hinting at.
 **No Realtime Broadcast channel.** A peer sees your word when you **submit** it;
 nobody watches anyone else's tiles light up mid-trace. That is the opposite of
 connections, which shares partial selection so coop players build a guess
-together — and it means `postgres_changes` on the two tables carries everything.
-Recorded so the absence doesn't read later as an oversight.
+together — and it means `postgres_changes` on the three strands tables (plus
+`common.games`) carries everything. Recorded so the absence doesn't read later
+as an oversight.
 
 ---
 
@@ -129,8 +130,9 @@ deploy).
 | table | purpose |
 |---|---|
 | `puzzles` | The imported NYT archive. `source_id` (puzzle number), `puzzle_date` (unique), `board` (8 rows of 6), `clue`, and the shielded `solution`. Only `(id, source_id, puzzle_date)` are granted to `authenticated` — enough for the date picker, not enough to study tomorrow's board. |
-| `games` | One playthrough. Follows the [library-puzzle provenance rule](../common.md#library-puzzle-games-provenance-not-dependency): everything needed to play *and* identify the game is copied on, and `puzzle_id` is a soft FK (`on delete set null`), so the archive can be re-imported freely. Carries the shared coop hint state (`hint_points`, `hints_spent`, `active_hint_coords`) and the three setup knobs, denormalized because they're immutable and read on every move. |
-| `guesses` | The append-only log — **one table, not two**. Found theme words are the projection `result in ('theme','spangram')`; credited hint words are the distinct `hint_word` set. Only state that can't be derived lives as columns. |
+| `games` | One playthrough. Follows the [library-puzzle provenance rule](../common.md#library-puzzle-games-provenance-not-dependency): everything needed to play *and* identify the game is copied on, and `puzzle_id` is a soft FK (`on delete set null`), so the archive can be re-imported freely. Carries the three setup knobs, denormalized because they're immutable and read on every move. |
+| `players` | One row per player: the hint economy (`hint_points`, `hints_spent`, `active_hint_coords`) plus `solved` / `solved_at`. The **same shape in both modes** — coop moves every row in lock-step (the pool is shared), compete moves only the actor's (see [Compete](#8-compete)). Mid-race a rival's private fields are nulled by `players_state`. |
+| `guesses` | The append-only log — **one table, not two**. Found theme words are the projection `result in ('theme','spangram')`; credited hint words are the distinct `hint_word` set. Only state that can't be derived lives as columns — on `players`, above. |
 
 `solution` shape:
 
@@ -149,9 +151,10 @@ counting down, and `submit_path` doesn't return the total either. The server
 still computes it for the terminal check; the client learns the game is over
 from `terminal` / `common.games`, not by reaching a number it was told.
 
-**Realtime publishes both `games` and `guesses`**, and both are required: an
-unpublished table in a `postgres_changes` subscription silently kills the *whole*
-subscription.
+**Realtime publishes all three tables** — `games`, `players`, `guesses` — and
+all three are required: an unpublished table in a `postgres_changes`
+subscription silently kills the *whole* subscription. The registry test
+(`supabase/tests/common/realtime_publication_test.sql`) guards the set.
 
 ### Play states
 
@@ -189,10 +192,14 @@ would have real answers rejected under a length-first check. The collision is
 with our own knob.
 
 **Hard vs soft rejects.** A structurally impossible path (off-board,
-non-adjacent, self-crossing, through a spent tile) **raises**: the FE's reducer
-cannot produce one, so it means a broken or hostile client, and logging it would
-pollute a turn log players read. A merely wrong word returns softly and *is*
-logged.
+non-adjacent, self-crossing) **raises**: the FE's reducer cannot produce one, so
+it means a broken or hostile client, and logging it would pollute a turn log
+players read. A path through a **spent tile** also raises, with one honest route
+in: a coop submit in flight while a peer's find lands can cross tiles the sender
+didn't yet see consumed — a realtime-lag-sized window in which the raise's
+message reads fine as the error pill and nothing commits. Every malformed-path
+shape gets a *designed* P0001, never a raw cast error (`validation_test.sql`
+plants each one). A merely wrong word returns softly and *is* logged.
 
 The dictionary filter is the **may-enter tier** ([common.md](../common.md)):
 `difficulty <= band` and nothing else. No slur / crude / slang / dialect filter —
@@ -267,9 +274,13 @@ caps, which is `useWordSubmit`'s `line()` convention. strands can't use that hoo
 *output* instead of inventing a second dialect; `too short` and `not a word` are
 word-for-word boggle's.
 
-**New game advances to the next day's puzzle**, carrying the club's knobs
-forward, and the confirm names the date. Restart is for replaying the same board.
-At the end of the archive it says so as a one-button notice.
+**New game advances to the next UNPLAYED puzzle** in the current mode, carrying
+the club's knobs (and the mode itself) forward, and the confirm names the date.
+The played set comes from the `club_game_status` view + the shared
+`nextUnplayedPuzzle` rule (`common/lib/game/nextPuzzle`), exactly connections'
+shape — a "New game" that re-dealt a date the club has seen isn't new. Restart
+is for replaying the same board. At the end of the archive it says so as a
+one-button notice.
 
 ### Print to PDF
 
@@ -328,12 +339,18 @@ board's turn 3, so the handle degrades to a plain number.
 
 ### The data hook
 
-`useGame` subscribes to `strands.guesses`, `strands.games` **and
-`common.games`**. That last one is unusual for a per-game hook and is the shield's
-fault: `games_state.solution` is gated on `common.games.solution_revealed`, and
-both writers of that flag touch only that row — so without it the flag flips, the
-shell re-renders, and the hook keeps serving the stale `solution: null` it fetched
-before the reveal. (Found by clicking Reveal and watching nothing happen.)
+`useGame` subscribes to `strands.guesses`, `strands.players`, `strands.games`
+**and `common.games`**. That last one is unusual for a per-game hook and is the
+shield's fault: `games_state.solution` is gated on
+`common.games.solution_revealed`, and both writers of that flag touch only that
+row — so without it the flag flips, the shell re-renders, and the hook keeps
+serving the stale `solution: null` it fetched before the reveal. (Found by
+clicking Reveal and watching nothing happen.)
+
+Reads go through the two `security_invoker` views: `games_state` (the solution
+gate) and `players_state`, which is the mid-race privacy mechanism — it nulls a
+rival's `hint_points` and `active_hint_coords` until you may see them (own row,
+or terminal). The RLS *policy* says who sees a row; the view says which fields.
 
 ---
 
@@ -352,7 +369,7 @@ The feed (`nytimes.com/svc/strands/v2/<date>.json`) is **public** — no cookie 
 unlike the NYT crossword path. It starts 2024-03-04.
 
 **The import guard** ([`lib/strandsPuzzle.ts`](../../supabase/scripts/lib/strandsPuzzle.ts))
-checks four things per puzzle, and runs on both sides — at fetch so bad data never
+checks five things per puzzle, and runs on both sides — at fetch so bad data never
 reaches the file, at import so a hand-edited file fails loudly:
 
 1. the board is 8 rows of 6;
@@ -360,7 +377,12 @@ reaches the file, at import so a hand-edited file fails loudly:
 3. every path actually **spells** its word on that board — the check that catches
    a feed change flipping coordinates to `[col,row]`, which no shape check would
    notice;
-4. the words **tile** the board exactly.
+4. the spangram **spans** two opposite edges (all ~900 archived puzzles do);
+5. the words **tile** the board exactly.
+
+The importer **updates on conflict** (`source_id`), so a re-fetch carrying a
+corrected puzzle refreshes its row in place — games in flight are untouched
+either way, since every game plays from its own frozen copy.
 
 NYT's `solutions` list (its own valid non-theme words) is deliberately **not**
 imported: our hint words come from `common.words` at the chosen band, and that
@@ -433,6 +455,19 @@ SOLVED and the rest walked away must end with that solver winning. So strands
 takes the documented split: `common._set_conceded` for the guarded flag flip,
 then its own `_maybe_finish_compete`.
 
+**A conceder is out, in both directions.** `submit_path` and `spend_hint`
+refuse a conceded caller (`'you have conceded'` — the connections guard: the FE
+freezes the board, but a submit in flight or a stale second tab must not let a
+drop-out complete the win condition), and the finisher's ranking excludes
+conceded players even where a solved row exists — solve-then-concede is
+nonsensical but reachable by RPC, and it forfeits (`conceded_test.sql`).
+
+`concede` also takes the `strands.games` row lock **before** the flag flip,
+deliberately: `submit_path` and `end_game` serialize on that row, and without it
+a last solve racing a last concede could each snapshot the other as "still
+racing" and leave the game stuck in `playing` with nobody left to end it. Lock
+order is `strands.games` → `common.games` on every path, so no deadlock.
+
 The manual **End** stays neutral in both modes. A race called off early didn't
 finish, and handing the trophy to whoever was ahead would reward stopping at the
 right moment.
@@ -447,10 +482,32 @@ string to decide how an all-conceded table ends.
 The club label publishes **nothing** mid-race — `status` is club-readable — and
 at terminal names the MARGIN (`Won · 0 hints`) rather than the finish order.
 
-## 9. Deferred
+## 9. Tests
 
-Catch-up work — each is a thing the other games already have, so none is new
-invention:
+**pgTAP** (`supabase/tests/strands/`, all on the synthetic fixtures in
+`setup.psql` — a rows-are-words board of dictionary-proof nonsense, plus the
+ambiguous-ABBA board that pins the match-by-placement fix):
 
-- **Mobile on-device pass.** The recipe is composed and the shape is friendly (a
-  portrait 6×8, tap input), but it hasn't been checked on real hardware.
+| file | pins |
+|---|---|
+| `gameplay_test.sql` | the classification order, the hint bar's fill/cap/dedup, coop terminal = board consumed |
+| `validation_test.sql` | every malformed-path shape gets its **designed** P0001 (planted one by one — the original guard used `rs @> array[null]`, which can never match, so this file exists to fail on a regression to that); integral floats normalize instead |
+| `hint_test.sql` | spend semantics: random pick persisted, coords only, one at a time, cleared by placement |
+| `turn_order_test.sql` | the opt-in turns coop: pointer seating, `'not your turn'`, advance on accepted moves only |
+| `compete_test.sql` | the race: per-player boards, the privacy line, fewest-hints ranking, concede-with-a-solver |
+| `conceded_test.sql` | a conceder gets no more moves and can't win (the forfeit ruling, incl. solve-then-concede); all-conceded → `'conceded'`; the mid-race `active_hint_coords` shield |
+| `timeout_test.sql` | the clock in both modes: coop `lost`/`'timeout'`, compete crowns a solver or ends `lost_compete`/`'timeout'`; the terminal RLS flip on `guesses` |
+| `terminal_test.sql` | terminal states + the reveal gate |
+| `rls_test.sql` | the solution shield + per-mode row visibility |
+
+The publication registry (`supabase/tests/common/realtime_publication_test.sql`)
+carries the three strands rows.
+
+**FE Vitest** (`src/strands/`): `lib/board.test.ts` + `lib/trace.test.ts` (the
+geometry and the reducer), `lib/board.oracle.test.ts` (the ~2500-word NYT parity
+oracle — see [The oracle](#the-oracle)), `lib/history.test.ts` (the snapshot
+filter), `pdf/model.test.ts` (the print model, incl. the shield). The shared
+`nextUnplayedPuzzle` rule is tested in `common/lib/game/nextPuzzle.test.ts`.
+
+**e2e** (`e2e/`): `strands.e2e.ts` (a coop game played through),
+`strands-mobile.e2e.ts` (the phone layout), `strands-print.e2e.ts` (the PDF).
