@@ -28,6 +28,7 @@
     "_stackdown:gen": "npx tsx supabase/scripts/generate-stackdown-boards.ts",
     "_stackdown:import": "npx tsx supabase/scripts/import-stackdown-boards.ts",
     "_crosswords:import": "npx tsx supabase/scripts/import-crosswords-puzzles.ts",
+    "_strands:fetch": "npx tsx supabase/scripts/fetch-strands-puzzles.ts",
     "_strands:import": "npx tsx supabase/scripts/import-strands-puzzles.ts",
     "crosswords:puz-to-ipuz": "npx tsx supabase/scripts/crosswords/puz-to-ipuz.ts",
     "crosswords:set-note": "node supabase/scripts/crosswords/set-puz-note.mjs",

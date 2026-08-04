@@ -115,6 +115,7 @@ WORDS_TSV ?= $(HOME)/src/gamelist/output/words.tsv
 WORDS_SRC := $(wildcard $(WORDS_TSV))
 
 STACKDOWN_JSONL := supabase/data/stackdown-boards.jsonl
+STRANDS_JSONL   := supabase/data/strands-puzzles.jsonl
 BOGGLE_TRIE     := supabase/functions/boggle-build-board/wordlist.ts
 SCRABBLE_TRIE   := supabase/functions/scrabble-suggest-move/wordlist.ts
 
@@ -280,8 +281,27 @@ g-crosswords-puzzles: ## import supabase/data/crosswords/*.puz|.ipuz
 	echo "── crosswords.puzzles → $(ENV)"
 	npm run _crosswords:import
 
+# strands is the one library sourced from a THIRD-PARTY endpoint we don't own,
+# so fetching is split from importing. `gmake db` is routine and frequent, and
+# folding the fetch into it fired ~900 requests at nytimes.com every reset —
+# rude, and a good way to get blocked. So the archive lives on disk, imports
+# read it, and the network step is explicit, incremental and rare. Same shape as
+# stackdown's generate-then-import split; no ENV / PRELUDE, because fetching
+# touches no database.
+.PHONY: g-strands-fetch
+g-strands-fetch: ## fetch NEW NYT Strands puzzles into the local archive (network; incremental)
+	@echo "── NYT Strands → $(STRANDS_JSONL)"
+	npm run _strands:fetch
+
+# Fetch only when the archive is genuinely absent (a fresh clone). No
+# prerequisites, so make never re-fetches on a whim — the same
+# build-it-iff-missing shape as $(STACKDOWN_JSONL).
+$(STRANDS_JSONL):
+	@echo "── $(STRANDS_JSONL) is missing (fresh clone?) — fetching the archive"
+	$(MAKE) g-strands-fetch
+
 .PHONY: g-strands-puzzles
-g-strands-puzzles: ## import the NYT Strands archive (public feed, incremental)
+g-strands-puzzles: $(STRANDS_JSONL) ## load strands.puzzles from the local archive (NO network)
 	@$(PRELUDE)
 	echo "── strands.puzzles → $(ENV)"
 	npm run _strands:import
