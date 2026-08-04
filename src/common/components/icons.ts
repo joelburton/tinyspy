@@ -98,4 +98,20 @@ export {
   // connections' mistakes; reusable for any limited-attempts counter.
   SquareX as IconStrikeUsed,
   SquareDashed as IconStrikeOpen,
+  // ── Word-outcome marks: a turn-log row's verdict, as a GLYPH ──────────────
+  // First used by strands' turn log, and deliberately named for the OUTCOME
+  // rather than for that game ("the best find" / "a find" / "accepted" /
+  // "rejected"), so any word game's log can reuse the same four.
+  //
+  // They exist because colour alone can't carry this everywhere it needs to go:
+  // the log is printed to PDF in three shades of grey (docs/pdf.md), where a
+  // purple word and a gold word are the same ink. A glyph survives that, and it
+  // gives the row a fixed left column so the words still line up.
+  //
+  // The ladder is deliberate — trophy > star > check — so the three ACCEPTED
+  // marks read as ranked at a glance rather than merely different.
+  Trophy as IconBestFind, // the spangram: the one word that names the theme
+  Star as IconThemeFind, // an ordinary theme word
+  Check as IconWordOk, // a valid word that isn't part of the puzzle
+  X as IconWordNo, // rejected — too short, unknown, or already counted
 } from 'lucide-react'

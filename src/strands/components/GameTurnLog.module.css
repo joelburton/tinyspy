@@ -1,6 +1,23 @@
 /* strands' turn-log row bits. The panel, the outcome bar and the column classes
  * are the shared TurnLog's; only the word itself is game-specific. */
 
+/* The verdict glyph's slot. A FIXED width (not just a margin) is the whole
+ * point: a trophy, a star, a check and an X have different natural widths, and
+ * without a fixed box the words after them would step in and out by a pixel or
+ * two down the log. Inline-flex so the glyph centres in its box and sits on the
+ * word's optical centre line. */
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  flex: 0 0 1.15rem;
+  vertical-align: -0.15em;
+  /* Inherits the row's colour by default; the outcome classes below tint it
+   * along with the word, so the glyph and the word always agree. */
+  color: var(--color-muted);
+}
+
 .word {
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -17,6 +34,15 @@
 }
 
 .spangram {
+  color: var(--strands-spangram-text);
+}
+
+/* The glyph tints with its word, so the two never disagree about a row. */
+.markTheme {
+  color: var(--strands-theme-text);
+}
+
+.markSpangram {
   color: var(--strands-spangram-text);
 }
 

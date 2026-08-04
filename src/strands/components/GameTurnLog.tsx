@@ -4,6 +4,12 @@ import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
 import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import { memberById } from '../../common/lib/game/peers'
+import {
+  IconBestFind,
+  IconThemeFind,
+  IconWordNo,
+  IconWordOk,
+} from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import type { Member } from '../../common/lib/games'
 import turnLog from '../../common/components/game/lists/TurnLog.module.css'
@@ -37,6 +43,27 @@ const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
   duplicate: 'bad',
   too_short: 'bad',
   invalid: 'bad',
+}
+
+/**
+ * The verdict as a GLYPH, before the word.
+ *
+ * Two jobs. It makes a row scannable — an eye running down the log sorts finds
+ * from misses without reading a word — and it is the NON-COLOUR encoding of the
+ * same fact, which the PDF printer will need: docs/pdf.md prints in three
+ * shades of grey, where purple and gold are the same ink.
+ *
+ * Ranked on purpose (trophy > star > check), so the accepted marks read as a
+ * ladder rather than three unrelated symbols. All three rejects share the X:
+ * the glyph says "this missed" and the label beside it says which miss.
+ */
+const MARK: Record<GuessRow['result'], typeof IconWordOk> = {
+  spangram: IconBestFind,
+  theme: IconThemeFind,
+  hint_word: IconWordOk,
+  duplicate: IconWordNo,
+  too_short: IconWordNo,
+  invalid: IconWordNo,
 }
 
 /**
@@ -108,6 +135,21 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
             <TurnLogBar outcome={OUTCOME[g.result]} />
             <td className={turnLog.meta}>#{i + 1}</td>
             <td className={turnLog.main}>
+              {/* Fixed-width slot, so every word starts at the same x no
+                  matter which glyph precedes it. */}
+              <span
+                className={cls(
+                  styles.mark,
+                  g.result === 'spangram' && styles.markSpangram,
+                  g.result === 'theme' && styles.markTheme,
+                )}
+                aria-hidden
+              >
+                {(() => {
+                  const Mark = MARK[g.result]
+                  return <Mark size={14} />
+                })()}
+              </span>
               <span
                 className={cls(
                   styles.word,

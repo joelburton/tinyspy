@@ -220,6 +220,16 @@ radius is a fraction of a cell — no pixel maths, no resize observer. Discs are
 drawn in the same SVG as the lines, which is what guarantees a line passes *under*
 its discs at any size.
 
+**Every log row leads with a verdict GLYPH** — trophy (spangram), star (theme
+word), check (valid word), X (rejected) — from the shared icon registry, named
+for the outcome rather than for this game so another word game's log can reuse
+them. Two jobs: an eye running down the log sorts finds from misses without
+reading a word, and it is the NON-COLOUR encoding of the same fact, which the
+PDF printer will need — [pdf.md](../pdf.md) prints in three shades of grey,
+where purple and gold are the same ink. The glyph sits in a FIXED-width slot, so
+words start at the same x whichever mark precedes them, and it tints with its
+word so the two can never disagree about a row.
+
 **Colours**, and each says one thing: purple = a found theme word, gold = the
 spangram, light purple = the live trace, grey = a word nobody found (drawn at the
 reveal). Green belongs to the hint bar and the `valid word` pill. The turn log
