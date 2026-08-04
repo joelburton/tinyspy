@@ -24,8 +24,7 @@ import { scrabbleCoopGame, scrabbleCompeteGame } from './scrabble/manifest'
 import { boggleCoopGame, boggleCompeteGame } from './boggle/manifest'
 import { crosswordsCoopGame, crosswordsCompeteGame } from './crosswords/manifest'
 import { wordiplyCoopGame, wordiplyCompeteGame } from './wordiply/manifest'
-// Coop-first: the compete sibling is not built, so it is not registered.
-import { strandsCoopGame } from './strands/manifest'
+import { strandsCoopGame, strandsCompeteGame } from './strands/manifest'
 
 /**
  * The single source of truth for which games this monorepo includes.
@@ -86,4 +85,5 @@ export const games: GameManifest[] = [
   wordiplyCoopGame,
   wordiplyCompeteGame,
   strandsCoopGame,
+  strandsCompeteGame,
 ]

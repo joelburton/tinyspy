@@ -20,7 +20,7 @@ export type StrandsSolution = {
   themeWords: Array<{ word: string; coords: Coord[] }>
 }
 
-/** Projected from `strands.games_state`. */
+/** Projected from `strands.games_state` — the puzzle, immutable during play. */
 export type StrandsGame = {
   id: string
   club_handle: string
@@ -30,16 +30,30 @@ export type StrandsGame = {
   board: string[]
   /** The theme prompt — shown from the first second; not a spoiler. */
   clue: string
-  /** The shared coop hint bar, and what it costs to cash. */
-  hint_points: number
-  hints_spent: number
+  /** What a hint costs, in valid non-theme words. */
   hint_cost: number
-  /** The cells of a spent hint's word, or null. COORDS ONLY — never the word. */
-  active_hint_coords: Coord[] | null
   min_word_length: number
   band: number
   /** NULL until `common.games.solution_revealed`. */
   solution: StrandsSolution | null
+}
+
+/**
+ * One row of `strands.players_state` — a player's working state.
+ *
+ * `hint_points` and `active_hint_coords` are **null for a rival mid-game**: the
+ * bar's fill proxies how many valid words they've found, and their revealed
+ * word is part of the answer. `hints_spent` is never null — it's compete's
+ * ranking metric, and the one number the OpponentStrip shows.
+ */
+export type StrandsPlayer = {
+  game_id: string
+  user_id: string
+  hints_spent: number
+  solved: boolean
+  solved_at: string | null
+  hint_points: number | null
+  active_hint_coords: Coord[] | null
 }
 
 /**
@@ -58,8 +72,12 @@ export type StrandsGame = {
  * build a guess together), and it means postgres_changes on these two tables
  * carries everything. Recorded here so the absence doesn't read as an oversight.
  */
-export function useGame(gameId: string): {
+export function useGame(gameId: string, selfId: string): {
   game: StrandsGame | null
+  /** Every player's row (rivals' private fields arrive null mid-game). */
+  players: StrandsPlayer[]
+  /** The caller's own row — the hint bar and solved flag the UI acts on. */
+  me: StrandsPlayer | null
   /** EVERY row — the turn log wants the rejects too. */
   guesses: GuessRow[]
   /** Just the found theme words + spangram: the board's persistent paths. */
@@ -70,6 +88,7 @@ export function useGame(gameId: string): {
   rowsLoaded: boolean
 } {
   const [game, setGame] = useState<StrandsGame | null>(null)
+  const [players, setPlayers] = useState<StrandsPlayer[]>([])
   const [guesses, setGuesses] = useState<GuessRow[]>([])
   const [loading, setLoading] = useState(true)
   const [rowsLoaded, setRowsLoaded] = useState(false)
@@ -77,8 +96,11 @@ export function useGame(gameId: string): {
   useRealtimeRefetch({
     tables: [
       { schema: 'strands', table: 'guesses', filter: `game_id=eq.${gameId}` },
-      // Not just a replay touch (as in wordiply): the hint bar and the active
-      // hint live on this row and change during play.
+      // Per-player state: the hint bar, a spent hint, and a rival's
+      // hints-used ticking up mid-race.
+      { schema: 'strands', table: 'players', filter: `game_id=eq.${gameId}` },
+      // The replay touch (replay_board DELETEs guesses, which realtime filters
+      // don't reliably match).
       { schema: 'strands', table: 'games', filter: `id=eq.${gameId}` },
       // COMMON's row too, which is unusual for a per-game hook. It's needed
       // because the shield's gate lives there: `games_state.solution` is
@@ -94,12 +116,12 @@ export function useGame(gameId: string): {
     channelPrefix: 'strands',
     id: gameId,
     load: async ({ mounted }) => {
-      const [{ data: g }, { data: rows }] = await Promise.all([
+      const [{ data: g }, { data: rows }, { data: ps }] = await Promise.all([
         db
           .from('games_state')
           .select(
-            'id, club_handle, mode, puzzle_date, board, clue, hint_points, hints_spent,'
-            + ' hint_cost, active_hint_coords, min_word_length, band, solution',
+            'id, club_handle, mode, puzzle_date, board, clue,'
+            + ' hint_cost, min_word_length, band, solution',
           )
           .eq('id', gameId)
           .maybeSingle(),
@@ -108,10 +130,15 @@ export function useGame(gameId: string): {
           .select('id, game_id, user_id, word, path, result, guessed_at')
           .eq('game_id', gameId)
           .order('guessed_at', { ascending: true }),
+        db
+          .from('players_state')
+          .select('game_id, user_id, hints_spent, solved, solved_at, hint_points, active_hint_coords')
+          .eq('game_id', gameId),
       ])
       if (!mounted()) return
       if (g) setGame(g as unknown as StrandsGame)
       setGuesses((rows ?? []) as GuessRow[])
+      setPlayers((ps ?? []) as unknown as StrandsPlayer[])
       setLoading(false)
       setRowsLoaded(true)
     },
@@ -119,10 +146,26 @@ export function useGame(gameId: string): {
 
   // Split once, here, so no consumer has to remember which results are the ones
   // that persist on the board.
+  //
+  // In COMPETE the rows are already scoped to the caller by RLS mid-game, and
+  // open up at terminal — at which point `found` would suddenly include rivals'
+  // finds and paint their words on your board. So the filter is explicit rather
+  // than leaning on the policy, and stays correct across the transition. (The
+  // same reasoning spellingbee records for its compete score.)
   const found = useMemo(
-    () => guesses.filter((g) => g.result === 'theme' || g.result === 'spangram'),
-    [guesses],
+    () =>
+      guesses.filter(
+        (g) =>
+          (g.result === 'theme' || g.result === 'spangram')
+          && (game?.mode === 'coop' || g.user_id === selfId),
+      ),
+    [guesses, game?.mode, selfId],
   )
 
-  return { game, guesses, found, loading, rowsLoaded }
+  const me = useMemo(
+    () => players.find((p) => p.user_id === selfId) ?? null,
+    [players, selfId],
+  )
+
+  return { game, players, me, guesses, found, loading, rowsLoaded }
 }

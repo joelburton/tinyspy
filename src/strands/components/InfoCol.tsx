@@ -1,4 +1,7 @@
-import type { Member } from '../../common/lib/games'
+import { outcomeVerb, type GamePlayer } from '../../common/lib/games'
+import { OpponentStrip } from '../../common/components/game/OpponentStrip'
+import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
+import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
@@ -18,6 +21,11 @@ import styles from './PlayArea.module.css'
 
 type Props = {
   // ── Mode + phase ──
+  isCompete: boolean
+  /** Compete: my race is over (solved, or conceded) while others play on. */
+  isLocallyDone: boolean
+  /** Solved, as opposed to conceded — they read very differently. */
+  iSolved: boolean
   isTerminal: boolean
   over: TerminalCopy | null
   solutionRevealed: boolean
@@ -28,12 +36,16 @@ type Props = {
   hintsSpent: number
   // ── Log ──
   guesses: GuessRow[]
-  players: Member[]
+  players: GamePlayer[]
+  /** Per-player hints used, for the opponent strip. */
+  hintsByUser: Map<string, number>
+  solvedIds: Set<string>
   selfId: string
   // ── Setup echo ──
   setup: StrandsSetup
   // ── Actions ──
   onEndGame: () => void
+  onConcede: () => void
   onRestart: () => void
   onNewGame: () => void
   startingNewGame: boolean
@@ -53,6 +65,9 @@ type Props = {
  * Every mutation is a named callback up; PlayArea owns the RPCs.
  */
 export function InfoCol({
+  isCompete,
+  isLocallyDone,
+  iSolved,
   isTerminal,
   over,
   solutionRevealed,
@@ -62,9 +77,12 @@ export function InfoCol({
   hintsSpent,
   guesses,
   players,
+  hintsByUser,
+  solvedIds,
   selfId,
   setup,
   onEndGame,
+  onConcede,
   onRestart,
   onNewGame,
   startingNewGame,
@@ -84,6 +102,32 @@ export function InfoCol({
           {wordsFound} {wordsFound === 1 ? 'word' : 'words'}
           {hintsSpent > 0 && <span className={styles.hintsUsed}> · {hintsSpent} hint{hintsSpent === 1 ? '' : 's'} used</span>}
         </p>
+
+        {/* Opponent strip (compete). The metric is HINTS USED and nothing else:
+            it is the ranking, so it makes the race legible, and it says nothing
+            about the puzzle. Word counts stay private until terminal — a
+            deliberate divergence from the other compete games, which do show
+            peer progress "so the race has tension". Here the hint count IS the
+            tension. */}
+        {isCompete && (
+          <OpponentStrip
+            players={players}
+            selfId={selfId}
+            metricLabel="Hints"
+            metricFor={(p, isSelf) => {
+              const hints = hintsByUser.get(p.user_id) ?? 0
+              if (isTerminal) {
+                const member = players.find((m) => m.user_id === p.user_id)
+                return `${outcomeVerb(member)} on ${hints}`
+              }
+              // Mid-race: a rival who is done is worth showing as done — that's
+              // race status, not puzzle content, and it tells you the bar you
+              // have to clear.
+              if (!isSelf && solvedIds.has(p.user_id)) return `done on ${hints}`
+              return hints
+            }}
+          />
+        )}
 
         {/* Whose-turn line — ONLY for a turn-order game (pointer non-null). The
             component itself doesn't guard: its contract is that the caller
@@ -108,15 +152,26 @@ export function InfoCol({
             <RestartButton iconOnly onClick={onRestart} />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
+        ) : isLocallyDone ? (
+          /* Compete, my race over while the others play on: the terminal LOOK
+             (a status line + a disabled action), so the frozen board has an
+             explanation beside it. */
+          <LocalTerminalRow label={iSolved ? 'You solved it — waiting' : 'You conceded'}>
+            <ConcedeGameButton iconOnly className={shared.helperButton} disabled />
+          </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
-            <EndGameButton iconOnly className={shared.helperButton} onClick={onEndGame} />
+            {isCompete ? (
+              <ConcedeGameButton iconOnly className={shared.helperButton} onClick={onConcede} />
+            ) : (
+              <EndGameButton iconOnly className={shared.helperButton} onClick={onEndGame} />
+            )}
             <BackToClubButton iconOnly onClick={onBackToClub} />
           </div>
         )}
 
         {/* ── Help ── only while it's actionable; never silently swapped. */}
-        {!over && (
+        {!over && !isLocallyDone && (
           <p className={shared.infoHelp}>
             Click letters in order — they may touch diagonally. Click the last one
             again (or press <kbd>Enter</kbd>) to submit; <kbd>⌫</kbd> undoes one.
@@ -136,7 +191,7 @@ export function InfoCol({
         guesses={guesses}
         players={players}
         selfId={selfId}
-        mode="coop"
+        mode={isCompete ? 'compete' : 'coop'}
         isTerminal={isTerminal}
       />
     </div>

@@ -202,9 +202,15 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | | lost_compete — out of guesses, nobody scored | `Lost (out of guesses) · nobody scored` |
 | | ended — manual end | `Ended · no winner` |
 | **strands_coop** | playing | `Playing · 2 words` |
+| | ended — manual end | `Ended · 2 words` |
 | | won — found them all | `Won · 6 words` |
 | | lost — timeout | `Lost (out of time) · 2 words` |
-| | ended — manual end | `Ended · 2 words` |
+| **strands_compete** | playing | `Playing` |
+| | ended — manual end | `Ended · no winner` |
+| | won_compete — won on 0 hints | `Won · 0 hints` |
+| | lost_compete — timeout | `Lost (out of time)` |
+| | lost_compete — all conceded | `Lost (all conceded)` |
+| | lost_compete — nobody solved it | `Lost (nobody solved it)` |
 
 <!-- END GENERATED status-lines -->
 

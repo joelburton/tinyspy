@@ -1133,6 +1133,7 @@ export async function sendMessage(
 export async function createStrandsGame(
   club: E2EClub,
   puzzleDate = '2025-06-15',
+  mode: 'coop' | 'compete' = 'coop',
 ): Promise<{
   id: string
   gametype: string
@@ -1173,14 +1174,14 @@ export async function createStrandsGame(
         timer: { kind: 'none' },
       },
       player_user_ids: club.members.map((m) => m.userId),
-      mode: 'coop',
+      mode,
     })
   if (res.error) throw new Error(`strands.create_game: ${res.error.message}`)
   const game = Array.isArray(res.data) ? res.data[0] : res.data
 
   return {
     id: (game as { id: string }).id,
-    gametype: 'strands_coop',
+    gametype: `strands_${mode}`,
     clue: row.clue,
     words: [
       ...row.solution.themeWords.map((w) => ({ ...w, isSpangram: false })),

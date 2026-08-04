@@ -3,7 +3,12 @@ import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, outcome, statusLine } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
-import { DEFAULT_STRANDS_SETUP_COOP, strandsSetupError, type StrandsSetup } from './lib/setup'
+import {
+  DEFAULT_STRANDS_SETUP_COMPETE,
+  DEFAULT_STRANDS_SETUP_COOP,
+  strandsSetupError,
+  type StrandsSetup,
+} from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -14,12 +19,15 @@ import logoUrl from './logo.svg?url'
  * names the theme. The user-facing brand is **PaulPath** (the `BRAND` const
  * below); gametype / schema / folder are all `strands`.
  *
- * **Coop-first.** Only `strands_coop` is registered — in `common.gametypes` as
- * well as here — because a Start button for an unbuilt game is worse than a
- * missing one. The compete sibling follows the usual pattern when it lands
- * (`strands_compete`, same schema, same folder, `baseGametype: 'strands'`), and
- * `strands.create_game` already refuses `mode = 'compete'` explicitly rather
- * than half-working.
+ * **Sibling pair**, one schema and one folder. The two share every component;
+ * mode branches at render time on `game.mode` (read from `games_state`).
+ *
+ * The compete rules are worth stating here because they shape the UI: the
+ * winner is whoever SOLVED using the fewest hints, earliest solve breaking a
+ * tie — so the race does NOT end on first solve, a solver goes locally terminal
+ * while the others play on, and the club label can't crown anyone until it's
+ * over. Opponents see one number mid-game (hints used) and nothing about the
+ * puzzle.
  *
  * **No edge function.** Unlike the games that GENERATE a board, strands copies
  * one out of the imported archive, which is a single SQL statement — so
@@ -38,6 +46,24 @@ const setupFormLoader = lazy(() =>
  *  is unrelated and stays lowercase everywhere in code. */
 const BRAND = 'PaulPath'
 
+/** Shared start-game caller; `mode` is the per-manifest constant. No edge
+ *  function — strands copies a puzzle out of the archive, which is one SQL
+ *  statement, so it calls create_game directly the way wordle does. */
+function startGameInClub(mode: 'coop' | 'compete') {
+  return async (clubHandle: string, setup: unknown, playerUserIds: string[]) => {
+    const { data, error } = await db
+      .rpc('create_game', {
+        target_club: clubHandle,
+        setup: setup as StrandsSetup,
+        player_user_ids: playerUserIds,
+        mode,
+      })
+      .single()
+    if (error || !data) return { error: error?.message ?? `failed to start ${BRAND} (${mode})` }
+    return { id: data.id }
+  }
+}
+
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const endGame = makeRpcDispatcher(db, 'end_game')
 
@@ -51,7 +77,7 @@ type StatusBlob = Record<string, unknown>
  * second one though: the status blob must not leak the PUZZLE either, which is
  * why the progress is a bare count and not "n of N".
  */
-function labelFor(row: { play_state: string; status?: unknown }): string {
+function coopLabel(row: { play_state: string; status?: unknown }): string {
   const s = (row.status ?? {}) as StatusBlob
   // A COUNT, never "of N". The total is part of the answer, and `status` is
   // readable by the whole club — so the club page can say how far a game got
@@ -64,6 +90,31 @@ function labelFor(row: { play_state: string; status?: unknown }): string {
   // with a reachable end and didn't reach it (docs/states.md).
   if (row.play_state === 'lost') return statusLine(outcome('Lost', 'out of time'), progress)
   return statusLine(outcome('Ended'), progress)
+}
+
+/**
+ * Compete's label says **nothing** until the game is over.
+ *
+ * `status` is club-readable, so anything published mid-race — word counts,
+ * who's ahead — would hand rivals what the guesses RLS is keeping private. And
+ * a winner genuinely isn't known before the end: the fewest-hints ranking can
+ * be overturned by anyone still playing.
+ */
+function competeLabel(row: { play_state: string; status?: unknown }): string {
+  const s = (row.status ?? {}) as StatusBlob
+  if (row.play_state === 'playing') return outcome('Playing')
+  if (row.play_state === 'won_compete') {
+    const best = s.best_hints as number | undefined
+    // The margin, not the finish order: "won on 0 hints" is the actual contest.
+    return statusLine(outcome('Won'), best === undefined ? null : count(best, 'hint'))
+  }
+  if (row.play_state === 'lost_compete') {
+    const why = s.outcome as string | undefined
+    return statusLine(
+      outcome('Lost', why === 'timeout' ? 'out of time' : why === 'conceded' ? 'all conceded' : 'nobody solved it'),
+    )
+  }
+  return statusLine(outcome('Ended'), 'no winner')
 }
 
 export const strandsCoopGame: GameManifest = {
@@ -88,20 +139,43 @@ export const strandsCoopGame: GameManifest = {
     validate: (setup) => strandsSetupError(setup as StrandsSetup),
   },
 
-  startGameInClub: async (clubHandle, setup, playerUserIds) => {
-    const { data, error } = await db
-      .rpc('create_game', {
-        target_club: clubHandle,
-        setup: setup as StrandsSetup,
-        player_user_ids: playerUserIds,
-        mode: 'coop',
-      })
-      .single()
-    if (error || !data) return { error: error?.message ?? `failed to start ${BRAND}` }
-    return { id: data.id }
+  startGameInClub: startGameInClub('coop'),
+
+  labelFor: coopLabel,
+
+  submitTimeout,
+  endGame,
+}
+
+/**
+ * The compete sibling. Same PlayArea / SetupForm / Help / useGame; the mode
+ * branches at render time.
+ */
+export const strandsCompeteGame: GameManifest = {
+  gametype: 'strands_compete',
+  schema: 'strands',
+  baseGametype: 'strands',
+  mode: 'compete',
+  name: BRAND,
+  shortDescription: 'Race the same board — fewest hints wins',
+  logoUrl,
+
+  help: helpLoader,
+
+  // Compete needs an opposing PLAYER; create_game enforces >= 2 too.
+  numberOfPlayers: [2, 6],
+
+  PlayArea: playAreaLoader,
+
+  setupForm: {
+    Component: setupFormLoader,
+    defaults: DEFAULT_STRANDS_SETUP_COMPETE,
+    validate: (setup) => strandsSetupError(setup as StrandsSetup),
   },
 
-  labelFor,
+  startGameInClub: startGameInClub('compete'),
+
+  labelFor: competeLabel,
 
   submitTimeout,
   endGame,

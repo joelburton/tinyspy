@@ -60,3 +60,10 @@ export function strandsSetupError(setup: StrandsSetup): string | null {
   if (!setup.puzzleId) return 'Pick a puzzle date to play.'
   return null
 }
+
+/** Compete's defaults. Identical to coop's but for the pacing field, which is
+ *  meaningless in a race — everyone plays at once, always. */
+export const DEFAULT_STRANDS_SETUP_COMPETE: StrandsSetup = {
+  ...DEFAULT_STRANDS_SETUP_COOP,
+  coop_style: 'free-for-all',
+}

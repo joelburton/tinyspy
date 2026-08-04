@@ -83,10 +83,20 @@ const CASES: Record<string, Family> = {
     // club-readable blob announcing "this board holds 6 words" would leak part
     // of a deliberately shielded puzzle.
     playing: { words_found: 2 },
-    shared: [
+    shared: [['ended', { outcome: 'manual', words_found: 2 }, 'manual end']],
+    coop: [
       ['won', { outcome: 'solved', words_found: 6 }, 'found them all'],
       ['lost', { outcome: 'timeout', words_found: 2 }, 'timeout'],
-      ['ended', { outcome: 'manual', words_found: 2 }, 'manual end'],
+    ],
+    // Compete publishes NOTHING mid-race — `status` is club-readable, so a
+    // count there would leak what the guesses RLS protects, and the
+    // fewest-hints winner isn't known until everyone stops. The terminal
+    // labels name the MARGIN rather than the finish order.
+    compete: [
+      ['won_compete', { outcome: 'solved', best_hints: 0 }, 'won on 0 hints'],
+      ['lost_compete', { outcome: 'timeout' }, 'timeout'],
+      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { outcome: 'unsolved' }, 'nobody solved it'],
     ],
   },
   psychicnum: {

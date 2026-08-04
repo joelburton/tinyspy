@@ -29,8 +29,8 @@ PP PaulPath     (strands)
 # Dimensions
 
 ## Modes offered
-Coop + compete pair:  PN FB WK MC RA SD SS WN CP MW WW
-Coop only (no compete):  TS PP  (PP ships coop-first; its compete sibling is planned)
+Coop + compete pair:  PN FB WK MC RA SD SS WN CP MW WW PP
+Coop only (no compete):  TS
 Compete only (no coop):  MG
 
 ## Co-op interaction (games that have coop)
@@ -235,8 +235,9 @@ Desktop-only, hard-blocked on all touch via the shared `DeviceBlockNotice`:  MG
 
 
 # Clear win condition in compete
-(TS and PP are coop-only, so they have none — PP's compete sibling is planned,
-not built.)
+(TS is coop-only, so it has none.)
+- PP: solved the board on the FEWEST HINTS USED, earliest solve breaking a tie
+  (race does NOT end on first solve — a later finisher can still spend less)
 - PN: guessed all secrets (race ends)
 - FB: first to reach the target rank (race continues)
 - WK: first to find all categories (race ends)

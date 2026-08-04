@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
-import type { GamePageCtx } from '../../common/lib/games'
+import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
-import { stickyPill, terminalPill } from '../../common/lib/game/localPills'
+import { outOfRacePill, stickyPill, terminalPill } from '../../common/lib/game/localPills'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { NEW_GAME_CONFIRM, useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
@@ -81,18 +81,37 @@ function pillFor(r: SubmitResult) {
  *  The loss line counts what was found and never says out of how many — the
  *  total is part of the answer, and a game that ended without a win hasn't
  *  earned it. */
-function buildOver(playState: string, found: number): TerminalCopy {
+function buildOver(
+  playState: string,
+  found: number,
+  isCompete: boolean,
+  players: GamePlayer[],
+  selfId: string,
+): TerminalCopy {
+  // ── Coop ──
   if (playState === 'won') {
     return { verdict: 'Won: every word found', message: 'You found them all!', tone: 'won' }
   }
   if (playState === 'lost') {
-    return {
-      verdict: `Lost: out of time — ${found} found`,
-      message: 'Out of time',
-      tone: 'lost',
-    }
+    return { verdict: `Lost: out of time — ${found} found`, message: 'Out of time', tone: 'lost' }
   }
-  return endedCopy('coop')
+
+  // ── Compete ──
+  // The winner is whoever solved on the fewest hints, so the verdict names the
+  // COUNT rather than the finish order — "won by 1 hint" is the actual contest,
+  // and saying "first to finish" would describe a race nobody ran.
+  if (playState === 'won_compete') {
+    const iWon = players.find((p) => p.user_id === selfId)?.result?.won === true
+    const winners = players.filter((p) => p.result?.won === true)
+    const names = winners.map((p) => p.username).join(' + ')
+    return iWon
+      ? { verdict: 'Won: fewest hints', message: 'You win!', tone: 'won' }
+      : { verdict: `Lost: ${names} used fewer hints`, message: `${names} won`, tone: 'lost' }
+  }
+  if (playState === 'lost_compete') {
+    return { verdict: 'Lost: nobody solved it', message: 'Nobody solved it', tone: 'lost' }
+  }
+  return endedCopy(isCompete ? 'compete' : 'coop')
 }
 
 /**
@@ -113,7 +132,12 @@ export function PlayArea(ctx: GamePageCtx) {
     gameId, isTerminal, playState, solutionRevealed, players, session,
     setup, goToClub, clubHandle, goToGame, menu,
   } = ctx
-  const { game, guesses, found, loading } = useGame(gameId)
+
+  const selfId = session.user.id
+  const { game, players: playerStates, me, guesses, found, loading } = useGame(gameId, selfId)
+  // Mode comes off the loaded game row (denormalized from strands.games.mode),
+  // which is how every sibling-pair game branches.
+  const isCompete = game?.mode === 'compete'
   // `locked` at terminal, like every other game: the permanent verdict owns the
   // slot then, so a stale own-move pill must not be able to replace it.
   const { localFeedback, showLocalFeedback, clearLocalFeedback } =
@@ -220,10 +244,10 @@ export function PlayArea(ctx: GamePageCtx) {
     if (error) showLocalFeedback(stickyPill('error', error.message))
   }, [gameId, showLocalFeedback])
 
-  // End + Replay come from the shared hook, so their confirm copy and error
-  // handling match the other games'. No Concede: that is compete-only, and
-  // strands has no compete sibling yet.
-  const { endGame: handleEndGame, restart: handleRestart } = useStandardGameActions({
+  // End / Concede / Replay from the shared hook, so their confirm copy and
+  // error handling match the other games'.
+  const { endGame: handleEndGame, concede: handleConcede, restart: handleRestart } =
+    useStandardGameActions({
     // The hook's client type also lists `concede`, which strands has no RPC
     // for (coop-only). Cast rather than widen the shared type: the hook never
     // CALLS concede in coop, and every other coop-only game would need the
@@ -231,7 +255,7 @@ export function PlayArea(ctx: GamePageCtx) {
     db: db as unknown as Parameters<typeof useStandardGameActions>[0]['db'],
     gameId,
     isTerminal,
-    myConceded: false,
+    myConceded: players.find((p) => p.user_id === session.user.id)?.conceded ?? false,
     confirm: confirmAction,
     showError: (m) => showLocalFeedback(stickyPill('error', m)),
   })
@@ -311,17 +335,23 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // The GamePage menu. Held in a ref so the effect needn't list the per-render
   // handlers in its deps (the crosswords `actionsRef` pattern).
-  const actionsRef = useRef({ endGame: handleEndGame })
+  const actionsRef = useRef({ endGame: handleEndGame, concede: handleConcede })
+  const modeRef = useRef<'coop' | 'compete'>('coop')
+  const concededRef = useRef(false)
   useEffect(() => {
-    actionsRef.current = { endGame: handleEndGame }
+    actionsRef.current = { endGame: handleEndGame, concede: handleConcede }
+    modeRef.current = isCompete ? 'compete' : 'coop'
+    concededRef.current = players.find((p) => p.user_id === selfId)?.conceded ?? false
   })
   useEffect(() => {
     menu.setGameSections(
       buildGameMenu({
         menu,
-        mode: 'coop',
+        mode: modeRef.current,
         isTerminal,
+        conceded: concededRef.current,
         onEndGame: () => actionsRef.current.endGame(),
+        onConcede: () => actionsRef.current.concede(),
         extra: infoSheet.menuSections,
       }),
     )
@@ -329,7 +359,13 @@ export function PlayArea(ctx: GamePageCtx) {
 
   if (loading || !game) return <div className={styles.loading}>Loading…</div>
 
-  const over = isTerminal ? buildOver(playState, found.length) : null
+  const over = isTerminal ? buildOver(playState, found.length, isCompete, players, selfId) : null
+
+  // COMPETE: solving (or conceding) ends YOUR race while the others keep going.
+  // The board freezes and the standard "you're out" look applies, but the game
+  // is not over — the winner isn't known until nobody is still racing.
+  const myConceded = players.find((p) => p.user_id === selfId)?.conceded ?? false
+  const isLocallyDone = !isTerminal && isCompete && ((me?.solved ?? false) || myConceded)
 
   /**
    * What the below-board slot shows, in priority order: the permanent terminal
@@ -348,12 +384,14 @@ export function PlayArea(ctx: GamePageCtx) {
    */
   const pill = over
     ? terminalPill(over.tone, over.verdict)
-    : localFeedback
-      ?? (guesses.length === 0 && trace.length === 0
+    : isLocallyDone
+      ? outOfRacePill(myConceded)
+      : localFeedback
+        ?? (guesses.length === 0 && trace.length === 0
         // The quotes carry it: no "Theme:" prefix, which a phone has no room
         // for and which a quoted phrase under the board doesn't need.
-        ? { tone: 'neutral' as const, text: `“${game.clue}”`, variant: 'outline' as const, dismiss: { kind: 'sticky' as const } }
-        : null)
+          ? { tone: 'neutral' as const, text: `“${game.clue}”`, variant: 'outline' as const, dismiss: { kind: 'sticky' as const } }
+          : null)
 
   // At the reveal, the words nobody found. `game.solution` is null until then,
   // so this is empty for the whole game by construction rather than by a flag
@@ -376,34 +414,40 @@ export function PlayArea(ctx: GamePageCtx) {
         found={foundPaths}
         missed={missed}
         trace={trace}
-        hintCoords={game.active_hint_coords}
+        hintCoords={me?.active_hint_coords ?? null}
         onTileClick={onTileClick}
-        disabled={isTerminal || busy}
+        disabled={isTerminal || isLocallyDone || busy}
         // The word being traced. Shares its slot with the verdict pill — you are
         // either building a word or reading what the last one did.
         echo={trace.length ? wordFromPath(game.board, trace) : ''}
         pill={pill}
         onDismissPill={clearLocalFeedback}
-        hintPoints={game.hint_points}
+        hintPoints={me?.hint_points ?? 0}
         hintCost={game.hint_cost}
-        hintShowing={game.active_hint_coords !== null}
+        hintShowing={(me?.active_hint_coords ?? null) !== null}
         onSpendHint={spendHint}
       />
 
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
+          isCompete={isCompete}
+          isLocallyDone={isLocallyDone}
+          iSolved={me?.solved ?? false}
+          hintsByUser={new Map(playerStates.map((p) => [p.user_id, p.hints_spent]))}
+          solvedIds={new Set(playerStates.filter((p) => p.solved).map((p) => p.user_id))}
           isTerminal={isTerminal}
           over={over}
           solutionRevealed={solutionRevealed}
           currentTurnUserId={ctx.currentTurnUserId ?? null}
           clue={game.clue}
           wordsFound={found.length}
-          hintsSpent={game.hints_spent}
+          hintsSpent={me?.hints_spent ?? 0}
           guesses={guesses}
           players={players}
           selfId={session.user.id}
           setup={strandsSetup}
           onEndGame={handleEndGame}
+          onConcede={handleConcede}
           onRestart={handleRestart}
           onNewGame={startNewGame}
           startingNewGame={startingNewGame}

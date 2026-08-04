@@ -2449,15 +2449,12 @@ export type Database = {
     Tables: {
       games: {
         Row: {
-          active_hint_coords: Json | null
           band: number
           board: string[]
           club_handle: string
           clue: string
           created_at: string
           hint_cost: number
-          hint_points: number
-          hints_spent: number
           id: string
           min_word_length: number
           mode: string
@@ -2466,15 +2463,12 @@ export type Database = {
           solution: Json
         }
         Insert: {
-          active_hint_coords?: Json | null
           band: number
           board: string[]
           club_handle: string
           clue: string
           created_at?: string
           hint_cost: number
-          hint_points?: number
-          hints_spent?: number
           id: string
           min_word_length: number
           mode: string
@@ -2483,15 +2477,12 @@ export type Database = {
           solution: Json
         }
         Update: {
-          active_hint_coords?: Json | null
           band?: number
           board?: string[]
           club_handle?: string
           clue?: string
           created_at?: string
           hint_cost?: number
-          hint_points?: number
-          hints_spent?: number
           id?: string
           min_word_length?: number
           mode?: string
@@ -2554,6 +2545,51 @@ export type Database = {
           },
         ]
       }
+      players: {
+        Row: {
+          active_hint_coords: Json | null
+          game_id: string
+          hint_points: number
+          hints_spent: number
+          solved: boolean
+          solved_at: string | null
+          user_id: string
+        }
+        Insert: {
+          active_hint_coords?: Json | null
+          game_id: string
+          hint_points?: number
+          hints_spent?: number
+          solved?: boolean
+          solved_at?: string | null
+          user_id: string
+        }
+        Update: {
+          active_hint_coords?: Json | null
+          game_id?: string
+          hint_points?: number
+          hints_spent?: number
+          solved?: boolean
+          solved_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       puzzles: {
         Row: {
           board: string[]
@@ -2588,15 +2624,12 @@ export type Database = {
     Views: {
       games_state: {
         Row: {
-          active_hint_coords: Json | null
           band: number | null
           board: string[] | null
           club_handle: string | null
           clue: string | null
           created_at: string | null
           hint_cost: number | null
-          hint_points: number | null
-          hints_spent: number | null
           id: string | null
           min_word_length: number | null
           mode: string | null
@@ -2605,15 +2638,12 @@ export type Database = {
           solution: Json | null
         }
         Insert: {
-          active_hint_coords?: Json | null
           band?: number | null
           board?: string[] | null
           club_handle?: string | null
           clue?: string | null
           created_at?: string | null
           hint_cost?: number | null
-          hint_points?: number | null
-          hints_spent?: number | null
           id?: string | null
           min_word_length?: number | null
           mode?: string | null
@@ -2622,15 +2652,12 @@ export type Database = {
           solution?: never
         }
         Update: {
-          active_hint_coords?: Json | null
           band?: number | null
           board?: string[] | null
           club_handle?: string | null
           clue?: string | null
           created_at?: string | null
           hint_cost?: number | null
-          hint_points?: number | null
-          hints_spent?: number | null
           id?: string | null
           min_word_length?: number | null
           mode?: string | null
@@ -2648,10 +2675,75 @@ export type Database = {
           },
         ]
       }
+      players_state: {
+        Row: {
+          active_hint_coords: Json | null
+          game_id: string | null
+          hint_points: number | null
+          hints_spent: number | null
+          solved: boolean | null
+          solved_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          active_hint_coords?: never
+          game_id?: string | null
+          hint_points?: never
+          hints_spent?: number | null
+          solved?: boolean | null
+          solved_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          active_hint_coords?: never
+          game_id?: string | null
+          hint_points?: never
+          hints_spent?: number | null
+          solved?: boolean | null
+          solved_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      _consumed_keys: { Args: { target_game: string }; Returns: string[] }
+      _active_hint_for: {
+        Args: { g_id: string; row_user: string }
+        Returns: Json
+      }
+      _consumed_keys: {
+        Args: { for_user: string; target_game: string }
+        Returns: string[]
+      }
+      _hint_points_for: {
+        Args: { g_id: string; row_user: string }
+        Returns: number
+      }
+      _maybe_finish_compete: {
+        Args: { target_game: string; timed_out?: boolean }
+        Returns: boolean
+      }
+      _player_state_visible: {
+        Args: { g_id: string; row_user: string }
+        Returns: boolean
+      }
       _solution_for: { Args: { g_id: string }; Returns: Json }
+      concede: { Args: { target_game: string }; Returns: undefined }
       create_game: {
         Args: {
           mode: string

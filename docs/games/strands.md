@@ -9,10 +9,8 @@ hint points; enough of them buys a hint.
 user-facing brand is **PaulPath**, which lives only in the manifest's `BRAND`
 const; gametype / schema / folder are all `strands`.
 
-**Coop-first.** Only `strands_coop` is registered, in `common.gametypes` and in
-`src/games.ts` — a Start button for an unbuilt game is worse than a missing one.
-`strands.create_game` refuses `mode = 'compete'` explicitly rather than
-half-working. See [Compete, when it lands](#8-compete-when-it-lands).
+**Sibling pair** — `strands_coop` + `strands_compete`, one schema, one folder,
+mode branching at render time on `game.mode`. See [Compete](#8-compete).
 
 For the shared layer see [`common.md`](../common.md); for play-surface
 conventions [`playarea.md`](../playarea.md).
@@ -308,16 +306,71 @@ actually traced), so shipping an unused solver to serve a test would be backward
 
 ---
 
-## 8. Compete, when it lands
+## 8. Compete
 
-Per-player hint pools (moving that state off `strands.games` onto a
-`strands.players` table), guesses private until terminal via the mode-aware RLS
-arm the other compete games carry, `won_compete` / `lost_compete`,
-`common.concede`, and an `OpponentStrip`.
+Each player races the **same puzzle on their own progress**: own found words,
+own hint bar, own locked tiles. `strands.players` carries that state, and it is
+the shape in BOTH modes — coop moves every row in lock-step (its pool is
+shared), compete moves only the actor's. One code path, one predicate apart;
+connections does the same with `mistake_count`.
 
-The `_compete` suffix is load-bearing, not cosmetic: `common.concede` reads it off
-the gametype string to decide whether an all-conceded table ends `lost_compete` or
-plain `lost`.
+### The winner, and why the race can't end early
+
+**Whoever SOLVED using the fewest hints**, earliest solve breaking a tie.
+
+That single rule sets everything else. A player still going might finish on
+fewer hints than the current best, so first-to-solve would crown the wrong
+person and make the hint count decorative. Instead a solver goes **locally
+terminal** — their board freezes, their number is final, they can't spend
+another hint — and the game ends when nobody is still racing: all solved, all
+conceded, or the clock.
+
+Getting a hint POINT costs nothing; only cashing one does. That's the whole
+tension: a player who never spends can be beaten on speed by nobody, only
+matched — so the pressure is to solve *clean*, not fast.
+
+### What a rival may see
+
+Exactly one number mid-game: **hints used**. It's the ranking, so it makes the
+race legible, and it says nothing about the puzzle.
+
+Withheld until terminal:
+
+| hidden | why |
+|---|---|
+| their found words | the `guesses` policy gains its compete arm — word counts are progress |
+| their hint **bar** | its fill proxies how many valid words they've found, so publishing it would leak sideways exactly what the guesses RLS hides |
+| their revealed word | part of the answer |
+
+`solved` / `solved_at` **are** public: race status, not puzzle content — knowing
+someone finished tells you the bar you have to clear, which is the same kind of
+fact as their hint count.
+
+This is a **deliberate divergence** from the rest of the roster, which shows
+peers a progress metric "so the race has tension" (connections' mistakes,
+boggle's score). Here the hint count carries that instead.
+
+### Concede
+
+`strands.concede`, **not** `common.concede`. The shared one ends a game as a
+collective loss the moment the last player drops — but a table where one player
+SOLVED and the rest walked away must end with that solver winning. So strands
+takes the documented split: `common._set_conceded` for the guarded flag flip,
+then its own `_maybe_finish_compete`.
+
+The manual **End** stays neutral in both modes. A race called off early didn't
+finish, and handing the trophy to whoever was ahead would reward stopping at the
+right moment.
+
+### Terminal vocabulary
+
+`won_compete` / `lost_compete` (nobody solved — `status.outcome` names which of
+timeout / all-conceded / unsolved) / `ended`. The `_compete` suffix is
+load-bearing rather than cosmetic: `common.concede` reads it off the gametype
+string to decide how an all-conceded table ends.
+
+The club label publishes **nothing** mid-race — `status` is club-readable — and
+at terminal names the MARGIN (`Won · 0 hints`) rather than the finish order.
 
 ## 9. Deferred
 
