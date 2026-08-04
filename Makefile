@@ -346,8 +346,9 @@ project-config-secrets: ## edge-function secrets (ANTHROPIC_API_KEY)
 project-wait-cache: ## pause for PostgREST's schema-cache reload (needed before g-connections-puzzles)
 	@bash supabase/deploy/wait-cache.sh
 
-# Everything, in the order a fresh project needs it — what
-# import-to-hosted.sh used to be, end to end.
+# Everything a fresh project needs, in order: create, link, migrate, apply
+# the repeatable SQL, configure PostgREST + auth + secrets, deploy the edge
+# functions, wait for the schema cache, load the data, ship the FE.
 #
 # MIGRATIONS=destroy WIPES the hosted database (auth accounts included)
 # and replays every migration onto a clean slate. That's routine while

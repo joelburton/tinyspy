@@ -1,14 +1,17 @@
 # shellcheck shell=bash disable=SC2034
 #
-# Secrets + per-deployment config for import-to-hosted.sh.
+# Secrets + per-deployment config for the hosted deploy targets.
 #
-# Copy this to import-to-hosted.secrets.sh (which is GITIGNORED) and
-# fill in your values. import-to-hosted.sh sources that copy, so it
-# never carries secrets itself and is safe to commit.
+# Copy this to deploy.secrets.sh (which is GITIGNORED) and fill in your
+# values. supabase/deploy/env.sh sources that copy on every `ENV=prod`
+# target, so nothing in the repo carries a secret.
 #
-#   cp import-to-hosted.secrets.example.sh import-to-hosted.secrets.sh
-#   # edit import-to-hosted.secrets.sh
-#   ./import-to-hosted.sh --destroy        (or --keep)
+#   cp deploy.secrets.example.sh deploy.secrets.sh
+#   # edit deploy.secrets.sh
+#   gmake project-bootstrap ENV=prod MIGRATIONS=destroy   (or =keep)
+#
+# `gmake help` lists the narrower targets — you rarely want the whole
+# bootstrap after the first run.
 #
 # Anything left as a REPLACE-WITH placeholder or blank is treated as
 # "not set": optional steps that depend on it log "skipped" and move on.

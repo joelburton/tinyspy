@@ -32,7 +32,7 @@
  * hosted projects.
  *
  * Connection: `SUPABASE_DB_URL`, a Postgres connection string. Defaults
- * to the local stack; the deploy script (import-to-hosted.sh) sets it to
+ * to the local stack; the deploy prelude (supabase/deploy/env.sh) sets it to
  * the hosted project's connection — so the hosted load pulls from the
  * SAME gamelist source, with no separate vendored file to keep in sync.
  *

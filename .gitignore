@@ -44,10 +44,10 @@ supabase/functions/.env
 supabase/functions/boggle-build-board/wordlist.ts
 supabase/functions/scrabble-suggest-move/wordlist.ts
 
-# Hosted-Supabase import: the runner (import-to-hosted.sh) is committed;
-# its secrets + per-deployment values live in import-to-hosted.secrets.sh,
-# which is NOT (copy it from import-to-hosted.secrets.example.sh).
-import-to-hosted.secrets.sh
+# Hosted-deploy credentials + per-deployment values, sourced by
+# supabase/deploy/env.sh. Copy deploy.secrets.example.sh (committed) to
+# deploy.secrets.sh (never committed).
+deploy.secrets.sh
 
 # Playwright (e2e smoke tests)
 /test-results/

@@ -28,13 +28,13 @@
 set -euo pipefail
 
 # ── secrets ─────────────────────────────────────────────────────
-# All credentials live in import-to-hosted.secrets.sh (GITIGNORED).
+# All credentials live in deploy.secrets.sh (GITIGNORED).
 # Nothing secret is ever written into this file or the Makefile.
-SECRETS_FILE="import-to-hosted.secrets.sh"
+SECRETS_FILE="deploy.secrets.sh"
 if [[ ! -f "$SECRETS_FILE" ]]; then
   echo "ERROR: $SECRETS_FILE not found (it carries your credentials)." >&2
-  echo "       cp import-to-hosted.secrets.example.sh $SECRETS_FILE" >&2
-  echo "       then fill it in. See docs/cheatsheet.md → Deploying." >&2
+  echo "       cp deploy.secrets.example.sh $SECRETS_FILE" >&2
+  echo "       then fill it in. See docs/cheatsheet.md → gmake." >&2
   exit 1
 fi
 # shellcheck disable=SC1090
