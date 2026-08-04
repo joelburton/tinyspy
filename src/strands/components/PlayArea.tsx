@@ -238,16 +238,63 @@ export function PlayArea(ctx: GamePageCtx) {
     if (error) showLocalFeedback(stickyPill('error', error.message))
   }, [gameId, showLocalFeedback])
 
-  // New game stays per-game everywhere (the shared hook says so): the gametype
-  // string and the setup to carry forward are ours. Same puzzle knobs, next
-  // puzzle is the players' pick in the dialog — here it simply replays the
-  // club's last setup.
+  /**
+   * New game = **the NEXT DAY'S puzzle**, not another run at this one.
+   *
+   * Replaying the same board is what Restart is for; a "New game" that handed
+   * back the puzzle you just solved would leave the club with no way to move
+   * through the archive without going back to the setup dialog every time. So
+   * this looks up the earliest puzzle dated after the current one and starts
+   * that, carrying the club's knobs (band / hint cost / word length / timer /
+   * pacing) forward unchanged — the setup they already chose.
+   *
+   * At the end of the archive there is nothing to advance to, and this says so
+   * as a one-button NOTICE rather than a question with no meaningful answer
+   * (the `cancelLabel: null` shape connections uses for the same situation).
+   *
+   * New game stays a per-game handler everywhere — useStandardGameActions
+   * deliberately doesn't own it, because exactly this kind of per-game choice
+   * lives in it.
+   */
   const [startNewGame, startingNewGame] = useSingleFlight(async () => {
-    if (!(await confirmAction(NEW_GAME_CONFIRM))) return
+    if (!game) return
+
+    const { data: next, error: lookupError } = await db
+      .from('puzzles')
+      .select('id, puzzle_date')
+      .gt('puzzle_date', game.puzzle_date ?? '')
+      .order('puzzle_date', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+    if (lookupError) {
+      showLocalFeedback(stickyPill('error', lookupError.message))
+      return
+    }
+    if (!next) {
+      await confirmAction({
+        title: 'No newer puzzle',
+        message:
+          'This is the most recent puzzle we have. Run `gmake g-strands-fetch` to pick up new '
+          + 'ones, or start an older date from the club page.',
+        confirmLabel: 'OK',
+        cancelLabel: null,
+      })
+      return
+    }
+
+    if (
+      !(await confirmAction({
+        ...NEW_GAME_CONFIRM,
+        // Name the date: "start a new game" is vague when the whole point is
+        // WHICH puzzle you're about to get.
+        title: `Play the ${next.puzzle_date} puzzle?`,
+      }))
+    ) return
+
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,
-        setup: strandsSetup,
+        setup: { ...strandsSetup, puzzleId: next.id },
         player_user_ids: players.map((p) => p.user_id),
         mode: 'coop',
       })
