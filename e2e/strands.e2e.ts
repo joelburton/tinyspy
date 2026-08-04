@@ -53,8 +53,9 @@ test.describe('strands play loop', () => {
     await trace(page, spangram.coords)
     await expect(page.getByText(`${spangram.word} — spangram`)).toBeVisible({ timeout: 10000 })
 
-    // Both landed in the turn log, and the progress line moved.
-    await expect(page.getByText('2 / 6 words')).toBeVisible()
+    // Both landed, and the progress line moved. A COUNT, never "of N" — the
+    // total is part of the shielded answer.
+    await expect(page.getByText('2 words')).toBeVisible()
 
     // ── A found word's tiles are SPENT ──
     // Re-tracing the theme word must be impossible: clicking its first tile is
@@ -63,7 +64,7 @@ test.describe('strands play loop', () => {
     await page.keyboard.press('Enter')
     // Still two finds — the click did not start a trace, so Enter had nothing
     // to send (and certainly did not re-credit the word).
-    await expect(page.getByText('2 / 6 words')).toBeVisible()
+    await expect(page.getByText('2 words')).toBeVisible()
 
     await ctx.close()
   })

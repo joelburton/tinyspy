@@ -35,7 +35,6 @@ type SubmitResult = {
   hint_points: number
   hint_cost: number
   words_found: number
-  words_total: number
   terminal: boolean
 }
 
@@ -77,14 +76,18 @@ function pillFor(r: SubmitResult) {
 }
 
 /** Terminal copy, in the shared `TerminalCopy` shape. The manual stop delegates
- *  to the shared `endedCopy` rather than writing its own neutral strings. */
-function buildOver(playState: string, found: number, total: number): TerminalCopy {
+ *  to the shared `endedCopy` rather than writing its own neutral strings.
+ *
+ *  The loss line counts what was found and never says out of how many — the
+ *  total is part of the answer, and a game that ended without a win hasn't
+ *  earned it. */
+function buildOver(playState: string, found: number): TerminalCopy {
   if (playState === 'won') {
     return { verdict: 'Won: every word found', message: 'You found them all!', tone: 'won' }
   }
   if (playState === 'lost') {
     return {
-      verdict: `Lost: out of time — ${found}/${total}`,
+      verdict: `Lost: out of time — ${found} found`,
       message: 'Out of time',
       tone: 'lost',
     }
@@ -107,7 +110,7 @@ function buildOver(playState: string, found: number, total: number): TerminalCop
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, playState, status, solutionRevealed, players, session,
+    gameId, isTerminal, playState, solutionRevealed, players, session,
     setup, goToClub, clubHandle, goToGame, menu,
   } = ctx
   const { game, guesses, found, loading } = useGame(gameId)
@@ -326,12 +329,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   if (loading || !game) return <div className={styles.loading}>Loading…</div>
 
-  // From the STATUS blob, not the solution: the solution is shielded for the
-  // whole game, so deriving the total from it would read 1 (spangram only)
-  // until the reveal. create_game seeds words_total and submit_path maintains
-  // it, precisely so the count is public without the answer being.
-  const wordsTotal = (status?.words_total as number | undefined) ?? 0
-  const over = isTerminal ? buildOver(playState, found.length, wordsTotal) : null
+  const over = isTerminal ? buildOver(playState, found.length) : null
 
   /**
    * What the below-board slot shows, in priority order: the permanent terminal
@@ -400,7 +398,6 @@ export function PlayArea(ctx: GamePageCtx) {
           currentTurnUserId={ctx.currentTurnUserId ?? null}
           clue={game.clue}
           wordsFound={found.length}
-          wordsTotal={wordsTotal}
           hintsSpent={game.hints_spent}
           guesses={guesses}
           players={players}

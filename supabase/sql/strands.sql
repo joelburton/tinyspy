@@ -295,11 +295,12 @@ begin
   perform common.update_state(
     new_id,
     'playing',
-    jsonb_build_object(
-      'mode', mode,
-      'words_found', 0,
-      'words_total', jsonb_array_length(puzzle_row.solution->'themeWords') + 1
-    )
+    -- words_found ONLY. The TOTAL is part of the answer: knowing a board holds
+    -- six words is real information about a puzzle whose whole content is
+    -- shielded, and `status` is readable by the entire club. The server keeps
+    -- computing the total internally for the terminal check; it just never
+    -- publishes it.
+    jsonb_build_object('mode', mode, 'words_found', 0)
   );
 
   return query select new_id;
@@ -334,8 +335,14 @@ revoke execute on function strands._consumed_keys(uuid) from public;
 -- strands.submit_path — trace a word (THE move RPC)
 -- ============================================================
 -- Takes the traced path ([[r,c], …]) and classifies it. Returns jsonb:
---   { result, word, hint_points, hint_cost, words_found, words_total,
---     terminal, hint_cleared }
+--   { result, word, hint_points, hint_cost, words_found, terminal,
+--     hint_cleared }
+--
+-- Note what is NOT returned: the word TOTAL. It's part of the answer — knowing
+-- a board holds six words is real information about a shielded puzzle — so the
+-- server computes it for the terminal check and keeps it. The client learns the
+-- game is over from `terminal` / common.games, not by counting to a number it
+-- was told.
 --
 -- result ∈ theme | spangram | hint_word | duplicate | too_short | invalid
 --
@@ -535,14 +542,12 @@ begin
 
     perform common.end_game(
       target_game, 'won',
-      jsonb_build_object('outcome', 'solved',
-                         'words_found', v_found, 'words_total', v_total),
+      jsonb_build_object('outcome', 'solved', 'words_found', v_found),
       player_results);
     did_end := true;
   else
     perform common.update_state(
-      target_game, 'playing',
-      jsonb_build_object('words_found', v_found, 'words_total', v_total));
+      target_game, 'playing', jsonb_build_object('words_found', v_found));
 
     -- Turn-order advances only on an ACCEPTED move. A rejected trace (too
     -- short, unknown, already counted) is a misfire, not a turn — the same
@@ -559,7 +564,6 @@ begin
     'hint_points', v_points,
     'hint_cost', g_row.hint_cost,
     'words_found', v_found,
-    'words_total', v_total,
     'hint_cleared', hint_cleared,
     'terminal', did_end
   );
@@ -693,8 +697,7 @@ begin
 
   perform common.end_game(
     target_game, 'ended',
-    jsonb_build_object('outcome', 'manual',
-                       'words_found', v_found, 'words_total', v_total),
+    jsonb_build_object('outcome', 'manual', 'words_found', v_found),
     player_results);
 end;
 $$;
@@ -753,11 +756,7 @@ begin
   -- indistinguishable from a fresh game.
   perform common.reset_game(
     target_game,
-    jsonb_build_object(
-      'mode', g_row.mode,
-      'words_found', 0,
-      'words_total', jsonb_array_length(g_row.solution->'themeWords') + 1
-    )
+    jsonb_build_object('mode', g_row.mode, 'words_found', 0)
   );
 end;
 $$;
@@ -813,8 +812,7 @@ begin
 
   perform common.end_game(
     target_game, 'lost',
-    jsonb_build_object('outcome', 'timeout',
-                       'words_found', v_found, 'words_total', v_total),
+    jsonb_build_object('outcome', 'timeout', 'words_found', v_found),
     player_results);
 end;
 $$;

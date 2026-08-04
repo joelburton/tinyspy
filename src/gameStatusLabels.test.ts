@@ -79,11 +79,14 @@ const CASES: Record<string, Family> = {
   // reachable end and you didn't reach it", and finding every theme word is
   // exactly such an end (docs/states.md).
   strands: {
-    playing: { words_found: 2, words_total: 6 },
+    // words_found ONLY — the TOTAL never reaches `status`, because a
+    // club-readable blob announcing "this board holds 6 words" would leak part
+    // of a deliberately shielded puzzle.
+    playing: { words_found: 2 },
     shared: [
-      ['won', { outcome: 'solved', words_found: 6, words_total: 6 }, 'found them all'],
-      ['lost', { outcome: 'timeout', words_found: 2, words_total: 6 }, 'timeout'],
-      ['ended', { outcome: 'manual', words_found: 2, words_total: 6 }, 'manual end'],
+      ['won', { outcome: 'solved', words_found: 6 }, 'found them all'],
+      ['lost', { outcome: 'timeout', words_found: 2 }, 'timeout'],
+      ['ended', { outcome: 'manual', words_found: 2 }, 'manual end'],
     ],
   },
   psychicnum: {

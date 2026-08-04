@@ -25,7 +25,6 @@ type Props = {
   // ── State ──
   clue: string
   wordsFound: number
-  wordsTotal: number
   hintsSpent: number
   // ── Log ──
   guesses: GuessRow[]
@@ -60,7 +59,6 @@ export function InfoCol({
   currentTurnUserId,
   clue,
   wordsFound,
-  wordsTotal,
   hintsSpent,
   guesses,
   players,
@@ -80,8 +78,10 @@ export function InfoCol({
         {/* Quoted: the clue is the puzzle's own words, not ours, and unquoted
             it reads as a heading the app wrote. */}
         <p className={styles.clue}>“{clue}”</p>
+        {/* Count only, never "of N": the TOTAL is part of the answer, and a
+            shielded puzzle shouldn't announce how many words it holds. */}
         <p className={shared.infoState}>
-          {wordsFound} / {wordsTotal} words
+          {wordsFound} {wordsFound === 1 ? 'word' : 'words'}
           {hintsSpent > 0 && <span className={styles.hintsUsed}> · {hintsSpent} hint{hintsSpent === 1 ? '' : 's'} used</span>}
         </p>
 

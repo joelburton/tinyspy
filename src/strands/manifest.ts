@@ -44,15 +44,19 @@ const endGame = makeRpcDispatcher(db, 'end_game')
 type StatusBlob = Record<string, unknown>
 
 /**
- * The club-page status line. Everything strands tracks in coop is shared, so
- * there is no privacy question here — the "a status line may only say what every
- * player already sees" rule bites the compete sibling, not this one.
+ * The club-page status line.
+ *
+ * The usual privacy rule here is about PEERS — "only say what every player
+ * already sees" — and coop shares everything, so it doesn't bite. strands has a
+ * second one though: the status blob must not leak the PUZZLE either, which is
+ * why the progress is a bare count and not "n of N".
  */
 function labelFor(row: { play_state: string; status?: unknown }): string {
   const s = (row.status ?? {}) as StatusBlob
-  const found = (s.words_found as number | undefined) ?? 0
-  const total = (s.words_total as number | undefined) ?? 0
-  const progress = total ? `${found}/${total} words` : count(found, 'word')
+  // A COUNT, never "of N". The total is part of the answer, and `status` is
+  // readable by the whole club — so the club page can say how far a game got
+  // without saying how far there was to go.
+  const progress = count((s.words_found as number | undefined) ?? 0, 'word')
 
   if (row.play_state === 'playing') return statusLine(outcome('Playing'), progress)
   if (row.play_state === 'won') return statusLine(outcome('Won'), progress)

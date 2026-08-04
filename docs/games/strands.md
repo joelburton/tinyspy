@@ -124,6 +124,13 @@ deploy).
 Coordinates are `[row, col]`, 0-based, everywhere — stored solutions, traced
 paths, hint reveals — matching the feed, so there are no adapters.
 
+**`status` carries `words_found` but never the TOTAL.** That blob is readable by
+the whole club, and "this board holds six words" is real information about a
+puzzle whose entire content is shielded — so the readouts count up rather than
+counting down, and `submit_path` doesn't return the total either. The server
+still computes it for the terminal check; the client learns the game is over
+from `terminal` / `common.games`, not by reaching a number it was told.
+
 **Realtime publishes both `games` and `guesses`**, and both are required: an
 unpublished table in a `postgres_changes` subscription silently kills the *whole*
 subscription.
