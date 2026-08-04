@@ -1,0 +1,129 @@
+-- ============================================================
+-- Per-test-file strands fixtures
+-- ============================================================
+--
+-- Loaded by every strands/*_test.sql via:
+--   \ir setup.psql
+--
+-- Provides:
+--   pg_temp.strands_puzzle()       — inserts a SYNTHETIC puzzle and returns
+--                                    its id. Deterministic; independent of
+--                                    the imported NYT archive, which a test
+--                                    database may or may not have.
+--   pg_temp.strands_setup(...)     — a setup jsonb with the knobs as args.
+--   pg_temp.strands_hint_words()   — inserts the fixture's hint words into
+--                                    common.words.
+--
+-- ─── The fixture board, and why it looks like that ──────────
+-- Eight rows of six, where each ROW is one hidden word:
+--
+--        col:  0 1 2 3 4 5
+--      row 0:  Z Z Q A B C     ZZQABC
+--      row 1:  Z Z Q B D E     ZZQBDE
+--      row 2:  Z Z Q C F G     ZZQCFG
+--      row 3:  Z Z Q D H I     ZZQDHI
+--      row 4:  Z Z Q E J K     ZZQEJK   ← the spangram (spans col 0 → 5)
+--      row 5:  Z Z Q F L M     ZZQFLM
+--      row 6:  Z Z Q G N O     ZZQGNO
+--      row 7:  Z Z Q H P R     ZZQHPR
+--
+-- Row-per-word is the cheapest shape that satisfies the invariant the whole
+-- gametype rests on: the hidden words TILE the board exactly — 8 × 6 = 48
+-- cells, each covered once. A fixture that violated it would make the win
+-- condition ("every theme word found" = "every cell consumed") untestable.
+-- The spangram is a full row, so it genuinely spans edge to edge.
+--
+-- ─── Why the letters are nonsense ───────────────────────────
+-- Unlike wordiply's fixtures, strands CANNOT avoid the dictionary: telling a
+-- hint word from an invalid one is a `common.words` lookup, and that is the
+-- behaviour under test. So instead of pretending otherwise, the board is built
+-- from strings no real dictionary contains ('zzqa'…), and the test inserts
+-- exactly the ones it wants to count as words. A test that leaned on real
+-- entries would silently change meaning the next time the word list was
+-- re-imported.
+--
+-- Each row's first FOUR cells spell a hint-word candidate ('zzqa' on row 0,
+-- 'zzqb' on row 1, …) — a different PATH from that row's 6-cell theme word, so
+-- it correctly falls through the theme check rather than matching it.
+
+create function pg_temp.strands_board() returns text[]
+language sql immutable as $$
+  select array['ZZQABC','ZZQBDE','ZZQCFG','ZZQDHI','ZZQEJK','ZZQFLM','ZZQGNO','ZZQHPR']
+$$;
+
+-- The full-row path for row `r` — that row's theme word.
+create function pg_temp.strands_row_path(r int) returns jsonb
+language sql immutable as $$
+  select jsonb_agg(jsonb_build_array(r, c) order by c) from generate_series(0, 5) c
+$$;
+
+-- The first `n` cells of row `r` — a hint-word path (n=4) or a too-short one.
+create function pg_temp.strands_prefix_path(r int, n int) returns jsonb
+language sql immutable as $$
+  select jsonb_agg(jsonb_build_array(r, c) order by c) from generate_series(0, n - 1) c
+$$;
+
+-- Row 4 is the spangram; every other row is an ordinary theme word.
+create function pg_temp.strands_solution() returns jsonb
+language sql immutable as $$
+  select jsonb_build_object(
+    'spangram', jsonb_build_object(
+      'word', (pg_temp.strands_board())[5], 'coords', pg_temp.strands_row_path(4)),
+    'themeWords', (
+      select jsonb_agg(jsonb_build_object(
+               'word', (pg_temp.strands_board())[r + 1],
+               'coords', pg_temp.strands_row_path(r)) order by r)
+        from generate_series(0, 7) r where r <> 4)
+  )
+$$;
+
+-- SECURITY DEFINER so the helper can INSERT into strands.puzzles whatever role
+-- the test is currently acting as: the table has no INSERT grant to
+-- `authenticated`, and tests as_user into a real persona before calling this.
+-- (Same reasoning as connections' fixture helper.)
+create function pg_temp.strands_puzzle() returns uuid
+language plpgsql security definer as $$
+declare new_id uuid;
+begin
+  insert into strands.puzzles (source_id, puzzle_date, board, clue, solution)
+  -- 1999 is deliberately outside the real archive (which starts 2024-03-04):
+  -- puzzle_date is UNIQUE, and these tests run against a database that has the
+  -- imported puzzles in it, so a plausible-looking date would collide.
+  values ('strands-test-fixture', '1999-01-01', pg_temp.strands_board(),
+          'Rows of nonsense', pg_temp.strands_solution())
+  returning id into new_id;
+  return new_id;
+end;
+$$;
+
+-- The four hint words the tests spend, at difficulty 1 so any band accepts
+-- them. `american`/`slang`/`slur`/`crude` are set to the permissive end on
+-- purpose: strands gates hint words on DIFFICULTY ALONE (the may-enter tier in
+-- docs/common.md), and a test that also satisfied the must-reach filters
+-- couldn't tell the two tiers apart.
+-- SECURITY DEFINER for the same reason: common.words takes no writes from
+-- `authenticated`.
+create function pg_temp.strands_hint_words() returns void
+language sql security definer as $$
+  insert into common.words (word, difficulty, len, american, british, canadian, australian,
+                            slang, slur, crude, wordle)
+  select w, 1, 4, false, false, false, false, true, 0, 0, false
+    from unnest(array['zzqa','zzqb','zzqc','zzqd']) w
+  on conflict (word) do update set difficulty = 1;
+$$;
+
+create function pg_temp.strands_setup(
+  p_puzzle uuid,
+  p_band int default 5,
+  p_hint_cost int default 3,
+  p_min_len int default 4
+) returns jsonb
+language sql immutable as $$
+  select jsonb_build_object(
+    'puzzleId', p_puzzle,
+    'band', p_band,
+    'hint_cost', p_hint_cost,
+    'min_word_length', p_min_len,
+    'timer', jsonb_build_object('kind', 'none')
+  )
+$$;

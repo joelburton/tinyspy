@@ -44,14 +44,13 @@ export type TraceResult = {
  *  3. **The tile is already selected, but isn't the last** — clear everything.
  *     Reaching back into the middle of your own trace means "scrap it".
  *  4. **Otherwise it's a free tile** — extend when it's 8-way adjacent to the
- *     current end, and otherwise **start a new trace there**.
+ *     current end; otherwise **start a new trace there, discarding whatever was
+ *     selected**. The old path is not kept, not merged, and not submitted — a
+ *     far click means "begin here", and the board is left showing exactly one
+ *     trace of one tile.
  *
- * That last fallback is the one rule not dictated from the outside, so it is
- * worth stating why: ignoring a far-away click leaves the board feeling dead,
- * while starting fresh matches what the click plainly means ("begin here"). The
- * cost is that a stray click abandons an in-progress trace — acceptable because
- * nothing is lost but the selection, and the alternative trades a real feeling
- * of brokenness for a rare inconvenience.
+ * Ignoring a far click instead would leave the board feeling dead, which is a
+ * worse trade than losing a selection that costs one click to rebuild.
  */
 export function clickTile(
   trace: Trace,
