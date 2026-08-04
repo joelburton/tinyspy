@@ -11,6 +11,10 @@ type Props = {
   found: FoundPath[]
   /** The trace being built right now, in click order. */
   trace: readonly Coord[]
+  /** Words NOBODY found, drawn only once the solution is revealed: grey, so the
+   *  post-game board shows what was missed without competing with what was
+   *  found. Empty during play. */
+  missed?: Coord[][]
   /** A spent hint's cells: ringed, and deliberately NOT connected — the player
    *  still has to work out the order. Null when no hint is showing. */
   hintCoords: Coord[] | null
@@ -42,7 +46,7 @@ type Props = {
  * a cell. No pixel maths, no resize observer: the board scales with its box and
  * the geometry follows for free.
  */
-export function Board({ board, found, trace, hintCoords, onTileClick, disabled }: Props) {
+export function Board({ board, found, missed = [], trace, hintCoords, onTileClick, disabled }: Props) {
   const traceKeys = new Set(trace.map(coordKey))
   const lastKey = trace.length ? coordKey(trace[trace.length - 1]) : null
   const hintKeys = new Set((hintCoords ?? []).map(coordKey))
@@ -51,6 +55,7 @@ export function Board({ board, found, trace, hintCoords, onTileClick, disabled }
   for (const f of found) {
     for (const c of f.path) foundKind.set(coordKey(c), f.isSpangram ? 'spangram' : 'theme')
   }
+  const missedKeys = new Set(missed.flat().map(coordKey))
 
   /** Cell centre in viewBox units. */
   const cx = (c: number) => c + 0.5
@@ -68,6 +73,14 @@ export function Board({ board, found, trace, hintCoords, onTileClick, disabled }
         preserveAspectRatio="none"
         aria-hidden="true"
       >
+        {/* Missed words first, so a found path always draws over them. */}
+        {missed.map((path) => (
+          <polyline
+            key={`m${coordKey(path[0])}`}
+            className={cls(styles.line, styles.lineMissed)}
+            points={points(path)}
+          />
+        ))}
         {found.map((f) => (
           <polyline
             key={coordKey(f.path[0])}
@@ -79,6 +92,9 @@ export function Board({ board, found, trace, hintCoords, onTileClick, disabled }
           <polyline className={cls(styles.line, styles.lineTrace)} points={points(trace)} />
         )}
 
+        {missed.flat().map((c) => (
+          <circle key={`md${coordKey(c)}`} className={styles.discMissed} cx={cx(c[1])} cy={cy(c[0])} r={0.38} />
+        ))}
         {found.map((f) =>
           f.path.map((c) => (
             <circle
@@ -140,6 +156,7 @@ export function Board({ board, found, trace, hintCoords, onTileClick, disabled }
                   kind === 'theme' && styles.tileTheme,
                   traceKeys.has(key) && styles.tileTrace,
                   key === lastKey && styles.tileLast,
+                  missedKeys.has(key) && styles.tileMissed,
                   hintKeys.has(key) && styles.tileHinted,
                 )}
                 onClick={() => onTileClick([r, c])}

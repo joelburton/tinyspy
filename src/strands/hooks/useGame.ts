@@ -77,10 +77,19 @@ export function useGame(gameId: string): {
   useRealtimeRefetch({
     tables: [
       { schema: 'strands', table: 'guesses', filter: `game_id=eq.${gameId}` },
-      // Not just a replay touch (as in wordiply): the hint bar, the active
-      // hint, and the revealed solution all live on this row and all change
-      // during play.
+      // Not just a replay touch (as in wordiply): the hint bar and the active
+      // hint live on this row and change during play.
       { schema: 'strands', table: 'games', filter: `id=eq.${gameId}` },
+      // COMMON's row too, which is unusual for a per-game hook. It's needed
+      // because the shield's gate lives there: `games_state.solution` is
+      // `case when common.games.solution_revealed …`, and both writers of that
+      // flag (common.end_game on a win, common.reveal_solution on the ask)
+      // touch ONLY common.games. Without this subscription the flag flips, the
+      // shell re-renders with solutionRevealed=true, and this hook keeps
+      // serving the stale `solution: null` it fetched before the reveal — so
+      // the answer never appears. Found by clicking Reveal and watching
+      // nothing happen.
+      { schema: 'common', table: 'games', filter: `id=eq.${gameId}` },
     ],
     channelPrefix: 'strands',
     id: gameId,

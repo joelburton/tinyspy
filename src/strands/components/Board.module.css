@@ -71,6 +71,13 @@
   stroke: var(--strands-active);
 }
 
+/* Words nobody found, at the reveal. Grey and drawn UNDER the found paths, so
+ * the post-game board reads "here's what you got, and here's what was there"
+ * rather than putting the misses on equal footing with the finds. */
+.lineMissed {
+  stroke: var(--strands-missed);
+}
+
 .discTheme {
   fill: var(--strands-theme);
 }
@@ -81,6 +88,10 @@
 
 .discTrace {
   fill: var(--strands-active);
+}
+
+.discMissed {
+  fill: var(--strands-missed);
 }
 
 /* The "click me again to submit" marker on the most recent tile. A ring
@@ -133,6 +144,11 @@
 
 .tile:disabled {
   cursor: default;
+  /* Override the global `button:disabled { opacity: 0.5 }`. These are LETTERS,
+   * not a control whose unavailability needs signalling — and at terminal the
+   * whole board is disabled, which greyed out the finished puzzle exactly when
+   * it becomes the thing everyone wants to read. */
+  opacity: 1;
 }
 
 /* No focus ring. Safe here specifically BECAUSE the tiles are pointer-only and
@@ -152,6 +168,10 @@
 .tileTheme,
 .tileSpangram,
 .tileTrace {
+  color: var(--strands-on-disc);
+}
+
+.tileMissed {
   color: var(--strands-on-disc);
 }
 

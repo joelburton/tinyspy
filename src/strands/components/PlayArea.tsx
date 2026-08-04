@@ -1,20 +1,24 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx } from '../../common/lib/games'
-import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { stickyPill, terminalPill } from '../../common/lib/game/localPills'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { EndGameButton } from '../../common/components/buttons/EndGameButton'
-import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
-import { END_GAME_CONFIRM, useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { NEW_GAME_CONFIRM, useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
+import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
+import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
+import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { consumedCells, coordKey, wordFromPath, type Coord } from '../lib/board'
 import { clickTile, type Trace } from '../lib/trace'
 import { useGame } from '../hooks/useGame'
 import { db } from '../db'
-import { Board } from './Board'
-import { HintBar } from './HintBar'
+import { db as commonDb } from '../../common/db'
+import { BoardCol } from './BoardCol'
+import { InfoCol } from './InfoCol'
+import type { StrandsSetup } from '../lib/setup'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
@@ -102,10 +106,19 @@ function buildOver(playState: string, found: number, total: number): TerminalCop
  * costs nothing — the dictionary lookup forces a round trip regardless.
  */
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, isTerminal, playState, status, players, session, goToClub } = ctx
-  const { game, found, loading } = useGame(gameId)
-  const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback()
+  const {
+    gameId, isTerminal, playState, status, solutionRevealed, players, session,
+    setup, goToClub, clubHandle, goToGame, menu,
+  } = ctx
+  const { game, guesses, found, loading } = useGame(gameId)
+  // `locked` at terminal, like every other game: the permanent verdict owns the
+  // slot then, so a stale own-move pill must not be able to replace it.
+  const { localFeedback, showLocalFeedback, clearLocalFeedback } =
+    useLocalFeedback({ locked: isTerminal })
   const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  const infoSheet = useInfoSheet()
+
+  const strandsSetup = setup as unknown as StrandsSetup
 
   const [rawTrace, setTrace] = useState<Trace>([])
   const [busy, setBusy] = useState(false)
@@ -132,8 +145,7 @@ export function PlayArea(ctx: GamePageCtx) {
         showLocalFeedback(stickyPill('error', error.message))
         return
       }
-      const r = data as SubmitResult
-      showLocalFeedback(pillFor(r))
+      showLocalFeedback(pillFor(data as SubmitResult))
       // Only a found word keeps its tiles; everything else clears the trace,
       // which is what stops the board filling with non-theme paths.
       setTrace([])
@@ -205,11 +217,65 @@ export function PlayArea(ctx: GamePageCtx) {
     if (error) showLocalFeedback(stickyPill('error', error.message))
   }, [gameId, showLocalFeedback])
 
-  const handleEndGame = useCallback(async () => {
-    if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
+  // End + Replay come from the shared hook, so their confirm copy and error
+  // handling match the other games'. No Concede: that is compete-only, and
+  // strands has no compete sibling yet.
+  const { endGame: handleEndGame, restart: handleRestart } = useStandardGameActions({
+    // The hook's client type also lists `concede`, which strands has no RPC
+    // for (coop-only). Cast rather than widen the shared type: the hook never
+    // CALLS concede in coop, and every other coop-only game would need the
+    // same widening for nothing.
+    db: db as unknown as Parameters<typeof useStandardGameActions>[0]['db'],
+    gameId,
+    isTerminal,
+    myConceded: false,
+    confirm: confirmAction,
+    showError: (m) => showLocalFeedback(stickyPill('error', m)),
+  })
+
+  const handleReveal = useCallback(async () => {
+    const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
     if (error) showLocalFeedback(stickyPill('error', error.message))
-  }, [gameId, confirmAction, showLocalFeedback])
+  }, [gameId, showLocalFeedback])
+
+  // New game stays per-game everywhere (the shared hook says so): the gametype
+  // string and the setup to carry forward are ours. Same puzzle knobs, next
+  // puzzle is the players' pick in the dialog — here it simply replays the
+  // club's last setup.
+  const [startNewGame, startingNewGame] = useSingleFlight(async () => {
+    if (!(await confirmAction(NEW_GAME_CONFIRM))) return
+    const { data, error } = await db
+      .rpc('create_game', {
+        target_club: clubHandle,
+        setup: strandsSetup,
+        player_user_ids: players.map((p) => p.user_id),
+        mode: 'coop',
+      })
+      .single()
+    if (error || !data) {
+      showLocalFeedback(stickyPill('error', error?.message ?? 'could not start a new game'))
+      return
+    }
+    goToGame('strands_coop', data.id)
+  })
+
+  // The GamePage menu. Held in a ref so the effect needn't list the per-render
+  // handlers in its deps (the crosswords `actionsRef` pattern).
+  const actionsRef = useRef({ endGame: handleEndGame })
+  useEffect(() => {
+    actionsRef.current = { endGame: handleEndGame }
+  })
+  useEffect(() => {
+    menu.setGameSections(
+      buildGameMenu({
+        menu,
+        mode: 'coop',
+        isTerminal,
+        onEndGame: () => actionsRef.current.endGame(),
+        extra: infoSheet.menuSections,
+      }),
+    )
+  }, [menu, isTerminal, infoSheet.menuSections])
 
   if (loading || !game) return <div className={styles.loading}>Loading…</div>
 
@@ -218,64 +284,67 @@ export function PlayArea(ctx: GamePageCtx) {
   // until the reveal. create_game seeds words_total and submit_path maintains
   // it, precisely so the count is public without the answer being.
   const wordsTotal = (status?.words_total as number | undefined) ?? 0
-  const foundCount = found.length
-  const over = isTerminal ? buildOver(playState, foundCount, wordsTotal) : null
+  const over = isTerminal ? buildOver(playState, found.length, wordsTotal) : null
 
-  // The word being traced, echoed as text. Shares its fixed-height slot with
-  // the verdict pill: you are either building a word or reading what the last
-  // one did, never both, and the slot never collapses (the no-reflow rule).
-  const echo = trace.length ? wordFromPath(game.board, trace) : ''
+  // At the reveal, the words nobody found. `game.solution` is null until then,
+  // so this is empty for the whole game by construction rather than by a flag
+  // we have to remember to check.
+  const foundPaths = found.map((f) => ({
+    path: f.path,
+    isSpangram: f.result === 'spangram',
+  }))
+  const foundWords = new Set(found.map((f) => f.word))
+  const missed = game.solution
+    ? [game.solution.spangram, ...game.solution.themeWords]
+      .filter((w) => !foundWords.has(w.word))
+      .map((w) => w.coords)
+    : []
 
   return (
-    <div className={cls(shared.layout, styles.layout)}>
-      <div className={shared.boardCol}>
-        <Board
-          board={game.board}
-          found={found.map((f) => ({ path: f.path, isSpangram: f.result === 'spangram' }))}
-          trace={trace}
-          hintCoords={game.active_hint_coords}
-          onTileClick={onTileClick}
-          disabled={isTerminal || busy}
+    <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
+      <BoardCol
+        board={game.board}
+        found={foundPaths}
+        missed={missed}
+        trace={trace}
+        hintCoords={game.active_hint_coords}
+        onTileClick={onTileClick}
+        disabled={isTerminal || busy}
+        // The word being traced. Shares its slot with the verdict pill — you are
+        // either building a word or reading what the last one did.
+        echo={trace.length ? wordFromPath(game.board, trace) : ''}
+        pill={over ? terminalPill(over.tone, over.verdict) : localFeedback}
+        onDismissPill={clearLocalFeedback}
+        hintPoints={game.hint_points}
+        hintCost={game.hint_cost}
+        hintShowing={game.active_hint_coords !== null}
+        onSpendHint={spendHint}
+      />
+
+      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
+        <InfoCol
+          isTerminal={isTerminal}
+          over={over}
+          solutionRevealed={solutionRevealed}
+          currentTurnUserId={ctx.currentTurnUserId ?? null}
+          clue={game.clue}
+          wordsFound={found.length}
+          wordsTotal={wordsTotal}
+          hintsSpent={game.hints_spent}
+          guesses={guesses}
+          players={players}
+          selfId={session.user.id}
+          setup={strandsSetup}
+          onEndGame={handleEndGame}
+          onRestart={handleRestart}
+          onNewGame={startNewGame}
+          startingNewGame={startingNewGame}
+          onReveal={handleReveal}
+          onBackToClub={goToClub}
         />
-
-        {/* Fixed-height slot — echo, then verdict, then the terminal pill. */}
-        <div className={styles.echoSlot}>
-          {over ? (
-            <GenericFeedbackPill msg={terminalPill(over.tone, over.verdict)} onClose={clearLocalFeedback} />
-          ) : localFeedback ? (
-            <GenericFeedbackPill msg={localFeedback} onClose={clearLocalFeedback} />
-          ) : (
-            <span className={styles.echo}>{echo}</span>
-          )}
-        </div>
-
-        <HintBar
-          points={game.hint_points}
-          cost={game.hint_cost}
-          showing={game.active_hint_coords !== null}
-          disabled={isTerminal}
-          onSpend={spendHint}
-        />
-      </div>
-
-      <div className={shared.infoCol}>
-        {/* The clue is the PROMPT, not the answer — on screen from the start. */}
-        <p className={styles.clue}>{game.clue}</p>
-        <p className={shared.infoState}>
-          {foundCount} / {wordsTotal} words
-        </p>
-
-        <div className={shared.infoActions}>
-          {!isTerminal && <EndGameButton iconOnly className={shared.helperButton} onClick={handleEndGame} />}
-          <BackToClubButton iconOnly onClick={goToClub} />
-        </div>
-
-        {over && <p className={cls(shared.infoState, styles.outcome)}>{over.message}</p>}
-      </div>
+      </InfoSheet>
 
       {confirmDialog}
-      {/* players/session are read by the turn log + opponent strip in phase 5 */}
-      <span hidden>{players.length}{session.user.id}</span>
     </div>
   )
 }

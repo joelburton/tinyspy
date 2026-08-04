@@ -29,6 +29,10 @@
   /* A spent hint's dashed ring. Neutral on purpose: a hint is not an outcome,
    * so it must not borrow the purple/gold vocabulary of a found word. */
   --strands-hint-ring: #8a8a94;
+  /* Words nobody found, drawn at the reveal. Deliberately grey rather than a
+   * fourth hue: a miss is the ABSENCE of an outcome, so it must not borrow the
+   * purple/gold vocabulary that means "you got this". */
+  --strands-missed: #9e9aa7;
   /* Letters sitting on a saturated disc. */
   --strands-on-disc: #ffffff;
 }
