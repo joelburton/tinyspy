@@ -167,7 +167,7 @@ select throws_ok(
 );
 
 select throws_ok(
-  format($$ update strands.games set hint_points = 99 where id = %L $$, (select id from game)),
+  format($$ update strands.players set hint_points = 99 where game_id = %L $$, (select id from game)),
   '42501',
   null,
   'a player cannot hand themselves hint points'

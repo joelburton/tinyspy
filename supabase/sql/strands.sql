@@ -70,7 +70,6 @@ grant insert, select on strands.puzzles to service_role;
 revoke select on strands.games from authenticated;
 grant select
   (id, club_handle, mode, puzzle_id, puzzle_date, board, clue,
-   hint_points, hints_spent, active_hint_coords,
    min_word_length, hint_cost, band, created_at)
   on strands.games to authenticated;
 
@@ -81,15 +80,122 @@ create policy games_select on strands.games
   using (common.is_club_member(club_handle));
 
 -- ============================================================
+-- strands.players
+-- ============================================================
+-- What a rival may see mid-game is exactly ONE number: `hints_spent`. That is
+-- the compete ranking metric, so it makes the race legible — "she's on nine
+-- words, I'd better hurry" is tension; "she's used two hints" is the actual
+-- contest. And it says nothing about the PUZZLE, which is the line that
+-- matters here.
+--
+-- Everything else on the row is withheld from opponents mid-game:
+--
+--   hint_points        — the bar's fill is a proxy for how many valid words a
+--                        rival has found, so publishing it would leak sideways
+--                        exactly what the guesses RLS is hiding.
+--   active_hint_coords — a rival's revealed word is part of the answer.
+--
+-- `solved` / `solved_at` ARE public. They're race status, not puzzle content —
+-- knowing someone has finished tells you the bar you have to clear, which is
+-- the same kind of fact as their hint count.
+revoke select on strands.players from authenticated;
+grant select (game_id, user_id, hints_spent, solved, solved_at)
+  on strands.players to authenticated;
+
+drop policy if exists players_select on strands.players;
+create policy players_select on strands.players
+  for select to authenticated
+  using (
+    exists (
+      select 1 from strands.games sg
+       where sg.id = strands.players.game_id
+         and common.is_club_member(sg.club_handle)
+    )
+  );
+
+-- ── The withheld columns, handed back where they're allowed ──
+-- Definer, so it can read past the column grant; the security_invoker view
+-- below calls it as the CALLER, so auth.uid() is the real one.
+--
+-- Visible when the row is YOURS, when the game is COOP (the pool is shared
+-- there — that's the whole mode), or once the game is over.
+create or replace function strands._player_state_visible(g_id uuid, row_user uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = strands, common, public, extensions
+as $$
+  select sg.mode = 'coop' or row_user = auth.uid() or cg.is_terminal
+    from strands.games sg
+    join common.games cg on cg.id = sg.id
+   where sg.id = g_id;
+$$;
+revoke execute on function strands._player_state_visible(uuid, uuid) from public;
+
+create or replace function strands._hint_points_for(g_id uuid, row_user uuid)
+returns int
+language sql
+stable
+security definer
+set search_path = strands, common, public, extensions
+as $$
+  select case when strands._player_state_visible(g_id, row_user)
+              then sp.hint_points else null end
+    from strands.players sp
+   where sp.game_id = g_id and sp.user_id = row_user;
+$$;
+revoke execute on function strands._hint_points_for(uuid, uuid) from public;
+-- The security_invoker view calls these AS THE CALLER, so authenticated needs
+-- EXECUTE — the definer body is what reads past the column grant, not the
+-- caller's own rights. (Missed at first: revoking from public without granting
+-- to authenticated makes the view itself unusable.)
+grant execute on function strands._hint_points_for(uuid, uuid) to authenticated;
+
+create or replace function strands._active_hint_for(g_id uuid, row_user uuid)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = strands, common, public, extensions
+as $$
+  select case when strands._player_state_visible(g_id, row_user)
+              then sp.active_hint_coords else null end
+    from strands.players sp
+   where sp.game_id = g_id and sp.user_id = row_user;
+$$;
+revoke execute on function strands._active_hint_for(uuid, uuid) from public;
+grant execute on function strands._active_hint_for(uuid, uuid) to authenticated;
+
+drop view if exists strands.players_state;
+create view strands.players_state with (security_invoker = true) as
+  select sp.game_id,
+         sp.user_id,
+         sp.hints_spent,
+         sp.solved,
+         sp.solved_at,
+         strands._hint_points_for(sp.game_id, sp.user_id) as hint_points,
+         strands._active_hint_for(sp.game_id, sp.user_id) as active_hint_coords
+    from strands.players sp;
+
+grant select on strands.players_state to authenticated;
+
+-- ============================================================
 -- strands.guesses
 -- ============================================================
--- Coop shows EVERY guess to EVERY player — that was a deliberate ruling, not an
--- oversight: the turn log is a shared record of what the team has tried, and
--- hiding a peer's rejected guesses would make the log lie about the session.
--- So there is no per-player split here. The compete sibling will add a
--- mode-aware policy with an `or cg.is_terminal` arm, the way the other compete
--- games do — which is also what keeps the shared turn-log picker's empty line
--- honest ("Hidden until game ends" vs "Nothing yet").
+-- Mode-aware, in three OR branches under one club-membership gate — the shape
+-- wordwheel/spellingbee use:
+--
+--   coop            everyone in the club sees every guess. A deliberate ruling:
+--                   the turn log is the team's shared record of what has been
+--                   tried, and hiding a peer's rejects would make it lie.
+--   own rows        you always see your own (compete's board is yours).
+--   is_terminal     the post-game reveal, so the log can be compared afterwards.
+--
+-- The compete arm is what keeps WORD COUNTS private: an opponent's finds are
+-- their business until the race is over. It's also what makes the shared
+-- turn-log picker's empty line honest — "Hidden until game ends" rather than
+-- "Nothing yet".
 grant select on strands.guesses to authenticated;
 
 drop policy if exists guesses_select on strands.guesses;
@@ -99,8 +205,14 @@ create policy guesses_select on strands.guesses
     exists (
       select 1
         from strands.games sg
+        join common.games cg on cg.id = sg.id
        where sg.id = strands.guesses.game_id
          and common.is_club_member(sg.club_handle)
+         and (
+           sg.mode = 'coop'
+           or strands.guesses.user_id = auth.uid()
+           or cg.is_terminal
+         )
     )
   );
 
@@ -146,9 +258,6 @@ create view strands.games_state with (security_invoker = true) as
          sg.puzzle_date,
          sg.board,
          sg.clue,
-         sg.hint_points,
-         sg.hints_spent,
-         sg.active_hint_coords,
          sg.min_word_length,
          sg.hint_cost,
          sg.band,
@@ -202,15 +311,13 @@ declare
 begin
   perform common.require_valid_mode(mode);
 
-  -- Coop ships first; the compete sibling isn't registered in
-  -- common.gametypes yet, so reaching here with mode='compete' means a client
-  -- built a request for a gametype that doesn't exist.
-  if mode <> 'coop' then
-    raise exception 'strands ships coop-first; compete is not available yet'
-      using errcode = 'P0001';
+  -- Compete needs an opposing PLAYER. The manifest hides its Start button in a
+  -- one-player club; this is the server-side catch.
+  if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
+    raise exception 'compete mode requires at least 2 players' using errcode = 'P0001';
   end if;
 
-  -- Upper bound must agree with `numberOfPlayers: [1, 6]` in the manifest.
+  -- Upper bound must agree with `numberOfPlayers` in the manifest.
   perform common.require_player_count_max(player_user_ids, 6);
 
   -- ─── Validate setup ──────────────────────────────────────
@@ -268,9 +375,10 @@ begin
     setup - 'puzzleId' - 'first_turn_user_id'
   );
 
-  -- Opt-in turn-by-turn coop. Free-for-all leaves the pointer null, which
-  -- makes common._require_turn a no-op in submit_path.
-  if setup->>'coop_style' = 'turns' then
+  -- Opt-in turn-by-turn COOP. Compete never rotates — everyone races at once —
+  -- and free-for-all leaves the pointer null, making common._require_turn a
+  -- no-op in submit_path.
+  if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
       raise exception 'setup.first_turn_user_id must be one of the players'
@@ -289,9 +397,13 @@ begin
     v_min_word_length, v_hint_cost, v_band
   );
 
+  -- One row per player. In coop these move in lock-step (the pool is shared);
+  -- in compete each is its own race.
+  insert into strands.players (game_id, user_id)
+  select new_id, uid from unnest(player_user_ids) as uid;
+
   -- Seed the club-list readout in the SAME shape submit_path maintains, so a
-  -- game that nobody has moved in yet still lists as "Playing · 0/7 words"
-  -- rather than a blank line.
+  -- game nobody has moved in yet still lists as "Playing · 0 words".
   perform common.update_state(
     new_id,
     'playing',
@@ -300,7 +412,13 @@ begin
     -- shielded, and `status` is readable by the entire club. The server keeps
     -- computing the total internally for the terminal check; it just never
     -- publishes it.
-    jsonb_build_object('mode', mode, 'words_found', 0)
+    -- Compete publishes NOTHING mid-game: `status` is club-readable, so a
+    -- word count there would hand every rival the progress the guesses RLS is
+    -- keeping private. Coop shares everything, so its count is safe.
+    case when mode = 'coop'
+         then jsonb_build_object('mode', mode, 'words_found', 0)
+         else jsonb_build_object('mode', mode)
+    end
   );
 
   return query select new_id;
@@ -316,7 +434,12 @@ grant execute on function strands.create_game(text, jsonb, uuid[], text) to auth
 -- "r,c" keys for every cell a found theme word occupies. Those tiles are
 -- spent: they can't be traced again, which is coherent only because the hidden
 -- words tile the board exactly (48 cells, each once — asserted at import).
-create or replace function strands._consumed_keys(target_game uuid)
+--
+-- WHOSE finds count depends on the mode, and this is the one place that
+-- difference lives: coop shares one board, so anyone's find locks the tiles for
+-- everyone; compete gives each player their own progress over the same letters,
+-- so only your own finds lock yours.
+create or replace function strands._consumed_keys(target_game uuid, for_user uuid)
 returns text[]
 language sql
 stable
@@ -324,12 +447,112 @@ security definer
 set search_path = strands, common, public, extensions
 as $$
   select coalesce(array_agg(distinct (e->>0) || ',' || (e->>1)), '{}')
-    from strands.guesses g,
+    from strands.guesses g
+    join strands.games sg on sg.id = g.game_id,
          lateral jsonb_array_elements(g.path) e
    where g.game_id = target_game
-     and g.result in ('theme', 'spangram');
+     and g.result in ('theme', 'spangram')
+     and (sg.mode = 'coop' or g.user_id = for_user);
 $$;
-revoke execute on function strands._consumed_keys(uuid) from public;
+revoke execute on function strands._consumed_keys(uuid, uuid) from public;
+
+-- ============================================================
+-- strands._maybe_finish_compete — is anyone still racing?
+-- ============================================================
+-- A compete game ends when NO player is still racing — racing meaning not
+-- solved and not conceded. Called from submit_path (a solve may have been the
+-- last one), from concede (a drop-out may leave nobody), and by the timeout.
+-- Returns true when it ended the game.
+--
+-- THE WINNER, and why it can't be decided any earlier: whoever SOLVED using
+-- the fewest hints, earliest solve breaking a tie. A player still going might
+-- yet finish on fewer hints than the current best, so "first to solve" would
+-- crown the wrong person — which is exactly why solving goes LOCALLY terminal
+-- instead of ending the game.
+--
+-- Nobody solved → a collective loss. `outcome` names which way it happened,
+-- because "everyone gave up" and "the clock beat us" read very differently in
+-- the club list.
+create or replace function strands._maybe_finish_compete(
+  target_game uuid,
+  timed_out boolean default false
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = strands, common, public, extensions
+as $$
+declare
+  best_hints     int;
+  player_results jsonb;
+  any_solved     boolean;
+begin
+  -- Still someone racing? Then it isn't over (unless the clock says so).
+  if not timed_out and exists (
+    select 1
+      from strands.players sp
+      join common.game_players gp
+        on gp.game_id = sp.game_id and gp.user_id = sp.user_id
+     where sp.game_id = target_game
+       and not sp.solved
+       and not gp.conceded
+  ) then
+    return false;
+  end if;
+
+  select min(sp.hints_spent) into best_hints
+    from strands.players sp
+   where sp.game_id = target_game and sp.solved;
+  any_solved := best_hints is not null;
+
+  if any_solved then
+    -- Fewest hints, then earliest solve. Ties on BOTH are co-winners rather
+    -- than an arbitrary pick — vanishingly unlikely with timestamptz, but a
+    -- tie-break that silently invents an order is worse than one that admits
+    -- the tie.
+    with ranked as (
+      select sp.user_id,
+             sp.solved
+               and sp.hints_spent = best_hints
+               and sp.solved_at = (
+                 select min(s2.solved_at) from strands.players s2
+                  where s2.game_id = target_game and s2.solved
+                    and s2.hints_spent = best_hints
+               ) as won
+        from strands.players sp
+       where sp.game_id = target_game
+    )
+    select jsonb_object_agg(user_id::text, jsonb_build_object('won', won))
+      into player_results from ranked;
+
+    perform common.end_game(
+      target_game, 'won_compete',
+      jsonb_build_object('outcome', 'solved', 'best_hints', best_hints),
+      player_results);
+  else
+    select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
+      into player_results
+      from common.game_players where game_id = target_game;
+
+    perform common.end_game(
+      target_game, 'lost_compete',
+      jsonb_build_object(
+        'outcome',
+        case
+          when timed_out then 'timeout'
+          when not exists (select 1 from common.game_players gp
+                            where gp.game_id = target_game and not gp.conceded)
+            then 'conceded'
+          else 'unsolved'
+        end),
+      player_results);
+  end if;
+
+  return true;
+end;
+$$;
+
+revoke execute on function strands._maybe_finish_compete(uuid, boolean) from public;
 
 -- ============================================================
 -- strands.submit_path — trace a word (THE move RPC)
@@ -386,8 +609,9 @@ declare
   v_points       int;
   v_found        int;
   v_total        int;
-  hint_cleared   boolean := false;
+  hint_cleared   int := 0;
   did_end        boolean := false;
+  v_solved       boolean := false;
   player_results jsonb;
 begin
   caller_id := common.require_game_player(target_game);
@@ -423,7 +647,7 @@ begin
     raise exception 'each path cell must be [row, col]' using errcode = 'P0001';
   end if;
 
-  consumed := strands._consumed_keys(target_game);
+  consumed := strands._consumed_keys(target_game, caller_id);
 
   for i in 1..n loop
     if rs[i] < 0 or rs[i] > 7 or cs[i] < 0 or cs[i] > 5 then
@@ -482,10 +706,14 @@ begin
     if n < g_row.min_word_length then
       v_result := 'too_short';
     elsif exists (
+      -- Credited-once, scoped like the board: coop shares its credit, compete
+      -- keeps each player's own — otherwise your rival finding ADAPT would
+      -- silently deny you the point.
       select 1 from strands.guesses gu
        where gu.game_id = target_game
          and gu.word = v_word
          and gu.result = 'hint_word'
+         and (g_row.mode = 'coop' or gu.user_id = caller_id)
     ) then
       v_result := 'duplicate';
     elsif exists (
@@ -510,32 +738,50 @@ begin
     -- The bar CAPS at hint_cost: points earned while a hint sits unspent are
     -- lost. A deliberate rule, not an overflow bug — the full bar is the
     -- signal, which is why nothing warns about it.
-    update strands.games
-       set hint_points = least(hint_points + 1, hint_cost)
-     where id = target_game
-     returning hint_points into v_points;
-  else
-    v_points := g_row.hint_points;
+    --
+    -- COOP moves every row in lock-step (one shared pool); COMPETE moves only
+    -- the earner's. Same statement, one predicate apart — which is why the
+    -- economy lives on `players` in both modes rather than being forked.
+    update strands.players sp
+       set hint_points = least(sp.hint_points + 1, g_row.hint_cost)
+     where sp.game_id = target_game
+       and (g_row.mode = 'coop' or sp.user_id = caller_id);
   end if;
+  select sp.hint_points into v_points
+    from strands.players sp
+   where sp.game_id = target_game and sp.user_id = caller_id;
 
   if matched then
-    -- A spent hint retires the moment its word is found.
-    if g_row.active_hint_coords is not null and g_row.active_hint_coords = norm_path then
-      update strands.games set active_hint_coords = null where id = target_game;
-      hint_cleared := true;
-    end if;
+    -- A spent hint retires the moment its word is found — for whoever was
+    -- looking at it (everyone in coop, just you in compete).
+    update strands.players sp
+       set active_hint_coords = null
+     where sp.game_id = target_game
+       and sp.active_hint_coords = norm_path
+       and (g_row.mode = 'coop' or sp.user_id = caller_id);
+    -- FOUND is PL/pgSQL's "did the last statement touch a row?" — spelled out
+    -- rather than assigned straight through, because reading `hint_cleared :=
+    -- found` gives no clue that `found` is a special variable.
+    get diagnostics hint_cleared = row_count;
   end if;
 
+  -- Progress is the CALLER's in compete, the team's in coop — the same scope
+  -- the board itself uses.
   select count(*) into v_found
-    from strands.guesses
-   where game_id = target_game and result in ('theme', 'spangram');
+    from strands.guesses gu
+   where gu.game_id = target_game
+     and gu.result in ('theme', 'spangram')
+     and (g_row.mode = 'coop' or gu.user_id = caller_id);
   v_total := jsonb_array_length(g_row.solution->'themeWords') + 1;
 
-  -- ─── Terminal: the board is consumed ─────────────────────
+  -- ─── Solving ─────────────────────────────────────────────
   -- "Every theme word found" and "every cell used" are the same statement,
   -- because the hidden words tile the board exactly. Counting words is the
   -- cheaper half of that identity.
-  if matched and v_found >= v_total then
+  v_solved := matched and v_found >= v_total;
+
+  if v_solved and g_row.mode = 'coop' then
+    -- Coop: solving IS the end. Everyone wins together.
     select jsonb_object_agg(user_id::text, '{"won": true}'::jsonb)
       into player_results
       from common.game_players where game_id = target_game;
@@ -545,13 +791,30 @@ begin
       jsonb_build_object('outcome', 'solved', 'words_found', v_found),
       player_results);
     did_end := true;
+
+  elsif v_solved then
+    -- Compete: solving ends YOUR race, not THE race. The winner is whoever
+    -- solved on the fewest hints, and a player still going could yet beat you
+    -- — so the board goes locally terminal and _maybe_finish_compete decides
+    -- whether anyone is left.
+    update strands.players
+       set solved = true, solved_at = now()
+     where game_id = target_game and user_id = caller_id;
+    did_end := strands._maybe_finish_compete(target_game);
+
   else
-    perform common.update_state(
-      target_game, 'playing', jsonb_build_object('words_found', v_found));
+    -- Compete publishes no progress mid-game (see create_game): `status` is
+    -- club-readable, and a word count there would leak what the guesses RLS is
+    -- protecting.
+    if g_row.mode = 'coop' then
+      perform common.update_state(
+        target_game, 'playing', jsonb_build_object('words_found', v_found));
+    end if;
 
     -- Turn-order advances only on an ACCEPTED move. A rejected trace (too
     -- short, unknown, already counted) is a misfire, not a turn — the same
-    -- call the other turn games make for their soft rejects.
+    -- call the other turn games make for their soft rejects. No-op in compete,
+    -- whose pointer is null.
     if v_result in ('theme', 'spangram', 'hint_word') then
       perform common._advance_turn(target_game);
     end if;
@@ -564,7 +827,7 @@ begin
     'hint_points', v_points,
     'hint_cost', g_row.hint_cost,
     'words_found', v_found,
-    'hint_cleared', hint_cleared,
+    'hint_cleared', hint_cleared > 0,
     'terminal', did_end
   );
 end;
@@ -592,11 +855,13 @@ security definer
 set search_path = strands, common, public, extensions
 as $$
 declare
-  g_row  strands.games%rowtype;
-  play   text;
-  coords jsonb;
+  caller_id uuid;
+  g_row     strands.games%rowtype;
+  p_row     strands.players%rowtype;
+  play      text;
+  coords    jsonb;
 begin
-  perform common.require_game_player(target_game);
+  caller_id := common.require_game_player(target_game);
 
   select * into g_row from strands.games where id = target_game for update;
   if not found then
@@ -608,16 +873,24 @@ begin
     raise exception 'game is not in progress' using errcode = 'P0001';
   end if;
 
-  if g_row.hint_points < g_row.hint_cost then
+  select * into p_row from strands.players
+   where game_id = target_game and user_id = caller_id;
+  if p_row.solved then
+    raise exception 'you have already solved this board' using errcode = 'P0001';
+  end if;
+
+  if p_row.hint_points < g_row.hint_cost then
     raise exception 'not enough hint points' using errcode = 'P0001';
   end if;
 
   -- An unspent hint blocks a second one: the board can only ring one word at a
   -- time without becoming unreadable, and the bar is capped anyway.
-  if g_row.active_hint_coords is not null then
+  if p_row.active_hint_coords is not null then
     raise exception 'a hint is already showing' using errcode = 'P0001';
   end if;
 
+  -- A word already found is not worth revealing. WHOSE finds count is the
+  -- board's own rule — shared in coop, your own in compete.
   select tw->'coords' into coords
     from jsonb_array_elements(
            g_row.solution->'themeWords' || jsonb_build_array(g_row.solution->'spangram')
@@ -627,20 +900,24 @@ begin
       where gu.game_id = target_game
         and gu.result in ('theme', 'spangram')
         and gu.path = tw->'coords'
+        and (g_row.mode = 'coop' or gu.user_id = caller_id)
    )
    order by random()
    limit 1;
 
   if coords is null then
-    -- Defensive: every word found should have ended the game already.
+    -- Defensive: a board with everything found should already be terminal.
     raise exception 'nothing left to hint' using errcode = 'P0001';
   end if;
 
-  update strands.games
+  -- Coop shares the pool, so the spend AND the reveal land on every row — one
+  -- token bought one hint for the team. Compete charges only the spender.
+  update strands.players sp
      set active_hint_coords = coords,
          hint_points = 0,
-         hints_spent = hints_spent + 1
-   where id = target_game;
+         hints_spent = sp.hints_spent + 1
+   where sp.game_id = target_game
+     and (g_row.mode = 'coop' or sp.user_id = caller_id);
 
   return jsonb_build_object('coords', coords, 'hint_points', 0);
 end;
@@ -668,7 +945,6 @@ as $$
 declare
   play           text;
   v_found        int;
-  v_total        int;
   player_results jsonb;
 begin
   perform common.require_game_player(target_game);
@@ -688,13 +964,15 @@ begin
   select count(*) into v_found
     from strands.guesses
    where game_id = target_game and result in ('theme', 'spangram');
-  select jsonb_array_length(solution->'themeWords') + 1 into v_total
-    from strands.games where id = target_game;
 
   select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
     into player_results
     from common.game_players where game_id = target_game;
 
+  -- `ended` in BOTH modes, and neutral in both: the friends agreed to stop, so
+  -- nobody won. Compete does NOT crown the best solver here — a race called off
+  -- early didn't finish, and handing the trophy to whoever was ahead would
+  -- reward stopping at the right moment.
   perform common.end_game(
     target_game, 'ended',
     jsonb_build_object('outcome', 'manual', 'words_found', v_found),
@@ -704,6 +982,42 @@ $$;
 
 revoke execute on function strands.end_game(uuid) from public;
 grant execute on function strands.end_game(uuid) to authenticated;
+
+-- ============================================================
+-- strands.concede — drop out of a compete race
+-- ============================================================
+-- Compete only: a coop team has nobody to keep racing, so it stops with
+-- end_game instead.
+--
+-- NOT common.concede, which ends a game as a collective loss the moment the
+-- last player drops. strands can't use that: a table where two players quit and
+-- a third had already SOLVED must end with that solver winning, not with
+-- everyone losing. So it's the documented split — common._set_conceded for the
+-- guarded flag flip, then this gametype's own finisher to decide the outcome.
+create or replace function strands.concede(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = strands, common, public, extensions
+as $$
+declare
+  g_mode text;
+begin
+  select mode into g_mode from strands.games where id = target_game;
+  if g_mode is null then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+  if g_mode <> 'compete' then
+    raise exception 'concede is compete-only' using errcode = 'P0001';
+  end if;
+
+  perform common._set_conceded(target_game);
+  perform strands._maybe_finish_compete(target_game);
+end;
+$$;
+
+revoke execute on function strands.concede(uuid) from public;
+grant execute on function strands.concede(uuid) to authenticated;
 
 -- ============================================================
 -- strands.replay_board — run this puzzle back
@@ -737,11 +1051,13 @@ begin
 
   delete from strands.guesses where game_id = target_game;
 
-  update strands.games
+  update strands.players
      set hint_points = 0,
          hints_spent = 0,
-         active_hint_coords = null
-   where id = target_game;
+         active_hint_coords = null,
+         solved = false,
+         solved_at = null
+   where game_id = target_game;
 
   -- Turn-order coop: rewind to the original opener. Matches no row in a
   -- free-for-all game, whose pointer is null.
@@ -752,11 +1068,14 @@ begin
          )
    where id = target_game and current_turn_user_id is not null;
 
-  -- The same status shape create_game seeds — a restart must be
-  -- indistinguishable from a fresh game.
+  -- The same status shape create_game seeds, mode for mode — a restart must be
+  -- indistinguishable from a fresh game, including compete's silence.
   perform common.reset_game(
     target_game,
-    jsonb_build_object('mode', g_row.mode, 'words_found', 0)
+    case when g_row.mode = 'coop'
+         then jsonb_build_object('mode', g_row.mode, 'words_found', 0)
+         else jsonb_build_object('mode', g_row.mode)
+    end
   );
 end;
 $$;
@@ -783,14 +1102,14 @@ security definer
 set search_path = strands, common, public, extensions
 as $$
 declare
+  g_row          strands.games%rowtype;
   play           text;
   v_found        int;
-  v_total        int;
   player_results jsonb;
 begin
   perform common.require_game_player(target_game);
 
-  perform 1 from strands.games where id = target_game for update;
+  select * into g_row from strands.games where id = target_game for update;
   if not found then
     raise exception 'game not found' using errcode = 'P0002';
   end if;
@@ -800,11 +1119,17 @@ begin
     raise exception 'game is not in progress' using errcode = 'P0001';
   end if;
 
+  if g_row.mode = 'compete' then
+    -- The clock stops the race wherever it stands, and the ranking is applied
+    -- to whoever HAD solved. A player mid-board simply didn't finish — the
+    -- winner is still "solved, on the fewest hints", never "got furthest".
+    perform strands._maybe_finish_compete(target_game, true);
+    return;
+  end if;
+
   select count(*) into v_found
     from strands.guesses
    where game_id = target_game and result in ('theme', 'spangram');
-  select jsonb_array_length(solution->'themeWords') + 1 into v_total
-    from strands.games where id = target_game;
 
   select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
     into player_results

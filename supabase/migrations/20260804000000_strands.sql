@@ -13,9 +13,28 @@
 -- ONLY in the manifest's BRAND const — SQL / TypeScript / folder names
 -- are all `strands`.
 --
--- Ships coop-first. The compete sibling ('strands_compete') lands
--- later and will add a `strands.players` table for per-player hint
--- pools; the coop pool lives on `strands.games` because it is SHARED.
+-- Sibling pair: 'strands_coop' + 'strands_compete', one schema, one
+-- folder (the sibling-manifest pattern — see docs/common.md).
+--
+-- ┌─ What compete changes ──────────────────────────────────┐
+-- │ Each player races the SAME puzzle on their own progress: │
+-- │ own found words, own hint bar, own locked tiles.         │
+-- │                                                          │
+-- │ The winner is whoever SOLVED using the FEWEST HINTS,     │
+-- │ earliest solve breaking a tie. That single rule sets the │
+-- │ shape of everything else: the race CANNOT end on first   │
+-- │ solve, because the hint count of a player still going is │
+-- │ unknown — so a solver goes LOCALLY terminal and the rest │
+-- │ keep racing, and the game ends when nobody is still      │
+-- │ racing (all solved or conceded) or the clock expires.    │
+-- │ First-to-solve would make the hint count decorative.     │
+-- │                                                          │
+-- │ Opponents see ONE number mid-game: hints used. That says │
+-- │ how the race is going without saying anything about the  │
+-- │ puzzle — word counts stay private (RLS on guesses), and  │
+-- │ so does the hint BAR, which would hint at how many words │
+-- │ a rival has found.                                       │
+-- └──────────────────────────────────────────────────────────┘
 --
 -- ┌─ Two invariants verified against the real NYT feed ─────┐
 -- │ Both were checked across sampled puzzles spanning the   │
@@ -164,17 +183,9 @@ create table strands.games (
   -- The answer key. Column-grant hidden — see supabase/sql/strands.sql.
   solution jsonb not null,
 
-  -- ── The shared coop hint economy ──
-  -- hint_points is the BAR, and it CAPS at hint_cost: points found
-  -- while a hint is unspent are lost. That is a deliberate rule, not
-  -- an overflow bug — the player reads the full bar rather than being
-  -- warned. Spending resets it to 0.
-  hint_points int not null default 0 check (hint_points >= 0),
-  hints_spent int not null default 0 check (hints_spent >= 0),
-  -- The active hint exposes COORDS, never the word: a hint rings the
-  -- tiles and leaves the player to work out the order. This is the
-  -- only piece of the solution that is ever public before terminal.
-  active_hint_coords jsonb,
+  -- (The hint economy lives on strands.players — see below. It is per-ROW even
+  --  in coop, where the rows simply move in lock-step; connections does the
+  --  same with its mistake counter.)
 
   -- ── Setup knobs, denormalized (immutable after create) ──
   -- Minimum length for a word to EARN a hint point. Theme words are
@@ -197,6 +208,47 @@ create table strands.games (
 
 create index strands_games_club_handle_idx on strands.games (club_handle);
 create index strands_games_puzzle_id_idx on strands.games (puzzle_id);
+
+-- ============================================================
+-- strands.players — per-player working state
+-- ============================================================
+-- One row per (game, player), created at create_game.
+--
+-- ONE SHAPE FOR BOTH MODES, which is why the hint economy lives here rather
+-- than on the game even though coop's pool is SHARED: in coop every row moves
+-- in lock-step (a point earned by anyone lands on everyone), in compete only
+-- the actor's row moves. That keeps a single code path instead of two, and it
+-- is exactly what connections does with `mistake_count`.
+--
+-- `solved` is compete's finish line rather than the game's. A solver goes
+-- LOCALLY terminal and the others keep racing — because the winner is whoever
+-- solved with the FEWEST HINTS, which can't be known until everyone has
+-- finished or given up. First-to-solve would make the hint count decorative.
+create table strands.players (
+  game_id uuid not null references strands.games(id) on delete cascade,
+  user_id uuid not null references common.profiles(user_id) on delete cascade,
+
+  -- The hint BAR. Caps at the game's hint_cost: points earned while a hint sits
+  -- unspent are lost — a deliberate rule, not an overflow bug, which is why
+  -- nothing warns about it (the full bar is the signal).
+  hint_points int not null default 0 check (hint_points >= 0),
+  -- Hints CASHED. This is compete's ranking metric, and the one number an
+  -- opponent may see mid-game: it says how you are doing without saying
+  -- anything about the puzzle.
+  hints_spent int not null default 0 check (hints_spent >= 0),
+  -- A spent hint's cells. COORDS, never the word — the reveal says where a word
+  -- is, not what order it runs in.
+  active_hint_coords jsonb,
+
+  -- Compete's per-player finish. `solved_at` is the tie-break when two players
+  -- finish on equal hints.
+  solved boolean not null default false,
+  solved_at timestamptz,
+
+  primary key (game_id, user_id)
+);
+
+create index strands_players_game_id_idx on strands.players (game_id);
 
 -- ============================================================
 -- strands.guesses — the append-only submission log
@@ -234,13 +286,17 @@ create table strands.guesses (
 
 create index strands_guesses_game_id_idx on strands.guesses (game_id);
 
--- Idempotency for the found set. submit_path already serializes on a
--- row lock and rejects a path whose tiles are consumed, so this can't
--- fire under the normal path — it's here to make the invariant
--- STRUCTURAL ("a theme word is found at most once per game") rather
--- than merely upheld by the RPC that happens to be written today.
+-- Idempotency for the found set, PER PLAYER. submit_path already serializes on
+-- a row lock and rejects a path whose tiles are spent, so this can't fire on
+-- the normal path — it's here to make the invariant structural rather than
+-- merely upheld by the RPC that happens to be written today.
+--
+-- `user_id` is in the key because COMPETE gives each player their own progress
+-- over one puzzle: two racers finding the same word is the expected case, not a
+-- double-credit. Coop needs no game-wide version — a found word's tiles lock
+-- for everyone, so nobody can trace it twice anyway.
 create unique index strands_guesses_found_once_idx
-  on strands.guesses (game_id, word)
+  on strands.guesses (game_id, user_id, word)
   where result in ('theme', 'spangram');
 
 -- ============================================================
@@ -253,6 +309,7 @@ create unique index strands_guesses_found_once_idx
 
 alter table strands.puzzles enable row level security;
 alter table strands.games enable row level security;
+alter table strands.players enable row level security;
 alter table strands.guesses enable row level security;
 
 -- ============================================================
@@ -266,24 +323,25 @@ alter table strands.guesses enable row level security;
 -- published); schema_test guards the same invariant for wordwheel and
 -- wordiply.
 --
---   games    — hint bar, active hint, terminal flips
+--   games    — terminal flips + the replay touch
+--   players  — the hint bar, the active hint, and a peer's hints-used
 --   guesses  — new submissions; how every client learns a word landed
 
 alter publication supabase_realtime add table strands.games;
+alter publication supabase_realtime add table strands.players;
 alter publication supabase_realtime add table strands.guesses;
 
 -- ============================================================
 -- Gametype registration
 -- ============================================================
--- Coop only for now — registering 'strands_compete' before it exists
--- would surface a Start button for an unbuilt game. The compete row
--- gets added here (edited in place, per the alpha rule in CLAUDE.md)
--- when that sibling lands.
---
--- hides_solution = true: strands withholds its answer from a game
--- that ended without a win, which is what wires up the shared
+-- hides_solution = true for both: strands withholds its answer from a
+-- game that ended without a win, which is what wires up the shared
 -- RevealButton + common.reveal_solution.
+--
+-- Compete needs an opposing PLAYER (min_players 2), so a solo club
+-- never sees its Start button.
 
 insert into common.gametypes (gametype, min_players, hides_solution) values
-  ('strands_coop', 1, true)
+  ('strands_coop', 1, true),
+  ('strands_compete', 2, true)
 on conflict do nothing;

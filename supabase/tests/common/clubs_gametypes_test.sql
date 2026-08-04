@@ -41,14 +41,14 @@ select plan(17);
 
 select is(
   (select count(*) from common.gametypes),
-  25::bigint,
-  'common.gametypes contains twenty-five rows (codenamesduet + 2 psychicnum + 2 connections + 2 spellingbee + bananagrams + 2 waffle + 2 wordle + 2 stackdown + 2 scrabble + 2 boggle + 2 crosswords + 2 wordwheel + 2 wordiply + strands_coop — strands ships coop-first, so its compete sibling is not registered yet)'
+  26::bigint,
+  'common.gametypes contains twenty-six rows (codenamesduet + 2 psychicnum + 2 connections + 2 spellingbee + bananagrams + 2 waffle + 2 wordle + 2 stackdown + 2 scrabble + 2 boggle + 2 crosswords + 2 wordwheel + 2 wordiply + 2 strands)'
 );
 
 select is(
   (select array_agg(gametype order by gametype) from common.gametypes),
-  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordle_coop','wordwheel_compete','wordwheel_coop'],
-  'common.gametypes contains the twenty-five registered gametypes by name'
+  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_compete','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordle_coop','wordwheel_compete','wordwheel_coop'],
+  'common.gametypes contains the twenty-six registered gametypes by name'
 );
 
 -- ============================================================
@@ -99,8 +99,8 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  25::bigint,
-  'create_club populated 25 m2m rows for the new club'
+  26::bigint,
+  'create_club populated 26 m2m rows for the new club'
 );
 
 select is(
@@ -109,8 +109,8 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordle_coop','wordwheel_compete','wordwheel_coop'],
-  'new club has m2m rows for all twenty-five registered gametypes'
+  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_compete','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordle_coop','wordwheel_compete','wordwheel_coop'],
+  'new club has m2m rows for all twenty-six registered gametypes'
 );
 
 -- ============================================================
@@ -125,7 +125,7 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  25::bigint,
+  26::bigint,
   'sanity: ada (a member) sees her club''s m2m rows'
 );
 
@@ -154,7 +154,7 @@ select is(
 
 select is(
   (select count(*) from common.gametypes),
-  25::bigint,
+  26::bigint,
   'common.gametypes is readable by any signed-in user'
 );
 

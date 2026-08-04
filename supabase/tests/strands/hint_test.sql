@@ -74,7 +74,9 @@ select is(
 -- The pool is SHARED, so the choice has to live on the game row where every
 -- client reads the same value — not be re-rolled per caller.
 select is(
-  (select active_hint_coords from strands.games where id = (select id from game)),
+  (select active_hint_coords from strands.players_state
+    where game_id = (select id from game)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
   (select payload->'coords' from hint),
   'the SAME coords are persisted on the game — every coop player sees one hint'
 );
@@ -88,13 +90,17 @@ select is(
 );
 
 select is(
-  (select hint_points from strands.games where id = (select id from game)),
+  (select hint_points from strands.players_state
+    where game_id = (select id from game)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
   0,
   'spending empties the bar'
 );
 
 select is(
-  (select hints_spent from strands.games where id = (select id from game)),
+  (select hints_spent from strands.players_state
+    where game_id = (select id from game)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1,
   'and counts the spend'
 );
@@ -124,7 +130,9 @@ select throws_ok(
 -- assuming: whatever it pointed at, tracing THAT path must clear it.
 
 create temp table hinted on commit drop as
-select active_hint_coords as coords from strands.games where id = (select id from game);
+select active_hint_coords as coords from strands.players_state
+ where game_id = (select id from game)
+   and user_id = 'ada11111-1111-1111-1111-111111111111';
 
 select is(
   strands.submit_path((select id from game), (select coords from hinted))->>'hint_cleared',
@@ -133,7 +141,9 @@ select is(
 );
 
 select is(
-  (select active_hint_coords from strands.games where id = (select id from game)),
+  (select active_hint_coords from strands.players_state
+    where game_id = (select id from game)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
   null,
   'and the hint stops showing'
 );

@@ -89,7 +89,9 @@ select is(
 -- ============================================================
 
 select is(
-  (select hint_points from strands.games where id = (select id from game)),
+  (select hint_points from strands.players_state
+    where game_id = (select id from game)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1,
   'the first hint word puts one point on the bar'
 );
@@ -121,7 +123,9 @@ select is(
 );
 
 select is(
-  (select hint_points from strands.games where id = (select id from game)),
+  (select hint_points from strands.players_state
+    where game_id = (select id from game)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
   3,
   'the bar is still 3 — nothing has spent it yet'
 );
