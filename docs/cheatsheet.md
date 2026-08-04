@@ -109,6 +109,9 @@ gmake db-schema ENV=local                    # migrations only
 gmake db-sql ENV=local                       # supabase/sql/ only — how an RPC change ships
 gmake db-data ENV=local                      # every table's DATA (no structure)
 gmake db-reset ENV=local                     # db + the dev personas
+gmake db-drift ENV=prod                      # does that database's SHAPE match the migration
+                                             # baselines? (edited-in-place baselines don't ship
+                                             # via db push — this makes the divergence visible)
 gmake db-backup ENV=prod                     # pg_dump the irreplaceable data (auth accounts +
                                              # app rows; dictionary/seed bulk excluded) → backups/
 gmake db-restore ENV=local DUMP=backups/<f>  # data-only pg_restore; structure comes from git

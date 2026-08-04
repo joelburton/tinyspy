@@ -469,6 +469,31 @@ db-restore: ## pg_restore DUMP=backups/<file>.dump (data only) into ENV's databa
 	echo "── restored. The dictionary bulk is NOT in a backup:"
 	echo "   run \`gmake all-words all-pangrams ENV=$(ENV)\` to finish."
 
+# Answers "does ENV's database match the migration baselines?" — the active
+# complement to db-schema's passive up-to-date NOTE. While baselines are
+# edited in place (alpha), an edit that never shipped is INVISIBLE to
+# `db push`; this is the target that makes the divergence a checkable fact.
+#
+# The shadow database is built from supabase/migrations/ alone, so everything
+# supabase/sql/ manages (functions, views, policies, grants) ALWAYS appears
+# in the raw diff — expected noise, not drift. The summary pulls out the
+# SHAPE lines (table/index/type/constraint DDL); those are the signal.
+.PHONY: db-drift
+db-drift: ## report schema drift: ENV's database vs the migration baselines
+	@$(PRELUDE)
+	echo "── drift: $(ENV) database vs supabase/migrations/ (shadow rebuild — takes ~30s)"
+	# The diff goes to a FILE, not the terminal: the sql/-managed noise runs
+	# tens of KB, and the shape summary below is the actual answer. Read the
+	# file when the summary flags something. When stdout isn't a tty (always
+	# true in a recipe) the CLI emits one JSON envelope {"diff":"…"} with
+	# progress on stderr — jq unwraps it into readable SQL.
+	f=$$(mktemp /tmp/db-drift-$(ENV).XXXXXX)
+	supabase $(SUPA_FLAGS) db diff --db-url "$$SUPABASE_DB_URL" | jq -r '.diff // empty' > "$$f"
+	echo "── full diff: $$f ($$(wc -l < "$$f" | tr -d ' ') lines; sql/-managed objects are expected noise)"
+	echo "── SHAPE lines (the signal):"
+	grep -inE '^[[:space:]]*(create|alter|drop)[[:space:]]+(table|index|unique index|type|sequence)' "$$f" \
+	  || echo "   none — $(ENV)'s shape matches the baselines"
+
 .PHONY: db-reset
 db-reset: ## local only: db (structure + data) + the dev personas
 	@[[ "$(ENV)" == "local" ]] || { echo "REFUSED: db-reset is local-only; use db + db-data for prod" >&2; exit 1; }

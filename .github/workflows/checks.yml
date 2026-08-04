@@ -1,0 +1,41 @@
+# The cheap guardrails, on every push: typecheck, lint, and `gmake _audit` —
+# the make system's own test suite (supabase/scripts/audit-make.sh). The
+# audit is the only coverage the deploy machinery has, and it guards six
+# bug classes that regress silently when someone edits the Makefile without
+# remembering to run it. CI is what makes it unforgettable.
+#
+# Deliberately NOT here (they need a running Supabase stack, which is a
+# heavier job than these three): pgTAP (`npm run test:db`), Vitest
+# (`npm run test:fe`), and playwright. The audit itself needs no database —
+# everything it exercises runs behind PATH shims, and its env.sh check
+# supplies its own minimal secrets file.
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # audit-make.sh sources supabase/deploy/env.sh (check 6), whose tooling
+      # preflight wants jq + psql + curl. The ubuntu image ships all three
+      # today; installing explicitly keeps an image change from failing the
+      # audit for a reason that has nothing to do with the Makefile.
+      - name: Ensure audit tooling (jq, psql)
+        run: sudo apt-get update -q && sudo apt-get install -y -q jq postgresql-client
+      - run: npm ci
+      - name: Typecheck (tsc -b)
+        run: npx tsc -b
+      - name: Lint
+        run: npm run lint
+      - name: Make-system audit
+        run: make _audit

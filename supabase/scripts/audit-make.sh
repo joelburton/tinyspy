@@ -180,7 +180,7 @@ check_refuses_no_env() { # target
 }
 for t in db-sql db-schema db-schema-sql db db-data all-words db-psql \
          g-stackdown-puzzles g-connections-puzzles all-pangrams db-reset deploy \
-         _stamps-clean db-backup db-restore; do
+         _stamps-clean db-backup db-restore db-drift; do
   check_refuses_no_env "$t"
 done
 
