@@ -271,7 +271,7 @@ db-psql: ## psql on ENV's database — SQL="select 1" to run one statement
 
 .PHONY: db-reset
 db-reset: ## local only: db + all data + dev seed (what `npm run db:reset` does)
-	@[[ "$(ENV)" == "local" ]] || { echo "db-reset is local-only; use db + db-data for prod" >&2; exit 1; }
+	@[[ "$(ENV)" == "local" ]] || { echo "REFUSED: db-reset is local-only; use db + db-data for prod" >&2; exit 1; }
 	$(MAKE) db ENV=local
 	$(MAKE) db-data ENV=local
 	$(MAKE) db-seed
@@ -309,7 +309,7 @@ deploy-func-%: $$(TRIE_$$*) ## deploy ONE edge function by name (gmake deploy-fu
 
 .PHONY: deploy-fe
 deploy-fe: ## build the FE and push to Netlify
-	@[[ "$(ENV)" == "prod" ]] || { echo "deploy-fe targets prod only (ENV=prod)" >&2; exit 1; }
+	@[[ "$(ENV)" == "prod" ]] || { echo "REFUSED: deploy-fe targets prod only (ENV=prod)" >&2; exit 1; }
 	bash supabase/deploy/fe.sh
 
 .PHONY: deploy
@@ -367,7 +367,7 @@ MIGRATIONS ?= keep
 # today on an undefined announce_target, which is not a safety mechanism.)
 .PHONY: project-db-destroy
 project-db-destroy:
-	@[[ "$(ENV)" == "prod" ]] || { echo "project-db-destroy needs ENV=prod, typed out." >&2; exit 1; }
+	@[[ "$(ENV)" == "prod" ]] || { echo "REFUSED: project-db-destroy needs ENV=prod, typed out." >&2; exit 1; }
 	$(PRELUDE)
 	echo "── WIPING the hosted database (all data, auth accounts included)"
 	announce_target
@@ -376,7 +376,7 @@ project-db-destroy:
 
 .PHONY: project-bootstrap
 project-bootstrap: ## stand up a hosted project end to end (MIGRATIONS=keep|destroy)
-	@[[ "$(ENV)" == "prod" ]] || { echo "project-bootstrap targets prod only (ENV=prod)" >&2; exit 1; }
+	@[[ "$(ENV)" == "prod" ]] || { echo "REFUSED: project-bootstrap targets prod only (ENV=prod)" >&2; exit 1; }
 	case "$(MIGRATIONS)" in
 	  keep)    ;;
 	  destroy) echo "!! MIGRATIONS=destroy — the hosted DB and ALL auth accounts will be WIPED"
@@ -421,6 +421,15 @@ dev-lint: ## eslint
 	@npm run lint
 dev-types: ## regenerate src/types/db.ts from the live local schema
 	@npm run types:gen
+
+# The make system's own test suite — the only part of this repo with no pgTAP
+# or playwright coverage, and the part that can write to prod. It re-checks
+# the two bug classes that kept recurring here (see the script's header).
+# Cheap and safe: everything runs behind PATH shims, so nothing it exercises
+# actually reaches a database.
+.PHONY: _audit
+_audit: ## check the make system itself (-n inertness, ENV leakage, guards)
+	@bash supabase/scripts/audit-make.sh
 
 # Leading underscore: an escape hatch, not part of the daily vocabulary — it
 # sorts to the top of `help` and out of the way of every prefix.

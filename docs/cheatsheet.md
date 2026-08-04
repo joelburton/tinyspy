@@ -111,7 +111,8 @@ gmake project-bootstrap ENV=prod MIGRATIONS=destroy   # stand one up from nothin
 gmake project-config-api ENV=prod            # just the PostgREST settings
 
 gmake -B <target>                            # force, ignoring stamps
-gmake _stamps-clean                           # forget what we think is loaded
+gmake _stamps-clean                          # forget what we think is loaded
+gmake _audit                                 # check the make system itself
 ```
 
 **Stamps.** A database table has no mtime, so `.make/$(ENV)/*.stamp` stands in
@@ -120,7 +121,17 @@ records *what we last did*, not what the database holds: someone else's
 `db:reset` makes it lie. `-B` and `stamps-clean` are the escape hatches; the
 failure mode is a needless re-import, never corruption.
 
-**The one non-obvious edge:** `deploy-funcs` depends on `tries`, because the
+**`gmake _audit`** is the make system's own test suite, and the only coverage
+this corner of the repo has. It checks the bug class that kept recurring here:
+that every target is inert under `-n` (a recipe mentioning `$(MAKE)` runs even
+then, and `.ONESHELL` makes that the whole recipe), that local-only targets
+ignore a `SUPABASE_DB_URL` exported in your shell, and that the destructive
+targets refuse the wrong `ENV` **deliberately** — printing `REFUSED:` — rather
+than by crashing into a guard that isn't one. Everything runs behind PATH shims,
+so it reaches no database, and it restores the stamp mtimes it disturbs. Each
+check was verified by planting the bug it looks for.
+
+**The one non-obvious edge:** `deploy-funcs` depends on `all-tries`, because the
 boggle and scrabble functions compile their word bundles in — deploying without
 regenerating ships a stale dictionary and nothing errors.
 
