@@ -80,4 +80,27 @@ for (const f of files) {
     process.exit(1)
   }
 }
+// PostgREST caches the schema — including every function signature it will
+// expose as an RPC — and only reloads when told. This used to be free: the
+// functions lived inside the migrations, so `db reset` created them before the
+// containers came back up. Now they arrive AFTER, which left PostgREST serving
+// a cache with no RPCs in it: every call failed with
+//   Could not find the function <schema>.<fn>(…) in the schema cache
+// even though psql could see it perfectly. The whole e2e suite failed this way
+// after a db-reset, and the same staleness would hit a hosted `db-sql` that
+// changed a signature.
+//
+// NOTIFY is the documented reload channel and costs nothing.
+try {
+  execFileSync('psql', ['-X', '-q', '-d', DB_URL, '-c', "notify pgrst, 'reload schema'"], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  console.log('PostgREST schema cache reload signalled.')
+} catch (e) {
+  // Not fatal: the SQL is applied either way, and a hosted project also
+  // reloads on its own within a minute. Say so rather than failing the deploy.
+  console.warn('WARNING: could not signal a PostgREST reload:', (e as Error).message)
+}
+
 console.log('Repeatable SQL applied.')
