@@ -57,11 +57,17 @@
   width: 100%;
 }
 
-/* The traced word, echoed as text. Letter-spaced so it reads as a word being
- * assembled rather than a label. */
+/* The traced word, echoed as text. Sized to read as the WORD YOU ARE BUILDING —
+ * the thing your attention is on while tracing — rather than as a caption under
+ * the board; at 1.15rem it was smaller than the verdict pill that replaces it in
+ * the same slot, which had the emphasis backwards. Letter-spaced for the same
+ * reason: it is a word being assembled, not a label.
+ *
+ * Stays inside `.echoSlot`'s 2.5rem (1.75rem × ~1.2 line-height ≈ 2.1rem), so
+ * the below-board reserve in `.layout` is unaffected. */
 .echo {
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: 1.75rem;
   letter-spacing: 0.08em;
   color: var(--strands-theme);
 }

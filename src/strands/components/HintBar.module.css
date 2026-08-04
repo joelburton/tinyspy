@@ -29,15 +29,21 @@
   overflow: hidden;
 }
 
+/* GREEN, not purple. Purple is spoken for on this board — it means "a found
+ * theme word" — and spending it on hint progress too would make one colour
+ * carry two unrelated ideas. Green is what the roster already uses for a good
+ * outcome, and specifically what the `valid word` pill shows when a find puts a
+ * point on this bar, so the pill and the bar now agree. */
 .fill {
   height: 100%;
-  background: var(--strands-active);
+  background: var(--color-outcome-won-border);
   transition: width 180ms ease-out;
 }
 
 /* A FULL bar is the only thing telling a player that further valid words are
  * earning nothing (the cap is deliberate and unwarned), so the filled state is
- * visually distinct rather than merely 100% wide. */
+ * visually distinct rather than merely 100% wide — a deeper green, still within
+ * the same "this is going well" vocabulary. */
 .fillFull {
-  background: var(--strands-theme);
+  background: var(--color-outcome-won-strong);
 }

@@ -135,6 +135,18 @@
   cursor: default;
 }
 
+/* No focus ring. Safe here specifically BECAUSE the tiles are pointer-only and
+ * out of the tab order (tabIndex={-1} in Board.tsx) — no keyboard user can
+ * reach one, so the ring can never be the thing telling someone where they are.
+ * Without this, clicking a tile leaves the browser's focus box behind, which
+ * outlives the trace: press Backspace and the just-removed tile keeps a stray
+ * blue square around it. Same pointer-only reasoning as the shared WordList's
+ * clickable words. */
+.tile:focus,
+.tile:focus-visible {
+  outline: none;
+}
+
 /* Found + selected letters sit ON a saturated disc, so they invert to keep
  * contrast. The disc carries the meaning; the letter stays legible. */
 .tileTheme,
