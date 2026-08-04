@@ -196,7 +196,9 @@ takes a third route: its button starts the NEXT DAY'S puzzle directly, and says
 so in the confirm. All fourteen also carry it as a game-menu item.
 
 ## Turn-history replay (`useHistoryViewer`)
-TS WK PN RA SD SS WN
+TS WK PN RA SD SS WN PP
+(PP's is the only one that's a pure FILTER — its board strictly accumulates, so
+"the board at turn N" is a slice of the log rather than a reconstruction.)
 
 ## Print to PDF
 RA PN MC FB MG CP MW

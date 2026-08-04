@@ -1,5 +1,6 @@
 import { COLS, ROWS, coordKey, letterAt, type Board as BoardLetters, type Coord } from '../lib/board'
 import { cls } from '../../common/lib/util/cls'
+import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './Board.module.css'
 
 /** A found word, as the board needs it: where it runs, and which colour. */
@@ -22,6 +23,11 @@ type Props = {
   onTileClick: (at: Coord) => void
   /** Frozen at terminal (and while a peer's turn is pending in a turn game). */
   disabled?: boolean
+  /** Replaying a past turn: the board wears the shared yellow history frame. */
+  viewing?: boolean
+  /** The cells the viewed turn traced — ringed, so a rejected word's route is
+   *  visible even though it changed nothing. */
+  highlight?: Coord[]
 }
 
 /**
@@ -46,7 +52,17 @@ type Props = {
  * a cell. No pixel maths, no resize observer: the board scales with its box and
  * the geometry follows for free.
  */
-export function Board({ board, found, missed = [], trace, hintCoords, onTileClick, disabled }: Props) {
+export function Board({
+  board,
+  found,
+  missed = [],
+  trace,
+  hintCoords,
+  onTileClick,
+  disabled,
+  viewing,
+  highlight = [],
+}: Props) {
   const traceKeys = new Set(trace.map(coordKey))
   const lastKey = trace.length ? coordKey(trace[trace.length - 1]) : null
   const hintKeys = new Set((hintCoords ?? []).map(coordKey))
@@ -64,7 +80,7 @@ export function Board({ board, found, missed = [], trace, hintCoords, onTileClic
     path.map(([r, c]) => `${cx(c)},${cy(r)}`).join(' ')
 
   return (
-    <div className={styles.board} data-board>
+    <div className={cls(styles.board, viewing && history.frame)} data-board>
       {/* The drawing layer: lines first, then discs, so a disc always covers the
           line ends. aria-hidden — it carries no information the letters don't. */}
       <svg
@@ -126,6 +142,18 @@ export function Board({ board, found, missed = [], trace, hintCoords, onTileClic
             r={0.47}
           />
         )}
+
+        {/* The viewed turn's route. Same ring vocabulary as a hint — "these
+            cells, no claim about order" — in the history yellow. */}
+        {highlight.map((c) => (
+          <circle
+            key={`v${coordKey(c)}`}
+            className={styles.discViewed}
+            cx={cx(c[1])}
+            cy={cy(c[0])}
+            r={0.44}
+          />
+        ))}
 
         {/* A hint rings its cells and draws NO line — the reveal says where the
             word is, never what order it runs in. */}

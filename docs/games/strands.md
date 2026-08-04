@@ -271,6 +271,27 @@ word-for-word boggle's.
 forward, and the confirm names the date. Restart is for replaying the same board.
 At the end of the archive it says so as a one-button notice.
 
+### Turn-history replay
+
+Click any `#N` in the log to see the board as it stood at that submission
+(`useHistoryViewer` + `lib/history.ts`, like the other seven).
+
+**A filter, not a reconstruction** — which is unusual, and falls out of the
+tiling invariant. The board only ever ACCUMULATES: a theme word is found once,
+its tiles lock, nothing is removed or changed. So "the board at turn N" is
+literally "the theme words among the first N+1 rows". waffle re-applies each
+swap to its scramble; stackdown's tiles vanish; strands just slices.
+
+The boundary is **inclusive** — turn N shows the board *after* it, with the
+cells that turn traced ringed in the history gold. That matters most for rows
+that changed nothing: a rejected word's route is exactly what you want when
+reviewing why it failed, and an exclusive boundary would hide it.
+
+`#N` is a live handle only when the shown rows ARE the board's own sequence —
+the shared picker's `boardIsShown`, true for coop's Team view and for your own
+in compete. Pick one player out of a shared coop log and position 3 isn't the
+board's turn 3, so the handle degrades to a plain number.
+
 ### The data hook
 
 `useGame` subscribes to `strands.guesses`, `strands.games` **and
@@ -399,11 +420,5 @@ invention:
 
 - **Print to PDF** ([pdf.md](../pdf.md)). Composes from the shared `common/pdf/`
   helpers: the board grid, the found words, the theme clue.
-- **Turn-history viewer.** strands suits it unusually well — the board is
-  strictly cumulative, so "the board at turn N" is a *filter over the log*, not a
-  reconstruction. Wire through the shared `useHistoryViewer` + a per-game
-  `lib/history.ts`. Note it interacts with the turn-log picker: `boardIsShown`
-  goes false when a single player is picked out of a shared coop log, so `#N`
-  degrades rather than replaying the wrong turn.
 - **Mobile on-device pass.** The recipe is composed and the shape is friendly (a
   portrait 6×8, tap input), but it hasn't been checked on real hardware.

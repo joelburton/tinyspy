@@ -1,5 +1,5 @@
 import type { MouseEvent } from 'react'
-import { TurnLog, TurnLogBar, type TurnOutcome } from '../../common/components/game/lists/TurnLog'
+import { TurnLog, TurnLogBar, TurnLogNumber, type TurnOutcome } from '../../common/components/game/lists/TurnLog'
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
 import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
@@ -22,6 +22,10 @@ type Props = {
   selfId: string
   mode: 'coop' | 'compete'
   isTerminal: boolean
+  /** The turn open in the board viewer (by log position), or null when live. */
+  viewingIndex: number | null
+  /** Open a turn on the board. */
+  onSelectTurn: (index: number) => void
 }
 
 /**
@@ -101,7 +105,15 @@ const BODY: Partial<Record<GuessRow['result'], string>> = {
  * No `#N` handle: strands has no turn-history viewer yet (see the plan's
  * after-the-POC list), so a row's ordinal is a plain muted number.
  */
-export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Props) {
+export function GameTurnLog({
+  guesses,
+  players,
+  selfId,
+  mode,
+  isTerminal,
+  viewingIndex,
+  onSelectTurn,
+}: Props) {
   // The whose-turns dropdown, its default, the aggregate label, the row filter
   // and the honest empty line all come from the shared hook — every turn-log
   // game carries it, on one vocabulary.
@@ -114,6 +126,13 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
     emptyLabel: 'No words yet.',
   })
   const shown = who.filter(guesses)
+
+  // `#N` is a LIVE handle only when the rows on show ARE the board's own
+  // sequence — coop's Team view, or my own in compete. Pick a single player out
+  // of a shared coop log and position 3 of the filtered list isn't the board's
+  // turn 3, so the handle degrades to a plain number rather than replaying the
+  // wrong turn. The shared picker works this out; we just obey it.
+  const boardIsShown = who.boardIsShown
 
   // Click-to-define. Only words the DICTIONARY accepted are looked up: a theme
   // word can be a phrase ("FATHERSDAY") and a reject isn't a word at all, so
@@ -133,7 +152,11 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
         {shown.map((g, i) => (
           <tr key={g.id} className={turnLog.turnLogDivider}>
             <TurnLogBar outcome={OUTCOME[g.result]} />
-            <td className={turnLog.meta}>#{i + 1}</td>
+            {boardIsShown ? (
+              <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
+            ) : (
+              <td className={turnLog.meta}>#{i + 1}</td>
+            )}
             <td className={turnLog.main}>
               {/* Fixed-width slot, so every word starts at the same x no
                   matter which glyph precedes it. */}

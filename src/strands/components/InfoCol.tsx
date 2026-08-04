@@ -51,6 +51,9 @@ type Props = {
   startingNewGame: boolean
   onReveal: () => void
   onBackToClub: () => void
+  // ── Turn-history viewer ──
+  viewingIndex: number | null
+  onSelectTurn: (index: number) => void
 }
 
 /**
@@ -88,6 +91,8 @@ export function InfoCol({
   startingNewGame,
   onReveal,
   onBackToClub,
+  viewingIndex,
+  onSelectTurn,
 }: Props) {
   return (
     <div className={shared.infoCol}>
@@ -193,6 +198,8 @@ export function InfoCol({
         selfId={selfId}
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={isTerminal}
+        viewingIndex={viewingIndex}
+        onSelectTurn={onSelectTurn}
       />
     </div>
   )

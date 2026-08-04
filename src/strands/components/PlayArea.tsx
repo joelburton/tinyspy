@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
@@ -15,6 +15,8 @@ import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { consumedCells, coordKey, wordFromPath, type Coord } from '../lib/board'
 import { clickTile, type Trace } from '../lib/trace'
+import { snapshotAt } from '../lib/history'
+import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGame } from '../hooks/useGame'
 import { db } from '../db'
 import { db as commonDb } from '../../common/db'
@@ -172,6 +174,29 @@ export function PlayArea(ctx: GamePageCtx) {
   const [rawTrace, setTrace] = useState<Trace>([])
   const [busy, setBusy] = useState(false)
 
+  /**
+   * The turn-history viewer. Exit-on-click is built into the shared hook; the
+   * key path is wired below (a bare keystroke returns to live and is consumed,
+   * so it doesn't also start a trace).
+   */
+  const viewer = useHistoryViewer<number>()
+
+  /**
+   * The rows the viewer indexes into — and they must be the SAME sequence the
+   * log is displaying, because a turn is addressed by POSITION.
+   *
+   * That holds because the handle is only offered when the log's filter is a
+   * no-op (`boardIsShown`): coop's Team view, which is every row, or my own in
+   * compete. Mid-game compete RLS already scopes the rows to me, but at
+   * TERMINAL it opens up — so this filters explicitly rather than trusting the
+   * policy, or the indices would shift under the viewer the moment the game
+   * ended.
+   */
+  const historyRows = useMemo(
+    () => (isCompete ? guesses.filter((g) => g.user_id === selfId) : guesses),
+    [guesses, isCompete, selfId],
+  )
+
   const consumed = consumedCells(found.map((f) => ({ path: f.path })))
 
   // A peer finding a word can consume tiles I have selected, which would leave
@@ -205,6 +230,12 @@ export function PlayArea(ctx: GamePageCtx) {
   const onTileClick = useCallback(
     (at: Coord) => {
       if (busy) return
+      // A click while replaying returns to live rather than starting a trace on
+      // a board that isn't the current one.
+      if (viewer.viewing) {
+        viewer.exitViewing()
+        return
+      }
       clearLocalFeedback()
       const next = clickTile(trace, at, consumed)
       setTrace(next.trace)
@@ -213,7 +244,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // `consumed` is rebuilt each render from `found`; listing it would rerun
     // this on every render for no benefit, so the found LENGTH stands in.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [busy, trace, found.length, submit, clearLocalFeedback],
+    [busy, trace, found.length, submit, clearLocalFeedback, viewer],
   )
 
   /**
@@ -235,6 +266,9 @@ export function PlayArea(ctx: GamePageCtx) {
   useGlobalKeyHandler(
     useCallback(
       (e: KeyboardEvent) => {
+        // Replaying a past turn? A bare keystroke returns to live and is
+        // CONSUMED, so the same press doesn't also start a trace.
+        if (viewer.exitOnKey(e)) return
         // ANY key dismisses the last verdict, matching every other game: the
         // own-move pill is `sticky`, which by convention means "stays until the
         // next move dismisses it — a keystroke or a tile click routed through
@@ -257,7 +291,7 @@ export function PlayArea(ctx: GamePageCtx) {
           void submit(trace)
         }
       },
-      [isTerminal, busy, trace, submit, clearLocalFeedback],
+      [isTerminal, busy, trace, submit, clearLocalFeedback, viewer],
     ),
   )
 
@@ -422,6 +456,10 @@ export function PlayArea(ctx: GamePageCtx) {
     path: f.path,
     isSpangram: f.result === 'spangram',
   }))
+
+  // The replayed board, or null when live. A one-liner because strands' board
+  // only accumulates — see lib/history.
+  const snap = viewer.viewingId !== null ? snapshotAt(historyRows, viewer.viewingId) : null
   const foundWords = new Set(found.map((f) => f.word))
   const missed = game.solution
     ? [game.solution.spangram, ...game.solution.themeWords]
@@ -433,12 +471,16 @@ export function PlayArea(ctx: GamePageCtx) {
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         board={game.board}
-        found={foundPaths}
+        found={snap?.found ?? foundPaths}
         missed={missed}
-        trace={trace}
-        hintCoords={me?.active_hint_coords ?? null}
+        trace={viewer.viewing ? EMPTY_TRACE : trace}
+        hintCoords={viewer.viewing ? null : me?.active_hint_coords ?? null}
         onTileClick={onTileClick}
         disabled={isTerminal || isLocallyDone || busy}
+        viewing={viewer.viewing}
+        highlight={snap?.highlight ?? []}
+        viewingDescription={snap?.description ?? ''}
+        onExitViewing={viewer.exitViewing}
         // The word being traced. Shares its slot with the verdict pill — you are
         // either building a word or reading what the last one did.
         echo={trace.length ? wordFromPath(game.board, trace) : ''}
@@ -475,6 +517,8 @@ export function PlayArea(ctx: GamePageCtx) {
           startingNewGame={startingNewGame}
           onReveal={handleReveal}
           onBackToClub={goToClub}
+          viewingIndex={viewer.viewingId}
+          onSelectTurn={viewer.select}
         />
       </InfoSheet>
 
