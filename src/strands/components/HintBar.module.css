@@ -1,0 +1,59 @@
+/* The hint bar + its button, below the board. See HintBar.tsx for why it lives
+ * there rather than in the info column. */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  /* Fixed height so the row never reshapes as the bar fills. */
+  min-height: 2rem;
+}
+
+.track {
+  flex: 1;
+  height: 0.75rem;
+  border-radius: var(--radius-sm);
+  /* Deliberately lighter than --color-divider: at zero points the track IS the
+   * whole bar, and a dark empty track reads as a FULL one — exactly backwards
+   * for the signal this control exists to give. `--color-surface-hover` is the
+   * palette's existing light-grey fill; a `var(--x, #fallback)` would be a
+   * phantom token (src/cssTokens.test.ts flags those). */
+  background: var(--color-surface-hover);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background: var(--strands-active);
+  transition: width 180ms ease-out;
+}
+
+/* A FULL bar is the only thing telling a player that further valid words are
+ * earning nothing (the cap is deliberate and unwarned), so the filled state is
+ * visually distinct rather than merely 100% wide. */
+.fillFull {
+  background: var(--strands-theme);
+}
+
+.button {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.75rem;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.button:disabled {
+  cursor: default;
+  color: var(--color-muted);
+}
+
+.button:not(:disabled):hover {
+  border-color: var(--strands-theme);
+  color: var(--strands-theme);
+}

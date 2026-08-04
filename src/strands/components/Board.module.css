@@ -1,0 +1,155 @@
+/* strands' board: bare letters over one SVG drawing layer.
+ *
+ * Two stacked layers, same box:
+ *   .paths — an SVG in CELL UNITS (viewBox 0 0 6 8), holding the connecting
+ *            polylines and the discs. Under the letters.
+ *   .grid  — the 6×8 letter buttons, on top, carrying the clicks.
+ *
+ * Both are absolutely positioned in `.board`, whose 6/8 aspect-ratio is what
+ * keeps the two in register at any size — the SVG scales with the box and the
+ * grid divides the same box evenly, so cell centres coincide by construction
+ * rather than by arithmetic.
+ *
+ * NOTE the deliberate absence of tile borders. Every other grid game in the
+ * roster (waffle, wordle, boggle) draws boxes with the warm ramp; strands draws
+ * none, because a disc IS the mark here and a box around it reads as noise. See
+ * the Board.tsx header. */
+
+.board {
+  /* A DEFINITE 6×8 box, sized by --board-h in PlayArea.module.css. Definite
+   * rather than `width: 100%` because the board column is `flex: 0 0 auto` and
+   * hugs its content — a percentage would resolve against a column that is
+   * only as wide as the board, i.e. against itself. */
+  height: var(--board-h);
+  width: calc(var(--board-h) * 6 / 8);
+  position: relative;
+  /* Breathing room so the outermost discs + the last-tile ring aren't clipped
+   * by the box edge: a ring at r=0.47 of a cell overhangs the letter grid. */
+  padding: 0.25rem;
+  box-sizing: content-box;
+  /* Letters scale off the BOARD, not the page (Board.module.css .tile). */
+  container-type: inline-size;
+}
+
+.paths,
+.grid {
+  position: absolute;
+  inset: 0.25rem;
+  /* Explicit, not inferred: an <svg> does not reliably take its size from
+   * inset offsets alone, and without this it lays out at its default
+   * intrinsic size in a corner of the board. */
+  width: calc(var(--board-h) * 6 / 8);
+  height: var(--board-h);
+}
+
+/* ── The drawing layer ─────────────────────────────────────── */
+/* preserveAspectRatio="none" in the TSX: the viewBox is 6×8 and the box is
+ * 6/8, so the units are already square — `none` just avoids rounding drift. */
+.paths {
+  pointer-events: none;
+}
+
+.line {
+  fill: none;
+  /* Cell units: 0.3 of a cell reads as a thick connector at any board size. */
+  stroke-width: 0.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.lineTheme {
+  stroke: var(--strands-theme);
+}
+
+.lineSpangram {
+  stroke: var(--strands-spangram);
+}
+
+.lineTrace {
+  stroke: var(--strands-active);
+}
+
+.discTheme {
+  fill: var(--strands-theme);
+}
+
+.discSpangram {
+  fill: var(--strands-spangram);
+}
+
+.discTrace {
+  fill: var(--strands-active);
+}
+
+/* The "click me again to submit" marker on the most recent tile. A ring
+ * OUTSIDE the disc rather than a colour change, so it reads as an extra
+ * affordance rather than a different kind of selection. */
+.discLastRing {
+  fill: none;
+  stroke: var(--strands-active-ring);
+  stroke-width: 0.06;
+}
+
+/* A spent hint: a ring per cell, and no line between them. That gap is the
+ * whole mechanic — the reveal says WHERE the word is, never what order it
+ * runs in. */
+.discHint {
+  fill: none;
+  stroke: var(--strands-hint-ring);
+  stroke-width: 0.08;
+  stroke-dasharray: 0.18 0.14;
+}
+
+/* ── The letter layer ──────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+}
+
+.tile {
+  /* Chrome-less: no border, no background, no radius. The disc under it is
+   * the mark. */
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-weight: 700;
+  /* Scales with the board rather than the page, so the letters stay
+   * proportionate as the column resizes. */
+  font-size: clamp(0.85rem, 4.2cqw, 1.6rem);
+  color: var(--color-text);
+  cursor: pointer;
+  user-select: none;
+  line-height: 1;
+}
+
+.tile:disabled {
+  cursor: default;
+}
+
+/* Found + selected letters sit ON a saturated disc, so they invert to keep
+ * contrast. The disc carries the meaning; the letter stays legible. */
+.tileTheme,
+.tileSpangram,
+.tileTrace {
+  color: var(--strands-on-disc);
+}
+
+/* A hinted-but-unfound letter keeps normal text colour — the ring around it is
+ * the signal, and recolouring the letter would imply it was already found. */
+.tileHinted {
+  color: var(--color-text);
+}
+
+.tileLast {
+  color: var(--strands-on-disc);
+}
+
+/* Hover only where a click can do something. */
+.tile:not(:disabled):hover {
+  opacity: 0.75;
+}

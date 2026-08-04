@@ -1,0 +1,72 @@
+/* strands' play-surface specifics. The two-column shell itself is the shared
+ * common/components/game/PlayArea.module.css. */
+
+/* ─── Board sizing — TINKER HERE ──────────────────────────────────────────────
+ * strands' board is 6 wide × 8 tall — PORTRAIT, unlike the square boards
+ * (waffle/boggle), so height is the binding dimension and width follows from
+ * the 6/8 ratio rather than being chosen.
+ *
+ * `--board-h` takes the smallest of three: the vertical room above the
+ * below-board stack, the per-tile cap, and whatever height the AVAILABLE WIDTH
+ * can afford at 6/8. That last term is what keeps a narrow window from
+ * producing a board wider than its column. Result is a DEFINITE size, which is
+ * what `.boardCol { flex: 0 0 auto }` needs to hug (playarea.md → Board sizing).
+ *
+ * The below-board stack is the echo/pill slot (2.5rem) + the hint row (2rem) +
+ * two 0.75rem column gaps ≈ 6rem. Keep in sync with `.echoSlot` and HintBar. */
+.layout {
+  /* A FIXED info column, like wordle / connections / waffle. strands does NOT
+   * compose the shared `.responsiveInfoCol` — that one is for the three
+   * WORD-LIST games (spellingbee / wordwheel / boggle), whose multi-column list
+   * genuinely wants 22–53rem. strands' info column holds a clue, a progress
+   * line and a turn log, and handing it 53rem just strands the board in a
+   * corner. The scaffold has no default on purpose, so declaring it is
+   * mandatory: leave it out and --avail-w is invalid at computed-value time,
+   * which silently collapses the board to zero height rather than erroring. */
+  --info-col-width: 22rem;
+  --max-tile-size: 3.5rem;
+  --avail-h: calc(100svh - var(--game-chrome-height) - 6rem);
+  --board-h: min(
+    var(--avail-h),
+    calc(8 * var(--max-tile-size)),
+    calc(var(--avail-w) * 8 / 6)
+  );
+}
+
+.loading {
+  padding: 2rem;
+  color: var(--color-muted);
+}
+
+/* The echo/verdict slot. ONE fixed-height row shared by the word-in-progress
+ * and the outcome pill: you are either building a word or reading what the last
+ * one did, never both. Fixed height because it empties between traces, and a
+ * collapsing slot would bounce the board on every submission (docs/ui.md →
+ * Layout stability, and the no-reflow rule). */
+.echoSlot {
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+/* The traced word, echoed as text. Letter-spaced so it reads as a word being
+ * assembled rather than a label. */
+.echo {
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+  color: var(--strands-theme);
+}
+
+.clue {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.outcome {
+  font-weight: 700;
+}

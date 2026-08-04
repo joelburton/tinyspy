@@ -2445,6 +2445,237 @@ export type Database = {
       [_ in never]: never
     }
   }
+  strands: {
+    Tables: {
+      games: {
+        Row: {
+          active_hint_coords: Json | null
+          band: number
+          board: string[]
+          club_handle: string
+          clue: string
+          created_at: string
+          hint_cost: number
+          hint_points: number
+          hints_spent: number
+          id: string
+          min_word_length: number
+          mode: string
+          puzzle_date: string | null
+          puzzle_id: string | null
+          solution: Json
+        }
+        Insert: {
+          active_hint_coords?: Json | null
+          band: number
+          board: string[]
+          club_handle: string
+          clue: string
+          created_at?: string
+          hint_cost: number
+          hint_points?: number
+          hints_spent?: number
+          id: string
+          min_word_length: number
+          mode: string
+          puzzle_date?: string | null
+          puzzle_id?: string | null
+          solution: Json
+        }
+        Update: {
+          active_hint_coords?: Json | null
+          band?: number
+          board?: string[]
+          club_handle?: string
+          clue?: string
+          created_at?: string
+          hint_cost?: number
+          hint_points?: number
+          hints_spent?: number
+          id?: string
+          min_word_length?: number
+          mode?: string
+          puzzle_date?: string | null
+          puzzle_id?: string | null
+          solution?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_puzzle_id_fkey"
+            columns: ["puzzle_id"]
+            isOneToOne: false
+            referencedRelation: "puzzles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guesses: {
+        Row: {
+          game_id: string
+          guessed_at: string
+          id: string
+          path: Json
+          result: string
+          user_id: string
+          word: string
+        }
+        Insert: {
+          game_id: string
+          guessed_at?: string
+          id?: string
+          path: Json
+          result: string
+          user_id: string
+          word: string
+        }
+        Update: {
+          game_id?: string
+          guessed_at?: string
+          id?: string
+          path?: Json
+          result?: string
+          user_id?: string
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guesses_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guesses_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      puzzles: {
+        Row: {
+          board: string[]
+          clue: string
+          id: string
+          imported_at: string
+          puzzle_date: string
+          solution: Json
+          source_id: string
+        }
+        Insert: {
+          board: string[]
+          clue: string
+          id?: string
+          imported_at?: string
+          puzzle_date: string
+          solution: Json
+          source_id: string
+        }
+        Update: {
+          board?: string[]
+          clue?: string
+          id?: string
+          imported_at?: string
+          puzzle_date?: string
+          solution?: Json
+          source_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      games_state: {
+        Row: {
+          active_hint_coords: Json | null
+          band: number | null
+          board: string[] | null
+          club_handle: string | null
+          clue: string | null
+          created_at: string | null
+          hint_cost: number | null
+          hint_points: number | null
+          hints_spent: number | null
+          id: string | null
+          min_word_length: number | null
+          mode: string | null
+          puzzle_date: string | null
+          puzzle_id: string | null
+          solution: Json | null
+        }
+        Insert: {
+          active_hint_coords?: Json | null
+          band?: number | null
+          board?: string[] | null
+          club_handle?: string | null
+          clue?: string | null
+          created_at?: string | null
+          hint_cost?: number | null
+          hint_points?: number | null
+          hints_spent?: number | null
+          id?: string | null
+          min_word_length?: number | null
+          mode?: string | null
+          puzzle_date?: string | null
+          puzzle_id?: string | null
+          solution?: never
+        }
+        Update: {
+          active_hint_coords?: Json | null
+          band?: number | null
+          board?: string[] | null
+          club_handle?: string | null
+          clue?: string | null
+          created_at?: string | null
+          hint_cost?: number | null
+          hint_points?: number | null
+          hints_spent?: number | null
+          id?: string | null
+          min_word_length?: number | null
+          mode?: string | null
+          puzzle_date?: string | null
+          puzzle_id?: string | null
+          solution?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_puzzle_id_fkey"
+            columns: ["puzzle_id"]
+            isOneToOne: false
+            referencedRelation: "puzzles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Functions: {
+      _consumed_keys: { Args: { target_game: string }; Returns: string[] }
+      _solution_for: { Args: { g_id: string }; Returns: Json }
+      create_game: {
+        Args: {
+          mode: string
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      end_game: { Args: { target_game: string }; Returns: undefined }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
+      spend_hint: { Args: { target_game: string }; Returns: Json }
+      submit_path: { Args: { path: Json; target_game: string }; Returns: Json }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   waffle: {
     Tables: {
       games: {
@@ -3451,6 +3682,9 @@ export const Constants = {
     Enums: {},
   },
   stackdown: {
+    Enums: {},
+  },
+  strands: {
     Enums: {},
   },
   waffle: {

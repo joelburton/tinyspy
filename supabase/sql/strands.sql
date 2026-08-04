@@ -764,3 +764,60 @@ $$;
 
 revoke execute on function strands.replay_board(uuid) from public;
 grant execute on function strands.replay_board(uuid) to authenticated;
+
+-- ============================================================
+-- strands.submit_timeout — the countdown expiring
+-- ============================================================
+-- Fired by every connected client when its local countdown hits 0, so several
+-- calls arrive at roughly the same instant. The row lock serializes them:
+-- whichever commits first terminalizes, and the rest see a non-playing game and
+-- raise P0001, which the FE swallows as "a peer beat us to it".
+--
+-- The clock is a LOSS here, per the roster's one test (docs/states.md): you
+-- lose if the game had a REACHABLE END and you didn't reach it. strands has one
+-- — find every theme word — so it sits with wordle and connections rather than
+-- with an untargeted word hunt, where the clock is merely how a session stops.
+create or replace function strands.submit_timeout(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = strands, common, public, extensions
+as $$
+declare
+  play           text;
+  v_found        int;
+  v_total        int;
+  player_results jsonb;
+begin
+  perform common.require_game_player(target_game);
+
+  perform 1 from strands.games where id = target_game for update;
+  if not found then
+    raise exception 'game not found' using errcode = 'P0002';
+  end if;
+
+  select play_state into play from common.games where id = target_game;
+  if play <> 'playing' then
+    raise exception 'game is not in progress' using errcode = 'P0001';
+  end if;
+
+  select count(*) into v_found
+    from strands.guesses
+   where game_id = target_game and result in ('theme', 'spangram');
+  select jsonb_array_length(solution->'themeWords') + 1 into v_total
+    from strands.games where id = target_game;
+
+  select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
+    into player_results
+    from common.game_players where game_id = target_game;
+
+  perform common.end_game(
+    target_game, 'lost',
+    jsonb_build_object('outcome', 'timeout',
+                       'words_found', v_found, 'words_total', v_total),
+    player_results);
+end;
+$$;
+
+revoke execute on function strands.submit_timeout(uuid) from public;
+grant execute on function strands.submit_timeout(uuid) to authenticated;

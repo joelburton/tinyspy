@@ -1,0 +1,34 @@
+/* strands (PaulPath) — per-game theme tokens.
+ *
+ * The three board colours are the game's whole visual vocabulary, and they say
+ * three different things:
+ *
+ *   --strands-theme     purple  a found theme word          (permanent)
+ *   --strands-spangram  gold    the found spangram          (permanent, special)
+ *   --strands-active    light   the trace you are building  (transient)
+ *
+ * Purple-and-gold is Joel's call, and it inverts NYT's own scheme (blue theme /
+ * gold spangram) on purpose: our palette already spends blue on member identity
+ * discs (ui.md → Player identity), and a blue board mark would compete with it.
+ *
+ * Light purple for the live trace is deliberately the SAME HUE as the found
+ * state rather than a fourth colour — a trace is a theme word you haven't
+ * confirmed yet, and the pale-to-saturated jump on acceptance reads as "that
+ * became real" instead of "that turned into a different thing".
+ *
+ * Derived from the shared palette in common/theme.css rather than invented, so
+ * a future theme switch moves these with it. */
+
+:root {
+  --strands-theme: #6d3fc0;
+  --strands-spangram: #d9a520;
+  --strands-active: #c3aee8;
+  /* The ring on the most recent tile — the "click again to submit" marker.
+   * A step darker than the fill it sits around, so it reads on top of it. */
+  --strands-active-ring: #7b5fc4;
+  /* A spent hint's dashed ring. Neutral on purpose: a hint is not an outcome,
+   * so it must not borrow the purple/gold vocabulary of a found word. */
+  --strands-hint-ring: #8a8a94;
+  /* Letters sitting on a saturated disc. */
+  --strands-on-disc: #ffffff;
+}

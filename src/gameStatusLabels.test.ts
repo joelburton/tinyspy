@@ -73,6 +73,19 @@ const CASES: Record<string, Family> = {
       ['ended', { greens_found: 12 }, 'manual end'],
     ],
   },
+  // strands ships COOP-ONLY (the compete sibling isn't registered), so it has no
+  // `compete` arm — the only game besides codenamesduet without one. Its single
+  // loss is the clock: the roster's rule is "you lose if the game had a
+  // reachable end and you didn't reach it", and finding every theme word is
+  // exactly such an end (docs/states.md).
+  strands: {
+    playing: { words_found: 2, words_total: 6 },
+    shared: [
+      ['won', { outcome: 'solved', words_found: 6, words_total: 6 }, 'found them all'],
+      ['lost', { outcome: 'timeout', words_found: 2, words_total: 6 }, 'timeout'],
+      ['ended', { outcome: 'manual', words_found: 2, words_total: 6 }, 'manual end'],
+    ],
+  },
   psychicnum: {
     playing: { guesses_remaining: 5, found_secrets_count: 2, required_secrets_count: 3 },
     shared: [['ended', { outcome: 'manual', found_secrets_count: 2, required_secrets_count: 3 }, 'manual end']],
