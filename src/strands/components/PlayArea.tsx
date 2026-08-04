@@ -3,6 +3,7 @@ import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx } from '../../common/lib/games'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
+import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { stickyPill, terminalPill } from '../../common/lib/game/localPills'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
@@ -35,32 +36,39 @@ type SubmitResult = {
 }
 
 /**
- * The pill copy for each submission outcome. Every branch names what happened;
- * none of them lie by omission.
+ * Own-move pill copy, in the **shared word-game format**: `WORD — body`, word
+ * first and in caps. That is `useWordSubmit`'s `line()` convention, which
+ * spellingbee / wordwheel / boggle all speak — strands can't use that hook
+ * (its acceptance is server-side, not a local list lookup), so it matches the
+ * OUTPUT instead of inventing a second dialect.
  *
- * The case worth pointing at is `hint_word`, which says only "Valid word" —
- * because the BAR is what carries progress, and a pill claiming "Hint earned"
- * three-quarters of the time would be wrong three-quarters of the time. The
- * capped-bar case is deliberately silent for the same reason: the full bar is
- * already on screen saying it, and per Joel's ruling players read that rather
- * than being warned.
+ * Two bodies are word-for-word the shared ones, which is the point: a rejected
+ * word says `too short` and `not a word` here exactly as it does in boggle, so
+ * a player moving between the games isn't relearning the same three messages.
+ *
+ * Leading with the word also keeps the pill short on a phone — `MEDICINE —
+ * theme` fits where `Theme word: MEDICINE` starts to run out of room.
+ *
+ * `valid word` is deliberately quiet: the BAR carries hint progress, and a pill
+ * claiming "hint earned" on every find would be wrong most of the time. The
+ * capped-bar case says nothing extra for the same reason — per Joel's ruling
+ * the full bar IS the signal.
  */
 function pillFor(r: SubmitResult) {
+  const line = (body: string) => `${r.word.toUpperCase()} — ${body}`
   switch (r.result) {
     case 'spangram':
-      return stickyPill('success', `Spangram! ${r.word}`)
+      return stickyPill('success', line('spangram'))
     case 'theme':
-      return stickyPill('success', `Theme word: ${r.word}`)
+      return stickyPill('success', line('theme'))
     case 'hint_word':
-      return r.hint_points >= r.hint_cost
-        ? stickyPill('success', 'Hint earned')
-        : stickyPill('info', `Valid word: ${r.word}`)
+      return stickyPill('success', line(r.hint_points >= r.hint_cost ? 'hint earned' : 'valid word'))
     case 'duplicate':
-      return stickyPill('info', `${r.word} — already counted`)
+      return stickyPill('warning', line('already found'))
     case 'too_short':
-      return stickyPill('error', 'Too short')
+      return stickyPill('warning', line('too short'))
     default:
-      return stickyPill('error', `${r.word} isn't a word`)
+      return stickyPill('error', line('not a word'))
   }
 }
 
@@ -145,6 +153,45 @@ export function PlayArea(ctx: GamePageCtx) {
     // this on every render for no benefit, so the found LENGTH stands in.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [busy, trace, found.length, submit, clearLocalFeedback],
+  )
+
+  /**
+   * The board's keyboard, such as it is. strands takes no typed WORDS — a board
+   * repeats letters, so a typed string doesn't identify a path — but the three
+   * keys that act on a trace rather than compose one are worth having:
+   *
+   *   - **Backspace** drops the last tile, so a misclick costs one key instead
+   *     of restarting the word;
+   *   - **Enter** submits, the keyboard twin of re-clicking the last tile;
+   *   - **Tab** is swallowed. The tiles already left the tab order
+   *     (`tabIndex={-1}`), so this is belt and braces: nothing on the board
+   *     should shift focus mid-trace.
+   *
+   * Registered globally rather than on the board element because the board
+   * holds no focus — there is no text input to type into, so there would be
+   * nothing for a local handler to hang off.
+   */
+  useGlobalKeyHandler(
+    useCallback(
+      (e: KeyboardEvent) => {
+        if (e.key === 'Tab') {
+          e.preventDefault()
+          return
+        }
+        if (isTerminal || busy) return
+        if (e.key === 'Backspace') {
+          e.preventDefault()
+          clearLocalFeedback()
+          setTrace((t) => t.slice(0, -1))
+          return
+        }
+        if (e.key === 'Enter' && trace.length) {
+          e.preventDefault()
+          void submit(trace)
+        }
+      },
+      [isTerminal, busy, trace, submit, clearLocalFeedback],
+    ),
   )
 
   const spendHint = useCallback(async () => {

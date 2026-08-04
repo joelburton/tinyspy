@@ -14,6 +14,12 @@
   flex: 1;
   height: 1.25rem;
   border-radius: var(--radius-sm);
+  /* An outline, so an EMPTY bar still reads as a control with a job rather than
+   * a disabled smear. Without it the zero state is a pale rectangle on a pale
+   * page, which looks switched off exactly when it most needs to say "keep
+   * finding words". */
+  border: 1px solid var(--color-divider);
+  box-sizing: border-box;
   /* Deliberately lighter than --color-divider: at zero points the track IS the
    * whole bar, and a dark empty track reads as a FULL one — exactly backwards
    * for the signal this control exists to give. `--color-surface-hover` is the
