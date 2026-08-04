@@ -64,9 +64,6 @@ SUPABASE_PUBLISHABLE_KEY=""
 # string from Dashboard → Database → Connection string).
 SUPABASE_DB_URL=""
 
-# Whether to run the FE build + Netlify deploy at the end (step 9).
-DEPLOY_FE=true
-
 # ─── Edge function secrets (optional) ──────────────────────────
 # Anthropic key for the codenamesduet-suggest-clue edge function.
 # Leave the placeholder to skip the `secrets set` step.

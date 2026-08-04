@@ -10,7 +10,7 @@ import { signIn } from './helpers/session'
  * the AI's move lands in the shared Moves log attributed to "AI 1" — proving the
  * whole chain (FE trigger → edge fn → get_ai_context → choosePlay → ai_play_word
  * → seat-based turn/log). The local edge runtime serves it (part of
- * `supabase start`); the bundled wordlist must exist (npm run scrabble:wordlist).
+ * `supabase start`); the bundled wordlist must exist (`gmake g-scrabble-trie`).
  */
 test.describe('scrabble — AI opponent (compete)', () => {
   test('the AI takes its turn and its play shows in the log as "AI 1"', async ({ browser }) => {

@@ -7,8 +7,8 @@
  * than play_word's: a player may play a crude word, the AI may not (see
  * generate-scrabble-wordlist.ts, and docs/common.md → Which words a game may
  * use). It is GENERATED and git-ignored (~1.2 MB): run
- * `npm run scrabble:wordlist` to (re)create it from `common.words` before
- * `supabase functions serve`; `npm run deploy` does it automatically.
+ * `gmake g-scrabble-trie` to (re)create it from `common.words` before
+ * `supabase functions serve`; `gmake deploy-funcs` does it automatically.
  *
  * Unlike boggle's dict.ts there are no per-band tries: we build ONE
  * all-bands trie whose terminals carry each word's difficulty (rated

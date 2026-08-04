@@ -9,7 +9,7 @@
  * vendored copy silently DRIFTS — you tweak the list over there, forget
  * to re-vendor here, and reload stale data without noticing. Pointing
  * the importer straight at the gamelist working file makes that
- * impossible: `words:import` always loads exactly what's on disk there.
+ * impossible: this importer always loads exactly what's on disk there.
  * Override the location with the `WORDS_TSV` env var (another checkout,
  * a different machine, CI).
  *
@@ -39,7 +39,7 @@
  * Requires `psql` on PATH and the words file present (build it in the
  * gamelist project first).
  *
- * Usage:  npm run words:import
+ * Usage:  npm run _words:import   (public entry: `gmake all-words ENV=…`)
  */
 
 import { execFileSync } from 'node:child_process'

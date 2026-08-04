@@ -22,11 +22,11 @@
  * diverse builder uses.
  *
  * Source: `common.words`, the shared master list (loaded by
- * `npm run words:import`). The required pool is: difficulty <=
+ * `gmake all-words`). The required pool is: difficulty <=
  * REQUIRED_BAND, american, not slang, clean (slur 0 + crude 0), len >= 4, and
  * (defensively) no 's' (a board never contains 's', so an s-word can't
  * seed or fit one). Seeds are the band-1 subset of that pool. This
- * MUST be run AFTER words:import; it reads what's already in the table.
+ * MUST be run AFTER the words import; it reads what's already in the table.
  *
  * (Before the common.words merge this script also built
  * spellingbee.dictionary from vendored SCOWL files; that table is gone —
@@ -40,7 +40,7 @@
  * Connection: SUPABASE_DB_URL (a Postgres connection string).
  * Defaults to the local stack. Requires psql on PATH.
  *
- * Usage:  npm run spellingbee:import   (after npm run words:import)
+ * Usage:  npm run _spellingbee:import   (public entry: `gmake g-spellingbee-pangrams ENV=…`, after `gmake all-words`)
  */
 
 import { execFileSync } from 'node:child_process'
@@ -165,7 +165,7 @@ function main() {
   console.log(`  ${pool.length} required words.`)
   if (pool.length === 0) {
     console.error(
-      'No required words found — did you run `npm run words:import` first?',
+      'No required words found — did you run `gmake all-words ENV=local` first?',
     )
     process.exit(1)
   }

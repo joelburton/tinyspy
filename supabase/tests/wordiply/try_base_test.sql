@@ -18,7 +18,7 @@
 -- Assertions are deliberately COUNT-INDEPENDENT: they use bounds far from
 -- 'ar's real child count (which the migration itself notes is in the tens of
 -- thousands) so they don't turn into brittle dictionary snapshots. Needs
--- common.words populated (npm run import) — same prerequisite as create_game.
+-- common.words populated (`gmake db-data ENV=local`) — same prerequisite as create_game.
 
 begin;
 

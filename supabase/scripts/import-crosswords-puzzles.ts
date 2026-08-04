@@ -1,7 +1,8 @@
 #!/usr/bin/env -S npx tsx
 /**
  * Import a folder of `.puz` / `.ipuz` files into `crosswords.puzzles` —
- * `npm run crosswords:import`. Wraps the stage-1 pure converter
+ * `npm run _crosswords:import` (public entry: `gmake g-crosswords-puzzles
+ * ENV=…`). Wraps the stage-1 pure converter
  * (`crosswords/convert.ts`) and upserts each puzzle as `source = 'library'`,
  * deduped on `content_hash`.
  *
@@ -9,8 +10,8 @@
  * Joel keeps his own puzzle files there and never commits them; this also
  * sidesteps the copyright question NYT-derived files would raise), or a
  * path passed as the first argument. If the folder is missing or empty the
- * script is a clean no-op (so the aggregate `npm run import` and a
- * post-`db:reset` recovery don't fail when there are no local puzzles) —
+ * script is a clean no-op (so the aggregate `gmake db-data` and a
+ * post-`db-reset` recovery don't fail when there are no local puzzles) —
  * same posture as the other library games, just with a local-only source.
  *
  * Auth: the local service_role key by default (bypasses RLS — required to
@@ -19,8 +20,8 @@
  * non-local target.
  *
  * Usage:
- *   npm run crosswords:import                    # supabase/data/crosswords/
- *   npm run crosswords:import -- ./my-puzzles    # a different folder
+ *   npm run _crosswords:import                    # supabase/data/crosswords/
+ *   npm run _crosswords:import -- ./my-puzzles    # a different folder
  */
 
 import { createClient } from '@supabase/supabase-js'

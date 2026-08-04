@@ -41,12 +41,12 @@
  * Word wheel does NOT exclude 's' (a tile is spent per use, so 's' pluralizes
  * at most once per 's' tile — not explosively the way it does in spellingbee).
  *
- * Source: common.words (loaded by `npm run words:import`). Run this AFTER it.
+ * Source: common.words (loaded by `gmake all-words`). Run this AFTER it.
  * Masks are 26-bit letter sets — small enough to use plain JS numbers (bitwise
  * on numbers is far faster than BigInt).
  *
  * Connection: SUPABASE_DB_URL (defaults to the local stack). Needs psql.
- * Usage:  npm run wordwheel:import   (after npm run words:import)
+ * Usage:  npm run _wordwheel:import   (public entry: `gmake g-wordwheel-pangrams ENV=…`, after `gmake all-words`)
  */
 
 import { execFileSync } from 'node:child_process'
@@ -149,7 +149,7 @@ function main() {
   const pool = loadPool()
   console.log(`  ${pool.length} required-quality words (all bands, len>=4).`)
   if (pool.length === 0) {
-    console.error('No words found — did you run `npm run words:import` first?')
+    console.error('No words found — did you run `gmake all-words ENV=local` first?')
     process.exit(1)
   }
 

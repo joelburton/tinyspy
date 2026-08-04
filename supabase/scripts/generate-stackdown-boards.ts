@@ -2,14 +2,15 @@
 /**
  * GENERATE stackdown boards into a vendored text file —
  * `supabase/data/stackdown-boards.jsonl` (one JSON board per line). This
- * is `npm run stackdown:gen`. It does NOT touch the database; the
- * companion `npm run stackdown:import` (import-stackdown-boards.ts) loads
+ * is `npm run _stackdown:gen` (public entry: `gmake g-stackdown-genpuzzles
+ * COUNT=n [SEED=s] [BAND=b]`). It does NOT touch the database; the
+ * companion `gmake g-stackdown-puzzles` (import-stackdown-boards.ts) loads
  * the file into `stackdown.boards`.
  *
  * The split exists because generation is SLOW — stackdown boards are
  * expensive to validate (the strict no-trap check is a recursive walk
  * over every spelling of every word — see docs/games/stackdown.md §2.4),
- * ~10s/board. We don't want to pay that on every `db:reset`. So we
+ * ~10s/board. We don't want to pay that on every `db-reset`. So we
  * generate a library once (this script, run rarely, output committed to
  * git as the jsonl), and re-import the cheap file whenever the DB is
  * cleared.
@@ -39,9 +40,9 @@
  *
  * Connection (for the lexicon read): `SUPABASE_DB_URL` (defaults to the
  * local stack). Requires `psql` on PATH and a populated `common.words`
- * (run `npm run words:import` first).
+ * (run `gmake all-words ENV=local` first).
  *
- * Usage:  npm run stackdown:gen -- <count> [baseSeed] [band]
+ * Usage:  npm run _stackdown:gen -- <count> [baseSeed] [band]
  *           count    — how many boards to generate (REQUIRED; running with no
  *                      arguments just prints this help and generates nothing)
  *           baseSeed — first seed; board i uses baseSeed + i (default 1000)
@@ -69,12 +70,13 @@ if (process.argv.length <= 2) {
     [
       'Generate stackdown boards → supabase/data/stackdown-boards.jsonl',
       '',
-      'Usage:  npm run stackdown:gen -- <count> [baseSeed] [band]',
+      'Usage:  npm run _stackdown:gen -- <count> [baseSeed] [band]',
       '  count     how many boards to generate (required)',
       '  baseSeed  first seed; board i uses baseSeed + i (default 1000)',
       '  band      word-difficulty band 1..6 (default 1) — band N uses difficulty = N exactly',
       '',
-      'Example:  npm run stackdown:gen -- 10 1000 2   # 10 band-2 boards',
+      'Example:  npm run _stackdown:gen -- 10 1000 2   # 10 band-2 boards',
+      '(public entry: gmake g-stackdown-genpuzzles COUNT=10 SEED=1000 BAND=2)',
     ].join('\n'),
   )
   process.exit(0)
@@ -478,7 +480,7 @@ function generateAnyBoard(
 }
 
 // ── Run ────────────────────────────────────────────────────────────
-// One serialized board, the shape `stackdown:import` reads back.
+// One serialized board, the shape `gmake g-stackdown-puzzles` reads back.
 type BoardLine = { tiles: Tile[]; words: string[]; band: number }
 
 /** Order- and case-independent signature of a board's six words, for
@@ -527,7 +529,7 @@ const lexicon = new Set(
   raw.trim().split('\n').map((w) => w.trim().toUpperCase()).filter(Boolean),
 )
 if (lexicon.size === 0) {
-  console.error(`No difficulty-${BAND} words found — run \`npm run words:import\` first.`)
+  console.error(`No difficulty-${BAND} words found — run \`gmake all-words ENV=local\` first.`)
   process.exit(1)
 }
 console.log(`Lexicon: ${lexicon.size} band-${BAND} words.`)
@@ -571,5 +573,5 @@ if (fresh.length === 0) {
 appendFileSync(BOARDS_FILE, fresh.map((b) => JSON.stringify(b)).join('\n') + '\n')
 console.log(
   `Appended ${fresh.length} board(s) → ${BOARDS_FILE} ` +
-    `(${existing.length + fresh.length} total). Run \`npm run stackdown:import\` to load them.`,
+    `(${existing.length + fresh.length} total). Run \`gmake g-stackdown-puzzles ENV=local\` to load them.`,
 )

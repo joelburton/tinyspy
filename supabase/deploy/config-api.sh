@@ -15,8 +15,11 @@ require_project
 
 say "3. Configuring PostgREST (schemas, search path, max_rows=${MAX_ROWS})"
 announce_target
+# Nothing here is secret, but the payload goes via stdin like every other
+# api() call — one shape, no judgment call per callsite.
+payload=$(jq -n --arg s "$EXPOSED_SCHEMAS" --arg p "$EXTRA_SEARCH_PATH" \
+  --argjson m "$MAX_ROWS" \
+  '{db_schema: $s, db_extra_search_path: $p, max_rows: $m}')
 api -X PATCH "https://api.supabase.com/v1/projects/${PROJECT_REF}/postgrest" \
-  -d "$(jq -n --arg s "$EXPOSED_SCHEMAS" --arg p "$EXTRA_SEARCH_PATH" \
-        --argjson m "$MAX_ROWS" \
-        '{db_schema: $s, db_extra_search_path: $p, max_rows: $m}')" >/dev/null
+  -d @- <<< "$payload" >/dev/null
 echo "    exposed: ${EXPOSED_SCHEMAS}"

@@ -13,7 +13,7 @@
  * The dictionary is loaded straight from `common.words` (the exact word
  * universe `play_word` accepts: len 2..15, american OR british), so the harness
  * plays by the same rules as the live game. Needs psql on PATH and a populated
- * local common.words (run `npm run words:import` first).
+ * local common.words (run `gmake all-words ENV=local` first).
  *
  * Usage:
  *   npm run scrabble:selfplay -- --level best --games 200

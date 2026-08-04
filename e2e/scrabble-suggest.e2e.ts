@@ -6,7 +6,7 @@ import { signIn } from './helpers/session'
  * Coop "suggest a move" (docs/scrabble-ai.md S5): the FULL loop against the
  * real scrabble-suggest-move edge function — the local edge runtime (part of
  * `supabase start`) serves it with the generated wordlist (run
- * `npm run scrabble:wordlist` after a fresh clone or the function 500s).
+ * `gmake g-scrabble-trie` after a fresh clone or the function 500s).
  *
  * Two invariants only a real browser can check ride along (the
  * codenamesduet.e2e.ts layout-guard exception):

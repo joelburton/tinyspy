@@ -140,7 +140,7 @@ export async function createUnclaimedUser(name: string): Promise<{ session: Sess
 
 /**
  * Delete a user from auth.users (cascades to their profile + solo club).
- * Simulates a `db:reset` or admin-delete that happens while a still-validly-
+ * Simulates a `db-reset` or admin-delete that happens while a still-validly-
  * signed JWT lingers in a browser's localStorage — the "stale session" state.
  */
 export async function deleteUser(userId: string): Promise<void> {
@@ -426,7 +426,7 @@ export async function createCrosswordsGameSized(
 /**
  * Start a crosswords game on the LARGEST already-imported library puzzle
  * (for exercising a real full-size grid + long clue lists). Requires the
- * library to be seeded (`npm run crosswords:import`); throws if empty.
+ * library to be seeded (`gmake g-crosswords-puzzles ENV=local`); throws if empty.
  */
 export async function createCrosswordsGameFromLibrary(
   club: E2EClub,
@@ -438,7 +438,7 @@ export async function createCrosswordsGameFromLibrary(
     .select('id, meta')
     .eq('source', 'library')
   if (error || !data || data.length === 0) {
-    throw new Error(`no library puzzles — run \`npm run crosswords:import\` (${error?.message ?? ''})`)
+    throw new Error(`no library puzzles — run \`gmake g-crosswords-puzzles ENV=local\` (${error?.message ?? ''})`)
   }
   const rows = data as Array<{ id: string; meta: { width: number } }>
   const biggest = rows.reduce((a, b) => (b.meta.width > a.meta.width ? b : a))
@@ -794,7 +794,7 @@ export function setScrabbleRack(gameId: string, rack: string[]): void {
  * × 4 tiles, mirroring the pgTAP `connections_puzzle` helper. The insert uses the
  * admin (service-role) client because connections.puzzles has no INSERT grant to
  * `authenticated`. `source_id` is randomized per call so repeated runs (no
- * db:reset between) don't collide on its UNIQUE constraint; `puzzle_date` is left
+ * db-reset between) don't collide on its UNIQUE constraint; `puzzle_date` is left
  * null (NULLs are distinct under UNIQUE) to stay clear of real imported dates.
  * Returns id + gametype for `/g/connections_<mode>/<id>`.
  */

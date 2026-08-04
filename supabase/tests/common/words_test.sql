@@ -18,8 +18,8 @@
 --   - the definition_source CHECK + the generated letter_mask column.
 --
 -- Self-contained: seeds its own synthetic words (prefix `zzwordtest`).
--- common.words is empty after db:reset (the bulk import is a separate
--- step), so these are the only rows; the prefix also keeps them from
+-- common.words is empty after a bare schema build (the bulk import,
+-- `gmake all-words`, is a separate step), so these are the only rows; the prefix also keeps them from
 -- colliding with the real list if the import has been run.
 
 begin;

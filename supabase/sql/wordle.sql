@@ -3,7 +3,7 @@
 -- ============================================================
 -- Functions, views, RLS policies, triggers and grants for wordle. Everything
 -- here is drop-and-recreate safe, so this file is **re-applied in full on
--- every deploy** (`npm run sql:apply`) — it is the CURRENT definition, not a
+-- every deploy** (`gmake db-sql`) — it is the CURRENT definition, not a
 -- delta. Edit it in place forever; it never becomes a migration.
 --
 -- Its other half is the one-shot schema migration
@@ -272,7 +272,7 @@ begin
      order by random() limit 1;
   end if;
   if v_target is null then
-    raise exception 'no answer words for that band — run words:import'
+    raise exception 'no answer words for that band — run gmake all-words'
       using errcode = 'P0002';
   end if;
 

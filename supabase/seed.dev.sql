@@ -2,7 +2,7 @@
 -- Local dev seed — fixed test accounts + clubs (LOCAL ONLY)
 -- ============================================================
 -- Recreates a stable set of magic-link-loginable accounts + clubs so a
--- browser session survives `db:reset` churn. How it works: the local JWT
+-- browser session survives `db-reset` churn. How it works: the local JWT
 -- signing secret is fixed across resets, so a token already sitting in your
 -- browser stays validly signed; because the user ids below are FIXED,
 -- auth.uid() keeps resolving to the same person after every reset, and this
@@ -12,13 +12,13 @@
 -- before needing another link.
 --
 -- NOT for production: it fabricates auth.users + auth.identities rows directly.
--- It runs only via `npm run seed` (which `npm run db:reset` chains) against the
--- local stack (SUPABASE_DB_URL defaults to the local db). The `deadbeef-…` uuid
+-- It runs only via `gmake db-seed` (which `gmake db-reset` chains) against the
+-- local stack (the target pins SUPABASE_DB_URL to the local db). The `deadbeef-…` uuid
 -- prefix marks these as the dev-seed accounts at a glance.
 --
 -- Idempotent + non-destructive: every insert is ON CONFLICT DO NOTHING, so
 -- re-running never duplicates and never wipes in-progress games. To change a
--- color/username here, run `npm run db:reset` (a fresh DB) rather than re-seed.
+-- color/username here, run `gmake db-reset ENV=local` (a fresh DB) rather than re-seed.
 --
 -- Accounts (username / email / identity color):
 --   joel  joel@test.local  orange

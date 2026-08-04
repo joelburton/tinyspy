@@ -181,8 +181,8 @@ export function SetupForm({ brand, clubHandle, mode, players, value, onChange }:
     return (
       <div className={styles.setup}>
         <p className="error">
-          No puzzles imported yet. Run <code>npm run connections:import</code> from
-          the project root.
+          No puzzles imported yet. Run <code>gmake g-connections-puzzles ENV=local</code>{' '}
+          from the project root.
         </p>
       </div>
     )

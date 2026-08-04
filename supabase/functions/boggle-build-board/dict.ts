@@ -3,9 +3,9 @@
  *
  * `wordlist.ts` is a gzip+base64 blob of the whole dictionary (all words
  * len>=3), tagged by difficulty AND a clean flag. It is GENERATED and
- * git-ignored (~1.3 MB): run `npm run boggle:wordlist` to (re)create it from
- * `common.words` before `supabase functions serve`; `npm run deploy` does it
- * automatically. We decode it ONCE per isolate (cold start) and build
+ * git-ignored (~1.3 MB): run `gmake g-boggle-trie` to (re)create it from
+ * `common.words` before `supabase functions serve`; `gmake deploy-funcs` does
+ * it automatically. We decode it ONCE per isolate (cold start) and build
  * band-filtered tries on demand, memoised by band — so warm invocations reuse
  * both. Shipping it bundled beats querying the DB at cold start (~2× faster, no
  * DB load per isolate; the dictionary is stable). See docs/games/boggle.md §5.

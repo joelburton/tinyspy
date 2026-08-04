@@ -121,7 +121,7 @@ The word list itself is **not** a spellingbee table — it's the shared `common.
 
 | table | purpose |
 |---|---|
-| `pangrams` | Precomputed seed pool. ~2.1k rows: one per unique 7-letter mask drawn from the **band-1 (universal)** slice of `common.words` that satisfies `isValidPuzzleMask` (q→u, ≥2 vowels). Drawing seeds from band 1 guarantees every board's pangram is a word everyone knows. Each row carries `required_words_count` (how many **required** words fit *at the band-1 floor* — band 1, american, no slang, clean (slur 0 + crude 0); ≥30 gate at sample time, independent of the per-game `setup.required` choice) and `has_rare_letters` (the diverse-builder weighting tier). The edge function samples from this table to seed a new board. Rebuilt by `npm run spellingbee:import` (after `words:import`). See [Why a seeds table?](#why-a-seeds-table). |
+| `pangrams` | Precomputed seed pool. ~2.1k rows: one per unique 7-letter mask drawn from the **band-1 (universal)** slice of `common.words` that satisfies `isValidPuzzleMask` (q→u, ≥2 vowels). Drawing seeds from band 1 guarantees every board's pangram is a word everyone knows. Each row carries `required_words_count` (how many **required** words fit *at the band-1 floor* — band 1, american, no slang, clean (slur 0 + crude 0); ≥30 gate at sample time, independent of the per-game `setup.required` choice) and `has_rare_letters` (the diverse-builder weighting tier). The edge function samples from this table to seed a new board. Rebuilt by `gmake g-spellingbee-pangrams` (after `gmake all-words`). See [Why a seeds table?](#why-a-seeds-table). |
 | `games` | One row per playthrough. `id` is FK to `common.games(id)`. Holds `mode` (`'coop'`/`'compete'`, denormalized from the gametype string for RLS branching), `outer_letters` (6 chars), `center_letter` (1 char), `required_words_score` and `required_words_count` (cached at create-game time), plus the two word lists `required_words` and `bonus_words` — both **jsonb** arrays of `{word, points, is_pangram}` (the bonus set = legal − required). **Both ship to the FE** (readable columns, exposed via `games_state`): the FE validates + scores every guess against required ∪ bonus locally, the same trusting-commit model as boggle. No column-grant gate, no terminal-reveal helper. |
 | `found_words` | One row per `(player, word)`. Includes `points` (length-based + `+10` if pangram; bonus rows score normally too), `is_pangram` (true when the word's distinct-letter count = 7), `is_bonus` (true when the word is a bonus word — legal but not required). PK `(game_id, user_id, word)` — compete-friendly. Coop uniqueness across players is enforced inside `submit_word` via the per-game-id duplicate check. |
 
@@ -276,9 +276,9 @@ The compete-mode counterpart to `end_game`: a per-player "I quit, the others kee
 
 The function logs one line per step in dev (`console.log` lands in `supabase functions serve` output), so when a board build fails the cause is on screen.
 
-## Pangram seed import: `npm run spellingbee:import`
+## Pangram seed import: `gmake g-spellingbee-pangrams`
 
-[`supabase/scripts/import-spellingbee-pangrams.ts`](../../supabase/scripts/import-spellingbee-pangrams.ts). It rebuilds `spellingbee.pangrams` from `common.words`: band-1 words seed the pangrams, and each seed's word-count is over the **required-FLOOR pool** (band 1, american, no slang, clean: slur 0 + crude 0 — the floor, so selection stays independent of the per-game `setup.required` choice). The word list itself is loaded separately by `npm run words:import` (see [common.md → The word list](../common.md#the-word-list-commonwords)) — **run that first**; this script reads what's already in the table.
+[`supabase/scripts/import-spellingbee-pangrams.ts`](../../supabase/scripts/import-spellingbee-pangrams.ts). It rebuilds `spellingbee.pangrams` from `common.words`: band-1 words seed the pangrams, and each seed's word-count is over the **required-FLOOR pool** (band 1, american, no slang, clean: slur 0 + crude 0 — the floor, so selection stays independent of the per-game `setup.required` choice). The word list itself is loaded separately by `gmake all-words` (see [common.md → The word list](../common.md#the-word-list-commonwords)) — **run that first**; this script reads what's already in the table.
 
 **Script flow:**
 1. Query `common.words` for the required-FLOOR pool's `(letter_mask, difficulty)`: `difficulty = 1 AND american AND NOT slang AND slur = 0 AND crude = 0 AND len ≥ 4 AND no 's'` (band 1 = the floor; the per-game `setup.required` only adds words above it). (`letter_mask` is the table's generated column, so there's nothing to recompute.)
@@ -298,7 +298,7 @@ This currently yields ~2.1k seed rows.
 
 | table | SELECT policy | INSERT/UPDATE/DELETE |
 |---|---|---|
-| `pangrams` | RLS off (public reference data) | INSERT only via the import script (`npm run spellingbee:import`) |
+| `pangrams` | RLS off (public reference data) | INSERT only via the import script (`gmake g-spellingbee-pangrams`) |
 | `games` | `common.is_club_member(club_handle)` | None — writes go through `spellingbee.create_game` |
 | `found_words` | Mode-aware via the denormalized `spellingbee.games.mode`: club-membership AND (`fg.mode='coop'` OR `found_words.user_id=auth.uid()` OR `cg.is_terminal`). Coop hits branch (a); compete mid-game hits branch (b); compete post-terminal opens via branch (c). | None — writes go through `spellingbee.submit_word` |
 

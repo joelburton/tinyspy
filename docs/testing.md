@@ -231,7 +231,7 @@ The list is illustrative, not a contract. When you add a spec, add it for a brow
 npm run test:e2e       # needs the local Supabase stack running; auto-starts the Vite dev server
 ```
 
-Deliberately **not** part of `npm test` — it's slower and flakier (real realtime timing), so run it before a push/deploy, not on every save. It accumulates suffixed test users/clubs in the local DB; `npm run db:reset` clears them. If the local Supabase URL ever changes, recompute the storage key via `createClient(url, key).auth.storageKey`.
+Deliberately **not** part of `npm test` — it's slower and flakier (real realtime timing), so run it before a push/deploy, not on every save. It accumulates suffixed test users/clubs in the local DB; `gmake db-reset ENV=local` clears them. If the local Supabase URL ever changes, recompute the storage key via `createClient(url, key).auth.storageKey`.
 
 The **WebKit + Firefox engines are installed** (`npx playwright install webkit firefox`), so cross-engine (Safari / Firefox) layout repro is available beyond the default Chromium run.
 
@@ -286,7 +286,7 @@ supabase test db --local supabase/tests/codenamesduet/create_game_test.sql
 
 `supabase test db` does its own `create extension if not exists pgtap` against the local DB before invoking pg_prove, so individual test files don't need to install the extension themselves.
 
-After SQL changes, `npm run db:reset` to replay all migrations against a fresh DB. The reset wipes everything in the local DB; that's accepted under the alpha-software prior. **A change confined to `supabase/sql/` needs only `npm run sql:apply`** — functions, views, policies and grants are re-applied in place, no reset and no data loss ([supabase.md → Schema vs code](supabase.md#schema-vs-code)). `npm run test:db` never re-applies either, so run one of them first.
+After SQL changes, `gmake db-reset ENV=local` to replay all migrations against a fresh DB. The reset wipes everything in the local DB; that's accepted under the alpha-software prior. **A change confined to `supabase/sql/` needs only `gmake db-sql ENV=local`** — functions, views, policies and grants are re-applied in place, no reset and no data loss ([supabase.md → Schema vs code](supabase.md#schema-vs-code)). `npm run test:db` never re-applies either, so run one of them first.
 
 ## Test failure debugging
 

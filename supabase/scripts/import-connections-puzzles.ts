@@ -38,8 +38,9 @@
  * doesn't historically rewrite, so this is fine for now.)
  *
  * Usage:
- *   npm run connections:import                       # fetches from GitHub
- *   npm run connections:import -- --file ./local.json   # offline
+ *   npm run _connections:import                       # fetches from GitHub
+ *   npm run _connections:import -- --file ./local.json   # offline
+ *   (public entry: `gmake g-connections-puzzles ENV=…`)
  *
  * Auth: uses the local Supabase service_role key by default
  * (matches `supabase status -o env`'s SERVICE_ROLE_KEY). Override

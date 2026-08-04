@@ -186,7 +186,7 @@ site_url = "http://localhost:5173"
 additional_redirect_urls = ["http://localhost:5173", "http://127.0.0.1:5173"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 # Local dev: maxed to a week so a browser session survives db:reset churn — the
-# JWT secret is stable across resets and the seed (npm run seed) recreates the
+# JWT secret is stable across resets and the seed (gmake db-seed) recreates the
 # same user ids, so an existing token keeps resolving. You log in (magic link)
 # at most once a week, not once per reset. A week is the platform ceiling; this
 # is a LOCAL config value and does not affect any hosted project.

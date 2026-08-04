@@ -11,7 +11,7 @@ When an item ships, delete it here *and* resolve it there. When the queue
 empties, delete this file.
 
 The reason to care about the list at all is the alpha prior in
-[`CLAUDE.md`](../CLAUDE.md): baselines are still editable and `db:reset` wipes
+[`CLAUDE.md`](../CLAUDE.md): baselines are still editable and `db-reset` wipes
 everything, so schema work is free right now and stops being free when we leave
 alpha ([`deferred.md → To discuss`](deferred.md#to-discuss)).
 
@@ -22,7 +22,7 @@ feature (`common.profiles.theme`), and one helper worth building
 (bananagrams' `check_board`) — all shipped 2026-08-03. Both boggle items are now
 [won't-do](games/boggle.md#12-wont-do), decided the same day: a boggle twin of
 the check helper (bananagrams' check has an objective answer, boggle's would only
-be a hint) and word-list freshness via Storage (`npm run deploy` already
+be a hint) and word-list freshness via Storage (`gmake deploy-funcs` already
 regenerates the bundled asset, and the bundle is the faster option anyway).
 
 **One item is left**, and its DB half is data rather than schema — so nothing in

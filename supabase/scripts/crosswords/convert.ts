@@ -3,7 +3,7 @@
  * buffer → the three pieces the `crosswords.puzzles` row needs
  * (`meta` template, shielded `solution`, dedup `content_hash`).
  *
- * Stage 1 stops here — the psql-writing CLI (`crosswords:import`) that
+ * Stage 1 stops here — the psql-writing CLI (`gmake g-crosswords-puzzles`) that
  * wraps this and upserts the row lands in a later stage. Keeping the pure
  * conversion separate means it's testable without a database.
  */

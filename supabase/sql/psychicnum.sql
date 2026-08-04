@@ -3,7 +3,7 @@
 -- ============================================================
 -- Functions, views, RLS policies, triggers and grants for psychicnum. Everything
 -- here is drop-and-recreate safe, so this file is **re-applied in full on
--- every deploy** (`npm run sql:apply`) — it is the CURRENT definition, not a
+-- every deploy** (`gmake db-sql`) — it is the CURRENT definition, not a
 -- delta. Edit it in place forever; it never becomes a migration.
 --
 -- Its other half is the one-shot schema migration
@@ -119,9 +119,7 @@ revoke execute on function psychicnum._secrets_for(uuid) from public;
 grant execute on function psychicnum._secrets_for(uuid) to authenticated;
 
 drop view if exists psychicnum.games_state;
-create view psychicnum.games_state
-  with (security_invoker = true)
-as
+create view psychicnum.games_state with (security_invoker = true) as
   select
     id,
     club_handle,

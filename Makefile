@@ -1,13 +1,14 @@
 # ════════════════════════════════════════════════════════════════
 # puzpuzpuz — build, data, and deploy targets
 # ════════════════════════════════════════════════════════════════
-# `gmake help` lists everything. The spec behind this file is
-# docs/make-plan.md; the durable parts live in docs/cheatsheet.md.
+# `gmake help` lists everything. The durable docs are docs/cheatsheet.md
+# (commands) and docs/supabase.md#schema-vs-code (the model).
 #
-# WHAT THIS IS FOR: npm scripts can't express a dependency, so today's
-# alternatives are an all-or-nothing chain (`npm run deploy`) or nothing.
-# This file owns EDGES and ENVIRONMENT; every recipe shells out to the
-# npm script or deploy step that already exists. Nothing is
+# WHAT THIS IS FOR: npm scripts can't express a dependency — the old
+# `npm run deploy` was an all-or-nothing chain that reached production
+# with none of these guards, and it's retired; this file is the only
+# deploy entry point. It owns EDGES and ENVIRONMENT; every recipe shells
+# out to the npm script or deploy step that already exists. Nothing is
 # reimplemented here.
 #
 # THE DEV LOOP IS STILL npm. `npm run dev` / `npm test` / `npm run lint`
@@ -53,6 +54,15 @@ endif
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
+# Serial, ALWAYS. The safety story here is prerequisite ORDER — `deploy`
+# lists _require-prod first so the refusal fires before db-schema can wipe
+# anything — and prerequisite order only exists in serial make. Under -j8,
+# `gmake deploy ENV=local` really ran `supabase db reset` and `supabase link`
+# before the refusal landed (proven with PATH shims; audit-make.sh check 5
+# now guards it). Nothing in this file wants parallelism anyway — every
+# chain is a pipeline, not a fan-out.
+.NOTPARALLEL:
+
 # ── environment ─────────────────────────────────────────────────
 # NO DEFAULT, deliberately. `gmake deploy` once meant ENV=local, which wiped
 # the local database via db-schema and then pushed to production anyway — the
@@ -75,8 +85,12 @@ else ifeq ($(ENV),local)
   PRELUDE := export SUPABASE_DB_URL=$(LOCAL_DB_URL)
 else ifeq ($(ENV),prod)
   # The sourced prelude does secrets, project discovery, key fetch and
-  # the connection string. See supabase/deploy/env.sh.
-  PRELUDE := . supabase/deploy/env.sh; require_project; derive_db_url; fetch_api_keys
+  # the connection string (see supabase/deploy/env.sh) — and then ANNOUNCES
+  # the project + masked database it resolved, so every prod target says
+  # where it's pointed before doing anything. That announcement is policy
+  # (see the header), and putting it in the prelude means no individual
+  # target can forget it.
+  PRELUDE := . supabase/deploy/env.sh; require_project; derive_db_url; fetch_api_keys; announce_target
 else
   $(error ENV must be `local` or `prod` (got `$(ENV)`))
 endif
@@ -158,7 +172,7 @@ all-words: $(STAMPS)/words.stamp ## import common.words — the list every word 
 	@if [ "$*" = "local" ]; then
 	  export SUPABASE_DB_URL=$(LOCAL_DB_URL)
 	elif [ "$*" = "prod" ]; then
-	  . supabase/deploy/env.sh; require_project; derive_db_url
+	  . supabase/deploy/env.sh; require_project; derive_db_url; announce_target
 	else
 	  # Fail CLOSED. With no ENV, $(STAMPS) is `.make/` and $* comes out
 	  # empty — an `else` that meant "prod" would have made a bare
@@ -166,7 +180,7 @@ all-words: $(STAMPS)/words.stamp ## import common.words — the list every word 
 	  echo "REFUSED: unknown stamp env '$*' — pass ENV=local or ENV=prod" >&2; exit 1
 	fi
 	echo "── all-words → $*"
-	npm run words:import
+	npm run _words:import
 	touch $@
 	echo
 	echo "  NOTE: the committed stackdown boards were built against the OLD"
@@ -180,18 +194,18 @@ all-words: $(STAMPS)/words.stamp ## import common.words — the list every word 
 g-spellingbee-pangrams: $(STAMPS)/spellingbee-pangrams.stamp ## rebuild the spellingbee board-seed pool
 .make/%/spellingbee-pangrams.stamp: .make/%/words.stamp
 	@if [ "$*" = "local" ]; then export SUPABASE_DB_URL=$(LOCAL_DB_URL)
-	elif [ "$*" = "prod" ]; then . supabase/deploy/env.sh; require_project; derive_db_url
+	elif [ "$*" = "prod" ]; then . supabase/deploy/env.sh; require_project; derive_db_url; announce_target
 	else echo "REFUSED: unknown stamp env '$*'" >&2; exit 1; fi
-	npm run spellingbee:import
+	npm run _spellingbee:import
 	touch $@
 
 .PHONY: g-wordwheel-pangrams
 g-wordwheel-pangrams: $(STAMPS)/wordwheel-pangrams.stamp ## rebuild the wordwheel board-seed pool
 .make/%/wordwheel-pangrams.stamp: .make/%/words.stamp
 	@if [ "$*" = "local" ]; then export SUPABASE_DB_URL=$(LOCAL_DB_URL)
-	elif [ "$*" = "prod" ]; then . supabase/deploy/env.sh; require_project; derive_db_url
+	elif [ "$*" = "prod" ]; then . supabase/deploy/env.sh; require_project; derive_db_url; announce_target
 	else echo "REFUSED: unknown stamp env '$*'" >&2; exit 1; fi
-	npm run wordwheel:import
+	npm run _wordwheel:import
 	touch $@
 
 .PHONY: all-pangrams
@@ -212,12 +226,12 @@ all-pangrams: g-spellingbee-pangrams g-wordwheel-pangrams ## both seed pools
 .PHONY: g-boggle-trie
 g-boggle-trie: $(BOGGLE_TRIE) ## bundle boggle's solver dictionary (from LOCAL common.words)
 $(BOGGLE_TRIE): .make/local/words.stamp
-	@SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run boggle:wordlist
+	@SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run _boggle:wordlist
 
 .PHONY: g-scrabble-trie
 g-scrabble-trie: $(SCRABBLE_TRIE) ## bundle the scrabble AI's dictionary (from LOCAL common.words)
 $(SCRABBLE_TRIE): .make/local/words.stamp
-	@SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run scrabble:wordlist
+	@SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run _scrabble:wordlist
 
 .PHONY: all-tries
 all-tries: g-boggle-trie g-scrabble-trie ## both edge-function word bundles
@@ -235,7 +249,7 @@ all-tries: g-boggle-trie g-scrabble-trie ## both edge-function word bundles
 .PHONY: g-stackdown-genpuzzles
 g-stackdown-genpuzzles: .make/local/words.stamp ## generate COUNT=n BAND=b boards (APPENDS to the library)
 	@echo "── generating $(COUNT) band-$(BAND) board(s), seed $(SEED) (appending)"
-	SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run stackdown:gen -- $(COUNT) $(SEED) $(BAND)
+	SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run _stackdown:gen -- $(COUNT) $(SEED) $(BAND)
 
 $(STACKDOWN_JSONL):
 	@echo "── $(STACKDOWN_JSONL) is missing (fresh clone?) — generating a starter set"
@@ -246,7 +260,7 @@ $(STACKDOWN_JSONL):
 g-stackdown-puzzles: $(STACKDOWN_JSONL) ## delete + reload stackdown.boards (generates the library iff missing)
 	@$(PRELUDE)
 	echo "── stackdown.boards → $(ENV)"
-	npm run stackdown:import
+	npm run _stackdown:import
 
 .PHONY: g-stackdown-audit
 g-stackdown-audit: ## report boards holding words the CURRENT dictionary wouldn't choose
@@ -258,13 +272,13 @@ g-stackdown-audit: ## report boards holding words the CURRENT dictionary wouldn'
 g-connections-puzzles: ## import the NYT Connections archive (remote source, incremental)
 	@$(PRELUDE)
 	echo "── connections.puzzles → $(ENV)"
-	npm run connections:import
+	npm run _connections:import
 
 .PHONY: g-crosswords-puzzles
 g-crosswords-puzzles: ## import supabase/data/crosswords/*.puz|.ipuz
 	@$(PRELUDE)
 	echo "── crosswords.puzzles → $(ENV)"
-	npm run crosswords:import
+	npm run _crosswords:import
 
 .PHONY: db-data
 db-data: all-words all-pangrams g-stackdown-puzzles g-connections-puzzles g-crosswords-puzzles ## load every table's DATA (no schema, no code)
@@ -300,17 +314,35 @@ ifeq ($(ENV),local)
 	  if [ $$i = 60 ]; then echo " TIMED OUT after 60s" >&2; exit 1; fi
 	done
 else
-	echo "── db push → $(PROJECT_REF)"
-	supabase $(SUPA_FLAGS) db push --linked <<< y
+	# (No project ref in this echo: PROJECT_REF is a SHELL variable, and a
+	# make-style reference to it here expands to empty — which once made this
+	# line announce nothing. The prod prelude announces the resolved
+	# project + database instead.)
+	echo "── db push"
+	# `db push` ships only migration VERSIONS the remote hasn't recorded.
+	# While baselines are edited in place (the alpha habit), an edit to an
+	# already-applied file is invisible to it: the push reports "up to date"
+	# and ships nothing. Say so — "deploy succeeded" must not be read as
+	# "my schema change is live".
+	push_log=$$(mktemp)
+	supabase $(SUPA_FLAGS) db push --linked <<< y 2>&1 | tee "$$push_log"
+	if grep -qi "up to date" "$$push_log"; then
+	  echo
+	  echo "  NOTE: no new migration versions were pushed. If your schema change"
+	  echo "  was an EDIT to an already-applied baseline, it did NOT ship — shape"
+	  echo "  edits reach prod only as a new migration, or via project-bootstrap"
+	  echo "  MIGRATIONS=destroy."
+	fi
+	rm -f "$$push_log"
 endif
 
 .PHONY: db-sql
 db-sql: ## re-apply the CODE half — supabase/sql/*.sql (functions, views, policies, grants)
 	@$(PRELUDE)
 ifeq ($(ENV),local)
-	npm run sql:apply
+	npm run _sql:apply
 else
-	npm run sql:apply -- --require-url
+	npm run _sql:apply -- --require-url
 endif
 
 # The STRUCTURE only — every table and function, and nothing in them. Named
@@ -331,19 +363,111 @@ db: db-schema-sql db-data ## a WORKING database: structure + every table's data
 # exported SUPABASE_DB_URL in the caller's shell is all it would take.
 .PHONY: db-seed
 db-seed: ## local only: the dev personas + clubs (seed.dev.sql)
-	@SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run seed
+	@SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run _seed
 
 # An interactive shell on whichever database ENV names — the thing you reach
 # for when a target did something surprising. SQL="..." runs one statement and
-# exits instead. It announces the target first: `gmake db-psql ENV=prod` is a
-# prompt on the friends' real data, and which one you're typing into should
-# never be a guess.
+# exits instead. The prod prelude announces the target first: `gmake db-psql
+# ENV=prod` is a prompt on the friends' real data, and which one you're typing
+# into should never be a guess.
 .PHONY: db-psql
 db-psql: ## psql on ENV's database — SQL="select 1" to run one statement
 	@$(PRELUDE)
 	echo "── psql → $(ENV)"
-	[[ "$(ENV)" == "local" ]] || announce_target
 	psql "$$SUPABASE_DB_URL" $(if $(SQL),-c "$(SQL)",)
+
+# ── backups ─────────────────────────────────────────────────────
+# pg_dump of the IRREPLACEABLE data: auth accounts + every app schema's rows.
+# The structure rebuilds from git (migrations + supabase/sql/) and the bulk
+# seed/dictionary tables rebuild from db-data or migration replay, so their
+# DATA is excluded — a backup stays at friend-data size (KBs, not the
+# 283k-row word list), which is what makes "snapshot before every prod
+# write" frictionless. project-db-destroy depends on db-backup, so a wipe
+# always leaves one behind.
+#
+# Custom format (-Fc): compressed, and pg_restore can later pull out one
+# table or schema instead of replaying the whole file.
+#
+# The schema list is a psql-style pattern (anchored alternation), not one
+# -n per name: a brand-new project has no game schemas yet, and pg_dump
+# ERRORS on a -n that matches nothing — auth always exists, so the
+# alternation always matches at least once.
+BACKUP_SCHEMAS := auth|common|codenamesduet|psychicnum|connections|spellingbee|wordwheel|bananagrams|waffle|wordle|stackdown|scrabble|boggle|crosswords|wordiply
+# Excluded because something else already provides the rows, with the SAME
+# KEYS (that caveat has teeth — see the boards/puzzles note below):
+#   migrations reseed:  common.gametypes, codenamesduet.word_pool (static
+#                       handles, so FKs from restored rows still land)
+#   importers reload:   common.words, both pangram pools (value-copied at
+#                       game creation; nothing FKs into them)
+# Plus the auth EPHEMERA: sessions, refresh tokens, MFA, audit log — a
+# restore that forces re-login is correct, and auth.schema_migrations would
+# collide with the target's own history. Accounts = users + identities,
+# which stay in.
+#
+# NOT excluded, deliberately:
+#   stackdown.boards, connections.puzzles, crosswords.puzzles — game rows
+#     FK into them by id, and the importers assign FRESH ids on reload, so
+#     "rebuildable" does not preserve identity. Small anyway (~2.5k rows).
+#   common.clubs_gametypes — its migration insert is a backfill over
+#     existing clubs (a no-op on a fresh database); the real rows are
+#     per-club state worth keeping.
+BACKUP_EXCLUDE := common.gametypes codenamesduet.word_pool common.words \
+  spellingbee.pangrams wordwheel.pangrams \
+  auth.(sessions|refresh_tokens|mfa_*|flow_state|one_time_tokens|saml_*|sso_*|audit_log_entries|schema_migrations|instances)
+
+.PHONY: db-backup
+db-backup: ## pg_dump ENV's irreplaceable data → backups/<env>-<time>.dump
+	@$(PRELUDE)
+	# pg_dump refuses to read a server newer than itself; check up front and
+	# name both versions rather than letting its error name only one.
+	client=$$(pg_dump --version | grep -oE '[0-9]+' | head -1)
+	server=$$(psql -X -Atc 'show server_version_num' "$$SUPABASE_DB_URL" | cut -c1-2)
+	if [ "$$client" -lt "$$server" ]; then
+	  echo "REFUSED: pg_dump is v$$client but the server is v$$server —" >&2
+	  echo "         upgrade the client (brew upgrade libpq); it must be >= the server" >&2
+	  exit 1
+	fi
+	mkdir -p backups
+	out="backups/$(ENV)-$$(date +%Y%m%d-%H%M%S).dump"
+	# Write to .partial and rename only on success: a failed pg_dump must
+	# not leave behind a truncated file that looks like a usable backup.
+	pg_dump -Fc --no-owner \
+	  --schema '($(BACKUP_SCHEMAS))' \
+	  $(foreach t,$(BACKUP_EXCLUDE),--exclude-table-data '$(t)') \
+	  --file "$$out.partial" "$$SUPABASE_DB_URL" \
+	  || { rm -f "$$out.partial"; exit 1; }
+	mv "$$out.partial" "$$out"
+	echo "── wrote $$out ($$(du -h "$$out" | cut -f1))"
+
+.PHONY: db-restore
+db-restore: ## pg_restore DUMP=backups/<file>.dump (data only) into ENV's database
+	@$(PRELUDE)
+	[[ -n "$(DUMP)" ]] || { echo "REFUSED: pass DUMP=backups/<file>.dump" >&2; exit 1; }
+	[[ -f "$(DUMP)" ]] || { echo "REFUSED: $(DUMP) does not exist" >&2; exit 1; }
+	if [[ "$(ENV)" == "prod" ]]; then
+	  printf 'Type the project ref shown above to confirm restoring into it: '
+	  read -r reply || { echo "REFUSED: no confirmation (stdin closed) — nothing restored." >&2; exit 1; }
+	  [[ "$$reply" == "$$PROJECT_REF" ]] || { echo "REFUSED: that isn't the project ref — nothing restored." >&2; exit 1; }
+	fi
+	# DATA ONLY, into a database whose structure git already built — the
+	# expected flow is: db-schema-sql (structure), db-restore (the friends'
+	# rows), then all-words + all-pangrams (the excluded dictionary bulk).
+	# NOT db-data: its stackdown reload would delete the restored boards
+	# out from under the games that reference them.
+	#
+	# The -L list reorders the dump's TABLE DATA entries parents-first:
+	# pg_dump sorts them alphabetically (identities before users,
+	# game_players before games), which live FK constraints reject — and
+	# --disable-triggers needs superuser, which hosted postgres is not.
+	# --single-transaction: all-or-nothing, so a mid-restore failure can't
+	# leave half the rows in place.
+	echo "── restoring $(DUMP) → $(ENV) (data only)"
+	toc=$$(mktemp)
+	bash supabase/scripts/backup-toc-order.sh "$(DUMP)" > "$$toc"
+	pg_restore --data-only --single-transaction -L "$$toc" -d "$$SUPABASE_DB_URL" "$(DUMP)"
+	rm -f "$$toc"
+	echo "── restored. The dictionary bulk is NOT in a backup:"
+	echo "   run \`gmake all-words all-pangrams ENV=$(ENV)\` to finish."
 
 .PHONY: db-reset
 db-reset: ## local only: db (structure + data) + the dev personas
@@ -361,7 +485,7 @@ db-reset: ## local only: db (structure + data) + the dev personas
 .PHONY: _require-prod
 _require-prod:
 ifneq ($(ENV),prod)
-	@echo "REFUSED: deploy targets need ENV=prod — they reach production" >&2
+	@echo "REFUSED: this target needs ENV=prod — it reaches production" >&2
 	echo "         whatever ENV says, so ENV must say so too." >&2
 	exit 1
 endif
@@ -388,7 +512,8 @@ TRIE_scrabble-suggest-move := $(SCRABBLE_TRIE)
 TRIE_scrabble-ai-move      := $(SCRABBLE_TRIE)
 
 .SECONDEXPANSION:
-.PHONY: deploy-func-%
+# (No .PHONY here: it doesn't apply to pattern rules. It also isn't needed —
+# no file named deploy-func-* ever exists, so the recipe always runs.)
 deploy-func-%: _require-prod $$(TRIE_$$*) ## deploy ONE edge function by name (gmake deploy-func-waffle-build-board)
 	@$(PRELUDE)
 	supabase $(SUPA_FLAGS) functions deploy "$*" --use-api
@@ -440,7 +565,7 @@ project-config-secrets: ## edge-function secrets (ANTHROPIC_API_KEY)
 	@bash supabase/deploy/config-secrets.sh
 
 .PHONY: project-wait-cache
-project-wait-cache: ## pause for PostgREST's schema-cache reload (needed before g-connections-puzzles)
+project-wait-cache: ## poll until PostgREST's schema cache reloads (needed before g-connections-puzzles)
 	@bash supabase/deploy/wait-cache.sh
 
 # Everything a fresh project needs, in order: create, link, migrate, apply
@@ -463,12 +588,19 @@ MIGRATIONS ?= keep
 # target here. Without the explicit check, `gmake project-db-destroy` with the
 # default ENV=local would cheerfully wipe production. (It happened to fail
 # today on an undefined announce_target, which is not a safety mechanism.)
+# _require-prod FIRST (a prerequisite, so it refuses before db-backup runs),
+# then db-backup: the wipe always leaves a fresh snapshot behind. The
+# in-recipe guard stays as the belt to that suspender.
 .PHONY: project-db-destroy
-project-db-destroy:
+project-db-destroy: _require-prod db-backup
 	@[[ "$(ENV)" == "prod" ]] || { echo "REFUSED: project-db-destroy needs ENV=prod, typed out." >&2; exit 1; }
 	$(PRELUDE)
 	echo "── WIPING the hosted database (all data, auth accounts included)"
-	announce_target
+	# Typed confirmation, not a countdown: ENV=prod says which environment,
+	# but wiping every auth account deserves proof you know WHICH project.
+	printf 'Type the project ref shown above to confirm the wipe: '
+	read -r reply || { echo "REFUSED: no confirmation (stdin closed) — nothing wiped." >&2; exit 1; }
+	[[ "$$reply" == "$$PROJECT_REF" ]] || { echo "REFUSED: that isn't the project ref — nothing wiped." >&2; exit 1; }
 	supabase $(SUPA_FLAGS) db reset --linked --yes --no-seed
 	rm -f .make/prod/*.stamp   # same reason as db-schema: the wipe invalidates them
 
@@ -532,8 +664,9 @@ _audit: ## check the make system itself (-n inertness, ENV leakage, guards)
 # Leading underscore: an escape hatch, not part of the daily vocabulary — it
 # sorts to the top of `help` and out of the way of every prefix.
 .PHONY: _stamps-clean
-_stamps-clean: ## forget every stamp, so the next data target re-runs
-	@rm -rf .make/$(ENV)
+_stamps-clean: ## forget ENV's stamps, so the next data target re-runs
+	@[[ -n "$(ENV)" ]] || { echo "REFUSED: pass ENV=local or ENV=prod — with no ENV this would forget BOTH" >&2; exit 1; }
+	rm -rf .make/$(ENV)
 	echo "forgot the $(ENV) stamps"
 
 # ════════════════════════════════════════════════════════════════

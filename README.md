@@ -72,7 +72,7 @@ The structural integrity check: **removing a game should be three actions** — 
 
 ## Quick start
 
-Prereqs: Node, Docker Desktop, and the [Supabase CLI](https://supabase.com/docs/guides/cli).
+Prereqs: Node, Docker Desktop, GNU Make 4+ (`brew install make` → `gmake`), and the [Supabase CLI](https://supabase.com/docs/guides/cli).
 
 ```bash
 brew install supabase/tap/supabase
@@ -80,8 +80,7 @@ git clone <this repo>
 cd codenames
 npm install
 supabase start             # pulls Docker images on first run (~slow); ~30s after
-npm run db:reset           # migrations + supabase/sql/ + import + seed
-npm run import             # populates common.words + the puzzle libraries (required after every reset)
+gmake db-reset ENV=local   # migrations + supabase/sql/ + data (common.words + the puzzle libraries) + seed
 npm run types:gen          # generates src/types/db.ts from the live schema
 npm run dev                # http://localhost:5173
 ```
@@ -99,20 +98,18 @@ npm run lint         # ESLint (incl. cross-feature import-direction rules)
 npm test             # FE + DB tests (Vitest, then pgTAP)
 npm run test:fe      # Vitest only (add --watch for the dev loop)
 npm run test:db      # pgTAP only (needs Docker + the local stack)
-npm run db:reset     # wipe local DB, replay migrations, re-apply supabase/sql/, import + seed
-npm run sql:apply    # re-apply supabase/sql/ alone — how an RPC change ships (docs/supabase.md)
 
 # Composable data + deploy steps live in the Makefile (GNU Make 4+, `gmake`):
 gmake help                          # every target
+gmake db-reset ENV=local            # wipe local DB: migrations + supabase/sql/ + data + seed
 gmake db ENV=local                  # a working database: structure + data
 gmake db-data ENV=local             # just the data, rebuilding only what's stale
-gmake db-sql ENV=prod               # re-apply just the functions/policies to prod
+gmake db-sql ENV=local              # re-apply supabase/sql/ alone — how an RPC change ships (docs/supabase.md)
 gmake deploy ENV=prod               # schema + code + functions + FE
 # ENV is REQUIRED — no default. DEBUG=1 adds --debug to the supabase CLI.
 npm run db:diff      # drift vs migrations (noisy: supabase/sql/ objects always show)
 npm run db:lint      # supabase db lint --level warning
 npm run types:gen    # regenerate src/types/db.ts from local DB
-npm run deploy       # boggle/scrabble wordlists → db push + functions deploy + build + Netlify deploy
 ```
 
 `types:gen` and `db:lint` set `SUPABASE_ACCESS_TOKEN=local` as a workaround for a CLI 2.x regression that requires a token even for `--local`.
@@ -135,10 +132,10 @@ Deployed at <https://tinyspy.netlify.app> with the Supabase backend on the free 
 Redeploy in one command:
 
 ```bash
-npm run deploy
+gmake deploy ENV=prod
 ```
 
-That runs `npm run boggle:wordlist && npm run scrabble:wordlist && supabase db push && supabase functions deploy && npm run build && netlify deploy -p -d dist`. The two `wordlist` prebuilds regenerate the git-ignored boggle/scrabble word bundles the edge functions need. Order matters: schema and functions first so the FE never references a column, RPC, or function the prod backend doesn't have yet. Both `db push` and `functions deploy` are idempotent — when nothing's pending they're quick no-ops, so the script is safe to run on every deploy.
+That links the checkout, pushes pending migrations, re-applies the repeatable SQL (`supabase/sql/`), regenerates the git-ignored boggle/scrabble word bundles and deploys the edge functions, then builds the FE and pushes it to Netlify. Order matters: schema and functions first so the FE never references a column, RPC, or function the prod backend doesn't have yet. Every step is idempotent — when nothing's pending it's a chain of quick no-ops, so it's safe to run on every deploy. (The old `npm run deploy` is retired: it reached production with none of the Makefile's ENV guards.)
 
 Manual breakdown:
 

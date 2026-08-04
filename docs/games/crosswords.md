@@ -52,7 +52,7 @@ Both manifests share `PlayArea` / `SetupForm` / `Help` / schema with
 Two puzzle sources, ONE table for only one of them:
 
 - **`crosswords.puzzles`** — the curated, **CLI-imported library** only
-  (`crosswords:import`, `source = 'library'`). `meta` is the whole template
+  (`gmake g-crosswords-puzzles`, `source = 'library'`). `meta` is the whole template
   (`PuzzleTemplate` = PuzzleMeta + the initial grid cells) in one jsonb column;
   `solution` is a **shielded** jsonb column (column grants: `authenticated` gets
   only `(id, source, meta, created_at)` — `solution` *and* `content_hash` are
@@ -130,11 +130,12 @@ plain RPCs — no edge function needed.
 Four sources, exposed as four tabs in the setup form (Library / NYT by date /
 Guardian / Upload file):
 
-- **`crosswords:import`** (CLI, `supabase/scripts/`) — bulk-imports crossplay's
+- **`gmake g-crosswords-puzzles`** (CLI, `supabase/scripts/`) — bulk-imports crossplay's
   `.puz` / `.ipuz` files + the `content_hash` dedup into the curated
   `crosswords.puzzles` library. Reads a **git-ignored** `supabase/data/crosswords/`
-  folder (Joel keeps his own puzzle files; nothing committed). After `db:reset`
-  the library is empty until re-run — same posture as the other library games.
+  folder (Joel keeps his own puzzle files; nothing committed). After a reset
+  the library is empty until re-run (`gmake db-reset` chains it via `db-data`) —
+  same posture as the other library games.
   The parsers themselves live in **`src/crosswords/lib/parse/`** (see §6).
   Author-side companions (ported from crossplay): **`crosswords:puz-to-ipuz`**
   (convert a `.puz` → `.ipuz` via `parsePuzBuffer` + `writeIpuz`) and
@@ -447,7 +448,7 @@ This is the **canonical deferred register** for crosswords — distilled from th
   become a common-shell feature.
 - **`fetch-nyt-range` bulk CLI** — a Node script to download a date range
   of NYT dailies into the library; blocked on the `NYT_COOKIE_JAR` secret (same as
-  the live NYT fetch). Workaround: run crossplay's script, then `crosswords:import`.
+  the live NYT fetch). Workaround: run crossplay's script, then `gmake g-crosswords-puzzles`.
 - **⌥M "open the menu" shortcut** — the rest of crossplay's ⌥-set is
   ported (§7); ⌥M stays out because the shell exposes no programmatic menu-open to a
   PlayArea, and `?` / the logo already open it.

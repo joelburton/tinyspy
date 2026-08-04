@@ -219,7 +219,7 @@ them, and calls `create_game` in one round-trip. The wordwheel-specific bits:
 A **custom board** path builds from exactly the player's nine letters — duplicates
 allowed — (no sampling, no overlap cap, no ≥ 15 gate — only ≥ 1 required word).
 
-## Pangram seed import: `npm run wordwheel:import`
+## Pangram seed import: `gmake g-wordwheel-pangrams`
 
 `supabase/scripts/import-wordwheel-pangrams.ts` rebuilds `wordwheel.pangrams`. It scans
 `common.words` for **9-letter words**, dedupes them by sorted-letter string (anagrams
@@ -235,8 +235,8 @@ only the ≤ 2⁹ = 512 submasks of its own mask, summing isogram counts wholesa
 count-checking just the repeat-words. ~20M map lookups instead of ~10 billion subset
 tests — the import runs in seconds. It also prints a percentile report of
 required-words-at-own-band for kept vs dropped seeds (the data behind the ≥ 15 gate
-decision). Runs after `words:import` in the `npm run import` chain (empty until
-`words:import` has run — the usual [db-reset-needs-import](../../CLAUDE.md) gotcha).
+decision). Runs after `all-words` in the `gmake db-data` chain (empty until
+`gmake all-words` has run).
 
 ## Row-level security
 
@@ -454,7 +454,7 @@ border. See [docs/pdf.md](../pdf.md).
 |---|---|
 | Migration | `supabase/migrations/20260712000000_wordwheel.sql` |
 | Edge function | `supabase/functions/wordwheel-build-board/index.ts` |
-| Seed import | `supabase/scripts/import-wordwheel-pangrams.ts` (`npm run wordwheel:import`) |
+| Seed import | `supabase/scripts/import-wordwheel-pangrams.ts` (`gmake g-wordwheel-pangrams`) |
 | Frontend | `src/wordwheel/` |
 | Board geometry | `src/wordwheel/lib/wheel.ts` (shared: board + PDF) |
 | pgTAP tests | `supabase/tests/wordwheel/` |

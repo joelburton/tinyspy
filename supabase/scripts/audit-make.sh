@@ -4,7 +4,7 @@
 # ════════════════════════════════════════════════════════════════
 # Run it: `gmake _audit`
 #
-# Why this exists: five bugs in a row here shared a shape. None was a syntax
+# Why this exists: six bugs in a row here shared a shape. None was a syntax
 # error; all were about WHICH ENVIRONMENT or WHICH STATE a target actually
 # reaches, and all were invisible to "run it once and watch it work":
 #
@@ -16,6 +16,9 @@
 #   • db-seed inherited the caller's SUPABASE_DB_URL
 #   • project-db-destroy couldn't be protected by ENV at all, because
 #     `supabase … --linked` ignores the connection string
+#   • `gmake -j8 deploy ENV=local` ran `supabase db reset` and `supabase link`
+#     BEFORE _require-prod's refusal landed — prerequisite order, which the
+#     guards rely on, only exists in serial make (.NOTPARALLEL fixes it)
 #
 # So the checks are behavioural, not textual. Two of the three run every
 # target rather than the one someone happened to think of.
@@ -176,9 +179,56 @@ check_refuses_no_env() { # target
   fi
 }
 for t in db-sql db-schema db-schema-sql db db-data all-words db-psql \
-         g-stackdown-puzzles g-connections-puzzles all-pangrams db-reset deploy; do
+         g-stackdown-puzzles g-connections-puzzles all-pangrams db-reset deploy \
+         _stamps-clean db-backup db-restore; do
   check_refuses_no_env "$t"
 done
+
+# ────────────────────────────────────────────────────────────────
+echo "5. guards hold under parallel make (-j8)"
+# Prerequisites build CONCURRENTLY under -j, so "the guard is listed first"
+# stops meaning "the guard runs first". Without the Makefile's .NOTPARALLEL,
+# `gmake -j8 deploy ENV=local` really ran `supabase db reset` (wiping the
+# local DB) and `supabase link` before _require-prod's refusal landed. Same
+# shims as check 3, but raced: whatever the exit status, the shim log must
+# stay EMPTY — refusing after the reset is not refusing.
+check_parallel_inert() { # target, ENV
+  : > "$SHIM_LOG"
+  PATH="$SHIMS:$PATH" "$MAKE_BIN" -j8 "$1" ENV="$2" >/dev/null 2>&1 || true
+  if [[ -s "$SHIM_LOG" ]]; then
+    note "-j8 $1 ENV=$2 ran work before refusing: $(head -1 "$SHIM_LOG" | cut -f1,3 | mask)"
+  else
+    pass "-j8 $1 ENV=$2 stays inert"
+  fi
+}
+check_parallel_inert deploy local
+check_parallel_inert deploy-funcs local
+check_parallel_inert deploy-fe local
+check_parallel_inert db-reset prod
+check_parallel_inert project-db-destroy local
+
+# ────────────────────────────────────────────────────────────────
+echo "6. env.sh discards an inherited SUPABASE_DB_URL"
+# A stray export in the caller's shell must not redirect ENV=prod writes: the
+# connection string comes from the secrets file or is derived from the DB
+# password — never from the ambient environment. env.sh unsets it BEFORE
+# sourcing the secrets file, so a value pinned there still wins.
+#
+# Tested against a MINIMAL secrets file in a temp dir (env.sh resolves
+# deploy.secrets.sh relative to cwd) — the real secrets file pins
+# SUPABASE_DB_URL="", which would mask a regression here. The OK: sentinel
+# distinguishes "discarded" from "env.sh died before the echo": a check that
+# passes because it never ran is the audit's own bug class.
+ENVTEST="$TMP/envtest"; mkdir -p "$ENVTEST"
+printf 'PERSONAL_ACCESS_TOKEN="sbp_audit_dummy"\n' > "$ENVTEST/deploy.secrets.sh"
+ENV_SH="$(pwd)/supabase/deploy/env.sh"
+got=$(cd "$ENVTEST" && SUPABASE_DB_URL="$POISON" bash -c \
+  "source \"$ENV_SH\" >/dev/null 2>&1 && echo \"OK:\${SUPABASE_DB_URL:-}\"") || true
+case "$got" in
+  "OK:$POISON") note "env.sh kept the caller's SUPABASE_DB_URL" ;;
+  "OK:")        pass "ambient SUPABASE_DB_URL discarded (a secrets-file value still wins)" ;;
+  *)            note "couldn't source env.sh against the minimal secrets file — fix the audit" ;;
+esac
 
 # ────────────────────────────────────────────────────────────────
 echo

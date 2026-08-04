@@ -1,15 +1,15 @@
 #!/usr/bin/env -S npx tsx
 /**
  * Load the vendored stackdown board library into `stackdown.boards` —
- * `npm run stackdown:import`. Reads `supabase/data/stackdown-boards.jsonl`
- * (produced by `npm run stackdown:gen`) and replaces the table's
- * contents with it.
+ * `npm run _stackdown:import` (public entry: `gmake g-stackdown-puzzles
+ * ENV=…`). Reads `supabase/data/stackdown-boards.jsonl` (produced by
+ * `gmake g-stackdown-genpuzzles`) and replaces the table's contents with it.
  *
  * This is the CHEAP, fast half of the split (the slow generation is
- * `stackdown:gen`, run rarely; its output is committed to git). Run this
- * after every `db:reset` — a reset wipes `stackdown.boards` (it's a plain
- * table, not seeded by migrations), and `stackdown.create_game` raises if
- * the library is empty.
+ * `g-stackdown-genpuzzles`, run rarely; its output is committed to git).
+ * A reset wipes `stackdown.boards` (it's a plain table, not seeded by
+ * migrations), and `stackdown.create_game` raises if the library is
+ * empty — `gmake db-reset` re-runs this via `db-data`.
  *
  * Strategy: one transaction — DELETE all, then INSERT the file's boards.
  * A full reseed; nothing to preserve. `delete` (not `truncate`) so the
@@ -19,7 +19,7 @@
  * Connection: `SUPABASE_DB_URL` (defaults to the local stack). Requires
  * `psql` on PATH.
  *
- * Usage:  npm run stackdown:import
+ * Usage:  npm run _stackdown:import   (public entry: `gmake g-stackdown-puzzles ENV=…`)
  */
 
 import { execFileSync } from 'node:child_process'
@@ -38,7 +38,7 @@ type BoardLine = { tiles: unknown; words: string[]; band?: number }
 
 if (!existsSync(BOARDS_FILE)) {
   console.error(
-    `No board file at ${BOARDS_FILE} — run \`npm run stackdown:gen\` first.`,
+    `No board file at ${BOARDS_FILE} — run \`gmake g-stackdown-genpuzzles\` first.`,
   )
   process.exit(1)
 }
@@ -50,7 +50,7 @@ const boards: BoardLine[] = readFileSync(BOARDS_FILE, 'utf8')
   .map((line) => JSON.parse(line) as BoardLine)
 
 if (boards.length === 0) {
-  console.error(`${BOARDS_FILE} is empty — run \`npm run stackdown:gen\` first.`)
+  console.error(`${BOARDS_FILE} is empty — run \`gmake g-stackdown-genpuzzles\` first.`)
   process.exit(1)
 }
 

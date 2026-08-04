@@ -107,7 +107,7 @@ was their green/yellow/grey feedback flattening to one grey in mono.
   migrations rather than appending a new migration. Once the game is out of alpha stage,
   we'll switch to deployed and will not edit old migration files."* We're approaching it:
   the roster is complete and the remaining known work is FE copy rather than schema.
-  Flipping the switch is what ends **trashing the database on every deploy** (`db:reset`
+  Flipping the switch is what ends **trashing the database on every deploy** (`db-reset`
   wipes everything today, which is fine only because nothing is worth keeping).
   **Settled (2026-08-02): the baselines do NOT get squashed.** They stay one file per
   game plus one for `common`, frozen as-is, and new work appends. A single squashed v1
@@ -123,8 +123,8 @@ was their green/yellow/grey feedback flattening to one grey in mono.
   two-thirds of each game's SQL by line count. Leaving alpha therefore only changes
   what happens to **shape** changes, which are rare now that the roster is complete.
 
-  **Still to decide together:** what counts as "out of alpha"; how `db:reset` +
-  `npm run import` + `seed.dev.sql` change for a database that must survive; and
+  **Still to decide together:** what counts as "out of alpha"; how `gmake db-reset` +
+  `gmake db-data` + `seed.dev.sql` change for a database that must survive; and
   whether the friends get one last "everything resets" warning before the freeze.
   Until then, the alpha prior in CLAUDE.md still holds — keep editing the schema
   migrations in place too.

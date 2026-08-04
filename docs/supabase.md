@@ -85,7 +85,7 @@ The code file holds what describes *behavior* — functions, views, RLS policies
 triggers, and grants. All of it is drop-and-recreate safe, so it is not a delta
 at all: it is the **current definition**, edited in place forever. This is why
 changing an RPC adds no migration. You edit the game's one file, and
-`npm run sql:apply` re-runs it.
+`gmake db-sql` re-runs it.
 
 Roughly two-thirds of each game's SQL is code by line count (scrabble 69%,
 wordle 63%, common 38%), so the part that accumulates is the small part.
@@ -115,11 +115,12 @@ wordle 63%, common 38%), so the part that accumulates is the small part.
 columns that call it. The table can't be created before the function exists, so
 it stays in the migration and changing it needs a migration like any other DDL.
 
-**Applying it.** `npm run sql:apply` (local by default, `SUPABASE_DB_URL` to
-point elsewhere; `gmake db-sql ENV=prod` is the composable form). `npm run db:reset` chains it after `supabase db reset`, so the
-local flow is unchanged. `npm run deploy` runs it after `supabase db push` with
-`--require-url`, which makes an unset `SUPABASE_DB_URL` a hard error rather than
-a silent re-apply to localhost. Each file runs in a single transaction, so a
+**Applying it.** `gmake db-sql` (`ENV=local` or `ENV=prod` names the database;
+the target wraps the internal `npm run _sql:apply`, which reads
+`SUPABASE_DB_URL`, default local). `gmake db-reset ENV=local` chains it after `supabase db reset`, so the
+local flow is unchanged. `gmake deploy ENV=prod` runs it after the migration
+push with `--require-url`, which makes an unset `SUPABASE_DB_URL` a hard error
+rather than a silent re-apply to localhost. Each file runs in a single transaction, so a
 syntax error rolls the whole file back instead of leaving a half-updated schema.
 
 **What this trades away:** the migration table no longer records which version of
@@ -227,7 +228,7 @@ The inventory (row counts from a freshly-imported dev DB):
 | wordiply-build-board | `candidate_bases` / `try_base` | SQL RPCs; fn takes `.limit(1)` | no ✓ |
 | boggle-build-board | — | dictionary **bundled** in the fn (`dict.ts`); no fetch | no ✓ |
 | stackdown `create_game` board pick | `stackdown.boards` (1.2k) | `order by random() limit 1` inside the RPC | no ✓ |
-| import CLIs (`npm run import`) | everything | direct Postgres (`psql \copy`), not PostgREST | no ✓ |
+| import CLIs (`gmake db-data`) | everything | direct Postgres (`psql \copy`), not PostgREST | no ✓ |
 | connections SetupForm puzzle picker | `connections.puzzles` (**1122** NYT-dated) | plain select, no limit | fits under the 10k cap (1122 rows); needs a paging loop if the library ever nears 10k. A min/max-dates shortcut does NOT work here: the import skips unusable puzzles (image-word days), so dates are sparse, and the calendar needs per-date statuses anyway |
 | connections SetupForm `club_game_status` | grows with the club's games per mode | plain select | headroom to 10k; a club playing daily takes decades, but watch it if clubs binge one mode |
 | crosswords SetupForm library list | `crosswords.puzzles` (3 today; the planned dictionary-puzzle import will be **large**) | plain select | fine until that import — give it a paging loop (or a limit + real picker UI, which >10k puzzles needs regardless) **before** importing in bulk (deferred: [crosswords.md §9](games/crosswords.md#9-deferred)) |

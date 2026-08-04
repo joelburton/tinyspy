@@ -29,7 +29,7 @@ import { signIn } from './helpers/session'
  */
 test.describe('auth gate: a stale session never strands you on the username screen', () => {
   test('an invalidated session lands on the login screen', async ({ browser }) => {
-    // A returning, fully-set-up user whose auth.users row was wiped (db:reset
+    // A returning, fully-set-up user whose auth.users row was wiped (db-reset
     // / admin delete) while their session sits in the browser.
     const club = await createSoloClub('gone')
     await deleteUser(club.members[0].userId)

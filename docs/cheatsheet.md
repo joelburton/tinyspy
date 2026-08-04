@@ -11,21 +11,14 @@
 | `npm run test:fe` | Vitest only; add `-- --watch` for the dev loop |
 | `npm run test:db` | pgTAP only (needs Docker + the local Supabase stack) |
 | `npm run test:e2e` | Playwright realtime smoke tests (needs the local stack running) |
-| `npm run db:reset` | wipe the local DB, replay every migration, re-apply `supabase/sql/`, import + seed |
-| `npm run sql:apply` | re-apply the repeatable SQL (`supabase/sql/*.sql` — functions/views/policies/grants) without touching data. The whole point of the [schema-vs-code split](supabase.md#schema-vs-code): an RPC change is an edit here, never a migration |
 | `npm run db:diff` | show what the local schema has that migrations don't. **Noisy since the [schema-vs-code split](supabase.md#schema-vs-code)** — every function, view and policy lives outside the migration history by design, so they all report as drift (~440 KB). Read it for TABLE drift only |
 | `npm run db:lint` | Supabase's schema linter — warnings + errors |
 | `npm run types:gen` | regenerate `src/types/db.ts` from the live local schema |
-| `npm run connections:import` | populate `connections.puzzles` from the NYT Connections archive (one-shot per environment; idempotent) |
-| `npm run crosswords:import` | populate the curated `crosswords.puzzles` library from `.puz`/`.ipuz` files in `supabase/data/crosswords/` (idempotent via `content_hash`). NYT-by-date games don't use this — they're inline/self-contained |
-| `npm run import` | run every game's importer in sequence (words + spellingbee + connections + stackdown + crosswords). **Run after `db:reset`** — a bare reset leaves `common.words` + the puzzle libraries empty |
-| `npm run words:import` | populate `common.words` (the shared master word list) from `~/src/gamelist/words.tsv` (the word-list project's working copy, read live; override with `WORDS_TSV`). Loads via psql `COPY` (reseed: TRUNCATE + insert) — needs `psql` on PATH; targets `SUPABASE_DB_URL` (default local) |
-| `npm run spellingbee:import` | rebuild `spellingbee.pangrams` (the board-seed pool) from the scoring slice of `common.words`. **Run after `words:import`.** psql `COPY` reseed; needs `psql` |
-| `npm run stackdown:import` | populate the pre-generated `stackdown.boards` library (part of the `import` chain; `stackdown:gen` regenerates the board file it loads) |
-| `npm run boggle:wordlist` | bundle boggle's solver dictionary into the git-ignored `boggle-build-board/wordlist.ts`. Needed before the edge function can serve locally; `deploy` runs it automatically |
-| `npm run scrabble:wordlist` | bundle the scrabble AI's dictionary (`play_word`'s universe minus slurs + profanity) into the git-ignored `scrabble-suggest-move/wordlist.ts`. Needed before the edge function can serve locally; `deploy` runs it automatically |
 | `npm run scrabble:selfplay` | run the AI-vs-AI self-play tuning harness (calibrates the compete opponent's strength levels — see scrabble.md §12) |
-| `npm run deploy` | full prod push (`gmake deploy ENV=prod` is the composable equivalent): `boggle:wordlist` + `scrabble:wordlist` (regenerate the git-ignored edge-function word bundles) → `supabase db push` (schema deltas) → `sql:apply --require-url` (the repeatable SQL, onto the hosted DB — errors if `SUPABASE_DB_URL` is unset rather than re-applying to localhost) → `supabase functions deploy` (all functions) → `vite build` → `netlify deploy -p -d dist` |
+
+Scripts prefixed `_` (`_words:import`, `_sql:apply`, `_seed`, …) are **internal** —
+they're invoked by gmake targets, which add the `ENV` guard and stamp
+bookkeeping. Don't run them directly; use the `gmake` target instead.
 | `deno test supabase/functions/waffle-build-board/gen_test.ts` | unit-test waffle's `minSwaps` par (the generation logic lives in the edge function, not under Vitest) |
 
 ## `gmake …`
@@ -95,14 +88,17 @@ accounts included.
 gmake help                                   # every target, with descriptions
 
 # data + assets — `gmake g-<TAB>` narrows to one game
-gmake all-words ENV=local                    # common.words — only if words.tsv changed
+gmake all-words ENV=local                    # common.words from ~/src/gamelist/words.tsv, read
+                                             #   live (override WORDS_TSV); psql COPY, needs psql
 gmake all-pangrams ENV=local                 # spellingbee + wordwheel seeds (follows words)
-gmake all-tries                              # both edge-function word bundles
+gmake all-tries                              # both edge-function word bundles — needed before
+                                             #   the boggle/scrabble functions can serve locally
 gmake g-stackdown-genpuzzles COUNT=50 BAND=2 # generate boards — APPENDS to the library
 gmake g-stackdown-puzzles ENV=local          # delete + reload the table (generates iff missing)
 gmake g-stackdown-audit ENV=local            # boards holding words we'd no longer pick
-gmake g-connections-puzzles ENV=local        # the NYT Connections archive
-gmake g-crosswords-puzzles ENV=local         # supabase/data/crosswords/*.puz|.ipuz
+gmake g-connections-puzzles ENV=local        # the NYT Connections archive (idempotent)
+gmake g-crosswords-puzzles ENV=local         # supabase/data/crosswords/*.puz|.ipuz (idempotent
+                                             #   via content_hash; NYT-by-date games skip this)
 
 # the database — `gmake db-<TAB>`
 gmake db-psql ENV=local                      # a psql prompt on that database
@@ -110,9 +106,15 @@ gmake db-psql ENV=prod SQL="select 1"        # …or one statement
 gmake db ENV=local                           # a WORKING database: structure + data
 gmake db-schema-sql ENV=local                # structure only — an EMPTY database
 gmake db-schema ENV=local                    # migrations only
-gmake db-sql ENV=local                       # supabase/sql/ only
+gmake db-sql ENV=local                       # supabase/sql/ only — how an RPC change ships
 gmake db-data ENV=local                      # every table's DATA (no structure)
 gmake db-reset ENV=local                     # db + the dev personas
+gmake db-backup ENV=prod                     # pg_dump the irreplaceable data (auth accounts +
+                                             # app rows; dictionary/seed bulk excluded) → backups/
+gmake db-restore ENV=local DUMP=backups/<f>  # data-only pg_restore; structure comes from git
+                                             # (db-schema-sql first; all-words + all-pangrams
+                                             # after — NOT db-data, whose stackdown reload would
+                                             # delete restored boards out from under games)
 
 # deploying — `gmake deploy-<TAB>`
 gmake deploy ENV=prod                        # schema + code + functions + FE (NOT data)
@@ -123,17 +125,20 @@ gmake deploy-fe ENV=prod                     # just rebuild + redeploy the FE
 
 # the hosted project itself — `gmake project-<TAB>`
 gmake project-bootstrap ENV=prod MIGRATIONS=destroy   # stand one up from nothing
-gmake project-config-api ENV=prod            # just the PostgREST settings
+gmake project-config-api ENV=prod            # just the PostgREST settings. A NEW game's schema
+                                             # ships via this — `deploy` does NOT update the
+                                             # exposed-schemas list (also add the schema to
+                                             # EXPOSED_SCHEMAS in deploy/env.sh + config.toml)
 
 gmake -B <target>                            # force, ignoring stamps
-gmake _stamps-clean                          # forget what we think is loaded
+gmake _stamps-clean ENV=local                # forget what we think is loaded there
 gmake _audit                                 # check the make system itself
 ```
 
 **Stamps.** A database table has no mtime, so `.make/$(ENV)/*.stamp` stands in
 for one — touched after a load, with the real inputs as prerequisites. It
 records *what we last did*, not what the database holds: someone else's
-`db:reset` makes it lie. `-B` and `stamps-clean` are the escape hatches; the
+`db-reset` makes it lie. `-B` and `stamps-clean` are the escape hatches; the
 failure mode is a needless re-import, never corruption.
 
 **`gmake _audit`** is the make system's own test suite, and the only coverage
@@ -168,7 +173,7 @@ supabase status -o env                          # same but env-format for script
 ### Migrations & schema
 
 > **Which file?** Functions / views / policies / triggers / grants → edit
-> `supabase/sql/<game>.sql` and run `npm run sql:apply`; that is never a
+> `supabase/sql/<game>.sql` and run `gmake db-sql ENV=local`; that is never a
 > migration. Tables / columns / constraints / indexes / the publication /
 > seeds → a migration. See [supabase.md → Schema vs code](supabase.md#schema-vs-code).
 > Note `supabase db diff` reports the repeatable objects as "drift" — they live

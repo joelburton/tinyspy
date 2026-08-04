@@ -16,8 +16,8 @@
  *
  * That split is why changing an RPC doesn't add a migration: you edit the
  * game's one file and re-apply it. This script is the "re-apply" half, and it
- * runs in both places that need it — `npm run db:reset` locally, and
- * `npm run deploy` against the hosted project.
+ * runs in both places that need it — `gmake db-sql ENV=local` after a local
+ * reset, and `gmake db-sql ENV=prod` against the hosted project.
  *
  * **`common.sql` goes first.** Every game's functions and policies call into
  * `common` (`is_club_member`, `require_game_player`, `create_game`, …) and a
@@ -33,8 +33,9 @@
  * `--require-url` to make the default an error instead — `deploy` uses that so
  * a hosted deploy can never silently re-apply functions to localhost.
  *
- * Usage:  npm run sql:apply
- *         SUPABASE_DB_URL=<hosted> npm run sql:apply -- --require-url
+ * Usage:  gmake db-sql ENV=local|prod   (the public entry; underscored because
+ *         `npm run _sql:apply` follows whatever SUPABASE_DB_URL says, with
+ *         none of the Makefile's ENV guards)
  */
 
 import { execFileSync } from 'node:child_process'

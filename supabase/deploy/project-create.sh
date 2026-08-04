@@ -8,10 +8,12 @@
 # be the worst possible surprise.
 #
 # Discovers the org, generates a DB password if none was given, POSTs
-# /v1/projects, polls to ACTIVE_HEALTHY (~60-120s in practice, 5 min
-# ceiling), then fetches both API keys and saves everything to
-# .deploy-credentials.cache before returning — so a crash in any later
-# step still leaves a clean resume point.
+# /v1/projects — and saves the ref + password to .deploy-credentials.cache
+# THE MOMENT the project exists, before the health poll: from that point on
+# they exist nowhere else, and a transient failure later in this script
+# would otherwise discard them and make a re-run create a second project.
+# Then polls to ACTIVE_HEALTHY (~60-120s in practice, 5 min ceiling),
+# fetches both API keys, and saves again with those filled in.
 
 . "$(dirname "$0")/env.sh"
 
@@ -23,6 +25,16 @@ if [[ -n "$PROJECT_REF" && "$PROJECT_REF" != *"REPLACE-WITH"* ]]; then
 fi
 
 say "0. Creating a new Supabase project"
+
+# Guarded here rather than left to `set -u`, whose bare "unbound variable"
+# names the line, not the fix. These only matter when creating.
+for v in PROJECT_NAME PROJECT_REGION PROJECT_PLAN; do
+  if [[ -z "${!v:-}" ]]; then
+    echo "ERROR: $v is unset — your secrets file predates it." >&2
+    echo "       See deploy.secrets.example.sh for the Project block." >&2
+    exit 1
+  fi
+done
 
 if [[ -z "${ORG_ID:-}" ]]; then
   ORG_ID=$(api "https://api.supabase.com/v1/organizations" | jq -r '.[0].id')
@@ -47,7 +59,7 @@ payload=$(jq -n \
     region: $region, plan: $plan}')
 
 echo "    creating name=${PROJECT_NAME} region=${PROJECT_REGION}..."
-response=$(api -X POST "https://api.supabase.com/v1/projects" -d "$payload")
+response=$(api -X POST "https://api.supabase.com/v1/projects" -d @- <<< "$payload")
 PROJECT_REF=$(jq -r '.id' <<< "$response")
 if [[ -z "$PROJECT_REF" || "$PROJECT_REF" == "null" ]]; then
   echo "ERROR: the create response carried no id." >&2
@@ -55,6 +67,13 @@ if [[ -z "$PROJECT_REF" || "$PROJECT_REF" == "null" ]]; then
   exit 1
 fi
 echo "    project_ref=${PROJECT_REF}"
+
+# The project now EXISTS, and its ref + password exist nowhere else. Persist
+# them immediately — a flaky poll or key fetch below must not orphan a paid
+# project whose password is unrecoverable. save_credentials writes a full
+# snapshot, so the call at the end simply re-runs with the keys filled in.
+save_credentials
+echo "    ref + password saved to ${CREDENTIALS_FILE}"
 
 echo "    waiting for ACTIVE_HEALTHY..."
 status="UNKNOWN"

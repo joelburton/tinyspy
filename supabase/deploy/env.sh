@@ -49,6 +49,17 @@ if [[ -n "$_perm" && "$_perm" != "600" && "$_perm" != "400" ]]; then
   chmod 600 "$SECRETS_FILE" 2>/dev/null ||     echo "WARNING: couldn't chmod $SECRETS_FILE; it stays world-readable." >&2
 fi
 
+# The connection string must come from the secrets file or be derived below —
+# never from whatever the caller's shell happens to export. A stray
+# `export SUPABASE_DB_URL=…` (a leftover from manual psql work) would
+# otherwise silently redirect every ENV=prod write to that database while the
+# stamps and announcements claim prod. Discard it BEFORE the secrets file
+# loads, so a value pinned there still wins. (audit-make.sh check 6 pins this.)
+if [[ -n "${SUPABASE_DB_URL:-}" ]]; then
+  echo "NOTE: ignoring SUPABASE_DB_URL from the environment — pin it in $SECRETS_FILE instead." >&2
+  unset SUPABASE_DB_URL
+fi
+
 # shellcheck disable=SC1090
 source "$SECRETS_FILE"
 
@@ -130,10 +141,14 @@ SUPABASE_DB_URL="${SUPABASE_DB_URL:-}"
 
 # ── helpers ─────────────────────────────────────────────────────
 
-# Authenticated Management API call.
+# Authenticated Management API call. The PAT rides a header FILE (process
+# substitution — curl's `-H @file` form), not argv: argv is readable by any
+# local process via ps for the duration of the call. Callers with a payload
+# pipe it in with `-d @- <<< "$payload"` for the same reason — the create
+# payload carries the DB password and the auth config carries the Resend key.
 api() {
   curl --fail --silent --show-error \
-    -H "Authorization: Bearer ${PERSONAL_ACCESS_TOKEN}" \
+    -H @<(printf 'Authorization: Bearer %s\n' "$PERSONAL_ACCESS_TOKEN") \
     -H "Content-Type: application/json" \
     "$@"
 }
@@ -203,7 +218,7 @@ fetch_api_keys() {
   save_credentials
 }
 
-# The psql connection string the bulk loaders and sql:apply use.
+# The psql connection string the bulk loaders and db-sql use.
 # DIRECT connection, built from the DB password unless the secrets
 # file pinned one (use the Session pooler string there if the direct
 # host is unreachable on your network). The password is URL-encoded

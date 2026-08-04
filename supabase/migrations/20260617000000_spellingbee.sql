@@ -83,7 +83,7 @@ create schema if not exists spellingbee;
 -- rejection loops over the whole word list on each board build.
 -- See docs/games/spellingbee.md → "Why a seeds table?" for the longer
 -- explanation. Rebuilt by import-spellingbee-pangrams.ts (after
--- words:import has loaded common.words).
+-- `gmake all-words` has loaded common.words).
 --
 -- has_rare_letters drives the "diverse" builder's weighting:
 -- masks containing any of {j, q, x, z} (very rare) or

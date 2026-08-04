@@ -870,7 +870,7 @@ reuses:
 
 **The edge function `scrabble-suggest-move`** hosts the engine (the dictionary
 deliberately never ships to the game FE). It builds ONE all-bands rated trie at
-cold start from a bundled word list (`npm run scrabble:wordlist` generates it —
+cold start from a bundled word list (`gmake g-scrabble-trie` generates it —
 len 2..15, american OR british, all bands, **minus slurs + profanity**
 (`slur = 0 AND crude = 0`, 612 of ~277k); git-ignored, rebuilt on deploy).
 That last filter makes the trie a **strict subset of what `play_word` accepts**,

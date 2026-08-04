@@ -37,7 +37,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Import puzzles
-        run: npm run connections:import
+        run: npm run _connections:import
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

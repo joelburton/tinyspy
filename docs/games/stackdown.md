@@ -448,11 +448,11 @@ pill.
 ### 5.4 Board generation — a two-step split (gen is slow, import is cheap)
 
 Generation is a few seconds per board (the strict validation), too slow to
-re-run across hundreds of boards on every `db:reset`. So it's split, mirroring
-`words:import`'s vendored-file pattern:
+re-run across hundreds of boards on every `db-reset`. So it's split, mirroring
+`all-words`'s vendored-file pattern:
 
-- **`npm run stackdown:gen -- <count> [baseSeed] [band]`** (`generate-stackdown-boards.ts`)
-  — the SLOW half, run rarely. `count` is required — running with no arguments
+- **`gmake g-stackdown-genpuzzles COUNT=n [SEED=s] [BAND=b]`** (`generate-stackdown-boards.ts`)
+  — the SLOW half, run rarely. `COUNT` is required — running with no count
   just prints usage and generates nothing. Loads the 5-letter lexicon at the chosen `band`
   (`difficulty = band` exactly, default 1) from `common.words` (read-only),
   generates N strictly-valid boards on the fixed geometry, and **appends** them
@@ -460,21 +460,22 @@ re-run across hundreds of boards on every `db:reset`. So it's split, mirroring
   committed, human-readable library that grows across runs; duplicate six-word
   sets are skipped, so band-1 and band-2 boards coexist in the one file, each
   line tagged with its `band`). A band-N board is made entirely of band-N words.
-  Reproducible: board *i* uses `baseSeed + i`. Does NOT touch the `stackdown`
+  Reproducible: board *i* uses `SEED + i`. Does NOT touch the `stackdown`
   tables. Each board is bounded by
   a wall-clock budget (default 30s, `STACKDOWN_BOARD_TIMEOUT_MS`): a pathological
   word-set whose strict-validation search blows up is skipped rather than hanging
   the run. (Validation is also kept fast by pruning the `reachableWords` DFS to
   letter-prefixes of real words and precomputing the covering relation once.)
-- **`npm run stackdown:import`** (`import-stackdown-boards.ts`) — the CHEAP half.
+- **`gmake g-stackdown-puzzles ENV=local`** (`import-stackdown-boards.ts`) — the CHEAP half.
   Reads the JSONL file and replaces `stackdown.boards` with it (delete-all +
-  insert, one transaction). **Run after every `db:reset`** — a reset wipes the
+  insert, one transaction). A reset wipes the
   table (plain table, not seeded by migrations), and `create_game` raises if the
-  library is empty.
+  library is empty — `gmake db-reset` re-runs this via `db-data`.
 
-(Heads-up: `db:reset` also wipes `common.words`, which `stackdown:gen` reads — so
-the usual post-reset sequence is `words:import` then `stackdown:import`. You only
-re-run `stackdown:gen` when you actually want NEW boards.)
+(Heads-up: a reset also wipes `common.words`, which board generation reads — the
+gmake graph orders that for you (`g-stackdown-genpuzzles` depends on the local
+words import; `db-data` runs `all-words` before `g-stackdown-puzzles`). You only
+re-run `g-stackdown-genpuzzles` when you actually want NEW boards.)
 
 ### 5.5 Tests
 
@@ -493,7 +494,7 @@ club-readable, compete own-rows-only until terminal reveals opponents' words).
 A shared fixture board
 lives in `setup.psql` — which **deletes any library boards first** so
 `create_game`'s `order by random()` can only pick the fixture (otherwise a
-database that has run `stackdown:import` would have real boards in scope and the
+database that has run `g-stackdown-puzzles` would have real boards in scope and the
 fixture-encoded `sd_seq()` would spell the wrong tiles). FE: the `board.test.ts`
 Vitest above.
 

@@ -25,7 +25,7 @@ reset role;
 
 -- Clear any library boards first so create_game's `order by random()`
 -- can ONLY pick our fixture. Without this, a dev/CI database that has
--- run `stackdown:import` would have real boards visible inside this
+-- run `g-stackdown-puzzles` would have real boards visible inside this
 -- transaction, and create_game might claim one of those — making
 -- sd_seq() (which encodes THIS board) spell the wrong tiles. The delete
 -- is transactional and rolls back with the test; `on delete set null`

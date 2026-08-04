@@ -254,7 +254,7 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
             ) : filtered.length === 0 ? (
               <div className={styles.empty}>
                 {puzzles && puzzles.length === 0
-                  ? 'No puzzles in the library yet — run `npm run crosswords:import`.'
+                  ? 'No puzzles in the library yet — run `gmake g-crosswords-puzzles ENV=local`.'
                   : 'No puzzles match that filter.'}
               </div>
             ) : (

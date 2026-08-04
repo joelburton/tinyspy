@@ -3,7 +3,7 @@
 -- ============================================================
 -- Functions, views, RLS policies, triggers and grants for waffle. Everything
 -- here is drop-and-recreate safe, so this file is **re-applied in full on
--- every deploy** (`npm run sql:apply`) — it is the CURRENT definition, not a
+-- every deploy** (`gmake db-sql`) — it is the CURRENT definition, not a
 -- delta. Edit it in place forever; it never becomes a migration.
 --
 -- Its other half is the one-shot schema migration

@@ -81,8 +81,7 @@ create schema if not exists connections;
 -- ============================================================
 -- A *puzzle* is a prewritten, replayable board shape: one date's
 -- NYT Connections puzzle, imported from the Eyefyre/
--- NYT-Connections-Answers repo via the npm `connections:import`
--- script. Distinct from a *game's* `board` jsonb (below), which
+-- NYT-Connections-Answers repo via `gmake g-connections-puzzles`. Distinct from a *game's* `board` jsonb (below), which
 -- is the per-game-instance copy plus that game's shuffled
 -- `tileOrder`. Puzzles stay pristine; games copy from them.
 --

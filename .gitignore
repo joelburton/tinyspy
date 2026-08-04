@@ -38,8 +38,8 @@ supabase/snippets
 supabase/functions/.env
 
 # Generated boggle + scrabble dictionary assets — rebuilt from common.words by
-# `npm run boggle:wordlist` / `npm run scrabble:wordlist` (run automatically by
-# `npm run deploy`, and before `supabase functions serve` locally). Not
+# `gmake g-boggle-trie` / `gmake g-scrabble-trie` (run automatically by
+# `gmake deploy-funcs`; needed before `supabase functions serve` locally). Not
 # committed; ~1.2 MB each.
 supabase/functions/boggle-build-board/wordlist.ts
 supabase/functions/scrabble-suggest-move/wordlist.ts
@@ -54,6 +54,15 @@ deploy.secrets.sh
 # the *.local rule above, so renaming it can never quietly un-ignore a
 # file full of credentials.
 .deploy-credentials.cache
+
+# Written by supabase/deploy/fe.sh: the hosted project's URL + publishable
+# key, baked into the FE build. Covered by *.local above, but named
+# explicitly for the same reason as the credentials cache.
+.env.production.local
+
+# gmake db-backup output — pg_dump snapshots of the friends' real data
+# (auth accounts included), which must never land in git.
+backups/
 
 # Playwright (e2e smoke tests)
 /test-results/

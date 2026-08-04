@@ -23,6 +23,8 @@ for v in "${SITE_URL:-}" "${RESEND_API_KEY:-}" "${SMTP_SENDER_EMAIL:-}"; do
 done
 
 say "4. Configuring auth (site URL, SMTP, email template)"
+# This PATCHes the project, so say which one — same habit as config-api.sh.
+announce_target
 
 # Both the {{ .ConfirmationURL }} link and the {{ .Token }} code are
 # surfaced so a player can sign in cross-device — open the mail on a
@@ -70,7 +72,7 @@ payload=$(jq -n \
   }')
 
 api -X PATCH "https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth" \
-  -d "$payload" >/dev/null
+  -d @- <<< "$payload" >/dev/null
 echo "    site URL=${SITE_URL}; SMTP=smtp.resend.com (Resend)."
 echo "    NOTE: Resend won't deliver until the sender domain is verified"
 echo "          in the Resend dashboard (DNS, one-time per domain)."

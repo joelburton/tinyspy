@@ -11,7 +11,7 @@
 -- scrabble analogue of stackdown's `sd_seq` fixture.
 --
 -- The dictionary check in play_word reads the real common.words table
--- (populated by `words:import`, visible inside the test transaction), so
+-- (populated by `gmake all-words`, visible inside the test transaction), so
 -- tests use real words ('AT', 'CAT', …) and a deliberate non-word for the
 -- reject path.
 
