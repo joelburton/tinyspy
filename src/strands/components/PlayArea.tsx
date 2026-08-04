@@ -10,7 +10,7 @@ import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy
 import { NEW_GAME_CONFIRM, useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
-import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { buildGameMenu, NEW_GAME_ID } from '../../common/lib/game/gameMenu'
 import { buildPrintModel } from '../pdf/model'
 import { printStrandsPdf } from '../pdf/printStrandsPdf'
 import { difficultyValue } from '../../common/lib/game/difficulty'
@@ -395,11 +395,27 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // The GamePage menu. Held in a ref so the effect needn't list the per-render
   // handlers in its deps (the crosswords `actionsRef` pattern).
-  const actionsRef = useRef({ endGame: handleEndGame, concede: handleConcede })
+  // Every action the terminal row offers is ALSO a menu item — the roster's
+  // rule, and the reason the ref carries all five rather than just the two
+  // buildGameMenu asks for. Held in a ref so the menu effect needn't list the
+  // (identity-changing) handlers in its deps.
+  const actionsRef = useRef({
+    endGame: handleEndGame,
+    concede: handleConcede,
+    restart: handleRestart,
+    newGame: startNewGame,
+    reveal: handleReveal,
+  })
   const modeRef = useRef<'coop' | 'compete'>('coop')
   const concededRef = useRef(false)
   useEffect(() => {
-    actionsRef.current = { endGame: handleEndGame, concede: handleConcede }
+    actionsRef.current = {
+      endGame: handleEndGame,
+      concede: handleConcede,
+      restart: handleRestart,
+      newGame: startNewGame,
+      reveal: handleReveal,
+    }
     modeRef.current = isCompete ? 'compete' : 'coop'
     concededRef.current = players.find((p) => p.user_id === selfId)?.conceded ?? false
   })
@@ -445,7 +461,32 @@ export function PlayArea(ctx: GamePageCtx) {
         onEndGame: () => actionsRef.current.endGame(),
         onConcede: () => actionsRef.current.concede(),
         extra: [
+          // Mobile-only "Game info" (reaches the off-canvas info column); empty
+          // on desktop, where that column is always visible.
           ...infoSheet.menuSections,
+          {
+            items: [
+              { id: 'restart', label: 'Restart', onClick: () => actionsRef.current.restart() },
+              // NEW_GAME_ID is a contract with the shell, not a name: the `+`
+              // shortcut finds the item by that id and inherits its disabled
+              // state. strands' New game is the NEXT DAY'S puzzle.
+              {
+                id: NEW_GAME_ID,
+                label: 'New game',
+                shortcut: '+',
+                disabled: startingNewGame,
+                onClick: () => actionsRef.current.newGame(),
+              },
+              {
+                id: 'reveal',
+                label: 'Reveal answer',
+                // Terminal-only, matching common.reveal_solution's own gate,
+                // and gone once it's already shown.
+                disabled: !isTerminal || solutionRevealed,
+                onClick: () => actionsRef.current.reveal(),
+              },
+            ],
+          },
           ...(printModel
             ? [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printStrandsPdf(printModel) }] }]
             : []),
@@ -453,7 +494,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
   }, [
-    menu, isTerminal, infoSheet.menuSections,
+    menu, isTerminal, solutionRevealed, startingNewGame, infoSheet.menuSections,
     // The print model's inputs — rebuilt whenever the printable state moves, so
     // the snapshot is current at click time.
     brand, title, game, guesses, players, playerStates, selfId, strandsSetup, found.length,
