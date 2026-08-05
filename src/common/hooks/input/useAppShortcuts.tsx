@@ -31,11 +31,25 @@ import { setChatOpen } from '../../lib/chat/chatOpenStore'
  * open modal", which the dialogs already own (WordLookupDialog's
  * FloatingPanel closes on Escape).
  *
+ * **`chat: false`** turns the `/` binding off, for a page that has no chat
+ * panel mounted. Chat is club-scoped (`<FloatingChat>` lives on ClubPage and
+ * GamePage), so on HomePage the shortcut would flip the shared open flag and
+ * produce nothing visible — a key that silently does nothing is worse than one
+ * that isn't bound, because the next person debugging it starts from "chat is
+ * broken" rather than "chat isn't here". `?` and `~` are page-independent and
+ * stay on.
+ *
  * @param openMenu  Called on `?` — the caller wires this to its `<Menu>`.
+ * @param opts.chat Bind `/` to open chat. Default true; pass false on a page
+ *                  with no chat panel.
  * @returns The word-lookup dialog node (or null when closed). Render it
  *          somewhere in the page tree.
  */
-export function useAppShortcuts(openMenu: () => void): ReactNode {
+export function useAppShortcuts(
+  openMenu: () => void,
+  opts: { chat?: boolean } = {},
+): ReactNode {
+  const chatEnabled = opts.chat ?? true
   // Keep the latest openMenu in a ref so the listener registers once.
   const openMenuRef = useRef(openMenu)
   useEffect(() => {
@@ -46,9 +60,19 @@ export function useAppShortcuts(openMenu: () => void): ReactNode {
   // can be owned + rendered centrally for every page (see docstring).
   const [lookupOpen, setLookupOpen] = useState(false)
 
+  // Read through a ref so the listener still registers exactly once — the flag
+  // is a constant per call site in practice, but this keeps the effect's deps
+  // empty rather than making the listener re-attach on a caller's re-render.
+  const chatEnabledRef = useRef(chatEnabled)
+  useEffect(() => {
+    chatEnabledRef.current = chatEnabled
+  })
+
   useEffect(function attachShortcuts() {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key !== '/' && e.key !== '?' && e.key !== '~') return
+      // An unbound `/` is left to the browser (find-in-page), not swallowed.
+      if (e.key === '/' && !chatEnabledRef.current) return
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (isNonGameField(e.target)) return
       // We're taking this key — don't also type it into a focused game

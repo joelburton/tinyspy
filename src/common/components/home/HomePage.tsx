@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { Link } from '../../lib/routing/Link'
 import { navigate } from '../../lib/routing/router'
@@ -8,9 +8,11 @@ import { db as commonDb } from '../../db'
 import { useProfile } from '../../hooks/session/useProfile'
 import { useRealtimeRefetch } from '../../hooks/realtime/useRealtimeRefetch'
 import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
-import { Menu } from '../panels/Menu'
+import { PuzpuzpuzLogo } from '../branding/PuzpuzpuzLogo'
+import { Menu, type MenuHandle } from '../panels/Menu'
 import { TriggerWithChevron } from '../panels/TriggerWithChevron'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
+import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
 import styles from './HomePage.module.css'
 
 type ClubListEntry = {
@@ -114,6 +116,15 @@ export function HomePage({ session }: Props) {
 
   const accountSection = useAccountMenuSection(session)
 
+  // `?` opens the menu and `~` opens word-lookup, as on every other real page.
+  // `chat: false` — chat is club-scoped and no panel is mounted here, so binding
+  // `/` would swallow the key and show nothing (see the hook).
+  const menuRef = useRef<MenuHandle>(null)
+  const lookupDialog = useAppShortcuts(
+    useCallback(() => menuRef.current?.open(), []),
+    { chat: false },
+  )
+
   const listRef = useRef<HTMLUListElement>(null)
   const [cursor, setCursor] = useState(0)
   // Tracked on the container proper (not a bubbled child focus) so tabbing on
@@ -159,23 +170,27 @@ export function HomePage({ session }: Props) {
 
   return (
     <div className="card">
-      {/* The wordmark is now a menu trigger, matching ClubPage and GamePage.
-          Home had NO menu at all until the account items moved off the fixed
-          top-right chip — which made this the one authenticated screen with no
-          way to reach Profile or Log out. The menu holds only the account
-          submenu today; that's the point of it existing, and it's the natural
-          home for a future Help. */}
-      <div className={styles.wordmarkRow}>
+      {/* A real header, the same shape ClubPage and GamePage carry: the square
+          site logo top-left, opening the page's menu. Home had no menu at all
+          until the account items moved off the fixed top-right chip, and the
+          first attempt hung the menu off the WORDMARK below — which reads badly
+          (a hero image isn't a control; the disclosure chevron had nowhere to
+          sit on a 400px-wide PNG). The wordmark goes back to being artwork.
+          The menu holds only the account submenu today; the point of the header
+          is that Help and anything else non-user now have somewhere to live. */}
+      <header className={styles.header}>
         <Menu
+          ref={menuRef}
           trigger={
             <TriggerWithChevron>
-              <PuzpuzpuzWordmark />
+              <PuzpuzpuzLogo />
             </TriggerWithChevron>
           }
           sections={[accountSection]}
           triggerLabel="Main menu"
         />
-      </div>
+      </header>
+      <PuzpuzpuzWordmark />
       <h1>Welcome{username ? `, ${username}` : ''}</h1>
       <p className="muted">{session.user.email}</p>
 
@@ -240,6 +255,8 @@ export function HomePage({ session }: Props) {
           </ul>
         )}
       </section>
+      {/* The "~" word-lookup dialog (owned by useAppShortcuts). Null when shut. */}
+      {lookupDialog}
     </div>
   )
 }
