@@ -42,14 +42,14 @@ select plan(18);
 
 select is(
   (select count(*) from common.gametypes),
-  26::bigint,
-  'common.gametypes contains twenty-six rows (codenamesduet + 2 psychicnum + 2 connections + 2 spellingbee + bananagrams + 2 waffle + 2 wordle + 2 stackdown + 2 scrabble + 2 boggle + 2 crosswords + 2 wordwheel + 2 wordiply + 2 strands)'
+  28::bigint,
+  'common.gametypes contains twenty-eight rows (codenamesduet + 2 psychicnum + 2 connections + 2 spellingbee + bananagrams + 2 waffle + 2 wordle + 2 stackdown + 2 scrabble + 2 boggle + 2 crosswords + 2 wordwheel + 2 wordiply + 2 strands + 2 letterboxed)'
 );
 
 select is(
   (select array_agg(gametype order by gametype) from common.gametypes),
-  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_compete','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordle_coop','wordwheel_compete','wordwheel_coop'],
-  'common.gametypes contains the twenty-six registered gametypes by name'
+  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','letterboxed_compete','letterboxed_coop','psychicnum_compete','psychicnum_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_compete','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordle_coop','wordwheel_compete','wordwheel_coop'],
+  'common.gametypes contains the twenty-eight registered gametypes by name'
 );
 
 -- ============================================================
@@ -71,8 +71,8 @@ select is(
     join common.clubs c on c.handle = k.club_handle
     where c.handle = '=ada'
   ),
-  13::bigint,
-  'claim_username populated 13 (solo-playable, default-enroll) clubs_gametypes rows for ada''s solo club'
+  14::bigint,
+  'claim_username populated 14 (solo-playable, default-enroll) clubs_gametypes rows for ada''s solo club'
 );
 
 select is(
@@ -82,8 +82,8 @@ select is(
     join common.clubs c on c.handle = k.club_handle
     where c.handle = '=ada'
   ),
-  array['bananagrams','boggle_coop','connections_coop','crosswords_coop','scrabble_compete','scrabble_coop','spellingbee_coop','stackdown_coop','strands_coop','waffle_coop','wordiply_coop','wordle_coop','wordwheel_coop'],
-  'ada''s solo club has m2m rows for the thirteen solo-playable default-enroll gametypes (incl. scrabble_compete vs AI)'
+  array['bananagrams','boggle_coop','connections_coop','crosswords_coop','letterboxed_coop','scrabble_compete','scrabble_coop','spellingbee_coop','stackdown_coop','strands_coop','waffle_coop','wordiply_coop','wordle_coop','wordwheel_coop'],
+  'ada''s solo club has m2m rows for the fourteen solo-playable default-enroll gametypes (incl. scrabble_compete vs AI)'
 );
 
 -- ============================================================
@@ -101,8 +101,8 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  24::bigint,
-  'create_club populated 24 m2m rows for the new club (the registry minus psychicnum''s opt-out pair)'
+  26::bigint,
+  'create_club populated 26 m2m rows for the new club (the registry minus psychicnum''s opt-out pair)'
 );
 
 select is(
@@ -111,8 +111,8 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_compete','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordle_coop','wordwheel_compete','wordwheel_coop'],
-  'new club has m2m rows for the twenty-four default-enroll gametypes — no psychicnum'
+  array['bananagrams','boggle_compete','boggle_coop','codenamesduet','connections_compete','connections_coop','crosswords_compete','crosswords_coop','letterboxed_compete','letterboxed_coop','scrabble_compete','scrabble_coop','spellingbee_compete','spellingbee_coop','stackdown_compete','stackdown_coop','strands_compete','strands_coop','waffle_compete','waffle_coop','wordiply_compete','wordiply_coop','wordle_compete','wordle_coop','wordwheel_compete','wordwheel_coop'],
+  'new club has m2m rows for the twenty-six default-enroll gametypes — no psychicnum'
 );
 
 -- ============================================================
@@ -127,7 +127,7 @@ select is(
     from common.clubs_gametypes
     where club_handle = (select handle from club)
   ),
-  24::bigint,
+  26::bigint,
   'sanity: ada (a member) sees her club''s m2m rows'
 );
 
@@ -156,7 +156,7 @@ select is(
 
 select is(
   (select count(*) from common.gametypes),
-  26::bigint,
+  28::bigint,
   'common.gametypes is readable by any signed-in user'
 );
 

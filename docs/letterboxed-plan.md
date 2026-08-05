@@ -401,9 +401,15 @@ never be realized.
 
 ### Still open after the spike
 
-- **Seed-table size.** 459k band-≤2 rows is more than anyone needs. Sample down
-  to ~50k at import, or store all of them? Storage is cheap; the argument for
-  trimming is only that a smaller table is easier to eyeball.
+- **⚑ Seed-table size — Joel wants to discuss this before ship.** The importer
+  currently stores everything it finds: **458,187 rows, ~25MB**. That is far
+  more than any club will ever draw from, and the arguments cut both ways —
+  storage is cheap and a bigger pool means less repetition, but a smaller table
+  is easier to eyeball, faster to back up, and cheaper to reason about. Options:
+  keep all; sample down to ~50k at import; or keep band 1 only (222,367 rows) and
+  treat band 2 as headroom. **Not blocking implementation** — the schema and the
+  builder are identical either way, so this can be decided any time before ship
+  by re-running the importer.
 - **`max_words` default.** Proposed 5 (NYT's dailies target 4–5), range 2–6.
   Wants a play-test more than an analysis.
 - **Does the seed table need wordwheel's rare-letter weighting** so J/Q/X boards

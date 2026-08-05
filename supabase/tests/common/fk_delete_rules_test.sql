@@ -91,6 +91,7 @@ select set_eq(
       ('codenamesduet.games'),
       ('connections.games'),
       ('crosswords.games'),
+      ('letterboxed.games'),
       ('psychicnum.games'),
       ('scrabble.games'),
       ('spellingbee.games'),

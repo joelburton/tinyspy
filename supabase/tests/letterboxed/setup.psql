@@ -1,0 +1,108 @@
+-- ============================================================
+-- Per-test-file letterboxed fixtures
+-- ============================================================
+--
+-- Loaded by every letterboxed/*_test.sql via:
+--   \ir setup.psql
+--
+-- Provides:
+--   pg_temp.lb_board()        — a SYNTHETIC `board` jsonb (the shape
+--                               letterboxed.create_game accepts).
+--                               Deterministic, NO dictionary dependence.
+--   pg_temp.lb_setup()        — a default setup jsonb (max_words 5,
+--                               legal_band 5, no timer). Mode is a
+--                               positional RPC arg, NOT a setup field.
+--   pg_temp.lb_setup_turns()  — the same, plus coop_style='turns'.
+--   pg_temp.lb_setup_timed()  — the same, plus a countdown timer.
+--
+-- ─── Why synthetic works here ────────────────────────────────
+-- letterboxed.submit_word never consults common.words. A word is
+-- playable iff it appears in the board's `playable_words` list, which
+-- the board builder computed once. So a fixture only has to put its
+-- test words in that list, and they need not be real words — the same
+-- move wordiply's fixture makes, for the same reason.
+--
+-- ─── The board these tests play on ───────────────────────────
+-- sides = 'abcdefghijkl', i.e. four sides of three:
+--
+--        a b c
+--      j       d
+--      k       e
+--      l       f
+--        i h g          (side 0 = abc, 1 = def, 2 = ghi, 3 = jkl)
+--
+-- So the side of a letter is its position in the alphabet div 3, and
+-- two letters may sit next to each other in a word iff those differ.
+-- Every fixture word below honours that, even though the server would
+-- accept any string in the list — a fixture that taught the wrong rule
+-- would be worse than no fixture.
+--
+-- The solution pair:
+--   'adgjbehk'  a-d-g-j-b-e-h-k   sides 0,1,2,3,0,1,2,3  covers 8
+--   'kcfil'     k-c-f-i-l         sides 3,0,1,2,3        covers 5
+-- They chain (…k → k…) and together cover all twelve, which is exactly
+-- what create_game's winnability check verifies.
+
+-- ── The board ───────────────────────────────────────────────
+-- playable_words carries the seven crafted words the tests submit, plus
+-- filler to clear create_game's >= 150 richness floor. The filler is
+-- generated ('qaa', 'qab', …) rather than written out: it exists only
+-- to satisfy the gate, and no test ever submits one.
+create function pg_temp.lb_board()
+returns jsonb
+language sql
+as $$
+  select jsonb_build_object(
+    'sides', 'abcdefghijkl',
+    'solution', jsonb_build_array('adgjbehk', 'kcfil'),
+    'playable_words',
+      jsonb_build_array(
+        'adgjbehk',  -- the solution's first word (covers 8, ends k)
+        'kcfil',     -- the solution's second word (covers the other 4)
+        'adg',       -- a short opener, ends g
+        'gjb',       -- follows 'adg', ends b
+        'beh',       -- follows 'gjb', ends h
+        'kcf',       -- follows 'adgjbehk', ends f
+        'ila'        -- starts with i, so it follows NOTHING the tests play:
+                     -- the wrong-start-letter rejection uses it
+      )
+      || (select jsonb_agg('q' || chr(97 + (i / 26)) || chr(97 + (i % 26)))
+            from generate_series(0, 199) i)
+  );
+$$;
+
+-- ── Setups ──────────────────────────────────────────────────
+-- max_words 5 is the shipped default: enough room to reach twelve the
+-- short way (2 words) or the scenic way, and tight enough that the cap
+-- tests can hit it without a long fixture.
+create function pg_temp.lb_setup()
+returns jsonb
+language sql
+as $$
+  select jsonb_build_object(
+    'max_words',  5,
+    'legal_band', 5,
+    -- Required by common.require_valid_timer even when there is no clock;
+    -- kind 'none' is how a game says "untimed".
+    'timer',      jsonb_build_object('kind', 'none')
+  );
+$$;
+
+-- Turn-by-turn coop. first_turn_user_id is filled by the caller, since
+-- only the test knows which personas are playing.
+create function pg_temp.lb_setup_turns(first_turn uuid)
+returns jsonb
+language sql
+as $$
+  select pg_temp.lb_setup()
+      || jsonb_build_object('coop_style', 'turns', 'first_turn_user_id', first_turn);
+$$;
+
+create function pg_temp.lb_setup_timed()
+returns jsonb
+language sql
+as $$
+  select pg_temp.lb_setup()
+      || jsonb_build_object('timer',
+           jsonb_build_object('kind', 'countdown', 'seconds', 300));
+$$;
