@@ -1,8 +1,13 @@
-import type { MouseEvent } from 'react'
+import { useEffect, type MouseEvent } from 'react'
 import type { GamePlayer } from '../../common/lib/games'
 import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
-import { TurnLog, TurnLogBar, type TurnOutcome } from '../../common/components/game/lists/TurnLog'
+import {
+  TurnLog,
+  TurnLogBar,
+  TurnLogNumber,
+  type TurnOutcome,
+} from '../../common/components/game/lists/TurnLog'
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
 import { memberById } from '../../common/lib/game/peers'
 import { BOARD_SIZE } from '../lib/board'
@@ -39,12 +44,22 @@ export function GameTurnLog({
   selfId,
   mode,
   isTerminal,
+  viewingIndex,
+  onSelectTurn,
+  onRowsChange,
 }: {
   events: EventRow[]
   players: GamePlayer[]
   selfId: string
   mode: 'coop' | 'compete'
   isTerminal: boolean
+  /** The move open in the board viewer, or null when live. */
+  viewingIndex: number | null
+  /** Open a move on the board (click its `#N`). */
+  onSelectTurn: (index: number) => void
+  /** The rows currently on show, handed up so the board replays the SAME list
+   *  the numbers are indexing. */
+  onRowsChange: (rows: EventRow[], boardIsShown: boolean) => void
 }) {
   const who = useTurnLogPlayerPicker<EventRow>({
     players,
@@ -55,6 +70,14 @@ export function GameTurnLog({
     emptyLabel: 'No moves yet.',
   })
   const shown = who.filter(events)
+
+  // The viewer indexes by POSITION in the displayed rows, so the board has to
+  // fold the same list. Handing it up (rather than the board re-deriving it)
+  // keeps one definition of "the rows on show".
+  const boardIsShown = who.boardIsShown
+  useEffect(() => {
+    onRowsChange(shown, boardIsShown)
+  }, [shown, boardIsShown, onRowsChange])
 
   // Click-to-define (a common feature — common/hooks/definitions/useDefinePopover).
   // Every word in the log is a real dictionary word, whether it was played,
@@ -81,7 +104,14 @@ export function GameTurnLog({
       {shown.map((e, i) => (
         <tr key={e.id} className={turnLog.turnLogDivider}>
           <TurnLogBar outcome={barFor(e)} />
-          <td className={turnLog.meta}>#{i + 1}</td>
+          {/* A live handle only when the rows on show ARE the board's rows —
+              otherwise a click would replay someone else's chain onto your
+              board. */}
+          {boardIsShown ? (
+            <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
+          ) : (
+            <td className={turnLog.meta}>#{i + 1}</td>
+          )}
           <td className={turnLog.main}>
             <Move event={e} defineProps={defineProps} />
           </td>
@@ -100,16 +130,23 @@ export function GameTurnLog({
 }
 
 /**
- * The row's bar colour. `good` only on the move that covers the board (an
- * ordinary word is progress, not pass/fail — wordle's reading), `partial`
- * (amber) on help taken, matching psychicnum's reveal rows and the amber of the
- * Hint / Spoiler buttons themselves, and `neutral` for everything else
- * including a retreat: in turn-by-turn co-op an undo costs the undoer's turn
- * and is usually made for the next player, so red would misdescribe it.
+ * The row's bar colour.
+ *
+ * A PLAYED WORD IS `good` — green. Getting a legal word onto this board is the
+ * achievement here: it has to be a real word, fit the twelve letters, cross a
+ * side at every step AND start on the letter the last word left you. Unlike a
+ * wordle guess (which is one of six tries and usually wrong), landing one is
+ * unambiguously progress, so it reads as a success rather than as a neutral
+ * event.
+ *
+ * `partial` (amber) marks help taken, matching psychicnum's reveal rows and the
+ * amber of the Hint / Spoiler buttons themselves. `neutral` is left for the
+ * retreats: in turn-by-turn co-op an undo costs the undoer their turn and is
+ * usually made for the next player, so red would misdescribe it.
  */
 function barFor(e: EventRow): TurnOutcome {
+  if (e.kind === 'played') return 'good'
   if (e.kind === 'hint' || e.kind === 'spoiler') return 'partial'
-  if (e.kind === 'played' && e.letters_covered === BOARD_SIZE) return 'good'
   return 'neutral'
 }
 

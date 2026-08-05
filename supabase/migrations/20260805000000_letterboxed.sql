@@ -182,7 +182,7 @@ create table letterboxed.games (
   -- The chain-length cap: cover all twelve letters in at most this many
   -- words. A direct setup choice (wordle's guess-budget field), NOT a
   -- derived par + slack — see the note above.
-  max_words int not null check (max_words between 2 and 6),
+  max_words int not null check (max_words between 2 and 7),
 
   -- common.words difficulty ceiling for words this board ACCEPTS, and
   -- the band that built playable_words. NOTE THE DIRECTION: a HIGHER

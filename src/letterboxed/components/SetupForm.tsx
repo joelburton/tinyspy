@@ -59,9 +59,11 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         value={s.extra_words}
         onChange={(v) => onChange({ ...s, extra_words: Number(v) })}
       >
-        {[0, 1, 2, 3, 4].map((n) => (
+        {[0, 1, 2, 3, 4, 5].map((n) => (
           <option key={n} value={n}>
-            {n === 0 ? `Par — ${PAR} words exactly` : `Par + ${n} — up to ${PAR + n} words`}
+            {n === 0
+              ? `Par — ${PAR} words exactly`
+              : `Par + ${n} — up to ${PAR + n} words${n === 5 ? ' (relaxed)' : ''}`}
           </option>
         ))}
       </SelectField>

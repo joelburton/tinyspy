@@ -447,7 +447,7 @@ revoke execute on function letterboxed._sync_status(uuid) from public;
 -- letterboxed.create_game — mode is a positional arg
 -- ============================================================
 -- Setup shape (server validates):
---   { "extra_words": 0..4  (default 3) — how many words ABOVE PAR the
+--   { "extra_words": 0..5  (default 3) — how many words ABOVE PAR the
 --       chain may run to. Stored resolved as `max_words = PAR +
 --       extra_words`, the shape waffle uses for `max_swaps = par +
 --       extra_swaps`.
@@ -520,8 +520,8 @@ begin
 
   -- ─── Validate setup ──────────────────────────────────────
   s_extra_words := coalesce((setup->>'extra_words')::int, 3);
-  if s_extra_words < 0 or s_extra_words > 4 then
-    raise exception 'setup.extra_words must be 0..4 (got %)', s_extra_words
+  if s_extra_words < 0 or s_extra_words > 5 then
+    raise exception 'setup.extra_words must be 0..5 (got %)', s_extra_words
       using errcode = 'P0001';
   end if;
   -- PAR = 2 on every board this pipeline builds (see the header). Resolved

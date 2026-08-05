@@ -8,6 +8,7 @@ import { Board } from './Board'
 import { ChainStrip } from './ChainStrip'
 import { TypedWord } from './TypedWord'
 import { canFollow, tailLetter } from '../lib/board'
+import history from '../../common/components/game/lists/historyViewer.module.css'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
@@ -37,6 +38,9 @@ import styles from './PlayArea.module.css'
 export function BoardCol({
   sides,
   chain,
+  liveChain,
+  viewingDescription,
+  onExitViewing,
   draft,
   onDraftChange,
   onSubmit,
@@ -51,8 +55,17 @@ export function BoardCol({
   over,
 }: {
   sides: string
-  /** Words played so far. */
+  /** Words to DRAW — a past move's chain while the history viewer is open, the
+   *  live one otherwise. */
   chain: string[]
+  /** The real chain, always. The entry's seed letter and the × come off this,
+   *  never off a historical snapshot: reviewing a past move must not change
+   *  what your next move is. */
+  liveChain: string[]
+  /** The viewed move's one-line description (drives the banner + the frame), or
+   *  null when live. */
+  viewingDescription: string | null
+  onExitViewing: () => void
   /** Only the letters the PLAYER added — the seed is derived, see above. */
   draft: string
   onDraftChange: (next: string) => void
@@ -75,7 +88,7 @@ export function BoardCol({
   localPill: GenericFeedbackMsg | null
   over: (TerminalCopy & { verdictNode?: ReactNode }) | null
 }) {
-  const seed = tailLetter(chain) ?? ''
+  const seed = tailLetter(liveChain) ?? ''
   const word = seed + draft
 
   // What occupies the swap box, most-final first. The terminal verdict wins
@@ -127,14 +140,18 @@ export function BoardCol({
       {/* The chain reads ABOVE the board: it is the state, and it says what
           letter the next word must start with. On a phone the info column is
           off-canvas, so a per-turn readout can't live there. */}
-      <ChainStrip chain={chain} onRemoveLast={onRemoveLast} disabled={!chainEditable} />
+      <ChainStrip chain={liveChain} onRemoveLast={onRemoveLast} disabled={!chainEditable} />
 
+      {/* While a past move is open the board draws THAT chain and wears the
+          shared history outline, which also makes it click-through so a click
+          falls to useHistoryViewer's click-anywhere-to-exit. */}
       <Board
         sides={sides}
         chain={chain}
-        word={word}
+        word={viewingDescription !== null ? '' : word}
         onPick={onPick}
-        disabled={entryDisabled}
+        disabled={entryDisabled || viewingDescription !== null}
+        framed={viewingDescription !== null}
       />
 
       {/* The shared RESERVED-HEIGHT swap box: it holds exactly one of the
@@ -142,7 +159,21 @@ export function BoardCol({
           min-height is what stops the board above from moving as those swap
           (docs/ui.md → layout stability). An earlier version used a bare div
           here and the whole column shifted every time a pill appeared. */}
-      <div className={cls(shared.moveAreaOrLocalFeedback, styles.entrySlot)}>
+      <div
+        className={cls(
+          shared.moveAreaOrLocalFeedback,
+          styles.entrySlot,
+          // The banner is `inset: 0`, so its host must be positioned — but only
+          // while viewing, so a `position` this box doesn't otherwise want
+          // isn't sitting on it during play (historyViewer.module.css says so).
+          viewingDescription !== null && history.bannerHost,
+        )}
+      >
+        {viewingDescription !== null && (
+          <div className={history.banner} onClick={onExitViewing} title="Click to exit">
+            {viewingDescription}
+          </div>
+        )}
         <EntryRow
           value={word}
           onChange={handleChange}

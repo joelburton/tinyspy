@@ -7,7 +7,7 @@ import { outOfRacePill, stickyPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { db } from '../db'
 import { db as commonDb } from '../../common/db'
-import { useGame } from '../hooks/useGame'
+import { useGame, type EventRow } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { BOARD_SIZE, rejectReason, tailLetter } from '../lib/board'
@@ -18,6 +18,10 @@ import { InfoCol } from './InfoCol'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
+import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
+import { useCelebration } from '../../common/hooks/game/useCelebration'
+import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
+import { chainAt, describeAt } from '../lib/history'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
@@ -69,6 +73,15 @@ export function PlayArea(ctx: GamePageCtx) {
   const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
   const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback()
 
+  // Confetti at the MOMENT the board is covered. Gated ONLY on the common.games
+  // row, which GamePage has already awaited — anything that arrives later would
+  // flip false→true after mount and celebrate at someone merely reviewing a
+  // finished game (useCelebration's rule 1).
+  const celebration = useCelebration(
+    playState === 'won' ||
+      (playState === 'won_compete' && status?.winner_id === session.user.id),
+  )
+
   const actionsRef = useRef<{
     endGame: () => void
     concede: () => void
@@ -81,6 +94,23 @@ export function PlayArea(ctx: GamePageCtx) {
   // re-seeds the entry without an effect and without stale state.
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
+
+  // Turn-history viewer, keyed by POSITION in the rows the log is showing (the
+  // log hands them up, so both sides index the same list).
+  const {
+    viewingId: viewingIndex,
+    viewing,
+    select: selectTurn,
+    exitViewing,
+  } = useHistoryViewer<number>()
+  const [logRows, setLogRows] = useState<{ rows: EventRow[]; boardIsShown: boolean }>({
+    rows: [],
+    boardIsShown: true,
+  })
+  const onRowsChange = useCallback(
+    (rows: EventRow[], boardIsShown: boolean) => setLogRows({ rows, boardIsShown }),
+    [],
+  )
 
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
@@ -338,6 +368,12 @@ export function PlayArea(ctx: GamePageCtx) {
   if (loading) return <div className={styles.loading}>Loading…</div>
   if (!game) return <div className={styles.empty}>Game not found.</div>
 
+  // The chain the BOARD shows: a past move's while viewing, the live one
+  // otherwise. Folding rather than reconstructing — see lib/history.ts.
+  const shownChain = viewing && viewingIndex !== null ? chainAt(logRows.rows, viewingIndex) : chain
+  const viewingDescription =
+    viewing && viewingIndex !== null ? describeAt(logRows.rows, viewingIndex) : null
+
   const isCompete = game.mode === 'compete'
   const isLocallyDone = isCompete && myConceded && !isTerminal
   // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
@@ -378,7 +414,10 @@ export function PlayArea(ctx: GamePageCtx) {
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         sides={sides}
-        chain={chain}
+        chain={shownChain}
+        liveChain={chain}
+        viewingDescription={viewingDescription}
+        onExitViewing={exitViewing}
         draft={draft}
         onDraftChange={setDraft}
         onSubmit={() => void submit()}
@@ -434,11 +473,20 @@ export function PlayArea(ctx: GamePageCtx) {
           startingNewGame={startingNewGame}
           onBackToClub={goToClub}
           onRequestBackToClub={menu.requestBackToClub}
+          viewingIndex={viewingIndex}
+          onSelectTurn={selectTurn}
+          onRowsChange={onRowsChange}
         />
       </InfoSheet>
       {/* No modal at terminal (docs/ui.md → Terminal results) — the result is
           in the below-board pill and the info column, so a modal would just
           interrupt. */}
+      {/* Confetti at the MOMENT the board is covered — coop's win, and compete's
+          for whoever got there first. useCelebration never pops on mount, so
+          reopening a finished game doesn't re-celebrate. */}
+      {celebration.show && (
+        <CelebrationDialog title="All twelve! 🐍" onClose={celebration.close} />
+      )}
       {confirmDialog}
     </div>
   )

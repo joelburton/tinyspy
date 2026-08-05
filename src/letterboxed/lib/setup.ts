@@ -23,7 +23,7 @@ import type { CoopTurnSetup } from '../../common/components/fields/CoopStyleFiel
  */
 export type LetterboxedSetup = CoopTurnSetup & {
   timer: TimerMode
-  /** Words allowed ABOVE par, 0..4. The cap is `PAR + extra_words`. */
+  /** Words allowed ABOVE par, 0..5. The cap is `PAR + extra_words`. */
   extra_words: number
   /** Dictionary band a word must be in to count, 1..6. Higher = EASIER. */
   legal_band: number
@@ -35,8 +35,8 @@ export type LetterboxedSetup = CoopTurnSetup & {
  * valid. `create_game` re-checks server-side.
  */
 export function letterboxedSetupError(setup: LetterboxedSetup): string | null {
-  if (setup.extra_words < 0 || setup.extra_words > 4) {
-    return 'Spare words must be between 0 and 4.'
+  if (setup.extra_words < 0 || setup.extra_words > 5) {
+    return 'Spare words must be between 0 and 5.'
   }
   if (setup.legal_band < 1 || setup.legal_band > 6) {
     return 'Dictionary must be between 1 and 6.'

@@ -46,6 +46,8 @@ test.describe('letterboxed', () => {
     // one. The seed is derived from the chain rather than typed, which is what
     // lets Backspace stop at it instead of clearing it.
     await expect(page.getByTestId('entry-value')).toHaveText('G', { timeout: 10000 })
+
+    await ctx.close()
   })
 
   test('a letter that cannot follow the current one never enters the box', async ({
@@ -69,6 +71,8 @@ test.describe('letterboxed', () => {
     // D is on another side, so it goes in.
     await page.keyboard.type('d')
     await expect(page.getByTestId('entry-value')).toHaveText('AD')
+
+    await ctx.close()
   })
 
   test('the × on the last chain word takes it back', async ({ browser }) => {
@@ -91,6 +95,8 @@ test.describe('letterboxed', () => {
     // The × is the whole undo affordance — there is no Undo button.
     await page.getByRole('button', { name: /Take back ADG/i }).click()
     await expect(page.getByText('No words yet')).toBeVisible({ timeout: 10000 })
+
+    await ctx.close()
   })
 
   test('the board never moves as pills and chain words come and go', async ({ browser }) => {
@@ -139,6 +145,8 @@ test.describe('letterboxed', () => {
     await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first())
       .toBeVisible({ timeout: 10000 })
     expect(await boardTop()).toBeCloseTo(empty, 0)
+
+    await ctx.close()
   })
 
   test('a full chain hides the entry behind a pill and goes inert', async ({ browser }) => {
@@ -155,7 +163,9 @@ test.describe('letterboxed', () => {
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
-    await page.waitForTimeout(600)
+    // Wait for the chain to land, not a clock: the next word is seeded with
+    // ADG's last letter, so typing before the refetch spells something else.
+    await expect(page.getByTestId('entry-value')).toHaveText('G', { timeout: 10000 })
     await page.keyboard.type('jb')
     await page.keyboard.press('Enter')
 
@@ -176,6 +186,8 @@ test.describe('letterboxed', () => {
     await x.click()
     await expect(page.getByText(/Chain is full/)).toBeHidden({ timeout: 10000 })
     await expect(page.getByTestId('entry-value')).toBeVisible()
+
+    await ctx.close()
   })
 
   test('hint describes the word; spoiler hands it over; both land in the log', async ({
@@ -204,6 +216,8 @@ test.describe('letterboxed', () => {
     // The turn log is the record of both — there is no counter.
     await expect(page.getByText('took a hint')).toBeVisible({ timeout: 10000 })
     await expect(page.getByText(/was shown/)).toBeVisible({ timeout: 10000 })
+
+    await ctx.close()
   })
 
   test('the solution stays covered until Reveal is pressed', async ({ browser }) => {
@@ -230,6 +244,44 @@ test.describe('letterboxed', () => {
     await page.getByRole('button', { name: /reveal solution/i }).click()
     await expect(page.getByText(/Solvable in two/i)).toBeVisible({ timeout: 10000 })
     await expect(page.getByText('ADGJBEHK')).toBeVisible()
+
+    await ctx.close()
+  })
+
+  test('a past move replays on the board, and a click returns to live', async ({ browser }) => {
+    const club = await createSoloClub('lbx9')
+    const [alice] = club.members
+    const game = await createLetterboxedGame(club)
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+
+    await page.keyboard.type('adg')
+    await page.keyboard.press('Enter')
+    // Wait for the chain to land, not a clock — see above.
+    await expect(page.getByTestId('entry-value')).toHaveText('G', { timeout: 10000 })
+    await page.keyboard.type('jb')
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('listitem').filter({ hasText: /^GJB/ }).first()).toBeVisible({
+      timeout: 10000,
+    })
+
+    // Open move #1 — the board goes back to the chain as it stood then.
+    await page.getByText('#1', { exact: true }).click()
+    await expect(page.getByText('Played ADG')).toBeVisible({ timeout: 10000 })
+
+    // The chain STRIP keeps showing the live chain: reviewing a past move must
+    // not change what your next move is.
+    await expect(page.getByRole('listitem').filter({ hasText: /^GJB/ }).first()).toBeVisible()
+
+    // A click anywhere returns to live (useHistoryViewer wires this itself).
+    await page.getByText('Played ADG').click()
+    await expect(page.getByText('Played ADG')).toBeHidden({ timeout: 10000 })
+
+    await ctx.close()
   })
 
   test('clicking letters builds a word; clicking the last one again submits it', async ({
@@ -256,5 +308,7 @@ test.describe('letterboxed', () => {
 
     await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first())
       .toBeVisible({ timeout: 10000 })
+
+    await ctx.close()
   })
 })

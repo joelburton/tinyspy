@@ -67,6 +67,9 @@ export function InfoCol({
   startingNewGame,
   onBackToClub,
   onRequestBackToClub,
+  viewingIndex,
+  onSelectTurn,
+  onRowsChange,
 }: {
   over: (TerminalCopy & { verdictNode?: ReactNode }) | null
   isTerminal: boolean
@@ -103,6 +106,10 @@ export function InfoCol({
   startingNewGame: boolean
   onBackToClub: () => void
   onRequestBackToClub: () => void
+  /** Turn-history viewer — the move open on the board, or null when live. */
+  viewingIndex: number | null
+  onSelectTurn: (index: number) => void
+  onRowsChange: (rows: EventRow[], boardIsShown: boolean) => void
 }) {
   // Click-to-define, the shared popover the word lists and turn logs use.
   const { define, popover } = useDefinePopover()
@@ -260,6 +267,9 @@ export function InfoCol({
         selfId={selfId}
         mode={isCompete ? 'compete' : 'coop'}
         isTerminal={isTerminal}
+        viewingIndex={viewingIndex}
+        onSelectTurn={onSelectTurn}
+        onRowsChange={onRowsChange}
       />
     </div>
   )
