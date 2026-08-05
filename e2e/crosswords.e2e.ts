@@ -91,6 +91,22 @@ test.describe('crosswords play loop', () => {
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'Reveal board' }).click()
     await expect(cell11).toHaveAttribute('data-fill', 'S', { timeout: 8000 })
+
+    // …and Restart from HERE must hand back a blank grid, not the answers.
+    // The regression this guards: the fetched solution was a one-way cache that
+    // outlived `solution_revealed` going back to false, and <Grid> paints an
+    // answer into any EMPTY cell that has one. So a restart wiped every fill and
+    // instantly painted the whole solution into the space it just cleared — it
+    // read as "Restart did nothing", because the letters on screen didn't
+    // change, they only stopped being the player's. Restart needs no confirm at
+    // terminal (see handleRestart).
+    await page.getByRole('button', { name: 'Game menu' }).click()
+    await page.getByRole('menuitem', { name: 'Restart' }).click()
+    await expect(cell11).toHaveAttribute('data-fill', '', { timeout: 8000 })
+    // cell00 is the one the player typed into AND later revealed — blank now too.
+    await expect(cell00).toHaveAttribute('data-fill', '', { timeout: 8000 })
+    // The board is playable again, not stuck terminal.
+    await expect(page.getByText('Game ended')).toHaveCount(0)
   })
 
   test('compete: finishing your own grid first wins', async ({ browser }) => {

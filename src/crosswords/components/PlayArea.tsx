@@ -182,6 +182,26 @@ export function PlayArea(ctx: GamePageCtx) {
     }
   }, [solutionRevealed, solution, gameId])
 
+  /**
+   * The solution as the GRID may draw it — the fetched answers, but only while
+   * the server still says they're revealed.
+   *
+   * `solution` above is a one-way cache: the effect only ever sets it, so it
+   * outlived `solutionRevealed` going back to false. Nothing noticed until
+   * Restart, which is the one action that clears every fill at once — and since
+   * <Grid> paints an answer into any EMPTY cell that has one, a restart wiped
+   * the player's letters and immediately painted the whole solution in their
+   * place. It read as "Restart did nothing": the letters on screen didn't
+   * change, they just stopped being yours.
+   *
+   * Derived rather than cleared, for two reasons: a sync setState in an effect
+   * is a lint error here (docs/code-conventions.md), and deriving fixes EVERY
+   * path that lowers the flag rather than the one that happened to be reported.
+   * The cache itself stays — a restart replays the SAME puzzle, so a later
+   * re-reveal needs no refetch.
+   */
+  const shownSolution = solutionRevealed ? solution : null
+
   const grid = game?.meta.cells ?? null
   const [cursor, setCursor] = useState<Cursor | null>(null)
   // Seed the cursor the first render the grid is available (React's
@@ -693,21 +713,27 @@ export function PlayArea(ctx: GamePageCtx) {
     ? buildOver(playState, status, mode, myId, players)
     : null
 
-  // What the below-board pill slot shows: an active local pill (own-move
-  // result, or the terminal verdict pushed in by the effect below) wins;
-  // otherwise a conceded compete player gets the standard "you're out, the
-  // rest race on" indicator so their greyed-out input has an explanation.
+  /**
+   * What the below-board pill slot shows. The terminal verdict wins, then an
+   * active own-move pill, then the "you're out, the rest race on" indicator for
+   * a conceded compete player (so their greyed-out input has an explanation).
+   *
+   * DERIVED, like every other game (`over ? terminalPill(…) : …` in strands /
+   * wordle / waffle / spellingbee). crosswords alone used to PUSH the verdict
+   * into stored feedback from an effect, and that's what broke Restart: the
+   * store is created `locked: isTerminal`, which makes `clearLocalFeedback()` a
+   * deliberate no-op at terminal — so `handleRestart` cleared nothing, the RPC
+   * then un-terminalled the game, and the stale "Game ended" pill sat on a
+   * board that was playable again with nothing left able to remove it.
+   *
+   * Deriving fixes it by construction: the verdict is a function of
+   * `isTerminal`, so it disappears the instant the restart lands. It also drops
+   * a setState-in-effect the file had to `eslint-disable`.
+   */
   const slotPill: GenericFeedbackMsg | null =
-    localFeedback ?? (myConceded && !isTerminal ? outOfRacePill(true) : null)
-
-  // Surface the terminal verdict in the active-clue slot (the reserved
-  // 3-line home), permanently (`locked`).
-  useEffect(() => {
-    // The `verdictNode` (a compete loss's "● moth solved it first") wins when
-    // present; the plain string is the fallback for every other case.
-    if (isTerminal && over) showLocalFeedback(terminalPill(over.tone, over.verdictNode ?? over.verdict))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTerminal, over?.verdict])
+    isTerminal && over
+      ? terminalPill(over.tone, over.verdictNode ?? over.verdict)
+      : (localFeedback ?? (myConceded ? outOfRacePill(true) : null))
 
   // Always confirmed via the shared modal — crosswords previously ended unconfirmed.
   const handleEndGame = useCallback(async () => {
@@ -859,7 +885,7 @@ export function PlayArea(ctx: GamePageCtx) {
             onRebusCommit={handleRebusCommit}
             onRebusCancel={() => setRebus(null)}
             peek={peek}
-            solution={solution}
+            solution={shownSolution}
             peerCells={peerCells}
             recentFills={recentFillCells}
             collapseRebus={collapseRebus}
