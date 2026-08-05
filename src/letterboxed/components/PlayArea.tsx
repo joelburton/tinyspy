@@ -21,6 +21,10 @@ import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
+import { difficultyValue } from '../../common/lib/game/difficulty'
+import { buildLetterboxedPrintModel } from '../pdf/model'
+import { printLetterboxedPdf } from '../pdf/printLetterboxedPdf'
+import { PAR } from '../lib/board'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -56,7 +60,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, solutionRevealed, players, session, status,
     isMyTurn, currentTurnUserId,
-    setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback,
+    setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback, title,
   } = ctx
   const { game, playerRows, myRow, events, loading, rowsLoaded } = useGame(gameId)
 
@@ -251,10 +255,30 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   // ─── GamePage menu ─────────────────────────────────────
-  // No "Print board (PDF)" item yet — the printer is deferred until the play
-  // surface is settled.
+  // The print model is built HERE, from live state, and is a snapshot at click
+  // time (docs/pdf.md). What it may SHOW is decided in pdf/model.ts — notably
+  // that the solution prints only once the players have revealed it on screen,
+  // which has to hold on paper too.
   useEffect(() => {
     if (!game) return
+    const printModel = buildLetterboxedPrintModel({
+      brand,
+      gameTitle: title,
+      date: new Date().toLocaleDateString(),
+      sides: game.sides,
+      mode: game.mode,
+      solution: game.solution,
+      solutionRevealed,
+      players,
+      playerRows,
+      events,
+      selfId: session.user.id,
+      summary: `${lettersCovered}/${BOARD_SIZE} letters · ${chain.length}/${maxWords} words`,
+      setup: [
+        { label: 'Word limit', value: `par + ${letterboxedSetup.extra_words} (${PAR + letterboxedSetup.extra_words} words)` },
+        { label: 'Dictionary', value: difficultyValue(letterboxedSetup.legal_band) },
+      ],
+    })
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -270,11 +294,16 @@ export function PlayArea(ctx: GamePageCtx) {
               { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
             ],
           },
+          { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printLetterboxedPdf(printModel) }] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, isTerminal, myConceded])
+  }, [
+    menu, game, isTerminal, myConceded, brand, title, solutionRevealed,
+    players, playerRows, events, session.user.id, letterboxedSetup,
+    lettersCovered, chain.length, maxWords,
+  ])
 
   // ─── Coop peer narration (global header) ───────────────
   // In coop the chain is shared, so a teammate's word changes MY board; say so.

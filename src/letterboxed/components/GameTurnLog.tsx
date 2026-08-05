@@ -2,7 +2,7 @@ import type { MouseEvent } from 'react'
 import type { GamePlayer } from '../../common/lib/games'
 import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
-import { TurnLog, TurnLogBar } from '../../common/components/game/lists/TurnLog'
+import { TurnLog, TurnLogBar, type TurnOutcome } from '../../common/components/game/lists/TurnLog'
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
 import { memberById } from '../../common/lib/game/peers'
 import { BOARD_SIZE } from '../lib/board'
@@ -21,11 +21,7 @@ import styles from './PlayArea.module.css'
  * staggered down the log; as a column they line up, which is most of why the
  * shared log is a `<table>` rather than a list of rows.
  *
- * The bar follows wordle's reading: `neutral` for an ordinary move (progress,
- * not pass/fail) and `good` only on the move that covers the board. A RETREAT
- * is neutral too — in turn-by-turn co-op an undo costs the undoer's turn and is
- * usually made for the next player's benefit, so painting it red would
- * misdescribe it. The muted italic text is what separates the two.
+ * Bar colours are `barFor` below.
  *
  * Retreats appear at all because `letterboxed.events` is an append-only stream
  * rather than a table rows get deleted from — "what did we already try?" is
@@ -84,11 +80,7 @@ export function GameTurnLog({
     >
       {shown.map((e, i) => (
         <tr key={e.id} className={turnLog.turnLogDivider}>
-          <TurnLogBar
-            outcome={
-              e.kind === 'played' && e.letters_covered === BOARD_SIZE ? 'good' : 'neutral'
-            }
-          />
+          <TurnLogBar outcome={barFor(e)} />
           <td className={turnLog.meta}>#{i + 1}</td>
           <td className={turnLog.main}>
             <Move event={e} defineProps={defineProps} />
@@ -105,6 +97,20 @@ export function GameTurnLog({
     {popover}
     </>
   )
+}
+
+/**
+ * The row's bar colour. `good` only on the move that covers the board (an
+ * ordinary word is progress, not pass/fail — wordle's reading), `partial`
+ * (amber) on help taken, matching psychicnum's reveal rows and the amber of the
+ * Hint / Spoiler buttons themselves, and `neutral` for everything else
+ * including a retreat: in turn-by-turn co-op an undo costs the undoer's turn
+ * and is usually made for the next player, so red would misdescribe it.
+ */
+function barFor(e: EventRow): TurnOutcome {
+  if (e.kind === 'hint' || e.kind === 'spoiler') return 'partial'
+  if (e.kind === 'played' && e.letters_covered === BOARD_SIZE) return 'good'
+  return 'neutral'
 }
 
 /**
