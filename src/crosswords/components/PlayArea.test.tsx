@@ -202,29 +202,44 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
   })
 
   /** Flatten the last setGameSections call into a flat item array. */
-  function lastMenuItems(setGameSections: ReturnType<typeof vi.fn>) {
-    const sections = setGameSections.mock.calls.at(-1)?.[0] as Array<{
-      items: Array<{ id: string; disabled?: boolean; shortcut?: string }>
-    }>
+  type TestItem = { id: string; label?: string; disabled?: boolean; shortcut?: string; items?: TestItem[] }
+
+  /** Every TOP-LEVEL row, in order. A submenu parent appears once, as itself —
+   *  its children are reached via `.items` (see `submenuOf`). */
+  function lastMenuItems(setGameSections: ReturnType<typeof vi.fn>): TestItem[] {
+    const sections = setGameSections.mock.calls.at(-1)?.[0] as Array<{ items: TestItem[] }>
     return sections.flatMap((s) => s.items)
+  }
+
+  /** The children of one submenu parent, by id. */
+  function submenuOf(setGameSections: ReturnType<typeof vi.fn>, parentId: string): TestItem[] {
+    return lastMenuItems(setGameSections).find((i) => i.id === parentId)?.items ?? []
   }
 
   it('populates the full crossplay-order menu with shortcut hints (coop)', () => {
     const setGameSections = vi.fn()
     render(<PlayArea {...makeCtx({ menu: { setGameSections, openHelp: vi.fn(), requestBackToClub: vi.fn() } })} />)
     const items = lastMenuItems(setGameSections)
+    // Check + Reveal are now ONE row each — six flat rows collapsed into two
+    // submenus (this menu already runs long enough to scroll).
     expect(items.map((i) => i.id)).toEqual([
       'help',
       'pencil', 'enter-rebus', 'collapse-rebuses',
       'note', 'explain', 'scratchpad', 'print', 'download-ipuz', 'print-solution',
-      'check-letter', 'check-word', 'check-puzzle',
-      'reveal-letter', 'reveal-word', 'reveal-puzzle',
+      'check', 'reveal',
       'restart', 'reveal-board', 'new-game',
       'end-game', 'back',
     ])
-    // Corrected shortcut hints: ⌥C = check letter, ⌥⇧C = check word.
-    expect(items.find((i) => i.id === 'check-letter')?.shortcut).toBe('⌥C')
-    expect(items.find((i) => i.id === 'check-word')?.shortcut).toBe('⌥⇧C')
+    // The scope is the CHILD's whole label, so the rows read "Check › Letter"
+    // rather than repeating the verb.
+    expect(submenuOf(setGameSections, 'check').map((i) => i.label)).toEqual(['Letter', 'Word', 'Grid'])
+    expect(submenuOf(setGameSections, 'reveal').map((i) => i.label)).toEqual(['Letter', 'Word', 'Grid'])
+    // Corrected shortcut hints: ⌥C = check letter, ⌥⇧C = check word. They ride
+    // the CHILDREN — a submenu parent isn't a command, so it carries none.
+    const check = submenuOf(setGameSections, 'check')
+    expect(check.find((i) => i.id === 'check-letter')?.shortcut).toBe('⌥C')
+    expect(check.find((i) => i.id === 'check-word')?.shortcut).toBe('⌥⇧C')
+    expect(items.find((i) => i.id === 'check')?.shortcut).toBeUndefined()
     expect(items.find((i) => i.id === 'back')?.shortcut).toBe('⇧<')
     expect(items.find((i) => i.id === 'end-game')?.shortcut).toBe('⌥⌫')
     // All the former placeholders are now wired (enabled).
@@ -243,10 +258,12 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     const setGameSections = vi.fn()
     render(<PlayArea {...makeCtx({ menu: { setGameSections, openHelp: vi.fn(), requestBackToClub: vi.fn() } })} />)
     const ids = lastMenuItems(setGameSections).map((i) => i.id)
-    expect(ids).not.toContain('reveal-letter')
-    expect(ids).not.toContain('reveal-word')
+    // The whole Reveal submenu is gone — not just emptied.
+    expect(ids).not.toContain('reveal')
+    expect(submenuOf(setGameSections, 'reveal')).toEqual([])
     // Check + pencil still present; compete shows Concede (not End game).
-    expect(ids).toContain('check-letter')
+    expect(ids).toContain('check')
+    expect(submenuOf(setGameSections, 'check').map((i) => i.id)).toContain('check-letter')
     expect(ids).toContain('pencil')
     expect(ids).toContain('concede')
     expect(ids).not.toContain('end-game')

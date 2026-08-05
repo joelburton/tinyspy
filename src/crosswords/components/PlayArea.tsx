@@ -34,7 +34,7 @@ import {
   type Cursor,
 } from '../lib/cursor'
 import type { CellPos } from '../lib/cursor'
-import type { Cell, Direction, MarkSide, PuzzleState, PuzzleTemplate, Scope } from '../lib/types'
+import { SCOPE_LABEL, type Cell, type Direction, type MarkSide, type PuzzleState, type PuzzleTemplate, type Scope } from '../lib/types'
 import { nextMarkState } from '../lib/marks'
 import { printCrosswordsPdf, printCrosswordsSolutionPdf } from '../pdf/printCrosswordsPdf'
 import type { CellsMap } from '../hooks/useCells'
@@ -615,26 +615,48 @@ export function PlayArea(ctx: GamePageCtx) {
               },
             ],
           },
+          // The two assistance families, each collapsed behind a submenu. They
+          // were six flat rows — a third of this menu, which already runs ~20
+          // items and scrolls. Nesting them turns that into two, and the scope
+          // becomes the CHILD's whole label ("Check › Letter") rather than being
+          // repeated in each row ("Check letter / Check word / Check grid").
+          //
+          // `disabled` sits on the PARENT only: a disabled parent can't be
+          // opened, so repeating it per child would be dead weight. The
+          // shortcuts stay on the children, where the actions are.
+          //
+          // One section, not two: they're the same family (help me with this
+          // square), and as two rows they no longer need a divider between them.
           {
             items: [
-              { id: 'check-letter', label: 'Check letter', shortcut: '⌥C', disabled: !isPlayable, onClick: () => actionsRef.current?.check('letter') },
-              { id: 'check-word', label: 'Check word', shortcut: '⌥⇧C', disabled: !isPlayable, onClick: () => actionsRef.current?.check('word') },
-              { id: 'check-puzzle', label: 'Check puzzle', disabled: !isPlayable, onClick: () => actionsRef.current?.check('puzzle') },
+              {
+                id: 'check',
+                label: 'Check',
+                disabled: !isPlayable,
+                items: [
+                  { id: 'check-letter', label: SCOPE_LABEL.letter, shortcut: '⌥C', onClick: () => actionsRef.current?.check('letter') },
+                  { id: 'check-word', label: SCOPE_LABEL.word, shortcut: '⌥⇧C', onClick: () => actionsRef.current?.check('word') },
+                  { id: 'check-puzzle', label: SCOPE_LABEL.puzzle, onClick: () => actionsRef.current?.check('puzzle') },
+                ],
+              },
+              // Reveal is coop-only (revealing your own grid would trivially win
+              // a compete race) — the whole submenu is omitted in compete.
+              ...(mode === 'coop'
+                ? [
+                    {
+                      id: 'reveal',
+                      label: 'Reveal',
+                      disabled: !isPlayable,
+                      items: [
+                        { id: 'reveal-letter', label: SCOPE_LABEL.letter, shortcut: '⌥R', onClick: () => actionsRef.current?.reveal('letter') },
+                        { id: 'reveal-word', label: SCOPE_LABEL.word, shortcut: '⌥⇧R', onClick: () => actionsRef.current?.reveal('word') },
+                        { id: 'reveal-puzzle', label: SCOPE_LABEL.puzzle, onClick: () => actionsRef.current?.reveal('puzzle') },
+                      ],
+                    },
+                  ]
+                : []),
             ],
           },
-          // Reveal is coop-only (revealing your own grid would trivially win a
-          // compete race) — the whole section is omitted in compete.
-          ...(mode === 'coop'
-            ? [
-                {
-                  items: [
-                    { id: 'reveal-letter', label: 'Reveal letter', shortcut: '⌥R', disabled: !isPlayable, onClick: () => actionsRef.current?.reveal('letter') },
-                    { id: 'reveal-word', label: 'Reveal word', shortcut: '⌥⇧R', disabled: !isPlayable, onClick: () => actionsRef.current?.reveal('word') },
-                    { id: 'reveal-puzzle', label: 'Reveal puzzle', disabled: !isPlayable, onClick: () => actionsRef.current?.reveal('puzzle') },
-                  ],
-                },
-              ]
-            : []),
           {
             items: [
               // Destructive "start over": blank my grid (givens + answer kept).

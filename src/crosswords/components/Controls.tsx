@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { Scope } from '../lib/types'
+import { SCOPE_LABEL, type Scope } from '../lib/types'
 import { cls } from '../../common/lib/util/cls'
 import styles from './Controls.module.css'
 
@@ -105,7 +105,7 @@ function Rule() {
   return <span className={styles.rule} aria-hidden />
 }
 
-const SCOPE_LABEL: Record<Scope, string> = { letter: 'Letter', word: 'Word', puzzle: 'Grid' }
+
 /** The one-character glyph on the square; the group label supplies the verb. */
 const SCOPE_GLYPH: Record<Scope, string> = { letter: 'L', word: 'W', puzzle: 'G' }
 

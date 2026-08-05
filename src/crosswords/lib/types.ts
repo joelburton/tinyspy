@@ -32,6 +32,25 @@ export type Direction = 'across' | 'down'
  *  word under the cursor, or every fillable cell in the grid. */
 export type Scope = 'letter' | 'word' | 'puzzle'
 
+/**
+ * The user-facing word for each scope — the ONE place they're spelled.
+ *
+ * Two surfaces name these actions: the Controls bar under the board and the
+ * game menu's Check / Reveal submenus. The menu used to hand-write its own
+ * ("Check puzzle") while the bar said "Grid" for the identical action, so the
+ * app called one thing two names depending on where you clicked.
+ *
+ * Note `puzzle` → "Grid": the scope VALUE is the server's word (it rides the
+ * check/reveal RPCs), "Grid" is the player's. Lives here, beside the type,
+ * rather than in a component — a component file can only export components
+ * without breaking fast refresh.
+ */
+export const SCOPE_LABEL: Record<Scope, string> = {
+  letter: 'Letter',
+  word: 'Word',
+  puzzle: 'Grid',
+}
+
 export type Cell =
   | {
       kind: 'block'
