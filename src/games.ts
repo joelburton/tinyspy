@@ -25,6 +25,10 @@ import { boggleCoopGame, boggleCompeteGame } from './boggle/manifest'
 import { crosswordsCoopGame, crosswordsCompeteGame } from './crosswords/manifest'
 import { wordiplyCoopGame, wordiplyCompeteGame } from './wordiply/manifest'
 import { strandsCoopGame, strandsCompeteGame } from './strands/manifest'
+import {
+  letterboxedCoopGame,
+  letterboxedCompeteGame,
+} from './letterboxed/manifest'
 
 /**
  * The single source of truth for which games this monorepo includes.
@@ -86,4 +90,6 @@ export const games: GameManifest[] = [
   wordiplyCompeteGame,
   strandsCoopGame,
   strandsCompeteGame,
+  letterboxedCoopGame,
+  letterboxedCompeteGame,
 ]

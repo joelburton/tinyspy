@@ -48,7 +48,11 @@ export function EntryBox({ value, placeholder, children, className }: Props) {
 
   return (
     <div className={cls(styles.box, className)}>
-      {!empty && (children ?? <span className={styles.value}>{value}</span>)}
+      {!empty && (children ?? (
+        <span className={styles.value} data-testid="entry-value">
+          {value}
+        </span>
+      ))}
       {/* Caret only once something's been typed: an empty field shows just the
           placeholder, which already says "type here". A caret on an empty box
           would blink off in the corner (or, centered, float oddly mid-box) with

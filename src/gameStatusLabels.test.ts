@@ -272,6 +272,41 @@ const CASES: Record<string, Family> = {
       ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
     ],
   },
+  // letterboxed's compete race ENDS on the first solve (the bar is "cover the
+  // twelve inside the cap"), so a win names the winner. A TIMEOUT instead
+  // resolves on the most letters covered, which is a different sentence — hence
+  // two won_compete rows. A manual stop is 'ended' in both modes.
+  letterboxed: {
+    playing: {
+      max_words: 5,
+      words_used: 2,
+      letters_covered: 7,
+      leaderboard: [
+        { username: 'alice', letters_covered: 7, words_used: 2 },
+        { username: 'bob', letters_covered: 4, words_used: 1 },
+      ],
+    },
+    coop: [
+      ['won', { solved: true, words_used: 3, letters_covered: 12, max_words: 5 }, 'covered the board'],
+      ['lost', { solved: false, timed_out: true, letters_covered: 8 }, 'timeout'],
+      ['ended', { solved: false, stopped: true, letters_covered: 8 }, 'manual end'],
+    ],
+    compete: [
+      ['won_compete', { solved: true, words_used: 3, letters_covered: 12, ...W }, 'first to finish'],
+      [
+        'won_compete',
+        {
+          solved: false,
+          timed_out: true,
+          best_letters_covered: 9,
+          leaderboard: [{ username: 'alice', letters_covered: 9, words_used: 3 }],
+        },
+        'timeout, most letters',
+      ],
+      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+      ['ended', { solved: false, stopped: true }, 'manual end'],
+    ],
+  },
   // wordiply writes 'won_compete' only when a winner is picked; otherwise 'ended'.
   wordiply: {
     playing: { guesses_used: 2, leaderboard: [{ guesses_used: 2 }, { guesses_used: 3 }] },

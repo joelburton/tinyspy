@@ -1,0 +1,188 @@
+/* letterboxed's play-surface layout. The standard v3 two-column shell does the
+ * heavy lifting (common/components/game/PlayArea.module.css); this file only
+ * carries what the square board and the chain readouts need. */
+
+/* Every game declares its own info-column width HERE, and the shared
+ * `--avail-w` calc in common/.../PlayArea.module.css reads it. Leaving it out
+ * doesn't fall back to a default — it makes that calc invalid, which silently
+ * empties --avail-w and every board size derived from it. 22rem is the roster
+ * standard; ours holds two stat cells, the chain, and the move log. */
+.layout {
+  --info-col-width: 22rem;
+}
+
+/* The board column hugs the square. A max-width keeps a big desktop from
+ * inflating a 12-letter board into a wall. */
+.boardCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  /* The board is SQUARE, so it is bounded on BOTH axes — the width left
+   * beside the info column, the height above the entry row, and a cap so a
+   * big desktop doesn't inflate twelve letters into a wall. The boggle idiom
+   * (docs/ui.md → Board sizing); without a definite size here `.boardCol` is
+   * `flex: 0 0 auto` and hugs the SVG's intrinsic size, which renders the
+   * board as a postage stamp in a wide column. */
+  /* --avail-h is a PER-GAME token (boggle / stackdown / waffle each define
+   * their own), not a shared one: only the game knows what sits below its
+   * board. Ours is the entry row plus the Undo/Clear row plus the gaps —
+   * about 8rem. Referencing it without defining it makes the whole min()
+   * invalid, which silently drops the board back to its intrinsic size. */
+  --avail-h: calc(100svh - var(--game-chrome-height) - 8rem);
+  --side: min(var(--avail-w), var(--avail-h), 34rem);
+  width: var(--side);
+}
+
+.loading,
+.empty {
+  padding: 2rem;
+  color: var(--color-muted);
+}
+
+/* Reserved slot for the entry row — fixed so the pill swap (own-move result /
+ * terminal verdict replacing the controls) never moves the board. */
+.entrySlot {
+  width: 100%;
+}
+
+/* The square itself, sized by the column's --side. */
+.board {
+  width: var(--side);
+  height: var(--side);
+}
+
+.chainActions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.verdictSlot {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* ── Info column ─────────────────────────────────────────── */
+.infoCol { }
+
+/* The whole game in two fractions: letters covered, words spent. */
+/* The two fractions the game reduces to, as a 2-cell stat grid (the shape
+ * spellingbee/wordwheel's shared <Stats> uses — theirs hardcodes Score/Words
+ * labels, so this is the same look rather than the same component). */
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.statCell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.statLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+}
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.statOf {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+/* A titled block in the info column — the chain, the reveal, the move log. */
+.chainBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 0;
+}
+.blockTitle {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+}
+
+/* The chain so far — the state and the record in one list. */
+.chain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.chainWord {
+  background: var(--letterboxed-used);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.chainEmpty {
+  color: var(--color-muted);
+}
+
+.solution {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ── Turn log ────────────────────────────────────────────── */
+.log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.logRow {
+  display: grid;
+  /* minmax(0, auto) on the actor cell: a long username must ellipsise inside
+   * its track instead of forcing the row wider than the column. */
+  grid-template-columns: minmax(0, auto) 1fr auto;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.logRow > :first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.logBody {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.logCovered {
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+}
+/* A retreat is a real move, but it isn't progress — muted so the played words
+ * still carry the eye down the log. */
+.log_undone .logBody,
+.log_cleared .logBody,
+.log_hint .logBody {
+  color: var(--color-muted);
+  font-style: italic;
+}
+.log_played .logBody {
+  font-weight: 600;
+}
+.logEmpty {
+  color: var(--color-muted);
+}

@@ -1,0 +1,25 @@
+/* letterboxed's (SnakeBox's) colour tokens. Loaded with this game's chunk
+ * (imported from PlayArea.tsx) so they only ship when letterboxed is played.
+ *
+ * SnakeBox's identity is the CHAIN — a word threads from side to side and the
+ * path it takes is the picture. So the accent is the snake's own green, and it
+ * belongs to the line rather than to the letters.
+ *
+ *   --letterboxed-accent      The chain line + the currently-selected letter.
+ *                             The one "brand" colour.
+ *   --letterboxed-used        A letter already covered by the chain. Reads as
+ *                             "done" without competing with the live path.
+ *   --letterboxed-box         The square the letters sit on.
+ *   --letterboxed-tile        A letter's resting fill.
+ *   --letterboxed-tile-text   A resting letter's glyph.
+ *
+ * Two-vocabularies rule (docs/ui.md): tokens are named by letterboxed's
+ * vocabulary (`box`, `tile`, `used`, `accent`) rather than literal colours.
+ */
+:root {
+  --letterboxed-accent:     #3f9d5c;
+  --letterboxed-used:       var(--color-outcome-won-bg);
+  --letterboxed-box:        var(--color-divider);
+  --letterboxed-tile:       var(--color-surface);
+  --letterboxed-tile-text:  var(--color-text);
+}

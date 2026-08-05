@@ -212,6 +212,15 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | | lost_compete — timeout | `Lost (out of time)` |
 | | lost_compete — all conceded | `Lost (all conceded)` |
 | | lost_compete — nobody solved it | `Lost (nobody solved it)` |
+| **letterboxed_coop** | playing | `Playing · 7/12 letters · 2/5 words` |
+| | won — covered the board | `Won · 3 words` |
+| | lost — timeout | `Lost (out of time) · 8/12 letters` |
+| | ended — manual end | `Ended · 8/12 letters` |
+| **letterboxed_compete** | playing | `Playing · best 7/12` |
+| | won_compete — first to finish | `Won by alice · 3 words` |
+| | won_compete — timeout, most letters | `Won by alice · 9/12 letters` |
+| | lost_compete — all conceded | `Lost (all conceded) · nobody finished` |
+| | ended — manual end | `Ended · no winner` |
 
 <!-- END GENERATED status-lines -->
 

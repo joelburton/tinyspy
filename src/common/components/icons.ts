@@ -79,6 +79,11 @@ export {
   // "jump to the start" transport glyph: it rewinds to the beginning of the
   // same board, distinct from IconShuffle's rotate (rearrange, new look).
   SkipBack as IconRestart,
+  // take back the LAST MOVE, leaving the rest of the game standing
+  // (letterboxed's "Undo" — pop the last word off the chain). The curved
+  // back-arrow is the universal undo idiom, and it reads as one step where
+  // IconRestart's rewind-to-start reads as all of them.
+  Undo2 as IconUndo,
   // start a FRESH follow-up game (same setup, new board + id — waffle's
   // "New game"). The square-plus "create new" glyph: adds a NEW thing,
   // distinct from IconRestart's rewind-the-same-thing.

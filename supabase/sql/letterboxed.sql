@@ -767,6 +767,11 @@ begin
         target_game, 'won_compete',
         jsonb_build_object('mode', 'compete', 'solved', true,
                            'winner_id', caller_id,
+                           -- Cached, not joined: the club listing renders this
+                           -- blob on its own. A handle renamed later going
+                           -- stale on a finished game beats a second query.
+                           'winner_username', (select pr.username from common.profiles pr
+                                                where pr.user_id = caller_id),
                            'words_used', cardinality(v_chain),
                            'letters_covered', 12,
                            'max_words', g_row.max_words,
@@ -1058,10 +1063,12 @@ grant execute on function letterboxed.submit_timeout(uuid) to authenticated;
 -- letterboxed.end_game — "we've played as much as we want"
 -- ============================================================
 -- The player-callable stop, uniform across the roster (see
--- docs/common.md → the stop-the-game RPC). NOBODY WINS, in either mode,
--- and that is the difference from submit_timeout: the clock running out
--- on a race is a result, but a group agreeing to stop is a group
--- agreeing not to have one.
+-- docs/common.md → the stop-the-game RPC). It writes `ended` in BOTH
+-- modes — the roster's neutral terminal — and that is the difference
+-- from submit_timeout: the clock running out on a race is a RESULT
+-- (compete resolves on coverage), but a group agreeing to stop is a
+-- group agreeing not to have one. Calling that `lost` would tell them
+-- their own decision beat them.
 create or replace function letterboxed.end_game(target_game uuid)
 returns void
 language plpgsql
@@ -1088,7 +1095,7 @@ begin
 
   perform common.end_game(
     target_game,
-    case g_row.mode when 'coop' then 'lost' else 'lost_compete' end,
+    'ended',
     jsonb_build_object('mode', g_row.mode, 'solved', false, 'stopped', true)
       || case when g_row.mode = 'coop'
               then jsonb_build_object(

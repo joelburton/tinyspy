@@ -617,6 +617,44 @@ export async function createWordiplyGame(
   return { id: (row as { id: string }).id, gametype: `wordiply_${mode}` }
 }
 
+/**
+ * Start a letterboxed game (coop by default). Returns id + gametype for the URL.
+ *
+ * The board is SYNTHETIC and deterministic — `abcdefghijkl`, three letters to a
+ * side in alphabetical order — so a test can reason about the rules without a
+ * dictionary. `create_game` validates that the solution chains and covers all
+ * twelve, which this pair does: ADGJBEHK ends on K, KCFIL starts on K, and
+ * between them they use every letter. Both alternate sides at every step, as
+ * the side rule demands. The filler words only exist to clear the >= 150
+ * playable-words floor and are never submitted.
+ */
+export async function createLetterboxedGame(
+  club: E2EClub,
+  mode: 'coop' | 'compete' = 'coop',
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+): Promise<{ id: string; gametype: string }> {
+  const creator = club.members[0]
+  const filler = Array.from({ length: 200 }, (_, i) =>
+    `q${String.fromCharCode(97 + Math.floor(i / 26))}${String.fromCharCode(97 + (i % 26))}`,
+  )
+  const res = await asUser(creator.session.access_token)
+    .schema('letterboxed')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: { timer: { kind: 'none' }, max_words: 5, legal_band: 5 },
+      player_user_ids: playerUserIds,
+      mode,
+      board: {
+        sides: 'abcdefghijkl',
+        solution: ['adgjbehk', 'kcfil'],
+        playable_words: ['adgjbehk', 'kcfil', 'adg', 'gjb', 'beh', 'kcf', 'ila', ...filler],
+      },
+    })
+  if (res.error) throw new Error(`letterboxed.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: `letterboxed_${mode}` }
+}
+
 /** Start a wordle game (coop by default). Returns id + gametype for the URL. */
 export async function createWordleGame(
   club: E2EClub,

@@ -1,0 +1,78 @@
+/* The board square. Sized by the board column; the SVG's own 0-100 viewBox
+ * does all the positioning, so nothing here needs pixel geometry. */
+/* Sizing lives in PlayArea.module.css's `.board` (it needs the column's
+ * --side); this rule carries only the look + touch behaviour. */
+.board {
+  display: block;
+  touch-action: manipulation;
+}
+
+.box {
+  fill: none;
+  stroke: var(--letterboxed-box);
+  stroke-width: 0.8;
+}
+
+/* The word in progress, drawn letter to letter. No fill — it is a path, not
+ * a shape — and round joins so a sharp turn doesn't spike. */
+.path {
+  fill: none;
+  stroke: var(--letterboxed-accent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.85;
+}
+
+.node {
+  cursor: pointer;
+}
+.node circle {
+  fill: var(--letterboxed-tile);
+  stroke: var(--letterboxed-box);
+  stroke-width: 0.7;
+  transition: fill 120ms ease, stroke 120ms ease;
+}
+.node text {
+  fill: var(--letterboxed-tile-text);
+  font-size: 7px;
+  font-weight: 650;
+  /* The glyph is decoration on a click target; letting it catch the pointer
+   * would make the letter itself a dead zone at the centre of the node. */
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Already covered by the chain — the progress readout, at a glance. */
+.covered circle {
+  fill: var(--letterboxed-used);
+}
+
+/* In the word being built right now. */
+.inWord circle {
+  stroke: var(--letterboxed-accent);
+  stroke-width: 1.4;
+}
+
+/* The word's current last letter: click it again to submit. */
+.last circle {
+  fill: var(--letterboxed-accent);
+}
+.last text {
+  fill: var(--color-surface);
+}
+
+/* Can't legally follow the current letter (same side). Dimmed rather than
+ * hidden: the letters never move, so a player can still see the whole board
+ * and plan the next word. */
+.blocked {
+  cursor: not-allowed;
+}
+.blocked circle,
+.blocked text {
+  opacity: 0.28;
+}
+
+.disabled {
+  cursor: default;
+}
