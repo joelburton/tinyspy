@@ -37,6 +37,21 @@
    * invalid, which silently drops the board back to its intrinsic size. */
   --avail-h: calc(100svh - var(--game-chrome-height) - 8rem);
   --side: min(var(--avail-w), var(--avail-h), 34rem);
+}
+
+/* MOBILE: the info column is off-canvas, so <MobileStatusBar> mirrors the state
+ * line above the board. Our readout is a small BLOCK (two or three stat cells),
+ * not the bar's one-line default, so the height token is raised — and it must
+ * ALSO come out of --avail-h, or the board sizes itself for space the bar has
+ * taken and the page starts scrolling. The extra 0.75rem is .boardCol's flex
+ * gap between the bar and the chain strip. */
+@media (--mobile) {
+  .boardCol {
+    --mobile-status-height: 3.5rem;
+    --avail-h: calc(
+      100svh - var(--game-chrome-height) - 8rem - var(--mobile-status-height) - 0.75rem
+    );
+  }
   width: var(--side);
 }
 

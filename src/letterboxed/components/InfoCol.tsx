@@ -21,6 +21,7 @@ import { timerLabel } from '../../common/lib/game/timerLabel'
 import type { LetterboxedSetup } from '../lib/setup'
 import { BOARD_SIZE, PAR } from '../lib/board'
 import { GameTurnLog } from './GameTurnLog'
+import { StateLine } from './StateLine'
 import type { EventRow } from '../hooks/useGame'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -124,25 +125,13 @@ export function InfoCol({
   return (
     <div className={shared.infoCol}>
       <div className={shared.actionSlot}>
-        {/* The two fractions the whole game reduces to. */}
-        <div className={styles.stats}>
-          <div className={styles.statCell}>
-            <span className={styles.statLabel}>Letters</span>
-            <span className={styles.statValue}>
-              {lettersCovered}
-              <span className={styles.statOf}>/{BOARD_SIZE}</span>
-            </span>
-          </div>
-          <div className={styles.statCell}>
-            {/* Naming par here is what makes the fraction readable: 3/5 alone
-                says nothing, 3/5 against "par 2" says you are three over. */}
-            <span className={styles.statLabel}>Words (par {PAR})</span>
-            <span className={styles.statValue}>
-              {chain.length}
-              <span className={styles.statOf}>/{maxWords}</span>
-            </span>
-          </div>
-        </div>
+        {/* The same node the mobile status bar renders — one component, two
+            surfaces, so they can't drift (see <MobileStatusBar>). */}
+        <StateLine
+          lettersCovered={lettersCovered}
+          wordsUsed={chain.length}
+          maxWords={maxWords}
+        />
 
         {/* Whose-turn line — only in a turn-order game. Rendering it in a
             free-for-all game would print "Waiting for someone…" forever,

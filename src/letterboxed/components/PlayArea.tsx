@@ -14,6 +14,7 @@ import { BOARD_SIZE, rejectReason, tailLetter } from '../lib/board'
 import { isSuggestion, suggest } from '../lib/solve'
 import type { LetterboxedSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
+import { StateLine } from './StateLine'
 import { InfoCol } from './InfoCol'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
@@ -414,6 +415,13 @@ export function PlayArea(ctx: GamePageCtx) {
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         sides={sides}
+        mobileStatus={
+          <StateLine
+            lettersCovered={lettersCovered}
+            wordsUsed={chain.length}
+            maxWords={maxWords}
+          />
+        }
         chain={shownChain}
         liveChain={chain}
         viewingDescription={viewingDescription}

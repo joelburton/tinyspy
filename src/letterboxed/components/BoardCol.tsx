@@ -5,6 +5,7 @@ import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { stickyPill, terminalPill } from '../../common/lib/game/localPills'
 import { EntryRow } from '../../common/components/game/entry/EntryRow'
 import { Board } from './Board'
+import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
 import { ChainStrip } from './ChainStrip'
 import { TypedWord } from './TypedWord'
 import { canFollow, tailLetter } from '../lib/board'
@@ -41,6 +42,7 @@ export function BoardCol({
   liveChain,
   viewingDescription,
   onExitViewing,
+  mobileStatus,
   draft,
   onDraftChange,
   onSubmit,
@@ -66,6 +68,8 @@ export function BoardCol({
    *  null when live. */
   viewingDescription: string | null
   onExitViewing: () => void
+  /** The `<StateLine>` node — the SAME one the info column renders. */
+  mobileStatus: ReactNode
   /** Only the letters the PLAYER added — the seed is derived, see above. */
   draft: string
   onDraftChange: (next: string) => void
@@ -137,6 +141,12 @@ export function BoardCol({
 
   return (
     <div className={cls(shared.boardCol, styles.boardCol)}>
+      {/* MOBILE ONLY (pure CSS — no JS breakpoint read): the info column is
+          off-canvas in the InfoSheet down there, so the state that answers
+          "how are we doing?" comes back onto the play surface. Costs the board
+          a fixed height and nothing more. */}
+      <MobileStatusBar>{mobileStatus}</MobileStatusBar>
+
       {/* The chain reads ABOVE the board: it is the state, and it says what
           letter the next word must start with. On a phone the info column is
           off-canvas, so a per-turn readout can't live there. */}
