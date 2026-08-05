@@ -24,7 +24,7 @@ begin;
 
 set search_path = letterboxed, common, public, extensions;
 
-select plan(25);
+select plan(26);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -196,6 +196,15 @@ select is(
 select ok(
   (select is_terminal from common.games where id = (select id from g)),
   'and the game is terminal'
+);
+
+-- REGRESSION: common.games.status MERGES on a terminal write, so a win blob
+-- that omits letters_covered leaves the PREVIOUS move's count showing under
+-- it. A live game shipped 'letters_covered: 7' on a fully covered board.
+select is(
+  (select status->>'letters_covered' from common.games where id = (select id from g)),
+  '12',
+  'the terminal restates coverage rather than inheriting the last move''s'
 );
 
 select throws_ok(

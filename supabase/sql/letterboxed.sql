@@ -311,6 +311,79 @@ revoke execute on function letterboxed.candidate_words(bigint, int) from public;
 grant execute on function letterboxed.candidate_words(bigint, int) to authenticated;
 
 -- ============================================================
+-- letterboxed.pick_seed — one random board seed
+-- ============================================================
+-- `order by random() limit 1` over ~458k rows is a full scan, and that
+-- is fine: it runs ONCE per game, takes tens of milliseconds, and the
+-- alternatives (sampling by a random key, tablesample) all skew the
+-- distribution in exchange for a saving nobody will feel.
+--
+-- WHY max_band EXISTS even though the importer already caps seeds at
+-- band 2: the seeded pair has to be LEGAL in the game being built, or
+-- the guaranteed two-word solution isn't in playable_words and
+-- create_game's winnability check rejects the board. So the builder
+-- passes least(legal_band, 2) — a game played at legal_band 1 draws
+-- only from band-1 seeds (222k of them, still ample).
+--
+-- No previous-board overlap cap, unlike wordwheel's builder: with
+-- 458k seeds over C(26,12) possible letter sets, a club would have to
+-- play for years to notice a repeat.
+create or replace function letterboxed.pick_seed(max_band int)
+returns table(letters text, word_a text, word_b text, difficulty int)
+language sql
+stable
+security definer
+set search_path = letterboxed, common, public, extensions
+as $$
+  select s.letters::text, s.word_a, s.word_b, s.difficulty
+    from letterboxed.seeds s
+   where s.difficulty <= max_band
+   order by random()
+   limit 1;
+$$;
+
+revoke execute on function letterboxed.pick_seed(int) from public;
+grant execute on function letterboxed.pick_seed(int) to authenticated;
+
+-- ============================================================
+-- letterboxed._leaderboard — compete's public standings
+-- ============================================================
+-- The two numbers a race may reveal, per player, ordered best-first.
+-- Extracted because BOTH the mid-game _sync_status and every compete
+-- TERMINAL need it: common.games.status MERGES, so a terminal that
+-- didn't restate the leaderboard would leave the second-to-last move's
+-- version sitting under the final one.
+--
+-- Usernames are cached into the blob rather than joined at read time
+-- (docs/code-conventions.md) — a renamed handle going stale on a
+-- finished game is not worth a second query.
+create or replace function letterboxed._leaderboard(g_id uuid)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = letterboxed, common, public, extensions
+as $$
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'user_id', p.user_id,
+        'username', pr.username,
+        'words_used', coalesce(cardinality(p.chain), 0),
+        'letters_covered', letterboxed._covered(p.chain)
+      )
+      order by letterboxed._covered(p.chain) desc,
+               coalesce(cardinality(p.chain), 0) asc
+    ),
+    '[]'::jsonb)
+    from letterboxed.players p
+    join common.profiles pr on pr.user_id = p.user_id
+   where p.game_id = g_id;
+$$;
+
+revoke execute on function letterboxed._leaderboard(uuid) from public;
+
+-- ============================================================
 -- letterboxed._sync_status — mirror the readouts into common.games
 -- ============================================================
 -- DERIVED rather than assigned, the wordle._sync_title pattern: every
@@ -361,21 +434,7 @@ begin
       jsonb_build_object(
         'mode', 'compete',
         'max_words', g_row.max_words,
-        'leaderboard', coalesce(
-          (select jsonb_agg(
-                    jsonb_build_object(
-                      'user_id', p.user_id,
-                      'username', pr.username,
-                      'words_used', coalesce(cardinality(p.chain), 0),
-                      'letters_covered', letterboxed._covered(p.chain)
-                    )
-                    order by letterboxed._covered(p.chain) desc,
-                             coalesce(cardinality(p.chain), 0) asc
-                  )
-             from letterboxed.players p
-             join common.profiles pr on pr.user_id = p.user_id
-            where p.game_id = g_id),
-          '[]'::jsonb)
+        'leaderboard', letterboxed._leaderboard(g_id)
       )
     );
   end if;
@@ -685,8 +744,12 @@ begin
         from common.game_players where game_id = target_game;
       perform common.end_game(
         target_game, 'won',
+        -- status MERGES (see common.end_game), so every value the terminal
+        -- asserts must be spelled out here — a missing letters_covered
+        -- would leave the previous move's count showing under the win.
         jsonb_build_object('mode', 'coop', 'solved', true,
                            'words_used', cardinality(v_chain),
+                           'letters_covered', 12,
                            'max_words', g_row.max_words),
         winner_results
       );
@@ -705,7 +768,9 @@ begin
         jsonb_build_object('mode', 'compete', 'solved', true,
                            'winner_id', caller_id,
                            'words_used', cardinality(v_chain),
-                           'max_words', g_row.max_words),
+                           'letters_covered', 12,
+                           'max_words', g_row.max_words,
+                           'leaderboard', letterboxed._leaderboard(target_game)),
         winner_results
       );
     end if;
@@ -944,7 +1009,11 @@ begin
       from common.game_players where game_id = target_game;
     perform common.end_game(
       target_game, 'lost',
-      jsonb_build_object('mode', 'coop', 'solved', false, 'timed_out', true),
+      jsonb_build_object(
+        'mode', 'coop', 'solved', false, 'timed_out', true,
+        'letters_covered', (select letterboxed._covered(p.chain)
+                              from letterboxed.players p
+                             where p.game_id = target_game limit 1)),
       player_results
     );
     return;
@@ -975,7 +1044,8 @@ begin
   perform common.end_game(
     target_game, 'won_compete',
     jsonb_build_object('mode', 'compete', 'solved', false, 'timed_out', true,
-                       'best_letters_covered', best_covered),
+                       'best_letters_covered', best_covered,
+                       'leaderboard', letterboxed._leaderboard(target_game)),
     player_results
   );
 end;
@@ -1019,7 +1089,14 @@ begin
   perform common.end_game(
     target_game,
     case g_row.mode when 'coop' then 'lost' else 'lost_compete' end,
-    jsonb_build_object('mode', g_row.mode, 'solved', false, 'stopped', true),
+    jsonb_build_object('mode', g_row.mode, 'solved', false, 'stopped', true)
+      || case when g_row.mode = 'coop'
+              then jsonb_build_object(
+                     'letters_covered', (select letterboxed._covered(p.chain)
+                                           from letterboxed.players p
+                                          where p.game_id = target_game limit 1))
+              else jsonb_build_object('leaderboard', letterboxed._leaderboard(target_game))
+         end,
     player_results
   );
 end;

@@ -1482,6 +1482,297 @@ export type Database = {
       [_ in never]: never
     }
   }
+  letterboxed: {
+    Tables: {
+      events: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: number
+          kind: string
+          letters_covered: number
+          user_id: string
+          word: string | null
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: never
+          kind: string
+          letters_covered: number
+          user_id: string
+          word?: string | null
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: never
+          kind?: string
+          letters_covered?: number
+          user_id?: string
+          word?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          club_handle: string
+          created_at: string
+          id: string
+          legal_band: number
+          max_words: number
+          mode: string
+          playable_words: Json
+          sides: string
+          solution: string[]
+        }
+        Insert: {
+          club_handle: string
+          created_at?: string
+          id: string
+          legal_band: number
+          max_words: number
+          mode: string
+          playable_words: Json
+          sides: string
+          solution: string[]
+        }
+        Update: {
+          club_handle?: string
+          created_at?: string
+          id?: string
+          legal_band?: number
+          max_words?: number
+          mode?: string
+          playable_words?: Json
+          sides?: string
+          solution?: string[]
+        }
+        Relationships: []
+      }
+      players: {
+        Row: {
+          chain: string[]
+          game_id: string
+          hints_used: number
+          solved: boolean
+          solved_at: string | null
+          user_id: string
+        }
+        Insert: {
+          chain?: string[]
+          game_id: string
+          hints_used?: number
+          solved?: boolean
+          solved_at?: string | null
+          user_id: string
+        }
+        Update: {
+          chain?: string[]
+          game_id?: string
+          hints_used?: number
+          solved?: boolean
+          solved_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seeds: {
+        Row: {
+          difficulty: number
+          letters: string
+          mask: number | null
+          word_a: string
+          word_b: string
+        }
+        Insert: {
+          difficulty: number
+          letters: string
+          mask?: number | null
+          word_a: string
+          word_b: string
+        }
+        Update: {
+          difficulty?: number
+          letters?: string
+          mask?: number | null
+          word_a?: string
+          word_b?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      games_state: {
+        Row: {
+          club_handle: string | null
+          created_at: string | null
+          id: string | null
+          legal_band: number | null
+          max_words: number | null
+          mode: string | null
+          playable_words: Json | null
+          sides: string | null
+          solution: string[] | null
+        }
+        Insert: {
+          club_handle?: string | null
+          created_at?: string | null
+          id?: string | null
+          legal_band?: number | null
+          max_words?: number | null
+          mode?: string | null
+          playable_words?: Json | null
+          sides?: string | null
+          solution?: string[] | null
+        }
+        Update: {
+          club_handle?: string | null
+          created_at?: string | null
+          id?: string | null
+          legal_band?: number | null
+          max_words?: number | null
+          mode?: string | null
+          playable_words?: Json | null
+          sides?: string | null
+          solution?: string[] | null
+        }
+        Relationships: []
+      }
+      players_state: {
+        Row: {
+          chain: string[] | null
+          game_id: string | null
+          hints_used: number | null
+          letters_covered: number | null
+          solved: boolean | null
+          solved_at: string | null
+          user_id: string | null
+          word_count: number | null
+        }
+        Insert: {
+          chain?: never
+          game_id?: string | null
+          hints_used?: number | null
+          letters_covered?: never
+          solved?: boolean | null
+          solved_at?: string | null
+          user_id?: string | null
+          word_count?: never
+        }
+        Update: {
+          chain?: never
+          game_id?: string | null
+          hints_used?: number | null
+          letters_covered?: never
+          solved?: boolean | null
+          solved_at?: string | null
+          user_id?: string | null
+          word_count?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Functions: {
+      _chain_for: { Args: { g_id: string; u_id: string }; Returns: string[] }
+      _covered: { Args: { chain: string[] }; Returns: number }
+      _covered_for: { Args: { g_id: string; u_id: string }; Returns: number }
+      _sync_status: { Args: { g_id: string }; Returns: undefined }
+      _word_count_for: { Args: { g_id: string; u_id: string }; Returns: number }
+      candidate_words: {
+        Args: { board_mask: number; max_band: number }
+        Returns: {
+          word: string
+        }[]
+      }
+      clear_chain: { Args: { target_game: string }; Returns: undefined }
+      concede: { Args: { target_game: string }; Returns: undefined }
+      create_game: {
+        Args: {
+          board: Json
+          mode: string
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      end_game: { Args: { target_game: string }; Returns: undefined }
+      log_hint: {
+        Args: { suggested: string; target_game: string }
+        Returns: undefined
+      }
+      pick_seed: {
+        Args: { max_band: number }
+        Returns: {
+          difficulty: number
+          letters: string
+          word_a: string
+          word_b: string
+        }[]
+      }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+      submit_word: {
+        Args: { submitted: string; target_game: string }
+        Returns: Json
+      }
+      undo_word: { Args: { target_game: string }; Returns: undefined }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   psychicnum: {
     Tables: {
       games: {
@@ -3791,6 +4082,9 @@ export const Constants = {
     Enums: {},
   },
   graphql_public: {
+    Enums: {},
+  },
+  letterboxed: {
     Enums: {},
   },
   psychicnum: {
