@@ -641,7 +641,7 @@ export async function createLetterboxedGame(
     .schema('letterboxed')
     .rpc('create_game', {
       target_club: club.handle,
-      setup: { timer: { kind: 'none' }, max_words: 5, legal_band: 5 },
+      setup: { timer: { kind: 'none' }, extra_words: 3, legal_band: 5 },
       player_user_ids: playerUserIds,
       mode,
       board: {

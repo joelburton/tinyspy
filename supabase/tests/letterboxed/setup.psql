@@ -9,8 +9,8 @@
 --   pg_temp.lb_board()        — a SYNTHETIC `board` jsonb (the shape
 --                               letterboxed.create_game accepts).
 --                               Deterministic, NO dictionary dependence.
---   pg_temp.lb_setup()        — a default setup jsonb (max_words 5,
---                               legal_band 5, no timer). Mode is a
+--   pg_temp.lb_setup()        — a default setup jsonb (par + 3, i.e. a cap of
+--                               five words; legal_band 5; no timer). Mode is a
 --                               positional RPC arg, NOT a setup field.
 --   pg_temp.lb_setup_turns()  — the same, plus coop_style='turns'.
 --   pg_temp.lb_setup_timed()  — the same, plus a countdown timer.
@@ -72,16 +72,16 @@ as $$
 $$;
 
 -- ── Setups ──────────────────────────────────────────────────
--- max_words 5 is the shipped default: enough room to reach twelve the
--- short way (2 words) or the scenic way, and tight enough that the cap
--- tests can hit it without a long fixture.
+-- extra_words 3 is the shipped default — par (2) plus three spare, so a cap of
+-- five. Enough room to reach twelve the short way or the scenic way, and tight
+-- enough that the cap tests can hit it without a long fixture.
 create function pg_temp.lb_setup()
 returns jsonb
 language sql
 as $$
   select jsonb_build_object(
-    'max_words',  5,
-    'legal_band', 5,
+    'extra_words', 3,
+    'legal_band',  5,
     -- Required by common.require_valid_timer even when there is no clock;
     -- kind 'none' is how a game says "untimed".
     'timer',      jsonb_build_object('kind', 'none')

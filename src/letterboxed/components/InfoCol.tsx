@@ -10,7 +10,7 @@ import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameBu
 import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
-import { BOARD_SIZE } from '../lib/board'
+import { BOARD_SIZE, PAR } from '../lib/board'
 import { GameTurnLog } from './GameTurnLog'
 import type { EventRow } from '../hooks/useGame'
 import shared from '../../common/components/game/PlayArea.module.css'
@@ -94,7 +94,9 @@ export function InfoCol({
             </span>
           </div>
           <div className={styles.statCell}>
-            <span className={styles.statLabel}>Words</span>
+            {/* Naming par here is what makes the fraction readable: 3/5 alone
+                says nothing, 3/5 against "par 2" says you are three over. */}
+            <span className={styles.statLabel}>Words (par {PAR})</span>
             <span className={styles.statValue}>
               {chain.length}
               <span className={styles.statOf}>/{maxWords}</span>
@@ -165,7 +167,13 @@ export function InfoCol({
         </div>
       )}
 
-      <GameTurnLog events={events} players={players} />
+      <GameTurnLog
+        events={events}
+        players={players}
+        selfId={selfId}
+        mode={isCompete ? 'compete' : 'coop'}
+        isTerminal={isTerminal}
+      />
     </div>
   )
 }

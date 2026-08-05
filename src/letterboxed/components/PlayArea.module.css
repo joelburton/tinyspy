@@ -107,8 +107,11 @@
   color: var(--color-muted);
 }
 
-/* The chain strip, ABOVE the board. A fixed min-height so playing the first
- * word doesn't shove the board down (docs/ui.md → layout stability). */
+/* The chain strip, ABOVE the board.
+ *
+ * The slot reserves TWO LINES from the start: chain words run long (a 9-letter
+ * word plus its ×), so a second row appears on an ordinary game, and the board
+ * must not jump down when it does (docs/ui.md → layout stability). */
 .chain {
   list-style: none;
   margin: 0;
@@ -116,44 +119,59 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  align-items: center;
-  gap: 0.35rem;
-  min-height: 2rem;
+  align-content: flex-start;
+  gap: 0.4rem;
+  /* Two rows of pills + the gap between them. */
+  min-height: calc(2 * 2.25rem + 0.4rem);
   width: 100%;
 }
+
+/* Outlined pills, not filled: the chain sits directly above the board, and a
+ * row of solid blocks there competes with the board's own filled letter nodes
+ * for the eye. The outline reads as "a thing you played" without shouting. */
 .chainWord {
   display: inline-flex;
   align-items: center;
-  gap: 0.15rem;
-  background: var(--letterboxed-used);
-  border-radius: 0.25rem;
-  padding: 0.15rem 0.45rem;
+  gap: 0.1rem;
+  border: 1px solid var(--letterboxed-accent);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 1.05rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
+  line-height: 1.35;
 }
-/* The last word is the only one that can be taken back, so it is the only one
- * that looks touchable. */
+
+/* The last word is the only one that can be taken back, so it makes room for
+ * the × rather than every pill carrying the padding for one. */
 .chainLast {
-  padding-right: 0.2rem;
+  padding-right: 0.25rem;
 }
+
+/* A real touch target. This is the ONLY undo affordance in the game and the
+ * site is used on phones, so it gets the ~2.2rem box a thumb needs — not the
+ * bare glyph it started as. */
 .chainRemove {
-  /* A bare glyph, not a button shape: it sits inside a chip and a second
-   * border there would read as a nested control. */
   all: unset;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.1rem;
+  min-height: 2.1rem;
+  margin: -0.35rem 0;
+  border-radius: 999px;
+  font-size: 1.35rem;
   line-height: 1;
-  padding: 0 0.25rem;
-  border-radius: 0.2rem;
-  color: var(--color-muted);
-  font-size: 1.05em;
+  color: var(--color-text);
 }
 .chainRemove:hover,
 .chainRemove:focus-visible {
-  color: var(--color-text);
   background: var(--color-control-bg);
 }
 .chainEmpty {
   color: var(--color-muted);
+  align-self: center;
 }
 
 .solution {
@@ -161,51 +179,18 @@
   letter-spacing: 0.02em;
 }
 
-/* ── Turn log ────────────────────────────────────────────── */
-.log {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-.logRow {
-  display: grid;
-  /* minmax(0, auto) on the actor cell: a long username must ellipsise inside
-   * its track instead of forcing the row wider than the column. */
-  grid-template-columns: minmax(0, auto) 1fr auto;
-  align-items: baseline;
-  gap: 0.35rem;
-  min-width: 0;
-}
-.logRow > :first-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
-.logBody {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.logCovered {
-  color: var(--color-muted);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.85rem;
-}
-/* A retreat is a real move, but it isn't progress — muted so the played words
- * still carry the eye down the log. */
-.log_undone .logBody,
-.log_cleared .logBody,
-.log_hint .logBody {
-  color: var(--color-muted);
-  font-style: italic;
-}
-.log_played .logBody {
+/* ── Turn log ──────────────────────────────────────────────
+ * Rows compose the shared <TurnLog> table; only the move text is ours.
+ *
+ * BOTH kinds render at full --color-text. An earlier version muted the
+ * retreats, which broke the standing rule that real values keep full text
+ * colour — a taken-back word is a real move (in turn-by-turn co-op it costs
+ * the undoer their go), and the log's whole job is to be readable. Italics
+ * carry the distinction instead. */
+.logWord {
   font-weight: 600;
+  letter-spacing: 0.02em;
 }
-.logEmpty {
-  color: var(--color-muted);
+.logRetreat {
+  font-style: italic;
 }

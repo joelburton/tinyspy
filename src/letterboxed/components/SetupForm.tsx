@@ -3,6 +3,7 @@ import { SelectField } from '../../common/components/fields/SelectField'
 import { TimerField } from '../../common/components/fields/TimerField'
 import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
 import type { SetupBodyProps } from '../../common/lib/games'
+import { PAR } from '../lib/board'
 import type { LetterboxedSetup } from '../lib/setup'
 import styles from '../../common/components/fields/setupForm.module.css'
 
@@ -50,14 +51,17 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         </p>
       )}
 
+      {/* Difficulty is expressed against PAR, not as a bare word count: every
+          board is solvable in two, so "5 words" means nothing on its own while
+          "par + 3" says exactly how much room you are giving yourself. */}
       <SelectField
-        label="Word limit"
-        value={s.max_words}
-        onChange={(v) => onChange({ ...s, max_words: Number(v) })}
+        label="Word limit (every board can be solved in 2)"
+        value={s.extra_words}
+        onChange={(v) => onChange({ ...s, extra_words: Number(v) })}
       >
-        {[2, 3, 4, 5, 6].map((n) => (
+        {[0, 1, 2, 3, 4].map((n) => (
           <option key={n} value={n}>
-            {n} words{n === 2 ? ' — every board can be done in two' : ''}
+            {n === 0 ? `Par — ${PAR} words exactly` : `Par + ${n} — up to ${PAR + n} words`}
           </option>
         ))}
       </SelectField>

@@ -1,4 +1,5 @@
 import type { GamePlayer } from '../../common/lib/games'
+import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
 import { TurnLog, TurnLogBar } from '../../common/components/game/lists/TurnLog'
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
 import { memberById } from '../../common/lib/game/peers'
@@ -22,22 +23,45 @@ import styles from './PlayArea.module.css'
  * Retreats appear at all because `letterboxed.events` is an append-only stream
  * rather than a table rows get deleted from — "what did we already try?" is
  * most of the value of a log in a game you can walk backwards.
+ *
+ * **Whose moves** are shown comes from the shared `useTurnLogPlayerPicker`, on
+ * the same vocabulary as every other turn-log game: solo is your handle, coop
+ * is "Team" plus each player, compete is "All" plus each player and defaults to
+ * your own. In compete an opponent's rows are empty during play (RLS hides
+ * them) and fill in once the game ends.
  */
 export function GameTurnLog({
   events,
   players,
+  selfId,
+  mode,
+  isTerminal,
 }: {
   events: EventRow[]
   players: GamePlayer[]
+  selfId: string
+  mode: 'coop' | 'compete'
+  isTerminal: boolean
 }) {
+  const who = useTurnLogPlayerPicker<EventRow>({
+    players,
+    selfId,
+    mode,
+    isTerminal,
+    label: 'Whose moves to show',
+    emptyLabel: 'No moves yet.',
+  })
+  const shown = who.filter(events)
+
   return (
     <TurnLog
       heading="Moves"
-      empty={events.length === 0}
-      emptyText="No moves yet."
-      scrollKey={events}
+      headerAction={who.picker}
+      empty={shown.length === 0}
+      emptyText={who.emptyText}
+      scrollKey={shown}
     >
-      {events.map((e, i) => (
+      {shown.map((e, i) => (
         <tr key={e.id} className={turnLog.turnLogDivider}>
           <TurnLogBar
             outcome={

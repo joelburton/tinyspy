@@ -19,6 +19,17 @@ export const BOARD_SIZE = 12
 export const SIDE_SIZE = 3
 /** Letter Boxed's own floor; shorter words are never accepted. */
 export const MIN_WORD_LEN = 3
+/**
+ * Words needed to solve ANY board this game can build — a constant, not a
+ * measurement. The board builder partitions the twelve letters so that the
+ * seeded word pair stays playable, so that pair is always a two-word solution
+ * (and no board is solvable in one; the builder rejects those).
+ *
+ * It is a named constant rather than a magic 2 because it is the number the
+ * whole difficulty vocabulary hangs off: the setup asks for slack ABOVE par,
+ * and the info column shows par so "3/5 words" means something.
+ */
+export const PAR = 2
 
 /** Which side (0..3) each letter sits on. */
 export function sideOf(sides: string): Map<string, number> {
@@ -62,7 +73,11 @@ export function tailLetter(chain: string[]): string | null {
 /**
  * Why this word can't be submitted, as a player-facing phrase — or null when
  * it can. Ordered so the most useful complaint wins: a chain-rule break is
- * more actionable than "not a word", because it tells you what to do instead.
+ * more actionable than "Not a word", because it tells you what to do instead.
+ *
+ * Each one is SHORT and starts with a capital: these land in the below-board
+ * pill, which is a one-line ellipsising label at phone width, so it is a
+ * caption rather than a sentence (docs/ui.md → the feedback pill).
  *
  * `playable` is the board's shipped word list, which already folds together
  * the dictionary, the board's letters and the side rule — so anything missing
@@ -78,26 +93,26 @@ export function rejectReason(
     maxWords: number
   },
 ): string | null {
-  if (word.length < MIN_WORD_LEN) return 'at least three letters'
+  if (word.length < MIN_WORD_LEN) return 'Too short'
 
   const tail = tailLetter(chain)
-  if (tail && word[0] !== tail) return `must start with ${tail.toUpperCase()}`
+  if (tail && word[0] !== tail) return `Must start with ${tail.toUpperCase()}`
 
-  if (chain.length >= maxWords) return `${maxWords} words is the limit — undo to try again`
-  if (chain.includes(word)) return 'already in the chain'
+  if (chain.length >= maxWords) return 'Chain is full'
+  if (chain.includes(word)) return 'Already played'
 
   // A same-side pair is the rule players trip over most, so name it rather
   // than folding it into the generic "can't be played here".
   const side = sideOf(sides)
   for (let i = 1; i < word.length; i++) {
-    if (!side.has(word[i])) return `${word[i].toUpperCase()} is not on the board`
+    if (!side.has(word[i])) return `No ${word[i].toUpperCase()} on the board`
     if (side.get(word[i]) === side.get(word[i - 1])) {
-      return `${word[i - 1].toUpperCase()}${word[i].toUpperCase()} is on one side`
+      return `${word[i - 1].toUpperCase()}${word[i].toUpperCase()} is one side`
     }
   }
-  if (!side.has(word[0])) return `${word[0].toUpperCase()} is not on the board`
+  if (!side.has(word[0])) return `No ${word[0].toUpperCase()} on the board`
 
-  if (!playable.has(word)) return 'not a word'
+  if (!playable.has(word)) return 'Not a word'
   return null
 }
 

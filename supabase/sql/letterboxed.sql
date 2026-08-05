@@ -447,9 +447,18 @@ revoke execute on function letterboxed._sync_status(uuid) from public;
 -- letterboxed.create_game — mode is a positional arg
 -- ============================================================
 -- Setup shape (server validates):
---   { "max_words":  2..6   (default 5) — the chain-length cap. NOT a
---       derived par + slack: every board this pipeline builds has par
---       exactly 2, so there is nothing to derive. See the migration.
+--   { "extra_words": 0..4  (default 3) — how many words ABOVE PAR the
+--       chain may run to. Stored resolved as `max_words = PAR +
+--       extra_words`, the shape waffle uses for `max_swaps = par +
+--       extra_swaps`.
+--
+--       PAR IS THE CONSTANT 2, not a computed column, because every board
+--       this pipeline can build is solvable in exactly two words (the
+--       builder partitions the twelve letters so the seeded pair stays
+--       playable — see the migration). It is expressed as par + slack
+--       anyway because that is the number players can actually reason
+--       about: "solve it in 5" says nothing on its own, while "par is 2,
+--       you get 3 spare" says exactly how much room you have.
 --     "legal_band": 1..6   (default 5) — how obscure an accepted word
 --       may be. NOTE THE DIRECTION: higher = EASIER.
 --     "coop_style": 'free' | 'turns',
@@ -481,6 +490,7 @@ as $$
 declare
   new_id uuid;
   s_max_words int;
+  s_extra_words int;
   s_legal_band int;
   first_turn uuid;
   b_sides text;
@@ -509,11 +519,15 @@ begin
   perform common.require_player_count_max(player_user_ids, 6);
 
   -- ─── Validate setup ──────────────────────────────────────
-  s_max_words := coalesce((setup->>'max_words')::int, 5);
-  if s_max_words < 2 or s_max_words > 6 then
-    raise exception 'setup.max_words must be 2..6 (got %)', s_max_words
+  s_extra_words := coalesce((setup->>'extra_words')::int, 3);
+  if s_extra_words < 0 or s_extra_words > 4 then
+    raise exception 'setup.extra_words must be 0..4 (got %)', s_extra_words
       using errcode = 'P0001';
   end if;
+  -- PAR = 2 on every board this pipeline builds (see the header). Resolved
+  -- here rather than stored as a `par` column, which would be a constant
+  -- column; `max_words` is what every rule downstream actually reads.
+  s_max_words := 2 + s_extra_words;
 
   s_legal_band := coalesce((setup->>'legal_band')::int, 5);
   if s_legal_band < 1 or s_legal_band > 6 then
