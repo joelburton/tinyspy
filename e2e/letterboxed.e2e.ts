@@ -167,6 +167,15 @@ test.describe('letterboxed', () => {
     // Typing is inert — the entry is gone, so nothing accumulates.
     await page.keyboard.type('kcf')
     await expect(page.getByTestId('entry-value')).toHaveCount(0)
+
+    // …but the × MUST still be there. Freezing the entry and freezing the
+    // chain are different things, and conflating them once hid the only move
+    // left on the board at exactly the moment it was the only move left.
+    const x = page.getByRole('button', { name: /Take back GJB/i })
+    await expect(x).toBeVisible()
+    await x.click()
+    await expect(page.getByText(/Chain is full/)).toBeHidden({ timeout: 10000 })
+    await expect(page.getByTestId('entry-value')).toBeVisible()
   })
 
   test('clicking letters builds a word; clicking the last one again submits it', async ({

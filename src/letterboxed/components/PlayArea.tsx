@@ -262,7 +262,12 @@ export function PlayArea(ctx: GamePageCtx) {
   // but taking a word back, so the board and the entry both go inert rather
   // than letting a player compose a sixth word only to be refused it.
   const chainFull = chain.length >= maxWords && lettersCovered < BOARD_SIZE
-  const entryDisabled = isTerminal || myConceded || !isMyTurn || chainFull
+  // TWO different gates, and conflating them is a bug: a full chain freezes the
+  // ENTRY (there is no word to compose) but must leave the chain EDITABLE,
+  // because taking a word back is the only move left. Passing the entry's gate
+  // to the chain strip hid the × exactly when it was needed.
+  const chainEditable = !isTerminal && !myConceded && isMyTurn
+  const entryDisabled = !chainEditable || chainFull
 
   const wordsByUser = new Map(
     playerRows.map((r) => [r.user_id, r.word_count]),
@@ -295,6 +300,7 @@ export function PlayArea(ctx: GamePageCtx) {
         onRemoveLast={removeLast}
         clearLocalFeedback={clearLocalFeedback}
         entryDisabled={entryDisabled}
+        chainEditable={chainEditable}
         chainFull={chainFull}
         busy={busy}
         // Locally terminal (compete: I conceded while the others race on) gets

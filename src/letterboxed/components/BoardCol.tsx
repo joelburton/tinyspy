@@ -43,6 +43,7 @@ export function BoardCol({
   onRemoveLast,
   clearLocalFeedback,
   entryDisabled,
+  chainEditable,
   chainFull,
   busy,
   localPill,
@@ -62,6 +63,10 @@ export function BoardCol({
   clearLocalFeedback: () => void
   /** Terminal / conceded / not my turn / chain full: board + entry are inert. */
   entryDisabled: boolean
+  /** May the chain still be edited? Deliberately NOT `!entryDisabled`: when the
+   *  chain is full the entry freezes but the × must stay live, since taking a
+   *  word back is then the only move on the board. */
+  chainEditable: boolean
   /** The cap is reached and the board isn't covered — the only move left is
    *  taking a word back, so the entry gives way to a pill saying so. */
   chainFull: boolean
@@ -121,7 +126,7 @@ export function BoardCol({
       {/* The chain reads ABOVE the board: it is the state, and it says what
           letter the next word must start with. On a phone the info column is
           off-canvas, so a per-turn readout can't live there. */}
-      <ChainStrip chain={chain} onRemoveLast={onRemoveLast} disabled={entryDisabled} />
+      <ChainStrip chain={chain} onRemoveLast={onRemoveLast} disabled={!chainEditable} />
 
       <Board
         sides={sides}
