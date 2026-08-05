@@ -355,7 +355,7 @@ test.describe('crosswords play loop', () => {
     await expect(p2.getByRole('menuitem', { name: 'Explain cryptic clue' })).toBeEnabled()
   })
 
-  // Upload flow: the setup form's "Upload file" tab parses a .puz/.ipuz
+  // Upload flow: the setup form's "Upload" tab parses a .puz/.ipuz
   // client-side and starts a self-contained game (inline board, no puzzles
   // row). Drives the real setup dialog end to end.
   test('upload: a .puz file creates a game via the setup form', async ({ browser }) => {
@@ -372,7 +372,12 @@ test.describe('crosswords play loop', () => {
 
     // Switch to the Upload tab and choose a fixture .puz (the hidden input
     // accepts setInputFiles even though it's not visible).
-    await page.getByRole('button', { name: 'Upload file' }).click()
+    // `exact` so this pins the TAB and can't drift onto some future button whose
+    // name merely contains "Upload" (Playwright's `name` is substring-matched).
+    // The tab was called "Upload file" until e8acc5c8 shortened it to fit a
+    // phone; the rename left this locator waiting 45s for a button that no
+    // longer existed, which reads as a hang rather than a rename.
+    await page.getByRole('button', { name: 'Upload', exact: true }).click()
     await page
       .locator('input[type="file"]')
       .setInputFiles('supabase/scripts/crosswords/fixtures/sunday-sample.puz')

@@ -127,8 +127,8 @@ plain RPCs — no edge function needed.
 
 ## 5. Puzzle sourcing
 
-Four sources, exposed as four tabs in the setup form (Library / NYT by date /
-Guardian / Upload file):
+Four sources, exposed as four tabs in the setup form (Library / NYT /
+Guardian / Upload):
 
 - **`gmake g-crosswords-puzzles`** (CLI, `supabase/scripts/`) — bulk-imports crossplay's
   `.puz` / `.ipuz` files + the `content_hash` dedup into the curated
@@ -148,7 +148,7 @@ Guardian / Upload file):
   imports where you left off — crossplay's `saved` round-trip, the counterpart to
   **Download as .ipuz** (§9). Blank library/NYT templates carry no fills, so this
   is a no-op there.
-- **In-app upload** — the setup form's "Upload file" tab parses a dropped /
+- **In-app upload** — the setup form's "Upload" tab parses a dropped /
   chosen `.puz` / `.ipuz` **entirely client-side** (`lib/importFile.ts` →
   `lib/parse/`; puzjs is a dependency-free `Uint8Array` reader, so it bundles in
   the browser) into the inline board, then `create_game(board=…)` directly — a
