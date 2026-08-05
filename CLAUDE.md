@@ -99,7 +99,32 @@ What this means in practice:
 This **doesn't** mean be cavalier with destructive actions. The principle is about *avoiding compat apparatus we don't need*, not about being sloppy with the friends' goodwill. Still:
 
 - **Always confirm before destructive operations** (dropping databases, force-pushes, etc.). The "friends will understand" license is for *design* decisions, not for *unauthorized* destruction.
-- **The friends' actual game data, if it matters to them, still matters.** Joel decides what's expendable; if he says "you can wipe the dev DB," yes. He hasn't said that about prod — but prod is currently empty / non-load-bearing.
+- **The friends' actual game data, if it matters to them, still matters.** Joel decides what's expendable; if he says "you can wipe the dev DB," yes. **Prod is deployed and real** — it has carried live profiles and games. Ask before wiping it, and take a `supabase db dump --linked` first.
+
+### In-place migration edits now cost a PROD RESET
+
+The edit-in-place convention above is written for `db reset`, which is a LOCAL
+operation. Prod applies migrations with `supabase db push`, which **skips any
+migration the remote has already recorded** — so an in-place edit to an applied
+migration never reaches production, while `supabase/sql/` (re-applied in full
+every deploy) *does*. The two halves then disagree, and the deploy fails partway
+through the affected game's SQL file.
+
+That happened on 2026-08-04: `strands.guesses` → `strands.events` was edited into
+the already-applied strands migration, and the only non-destructive fix would
+have been a forward migration. Joel chose to reset prod instead, which preserves
+the convention at the cost of every account and game on it.
+
+So, before editing an applied migration in place, decide which you're buying:
+the convention, or prod's data. **Two operational notes if you reset prod:**
+
+- **Clear the stamps.** `gmake db-schema ENV=local` deletes `.make/<env>/*.stamp`
+  precisely because a reset makes them lie. Resetting prod with the Supabase CLI
+  directly does NOT, so the next `gmake db-data ENV=prod` skips the word import
+  and leaves `common.words` empty — every word game silently broken. `rm -f
+  .make/prod/*.stamp` first.
+- **`db-data` is not part of `deploy`.** The deploy target ships structure +
+  functions + FE only; a reset database also needs `gmake db-data ENV=prod`.
 
 When you encounter a question like "should we keep the old URL pattern working?" or "do we need a migration path for existing rows?" — the default answer is **no, just make the change cleanly**. If you're not sure whether a specific destructive choice is in-bounds, ask once; once Joel says yes, take the simpler path.
 
