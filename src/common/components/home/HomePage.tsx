@@ -169,15 +169,21 @@ export function HomePage({ session }: Props) {
   )
 
   return (
-    <div className="card">
-      {/* A real header, the same shape ClubPage and GamePage carry: the square
-          site logo top-left, opening the page's menu. Home had no menu at all
-          until the account items moved off the fixed top-right chip, and the
-          first attempt hung the menu off the WORDMARK below — which reads badly
-          (a hero image isn't a control; the disclosure chevron had nowhere to
-          sit on a 400px-wide PNG). The wordmark goes back to being artwork.
-          The menu holds only the account submenu today; the point of the header
-          is that Help and anything else non-user now have somewhere to live. */}
+    <div className={styles.frame}>
+      {/* PAGE chrome, not card content — the same strip ClubPage and GamePage
+          carry: square site logo hard against the page's top-left, thin rule
+          beneath, the card below it. It sat INSIDE the card at first, which
+          made it read as part of the page's content rather than as the app's
+          chrome, and indented it to the card's 2rem padding so it lined up with
+          nothing else in the app.
+
+          Home had no menu at all until the account items moved off the fixed
+          top-right chip. An even earlier attempt hung it off the WORDMARK,
+          which reads badly (a hero image isn't a control, and the disclosure
+          chevron had nowhere to sit on 400px of artwork). The wordmark is
+          artwork again; the menu holds only the account submenu today, and the
+          point of the header is that Help and anything else non-user now have
+          somewhere to live. */}
       <header className={styles.header}>
         <Menu
           ref={menuRef}
@@ -190,71 +196,73 @@ export function HomePage({ session }: Props) {
           triggerLabel="Main menu"
         />
       </header>
-      <PuzpuzpuzWordmark />
-      <h1>Welcome{username ? `, ${username}` : ''}</h1>
-      <p className="muted">{session.user.email}</p>
+      <div className="card">
+        <PuzpuzpuzWordmark />
+        <h1>Welcome{username ? `, ${username}` : ''}</h1>
+        <p className="muted">{session.user.email}</p>
 
-      <section>
-        {/* Section header is a flex row: title on the left, the
-            quiet "+ New club" button on the right. Creating a new
-            club is the uncommon path (most users land here, click
-            into an existing club, go play), so the button is
-            outline-styled + small rather than competing with the
-            primary accent-filled buttons elsewhere on the page. */}
-        <header className={styles.sectionHeader}>
-          <h3>Your clubs</h3>
-          <Link to="/c/new" className={styles.newClubButton}>
-            + New club
-          </Link>
-        </header>
-        {clubs.length === 0 ? (
-          // Defensive: claim_username materializes a solo club
-          // atomically with the profile, so a signed-in claimed
-          // user always has at least their solo club here. A fetch
-          // failure or RLS regression shouldn't render a blank
-          // list silently.
-          <p className="muted">You haven't joined a club yet.</p>
-        ) : (
-          <ul
-            ref={listRef}
-            className={styles.clubsList}
-            tabIndex={0}
-            role="group"
-            aria-label="Your clubs"
-            onKeyDown={onListKeyDown}
-            onFocus={(e) => {
-              if (e.target === e.currentTarget) setListFocused(true)
-            }}
-            onBlur={(e) => {
-              if (e.target === e.currentTarget) setListFocused(false)
-            }}
-          >
-            {ordered.map((c, i) => (
-              // Clicking IS selecting, so the mouse and the keyboard agree on
-              // "the selected club". On the <li> because <Link> owns its own
-              // onClick for routing; the row's click bubbles here first. This
-              // list navigates away on click, so it's the same symmetry
-              // ClubPage's game list has rather than something you'd notice
-              // here today.
-              <li key={c.handle} onClick={() => setCursor(i)}>
-                <Link
-                  to={`/c/${c.handle}`}
-                  className={cls(styles.clubItem, i === kbCursor && styles.kbCursor)}
-                >
-                  {/* Name + (for a solo club) its pill, and nothing else. The
-                      row used to end with the club's `/c/<handle>` URL — the
-                      same thing ClubPage dropped from its own body: it's what
-                      the browser's address bar will say the moment you click,
-                      and a monospace URL is a developer's view of a venue the
-                      friends know by name. */}
-                  <span className={styles.clubName}>{c.name}</span>
-                  {c.handle.startsWith('=') && <span className={styles.soloBadge}>Solo</span>}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        <section>
+          {/* Section header is a flex row: title on the left, the
+              quiet "+ New club" button on the right. Creating a new
+              club is the uncommon path (most users land here, click
+              into an existing club, go play), so the button is
+              outline-styled + small rather than competing with the
+              primary accent-filled buttons elsewhere on the page. */}
+          <header className={styles.sectionHeader}>
+            <h3>Your clubs</h3>
+            <Link to="/c/new" className={styles.newClubButton}>
+              + New club
+            </Link>
+          </header>
+          {clubs.length === 0 ? (
+            // Defensive: claim_username materializes a solo club
+            // atomically with the profile, so a signed-in claimed
+            // user always has at least their solo club here. A fetch
+            // failure or RLS regression shouldn't render a blank
+            // list silently.
+            <p className="muted">You haven't joined a club yet.</p>
+          ) : (
+            <ul
+              ref={listRef}
+              className={styles.clubsList}
+              tabIndex={0}
+              role="group"
+              aria-label="Your clubs"
+              onKeyDown={onListKeyDown}
+              onFocus={(e) => {
+                if (e.target === e.currentTarget) setListFocused(true)
+              }}
+              onBlur={(e) => {
+                if (e.target === e.currentTarget) setListFocused(false)
+              }}
+            >
+              {ordered.map((c, i) => (
+                // Clicking IS selecting, so the mouse and the keyboard agree on
+                // "the selected club". On the <li> because <Link> owns its own
+                // onClick for routing; the row's click bubbles here first. This
+                // list navigates away on click, so it's the same symmetry
+                // ClubPage's game list has rather than something you'd notice
+                // here today.
+                <li key={c.handle} onClick={() => setCursor(i)}>
+                  <Link
+                    to={`/c/${c.handle}`}
+                    className={cls(styles.clubItem, i === kbCursor && styles.kbCursor)}
+                  >
+                    {/* Name + (for a solo club) its pill, and nothing else. The
+                        row used to end with the club's `/c/<handle>` URL — the
+                        same thing ClubPage dropped from its own body: it's what
+                        the browser's address bar will say the moment you click,
+                        and a monospace URL is a developer's view of a venue the
+                        friends know by name. */}
+                    <span className={styles.clubName}>{c.name}</span>
+                    {c.handle.startsWith('=') && <span className={styles.soloBadge}>Solo</span>}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
       {/* The "~" word-lookup dialog (owned by useAppShortcuts). Null when shut. */}
       {lookupDialog}
     </div>
