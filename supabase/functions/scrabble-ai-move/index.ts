@@ -66,9 +66,23 @@ serve(async (req: Request): Promise<Response> => {
 
     let played = 0
     const log: unknown[] = []
+    // Every early exit goes through this. The success log used to be the ONLY
+    // one, sitting after the loop — so a failing RPC returned 500 from inside
+    // the loop and the invocation left NO trace at all: the container showed
+    // "serving the request" and nothing after it, which reads as a hang rather
+    // than an error. That is exactly how a wrong RPC name (`ai_pass` for
+    // `ai_pass_turn`) survived ~30 moves of this game unnoticed — it only fires
+    // on the branch the AI hadn't needed yet.
+    const fail = (where: string, message: string) => {
+      console.error(`[ai-move] game ${gameId}: FAILED at ${where} after ${played} move(s) —`, message)
+      return json({ error: message }, 500)
+    }
     for (let i = 0; i < MAX_AI_MOVES; i++) {
       const { data, error } = await db.rpc('get_ai_context', { target_game: gameId })
-      if (error) return json({ error: error.message }, 403)
+      if (error) {
+        console.error(`[ai-move] game ${gameId}: get_ai_context failed —`, error.message)
+        return json({ error: error.message }, 403)
+      }
       const ctx = data as AiContext
       if (ctx.done) break
 
@@ -89,22 +103,22 @@ serve(async (req: Request): Promise<Response> => {
           words: choice.words.map((w) => w.word),
           score: choice.score,
         })
-        if (r.error) return json({ error: r.error.message }, 500)
+        if (r.error) return fail('ai_play_word', r.error.message)
         res = r.data as { result?: string }
         log.push({ seat: ctx.seat, words: choice.words.map((w) => w.word), score: choice.score })
       } else if (ctx.bag_count >= 7) {
         // No playable word but the bag can afford a swap — dump the whole rack.
-        const r = await db.rpc('ai_exchange', {
+        const r = await db.rpc('ai_exchange_tiles', {
           target_game: gameId, p_seat: ctx.seat, base_version: ctx.version, rack_tiles: choice.tiles,
         })
-        if (r.error) return json({ error: r.error.message }, 500)
+        if (r.error) return fail('ai_exchange_tiles', r.error.message)
         res = r.data as { result?: string }
         log.push({ seat: ctx.seat, exchange: choice.tiles.length })
       } else {
-        const r = await db.rpc('ai_pass', {
+        const r = await db.rpc('ai_pass_turn', {
           target_game: gameId, p_seat: ctx.seat, base_version: ctx.version,
         })
-        if (r.error) return json({ error: r.error.message }, 500)
+        if (r.error) return fail('ai_pass_turn', r.error.message)
         res = r.data as { result?: string }
         log.push({ seat: ctx.seat, pass: true })
       }

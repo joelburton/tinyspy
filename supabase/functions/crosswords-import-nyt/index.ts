@@ -43,6 +43,7 @@ import { PNG } from 'npm:pngjs'
 import { Buffer } from 'node:buffer'
 import { json, preflight } from '../_shared/http.ts'
 import { callerClient } from '../_shared/startGame.ts'
+import type { Json } from '../../../src/types/db.ts'
 import { convertNytPuzzle, type NytPuzzleResponse } from '../../../src/crosswords/lib/nyt.ts'
 import {
   applyOverlayMarkings,
@@ -172,7 +173,7 @@ serve(async (req) => {
     target_club?: string
     mode?: string
     player_user_ids?: string[]
-    setup?: { timer?: unknown; date?: string }
+    setup?: { timer?: Json; date?: string }
   }
   try {
     body = await req.json()
@@ -191,7 +192,13 @@ serve(async (req) => {
   // 1–2. Fetch + convert. The puzzle data is NOT stored in crosswords.puzzles
   // (that table is the curated CLI library only) — it's passed straight into
   // create_game's inline `board` arg, which builds a self-contained game.
-  let board: { meta: unknown; solution: unknown }
+// `Json`, not `unknown`: both values arrive as parsed JSON (the request body /
+// the fetched puzzle) and are handed straight to a jsonb RPC parameter, so
+// `Json` is the honest type rather than a cast to quiet the checker. They were
+// `unknown` only because the shared client used to be untyped and nothing
+// forced the question — the same gap that let `scrabble-ai-move` call two RPCs
+// by names that don't exist (see _shared/startGame.ts).
+  let board: { meta: Json; solution: Json }
   try {
     const cookie = cookieHeaderFromEnv()
     const resp = await fetchNytPuzzleForDate(cookie, date)

@@ -33,6 +33,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { json, preflight } from '../_shared/http.ts'
 import { callerClient } from '../_shared/startGame.ts'
+import type { Json } from '../../../src/types/db.ts'
 import { convertGuardianPuzzle, GuardianConvertError, type GuardianData } from '../../../src/crosswords/lib/guardian.ts'
 
 class GuardianFetchError extends Error {}
@@ -124,7 +125,7 @@ serve(async (req) => {
     target_club?: string
     mode?: string
     player_user_ids?: string[]
-    setup?: { timer?: unknown; series?: string }
+    setup?: { timer?: Json; series?: string }
   }
   try {
     body = await req.json()
@@ -142,7 +143,13 @@ serve(async (req) => {
 
   // 1–2. Fetch + convert. NOT stored in crosswords.puzzles (that's the curated
   // CLI library) — passed straight into create_game's inline `board` arg.
-  let board: { meta: unknown; solution: unknown }
+// `Json`, not `unknown`: both values arrive as parsed JSON (the request body /
+// the fetched puzzle) and are handed straight to a jsonb RPC parameter, so
+// `Json` is the honest type rather than a cast to quiet the checker. They were
+// `unknown` only because the shared client used to be untyped and nothing
+// forced the question — the same gap that let `scrabble-ai-move` call two RPCs
+// by names that don't exist (see _shared/startGame.ts).
+  let board: { meta: Json; solution: Json }
   try {
     const data = await fetchLatestGuardian(series)
     board = convertGuardianPuzzle(data)

@@ -13,16 +13,24 @@
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { json } from './http.ts'
+import type { Database } from '../../../src/types/db.ts'
 
 /**
+ * TYPED against the generated `Database`, which is what makes a wrong table or
+ * RPC name a compile error rather than a runtime 500. It wasn't, and that cost a
+ * real game: `scrabble-ai-move` called `ai_pass` / `ai_exchange` where the SQL
+ * defines `ai_pass_turn` / `ai_exchange_tiles`, and since the names are just
+ * strings to an untyped client, neither `deno check` nor the build could see it.
+ * The bug only fired on the branch the AI hadn't needed yet — ~30 moves in.
+ *
  * A Supabase client acting AS THE CALLER — their JWT rides on every request, so the
  * security-definer `create_game` RPC (and any candidate-word reads) see the real user
  * for the club-membership check. Every board-builder needs exactly this client; the
  * `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `Authorization` plumbing now lives here once
  * (a future auth change touches one place, not five).
  */
-export function callerClient(authHeader: string): SupabaseClient {
-  return createClient(
+export function callerClient(authHeader: string): SupabaseClient<Database> {
+  return createClient<Database>(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_ANON_KEY')!,
     { global: { headers: { Authorization: authHeader } } },

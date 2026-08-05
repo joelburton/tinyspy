@@ -213,8 +213,29 @@ export function PlayArea({
   useEffect(() => {
     if (!currentSeatIsAi || !game || isTerminal) return
     if (aiPokeVersionRef.current === game.version) return
-    aiPokeVersionRef.current = game.version
-    void supabase.functions.invoke('scrabble-ai-move', { body: { game_id: gameId } })
+    const pokedVersion = game.version
+    aiPokeVersionRef.current = pokedVersion
+    void supabase.functions
+      .invoke('scrabble-ai-move', { body: { game_id: gameId } })
+      .then(({ error }) => {
+        if (error) throw error
+      })
+      .catch((err: unknown) => {
+        // DISARM on failure. The once-per-version guard above assumes the poke
+        // either moves the AI (bumping `version`, which re-arms this) or is a
+        // harmless duplicate — a FAILED poke is neither, and leaving the ref set
+        // wedges the game permanently: the version never changes, so this effect
+        // never fires again and the bot appears to think forever. Clearing it
+        // means the next render that still sees an AI seat on turn tries again.
+        //
+        // Found the hard way: the edge function called two RPCs by the wrong
+        // name (`ai_pass` for `ai_pass_turn`), which only bites the first time
+        // the AI must pass rather than play — ~30 moves into a game, at which
+        // point it hung with nothing in the logs and no way to recover but a
+        // page reload.
+        if (aiPokeVersionRef.current === pokedVersion) aiPokeVersionRef.current = null
+        console.error('scrabble-ai-move poke failed', err)
+      })
   }, [currentSeatIsAi, game, gameId, isTerminal])
 
   // Peer-move news → the GLOBAL header (the peer-news channel; my own move goes
