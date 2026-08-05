@@ -12,6 +12,12 @@
  *   --letterboxed-box         The square the letters sit on.
  *   --letterboxed-tile        A letter's resting fill.
  *   --letterboxed-tile-text   A resting letter's glyph.
+ *   --letterboxed-seed        The carried-over first letter in the entry box —
+ *                             the one character Backspace won't remove. The
+ *                             accent green is the right IDEA but too light at
+ *                             glyph weight: a filled circle carries a colour
+ *                             that a few thin strokes don't, so this is the
+ *                             saturated green-800 the outcome palette uses.
  *
  * Two-vocabularies rule (docs/ui.md): tokens are named by letterboxed's
  * vocabulary (`box`, `tile`, `used`, `accent`) rather than literal colours.
@@ -22,4 +28,5 @@
   --letterboxed-box:        var(--color-divider);
   --letterboxed-tile:       var(--color-surface);
   --letterboxed-tile-text:  var(--color-text);
+  --letterboxed-seed:       var(--color-outcome-won-strong);
 }
