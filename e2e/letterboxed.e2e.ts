@@ -284,6 +284,60 @@ test.describe('letterboxed', () => {
     await ctx.close()
   })
 
+  test('a solved chain has evenly padded pills — the × takes its space with it', async ({
+    browser,
+  }) => {
+    // Shipped broken twice, both times because a screenshot LOOKED even. The
+    // tighter right padding belongs to the ×, not to being last, so once the
+    // game is over every pill must match. Asserted in PIXELS.
+    const club = await createSoloClub('lbx10')
+    const [alice] = club.members
+    const game = await createLetterboxedGame(club)
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+
+    const pills = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll('li')]
+          .filter((e) => /^[A-Z]{3,}/.test(e.textContent ?? ''))
+          .map((e) => {
+            const c = getComputedStyle(e)
+            return { l: c.paddingLeft, r: c.paddingRight, hasX: !!e.querySelector('button') }
+          }),
+      )
+
+    // Mid-game the last pill carries the ×, so ITS right padding is tight.
+    await page.keyboard.type('adg')
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first()).toBeVisible({
+      timeout: 10000,
+    })
+    const live = await pills()
+    expect(live.at(-1)!.hasX).toBe(true)
+    expect(live.at(-1)!.r).not.toBe(live.at(-1)!.l)
+
+    // Solve it — the × goes, and the pills even up.
+    await page.getByRole('listitem').filter({ hasText: /^ADG/ }).first().getByRole('button').click()
+    await expect(page.getByText('No words yet')).toBeVisible({ timeout: 10000 })
+    await page.keyboard.type('adgjbehk')
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('entry-value')).toHaveText('K', { timeout: 10000 })
+    await page.keyboard.type('cfil')
+    await page.keyboard.press('Enter')
+    await expect(page.getByText(/All twelve/)).toBeVisible({ timeout: 10000 })
+
+    const done = await pills()
+    expect(done.some((p) => p.hasX), 'no × once the game is over').toBe(false)
+    expect(new Set(done.map((p) => p.r)).size, 'every pill shares one right padding').toBe(1)
+    expect(done[0].r, 'which equals the left padding').toBe(done[0].l)
+
+    await ctx.close()
+  })
+
   test('clicking letters builds a word; clicking the last one again submits it', async ({
     browser,
   }) => {

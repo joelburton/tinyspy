@@ -35,7 +35,14 @@ export function ChainStrip({
       {chain.map((w, i) => {
         const isLast = i === chain.length - 1
         return (
-          <li key={`${w}-${i}`} className={cls(styles.chainWord, isLast && styles.chainLast)}>
+          <li
+            key={`${w}-${i}`}
+            // The tighter right padding belongs to the ×, NOT to being last:
+            // once the game is over the button is gone, and the pill has to sit
+            // like every other one. Same condition as the button below, so the
+            // two can't disagree.
+            className={cls(styles.chainWord, isLast && !disabled && styles.chainLast)}
+          >
             {w.toUpperCase()}
             {isLast && !disabled && (
               <button
