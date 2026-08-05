@@ -10,6 +10,10 @@ import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameBu
 import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
+import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
+import { difficultyValue } from '../../common/lib/game/difficulty'
+import { timerLabel } from '../../common/lib/game/timerLabel'
+import type { LetterboxedSetup } from '../lib/setup'
 import { BOARD_SIZE, PAR } from '../lib/board'
 import { GameTurnLog } from './GameTurnLog'
 import type { EventRow } from '../hooks/useGame'
@@ -46,6 +50,7 @@ export function InfoCol({
   wordsByUser,
   coveredByUser,
   concededIds,
+  setup,
   onEndGame,
   onConcede,
   onRestart,
@@ -73,6 +78,8 @@ export function InfoCol({
   wordsByUser: Map<string, number>
   coveredByUser: Map<string, number>
   concededIds: Set<string>
+  /** What was picked at create time, recapped in the disclosure. */
+  setup: LetterboxedSetup
   onEndGame: () => void
   onConcede: () => void
   onRestart: () => void
@@ -152,6 +159,28 @@ export function InfoCol({
             <BackToClubButton iconOnly onClick={onRequestBackToClub} />
           </div>
         )}
+
+        {/* Help — the interface in one line, and only while the player can act
+            on it (never silently swapped for something else). */}
+        {!over && !isLocallyDone && (
+          <p className={shared.infoHelp}>
+            Click letters or type; click the last one again (or press{' '}
+            <kbd>Enter</kbd>) to submit. Every word starts where the last one
+            ended — the × takes it back.
+          </p>
+        )}
+
+        {/* Setup options — what was picked at create time, behind the shared
+            disclosure. Closed by default so it doesn't crowd the state above.
+            The word limit is quoted against PAR, the same way the setup form
+            asked for it: "5 words" alone doesn't say how much room that is. */}
+        <SetupDisclosure>
+          <li>
+            Word limit: par + {setup.extra_words} ({PAR + setup.extra_words} words)
+          </li>
+          <li>Dictionary: {difficultyValue(setup.legal_band)}</li>
+          <li>Timer: {timerLabel(setup.timer)}</li>
+        </SetupDisclosure>
       </div>
 
 

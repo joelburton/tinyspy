@@ -336,6 +336,7 @@ export function PlayArea(ctx: GamePageCtx) {
           wordsByUser={wordsByUser}
           coveredByUser={coveredByUser}
           concededIds={concededIds}
+          setup={letterboxedSetup}
           onEndGame={endGame}
           onConcede={concede}
           onRestart={restart}

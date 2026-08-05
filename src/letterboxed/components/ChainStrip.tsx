@@ -1,4 +1,5 @@
 import { cls } from '../../common/lib/util/cls'
+import { IconRemove } from '../../common/components/icons'
 import styles from './PlayArea.module.css'
 
 /**
@@ -44,7 +45,7 @@ export function ChainStrip({
                 aria-label={`Take back ${w.toUpperCase()}`}
                 data-tooltip={`Take back ${w.toUpperCase()}`}
               >
-                ×
+                <IconRemove size={18} strokeWidth={2.5} aria-hidden />
               </button>
             )}
           </li>

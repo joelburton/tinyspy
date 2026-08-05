@@ -173,8 +173,6 @@
   min-height: 2.1rem;
   margin: -0.35rem 0;
   border-radius: 999px;
-  font-size: 1.35rem;
-  line-height: 1;
   color: var(--color-text);
 }
 .chainRemove:hover,

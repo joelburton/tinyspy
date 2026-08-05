@@ -119,6 +119,11 @@ export {
   Star as IconThemeFind, // an ordinary theme word
   Check as IconWordOk, // a valid word that isn't part of the puzzle
   X as IconWordNo, // rejected — too short, unknown, or already counted
+  // remove THIS ITEM from a list, in place (letterboxed's × on the chain's
+  // last word). Same lucide glyph as IconWordNo, aliased separately because
+  // the purpose is different — one marks a verdict, the other is an action.
+  // As an SVG it is centred by its own box; the × TEXT glyph is not.
+  X as IconRemove,
   // The mobile page switch (GamePage header). A right-hand panel opening /
   // closing IS the gesture — the info column slides in from the right — so the
   // pair says what a bare chevron couldn't: which panel, and which way.
