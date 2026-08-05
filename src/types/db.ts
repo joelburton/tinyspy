@@ -1722,6 +1722,7 @@ export type Database = {
       _chain_for: { Args: { g_id: string; u_id: string }; Returns: string[] }
       _covered: { Args: { chain: string[] }; Returns: number }
       _covered_for: { Args: { g_id: string; u_id: string }; Returns: number }
+      _leaderboard: { Args: { g_id: string }; Returns: Json }
       _sync_status: { Args: { g_id: string }; Returns: undefined }
       _word_count_for: { Args: { g_id: string; u_id: string }; Returns: number }
       candidate_words: {
@@ -1745,8 +1746,8 @@ export type Database = {
         }[]
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
-      log_hint: {
-        Args: { suggested: string; target_game: string }
+      log_help: {
+        Args: { kind: string; target_game: string; word_shown: string }
         Returns: undefined
       }
       pick_seed: {

@@ -1,5 +1,7 @@
+import type { MouseEvent } from 'react'
 import type { GamePlayer } from '../../common/lib/games'
 import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
+import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import { TurnLog, TurnLogBar } from '../../common/components/game/lists/TurnLog'
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
 import { memberById } from '../../common/lib/game/peers'
@@ -13,6 +15,11 @@ import styles from './PlayArea.module.css'
  * composing the same atoms every other v3 log does: the outcome bar, the move
  * number, the move itself in the slack-absorbing `main` column, and the actor
  * on the right so the identity discs line up down the log.
+ *
+ * COVERAGE IS ITS OWN COLUMN (`turnLog.other`), not a suffix on the move text.
+ * Appended, it landed wherever the word happened to end and the numbers
+ * staggered down the log; as a column they line up, which is most of why the
+ * shared log is a `<table>` rather than a list of rows.
  *
  * The bar follows wordle's reading: `neutral` for an ordinary move (progress,
  * not pass/fail) and `good` only on the move that covers the board. A RETREAT
@@ -53,7 +60,21 @@ export function GameTurnLog({
   })
   const shown = who.filter(events)
 
+  // Click-to-define (a common feature — common/hooks/definitions/useDefinePopover).
+  // Every word in the log is a real dictionary word, whether it was played,
+  // taken back, or handed over by a spoiler; words are stored lowercase, which
+  // the lookup wants.
+  const { define, popover } = useDefinePopover()
+  // Pointer-only, deliberately: NOT focusable, no role="button". See
+  // common/theme.css → `.definable` for why every definable word is like this.
+  const defineProps = (word: string) => ({
+    className: 'definable',
+    title: 'Click to define',
+    onClick: (e: MouseEvent<HTMLSpanElement>) => define(word, e.currentTarget),
+  })
+
   return (
+    <>
     <TurnLog
       heading="Moves"
       headerAction={who.picker}
@@ -70,9 +91,9 @@ export function GameTurnLog({
           />
           <td className={turnLog.meta}>#{i + 1}</td>
           <td className={turnLog.main}>
-            <span className={e.kind === 'played' ? styles.logWord : styles.logRetreat}>
-              {describe(e)}
-            </span>{' '}
+            <Move event={e} defineProps={defineProps} />
+          </td>
+          <td className={turnLog.other}>
             <span className={turnLog.meta}>
               {e.letters_covered}/{BOARD_SIZE}
             </span>
@@ -81,19 +102,36 @@ export function GameTurnLog({
         </tr>
       ))}
     </TurnLog>
+    {popover}
+    </>
   )
 }
 
-/** What a row says. Each kind names what HAPPENED, in the game's own words. */
-function describe(e: EventRow): string {
-  switch (e.kind) {
+/**
+ * A row's move text. Each kind names what HAPPENED in the game's own words, and
+ * every one that carries a word makes that word definable.
+ */
+function Move({
+  event,
+  defineProps,
+}: {
+  event: EventRow
+  defineProps: (word: string) => Record<string, unknown>
+}) {
+  const word = event.word ? (
+    <span {...defineProps(event.word)}>{event.word.toUpperCase()}</span>
+  ) : null
+
+  switch (event.kind) {
     case 'played':
-      return e.word?.toUpperCase() ?? ''
+      return <span className={styles.logWord}>{word}</span>
     case 'undone':
-      return `took back ${e.word?.toUpperCase() ?? ''}`
+      return <span className={styles.logRetreat}>took back {word}</span>
     case 'cleared':
-      return 'started over'
+      return <span className={styles.logRetreat}>started over</span>
     case 'hint':
-      return 'took a hint'
+      return <span className={styles.logRetreat}>took a hint</span>
+    case 'spoiler':
+      return <span className={styles.logRetreat}>was shown {word}</span>
   }
 }

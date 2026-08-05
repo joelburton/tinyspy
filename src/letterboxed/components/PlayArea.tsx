@@ -6,6 +6,7 @@ import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy
 import { outOfRacePill, stickyPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { db } from '../db'
+import { db as commonDb } from '../../common/db'
 import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
@@ -76,12 +77,6 @@ export function PlayArea(ctx: GamePageCtx) {
   // re-seeds the entry without an effect and without stale state.
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
-  // How many times the hint has been asked for at the CURRENT chain length.
-  // The first press describes the move, a second names the word — so a nudge
-  // is available without the answer being one click away. Playing or taking
-  // back a word resets it, since the position changed.
-  const [hintDepth, setHintDepth] = useState(0)
-  const [hintAt, setHintAt] = useState(-1)
 
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
@@ -149,43 +144,60 @@ export function PlayArea(ctx: GamePageCtx) {
   // chain, so a bulk clear would be a second way to do the same thing.
   const removeLast = useCallback(() => void runChainRpc('undo_word'), [runChainRpc])
 
-  // ─── Hint (coop only) ──────────────────────────────────
+  // ─── Help (coop only) ──────────────────────────────────
   // The search runs HERE, over the board's shipped word list — see lib/solve.ts
-  // for why that list ships at all. The server is told only that a hint was
-  // taken, so the counter and the log agree with what happened.
-  const takeHint = useCallback(() => {
-    if (!game) return
-    const r = suggest(game.playableWords, sides, chain)
-    // A new position resets the ladder; the same position advances it.
-    const step = hintAt === chain.length ? hintDepth + 1 : 1
-    setHintAt(chain.length)
-    setHintDepth(step)
+  // for why that list ships at all. The server is told only that help was
+  // taken, so the turn log agrees with what happened.
+  //
+  // Two buttons, two rungs of the shared help ladder (docs/ui.md → button
+  // iconography): HINT describes the word, SPOILER hands it over. Both are
+  // coop-only — in compete, "first past the bar wins" would make either a win
+  // button, and the server refuses them there too.
+  const askHelp = useCallback(
+    (kind: 'hint' | 'spoiler') => {
+      if (!game) return
+      const r = suggest(game.playableWords, sides, chain)
 
-    if (!isSuggestion(r)) {
+      if (!isSuggestion(r)) {
+        showLocalFeedback(
+          stickyPill(
+            'warning',
+            r.kind === 'stuck'
+              ? 'Dead end — take a word back'
+              : 'No way home from here — take a word back',
+          ),
+        )
+        return
+      }
+
       showLocalFeedback(
         stickyPill(
-          'warning',
-          r.kind === 'stuck'
-            ? 'Dead end — take a word back'
-            : 'No way home from here — take a word back',
+          'info',
+          kind === 'hint'
+            ? `${r.word.length} letters starting with ${r.word.slice(0, 2).toUpperCase()}`
+            : r.word.toUpperCase(),
         ),
       )
-      return
-    }
+      void db
+        .rpc('log_help', { target_game: gameId, word_shown: r.word, kind })
+        .then(({ error }) => {
+          // Log-and-swallow: the player already has their answer, so a failed
+          // write must not change what they see — but it must not vanish either.
+          if (error) console.error('recording help failed', error)
+        })
+    },
+    [game, sides, chain, gameId, showLocalFeedback],
+  )
+  const takeHint = useCallback(() => askHelp('hint'), [askHelp])
+  const takeSpoiler = useCallback(() => askHelp('spoiler'), [askHelp])
 
-    // Step 1 describes the move; step 2 names it. Both count as a hint: the
-    // shape alone is often enough, and charging for it keeps the two honest.
-    const text =
-      step === 1
-        ? `A ${r.word.length}-letter word from ${r.word[0].toUpperCase()} covers ${r.newLetters} new`
-        : r.word.toUpperCase()
-    showLocalFeedback(stickyPill('info', text))
-    void db.rpc('log_hint', { target_game: gameId, suggested: r.word }).then(({ error }) => {
-      // Log-and-swallow: the player already has their hint, so a failed write
-      // must not change what they see — but it must not vanish either.
-      if (error) console.error('recording a hint failed', error)
-    })
-  }, [game, sides, chain, hintAt, hintDepth, gameId, showLocalFeedback])
+  // Reveal the seeded solution — the shared display flag, not a letterboxed
+  // one: common.reveal_solution enforces "only once the game is over for
+  // everyone", so a player who dropped out can't spoil a live race.
+  const handleReveal = useCallback(async () => {
+    const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
+    if (error) showLocalFeedback(stickyPill('error', `Reveal failed: ${error.message}`))
+  }, [gameId, showLocalFeedback])
 
   // ─── End / Concede / Replay — the shared trio ──────────
   const showError = useCallback(
@@ -382,8 +394,10 @@ export function PlayArea(ctx: GamePageCtx) {
           coveredByUser={coveredByUser}
           concededIds={concededIds}
           setup={letterboxedSetup}
-          hintsUsed={myRow?.hints_used ?? 0}
           onHint={takeHint}
+          onSpoiler={takeSpoiler}
+          onReveal={() => void handleReveal()}
+          revealDisabled={solutionRevealed}
           onEndGame={endGame}
           onConcede={concede}
           onRestart={restart}

@@ -178,7 +178,9 @@ test.describe('letterboxed', () => {
     await expect(page.getByTestId('entry-value')).toBeVisible()
   })
 
-  test('the hint nudges first, then names the word, and counts both', async ({ browser }) => {
+  test('hint describes the word; spoiler hands it over; both land in the log', async ({
+    browser,
+  }) => {
     const club = await createSoloClub('lbx7')
     const [alice] = club.members
     const game = await createLetterboxedGame(club)
@@ -189,21 +191,44 @@ test.describe('letterboxed', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
 
-    const hint = page.getByRole('button', { name: /hint/i })
+    // HINT describes the word without giving it: the fixture's two-word
+    // solution opens with ADGJBEHK, so 8 letters starting AD.
+    await page.getByRole('button', { name: /^hint$/i }).click()
+    await expect(page.getByText('8 letters starting with AD')).toBeVisible({ timeout: 10000 })
 
-    // First press describes the move without giving it away. The fixture's
-    // two-word solution opens with ADGJBEHK — 8 letters from A, all 8 new.
-    await hint.click()
-    await expect(page.getByText(/8-letter word from A covers 8 new/)).toBeVisible({
-      timeout: 10000,
-    })
-
-    // Second press, same position, names it.
-    await hint.click()
+    // SPOILER hands it over.
+    await page.getByRole('button', { name: /show the word/i }).click()
     await expect(page.getByText('ADGJBEHK', { exact: true })).toBeVisible({ timeout: 10000 })
 
-    // Both were recorded — the counter is a record, not a score.
-    await expect(page.getByText('Hints').locator('..')).toContainText('2', { timeout: 10000 })
+    // The turn log is the record of both — there is no counter.
+    await expect(page.getByText('took a hint')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(/was shown/)).toBeVisible({ timeout: 10000 })
+  })
+
+  test('the solution stays covered until Reveal is pressed', async ({ browser }) => {
+    // letterboxed registers hides_solution, so ending without a win must NOT
+    // put the seeded pair on screen — a replay of the same board is only a
+    // genuine second try while the answer is still unknown.
+    const club = await createSoloClub('lbx8')
+    const [alice] = club.members
+    const game = await createLetterboxedGame(club)
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+
+    await page.getByRole('button', { name: /end game/i }).click()
+    const confirm = page.getByRole('button', { name: /^(end|yes|confirm)/i }).last()
+    if (await confirm.isVisible().catch(() => false)) await confirm.click()
+
+    await expect(page.getByText('Game over')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(/Solvable in two/i)).toBeHidden()
+
+    await page.getByRole('button', { name: /reveal solution/i }).click()
+    await expect(page.getByText(/Solvable in two/i)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('ADGJBEHK')).toBeVisible()
   })
 
   test('clicking letters builds a word; clicking the last one again submits it', async ({

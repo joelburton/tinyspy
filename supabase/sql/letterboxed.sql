@@ -932,19 +932,24 @@ revoke execute on function letterboxed.clear_chain(uuid) from public;
 grant execute on function letterboxed.clear_chain(uuid) to authenticated;
 
 -- ============================================================
--- letterboxed.log_hint — record that a hint was taken
+-- letterboxed.log_help — record that help was taken
 -- ============================================================
--- The hint itself is computed ON THE FE: it holds playable_words, so a
--- breadth-first search over (letters-used, tail-letter) finds a word on
--- a shortest path to covering all twelve in ~40 lines of TypeScript.
--- The server's only job is to remember that help was taken, so the
--- counter and the turn log agree with what happened.
+-- The suggestion itself is computed ON THE FE: it holds playable_words,
+-- so a breadth-first search over (letters-used, tail-letter) finds a
+-- word on a shortest path to covering all twelve in ~40 lines of
+-- TypeScript. The server's only job is to remember that help was taken,
+-- so the turn log agrees with what happened.
 --
--- Trusting the client here costs nothing: hints are unpenalized, and
--- COOP-ONLY. In compete an optimal suggestion would be a win button —
--- "first past the bar" makes the fastest clicker the winner — so the
--- mode check below is a real rule, not bookkeeping.
-create or replace function letterboxed.log_hint(target_game uuid, suggested text)
+-- `kind` separates the two rungs: 'hint' gave the word's SHAPE, 'spoiler'
+-- gave the word. The log is the only record of either, which is why they
+-- are distinguishable there rather than merged into one counter.
+--
+-- Trusting the client here costs nothing: help is unpenalized, and
+-- COOP-ONLY. In compete either rung would be a win button — "first past
+-- the bar" makes the fastest clicker the winner — so the mode check
+-- below is a real rule, not bookkeeping.
+drop function if exists letterboxed.log_hint(uuid, text);
+create or replace function letterboxed.log_help(target_game uuid, word_shown text, kind text)
 returns void
 language plpgsql
 security definer
@@ -962,14 +967,19 @@ begin
     raise exception 'game not found' using errcode = 'P0002';
   end if;
   if g_row.mode <> 'coop' then
-    raise exception 'hints are not available in compete' using errcode = 'P0001';
+    raise exception 'help is not available in compete' using errcode = 'P0001';
+  end if;
+  if kind not in ('hint', 'spoiler') then
+    raise exception 'kind must be hint or spoiler (got %)', kind using errcode = 'P0001';
   end if;
   if (select is_terminal from common.games where id = target_game) then
     raise exception 'game already ended' using errcode = 'P0001';
   end if;
 
   -- Per-PLAYER, even in coop where the chain is shared: this counts who
-  -- asked for help, not what the team's position is.
+  -- asked for help, not what the team's position is. Nothing RENDERS it —
+  -- the turn log is what players read — but it stays as the cheap
+  -- per-player tally the log would otherwise have to be folded to get.
   update letterboxed.players
      set hints_used = hints_used + 1
    where game_id = target_game and user_id = caller_id;
@@ -979,13 +989,13 @@ begin
    where p.game_id = target_game and p.user_id = caller_id;
 
   insert into letterboxed.events (game_id, user_id, kind, word, letters_covered)
-  values (target_game, caller_id, 'hint', lower(trim(suggested)),
+  values (target_game, caller_id, log_help.kind, lower(trim(word_shown)),
           letterboxed._covered(v_chain));
 end;
 $$;
 
-revoke execute on function letterboxed.log_hint(uuid, text) from public;
-grant execute on function letterboxed.log_hint(uuid, text) to authenticated;
+revoke execute on function letterboxed.log_help(uuid, text, text) from public;
+grant execute on function letterboxed.log_help(uuid, text, text) to authenticated;
 
 -- ============================================================
 -- letterboxed.submit_timeout — the clock ran out

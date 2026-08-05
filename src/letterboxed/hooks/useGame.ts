@@ -62,7 +62,7 @@ export type EventRow = {
   id: number
   game_id: string
   user_id: string
-  kind: 'played' | 'undone' | 'cleared' | 'hint'
+  kind: 'played' | 'undone' | 'cleared' | 'hint' | 'spoiler'
   word: string | null
   letters_covered: number
   created_at: string

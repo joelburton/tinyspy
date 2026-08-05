@@ -1,3 +1,4 @@
+import type React from 'react'
 import type { ReactNode } from 'react'
 import type { GamePlayer } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -11,6 +12,9 @@ import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
 import { HintButton } from '../../common/components/buttons/HintButton'
+import { SpoilerButton } from '../../common/components/buttons/SpoilerButton'
+import { RevealButton } from '../../common/components/buttons/RevealButton'
+import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { timerLabel } from '../../common/lib/game/timerLabel'
@@ -52,8 +56,10 @@ export function InfoCol({
   coveredByUser,
   concededIds,
   setup,
-  hintsUsed,
   onHint,
+  onSpoiler,
+  onReveal,
+  revealDisabled,
   onEndGame,
   onConcede,
   onRestart,
@@ -83,9 +89,13 @@ export function InfoCol({
   concededIds: Set<string>
   /** What was picked at create time, recapped in the disclosure. */
   setup: LetterboxedSetup
-  /** Shown, never penalised — coop only. */
-  hintsUsed: number
+  /** Coop only — both refused server-side in compete. */
   onHint: () => void
+  onSpoiler: () => void
+  /** Open the seeded solution for everyone (common.reveal_solution). */
+  onReveal: () => void
+  /** Already open — a win reveals automatically, so the button goes inert. */
+  revealDisabled: boolean
   onEndGame: () => void
   onConcede: () => void
   onRestart: () => void
@@ -94,6 +104,16 @@ export function InfoCol({
   onBackToClub: () => void
   onRequestBackToClub: () => void
 }) {
+  // Click-to-define, the shared popover the word lists and turn logs use.
+  const { define, popover } = useDefinePopover()
+  // Pointer-only, deliberately: NOT focusable, no role="button". See
+  // common/theme.css → `.definable` for why every definable word is like this.
+  const defineProps = (word: string) => ({
+    className: 'definable',
+    title: 'Click to define',
+    onClick: (e: React.MouseEvent<HTMLSpanElement>) => define(word, e.currentTarget),
+  })
+
   return (
     <div className={shared.infoCol}>
       <div className={shared.actionSlot}>
@@ -115,15 +135,6 @@ export function InfoCol({
               <span className={styles.statOf}>/{maxWords}</span>
             </span>
           </div>
-          {/* Coop only, and unpenalised — the count is a record, not a score.
-              Mode is fixed for the game's life, so the cell appearing in one
-              mode and not the other can't reflow anything. */}
-          {!isCompete && (
-            <div className={styles.statCell}>
-              <span className={styles.statLabel}>Hints</span>
-              <span className={styles.statValue}>{hintsUsed}</span>
-            </div>
-          )}
         </div>
 
         {/* Whose-turn line — only in a turn-order game. Rendering it in a
@@ -158,6 +169,12 @@ export function InfoCol({
         {over ? (
           <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
             <RestartButton iconOnly onClick={onRestart} />
+            <RevealButton
+              iconOnly
+              label="Reveal solution"
+              disabled={revealDisabled}
+              onClick={onReveal}
+            />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
         ) : isLocallyDone ? (
@@ -166,16 +183,48 @@ export function InfoCol({
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
-            {/* Coop only. In compete "first past the bar wins" would make an
-                optimal suggestion a win button, so the server refuses it and
-                the button isn't offered. */}
-            {!isCompete && <HintButton className={shared.helperButton} onClick={onHint} />}
+            {/* The two rungs of the help ladder, icon-only like everything
+                else in this row. Coop only: in compete "first past the bar
+                wins" would make either a win button, and the server refuses
+                them there too. */}
+            {!isCompete && (
+              <>
+                <HintButton iconOnly className={shared.helperButton} onClick={onHint} />
+                <SpoilerButton
+                  iconOnly
+                  label="Show the word"
+                  className={shared.helperButton}
+                  onClick={onSpoiler}
+                />
+              </>
+            )}
             {isCompete ? (
               <ConcedeGameButton iconOnly className={shared.helperButton} onClick={onConcede} />
             ) : (
               <EndGameButton iconOnly className={shared.helperButton} onClick={onEndGame} />
             )}
             <BackToClubButton iconOnly onClick={onRequestBackToClub} />
+          </div>
+        )}
+
+        {/* The seeded solution — GATED behind the Reveal button above, not
+            shown for free. It ships to the client from game start (the board's
+            own word list would give a solution away anyway), so this is a
+            display gate rather than a security boundary — but it is still the
+            thing that ends the post-mortem, so it waits to be asked for. Sits
+            here, right under the button that opens it and above the setup
+            recap. */}
+        {solutionRevealed && solution.length > 0 && (
+          <div className={styles.chainBlock}>
+            <div className={styles.blockTitle}>Solvable in two</div>
+            <div className={styles.solution}>
+              {solution.map((w, i) => (
+                <span key={w}>
+                  {i > 0 && ' → '}
+                  <span {...defineProps(w)}>{w.toUpperCase()}</span>
+                </span>
+              ))}
+            </div>
           </div>
         )}
 
@@ -203,18 +252,8 @@ export function InfoCol({
       </div>
 
 
-      {/* The seeded pair, at terminal only. It ships from game start (the
-          board's own word list would give a solution away anyway), so this is
-          a display choice, not a security boundary. */}
-      {solutionRevealed && solution.length > 0 && (
-        <div className={styles.chainBlock}>
-          <div className={styles.blockTitle}>Solvable in two</div>
-          <div className={styles.solution}>
-            {solution.map((w) => w.toUpperCase()).join(' → ')}
-          </div>
-        </div>
-      )}
 
+      {popover}
       <GameTurnLog
         events={events}
         players={players}

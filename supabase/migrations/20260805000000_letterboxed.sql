@@ -277,10 +277,16 @@ create table letterboxed.events (
   --           where repeated undo already reaches empty one turn at a
   --           time and pricing a bulk clear at one turn would invert
   --           the cost of undoing a single word
-  -- hint    — a suggestion cashed (coop only)
-  kind text not null check (kind in ('played', 'undone', 'cleared', 'hint')),
+  -- hint    — a suggestion cashed: the word's SHAPE, not the word (coop only)
+  -- spoiler — the word itself handed over (coop only)
+  --
+  -- Two kinds, not one, because the log is the only record of help taken and
+  -- "I was told it starts with DE" and "I was told the word" are different
+  -- admissions. Both are coop-only: in compete, first past the bar wins, so
+  -- either would be a win button.
+  kind text not null check (kind in ('played', 'undone', 'cleared', 'hint', 'spoiler')),
 
-  -- The word played, taken back, or suggested. NULL for `cleared`,
+  -- The word played, taken back, suggested, or spoiled. NULL for `cleared`,
   -- which is about the whole chain rather than any one word.
   word text,
 
@@ -341,7 +347,13 @@ alter publication supabase_realtime add table letterboxed.events;
 -- rows sharing this one schema. create_club seeds new clubs with both;
 -- create_game routes to one via the mode arg.
 
-insert into common.gametypes (gametype, min_players) values
-  ('letterboxed_coop', 1),
-  ('letterboxed_compete', 2)
+-- `hides_solution`: this game keeps its seeded pair covered when a game
+-- ends without a win, so a replay of the same board is a genuine second
+-- try. Without it the answer lands on screen the moment anyone stops the
+-- game, and the post-mortem — "what were you going to play next?" — is
+-- over before it starts. The players open it with the terminal Reveal
+-- (common.reveal_solution). See common.md → Revealing the solution.
+insert into common.gametypes (gametype, min_players, hides_solution) values
+  ('letterboxed_coop', 1, true),
+  ('letterboxed_compete', 2, true)
 on conflict do nothing;
