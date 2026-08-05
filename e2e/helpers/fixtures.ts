@@ -632,6 +632,9 @@ export async function createLetterboxedGame(
   club: E2EClub,
   mode: 'coop' | 'compete' = 'coop',
   playerUserIds: string[] = club.members.map((m) => m.userId),
+  /** Words allowed ABOVE par (2). 0 caps the chain at two words, which is how
+   *  a test reaches the chain-full state without a long fixture. */
+  extraWords = 3,
 ): Promise<{ id: string; gametype: string }> {
   const creator = club.members[0]
   const filler = Array.from({ length: 200 }, (_, i) =>
@@ -641,7 +644,7 @@ export async function createLetterboxedGame(
     .schema('letterboxed')
     .rpc('create_game', {
       target_club: club.handle,
-      setup: { timer: { kind: 'none' }, extra_words: 3, legal_band: 5 },
+      setup: { timer: { kind: 'none' }, extra_words: extraWords, legal_band: 5 },
       player_user_ids: playerUserIds,
       mode,
       board: {

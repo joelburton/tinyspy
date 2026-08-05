@@ -258,7 +258,11 @@ export function PlayArea(ctx: GamePageCtx) {
   // is null in a free-for-all game, so this is false there — the pill's
   // presence is fixed for the game's life, no reflow.
   const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
-  const entryDisabled = isTerminal || myConceded || !isMyTurn
+  // The cap is spent and the board isn't covered. There is no legal move left
+  // but taking a word back, so the board and the entry both go inert rather
+  // than letting a player compose a sixth word only to be refused it.
+  const chainFull = chain.length >= maxWords && lettersCovered < BOARD_SIZE
+  const entryDisabled = isTerminal || myConceded || !isMyTurn || chainFull
 
   const wordsByUser = new Map(
     playerRows.map((r) => [r.user_id, r.word_count]),
@@ -291,6 +295,7 @@ export function PlayArea(ctx: GamePageCtx) {
         onRemoveLast={removeLast}
         clearLocalFeedback={clearLocalFeedback}
         entryDisabled={entryDisabled}
+        chainFull={chainFull}
         busy={busy}
         // Locally terminal (compete: I conceded while the others race on) gets
         // the standard "you're out" pill; a teammate's turn gets the

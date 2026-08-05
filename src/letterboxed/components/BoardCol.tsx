@@ -2,8 +2,7 @@ import { useCallback, useMemo, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { terminalPill } from '../../common/lib/game/localPills'
-import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
+import { stickyPill, terminalPill } from '../../common/lib/game/localPills'
 import { EntryRow } from '../../common/components/game/entry/EntryRow'
 import { Board } from './Board'
 import { ChainStrip } from './ChainStrip'
@@ -44,6 +43,7 @@ export function BoardCol({
   onRemoveLast,
   clearLocalFeedback,
   entryDisabled,
+  chainFull,
   busy,
   localPill,
   over,
@@ -60,14 +60,27 @@ export function BoardCol({
   /** The × on the chain's last word. */
   onRemoveLast: () => void
   clearLocalFeedback: () => void
-  /** Terminal / conceded / not my turn: board + entry are inert. */
+  /** Terminal / conceded / not my turn / chain full: board + entry are inert. */
   entryDisabled: boolean
+  /** The cap is reached and the board isn't covered — the only move left is
+   *  taking a word back, so the entry gives way to a pill saying so. */
+  chainFull: boolean
   busy: boolean
   localPill: GenericFeedbackMsg | null
   over: (TerminalCopy & { verdictNode?: ReactNode }) | null
 }) {
   const seed = tailLetter(chain) ?? ''
   const word = seed + draft
+
+  // What occupies the swap box, most-final first. The terminal verdict wins
+  // over everything; a full chain is next, because until a word comes back off
+  // there is no move to make and the entry would only collect a word it must
+  // then refuse.
+  const pill = over
+    ? terminalPill(over.tone, over.verdictNode ?? over.verdict)
+    : chainFull
+      ? stickyPill('neutral', 'Chain is full — remove a word')
+      : localPill
 
   const boardLetters = useMemo(() => new Set([...sides]), [sides])
 
@@ -118,29 +131,24 @@ export function BoardCol({
         disabled={entryDisabled}
       />
 
-      <div className={styles.entrySlot}>
+      {/* The shared RESERVED-HEIGHT swap box: it holds exactly one of the
+          entry row, an own-move pill, or the terminal verdict, and its fixed
+          min-height is what stops the board above from moving as those swap
+          (docs/ui.md → layout stability). An earlier version used a bare div
+          here and the whole column shifted every time a pill appeared. */}
+      <div className={cls(shared.moveAreaOrLocalFeedback, styles.entrySlot)}>
         <EntryRow
           value={word}
           onChange={handleChange}
           onSubmit={onSubmit}
           placeholder="Type or click letters"
-          pill={localPill}
+          pill={pill}
           disabled={entryDisabled}
           busy={busy}
           onAnyKey={clearLocalFeedback}
           charFor={charFor}
         />
       </div>
-
-
-      {over && (
-        <div className={styles.verdictSlot}>
-          <GenericFeedbackPill
-            msg={terminalPill(over.tone, over.verdictNode ?? over.verdict)}
-            onClose={() => {}}
-          />
-        </div>
-      )}
     </div>
   )
 }

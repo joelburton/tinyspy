@@ -40,8 +40,9 @@
   color: var(--color-muted);
 }
 
-/* Reserved slot for the entry row — fixed so the pill swap (own-move result /
- * terminal verdict replacing the controls) never moves the board. */
+/* The reserved height lives on the shared `.moveAreaOrLocalFeedback` this
+ * composes with; all that's left here is pinning the WIDTH to the board so a
+ * long typed word can't widen the column and shift the centered board. */
 .entrySlot {
   width: 100%;
 }
@@ -50,12 +51,6 @@
 .board {
   width: var(--side);
   height: var(--side);
-}
-
-.verdictSlot {
-  display: flex;
-  justify-content: center;
-  width: 100%;
 }
 
 /* ── Info column ─────────────────────────────────────────── */
@@ -119,11 +114,25 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  align-content: flex-start;
+  /* CENTERED in the reservation, not top-aligned: with one line of chain a
+   * top-aligned strip leaves a band of space between it and the board, and the
+   * two stop reading as one unit. Centering keeps the chain near the board
+   * whatever it currently occupies. */
+  align-content: center;
   gap: 0.4rem;
-  /* Two rows of pills + the gap between them. */
-  min-height: calc(2 * 2.25rem + 0.4rem);
+  /* Two rows of pills + the gap. Reserved from the start so the board never
+   * moves when the chain wraps (docs/ui.md → layout stability). */
+  --chain-rows: 2;
+  min-height: calc(var(--chain-rows) * 2.4rem + (var(--chain-rows) - 1) * 0.4rem);
   width: 100%;
+}
+
+/* A phone's board column is much narrower, so the same chain wraps sooner —
+ * three rows, reserved up front for the same reason. */
+@media (--mobile) {
+  .chain {
+    --chain-rows: 3;
+  }
 }
 
 /* Outlined pills, not filled: the chain sits directly above the board, and a
@@ -133,7 +142,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.1rem;
-  border: 1px solid var(--letterboxed-accent);
+  /* 2px of the same green the CURRENT letter is filled with (Board's `.last`),
+   * so a played word and the live one read as one vocabulary. At 1px the
+   * outline greyed out at a glance. */
+  border: 2px solid var(--letterboxed-accent);
   border-radius: 999px;
   padding: 0.25rem 0.75rem;
   font-size: 1.05rem;

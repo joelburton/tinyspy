@@ -93,6 +93,82 @@ test.describe('letterboxed', () => {
     await expect(page.getByText('No words yet')).toBeVisible({ timeout: 10000 })
   })
 
+  test('the board never moves as pills and chain words come and go', async ({ browser }) => {
+    // The repo's hard no-reflow rule (docs/ui.md → layout stability). The entry
+    // row, an own-move pill and the terminal verdict all occupy ONE
+    // reserved-height slot, and the chain strip reserves its rows up front —
+    // so the board's position is fixed for the life of the game. This asserts
+    // the pixel rather than the CSS, because the CSS was right-looking and
+    // wrong twice.
+    const club = await createSoloClub('lbx5')
+    const [alice] = club.members
+    const game = await createLetterboxedGame(club)
+
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+
+    const boardTop = async () => {
+      const svgs = page.locator('svg')
+      for (let i = 0; i < (await svgs.count()); i++) {
+        const el = svgs.nth(i)
+        if ((await el.locator('text').count()) === 12) return (await el.boundingBox())!.y
+      }
+      throw new Error('board not found')
+    }
+
+    const empty = await boardTop()
+
+    // A reject pill replaces the entry controls. ADGJ types cleanly (every
+    // step crosses a side) but isn't on the board's word list. Note ADF would
+    // NOT do: D and F share a side, so the F keystroke never lands.
+    await page.keyboard.type('adgj')
+    await page.keyboard.press('Enter')
+    await expect(page.getByText('Not a word')).toBeVisible({ timeout: 10000 })
+    expect(await boardTop()).toBeCloseTo(empty, 0)
+
+    // …the next keystroke dismisses it…
+    await page.keyboard.press('Backspace')
+    await expect(page.getByText('Not a word')).toBeHidden()
+    expect(await boardTop()).toBeCloseTo(empty, 0)
+
+    // …and a played word fills the chain strip.
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first())
+      .toBeVisible({ timeout: 10000 })
+    expect(await boardTop()).toBeCloseTo(empty, 0)
+  })
+
+  test('a full chain hides the entry behind a pill and goes inert', async ({ browser }) => {
+    // extra_words 0 → the cap is par itself, so two words fill it.
+    const club = await createSoloClub('lbx6')
+    const [alice] = club.members
+    const game = await createLetterboxedGame(club, 'coop', undefined, 0)
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+
+    await page.keyboard.type('adg')
+    await page.keyboard.press('Enter')
+    await page.waitForTimeout(600)
+    await page.keyboard.type('jb')
+    await page.keyboard.press('Enter')
+
+    // Two words spent, board not covered: the only move left is taking one
+    // back, so the entry gives way rather than collecting a word it must
+    // then refuse.
+    await expect(page.getByText(/Chain is full/)).toBeVisible({ timeout: 10000 })
+
+    // Typing is inert — the entry is gone, so nothing accumulates.
+    await page.keyboard.type('kcf')
+    await expect(page.getByTestId('entry-value')).toHaveCount(0)
+  })
+
   test('clicking letters builds a word; clicking the last one again submits it', async ({
     browser,
   }) => {
