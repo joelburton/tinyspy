@@ -117,10 +117,10 @@ select set_eq(
       -- wordiply
       ('wordiply', 'games'),
       ('wordiply', 'guesses'),
-      -- strands (useGame refetch: games + players + guesses)
+      -- strands (useGame refetch: games + players + events)
       ('strands', 'games'),
       ('strands', 'players'),
-      ('strands', 'guesses')
+      ('strands', 'events')
   $$,
   'supabase_realtime membership == the FE postgres_changes subscription registry (missing ⇒ live updates die; extra ⇒ replication overhead)'
 );

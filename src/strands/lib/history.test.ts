@@ -1,15 +1,17 @@
 import { describe, it, expect } from 'vitest'
 import { snapshotAt, type HistoryRow } from './history'
 
-// A five-turn session with every interesting row kind: a find, a reject, a
-// hint word, the spangram, and a duplicate. Paths are minimal — the filter
-// never inspects them, it only carries them through.
+// A six-turn session with every interesting row kind: a find, a reject, a
+// hint word, the spangram, a duplicate — and a SPENT HINT, which is the one
+// row that isn't a guess. Paths are minimal — the filter never inspects them,
+// it only carries them through.
 const ROWS: readonly HistoryRow[] = [
-  { word: 'apple', path: [[0, 0], [0, 1]], result: 'theme' },
-  { word: 'zq', path: [[1, 0], [1, 1]], result: 'too_short' },
-  { word: 'plane', path: [[2, 0], [2, 1]], result: 'hint_word' },
-  { word: 'spanner', path: [[3, 0], [3, 1]], result: 'spangram' },
-  { word: 'apple', path: [[0, 0], [0, 1]], result: 'duplicate' },
+  { kind: 'guess', word: 'apple', path: [[0, 0], [0, 1]], result: 'theme' },
+  { kind: 'guess', word: 'zq', path: [[1, 0], [1, 1]], result: 'too_short' },
+  { kind: 'guess', word: 'plane', path: [[2, 0], [2, 1]], result: 'hint_word' },
+  { kind: 'guess', word: 'spanner', path: [[3, 0], [3, 1]], result: 'spangram' },
+  { kind: 'guess', word: 'apple', path: [[0, 0], [0, 1]], result: 'duplicate' },
+  { kind: 'hint', word: null, path: [[4, 0], [4, 1]], result: null },
 ]
 
 describe('snapshotAt', () => {
@@ -42,9 +44,34 @@ describe('snapshotAt', () => {
     expect(snapshotAt(ROWS, 4).description).toBe('#5 APPLE — already found')
   })
 
+  describe('a spent hint', () => {
+    it('re-rings its revealed cells as a HINT, not as a traced route', () => {
+      const snap = snapshotAt(ROWS, 5)
+      // The distinction the separate field exists for: replaying a hint as a
+      // `highlight` would draw it as a connected trace, showing an order the
+      // hint deliberately never gave.
+      expect(snap.hintCoords).toEqual([[4, 0], [4, 1]])
+      expect(snap.highlight).toEqual([])
+    })
+
+    it('names the act without naming the word', () => {
+      expect(snapshotAt(ROWS, 5).description).toBe('#6 Hint — a word was revealed')
+    })
+
+    it('leaves the board exactly as the finds before it left it', () => {
+      // A hint reveals; it never places. So turn 6's board is turn 5's board.
+      expect(snapshotAt(ROWS, 5).found).toEqual(snapshotAt(ROWS, 4).found)
+    })
+
+    it('carries no hintCoords on a guess turn', () => {
+      expect(snapshotAt(ROWS, 0).hintCoords).toBeNull()
+    })
+  })
+
   it('tolerates an out-of-range index (the rows shifted under the viewer)', () => {
     const snap = snapshotAt(ROWS, 99)
     expect(snap.highlight).toEqual([])
+    expect(snap.hintCoords).toBeNull()
     expect(snap.description).toBe('')
     // Everything found is still shown — slice just runs off the end.
     expect(snap.found).toHaveLength(2)

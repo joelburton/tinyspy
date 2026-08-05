@@ -159,7 +159,7 @@ export function PlayArea(ctx: GamePageCtx) {
   } = ctx
 
   const selfId = session.user.id
-  const { game, players: playerStates, me, guesses, found, loading } = useGame(gameId, selfId)
+  const { game, players: playerStates, me, events, found, loading } = useGame(gameId, selfId)
   // Mode comes off the loaded game row (denormalized from strands.games.mode),
   // which is how every sibling-pair game branches.
   const isCompete = game?.mode === 'compete'
@@ -214,8 +214,8 @@ export function PlayArea(ctx: GamePageCtx) {
    * ended.
    */
   const historyRows = useMemo(
-    () => (isCompete ? guesses.filter((g) => g.user_id === selfId) : guesses),
-    [guesses, isCompete, selfId],
+    () => (isCompete ? events.filter((g) => g.user_id === selfId) : events),
+    [events, isCompete, selfId],
   )
 
   const consumed = consumedCells(found.map((f) => ({ path: f.path })))
@@ -243,7 +243,7 @@ export function PlayArea(ctx: GamePageCtx) {
       const r = data as SubmitResult
       showLocalFeedback(pillFor(r))
       // Only a found word keeps its tiles: they stay lit as the in-progress
-      // thread until the guesses refetch lands and the derived clear above
+      // thread until the events refetch lands and the derived clear above
       // hands them over to their found colors — no blank flash in between.
       // (The success pill outranks the echo in BoardCol's slot, so keeping the
       // trace doesn't delay the verdict.) Everything else clears at once,
@@ -455,7 +455,7 @@ export function PlayArea(ctx: GamePageCtx) {
   })
   useEffect(() => {
     // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). Nothing has
-    // to be re-shielded here: `guesses` is already whatever RLS let through
+    // to be re-shielded here: `events` is already whatever RLS let through
     // (own only, in compete, until terminal) and `game.solution` is null until
     // the reveal, so the model simply has nothing early to leak.
     const printModel = game
@@ -478,7 +478,7 @@ export function PlayArea(ctx: GamePageCtx) {
         board: game.board,
         mode: game.mode,
         isTerminal,
-        guesses,
+        events,
         players,
         playerStates,
         selfId,
@@ -531,7 +531,7 @@ export function PlayArea(ctx: GamePageCtx) {
     menu, isTerminal, solutionRevealed, startingNewGame, infoSheet.menuSections,
     // The print model's inputs — rebuilt whenever the printable state moves, so
     // the snapshot is current at click time.
-    brand, title, game, guesses, players, playerStates, selfId, strandsSetup, found.length,
+    brand, title, game, events, players, playerStates, selfId, strandsSetup, found.length,
   ])
 
   if (loading || !game) return <div className={styles.loading}>Loading…</div>
@@ -581,7 +581,7 @@ export function PlayArea(ctx: GamePageCtx) {
       : waiting
         ? waitingTurnPill(memberById(players, currentTurnUserId))
         : localFeedback
-        ?? (guesses.length === 0 && trace.length === 0
+        ?? (events.length === 0 && trace.length === 0
         // The quotes carry it: no "Theme:" prefix, which a phone has no room
         // for and which a quoted phrase under the board doesn't need.
           ? { tone: 'neutral' as const, text: `“${game.clue}”`, variant: 'outline' as const, dismiss: { kind: 'sticky' as const } }
@@ -615,7 +615,11 @@ export function PlayArea(ctx: GamePageCtx) {
         // that hadn't reached it.
         missed={viewer.viewing ? [] : missed}
         trace={viewer.viewing ? EMPTY_TRACE : trace}
-        hintCoords={viewer.viewing ? null : me?.active_hint_coords ?? null}
+        // While replaying, a HINT turn re-rings the cells it revealed (that's why
+        // the coords are logged); every other turn shows no ring at all. Live,
+        // it's my own unspent hint. Either way the board draws it as rings with
+        // no connecting line — a hint never gave you the order.
+        hintCoords={viewer.viewing ? snap?.hintCoords ?? null : me?.active_hint_coords ?? null}
         onTileClick={onTileClick}
         // `waiting` folds in turn-order (coop only): a waiting player's board
         // is inert, and the pill below says why.
@@ -654,7 +658,7 @@ export function PlayArea(ctx: GamePageCtx) {
           clue={game.clue}
           wordsFound={found.length}
           hintsSpent={me?.hints_spent ?? 0}
-          guesses={guesses}
+          events={events}
           players={players}
           selfId={session.user.id}
           setup={strandsSetup}

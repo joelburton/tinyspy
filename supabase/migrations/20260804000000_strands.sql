@@ -31,7 +31,7 @@
 -- │                                                          │
 -- │ Opponents see ONE number mid-game: hints used. That says │
 -- │ how the race is going without saying anything about the  │
--- │ puzzle — word counts stay private (RLS on guesses), and  │
+-- │ puzzle — word counts stay private (RLS on events), and   │
 -- │ so does the hint BAR, which would hint at how many words │
 -- │ a rival has found.                                       │
 -- └──────────────────────────────────────────────────────────┘
@@ -251,7 +251,7 @@ create table strands.players (
 create index strands_players_game_id_idx on strands.players (game_id);
 
 -- ============================================================
--- strands.guesses — the append-only submission log
+-- strands.events — the append-only game log
 -- ============================================================
 -- ONE table, not two: found theme words are the projection
 -- `result in ('theme','spangram')`, and the credited hint words are
@@ -263,15 +263,36 @@ create index strands_players_game_id_idx on strands.players (game_id);
 -- shows good and bad alike, and "what did we already try?" is the
 -- point of keeping them.
 --
--- `path` is the traced route, [[r,c], …]; `word` is the string it
--- spells, stored so the log and the dedup check don't have to re-read
--- the board.
+-- It is `events`, not `guesses`, because a SPENT HINT is logged here
+-- too. That is the whole reason for `kind`: the two rows are both
+-- things that HAPPENED, in one ordered stream, but only one of them
+-- is a guess with a verdict. Keeping them in one table is what lets
+-- the turn log stay a single sequence — the history viewer addresses
+-- a turn by POSITION in the displayed rows (see src/strands/lib/
+-- history.ts), so a second table would force a timestamp merge on
+-- every render and leave cross-table ties nondeterministic.
+-- (scrabble.plays does the same with kind in ('word','exchange',…).)
+--
+-- `path` is the only column BOTH kinds carry, and it means the same
+-- thing in each: the cells this row is about. For a guess it is the
+-- traced route; for a hint it is the revealed word's coords, copied
+-- from the same canonical array that lands in
+-- players.active_hint_coords. `word` is the string a guess spells,
+-- stored so the log and the dedup check don't have to re-read the
+-- board — and NULL for a hint, which deliberately never says its
+-- word (it rings the tiles and leaves you the order).
 
-create table strands.guesses (
+create table strands.events (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references strands.games(id) on delete cascade,
   user_id uuid not null references common.profiles(user_id) on delete cascade,
-  word text not null,
+
+  -- guess — a submitted path, carrying word + result
+  -- hint   — a cashed hint, carrying neither
+  kind text not null default 'guess' check (kind in ('guess', 'hint')),
+
+  word text,
+  -- [[r,c], …] — a guess's traced route, or a hint's revealed cells.
   path jsonb not null,
   -- theme      — an unfound theme word, matched BY PATH
   -- spangram   — likewise, but the spanning one (gold, not purple)
@@ -279,12 +300,24 @@ create table strands.guesses (
   -- duplicate  — a valid word already credited this game; earns nothing
   -- too_short  — under min_word_length and not a theme path
   -- invalid    — not in the dictionary at this game's band
-  result text not null check (result in
+  -- (null for kind='hint' — a hint has no verdict.)
+  result text check (result in
     ('theme', 'spangram', 'hint_word', 'duplicate', 'too_short', 'invalid')),
-  guessed_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+
+  -- The per-kind shape, structural rather than merely upheld by the
+  -- RPCs. Every query in supabase/sql/strands.sql filters on `result`,
+  -- so a hint row (result null) is invisible to all of them by
+  -- construction — that is what made this change touch no existing
+  -- query, and this CHECK is what keeps it true.
+  constraint strands_events_kind_shape check (
+    (kind = 'guess' and word is not null and result is not null)
+    or
+    (kind = 'hint' and word is null and result is null)
+  )
 );
 
-create index strands_guesses_game_id_idx on strands.guesses (game_id);
+create index strands_events_game_id_idx on strands.events (game_id);
 
 -- Idempotency for the found set, PER PLAYER. submit_path already serializes on
 -- a row lock and rejects a path whose tiles are spent, so this can't fire on
@@ -295,8 +328,8 @@ create index strands_guesses_game_id_idx on strands.guesses (game_id);
 -- over one puzzle: two racers finding the same word is the expected case, not a
 -- double-credit. Coop needs no game-wide version — a found word's tiles lock
 -- for everyone, so nobody can trace it twice anyway.
-create unique index strands_guesses_found_once_idx
-  on strands.guesses (game_id, user_id, word)
+create unique index strands_events_found_once_idx
+  on strands.events (game_id, user_id, word)
   where result in ('theme', 'spangram');
 
 -- ============================================================
@@ -304,18 +337,18 @@ create unique index strands_guesses_found_once_idx
 -- ============================================================
 -- Policies live in supabase/sql/strands.sql. Reads are club-gated;
 -- all writes go through the SECURITY DEFINER RPCs. Coop shows every
--- guess to every player, so there is no per-player read split here —
+-- event to every player, so there is no per-player read split here —
 -- that arrives with the compete sibling.
 
 alter table strands.puzzles enable row level security;
 alter table strands.games enable row level security;
 alter table strands.players enable row level security;
-alter table strands.guesses enable row level security;
+alter table strands.events enable row level security;
 
 -- ============================================================
 -- Realtime publication
 -- ============================================================
--- BOTH tables, and both are REQUIRED. An unpublished table in a
+-- ALL THREE tables, and all three are REQUIRED. An unpublished table in a
 -- postgres_changes subscription silently kills the WHOLE subscription
 -- — not just that table's events — so a missing entry here reads as
 -- "realtime is broken" rather than "one table is quiet". This has
@@ -325,11 +358,12 @@ alter table strands.guesses enable row level security;
 --
 --   games    — terminal flips + the replay touch
 --   players  — the hint bar, the active hint, and a peer's hints-used
---   guesses  — new submissions; how every client learns a word landed
+--   events   — new submissions and spent hints; how every client
+--              learns a word landed
 
 alter publication supabase_realtime add table strands.games;
 alter publication supabase_realtime add table strands.players;
-alter publication supabase_realtime add table strands.guesses;
+alter publication supabase_realtime add table strands.events;
 
 -- ============================================================
 -- Gametype registration

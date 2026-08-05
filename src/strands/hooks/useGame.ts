@@ -3,16 +3,37 @@ import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefet
 import type { Coord } from '../lib/board'
 import { db } from '../db'
 
-/** One row of `strands.guesses` — every submission, accepted or not. */
-export type GuessRow = {
+/** A guess's verdict. Null on a hint row — a hint isn't judged. */
+export type GuessResult =
+  'theme' | 'spangram' | 'hint_word' | 'duplicate' | 'too_short' | 'invalid'
+
+/** What every `strands.events` row carries, whatever kind it is. */
+type EventBase = {
   id: string
   game_id: string
   user_id: string
-  word: string
+  /** The cells this row is about: a guess's traced route, or a hint's revealed
+   *  word. The one column both kinds share, meaning the same thing in each. */
   path: Coord[]
-  result: 'theme' | 'spangram' | 'hint_word' | 'duplicate' | 'too_short' | 'invalid'
-  guessed_at: string
+  created_at: string
 }
+
+/**
+ * One row of `strands.events` — the game's append-only log, discriminated on
+ * `kind`.
+ *
+ * A **guess** is a submitted path with a word and a verdict. A **hint** is a
+ * cashed token: it has coords (so the history viewer can re-ring it exactly as
+ * it looked) but deliberately no word — a hint has never said its word, and the
+ * log is the one place that would outlive the on-board ring being retired.
+ *
+ * Discriminated rather than all-optional so `row.word` only type-checks after
+ * `row.kind === 'guess'`, which is the property that keeps a hint row from
+ * silently rendering as an empty word.
+ */
+export type EventRow =
+  | (EventBase & { kind: 'guess'; word: string; result: GuessResult })
+  | (EventBase & { kind: 'hint'; word: null; result: null })
 
 /** The answer key — null for the whole game, filled in at the reveal. */
 export type StrandsSolution = {
@@ -79,28 +100,28 @@ export function useGame(gameId: string, selfId: string): {
   players: StrandsPlayer[]
   /** The caller's own row — the hint bar and solved flag the UI acts on. */
   me: StrandsPlayer | null
-  /** EVERY row — the turn log wants the rejects too. */
-  guesses: GuessRow[]
+  /** EVERY row — the turn log wants the rejects and the spent hints too. */
+  events: EventRow[]
   /** Just the found theme words + spangram: the board's persistent paths. */
-  found: GuessRow[]
+  found: EventRow[]
   loading: boolean
-  /** True once the guess rows have loaded at least once. Distinct from
+  /** True once the event rows have loaded at least once. Distinct from
    *  `loading`, which tracks the game row. */
   rowsLoaded: boolean
 } {
   const [game, setGame] = useState<StrandsGame | null>(null)
   const [players, setPlayers] = useState<StrandsPlayer[]>([])
-  const [guesses, setGuesses] = useState<GuessRow[]>([])
+  const [events, setEvents] = useState<EventRow[]>([])
   const [loading, setLoading] = useState(true)
   const [rowsLoaded, setRowsLoaded] = useState(false)
 
   useRealtimeRefetch({
     tables: [
-      { schema: 'strands', table: 'guesses', filter: `game_id=eq.${gameId}` },
+      { schema: 'strands', table: 'events', filter: `game_id=eq.${gameId}` },
       // Per-player state: the hint bar, a spent hint, and a rival's
       // hints-used ticking up mid-race.
       { schema: 'strands', table: 'players', filter: `game_id=eq.${gameId}` },
-      // The replay touch (replay_board DELETEs guesses, which realtime filters
+      // The replay touch (replay_board DELETEs events, which realtime filters
       // don't reliably match).
       { schema: 'strands', table: 'games', filter: `id=eq.${gameId}` },
       // COMMON's row too, which is unusual for a per-game hook. It's needed
@@ -127,10 +148,10 @@ export function useGame(gameId: string, selfId: string): {
           .eq('id', gameId)
           .maybeSingle(),
         db
-          .from('guesses')
-          .select('id, game_id, user_id, word, path, result, guessed_at')
+          .from('events')
+          .select('id, game_id, user_id, kind, word, path, result, created_at')
           .eq('game_id', gameId)
-          .order('guessed_at', { ascending: true }),
+          .order('created_at', { ascending: true }),
         db
           .from('players_state')
           .select('game_id, user_id, hints_spent, solved, solved_at, hint_points, active_hint_coords')
@@ -138,7 +159,7 @@ export function useGame(gameId: string, selfId: string): {
       ])
       if (!mounted()) return
       if (g) setGame(g as unknown as StrandsGame)
-      setGuesses((rows ?? []) as GuessRow[])
+      setEvents((rows ?? []) as EventRow[])
       setPlayers((ps ?? []) as unknown as StrandsPlayer[])
       setLoading(false)
       setRowsLoaded(true)
@@ -155,12 +176,12 @@ export function useGame(gameId: string, selfId: string): {
   // same reasoning spellingbee records for its compete score.)
   const found = useMemo(
     () =>
-      guesses.filter(
-        (g) =>
-          (g.result === 'theme' || g.result === 'spangram')
-          && (game?.mode === 'coop' || g.user_id === selfId),
+      events.filter(
+        (e) =>
+          (e.result === 'theme' || e.result === 'spangram')
+          && (game?.mode === 'coop' || e.user_id === selfId),
       ),
-    [guesses, game?.mode, selfId],
+    [events, game?.mode, selfId],
   )
 
   const me = useMemo(
@@ -168,5 +189,5 @@ export function useGame(gameId: string, selfId: string): {
     [players, selfId],
   )
 
-  return { game, players, me, guesses, found, loading, rowsLoaded }
+  return { game, players, me, events, found, loading, rowsLoaded }
 }

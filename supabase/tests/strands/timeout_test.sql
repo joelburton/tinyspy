@@ -79,7 +79,7 @@ select strands.submit_path((select id from g_won), pg_temp.strands_row_path(r))
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select strands.submit_path((select id from g_won), pg_temp.strands_row_path(0));
 select is(
-  (select count(*) from strands.guesses
+  (select count(*) from strands.events
     where game_id = (select id from g_won) and result in ('theme','spangram')),
   1::bigint,
   'mid-race, bea sees only her own find'
@@ -104,7 +104,7 @@ select is(
 -- The post-mortem flip: at terminal the compete guesses open up.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*) from strands.guesses
+  (select count(*) from strands.events
     where game_id = (select id from g_won) and result in ('theme','spangram')),
   9::bigint,
   'at terminal bea sees the whole log — ada''s 8 finds plus her own'

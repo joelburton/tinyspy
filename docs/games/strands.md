@@ -132,7 +132,7 @@ deploy).
 | `puzzles` | The imported NYT archive. `source_id` (puzzle number), `puzzle_date` (unique), `board` (8 rows of 6), `clue`, and the shielded `solution`. Only `(id, source_id, puzzle_date)` are granted to `authenticated` — enough for the date picker, not enough to study tomorrow's board. |
 | `games` | One playthrough. Follows the [library-puzzle provenance rule](../common.md#library-puzzle-games-provenance-not-dependency): everything needed to play *and* identify the game is copied on, and `puzzle_id` is a soft FK (`on delete set null`), so the archive can be re-imported freely. Carries the three setup knobs, denormalized because they're immutable and read on every move. |
 | `players` | One row per player: the hint economy (`hint_points`, `hints_spent`, `active_hint_coords`) plus `solved` / `solved_at`. The **same shape in both modes** — coop moves every row in lock-step (the pool is shared), compete moves only the actor's (see [Compete](#8-compete)). Mid-race a rival's private fields are nulled by `players_state`. |
-| `guesses` | The append-only log — **one table, not two**. Found theme words are the projection `result in ('theme','spangram')`; credited hint words are the distinct `hint_word` set. Only state that can't be derived lives as columns — on `players`, above. |
+| `events` | The append-only log — **one table, not two**, and not two *kinds* of table either. `kind` discriminates a **guess** (a submitted path, carrying `word` + `result`) from a **hint** (a cashed token, carrying neither). Found theme words are the projection `result in ('theme','spangram')`; credited hint words are the distinct `hint_word` set. Only state that can't be derived lives as columns — on `players`, above. |
 
 `solution` shape:
 
@@ -151,10 +151,42 @@ counting down, and `submit_path` doesn't return the total either. The server
 still computes it for the terminal check; the client learns the game is over
 from `terminal` / `common.games`, not by reaching a number it was told.
 
-**Realtime publishes all three tables** — `games`, `players`, `guesses` — and
+**Realtime publishes all three tables** — `games`, `players`, `events` — and
 all three are required: an unpublished table in a `postgres_changes`
 subscription silently kills the *whole* subscription. The registry test
 (`supabase/tests/common/realtime_publication_test.sql`) guards the set.
+
+#### Why hints share the guess table
+
+A spent hint is a log row, and it lives in `events` rather than a
+`strands.hints` sibling for one concrete reason: **the history viewer addresses
+a turn by POSITION in the displayed rows** (`snapshotAt(rows, index)`,
+`viewingIndex === i`). Two tables would mean merging two streams by timestamp on
+every render and then indexing into the merge, with cross-table ordering ties
+left nondeterministic — plus a second publication entry, a second policy, and a
+second delete in `replay_board`. One table keeps the log a single sequence.
+`scrabble.plays` is the same pattern (`kind in ('word','exchange','pass',
+'forfeit')`).
+
+The shape that makes it cheap: **`result` is null on a hint row**, and every
+query in `supabase/sql/strands.sql` filters on `result` — so a hint is invisible
+to all of them *by construction*. Adding hints changed no existing query.
+`hint_test.sql` pins that (the guess-predicate count excludes the hint row), so
+it can't quietly stop being true.
+
+**A hint row stores its coords and not its word.** The coords are what let the
+viewer re-ring a past hint exactly as it looked; the word is withheld because a
+hint has never said it, and the log is the one place that would outlive the
+on-board ring being retired. They go to `TurnSnapshot.hintCoords`, kept separate
+from `highlight` so the board draws them as *rings with no connecting line* —
+replaying a hint as a traced route would show an order the hint never gave.
+
+The one thing this discloses that nothing else did: **the location of a hinted
+word nobody went on to find**, visible once the compete log opens at terminal
+but before an opt-in solution reveal. A narrow, deliberate acceptance — every
+*found* word's coords were already open at terminal via its `theme`/`spangram`
+row. If it ever needs closing, the fix is one expression in a `security_invoker`
+view, the same mechanism `games_state` and `players_state` already use.
 
 ### Play states
 
@@ -227,6 +259,12 @@ connecting line**, so the player still works out the order.
 - **One hint at a time.** A second is refused while one is unsolved; the board
   can only ring one word legibly.
 - **Not turn-gated.** Spending is a decision about a team resource, not a move.
+- **Logged as a turn.** `spend_hint` writes one `events` row (`kind = 'hint'`),
+  so a spent hint takes an ordinary numbered position in the log — a `neutral`
+  bar, a lightbulb glyph, "Hint used" where a word would be, and a live `#N`
+  that replays its ring. **One row, attributed to whoever cashed it**, even in
+  coop where the counters fan out to every player: a shared pool still has a
+  single person who decided to spend it.
 
 ---
 
@@ -313,7 +351,7 @@ added when they were.
 
 The shield applies here too, and needs no separate rule: missed words come from
 `solution`, which is null until the reveal, and mid-game compete prints only the
-caller's track because RLS hasn't handed over anyone else's guesses — a rival's
+caller's track because RLS hasn't handed over anyone else's events — a rival's
 column would be an empty grid claiming they found nothing.
 
 ### Turn-history replay
@@ -339,7 +377,7 @@ board's turn 3, so the handle degrades to a plain number.
 
 ### The data hook
 
-`useGame` subscribes to `strands.guesses`, `strands.players`, `strands.games`
+`useGame` subscribes to `strands.events`, `strands.players`, `strands.games`
 **and `common.games`**. That last one is unusual for a per-game hook and is the
 shield's fault: `games_state.solution` is gated on
 `common.games.solution_revealed`, and both writers of that flag touch only that
@@ -435,8 +473,8 @@ Withheld until terminal:
 
 | hidden | why |
 |---|---|
-| their found words | the `guesses` policy gains its compete arm — word counts are progress |
-| their hint **bar** | its fill proxies how many valid words they've found, so publishing it would leak sideways exactly what the guesses RLS hides |
+| their found words | the `events` policy gains its compete arm — word counts are progress |
+| their hint **bar** | its fill proxies how many valid words they've found, so publishing it would leak sideways exactly what the events RLS hides |
 | their revealed word | part of the answer |
 
 `solved` / `solved_at` **are** public: race status, not puzzle content — knowing
@@ -496,7 +534,7 @@ ambiguous-ABBA board that pins the match-by-placement fix):
 | `turn_order_test.sql` | the opt-in turns coop: pointer seating, `'not your turn'`, advance on accepted moves only |
 | `compete_test.sql` | the race: per-player boards, the privacy line, fewest-hints ranking, concede-with-a-solver |
 | `conceded_test.sql` | a conceder gets no more moves and can't win (the forfeit ruling, incl. solve-then-concede); all-conceded → `'conceded'`; the mid-race `active_hint_coords` shield |
-| `timeout_test.sql` | the clock in both modes: coop `lost`/`'timeout'`, compete crowns a solver or ends `lost_compete`/`'timeout'`; the terminal RLS flip on `guesses` |
+| `timeout_test.sql` | the clock in both modes: coop `lost`/`'timeout'`, compete crowns a solver or ends `lost_compete`/`'timeout'`; the terminal RLS flip on `events` |
 | `terminal_test.sql` | terminal states + the reveal gate |
 | `rls_test.sql` | the solution shield + per-mode row visibility |
 

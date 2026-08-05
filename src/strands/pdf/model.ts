@@ -1,6 +1,6 @@
 import type { PrintHeader } from '../../common/pdf/frame'
 import type { Coord } from '../lib/board'
-import type { GuessRow, StrandsPlayer, StrandsSolution } from '../hooks/useGame'
+import type { EventRow, GuessResult, StrandsPlayer, StrandsSolution } from '../hooks/useGame'
 import type { Member } from '../../common/lib/games'
 
 /**
@@ -27,9 +27,13 @@ export type PrintWord = {
 /** One row of a printed log. */
 export type PrintTurn = {
   seq: number
+  /** The word submitted — or, on a hint row, the stand-in "Hint used": a hint
+   *  has no word, and the printed column would otherwise show a blank line
+   *  where every other row carries text. */
   word: string
-  /** Drives the leading glyph: the non-colour encoding of the verdict. */
-  mark: 'best' | 'find' | 'ok' | 'no'
+  /** Drives the leading glyph: the non-colour encoding of the verdict.
+   *  `hint` is the fifth mark and the only one that isn't a verdict. */
+  mark: 'best' | 'find' | 'ok' | 'no' | 'hint'
   /** The trailing note, only where the glyph doesn't already say it. */
   note: string
 }
@@ -56,7 +60,7 @@ export type StrandsPrintModel = PrintHeader & {
 
 /** The glyph a result earns. Mirrors the on-screen turn log exactly — same
  *  ladder (best > find > ok), same single mark for every rejection. */
-const MARK: Record<GuessRow['result'], PrintTurn['mark']> = {
+const MARK: Record<GuessResult, PrintTurn['mark']> = {
   spangram: 'best',
   theme: 'find',
   hint_word: 'ok',
@@ -68,19 +72,27 @@ const MARK: Record<GuessRow['result'], PrintTurn['mark']> = {
 /** …and the note, only where the glyph doesn't already carry it. On screen the
  *  COLOUR distinguishes a theme word from a valid one; on paper the glyph does,
  *  so the same three rejections keep their reason and the finds stay bare. */
-const NOTE: Partial<Record<GuessRow['result'], string>> = {
+const NOTE: Partial<Record<GuessResult, string>> = {
   duplicate: 'already found',
   too_short: 'too short',
   invalid: 'not a word',
 }
 
-function turnsOf(rows: readonly GuessRow[]): PrintTurn[] {
-  return rows.map((g, i) => ({
-    seq: i + 1,
-    word: g.word.toUpperCase(),
-    mark: MARK[g.result],
-    note: NOTE[g.result] ?? '',
-  }))
+function turnsOf(rows: readonly EventRow[]): PrintTurn[] {
+  return rows.map((row, i) =>
+    row.kind === 'hint'
+      // A hint prints as its own row, matching the screen: same sequence, same
+      // position, so a printed log and an on-screen one can be read side by
+      // side. "Hint used" sits in the word slot for want of a word — which is
+      // the fact the row is reporting.
+      ? { seq: i + 1, word: 'Hint used', mark: 'hint' as const, note: '' }
+      : {
+        seq: i + 1,
+        word: row.word.toUpperCase(),
+        mark: MARK[row.result],
+        note: NOTE[row.result] ?? '',
+      },
+  )
 }
 
 function summaryOf(found: number, hints: number): string {
@@ -95,8 +107,11 @@ function summaryOf(found: number, hints: number): string {
  * null until `common.games.solution_revealed`. So "don't print the answer early"
  * needs no separate rule here: there is simply nothing to print.
  */
+/** A row `isFind` has narrowed to: a guess that landed a theme word. */
+type FoundEvent = Extract<EventRow, { kind: 'guess' }>
+
 function wordsOf(
-  found: readonly GuessRow[],
+  found: readonly FoundEvent[],
   solution: StrandsSolution | null,
 ): PrintWord[] {
   const words: PrintWord[] = found.map((g) => ({
@@ -136,16 +151,20 @@ export function buildPrintModel(args: {
   board: string[]
   mode: 'coop' | 'compete'
   isTerminal: boolean
-  guesses: readonly GuessRow[]
+  events: readonly EventRow[]
   players: readonly Member[]
   playerStates: readonly StrandsPlayer[]
   selfId: string
   solution: StrandsSolution | null
 }): StrandsPrintModel {
-  const isFind = (g: GuessRow) => g.result === 'theme' || g.result === 'spangram'
+  // A type predicate, not a plain boolean: it narrows the row to a GUESS, which
+  // is what lets `wordsOf` read `.word` without a null check. A find is by
+  // definition a guess — a hint row has no verdict to match.
+  const isFind = (e: EventRow): e is FoundEvent =>
+    e.result === 'theme' || e.result === 'spangram'
 
   const trackFor = (userId: string | null): PrintTrack => {
-    const rows = userId === null ? args.guesses : args.guesses.filter((g) => g.user_id === userId)
+    const rows = userId === null ? args.events : args.events.filter((e) => e.user_id === userId)
     const hints = userId === null
       // Coop's pool is shared, so every row carries the same spend — reading one
       // is reading the team's.

@@ -2450,6 +2450,54 @@ export type Database = {
   }
   strands: {
     Tables: {
+      events: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          kind: string
+          path: Json
+          result: string | null
+          user_id: string
+          word: string | null
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          kind?: string
+          path: Json
+          result?: string | null
+          user_id: string
+          word?: string | null
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          kind?: string
+          path?: Json
+          result?: string | null
+          user_id?: string
+          word?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           band: number
@@ -2506,51 +2554,6 @@ export type Database = {
             columns: ["puzzle_id"]
             isOneToOne: false
             referencedRelation: "puzzles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      guesses: {
-        Row: {
-          game_id: string
-          guessed_at: string
-          id: string
-          path: Json
-          result: string
-          user_id: string
-          word: string
-        }
-        Insert: {
-          game_id: string
-          guessed_at?: string
-          id?: string
-          path: Json
-          result: string
-          user_id: string
-          word: string
-        }
-        Update: {
-          game_id?: string
-          guessed_at?: string
-          id?: string
-          path?: Json
-          result?: string
-          user_id?: string
-          word?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "guesses_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "guesses_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games_state"
             referencedColumns: ["id"]
           },
         ]

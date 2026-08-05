@@ -16,7 +16,7 @@ begin;
 
 set search_path = strands, common, public, extensions;
 
-select plan(12);
+select plan(17);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -123,6 +123,53 @@ select is(
 );
 
 -- ============================================================
+-- (7)–(10) The spend is LOGGED — strands.events, kind='hint'
+-- ============================================================
+-- A spent hint is a turn-log row: it is the one thing besides a find that
+-- changes the board, and in compete it IS the ranking metric.
+
+-- ONE row, and this is the case worth pinning: the counters above fan out to
+-- every player row in coop (the pool is the team's), and the obvious mistake is
+-- to fan the log row out the same way. A shared pool still has a single person
+-- who decided to cash it.
+select is(
+  (select count(*) from strands.events
+    where game_id = (select id from game) and kind = 'hint'),
+  1::bigint,
+  'spending logs exactly ONE event, not one per player as the counters do'
+);
+
+select is(
+  (select user_id from strands.events
+    where game_id = (select id from game) and kind = 'hint'),
+  'ada11111-1111-1111-1111-111111111111'::uuid,
+  'attributed to whoever cashed it'
+);
+
+-- The coords ARE stored (that is what lets the history viewer re-ring a past
+-- hint), the word is NOT — the same distinction the payload makes, held in the
+-- one place that outlives the on-board ring being retired.
+select is(
+  (select path from strands.events
+    where game_id = (select id from game) and kind = 'hint'),
+  (select payload->'coords' from hint),
+  'carrying the revealed coords — and, per the CHECK, no word'
+);
+
+-- The load-bearing consequence of `result` being null on a hint: every query in
+-- supabase/sql/strands.sql filters on `result`, so a hint row is invisible to
+-- ALL of them by construction. That is why adding hints changed no existing
+-- query, and this is the assertion that keeps it true — it fails the moment
+-- somebody gives hint rows a result value.
+select is(
+  (select count(*) from strands.events
+    where game_id = (select id from game)
+      and result in ('theme','spangram','hint_word','duplicate','too_short','invalid')),
+  3::bigint,
+  'the three GUESSES so far match every result predicate; the hint matches none'
+);
+
+-- ============================================================
 -- (7) One hint at a time
 -- ============================================================
 -- Refill the bar completely while the first hint still shows. That the bar CAN
@@ -175,6 +222,20 @@ select throws_ok(
   '42501',
   'not playing this game',
   'an outsider cannot spend the club''s hint'
+);
+
+-- ============================================================
+-- (15) A replay wipes the hint rows with everything else
+-- ============================================================
+-- replay_board deletes the game's events unconditionally, so this holds
+-- structurally rather than by a rule about hints — which is exactly why it is
+-- worth one line: a future "keep some rows" would silently strand them.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select strands.replay_board((select id from game));
+select is(
+  (select count(*) from strands.events where game_id = (select id from game)),
+  0::bigint,
+  'a replay clears the hint rows too — a restart is indistinguishable from a fresh game'
 );
 
 select * from finish();

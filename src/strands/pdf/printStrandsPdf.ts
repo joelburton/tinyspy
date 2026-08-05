@@ -158,6 +158,17 @@ function drawMark(doc: jsPDF, mark: PrintTurn['mark'], x: number, y: number): vo
     drawCheck(o, doc)
     return
   }
+  if (mark === 'hint') {
+    // A hollow RING, and the shape is the argument: on screen a hint rings the
+    // tiles of a word without connecting them, so the printed log borrows the
+    // same vocabulary rather than inventing a fifth unrelated symbol. It also
+    // reads as "nothing was scored here" beside the filled squares of a find —
+    // which is exactly what a spent hint is. (Drawn, like the squares below,
+    // rather than typed: core fonts are WinAnsi, so ○ isn't available.)
+    doc.setDrawColor(DARK_GREY, DARK_GREY, DARK_GREY).setLineWidth(0.5)
+    doc.circle(o.cx, o.cy, 1.9, 'S')
+    return
+  }
   // A find is a filled square, and the spangram a bigger one — the same
   // "one word, more emphasis" ladder the board's heavier line uses, rather than
   // a third unrelated symbol.
@@ -171,7 +182,7 @@ function drawLog(doc: jsPDF, turns: PrintTurn[], track: Track, top: number): num
   let y = top
 
   doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
-  doc.text('Words', track.x, y)
+  doc.text('Turns', track.x, y)
   y += 4
   doc.setDrawColor(MEDIUM_GREY).setLineWidth(0.4)
   doc.line(track.x, y, track.x + track.width, y)

@@ -14,7 +14,7 @@ import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import type { StrandsSetup } from '../lib/setup'
-import type { GuessRow } from '../hooks/useGame'
+import type { EventRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -35,7 +35,7 @@ type Props = {
   wordsFound: number
   hintsSpent: number
   // ── Log ──
-  guesses: GuessRow[]
+  events: EventRow[]
   players: GamePlayer[]
   /** Per-player hints used, for the opponent strip. */
   hintsByUser: Map<string, number>
@@ -79,7 +79,7 @@ export function InfoCol({
   clue,
   wordsFound,
   hintsSpent,
-  guesses,
+  events,
   players,
   hintsByUser,
   solvedIds,
@@ -194,7 +194,7 @@ export function InfoCol({
       </div>
 
       <GameTurnLog
-        guesses={guesses}
+        events={events}
         players={players}
         selfId={selfId}
         mode={isCompete ? 'compete' : 'coop'}

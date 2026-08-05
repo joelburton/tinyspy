@@ -94,7 +94,7 @@ create policy games_select on strands.games
 --
 --   hint_points        — the bar's fill is a proxy for how many valid words a
 --                        rival has found, so publishing it would leak sideways
---                        exactly what the guesses RLS is hiding.
+--                        exactly what the events RLS is hiding.
 --   active_hint_coords — a rival's revealed word is part of the answer.
 --
 -- `solved` / `solved_at` ARE public. They're race status, not puzzle content —
@@ -183,12 +183,12 @@ create view strands.players_state with (security_invoker = true) as
 grant select on strands.players_state to authenticated;
 
 -- ============================================================
--- strands.guesses
+-- strands.events
 -- ============================================================
 -- Mode-aware, in three OR branches under one club-membership gate — the shape
 -- wordwheel/spellingbee use:
 --
---   coop            everyone in the club sees every guess. A deliberate ruling:
+--   coop            everyone in the club sees every event. A deliberate ruling:
 --                   the turn log is the team's shared record of what has been
 --                   tried, and hiding a peer's rejects would make it lie.
 --   own rows        you always see your own (compete's board is yours).
@@ -198,21 +198,29 @@ grant select on strands.players_state to authenticated;
 -- their business until the race is over. It's also what makes the shared
 -- turn-log picker's empty line honest — "Hidden until game ends" rather than
 -- "Nothing yet".
-grant select on strands.guesses to authenticated;
+--
+-- HINT rows ride the same three branches, and want no fourth: a hint is shared
+-- in coop (the pool is the team's), private in compete until terminal (where
+-- hints_spent was already public via players_state anyway). The one thing this
+-- does disclose that nothing else did is the location of a hinted word NOBODY
+-- went on to find, visible at terminal before an opt-in solution reveal — a
+-- deliberate, narrow acceptance, not an oversight. Everything else it exposes
+-- (a found word's coords) the theme/spangram rows already opened at terminal.
+grant select on strands.events to authenticated;
 
-drop policy if exists guesses_select on strands.guesses;
-create policy guesses_select on strands.guesses
+drop policy if exists events_select on strands.events;
+create policy events_select on strands.events
   for select to authenticated
   using (
     exists (
       select 1
         from strands.games sg
         join common.games cg on cg.id = sg.id
-       where sg.id = strands.guesses.game_id
+       where sg.id = strands.events.game_id
          and common.is_club_member(sg.club_handle)
          and (
            sg.mode = 'coop'
-           or strands.guesses.user_id = auth.uid()
+           or strands.events.user_id = auth.uid()
            or cg.is_terminal
          )
     )
@@ -442,7 +450,7 @@ begin
     -- computing the total internally for the terminal check; it just never
     -- publishes it.
     -- Compete publishes NOTHING mid-game: `status` is club-readable, so a
-    -- word count there would hand every rival the progress the guesses RLS is
+    -- word count there would hand every rival the progress the events RLS is
     -- keeping private. Coop shares everything, so its count is safe.
     case when mode = 'coop'
          then jsonb_build_object('mode', mode, 'words_found', 0)
@@ -505,7 +513,7 @@ security definer
 set search_path = strands, common, public, extensions
 as $$
   select coalesce(array_agg(distinct (e->>0) || ',' || (e->>1)), '{}')
-    from strands.guesses g
+    from strands.events g
     join strands.games sg on sg.id = g.game_id,
          lateral jsonb_array_elements(g.path) e
    where g.game_id = target_game
@@ -814,7 +822,7 @@ begin
       -- Credited-once, scoped like the board: coop shares its credit, compete
       -- keeps each player's own — otherwise your rival finding ADAPT would
       -- silently deny you the point.
-      select 1 from strands.guesses gu
+      select 1 from strands.events gu
        where gu.game_id = target_game
          and gu.word = v_word
          and gu.result = 'hint_word'
@@ -835,8 +843,10 @@ begin
     end if;
   end if;
 
-  insert into strands.guesses (game_id, user_id, word, path, result)
-  values (target_game, caller_id, v_word, norm_path, v_result);
+  -- `kind` spelled out rather than left to its default: the table holds hints
+  -- too, so which kind this row is belongs at the call site.
+  insert into strands.events (game_id, user_id, kind, word, path, result)
+  values (target_game, caller_id, 'guess', v_word, norm_path, v_result);
 
   -- ─── Counters ────────────────────────────────────────────
   if v_result = 'hint_word' then
@@ -876,7 +886,7 @@ begin
   -- Progress is the CALLER's in compete, the team's in coop — the same scope
   -- the board itself uses.
   select count(*) into v_found
-    from strands.guesses gu
+    from strands.events gu
    where gu.game_id = target_game
      and gu.result in ('theme', 'spangram')
      and (g_row.mode = 'coop' or gu.user_id = caller_id);
@@ -912,7 +922,7 @@ begin
 
   else
     -- Compete publishes no progress mid-game (see create_game): `status` is
-    -- club-readable, and a word count there would leak what the guesses RLS is
+    -- club-readable, and a word count there would leak what the events RLS is
     -- protecting.
     if g_row.mode = 'coop' then
       perform common.update_state(
@@ -1012,7 +1022,7 @@ begin
    where not exists (
      -- Again by PLACEMENT: comparing stored arrays would think a word found via
      -- the other equivalent trace was still unfound, and cheerfully hint at it.
-     select 1 from strands.guesses gu
+     select 1 from strands.events gu
       where gu.game_id = target_game
         and gu.result in ('theme', 'spangram')
         and strands._path_key(gu.path) = strands._path_key(tw->'coords')
@@ -1034,6 +1044,19 @@ begin
          hints_spent = sp.hints_spent + 1
    where sp.game_id = target_game
      and (g_row.mode = 'coop' or sp.user_id = caller_id);
+
+  -- Log it. Deliberately ONE row attributed to the caller, NOT one per player
+  -- the way the counters above fan out in coop: a shared pool still has a
+  -- single person who decided to cash it, and the turn log records what
+  -- happened, not who it happened to.
+  --
+  -- `path` carries the same canonical coords the players row just took, so the
+  -- history viewer can re-ring the hint exactly as it looked when spent — the
+  -- reason this is stored at all. `word` stays null: a hint has never said its
+  -- word, and putting it here would say it in the one place that outlives the
+  -- reveal being retired.
+  insert into strands.events (game_id, user_id, kind, path)
+  values (target_game, caller_id, 'hint', coords);
 
   return jsonb_build_object('coords', coords, 'hint_points', 0);
 end;
@@ -1078,7 +1101,7 @@ begin
   end if;
 
   select count(*) into v_found
-    from strands.guesses
+    from strands.events
    where game_id = target_game and result in ('theme', 'spangram');
 
   select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
@@ -1144,7 +1167,7 @@ grant execute on function strands.concede(uuid) to authenticated;
 -- ============================================================
 -- strands.replay_board — run this puzzle back
 -- ============================================================
--- Same board, everything the players did wiped: the guess log, the found
+-- Same board, everything the players did wiped: the event log, the found
 -- words (which live IN that log), the hint bar, the spend count, and any
 -- showing hint. Callable mid-game or from a finished one — it's a restart, not
 -- a terminal action.
@@ -1171,7 +1194,7 @@ begin
     raise exception 'game not found' using errcode = 'P0002';
   end if;
 
-  delete from strands.guesses where game_id = target_game;
+  delete from strands.events where game_id = target_game;
 
   update strands.players
      set hint_points = 0,
@@ -1250,7 +1273,7 @@ begin
   end if;
 
   select count(*) into v_found
-    from strands.guesses
+    from strands.events
    where game_id = target_game and result in ('theme', 'spangram');
 
   select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)

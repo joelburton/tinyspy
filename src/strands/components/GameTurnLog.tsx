@@ -6,6 +6,7 @@ import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopove
 import { memberById } from '../../common/lib/game/peers'
 import {
   IconBestFind,
+  IconHint,
   IconThemeFind,
   IconWordNo,
   IconWordOk,
@@ -13,11 +14,11 @@ import {
 import { cls } from '../../common/lib/util/cls'
 import type { Member } from '../../common/lib/games'
 import turnLog from '../../common/components/game/lists/TurnLog.module.css'
-import type { GuessRow } from '../hooks/useGame'
+import type { EventRow, GuessResult } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
 
 type Props = {
-  guesses: GuessRow[]
+  events: EventRow[]
   players: Member[]
   selfId: string
   mode: 'coop' | 'compete'
@@ -40,7 +41,7 @@ type Props = {
  * A duplicate lands on `bad` rather than `neutral` because it EARNED NOTHING:
  * being generous about it in the log would misreport the hint economy.
  */
-const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
+const OUTCOME: Record<GuessResult, TurnOutcome> = {
   spangram: 'good',
   theme: 'good',
   hint_word: 'partial',
@@ -48,6 +49,19 @@ const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
   too_short: 'bad',
   invalid: 'bad',
 }
+
+/**
+ * A spent hint is `neutral` — the fourth value, and the only row in this log
+ * that uses it.
+ *
+ * It is not `bad` (nothing missed), not `partial` (that means "progress toward
+ * the goal", and a hint is the opposite: you SPENT the progress you'd banked),
+ * and certainly not `good`. `neutral` says "this happened and it isn't scored",
+ * which is exactly right — and it keeps the four bar colours reading as one
+ * scale, where an eye running the log still sorts finds from misses without a
+ * fifth thing competing for attention.
+ */
+const HINT_OUTCOME: TurnOutcome = 'neutral'
 
 /**
  * The verdict as a GLYPH, before the word.
@@ -61,7 +75,7 @@ const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
  * ladder rather than three unrelated symbols. All three rejects share the X:
  * the glyph says "this missed" and the label beside it says which miss.
  */
-const MARK: Record<GuessRow['result'], typeof IconWordOk> = {
+const MARK: Record<GuessResult, typeof IconWordOk> = {
   spangram: IconBestFind,
   theme: IconThemeFind,
   hint_word: IconWordOk,
@@ -83,20 +97,26 @@ const MARK: Record<GuessRow['result'], typeof IconWordOk> = {
  * colour narrows it to "this missed" and the label is the only thing saying
  * WHY — too short, already counted, or not a word at all.
  */
-const BODY: Partial<Record<GuessRow['result'], string>> = {
+const BODY: Partial<Record<GuessResult, string>> = {
   duplicate: 'already found',
   too_short: 'too short',
   invalid: 'not a word',
 }
 
 /**
- * strands' turn log — one `<tr>` per submission in the shared `<TurnLog>`.
+ * strands' turn log — one `<tr>` per event in the shared `<TurnLog>`.
  *
  * **Rejects are logged too**, which is a deliberate ruling rather than an
  * accident of storage: the log is the team's shared record of what has been
  * tried, and hiding the misses would make it lie about the session. (The
  * structurally impossible paths — off-board, self-crossing — never reach the
  * table at all; those raise, because only a broken client can produce one.)
+ *
+ * **Spent hints are rows too**, for the same reason and one more: a hint is the
+ * one thing besides a find that changes the board, and in compete it IS the
+ * ranking metric. It takes an ordinary numbered row rather than an interstitial
+ * divider, so `#N` keeps meaning "position in this log" — which is precisely
+ * what the history viewer indexes by, and what lets a hint turn replay its ring.
  *
  * **Coop shows everyone's rows.** Joel's ruling: a peer sees your word when you
  * submit it, so there is no per-player split to make here. Compete's rows are
@@ -107,7 +127,7 @@ const BODY: Partial<Record<GuessRow['result'], string>> = {
  * when the visible rows are the viewer's own sequence.
  */
 export function GameTurnLog({
-  guesses,
+  events,
   players,
   selfId,
   mode,
@@ -117,16 +137,17 @@ export function GameTurnLog({
 }: Props) {
   // The whose-turns dropdown, its default, the aggregate label, the row filter
   // and the honest empty line all come from the shared hook — every turn-log
-  // game carries it, on one vocabulary.
-  const who = useTurnLogPlayerPicker<GuessRow>({
+  // game carries it, on one vocabulary. The labels say "turns", not "words":
+  // a spent hint is a row here and isn't one.
+  const who = useTurnLogPlayerPicker<EventRow>({
     players,
     selfId,
     mode,
     isTerminal,
-    label: 'Whose words to show',
-    emptyLabel: 'No words yet.',
+    label: 'Whose turns to show',
+    emptyLabel: 'No turns yet.',
   })
-  const shown = who.filter(guesses)
+  const shown = who.filter(events)
 
   // `#N` is a LIVE handle only when the rows on show ARE the board's own
   // sequence — coop's Team view, or my own in compete. Pick a single player out
@@ -139,20 +160,20 @@ export function GameTurnLog({
   // word can be a phrase ("FATHERSDAY") and a reject isn't a word at all, so
   // offering the affordance there would promise a definition that can't exist.
   const { define, popover } = useDefinePopover()
-  const definable = (g: GuessRow) => g.result === 'hint_word' || g.result === 'duplicate'
+  const definable = (e: EventRow) => e.result === 'hint_word' || e.result === 'duplicate'
 
   return (
     <>
       <TurnLog
-        heading="Words"
+        heading="Turns"
         headerAction={who.picker}
         empty={shown.length === 0}
         emptyText={who.emptyText}
         scrollKey={shown}
       >
-        {shown.map((g, i) => (
-          <tr key={g.id} className={turnLog.turnLogDivider}>
-            <TurnLogBar outcome={OUTCOME[g.result]} />
+        {shown.map((row, i) => (
+          <tr key={row.id} className={turnLog.turnLogDivider}>
+            <TurnLogBar outcome={row.kind === 'hint' ? HINT_OUTCOME : OUTCOME[row.result]} />
             {boardIsShown ? (
               <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
             ) : (
@@ -164,38 +185,48 @@ export function GameTurnLog({
               <span
                 className={cls(
                   styles.mark,
-                  g.result === 'spangram' && styles.markSpangram,
-                  g.result === 'theme' && styles.markTheme,
+                  row.result === 'spangram' && styles.markSpangram,
+                  row.result === 'theme' && styles.markTheme,
                 )}
                 aria-hidden
               >
                 {(() => {
-                  const Mark = MARK[g.result]
+                  const Mark = row.kind === 'hint' ? IconHint : MARK[row.result]
                   return <Mark size={14} />
                 })()}
               </span>
-              <span
-                className={cls(
-                  styles.word,
-                  g.result === 'spangram' && styles.spangram,
-                  g.result === 'theme' && styles.theme,
-                  definable(g) && styles.definable,
-                )}
-                {...(definable(g)
-                  ? {
-                    title: 'Click to define',
-                    onClick: (e: MouseEvent<HTMLSpanElement>) =>
-                      define(g.word.toLowerCase(), e.currentTarget),
-                  }
-                  : {})}
-              >
-                {g.word.toUpperCase()}
-              </span>
-              {BODY[g.result] && (
-                <span className={turnLog.meta}> — {BODY[g.result]}</span>
+              {row.kind === 'hint' ? (
+                /* No word — that's the point of a hint, and the row says so in
+                   the same slot the word would occupy rather than leaving a gap.
+                   Muted, because unlike every other row here there is no player
+                   input to report; `#N` still replays the ring on the board. */
+                <span className={turnLog.meta}>Hint used</span>
+              ) : (
+                <>
+                  <span
+                    className={cls(
+                      styles.word,
+                      row.result === 'spangram' && styles.spangram,
+                      row.result === 'theme' && styles.theme,
+                      definable(row) && styles.definable,
+                    )}
+                    {...(definable(row)
+                      ? {
+                        title: 'Click to define',
+                        onClick: (e: MouseEvent<HTMLSpanElement>) =>
+                          define(row.word.toLowerCase(), e.currentTarget),
+                      }
+                      : {})}
+                  >
+                    {row.word.toUpperCase()}
+                  </span>
+                  {BODY[row.result] && (
+                    <span className={turnLog.meta}> — {BODY[row.result]}</span>
+                  )}
+                </>
               )}
             </td>
-            <TurnLogActor actor={memberById(players, g.user_id)} />
+            <TurnLogActor actor={memberById(players, row.user_id)} />
           </tr>
         ))}
       </TurnLog>

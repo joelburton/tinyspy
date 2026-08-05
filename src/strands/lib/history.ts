@@ -3,25 +3,38 @@ import type { Coord } from './board'
 /** The shape `<Board>` needs for a found word — mirrors `FoundPath`. */
 export type FoundPath = { path: Coord[]; isSpangram: boolean }
 
-/** The minimum a row needs for the replay: what it was, and where. */
-export type HistoryRow = {
-  word: string
-  path: Coord[]
-  result: 'theme' | 'spangram' | 'hint_word' | 'duplicate' | 'too_short' | 'invalid'
-}
+/** The minimum a row needs for the replay: what it was, and where. Mirrors
+ *  `EventRow` — a guess carries a word + verdict, a hint carries neither. */
+export type HistoryRow =
+  | {
+    kind: 'guess'
+    word: string
+    path: Coord[]
+    result: 'theme' | 'spangram' | 'hint_word' | 'duplicate' | 'too_short' | 'invalid'
+  }
+  | { kind: 'hint'; word: null; path: Coord[]; result: null }
 
 export type TurnSnapshot = {
   /** The theme words found as of the viewed turn — feed to `<Board found>`. */
   found: FoundPath[]
-  /** The cells the viewed submission traced, ringed on the board. */
+  /** The cells the viewed submission traced, ringed on the board. Empty on a
+   *  hint turn: a hint traced nothing, and its cells go to `hintCoords`. */
   highlight: Coord[]
+  /**
+   * A hint turn's revealed cells, or null on a guess turn. Kept SEPARATE from
+   * `highlight` so the board can re-draw the hint with its own vocabulary —
+   * rings, deliberately unconnected — rather than as a traced route. That
+   * distinction is the whole reason a hint's coords are stored: replaying it as
+   * a trace would show an order the hint never gave you.
+   */
+  hintCoords: Coord[] | null
   /** The banner line: what that turn was. */
   description: string
 }
 
 /** What the banner says about a turn, matching the log's own wording so the two
  *  surfaces can't describe the same row differently. */
-const BODY: Record<HistoryRow['result'], string> = {
+const BODY: Record<Exclude<HistoryRow['result'], null>, string> = {
   spangram: 'spangram',
   theme: 'theme word',
   hint_word: 'valid word',
@@ -53,12 +66,22 @@ const BODY: Record<HistoryRow['result'], string> = {
 export function snapshotAt(rows: readonly HistoryRow[], index: number): TurnSnapshot {
   const upTo = rows.slice(0, index + 1)
   const viewed = rows[index]
+  const isHint = viewed?.kind === 'hint'
 
   return {
     found: upTo
       .filter((r) => r.result === 'theme' || r.result === 'spangram')
       .map((r) => ({ path: r.path, isSpangram: r.result === 'spangram' })),
-    highlight: viewed?.path ?? [],
-    description: viewed ? `#${index + 1} ${viewed.word.toUpperCase()} — ${BODY[viewed.result]}` : '',
+    // A hint's cells go to `hintCoords`, never `highlight` — see TurnSnapshot.
+    highlight: isHint ? [] : (viewed?.path ?? []),
+    hintCoords: isHint ? viewed.path : null,
+    description: !viewed
+      ? ''
+      : viewed.kind === 'hint'
+        // No word, by design — so the banner names the ACT, and the ring on the
+        // board says the rest. "a word" rather than "a theme word": which word
+        // it was is exactly what a hint withholds.
+        ? `#${index + 1} Hint — a word was revealed`
+        : `#${index + 1} ${viewed.word.toUpperCase()} — ${BODY[viewed.result]}`,
   }
 }

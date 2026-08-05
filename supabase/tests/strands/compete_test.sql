@@ -88,7 +88,7 @@ select is(
 -- each, not one shared row.
 reset role;
 select is(
-  (select count(*) from strands.guesses
+  (select count(*) from strands.events
     where game_id = (select id from game) and result in ('theme','spangram')),
   2::bigint,
   'both finds are logged — one row each, not one shared row'
@@ -104,7 +104,7 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select count(*) from strands.guesses
+  (select count(*) from strands.events
     where game_id = (select id from game) and result in ('theme','spangram')),
   1::bigint,
   'ada sees only her OWN find mid-game — bea''s is hidden by RLS'

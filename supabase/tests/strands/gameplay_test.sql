@@ -215,7 +215,7 @@ select throws_ok(
 -- ============================================================
 
 select is(
-  (select count(*) from strands.guesses
+  (select count(*) from strands.events
     where game_id = (select id from game) and result in ('invalid','duplicate')),
   3::bigint,
   'soft rejects ARE logged (2 invalid + 1 duplicate) — the log records what was tried'

@@ -147,9 +147,9 @@ select is(
 );
 
 select is(
-  (select count(*) from strands.guesses where game_id = (select id from game)),
+  (select count(*) from strands.events where game_id = (select id from game)),
   0::bigint,
-  'an outsider sees no guesses'
+  'an outsider sees no events'
 );
 
 -- ============================================================
@@ -158,7 +158,7 @@ select is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
-  format($$ insert into strands.guesses (game_id, user_id, word, path, result)
+  format($$ insert into strands.events (game_id, user_id, word, path, result)
             values (%L, %L, 'ZZQA', '[[0,0]]'::jsonb, 'hint_word') $$,
          (select id from game), 'ada11111-1111-1111-1111-111111111111'),
   '42501',

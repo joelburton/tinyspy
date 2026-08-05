@@ -76,7 +76,7 @@ select is(
 -- consuming the board, and here the proxy is checked against the real thing.
 select is(
   (select count(distinct (e->>0) || ',' || (e->>1))
-     from strands.guesses g, lateral jsonb_array_elements(g.path) e
+     from strands.events g, lateral jsonb_array_elements(g.path) e
     where g.game_id = (select id from game) and g.result in ('theme','spangram')),
   48::bigint,
   'winning consumed ALL 48 cells — the tiling invariant, checked end to end'
@@ -154,7 +154,7 @@ select throws_ok(
 select strands.replay_board((select id from game));
 
 select is(
-  (select count(*) from strands.guesses where game_id = (select id from game)),
+  (select count(*) from strands.events where game_id = (select id from game)),
   0::bigint,
   'replay clears the guess log — and with it the found words, which live in it'
 );

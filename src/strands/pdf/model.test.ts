@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { buildPrintModel } from './model'
-import type { GuessRow, StrandsPlayer, StrandsSolution } from '../hooks/useGame'
+import type { EventRow, GuessResult, StrandsPlayer, StrandsSolution } from '../hooks/useGame'
 import type { Member } from '../../common/lib/games'
 
 const ADA = 'ada'
@@ -24,9 +24,17 @@ const state = (user_id: string, hints_spent: number): StrandsPlayer => ({
 })
 
 let n = 0
-const guess = (user_id: string, word: string, result: GuessRow['result']): GuessRow => ({
+const guess = (user_id: string, word: string, result: GuessResult): EventRow => ({
+  kind: 'guess',
   id: `g${n++}`, game_id: 'g', user_id, word, path: [[0, 0], [0, 1]],
-  result, guessed_at: '2026-01-01',
+  result, created_at: '2026-01-01',
+})
+
+/** A spent hint — no word, no verdict, but coords like every other row. */
+const hint = (user_id: string): EventRow => ({
+  kind: 'hint',
+  id: `g${n++}`, game_id: 'g', user_id, word: null, path: [[7, 0], [7, 1]],
+  result: null, created_at: '2026-01-01',
 })
 
 const SOLUTION: StrandsSolution = {
@@ -48,7 +56,7 @@ describe('buildPrintModel — the shield holds on paper', () => {
   it('prints NO missed words while the solution is hidden', () => {
     const m = buildPrintModel({
       ...base, mode: 'coop', isTerminal: false,
-      guesses: [guess(ADA, 'FOUND', 'theme')],
+      events: [guess(ADA, 'FOUND', 'theme')],
       playerStates: [state(ADA, 0)],
       solution: null,
     })
@@ -59,7 +67,7 @@ describe('buildPrintModel — the shield holds on paper', () => {
   it('prints the missed words once the solution is revealed', () => {
     const m = buildPrintModel({
       ...base, mode: 'coop', isTerminal: true,
-      guesses: [guess(ADA, 'FOUND', 'theme')],
+      events: [guess(ADA, 'FOUND', 'theme')],
       playerStates: [state(ADA, 0)],
       solution: SOLUTION,
     })
@@ -72,7 +80,7 @@ describe('buildPrintModel — the shield holds on paper', () => {
     // rival's column would be an empty grid claiming they'd found nothing.
     const m = buildPrintModel({
       ...base, mode: 'compete', isTerminal: false,
-      guesses: [guess(ADA, 'FOUND', 'theme')],
+      events: [guess(ADA, 'FOUND', 'theme')],
       playerStates: [state(ADA, 1), state(BEA, 0)],
       solution: null,
     })
@@ -83,7 +91,7 @@ describe('buildPrintModel — the shield holds on paper', () => {
   it('compete prints EVERY player at terminal, each with their own words', () => {
     const m = buildPrintModel({
       ...base, mode: 'compete', isTerminal: true,
-      guesses: [guess(ADA, 'FOUND', 'theme'), guess(BEA, 'SPAN', 'spangram')],
+      events: [guess(ADA, 'FOUND', 'theme'), guess(BEA, 'SPAN', 'spangram')],
       playerStates: [state(ADA, 1), state(BEA, 0)],
       solution: SOLUTION,
     })
@@ -99,7 +107,7 @@ describe('buildPrintModel — formatting', () => {
   it('coop is ONE unnamed track: the board is the team\'s', () => {
     const m = buildPrintModel({
       ...base, mode: 'coop', isTerminal: false,
-      guesses: [guess(ADA, 'FOUND', 'theme'), guess(BEA, 'ADAPT', 'hint_word')],
+      events: [guess(ADA, 'FOUND', 'theme'), guess(BEA, 'ADAPT', 'hint_word')],
       playerStates: [state(ADA, 2), state(BEA, 2)],
       solution: null,
     })
@@ -114,7 +122,7 @@ describe('buildPrintModel — formatting', () => {
   it('marks each verdict, and notes only what the glyph cannot say', () => {
     const m = buildPrintModel({
       ...base, mode: 'coop', isTerminal: false,
-      guesses: [
+      events: [
         guess(ADA, 'SPAN', 'spangram'),
         guess(ADA, 'FOUND', 'theme'),
         guess(ADA, 'ADAPT', 'hint_word'),
@@ -136,10 +144,39 @@ describe('buildPrintModel — formatting', () => {
   it('omits the hint count when none were spent', () => {
     const m = buildPrintModel({
       ...base, mode: 'coop', isTerminal: false,
-      guesses: [guess(ADA, 'FOUND', 'theme')],
+      events: [guess(ADA, 'FOUND', 'theme')],
       playerStates: [state(ADA, 0)],
       solution: null,
     })
     expect(m.tracks[0].summary).toBe('1 word')
+  })
+
+  it('prints a spent hint as its own row, in sequence, with no word', () => {
+    const m = buildPrintModel({
+      ...base, mode: 'coop', isTerminal: false,
+      events: [guess(ADA, 'FOUND', 'theme'), hint(ADA), guess(ADA, 'SPAN', 'spangram')],
+      playerStates: [state(ADA, 1)],
+      solution: null,
+    })
+    // Position matters: the printed log keeps the same numbering as the screen,
+    // so the two can be read side by side.
+    expect(m.tracks[0].turns.map((t) => [t.seq, t.word, t.mark])).toEqual([
+      [1, 'FOUND', 'find'],
+      [2, 'Hint used', 'hint'],
+      [3, 'SPAN', 'best'],
+    ])
+  })
+
+  it('a hint never reaches the printed BOARD — it revealed, it did not place', () => {
+    const m = buildPrintModel({
+      ...base, mode: 'coop', isTerminal: false,
+      events: [guess(ADA, 'FOUND', 'theme'), hint(ADA)],
+      playerStates: [state(ADA, 1)],
+      solution: null,
+    })
+    // The hint's coords are a theme word's cells; drawing them among the found
+    // words would print an answer nobody found — the shield's whole concern.
+    expect(m.tracks[0].words.map((w) => w.word)).toEqual(['FOUND'])
+    expect(m.tracks[0].summary).toBe('1 word · 1 hint')
   })
 })
