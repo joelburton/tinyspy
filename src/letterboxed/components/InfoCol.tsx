@@ -18,13 +18,15 @@ import styles from './PlayArea.module.css'
 
 /**
  * letterboxed's info column. Readouts in the canonical order
- * (docs/playarea.md): state → turn → opponents → actions, then the chain and
- * the log below the action slot.
+ * (docs/playarea.md): state → turn → opponents → actions, then the reveal and
+ * the move log below the action slot.
  *
  * The state block is the whole game in two fractions — letters covered out of
  * twelve, words used out of the cap — so a glance answers "how are we doing?".
- * The chain follows, rendered in full: unlike a turn log it is at most six
- * words, so there is no reason to make anyone reconstruct it from the history.
+ *
+ * The CHAIN itself is deliberately not here: it sits above the board
+ * (`<ChainStrip>`), because it is per-turn state rather than a summary, and on
+ * a phone this column is off-canvas behind the info sheet.
  */
 export function InfoCol({
   over,
@@ -150,18 +152,6 @@ export function InfoCol({
         )}
       </div>
 
-      {/* The chain IS the state, and it is short — show it whole. */}
-      <div className={styles.chainBlock}>
-        <div className={styles.blockTitle}>Chain</div>
-        <ol className={styles.chain}>
-          {chain.map((w, i) => (
-            <li key={`${w}-${i}`} className={styles.chainWord}>
-              {w.toUpperCase()}
-            </li>
-          ))}
-          {chain.length === 0 && <li className={styles.chainEmpty}>No words yet</li>}
-        </ol>
-      </div>
 
       {/* The seeded pair, at terminal only. It ships from game start (the
           board's own word list would give a solution away anyway), so this is
@@ -175,7 +165,7 @@ export function InfoCol({
         </div>
       )}
 
-      <GameTurnLog events={events} players={players} selfId={selfId} />
+      <GameTurnLog events={events} players={players} />
     </div>
   )
 }

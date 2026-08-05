@@ -52,12 +52,6 @@
   height: var(--side);
 }
 
-.chainActions {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-}
-
 .verdictSlot {
   display: flex;
   justify-content: center;
@@ -113,21 +107,50 @@
   color: var(--color-muted);
 }
 
-/* The chain so far — the state and the record in one list. */
+/* The chain strip, ABOVE the board. A fixed min-height so playing the first
+ * word doesn't shove the board down (docs/ui.md → layout stability). */
 .chain {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  width: 100%;
 }
 .chainWord {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
   background: var(--letterboxed-used);
   border-radius: 0.25rem;
-  padding: 0.1rem 0.4rem;
+  padding: 0.15rem 0.45rem;
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+/* The last word is the only one that can be taken back, so it is the only one
+ * that looks touchable. */
+.chainLast {
+  padding-right: 0.2rem;
+}
+.chainRemove {
+  /* A bare glyph, not a button shape: it sits inside a chip and a second
+   * border there would read as a nested control. */
+  all: unset;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 0.25rem;
+  border-radius: 0.2rem;
+  color: var(--color-muted);
+  font-size: 1.05em;
+}
+.chainRemove:hover,
+.chainRemove:focus-visible {
+  color: var(--color-text);
+  background: var(--color-control-bg);
 }
 .chainEmpty {
   color: var(--color-muted);

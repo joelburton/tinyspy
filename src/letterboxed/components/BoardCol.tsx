@@ -5,10 +5,9 @@ import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { terminalPill } from '../../common/lib/game/localPills'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { EntryRow } from '../../common/components/game/entry/EntryRow'
-import { ActionButton } from '../../common/components/buttons/ActionButton'
-import { IconClear, IconUndo } from '../../common/components/icons'
 import { Board } from './Board'
-import { tailLetter } from '../lib/board'
+import { ChainStrip } from './ChainStrip'
+import { canFollow, tailLetter } from '../lib/board'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
@@ -29,11 +28,11 @@ import styles from './PlayArea.module.css'
  * isn't a character the player chose, it's the board telling them where to
  * start.
  *
- * ── Undo / Clear ─────────────────────────────────────────────────────────────
- * Both sit here rather than in the info column because on a phone the info
- * column is off-canvas, and undo is the move you need exactly when you are
- * stuck. They are always rendered — disabled, never removed, so nothing
- * reflows when the chain empties (docs/ui.md → layout stability).
+ * ── Taking a word back ───────────────────────────────────────────────────────
+ * There is no Undo button and no Clear button: the last word in the chain
+ * strip carries an ×, which is the same action expressed where the thing it
+ * affects already is. Clicking it repeatedly walks the chain back to empty, so
+ * a bulk clear has nothing left to do.
  */
 export function BoardCol({
   sides,
@@ -42,9 +41,7 @@ export function BoardCol({
   onDraftChange,
   onSubmit,
   onPick,
-  onUndo,
-  onClear,
-  clearAllowed,
+  onRemoveLast,
   clearLocalFeedback,
   entryDisabled,
   busy,
@@ -60,11 +57,8 @@ export function BoardCol({
   onSubmit: () => void
   /** A letter was clicked on the board. */
   onPick: (letter: string) => void
-  onUndo: () => void
-  onClear: () => void
-  /** Clear is refused server-side in turn-by-turn co-op; the button says why
-   *  rather than vanishing. */
-  clearAllowed: boolean
+  /** The × on the chain's last word. */
+  onRemoveLast: () => void
   clearLocalFeedback: () => void
   /** Terminal / conceded / not my turn: board + entry are inert. */
   entryDisabled: boolean
@@ -87,20 +81,35 @@ export function BoardCol({
     [boardLetters],
   )
 
-  // EntryRow hands back the whole intended value. Anything that doesn't still
-  // begin with the seed is an attempt to backspace through it — ignored.
+  // EntryRow hands back the whole intended value; this is the one gate it
+  // passes through, and it enforces two things:
+  //
+  //   1. Anything that no longer begins with the seed is an attempt to
+  //      backspace through the locked first letter — ignored.
+  //   2. An APPENDED letter that can't legally follow the one before it (same
+  //      side of the box) never enters the field at all. Letting it in and
+  //      rejecting it on submit would make the player type a word they can
+  //      already see is wrong; refusing the keystroke says so immediately.
+  //      Deletions are always allowed through.
   const handleChange = useCallback(
     (next: string) => {
       if (!next.startsWith(seed)) return
+      if (next.length > word.length) {
+        const added = next[next.length - 1]
+        if (!canFollow(sides, next[next.length - 2], added)) return
+      }
       onDraftChange(next.slice(seed.length))
     },
-    [seed, onDraftChange],
+    [seed, word, sides, onDraftChange],
   )
-
-  const chainFull = chain.length === 0
 
   return (
     <div className={cls(shared.boardCol, styles.boardCol)}>
+      {/* The chain reads ABOVE the board: it is the state, and it says what
+          letter the next word must start with. On a phone the info column is
+          off-canvas, so a per-turn readout can't live there. */}
+      <ChainStrip chain={chain} onRemoveLast={onRemoveLast} disabled={entryDisabled} />
+
       <Board
         sides={sides}
         chain={chain}
@@ -114,7 +123,7 @@ export function BoardCol({
           value={word}
           onChange={handleChange}
           onSubmit={onSubmit}
-          placeholder={seed ? `starts with ${seed.toUpperCase()}` : 'any letter'}
+          placeholder="Type or click letters"
           pill={localPill}
           disabled={entryDisabled}
           busy={busy}
@@ -123,28 +132,6 @@ export function BoardCol({
         />
       </div>
 
-      {/* Chain-level actions. Undo is the escape from a dead-ended chain, so it
-          lives next to the board on every screen size. */}
-      <div className={styles.chainActions}>
-        <ActionButton
-          icon={IconUndo}
-          label="Undo"
-          onClick={onUndo}
-          disabled={entryDisabled || chainFull}
-          tooltip="Take back the last word"
-        />
-        <ActionButton
-          icon={IconClear}
-          label="Clear"
-          onClick={onClear}
-          disabled={entryDisabled || chainFull || !clearAllowed}
-          tooltip={
-            clearAllowed
-              ? 'Start the chain over'
-              : 'Not available in turn-by-turn co-op — undo instead'
-          }
-        />
-      </div>
 
       {over && (
         <div className={styles.verdictSlot}>

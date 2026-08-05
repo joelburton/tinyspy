@@ -62,17 +62,6 @@
   fill: var(--color-surface);
 }
 
-/* Can't legally follow the current letter (same side). Dimmed rather than
- * hidden: the letters never move, so a player can still see the whole board
- * and plan the next word. */
-.blocked {
-  cursor: not-allowed;
-}
-.blocked circle,
-.blocked text {
-  opacity: 0.28;
-}
-
 .disabled {
   cursor: default;
 }

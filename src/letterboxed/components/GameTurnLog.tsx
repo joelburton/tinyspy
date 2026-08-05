@@ -1,45 +1,62 @@
-import { cls } from '../../common/lib/util/cls'
 import type { GamePlayer } from '../../common/lib/games'
-import { ActorDot } from '../../common/components/game/lists/ActorMention'
+import { TurnLog, TurnLogBar } from '../../common/components/game/lists/TurnLog'
+import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
+import { memberById } from '../../common/lib/game/peers'
+import { BOARD_SIZE } from '../lib/board'
 import type { EventRow } from '../hooks/useGame'
+import turnLog from '../../common/components/game/lists/TurnLog.module.css'
 import styles from './PlayArea.module.css'
 
 /**
- * letterboxed's turn log — every move, retreats included.
+ * letterboxed's turn log — one `<tr>` per move in the shared `<TurnLog>` table,
+ * composing the same atoms every other v3 log does: the outcome bar, the move
+ * number, the move itself in the slack-absorbing `main` column, and the actor
+ * on the right so the identity discs line up down the log.
  *
- * The log shows undos and clears rather than quietly deleting the played row,
- * which is why `letterboxed.events` is an append-only stream in the first
- * place. In turn-by-turn co-op an undo COSTS the undoer's turn, so it isn't
- * housekeeping to be hidden — it's a move, and usually one made for the next
- * player's benefit. The copy reflects that: "cleared the dead end", not
- * "deleted TRACE".
+ * The bar follows wordle's reading: `neutral` for an ordinary move (progress,
+ * not pass/fail) and `good` only on the move that covers the board. A RETREAT
+ * is neutral too — in turn-by-turn co-op an undo costs the undoer's turn and is
+ * usually made for the next player's benefit, so painting it red would
+ * misdescribe it. The muted italic text is what separates the two.
+ *
+ * Retreats appear at all because `letterboxed.events` is an append-only stream
+ * rather than a table rows get deleted from — "what did we already try?" is
+ * most of the value of a log in a game you can walk backwards.
  */
 export function GameTurnLog({
   events,
   players,
-  selfId,
 }: {
   events: EventRow[]
   players: GamePlayer[]
-  selfId: string
 }) {
   return (
-    <div className={styles.chainBlock}>
-      <div className={styles.blockTitle}>Moves</div>
-      <ol className={styles.log}>
-        {events.map((e) => {
-          const actor = players.find((p) => p.user_id === e.user_id)
-          return (
-            <li key={e.id} className={cls(styles.logRow, styles[`log_${e.kind}`])}>
-              <ActorDot actor={actor} fallback={e.user_id === selfId ? 'You' : 'A player'} />
-              <span className={styles.logBody}>{describe(e)}</span>
-              <span className={styles.logCovered}>{e.letters_covered}/12</span>
-            </li>
-          )
-        })}
-        {events.length === 0 && <li className={styles.logEmpty}>No moves yet</li>}
-      </ol>
-    </div>
+    <TurnLog
+      heading="Moves"
+      empty={events.length === 0}
+      emptyText="No moves yet."
+      scrollKey={events}
+    >
+      {events.map((e, i) => (
+        <tr key={e.id} className={turnLog.turnLogDivider}>
+          <TurnLogBar
+            outcome={
+              e.kind === 'played' && e.letters_covered === BOARD_SIZE ? 'good' : 'neutral'
+            }
+          />
+          <td className={turnLog.meta}>#{i + 1}</td>
+          <td className={turnLog.main}>
+            <span className={e.kind === 'played' ? styles.logWord : styles.logRetreat}>
+              {describe(e)}
+            </span>{' '}
+            <span className={turnLog.meta}>
+              {e.letters_covered}/{BOARD_SIZE}
+            </span>
+          </td>
+          <TurnLogActor actor={memberById(players, e.user_id)} />
+        </tr>
+      ))}
+    </TurnLog>
   )
 }
 
@@ -49,9 +66,9 @@ function describe(e: EventRow): string {
     case 'played':
       return e.word?.toUpperCase() ?? ''
     case 'undone':
-      return `cleared the dead end (${e.word?.toUpperCase() ?? ''})`
+      return `took back ${e.word?.toUpperCase() ?? ''}`
     case 'cleared':
-      return 'started the chain over'
+      return 'started over'
     case 'hint':
       return 'took a hint'
   }

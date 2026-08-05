@@ -3,7 +3,7 @@ import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { outOfRacePill } from '../../common/lib/game/localPills'
+import { outOfRacePill, stickyPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -92,14 +92,14 @@ export function PlayArea(ctx: GamePageCtx) {
     const word = (tailLetter(chain) ?? '') + draft
     const bad = rejectReason(word, { sides, chain, playable, maxWords })
     if (bad) {
-      showLocalFeedback({ tone: 'error', text: bad, dismiss: { kind: 'sticky' } })
+      showLocalFeedback(stickyPill('error', bad))
       return
     }
     setBusy(true)
     const { error } = await db.rpc('submit_word', { target_game: gameId, submitted: word })
     setBusy(false)
     if (error) {
-      showLocalFeedback({ tone: 'error', text: error.message, dismiss: { kind: 'sticky' } })
+      showLocalFeedback(stickyPill('error', error.message))
       return
     }
     // The next word's first letter comes from the chain, which the realtime
@@ -129,7 +129,7 @@ export function PlayArea(ctx: GamePageCtx) {
       const { error } = await db.rpc(fn, { target_game: gameId })
       setBusy(false)
       if (error) {
-        showLocalFeedback({ tone: 'error', text: error.message, dismiss: { kind: 'sticky' } })
+        showLocalFeedback(stickyPill('error', error.message))
         return
       }
       setDraft('')
@@ -137,12 +137,14 @@ export function PlayArea(ctx: GamePageCtx) {
     },
     [gameId, showLocalFeedback, clearLocalFeedback],
   )
-  const undo = useCallback(() => void runChainRpc('undo_word'), [runChainRpc])
-  const clear = useCallback(() => void runChainRpc('clear_chain'), [runChainRpc])
+  // The chain strip's × on the last word. `clear_chain` still exists
+  // server-side but has no surface: clicking × repeatedly reaches the empty
+  // chain, so a bulk clear would be a second way to do the same thing.
+  const removeLast = useCallback(() => void runChainRpc('undo_word'), [runChainRpc])
 
   // ─── End / Concede / Replay — the shared trio ──────────
   const showError = useCallback(
-    (m: string) => showLocalFeedback({ tone: 'error', text: m, dismiss: { kind: 'sticky' } }),
+    (m: string) => showLocalFeedback(stickyPill('error', m)),
     [showLocalFeedback],
   )
   const { endGame, concede, restart } = useStandardGameActions({
@@ -286,12 +288,7 @@ export function PlayArea(ctx: GamePageCtx) {
         onDraftChange={setDraft}
         onSubmit={() => void submit()}
         onPick={pick}
-        onUndo={undo}
-        onClear={clear}
-        // The server refuses a bulk clear in turn-by-turn co-op (pricing it at
-        // one turn would invert the cost of undoing a single word), so the
-        // button says why instead of disappearing.
-        clearAllowed={currentTurnUserId === null}
+        onRemoveLast={removeLast}
         clearLocalFeedback={clearLocalFeedback}
         entryDisabled={entryDisabled}
         busy={busy}

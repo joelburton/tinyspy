@@ -38,7 +38,7 @@ test.describe('letterboxed', () => {
     // THE REALTIME PATH: the chain list is driven by the players postgres-changes
     // event, so the word appearing there without a reload can only come through
     // the live channel.
-    await expect(page.getByRole('listitem').filter({ hasText: /^ADG$/ }).first())
+    await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first())
       .toBeVisible({ timeout: 10000 })
 
     // …and the entry re-seeds ITSELF with the letter the next word must start
@@ -46,6 +46,51 @@ test.describe('letterboxed', () => {
     // one. The seed is derived from the chain rather than typed, which is what
     // lets Backspace stop at it instead of clearing it.
     await expect(page.getByTestId('entry-value')).toHaveText('g', { timeout: 10000 })
+  })
+
+  test('a letter that cannot follow the current one never enters the box', async ({
+    browser,
+  }) => {
+    const club = await createSoloClub('lbx3')
+    const [alice] = club.members
+    const game = await createLetterboxedGame(club)
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+
+    // Sides are `abc | def | ghi | jkl`, so B cannot follow A — they share a
+    // side. The keystroke is refused rather than accepted-then-rejected.
+    await page.keyboard.type('ab')
+    await expect(page.getByTestId('entry-value')).toHaveText('a')
+
+    // D is on another side, so it goes in.
+    await page.keyboard.type('d')
+    await expect(page.getByTestId('entry-value')).toHaveText('ad')
+  })
+
+  test('the × on the last chain word takes it back', async ({ browser }) => {
+    const club = await createSoloClub('lbx4')
+    const [alice] = club.members
+    const game = await createLetterboxedGame(club)
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+
+    await page.keyboard.type('adg')
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ })).toBeVisible({
+      timeout: 10000,
+    })
+
+    // The × is the whole undo affordance — there is no Undo button.
+    await page.getByRole('button', { name: /Take back ADG/i }).click()
+    await expect(page.getByText('No words yet')).toBeVisible({ timeout: 10000 })
   })
 
   test('clicking letters builds a word; clicking the last one again submits it', async ({
@@ -70,7 +115,7 @@ test.describe('letterboxed', () => {
     // a word can never repeat a letter back-to-back (same letter = same side).
     await letter('G').click()
 
-    await expect(page.getByRole('listitem').filter({ hasText: /^ADG$/ }).first())
+    await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first())
       .toBeVisible({ timeout: 10000 })
   })
 })

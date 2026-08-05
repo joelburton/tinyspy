@@ -17,9 +17,12 @@ import play from './PlayArea.module.css'
  * click is therefore always illegal, which leaves "submit" as the only sense
  * it could have.
  *
- * Letters that CAN'T legally follow the current last letter (same side) are
- * dimmed and unclickable, so the rule is visible instead of being discovered
- * through rejections. The server re-checks everything regardless.
+ * Letters that can't legally follow the current one are inert — clicking one
+ * does nothing — but they are NOT dimmed. An earlier version faded them, which
+ * looked helpful and played badly: you plan a whole word before you commit to
+ * it, and a board where a third of the letters are unreadable at any moment is
+ * a board you can't plan on. The rule is learned in one move; the legibility
+ * cost is paid on every move. The server re-checks everything regardless.
  */
 export function Board({
   sides,
@@ -84,7 +87,6 @@ export function Board({
               covered.has(n.letter) && styles.covered,
               inWord && styles.inWord,
               isLast && styles.last,
-              blocked && styles.blocked,
               disabled && styles.disabled,
             )}
             onClick={() => {
