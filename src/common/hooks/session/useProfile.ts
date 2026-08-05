@@ -16,7 +16,7 @@ export type Profile = {
  *
  * Why a store rather than a per-component fetch: the profile color is
  * now editable (the "Edit profile" dialog), and several components read
- * it independently (the UserMenu badge, the HomePage greeting). A store
+ * it independently (the account menu row, the HomePage greeting). A store
  * lets a save propagate to all of them at once via `setProfileColor`,
  * with no refetch, reload, or realtime channel. There's only ever one
  * signed-in user per tab, so one module-level slot is correct.
@@ -59,7 +59,7 @@ async function ensureLoaded(userId: string) {
     // Clear the load marker so a later mount / navigation retries. Without
     // this the failed first fetch is permanent for the session — every
     // `ensureLoaded` no-ops on the `loadedFor === userId` guard above and
-    // the UserMenu shows "…" until a full reload.
+    // the account menu row shows "…" until a full reload.
     loadedFor = null
     return
   }
@@ -84,7 +84,7 @@ export function useProfile(session: Session): Profile | null {
 /**
  * Reflect a just-saved color across every consumer in the tab. The
  * `common.update_profile_color` RPC has already persisted it; this is
- * the optimistic in-memory update so the UserMenu dot (and any other
+ * the optimistic in-memory update so every reader (and any other
  * reader) repaints immediately.
  */
 export function setProfileColor(color: string) {

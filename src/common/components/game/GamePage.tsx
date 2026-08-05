@@ -18,6 +18,9 @@ import type {
 } from '../../lib/games'
 import { END_OR_CONCEDE_IDS, NEW_GAME_ID } from '../../lib/game/gameMenu'
 import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
+import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
+import { useIsMobile } from '../../hooks/ui/useIsMobile'
+import { setInfoSheetOpen, useInfoSheetOpen } from '../../lib/game/infoSheetStore'
 import { useClubPresence } from '../../hooks/realtime/useClubPresence'
 import { useClubSetupPresence } from '../../hooks/realtime/useClubSetupPresence'
 import { useCommonGame } from '../../hooks/game/useCommonGame'
@@ -36,6 +39,7 @@ import { Menu, type MenuHandle } from '../panels/Menu'
 import { TriggerWithChevron } from '../panels/TriggerWithChevron'
 import { PauseBoundary } from './PauseBoundary'
 import { PauseButton } from '../buttons/PauseButton'
+import { InfoSwitchButton } from './InfoSwitchButton'
 import { StatusSlot } from './StatusSlot'
 import { SuspendConfirmDialog } from './SuspendConfirmDialog'
 import styles from './GamePage.module.css'
@@ -228,6 +232,19 @@ export function GamePage({
   // dialog; we render it below).
   const menuRef = useRef<MenuHandle>(null)
   const lookupDialog = useAppShortcuts(useCallback(() => menuRef.current?.open(), []))
+  const accountSection = useAccountMenuSection(session)
+
+  // Which mobile page is showing (see infoSheetStore for why it's a store and
+  // not state). Both are false-y on desktop, where the info column is inline.
+  const isMobile = useIsMobile()
+  const infoOpen = useInfoSheetOpen()
+
+  // The store outlives any one game (module-level), so a game→game navigation
+  // would otherwise land you on the info page because that's where you left the
+  // last one. GamePage is keyed by gameId, so this mount-effect runs per game.
+  useEffect(function startOnTheBoard() {
+    setInfoSheetOpen(false)
+  }, [gameId])
 
   // Auto-clear `timed`-dismiss feedback after the configured duration. The
   // default is the ONE peer-pill lifetime for the whole app (ClubPage matches):
@@ -331,10 +348,14 @@ export function GamePage({
         // Mid-game the game's own handler asks NEW_GAME_CONFIRM first, so a
         // stray `+` can't silently shelve a game in progress.
         e.preventDefault()
+        // `onClick` is optional on the MenuItem union — a submenu parent has
+        // none, because opening a submenu isn't a command a shortcut can fire.
+        // So the guard is a real check, not appeasement: it's what makes a
+        // shortcut silently no-op rather than crash if an id ever names one.
         const item = gameSectionsRef.current
           .flatMap((s) => s.items)
           .find((i) => i.id === NEW_GAME_ID)
-        if (item && !item.disabled) item.onClick()
+        if (item && !item.disabled) item.onClick?.()
       } else if (e.altKey && e.code === 'Equal') {
         // ⌥+ → New game FROM SETUP: the same fresh game, but stopping at the
         // setup dialog so you can change the options first (the plain `+` reuses
@@ -359,7 +380,7 @@ export function GamePage({
         const item = gameSectionsRef.current
           .flatMap((s) => s.items)
           .find((i) => END_OR_CONCEDE_IDS.includes(i.id as (typeof END_OR_CONCEDE_IDS)[number]))
-        if (item && !item.disabled) item.onClick()
+        if (item && !item.disabled) item.onClick?.() // optional — see the `+` case above
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -423,10 +444,33 @@ export function GamePage({
   // The whole menu is owned by the current PlayArea (via setGameSections /
   // buildGameMenu). Help + Back-to-club are wired through the menuApi actions
   // above; the shell no longer prepends a common section.
-  const sections: MenuSection[] = gameSections
+  // The account submenu is appended by the SHELL, not by `buildGameMenu` — so
+  // all fourteen games get it without fourteen edits, and a game can't forget
+  // it. It goes last: it's the least game-y thing in the menu.
+  const sections: MenuSection[] = [...gameSections, accountSection]
 
   return (
     <div className={styles.frame}>
+      {/* ── The header, which on MOBILE is split across the two pages ──
+          One `<header>` whose contents swap, not two headers: the switch button
+          then can't move between pages (it's pinned to the right edge in both),
+          which is the muscle-memory win that motivated consolidating the old
+          "Game info" menu item and the sheet's ✕ into one control.
+
+          The split exists because a phone header can't hold everything at once.
+          What each page keeps is chosen by what you need WHILE looking at it:
+
+            board page — chat + feedback (a peer's move is news you need mid-play),
+                         and no timer/pause;
+            info page  — the timer + pause (readouts belong with readouts), and no
+                         chat/feedback.
+
+          Joel's call, against my argument for keeping a countdown visible while
+          playing: this roster isn't race-style, and seeing chat matters more.
+
+          Desktop is UNCHANGED — `infoOpen` is always false there (useInfoSheet
+          resets it above the breakpoint) so this renders exactly the old header,
+          and the switch button is `display: none`. */}
       <header className={styles.header}>
         <div className={styles.left}>
           <Menu
@@ -443,23 +487,37 @@ export function GamePage({
             // reopen the menu, so let focus fall back to the board on close.
             returnFocusOnClose={false}
           />
-          <div className={styles.panelToggles}>
-            <ChatBubble />
-            {manifest.scratchpad?.enabled && <ScratchpadBubble />}
-          </div>
-          <StatusSlot
-            players={players}
-            globalFeedback={globalFeedback}
-            onCloseGlobalFeedback={globalFeedbackClear}
-          />
+          {/* The menu is the one thing on BOTH pages — it's how you leave the
+              game, and stranding it on one page is what the old full-height
+              sheet did (it covered the header outright). */}
+          {!infoOpen && (
+            <>
+              <div className={styles.panelToggles}>
+                <ChatBubble />
+                {manifest.scratchpad?.enabled && <ScratchpadBubble />}
+              </div>
+              <StatusSlot
+                players={players}
+                globalFeedback={globalFeedback}
+                onCloseGlobalFeedback={globalFeedbackClear}
+              />
+            </>
+          )}
         </div>
         <div className={styles.right}>
-          <PauseButton paused={paused} onPause={sendManualPause} />
-          {showTimer && !gameOver && (
-            <span className={styles.timer}>
-              {formatTimerSeconds(timer.displaySeconds)}
-            </span>
+          {/* Pause + timer ride the INFO page on mobile (hence `infoOpen ||
+              !isMobile`), and stay in place on desktop where there's room. */}
+          {(!isMobile || infoOpen) && (
+            <>
+              <PauseButton paused={paused} onPause={sendManualPause} />
+              {showTimer && !gameOver && (
+                <span className={styles.timer}>
+                  {formatTimerSeconds(timer.displaySeconds)}
+                </span>
+              )}
+            </>
           )}
+          <InfoSwitchButton open={infoOpen} />
         </div>
       </header>
 

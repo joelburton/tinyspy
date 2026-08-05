@@ -444,7 +444,6 @@ export function PlayArea({
         onEndGame: endGame,
         onConcede: concede,
         extra: [
-          ...infoSheet.menuSections,
           {
             items: [
               { id: 'restart', label: 'Restart', onClick: restart },
@@ -471,7 +470,7 @@ export function PlayArea({
     return () => menu.setGameSections([])
   }, [
     menu, menuMode, isTerminal, myConceded, endGame, concede, restart, handleNewGame,
-    revealSolution, solutionShown, infoSheet.menuSections,
+    revealSolution, solutionShown,
     // The print model's inputs. It's rebuilt whenever the printable state moves,
     // which is what makes the snapshot current at click time.
     brand, title, game, shownTiles, submissions, players, session.user.id, foundCount, setup,

@@ -314,6 +314,27 @@
      PlayArea.module.css. */
   --game-chrome-height:       5rem;
 
+  /* Where the GamePage header's bottom edge actually SITS, measured from the
+     viewport top. Anything positioning itself directly under the header wants
+     this — the mobile info sheet does.
+
+     Distinct from --game-chrome-height above, and the distinction is the whole
+     reason this exists: that one is the total chrome LUMP a play surface
+     subtracts from 100svh, so it also counts the body's BOTTOM padding and the
+     gap below the header. Using it as a `top` overshoots by ~1.75rem — exactly
+     the strip of board page that showed through above the info sheet before
+     this was split out.
+
+     COMPOSED from --page-padding-y rather than written as one number, and
+     that's load-bearing: the padding drops to 0.25rem at --phone but stays
+     0.5rem on a portrait tablet, so any constant is right at one width and
+     wrong at the other. (A fixed 3.3rem measured flush at 390px and let the
+     sheet ride 4px over the header's rule at 768px.) The remaining terms are
+     the header's own box: its 2.5rem tallest child (the menu trigger), its
+     0.5rem padding-bottom, and the 1px rule. */
+  --game-header-bottom: calc(var(--page-padding-y) + 2.5rem + 0.5rem + 1px);
+
+
   /* Type. */
   font-family: system-ui, -apple-system, sans-serif;
 

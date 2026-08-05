@@ -238,8 +238,8 @@ active-clue bar ARE the main view — the grid takes the full viewport width
 (`--cw-cell-mobile`, the second inline cell-size formula picked by the
 breakpoint in `Grid.module.css`), with the bar hugging its bottom edge (2
 reserved/clamped lines on a tablet, 3 on a phone — narrower wraps more); the
-clue lists + the Controls strip move into the **wide** off-canvas "Game info"
-sheet (the shared `useInfoSheet` / `<InfoSheet wide>` recipe; `.sheetContent`
+clue lists + the Controls strip move into the **wide** off-canvas info
+sheet (the shared `useInfoSheet` / `<InfoSheet>` recipe; `.sheetContent`
 is `display: contents` on desktop so `.clues`/`.strip` stay grid items,
 byte-identical). **Keyboard-required still holds** — this is the layout for a
 tablet (or phone) *with* a keyboard, not a touch-entry mode. Guarded by

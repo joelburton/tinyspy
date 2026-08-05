@@ -5,7 +5,7 @@ import { signIn } from './helpers/session'
 /**
  * scrabble's mobile layout (docs/mobile.md → the psychicnum recipe, crosswords'
  * keyboard-required flavor): below the breakpoint the board fills the width and
- * the info column moves into an off-canvas sheet opened from the "Game info"
+ * the info column moves into an off-canvas sheet reached from the header's switch
  * menu item. There is NO touch-entry mode — play stays on the keyboard cursor
  * (tap a square, type), so this is a layout for keyboard-attached devices.
  *
@@ -78,11 +78,11 @@ test.describe('scrabble mobile', () => {
       const wrap = page.locator('[data-info-sheet]')
       const xClosed = (await wrap.boundingBox())!.x
       await page.getByRole('button', { name: 'Game menu' }).click()
-      await page.getByText('Game info', { exact: true }).click()
+      await page.getByRole('button', { name: 'Game info' }).click()
       await page.waitForTimeout(300) // the 160ms slide-in
       const xOpen = (await wrap.boundingBox())!.x
       expect(xOpen).toBeLessThan(xClosed - 100)
-      await page.getByRole('button', { name: 'Close game info' }).click()
+      await page.getByRole('button', { name: 'Back to board' }).click()
       await page.waitForTimeout(300)
       expect((await wrap.boundingBox())!.x).toBeGreaterThan(xOpen + 100)
 

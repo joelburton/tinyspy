@@ -173,3 +173,82 @@
   font-size: 0.82rem;
   margin-top: 0.1rem;
 }
+
+/* ── Submenus ──────────────────────────────────────────────────────
+ * Two presentations of one piece of state (see Menu.tsx): a FLYOUT beside the
+ * parent row on desktop, a DRILL-DOWN that replaces the list on mobile. The
+ * split is by viewport because the flyout has nowhere to go on a phone — the
+ * parent popover already runs to the `max-width` cap there, so a second panel
+ * beside it would only ever land on top of the first. */
+
+/* The "there's more behind this row" affordance. `margin-left: auto` pushes it
+ * to the right edge the way `.itemShortcut` does — a row never has both, since
+ * a submenu parent carries no shortcut (it isn't a command). */
+.itemChevron {
+  margin-left: auto;
+  padding-left: 0.5rem;
+  color: var(--color-muted);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* The parent row of an OPEN flyout stays lit, so it's unambiguous which row the
+ * floating panel belongs to — without it, a panel hanging in space beside a
+ * list of identical rows makes you count pixels to find its owner. */
+.itemOpen {
+  background: var(--color-surface-hover, rgba(127, 127, 127, 0.12));
+}
+
+/* The drill-down's "‹ Back" row. Muted like a breadcrumb rather than styled as
+ * a command: it undoes a navigation step, it doesn't do anything to the game. */
+.itemBack {
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+/* The desktop flyout. `position: fixed` is load-bearing, not stylistic:
+ * `.popover` is `overflow-y: auto`, and the spec computes overflow-x to `auto`
+ * alongside it — so a flyout absolutely positioned inside the popover would be
+ * CLIPPED at the popover's edge rather than overflowing past it. Fixed
+ * coordinates (supplied inline from the parent row's rect) escape the scroll
+ * container. z-index one above `.popover`'s 1500 so it stacks over its parent. */
+.flyout {
+  position: fixed;
+  z-index: 1501;
+  width: max-content;
+  min-width: 10rem;
+  max-width: calc(100vw - 2 * var(--page-padding-x));
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 0.3rem 0;
+  display: flex;
+  flex-direction: column;
+  /* Same viewport cap as the parent: a long submenu scrolls itself rather than
+   * growing the page. */
+  max-height: calc(100svh - 5rem);
+  overflow-y: auto;
+  /* Overlap the parent's border by a pixel so the two panels read as joined
+   * rather than as two unrelated cards with a seam between them. */
+  margin-left: -1px;
+}
+
+/* A menu anchored at the screen's RIGHT edge (popoverAlign="right") opens its
+ * popover leftward, so its flyout has to go leftward too or it runs off-screen.
+ * The inline style supplies `right` instead of `left`; this just flips the
+ * overlap. */
+.flyoutLeft {
+  margin-left: 0;
+  margin-right: -1px;
+}
+
+/* The identity disc on an item that carries one (the account row). Sized to the
+ * label's text rather than a fixed px so it tracks the menu's type, and given a
+ * little right margin — `.item` is a flex row whose `gap` is the wide
+ * label↔shortcut gutter, which would fling the dot away from its own name. */
+.itemDot {
+  --dot-size: 0.7em;
+  flex: none;
+  margin-right: -1rem;
+}

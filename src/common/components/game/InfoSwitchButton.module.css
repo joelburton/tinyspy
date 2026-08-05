@@ -1,0 +1,39 @@
+/* The mobile page-switch button (see InfoSwitchButton.tsx).
+ *
+ * Sized like the other header icon buttons (the pause button, the chat bubble)
+ * so the header's right edge keeps one rhythm whichever page you're on. The
+ * chevron is a text glyph rather than an icon component: it's a single
+ * character at a single size, and the two directions have to be optically
+ * identical mirrored — which a font gives for free and two SVGs wouldn't. */
+.button {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  flex: none;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  /* The glyph carries the meaning, so it's the largest thing in the button —
+   * bumped well past body size because a bare chevron at 1rem reads as debris
+   * rather than a control. */
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 80ms ease;
+}
+
+.button:hover {
+  background: var(--color-surface-hover, rgba(127, 127, 127, 0.12));
+}
+
+/* Mobile only: on desktop the info column is always visible, so there is
+ * nothing to switch to and the button would be a control with no meaning. */
+@media (max-width: 56.25rem) {
+  .button {
+    display: flex;
+  }
+}

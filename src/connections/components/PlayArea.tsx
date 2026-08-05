@@ -424,7 +424,6 @@ export function PlayArea({
         onEndGame: () => actionsRef.current.endGame(),
         onConcede: () => actionsRef.current.concede(),
         extra: [
-          ...infoSheet.menuSections,
           {
             items: [
               // The same pair the terminal action row offers, reachable mid-game too.
@@ -440,7 +439,7 @@ export function PlayArea({
     )
     return () => menu.setGameSections([])
   }, [
-    menu, mode, isTerminal, myConceded, infoSheet.menuSections,
+    menu, mode, isTerminal, myConceded,
     game, boardView, brand, title, matchedCategories, guesses, players,
     session.user.id, mistakeCount,
   ])

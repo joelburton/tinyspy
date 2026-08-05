@@ -27,7 +27,7 @@ test('open info sheet is a dialog and closes on Escape', async ({ browser }) => 
 
   // Open from the menu → slides in AND becomes a dialog.
   await page.getByRole('button', { name: 'Game menu' }).click()
-  await page.getByText('Game info', { exact: true }).click()
+  await page.getByRole('button', { name: 'Game info' }).click()
   await page.waitForTimeout(300)
   const xOpen = (await wrap.boundingBox())!.x
   expect(xOpen).toBeLessThan(xClosed - 100)

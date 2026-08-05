@@ -27,7 +27,7 @@ test('info sheet closes when the viewport crosses to desktop and back', async ({
 
   // Open the sheet on mobile — slides in from the right (x drops toward 0).
   await page.getByRole('button', { name: 'Game menu' }).click()
-  await page.getByText('Game info', { exact: true }).click()
+  await page.getByRole('button', { name: 'Game info' }).click()
   await page.waitForTimeout(300)
   const xOpen = (await wrap.boundingBox())!.x
   expect(xOpen).toBeLessThan(xClosed - 100)

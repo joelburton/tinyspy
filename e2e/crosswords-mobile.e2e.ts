@@ -6,7 +6,7 @@ import { signIn } from './helpers/session'
  * crosswords' mobile layout (docs/mobile.md): the grid + the active-clue bar
  * are the whole main view — grid maximized to the viewport width, the bar
  * (2 reserved lines on a tablet, 3 on a phone) directly under it — and the
- * clue lists + the check/reveal controls live in the off-canvas "Game info"
+ * clue lists + the check/reveal controls live in the off-canvas info
  * sheet. Keyboard-REQUIRED still holds: entry is typed (Playwright's
  * keyboard stands in for the tablet's attached one). We check the invariants
  * jsdom can't: no page scroll, width-bound grid sizing on a real 15×15
@@ -71,12 +71,12 @@ test.describe('crosswords mobile', () => {
       const xClosed = (await sheet.boundingBox())!.x
       expect(xClosed).toBeGreaterThanOrEqual(w - 5)
       await page.getByRole('button', { name: 'Game menu' }).click()
-      await page.getByText('Game info', { exact: true }).click()
+      await page.getByRole('button', { name: 'Game info' }).click()
       await page.waitForTimeout(300)
       expect((await sheet.boundingBox())!.x).toBeLessThan(xClosed - 100)
       await expect(page.getByText('Across', { exact: true })).toBeVisible()
       await expect(page.getByRole('button', { name: 'Check word' })).toBeVisible()
-      await page.getByRole('button', { name: 'Close game info' }).click()
+      await page.getByRole('button', { name: 'Back to board' }).click()
       await page.waitForTimeout(300)
       expect((await sheet.boundingBox())!.x).toBeGreaterThanOrEqual(w - 5)
 
@@ -86,7 +86,7 @@ test.describe('crosswords mobile', () => {
       // otherwise covers. Reopen, tap "Check word" → the sheet slides back off.
       const openSheet = async () => {
         await page.getByRole('button', { name: 'Game menu' }).click()
-        await page.getByText('Game info', { exact: true }).click()
+        await page.getByRole('button', { name: 'Game info' }).click()
         await page.waitForTimeout(300)
         expect((await sheet.boundingBox())!.x).toBeLessThan(xClosed - 100)
       }

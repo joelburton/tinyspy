@@ -8,6 +8,9 @@ import { db as commonDb } from '../../db'
 import { useProfile } from '../../hooks/session/useProfile'
 import { useRealtimeRefetch } from '../../hooks/realtime/useRealtimeRefetch'
 import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
+import { Menu } from '../panels/Menu'
+import { TriggerWithChevron } from '../panels/TriggerWithChevron'
+import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
 import styles from './HomePage.module.css'
 
 type ClubListEntry = {
@@ -109,6 +112,8 @@ export function HomePage({ session }: Props) {
   // closes it.
   useSwallowTab()
 
+  const accountSection = useAccountMenuSection(session)
+
   const listRef = useRef<HTMLUListElement>(null)
   const [cursor, setCursor] = useState(0)
   // Tracked on the container proper (not a bubbled child focus) so tabbing on
@@ -154,7 +159,23 @@ export function HomePage({ session }: Props) {
 
   return (
     <div className="card">
-      <PuzpuzpuzWordmark />
+      {/* The wordmark is now a menu trigger, matching ClubPage and GamePage.
+          Home had NO menu at all until the account items moved off the fixed
+          top-right chip — which made this the one authenticated screen with no
+          way to reach Profile or Log out. The menu holds only the account
+          submenu today; that's the point of it existing, and it's the natural
+          home for a future Help. */}
+      <div className={styles.wordmarkRow}>
+        <Menu
+          trigger={
+            <TriggerWithChevron>
+              <PuzpuzpuzWordmark />
+            </TriggerWithChevron>
+          }
+          sections={[accountSection]}
+          triggerLabel="Main menu"
+        />
+      </div>
       <h1>Welcome{username ? `, ${username}` : ''}</h1>
       <p className="muted">{session.user.email}</p>
 

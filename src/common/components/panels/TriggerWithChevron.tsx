@@ -3,7 +3,7 @@ import styles from './TriggerWithChevron.module.css'
 
 /**
  * Standard content for a `<Menu>` trigger: the caller's identity element
- * (a game/app logo, the UserMenu's profile-color dot) with the little
+ * (a game/app logo, the home wordmark) with the little
  * down-chevron snugged up tight to its right — the "this opens a menu"
  * affordance, shared so every menu trigger reads the same way.
  *

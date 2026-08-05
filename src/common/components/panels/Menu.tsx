@@ -10,8 +10,34 @@ import {
   type ReactNode,
 } from 'react'
 import { cls } from '../../lib/util/cls'
-import type { MenuItem, MenuSection } from '../../lib/games'
+import { Dot } from '../text/Dot'
+import { isSubmenu, type MenuItem, type MenuSection, type MenuSubmenu } from '../../lib/games'
+import { useIsMobile } from '../../hooks/ui/useIsMobile'
 import styles from './Menu.module.css'
+
+/**
+ * One row the arrow keys can land on. Almost always a real `MenuItem`; the
+ * exception is the mobile drill-down's "‹ Back" row, which is navigable and
+ * activatable but isn't a menu item the caller supplied.
+ *
+ * Modelling Back as a nav row (rather than special-casing it around the
+ * keyboard code) is what keeps the flat-index model intact: there is still
+ * exactly ONE list of rows on screen with focus in it, mobile or desktop.
+ */
+type NavRow =
+  | { kind: 'back' }
+  | { kind: 'item'; item: MenuItem }
+
+/** The open submenu, plus where its parent row sat when it opened (desktop
+ *  flyouts are `position: fixed`, so they need viewport coordinates). */
+type OpenSubmenu = {
+  parent: MenuSubmenu
+  /** Flat index of the parent row in the TOP-LEVEL list, so closing the
+   *  submenu can put focus back where it came from. */
+  parentIndex: number
+  /** The parent row's viewport rect at open time. Desktop only. */
+  anchor: { top: number; left: number; right: number }
+}
 
 /** Imperative handle exposed via `ref` so an app-level shortcut (the
  *  "?" key — see useAppShortcuts) can open the menu without owning
@@ -41,8 +67,9 @@ type Props = {
    *  `left` (popover's left edge sits at the trigger's left
    *  edge — the right thing for a left-side trigger like the
    *  GamePage logo). Set to `right` for triggers at the right
-   *  side of the screen (the UserMenu in the top-right corner),
-   *  so the popover doesn't overflow off-screen to the right. */
+   *  side of the screen, so the popover doesn't overflow
+   *  off-screen to the right. Also flips the side a submenu flies
+   *  out toward, for the same reason. */
   popoverAlign?: 'left' | 'right'
   /** Whether closing the menu returns focus to the trigger button.
    *  Default `true` (standard menu a11y — Esc restores focus for
@@ -95,6 +122,14 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
 }, ref) {
   const [open, setOpen] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(0)
+  // The open submenu, or null. ONE piece of state serves both presentations —
+  // see the component docstring's "Submenus" section.
+  const [submenu, setSubmenu] = useState<OpenSubmenu | null>(null)
+  // Which presentation: flyout on desktop, drill-down on mobile. Read here
+  // rather than in CSS because the two differ in what is RENDERED, not just how
+  // it looks — the drill-down replaces the list, so the arrow keys walk a
+  // different set of rows.
+  const isMobile = useIsMobile()
   const triggerRef = useRef<HTMLButtonElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
   // Stable id tying the trigger's aria-controls to the popover's
@@ -119,8 +154,37 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   // findNextEnabled.
   const flatItems = sections.flatMap((s) => s.items)
 
+  /**
+   * The rows the KEYBOARD is currently walking — the single list that owns
+   * focus. This is where the hybrid collapses to almost nothing: in BOTH
+   * presentations an open submenu takes over navigation entirely, so the only
+   * difference is the "‹ Back" row (which exists solely in the drill-down,
+   * where the parent list is gone and there'd otherwise be no way back).
+   *
+   * On desktop the parent list stays *visible* behind the flyout but is not
+   * navigable — matching every desktop menu, where arrows move inside the open
+   * submenu and ArrowLeft/Escape steps back out.
+   */
+  const navRows: NavRow[] = submenu
+    ? [
+      ...(isMobile ? [{ kind: 'back' } as const] : []),
+      ...submenu.parent.items.map((item) => ({ kind: 'item' as const, item })),
+    ]
+    : flatItems.map((item) => ({ kind: 'item' as const, item }))
+
+  const closeSubmenu = useCallback((restoreFocusTo?: number) => {
+    setSubmenu((cur) => {
+      if (cur && restoreFocusTo === undefined) setFocusedIndex(cur.parentIndex)
+      return null
+    })
+    if (restoreFocusTo !== undefined) setFocusedIndex(restoreFocusTo)
+  }, [])
+
   const closeMenu = useCallback(() => {
     setOpen(false)
+    // A menu that reopens still drilled into a submenu would be a stale
+    // surprise — every open starts at the top level.
+    setSubmenu(null)
     // Restore focus to the trigger (standard menu a11y), UNLESS the caller
     // opted out — then blur it so focus falls to <body> and a page-level
     // keyboard handler (the crosswords board) isn't shadowed by a focused
@@ -141,8 +205,45 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   // item activation), matching how a user dismisses it.
   useImperativeHandle(ref, () => ({ open: openMenu }), [openMenu])
 
-  function activate(item: MenuItem) {
+  /**
+   * Open a submenu from the row at `index` in the CURRENT list. Captures the
+   * parent row's viewport rect for the desktop flyout, which is
+   * `position: fixed` — see the flyout's own comment for why it can't simply be
+   * absolutely positioned inside the popover.
+   */
+  const openSubmenu = useCallback((parent: MenuSubmenu, index: number, from?: HTMLElement) => {
+    // The anchor element is passed in from a click (`e.currentTarget`) rather
+    // than looked up, because switching straight from one open flyout to
+    // another would find the FLYOUT's button under that index, not the parent
+    // row's — the ref map is keyed by nav index, and the flyout owns that space
+    // while it's open.
+    const el = from ?? itemRefsRef.current.get(index)
+    const r = el?.getBoundingClientRect()
+    setSubmenu({
+      parent,
+      parentIndex: index,
+      anchor: { top: r?.top ?? 0, left: r?.left ?? 0, right: r?.right ?? 0 },
+    })
+    // Focus the submenu's first enabled row. On mobile the Back row occupies
+    // index 0, so the first real item is 1.
+    const offset = isMobile ? 1 : 0
+    const firstEnabled = parent.items.findIndex((it) => !it.disabled)
+    setFocusedIndex(firstEnabled < 0 ? 0 : firstEnabled + offset)
+  }, [isMobile])
+
+  /** What a row does when clicked or Enter'd. A submenu parent opens; a Back
+   *  row steps out; anything else runs its action and closes the menu. */
+  function activateRow(row: NavRow, index: number, from?: HTMLElement) {
+    if (row.kind === 'back') {
+      closeSubmenu()
+      return
+    }
+    const { item } = row
     if (item.disabled) return
+    if (isSubmenu(item)) {
+      openSubmenu(item, index, from ?? itemRefsRef.current.get(index))
+      return
+    }
     closeMenu()
     item.onClick()
   }
@@ -179,23 +280,45 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
     e.stopPropagation()
     if (e.key === 'Escape') {
       e.preventDefault()
-      closeMenu()
+      // Escape unwinds ONE level at a time: out of a submenu first, and only
+      // then out of the menu. Closing the whole thing from inside a submenu
+      // would throw away the step the user just took.
+      if (submenu) closeSubmenu()
+      else closeMenu()
       return
     }
     if (e.key === 'Tab') {
       // Tab while open: close the menu, let focus advance
       // normally to the next page element. (No preventDefault.)
       setOpen(false)
+      setSubmenu(null)
       return
     }
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setFocusedIndex((curr) => findNextEnabled(curr, 1, flatItems))
+      setFocusedIndex((curr) => findNextEnabled(curr, 1, navRows))
       return
     }
     if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setFocusedIndex((curr) => findNextEnabled(curr, -1, flatItems))
+      setFocusedIndex((curr) => findNextEnabled(curr, -1, navRows))
+      return
+    }
+    // The horizontal pair is the desktop-menu convention, and it works in the
+    // drill-down too (where it reads as "in" / "out" rather than left/right).
+    if (e.key === 'ArrowRight') {
+      const row = navRows[focusedIndex]
+      if (row?.kind === 'item' && isSubmenu(row.item) && !row.item.disabled) {
+        e.preventDefault()
+        openSubmenu(row.item, focusedIndex)
+      }
+      return
+    }
+    if (e.key === 'ArrowLeft') {
+      if (submenu) {
+        e.preventDefault()
+        closeSubmenu()
+      }
       return
     }
   }
@@ -214,6 +337,90 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
       e.preventDefault()
       openMenu()
     }
+  }
+
+  /**
+   * Render one row.
+   *
+   * `navIndex` is the row's position in `navRows` — or null when the row is on
+   * screen but NOT keyboard-navigable, which happens to the parent list behind
+   * an open desktop flyout. A non-navigable row registers no ref, so the ref
+   * map stays a clean 1:1 with `navRows` and the focus effect can't land on a
+   * button in the wrong list.
+   */
+  function renderRow(row: NavRow, navIndex: number | null, key: string): ReactNode {
+    const isBack = row.kind === 'back'
+    const item = row.kind === 'item' ? row.item : null
+    const parent = item && isSubmenu(item) ? item : null
+    const disabled = item?.disabled ?? false
+    return (
+      <button
+        key={key}
+        type="button"
+        ref={(el) => {
+          if (navIndex === null) return
+          if (el) itemRefsRef.current.set(navIndex, el)
+          else itemRefsRef.current.delete(navIndex)
+        }}
+        className={cls(
+          styles.item,
+          disabled && styles.itemDisabled,
+          isBack && styles.itemBack,
+          // The parent row of an open flyout stays lit, so it's obvious which
+          // row the floating panel belongs to.
+          parent && submenu?.parent.id === parent.id && styles.itemOpen,
+        )}
+        role="menuitem"
+        aria-disabled={disabled || undefined}
+        disabled={disabled}
+        // A submenu parent is a disclosure, so it advertises itself as one.
+        aria-haspopup={parent ? 'menu' : undefined}
+        aria-expanded={parent ? submenu?.parent.id === parent.id : undefined}
+        // tabIndex -1 because the popover's keyboard handler
+        // owns navigation; only one item is focusable at a time
+        // (via programmatic .focus()), and Tab from any item
+        // closes the menu.
+        tabIndex={-1}
+        onClick={(e) => activateRow(row, navIndex ?? 0, e.currentTarget)}
+      >
+        {/* The identity disc, when the item carries one — before the label, the
+            way every other "who" surface in the app draws it. Not rendered on
+            the drill-down's Back row: that row names where you're going, not a
+            person. */}
+        {!isBack && item?.dot && <Dot color={item.dot} className={styles.itemDot} />}
+        <span className={styles.itemLabel}>
+          {isBack ? `‹ ${submenu?.parent.label ?? 'Back'}` : item?.label}
+        </span>
+        {item?.shortcut && <span className={styles.itemShortcut}>{item.shortcut}</span>}
+        {/* The affordance that says "there's more behind this row". Purely
+            decorative — the label and aria-haspopup carry the meaning. */}
+        {parent && <span className={styles.itemChevron} aria-hidden>›</span>}
+      </button>
+    )
+  }
+
+  // ── The DRILL-DOWN (mobile): the submenu REPLACES the list ──
+  // No sections and no dividers — a submenu is one group by construction, and
+  // the Back row is the only chrome it needs.
+  if (isMobile && submenu) {
+    const drilledRows = navRows.map((row, i) =>
+      renderRow(row, i, row.kind === 'back' ? '__back' : row.item.id),
+    )
+    return (
+      <div className={styles.menu}>
+        {renderTrigger()}
+        <div
+          ref={popoverRef}
+          id={popoverId}
+          className={cls(styles.popover, popoverAlign === 'right' && styles.popoverRight)}
+          role="menu"
+          aria-label={submenu.parent.label}
+          onKeyDown={onPopoverKeyDown}
+        >
+          {drilledRows}
+        </div>
+      </div>
+    )
   }
 
   // Build the dropdown's children list. We walk sections in order,
@@ -252,34 +459,66 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
     section.items.forEach((item) => {
       const idx = flatIdx
       flatIdx += 1
-      renderedItems.push(
-        <button
-          key={item.id}
-          type="button"
-          ref={(el) => {
-            if (el) itemRefsRef.current.set(idx, el)
-            else itemRefsRef.current.delete(idx)
-          }}
-          className={cls(styles.item, item.disabled && styles.itemDisabled)}
-          role="menuitem"
-          aria-disabled={item.disabled || undefined}
-          disabled={item.disabled}
-          // tabIndex -1 because the popover's keyboard handler
-          // owns navigation; only one item is focusable at a time
-          // (via programmatic .focus()), and Tab from any item
-          // closes the menu.
-          tabIndex={-1}
-          onClick={() => activate(item)}
-        >
-          <span className={styles.itemLabel}>{item.label}</span>
-          {item.shortcut && <span className={styles.itemShortcut}>{item.shortcut}</span>}
-        </button>,
-      )
+      // While a desktop flyout is open IT owns navigation, so the rows behind it
+      // pass `null` and register no ref (see renderRow).
+      renderedItems.push(renderRow({ kind: 'item', item }, submenu ? null : idx, item.id))
     })
   })
 
   return (
     <div className={styles.menu}>
+      {renderTrigger()}
+      {open && (
+        <div
+          ref={popoverRef}
+          id={popoverId}
+          className={cls(
+            styles.popover,
+            popoverAlign === 'right' && styles.popoverRight,
+          )}
+          role="menu"
+          aria-label={triggerLabel}
+          onKeyDown={onPopoverKeyDown}
+          // Scrolling the list would leave a fixed-position flyout stranded
+          // beside empty space (crosswords' ~20-item menu really does scroll),
+          // so the flyout closes rather than detaching. Cheaper and steadier
+          // than re-measuring on every scroll frame.
+          onScroll={submenu ? () => closeSubmenu() : undefined}
+        >
+          {renderedItems}
+          {/* ── The FLYOUT (desktop): a second panel beside the parent row ──
+              `position: fixed`, which is not a stylistic choice: `.popover` is
+              `overflow-y: auto`, and per spec that computes overflow-x to
+              `auto` too — so a flyout absolutely positioned inside the popover
+              would be CLIPPED at its edge instead of overflowing. Fixed
+              coordinates escape the scroll container entirely. It sits on the
+              side the parent menu opens toward, so a right-aligned menu (one
+              anchored at the screen's right edge) flies out leftward and can't
+              run off-screen. */}
+          {submenu && (
+            <div
+              className={cls(styles.flyout, popoverAlign === 'right' && styles.flyoutLeft)}
+              role="menu"
+              aria-label={submenu.parent.label}
+              style={{
+                top: submenu.anchor.top,
+                ...(popoverAlign === 'right'
+                  ? { right: window.innerWidth - submenu.anchor.left }
+                  : { left: submenu.anchor.right }),
+              }}
+            >
+              {navRows.map((row, i) =>
+                renderRow(row, i, row.kind === 'back' ? '__back' : row.item.id),
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+
+  function renderTrigger() {
+    return (
       <button
         type="button"
         ref={triggerRef}
@@ -293,23 +532,8 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
       >
         {trigger}
       </button>
-      {open && (
-        <div
-          ref={popoverRef}
-          id={popoverId}
-          className={cls(
-            styles.popover,
-            popoverAlign === 'right' && styles.popoverRight,
-          )}
-          role="menu"
-          aria-label={triggerLabel}
-          onKeyDown={onPopoverKeyDown}
-        >
-          {renderedItems}
-        </div>
-      )}
-    </div>
-  )
+    )
+  }
 })
 
 /** Find the next enabled item in `direction` (1 = forward,
@@ -318,15 +542,17 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
 function findNextEnabled(
   current: number,
   direction: 1 | -1,
-  items: MenuItem[],
+  rows: NavRow[],
 ): number {
-  const n = items.length
+  const n = rows.length
   if (n === 0) return 0
   for (let i = 1; i <= n; i++) {
     // The %-then-+n-then-% pattern handles negative dividends
     // cleanly (JS % can return negatives).
     const next = (((current + direction * i) % n) + n) % n
-    if (!items[next].disabled) return next
+    const row = rows[next]
+    // The Back row is always enabled — it's the only way out of a drill-down.
+    if (row.kind === 'back' || !row.item.disabled) return next
   }
   return current
 }

@@ -260,7 +260,6 @@ export function PlayArea(ctx: GamePageCtx) {
         onConcede: () => actionsRef.current?.concede(),
         extra: [
           // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
-          ...infoSheet.menuSections,
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printBogglePdf(model) }] },
           {
             items: [
@@ -273,7 +272,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, boggleSetup, hasBonusDifficulty, ladder, isTerminal, solutionRevealed, myConceded, myCount, myScore, infoSheet.menuSections])
+  }, [menu, game, foundWords, players, brand, title, boggleSetup, hasBonusDifficulty, ladder, isTerminal, solutionRevealed, myConceded, myCount, myScore])
 
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); only the
@@ -469,7 +468,7 @@ export function PlayArea(ctx: GamePageCtx) {
       />
 
       {/* Info column — off-canvas full-width sheet on mobile, flex child on desktop. */}
-      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close} wide>
+      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
         // ── Mode + phase ──
         isCompete={isCompete}

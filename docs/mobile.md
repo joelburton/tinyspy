@@ -448,12 +448,78 @@ undo: change both declarations to `light dark` and add the
 because the page has declared it handles this — and our palette wins instead of
 their heuristic.
 
+### The two mobile pages
+
+Below the breakpoint the info column is a **full-width page**, not a drawer over
+the board — so this is **two full-screen pages** and the affordance is page
+navigation.
+
+**One switch button**, pinned to the header's right edge
+([`InfoSwitchButton`](../src/common/components/game/InfoSwitchButton.tsx)),
+drawing lucide's `panel-right-open` / `panel-right-close` — a right-hand panel
+opening and closing IS the gesture, where a bare chevron said nothing about
+which panel and collided with the info column's own icon-only "Back to club".
+It replaced two controls in two places — a "Game info" menu item to leave and a
+✕ in the sheet's corner to come back — which is why moving between the pages
+felt fussy: two different targets, neither where you last used the other.
+
+**The header is a stable frame across both pages**, and that's a change: the
+sheet used to be `top: 0` and covered the chrome outright, so switching to the
+info page took away the menu, chat, pause and the timer at once. It now starts
+at `--game-header-bottom` — a *different* token from `--game-chrome-height`, and
+the difference matters: the chrome-height one is the total lump subtracted from
+`100svh` (it also counts the body's bottom padding and the gap below the
+header), so using it as a `top` overshoots by ~1.75rem and leaves a strip of the
+board page showing above the sheet. The new token is composed from
+`--page-padding-y` rather than fixed, because that padding drops at `--phone`
+but not on a portrait tablet — so any constant is flush at one width and 4px
+wrong at the other.
+
+**The sheet is FULL-BLEED**, not a 24rem panel. It used to be
+`min(24rem, 100%)` = 384px: the whole screen on a 390px phone, but only half a
+768px portrait tablet — so the same component read as a page on one device and a
+drawer on the other. Five games (spellingbee, boggle, crosswords, wordiply,
+wordwheel) opted out of that with a `wide` prop just to get the full width their
+word lists needed. Going full-bleed picks one behaviour and **retired `wide`
+entirely** — the prop, its CSS rule, and all five call sites. The drop shadow
+went with it (a page doesn't cast a shadow onto itself), and `.infoCol`'s
+`border-left` + `padding-left` are suppressed below the breakpoint: that divider
+is column furniture, and on mobile there's no second column to divide from.
+
+**The header's contents split**, because a phone header can't hold everything.
+What each page keeps is chosen by what you need *while looking at it*:
+
+| | board page | info page |
+|---|---|---|
+| menu | ✓ | ✓ |
+| chat + scratchpad + feedback | ✓ | — |
+| pause + timer | — | ✓ |
+| switch | ✓ (right edge) | ✓ (right edge) |
+
+Joel's call, against the argument for keeping a countdown visible while playing:
+this roster isn't race-style, and seeing chat and feedback matters more. **The
+switch must stay pinned to the right edge in both** — the two headers hold
+different things, so riding inside either group would move it between pages and
+lose the muscle memory that justified consolidating it.
+
+Desktop is untouched: the info column is inline, the switch is `display: none`,
+and pause + timer stay in the header. `useInfoSheet` resets the flag when the
+viewport crosses up to desktop, so a page-switch made on a phone doesn't survive
+a widen-and-narrow round trip.
+
+**Where the state lives.** The sheet is rendered by each game's PlayArea (it
+wraps that game's `<InfoCol>`) but the switch button and the header live in the
+shell's `<GamePage>` — different subtrees. So the flag is a module store
+([`infoSheetStore`](../src/common/lib/game/infoSheetStore.ts)), safe as a single
+slot for the same structural reason the app has one game at a time; `GamePage`
+resets it on mount so a sheet left open in one game doesn't greet you in the next.
+
 ### Per-game conversions — the info-sheet recipe
 
 Each game's mobile pass follows the **psychicnum recipe**: below `--mobile` the
 board fills the screen and the whole info column becomes an off-canvas sheet
-opened from a mobile-only "Game info" menu item. `useIsMobile()` gates the menu
-item; the sheet is otherwise pure CSS — `.infoWrap` is `display: contents` on
+reached by a **switch button pinned to the header's right edge**. The sheet is
+otherwise pure CSS — `.infoWrap` is `display: contents` on
 desktop (so InfoCol stays the flex child, byte-identical) and a fixed slide-in
 sheet on mobile, with a close ✕. The `--avail-w` override hands the board the
 full width.
@@ -498,10 +564,11 @@ variation rather than psychicnum's assumptions:
 proved it byte-identical — rule of three). Three shared pieces, and a game's
 mobile pass is now composing them, not copy-paste:
 
-- [`useInfoSheet()`](../src/common/hooks/game/useInfoSheet.ts) — the `useIsMobile`
-  gate + open/close state + the "Game info" `menuSections` (spread into
-  `buildGameMenu`'s `extra`; empty on desktop; stable identity so it's safe in
-  the menu effect's deps).
+- [`useInfoSheet()`](../src/common/hooks/game/useInfoSheet.ts) — a game's handle
+  on the sheet: the open flag to hand `<InfoSheet>`, and `close`. It used to also
+  return a mobile-only "Game info" **menu item**, which was a placeholder that
+  buried a half-of-the-app navigation two taps inside a menu. See
+  [The two mobile pages](#the-two-mobile-pages) for what replaced it.
 - [`<InfoSheet>`](../src/common/components/game/InfoSheet.tsx) — the off-canvas
   wrapper around the game's `<InfoCol>` (`display: contents` on desktop → fixed
   slide-in sheet on mobile + the ✕), owning the sheet CSS. **Accessibility:** the
@@ -520,7 +587,7 @@ mobile pass is now composing them, not copy-paste:
   scrolls inside its own bordered box instead of growing tall and making the
   whole sheet scroll. `min-height: 0` is the load-bearing half: a flex item's
   implicit `min-height: auto` refuses to shrink under its content. (This was
-  once only on the `wide` variant; the narrow sheets were plain blocks and every
+  once only on the since-retired `wide` variant; the others were plain blocks and every
   one of them — waffle / wordle / psychicnum / connections / scrabble /
   stackdown / codenamesduet — scrolled the sheet instead. Pinned by a measured
   spec in `waffle-mobile.e2e.ts`.) `overflow-y: auto` stays as the fallback for
@@ -545,13 +612,16 @@ own; input is tile taps (no keyboard). The whole conversion was `useInfoSheet()`
 [`stackdown-mobile.e2e.ts`](../e2e/stackdown-mobile.e2e.ts) (tall + short: board
 fills, no scroll, sheet works).
 
-**spellingbee + boggle** are the **wide-sheet pair** — the two games whose info
-column is a multi-column **WordList** that wants real width. The plain recipe's
-sheet is only as wide as its content, which crushed the word columns to one row
-each on a phone. The fix is a **`wide` variant of `<InfoSheet>`** (`wide` prop):
-below `--mobile` the sheet is `width: 100%` and a flex column whose non-✕ child
-(the `<InfoCol>`) stretches to full height (`flex: 1 1 auto; min-height: 0`), so
-the WordList fills the sheet and its columns get their natural height. The
+**spellingbee + boggle** were the original **wide-sheet pair** — the games whose
+info column is a multi-column **WordList** that wants real width. The sheet used
+to be only as wide as its content, which crushed the word columns to one row each
+on a phone, and the fix was a `wide` prop opting those games into `width: 100%`.
+**That prop is gone**: every sheet is full-width now (see
+[The two mobile pages](#the-two-mobile-pages)), so what five games opted into is
+simply the behaviour. What remains from that work is the part that wasn't about
+width — the sheet is a flex column whose child (the `<InfoCol>`) stretches to
+full height (`flex: 1 1 auto; min-height: 0`), so the WordList fills it and its
+columns get their natural height. The
 columns themselves are now **rem-width** (`--wl-col-width`, default `10.5rem`) via
 `grid-auto-columns` instead of the old `calc((100% − gaps)/5)` five-column split —
 so the count of columns is driven by the word count and they **side-scroll**
@@ -624,7 +694,7 @@ active-clue bar are the whole main view — the grid takes the full viewport wid
 untouched), and the bar hugs the grid's bottom edge showing the one clue the
 cursor is on: **2 reserved/clamped lines on a tablet, 3 on a phone** (narrower
 wraps more). The Across | Down lists AND the check/reveal Controls strip move
-into the **wide** info sheet (the shared recipe; a `display: contents`
+into the info sheet (the shared recipe; a `display: contents`
 `.sheetContent` wrapper keeps them grid items on desktop, byte-identical).
 **Keyboard-required still holds** — this is the layout for a tablet (or phone)
 *with* a hardware keyboard, not a touch-entry mode; entry is still typed.
@@ -780,9 +850,10 @@ zoom-suppression *feel* is an on-device check — Playwright can't reproduce
 Safari's gesture heuristics (recorded in [deferred.md](deferred.md)).
 
 **The pass now covers every game except one.** Thirteen games follow the
-info-sheet recipe: the wide-sheet trio **spellingbee / boggle / crosswords**,
-and the plain-sheet games **psychicnum / wordle / codenamesduet / stackdown /
-waffle / connections / wordwheel / wordiply / scrabble / strands**.
+info-sheet recipe, and since the sheet went full-bleed they all follow the
+*same* one — there is no longer a wide/plain split: **spellingbee / boggle /
+crosswords / psychicnum / wordle / codenamesduet / stackdown / waffle /
+connections / wordwheel / wordiply / scrabble / strands**.
 
 - **scrabble** is **keyboard-required, NOT desktop-only** — like crosswords, its
   conversion is a layout for keyboard-attached devices, not a touch-entry mode

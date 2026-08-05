@@ -351,7 +351,6 @@ export function PlayArea({
         onEndGame: () => actionsRef.current?.endGame(),
         onConcede: () => actionsRef.current?.concede(),
         extra: [
-          ...infoSheet.menuSections,
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printScrabblePdf(model) }] },
           {
             items: [
@@ -364,7 +363,7 @@ export function PlayArea({
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, plays, self, isCompete, isTerminal, myConceded, nameOf, setup, brand, title, infoSheet.menuSections])
+  }, [menu, game, plays, self, isCompete, isTerminal, myConceded, nameOf, setup, brand, title])
 
   // ─── End / Concede / Replay — the shared trio ─────────────
   // The byte-identical shared handlers (useStandardGameActions). scrabble's own

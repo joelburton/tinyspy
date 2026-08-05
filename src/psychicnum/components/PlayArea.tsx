@@ -186,7 +186,6 @@ export function PlayArea({
         onConcede: () => actionsRef.current?.concede(),
         extra: [
           // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
-          ...infoSheet.menuSections,
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printPsychicnumPdf(model) }] },
           {
             items: [
@@ -209,7 +208,7 @@ export function PlayArea({
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, mode, isTerminal, myConceded, secretsShown, game, guesses, players, brand, title, setup, infoSheet.menuSections])
+  }, [menu, mode, isTerminal, myConceded, secretsShown, game, guesses, players, brand, title, setup])
 
   // Per-opponent secrets-found count we've already announced (compete tension).
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())

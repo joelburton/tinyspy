@@ -356,7 +356,6 @@ export function PlayArea({
         onEndGame: endGame,
         onConcede: concede,
         extra: [
-          ...infoSheet.menuSections,
           {
             items: [
               { id: 'restart', label: 'Restart', onClick: restart },
@@ -389,7 +388,6 @@ export function PlayArea({
     isTerminal,
     revealDisabled,
     answerShown,
-    infoSheet.menuSections,
     // The print model's inputs — rebuilt whenever the printable state moves, so
     // the snapshot is current at click time.
     brand,

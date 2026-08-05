@@ -211,7 +211,6 @@ export function PlayArea(ctx: GamePageCtx) {
         onConcede: () => actionsRef.current?.concede(),
         extra: [
           // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
-          ...infoSheet.menuSections,
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printWordwheelPdf(model) }] },
           {
             items: [
@@ -224,7 +223,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, wordwheelSetup, hasBonus, isTerminal, solutionRevealed, myConceded, foundWordsScore, foundWordsCount, infoSheet.menuSections])
+  }, [menu, game, foundWords, players, brand, title, wordwheelSetup, hasBonus, isTerminal, solutionRevealed, myConceded, foundWordsScore, foundWordsCount])
 
   // ─── Wheel tile counts (drive the illegal-letter dim + tile spending) ────
   // The wheel is a MULTISET — the same letter may sit on two tiles — so the
@@ -562,7 +561,7 @@ export function PlayArea(ctx: GamePageCtx) {
           and there's no help line — the wheel makes the move obvious. The
           WordList fills the rest. Off-canvas full-width sheet on mobile, flex
           child on desktop. */}
-      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close} wide>
+      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
         // ── Mode + phase ──
         isCompete={isCompete}

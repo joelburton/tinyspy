@@ -114,4 +114,9 @@ export {
   Star as IconThemeFind, // an ordinary theme word
   Check as IconWordOk, // a valid word that isn't part of the puzzle
   X as IconWordNo, // rejected — too short, unknown, or already counted
+  // The mobile page switch (GamePage header). A right-hand panel opening /
+  // closing IS the gesture — the info column slides in from the right — so the
+  // pair says what a bare chevron couldn't: which panel, and which way.
+  PanelRightOpen as IconInfoPanelOpen, // show the info page
+  PanelRightClose as IconInfoPanelClose, // back to the board
 } from 'lucide-react'

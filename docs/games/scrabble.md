@@ -559,7 +559,7 @@ setup disclosure, and the Moves log filling the rest.
 **Mobile** (the [mobile.md](../mobile.md) info-sheet recipe, crosswords'
 keyboard-required flavor): below the breakpoint the board fills the width
 (`shared.mobileFill`) and the info column moves into the narrow off-canvas
-`<InfoSheet>`, opened from the "Game info" menu item (`useInfoSheet`). The core
+`<InfoSheet>`, reached by the header's page-switch button (`useInfoSheet`). The core
 state stays on the play surface via the shared `<MobileStatusBar>` above the
 board — scrabble's `StateLine` ("Your turn · 7 in bag" / "Turn: ● moth · 7 in
 bag" / coop's "Team score: 152 · 7 in bag"), the same component the info

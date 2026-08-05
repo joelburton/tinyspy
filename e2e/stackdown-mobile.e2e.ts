@@ -43,11 +43,11 @@ test.describe('stackdown mobile', () => {
       const wrap = page.locator('[data-info-sheet]')
       const xClosed = (await wrap.boundingBox())!.x
       await page.getByRole('button', { name: 'Game menu' }).click()
-      await page.getByText('Game info', { exact: true }).click()
+      await page.getByRole('button', { name: 'Game info' }).click()
       await page.waitForTimeout(300)
       const xOpen = (await wrap.boundingBox())!.x
       expect(xOpen).toBeLessThan(xClosed - 100)
-      await page.getByRole('button', { name: 'Close game info' }).click()
+      await page.getByRole('button', { name: 'Back to board' }).click()
       await page.waitForTimeout(300)
       expect((await wrap.boundingBox())!.x).toBeGreaterThan(xOpen + 100)
 

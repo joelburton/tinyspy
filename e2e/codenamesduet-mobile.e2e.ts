@@ -74,13 +74,13 @@ test.describe('codenamesduet mobile', () => {
     const barBox = (await statusBar.boundingBox())!
     const boardBox = (await page.locator('[data-board]').boundingBox())!
     expect(barBox.y + barBox.height).toBeLessThanOrEqual(boardBox.y + 1)
-    await page.getByRole('button', { name: 'Game menu' }).click()
-    await expect(page.getByText('Game info', { exact: true })).toBeVisible()
+    // The switch to the info page is a header button now, not a menu item.
+    await expect(page.getByRole('button', { name: 'Game info' })).toBeVisible()
 
     // Opening the sheet doesn't take the status away — the info column's own copy
     // of the same <StateLine> sits at the top of it (on a phone the sheet is
     // ~full width, so it covers the bar; this is the copy you read there).
-    await page.getByText('Game info', { exact: true }).click()
+    await page.getByRole('button', { name: 'Game info' }).click()
     await expect(page.locator('[data-info-sheet] [class*="infoState"]')).toHaveText(
       '0/15 agents · 1/9 turns',
     )

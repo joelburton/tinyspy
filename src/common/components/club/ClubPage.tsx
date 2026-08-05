@@ -7,6 +7,7 @@ import { Link } from '../../lib/routing/Link'
 import { navigate } from '../../lib/routing/router'
 import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
 import { useAppShortcuts, isNonGameField } from '../../hooks/input/useAppShortcuts'
+import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
 import { MODE_LABEL, playerCountFits } from '../../lib/games'
 import { useClubPresence } from '../../hooks/realtime/useClubPresence'
 import { useClubSetupPresence } from '../../hooks/realtime/useClubSetupPresence'
@@ -149,6 +150,7 @@ export function ClubPage({ handle, session }: Props) {
   // above the loading early returns so the hook order stays stable.
   const menuRef = useRef<MenuHandle>(null)
   const lookupDialog = useAppShortcuts(useCallback(() => menuRef.current?.open(), []))
+  const accountSection = useAccountMenuSection(session)
 
   const presentUserIds = useMemo(
     () => new Set(presence.map((e) => e.userId)),
@@ -883,6 +885,9 @@ export function ClubPage({ handle, session }: Props) {
         },
       ],
     },
+    // The account submenu, last — the least club-y thing in the menu. Same row
+    // in the same place as GamePage's and HomePage's.
+    accountSection,
   ]
 
   return (

@@ -33,7 +33,7 @@
 
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Menu } from './Menu'
 import type { MenuSection } from '../../lib/games'
 
@@ -468,5 +468,186 @@ describe('Menu — sections + dividers', () => {
     // …and a header-only section still counts for divider placement (one divider
     // between the header block and the Help item below it).
     expect(within(popover).getAllByRole('separator')).toHaveLength(1)
+  })
+})
+
+/**
+ * Submenus — the HYBRID presentation.
+ *
+ * One piece of state, two shapes: a FLYOUT beside the parent row on desktop, a
+ * DRILL-DOWN that replaces the list on mobile. Both are tested here because the
+ * whole point of the split is that they behave differently, and the failure mode
+ * is silent — a phone rendering a flyout just looks like a panel landed on top
+ * of another one.
+ *
+ * jsdom has no `matchMedia`, and `useMediaQuery` reads that as "unmatched", so
+ * the default render IS the desktop branch. The mobile block stubs it in.
+ */
+
+/** A menu whose last row opens a two-item submenu. */
+function withSubmenu(onProfile = () => {}): MenuSection[] {
+  return [
+    {
+      items: [
+        { id: 'help', label: 'Help', onClick: () => {} },
+        { id: 'back', label: 'Back to club', onClick: () => {} },
+        {
+          id: 'account',
+          label: 'Account',
+          items: [
+            { id: 'profile', label: 'Profile', onClick: onProfile },
+            { id: 'logout', label: 'Log out', onClick: () => {} },
+          ],
+        },
+      ],
+    },
+  ]
+}
+
+/** Point `matchMedia` at a fixed answer for the duration of a test. */
+function stubMatchMedia(matches: boolean) {
+  const mql = {
+    matches,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: () => mql,
+  })
+}
+
+describe('Menu — submenus (desktop flyout)', () => {
+  it('advertises a submenu parent as a disclosure, not a command', async () => {
+    const user = userEvent.setup()
+    renderMenu(withSubmenu())
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    const parent = screen.getByRole('menuitem', { name: /Account/ })
+    expect(parent).toHaveAttribute('aria-haspopup', 'menu')
+    expect(parent).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('opens a SECOND panel and keeps the parent list on screen', async () => {
+    const user = userEvent.setup()
+    renderMenu(withSubmenu())
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    await user.click(screen.getByRole('menuitem', { name: /Account/ }))
+
+    // Two menus now: the parent list and the flyout.
+    expect(screen.getAllByRole('menu')).toHaveLength(2)
+    // The defining property of a flyout — the parent list did NOT go away.
+    expect(screen.getByRole('menuitem', { name: 'Help' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Profile' })).toBeInTheDocument()
+    // …and there is no Back row: the list you'd go back to is right there.
+    expect(screen.queryByRole('menuitem', { name: /‹/ })).not.toBeInTheDocument()
+  })
+
+  it('Escape unwinds ONE level — out of the submenu, not out of the menu', async () => {
+    const user = userEvent.setup()
+    renderMenu(withSubmenu())
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    await user.click(screen.getByRole('menuitem', { name: /Account/ }))
+
+    await user.keyboard('{Escape}')
+    // Submenu gone, menu still open — throwing away the whole menu would
+    // discard the step the user just took.
+    expect(screen.queryByRole('menuitem', { name: 'Profile' })).not.toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Help' })).toBeInTheDocument()
+
+    // A second Escape closes the menu itself.
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+
+  it('ArrowRight opens a submenu and ArrowLeft steps back out', async () => {
+    const user = userEvent.setup()
+    renderMenu(withSubmenu())
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    // Focus starts on Help; walk down to the submenu parent.
+    await user.keyboard('{ArrowDown}{ArrowDown}')
+    await user.keyboard('{ArrowRight}')
+    expect(screen.getByRole('menuitem', { name: 'Profile' })).toHaveFocus()
+
+    await user.keyboard('{ArrowLeft}')
+    expect(screen.queryByRole('menuitem', { name: 'Profile' })).not.toBeInTheDocument()
+    // Focus returns to the row it came from, not to the top of the list.
+    expect(screen.getByRole('menuitem', { name: /Account/ })).toHaveFocus()
+  })
+
+  it('activating a submenu item closes the WHOLE menu', async () => {
+    const user = userEvent.setup()
+    const onProfile = vi.fn()
+    renderMenu(withSubmenu(onProfile))
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    await user.click(screen.getByRole('menuitem', { name: /Account/ }))
+    await user.click(screen.getByRole('menuitem', { name: 'Profile' }))
+
+    expect(onProfile).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+
+  it('reopening the menu starts at the top level, never still drilled in', async () => {
+    const user = userEvent.setup()
+    renderMenu(withSubmenu())
+    const trigger = screen.getByRole('button', { name: 'Test menu' })
+    await user.click(trigger)
+    await user.click(screen.getByRole('menuitem', { name: /Account/ }))
+    await user.click(trigger) // close
+    await user.click(trigger) // reopen
+
+    expect(screen.getByRole('menuitem', { name: 'Help' })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Profile' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Menu — submenus (mobile drill-down)', () => {
+  afterEach(() => {
+    Reflect.deleteProperty(window, 'matchMedia')
+  })
+
+  it('REPLACES the list instead of opening a second panel', async () => {
+    stubMatchMedia(true)
+    const user = userEvent.setup()
+    renderMenu(withSubmenu())
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    await user.click(screen.getByRole('menuitem', { name: /Account/ }))
+
+    // The whole point of the mobile shape: one panel, and the top level is gone
+    // (a flyout here would have nowhere to go — the popover already runs to the
+    // width cap on a phone).
+    expect(screen.getAllByRole('menu')).toHaveLength(1)
+    expect(screen.queryByRole('menuitem', { name: 'Help' })).not.toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Profile' })).toBeInTheDocument()
+  })
+
+  it('offers a Back row naming where it goes, which restores the top level', async () => {
+    stubMatchMedia(true)
+    const user = userEvent.setup()
+    renderMenu(withSubmenu())
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    await user.click(screen.getByRole('menuitem', { name: /Account/ }))
+
+    // Named, not a bare arrow — with the parent list gone it's the only thing
+    // saying where you are.
+    const back = screen.getByRole('menuitem', { name: '‹ Account' })
+    await user.click(back)
+
+    expect(screen.getByRole('menuitem', { name: 'Help' })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Profile' })).not.toBeInTheDocument()
+  })
+
+  it('keyboard: focus lands past the Back row, and ArrowUp reaches it', async () => {
+    stubMatchMedia(true)
+    const user = userEvent.setup()
+    renderMenu(withSubmenu())
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    await user.click(screen.getByRole('menuitem', { name: /Account/ }))
+
+    // Opening a submenu focuses its first real ITEM, not the Back row — you
+    // drilled in to do something, not to leave again.
+    expect(screen.getByRole('menuitem', { name: 'Profile' })).toHaveFocus()
+    await user.keyboard('{ArrowUp}')
+    expect(screen.getByRole('menuitem', { name: '‹ Account' })).toHaveFocus()
   })
 })

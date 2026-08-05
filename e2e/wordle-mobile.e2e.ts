@@ -5,7 +5,7 @@ import { signIn } from './helpers/session'
 /**
  * wordle's mobile layout (docs/mobile.md → the psychicnum recipe): below the
  * breakpoint the board + on-screen keyboard fill the screen and the info column
- * moves into an off-canvas sheet opened from the "Game info" menu item.
+ * moves into an off-canvas sheet reached by the header's page-switch button.
  *
  * A browser test because the invariants are layout ones jsdom can't see, and the
  * binding case is a SHORT phone: wordle's board column is board + keyboard (no
@@ -56,11 +56,11 @@ test.describe('wordle mobile', () => {
       const wrap = page.locator('[data-info-sheet]')
       const xClosed = (await wrap.boundingBox())!.x
       await page.getByRole('button', { name: 'Game menu' }).click()
-      await page.getByText('Game info', { exact: true }).click()
+      await page.getByRole('button', { name: 'Game info' }).click()
       await page.waitForTimeout(300) // the 160ms slide-in
       const xOpen = (await wrap.boundingBox())!.x
       expect(xOpen).toBeLessThan(xClosed - 100)
-      await page.getByRole('button', { name: 'Close game info' }).click()
+      await page.getByRole('button', { name: 'Back to board' }).click()
       await page.waitForTimeout(300)
       expect((await wrap.boundingBox())!.x).toBeGreaterThan(xOpen + 100)
 

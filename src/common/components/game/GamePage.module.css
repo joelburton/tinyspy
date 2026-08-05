@@ -49,17 +49,17 @@
  * gives space before this one does — feedback pills push the
  * pause/timer out only if there's no other choice.
  *
- * margin-right clears the fixed UserMenu chip (dot + chevron,
- * ~2.7rem wide at the viewport's top-right corner, of which
- * ~1.7rem overhangs this header past the body's 1rem side
- * padding) so the chip never sits on top of the pause button /
- * timer — sized to hold only a small breathing gap beyond that. */
+ * This used to carry `margin-right: 2rem`, reserving room for a
+ * fixed account chip that overlapped the header's right end from
+ * the viewport corner. The chip is gone — its items are the last
+ * submenu of the logo menu now (see useAccountMenuSection) — so
+ * the reservation went with it. That 2rem was dead space at every
+ * viewport and it's the width the mobile header needs. */
 .right {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
-  margin-right: 2rem;
 }
 
 /* The floating-panel toggles: chat bubble + (when the manifest opts in)

@@ -134,3 +134,21 @@
 .clubsList:focus-visible {
   outline: none;
 }
+
+/* The wordmark-as-menu-trigger row. The wordmark is the page's hero image AND
+ * (now) the thing you click for the account menu, so it keeps its size and the
+ * row just holds it. */
+.wordmarkRow {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+/* `<PuzpuzpuzWordmark>` ships `width: 100%`, which inside the trigger's flex row
+ * claims every pixel and squeezes TriggerWithChevron's chevron to nothing —
+ * leaving the wordmark looking like a plain image with no hint it opens a menu.
+ * Yielding the chevron's width back is the whole fix. */
+.wordmarkRow img {
+  width: auto;
+  max-width: calc(100% - 1.5rem);
+}

@@ -497,7 +497,6 @@ export function PlayArea(ctx: GamePageCtx) {
         extra: [
           // Mobile-only "Game info" (reaches the off-canvas info column); empty
           // on desktop, where that column is always visible.
-          ...infoSheet.menuSections,
           {
             items: [
               { id: 'restart', label: 'Restart', onClick: () => actionsRef.current.restart() },
@@ -528,7 +527,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
   }, [
-    menu, isTerminal, solutionRevealed, startingNewGame, infoSheet.menuSections,
+    menu, isTerminal, solutionRevealed, startingNewGame,
     // The print model's inputs — rebuilt whenever the printable state moves, so
     // the snapshot is current at click time.
     brand, title, game, events, players, playerStates, selfId, strandsSetup, found.length,

@@ -60,7 +60,7 @@ test('spellingbee mobile — full-width sheet', async ({ browser }) => {
   expect(barBox.y + barBox.height).toBeLessThanOrEqual(hiveBox.y + 1)
   // Open the info sheet from the menu.
   await page.getByRole('button', { name: 'Game menu' }).click()
-  await page.getByText('Game info', { exact: true }).click()
+  await page.getByRole('button', { name: 'Game info' }).click()
   await page.waitForTimeout(300)
   const wrap = (await page.locator('[data-info-sheet]').boundingBox())!
   console.log('MOBILE SHEET', JSON.stringify({ x: Math.round(wrap.x), w: Math.round(wrap.width), iw: s.iw }))

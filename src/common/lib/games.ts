@@ -187,25 +187,68 @@ export type GenericFeedbackApi = {
   clear: () => void
 }
 
-/** One row in the GamePage menu's per-game section (and any
- *  future reuse of `<Menu>`). See docs/ui.md → "GamePage menu"
- *  for the placement + activation contract. */
-export type MenuItem = {
+/** What every menu row carries, whichever kind it is. */
+type MenuItemBase = {
   /** Stable id for React keying. PlayArea-owned values that
    *  reflect game-state changes are fine — the sections are replaced
    *  wholesale on each `setGameSections` call. */
   id: string
   label: string
-  onClick: () => void
   /** When true, the item renders greyed-out and skips keyboard
    *  navigation. Use for state-dependent actions ("Reveal cell"
-   *  enabled only when a cell is selected). */
+   *  enabled only when a cell is selected). A disabled submenu
+   *  parent can't be opened. */
   disabled?: boolean
+  /**
+   * A member-color NAME ('red' … 'pink') to draw as an identity disc before the
+   * label — the app-wide "this color is this player" marker (docs/ui.md →
+   * "Player identity = a colored disc").
+   *
+   * Exists for the account row, which is labelled with your username: the fixed
+   * top-right chip it replaced WAS the dot, so without one the menu drops the
+   * only place you see your own colour. A colour name rather than a ReactNode
+   * label, so `label` stays a plain string — the drill-down's "‹ {label}" row
+   * and the button's accessible name both depend on that.
+   */
+  dot?: string
+}
+
+/** A row that DOES something when activated. The common case. */
+export type MenuAction = MenuItemBase & {
+  onClick: () => void
   /** Optional keyboard-shortcut hint shown right-aligned + muted on
    *  the item (e.g. "⌥C"), matching how desktop apps annotate menu
    *  entries. Display only — the actual binding lives in the game's
    *  keyboard hook; this just advertises it. */
   shortcut?: string
+  /** Never present on an action — the discriminant. */
+  items?: never
+}
+
+/**
+ * A row that OPENS A SUBMENU instead of acting. One level deep only:
+ * a submenu's own items are actions, not further submenus. That cap is
+ * deliberate — the flyout half of the desktop presentation would need
+ * cascade positioning to go deeper, and no menu in the app wants it.
+ *
+ * Carries no `onClick` (opening is the whole behaviour) and no
+ * `shortcut` (the row isn't a command, so there's nothing to bind).
+ */
+export type MenuSubmenu = MenuItemBase & {
+  items: MenuAction[]
+  onClick?: never
+  shortcut?: never
+}
+
+/** One row in the GamePage menu's per-game section (and any
+ *  future reuse of `<Menu>`). See docs/ui.md → "GamePage menu"
+ *  for the placement + activation contract. */
+export type MenuItem = MenuAction | MenuSubmenu
+
+/** Narrow a row to the submenu arm. A function rather than an inline
+ *  `'items' in item` so the discriminant is named in one place. */
+export function isSubmenu(item: MenuItem): item is MenuSubmenu {
+  return item.items !== undefined
 }
 
 /** A group of items rendered together in the menu popover.

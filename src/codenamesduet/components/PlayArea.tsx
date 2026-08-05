@@ -476,7 +476,6 @@ export function PlayArea({
         onEndGame: () => void handleEndGame(),
         extra: [
           // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
-          ...infoSheet.menuSections,
           // The same actions the terminal row offers, reachable mid-game too.
           {
             items: [
@@ -502,7 +501,6 @@ export function PlayArea({
     return () => menu.setGameSections([])
   }, [
     menu, isTerminal, handleEndGame, handleNewGame, handleRestart, revealPeerKey, peerKeyShown,
-    infoSheet.menuSections,
     // The print model's inputs — rebuilt whenever the printable state moves,
     // which is what keeps the snapshot current at click time.
     brand, title, game, words, myKey, peerKey, mySeat, clues, guesses, players,

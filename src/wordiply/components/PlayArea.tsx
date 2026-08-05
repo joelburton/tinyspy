@@ -282,7 +282,6 @@ export function PlayArea(ctx: GamePageCtx) {
         onEndGame: () => actionsRef.current?.endGame(),
         onConcede: () => actionsRef.current?.concede(),
         extra: [
-          ...infoSheet.menuSections,
           {
             items: [
               { id: 'restart', label: 'Restart', onClick: () => actionsRef.current?.restart() },
@@ -295,7 +294,7 @@ export function PlayArea(ctx: GamePageCtx) {
     )
     return () => menu.setGameSections([])
   }, [
-    menu, game, isTerminal, solutionRevealed, myConceded, infoSheet.menuSections,
+    menu, game, isTerminal, solutionRevealed, myConceded,
     brand, title, base, guesses, players, session.user.id, guessesUsed,
     longest, letters, leaderboard, wordiplySetup,
   ])
@@ -389,7 +388,7 @@ export function PlayArea(ctx: GamePageCtx) {
         over={over}
       />
 
-      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close} wide>
+      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
           allGuesses={guesses}
           isCompete={isCompete}

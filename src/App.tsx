@@ -1,4 +1,4 @@
-import { Suspense, useState } from 'react'
+import { Suspense } from 'react'
 import { useSession } from './common/hooks/session/useSession'
 import { LoginScreen } from './common/components/auth/LoginScreen'
 import { ClaimHandleScreen } from './common/components/auth/ClaimHandleScreen'
@@ -7,8 +7,8 @@ import { CreateClubPage } from './common/components/club/CreateClubPage'
 import { GamePage } from './common/components/game/GamePage'
 import { PlayAreaErrorBoundary } from './common/components/game/PlayAreaErrorBoundary'
 import { HomePage } from './common/components/home/HomePage'
-import { UserMenu } from './common/components/account/UserMenu'
 import { EditProfileDialog } from './common/components/account/EditProfileDialog'
+import { useEditProfileOpen, setEditProfileOpen } from './common/lib/account/editProfileStore'
 import { GameInvitations } from './common/components/game/GameInvitations'
 import { ToastHost } from './common/components/toasts/ToastHost'
 import { TooltipHost } from './common/components/tooltips/TooltipHost'
@@ -68,10 +68,12 @@ export default function App() {
   // Let `` ` `` stand in for Escape app-wide (keyboards without a physical
   // Esc key). Window-level, so it's mounted here at the root — see the hook.
   useBacktickEscape()
-  // Edit-profile popup, opened from the UserMenu. Held here (not in the
-  // menu) so the dialog is a sibling of the page — the popup coexists
-  // with chat / invitations rather than replacing the current screen.
-  const [editingProfile, setEditingProfile] = useState(false)
+  // Edit-profile popup, opened from the account submenu in whichever page menu
+  // is on screen. Still mounted HERE, not in the menu: it's a <FloatingPanel>,
+  // and react-rnd positions one from its static flow position — mounted inside
+  // a page's flex column it lands far from where you expect (docs/ui.md). The
+  // flag therefore has to cross subtrees, hence the store rather than useState.
+  const editingProfile = useEditProfileOpen()
 
   if (loading) return <div className="card">Loading…</div>
   if (!session) return <LoginScreen />
@@ -82,9 +84,10 @@ export default function App() {
     <ClaimHandleScreen onClaimed={refresh} email={session.user.email} />
   )
 
-  // Resolve the current route to a page component. UserMenu is
-  // mounted as a sibling below — appears on every authenticated
-  // screen with no per-page wiring (see docs/ui.md → "UserMenu").
+  // Resolve the current route to a page component. The account items (Profile /
+  // Log out) are no longer a fixed chip mounted here — each page carries them as
+  // the last submenu of its own menu (see useAccountMenuSection), which is what
+  // freed the 2rem the game header was reserving for that chip to overlap.
   let page
   if (path === '/c/new') {
     page = <CreateClubPage session={session} />
@@ -150,15 +153,11 @@ export default function App() {
   return (
     <>
       {page}
-      <UserMenu
-        session={session}
-        onEditProfile={() => setEditingProfile(true)}
-      />
       {editingProfile && (
         <EditProfileDialog
           session={session}
-          onSaved={() => setEditingProfile(false)}
-          onCancel={() => setEditingProfile(false)}
+          onSaved={() => setEditProfileOpen(false)}
+          onCancel={() => setEditProfileOpen(false)}
         />
       )}
       {/* Mounted after the auth + claim-handle gates, so invitations

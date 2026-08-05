@@ -267,6 +267,18 @@
   padding-left: 1.5rem;
 }
 
+/* …but that divider is COLUMN furniture, and on mobile there is no second
+ * column to divide from: the info column is the whole page. Left in, it drew a
+ * rule down the page's left edge and spent 1.5rem indenting everything away
+ * from it. The sheet's own 1rem padding is the page margin here, matching the
+ * board page's. */
+@media (--mobile) {
+  .infoCol {
+    border-left: none;
+    padding-left: 0;
+  }
+}
+
 /* The info column's top region — same height whether the game is in play
  * (readouts + action buttons) or terminal (readouts + outcome line), so
  * swapping between them doesn't shift the log below (docs/ui.md → "Layout

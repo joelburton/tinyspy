@@ -21,15 +21,27 @@
   .wrap {
     display: block;
     position: fixed;
-    top: 0;
+    /* BELOW the header, not over it. The sheet used to start at `top: 0` and
+     * cover the chrome outright, which meant switching to the info page took
+     * away the game menu, chat, pause and the timer — everything the header
+     * carries — and left the ✕ as the only way back. Now the header is a stable
+     * frame across both mobile pages and the switch button sits in the same
+     * place on each; see GamePage's header split. */
+    top: var(--game-header-bottom);
     right: 0;
     bottom: 0;
-    width: min(24rem, 100%);
+    /* FULL-BLEED. Below the breakpoint this is a PAGE, not a drawer: the
+     * header's switch button moves between the board and this, one at a time.
+     * It used to be `min(24rem, 100%)` — 384px, which on a phone is the whole
+     * screen anyway (390px) but on a portrait tablet left the board half-visible
+     * beside it, so the same component read as a page on one device and a drawer
+     * on another. Going full width picks one, and it's what retired the `wide`
+     * opt-out that five games needed to get this behaviour anyway. */
+    width: 100%;
     z-index: 40;
     background: var(--color-surface);
-    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
-    /* Extra top padding leaves room for the absolutely-placed close button. */
-    padding: 2.5rem 1rem 1rem;
+    /* No extra top padding now that the ✕ is gone from the corner. */
+    padding: 1rem;
     /* A FLEX COLUMN, so the info column inside can be given the sheet's height
      * to divide up — that's what lets its turn log / word list scroll INSIDE
      * its own bordered box instead of growing tall and making the whole sheet
@@ -66,30 +78,14 @@
     min-height: 0;
   }
 
-  /* Opt-in (the `wide` prop): full device width instead of 24rem — for a game
-   * whose info column needs the room (spellingbee/boggle's WordList). Only the
-   * width; the flex-column layout is the base behavior now. */
-  .wide {
-    width: 100%;
-  }
-
   .open {
     transform: translateX(0);
     visibility: visible;
   }
 
-  .close {
-    display: block;
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    z-index: 1;
-    background: transparent;
-    border: none;
-    color: var(--color-text);
-    font-size: 1.5rem;
-    line-height: 1;
-    padding: 0.25rem 0.5rem;
-    cursor: pointer;
-  }
+  /* The ✕ stays hidden even on mobile now: the header's switch button is the
+   * one way between the two pages, in one fixed place. A second dismiss in the
+   * sheet's corner is exactly the two-affordances-in-two-places split that made
+   * this fussy to begin with. Kept in the DOM (not deleted) because the sheet
+   * still needs an in-panel close for any future context that has no header. */
 }

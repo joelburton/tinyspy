@@ -210,7 +210,6 @@ export function PlayArea(ctx: GamePageCtx) {
         onConcede: () => actionsRef.current?.concede(),
         extra: [
           // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
-          ...infoSheet.menuSections,
           { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printSpellingbeePdf(model) }] },
           {
             items: [
@@ -223,7 +222,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, spellingbeeSetup, hasBonus, isTerminal, solutionRevealed, myConceded, foundWordsScore, foundWordsCount, infoSheet.menuSections])
+  }, [menu, game, foundWords, players, brand, title, spellingbeeSetup, hasBonus, isTerminal, solutionRevealed, myConceded, foundWordsScore, foundWordsCount])
 
   // ─── Allowed-letter set (drives illegal-letter dim) ────
   const allowedLetters = useMemo(() => {
@@ -550,7 +549,7 @@ export function PlayArea(ctx: GamePageCtx) {
           and there's no help line — the honeycomb makes the move obvious. The
           WordList fills the rest. Off-canvas full-width sheet on mobile, flex
           child on desktop. */}
-      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close} wide>
+      <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
         // ── Mode + phase ──
         isCompete={isCompete}

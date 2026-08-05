@@ -557,7 +557,6 @@ export function PlayArea(ctx: GamePageCtx) {
         extra: [
           // Mobile-only "Game info" item (opens the clue-lists + controls sheet);
           // empty on desktop where the clue columns are always visible.
-          ...infoSheet.menuSections,
           {
             items: [
               {
@@ -666,7 +665,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, hasNote, pencil, collapseRebus, mode, myConceded, handleShowNote, handleExplain, handleRevealBoard, handleRestart, handleDownloadIpuz, handlePrintSolution, isPlayable, isTerminal, solutionRevealed, infoSheet.menuSections])
+  }, [menu, game, hasNote, pencil, collapseRebus, mode, myConceded, handleShowNote, handleExplain, handleRevealBoard, handleRestart, handleDownloadIpuz, handlePrintSolution, isPlayable, isTerminal, solutionRevealed])
 
   const over: (TerminalCopy & { verdictNode?: ReactNode }) | null = isTerminal
     ? buildOver(playState, status, mode, myId, players)
@@ -875,7 +874,7 @@ export function PlayArea(ctx: GamePageCtx) {
             all the way down (InfoSheet wrap + .sheetContent), so .clues and
             .strip stay grid items of .layout, byte-identical to before.
             Mobile: the whole block is the off-canvas "Game info" sheet. */}
-        <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close} wide>
+        <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
           <div className={styles.sheetContent}>
             <div className={styles.clues}>
               <ClueLists

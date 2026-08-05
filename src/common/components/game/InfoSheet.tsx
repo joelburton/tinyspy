@@ -7,10 +7,6 @@ type Props = {
    *  `display: contents` and the child is always the visible info column. */
   open: boolean
   onClose: () => void
-  /** Make the mobile sheet the FULL device width instead of the default 24rem —
-   *  for games whose info column needs the room (spellingbee/boggle's WordList).
-   *  No effect on desktop. */
-  wide?: boolean
   /** The game's `<InfoCol>`. */
   children: ReactNode
 }
@@ -19,15 +15,17 @@ type Props = {
  * The mobile info-column sheet wrapper (docs/mobile.md → the psychicnum recipe).
  *
  * On desktop it's a `display: contents` no-op: the child (a game's InfoCol) is
- * the flex child of `.layout` exactly as before, and the ✕ is hidden. Below
- * `--mobile` it becomes a fixed off-canvas sheet slid in from the right by
- * `open` and dismissed by the ✕ — so the board column fills the freed width.
+ * the flex child of `.layout` exactly as before. Below `--mobile` it becomes a
+ * fixed, FULL-WIDTH page slid in from the right by `open` — the second of the
+ * two mobile pages, reached by the header's switch button. It used to be a
+ * 24rem drawer with its own ✕; both went when it became a page (docs/mobile.md
+ * → The two mobile pages).
  *
  * The presentational half of the recipe. Pair it with `useInfoSheet` (the
  * open/close state + the "Game info" menu item) and the shared `.mobileFill`
  * class on the game's `.layout` (which hands the board the full width).
  */
-export function InfoSheet({ open, onClose, wide = false, children }: Props) {
+export function InfoSheet({ open, onClose, children }: Props) {
   // Escape closes the open sheet — the keyboard-tablet expectation (a supported
   // class). This is the CHEAP HALF of dialog behaviour; the full treatment
   // (move focus into the sheet on open + restore on close, trap Tab, dismiss by
@@ -53,7 +51,7 @@ export function InfoSheet({ open, onClose, wide = false, children }: Props) {
     // stop at role + aria-modal + a label (the honest "this is a modal" hint);
     // we don't yet make outside content `inert`, matching the deferred cut above.
     <div
-      className={cls(styles.wrap, open && styles.open, wide && styles.wide)}
+      className={cls(styles.wrap, open && styles.open)}
       data-info-sheet
       role={open ? 'dialog' : undefined}
       aria-modal={open ? true : undefined}
