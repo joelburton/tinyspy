@@ -78,9 +78,16 @@ test.describe('boggle play loop', () => {
     await tiles.nth(2).click()
     await expect(selected).toHaveCount(2)
 
-    // Re-extend and submit: tap T again → C A T, then the icon-only Submit button
+    // Backspace is the keyboard twin of that backtrack: it deletes the last letter
+    // AND de-selects the tile that contributed it, leaving a shorter REAL path
+    // (it used to drop the whole highlight, so the surviving text had no path).
+    await page.keyboard.press('Backspace')
+    await expect(selected).toHaveCount(1)
+
+    // Re-extend and submit: tap A then T → C A T, then the icon-only Submit button
     // (a tap user's commit path — pressing Enter here would land on the focused
     // tile's own key handler, not the word submit). The word lands; path clears.
+    await tiles.nth(1).click()
     await tiles.nth(2).click()
     await expect(selected).toHaveCount(3)
     await page.getByRole('button', { name: 'Submit' }).click()

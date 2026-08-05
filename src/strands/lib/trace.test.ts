@@ -46,13 +46,20 @@ describe('clickTile — submitting', () => {
   })
 })
 
-describe('clickTile — clearing', () => {
-  it('clicking an already-selected non-last tile scraps the whole trace', () => {
+describe('clickTile — truncating', () => {
+  it('clicking an already-selected non-last tile drops it and everything after', () => {
+    expect(clicks([[0, 0], [0, 1], [1, 2], [0, 1]]).trace).toEqual([[0, 0]])
+  })
+
+  it('clicking the FIRST tile empties the trace — nothing precedes it', () => {
     expect(clicks([[0, 0], [0, 1], [1, 2], [0, 0]]).trace).toEqual([])
   })
 
-  it('clears from the middle too, not just the first tile', () => {
-    expect(clicks([[0, 0], [0, 1], [1, 2], [0, 1]]).trace).toEqual([])
+  it('the truncated trace can be extended again from its new end', () => {
+    // Undo back to [0,0], then step somewhere else — the adjacency check runs
+    // against the tile the truncation left as the end, not the discarded one.
+    const back = clicks([[0, 0], [0, 1], [1, 2], [0, 1]])
+    expect(clickTile(back.trace, [1, 0], none).trace).toEqual([[0, 0], [1, 0]])
   })
 
   it('clearTrace() abandons the selection', () => {

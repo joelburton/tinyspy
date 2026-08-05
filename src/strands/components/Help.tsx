@@ -27,9 +27,9 @@ export function Help({ onClose, brand }: Props) {
           touch — sideways, up and down, or <em>diagonally</em>.
         </li>
         <li>
-          <strong>Click the last letter again</strong> to submit it. Clicking a
-          letter already in your trace clears the whole thing, and clicking far away
-          starts over from there.
+          <strong>Click the last letter again</strong> to submit it. Clicking an
+          earlier letter in your trace backs up to just before it, and clicking far
+          away starts over from there.
         </li>
         <li>
           <strong>Theme words</strong> turn purple and stay. The <strong>spangram</strong>

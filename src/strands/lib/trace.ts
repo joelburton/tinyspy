@@ -41,8 +41,11 @@ export type TraceResult = {
  *     is how a word is entered, which is why that tile wears its own marker
  *     (the double ring): without a visible affordance, submission would be
  *     undiscoverable.
- *  3. **The tile is already selected, but isn't the last** — clear everything.
- *     Reaching back into the middle of your own trace means "scrap it".
+ *  3. **The tile is already selected, but isn't the last** — **truncate** to the
+ *     prefix before it: that tile and everything clicked after it are dropped,
+ *     the earlier tiles stay. Reaching back into your own trace means "undo back
+ *     to here", not "scrap it" — the same rule stackdown's word row uses when you
+ *     click a filled slot (an order can't lose a middle piece and keep the rest).
  *  4. **Otherwise it's a free tile** — extend when it's 8-way adjacent to the
  *     current end; otherwise **start a new trace there, discarding whatever was
  *     selected**. The old path is not kept, not merged, and not submitted — a
@@ -62,7 +65,8 @@ export function clickTile(
   const last = trace[trace.length - 1]
   if (last && coordKey(last) === coordKey(at)) return { trace, submit: true }
 
-  if (trace.some((c) => coordKey(c) === coordKey(at))) return { trace: [], submit: false }
+  const seen = trace.findIndex((c) => coordKey(c) === coordKey(at))
+  if (seen >= 0) return { trace: trace.slice(0, seen), submit: false }
 
   if (last && adjacent(last, at)) return { trace: [...trace, at], submit: false }
 

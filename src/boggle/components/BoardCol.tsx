@@ -118,7 +118,8 @@ export function BoardCol({
   // it's cleared on rotate below, since the coords would no longer point at the
   // same letters). The traced word drives the shared `word`/`onChange` engine, so
   // submit + validation (traceableStr) are unchanged. Typing clears the path (you
-  // switched to the keyboard); submitting clears it (fresh word).
+  // switched to the keyboard); Backspace/Delete steps it back one tile (see
+  // `handleTyping`); submitting clears it (fresh word).
   const [path, setPath] = useState<Cell[]>([])
   const handleTap = (y: number, x: number) => {
     if (readOnly || view[y][x] === '?') return // frozen, or a blank (matches nothing)
@@ -137,9 +138,25 @@ export function BoardCol({
     setPath(next)
     onChange(pathWord(next, view))
   }
-  // Typing / the Delete key edits the word directly — the traced path no longer
-  // matches it, so drop the highlight (and its coords).
+  // Every non-tap edit of the word (typing, Backspace, the Delete button, ArrowUp
+  // recall) arrives here. A typed character makes the word stop describing the
+  // traced path, so the highlight (and its coords) has to go — but a DELETE is
+  // exactly the undo the path can express, so it steps the trace back one tile
+  // instead of dropping the whole highlight. Detected by shape rather than by
+  // plumbing a "this was Backspace" flag down from the capture keyboard: a
+  // one-character shortening of a word that still equals the traced path can only
+  // be Backspace/Delete (a recalled word is a whole different string).
+  //
+  // A multiface tile (`Qu`) is one tile but two characters, so stepping back one
+  // tile takes both — the trace stays a real path, which is what submit validates.
   const handleTyping = (next: string) => {
+    const traced = path.length > 0 && word === pathWord(path, view)
+    if (traced && next === word.slice(0, -1)) {
+      const back = path.slice(0, -1)
+      setPath(back)
+      onChange(pathWord(back, view))
+      return
+    }
     setPath([])
     onChange(next)
   }
