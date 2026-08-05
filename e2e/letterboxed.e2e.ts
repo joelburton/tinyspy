@@ -192,9 +192,10 @@ test.describe('letterboxed', () => {
     await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
 
     // HINT describes the word without giving it: the fixture's two-word
-    // solution opens with ADGJBEHK, so 8 letters starting AD.
+    // solution opens with ADGJBEHK — 8 letters, so three of them (four only
+    // past eight).
     await page.getByRole('button', { name: /^hint$/i }).click()
-    await expect(page.getByText('8 letters starting with AD')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('8 letters starting with ADG')).toBeVisible({ timeout: 10000 })
 
     // SPOILER hands it over.
     await page.getByRole('button', { name: /show the word/i }).click()

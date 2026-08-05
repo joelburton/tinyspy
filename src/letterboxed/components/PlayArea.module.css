@@ -79,11 +79,15 @@
   flex-direction: column;
   gap: 0.1rem;
 }
+/* Full text colour at 600, not muted at 400: these NAME the numbers beside
+ * them, so they are structure rather than decoration, and the repo's standing
+ * rule is that light unbolded text is for things that don't matter. */
 .statLabel {
   font-size: 0.75rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-muted);
+  color: var(--color-text);
 }
 .statValue {
   font-size: 1.5rem;
@@ -104,11 +108,14 @@
   gap: 0.35rem;
   min-height: 0;
 }
+/* Same reasoning as .statLabel — a block's title is what tells you what you
+ * are looking at. */
 .blockTitle {
   font-size: 0.75rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-muted);
+  color: var(--color-text);
 }
 
 /* The chain strip, ABOVE the board.

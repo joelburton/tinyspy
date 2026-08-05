@@ -174,7 +174,7 @@ export function PlayArea(ctx: GamePageCtx) {
         stickyPill(
           'info',
           kind === 'hint'
-            ? `${r.word.length} letters starting with ${r.word.slice(0, 2).toUpperCase()}`
+            ? `${r.word.length} letters starting with ${r.word.slice(0, r.word.length > 8 ? 4 : 3).toUpperCase()}`
             : r.word.toUpperCase(),
         ),
       )
