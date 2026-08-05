@@ -21,6 +21,7 @@
     "_connections:import": "npx tsx supabase/scripts/import-connections-puzzles.ts",
     "_spellingbee:import": "npx tsx supabase/scripts/import-spellingbee-pangrams.ts",
     "_wordwheel:import": "npx tsx supabase/scripts/import-wordwheel-pangrams.ts",
+    "_letterboxed:import": "npx tsx supabase/scripts/import-letterboxed-seeds.ts",
     "_words:import": "npx tsx supabase/scripts/import-words.ts",
     "_boggle:wordlist": "npx tsx supabase/scripts/generate-boggle-wordlist.ts",
     "_scrabble:wordlist": "npx tsx supabase/scripts/generate-scrabble-wordlist.ts",

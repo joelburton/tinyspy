@@ -212,6 +212,18 @@ g-wordwheel-pangrams: $(STAMPS)/wordwheel-pangrams.stamp ## rebuild the wordwhee
 .PHONY: all-pangrams
 all-pangrams: g-spellingbee-pangrams g-wordwheel-pangrams ## both seed pools
 
+# letterboxed's pool is seeds, not pangrams — chained word PAIRS whose letters
+# union to exactly twelve — so it stands outside all-pangrams and hangs off
+# db-data directly. Same words.stamp prerequisite: it reads common.words.
+.PHONY: g-letterboxed-seeds
+g-letterboxed-seeds: $(STAMPS)/letterboxed-seeds.stamp ## rebuild the letterboxed board-seed pool
+.make/%/letterboxed-seeds.stamp: .make/%/words.stamp
+	@if [ "$*" = "local" ]; then export SUPABASE_DB_URL=$(LOCAL_DB_URL)
+	elif [ "$*" = "prod" ]; then . supabase/deploy/env.sh; require_project; derive_db_url; announce_target
+	else echo "REFUSED: unknown stamp env '$*'" >&2; exit 1; fi
+	npm run _letterboxed:import
+	touch $@
+
 # The two edge-function dictionaries. Real files, but derived from a
 # DATABASE — so the stamp, not the .ts, is the prerequisite. They're
 # gitignored build artifacts, and their functions won't compile without
@@ -307,7 +319,7 @@ g-strands-puzzles: $(STRANDS_JSONL) ## load strands.puzzles from the local archi
 	npm run _strands:import
 
 .PHONY: db-data
-db-data: all-words all-pangrams g-stackdown-puzzles g-connections-puzzles g-crosswords-puzzles g-strands-puzzles ## load every table's DATA (no schema, no code)
+db-data: all-words all-pangrams g-letterboxed-seeds g-stackdown-puzzles g-connections-puzzles g-crosswords-puzzles g-strands-puzzles ## load every table's DATA (no schema, no code)
 
 # ════════════════════════════════════════════════════════════════
 # Schema + code   (docs/supabase.md → Schema vs code)
@@ -418,7 +430,7 @@ db-psql: ## psql on ENV's database — SQL="select 1" to run one statement
 # -n per name: a brand-new project has no game schemas yet, and pg_dump
 # ERRORS on a -n that matches nothing — auth always exists, so the
 # alternation always matches at least once.
-BACKUP_SCHEMAS := auth|common|codenamesduet|psychicnum|connections|spellingbee|wordwheel|bananagrams|waffle|wordle|stackdown|scrabble|boggle|crosswords|wordiply
+BACKUP_SCHEMAS := auth|common|codenamesduet|psychicnum|connections|spellingbee|wordwheel|bananagrams|waffle|wordle|stackdown|scrabble|boggle|crosswords|wordiply|letterboxed
 # Excluded because something else already provides the rows, with the SAME
 # KEYS (that caveat has teeth — see the boards/puzzles note below):
 #   migrations reseed:  common.gametypes, codenamesduet.word_pool (static
@@ -438,7 +450,7 @@ BACKUP_SCHEMAS := auth|common|codenamesduet|psychicnum|connections|spellingbee|w
 #     existing clubs (a no-op on a fresh database); the real rows are
 #     per-club state worth keeping.
 BACKUP_EXCLUDE := common.gametypes codenamesduet.word_pool common.words \
-  spellingbee.pangrams wordwheel.pangrams \
+  spellingbee.pangrams wordwheel.pangrams letterboxed.seeds \
   auth.(sessions|refresh_tokens|mfa_*|flow_state|one_time_tokens|saml_*|sso_*|audit_log_entries|schema_migrations|instances)
 
 .PHONY: db-backup

@@ -200,7 +200,8 @@ The sixth of that family.
 2. Find a random valid **partition** into 4×3 by backtracking over the conflict
    graph (an edge between letters adjacent in either solution word). Twelve
    nodes — microseconds, and a fresh partition per game is what makes one seed
-   reusable. **Empirically it never fails** (§9.2).
+   reusable. **Cannot fail**: the importer only stores seeds it has proved
+   partitionable (§9.2), so no fallback path is needed here.
 3. Fetch the **playable set** via the indexed subset test + adjacency filter.
 4. Call `create_game` with sides + the playable set.
 
@@ -348,11 +349,20 @@ sampling seeds whose band exceeded `legal_band` did produce par 3, 4, and 5 —
 that's the same fact from the other side: raise the band above the seed's and
 the guaranteed solution stops being legal.)*
 
-### 9.2 The partition constraint never bites
+### 9.2 The partition constraint bites rarely — and the importer absorbs it
 
-**0 uncolorable boards out of 2,000.** Assigning twelve letters to four sides of
-three with no conflict edge inside a side is essentially always satisfiable at
-this size, so step 2 of the builder is a formality with no fallback path needed.
+An initial 2,000-board sample showed zero failures, which was luck, not proof:
+checked exhaustively against the real seed table, **~0.2% of pairs cannot be
+partitioned at all**. A long word puts its repeated letter next to many others
+(`paradigmatic` gives its `a` six distinct neighbours), and a node that busy can
+run out of sides.
+
+**Resolved by filtering at import**, so every stored seed is partitionable by
+construction and the board builder needs no fallback path — 744 of 458,931
+candidates dropped. Because the check is exhaustive backtracking, a stored seed
+is guaranteed to partition under *any* ordering, which is what lets the builder
+re-roll a different random partition per game and still be certain of finding
+one. Cheap and bounded: 12 nodes, worst case ~2.1k states visited.
 
 ### 9.3 Playable-set size — the real difficulty lever
 
