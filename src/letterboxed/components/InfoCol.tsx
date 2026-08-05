@@ -10,6 +10,7 @@ import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameBu
 import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
+import { HintButton } from '../../common/components/buttons/HintButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { timerLabel } from '../../common/lib/game/timerLabel'
@@ -51,6 +52,8 @@ export function InfoCol({
   coveredByUser,
   concededIds,
   setup,
+  hintsUsed,
+  onHint,
   onEndGame,
   onConcede,
   onRestart,
@@ -80,6 +83,9 @@ export function InfoCol({
   concededIds: Set<string>
   /** What was picked at create time, recapped in the disclosure. */
   setup: LetterboxedSetup
+  /** Shown, never penalised — coop only. */
+  hintsUsed: number
+  onHint: () => void
   onEndGame: () => void
   onConcede: () => void
   onRestart: () => void
@@ -109,6 +115,15 @@ export function InfoCol({
               <span className={styles.statOf}>/{maxWords}</span>
             </span>
           </div>
+          {/* Coop only, and unpenalised — the count is a record, not a score.
+              Mode is fixed for the game's life, so the cell appearing in one
+              mode and not the other can't reflow anything. */}
+          {!isCompete && (
+            <div className={styles.statCell}>
+              <span className={styles.statLabel}>Hints</span>
+              <span className={styles.statValue}>{hintsUsed}</span>
+            </div>
+          )}
         </div>
 
         {/* Whose-turn line — only in a turn-order game. Rendering it in a
@@ -151,6 +166,10 @@ export function InfoCol({
           </LocalTerminalRow>
         ) : (
           <div className={shared.infoActions}>
+            {/* Coop only. In compete "first past the bar wins" would make an
+                optimal suggestion a win button, so the server refuses it and
+                the button isn't offered. */}
+            {!isCompete && <HintButton className={shared.helperButton} onClick={onHint} />}
             {isCompete ? (
               <ConcedeGameButton iconOnly className={shared.helperButton} onClick={onConcede} />
             ) : (

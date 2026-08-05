@@ -45,7 +45,7 @@ test.describe('letterboxed', () => {
     // with — so the box now holds "g", not a placeholder telling you to type
     // one. The seed is derived from the chain rather than typed, which is what
     // lets Backspace stop at it instead of clearing it.
-    await expect(page.getByTestId('entry-value')).toHaveText('g', { timeout: 10000 })
+    await expect(page.getByTestId('entry-value')).toHaveText('G', { timeout: 10000 })
   })
 
   test('a letter that cannot follow the current one never enters the box', async ({
@@ -64,11 +64,11 @@ test.describe('letterboxed', () => {
     // Sides are `abc | def | ghi | jkl`, so B cannot follow A — they share a
     // side. The keystroke is refused rather than accepted-then-rejected.
     await page.keyboard.type('ab')
-    await expect(page.getByTestId('entry-value')).toHaveText('a')
+    await expect(page.getByTestId('entry-value')).toHaveText('A')
 
     // D is on another side, so it goes in.
     await page.keyboard.type('d')
-    await expect(page.getByTestId('entry-value')).toHaveText('ad')
+    await expect(page.getByTestId('entry-value')).toHaveText('AD')
   })
 
   test('the × on the last chain word takes it back', async ({ browser }) => {
@@ -176,6 +176,34 @@ test.describe('letterboxed', () => {
     await x.click()
     await expect(page.getByText(/Chain is full/)).toBeHidden({ timeout: 10000 })
     await expect(page.getByTestId('entry-value')).toBeVisible()
+  })
+
+  test('the hint nudges first, then names the word, and counts both', async ({ browser }) => {
+    const club = await createSoloClub('lbx7')
+    const [alice] = club.members
+    const game = await createLetterboxedGame(club)
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+
+    const hint = page.getByRole('button', { name: /hint/i })
+
+    // First press describes the move without giving it away. The fixture's
+    // two-word solution opens with ADGJBEHK — 8 letters from A, all 8 new.
+    await hint.click()
+    await expect(page.getByText(/8-letter word from A covers 8 new/)).toBeVisible({
+      timeout: 10000,
+    })
+
+    // Second press, same position, names it.
+    await hint.click()
+    await expect(page.getByText('ADGJBEHK', { exact: true })).toBeVisible({ timeout: 10000 })
+
+    // Both were recorded — the counter is a record, not a score.
+    await expect(page.getByText('Hints').locator('..')).toContainText('2', { timeout: 10000 })
   })
 
   test('clicking letters builds a word; clicking the last one again submits it', async ({

@@ -10,6 +10,7 @@ import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { BOARD_SIZE, rejectReason, tailLetter } from '../lib/board'
+import { isSuggestion, suggest } from '../lib/solve'
 import type { LetterboxedSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -75,6 +76,12 @@ export function PlayArea(ctx: GamePageCtx) {
   // re-seeds the entry without an effect and without stale state.
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
+  // How many times the hint has been asked for at the CURRENT chain length.
+  // The first press describes the move, a second names the word — so a nudge
+  // is available without the answer being one click away. Playing or taking
+  // back a word resets it, since the position changed.
+  const [hintDepth, setHintDepth] = useState(0)
+  const [hintAt, setHintAt] = useState(-1)
 
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
@@ -141,6 +148,44 @@ export function PlayArea(ctx: GamePageCtx) {
   // server-side but has no surface: clicking × repeatedly reaches the empty
   // chain, so a bulk clear would be a second way to do the same thing.
   const removeLast = useCallback(() => void runChainRpc('undo_word'), [runChainRpc])
+
+  // ─── Hint (coop only) ──────────────────────────────────
+  // The search runs HERE, over the board's shipped word list — see lib/solve.ts
+  // for why that list ships at all. The server is told only that a hint was
+  // taken, so the counter and the log agree with what happened.
+  const takeHint = useCallback(() => {
+    if (!game) return
+    const r = suggest(game.playableWords, sides, chain)
+    // A new position resets the ladder; the same position advances it.
+    const step = hintAt === chain.length ? hintDepth + 1 : 1
+    setHintAt(chain.length)
+    setHintDepth(step)
+
+    if (!isSuggestion(r)) {
+      showLocalFeedback(
+        stickyPill(
+          'warning',
+          r.kind === 'stuck'
+            ? 'Dead end — take a word back'
+            : 'No way home from here — take a word back',
+        ),
+      )
+      return
+    }
+
+    // Step 1 describes the move; step 2 names it. Both count as a hint: the
+    // shape alone is often enough, and charging for it keeps the two honest.
+    const text =
+      step === 1
+        ? `A ${r.word.length}-letter word from ${r.word[0].toUpperCase()} covers ${r.newLetters} new`
+        : r.word.toUpperCase()
+    showLocalFeedback(stickyPill('info', text))
+    void db.rpc('log_hint', { target_game: gameId, suggested: r.word }).then(({ error }) => {
+      // Log-and-swallow: the player already has their hint, so a failed write
+      // must not change what they see — but it must not vanish either.
+      if (error) console.error('recording a hint failed', error)
+    })
+  }, [game, sides, chain, hintAt, hintDepth, gameId, showLocalFeedback])
 
   // ─── End / Concede / Replay — the shared trio ──────────
   const showError = useCallback(
@@ -337,6 +382,8 @@ export function PlayArea(ctx: GamePageCtx) {
           coveredByUser={coveredByUser}
           concededIds={concededIds}
           setup={letterboxedSetup}
+          hintsUsed={myRow?.hints_used ?? 0}
+          onHint={takeHint}
           onEndGame={endGame}
           onConcede={concede}
           onRestart={restart}

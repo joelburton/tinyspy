@@ -8,7 +8,13 @@
  * empties --avail-w and every board size derived from it. 22rem is the roster
  * standard; ours holds two stat cells, the chain, and the move log. */
 .layout {
-  --info-col-width: 22rem;
+  /* Wider than the 22rem roster default: the move log carries a whole WORD
+   * plus a username on one row, and letterboxed words run long (a 9- or
+   * 10-letter word is an ordinary move here, where wordle's rows are always
+   * five letters). The board gives up the difference via --avail-w, and it can
+   * afford to — twelve letters on a square reach a comfortable size well
+   * before the 34rem cap. */
+  --info-col-width: 26rem;
 }
 
 /* The board column hugs the square. A max-width keeps a big desktop from
@@ -61,8 +67,11 @@
  * spellingbee/wordwheel's shared <Stats> uses — theirs hardcodes Score/Words
  * labels, so this is the same look rather than the same component). */
 .stats {
+  /* auto-flow column so the cell count can differ by mode (coop adds Hints)
+   * without the grid needing to be told how many there are. */
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: 0.5rem;
 }
 .statCell {
@@ -187,6 +196,13 @@
 .solution {
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+/* The carried-over first letter in the entry box: the board's accent green,
+ * matching the CURRENT letter's fill on the board. It is the one character
+ * Backspace won't remove, so it must not look like the ones it will. */
+.seedLetter {
+  color: var(--letterboxed-accent);
 }
 
 /* ── Turn log ──────────────────────────────────────────────

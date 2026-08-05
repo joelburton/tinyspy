@@ -48,11 +48,16 @@ export function EntryBox({ value, placeholder, children, className }: Props) {
 
   return (
     <div className={cls(styles.box, className)}>
-      {!empty && (children ?? (
+      {/* The value wrapper is UNCONDITIONAL — a game that supplies `children`
+          (per-character rendering) gets the same element around them, so the
+          box has one stable shape whichever path renders it. `.value` is only
+          `color: inherit`, so wrapping costs those games nothing and a child's
+          own colour still wins. */}
+      {!empty && (
         <span className={styles.value} data-testid="entry-value">
-          {value}
+          {children ?? value}
         </span>
-      ))}
+      )}
       {/* Caret only once something's been typed: an empty field shows just the
           placeholder, which already says "type here". A caret on an empty box
           would blink off in the corner (or, centered, float oddly mid-box) with

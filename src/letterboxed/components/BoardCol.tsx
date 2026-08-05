@@ -6,6 +6,7 @@ import { stickyPill, terminalPill } from '../../common/lib/game/localPills'
 import { EntryRow } from '../../common/components/game/entry/EntryRow'
 import { Board } from './Board'
 import { ChainStrip } from './ChainStrip'
+import { TypedWord } from './TypedWord'
 import { canFollow, tailLetter } from '../lib/board'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -147,6 +148,9 @@ export function BoardCol({
           onChange={handleChange}
           onSubmit={onSubmit}
           placeholder="Type or click letters"
+          // Per-character rendering, so the carried-over first letter can say
+          // it isn't yours to delete.
+          children={<TypedWord word={word} seedLength={seed.length} />}
           pill={pill}
           disabled={entryDisabled}
           busy={busy}
