@@ -19,8 +19,10 @@ import type { GenericFeedbackMsg, GenericFeedbackTone } from '../games'
  *
  * Before this file that contract lived only as ~25 copies-by-convention across
  * the ten games (three of them in per-game `lib/` builders that cross-referenced
- * each other). Centralizing it kills the drift risk. codenamesduet keeps its own
- * `ownAction` builder — it deliberately uses `dismiss: 'timed'`, not sticky.
+ * each other). Centralizing it kills the drift risk. Two deliberate `timed`
+ * exceptions build their messages inline instead: codenamesduet's `ownAction`
+ * builder, and letterboxed's accepted-word pill (it occupies the entry's slot,
+ * so it hands the entry back on its own rather than waiting for a keystroke).
  */
 
 /** A game's terminal outcome tone (`TerminalCopy.tone` / `over.tone`). */

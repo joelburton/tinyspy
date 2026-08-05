@@ -320,21 +320,21 @@ alter table letterboxed.events enable row level security;
 -- ALL THREE play tables are published, and all three must be — useGame
 -- subscribes to postgres_changes on each:
 --   - players carries the live chain: every accepted word rewrites the
---     row(s) peers refetch on.
+--     row(s) peers refetch on. Its UPDATE is also what announces a
+--     replay_board (the replay's events DELETEs alone would not:
+--     postgres_changes filters don't reliably match deletes).
 --   - events is the turn log, appended on every move.
---   - games carries no mid-play column changes, BUT replay_board does a
---     no-op UPDATE on it as a realtime "touch": replay only DELETEs
---     events rows and resets players, and postgres_changes filters
---     don't reliably match DELETEs, so the games write is what wakes
---     every client to refetch.
+--   - games never changes mid-play; its binding is quiet today and kept
+--     so any future write to it wakes clients rather than silently not.
 --
 -- Publishing games is NOT optional cleanup: Realtime authorizes a
 -- channel's postgres_changes bindings at JOIN time and rejects the
 -- WHOLE subscription if ANY bound table is missing from the
 -- publication. So one unpublished table kills live delivery for the
 -- others too — silently, since writes still persist and a manual
--- refresh shows them. letterboxed's schema_test asserts all three
--- memberships to guard against a dropped line.
+-- refresh shows them. All three memberships are guarded centrally in
+-- tests/common/realtime_publication_test.sql (the registry-driven
+-- guard for every schema's subscribed tables).
 
 alter publication supabase_realtime add table letterboxed.games;
 alter publication supabase_realtime add table letterboxed.players;

@@ -247,6 +247,30 @@ export function InfoCol({
           <p className={shared.infoHelp}>Type a 5-letter word, then Enter.</p>
         )}
 
+        {/* Terminal-only answer reveal — the one info-column region allowed to grow at
+            game over (docs/ui.md → Layout stability), ABOVE the setup disclosure per
+            the canonical order (the reveal is the payoff; the recap is bookkeeping).
+            The ONLY place the word shows: the below-board terminal pill carries the
+            verdict alone (a one-line, ellipsising row), so the answer lives here
+            where it has room to be a sentence and a click-to-define target. */}
+        {over && solution && (
+          <div className={shared.terminalExtra}>
+            <p className={cls(shared.infoState, styles.answerLine)}>
+              The answer was{' '}
+              {/* Pointer-only, deliberately: NOT focusable, no `role="button"`.
+                  See common/theme.css → `.definable`. */}
+              <strong
+                className={cls('definable', styles.answerReveal)}
+                title="Click to define"
+                onClick={(e) => define(solution, e.currentTarget)}
+              >
+                {solution.toUpperCase()}
+              </strong>
+            </p>
+            {popover}
+          </div>
+        )}
+
         {/* Setup — last, behind a disclosure (closed by default). */}
         <SetupDisclosure>
           <li>Guesses: {maxGuesses}</li>
@@ -255,29 +279,6 @@ export function InfoCol({
           <li>Timer: {timerLabel(setup.timer)}</li>
         </SetupDisclosure>
       </div>
-
-      {/* Terminal-only answer reveal — the one info-column region allowed to grow at
-          game over (docs/ui.md → Layout stability). The ONLY place the word shows:
-          the below-board terminal pill carries the verdict alone (a one-line,
-          ellipsising row), so the answer lives here where it has room to be a
-          sentence and a click-to-define target. */}
-      {over && solution && (
-        <div className={shared.terminalExtra}>
-          <p className={cls(shared.infoState, styles.answerLine)}>
-            The answer was{' '}
-            {/* Pointer-only, deliberately: NOT focusable, no `role="button"`.
-                See common/theme.css → `.definable`. */}
-            <strong
-              className={cls('definable', styles.answerReveal)}
-              title="Click to define"
-              onClick={(e) => define(solution, e.currentTarget)}
-            >
-              {solution.toUpperCase()}
-            </strong>
-          </p>
-          {popover}
-        </div>
-      )}
 
       {/* Bottom region: the turn log. It takes the RAW `guesses` (not the viewer's own)
           so its header dropdown can switch whose guesses show — coop is one shared

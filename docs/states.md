@@ -63,7 +63,7 @@ it before the clock.** Ratified 2026-08-01.
 
 | the game | its reachable end | clock expires |
 |---|---|---|
-| waffle · wordle · crosswords · stackdown · connections · psychicnum · bananagrams · codenamesduet · strands | solve it / find them all / go out | `lost` |
+| waffle · wordle · crosswords · stackdown · connections · psychicnum · bananagrams · codenamesduet · strands · letterboxed | solve it / find them all / go out / cover the twelve | `lost` |
 | spellingbee · wordwheel · boggle **with** a target (`target_rank` / `win_percent`) | cross the bar | `lost` |
 | spellingbee · wordwheel · boggle **without** a target | none — there's always another word to find | `ended` |
 | scrabble coop | play the bag out | `lost` |
@@ -80,7 +80,7 @@ can lose to the clock.
 Note this is narrower than the rule the pre-freeze audit proposed ("the clock
 only loses when there was a target to miss"), which couldn't explain scrabble:
 scrabble coop has no target and still loses. "Reachable end" covers all
-fourteen with no exceptions.
+fifteen with no exceptions.
 
 #### Compete is different: the clock resolves a race
 

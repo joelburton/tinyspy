@@ -8,7 +8,7 @@ like it belongs to the same system (the on-screen consistency goal — see
 
 ## Which games print
 
-**All fourteen games print.** (waffle and wordle were a documented permanent
+**All fifteen games print.** (waffle and wordle were a documented permanent
 exclusion until 2026-08-02 — see the note under the table for what changed.)
 
 | game | prints? | notes |
@@ -18,6 +18,7 @@ exclusion until 2026-08-02 — see the note under the table for what changed.)
 | codenamesduet | ✅ | turn-log family — three facts per tile, all carried by drawn marks (see below) |
 | connections | ✅ | turn-log family — category bands as coloured **borders** + an A–D letter (see below) |
 | crosswords | ✅ | its own third body family (a whole-cloth ported printer); the only game with **two** print items — the puzzle and a separate answer key |
+| letterboxed | ✅ | **track family** — one track per board (coop one, compete one per player); a covered letter is a heavy black ring + bold glyph, an untouched one a thin grey ring; the chain as a numbered list |
 | psychicnum | ✅ | turn-log family |
 | scrabble | ✅ | turn-log family |
 | spellingbee | ✅ | word-list family |

@@ -137,7 +137,7 @@ function drawBoard(
   return top + box + r
 }
 
-/** The chain, as the sequence it is — arrows, so it reads as one route. */
+/** The chain, as the sequence it is — a numbered list, one word per row. */
 function drawChain(doc: jsPDF, t: PrintTrack, track: Track, y: number): number {
   doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
   doc.text('Chain', track.x, y)

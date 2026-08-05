@@ -743,6 +743,24 @@ Landscape phones were checked (844×390) and are fine — no scroll, everything
 reachable — just height-bound to a small board, which is inherent to an 8-row
 grid on a 390px-tall viewport and not something this doc's breakpoints address.
 
+**letterboxed** shipped mobile-converted from day one — the standard composed
+recipe (`useInfoSheet` + `<InfoSheet>` + `shared.mobileFill`), input is
+tap-a-letter on the SVG square (touch-native; re-tapping the word's last letter
+submits, so a phone needs no keyboard at all — physical keys still work through
+the shared `EntryRow`). It has **no mobile status bar** — see the adoption-rule
+note below: the board and the chain strip ARE the readouts, and the
+accepted-word pill ("APPLE — 2 words left") carries the cap. The chain strip
+stays on the play surface — it's per-turn state (what letter the next word must
+start with), which is exactly what can't live behind the sheet — and its
+reserved height is **chain-aware**: `BoardCol` estimates the rows the live
+chain needs (`lib/chainRows.ts`, a crude greedy pack — no measuring) and sets
+`--chain-rows-desktop`/`--chain-rows-mobile` inline; the base reservation is
+2 rows (3 on a phone), and when a long chain genuinely needs more, the extra
+rows are subtracted inside `--avail-h` so the **board shrinks once** rather
+than the page scrolling (never-scroll outranks never-move; the shift is rare
+by design and Joel accepted it explicitly). The `waitingTurnPill` covers
+whose-turn in turn-coop, since the `TurnStatusLine` is off-canvas.
+
 ### The mobile status bar — core state above the board
 
 The info-sheet recipe has a cost: the moment the info column goes off-canvas, the
@@ -807,7 +825,13 @@ Req/Bonus × Words/Score grid, same block treatment), waffle ("Swaps 3/12 (9
 left) · Par 10"), and scrabble ("Your turn · 7 in bag" / "Turn: ● moth · 7 in
 bag" / coop's "Team score: 152 · 7 in bag").
 Adoption is a per-game judgment, not a default: a game only needs the bar if its
-core state is invisible once the info column slides away.
+core state is invisible once the info column slides away. **letterboxed is the
+rule's clearest non-adopter** (it shipped with the bar and dropped it
+2026-08-05): the board itself is the letters readout — covered letters fill
+green — the chain strip above it is the words readout, and the one number
+neither shows (words left under the cap) is restated by the accepted-word
+feedback pill after every move. Dropping the bar returned its ~4.25rem to the
+board on exactly the surface that was tightest.
 
 **Deliberately NOT adopted — connections.** Both halves of its state are already
 on the play surface: **categories found** is self-evident from the board (each
@@ -816,7 +840,7 @@ count them), and **mistakes** sit in the below-board row as `<StrikeMarks>`
 (labeled "Mistakes" on a phone, "Mistakes (lose at 4)" above it). A status bar
 would restate both and cost the board 1.75rem for nothing.
 
-**The companion answer — "whose turn is it?"** The six opt-in turn-order coop
+**The companion answer — "whose turn is it?"** The eight opt-in turn-order coop
 games answer that in the info column too (`<TurnStatusLine>`), so it went
 off-canvas with the rest — and a waiting player on a phone had no cue at all
 (the shared `.tile:disabled` rule deliberately refuses to fade; taps silently
@@ -849,11 +873,11 @@ same three (they're not the shared `.tile`, so they replicate it locally). The
 zoom-suppression *feel* is an on-device check — Playwright can't reproduce
 Safari's gesture heuristics (recorded in [deferred.md](deferred.md)).
 
-**The pass now covers every game except one.** Thirteen games follow the
+**The pass now covers every game except one.** Fourteen games follow the
 info-sheet recipe, and since the sheet went full-bleed they all follow the
 *same* one — there is no longer a wide/plain split: **spellingbee / boggle /
 crosswords / psychicnum / wordle / codenamesduet / stackdown / waffle /
-connections / wordwheel / wordiply / scrabble / strands**.
+connections / wordwheel / wordiply / scrabble / strands / letterboxed**.
 
 - **scrabble** is **keyboard-required, NOT desktop-only** — like crosswords, its
   conversion is a layout for keyboard-attached devices, not a touch-entry mode

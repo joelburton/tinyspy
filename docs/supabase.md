@@ -147,7 +147,8 @@ query that named it.
 ### Read views, subscribe to base tables
 
 Games with hidden state (psychicnum, spellingbee, waffle, wordle,
-stackdown, scrabble, crosswords, wordwheel, wordiply, strands) read from a
+stackdown, scrabble, crosswords, wordwheel, wordiply, strands, letterboxed)
+read from a
 `games_state` / `players_state` **view** that gates the shielded column
 (solution / target / opponent board) on row state — the
 [definer-helper + invoker-view shape](code-conventions.md#security-definer-helper--security_invoker-view).
@@ -295,8 +296,8 @@ the short version, with every current member:
    every SUBSCRIBED (reconnect catch-up), with a generation counter so a
    slow superseded load can't clobber a newer one. Members: codenamesduet
    (×3 hooks), psychicnum, wordle, stackdown, scrabble (data side),
-   waffle, bananagrams (×2 hooks), boggle, wordiply, strands, the
-   spellingbee/wordwheel factory, HomePage.
+   waffle, bananagrams (×2 hooks), boggle, wordiply, strands, letterboxed,
+   the spellingbee/wordwheel factory, HomePage.
 2. **Pattern B — broadcast/presence-coupled, hand-rolled, stable name.**
    `useCommonGame`, connections `useGame`, `useScratchpad`,
    `useClubPresence`, `useClubSetupPresence`, `usePeerCursors`,
@@ -345,9 +346,10 @@ Related server-side subtleties:
   `replay_board` RPCs (spellingbee/wordwheel/boggle/wordiply) do a **no-op
   UPDATE touch on `games`** after deleting the child rows: the UPDATE
   event is what wakes clients to refetch the now-empty list. This is why
-  those games subscribe to `games` at all. `strands.replay_board` also
-  deletes child rows; its wake is the `players` UPDATE plus
-  `reset_game`'s `common.games` write rather than a `games` touch.
+  those games subscribe to `games` at all. `strands.replay_board` and
+  `letterboxed.replay_board` also delete child rows; their wake is the
+  `players` UPDATE (plus, for strands, `reset_game`'s `common.games`
+  write) rather than a `games` touch.
 - **Nothing is published without a subscriber.** A published-but-unread
   table is harmless (the invariant only kills things in the other
   direction) but pure replication overhead, so the publication is kept
@@ -472,6 +474,7 @@ All of these are commented at the site; this table is the index.
 | Stable-name temp channel | ClubPage delete-current-game broadcast | borrows `useCommonGame`'s room name to reach peers, send-only, ~1s lifetime |
 | FE-side owner filter on CDC | crosswords `useCells` | compete privacy: CDC payload carries other owners' cells; dropped before apply |
 | `common.games` subscribed in a game's own channel | strands `useGame` | the shield's terminal-reveal wake: both writers of `solution_revealed` touch only `common.games`, and the refetch must re-read the now-unshielded views |
+| Own `games` table subscribed though nothing writes it mid-play | letterboxed `useGame` | a deliberately quiet binding, kept so any future `games` write wakes clients rather than silently not; its publication membership is pinned by the central registry test |
 
 ## Bounds & realtime work — where it's tracked
 

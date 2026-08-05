@@ -7,22 +7,23 @@ import { outOfRacePill, stickyPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { db } from '../db'
 import { db as commonDb } from '../../common/db'
-import { useGame, type EventRow } from '../hooks/useGame'
+import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { BOARD_SIZE, rejectReason, tailLetter } from '../lib/board'
 import { isSuggestion, suggest } from '../lib/solve'
 import type { LetterboxedSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
-import { StateLine } from './StateLine'
 import { InfoCol } from './InfoCol'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
+import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { chainAt, describeAt } from '../lib/history'
+import { helpPillText } from '../lib/help'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
@@ -42,6 +43,11 @@ type LeaderRow = {
   username?: string
   words_used?: number
   letters_covered?: number
+  /** Only on a timed-out race: the server's per-row verdict. Ties are
+   *  co-winners (every tied row flagged), so "did I win" is my own row's
+   *  flag — never `leaderboard[0]`, whose order among tied rows is
+   *  arbitrary. The solve-path win writes `winner_id` instead. */
+  won?: boolean
 }
 
 /**
@@ -67,20 +73,28 @@ export function PlayArea(ctx: GamePageCtx) {
     isMyTurn, currentTurnUserId,
     setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback, title,
   } = ctx
-  const { game, playerRows, myRow, events, loading, rowsLoaded } = useGame(gameId)
+  const { game, playerRows, myRow, events, loading, rowsLoaded } = useGame(gameId, session.user.id)
 
   const letterboxedSetup = setup as LetterboxedSetup
   const infoSheet = useInfoSheet()
   const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
   const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback()
 
+  const leaderboard = useMemo(
+    () => (status?.leaderboard as LeaderRow[] | undefined) ?? [],
+    [status],
+  )
+
   // Confetti at the MOMENT the board is covered. Gated ONLY on the common.games
   // row, which GamePage has already awaited — anything that arrives later would
   // flip false→true after mount and celebrate at someone merely reviewing a
-  // finished game (useCelebration's rule 1).
+  // finished game (useCelebration's rule 1). A solve names its winner_id; a
+  // timed-out race has co-winners instead, flagged per leaderboard row.
   const celebration = useCelebration(
     playState === 'won' ||
-      (playState === 'won_compete' && status?.winner_id === session.user.id),
+      (playState === 'won_compete' &&
+        (status?.winner_id === session.user.id ||
+          leaderboard.some((e) => e.won && e.user_id === session.user.id))),
   )
 
   const actionsRef = useRef<{
@@ -103,16 +117,12 @@ export function PlayArea(ctx: GamePageCtx) {
     viewing,
     select: selectTurn,
     exitViewing,
+    exitOnKey,
   } = useHistoryViewer<number>()
-  const [logRows, setLogRows] = useState<{ rows: EventRow[]; boardIsShown: boolean }>({
-    rows: [],
-    boardIsShown: true,
-  })
-  const onRowsChange = useCallback(
-    (rows: EventRow[], boardIsShown: boolean) => setLogRows({ rows, boardIsShown }),
-    [],
-  )
-
+  // BoardCol freezes the entry's capture while viewing, so exitOnKey has the
+  // keys to itself: any keystroke returns to the live board instead of typing
+  // behind the banner (docs/keyboard-shortcuts.md → the viewer contract).
+  useGlobalKeyHandler(exitOnKey)
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
@@ -142,7 +152,26 @@ export function PlayArea(ctx: GamePageCtx) {
     // The next word's first letter comes from the chain, which the realtime
     // refetch is about to update — so clearing the draft is all that's needed.
     setDraft('')
-    clearLocalFeedback()
+    // The accepted-word pill restates the cap: with no mobile status bar the
+    // board shows WHICH letters are covered and the strip shows the words, but
+    // "how many words are left" has no ambient home on a phone, so every
+    // accepted word says it. TIMED, not sticky (Joel's call, 2026-08-05): a
+    // sticky pill sits in the entry's slot until the next keystroke, which
+    // made every submit feel like a modal moment — this one says its piece
+    // and hands the entry back on its own. A solve is pre-empted by the
+    // terminal verdict and a cap-filling word by BoardCol's chainFull pill
+    // (both outrank localPill), so the two zero-cases need no branches here.
+    const wordsLeft = maxWords - (chain.length + 1)
+    if (wordsLeft > 0) {
+      showLocalFeedback({
+        tone: 'success',
+        text: `${word.toUpperCase()} — ${wordsLeft} ${wordsLeft === 1 ? 'word' : 'words'} left`,
+        variant: 'outline',
+        dismiss: { kind: 'timed' },
+      })
+    } else {
+      clearLocalFeedback()
+    }
   }, [game, busy, chain, draft, sides, playable, maxWords, gameId, showLocalFeedback, clearLocalFeedback])
 
   // A board click appends — unless it lands on the letter the word already
@@ -191,7 +220,9 @@ export function PlayArea(ctx: GamePageCtx) {
   const askHelp = useCallback(
     (kind: 'hint' | 'spoiler') => {
       if (!game) return
-      const r = suggest(game.playableWords, sides, chain)
+      // The room left under the cap rides along so the search can refuse to
+      // point down a road the cap cuts off (the offPar answer below).
+      const r = suggest(game.playableWords, sides, chain, maxWords - chain.length)
 
       if (!isSuggestion(r)) {
         showLocalFeedback(
@@ -199,20 +230,15 @@ export function PlayArea(ctx: GamePageCtx) {
             'warning',
             r.kind === 'stuck'
               ? 'Dead end — take a word back'
-              : 'No way home from here — take a word back',
+              : r.kind === 'offPar'
+                ? `The shortest finish is ${r.wordsToFinish} ${r.wordsToFinish === 1 ? 'word' : 'words'} — more than you have left. Take a word back`
+                : 'No way home from here — take a word back',
           ),
         )
         return
       }
 
-      showLocalFeedback(
-        stickyPill(
-          'info',
-          kind === 'hint'
-            ? `${r.word.length} letters starting with ${r.word.slice(0, r.word.length > 8 ? 4 : 3).toUpperCase()}`
-            : r.word.toUpperCase(),
-        ),
-      )
+      showLocalFeedback(stickyPill('info', helpPillText(kind, r.word)))
       void db
         .rpc('log_help', { target_game: gameId, word_shown: r.word, kind })
         .then(({ error }) => {
@@ -221,7 +247,7 @@ export function PlayArea(ctx: GamePageCtx) {
           if (error) console.error('recording help failed', error)
         })
     },
-    [game, sides, chain, gameId, showLocalFeedback],
+    [game, sides, chain, maxWords, gameId, showLocalFeedback],
   )
   const takeHint = useCallback(() => askHelp('hint'), [askHelp])
   const takeSpoiler = useCallback(() => askHelp('spoiler'), [askHelp])
@@ -279,11 +305,6 @@ export function PlayArea(ctx: GamePageCtx) {
       newGame: () => void handleNewGame(),
     }
   }, [endGame, concede, restart, handleNewGame])
-
-  const leaderboard = useMemo(
-    () => (status?.leaderboard as LeaderRow[] | undefined) ?? [],
-    [status],
-  )
 
   // ─── GamePage menu ─────────────────────────────────────
   // The print model is built HERE, from live state, and is a snapshot at click
@@ -344,13 +365,35 @@ export function PlayArea(ctx: GamePageCtx) {
     items: events,
     keyOf: (e) => String(e.id),
     messageFor: (e) => {
-      if (e.user_id === session.user.id || e.kind === 'hint') return null
+      if (e.user_id === session.user.id) return null
       const member = players.find((p) => p.user_id === e.user_id)
+      // Peer help is TWO messages (Joel's spec, 2026-08-05): the header names
+      // the ACT ("● joel got a hint"), and the CONTENT — the same text the
+      // requester's own pill showed — lands in the local slot, so a hint one
+      // player asks for is a hint the whole team has. Side-effecting
+      // showLocalFeedback from here is sound: messageFor runs once per NEW
+      // event inside the hook's effect (the seen-set), never during render.
+      if (e.kind === 'hint' || e.kind === 'spoiler') {
+        if (e.word) showLocalFeedback(stickyPill('info', helpPillText(e.kind, e.word)))
+        return {
+          tone: 'info',
+          variant: 'outline',
+          text: (
+            <>
+              <ActorDot actor={member} fallback="A teammate" />{' '}
+              {e.kind === 'hint' ? 'got a hint' : 'revealed a word'}
+            </>
+          ),
+          dismiss: { kind: 'timed' },
+        }
+      }
       const what =
         e.kind === 'played'
           ? `${e.word?.toUpperCase() ?? ''} (${e.letters_covered}/${BOARD_SIZE})`
           : e.kind === 'undone'
-            ? 'undid the last word'
+            ? // Named, not "the last word": the peers' boards just lost it, so
+              // say WHICH word came off (the log's "took back GJB" agrees).
+              `undid ${e.word?.toUpperCase() ?? 'the last word'}`
             : 'cleared the chain'
       return {
         tone: e.kind === 'played' ? 'success' : 'info',
@@ -369,11 +412,21 @@ export function PlayArea(ctx: GamePageCtx) {
   if (loading) return <div className={styles.loading}>Loading…</div>
   if (!game) return <div className={styles.empty}>Game not found.</div>
 
+  // The rows the BOARD's viewer replays: the shared chain's events in coop, my
+  // own in compete — the wordle shape. The log derives the same list for
+  // itself and makes `#N` a live handle ONLY while its picker shows exactly
+  // this list (`boardIsShown`), so a selected index is always an index here.
+  // (An earlier version had the log hand its rows UP through a state-setting
+  // effect; the fresh array re-fired it every render and hit React's
+  // update-depth limit.)
+  const boardRows =
+    game.mode === 'compete' ? events.filter((e) => e.user_id === session.user.id) : events
+
   // The chain the BOARD shows: a past move's while viewing, the live one
   // otherwise. Folding rather than reconstructing — see lib/history.ts.
-  const shownChain = viewing && viewingIndex !== null ? chainAt(logRows.rows, viewingIndex) : chain
+  const shownChain = viewing && viewingIndex !== null ? chainAt(boardRows, viewingIndex) : chain
   const viewingDescription =
-    viewing && viewingIndex !== null ? describeAt(logRows.rows, viewingIndex) : null
+    viewing && viewingIndex !== null ? describeAt(boardRows, viewingIndex) : null
 
   const isCompete = game.mode === 'compete'
   const isLocallyDone = isCompete && myConceded && !isTerminal
@@ -415,13 +468,6 @@ export function PlayArea(ctx: GamePageCtx) {
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
         sides={sides}
-        mobileStatus={
-          <StateLine
-            lettersCovered={lettersCovered}
-            wordsUsed={chain.length}
-            maxWords={maxWords}
-          />
-        }
         chain={shownChain}
         liveChain={chain}
         viewingDescription={viewingDescription}
@@ -483,7 +529,6 @@ export function PlayArea(ctx: GamePageCtx) {
           onRequestBackToClub={menu.requestBackToClub}
           viewingIndex={viewingIndex}
           onSelectTurn={selectTurn}
-          onRowsChange={onRowsChange}
         />
       </InfoSheet>
       {/* No modal at terminal (docs/ui.md → Terminal results) — the result is
@@ -555,17 +600,29 @@ function buildOver({
         message: 'You got there first!',
       }
     }
-    // A timeout resolves on coverage instead of a solve, so the winner comes
-    // off the leaderboard rather than from a winner_id.
+    // A timeout resolves on coverage instead of a solve, so the verdict comes
+    // off the leaderboard's per-row `won` flags rather than from a winner_id.
+    // Exact ties are CO-winners (the server flags every tied row), so read my
+    // own row — leaderboard[0] would tell one tied winner they lost.
     if (timedOut) {
-      const best = leaderboard[0]
-      const iWon = best?.user_id === selfId
+      const winners = leaderboard.filter((e) => e.won)
+      const iWon = winners.some((e) => e.user_id === selfId)
+      const covered = winners[0]?.letters_covered ?? 0
+      if (iWon) {
+        return {
+          tone: 'won',
+          verdict:
+            winners.length > 1
+              ? `Won: tied at most letters (${covered}/12)`
+              : `Won: most letters (${covered}/12)`,
+          message: 'Most letters when time ran out',
+        }
+      }
+      const names = winners.map((e) => e.username ?? 'someone').join(' & ')
       return {
-        tone: iWon ? 'won' : 'lost',
-        verdict: iWon
-          ? `Won: most letters (${best?.letters_covered ?? 0}/12)`
-          : `Lost: ${best?.username ?? 'someone'} covered more`,
-        message: iWon ? 'Most letters when time ran out' : 'Out of time',
+        tone: 'lost',
+        verdict: `Lost: ${names || 'someone'} covered more`,
+        message: 'Out of time',
       }
     }
     const name = leaderboard.find((e) => e.user_id === winnerId)?.username

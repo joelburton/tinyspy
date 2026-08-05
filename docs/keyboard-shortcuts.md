@@ -25,7 +25,7 @@ Two consequences worth knowing:
   only while the game actually owns the keyboard
   ([`useGameHasKeyboard`](../src/common/hooks/input/useGameHasKeyboard.ts)) — it
   stops the moment chat takes focus.
-- **Tab is not a navigation key on a board.** Twelve of the fourteen games
+- **Tab is not a navigation key on a board.** Thirteen of the fifteen games
   swallow it (see the per-game table); crosswords uses it for clue navigation
   and codenamesduet traps it inside the clue form.
 
@@ -64,7 +64,7 @@ and holding `+` would otherwise start dozens of games.
 | `⌥⌫` | **End game**, or **Concede** in a compete game that offers both (the shortcut follows the mode's primary exit). Disabled at terminal / once conceded. |
 | `Esc` | Close the topmost floating panel or dialog (Help, Setup, a confirm, the word-lookup card, the definition popover, the mobile info sheet, the celebration dialog). |
 | *any key* | **Dismisses sticky local feedback** — your next keystroke is your next move. A terminal verdict pill is permanent and survives this. |
-| *any key* | **Exits the turn-history viewer** back to the live board, and is consumed (so the same press doesn't also play a move). Games with a viewer: codenamesduet, connections, psychicnum, scrabble, stackdown, strands, waffle, wordle. Clicking anywhere exits too. |
+| *any key* | **Exits the turn-history viewer** back to the live board, and is consumed (so the same press doesn't also play a move). Games with a viewer: codenamesduet, connections, letterboxed, psychicnum, scrabble, stackdown, strands, waffle, wordle. Clicking anywhere exits too. |
 | `Tab` | **Swallowed** on most boards — a play surface is not a form, and native Tab walks focus out to the header and then into the browser's URL bar. Exceptions: crosswords (clue navigation) and codenamesduet (trapped inside the clue form). |
 
 ## Menus, dialogs, and panels
@@ -180,6 +180,24 @@ writing key goes inert.
 **Rebus overlay**: `Enter` commits and advances · `Tab` / `⇧Tab` commit and jump
 to the next / previous clue · `Esc` cancels (so does clicking away).
 **Number-jump popup**: `Enter` goes · `Esc` closes.
+
+## letterboxed
+
+The entry accepts **board letters only** — `charFor` swallows any letter not on
+the square, and an appended letter that can't legally follow the one before it
+(same side of the box) is refused at the keystroke rather than rejected on
+submit. Once the chain has a word, the entry seeds itself with the **carried-over
+first letter** (the previous word's tail), which isn't yours to delete.
+
+| key | what it does |
+|---|---|
+| `A`–`Z` | Type into the entry — but only the twelve board letters land, and only where the side rule allows. Clicking board letters feeds the same word (clicking the word's current last letter again submits). |
+| `⌫` | Delete the last typed letter — **stops at the carried-over seed letter**. |
+| `Enter` | Submit the word. |
+
+No `↑`/`↓` recall — a submitted word goes into the chain, not away, so there is
+nothing to re-edit. Taking a word back is the × on the chain strip (a click
+control).
 
 ## psychicnum
 

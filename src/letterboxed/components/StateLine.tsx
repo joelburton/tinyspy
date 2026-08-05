@@ -8,10 +8,10 @@ import styles from './PlayArea.module.css'
  * counter beside the score would read as something the game is holding against
  * you.
  *
- * ONE component, rendered in TWO places: the info column on desktop, and the
- * `<MobileStatusBar>` above the board on a phone, where the info column is
- * off-canvas in the InfoSheet. Sharing the component rather than re-wording a
- * copy is what stops the two surfaces drifting (see MobileStatusBar's note).
+ * Info-column only — letterboxed deliberately has NO mobile status bar
+ * (docs/mobile.md's adoption rule): on a phone the board itself shows which
+ * letters are covered, the chain strip shows the words, and the accepted-word
+ * pill restates the cap. This line is the desktop/sheet summary of the same.
  *
  * Naming PAR in the words label is what makes that fraction readable: "3/5"
  * alone says nothing, "3/5" against "par 2" says you are three over.

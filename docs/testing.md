@@ -155,7 +155,7 @@ Tests usually assert on the code, not the wording. When a test *does* pin the me
 
 ## Per-gametype test setup
 
-`_shared/setup.psql` covers what every test in the suite needs. On top of it, most games have accumulated helpers that are useful within a gametype but not across — e.g., a boggle test wants a board-has-word assertion that has no analog in psychicnum. This is now the norm: ten games carry a per-gametype `setup.psql` (boggle, codenamesduet, connections, crosswords, scrabble, spellingbee, stackdown, strands, waffle, wordle); only psychicnum and bananagrams stay below the promotion threshold.
+`_shared/setup.psql` covers what every test in the suite needs. On top of it, most games have accumulated helpers that are useful within a gametype but not across — e.g., a boggle test wants a board-has-word assertion that has no analog in psychicnum. This is now the norm: thirteen games carry a per-gametype `setup.psql` (boggle, codenamesduet, connections, crosswords, letterboxed, scrabble, spellingbee, stackdown, strands, waffle, wordiply, wordle, wordwheel); only psychicnum and bananagrams stay below the promotion threshold.
 
 The pattern in use:
 

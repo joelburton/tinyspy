@@ -25,8 +25,8 @@ export function Help({ onClose, brand }: Props) {
       <ul>
         <li>
           <b>Every step crosses the box.</b> Two letters in a row may never come
-          from the same side. (Letters that can't follow the one you're on are
-          dimmed as you build a word.)
+          from the same side. (Clicking a letter that can't follow the one
+          you're on simply does nothing.)
         </li>
         <li>
           <b>Each word starts where the last one ended.</b> The box fills in that

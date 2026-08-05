@@ -58,4 +58,23 @@ describe('suggest', () => {
     const r = suggest(['adgz', 'adgjbehk', 'kcfil'], SIDES, [])
     expect(isSuggestion(r) && r.word).toBe('adgjbehk')
   })
+
+  it('never suggests a word already in the chain — the server refuses repeats', () => {
+    // GADG is the only word that can follow the tail G, but it has been
+    // played. Excluding it, the honest answer is STUCK (take a word back) —
+    // not a word the server would refuse as a repeat.
+    const r = suggest(['gadg', 'kcfil'], SIDES, ['gadg'])
+    expect(r).toEqual({ kind: 'stuck' })
+  })
+
+  it('reports OFF PAR when the shortest finish exceeds the room left', () => {
+    // Finishing needs two words but only one slot remains under the cap.
+    const r = suggest(['adgjbehk', 'kcfil'], SIDES, [], 1)
+    expect(r).toEqual({ kind: 'offPar', wordsToFinish: 2 })
+  })
+
+  it('still suggests when the shortest finish exactly fits the room left', () => {
+    const r = suggest(['adgjbehk', 'kcfil'], SIDES, [], 2)
+    expect(isSuggestion(r) && r.word).toBe('adgjbehk')
+  })
 })

@@ -41,6 +41,13 @@ test.describe('letterboxed', () => {
     await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first())
       .toBeVisible({ timeout: 10000 })
 
+    // The accepted-word pill restates the cap — there is no status bar to
+    // carry it (docs/mobile.md). It's TIMED: it occupies the entry's slot for
+    // ~1.4s and then hands the entry back on its own, so this assertion runs
+    // right after Enter (the pill appears on the RPC's return, not on the
+    // realtime refetch — asserting it later would race the auto-clear).
+    await expect(page.getByText('ADG — 4 words left')).toBeVisible({ timeout: 10000 })
+
     // …and the entry re-seeds ITSELF with the letter the next word must start
     // with — so the box now holds "g", not a placeholder telling you to type
     // one. The seed is derived from the chain rather than typed, which is what
@@ -165,13 +172,16 @@ test.describe('letterboxed', () => {
     await page.keyboard.press('Enter')
     // Wait for the chain to land, not a clock: the next word is seeded with
     // ADG's last letter, so typing before the refetch spells something else.
+    // (The timed accepted-word pill clears itself; the entry-value wait
+    // already outlasts it.)
     await expect(page.getByTestId('entry-value')).toHaveText('G', { timeout: 10000 })
     await page.keyboard.type('jb')
     await page.keyboard.press('Enter')
 
     // Two words spent, board not covered: the only move left is taking one
     // back, so the entry gives way rather than collecting a word it must
-    // then refuse.
+    // then refuse. (No accepted-word pill here — the cap-filling word's
+    // words-left is zero, and the chain-full pill outranks it anyway.)
     await expect(page.getByText(/Chain is full/)).toBeVisible({ timeout: 10000 })
 
     // Typing is inert — the entry is gone, so nothing accumulates.
@@ -213,9 +223,10 @@ test.describe('letterboxed', () => {
     await page.getByRole('button', { name: /show the word/i }).click()
     await expect(page.getByText('ADGJBEHK', { exact: true })).toBeVisible({ timeout: 10000 })
 
-    // The turn log is the record of both — there is no counter.
-    await expect(page.getByText('took a hint')).toBeVisible({ timeout: 10000 })
-    await expect(page.getByText(/was shown/)).toBeVisible({ timeout: 10000 })
+    // The turn log is the lasting record of both — the CONTENT, not just the
+    // fact of the ask (the pills above are transient); there is no counter.
+    await expect(page.getByText('Hint: 8 letters: ADG')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Reveal: ADGJBEHK')).toBeVisible({ timeout: 10000 })
 
     await ctx.close()
   })
@@ -261,7 +272,8 @@ test.describe('letterboxed', () => {
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
-    // Wait for the chain to land, not a clock — see above.
+    // Wait for the chain to land, not a clock — see above. (The timed
+    // accepted-word pill clears itself before this wait gives up.)
     await expect(page.getByTestId('entry-value')).toHaveText('G', { timeout: 10000 })
     await page.keyboard.type('jb')
     await page.keyboard.press('Enter')
@@ -325,6 +337,7 @@ test.describe('letterboxed', () => {
     await expect(page.getByText('No words yet')).toBeVisible({ timeout: 10000 })
     await page.keyboard.type('adgjbehk')
     await page.keyboard.press('Enter')
+    // The timed accepted-word pill clears itself; then the seeded entry shows.
     await expect(page.getByTestId('entry-value')).toHaveText('K', { timeout: 10000 })
     await page.keyboard.type('cfil')
     await page.keyboard.press('Enter')

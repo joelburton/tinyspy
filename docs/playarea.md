@@ -8,7 +8,7 @@ modals, mode pills, iconography), see [ui.md](ui.md).
 
 ## PlayArea layout
 
-The shape every game's play surface takes — **all fourteen games** are on it. The
+The shape every game's play surface takes — **all fifteen games** are on it. The
 scaffold + readout classes live in
 [`common/components/game/PlayArea.module.css`](../src/common/components/game/PlayArea.module.css)
 (a CSS-only module imported the way `setupForm.module.css` is, composed with a thin
@@ -85,8 +85,11 @@ these names when a new game's info column needs the same.
 
 **The canonical order** (top → bottom), enforced on every standard game: **state
 (`.infoState`) → opponent strip (`<OpponentStrip>`, compete) → action row
-(`.infoActions`) → help (`.infoHelp`) → setup disclosure (`.infoSetup`) → turn
-log / word list.** A v1/v2 layout's order is *not* a reliable guide — read this
+(`.infoActions`) → help (`.infoHelp`) → terminal extra (`.terminalExtra`,
+game-over only) → setup disclosure (`.infoSetup`) → turn log / word list.**
+The terminal extra sits **above** the setup disclosure deliberately (Joel's
+rule, 2026-08-05): the reveal is the payoff, the setup recap is bookkeeping —
+the recap must never push the answer down. A v1/v2 layout's order is *not* a reliable guide — read this
 and reorder to match (drifting to setup-first with help/actions swapped was a real
 codenamesduet bug). bananagrams is the documented exception: the hand + peel live
 in its info column, so its action row sits at the very bottom, below the hand it
@@ -139,7 +142,7 @@ placement is the rule, not redundancy to trim.
 | **`.infoState`** | the important *live* state (psychicnum: "0/3 found · 2/9 guesses used") | full text color, bold figures | **shown** |
 | **`.infoHelp`** | UI instructions ("Click or type a word and hit submit") | **muted** | **hidden** |
 | **`.infoActions`** | the action-button row | — | **swaps** (see below) |
-| **`.terminalExtra`** | extra info shown **only at game over** (waffle: the answer reveal) | a content-height block below the action slot | **terminal-only** (absent during play) |
+| **`.terminalExtra`** | extra info shown **only at game over** (wordle: the answer reveal) | a content-height block **above the setup disclosure** | **terminal-only** (absent during play) |
 
 - **Setup is the one allowed growth-during-play.** It's a closable `<details>`,
   so opening it grows the column but it *reclaims* the space — the rationale
@@ -161,14 +164,17 @@ placement is the rule, not redundancy to trim.
   [ui.md → Terminal results](ui.md#terminal-results--the-moment-vs-the-record)).
 - **`.terminalExtra` — the one allowed growth on the play→terminal transition.**
   A region that appears *only* at game over, for terminal content too big for the
-  below-board slot — waffle's multi-line answer reveal, which there would overflow
-  the viewport and scroll the page (a hard no). It **grows the info column** when
+  below-board slot — wordle's "The answer was PLUMB", which there would overflow
+  the viewport and scroll the page (a hard no). It sits **above the setup
+  disclosure** (see the canonical order above). It **grows the info column** when
   the game ends: a deliberate exception to [Layout stability](ui.md#layout-stability),
   allowed because the play surface is done, the **board doesn't move**, and the
   scrolling turn log below gives way so the *page* never scrolls (`flex-shrink: 0`
-  on it; the log's `flex: 1` + `min-height: 0` absorbs it). waffle is the first
-  user; reuse it when a game needs an end-of-game readout that doesn't fit below
-  the board.
+  on it; the log's `flex: 1` + `min-height: 0` absorbs it). Users today: wordle,
+  stackdown, letterboxed (its revealed "Solvable in two" pair); reuse it when a
+  game needs an end-of-game readout that doesn't fit below the board. (waffle's
+  answer reveal is NOT one of these — it's progressive and shows all game, part
+  of the status readout.)
 
 Shared in `common/components/game/PlayArea.module.css` — `.infoSetup` / `.infoState` / `.infoHelp` /
 `.infoActions` / `.terminalActions` / `.helperButton` / `.outcome_*` /
@@ -274,10 +280,10 @@ The pill is driven by the shared **`useLocalFeedback`** hook (holds one
 `GenericFeedbackMsg`, auto-clears on the next move / any key via
 `useDismissLocalFeedbackOnKey`, and is permanent at terminal — see [Terminal local
 feedback is permanent](#text-entry--capture-not-input) above). The slot reserves its
-height so swapping the pill in for the move controls never reflows the board. All fourteen
-games share this (ten drive `useLocalFeedback` directly, the four word-list games via
+height so swapping the pill in for the move controls never reflows the board. All fifteen
+games share this (eleven drive `useLocalFeedback` directly, the four word-list games via
 `useWordSubmit`); the earlier per-game full-width `<ResultFlash>` bar has been
-removed. In the seven turn-order coop games the same slot also carries the sticky
+removed. In the eight turn-order coop games the same slot also carries the sticky
 "Waiting for ● Name…" pill (the shared `waitingTurnPill` in
 `common/components/game/turnCopy.tsx`), slotted into the precedence chain as
 terminal verdict → locally-done → **waiting-for-turn** → own-move
@@ -586,7 +592,7 @@ just the no-cap case of hug** — with no max tile size the board grows to the f
 available width, so a capless game reads exactly like the old fill model. (Each game
 exposes a max-tile-size knob; psychicnum caps, most ship uncapped today — so they
 still *look* like they fill, but they're on the hug structure.) The **square boards**
-(waffle, scrabble, boggle) compute a single **`--side`** bounded by BOTH the width
+(waffle, scrabble, boggle, letterboxed) compute a single **`--side`** bounded by BOTH the width
 left beside the info column (`--avail-w`) AND the height above their input/rack row
 (`--avail-h`); the non-square boards hug width alone. (bananagrams is the one FILL
 exception — a fixed 25×25 arena; see docs/games/bananagrams.md.)
@@ -796,6 +802,13 @@ adding a viewer to a new game:
   rings that turn's own cells. A two-input game — its `BoardCol` owns the **guess** RPC
   (the guess is a board click; `CluePanel` keeps the clue RPCs).
 - **waffle** — keyed by **log position**; `highlight` = a viewed swap's neutral cell ring.
+- **letterboxed** — keyed by **log position**; **inclusive** fold over the event
+  stream (`chainAt` in `lib/history.ts`: played pushes, undone pops, cleared
+  empties, help rows change nothing) — the log records retreats precisely so this
+  replay works, since a chain is a stack that can shrink, not a board that
+  accumulates. Like wordle, the log has a "whose board" picker in compete, so the
+  `#N` handle is live only while the shown log is the board that replays
+  (`boardIsShown`).
 
 UX is uniform (and matches across the history games): enter by clicking a turn's `#N`
 handle; the input freezes and the board shows the historical state; any interaction

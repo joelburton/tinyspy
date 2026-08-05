@@ -1,5 +1,6 @@
 import type React from 'react'
 import type { ReactNode } from 'react'
+import { cls } from '../../common/lib/util/cls'
 import type { GamePlayer } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
@@ -39,24 +40,29 @@ import styles from './PlayArea.module.css'
  * a phone this column is off-canvas behind the info sheet.
  */
 export function InfoCol({
+  // ── Terminal & turn state ──
   over,
   isTerminal,
   isLocallyDone,
   isTurnGame,
   currentTurnUserId,
+  // ── State (the chain and its readouts) ──
   chain,
   maxWords,
   lettersCovered,
   solution,
   solutionRevealed,
   events,
+  // ── Players & opponent strip (compete) ──
   players,
   selfId,
   isCompete,
   wordsByUser,
   coveredByUser,
   concededIds,
+  // ── Setup disclosure ──
   setup,
+  // ── Action row ──
   onHint,
   onSpoiler,
   onReveal,
@@ -68,10 +74,11 @@ export function InfoCol({
   startingNewGame,
   onBackToClub,
   onRequestBackToClub,
+  // ── Turn-history viewer ──
   viewingIndex,
   onSelectTurn,
-  onRowsChange,
 }: {
+  // ── Terminal & turn state ──
   over: (TerminalCopy & { verdictNode?: ReactNode }) | null
   isTerminal: boolean
   isLocallyDone: boolean
@@ -79,20 +86,24 @@ export function InfoCol({
    *  never changes mid-game and can't reflow the column. */
   isTurnGame: boolean
   currentTurnUserId: string | null
+  // ── State (the chain and its readouts) ──
   chain: string[]
   maxWords: number
   lettersCovered: number
   solution: string[]
   solutionRevealed: boolean
   events: EventRow[]
+  // ── Players & opponent strip (compete) ──
   players: GamePlayer[]
   selfId: string
   isCompete: boolean
   wordsByUser: Map<string, number>
   coveredByUser: Map<string, number>
   concededIds: Set<string>
+  // ── Setup disclosure ──
   /** What was picked at create time, recapped in the disclosure. */
   setup: LetterboxedSetup
+  // ── Action row ──
   /** Coop only — both refused server-side in compete. */
   onHint: () => void
   onSpoiler: () => void
@@ -107,10 +118,10 @@ export function InfoCol({
   startingNewGame: boolean
   onBackToClub: () => void
   onRequestBackToClub: () => void
-  /** Turn-history viewer — the move open on the board, or null when live. */
+  // ── Turn-history viewer ──
+  /** The move open on the board, or null when live. */
   viewingIndex: number | null
   onSelectTurn: (index: number) => void
-  onRowsChange: (rows: EventRow[], boardIsShown: boolean) => void
 }) {
   // Click-to-define, the shared popover the word lists and turn logs use.
   const { define, popover } = useDefinePopover()
@@ -125,8 +136,6 @@ export function InfoCol({
   return (
     <div className={shared.infoCol}>
       <div className={shared.actionSlot}>
-        {/* The same node the mobile status bar renders — one component, two
-            surfaces, so they can't drift (see <MobileStatusBar>). */}
         <StateLine
           lettersCovered={lettersCovered}
           wordsUsed={chain.length}
@@ -145,7 +154,11 @@ export function InfoCol({
           />
         )}
 
-        {/* Compete: the two numbers a race may publish. Never the words. */}
+        {/* Compete: the two numbers a race may publish. Never the words.
+            DELIBERATELY unchanged at terminal (Joel, 2026-08-05) — wordiply's
+            strip switches to a verdict there, but here coverage IS the story:
+            "they got 10 of the 12" is what you want to know about a rival
+            after a race on coverage. */}
         {isCompete && (
           <OpponentStrip
             players={players}
@@ -203,15 +216,26 @@ export function InfoCol({
           </div>
         )}
 
+        {/* Help — the interface in one line, and only while the player can act
+            on it (never silently swapped for something else). */}
+        {!over && !isLocallyDone && (
+          <p className={shared.infoHelp}>
+            Click letters or type; click the last one again (or press{' '}
+            <kbd>Enter</kbd>) to submit. Every word starts where the last one
+            ended — the × takes it back.
+          </p>
+        )}
+
         {/* The seeded solution — GATED behind the Reveal button above, not
             shown for free. It ships to the client from game start (the board's
             own word list would give a solution away anyway), so this is a
             display gate rather than a security boundary — but it is still the
-            thing that ends the post-mortem, so it waits to be asked for. Sits
-            here, right under the button that opens it and above the setup
-            recap. */}
+            thing that ends the post-mortem, so it waits to be asked for.
+            `terminalExtra`: the one region allowed to grow at game over, ABOVE
+            the setup disclosure per the canonical order (the reveal is the
+            payoff; the recap is bookkeeping). */}
         {solutionRevealed && solution.length > 0 && (
-          <div className={styles.chainBlock}>
+          <div className={cls(shared.terminalExtra, styles.chainBlock)}>
             <div className={styles.blockTitle}>Solvable in two</div>
             <div className={styles.solution}>
               {solution.map((w, i) => (
@@ -222,16 +246,6 @@ export function InfoCol({
               ))}
             </div>
           </div>
-        )}
-
-        {/* Help — the interface in one line, and only while the player can act
-            on it (never silently swapped for something else). */}
-        {!over && !isLocallyDone && (
-          <p className={shared.infoHelp}>
-            Click letters or type; click the last one again (or press{' '}
-            <kbd>Enter</kbd>) to submit. Every word starts where the last one
-            ended — the × takes it back.
-          </p>
         )}
 
         {/* Setup options — what was picked at create time, behind the shared
@@ -247,8 +261,6 @@ export function InfoCol({
         </SetupDisclosure>
       </div>
 
-
-
       {popover}
       <GameTurnLog
         events={events}
@@ -258,7 +270,6 @@ export function InfoCol({
         isTerminal={isTerminal}
         viewingIndex={viewingIndex}
         onSelectTurn={onSelectTurn}
-        onRowsChange={onRowsChange}
       />
     </div>
   )

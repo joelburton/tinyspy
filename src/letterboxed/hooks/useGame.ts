@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
-import { supabase } from '../../common/lib/supabase/supabase'
 import { db } from '../db'
 import type { Member } from '../../common/lib/games'
 
@@ -77,11 +76,15 @@ export type EventRow = {
  *     re-fetch per move.
  *   - **players + events refetch on realtime events.** Every move rewrites a
  *     players row and appends an events row; both are published, so a peer's
- *     move wakes this hook. The `games` subscription is there for
- *     replay_board's realtime TOUCH (a replay DELETEs events rows, which
- *     postgres_changes filters don't reliably match).
+ *     move wakes this hook — including replay_board, whose players UPDATE is
+ *     what tells everyone the board restarted (its events DELETEs alone would
+ *     not: postgres_changes filters don't reliably match deletes).
+ *
+ * `selfId` comes from the caller (GamePage already holds the session) — the
+ * strands shape. players_state masks a rival's chain to null, and "my row" is
+ * the one whose chain is authoritative, so the id picks it out.
  */
-export function useGame(gameId: string): {
+export function useGame(gameId: string, selfId: string): {
   game: LetterboxedGame | null
   /** Every visible player row, including rivals' (chain masked). */
   playerRows: PlayerRow[]
@@ -100,7 +103,6 @@ export function useGame(gameId: string): {
   const [events, setEvents] = useState<EventRow[]>([])
   const [loading, setLoading] = useState(true)
   const [rowsLoaded, setRowsLoaded] = useState(false)
-  const [selfId, setSelfId] = useState<string | null>(null)
 
   // The immutable header — fetched once per game. `loading` gates the PlayArea
   // render, so it flips here.
@@ -133,19 +135,6 @@ export function useGame(gameId: string): {
     }
   }, [gameId])
 
-  // Who am I? players_state masks a rival's chain to null, and "my row" is the
-  // one whose chain is authoritative, so the id is needed to pick it out.
-  useEffect(() => {
-    let mounted = true
-    void (async () => {
-      const { data } = await supabase.auth.getSession()
-      if (mounted) setSelfId(data.session?.user.id ?? null)
-    })()
-    return () => {
-      mounted = false
-    }
-  }, [])
-
   const load = useCallback(
     async ({ mounted }: { mounted: () => boolean }) => {
       const [{ data: pData }, { data: eData }] = await Promise.all([
@@ -171,8 +160,11 @@ export function useGame(gameId: string): {
     tables: [
       { schema: 'letterboxed', table: 'players', filter: `game_id=eq.${gameId}` },
       { schema: 'letterboxed', table: 'events', filter: `game_id=eq.${gameId}` },
-      // The games row never changes mid-play — this subscription exists for
-      // replay_board's realtime TOUCH (see the hook header).
+      // The games row never changes mid-play, so this binding is quiet today —
+      // kept so any future write to it wakes clients rather than silently not.
+      // It obliges games' membership in the publication (the central
+      // realtime_publication_test pins all three: one unpublished bound table
+      // kills the WHOLE channel).
       { schema: 'letterboxed', table: 'games', filter: `id=eq.${gameId}` },
     ],
     channelPrefix: 'letterboxed',

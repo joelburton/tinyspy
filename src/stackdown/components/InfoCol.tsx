@@ -241,6 +241,18 @@ export function InfoCol({
             as advice. Matches waffle. */}
         {!over && !isPlayer && <LocalTerminalRow label="Watching — not in this game" />}
 
+        {/* The six solution words — the one info-column region allowed to grow at
+            game-over (docs/ui.md → Layout stability), ABOVE the setup disclosure
+            per the canonical order (the reveal is the payoff; the recap is
+            bookkeeping). Shown only once `solution` is non-null, which PlayArea
+            gates on won-or-revealed. */}
+        {over && solution && (
+          <div className={cls(shared.terminalExtra, styles.reveal)}>
+            <span className="muted">The words were</span>{' '}
+            <strong>{solution.map((w) => w.toUpperCase()).join(' · ')}</strong>
+          </div>
+        )}
+
         {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
         <SetupDisclosure>
           <li>Tiles: 30</li>
@@ -249,16 +261,6 @@ export function InfoCol({
           <li>Timer: {timerLabel(setup.timer)}</li>
         </SetupDisclosure>
       </div>
-
-      {/* The six solution words — the one info-column region allowed to grow at
-          game-over (docs/ui.md → Layout stability). Shown only once `solution`
-          is non-null, which PlayArea gates on won-or-revealed. */}
-      {over && solution && (
-        <div className={cls(shared.terminalExtra, styles.reveal)}>
-          <span className="muted">The words were</span>{' '}
-          <strong>{solution.map((w) => w.toUpperCase()).join(' · ')}</strong>
-        </div>
-      )}
 
       <GameTurnLog
         submissions={submissions}

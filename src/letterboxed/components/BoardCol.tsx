@@ -1,14 +1,18 @@
-import { useCallback, useMemo, type ReactNode } from 'react'
+import { useCallback, useMemo, type CSSProperties, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { stickyPill, terminalPill } from '../../common/lib/game/localPills'
 import { EntryRow } from '../../common/components/game/entry/EntryRow'
 import { Board } from './Board'
-import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
 import { ChainStrip } from './ChainStrip'
 import { TypedWord } from './TypedWord'
 import { canFollow, tailLetter } from '../lib/board'
+import {
+  DESKTOP_ROW_BUDGET_REM,
+  MOBILE_ROW_BUDGET_REM,
+  estimateChainRows,
+} from '../lib/chainRows'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -42,7 +46,6 @@ export function BoardCol({
   liveChain,
   viewingDescription,
   onExitViewing,
-  mobileStatus,
   draft,
   onDraftChange,
   onSubmit,
@@ -56,6 +59,7 @@ export function BoardCol({
   localPill,
   over,
 }: {
+  // ── Board & chain ──
   sides: string
   /** Words to DRAW — a past move's chain while the history viewer is open, the
    *  live one otherwise. */
@@ -64,12 +68,12 @@ export function BoardCol({
    *  never off a historical snapshot: reviewing a past move must not change
    *  what your next move is. */
   liveChain: string[]
+  // ── Turn-history viewer ──
   /** The viewed move's one-line description (drives the banner + the frame), or
    *  null when live. */
   viewingDescription: string | null
   onExitViewing: () => void
-  /** The `<StateLine>` node — the SAME one the info column renders. */
-  mobileStatus: ReactNode
+  // ── Entry ──
   /** Only the letters the PLAYER added — the seed is derived, see above. */
   draft: string
   onDraftChange: (next: string) => void
@@ -79,6 +83,7 @@ export function BoardCol({
   /** The × on the chain's last word. */
   onRemoveLast: () => void
   clearLocalFeedback: () => void
+  // ── Gates ──
   /** Terminal / conceded / not my turn / chain full: board + entry are inert. */
   entryDisabled: boolean
   /** May the chain still be edited? Deliberately NOT `!entryDisabled`: when the
@@ -89,6 +94,7 @@ export function BoardCol({
    *  taking a word back, so the entry gives way to a pill saying so. */
   chainFull: boolean
   busy: boolean
+  // ── Below-board pill ──
   localPill: GenericFeedbackMsg | null
   over: (TerminalCopy & { verdictNode?: ReactNode }) | null
 }) {
@@ -139,13 +145,34 @@ export function BoardCol({
     [seed, word, sides, onDraftChange],
   )
 
+  // The chain strip's reserved rows, per breakpoint (which one applies is
+  // pure CSS — no JS breakpoint read; both vars ride along and the media
+  // query picks). Derived from the LIVE chain: most games never leave the
+  // base reservation, and when a long chain genuinely needs another row the
+  // board absorbs it through --avail-h (see lib/chainRows.ts for the deal).
+  const chainRowsStyle = useMemo(
+    () =>
+      ({
+        '--chain-rows-desktop': Math.min(
+          4,
+          Math.max(2, estimateChainRows(liveChain, DESKTOP_ROW_BUDGET_REM)),
+        ),
+        '--chain-rows-mobile': Math.min(
+          4,
+          Math.max(3, estimateChainRows(liveChain, MOBILE_ROW_BUDGET_REM)),
+        ),
+      }) as CSSProperties,
+    [liveChain],
+  )
+
   return (
-    <div className={cls(shared.boardCol, styles.boardCol)}>
-      {/* MOBILE ONLY (pure CSS — no JS breakpoint read): the info column is
-          off-canvas in the InfoSheet down there, so the state that answers
-          "how are we doing?" comes back onto the play surface. Costs the board
-          a fixed height and nothing more. */}
-      <MobileStatusBar>{mobileStatus}</MobileStatusBar>
+    <div className={cls(shared.boardCol, styles.boardCol)} style={chainRowsStyle}>
+      {/* NO MobileStatusBar, deliberately (docs/mobile.md's adoption rule: a
+          game needs the bar only if its core state is invisible once the info
+          column slides away). Here the board IS the letters readout — covered
+          letters fill green — and the chain strip is the words readout; the
+          one invisible number, words left under the cap, is restated by the
+          accepted-word pill after every move. */}
 
       {/* The chain reads ABOVE the board: it is the state, and it says what
           letter the next word must start with. On a phone the info column is
@@ -193,7 +220,10 @@ export function BoardCol({
           // it isn't yours to delete.
           children={<TypedWord word={word} seedLength={seed.length} />}
           pill={pill}
-          disabled={entryDisabled}
+          // Also hard-off while a past move is open: freezing capture lets a
+          // keystroke fall through to PlayArea's exitOnKey (back to live)
+          // instead of editing the live draft behind the banner.
+          disabled={entryDisabled || viewingDescription !== null}
           busy={busy}
           onAnyKey={clearLocalFeedback}
           charFor={charFor}

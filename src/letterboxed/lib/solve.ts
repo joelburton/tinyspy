@@ -32,13 +32,17 @@ export type Suggestion = {
   wordsToFinish: number
 }
 
-/** Why no suggestion could be made — the two are very different situations. */
+/** Why no suggestion could be made — the three are very different situations. */
 export type NoSuggestion =
   /** Nothing at all can follow the current letter: the chain has dead-ended
    *  and the only move is taking a word back. */
   | { kind: 'stuck' }
   /** Words exist, but no sequence of them covers the board from here. */
   | { kind: 'unreachable' }
+  /** Off par: the board is still finishable, but the shortest finish needs
+   *  more words than the chain has room for. A hint that suggested the first
+   *  of those words would be leading the player into the cap. */
+  | { kind: 'offPar'; wordsToFinish: number }
 
 type Indexed = { word: string; mask: number; first: number; last: number }
 
@@ -70,14 +74,26 @@ function indexWords(playable: readonly string[], sides: string): Indexed[] {
  * Among all next words that lie on a shortest path, it returns the one covering
  * the MOST new letters — equal-length routes are not equally satisfying, and
  * the greedier-looking move is the one a player would rather be shown.
+ *
+ * `wordsLeft`, when given, is the room left under the cap (max_words minus the
+ * chain): a shortest finish longer than that returns `offPar` instead of a
+ * word, because the server will refuse the chain before the route completes.
  */
 export function suggest(
   playable: readonly string[],
   sides: string,
   chain: readonly string[],
+  wordsLeft?: number,
 ): Suggestion | NoSuggestion {
   const FULL = (1 << BOARD_SIZE) - 1
-  const words = indexWords(playable, sides)
+  // Words already in the chain are excluded outright: the server refuses a
+  // repeat, so suggesting one hands the player an error. (Steps DEEPER in a
+  // candidate route are not deduped against each other — modelling that would
+  // put the played-set in the BFS state — so wordsToFinish is exact for legal
+  // routes and merely optimistic in the contrived case where every shortest
+  // route repeats itself; the first word shown is always legal.)
+  const played = new Set(chain)
+  const words = indexWords(playable, sides).filter((w) => !played.has(w.word))
 
   const slot = new Map([...sides].map((c, i) => [c, i]))
   const byFirst: Indexed[][] = Array.from({ length: BOARD_SIZE }, () => [])
@@ -135,7 +151,15 @@ export function suggest(
   }
 
   for (let depth = 1; depth <= BOARD_SIZE; depth++) {
-    if (winners.length > 0) return best(winners, depth)
+    if (winners.length > 0) {
+      // The first layer with winners IS the shortest finish. Longer than the
+      // room left under the cap → the truth is "you can't get there from
+      // here within N", not a word that starts down that road.
+      if (wordsLeft !== undefined && depth > wordsLeft) {
+        return { kind: 'offPar', wordsToFinish: depth }
+      }
+      return best(winners, depth)
+    }
     if (frontier.length === 0) break
 
     const next: typeof frontier = []

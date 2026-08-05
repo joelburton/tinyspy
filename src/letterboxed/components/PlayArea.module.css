@@ -35,24 +35,31 @@
    * board. Ours is the entry row plus the Undo/Clear row plus the gaps —
    * about 8rem. Referencing it without defining it makes the whole min()
    * invalid, which silently drops the board back to its intrinsic size. */
-  --avail-h: calc(100svh - var(--game-chrome-height) - 8rem);
+  /* The chain-rows term: when a long chain outgrows the BASE reservation
+   * (2 rows here, 3 on a phone), the extra rows come out of the board's
+   * height budget so the board SHRINKS once instead of the page scrolling —
+   * never-scroll outranks never-move, and the shift is rare by design
+   * (lib/chainRows.ts). BoardCol sets the two --chain-rows-* vars inline;
+   * the fallbacks keep the calc valid before React hydrates a value. */
+  --avail-h: calc(
+    100svh - var(--game-chrome-height) - 8rem -
+      (var(--chain-rows-desktop, 2) - 2) * 2.8rem
+  );
   --side: min(var(--avail-w), var(--avail-h), 34rem);
+  width: var(--side);
 }
 
-/* MOBILE: the info column is off-canvas, so <MobileStatusBar> mirrors the state
- * line above the board. Our readout is a small BLOCK (two or three stat cells),
- * not the bar's one-line default, so the height token is raised — and it must
- * ALSO come out of --avail-h, or the board sizes itself for space the bar has
- * taken and the page starts scrolling. The extra 0.75rem is .boardCol's flex
- * gap between the bar and the chain strip. */
+/* MOBILE: deliberately NO <MobileStatusBar> (docs/mobile.md's adoption rule —
+ * the board itself is the letters readout and the chain strip the words
+ * readout, and the accepted-word pill restates the cap). All the phone needs
+ * is the narrower chain-rows base: 3 reserved rows instead of 2. */
 @media (--mobile) {
   .boardCol {
-    --mobile-status-height: 3.5rem;
     --avail-h: calc(
-      100svh - var(--game-chrome-height) - 8rem - var(--mobile-status-height) - 0.75rem
+      100svh - var(--game-chrome-height) - 8rem -
+        (var(--chain-rows-mobile, 3) - 3) * 2.8rem
     );
   }
-  width: var(--side);
 }
 
 .loading,
@@ -75,15 +82,13 @@
 }
 
 /* ── Info column ─────────────────────────────────────────── */
-.infoCol { }
 
-/* The whole game in two fractions: letters covered, words spent. */
-/* The two fractions the game reduces to, as a 2-cell stat grid (the shape
- * spellingbee/wordwheel's shared <Stats> uses — theirs hardcodes Score/Words
- * labels, so this is the same look rather than the same component). */
+/* The two fractions the game reduces to — letters covered, words spent — as a
+ * 2-cell stat grid (the shape spellingbee/wordwheel's shared <Stats> uses —
+ * theirs hardcodes Score/Words labels, so this is the same look rather than
+ * the same component). */
 .stats {
-  /* auto-flow column so the cell count can differ by mode (coop adds Hints)
-   * without the grid needing to be told how many there are. */
+  /* auto-flow column so a future extra cell needs no grid re-declaration. */
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
@@ -116,7 +121,8 @@
   color: var(--color-muted);
 }
 
-/* A titled block in the info column — the chain, the reveal, the move log. */
+/* A titled block in the info column — today only the revealed solution wears
+ * it (the chain lives above the board, the move log is the shared TurnLog). */
 .chainBlock {
   display: flex;
   flex-direction: column;
@@ -151,18 +157,20 @@
    * whatever it currently occupies. */
   align-content: center;
   gap: 0.4rem;
-  /* Two rows of pills + the gap. Reserved from the start so the board never
-   * moves when the chain wraps (docs/ui.md → layout stability). */
-  --chain-rows: 2;
-  min-height: calc(var(--chain-rows) * 2.4rem + (var(--chain-rows) - 1) * 0.4rem);
+  /* Reserved rows + gaps, so the board never moves when the chain wraps
+   * (docs/ui.md → layout stability). The row count comes from BoardCol's
+   * estimate (base 2; a long chain can raise it, and .boardCol's --avail-h
+   * takes the extra out of the board rather than the page). */
+  --rows: var(--chain-rows-desktop, 2);
+  min-height: calc(var(--rows) * 2.4rem + (var(--rows) - 1) * 0.4rem);
   width: 100%;
 }
 
 /* A phone's board column is much narrower, so the same chain wraps sooner —
- * three rows, reserved up front for the same reason. */
+ * the base is three rows, reserved up front for the same reason. */
 @media (--mobile) {
   .chain {
-    --chain-rows: 3;
+    --rows: var(--chain-rows-mobile, 3);
   }
 }
 

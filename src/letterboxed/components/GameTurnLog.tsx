@@ -1,4 +1,4 @@
-import { useEffect, type MouseEvent } from 'react'
+import type { MouseEvent } from 'react'
 import type { GamePlayer } from '../../common/lib/games'
 import { useTurnLogPlayerPicker } from '../../common/hooks/game/useTurnLogPlayerPicker'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
@@ -11,6 +11,7 @@ import {
 import { TurnLogActor } from '../../common/components/game/lists/TurnLogActor'
 import { memberById } from '../../common/lib/game/peers'
 import { BOARD_SIZE } from '../lib/board'
+import { hintPrefix } from '../lib/help'
 import type { EventRow } from '../hooks/useGame'
 import turnLog from '../../common/components/game/lists/TurnLog.module.css'
 import styles from './PlayArea.module.css'
@@ -46,7 +47,6 @@ export function GameTurnLog({
   isTerminal,
   viewingIndex,
   onSelectTurn,
-  onRowsChange,
 }: {
   events: EventRow[]
   players: GamePlayer[]
@@ -57,9 +57,6 @@ export function GameTurnLog({
   viewingIndex: number | null
   /** Open a move on the board (click its `#N`). */
   onSelectTurn: (index: number) => void
-  /** The rows currently on show, handed up so the board replays the SAME list
-   *  the numbers are indexing. */
-  onRowsChange: (rows: EventRow[], boardIsShown: boolean) => void
 }) {
   const who = useTurnLogPlayerPicker<EventRow>({
     players,
@@ -71,13 +68,14 @@ export function GameTurnLog({
   })
   const shown = who.filter(events)
 
-  // The viewer indexes by POSITION in the displayed rows, so the board has to
-  // fold the same list. Handing it up (rather than the board re-deriving it)
-  // keeps one definition of "the rows on show".
+  // The viewer indexes by POSITION in the displayed rows, and PlayArea derives
+  // the same list for itself (`boardRows`: coop = all events, compete = own).
+  // `boardIsShown` is what keeps the two honest — the `#N` handle is live ONLY
+  // while the picker's rows ARE the board's own sequence, so a selected index
+  // always means the same row on both sides. (An earlier version handed the
+  // rows up through a state-setting effect instead; the fresh array re-fired
+  // it every render and hit React's update-depth limit.)
   const boardIsShown = who.boardIsShown
-  useEffect(() => {
-    onRowsChange(shown, boardIsShown)
-  }, [shown, boardIsShown, onRowsChange])
 
   // Click-to-define (a common feature — common/hooks/definitions/useDefinePopover).
   // Every word in the log is a real dictionary word, whether it was played,
@@ -152,7 +150,13 @@ function barFor(e: EventRow): TurnOutcome {
 
 /**
  * A row's move text. Each kind names what HAPPENED in the game's own words, and
- * every one that carries a word makes that word definable.
+ * every one that carries a whole word makes that word definable.
+ *
+ * Help rows carry their CONTENT, not just the fact of the ask (Joel's spec,
+ * 2026-08-05): the pills that delivered the hint were transient, so the log is
+ * the lasting record of what was given away — the hint's length + opening
+ * letters (`hintPrefix`, the same vocabulary the pills used), the spoiler's
+ * whole word.
  */
 function Move({
   event,
@@ -173,8 +177,12 @@ function Move({
     case 'cleared':
       return <span className={styles.logRetreat}>started over</span>
     case 'hint':
-      return <span className={styles.logRetreat}>took a hint</span>
+      return (
+        <span className={styles.logRetreat}>
+          Hint: {(event.word ?? '').length} letters: {hintPrefix(event.word ?? '')}
+        </span>
+      )
     case 'spoiler':
-      return <span className={styles.logRetreat}>was shown {word}</span>
+      return <span className={styles.logRetreat}>Reveal: {word}</span>
   }
 }

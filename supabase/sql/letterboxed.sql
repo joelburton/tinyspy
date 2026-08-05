@@ -582,8 +582,8 @@ begin
       using errcode = 'P0001';
   end if;
   if right(sol_a, 1) <> left(sol_b, 1) then
-    raise exception 'board.solution must chain: %% ends in "%", %% starts with "%"',
-                    right(sol_a, 1), left(sol_b, 1)
+    raise exception 'board.solution must chain: % ends in "%", % starts with "%"',
+                    sol_a, right(sol_a, 1), sol_b, left(sol_b, 1)
       using errcode = 'P0001';
   end if;
   if letterboxed._covered(b_solution) <> 12 then
@@ -680,6 +680,16 @@ begin
   end if;
   if (select is_terminal from common.games where id = target_game) then
     raise exception 'game already ended' using errcode = 'P0001';
+  end if;
+
+  -- A conceded player's chain is frozen. The FE already disables the board
+  -- on myConceded, so this fires only on a race (a submit in flight when
+  -- the concede commits, or a stale second tab) — but without it a
+  -- conceder could keep appending and even cover the twelve, and the solve
+  -- branch below would crown them. A drop-out forfeits (strands' ruling).
+  if (select conceded from common.game_players
+        where game_id = target_game and user_id = caller_id) then
+    raise exception 'you have conceded' using errcode = 'P0001';
   end if;
 
   -- No-op when the game isn't turn-based (the pointer is null).
@@ -848,6 +858,12 @@ begin
     raise exception 'game already ended' using errcode = 'P0001';
   end if;
 
+  -- Same guard as submit_word: a conceded player's chain is frozen.
+  if (select conceded from common.game_players
+        where game_id = target_game and user_id = caller_id) then
+    raise exception 'you have conceded' using errcode = 'P0001';
+  end if;
+
   perform common._require_turn(target_game, caller_id);
 
   select p.chain into v_chain
@@ -907,6 +923,12 @@ begin
   end if;
   if (select is_terminal from common.games where id = target_game) then
     raise exception 'game already ended' using errcode = 'P0001';
+  end if;
+
+  -- Same guard as submit_word: a conceded player's chain is frozen.
+  if (select conceded from common.game_players
+        where game_id = target_game and user_id = caller_id) then
+    raise exception 'you have conceded' using errcode = 'P0001';
   end if;
 
   if (select current_turn_user_id from common.games where id = target_game) is not null then
@@ -1050,11 +1072,17 @@ begin
 
   -- Compete: rank on coverage, breaking ties on a shorter chain. Both
   -- numbers were already public during the race (players_state), so the
-  -- resolution reveals nothing the leaderboard hadn't.
+  -- resolution reveals nothing the leaderboard hadn't. Conceded players
+  -- are out of the running — a drop-out forfeits, however much they had
+  -- covered when they left (the wordiply ruling: listed, but can't win).
+  -- best_* can't come back null: an all-conceded game is already terminal
+  -- (common.concede ends it), so the early is_terminal return fired.
   select letterboxed._covered(p.chain), coalesce(cardinality(p.chain), 0)
     into best_covered, best_words
     from letterboxed.players p
-   where p.game_id = target_game
+    join common.game_players gp
+      on gp.game_id = p.game_id and gp.user_id = p.user_id
+   where p.game_id = target_game and not gp.conceded
    order by letterboxed._covered(p.chain) desc,
             coalesce(cardinality(p.chain), 0) asc
    limit 1;
@@ -1064,17 +1092,41 @@ begin
   select jsonb_object_agg(
            p.user_id::text,
            jsonb_build_object(
-             'won', letterboxed._covered(p.chain) = best_covered
+             'won', not gp.conceded
+                and letterboxed._covered(p.chain) = best_covered
                 and coalesce(cardinality(p.chain), 0) = best_words))
     into player_results
     from letterboxed.players p
+    join common.game_players gp
+      on gp.game_id = p.game_id and gp.user_id = p.user_id
    where p.game_id = target_game;
 
+  -- The blob's leaderboard carries the same rows _leaderboard would, PLUS
+  -- the per-row verdict. That flag is what the FE reads for "did I win" —
+  -- co-winners mean there is no single winner_id to trust, and among tied
+  -- rows the display order is arbitrary, so leaderboard[0] is not it.
   perform common.end_game(
     target_game, 'won_compete',
     jsonb_build_object('mode', 'compete', 'solved', false, 'timed_out', true,
                        'best_letters_covered', best_covered,
-                       'leaderboard', letterboxed._leaderboard(target_game)),
+                       'leaderboard',
+                       (select coalesce(jsonb_agg(
+                          jsonb_build_object(
+                            'user_id', p.user_id,
+                            'username', pr.username,
+                            'words_used', coalesce(cardinality(p.chain), 0),
+                            'letters_covered', letterboxed._covered(p.chain),
+                            'won', not gp.conceded
+                               and letterboxed._covered(p.chain) = best_covered
+                               and coalesce(cardinality(p.chain), 0) = best_words)
+                          order by letterboxed._covered(p.chain) desc,
+                                   coalesce(cardinality(p.chain), 0) asc),
+                          '[]'::jsonb)
+                          from letterboxed.players p
+                          join common.game_players gp
+                            on gp.game_id = p.game_id and gp.user_id = p.user_id
+                          join common.profiles pr on pr.user_id = p.user_id
+                         where p.game_id = target_game)),
     player_results
   );
 end;

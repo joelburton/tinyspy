@@ -24,7 +24,7 @@ begin;
 
 set search_path = letterboxed, common, public, extensions;
 
-select plan(26);
+select plan(28);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -255,6 +255,42 @@ select is(
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   null,
   'but a rival''s CHAIN is hidden mid-race'
+);
+
+-- ============================================================
+-- The cap: chain full at max_words
+-- ============================================================
+-- A cap-of-two game (extra_words 0 → par exactly), so the cap is
+-- reachable without covering the board: two short words hit it with
+-- seven letters still missing.
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+
+create temp table gt on commit drop as
+select * from letterboxed.create_game(
+  (select handle from club),
+  pg_temp.lb_setup() || jsonb_build_object('extra_words', 0),
+  array['ada11111-1111-1111-1111-111111111111'::uuid],
+  'coop',
+  pg_temp.lb_board()
+);
+
+select letterboxed.submit_word((select id from gt), 'adg');
+select letterboxed.submit_word((select id from gt), 'gjb');
+
+select throws_ok(
+  format('select letterboxed.submit_word(%L, %L)', (select id from gt), 'beh'),
+  'P0001',
+  'the chain is full at 2 words — undo to try another route',
+  'a full chain refuses a further word'
+);
+
+-- The refund property AT the cap: taking a word back reopens the slot —
+-- and an undone word is no longer "already in the chain", so it may return.
+select letterboxed.undo_word((select id from gt));
+select lives_ok(
+  format('select letterboxed.submit_word(%L, %L)', (select id from gt), 'gjb'),
+  'undo refunds against the cap — the slot reopens'
 );
 
 select * from finish();

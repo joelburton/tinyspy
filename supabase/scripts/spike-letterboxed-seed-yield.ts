@@ -194,13 +194,6 @@ const partition = (conflict: number[], rng: () => number): number[] | null => {
   return place(0) ? sideOf : null
 }
 
-// A doubled letter inside a solution word ('bell') makes that word illegal on
-// ANY board, so such pairs must be rejected outright.
-const hasDoubledLetter = (w: string): boolean => {
-  for (let i = 1; i < w.length; i++) if (w[i] === w[i - 1]) return true
-  return false
-}
-
 // ── the real solver: playable set + BFS par ─────────────────────────────────
 type Board = { letters: number[]; sideOf: number[] }
 

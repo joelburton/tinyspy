@@ -112,7 +112,7 @@ export function BoardCol({
         {/* The LOCAL feedback slot — a reserved height keeps the top-anchored board
             from shifting as the pill (own-action error / waiting / terminal verdict)
             appears/clears. The multi-line answer reveal is NOT here (it lives in the
-            info column's `.terminalExtra` — it would overflow the viewport). */}
+            info column's `<SolutionReveal>` — it would overflow the viewport). */}
         <div className={shared.localFeedback}>
           {localPill && <GenericFeedbackPill msg={localPill} onClose={noop} />}
         </div>

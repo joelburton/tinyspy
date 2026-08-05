@@ -50,7 +50,7 @@ select plan(1);
 
 select set_eq(
   -- ACTUAL: every table our schemas publish to supabase_realtime.
-  -- Scoped to our 15 schemas so Supabase-internal publications (if any)
+  -- Scoped to our 16 schemas so Supabase-internal publications (if any)
   -- don't register as spurious "extra" rows.
   $$
     select schemaname::text, tablename::text
@@ -60,7 +60,7 @@ select set_eq(
          'common', 'codenamesduet', 'psychicnum', 'connections',
          'spellingbee', 'bananagrams', 'waffle', 'wordle', 'stackdown',
          'scrabble', 'boggle', 'crosswords', 'wordwheel', 'wordiply',
-         'strands'])
+         'strands', 'letterboxed'])
   $$,
   -- EXPECTED: the FE postgres_changes subscription registry.
   $$
@@ -120,7 +120,11 @@ select set_eq(
       -- strands (useGame refetch: games + players + events)
       ('strands', 'games'),
       ('strands', 'players'),
-      ('strands', 'events')
+      ('strands', 'events'),
+      -- letterboxed (useGame refetch: games + players + events)
+      ('letterboxed', 'games'),
+      ('letterboxed', 'players'),
+      ('letterboxed', 'events')
   $$,
   'supabase_realtime membership == the FE postgres_changes subscription registry (missing ⇒ live updates die; extra ⇒ replication overhead)'
 );
