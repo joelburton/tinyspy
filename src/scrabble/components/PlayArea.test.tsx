@@ -229,6 +229,17 @@ describe('scrabble PlayArea — concede', () => {
   // Pins scrabble's terminal-strip verbs — the ` · `-separated format (distinct from
   // boggle/spellingbee's ` at `) that the shared `outcomeVerb` helper feeds. Guards the
   // §4.7 extraction: the three outcomes must still read Won / Quit / Lost.
+  it('stops claiming a turn once the game is over', () => {
+    // The line's first clause IS the turn indicator in compete, so a finished
+    // game went on saying "Your turn". It now names the state instead, keeping
+    // the bag clause (which is still true) behind the same bullet separator.
+    // Two copies: the info column's and the mobile status bar's.
+    h.result = loadedCompete()
+    render(<PlayArea {...makeCtx({ players: twoMembers, isTerminal: true, status: { outcome: 'compete' } })} />)
+    expect(screen.queryByText(/Your turn/)).not.toBeInTheDocument()
+    expect(screen.getAllByText(/Ended · 86 in bag/)).toHaveLength(2)
+  })
+
   it('distinguishes Quit / Lost / Won at terminal in the strip', () => {
     h.result = loaded(
       loadedGame({ mode: 'compete', sharedRack: null, teamScore: null, currentUserId: 'u1' }),
@@ -252,9 +263,14 @@ describe('scrabble PlayArea — concede', () => {
         })}
       />,
     )
-    expect(screen.getByText(/Quit · /)).toBeInTheDocument()
-    expect(screen.getByText(/Won · /)).toBeInTheDocument()
-    expect(screen.getByText(/Lost · /)).toBeInTheDocument()
+    // Score first, outcome parenthesised after it. NOT `·`-joined: that is the
+    // strip's PLAYER separator, so "Lost · 5 · Quit · 12" ran one glyph for two
+    // jobs. The scores are asserted alongside the verbs so the pairing can't
+    // silently come apart (a verb on the wrong seat would still match a bare
+    // /quit/).
+    expect(screen.getByText('5 (lost)')).toBeInTheDocument()
+    expect(screen.getByText('12 (quit)')).toBeInTheDocument()
+    expect(screen.getByText('40 (won)')).toBeInTheDocument()
   })
 })
 

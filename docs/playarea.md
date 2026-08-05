@@ -101,6 +101,28 @@ unit never wraps mid-entry (the strip wraps *between* entries). Fixed-seat
 2-player games like codenamesduet may show peer status in the global feedback area
 instead of a strip — use a strip when there's a meaningful per-opponent metric.
 
+**Turn claims stop at terminal.** A finished game has nobody's turn, so no
+readout may keep asserting one. Two shapes, decided by whether the line has
+anything *else* to say:
+
+- **The line is only a turn indicator** → it goes **inert but keeps its height**
+  — a blank height-holder, no wording. That's the shared
+  [`<TurnStatusLine>`](../src/common/components/game/TurnStatusLine.tsx), used by
+  connections / psychicnum / strands / waffle / wordiply / wordle / scrabble
+  coop, and pinned by its own test ("goes inert at terminal"). The height is held
+  because dropping the element would reflow the column below on the
+  play→terminal transition ([Layout stability](ui.md#layout-stability)).
+- **The line carries other live state too** → replace only the turn clause with
+  **"Ended"**, keeping the rest behind the same `·` separator. scrabble compete
+  is the case: `Your turn · 7 in bag` becomes `Ended · 0 in bag`, because a bare
+  "0 in bag" with nothing in front of it reads as a fragment.
+
+**Don't spell the verdict here.** "Ended" names the *state*, not the outcome —
+the outcome already has two surfaces at terminal (the action row's bold verdict
+and the below-board terminal pill), and a third copy is noise. A turn *count*
+(codenamesduet's `4/9 turns`) is state, not a claim about whose turn it is, and
+needs no terminal branch.
+
 **Locally-terminal look.** When the game continues but *this* player can't act
 (out of guesses, waiting for others while they race on), reuse the **terminal
 look** — a bold status line ("Waiting for others") + their End/Concede on the

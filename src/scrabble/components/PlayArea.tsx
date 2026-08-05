@@ -548,6 +548,7 @@ export function PlayArea({
         mobileStatus={
           <StateLine
             isCompete={isCompete}
+            isTerminal={isTerminal}
             myTurn={myTurn}
             currentMember={currentMember}
             teamScore={game.teamScore}
@@ -603,6 +604,7 @@ export function PlayArea({
           onApplySuggestion={handleApplySuggestion}
           setup={scrabbleSetup}
           aiSeats={aiRoster}
+          winnerSeat={(status?.winner_seat as number | null | undefined) ?? null}
           aiMemberOfSeat={aiMemberOfSeat}
           plays={plays}
           viewingSeq={viewingSeq}

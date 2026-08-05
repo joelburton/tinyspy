@@ -1,6 +1,5 @@
 import { outcomeVerb, type Member, type GamePlayer } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { Dot } from '../../common/components/text/Dot'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
@@ -75,6 +74,7 @@ export function InfoCol({
   onApplySuggestion,
   setup,
   aiSeats,
+  winnerSeat,
   aiMemberOfSeat,
   plays,
   viewingSeq,
@@ -142,6 +142,10 @@ export function InfoCol({
   // ── AI opponents (compete; docs/scrabble-ai-strength.md) ──
   /** The AI seats' display rows (name + disc color + live score), or empty. */
   aiSeats: { seat: number; name: string; color: string; score: number }[]
+  /** The winning seat at terminal (`status.winner_seat`), or null. Only an AI
+   *  needs it — a human's result rides their `common.game_players` row, but a
+   *  bot has no such row, so the seat is the only thing that names it a winner. */
+  winnerSeat: number | null
   /** Resolve an AI seat to a synthetic Member (for the Moves log actor tag). */
   aiMemberOfSeat: (seat: number | null) => Member | undefined
 
@@ -151,6 +155,32 @@ export function InfoCol({
   viewingSeq: number | null
   onSelectTurn: (seq: number) => void
 }) {
+  // ── The score strip's roster: every SEAT, human and AI, in seat order ──
+  // AI seats aren't in `common.game_players`, so they're synthesized as Members
+  // — the same shape (and the same `ai:<seat>` id space) the turn log already
+  // uses for a bot's actor cell, so the two surfaces name a bot identically.
+  const aiAsMembers: Member[] = aiSeats.map((ai) => ({
+    user_id: `ai:${ai.seat}`,
+    username: ai.name,
+    color: ai.color,
+  }))
+  const scoreRoster: Member[] = [...players, ...aiAsMembers]
+  // One lookup for both kinds: a bot's score rides its seat row, a human's its
+  // player row.
+  const aiOfMember = (player: Member) => aiSeats.find((a) => `ai:${a.seat}` === player.user_id)
+  const scoreOf = (player: Member): number =>
+    aiOfMember(player)?.score
+    ?? playerStates.find((p) => p.user_id === player.user_id)?.score
+    ?? 0
+  // A bot has no common.game_players row, so `outcomeVerb` can't reach it — its
+  // result comes off the winning SEAT instead. A bot can't concede, so Won/Lost
+  // is the whole space for it.
+  const outcomeOf = (player: Member): string => {
+    const ai = aiOfMember(player)
+    if (ai) return ai.seat === winnerSeat ? 'Won' : 'Lost'
+    return outcomeVerb(players.find((m) => m.user_id === player.user_id))
+  }
+
   return (
     <div className={shared.infoCol}>
       <div className={shared.actionSlot}>
@@ -163,6 +193,7 @@ export function InfoCol({
         <p className={shared.infoState}>
           <StateLine
             isCompete={isCompete}
+            isTerminal={isTerminal}
             myTurn={myTurn}
             currentMember={currentMember}
             teamScore={teamScore}
@@ -182,39 +213,37 @@ export function InfoCol({
           />
         )}
 
-        {/* Opponent strip (compete) — each peer's score, identity on a leading disc.
-            Scores aren't hidden (the board reveals them). */}
+        {/* Opponent strip (compete) — every SEAT's score on one line, identity on a
+            leading disc. Scores aren't hidden (the board reveals them).
+
+            AI seats ride the same strip as synthetic Members. They used to get
+            their own second line, because bots aren't in the common roster — and
+            that line drifted: two "Score:" labels, disagreeing about which of the
+            label / name / number was bold. One roster, one label, one typography.
+            Seat order, so the strip reads in turn order (orderSelfFirst still
+            hoists the viewer). */}
         {isCompete && (
           <OpponentStrip
-            players={players}
+            players={scoreRoster}
             selfId={selfId}
             metricLabel="Score"
             metricFor={(player) => {
-              const ps = playerStates.find((p) => p.user_id === player.user_id)
-              const score = ps?.score ?? 0
-              // Mid-game a conceder reads as "out"; at terminal the score line is
-              // prefixed with the outcome verb (Quit / Lost / Won). The strip types
-              // `player` as Member, so read the concede/result bits back off `players`.
-              if (!isTerminal) return concededIds.has(player.user_id) ? 'out' : score
-              const gpm = players.find((m) => m.user_id === player.user_id)
-              return `${outcomeVerb(gpm)} · ${score}`
+              // Mid-game a conceder reads as "out".
+              if (!isTerminal) return concededIds.has(player.user_id) ? 'out' : scoreOf(player)
+              // At terminal the per-seat OUTCOME rides along, and it earns its
+              // place: the TerminalActionRow beneath names only the winner, so
+              // this is the only thing distinguishing a player who QUIT from one
+              // who played to the end and lost — which matters the moment there
+              // are three seats rather than two.
+              //
+              // Parenthesised, not `·`-joined. `·` is the strip's PLAYER
+              // separator, so the old "Lost · 260" made
+              // "You: Lost · 260 · AI 1: 333" run three separators doing two
+              // different jobs. Score first, because the number is what the eye
+              // is scanning for; the verb is an annotation on it.
+              return `${scoreOf(player)} (${outcomeOf(player).toLowerCase()})`
             }}
           />
-        )}
-
-        {/* AI opponents' scores (compete) — the bots aren't in the common roster
-            (OpponentStrip), so their live scores get their own compact line, same
-            disc-then-score shape. Only shown when the game has AI seats. */}
-        {isCompete && aiSeats.length > 0 && (
-          <p className={shared.infoState}>
-            Score:{' '}
-            {aiSeats.map((ai, i) => (
-              <span key={ai.seat}>
-                {i > 0 && ' · '}
-                <Dot color={ai.color} /> {ai.name}: <strong>{ai.score}</strong>
-              </span>
-            ))}
-          </p>
         )}
 
         {/* Action row — End (coop) / Concede (compete) during play; the "You
