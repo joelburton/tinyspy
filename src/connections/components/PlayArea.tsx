@@ -20,6 +20,7 @@ import { printConnectionsPdf } from '../pdf/printConnectionsPdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { db } from '../db'
+import type { CategoryRank } from '../lib/board'
 import { useGame } from '../hooks/useGame'
 import type { ConnectionsSetup } from '../lib/setup'
 import { nextUnplayedPuzzle } from '../../common/lib/game/nextPuzzle'
@@ -127,6 +128,12 @@ export function PlayArea({
   // not a window over the board). (The guess dispatch, the local tile shuffle, and
   // the wrong-guess shake all live in BoardCol.)
   const [hintsOpen, setHintsOpen] = useState(false)
+  // Which hint categories are revealed. Owned HERE rather than in <HintList> so
+  // the restart handler can clear it — see that component's `revealed` prop.
+  const [revealedHints, setRevealedHints] = useState<ReadonlySet<CategoryRank>>(() => new Set())
+  const revealHint = useCallback((rank: CategoryRank) => {
+    setRevealedHints((prev) => (prev.has(rank) ? prev : new Set(prev).add(rank)))
+  }, [])
 
   // Mobile: below --mobile the board fills the screen and the info column slides in
   // as an off-canvas sheet from a "Game info" menu item (the shared recipe —
@@ -255,6 +262,11 @@ export function PlayArea({
       onRestarted: () => {
         exitViewing()
         clearLocalFeedback()
+        // The same sixteen tiles again, so a hint spent on the first attempt
+        // must not carry into the second. (Fires only on the client that
+        // clicked Restart — the same limitation every onRestarted cleanup in
+        // the roster has; a peer's restart leaves their own list alone.)
+        setRevealedHints(new Set())
       },
     })
 
@@ -574,6 +586,8 @@ export function PlayArea({
         categories={game.board.categories}
         hintsOpen={hintsOpen}
         onHints={() => setHintsOpen((o) => !o)}
+        revealedHints={revealedHints}
+        onRevealHint={revealHint}
         onEndGame={handleEndGame}
         onConcede={handleConcede}
         onRestart={handleRestart}

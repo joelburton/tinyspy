@@ -10,7 +10,7 @@ import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { ConnectionsSetup } from '../lib/setup'
-import type { Board } from '../lib/board'
+import type { Board, CategoryRank } from '../lib/board'
 import type { GuessRow, Player } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
 import { HintList } from './HintList'
@@ -59,6 +59,8 @@ export function InfoCol({
   concededIds,
   categories,
   hintsOpen,
+  revealedHints,
+  onRevealHint,
   onHints,
   onEndGame,
   onConcede,
@@ -105,6 +107,10 @@ export function InfoCol({
   categories: Board['categories']
   /** Is the inline hint list unfolded? The Hints button toggles this (PlayArea owns it). */
   hintsOpen: boolean
+  /** Revealed hint categories + the reveal callback — owned by PlayArea so a
+   *  Restart can clear them (see <HintList>'s `revealed` prop). */
+  revealedHints: ReadonlySet<CategoryRank>
+  onRevealHint: (rank: CategoryRank) => void
   onHints: () => void
   onEndGame: () => void
   onConcede: () => void
@@ -221,7 +227,12 @@ export function InfoCol({
             </div>
             {/* The per-player hint reveals — unfolds right under the action row when
                 Hints is on; stays mounted (so revealed tiles persist across toggles). */}
-            <HintList categories={categories} open={hintsOpen} />
+            <HintList
+              categories={categories}
+              open={hintsOpen}
+              revealed={revealedHints}
+              onReveal={onRevealHint}
+            />
           </>
         )}
 

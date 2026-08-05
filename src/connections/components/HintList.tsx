@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { Board, CategoryRank } from '../lib/board'
 import { RANK_TOKEN } from '../lib/rankColors'
@@ -9,6 +8,14 @@ type Props = {
   categories: Board['categories']
   /** Whether the list is showing — the Hints button toggles this in the info column. */
   open: boolean
+  /** Which categories have been revealed. OWNED BY PlayArea, not held here: a
+   *  Restart replays the SAME board, so a hint that outlived the reset would
+   *  hand back a category name the player had already paid for — the rule
+   *  `common.reset_game` states outright ("the same board, hunted blind
+   *  again"). Local state survives a restart, since the play surface doesn't
+   *  unmount; lifting it puts the set where the restart handler can clear it. */
+  revealed: ReadonlySet<CategoryRank>
+  onReveal: (rank: CategoryRank) => void
 }
 
 /**
@@ -23,31 +30,19 @@ type Props = {
  * persist to the DB, and doesn't show up in any game history. Each player can
  * independently consult their own hints.
  *
- * State lives in this component: a Set of ranks the player has revealed. Because
+ * State lives in PlayArea: a Set of ranks the player has revealed. Because
  * `open` is a prop and this component stays mounted while it's play (InfoCol keeps
  * it in the action slot), the revealed set survives hide/show — closing the list
- * with yellow already revealed and reopening it keeps yellow shown. It clears when
- * the play surface unmounts (the same trigger as pause and as navigating away),
- * which is also when the board reveals every answer anyway.
+ * with yellow already revealed and reopening it keeps yellow shown. It clears on
+ * unmount (pause, navigating away) AND on Restart, which replays the same board
+ * and so must not carry a spent hint into the second attempt — see the
+ * `revealed` prop.
  *
  * This used to be a draggable `<FloatingPanel>` modal rendered over the board; it
  * now lives in the info column so a hint reads as one more info-column readout,
  * not a window to manage.
  */
-export function HintList({ categories, open }: Props) {
-  const [revealed, setRevealed] = useState<Set<CategoryRank>>(
-    () => new Set(),
-  )
-
-  function handleReveal(rank: CategoryRank) {
-    setRevealed((prev) => {
-      if (prev.has(rank)) return prev
-      const next = new Set(prev)
-      next.add(rank)
-      return next
-    })
-  }
-
+export function HintList({ categories, open, revealed, onReveal }: Props) {
   if (!open) return null
 
   // Sort the categories by rank so the rows appear in NYT's conventional
@@ -72,7 +67,7 @@ export function HintList({ categories, open }: Props) {
                 <button
                   type="button"
                   className={cls('link-button', styles.revealButton)}
-                  onClick={() => handleReveal(c.rank)}
+                  onClick={() => onReveal(c.rank)}
                 >
                   Reveal
                 </button>
