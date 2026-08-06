@@ -1,10 +1,12 @@
 -- ============================================================
 -- Test: bananagrams RLS — owner-only player_boards, club-wide progress
 -- ============================================================
--- The privacy boundary of the whole game: a player must NOT be able to
--- read another player's tile rack (`player_boards`), while the derived
--- counters (`progress`) ARE visible club-wide so the peer strip can show
--- everyone's race. The other tests read player_boards as the superuser
+-- The privacy boundary of the whole game: WHILE THE RACE IS ON a player
+-- must NOT be able to read another player's tile rack (`player_boards`),
+-- while the derived counters (`progress`) ARE visible club-wide so the
+-- peer strip can show everyone's race. At TERMINAL the boards open to the
+-- club — nothing is left to protect, and the finished grids are what the
+-- printout compares. The other tests read player_boards as the superuser
 -- (to bypass RLS for their assertions), so the owner-only policy itself
 -- is never exercised as a real authenticated caller — that's this file.
 --
@@ -17,13 +19,21 @@
 --   5. a non-member cannot read any board either
 --   6. the hidden bunch (`games.bunch`) is column-excluded from
 --      authenticated, even for a club member who can see the row
+--   7. at TERMINAL a co-player CAN read the other board
+--   8. ...but a non-member still cannot, even at terminal — the outcome
+--      the terminal clause could have broken, since "is terminal" is not
+--      self-limiting the way `user_id = auth.uid()` is. NB this pins the
+--      OUTCOME, not a mechanism: planting showed the block comes from
+--      `bananagrams.games`'s own club policy filtering the subquery, not
+--      from the policy's explicit is_club_member line (which is kept as
+--      belt-and-braces). Either way, an outsider must see nothing.
 -- ============================================================
 
 begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(6);
+select plan(8);
 
 \ir ../_shared/setup.psql
 
@@ -97,6 +107,28 @@ select is(
     where game_id = (select id from mg_game)),
   0::bigint,
   'a non-member sees no boards either'
+);
+
+-- ─── (7)+(8) The same reads once the game is OVER ─────────────
+-- end_game is the manual stop; any player may call it.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select bananagrams.end_game((select id from mg_game));
+
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select is(
+  (select count(*) from bananagrams.player_boards
+    where game_id = (select id from mg_game)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  1::bigint,
+  'at terminal a co-player CAN read the other board (the race is over)'
+);
+
+select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
+select is(
+  (select count(*) from bananagrams.player_boards
+    where game_id = (select id from mg_game)),
+  0::bigint,
+  'a non-member still sees no boards, even at terminal'
 );
 
 select * from finish();

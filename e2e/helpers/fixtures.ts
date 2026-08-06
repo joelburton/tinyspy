@@ -259,7 +259,21 @@ export async function createBananagramsGame(
       // bunch_size is required by bananagrams.create_game (the full 144-tile
       // bunch in play, no reserve; the win test drains the pool directly rather
       // than relying on a small bunch).
-      setup: { hand_size: 15, bunch_size: 144, timer: { kind: 'none' } },
+      //
+      // The rest mirror DEFAULT_BANANAGRAMS_SETUP. create_game defaults a
+      // missing `word_check` to 'off', so the GAME was always fine — but the
+      // setup blob is what the recap reads back, and an absent key rendered
+      // "Words: checked (undefined)" plus two "undefined (—)" dictionary rows
+      // on screen and on paper. The real dialog always sends them.
+      setup: {
+        hand_size: 15,
+        bunch_size: 144,
+        word_check: 'off',
+        dict_2: 4,
+        dict_3plus: 4,
+        dump_to_bag: false,
+        timer: { kind: 'none' },
+      },
       player_user_ids: playerUserIds,
     })
   if (res.error) throw new Error(`bananagrams.create_game: ${res.error.message}`)

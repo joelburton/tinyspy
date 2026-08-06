@@ -25,13 +25,38 @@ create policy games_select on bananagrams.games
   for select to authenticated
   using (common.is_club_member(club_handle));
 
--- Player boards: OWNER ONLY. A club member who isn't this row's
--- owner cannot read another player's board — the competitive
--- visibility rule, enforced at the row level.
+-- Player boards: OWNER ONLY WHILE THE RACE IS ON, then open to the club.
+-- A rival must not read your grid (or your rack) while it could help them —
+-- the competitive visibility rule, enforced at the row level.
+--
+-- At terminal it opens, which is what every other compete game on the roster
+-- does (stackdown.submissions, wordle.guesses, waffle: same `or is_terminal`
+-- clause). Nothing is left to protect once the game is over, and the finished
+-- boards are the interesting part — comparing grids is most of the fun of
+-- having raced. Without this the printout can only ever show ONE board, since
+-- the FE genuinely cannot see the others.
+--
+-- The club gate is stated EXPLICITLY even though it is redundant today:
+-- this subquery reads `bananagrams.games`, which carries its own
+-- `is_club_member` policy, so a non-member's subquery already finds nothing.
+-- Verified by planting — removing this line does NOT let an outsider in.
+-- It stays because a policy whose safety depends on ANOTHER table's policy is
+-- a hidden coupling: relax games_select some day and this silently becomes the
+-- hole it currently isn't. `user_id = auth.uid()` was self-limiting; "is
+-- terminal" is not.
 drop policy if exists player_boards_select on bananagrams.player_boards;
 create policy player_boards_select on bananagrams.player_boards
   for select to authenticated
-  using (user_id = auth.uid());
+  using (
+    user_id = auth.uid()
+    or exists (
+      select 1 from bananagrams.games bg
+        join common.games cg on cg.id = bg.id
+       where bg.id = player_boards.game_id
+         and common.is_club_member(bg.club_handle)
+         and cg.is_terminal
+    )
+  );
 
 -- Progress: club-wide. Peers read each other's counts (but not
 -- boards). Branches through the parent game's club_handle.

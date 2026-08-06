@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { db } from '../db'
 import { useRealtimeRefetch } from '../../common/hooks/realtime/useRealtimeRefetch'
 import type { Member } from '../../common/lib/games'
@@ -20,12 +20,20 @@ export type Player = Member
  *     server-side and the realtime subscription folds the change in, so the
  *     derived hand grows/swaps without the FE ever writing `tiles`.
  *
- * RLS on player_boards is owner-only, so the subscription + select see exactly
- * the caller's row (no peer's board). Pattern A: re-read on any change — the
- * row is tiny and `tiles` changes only at deal/peel/dump (board snapshots also
- * echo here, but re-reading the unchanged `tiles` is a harmless no-op).
+ * **Filters on `user_id` explicitly.** It used to lean on RLS for that —
+ * player_boards was owner-only, so `eq(game_id)` alone could only ever match
+ * one row. That stopped being true when the policy opened at terminal so the
+ * printout could show every player's grid: the select then matched the whole
+ * table, `maybeSingle()` errored, and the board never loaded — no board, no
+ * hand, no print menu item, for every player in a finished game. A query that
+ * depends on a policy to be correct breaks silently the day the policy moves,
+ * so it now says what it means.
+ *
+ * Pattern A: re-read on any change — the row is tiny and `tiles` changes only
+ * at deal/peel/dump (board snapshots also echo here, but re-reading the
+ * unchanged `tiles` is a harmless no-op).
  */
-export function useGame(gameId: string) {
+export function useGame(gameId: string, userId: string) {
   const [initialBoard, setInitialBoard] = useState<string | null>(null)
   const [tiles, setTiles] = useState('')
   const seeded = useRef(false)
@@ -39,6 +47,7 @@ export function useGame(gameId: string) {
         .from('player_boards')
         .select('board, tiles')
         .eq('game_id', gameId)
+        .eq('user_id', userId)
         .maybeSingle()
       if (!mounted() || !data) return
       if (!seeded.current) {
@@ -85,5 +94,40 @@ export function useProgress(gameId: string): ProgressRow[] {
       setRows(data ?? [])
     },
   })
+  return rows
+}
+
+/**
+ * Every player's finished board — for the printout's per-player columns.
+ *
+ * **Terminal only, and that's an RLS fact, not a policy choice here.**
+ * `player_boards` is owner-only while the race is on (a rival must not read
+ * your grid or your rack), and opens to the club once the game ends. So this
+ * asks only at terminal; before then the select would return one row anyway.
+ *
+ * Not realtime and not a `useRealtimeRefetch`: a terminal game's boards don't
+ * move, so this is a single read once `isTerminal` flips. It deliberately does
+ * NOT feed the play surface — the screen still shows only your own board, and
+ * this exists so the PDF can put the finished grids side by side.
+ */
+export function usePeerBoards(
+  gameId: string,
+  isTerminal: boolean,
+): { user_id: string; board: string }[] {
+  const [rows, setRows] = useState<{ user_id: string; board: string }[]>([])
+  useEffect(() => {
+    if (!isTerminal) return
+    let mounted = true
+    void (async () => {
+      const { data } = await db
+        .from('player_boards')
+        .select('user_id, board')
+        .eq('game_id', gameId)
+      if (mounted) setRows(data ?? [])
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [gameId, isTerminal])
   return rows
 }

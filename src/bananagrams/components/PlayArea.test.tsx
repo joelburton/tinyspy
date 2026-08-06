@@ -32,6 +32,9 @@ const h = vi.hoisted(() => ({
 vi.mock('../hooks/useGame', () => ({
   useGame: () => h.game,
   useProgress: () => h.progress,
+  // Peers' boards feed the PRINTOUT's per-player columns, nothing on screen —
+  // so a smoke test never needs rows, only the export to exist.
+  usePeerBoards: () => [],
 }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn().mockResolvedValue({ data: null, error: null }) } }))
 

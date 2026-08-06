@@ -20,7 +20,7 @@ import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { outOfRacePill, terminalPill } from '../../common/lib/game/localPills'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { db } from '../db'
-import { useGame, useProgress } from '../hooks/useGame'
+import { useGame, usePeerBoards, useProgress } from '../hooks/useGame'
 import type { BananagramsSetup } from '../lib/setup'
 import { boardLetters, boardToGrid } from '../lib/board'
 import { boardWords } from '../lib/words'
@@ -73,7 +73,10 @@ export function PlayArea(ctx: GamePageCtx) {
   // the browser's URL bar, stranding the player. (The capture-entry games get
   // this from useCaptureKeys; see useSwallowTab.)
   useSwallowTab()
-  const { initialBoard, tiles, loading } = useGame(ctx.gameId)
+  const { initialBoard, tiles, loading } = useGame(ctx.gameId, ctx.session.user.id)
+  // Everyone's finished grids, for the printout's per-player columns. Empty
+  // until the game ends — see usePeerBoards / the player_boards RLS.
+  const peerBoards = usePeerBoards(ctx.gameId, ctx.isTerminal)
   // The setup recap, built ONCE and handed to both consumers — the disclosure
   // below renders it as <li>s, the print model prints the same array object
   // (docs/pdf.md → Setup rows). bananagrams keeps its disclosure in this file
@@ -239,6 +242,23 @@ export function PlayArea(ctx: GamePageCtx) {
     concedeRef.current = () => void handleConcede()
   }, [handleConcede])
 
+  // The printout's inputs, through a ref for the SAME reason as the thunks
+  // above: the menu holds `doPrint` and runs it at click time, so it must read
+  // the CURRENT peer boards and roster, not the ones its effect first closed
+  // over — otherwise a terminal print still shows one column, the very bug the
+  // per-player columns fix.
+  //
+  // A ref rather than effect deps, and that distinction is load-bearing:
+  // `ctx.players` is a fresh array identity most renders, so listing it would
+  // re-run the menu effect on every render — and that effect calls
+  // `menu.setGameSections`, i.e. setState, which re-renders. It spun exactly
+  // that way when tried: the menu never settled and the print item became
+  // unclickable (docs — "no setState in effects").
+  const printDataRef = useRef({ peerBoards, players: ctx.players, selfId: ctx.session.user.id })
+  useEffect(() => {
+    printDataRef.current = { peerBoards, players: ctx.players, selfId: ctx.session.user.id }
+  }, [peerBoards, ctx.players, ctx.session.user.id])
+
   // ─── New game ───────────────────────────────────────────────────────────
   // A FRESH game (new id, a newly dealt bunch) with THIS game's setup + roster,
   // in the same club — the "same again!" action after someone goes out. A direct
@@ -341,29 +361,59 @@ export function PlayArea(ctx: GamePageCtx) {
   const myConceded = !!ctx.players.find((p) => p.user_id === ctx.session.user.id)?.conceded
 
   // ─── "Print board (PDF)" GamePage menu item ─────────────────────────────
-  // A snapshot of the caller's own board — works mid-game or at the end (see
-  // docs/pdf.md). The board is read from `boardRef` at CLICK time (not baked into
-  // the model here) so it's always current; the words are extracted with the same
-  // rule the server's win check uses (`boardWords`), then de-duped + sorted for a
-  // tidy reference list — unscored + unattributed, it's just the board's vocabulary.
+  // A COLUMN PER PLAYER (docs/pdf.md → track family). The caller's own board is
+  // read from `boardRef` at CLICK time (not baked into the model here) so it's
+  // always current; the others come from `peerBoards`, which only has rows once
+  // the game is terminal — `player_boards` is owner-only while the race is on,
+  // so mid-game this prints the caller's column alone.
+  //
+  // Words are extracted with the same rule the server's win check uses
+  // (`boardWords`), then de-duped + sorted — unscored and unattributed, it's
+  // just that board's vocabulary.
   useEffect(() => {
     // Wait for the deal — before the board loads there's nothing to print.
     if (loading || initialBoard === null) return
     const doPrint = () => {
-      const board = boardRef.current
-      const words = Array.from(new Set(boardWords(board))).sort()
-      const placed = boardLetters(board).length
+      const { peerBoards: peers, players: roster, selfId } = printDataRef.current
+      const nameOf = (userId: string) =>
+        roster.find((p) => p.user_id === userId)?.username ?? 'someone'
+
+      /** One column from a raw 625-char board string. */
+      const trackOf = (userId: string, raw: string) => {
+        const words = Array.from(new Set(boardWords(raw))).sort()
+        const placed = boardLetters(raw).length
+        return {
+          who: userId === selfId ? `${nameOf(userId)} (you)` : nameOf(userId),
+          board: boardToGrid(raw),
+          words,
+          result:
+            `${placed} tile${placed === 1 ? '' : 's'} placed · ` +
+            `${words.length} word${words.length === 1 ? '' : 's'}`,
+        }
+      }
+
+      // The caller's own board comes from the LIVE ref, not from `peerBoards`:
+      // the FE owns the grid between snapshots, so the server's copy can trail
+      // the tile you just dragged. Everyone else's comes from the read.
+      const mine = trackOf(selfId, boardRef.current)
+      const others = peers
+        .filter((r) => r.user_id !== selfId)
+        .map((r) => trackOf(r.user_id, r.board))
+      // Roster order for the rest, so two printouts of the same game agree.
+      others.sort((a, b) => a.who.localeCompare(b.who))
+      const tracks = [mine, ...others]
+
       printBananagramsPdf({
         brand,
         gameTitle: title,
         date: new Date().toLocaleDateString(),
-        // Board-centric summary (this print is a record of the board, not the race).
-        summary: `${placed} tile${placed === 1 ? '' : 's'} placed · ${words.length} word${words.length === 1 ? '' : 's'}`,
-        board: boardToGrid(board),
+        // The header counts the CALLER's board; each column carries its own
+        // tally, since in compete there's no one number for the table.
+        summary: mine.result,
         // Relevant setup only — the timer + dump destination don't describe the board.
         mode: 'compete' as const,
         setup: summaryRows,
-        words,
+        tracks,
       })
     }
     // bananagrams is compete-only, so the tail leads with Concede — but it

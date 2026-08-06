@@ -13,7 +13,7 @@ exclusion until 2026-08-02 — see the note under the table for what changed.)
 
 | game | prints? | notes |
 |---|---|---|
-| bananagrams | ✅ | word-list family (6 columns; bare words, no score/finder) |
+| bananagrams | ✅ | track family — a board + word list per player, **two** columns (the board is wide) |
 | boggle | ✅ | word-list family |
 | codenamesduet | ✅ | turn-log family — three facts per tile, all carried by drawn marks (see below) |
 | connections | ✅ | turn-log family — category bands as coloured **borders** + an A–D letter (see below) |
@@ -55,8 +55,8 @@ atoms and each game composes them with its OWN board renderer + a plain-data mod
 | `common/pdf/marks.ts` | psychicnum, codenamesduet | `drawCheck` / `drawCross` / `drawDash` — the ✓ / ✗ / – outcome marks, DRAWN from line segments because jsPDF's core fonts are WinAnsi and have no such glyphs. Each takes a centre + size, so the caller owns placement (a cell corner, a keycard inset) |
 | `common/pdf/frame.ts` | **all** | the shade constants, `PrintHeader` base model, `newPrintDoc`, `drawHeader`, `drawSetup`, `fit`, `savePrint` |
 | `common/pdf/turnLog.ts` | scrabble, psychicnum, wordiply, connections, codenamesduet | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
-| `common/pdf/wordColumns.ts` | boggle, spellingbee, wordwheel, bananagrams | `drawWordColumns` — the balanced N-column alphabetical word list; per-word flags `bonus` (a dot) and `pangram` (bold) let each game opt in, and a `found: null` row is a bare word (no score/finder — every bananagrams row) |
-| `common/pdf/wordListBody.ts` | boggle, spellingbee, wordwheel, bananagrams | `drawWordListBody` — the **whole word-list body skeleton** (board top-left / Setup to its right / `drawWordColumns` below), pinning the shared layout offsets in one place. The caller passes a `drawBoard(x, y) → { w, h }` callback (its only real difference) plus two knobs: `cols` (4, or bananagrams' 6) and `emptyText` |
+| `common/pdf/wordColumns.ts` | boggle, spellingbee, wordwheel | `drawWordColumns` — the balanced N-column alphabetical word list; per-word flags `bonus` (a dot) and `pangram` (bold) let each game opt in, and a `found: null` row is a bare word (no score/finder — every bananagrams row) |
+| `common/pdf/wordListBody.ts` | boggle, spellingbee, wordwheel | `drawWordListBody` — the **whole word-list body skeleton** (board top-left / Setup to its right / `drawWordColumns` below), pinning the shared layout offsets in one place. The caller passes a `drawBoard(x, y) → { w, h }` callback (its only real difference) plus two knobs: `cols` and `emptyText` |
 
 A game's `print<Game>Pdf` is then small: build a `PrintDoc`, `drawHeader`, then either
 call `drawTurnLog` under its own board (turn-log family) **or** call `drawWordListBody`
@@ -209,7 +209,7 @@ two word-check bands appeared on **neither** surface, and boggle printed
 `undefined` — latent behind a closed disclosure, glaring once it printed). Both were
 found by the coverage test, not by reading.
 
-**Body family 3 — track games (`columns.ts`; wordle, waffle, strands, stackdown).** One column per
+**Body family 3 — track games (`columns.ts`; wordle, waffle, strands, stackdown, bananagrams).** One column per
 BOARD: its grid, then whatever belongs to that grid (wordle adds its QWERTY
 keyboard), then that board's own log. The newspaper flow is wrong here — it's one
 stream wrapping between columns, which in compete would file one player's guesses
@@ -227,11 +227,26 @@ board beside the first page's three. A lone coop board with white space to its
 right is the accepted price of that consistency, and every game in this family
 pays it.
 
-**stackdown joined this family** (2026-08-06) after printing compete as ONE board
-under a MERGED log — the viewer's stack beneath everybody's words, so a
-two-player race read as though one person had played alone. It's the exact
-failure the family exists to prevent; it just wasn't noticed until the gallery
-put a compete printout next to its screen.
+**The cap is per call.** `drawInTracks` takes a `maxTracks`; three is only the
+default. **bananagrams passes two**, because its crossword sprawls across a
+25×25 arena and is far wider than a wordle or waffle grid — at a third of a page
+its tiles shrink past reading. It also draws a **thin border around each board**,
+which the fixed-shape games don't need: a Bananagrams grid is a ragged shape
+floating in space, so without a frame its edge is wherever the last tile happens
+to fall and the eye can't tell where one player's board stops and the next
+begins.
+
+**stackdown and bananagrams joined this family** (2026-08-06), both after
+printing compete as ONE board — stackdown under a MERGED log (the viewer's stack
+beneath everybody's words, so a two-player race read as though one person played
+alone), bananagrams with the other player's grid simply absent. It's the exact
+failure the family exists to prevent; neither was noticed until the gallery put a
+compete printout next to its screen.
+
+bananagrams needed an **RLS change** to be printable this way at all: its
+`player_boards` was owner-only forever, so the FE could not see a rival's grid
+even after the game ended. It now opens at terminal like every other compete
+game's private table. See docs/games/bananagrams.md.
 
 **Body family 1 — turn-log games (`turnLog.ts`; scrabble, psychicnum, wordiply, connections, codenamesduet).**
 connections is the worked example of the colour rules two sections up. A solved
