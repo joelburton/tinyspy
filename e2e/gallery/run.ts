@@ -32,7 +32,7 @@ import { join } from 'node:path'
 import { chromium, type Browser, type BrowserContext } from '@playwright/test'
 import { createClubWithMembers, type E2EClub } from '../helpers/fixtures'
 import { signIn } from '../helpers/session'
-import { renderIndex, type Shot } from './index'
+import { renderIndex, renderViewer, type Shot } from './index'
 import type { BuiltGame, Cell, GameGallery } from './types'
 import { letterboxedGallery } from './games/letterboxed'
 import { wordleGallery } from './games/wordle'
@@ -264,6 +264,7 @@ async function main() {
 
   const stamp = new Date().toISOString().replace('T', ' ').slice(0, 16)
   writeFileSync(join(ROOT, 'index.html'), renderIndex(shots, stamp))
+  writeFileSync(join(ROOT, 'viewer.html'), renderViewer())
   const ok = shots.filter((s) => s.file).length
   console.log(`\n${ok}/${shots.length} tiles → ${ROOT}/index.html`)
 

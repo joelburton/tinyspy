@@ -37,6 +37,51 @@ const LABEL: Record<Phase, string> = {
  * are good at. You still read one position across games; you just scroll down
  * to do it, and each game's whole arc lands in a single row for free.
  */
+/**
+ * The full-size viewer, on BLACK.
+ *
+ * Clicking a thumbnail used to open the PNG directly, which the browser draws
+ * on its own white background — and since most of these screenshots are a white
+ * app on a white page, the edge of the image was invisible. You couldn't tell
+ * where the viewport stopped, which is the one thing you're looking for when
+ * checking how close something sits to the bottom of a phone.
+ *
+ * So the link goes here instead: a black page with the image centred on it, so
+ * the boundary is unmissable. One page for all of them, taking the file as a
+ * query param, rather than a generated wrapper per shot.
+ */
+export function renderViewer(): string {
+  return `<!doctype html>
+<meta charset="utf-8">
+<title>gallery — view</title>
+<style>
+  /* BLACK here on purpose, and it is not a "muted background": the whole job of
+     this page is to make the white screenshot's edges visible, which needs the
+     highest possible contrast against them. Text stays pure white on it. */
+  html, body { margin: 0; height: 100%; background: #000000; }
+  body { display: flex; align-items: center; justify-content: center; }
+  img { max-width: 100vw; max-height: 100vh; display: block; }
+  .err { color: #ffffff; font: 16px/1.4 system-ui, sans-serif; padding: 2rem; }
+</style>
+<script>
+  const file = new URLSearchParams(location.search).get('img')
+  if (file) {
+    const img = document.createElement('img')
+    img.src = file
+    img.alt = file
+    document.addEventListener('DOMContentLoaded', () => document.body.append(img))
+  } else {
+    document.addEventListener('DOMContentLoaded', () => {
+      const p = document.createElement('p')
+      p.className = 'err'
+      p.textContent = 'No ?img= given. Open a tile from index.html.'
+      document.body.append(p)
+    })
+  }
+</script>
+`
+}
+
 export function renderIndex(shots: Shot[], stamp: string): string {
   const games = [...new Set(shots.map((s) => s.game))].sort()
   const viewports = [...new Set(shots.map((s) => s.viewport))]
@@ -71,7 +116,7 @@ export function renderIndex(shots: Shot[], stamp: string): string {
                 ? `<div class="hole">${shot?.missing ?? 'not captured'}</div>`
                 : shot.file.endsWith('.pdf')
                   ? `<a href="${shot.file}" target="_blank" class="paper"><span class="paperMark">PDF</span><span class="paperName">${shot.file}</span></a>`
-                  : `<a href="${shot.file}" target="_blank"><img src="${shot.file}" loading="lazy" alt="${game} ${mode} ${phase} ${vp}"></a>`
+                  : `<a href="viewer.html?img=${encodeURIComponent(shot.file)}" target="_blank"><img src="${shot.file}" loading="lazy" alt="${game} ${mode} ${phase} ${vp}"></a>`
               const note = shot?.cell.note ? `<div class="note">${shot.cell.note}</div>` : ''
               return `<figure>
                 ${body}
