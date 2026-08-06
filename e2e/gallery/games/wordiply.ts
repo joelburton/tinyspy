@@ -10,7 +10,7 @@ import { seatWithVerdict } from '../verdict'
 import type { Cell, GameGallery } from '../types'
 
 /**
- * WordWire (wordiply) gallery states (docs/gallery-plan.md).
+ * WordWire (wordiply) gallery states (docs/testing.md → The screenshot gallery).
  *
  * Moves go through `wordiply.submit_guess` on the same synthetic board the e2e
  * fixture builds, so every run photographs the same game. The base is `ar`, so

@@ -44,7 +44,7 @@ const positions = (card: string[], label: string) =>
   card.map((l, i) => (l === label ? i : -1)).filter((i) => i >= 0)
 
 /**
- * TinySpy (codenamesduet) gallery states (docs/gallery-plan.md).
+ * TinySpy (codenamesduet) gallery states (docs/testing.md → The screenshot gallery).
  *
  * A turn is two moves by two different people: the giver's clue, then the OTHER
  * seat's guesses — scored against the GIVER's card, which is what makes the

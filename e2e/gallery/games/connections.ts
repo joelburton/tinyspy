@@ -3,7 +3,7 @@ import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'
 
 /**
- * WordKnit (connections) gallery states (docs/gallery-plan.md).
+ * WordKnit (connections) gallery states (docs/testing.md → The screenshot gallery).
  *
  * connections is the FE-KNOWS game: the client holds the whole puzzle and
  * `submit_guess` is told the verdict rather than working it out, so a move here

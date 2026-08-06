@@ -740,7 +740,7 @@ dev-lint: ## eslint
 dev-types: ## regenerate src/types/db.ts from the live local schema
 	@npm run types:gen
 
-# The screenshot gallery (docs/gallery-plan.md) — every game in every
+# The screenshot gallery (docs/testing.md → The screenshot gallery) — every game in every
 # interesting state, photographed into gallery/index.html for you to scroll.
 #
 # NOT a test, and deliberately not wired into `test` or `test-e2e`: it asserts

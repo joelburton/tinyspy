@@ -3,7 +3,7 @@ import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'
 
 /**
- * SyrupSwap (waffle) gallery states (docs/gallery-plan.md).
+ * SyrupSwap (waffle) gallery states (docs/testing.md → The screenshot gallery).
  *
  * The fixture's scramble differs from its solution by ONE transposition (the
  * first two cells), with `par_swaps: 1` — so a win is a single `submit_swap` of

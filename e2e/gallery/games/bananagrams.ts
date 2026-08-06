@@ -63,7 +63,7 @@ function buildBoard(tiles: string): string {
 }
 
 /**
- * MonkeyGrams (bananagrams) gallery states (docs/gallery-plan.md).
+ * MonkeyGrams (bananagrams) gallery states (docs/testing.md → The screenshot gallery).
  *
  * Compete-only — there is no coop gametype, so no coop cells.
  *

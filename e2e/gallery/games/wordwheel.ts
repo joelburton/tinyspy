@@ -8,7 +8,7 @@ import type { Cell, GameGallery } from '../types'
 type Word = { word: string; points: number }
 
 /**
- * MooseWheel (wordwheel) gallery states (docs/gallery-plan.md).
+ * MooseWheel (wordwheel) gallery states (docs/testing.md → The screenshot gallery).
  *
  * Moves go through `wordwheel.submit_word` on the same synthetic board the e2e
  * fixture builds, so every run photographs the same game.

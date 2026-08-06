@@ -4,7 +4,7 @@ import { timeOut } from '../timeOut'
 import type { Cell, GameGallery } from '../types'
 
 /**
- * PaulPath (strands) gallery states (docs/gallery-plan.md).
+ * PaulPath (strands) gallery states (docs/testing.md → The screenshot gallery).
  *
  * A strands move is a PATH, not a word — the board repeats letters, so a typed
  * string can't identify one. The fixture hands back every hidden word with its

@@ -33,7 +33,7 @@ function targetOf(gameId: string): string {
 }
 
 /**
- * wordle's gallery states (docs/gallery-plan.md).
+ * wordle's gallery states (docs/testing.md → The screenshot gallery).
  *
  * A loss is six wrong guesses rather than a fixture with a shorter budget —
  * `createWordleGame` doesn't expose `max_guesses`, and six RPC calls with no

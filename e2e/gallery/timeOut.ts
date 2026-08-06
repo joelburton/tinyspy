@@ -12,7 +12,7 @@ import { asUser, type E2EClub } from '../helpers/fixtures'
  *
  * So for most games a loss is "play a little, then let time run out", which is
  * also the most honest loss they have: the alternative, conceding, is shell
- * behaviour that looks identical everywhere (docs/gallery-plan.md).
+ * behaviour that looks identical everywhere (docs/testing.md → The screenshot gallery).
  */
 export async function timeOut(club: E2EClub, schema: string, gameId: string): Promise<void> {
   const res = await asUser(club.members[0].session.access_token)

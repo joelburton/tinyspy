@@ -1,6 +1,6 @@
 #!/usr/bin/env -S npx tsx
 /**
- * The screenshot gallery (docs/gallery-plan.md).
+ * The screenshot gallery (docs/testing.md → The screenshot gallery).
  *
  * Puts every game into every interesting state and photographs it, then writes
  * an HTML contact sheet. Fifteen games x coop/compete x four phases x two

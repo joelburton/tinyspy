@@ -29,7 +29,7 @@ function boardOf(gameId: string): { words: string[]; secrets: string[] } {
 }
 
 /**
- * PsychicNum (psychicnum) gallery states (docs/gallery-plan.md).
+ * PsychicNum (psychicnum) gallery states (docs/testing.md → The screenshot gallery).
  *
  * Coop only — its fixture predates the per-game naming (it's just `createGame`)
  * and hardcodes coop, which is also the only mode the gallery can show.

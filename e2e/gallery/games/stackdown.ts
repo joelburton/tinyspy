@@ -4,7 +4,7 @@ import { timeOut } from '../timeOut'
 import type { Cell, GameGallery } from '../types'
 
 /**
- * StackDown (stackdown) gallery states (docs/gallery-plan.md).
+ * StackDown (stackdown) gallery states (docs/testing.md → The screenshot gallery).
  *
  * `seedStackdownFirstWord` clears the first of the stack's six words through
  * the real `submit_word` — a tile-id path rather than a typed string, since a

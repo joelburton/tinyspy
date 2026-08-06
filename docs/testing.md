@@ -235,6 +235,137 @@ Deliberately **not** part of `npm test` — it's slower and flakier (real realti
 
 The **WebKit + Firefox engines are installed** (`npx playwright install webkit firefox`), so cross-engine (Safari / Firefox) layout repro is available beyond the default Chromium run.
 
+## The screenshot gallery
+
+`gmake gallery` puts every game into every interesting state and photographs it,
+writing an HTML contact sheet (`gallery/index.html`) you scroll. It lives beside
+the tests because it uses Playwright and the same fixtures — but it is **not a
+test**, and keeping it out of the suites is what keeps it cheap.
+
+**Why it exists.** Fifteen games × coop/compete × fresh/mid/won/lost/ended ×
+desktop/mobile/PDF is 450 states — more than anyone opens by hand, so cross-game
+*drift* goes unnoticed: a heading styled differently here, a verdict phrased
+another way there, a mobile layout nobody has looked at since it shipped. The
+barrier was always setup: a compete game needs several real accounts, several
+browser sessions, and someone to play both sides. The harness does that.
+
+**Why not `toHaveScreenshot`.** Baseline snapshots answer "did anything change?",
+which in a UI that changes daily means constant baseline churn for changes you
+meant. The question here is "do these fifteen games look like one app?", and only
+a person answers that. No CI gate, no baselines, no approval workflow.
+
+### Running it
+
+```bash
+gmake gallery                        # every game, every technology (minutes)
+gmake gallery GAME=waffle            # waffle: desktop, mobile and PDF
+gmake gallery GAME=waffle TECH=pdf   # waffle's printouts only
+gmake gallery-index                  # rebuild index.html from what's on disk
+gmake gallery-keep NAME=before-mobile-pass   # promote this run into gallery-keep/
+```
+
+Needs the local stack **and** `npm run dev`. It doesn't reset the database — each
+run makes its own clubs, seated with the **dev personas** (`e2e/gallery/personas.ts`),
+so every game it builds is one you can open in a browser and iterate against.
+
+**Two folders.** `gallery/` is gitignored — every run rewrites all of it, so
+committing it means a 400-file diff each time you glance at anything.
+`gallery-keep/<date>-<name>/` is committed, for runs promoted deliberately (before
+a visual pass, after it, anything you'd want to point at later). The target copies
+the **whole** folder, because `index.html` links tiles by relative path and a
+hand-picked subset renders a sheet of broken images.
+
+### How it's built
+
+The split that matters: **getting into a state is server work; looking at it is
+browser work.** Only the second needs a browser, which is what removes the
+flakiness — the browser never plays, so there are no realtime waits.
+
+- **State builders** — one per game, `e2e/gallery/games/<game>.ts`, mirroring the
+  per-game seams the repo already uses (`lib/history.ts`, `lib/setupSummary.ts`).
+  Each declares the cells it has and how to reach them. The contract lives in
+  `e2e/gallery/types.ts`.
+- **Capture** — a context per club member, everyone lands on the game, only the
+  viewer's page is shot. *Every* member joins because a game whose players aren't
+  all connected presence-pauses, so a single-context screenshot of a two-player
+  game captures nothing but the pause.
+- **The index** — `e2e/gallery/index.ts`. A game per section, its five phases
+  across, so cross-game comparison is vertical scrolling rather than a horizontal
+  drag past fifteen tiles.
+
+**Builders drive the game's own RPCs, never row inserts.** A gallery whose job is
+"does this look right?" must never show a state the game can't produce — it would
+send you chasing a layout bug in a screen no player can reach. Row inserts also
+duplicate rules that live in plpgsql, and they're no faster: neither path involves
+a browser. Direct SQL stays available as an escape hatch (reading a hidden target,
+a private rack) but each use is commented with *why*, because each one is a small
+lie.
+
+**Terminal states come from setup where they can.** letterboxed with
+`extra_words: 0` is two words from a full chain; the `create<Game>Game` fixtures
+already take these parameters.
+
+### Conventions
+
+**One `lost` per mode, and prefer the game's OWN losing condition** — out of
+guesses, out of time, stack not cleared. A concede or a manual stop is *shell*
+behaviour that renders near-identically in all fifteen games, so spending the slot
+on it shows you the shared chrome fifteen times and the game's real defeat screen
+never. Fall back to concede only where a game has no natural loss, and note it on
+the cell so the sheet says why.
+
+**Every state gets printed** — one PDF per game × mode × phase, on the desktop
+pass (a PDF is the same document whatever the window size). This replaced an
+earlier per-game judgement about what deserves paper, which asked *"would a player
+print this?"* when the question is *"is this a code path whose layout could
+break?"* The empty and mid-game printouts are where the bugs are. PDFs are kept as
+PDFs and linked, not rasterised and not embedded: a page render at legible DPI is
+3–6× the size of its source and softer, and an `<embed>` wraps every tile in the
+browser's PDF viewer.
+
+**A missing tile is informative** — it says nobody has looked at that state — so
+the sheet draws the hole rather than closing the gap, and the runner lists
+undeclared cells after every run. That stays a *note* rather than an assertion,
+because the script can't tell "unreachable" from "not written yet".
+
+### The one thing it does assert
+
+A cell claiming `won` / `lost` / `ended` must leave `common.games.is_terminal`
+true (`assertPhaseReached` in `run.ts`). This is the exception to "asserts
+nothing", and it earns the exception: a screenshot renders a wrong state as
+happily as a right one, so a builder that stops short publishes a plausible lie
+instead of a hole.
+
+It immediately caught three instances of one bug, worth naming because it will
+recur: **in a compete game, one player finishing is not the game finishing.**
+wordiply and wordle both had `won` tiles that were still mid-race — a half-played
+board under a heading saying someone had won — because compete gives each player
+their own budget and the winner is decided when *everyone* is done. wordle's own
+`lost` branch already had the rule written out in a comment; `won` never applied
+it.
+
+### Two harness gotchas
+
+- **Invitation toasts.** Every context is a fresh browser profile, so the
+  `gameInvitesSeen` set in localStorage starts empty and every game the run has
+  made stacks up as "X added you to a new Y game" over the info column. The runner
+  seeds that set from the DB, scoped to the **member** — each game gets its own
+  club, but the invite query asks "what games am I a player in?" and doesn't care
+  about clubs.
+- **Photographing the right chair.** A compete terminal hands out both verdicts at
+  once; `won` and `lost` are the same game from two seats. `seatWithVerdict()`
+  reads `common.game_players.result` rather than assuming the first member won —
+  scrabble's end-of-game rack penalty can hand the win to whoever scored less on
+  the board.
+
+### Coverage
+
+378 of 450 tiles as of 2026-08-06. The gaps are unreachable states, not unwritten
+builders: scrabble and wordiply **coop have no win** (nobody to beat — a shared
+budget spent is just finishing), crosswords' `end_game` is coop-only by design
+(compete drops out via concede), and a bananagrams win needs a solver — peel the
+bunch dry *and* lay every held tile into one legal mass.
+
 ## Repo-wide invariant guards
 
 A couple of tests guard an invariant across ALL schemas/games from a

@@ -74,7 +74,7 @@ function wordFromRack(rack: string, band: number): { word: string; score: number
 }
 
 /**
- * RackAttack (scrabble) gallery states (docs/gallery-plan.md).
+ * RackAttack (scrabble) gallery states (docs/testing.md → The screenshot gallery).
  *
  * Placement is deliberately naive — the word goes on a free row, left to right,
  * without the centre-star or connectivity rules a player obeys. Those live in

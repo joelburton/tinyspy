@@ -8,7 +8,7 @@ import type { Cell, GameGallery } from '../types'
 type Word = { word: string; points: number }
 
 /**
- * MothCubes (boggle) gallery states (docs/gallery-plan.md).
+ * MothCubes (boggle) gallery states (docs/testing.md → The screenshot gallery).
  *
  * Moves go through `boggle.submit_word` on the same synthetic board the e2e
  * fixture builds, so every run photographs the same game.\n *\n * The fixture board is CATR in the top row, so 'cat' and 'art' are the two\n * short words it can spell.

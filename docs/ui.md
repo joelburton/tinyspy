@@ -327,6 +327,8 @@ A token (or class) earns promotion to global when **both**:
 
 Players should be able to **switch between games without relearning the frame**. The chrome reads the same; only the play surface changes. This is the consistency goal that justifies extracting shared components even when only two games use them today.
 
+**The tool for checking it is [the screenshot gallery](testing.md#the-screenshot-gallery)** — `gmake gallery` puts every game into every state and photographs it into one scrollable contact sheet, so "do these fifteen games look like one app?" becomes a question you can actually answer by looking. Drift is invisible one game at a time and obvious in a column: reach for it before and after any visual pass, and when a change touches shared chrome. It's not a test and asserts nothing (bar one guard) — the reading is yours.
+
 ### What every game has
 
 These aren't optional capabilities a gametype opts into — they're part of the shared frame, and every game must support them:

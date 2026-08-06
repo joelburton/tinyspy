@@ -3,7 +3,7 @@ import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'
 
 /**
- * letterboxed's gallery states (docs/gallery-plan.md).
+ * letterboxed's gallery states (docs/testing.md → The screenshot gallery).
  *
  * The fixture board is the synthetic `abcdefghijkl` the e2e tests use, so every
  * run photographs the SAME board — two runs are comparable, which is the point

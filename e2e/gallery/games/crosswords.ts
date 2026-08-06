@@ -40,7 +40,7 @@ function solutionOf(gameId: string): Square[] {
 }
 
 /**
- * CrossPlay (crosswords) gallery states (docs/gallery-plan.md).
+ * CrossPlay (crosswords) gallery states (docs/testing.md → The screenshot gallery).
  *
  * There is no LOSS: a crossword can be abandoned but not failed, so the only
  * terminals are the solve and the neutral stop.

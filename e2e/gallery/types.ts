@@ -1,7 +1,7 @@
 import type { E2EClub, E2EMember } from '../helpers/fixtures'
 
 /**
- * The screenshot gallery's per-game contract (docs/gallery-plan.md).
+ * The screenshot gallery's per-game contract (docs/testing.md → The screenshot gallery).
  *
  * One module per game under `e2e/gallery/games/`, the same per-game seam shape
  * the repo already uses for `lib/history.ts` and `lib/setupSummary.ts`.

@@ -143,6 +143,15 @@ gmake project-config-api ENV=prod            # just the PostgREST settings. A NE
                                              # exposed-schemas list (also add the schema to
                                              # EXPOSED_SCHEMAS in deploy/env.sh + config.toml)
 
+# looking at the games — see testing.md → The screenshot gallery
+gmake gallery                                # every game × mode × phase × desktop/mobile/PDF,
+                                             #   photographed into gallery/index.html. Needs the
+                                             #   local stack AND `npm run dev`. Minutes, not
+                                             #   seconds; it's a browsing tool, not a test
+gmake gallery GAME=waffle TECH=pdf           # narrow it — either arg alone works too
+gmake gallery-index                          # rebuild the sheet from what's already on disk
+gmake gallery-keep NAME=before-mobile-pass   # promote this run into the COMMITTED gallery-keep/
+
 gmake -B <target>                            # force, ignoring stamps
 gmake _stamps-clean ENV=local                # forget what we think is loaded there
 gmake _audit                                 # check the make system itself
