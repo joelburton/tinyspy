@@ -1,7 +1,5 @@
 import { outcomeVerb, type GamePlayer } from '../../common/lib/games'
-import { timerLabel } from '../../common/lib/game/timerLabel'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { difficultyValue } from '../../common/lib/game/difficulty'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
@@ -10,6 +8,7 @@ import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameBu
 import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
+import type { SetupRow } from '../../common/lib/game/setupRows'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { WordList, type WordListRow } from '../../common/components/game/lists/WordList'
 import { RANKS } from '../../common/lib/game/rankLadder'
@@ -54,7 +53,7 @@ export function InfoCol({
   startingNewGame,
   onBackToClub,
   onRequestBackToClub,
-  setup,
+  setupRows,
   wordRows,
   reveal,
   hasBonus,
@@ -109,6 +108,8 @@ export function InfoCol({
 
   // ── Setup disclosure ──
   setup: SpellingbeeSetup
+  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  setupRows: SetupRow[]
 
   // ── Found-words list ──
   wordRows: WordListRow[]
@@ -187,12 +188,11 @@ export function InfoCol({
         {/* Setup options — what was picked at create time, behind the shared
             disclosure. Closed by default so it doesn't crowd the status above. */}
         <SetupDisclosure>
-          <li>Dictionary (required): {difficultyValue(setup.required)}</li>
-          <li>Dictionary (legal): {difficultyValue(setup.legal)}</li>
-          {/* Both modes: coop's target is an opt-in win condition, and the setup
-              recap is where every OTHER chosen option is listed. */}
-          {targetRankIdx !== null && <li>Target rank: {RANKS[targetRankIdx]}</li>}
-          <li>Timer: {timerLabel(setup.timer)}</li>
+          {setupRows.map((r) => (
+            <li key={r.key}>
+              {r.label}: {r.value}
+            </li>
+          ))}
         </SetupDisclosure>
       </div>
 

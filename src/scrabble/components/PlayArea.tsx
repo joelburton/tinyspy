@@ -12,8 +12,8 @@ import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useCon
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
-import { difficultyValue } from '../../common/lib/game/difficulty'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { setupRows } from '../lib/setupSummary'
 import { colorVarFor } from '../../common/lib/color/memberColor'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { unwrapEdgeFnError } from '../../common/lib/supabase/edgeFnError'
@@ -80,6 +80,13 @@ export function PlayArea({
   // this from useCaptureKeys; see useSwallowTab.)
   useSwallowTab()
   const { game, players: playerStates, plays, loading } = useGame(gameId)
+  // The setup recap, built ONCE and handed to both consumers — the info column
+  // renders it as <li>s, the print model prints the same array object
+  // (docs/pdf.md → Setup rows).
+  const summaryRows = useMemo(
+    () => setupRows(setup as unknown as ScrabbleSetup, game?.mode ?? 'coop', players),
+    [setup, game, players],
+  )
 
   // Mobile (docs/mobile.md → the psychicnum recipe): below the breakpoint the
   // board fills the screen and the info column moves into an off-canvas
@@ -338,8 +345,6 @@ export function PlayArea({
   useEffect(() => {
     if (!game) return
     const rack = isCompete ? (self?.rack ?? []) : (game.sharedRack ?? [])
-    const s = setup as unknown as ScrabbleSetup
-    const band = (n: number) => difficultyValue(n)
     const model = {
       // "Brand: game title" (brand from the manifest via ctx — never the "scrabble"
       // code-name; title = common.games.title, this game's own name) + today's date.
@@ -355,10 +360,7 @@ export function PlayArea({
       rackLabel: !self ? '' : isCompete ? 'Your rack' : 'Team rack',
       // Relevant setup only — the dictionary bands (the timer isn't relevant on a print).
       mode: game?.mode ?? 'coop',
-      setup: [
-        { key: 'dict_2', label: '2-letter words', value: band(s.dict_2) },
-        { key: 'dict_3plus', label: 'Longer words (3+)', value: band(s.dict_3plus) },
-      ],
+      setup: summaryRows,
     }
     // The FULL scrabble menu: Help (top) + the Print item + the End/Concede +
     // Back-to-club tail, all from `buildGameMenu`. End/Concede dispatch through
@@ -385,7 +387,7 @@ export function PlayArea({
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, plays, self, isCompete, isTerminal, myConceded, nameOf, setup, brand, title])
+  }, [menu, game, plays, self, isCompete, isTerminal, myConceded, nameOf, setup, brand, title, summaryRows])
 
   // ─── End / Concede / Replay — the shared trio ─────────────
   // The byte-identical shared handlers (useStandardGameActions). scrabble's own
@@ -483,6 +485,7 @@ export function PlayArea({
   if (!game) return <p className={styles.loading}>Game not found.</p>
 
   const scrabbleSetup = setup as unknown as ScrabbleSetup
+
   // A ready list quietly clears the moment the board moves past it — most
   // commonly because the player just COMMITTED the suggested move, where a
   // "board changed" message read as something going wrong. Also clears once
@@ -604,6 +607,7 @@ export function PlayArea({
           onSuggest={() => void handleSuggest()}
           onApplySuggestion={handleApplySuggestion}
           setup={scrabbleSetup}
+          setupRows={summaryRows}
           aiSeats={aiRoster}
           winnerSeat={(status?.winner_seat as number | null | undefined) ?? null}
           aiMemberOfSeat={aiMemberOfSeat}

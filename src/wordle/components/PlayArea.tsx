@@ -3,6 +3,7 @@ import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { buildWordlePrintModel } from '../pdf/model'
 import { printWordlePdf } from '../pdf/printWordlePdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { setupRows } from '../lib/setupSummary'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
@@ -71,6 +72,13 @@ export function PlayArea({
   menu,
 }: GamePageCtx) {
   const { game, players: playerStates, guesses, loading } = useGame(gameId)
+  // The setup recap, built ONCE and handed to both consumers — the info column
+  // renders it as <li>s, the print model prints the same array object
+  // (docs/pdf.md → Setup rows).
+  const summaryRows = useMemo(
+    () => setupRows(setup as unknown as WordleSetup, game?.mode ?? 'coop', members),
+    [setup, game, members],
+  )
 
   // Mobile (docs/mobile.md → the psychicnum recipe): below the breakpoint the
   // board + keyboard fill the screen and the info column moves into an off-canvas
@@ -328,7 +336,7 @@ export function PlayArea({
           target: game.target,
           answerShown,
           solvedBy: new Set(solvedIds),
-          setup: [{ key: 'guesses', label: 'Guesses', value: String(maxGuesses) }],
+          setup: summaryRows,
         })
       : null
     menu.setGameSections(
@@ -368,6 +376,7 @@ export function PlayArea({
     // The print model's inputs — rebuilt whenever the printable state moves, so
     // the snapshot is current at click time.
     brand, title, game, guesses, members, session.user.id, maxGuesses, solvedIds,
+    summaryRows,
   ])
 
   // Keep the ref's action closures current so the menu effect above never
@@ -453,6 +462,7 @@ export function PlayArea({
 
   const wordleSetup = setup as WordleSetup
 
+
   // ─── The below-board pill (terminal / locally-terminal / waiting / own-move) ─────
   // The fixed-height feedback slot under the board shows exactly one pill, chosen here
   // by priority (BoardCol just renders it):
@@ -533,6 +543,7 @@ export function PlayArea({
         onRequestBackToClub={menu.requestBackToClub}
         // ── Setup disclosure ──
         setup={wordleSetup}
+        setupRows={summaryRows}
         // ── Terminal answer reveal (null while hidden — incl. on a loss) ──
         solution={answerShown ? game.target : null}
         // ── Turn log ──

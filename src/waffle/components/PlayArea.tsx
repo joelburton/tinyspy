@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useMemo } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
@@ -11,6 +11,7 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { buildWafflePrintModel } from '../pdf/model'
 import { printWafflePdf } from '../pdf/printWafflePdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { setupRows } from '../lib/setupSummary'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
@@ -94,6 +95,13 @@ export function PlayArea({
   // this from useCaptureKeys; see useSwallowTab.)
   useSwallowTab()
   const { game, players: playerStates, swaps, loading } = useGame(gameId)
+  // The setup recap, built ONCE and handed to both consumers — the info column
+  // renders it as <li>s, the print model prints the same array object
+  // (docs/pdf.md → Setup rows).
+  const summaryRows = useMemo(
+    () => setupRows(setup as unknown as WaffleSetup, game?.mode ?? 'coop', players, game?.par_swaps ?? 0),
+    [setup, game, players],
+  )
 
   // Own-action feedback (LOCAL): a rejected swap or a failed End flashes in the
   // below-board slot — never the header pill (that's the peer/group channel).
@@ -344,7 +352,7 @@ export function PlayArea({
                 .filter((w): w is string => w !== null))
             : null,
           answerShown,
-          setup: [{ key: 'extra_swaps', label: 'Extra swaps', value: String(game.max_swaps - game.par_swaps) }],
+          setup: summaryRows,
         })
       : null
     menu.setGameSections(
@@ -397,12 +405,14 @@ export function PlayArea({
     swaps,
     players,
     session.user.id,
+    summaryRows,
   ])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
 
   const waffleSetup = setup as WaffleSetup
+
   const self = playerStates.find((p) => p.user_id === session.user.id)
   const isPlayer = self !== undefined
   const isCompete = game.mode === 'compete'
@@ -553,6 +563,7 @@ export function PlayArea({
         onBackToClub={goToClub}
         onRequestBackToClub={menu.requestBackToClub}
         setup={waffleSetup}
+        setupRows={summaryRows}
         answerWords={answerWords}
         swaps={swaps}
         viewingIndex={viewingIndex}

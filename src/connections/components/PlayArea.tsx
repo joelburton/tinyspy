@@ -18,6 +18,7 @@ import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy
 import { buildConnectionsPrintModel } from '../pdf/model'
 import { printConnectionsPdf } from '../pdf/printConnectionsPdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { setupRows } from '../lib/setupSummary'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { db } from '../db'
 import type { CategoryRank } from '../lib/board'
@@ -123,6 +124,15 @@ export function PlayArea({
     sendClear,
     loading,
   } = useGame(session, gameId)
+  const connectionsSetup = setup as unknown as ConnectionsSetup
+
+  // The setup recap, built ONCE and handed to both consumers — the info column
+  // renders it as <li>s, the print model prints the same array object
+  // (docs/pdf.md → Setup rows).
+  const summaryRows = useMemo(
+    () => setupRows(connectionsSetup, game?.mode ?? 'coop', players, game?.puzzleDate ?? null),
+    [connectionsSetup, game, players],
+  )
   // Inline hint list open/closed — InfoCol's Hints button TOGGLES it, and the list
   // renders in InfoCol right below that button (it's one more info-column readout,
   // not a window over the board). (The guess dispatch, the local tile shuffle, and
@@ -424,7 +434,7 @@ export function PlayArea({
             isTerminal,
             mistakes: mistakeCount,
             maxMistakes: MISTAKE_BUDGET,
-            setup: [{ key: 'puzzle', label: 'Puzzle', value: game.puzzleDate ?? 'Custom' }],
+            setup: summaryRows,
           })
         : null
     menu.setGameSections(
@@ -454,6 +464,7 @@ export function PlayArea({
     menu, mode, isTerminal, myConceded,
     game, boardView, brand, title, matchedCategories, guesses, players,
     session.user.id, mistakeCount,
+    summaryRows,
   ])
 
   // Hints + End live in the info-column action row (buttons), not the GamePage
@@ -596,6 +607,7 @@ export function PlayArea({
         onBackToClub={goToClub}
         // ── Setup disclosure ──
         setup={connSetup}
+        setupRows={summaryRows}
         puzzleDate={game.puzzleDate}
         tileCount={game.board.tileOrder.length}
         // ── Turn-history log ──

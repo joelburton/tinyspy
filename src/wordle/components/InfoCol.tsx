@@ -1,5 +1,4 @@
 import { cls } from '../../common/lib/util/cls'
-import { timerLabel } from '../../common/lib/game/timerLabel'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
@@ -9,9 +8,9 @@ import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
 import { RestartButton } from '../../common/components/buttons/RestartButton'
+import type { SetupRow } from '../../common/lib/game/setupRows'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
-import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import type { Member } from '../../common/lib/games'
 import type { WordlePlayerState, GuessRow } from '../hooks/useGame'
@@ -20,11 +19,6 @@ import { GameTurnLog } from './GameTurnLog'
 import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './InfoCol.module.css'
-
-/** Where the hidden target is drawn from, for the setup disclosure. `0` = the curated
- *  NYT-Wordle answer list; `1..6` = a clean word of that difficulty band or easier. */
-const answerSourceLabel = (n: number): string =>
-  n === 0 ? 'NYT Wordle list' : `${difficultyValue(n)} or easier`
 
 /**
  * wordle's info column — near-zero state, an arrangement of the shared scaffold pieces
@@ -63,7 +57,7 @@ export function InfoCol({
   onBackToClub,
   onRequestBackToClub,
   // ── Setup disclosure ──
-  setup,
+  setupRows,
   // ── Terminal answer reveal ──
   solution,
   // ── Turn log ──
@@ -130,6 +124,8 @@ export function InfoCol({
 
   // ── Setup disclosure ──
   setup: WordleSetup
+  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  setupRows: SetupRow[]
 
   // ── Terminal answer reveal ──
   /** The answer to DISPLAY at terminal, or null while it stays hidden — which
@@ -273,10 +269,11 @@ export function InfoCol({
 
         {/* Setup — last, behind a disclosure (closed by default). */}
         <SetupDisclosure>
-          <li>Guesses: {maxGuesses}</li>
-          <li>Answer: {answerSourceLabel(setup.answer_source)}</li>
-          <li>Dictionary: {difficultyValue(setup.legal_guess)}</li>
-          <li>Timer: {timerLabel(setup.timer)}</li>
+          {setupRows.map((r) => (
+            <li key={r.key}>
+              {r.label}: {r.value}
+            </li>
+          ))}
         </SetupDisclosure>
       </div>
 

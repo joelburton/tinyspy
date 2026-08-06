@@ -1,11 +1,11 @@
 import { colorVarFor } from '../../common/lib/color/memberColor'
-import { timerLabel } from '../../common/lib/game/timerLabel'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
+import type { SetupRow } from '../../common/lib/game/setupRows'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { CodenamesduetSetup } from '../lib/setup'
 import type { ClueRow } from '../hooks/useClues'
@@ -46,7 +46,7 @@ export function InfoCol({
   startingNewGame,
   onBackToClub,
   setup,
-  firstClueGiver,
+  setupRows,
   clues,
   guesses,
   players,
@@ -97,6 +97,8 @@ export function InfoCol({
 
   // ── Setup disclosure ──
   setup: CodenamesduetSetup
+  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  setupRows: SetupRow[]
   /** The player seated as the first clue-giver (setup echo). */
   firstClueGiver: Player | undefined
 
@@ -207,9 +209,11 @@ export function InfoCol({
             doesn't claim space; opening it grows the slot, the one allowed exception
             since it's closable). */}
         <SetupDisclosure>
-          <li>Turns: {setup.turns}</li>
-          <li>First clue: {firstClueGiver?.username ?? '—'}</li>
-          <li>Timer: {timerLabel(setup.timer)}</li>
+          {setupRows.map((r) => (
+            <li key={r.key}>
+              {r.label}: {r.value}
+            </li>
+          ))}
         </SetupDisclosure>
       </div>
 

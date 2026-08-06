@@ -1,7 +1,5 @@
 import { outcomeVerb, type GamePlayer } from '../../common/lib/games'
-import { timerLabel } from '../../common/lib/game/timerLabel'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { difficultyValue } from '../../common/lib/game/difficulty'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
@@ -10,6 +8,7 @@ import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameBu
 import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
+import type { SetupRow } from '../../common/lib/game/setupRows'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
@@ -62,7 +61,7 @@ export function InfoCol({
   onBackToClub,
   onRequestBackToClub,
   // ── Setup disclosure ──
-  setup,
+  setupRows,
   allGuesses,
 }: {
   isCompete: boolean
@@ -117,6 +116,8 @@ export function InfoCol({
 
   // ── Setup disclosure ──
   setup: WordiplySetup
+  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  setupRows: SetupRow[]
   /** EVERY row for the turn log — rejects included. Distinct from the accepted
    *  guesses the board + the readouts above are built from. */
   allGuesses: GuessRow[]
@@ -201,8 +202,11 @@ export function InfoCol({
 
         {/* Setup — what was picked at create time. */}
         <SetupDisclosure>
-          <li>Dictionary: {difficultyValue(setup.difficulty)}</li>
-          <li>Timer: {timerLabel(setup.timer)}</li>
+          {setupRows.map((r) => (
+            <li key={r.key}>
+              {r.label}: {r.value}
+            </li>
+          ))}
         </SetupDisclosure>
       </div>
 

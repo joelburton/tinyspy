@@ -1,7 +1,6 @@
 import { cls } from '../../common/lib/util/cls'
 import type { Member } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { timerLabel } from '../../common/lib/game/timerLabel'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { RestartButton } from '../../common/components/buttons/RestartButton'
@@ -12,8 +11,8 @@ import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { SpoilerButton } from '../../common/components/buttons/SpoilerButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
+import type { SetupRow } from '../../common/lib/game/setupRows'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
-import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { StackdownSetup } from '../lib/setup'
 import type { PlayerRow, SubmissionRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
@@ -52,7 +51,7 @@ export function InfoCol({
   onNewGame,
   startingNewGame,
   onBackToClub,
-  setup,
+  setupRows,
   solution,
   onReveal,
   revealDisabled,
@@ -112,6 +111,8 @@ export function InfoCol({
 
   // ── Setup disclosure + terminal words reveal ──
   setup: StackdownSetup
+  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  setupRows: SetupRow[]
   /** The six solution words — non-null ONLY when they should be on screen: a
    *  clean win, or after someone asked. A plain loss keeps them hidden so
    *  Restart (same stack, same solution) stays a genuine second try. */
@@ -255,10 +256,11 @@ export function InfoCol({
 
         {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
         <SetupDisclosure>
-          <li>Tiles: 30</li>
-          <li>Words to clear: 6</li>
-          <li>Dictionary: {difficultyValue(setup.band)}</li>
-          <li>Timer: {timerLabel(setup.timer)}</li>
+          {setupRows.map((r) => (
+            <li key={r.key}>
+              {r.label}: {r.value}
+            </li>
+          ))}
         </SetupDisclosure>
       </div>
 

@@ -125,36 +125,40 @@ The keyed-row test buys most of the guarantee for a fraction of the work.
   whose shared row count comes out *below* its current screen count has lost
   something.
 
-## Status
+## Status — DONE
 
-**Done**
+All fifteen games swept. Delete this file; the durable rules live in
+[pdf.md → Setup rows](pdf.md#setup-rows).
 
-1. `pdf.md` corrected — the reversal, the `Setup: <mode>` heading, and the new
-   "Setup rows" section. `PrintHeader.setup`'s own doc-comment too, since that's
-   the type implementers actually read.
-2. `common/lib/game/setupRows.ts` — the `SetupRow` type (now with `key`) plus the
-   three shared builders: `rosterRow`, `coopRows`, `timerRow`.
+1. `pdf.md` corrected — the reversal, the `Setup: <mode>` heading, the new
+   "Setup rows" section, and `PrintHeader.setup`'s own doc-comment.
+2. `common/lib/game/setupRows.ts` — the `SetupRow` type (with `key`) + the
+   shared builders `rosterRow` / `coopRows` / `timerRow`.
 3. `drawSetup` renders `Setup: Co-op` / `Setup: Compete`; `PrintHeader.mode` is
-   **required**, which is what made the compiler enumerate the whole sweep.
-4. **letterboxed** and **psychicnum** fully migrated — one `lib/setupSummary.ts`
-   each, feeding `InfoCol` and the print model *the same array object*.
-   Verified by rendering: the letterboxed PDF now reads `Setup: Co-op` /
-   Players / Word limit / Dictionary / **Timer**, matching its info column line
-   for line.
+   **required**, which is what made the compiler enumerate the sweep.
+4. **Fourteen games** have `<game>/lib/setupSummary.ts`, feeding the info column
+   and the print model *the same array object*. **crosswords** is the documented
+   exception: it never had a recap on either surface (no `<SetupDisclosure>`, and
+   its PDF is the whole-cloth ported printer with no Setup block), so there was
+   nothing to unify — adding one would be new UI.
+5. `src/setupRows.test.ts` — the roster-wide guard. It pins that every game has a
+   summary (or is a documented exception), that every key of a game's default
+   setup produces a row (or is named in `NOT_A_ROW` with a reason), that the
+   roster leads, and that values are plain strings. Verified by planting: delete
+   a row and it fails.
 
-**Left** — the other thirteen games still hand-build two lists. They compile and
-print (every row carries a `key`, every model a `mode`), so the tree is green;
-they just haven't been unified yet:
+### What the sweep turned up
 
-    bananagrams  boggle  codenamesduet  connections  crosswords  scrabble
-    spellingbee  stackdown  strands  waffle  wordiply  wordle  wordwheel
-
-Their PDFs are still the trimmed lists (no roster, and mostly no timer), and
-their labels still differ from their info columns — see the drift table above.
-
-**Also left**: the keyed-row roster test (step 3). It can't land until enough
-games have `setupSummary.ts`, and it should ALSO assert that every game *has*
-one, or a game can dodge it by not having a module at all.
+- **bananagrams' `dict_2` / `dict_3plus` appeared on NEITHER surface.** Real
+  controls (the word-check bands), simply missing from both lists. The coverage
+  test found them; they're now conditional rows that follow `word_check`.
+- **boggle printed "Win at: undefined%".** The screen row tested `=== null` while
+  an unset threshold is `undefined` — latent behind a closed disclosure, glaring
+  once it printed. Now `== null`.
+- **Constants dropped**, per "the recap is the dialog read back": psychicnum's
+  "Secret words: 3", stackdown's "Tiles: 30" / "Words to clear: 6", connections'
+  "Words: 16" / "Categories: 4" / "Mistakes allowed: 4". None is a control; they
+  belong in Help.
 
 ## Order of work
 

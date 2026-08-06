@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode, useMemo } from 'react'
 import type { GenericFeedbackApi, GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx } from '../../common/lib/games'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { cls } from '../../common/lib/util/cls'
@@ -17,6 +17,7 @@ import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { buildDuetPrintModel } from '../pdf/model'
 import { printCodenamesduetPdf } from '../pdf/printCodenamesduetPdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { setupRows } from '../lib/setupSummary'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import type { ClueRow } from '../hooks/useClues'
 import type { Player } from '../hooks/useGame'
@@ -246,7 +247,15 @@ export function PlayArea({
   // shape here. Read-only at this layer; the only field we read
   // today is `turns` for the "X/Y turns" status counter.
   const codenamesduetSetup = setup as CodenamesduetSetup
+
   const { game, players } = useGame(gameId)
+  // The setup recap, built ONCE and handed to both consumers — the info column
+  // renders it as <li>s, the print model prints the same array object
+  // (docs/pdf.md → Setup rows).
+  const summaryRows = useMemo(
+    () => setupRows(codenamesduetSetup, 'coop' as const, players),
+    [codenamesduetSetup, players],
+  )
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
   // fills the screen and the info column moves into an off-canvas <InfoSheet>,
@@ -402,7 +411,6 @@ export function PlayArea({
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,
-        mode: 'coop',
         setup: codenamesduetSetup,
         player_user_ids: members.map((m) => m.user_id),
       })
@@ -467,7 +475,7 @@ export function PlayArea({
             turnNumber: game.turn_number,
             turnCap: codenamesduetSetup.turns,
             mode: 'coop' as const,
-            setup: [{ key: 'turns', label: 'Turns', value: String(codenamesduetSetup.turns) }],
+            setup: summaryRows,
           })
         : null
     menu.setGameSections(
@@ -507,6 +515,7 @@ export function PlayArea({
     // which is what keeps the snapshot current at click time.
     brand, title, game, words, myKey, peerKey, mySeat, clues, guesses, players,
     greenFound, codenamesduetSetup.turns,
+    summaryRows,
   ])
 
   // Announce turn-state changes in the header feedback pill — it's easy to miss
@@ -646,6 +655,7 @@ export function PlayArea({
         onBackToClub={goToClub}
         // ── Setup disclosure ──
         setup={codenamesduetSetup}
+        setupRows={summaryRows}
         firstClueGiver={firstClueGiver}
         // ── Turn-history log ──
         clues={clues}

@@ -11,7 +11,6 @@ import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/game/useWordSubmit'
 import { memberById } from '../../common/lib/game/peers'
 import { outOfRacePill } from '../../common/lib/game/localPills'
-import { difficultyValue } from '../../common/lib/game/difficulty'
 import { readLeaderboard } from '../../common/lib/game/foundWordsLeaderboard'
 import { currentRankIndex, RANKS } from '../../common/lib/game/rankLadder'
 import type { WordwheelSetup } from '../lib/setup'
@@ -20,6 +19,7 @@ import { InfoCol } from './InfoCol'
 import { buildDisplayRows } from '../../common/lib/game/foundWordsDisplayRows'
 import { buildRevealWords } from '../../common/lib/game/revealWords'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { setupRows } from '../lib/setupSummary'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
@@ -66,6 +66,14 @@ export function PlayArea(ctx: GamePageCtx) {
   const { game, foundWords, loading, rowsLoaded } = useGame(gameId)
 
   const wordwheelSetup = setup as WordwheelSetup
+
+  // The setup recap, built ONCE and handed to both consumers — the info column
+  // renders it as <li>s, the print model prints the same array object
+  // (docs/pdf.md → Setup rows).
+  const summaryRows = useMemo(
+    () => setupRows(wordwheelSetup, game?.mode ?? 'coop', players),
+    [wordwheelSetup, game, players],
+  )
 
   // Does this board have a genuinely wider bonus dictionary? With the legal band
   // equal to the required band, "bonus" degenerates to nothing but the words the
@@ -186,15 +194,8 @@ export function PlayArea(ctx: GamePageCtx) {
       summary: `${RANKS[rankIdx]} · Score ${foundWordsScore} / ${game.required_words_score} · Words ${foundWordsCount} / ${game.required_words_count}`,
       outerLetters: game.outer_letters.split(''),
       centerLetter: game.center_letter,
-      // Relevant setup only (the timer isn't relevant on a print).
       mode: game?.mode ?? 'coop',
-      setup: [
-        { key: 'required', label: 'Required words', value: difficultyValue(wordwheelSetup.required) },
-        { key: 'legal', label: 'Bonus words', value: difficultyValue(wordwheelSetup.legal) },
-        ...(game.mode === 'compete' && wordwheelSetup.target_rank != null
-          ? [{ key: 'target_rank', label: 'Target rank', value: RANKS[wordwheelSetup.target_rank] ?? '?' }]
-          : []),
-      ],
+      setup: summaryRows,
       words,
     }
     // The FULL wordwheel menu: Help (top) + the Print item + the End/Concede +
@@ -224,7 +225,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, wordwheelSetup, hasBonus, isTerminal, solutionRevealed, myConceded, foundWordsScore, foundWordsCount])
+  }, [menu, game, foundWords, players, brand, title, wordwheelSetup, hasBonus, isTerminal, solutionRevealed, myConceded, foundWordsScore, foundWordsCount, summaryRows])
 
   // ─── Wheel tile counts (drive the illegal-letter dim + tile spending) ────
   // The wheel is a MULTISET — the same letter may sit on two tiles — so the
@@ -591,6 +592,7 @@ export function PlayArea(ctx: GamePageCtx) {
         onRequestBackToClub={menu.requestBackToClub}
         // ── Setup disclosure ──
         setup={wordwheelSetup}
+        setupRows={summaryRows}
         // ── Found-words list ──
         wordRows={wordRows}
         reveal={solutionRevealed}

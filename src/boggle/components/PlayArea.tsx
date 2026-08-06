@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { setupRows } from '../lib/setupSummary'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
@@ -13,7 +14,6 @@ import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback
 import { outOfRacePill } from '../../common/lib/game/localPills'
 import { memberById } from '../../common/lib/game/peers'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
-import { difficultyValue } from '../../common/lib/game/difficulty'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/game/useWordSubmit'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
@@ -90,6 +90,14 @@ export function PlayArea(ctx: GamePageCtx) {
   // `setup` is typed `Record<string, unknown>`; BoggleSetup is an `interface`,
   // which TS won't treat as index-compatible with Record, so route through unknown.
   const boggleSetup = setup as unknown as BoggleSetup
+
+  // The setup recap, built ONCE and handed to both consumers — the info column
+  // renders it as <li>s, the print model prints the same array object
+  // (docs/pdf.md → Setup rows).
+  const summaryRows = useMemo(
+    () => setupRows(boggleSetup, game?.mode ?? 'coop', players),
+    [boggleSetup, game, players],
+  )
   const ladder: LadderName = (boggleSetup.scoring_ladder as LadderName) ?? 'basic'
 
   // When the legal band equals the required band, bonus words are only words the
@@ -236,15 +244,8 @@ export function PlayArea(ctx: GamePageCtx) {
       // Exactly the on-screen InfoCol status: found / required words · score.
       summary: `${myCount} / ${game.required_words_count} words · ${myScore} pts`,
       board: boardToDisplay(game.board, game.n),
-      // Relevant setup only (the timer isn't relevant on a print).
       mode: game?.mode ?? 'coop',
-      setup: [
-        { key: 'dice_set', label: 'Dice', value: DICE_BY_NAME[boggleSetup.dice_set]?.desc ?? boggleSetup.dice_set },
-        { key: 'band', label: 'Required words', value: difficultyValue(boggleSetup.band) },
-        { key: 'legal_band', label: 'Bonus words', value: difficultyValue(boggleSetup.legal_band) },
-        { key: 'min_word_length', label: 'Min length', value: `${boggleSetup.min_word_length} letters` },
-        { key: 'ladder', label: 'Scoring', value: ladder.charAt(0).toUpperCase() + ladder.slice(1) },
-      ],
+      setup: summaryRows,
       // Alphabetical — the 5-column list renders them column-major.
       words,
     }
@@ -273,7 +274,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, boggleSetup, hasBonusDifficulty, ladder, isTerminal, solutionRevealed, myConceded, myCount, myScore])
+  }, [menu, game, foundWords, players, brand, title, boggleSetup, hasBonusDifficulty, ladder, isTerminal, solutionRevealed, myConceded, myCount, myScore, summaryRows])
 
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); only the
@@ -494,6 +495,7 @@ export function PlayArea(ctx: GamePageCtx) {
         onRequestBackToClub={menu.requestBackToClub}
         // ── Setup disclosure ──
         setup={boggleSetup}
+        setupRows={summaryRows}
         diceLabel={diceLabel}
         ladderLabel={ladderLabel}
         minWordLength={game.min_word_length}

@@ -1,7 +1,5 @@
 import type { Member } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { timerLabel } from '../../common/lib/game/timerLabel'
-import { difficultyValue } from '../../common/lib/game/difficulty'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
@@ -11,6 +9,7 @@ import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
+import type { SetupRow } from '../../common/lib/game/setupRows'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { WaffleSetup } from '../lib/setup'
 import type { WafflePlayerState, SwapRow } from '../hooks/useGame'
@@ -58,7 +57,7 @@ export function InfoCol({
   startingNewGame,
   onBackToClub,
   onRequestBackToClub,
-  setup,
+  setupRows,
   answerWords,
   swaps,
   viewingIndex,
@@ -125,6 +124,8 @@ export function InfoCol({
 
   // ── Setup disclosure + answer reveal ──
   setup: WaffleSetup
+  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  setupRows: SetupRow[]
   /** The 6 answer words in `WORDS` order (3 across, 3 down): a solved word's letters,
    *  or null for one still hidden. Revealed progressively throughout the game. */
   answerWords: (string | null)[]
@@ -265,11 +266,11 @@ export function InfoCol({
 
         {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
         <SetupDisclosure>
-          <li>Dictionary: {difficultyValue(setup.difficulty)}</li>
-          <li>
-            Swaps: {maxSwaps} (par {parSwaps} + {setup.extra_swaps} extra)
-          </li>
-          <li>Timer: {timerLabel(setup.timer)}</li>
+          {setupRows.map((r) => (
+            <li key={r.key}>
+              {r.label}: {r.value}
+            </li>
+          ))}
         </SetupDisclosure>
       </div>
 

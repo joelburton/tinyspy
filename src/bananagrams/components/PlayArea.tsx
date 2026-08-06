@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useMemo } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
@@ -28,6 +28,7 @@ import { printBananagramsPdf } from '../pdf/printBananagramsPdf'
 import { PlayerBoard } from './PlayerBoard'
 import type { BananagramsCheckResult } from '../hooks/usePlayerBoard'
 import { PeersStrip } from './PeersStrip'
+import { setupRows } from '../lib/setupSummary'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import shared from '../../common/components/game/PlayArea.module.css'
 import '../theme.css' // bananagrams tokens + the global drag-cursor rule
@@ -73,6 +74,14 @@ export function PlayArea(ctx: GamePageCtx) {
   // this from useCaptureKeys; see useSwallowTab.)
   useSwallowTab()
   const { initialBoard, tiles, loading } = useGame(ctx.gameId)
+  // The setup recap, built ONCE and handed to both consumers — the disclosure
+  // below renders it as <li>s, the print model prints the same array object
+  // (docs/pdf.md → Setup rows). bananagrams keeps its disclosure in this file
+  // rather than an InfoCol, being the v3 layout exception.
+  const summaryRows = useMemo(
+    () => setupRows(ctx.setup as unknown as BananagramsSetup, 'compete', ctx.players),
+    [ctx.setup, ctx.players],
+  )
   const progress = useProgress(ctx.gameId)
 
   // bananagrams is DESKTOP-ONLY (docs/mobile.md → "Where each game plays"): the
@@ -292,7 +301,6 @@ export function PlayArea(ctx: GamePageCtx) {
     const { data, error } = await db
       .rpc('create_game', {
         target_club: ctx.clubHandle,
-        mode: 'compete',
         setup: ctx.setup as unknown as BananagramsSetup,
         player_user_ids: ctx.players.map((p) => p.user_id),
       })
@@ -341,7 +349,6 @@ export function PlayArea(ctx: GamePageCtx) {
   useEffect(() => {
     // Wait for the deal — before the board loads there's nothing to print.
     if (loading || initialBoard === null) return
-    const setup = ctx.setup as unknown as BananagramsSetup
     const doPrint = () => {
       const board = boardRef.current
       const words = Array.from(new Set(boardWords(board))).sort()
@@ -355,17 +362,7 @@ export function PlayArea(ctx: GamePageCtx) {
         board: boardToGrid(board),
         // Relevant setup only — the timer + dump destination don't describe the board.
         mode: 'compete' as const,
-        setup: [
-          { key: 'hand_size', label: 'Starter hand', value: `${setup.hand_size} tiles` },
-          { key: 'bunch_size', label: 'Bunch', value: `${setup.bunch_size} tiles` },
-          {
-            key: 'word_check',
-            label: 'Words',
-            value: setup.word_check === 'off'
-              ? 'Not checked'
-              : `Must be real ${setup.word_check === 'strict' ? 'every peel' : 'to win'} (2-letter: ${difficultyValue(setup.dict_2)}, longer: ${difficultyValue(setup.dict_3plus)})`,
-          },
-        ],
+        setup: summaryRows,
         words,
       })
     }
@@ -395,7 +392,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, brand, title, ctx.setup, loading, initialBoard, isTerminal, myConceded])
+  }, [menu, brand, title, ctx.setup, loading, initialBoard, isTerminal, myConceded, summaryRows])
 
   // ─── Did I win? ────────────────────────────────────────────────────────
   // Derived UP HERE (not beside the terminal verdict below) because the

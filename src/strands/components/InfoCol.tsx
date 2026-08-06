@@ -9,10 +9,9 @@ import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { BackToClubButton } from '../../common/components/buttons/BackToClubButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
+import type { SetupRow } from '../../common/lib/game/setupRows'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import { timerLabel } from '../../common/lib/game/timerLabel'
 import type { StrandsSetup } from '../lib/setup'
 import type { EventRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
@@ -43,6 +42,8 @@ type Props = {
   selfId: string
   // ── Setup echo ──
   setup: StrandsSetup
+  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  setupRows: SetupRow[]
   // ── Actions ──
   onEndGame: () => void
   onConcede: () => void
@@ -84,7 +85,7 @@ export function InfoCol({
   hintsByUser,
   solvedIds,
   selfId,
-  setup,
+  setupRows,
   onEndGame,
   onConcede,
   onRestart,
@@ -186,10 +187,11 @@ export function InfoCol({
 
         {/* ── Setup ── LAST before the log, behind a disclosure. */}
         <SetupDisclosure>
-          <li>Hint dictionary: {difficultyValue(setup.band)}</li>
-          <li>Words per hint: {setup.hint_cost}</li>
-          <li>Shortest word: {setup.min_word_length} letters</li>
-          <li>Timer: {timerLabel(setup.timer)}</li>
+          {setupRows.map((r) => (
+            <li key={r.key}>
+              {r.label}: {r.value}
+            </li>
+          ))}
         </SetupDisclosure>
       </div>
 

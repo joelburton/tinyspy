@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
+import { setupRows } from '../lib/setupSummary'
 import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
@@ -16,8 +17,6 @@ import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { buildGameMenu, NEW_GAME_ID } from '../../common/lib/game/gameMenu'
 import { buildPrintModel } from '../pdf/model'
 import { printStrandsPdf } from '../pdf/printStrandsPdf'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import { timerLabel } from '../../common/lib/game/timerLabel'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { consumedCells, coordKey, wordFromPath, type Coord } from '../lib/board'
@@ -191,6 +190,14 @@ export function PlayArea(ctx: GamePageCtx) {
   const infoSheet = useInfoSheet()
 
   const strandsSetup = setup as unknown as StrandsSetup
+
+  // The setup recap, built ONCE and handed to both consumers — the info column
+  // renders it as <li>s, the print model prints the same array object
+  // (docs/pdf.md → Setup rows).
+  const summaryRows = useMemo(
+    () => setupRows(strandsSetup, game?.mode ?? 'coop', players),
+    [strandsSetup, game, players],
+  )
 
   const [rawTrace, setTrace] = useState<Trace>([])
   const [busy, setBusy] = useState(false)
@@ -469,12 +476,7 @@ export function PlayArea(ctx: GamePageCtx) {
           // one that can be relied on to carry the theme.
           summary: `“${game.clue}” · ${found.length} word${found.length === 1 ? '' : 's'}`,
           mode: game?.mode ?? 'coop',
-          setup: [
-            { key: 'band', label: 'Hint dictionary', value: difficultyValue(game.band) },
-            { key: 'hint_cost', label: 'Words per hint', value: String(game.hint_cost) },
-            { key: 'min_word_length', label: 'Shortest word', value: `${game.min_word_length} letters` },
-            { key: 'timer', label: 'Timer', value: timerLabel(strandsSetup.timer) },
-          ],
+          setup: summaryRows,
         },
         board: game.board,
         mode: game.mode,
@@ -532,6 +534,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // The print model's inputs — rebuilt whenever the printable state moves, so
     // the snapshot is current at click time.
     brand, title, game, events, players, playerStates, selfId, strandsSetup, found.length,
+    summaryRows,
   ])
 
   if (loading || !game) return <div className={styles.loading}>Loading…</div>
@@ -662,6 +665,7 @@ export function PlayArea(ctx: GamePageCtx) {
           players={players}
           selfId={session.user.id}
           setup={strandsSetup}
+          setupRows={summaryRows}
           onEndGame={handleEndGame}
           onConcede={handleConcede}
           onRestart={handleRestart}

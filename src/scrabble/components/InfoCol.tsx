@@ -1,7 +1,5 @@
 import { outcomeVerb, type Member, type GamePlayer } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { timerLabel } from '../../common/lib/game/timerLabel'
-import { difficultyValue } from '../../common/lib/game/difficulty'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
@@ -11,8 +9,9 @@ import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTer
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
 import { AIButton } from '../../common/components/buttons/AIButton'
+import type { ScrabbleSetup } from '../lib/setup'
+import type { SetupRow } from '../../common/lib/game/setupRows'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
-import { AI_LEVEL_LABEL, type ScrabbleSetup } from '../lib/setup'
 import type { RankedMove } from '../lib/rank'
 import type { PlayerRow, PlayRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
@@ -72,7 +71,7 @@ export function InfoCol({
   canSuggest,
   onSuggest,
   onApplySuggestion,
-  setup,
+  setupRows,
   aiSeats,
   winnerSeat,
   aiMemberOfSeat,
@@ -138,6 +137,8 @@ export function InfoCol({
 
   // ── Setup disclosure ──
   setup: ScrabbleSetup
+  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  setupRows: SetupRow[]
 
   // ── AI opponents (compete; docs/scrabble-ai-strength.md) ──
   /** The AI seats' display rows (name + disc color + live score), or empty. */
@@ -334,14 +335,11 @@ export function InfoCol({
 
         {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
         <SetupDisclosure>
-          <li>Dictionary (2-letter): {difficultyValue(setup.dict_2)}</li>
-          <li>Dictionary (longer): {difficultyValue(setup.dict_3plus)}</li>
-          <li>Timer: {timerLabel(setup.timer)}</li>
-          {isCompete && setup.ai_count > 0 && (
-            <li>
-              AI players: {setup.ai_count} × {AI_LEVEL_LABEL[setup.ai_level]}
+          {setupRows.map((r) => (
+            <li key={r.key}>
+              {r.label}: {r.value}
             </li>
-          )}
+          ))}
         </SetupDisclosure>
       </div>
 

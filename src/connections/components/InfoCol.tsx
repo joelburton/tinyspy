@@ -1,4 +1,3 @@
-import { timerLabel } from '../../common/lib/game/timerLabel'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { RestartButton } from '../../common/components/buttons/RestartButton'
@@ -8,6 +7,7 @@ import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { HintButton } from '../../common/components/buttons/HintButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
+import type { SetupRow } from '../../common/lib/game/setupRows'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import type { ConnectionsSetup } from '../lib/setup'
 import type { Board, CategoryRank } from '../lib/board'
@@ -17,18 +17,6 @@ import { HintList } from './HintList'
 import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 
-/** Format a puzzle's NYT date (`YYYY-MM-DD`) for the setup disclosure. Parsed as
- *  UTC so a calendar date never shifts by a local-tz offset (matches Calendar). */
-function formatPuzzleDate(d: string | null): string {
-  if (!d) return 'custom puzzle'
-  const [y, m, day] = d.split('-').map(Number)
-  return new Date(Date.UTC(y, m - 1, day)).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    timeZone: 'UTC',
-  })
-}
 
 /**
  * connections's info column — near-zero state, an arrangement of the shared scaffold
@@ -68,9 +56,7 @@ export function InfoCol({
   onNewGame,
   startingNewGame,
   onBackToClub,
-  setup,
-  puzzleDate,
-  tileCount,
+  setupRows,
   guesses,
   viewingIndex,
   onSelectTurn,
@@ -128,6 +114,8 @@ export function InfoCol({
 
   // ── Setup disclosure ──
   setup: ConnectionsSetup
+  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  setupRows: SetupRow[]
   /** The puzzle's NYT date (setup echo), or null for a custom puzzle. */
   puzzleDate: string | null
   /** The number of board tiles (setup echo). */
@@ -245,11 +233,11 @@ export function InfoCol({
         {/* Setup — last, behind a disclosure (closed by default so it doesn't claim
             space). */}
         <SetupDisclosure>
-          <li>Puzzle: {formatPuzzleDate(puzzleDate)}</li>
-          <li>Words: {tileCount}</li>
-          <li>Categories: {categoryCount}</li>
-          <li>Mistakes allowed: {mistakeBudget}</li>
-          <li>Timer: {timerLabel(setup.timer)}</li>
+          {setupRows.map((r) => (
+            <li key={r.key}>
+              {r.label}: {r.value}
+            </li>
+          ))}
         </SetupDisclosure>
       </div>
 

@@ -15,10 +15,10 @@ import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { MAX_GUESSES } from './GuessBoard'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { setupRows } from '../lib/setupSummary'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
-import { difficultyValue } from '../../common/lib/game/difficulty'
 import { buildWordiplyPrintModel } from '../pdf/model'
 import { printWordiplyPdf } from '../pdf/printWordiplyPdf'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
@@ -81,6 +81,14 @@ export function PlayArea(ctx: GamePageCtx) {
   const { game, guesses, validGuesses, loading, rowsLoaded } = useGame(gameId)
 
   const wordiplySetup = setup as WordiplySetup
+
+  // The setup recap, built ONCE and handed to both consumers — the info column
+  // renders it as <li>s, the print model prints the same array object
+  // (docs/pdf.md → Setup rows).
+  const summaryRows = useMemo(
+    () => setupRows(wordiplySetup, game?.mode ?? 'coop', players),
+    [wordiplySetup, game, players],
+  )
 
   const infoSheet = useInfoSheet()
   const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
@@ -270,7 +278,7 @@ export function PlayArea(ctx: GamePageCtx) {
       lengthScore: lengthScore(longest, game.max_word_length),
       letterCount: letters,
       leaderboard,
-      setup: [{ key: 'difficulty', label: 'Dictionary', value: difficultyValue(wordiplySetup.difficulty) }],
+      setup: summaryRows,
     })
     menu.setGameSections(
       buildGameMenu({
@@ -296,6 +304,7 @@ export function PlayArea(ctx: GamePageCtx) {
     menu, game, isTerminal, solutionRevealed, myConceded,
     brand, title, base, guesses, players, session.user.id, guessesUsed,
     longest, letters, leaderboard, wordiplySetup,
+    summaryRows,
   ])
 
   // ─── Coop peer-guess narration (global header) ─────────
@@ -416,6 +425,7 @@ export function PlayArea(ctx: GamePageCtx) {
           onBackToClub={goToClub}
           onRequestBackToClub={menu.requestBackToClub}
           setup={wordiplySetup}
+          setupRows={summaryRows}
         />
       </InfoSheet>
       {/* No modal at terminal (docs/ui.md → Terminal results) — the result is

@@ -8,10 +8,10 @@ import type {
 } from '../../common/lib/games'
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { difficultyValue } from '../../common/lib/game/difficulty'
 import { buildStackdownPrintModel } from '../pdf/model'
 import { printStackdownPdf } from '../pdf/printStackdownPdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { setupRows } from '../lib/setupSummary'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
@@ -105,6 +105,15 @@ export function PlayArea({
     commitWord,
     loading,
   } = useGame(gameId)
+  const stackdownSetup = setup as unknown as StackdownSetup
+
+  // The setup recap, built ONCE and handed to both consumers — the info column
+  // renders it as <li>s, the print model prints the same array object
+  // (docs/pdf.md → Setup rows).
+  const summaryRows = useMemo(
+    () => setupRows(stackdownSetup, game?.mode ?? 'coop', players),
+    [stackdownSetup, game, players],
+  )
   const [submitting, setSubmitting] = useState(false)
 
   // ─── Turn-history viewer ──────────────────────────────────────
@@ -432,7 +441,7 @@ export function PlayArea({
           isTerminal,
           found: foundCount,
           target: SOLUTION_WORDS,
-          setup: [{ key: 'band', label: 'Difficulty', value: difficultyValue((setup as StackdownSetup).band) }],
+          setup: summaryRows,
         })
       : null
     menu.setGameSections(
@@ -474,6 +483,7 @@ export function PlayArea({
     // The print model's inputs. It's rebuilt whenever the printable state moves,
     // which is what makes the snapshot current at click time.
     brand, title, game, shownTiles, submissions, players, session.user.id, foundCount, setup,
+    summaryRows,
   ])
 
   // ─── Coop: narrate teammates' moves ───────────────────────────
@@ -610,6 +620,7 @@ export function PlayArea({
           players → action row → setup+reveal → log). */}
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
+          setupRows={summaryRows}
         isCompete={isCompete}
         isTerminal={isTerminal}
         over={over}
