@@ -52,9 +52,17 @@ export function renderIndex(shots: Shot[], stamp: string): string {
             const tiles = games
               .map((game) => {
                 const shot = at(game, mode, phase, vp)
-                const body = shot?.file
-                  ? `<a href="${shot.file}" target="_blank"><img src="${shot.file}" loading="lazy" alt="${game} ${mode} ${phase} ${vp}"></a>`
-                  : `<div class="hole">${shot?.missing ?? 'not captured'}</div>`
+                // A printout stays a PDF — smaller AND sharper than a raster of
+                // it — and gets a LINK tile rather than a preview. An <embed>
+                // renders it, but wraps every tile in the browser's PDF viewer
+                // (letterboxing, its own chrome, one viewer instance per tile),
+                // which is a lot of machinery for a thumbnail nobody reads at
+                // 240px. Click through to the real thing instead.
+                const body = !shot?.file
+                  ? `<div class="hole">${shot?.missing ?? 'not captured'}</div>`
+                  : shot.file.endsWith('.pdf')
+                    ? `<a href="${shot.file}" target="_blank" class="paper"><span class="paperMark">PDF</span><span class="paperName">${shot.file}</span></a>`
+                    : `<a href="${shot.file}" target="_blank"><img src="${shot.file}" loading="lazy" alt="${game} ${mode} ${phase} ${vp}"></a>`
                 const note = shot?.cell.note ? `<div class="note">${shot.cell.note}</div>` : ''
                 return `<figure class="${shot?.file ? '' : 'empty'}">
                   ${body}
@@ -98,6 +106,17 @@ export function renderIndex(shots: Shot[], stamp: string): string {
   figure img { width: 100%; height: 190px; object-fit: contain; object-position: top;
                border: 1px solid #ccc; border-radius: 6px;
                background: #fff; display: block; }
+  /* A printout's tile is a link, not a preview — same box as every other tile
+     so the rows still line up, but solid-bordered and lettered so it reads as
+     "click me" rather than as a missing image. */
+  .paper { height: 190px; border: 1px solid #ccc; border-radius: 6px; background: #fff;
+           display: flex; flex-direction: column; align-items: center;
+           justify-content: center; gap: .4rem; text-decoration: none; color: #444; }
+  .paper:hover { border-color: #888; background: #fff; }
+  .paperMark { font: 600 .95rem/1 system-ui; letter-spacing: .12em;
+               border: 2px solid #bbb; border-radius: 4px; padding: .45rem .6rem; }
+  .paperName { font-size: .7rem; color: #888; max-width: 90%; overflow: hidden;
+               text-overflow: ellipsis; white-space: nowrap; }
   figure.empty { opacity: .55; }
   .hole { width: 100%; height: 190px; border: 1px dashed #bbb; border-radius: 6px;
           display: flex; align-items: center; justify-content: center; text-align: center;

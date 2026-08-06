@@ -73,9 +73,21 @@ what make e2e fragile.
 Compete needs one context per player only where the *screenshot* differs by
 player (a rival's hidden rack). Otherwise capture one seat.
 
-**PDFs are just another phase**: open the game menu, click Print, catch the
-download, `pdftoppm` it to a PNG, and it lands in the same sheet as everything
-else.
+**PDFs are a FLAG on a cell, not a phase**: a phase would build every state
+twice and yield eight near-identical printouts per game, where a flag reuses
+the state already built and sits the paper beside the screenshot of the SAME
+state — which is the comparison that matters.
+
+They're kept as **PDFs**, not rasterised. A page render at a legible DPI is
+3–6x the size of the PDF it came from (~35–70 KB against ~12 KB) and softens
+the very text the page exists to communicate. The vector original is smaller
+AND sharper, and skipping the conversion drops a poppler dependency.
+
+The tile is a **link**, not a preview. An `<embed>` does render one, but wraps
+every tile in the browser's PDF viewer — letterboxing, its own chrome, an
+instance per tile — which is a lot of machinery for a thumbnail nobody reads at
+240px. (Headless Chromium has no PDF plugin at all, so it can't even be
+verified that way without launching real Chrome.) Click through to the file.
 
 ### 3. The index
 

@@ -27,8 +27,7 @@
  *         GAMES=letterboxed npm run _gallery      — just one game
  */
 
-import { execFileSync } from 'node:child_process'
-import { mkdirSync, renameSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { chromium, type Browser, type BrowserContext } from '@playwright/test'
 import { createClubWithMembers, type E2EClub } from '../helpers/fixtures'
@@ -113,10 +112,16 @@ async function shoot(
  * "undefined%") that only surfaced because a PDF happened to get rendered —
  * this is that, on purpose.
  *
- * Rendered to PNG with `pdftoppm` (poppler, the same tool docs/pdf.md names for
- * eyeballing a printout) so it sits in an <img> like everything else. PAGE ONE
- * only: a long game spills onto further pages, and page 1 is where the header,
- * the board and the Setup block live — the parts worth comparing across games.
+ * Kept as a PDF, not rendered to PNG. The first version converted with
+ * `pdftoppm` so every tile could be an <img>; that was worse on both counts a
+ * printout is judged by. A page render at a legible DPI is 3-6x the size of the
+ * PDF it came from (~35-70KB against ~12KB), and it's a raster — so the text
+ * that the whole page exists to communicate softens, exactly when you zoom in
+ * to read it. The vector original is smaller AND sharper, and skipping the
+ * conversion drops a poppler dependency.
+ *
+ * The sheet embeds them instead (see renderIndex), which also means every page
+ * is reachable rather than just page one.
  */
 async function print(
   browser: Browser,
@@ -149,15 +154,9 @@ async function print(
       viewerPage.getByText('Print board (PDF)').click(),
     ])
 
-    const stem = `${g.game}-${cell.mode}-${cell.phase}-pdf`
-    const pdf = join(ROOT, `${stem}.pdf`)
+    const pdf = join(ROOT, `${g.game}-${cell.mode}-${cell.phase}-pdf.pdf`)
     await download.saveAs(pdf)
-    execFileSync('pdftoppm', ['-png', '-r', '80', '-f', '1', '-l', '1', pdf, join(ROOT, stem)])
-    // pdftoppm suffixes the page number; drop it so the sheet's naming stays
-    // uniform, and drop the source PDF — the PNG is what gets looked at.
-    renameSync(join(ROOT, `${stem}-1.png`), join(ROOT, `${stem}.png`))
-    unlinkSync(pdf)
-    return join(ROOT, `${stem}.png`)
+    return pdf
   } finally {
     for (const c of contexts) await c.close()
   }
