@@ -740,6 +740,21 @@ dev-lint: ## eslint
 dev-types: ## regenerate src/types/db.ts from the live local schema
 	@npm run types:gen
 
+# The screenshot gallery (docs/gallery-plan.md) — every game in every
+# interesting state, photographed into gallery/index.html for you to scroll.
+#
+# NOT a test, and deliberately not wired into `test` or `test-e2e`: it asserts
+# nothing, so it can't pass or fail. It answers "do these fifteen games look
+# like one app?", which only a person answers. Run it when you want to look.
+#
+# No ENV: it drives the LOCAL stack only (it creates throwaway clubs and plays
+# real games), so there's no target to get wrong. Needs `npm run dev` up.
+#
+# GAMES=letterboxed,wordle narrows it while you're iterating on one game.
+.PHONY: gallery
+gallery: ## screenshot every game state → gallery/index.html (needs `npm run dev`)
+	@npm run --silent _gallery
+
 # The make system's own test suite — the only part of this repo with no pgTAP
 # or playwright coverage, and the part that can write to prod. It re-checks
 # the two bug classes that kept recurring here (see the script's header).

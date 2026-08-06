@@ -24,6 +24,7 @@
     "_letterboxed:import": "npx tsx supabase/scripts/import-letterboxed-seeds.ts",
     "_words:import": "npx tsx supabase/scripts/import-words.ts",
     "_user:add": "npx tsx supabase/scripts/add-user.ts",
+    "_gallery": "npx tsx e2e/gallery/run.ts",
     "_boggle:wordlist": "npx tsx supabase/scripts/generate-boggle-wordlist.ts",
     "_scrabble:wordlist": "npx tsx supabase/scripts/generate-scrabble-wordlist.ts",
     "scrabble:selfplay": "npx tsx supabase/scripts/scrabble-selfplay.ts",

@@ -23,8 +23,10 @@ const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 })
 
-/** A Supabase client acting as a specific signed-in user (for RPCs). */
-function asUser(accessToken: string) {
+/** A Supabase client acting as a specific signed-in user (for RPCs).
+ *  Exported for the screenshot gallery's state builders, which drive each
+ *  game's real RPCs rather than writing rows (docs/gallery-plan.md). */
+export function asUser(accessToken: string) {
   return createClient(SUPABASE_URL, ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
     auth: { persistSession: false },
