@@ -150,6 +150,13 @@ export function BoardCol({
   // query picks). Derived from the LIVE chain: most games never leave the
   // base reservation, and when a long chain genuinely needs another row the
   // board absorbs it through --avail-h (see lib/chainRows.ts for the deal).
+  //
+  // KEEP IT ON liveChain even though the strip now RENDERS the viewed chain.
+  // The two are different questions: what the strip shows, and how much room is
+  // held for it. Switching this to the shown chain looks like an obvious tidy-up
+  // and is a reflow bug — opening move #1 would shrink the strip, --avail-h
+  // would hand the space to the board, and the whole column would jump every
+  // time you reviewed an early turn (docs/ui.md → layout stability).
   const chainRowsStyle = useMemo(
     () =>
       ({
@@ -174,22 +181,50 @@ export function BoardCol({
           one invisible number, words left under the cap, is restated by the
           accepted-word pill after every move. */}
 
-      {/* The chain reads ABOVE the board: it is the state, and it says what
-          letter the next word must start with. On a phone the info column is
-          off-canvas, so a per-turn readout can't live there. */}
-      <ChainStrip chain={liveChain} onRemoveLast={onRemoveLast} disabled={!chainEditable} />
+      {/* The chain strip and the board are ONE SNAPSHOT, so they share one
+          history outline rather than wearing one each.
 
-      {/* While a past move is open the board draws THAT chain and wears the
-          shared history outline, which also makes it click-through so a click
-          falls to useHistoryViewer's click-anywhere-to-exit. */}
-      <Board
-        sides={sides}
-        chain={chain}
-        word={viewingDescription !== null ? '' : word}
-        onPick={onPick}
-        disabled={entryDisabled || viewingDescription !== null}
-        framed={viewingDescription !== null}
-      />
+          They're a pair because they're two views of the same state: the strip
+          lists the words, the board shows which letters they covered and traces
+          the line between them. Framing only the board (the earlier shape) left
+          the strip live while the board rolled back, so the two disagreed and
+          showed a combination that never existed. One box also beats two here
+          on looks — `.frame` is an outline with a 3px offset, so adjacent
+          frames would put two yellow lines a few pixels apart with the column
+          gap between them.
+
+          The wrapper re-declares the column's own flex + gap so inserting it
+          changes no spacing: the strip↔board gap is this gap, and the
+          wrapper↔entry gap is still the column's.
+
+          `.frame` also makes the whole region click-through, so a click on
+          either falls to useHistoryViewer's click-anywhere-to-exit. */}
+      <div
+        className={cls(styles.snapshot, viewingDescription !== null && history.frame)}
+      >
+        {/* The chain reads ABOVE the board: it is the state, and it says what
+            letter the next word must start with. On a phone the info column is
+            off-canvas, so a per-turn readout can't live there.
+
+            `chain`, not `liveChain` — while a past move is open this is that
+            move's chain. Disabled then too, which is what takes the × off the
+            last pill: you can't take back a word from a snapshot, and the same
+            flag drops the pill's ×-shaped right padding so the row stays even.
+            (Row COUNT still comes from liveChain — see chainRowsStyle above.) */}
+        <ChainStrip
+          chain={chain}
+          onRemoveLast={onRemoveLast}
+          disabled={!chainEditable || viewingDescription !== null}
+        />
+
+        <Board
+          sides={sides}
+          chain={chain}
+          word={viewingDescription !== null ? '' : word}
+          onPick={onPick}
+          disabled={entryDisabled || viewingDescription !== null}
+        />
+      </div>
 
       {/* The shared RESERVED-HEIGHT swap box: it holds exactly one of the
           entry row, an own-move pill, or the terminal verdict, and its fixed

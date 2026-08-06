@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { setInfoSheetOpen } from '../../lib/game/infoSheetStore'
 
 /** The turn-history viewer's coordination state (see `useHistoryViewer`). */
 export interface HistoryViewer<Id> {
@@ -12,7 +13,9 @@ export interface HistoryViewer<Id> {
   /** `viewingId !== null` — "am I viewing a past turn?" Gates the board's readOnly /
    *  viewing frame and the "click to exit" wiring. */
   viewing: boolean
-  /** Open a turn in the viewer — wire straight to the log's `onSelectTurn`. */
+  /** Open a turn in the viewer — wire straight to the log's `onSelectTurn`. On a
+   *  phone this also leaves the info page for the board, since that's where the
+   *  turn you just asked for is drawn. */
   select: (id: Id) => void
   /** Return to the live board (a board click, the banner ✕, a new move landing). */
   exitViewing: () => void
@@ -81,6 +84,23 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
     return () => document.removeEventListener('click', onDocClick)
   }, [viewingId])
 
+  // Opening a turn means "show me the board as it was" — so on a phone, GO to the
+  // board. The `#N` handle lives in the turn log, which below the breakpoint is on
+  // the off-canvas info page, so without this the viewer opened behind the page you
+  // were standing on: you'd see nothing, and the tap on "Switch views" that would
+  // have shown you counted as click-anywhere-to-exit, dropping you back to live.
+  // The feature was unusable on a phone rather than broken, which is why it read as
+  // "probably works".
+  //
+  // Unconditional, not mobile-gated: the flag is already false on desktop (the info
+  // column is inline there, and useInfoSheet clears it when crossing the
+  // breakpoint), so setting it false again is a no-op. A `useIsMobile()` check here
+  // would only add a way for the two to disagree.
+  const select = useCallback((id: Id) => {
+    setInfoSheetOpen(false)
+    setViewingId(id)
+  }, [])
+
   const exitOnKey = useCallback(
     (e: KeyboardEvent): boolean => {
       if (viewingId === null || e.metaKey || e.ctrlKey || e.altKey) return false
@@ -94,7 +114,7 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
     viewingId,
     viewingIdRef,
     viewing: viewingId !== null,
-    select: setViewingId,
+    select,
     exitViewing,
     exitOnKey,
   }

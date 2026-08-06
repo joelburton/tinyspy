@@ -285,9 +285,14 @@ test.describe('letterboxed', () => {
     await page.getByText('#1', { exact: true }).click()
     await expect(page.getByText('Played ADG')).toBeVisible({ timeout: 10000 })
 
-    // The chain STRIP keeps showing the live chain: reviewing a past move must
-    // not change what your next move is.
-    await expect(page.getByRole('listitem').filter({ hasText: /^GJB/ }).first()).toBeVisible()
+    // The chain STRIP rolls back with the board — they're one snapshot, and
+    // framing only the board used to leave the two showing a state that never
+    // existed. After move #1 the chain was ADG alone, so GJB is gone.
+    await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first()).toBeVisible()
+    await expect(page.getByRole('listitem').filter({ hasText: /^GJB/ })).toHaveCount(0)
+
+    // And no × on the snapshot: you can't take a word back out of a past move.
+    await expect(page.getByRole('button', { name: /Take back/i })).toHaveCount(0)
 
     // A click anywhere returns to live (useHistoryViewer wires this itself).
     await page.getByText('Played ADG').click()

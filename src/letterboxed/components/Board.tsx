@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import { canFollow, coveredLetters, EDGE, layout, NODE_R, SPAN, type Node } from '../lib/board'
-import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './Board.module.css'
 import play from './PlayArea.module.css'
 
@@ -31,7 +30,6 @@ export function Board({
   word,
   onPick,
   disabled,
-  framed,
 }: {
   /** Twelve letters in side order. */
   sides: string
@@ -43,10 +41,6 @@ export function Board({
   onPick: (letter: string) => void
   /** Terminal / not my turn / conceded: the board is inert. */
   disabled: boolean
-  /** A past move is open: wear the shared history outline. It also makes the
-   *  board click-through, so a click falls to useHistoryViewer's
-   *  click-anywhere-to-exit. */
-  framed: boolean
 }) {
   const nodes = useMemo(() => layout(sides), [sides])
   const covered = useMemo(() => coveredLetters(chain), [chain])
@@ -67,7 +61,7 @@ export function Board({
 
   return (
     <svg
-      className={cls(styles.board, play.board, framed && history.frame)}
+      className={cls(styles.board, play.board)}
       viewBox="0 0 100 100"
       role="presentation"
     >

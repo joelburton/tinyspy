@@ -563,6 +563,16 @@ see the board as it was then**. The affordance is shared and looks identical eve
   handle, which switches turns), or the banner **✕**. Two are intrinsic to the hook;
   only the keystroke path is wired per game (it must cooperate with the game's own
   key handler).
+- **On a phone, opening a turn leaves the info page.** `select` clears the info-sheet
+  flag (`setInfoSheetOpen(false)`) as well as setting the viewed turn, because below
+  the breakpoint the `#N` handle lives in the turn log — which is *on* the off-canvas
+  info page, while the board it replays is on the other one. Without it the viewer
+  opened behind the page you were standing on, and the tap on "Switch views" that
+  would have revealed it counted as click-anywhere-to-exit and dropped you back to
+  live: the feature was unusable on a phone rather than broken, which is exactly why
+  it read as working. Unconditional rather than `useIsMobile`-gated — the flag is
+  already false on desktop, so it's a no-op there, and a second breakpoint read would
+  only give the two a way to disagree.
 
 The coordination — which turn is open + the enter/exit affordances — is the shared
 **`useHistoryViewer`** hook (`common/hooks/game/useHistoryViewer.ts`); the `PlayArea`
@@ -808,7 +818,15 @@ adding a viewer to a new game:
   replay works, since a chain is a stack that can shrink, not a board that
   accumulates. Like wordle, the log has a "whose board" picker in compete, so the
   `#N` handle is live only while the shown log is the board that replays
-  (`boardIsShown`).
+  (`boardIsShown`). **The only game whose frame wraps more than the board**: the
+  chain strip and the board are two views of one state (the strip lists the
+  words, the board shows which letters they covered), so `BoardCol` groups them
+  in a `.snapshot` box and puts `.frame` on that. Framing just the board left the
+  strip live while the board rolled back — the two then showed a combination that
+  never existed. One box rather than two also avoids stacking `.frame`'s 3px-offset
+  outlines a few pixels apart. Row COUNT for the strip still comes from the LIVE
+  chain (`chainRowsStyle`), or reviewing an early turn would shrink the strip,
+  hand the space to the board via `--avail-h`, and move the column.
 
 UX is uniform (and matches across the history games): enter by clicking a turn's `#N`
 handle; the input freezes and the board shows the historical state; any interaction
