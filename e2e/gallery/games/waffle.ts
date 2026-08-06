@@ -24,9 +24,11 @@ export const waffleGallery: GameGallery = {
     { mode: 'coop', phase: 'fresh' },
     { mode: 'coop', phase: 'mid', note: 'one wrong swap' },
     { mode: 'coop', phase: 'won', note: 'solved in one swap' },
+    { mode: 'coop', phase: 'lost', note: 'swaps spent unsolved' },
     { mode: 'compete', phase: 'fresh' },
     { mode: 'compete', phase: 'mid', note: 'one wrong swap' },
     { mode: 'compete', phase: 'won', note: 'first to solve' },
+    { mode: 'compete', phase: 'lost', note: 'swaps spent unsolved' },
   ],
 
   async build(club: E2EClub, cell: Cell) {
@@ -34,6 +36,11 @@ export const waffleGallery: GameGallery = {
     // 2↔3 is a legal but unhelpful swap: it moves the board without solving it.
     if (cell.phase === 'mid') await swap(club, id, 2, 3)
     if (cell.phase === 'won') await swap(club, id, 0, 1)
+    if (cell.phase === 'lost') {
+      // The budget is par (1) + extra_swaps (5) = six. Swapping the same pair
+      // back and forth spends them all without ever solving the board.
+      for (let i = 0; i < 6; i++) await swap(club, id, 2, 3)
+    }
     return { gametype, id, viewer: club.members[0] }
   },
 }
