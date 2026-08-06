@@ -114,10 +114,20 @@ screen never. Fall back to concede only where a game has no natural loss —
 letterboxed compete is the case (undo refunds, so a non-conceded player only
 stops by winning) — and note it on the cell so the sheet says why.
 
-**Every game prints at least one TERMINAL state.** A printout is a record of a
-game played, so a game printing none has nothing to check. Games whose board is
-worth solving on paper (letterboxed, boggle, crosswords) print a FRESH board
-too. The runner prints a note when a game breaks this.
+**EVERY state gets printed** — one PDF per game × mode × phase, made on the
+desktop pass (a PDF is the same document whatever the window size, so printing
+it per viewport would only be slower).
+
+This replaces an earlier "at least one terminal, per-game judgement" rule, which
+was wrong: it asked *"would a player print this?"* when the question is *"is
+this a code path whose layout could break?"* The empty and mid-game printouts
+are where the bugs actually are — letterboxed's fresh print crowds "Chain / No
+words yet / Moves / None yet" in a way its won print doesn't — and pdf.md's
+opening line offers printing **mid-game or at the end**, so a per-game judgement
+had left a documented use case at zero coverage.
+
+It's also nearly free now that printouts aren't rasterised: ~14KB each, so all
+fifteen games comes to about 1MB.
 
 **Undeclared cells are reported, not enforced.** The runner lists them at the
 end of every run. It stays a NOTE because the script can't tell "unreachable"

@@ -55,25 +55,6 @@ export type Cell = {
   /** Shown under the tile when this cell needs a word of explanation
    *  ("2 players", "1-guess game"). Optional. */
   note?: string
-  /**
-   * Also print this state and put the PDF in the sheet.
-   *
-   * A FLAG on an existing cell rather than a phase of its own, for two reasons.
-   * It reuses the state that's already been built — printing every phase would
-   * mean eight near-identical PDFs per game, and building each one twice. And
-   * it puts the paper next to the screenshot of the SAME state, which is the
-   * comparison that matters: does the printout say what the screen says?
-   *
-   * **Every game prints at least one TERMINAL state.** That's what a printout
-   * is — a record of a game played — so a game that prints none has nothing to
-   * check, and the sheet would quietly show it as four "not printed" holes that
-   * read like an oversight rather than a decision.
-   *
-   * Games whose board is worth solving on paper (letterboxed, boggle,
-   * crosswords) print a FRESH board as well: there the printout is also a thing
-   * you hand someone, and the blank page is the point.
-   */
-  pdf?: boolean
 }
 
 /** What a builder hands back: a game in the requested state, and who to view it as. */

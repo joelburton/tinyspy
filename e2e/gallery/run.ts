@@ -206,11 +206,18 @@ async function main() {
             console.error(`  ✗ ${g.game} ${cell.mode}/${cell.phase} ${vp.name}: ${why}`)
             shots.push({ game: g.game, cell, viewport: vp.name, file: null, missing: why })
           }
-        }
-        // 'pdf' rides the VIEWPORT axis, so the sheet groups printouts into
-        // their own section with no renderer change — paper is just another way
-        // of looking at the same state.
-        if (cell.pdf) {
+          // EVERY state gets printed, on the desktop pass. Not a per-game
+          // judgement about what's worth printing on paper: a printout is a
+          // code path with its own layout in every state, and the empty and
+          // mid-game ones are where its bugs actually live (letterboxed's fresh
+          // print crowds "Chain / No words yet / Moves / None yet" in a way its
+          // won print doesn't). docs/pdf.md's opening line says you can print
+          // mid-game OR at the end, so leaving mid-game uncovered left a
+          // documented use case at zero.
+          //
+          // Once, not once per viewport: a PDF is the same document whatever
+          // the browser window is, so printing it twice would just be slower.
+          if (vp.name !== 'desktop') continue
           try {
             const file = await print(browser, g, cell, built, club)
             console.log(`  ✓ ${file}`)
@@ -241,18 +248,6 @@ async function main() {
     for (const mode of ['coop', 'compete'] as const) {
       for (const phase of ['fresh', 'mid', 'won', 'lost'] as const) {
         const declared = g.cells.find((c) => c.mode === mode && c.phase === phase)
-        // The paper section needs its own hole: a state can be perfectly well
-        // declared and simply not marked for printing, which is a different
-        // fact from "nobody built this state at all".
-        if (declared && !declared.pdf) {
-          shots.push({
-            game: g.game,
-            cell: declared,
-            viewport: 'pdf',
-            file: null,
-            missing: 'not printed',
-          })
-        }
         if (declared) continue
         for (const vp of [...VIEWPORTS.map((v) => v.name), 'pdf']) {
           shots.push({
@@ -288,16 +283,6 @@ async function main() {
       console.log(`    ${s.game.padEnd(14)}${s.cell.mode}/${s.cell.phase}`)
     }
     console.log('  — add a cell, or ignore if the state is unreachable')
-  }
-
-  // Same, for the print floor: a game with no printed terminal has nothing on
-  // paper to check, which is a convention rather than something to enforce.
-  for (const g of games) {
-    const printedTerminal = g.cells.some((c) => c.pdf && (c.phase === 'won' || c.phase === 'lost'))
-    if (!printedTerminal) {
-      console.log(`\n  note: ${g.game} prints no terminal state — a printout is a RECORD,`)
-      console.log('        so every game should print at least one finished game')
-    }
   }
 }
 

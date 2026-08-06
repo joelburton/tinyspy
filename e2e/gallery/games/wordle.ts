@@ -45,11 +45,11 @@ export const wordleGallery: GameGallery = {
   cells: [
     { mode: 'coop', phase: 'fresh' },
     { mode: 'coop', phase: 'mid', note: 'two guesses in' },
-    { mode: 'coop', phase: 'won', note: 'target guessed', pdf: true },
-    { mode: 'coop', phase: 'lost', note: 'six wrong guesses', pdf: true },
+    { mode: 'coop', phase: 'won', note: 'target guessed' },
+    { mode: 'coop', phase: 'lost', note: 'six wrong guesses' },
     { mode: 'compete', phase: 'fresh' },
     { mode: 'compete', phase: 'mid', note: 'two guesses in' },
-    { mode: 'compete', phase: 'won', note: 'first to solve', pdf: true },
+    { mode: 'compete', phase: 'won', note: 'first to solve' },
     { mode: 'compete', phase: 'lost', note: 'everyone out of guesses' },
   ],
 
