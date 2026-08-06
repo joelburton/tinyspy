@@ -750,10 +750,26 @@ dev-types: ## regenerate src/types/db.ts from the live local schema
 # No ENV: it drives the LOCAL stack only (it creates throwaway clubs and plays
 # real games), so there's no target to get wrong. Needs `npm run dev` up.
 #
-# GAMES=letterboxed,wordle narrows it while you're iterating on one game.
+# A full run is minutes and hundreds of files, which is a miserable loop when
+# you've changed one game — so it takes GAME and TECH:
+#
+#   gmake gallery                        every game, every technology
+#   gmake gallery GAME=waffle            waffle: desktop, mobile and PDF
+#   gmake gallery GAME=waffle TECH=pdf   waffle's printouts only
+#   gmake gallery-index                  rebuild index.html, capture nothing
+#
+# A partial run replaces ONLY the files it regenerates; the rest of the sheet
+# survives. That works because the index is built from what's on DISK, not from
+# what this run did.
 .PHONY: gallery
-gallery: ## screenshot every game state → gallery/index.html (needs `npm run dev`)
-	@npm run --silent _gallery
+gallery: ## screenshot game states → gallery/index.html (GAME=, TECH=; needs `npm run dev`)
+	@npm run --silent _gallery -- $(GAME) $(TECH)
+
+# Rebuild the sheet without capturing anything — for when the INDEX changed
+# (a new game registered, the renderer edited) but the images didn't.
+.PHONY: gallery-index
+gallery-index: ## rebuild gallery/index.html from the files already on disk
+	@npm run --silent _gallery -- index
 
 # Promote the current gallery into the COMMITTED folder.
 #

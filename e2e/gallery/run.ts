@@ -23,21 +23,67 @@
  * browser never plays, which removes nearly all the flakiness, since realtime
  * waits are what make e2e fragile.
  *
- * Usage:  npm run _gallery            (public entry: `gmake gallery`)
- *         GAMES=letterboxed npm run _gallery      — just one game
+ * ── Regenerate only what you're looking at ──────────────────────────────────
+ * A full run is minutes and hundreds of files, which is a miserable loop when
+ * you've changed one game. So it takes `[game] [tech]`:
+ *
+ *   gmake gallery                        every game, every technology
+ *   gmake gallery GAME=waffle            waffle: desktop, mobile and PDF
+ *   gmake gallery GAME=waffle TECH=pdf   waffle's printouts only
+ *   gmake gallery-index                  rebuild index.html, capture nothing
+ *
+ * Nothing is wiped wholesale: a partial run replaces only the files it
+ * regenerates, so the rest of the sheet survives.
+ *
+ * That works because THE INDEX IS BUILT FROM DISK — it walks every game's
+ * declared cells, asks which files exist, and renders accordingly. It is not a
+ * summary of what this run happened to do, which is why a one-game run doesn't
+ * produce a one-game sheet, and why rebuilding the index alone is instant.
+ *
+ * Usage:  npm run _gallery -- [game] [tech]     (public entry: `gmake gallery`)
  */
 
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { chromium, type Browser, type BrowserContext } from '@playwright/test'
+import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test'
 import { createClubWithMembers, type E2EClub } from '../helpers/fixtures'
 import { signIn } from '../helpers/session'
 import { renderIndex, renderViewer, type Shot } from './index'
-import type { BuiltGame, Cell, GameGallery } from './types'
+import { PHASES, type BuiltGame, type Cell, type GameGallery } from './types'
+import { bananagramsGallery } from './games/bananagrams'
+import { boggleGallery } from './games/boggle'
+import { codenamesduetGallery } from './games/codenamesduet'
+import { connectionsGallery } from './games/connections'
+import { crosswordsGallery } from './games/crosswords'
+import { psychicnumGallery } from './games/psychicnum'
+import { scrabbleGallery } from './games/scrabble'
+import { spellingbeeGallery } from './games/spellingbee'
+import { stackdownGallery } from './games/stackdown'
+import { strandsGallery } from './games/strands'
+import { waffleGallery } from './games/waffle'
+import { wordiplyGallery } from './games/wordiply'
+import { wordwheelGallery } from './games/wordwheel'
 import { letterboxedGallery } from './games/letterboxed'
 import { wordleGallery } from './games/wordle'
 
-const ALL: GameGallery[] = [letterboxedGallery, wordleGallery]
+const ALL: GameGallery[] = [
+  bananagramsGallery,
+  boggleGallery,
+  codenamesduetGallery,
+  connectionsGallery,
+  crosswordsGallery,
+  letterboxedGallery,
+  psychicnumGallery,
+  scrabbleGallery,
+  spellingbeeGallery,
+  stackdownGallery,
+  strandsGallery,
+  waffleGallery,
+  wordiplyGallery,
+  wordleGallery,
+  wordwheelGallery,
+]
+
 
 const ROOT = 'gallery'
 const BASE = 'http://localhost:5173'
@@ -47,6 +93,30 @@ const VIEWPORTS = [
   { name: 'desktop', width: 1280, height: 900 },
   { name: 'mobile', width: 390, height: 844 },
 ]
+
+/**
+ * Wait until the play surface is actually there.
+ *
+ * `goto` resolves on `load`, but this is an SPA: the game row, the roster and
+ * the realtime subscription all land after that, and every PlayArea shows
+ * "Loading…" until they do — so without this the gallery would be hundreds of
+ * photographs of a loading state.
+ *
+ * The game-menu button says the shell is up, but it mounts with the HEADER,
+ * which is up before the game data is; so the real signal is the loading text
+ * going away. Tolerant of never seeing it, since most games are past it by the
+ * time we look. (The board column would be a sharper signal, but crosswords is
+ * the documented v3 layout exception and has none — keying off `.boardCol`
+ * silently timed out on exactly that one game.)
+ */
+async function settle(page: Page): Promise<void> {
+  await page
+    .waitForSelector('text=Loading…', { state: 'detached', timeout: 8000 })
+    .catch(() => {})
+  // A last beat for entry animations and the realtime refetch. Cosmetic — this
+  // is a screenshot, nothing is asserted after it.
+  await page.waitForTimeout(1200)
+}
 
 /**
  * Photograph one cell.
@@ -88,12 +158,12 @@ async function shoot(
     }
     if (!viewerPage) throw new Error('the viewer is not a member of the club')
 
-    // Wait for the play surface rather than a clock: every game's board column
-    // carries the shared class, so this is one selector for all fifteen.
-    await viewerPage.waitForSelector('[class*="boardCol"]', { timeout: 20000 })
-    // A short settle for the realtime refetch + any entry animation. The only
-    // sleep in here, and it's cosmetic — nothing is asserted after it.
-    await viewerPage.waitForTimeout(1500)
+    // Wait for the game MENU, not the board column: crosswords is the
+    // documented v3 layout exception and renders its own `.layout` with no
+    // `.boardCol` at all, so keying off the board column silently timed out on
+    // it. The menu button is the one element every game page has.
+    await viewerPage.waitForSelector('button[aria-label="Game menu"]', { timeout: 20000 })
+    await settle(viewerPage)
     const file = join(ROOT, `${g.game}-${cell.mode}-${cell.phase}-${vp.name}.png`)
     await viewerPage.screenshot({ path: file, fullPage: false })
     return file
@@ -145,13 +215,16 @@ async function print(
       if (member.userId === built.viewer.userId) viewerPage = page
     }
     if (!viewerPage) throw new Error('the viewer is not a member of the club')
-    await viewerPage.waitForSelector('[class*="boardCol"]', { timeout: 20000 })
-    await viewerPage.waitForTimeout(800)
+    await viewerPage.waitForSelector('button[aria-label="Game menu"]', { timeout: 20000 })
+    await settle(viewerPage)
 
     await viewerPage.getByRole('button', { name: 'Game menu' }).click()
     const [download] = await Promise.all([
       viewerPage.waitForEvent('download'),
-      viewerPage.getByText('Print board (PDF)').click(),
+      // "Print board (PDF)" everywhere except crosswords, which says
+      // "Print / Save as PDF" and adds a second item for its answer key —
+      // .first() takes the puzzle, which is the one every other game means.
+      viewerPage.getByText(/Print.*\(?PDF\)?/).first().click(),
     ])
 
     const pdf = join(ROOT, `${g.game}-${cell.mode}-${cell.phase}-pdf.pdf`)
@@ -162,130 +235,163 @@ async function print(
   }
 }
 
-async function main() {
-  const only = process.env.GAMES?.split(',').map((s) => s.trim()).filter(Boolean)
-  const games = only?.length ? ALL.filter((g) => only.includes(g.game)) : ALL
-  if (!games.length) throw new Error(`no gallery games matched GAMES=${process.env.GAMES}`)
 
-  // Wipe the image folder so a removed cell doesn't leave a stale tile behind.
-  // Safe to be destructive: `gallery/` is gitignored WORKING output, rewritten
-  // wholesale by every run. Snapshots worth remembering live in the committed
-  // `gallery-keep/`, promoted by `gmake gallery-keep NAME=…` — which is what
-  // keeps git history free of thirty-PNG diffs from every casual look.
-  rmSync(ROOT, { recursive: true, force: true })
-  mkdirSync(ROOT, { recursive: true })
+/** Where a given tile lives. `pdf` keeps its real extension so it opens as one. */
+function fileFor(game: string, mode: string, phase: string, tech: string): string {
+  const stem = `${game}-${mode}-${phase}-${tech}`
+  return tech === 'pdf' ? `${stem}.pdf` : `${stem}.png`
+}
 
-  const browser = await chromium.launch()
+/**
+ * The sheet's contents, read off the DISK rather than off this run.
+ *
+ * Every game's declared cells crossed with every technology; a tile exists if
+ * its file does. This is what lets a one-game run leave the other fourteen
+ * standing — and what makes `gallery-index` instant, since rebuilding the sheet
+ * is just this walk plus a render.
+ */
+function shotsFromDisk(games: GameGallery[]): Shot[] {
   const shots: Shot[] = []
-  try {
-    for (const g of games) {
-      // One club per game, sized for its widest cell. Compete needs a rival to
-      // exist even when only one seat is photographed.
-      const club = await createClubWithMembers(
-        Array.from({ length: g.members }, (_, i) => `g${g.game.slice(0, 4)}${i}`),
-      )
-      for (const cell of g.cells) {
-        let built
-        try {
-          built = await g.build(club, cell)
-        } catch (err) {
-          const why = err instanceof Error ? err.message : String(err)
-          console.error(`  ✗ ${g.game} ${cell.mode}/${cell.phase}: ${why}`)
-          for (const vp of VIEWPORTS) {
-            shots.push({ game: g.game, cell, viewport: vp.name, file: null, missing: why })
-          }
-          continue
-        }
-        for (const vp of VIEWPORTS) {
-          try {
-            const file = await shoot(browser, g, cell, built, club, vp)
-            console.log(`  ✓ ${file}`)
-            shots.push({ game: g.game, cell, viewport: vp.name, file: file.slice(ROOT.length + 1) })
-          } catch (err) {
-            const why = err instanceof Error ? err.message : String(err)
-            console.error(`  ✗ ${g.game} ${cell.mode}/${cell.phase} ${vp.name}: ${why}`)
-            shots.push({ game: g.game, cell, viewport: vp.name, file: null, missing: why })
-          }
-          // EVERY state gets printed, on the desktop pass. Not a per-game
-          // judgement about what's worth printing on paper: a printout is a
-          // code path with its own layout in every state, and the empty and
-          // mid-game ones are where its bugs actually live (letterboxed's fresh
-          // print crowds "Chain / No words yet / Moves / None yet" in a way its
-          // won print doesn't). docs/pdf.md's opening line says you can print
-          // mid-game OR at the end, so leaving mid-game uncovered left a
-          // documented use case at zero.
-          //
-          // Once, not once per viewport: a PDF is the same document whatever
-          // the browser window is, so printing it twice would just be slower.
-          if (vp.name !== 'desktop') continue
-          try {
-            const file = await print(browser, g, cell, built, club)
-            console.log(`  ✓ ${file}`)
-            shots.push({ game: g.game, cell, viewport: 'pdf', file: file.slice(ROOT.length + 1) })
-          } catch (err) {
-            const why = err instanceof Error ? err.message : String(err)
-            console.error(`  ✗ ${g.game} ${cell.mode}/${cell.phase} pdf: ${why}`)
-            shots.push({ game: g.game, cell, viewport: 'pdf', file: null, missing: why })
-          }
-        }
-      }
-    }
-  } finally {
-    await browser.close()
-  }
-
-  // Ragged by design: a cell a game didn't declare gets an explicit hole, so
-  // "nobody has looked at this state" reads as information rather than absence.
-  //
-  // The wording is "no cell declared", NOT "no such state" — the script cannot
-  // know a state is unreachable, only that nobody wrote a builder for it. The
-  // first version claimed the stronger thing and was WRONG about it: both games
-  // here have a real compete loss (letterboxed when everyone concedes, wordle
-  // when every racer burns their budget), and the sheet was quietly asserting
-  // those couldn't happen. A hole should invite "should that be there?", which
-  // is exactly the question it failed to prompt.
+  const techs = [...VIEWPORTS.map((v) => v.name), 'pdf']
   for (const g of games) {
     for (const mode of ['coop', 'compete'] as const) {
-      for (const phase of ['fresh', 'mid', 'won', 'lost'] as const) {
+      for (const phase of PHASES) {
         const declared = g.cells.find((c) => c.mode === mode && c.phase === phase)
-        if (declared) continue
-        for (const vp of [...VIEWPORTS.map((v) => v.name), 'pdf']) {
-          shots.push({
-            game: g.game,
-            cell: { mode, phase },
-            viewport: vp,
-            file: null,
-            missing: 'no cell declared',
-          })
+        for (const tech of techs) {
+          const file = fileFor(g.game, mode, phase, tech)
+          const cell: Cell = declared ?? { mode, phase }
+          shots.push(
+            existsSync(join(ROOT, file))
+              ? { game: g.game, cell, viewport: tech, file }
+              : {
+                  game: g.game,
+                  cell,
+                  viewport: tech,
+                  file: null,
+                  // Ragged by design, and the wording matters: the script cannot
+                  // know a state is UNREACHABLE, only that nobody wrote a builder
+                  // for it. An earlier version claimed the stronger thing and was
+                  // wrong — both first games had a real compete loss it was
+                  // quietly asserting couldn't happen. A hole should invite
+                  // "should that be there?".
+                  missing: declared ? 'not captured yet' : 'no cell declared',
+                },
+          )
         }
       }
     }
   }
+  return shots
+}
 
+async function main() {
+  const [gameArg, techArg] = process.argv.slice(2).map((a) => a.trim()).filter(Boolean)
+  const indexOnly = gameArg === 'index'
+
+  const games = indexOnly || !gameArg ? ALL : ALL.filter((g) => g.game === gameArg)
+  if (!games.length) {
+    throw new Error(`no such game: ${gameArg} (have: ${ALL.map((g) => g.game).join(', ')})`)
+  }
+  const techs = techArg
+    ? [techArg]
+    : [...VIEWPORTS.map((v) => v.name), 'pdf']
+  const known = [...VIEWPORTS.map((v) => v.name), 'pdf']
+  for (const t of techs) {
+    if (!known.includes(t)) throw new Error(`no such tech: ${t} (have: ${known.join(', ')})`)
+  }
+
+  mkdirSync(ROOT, { recursive: true })
+
+  if (!indexOnly) {
+    // Prune ONLY what's about to be regenerated, so a cell removed from a
+    // builder doesn't leave a stale tile behind while the rest of the sheet
+    // survives untouched. (`gallery/` is gitignored working output; snapshots
+    // worth keeping live in the committed `gallery-keep/`.)
+    for (const name of readdirSync(ROOT)) {
+      const hit = games.some((g) => name.startsWith(`${g.game}-`)) &&
+        techs.some((t) => name.includes(`-${t}.`))
+      if (hit) rmSync(join(ROOT, name), { force: true })
+    }
+
+    const browser = await chromium.launch()
+    try {
+      for (const g of games) {
+        // One club per game, sized for its widest cell. Compete needs a rival
+        // to exist even when only one seat is photographed.
+        const club = await createClubWithMembers(
+          Array.from({ length: g.members }, (_, i) => `g${g.game.slice(0, 4)}${i}`),
+        )
+        for (const cell of g.cells) {
+          let built
+          try {
+            built = await g.build(club, cell)
+          } catch (err) {
+            console.error(`  ✗ ${g.game} ${cell.mode}/${cell.phase}: ${msg(err)}`)
+            continue
+          }
+          for (const vp of VIEWPORTS) {
+            if (techs.includes(vp.name)) {
+              try {
+                console.log(`  ✓ ${await shoot(browser, g, cell, built, club, vp)}`)
+              } catch (err) {
+                console.error(`  ✗ ${g.game} ${cell.mode}/${cell.phase} ${vp.name}: ${msg(err)}`)
+              }
+            }
+            // EVERY state is printed, on the desktop pass — not a per-game
+            // judgement about what deserves paper. A printout is a code path
+            // with its own layout in every state, and the empty and mid-game
+            // ones are where its bugs live. Once, not once per viewport: a PDF
+            // is the same document whatever the browser window is.
+            if (vp.name !== 'desktop' || !techs.includes('pdf')) continue
+            try {
+              console.log(`  ✓ ${await print(browser, g, cell, built, club)}`)
+            } catch (err) {
+              console.error(`  ✗ ${g.game} ${cell.mode}/${cell.phase} pdf: ${msg(err)}`)
+            }
+          }
+        }
+      }
+    } finally {
+      await browser.close()
+    }
+  }
+
+  // ALWAYS from disk, and always for ALL games — so a one-game run still writes
+  // a whole sheet rather than a sheet with one game in it.
+  const shots = shotsFromDisk(ALL)
   const stamp = new Date().toISOString().replace('T', ' ').slice(0, 16)
-  const brands = Object.fromEntries(games.map((g) => [g.game, g.brand]))
+  const brands = Object.fromEntries(ALL.map((g) => [g.game, g.brand]))
   writeFileSync(join(ROOT, 'index.html'), renderIndex(shots, stamp, brands))
   writeFileSync(join(ROOT, 'viewer.html'), renderViewer())
   const ok = shots.filter((s) => s.file).length
   console.log(`\n${ok}/${shots.length} tiles → ${ROOT}/index.html`)
 
-  // Cells nobody declared, listed where you'll actually see them. This is a
-  // NOTE, not a failure: the script can't tell "unreachable" from "not written
-  // yet", and making it assert would turn a browsing tool into a test — the one
-  // thing the design rules out. But it does have to say something, because the
-  // gap it names is exactly how both games shipped without a compete loss.
-  const undeclared = shots.filter((s) => s.missing === 'no cell declared')
-  if (undeclared.length) {
-    const seen = new Set<string>()
-    console.log('\n  note: cells never declared')
-    for (const s of undeclared) {
-      const key = `${s.game} ${s.cell.mode}/${s.cell.phase}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      console.log(`    ${s.game.padEnd(14)}${s.cell.mode}/${s.cell.phase}`)
-    }
+  // Cells nobody has written a builder for. A NOTE, not a failure: the script
+  // can't tell "unreachable" from "not written yet", and making it assert would
+  // turn a browsing tool into a test. But it has to say something — this is the
+  // gap that let the first two games ship with no compete loss at all.
+  //
+  // A mode a game declares NOTHING for is a mode it doesn't HAVE (bananagrams
+  // is compete-only; codenamesduet and psychicnum coop-only), so its phases
+  // aren't gaps, and listing them would bury the real ones.
+  const playable = new Set(ALL.flatMap((g) => g.cells.map((c) => `${g.game}/${c.mode}`)))
+  const gaps = [
+    ...new Set(
+      shots
+        .filter((s) => s.missing === 'no cell declared' && playable.has(`${s.game}/${s.cell.mode}`))
+        .map((s) => `${s.game.padEnd(14)}${s.cell.mode}/${s.cell.phase}`),
+    ),
+  ]
+  if (gaps.length) {
+    console.log(`\n  note: ${gaps.length} cells have no builder yet`)
+    for (const g of gaps) console.log(`    ${g}`)
     console.log('  — add a cell, or ignore if the state is unreachable')
   }
+}
+
+/** An error's message, however it was thrown. */
+function msg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }
 
 main()
