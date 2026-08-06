@@ -1,5 +1,6 @@
 import { asUser, createStrandsGame, type E2EClub } from '../../helpers/fixtures'
 import { endGame } from '../endGame'
+import { timeOut } from '../timeOut'
 import type { Cell, GameGallery } from '../types'
 
 /**
@@ -40,6 +41,9 @@ export const strandsGallery: GameGallery = {
     { mode: 'compete', phase: 'ended', note: 'stopped by agreement' },
     { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },
 
+    { mode: 'compete', phase: 'lost', note: 'time ran out' },
+    { mode: 'coop', phase: 'lost', note: 'time ran out' },
+
   ],
 
   async build(club: E2EClub, cell: Cell) {
@@ -48,6 +52,7 @@ export const strandsGallery: GameGallery = {
     const paths = words.map((w) => w.coords)
     if (cell.phase === 'mid') await trace(club, id, paths.slice(0, 2))
     if (cell.phase === 'won') await trace(club, id, paths)
+    if (cell.phase === 'lost') await timeOut(club, 'strands', id)
     if (cell.phase === 'ended') await endGame(club, 'strands', id)
 
     return { gametype, id, viewer: club.members[0] }

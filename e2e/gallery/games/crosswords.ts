@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { asUser, createCrosswordsGameSized, type E2EClub } from '../../helpers/fixtures'
 import { endGame } from '../endGame'
+import { timeOut } from '../timeOut'
 import type { Cell, GameGallery } from '../types'
 
 const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -60,6 +61,9 @@ export const crosswordsGallery: GameGallery = {
     // compete has no `ended` to show.
     { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },
 
+    { mode: 'compete', phase: 'lost', note: 'time ran out' },
+    { mode: 'coop', phase: 'lost', note: 'time ran out' },
+
   ],
 
   async build(club: E2EClub, cell: Cell) {
@@ -92,6 +96,7 @@ export const crosswordsGallery: GameGallery = {
         })
       if (res.error) throw new Error(`crosswords.set_cell(${sq.row},${sq.col}): ${res.error.message}`)
     }
+    if (cell.phase === 'lost') await timeOut(club, 'crosswords', id)
     if (cell.phase === 'ended') await endGame(club, 'crosswords', id)
 
     return { gametype, id, viewer }

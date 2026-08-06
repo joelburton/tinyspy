@@ -278,6 +278,11 @@ export async function createBoggleGame(
   mode: 'coop' | 'compete' = 'coop',
   playerUserIds: string[] = club.members.map((m) => m.userId),
   boardStr = 'CATRXXXXXXXXXXXX',
+  /** Percentage of the required-words score that WINS. Omitted, boggle has no
+   *  win condition at all — its SQL says so ("there's nothing to fail, so any
+   *  ending is the neutral 'ended'"), which also means no loss. The screenshot
+   *  gallery needs one to photograph either terminal. */
+  winPercent?: number,
 ): Promise<{ id: string; gametype: string }> {
   const creator = club.members[0]
   const res = await asUser(creator.session.access_token)
@@ -285,6 +290,7 @@ export async function createBoggleGame(
     .rpc('create_game', {
       target_club: club.handle,
       setup: {
+        ...(winPercent !== undefined ? { win_percent: winPercent } : {}),
         timer: { kind: 'none' },
         dice_set: '4',
         band: 3,

@@ -1,5 +1,6 @@
 import { asUser, createBoggleGame, type E2EClub } from '../../helpers/fixtures'
 import { endGame } from '../endGame'
+import { timeOut } from '../timeOut'
 import type { Cell, GameGallery } from '../types'
 
 /** These games are TRUSTING-COMMIT: the FE scores a word and sends the score
@@ -33,11 +34,22 @@ export const boggleGallery: GameGallery = {
     { mode: 'compete', phase: 'ended', note: 'stopped by agreement' },
     { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },
 
+    { mode: 'compete', phase: 'won', note: 'hit the target' },
+    { mode: 'compete', phase: 'lost', note: 'time ran out short' },
+    { mode: 'coop', phase: 'won', note: 'hit the target' },
+    { mode: 'coop', phase: 'lost', note: 'time ran out short' },
+
   ],
 
   async build(club: E2EClub, cell: Cell) {
-    const { id, gametype } = await createBoggleGame(club, cell.mode)
+    // A win THRESHOLD, without which boggle has neither a win nor a loss: its
+    // SQL says "there's nothing to fail, so any ending is the neutral 'ended'".
+    // The fixture board holds one required word (CAT) worth its whole score, so
+    // 100% is exactly that word — and a timeout before finding it is the loss.
+    const { id, gametype } = await createBoggleGame(club, cell.mode, undefined, 'CATRXXXXXXXXXXXX', 100)
     if (cell.phase === 'mid') await play(club, id, [{ word: 'cat', points: 1 }, { word: 'art', points: 1 }])
+    if (cell.phase === 'won') await play(club, id, [{ word: 'cat', points: 1 }])
+    if (cell.phase === 'lost') await timeOut(club, 'boggle', id)
     if (cell.phase === 'ended') await endGame(club, 'boggle', id)
 
     return { gametype, id, viewer: club.members[0] }
