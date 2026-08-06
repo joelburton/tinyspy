@@ -224,12 +224,16 @@ export function renderIndex(
      inline one contributes a baseline gap under the image. */
   figure img, figure .hole, figure .paper {
     box-sizing: border-box;
-    display: block;
     width: 100%;
     height: 190px;
   }
   figure > a { display: block; }
-  figure img { object-fit: contain; object-position: top;
+  /* display:block belongs to the IMAGE, not the shared box rule: putting it
+     there also hit .paper, and "figure .paper" outranks ".paper", so it beat
+     the flex that stacks the PDF mark above its filename and left the two side
+     by side in the corner. The shared rule owns the BOX; each tile keeps its
+     own display. (No backticks in this stylesheet — see the note above.) */
+  figure img { display: block; object-fit: contain; object-position: top;
                border: 1px solid #000000; border-radius: 6px; background: #ffffff; }
   /* A printout's tile is a link, not a preview: an <embed> wraps every tile in
      the browser's PDF viewer, a lot of machinery for a thumbnail nobody reads
