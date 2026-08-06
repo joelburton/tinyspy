@@ -407,9 +407,17 @@ pill.
 - **`components/`** — `Board` (stacked tiles, depth color, corner letters, only
   exposed tiles clickable; tiles are percentage-positioned in a responsive square
   canvas — `container-type` + `cqi` typography — so the board grows to fill a
-  roomy viewport and stays on-screen on a small one. **Post-terminal `PlayArea`
-  passes an empty `offBoard`** so the whole ORIGINAL board renders for review —
-  a won game has cleared every tile, so it'd otherwise be blank), `WordEntry`
+  roomy viewport and stays on-screen on a small one. **At terminal `PlayArea`
+  restores the board ONLY IF THE STACK CAME DOWN** — a cleared board would
+  otherwise be blank, and the finished stack is the thing worth reviewing. A
+  board that was *not* cleared stays exactly as the players left it: restoring
+  it there drew a full thirty tiles under the words "Lost: stack not cleared",
+  claiming they'd got nowhere, and where they actually stopped is the whole
+  record of how it went. "Cleared" is measured per viewer — `removedTileIds` is
+  everyone's submissions in coop and your own in compete — which is the right
+  question in both modes. The in-progress word is deliberately not subtracted at
+  terminal: those tiles were picked up, never spent, so they're still on the
+  stack), `WordEntry`
   (the five-slot word under the board; clicking a slot returns that tile and
   every tile after it. When nothing's being spelled it flashes a word for ~1s
   — PlayArea's `flash` timer, cleared early when a new word starts: green for
@@ -515,10 +523,14 @@ quadrant on paper as on screen — sharing that function is what stops the two
 drifting. The screen's warm depth ramp is deliberately NOT carried over: the
 overlap already says what's on top, so a shade would be decoration.
 
-Which tiles print follows the screen exactly, including its terminal rule: while
-playing, tiles spent on accepted words (and the ones picked into the word being
-built) are hidden; **at terminal the original board comes back**, since a won
-game has cleared every tile and would otherwise print blank.
+Which tiles print follows the screen exactly, and now by construction rather
+than by hand: `PlayArea` computes `offBoard` **once** and gives the board the ids
+and the print model the filtered list. It used to be written twice, once per
+surface, which is the same drift the [setup rows](../pdf.md#setup-rows) were
+extracted to stop. While playing, tiles spent on accepted words (and the ones
+picked into the word being built) are hidden; **at terminal the board comes back
+only if it was cleared** — see the `Board` note above for why an uncleared board
+must stay as it ended.
 
 The six words are **terminal-only**, three times over: the server withholds
 `solution` until the row is terminal (`games_state` gates it), the FE holds it

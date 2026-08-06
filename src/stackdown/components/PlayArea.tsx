@@ -406,20 +406,49 @@ export function PlayArea({
     ? self?.found_count ?? 0
     : submissions.filter((s) => s.valid).length
 
-  // The tiles to SHOW — hoisted above the early return so the print model (built
-  // in the menu effect, a hook, which can't move below one) draws exactly what
-  // the board draws rather than a second copy that could drift.
+  // Which tiles are OFF the board — the one rule, hoisted above the early return
+  // so the print model (built in the menu effect, a hook, which can't move below
+  // one) and the board itself read the same answer. It used to be written twice,
+  // once here for the paper and once below for the screen, and the two agreed
+  // only by hand.
   //
-  // Mirrors the screen's rule: while playing, hide tiles spent on accepted words
-  // plus the ones picked up into the word being built. At terminal show the
-  // ORIGINAL board — a won game has cleared every tile, so it would otherwise
-  // print blank.
-  const shownTiles = useMemo(() => {
-    if (!game) return []
-    if (isTerminal) return game.tiles
-    const off = new Set<number>([...removedTileIds, ...currentWord])
-    return game.tiles.filter((t) => !off.has(t.id))
+  // While playing: hide the tiles spent on accepted words, plus the ones picked
+  // up into the word being built.
+  //
+  // At terminal it depends on whether the stack came DOWN:
+  //   - cleared → put every tile back. There'd be nothing left to look at
+  //     otherwise, and the finished stack is the thing worth reviewing.
+  //   - not cleared → leave it exactly as they left it. Restoring here draws a
+  //     full stack under the words "Lost: stack not cleared", which claims they
+  //     got nowhere — the gallery caught a 1-of-6 game showing all thirty tiles.
+  //     Where they actually stopped is the whole record of how it went.
+  //
+  // `removedTileIds` is per-viewer (coop shares every submission, compete shows
+  // you your own), so "cleared" here means the board THIS viewer was working on,
+  // which is the right question in both modes.
+  const offBoard = useMemo(() => {
+    const off = new Set<number>()
+    if (!game) return off
+    if (isTerminal) {
+      const cleared = removedTileIds.size >= game.tiles.length
+      if (!cleared) for (const id of removedTileIds) off.add(id)
+      // Note the in-progress `currentWord` is deliberately NOT subtracted at
+      // terminal: those tiles were picked up but never spent, so they're still
+      // on the stack.
+      return off
+    }
+    for (const id of removedTileIds) off.add(id)
+    for (const id of currentWord) off.add(id)
+    return off
   }, [game, isTerminal, removedTileIds, currentWord])
+
+  // The tiles to SHOW — the same rule, applied. The board takes `offBoard`
+  // directly (it needs the ids to compute what's exposed); the print model takes
+  // the filtered list.
+  const shownTiles = useMemo(
+    () => (game ? game.tiles.filter((t) => !offBoard.has(t.id)) : []),
+    [game, offBoard],
+  )
 
   const menuMode = game?.mode === 'compete' ? 'compete' : 'coop'
   useEffect(() => {
@@ -520,16 +549,6 @@ export function PlayArea({
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
-
-  // While playing, hide tiles spent on accepted words plus the tiles currently
-  // picked up into the word being built. Once the game is over, show the ORIGINAL
-  // board (a won game has cleared every tile, so it'd otherwise be blank) for review
-  // — the tiles are inert since canPlay is false.
-  const offBoard = new Set<number>()
-  if (!isTerminal) {
-    for (const id of removedTileIds) offBoard.add(id)
-    for (const id of currentWord) offBoard.add(id)
-  }
 
   // The compete winner, for the loser's named verdict. `status.winner_user_id` is the id
   // and `status.winner_username` the handle cached at finish time (a rename is

@@ -1033,7 +1033,13 @@ export async function createStackdownGame(
     .schema('stackdown')
     .rpc('create_game', {
       target_club: club.handle,
-      setup: { timer: { kind: 'none' } },
+      // `band` explicitly, even though create_game coalesces a missing one to 1:
+      // the SETUP BLOB is what the recap reads back, so leaving it out produced a
+      // "Dictionary: undefined (—)" row on screen and on paper. The real dialog
+      // always sends it (it's in DEFAULT_STACKDOWN_SETUP), so omitting it here
+      // made the fixture build a game shape no player can create. Same board
+      // selection either way — this only fixes what the game RECORDS.
+      setup: { timer: { kind: 'none' }, band: 1 },
       player_user_ids: playerUserIds,
       mode,
     })
