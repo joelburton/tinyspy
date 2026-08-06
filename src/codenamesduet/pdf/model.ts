@@ -1,4 +1,4 @@
-import type { PrintHeader } from '../../common/pdf/frame'
+import type { PrintHeader , SetupRow } from '../../common/pdf/frame'
 import type { TurnRow } from '../../common/pdf/turnLog'
 import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
@@ -85,7 +85,8 @@ export function buildDuetPrintModel(o: {
   totalAgents: number
   turnNumber: number
   turnCap: number
-  setup: { label: string; value: string }[]
+  setup: SetupRow[]
+  mode: 'coop' | 'compete'
 }): DuetPrintModel {
   // The peer's key is a SECRET while the game is live, and post-game it's held
   // back until someone presses Reveal (useBoard's `revealPeer` is PlayArea's
@@ -146,6 +147,7 @@ export function buildDuetPrintModel(o: {
       `${o.greenFound}/${o.totalAgents} agents contacted · ` +
       `turn ${o.turnNumber}/${o.turnCap}`,
     setup: o.setup,
+    mode: o.mode,
     cells,
     showsBothKeys: peerKey !== null,
     turns,

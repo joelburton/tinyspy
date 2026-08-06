@@ -328,7 +328,7 @@ export function PlayArea({
           target: game.target,
           answerShown,
           solvedBy: new Set(solvedIds),
-          setup: [{ label: 'Guesses', value: String(maxGuesses) }],
+          setup: [{ key: 'guesses', label: 'Guesses', value: String(maxGuesses) }],
         })
       : null
     menu.setGameSections(

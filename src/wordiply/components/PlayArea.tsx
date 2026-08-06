@@ -270,8 +270,7 @@ export function PlayArea(ctx: GamePageCtx) {
       lengthScore: lengthScore(longest, game.max_word_length),
       letterCount: letters,
       leaderboard,
-      // Relevant setup only — the timer isn't meaningful on paper.
-      setup: [{ label: 'Dictionary', value: difficultyValue(wordiplySetup.difficulty) }],
+      setup: [{ key: 'difficulty', label: 'Dictionary', value: difficultyValue(wordiplySetup.difficulty) }],
     })
     menu.setGameSections(
       buildGameMenu({

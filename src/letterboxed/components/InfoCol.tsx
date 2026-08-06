@@ -17,10 +17,8 @@ import { SpoilerButton } from '../../common/components/buttons/SpoilerButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
-import { difficultyValue } from '../../common/lib/game/difficulty'
-import { timerLabel } from '../../common/lib/game/timerLabel'
-import type { LetterboxedSetup } from '../lib/setup'
-import { BOARD_SIZE, PAR } from '../lib/board'
+import type { SetupRow } from '../../common/lib/game/setupRows'
+import { BOARD_SIZE } from '../lib/board'
 import { GameTurnLog } from './GameTurnLog'
 import { StateLine } from './StateLine'
 import type { EventRow } from '../hooks/useGame'
@@ -61,7 +59,7 @@ export function InfoCol({
   coveredByUser,
   concededIds,
   // ── Setup disclosure ──
-  setup,
+  setupRows,
   // ── Action row ──
   onHint,
   onSpoiler,
@@ -102,7 +100,9 @@ export function InfoCol({
   concededIds: Set<string>
   // ── Setup disclosure ──
   /** What was picked at create time, recapped in the disclosure. */
-  setup: LetterboxedSetup
+  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts), so
+   *  the two can't drift. Built in PlayArea, which holds mode + roster. */
+  setupRows: SetupRow[]
   // ── Action row ──
   /** Coop only — both refused server-side in compete. */
   onHint: () => void
@@ -250,14 +250,15 @@ export function InfoCol({
 
         {/* Setup options — what was picked at create time, behind the shared
             disclosure. Closed by default so it doesn't crowd the state above.
-            The word limit is quoted against PAR, the same way the setup form
-            asked for it: "5 words" alone doesn't say how much room that is. */}
+            Rendered from the shared rows rather than hand-written <li>s: the
+            PDF prints this exact array, and when the two were written
+            separately they drifted (docs/pdf.md → Setup rows). */}
         <SetupDisclosure>
-          <li>
-            Word limit: par + {setup.extra_words} ({PAR + setup.extra_words} words)
-          </li>
-          <li>Dictionary: {difficultyValue(setup.legal_band)}</li>
-          <li>Timer: {timerLabel(setup.timer)}</li>
+          {setupRows.map((r) => (
+            <li key={r.key}>
+              {r.label}: {r.value}
+            </li>
+          ))}
         </SetupDisclosure>
       </div>
 

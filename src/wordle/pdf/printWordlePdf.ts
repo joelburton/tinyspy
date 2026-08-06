@@ -38,7 +38,7 @@ export function printWordlePdf(m: WordlePrintModel): void {
 
   // Setup, once per document under the tracks — the same block every other
   // printer ends with, so a reader finds the game's options where they expect.
-  if (m.setup.length) drawSetup(doc, m.setup, left, bottom + 18)
+  if (m.setup.length) drawSetup(doc, m.setup, left, bottom + 18, m.mode)
 
   savePrint(pd, m, 'wordle')
 }

@@ -41,7 +41,7 @@ const base = {
   isTerminal: false,
   found: 2,
   target: 6,
-  setup: [{ label: 'Difficulty', value: 'Standard' }],
+  setup: [{ key: 'difficulty', label: 'Difficulty', value: 'Standard' }],
 }
 
 describe('buildStackdownPrintModel — the hidden solution', () => {

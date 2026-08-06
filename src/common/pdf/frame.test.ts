@@ -72,22 +72,33 @@ describe('drawSetup', () => {
   it('returns the y just below the block (heading + 13 per line)', () => {
     const { pd } = fakePd()
     const items = [
-      { label: 'Difficulty', value: 'Hard' },
-      { label: 'Mode', value: 'Co-op' },
+      { key: 'difficulty', label: 'Difficulty', value: 'Hard' },
+      { key: 'mode', label: 'Mode', value: 'Co-op' },
     ]
     // cy starts at y+13, then +13 per item.
-    expect(drawSetup(pd.doc, items, 40, 100)).toBe(100 + 13 + items.length * 13)
+    expect(drawSetup(pd.doc, items, 40, 100, 'coop')).toBe(100 + 13 + items.length * 13)
   })
 
-  it('draws the "Setup" sub-heading', () => {
+  // The heading carries the MODE (`Setup: Co-op`) rather than spending a row on
+  // it — mode is locked at the gametype level, never a control on the setup
+  // form, so it frames the block instead of sitting in it (docs/pdf.md → Setup
+  // rows). Both spellings are pinned: a PDF is a standalone artifact with no app
+  // chrome, so this heading is the only place the paper says which game it was.
+  it('draws the "Setup" sub-heading, qualified by mode', () => {
     const { pd, calls } = fakePd()
-    drawSetup(pd.doc, [], 40, 100)
-    expect(calls.some((c) => c.m === 'text' && c.args[0] === 'Setup')).toBe(true)
+    drawSetup(pd.doc, [], 40, 100, 'coop')
+    expect(calls.some((c) => c.m === 'text' && c.args[0] === 'Setup: Co-op')).toBe(true)
+  })
+
+  it('says Compete for a race', () => {
+    const { pd, calls } = fakePd()
+    drawSetup(pd.doc, [], 40, 100, 'compete')
+    expect(calls.some((c) => c.m === 'text' && c.args[0] === 'Setup: Compete')).toBe(true)
   })
 })
 
 describe('savePrint', () => {
-  const header = { brand: '', gameTitle: '', date: '', summary: '', setup: [] }
+  const header = { brand: '', gameTitle: '', date: '', summary: '', setup: [], mode: 'coop' as const }
 
   it('slugifies brand + title into a lowercase filename', () => {
     const { pd, calls } = fakePd()

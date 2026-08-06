@@ -46,7 +46,7 @@ const base = {
   lengthScore: 0,
   letterCount: 0,
   leaderboard: [] as { user_id: string; length_score?: number; letter_count?: number; won?: boolean }[],
-  setup: [{ label: 'Dictionary', value: 'Standard' }],
+  setup: [{ key: 'dictionary', label: 'Dictionary', value: 'Standard' }],
 }
 
 describe('buildWordiplyPrintModel — the terminal-only rule', () => {

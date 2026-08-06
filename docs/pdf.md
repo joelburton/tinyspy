@@ -151,10 +151,56 @@ above) — a game picks one.
   `name`, the game title from `common.games.title` via `GamePageCtx.title`), the **date
   top-right** (small, black), and a **summary** line below that matches the game's
   on-screen status (e.g. "9 / 214 words · 14 pts", "1 of 3 secrets found · 3 guesses used").
-- **A "Setup" section** — a smaller sub-heading listing the *relevant* setup options only
-  (e.g. the dictionary/difficulty bands); the **timer is excluded** (not relevant on paper).
+- **A "Setup" section** — a smaller sub-heading listing **every** setup option, the
+  **timer included**. A printout is a *record*, and a record that omits the constraints
+  misreports the achievement: "we scored 300" reads differently when the next line says
+  the whole game had a 20-minute clock. (This **reverses** an earlier rule that printed
+  "the relevant options only" and dropped the timer as "not relevant on paper" — that
+  was written thinking of the PDF as a board to play on rather than as a record of a
+  game played.) The rows come from the game's shared `setupSummary`, so the paper and
+  the info column can't drift apart — see [Setup rows](#setup-rows) below.
+- **The heading carries the mode**: `Setup: Co-op` / `Setup: Compete`. Mode is locked at
+  the **gametype** level (`manifest.mode`) and is never a control on the setup form, so
+  it isn't a row — a heading qualifier is the right shape for something that frames the
+  whole block, and it costs no line. It matters more on paper than on screen: a PDF is a
+  standalone artifact with no app chrome to say what kind of game this was, where the
+  screen already says so in the header and the club listing. That asymmetry is
+  deliberate, not drift.
 - **Margins** are tight-ish (~28pt) so content uses more of the paper, while staying
   inside a printer-safe edge.
+
+### Setup rows
+
+> **In flight** (branch `pdf-setup`) — the rules below are decided and the reversal
+> above is live in this doc; the shared module is landing game by game. See
+> [pdf-setup-plan.md](pdf-setup-plan.md) for what's done and what's left, and delete
+> this note (and that file) when the sweep finishes.
+
+**One source per game feeds both the info column and the paper.** Each game exports
+`setupRows(setup, ctx) => SetupRow[]` from `<game>/lib/setupSummary.ts` (the same
+per-game seam `lib/history.ts` uses); `<SetupDisclosure>` renders it as `<li>`s and the
+print model passes the identical array to `drawSetup`. Before this the two lists were
+written by hand in different files, shared only their value formatters, and drifted in
+both labels and rows — psychicnum went as far as reporting *different facts* on paper
+than on screen.
+
+Three rules hold the shape:
+
+- **The recap is the setup dialog, read back.** Every control the dialog showed
+  produces exactly one row, in the dialog's order. A control that didn't apply produces
+  **no row** — omit rather than print "n/a", since a record must not assert a choice
+  nobody made (`coop_style` exists only for 2+ coop, `first_turn_user_id` only with
+  turns). The **roster is the first row**: who played is chosen in the create-game
+  dialog too, so it follows the rule rather than being an exception, and it's the most
+  useful fact on a record you keep.
+- **Values are plain strings.** The PDF is WinAnsi and can't render a React node (or an
+  `→`), so it's the lower bound — which is the right way round. Screen-only richness
+  lives outside the shared rows.
+- **Every row carries the setup `key` it describes**, which nothing renders. A
+  roster-wide test uses it to assert that every key in a game's default setup produces a
+  row, with an explicit opt-out list for keys that aren't player choices. A convention
+  that two files agree is what we had, and it drifted; this makes it a failing build
+  instead.
 
 **Body family 3 — track games (`columns.ts`; wordle, waffle, strands).** One column per
 BOARD: its grid, then whatever belongs to that grid (wordle adds its QWERTY

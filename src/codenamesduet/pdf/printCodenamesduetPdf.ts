@@ -74,6 +74,7 @@ export function printCodenamesduetPdf(m: DuetPrintModel): void {
     whoLabel: 'Giver',
     rows: m.turns,
     setup: m.setup,
+    mode: m.mode,
     emptyText: 'No clues yet.',
   })
 

@@ -1,4 +1,4 @@
-import type { PrintHeader } from '../../common/pdf/frame'
+import type { PrintHeader , SetupRow } from '../../common/pdf/frame'
 import type { TurnRow } from '../../common/pdf/turnLog'
 import type { Tile } from '../lib/board'
 import type { SubmissionRow } from '../hooks/useGame'
@@ -59,7 +59,7 @@ export function buildStackdownPrintModel(o: {
   /** Words cleared so far, and the target (six). */
   found: number
   target: number
-  setup: { label: string; value: string }[]
+  setup: SetupRow[]
 }): StackdownPrintModel {
   const nameOf = (userId: string) =>
     o.players.find((p) => p.user_id === userId)?.username ?? 'someone'
@@ -88,6 +88,7 @@ export function buildStackdownPrintModel(o: {
       `${o.found}/${o.target} words cleared · ` +
       `${o.tiles.length} tile${o.tiles.length === 1 ? '' : 's'} left`,
     setup: o.setup,
+    mode: o.mode,
     tiles: o.tiles,
     // Never reach for the solution before terminal. The server already withholds
     // it (games_state gates on is_terminal), so this is belt-and-braces — but a

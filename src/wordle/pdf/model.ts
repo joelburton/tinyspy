@@ -1,4 +1,4 @@
-import type { PrintHeader } from '../../common/pdf/frame'
+import type { PrintHeader , SetupRow } from '../../common/pdf/frame'
 import type { TurnRow } from '../../common/pdf/turnLog'
 import { tileColor, type TileColor } from '../../common/lib/color/tileColor'
 import { colorRank } from '../lib/colors'
@@ -94,7 +94,7 @@ export function buildWordlePrintModel(o: {
   answerShown: boolean
   /** Per-player solved flags, for the outcome line. */
   solvedBy: ReadonlySet<string>
-  setup: { label: string; value: string }[]
+  setup: SetupRow[]
 }): WordlePrintModel {
   const nameOf = (id: string) => o.players.find((p) => p.user_id === id)?.username ?? 'someone'
 
@@ -159,6 +159,7 @@ export function buildWordlePrintModel(o: {
         ? `Co-op · ${o.guesses.length}/${o.maxGuesses} guesses`
         : `Compete · ${o.players.length} players`,
     setup: o.setup,
+    mode: o.mode,
     tracks,
     // The answer is the game, and it prints under exactly the rule the screen
     // uses: won or revealed. Terminal is NOT enough — see `answerShown`.

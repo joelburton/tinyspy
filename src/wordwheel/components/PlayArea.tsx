@@ -187,11 +187,12 @@ export function PlayArea(ctx: GamePageCtx) {
       outerLetters: game.outer_letters.split(''),
       centerLetter: game.center_letter,
       // Relevant setup only (the timer isn't relevant on a print).
+      mode: game?.mode ?? 'coop',
       setup: [
-        { label: 'Required words', value: difficultyValue(wordwheelSetup.required) },
-        { label: 'Bonus words', value: difficultyValue(wordwheelSetup.legal) },
+        { key: 'required', label: 'Required words', value: difficultyValue(wordwheelSetup.required) },
+        { key: 'legal', label: 'Bonus words', value: difficultyValue(wordwheelSetup.legal) },
         ...(game.mode === 'compete' && wordwheelSetup.target_rank != null
-          ? [{ label: 'Target rank', value: RANKS[wordwheelSetup.target_rank] ?? '?' }]
+          ? [{ key: 'target_rank', label: 'Target rank', value: RANKS[wordwheelSetup.target_rank] ?? '?' }]
           : []),
       ],
       words,

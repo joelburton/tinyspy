@@ -1,4 +1,4 @@
-import type { PrintHeader } from '../../common/pdf/frame'
+import type { PrintHeader , SetupRow } from '../../common/pdf/frame'
 import type { TurnRow } from '../../common/pdf/turnLog'
 import { tileColor, type TileColor } from '../../common/lib/color/tileColor'
 import { coord, isHole } from '../lib/waffle'
@@ -73,7 +73,7 @@ export function buildWafflePrintModel(o: {
    * wordle does, and paper has to hold the same line.
    */
   answerShown: boolean
-  setup: { label: string; value: string }[]
+  setup: SetupRow[]
 }): WafflePrintModel {
   const nameOf = (id: string) => o.players.find((p) => p.user_id === id)?.username ?? 'someone'
 
@@ -130,6 +130,7 @@ export function buildWafflePrintModel(o: {
         ? `Co-op · par ${o.parSwaps} · ${o.maxSwaps} swaps allowed`
         : `Compete · par ${o.parSwaps} · ${o.maxSwaps} swaps allowed`,
     setup: o.setup,
+    mode: o.mode,
     tracks,
     // The solution is the answer, printed under the same rule the screen uses:
     // solved or revealed. Terminal alone is NOT enough.

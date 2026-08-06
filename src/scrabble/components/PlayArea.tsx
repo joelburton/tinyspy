@@ -354,9 +354,10 @@ export function PlayArea({
       rack,
       rackLabel: !self ? '' : isCompete ? 'Your rack' : 'Team rack',
       // Relevant setup only — the dictionary bands (the timer isn't relevant on a print).
+      mode: game?.mode ?? 'coop',
       setup: [
-        { label: '2-letter words', value: band(s.dict_2) },
-        { label: 'Longer words (3+)', value: band(s.dict_3plus) },
+        { key: 'dict_2', label: '2-letter words', value: band(s.dict_2) },
+        { key: 'dict_3plus', label: 'Longer words (3+)', value: band(s.dict_3plus) },
       ],
     }
     // The FULL scrabble menu: Help (top) + the Print item + the End/Concede +

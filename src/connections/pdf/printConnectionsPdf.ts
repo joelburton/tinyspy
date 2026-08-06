@@ -64,6 +64,7 @@ export function printConnectionsPdf(m: ConnectionsPrintModel): void {
     moveLabel: 'Guess',
     rows: m.turns,
     setup: m.setup,
+    mode: m.mode,
     emptyText: 'No guesses yet.',
   })
 

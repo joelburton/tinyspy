@@ -1,4 +1,3 @@
-import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { RestartButton } from '../../common/components/buttons/RestartButton'
@@ -10,9 +9,9 @@ import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { SpoilerButton } from '../../common/components/buttons/SpoilerButton'
 import { EndGameButton } from '../../common/components/buttons/EndGameButton'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
+import type { SetupRow } from '../../common/lib/game/setupRows'
 import { SetupDisclosure } from '../../common/components/setup/SetupDisclosure'
 import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
-import type { PsychicnumSetup } from '../lib/setup'
 import type { Player, PlayerRow, GuessRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
 import { StateLine } from './StateLine'
@@ -57,8 +56,7 @@ export function InfoCol({
   onNewGame,
   startingNewGame,
   onBackToClub,
-  setup,
-  wordCount,
+  setupRows,
   guesses,
   isTerminal,
   viewingIndex,
@@ -119,9 +117,9 @@ export function InfoCol({
   onBackToClub: () => void
 
   // ── Setup disclosure ──
-  setup: PsychicnumSetup
+  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  setupRows: SetupRow[]
   /** The number of board tiles (setup echo). */
-  wordCount: number
 
   // ── Turn-history log (GameTurnLog) ──
   guesses: GuessRow[]
@@ -244,9 +242,11 @@ export function InfoCol({
             (docs/playarea.md → Info-column readouts). Open, it grows (which we
             normally avoid), but it's closable so it reclaims the space. */}
         <SetupDisclosure>
-          <li>Tiles: {wordCount}</li>
-          <li>Secret words: {secretCount}</li>
-          <li>Dictionary: {difficultyValue(setup.difficulty)}</li>
+          {setupRows.map((r) => (
+            <li key={r.key}>
+              {r.label}: {r.value}
+            </li>
+          ))}
         </SetupDisclosure>
       </div>
 

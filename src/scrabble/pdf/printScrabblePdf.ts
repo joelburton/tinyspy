@@ -76,7 +76,7 @@ export function printScrabblePdf(m: ScrabblePrintModel): void {
   }
 
   // ── Moves: the shared newspaper turn flow (labelled "Move") ──
-  drawTurnLog(pd, { startY: ly, moveLabel: 'Move', rows: m.moves, setup: m.setup })
+  drawTurnLog(pd, { startY: ly, moveLabel: 'Move', rows: m.moves, setup: m.setup, mode: m.mode })
 
   savePrint(pd, m, 'scrabble')
 }

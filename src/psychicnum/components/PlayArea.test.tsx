@@ -164,9 +164,12 @@ describe('psychicnum PlayArea — turn order', () => {
     // text node beside the identity <Dot>. Coop has no OpponentStrip, but the
     // turn log's player picker also lists every player by handle — so exclude
     // its <option> to keep this counting the turn copy alone.
+    // Exclude the turn log's player-picker <option>s AND the setup recap's
+    // <li>s: the recap now opens with a "Players: …" roster row (docs/pdf.md →
+    // Setup rows), which names everyone too. This counts the TURN COPY alone.
     const named = screen
       .getAllByText(/moth/)
-      .filter((el) => el.tagName !== 'OPTION')
+      .filter((el) => el.tagName !== 'OPTION' && el.tagName !== 'LI')
     expect(named).toHaveLength(2)
     // The "type a word" prompt is hidden while I'm waiting (the entry is inert).
     // But I'm still a live participant — NOT locally terminal — so I do NOT get

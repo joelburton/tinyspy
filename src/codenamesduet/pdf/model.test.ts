@@ -44,7 +44,8 @@ const base = {
   totalAgents: 15,
   turnNumber: 4,
   turnCap: 9,
-  setup: [{ label: 'Turns', value: '9' }],
+  mode: 'coop' as const,
+  setup: [{ key: 'turns', label: 'Turns', value: '9' }],
 }
 
 describe('buildDuetPrintModel — the peer key is a secret', () => {

@@ -52,7 +52,7 @@ const base = {
   isTerminal: false,
   mistakes: 1,
   maxMistakes: 4,
-  setup: [{ label: 'Puzzle', value: '2026-01-01' }],
+  setup: [{ key: 'puzzle', label: 'Puzzle', value: '2026-01-01' }],
 }
 
 describe('buildConnectionsPrintModel — bands', () => {

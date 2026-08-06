@@ -1,4 +1,4 @@
-import type { PrintHeader } from '../../common/pdf/frame'
+import type { PrintHeader , SetupRow } from '../../common/pdf/frame'
 import type { TurnRow } from '../../common/pdf/turnLog'
 import type { Category, CategoryRank } from '../lib/board'
 import type { GuessRow, MatchedCategory } from '../hooks/useGame'
@@ -86,7 +86,7 @@ export function buildConnectionsPrintModel(o: {
   isTerminal: boolean
   mistakes: number
   maxMistakes: number
-  setup: { label: string; value: string }[]
+  setup: SetupRow[]
 }): ConnectionsPrintModel {
   const nameOf = (userId: string) =>
     o.players.find((p) => p.user_id === userId)?.username ?? 'someone'
@@ -134,6 +134,7 @@ export function buildConnectionsPrintModel(o: {
     // Exactly the on-screen readout: categories found + mistakes used.
     summary: `${found}/${total} categories found · ${o.mistakes}/${o.maxMistakes} mistakes`,
     setup: o.setup,
+    mode: o.mode,
     bands,
     remainingTiles: o.remainingTiles,
     turns,

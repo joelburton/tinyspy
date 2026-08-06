@@ -1,4 +1,5 @@
 import { BLACK, DARK_GREY, MEDIUM_GREY, drawSetup, fit, type PrintDoc } from './frame'
+import type { SetupRow } from '../lib/game/setupRows'
 
 /**
  * The newspaper-flow turn log — shared by the turn-based printable games (scrabble,
@@ -45,7 +46,9 @@ export function drawTurnLog(
      *  would be ambiguous about which one the column names. */
     whoLabel?: string
     rows: TurnRow[]
-    setup: { label: string; value: string }[]
+    setup: SetupRow[]
+  /** Co-op or compete — the Setup heading carries it (see PrintHeader.mode). */
+  mode: 'coop' | 'compete'
     /** Shown as the sole row when there are no turns yet. */
     emptyText?: string
   },
@@ -104,7 +107,7 @@ export function drawTurnLog(
     } else {
       cy += 22 // space before the Setup section
     }
-    drawSetup(doc, o.setup, colX(), cy)
+    drawSetup(doc, o.setup, colX(), cy, o.mode)
   }
 }
 

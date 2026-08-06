@@ -424,7 +424,7 @@ export function PlayArea({
             isTerminal,
             mistakes: mistakeCount,
             maxMistakes: MISTAKE_BUDGET,
-            setup: [{ label: 'Puzzle', value: game.puzzleDate ?? 'Custom' }],
+            setup: [{ key: 'puzzle', label: 'Puzzle', value: game.puzzleDate ?? 'Custom' }],
           })
         : null
     menu.setGameSections(

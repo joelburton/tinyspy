@@ -74,7 +74,8 @@ describe('drawWordColumns', () => {
 describe('drawWordListBody', () => {
   const header: PrintHeader & { words: WordRow[] } = {
     brand: 'MothCubes', gameTitle: 'g', date: '', summary: '',
-    setup: [{ label: 'Difficulty', value: 'Hard' }],
+    mode: 'coop' as const,
+    setup: [{ key: 'x', label: 'Difficulty', value: 'Hard' }],
     words: wordRows(3),
   }
 

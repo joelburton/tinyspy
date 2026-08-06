@@ -49,6 +49,7 @@ export function printStackdownPdf(m: StackdownPrintModel): void {
     moveLabel: 'Word',
     rows: m.turns,
     setup: m.setup,
+    mode: m.mode,
     emptyText: 'No words yet.',
   })
 

@@ -432,7 +432,7 @@ export function PlayArea({
           isTerminal,
           found: foundCount,
           target: SOLUTION_WORDS,
-          setup: [{ label: 'Difficulty', value: difficultyValue((setup as StackdownSetup).band) }],
+          setup: [{ key: 'band', label: 'Difficulty', value: difficultyValue((setup as StackdownSetup).band) }],
         })
       : null
     menu.setGameSections(

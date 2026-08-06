@@ -64,7 +64,7 @@ export function printStrandsPdf(m: StrandsPrintModel): void {
 
   const { bottom, left } = drawInTracks(pd, m.tracks, (t, track) => drawTrack(doc, m, t, track))
 
-  if (m.setup.length) drawSetup(doc, m.setup, left, bottom + 18)
+  if (m.setup.length) drawSetup(doc, m.setup, left, bottom + 18, m.mode)
 
   savePrint(pd, m, 'strands')
 }

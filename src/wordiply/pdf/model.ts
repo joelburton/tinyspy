@@ -1,4 +1,4 @@
-import type { PrintHeader } from '../../common/pdf/frame'
+import type { PrintHeader , SetupRow } from '../../common/pdf/frame'
 import type { TurnRow } from '../../common/pdf/turnLog'
 import type { GuessRow } from '../hooks/useGame'
 
@@ -89,7 +89,7 @@ export function buildWordiplyPrintModel(o: {
   letterCount: number
   /** Terminal compete only: per-player scores off `status.leaderboard`. */
   leaderboard: { user_id: string; length_score?: number; letter_count?: number; won?: boolean }[]
-  setup: { label: string; value: string }[]
+  setup: SetupRow[]
 }): WordiplyPrintModel {
   const nameOf = (userId: string) =>
     o.players.find((p) => p.user_id === userId)?.username ?? 'someone'
@@ -146,6 +146,7 @@ export function buildWordiplyPrintModel(o: {
     date: o.date,
     summary,
     setup: o.setup,
+    mode: o.mode,
     base: o.base.toUpperCase(),
     turns,
     reveal:

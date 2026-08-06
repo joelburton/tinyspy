@@ -186,11 +186,12 @@ export function PlayArea(ctx: GamePageCtx) {
       outerLetters: game.outer_letters.split(''),
       centerLetter: game.center_letter,
       // Relevant setup only (the timer isn't relevant on a print).
+      mode: game?.mode ?? 'coop',
       setup: [
-        { label: 'Required words', value: difficultyValue(spellingbeeSetup.required) },
-        { label: 'Bonus words', value: difficultyValue(spellingbeeSetup.legal) },
+        { key: 'required', label: 'Required words', value: difficultyValue(spellingbeeSetup.required) },
+        { key: 'legal', label: 'Bonus words', value: difficultyValue(spellingbeeSetup.legal) },
         ...(game.mode === 'compete' && spellingbeeSetup.target_rank != null
-          ? [{ label: 'Target rank', value: RANKS[spellingbeeSetup.target_rank] ?? '?' }]
+          ? [{ key: 'target_rank', label: 'Target rank', value: RANKS[spellingbeeSetup.target_rank] ?? '?' }]
           : []),
       ],
       words,

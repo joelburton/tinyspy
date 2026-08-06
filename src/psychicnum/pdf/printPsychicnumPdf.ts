@@ -47,7 +47,7 @@ export function printPsychicnumPdf(m: PsychicnumPrintModel): void {
   drawBoard(doc, m, leftX, colTop, cellW, cellH)
 
   // ── Guesses: the shared newspaper turn flow (labelled "Guess") ──
-  drawTurnLog(pd, { startY: colTop + rows * cellH + 26, moveLabel: 'Guess', rows: m.turns, setup: m.setup })
+  drawTurnLog(pd, { startY: colTop + rows * cellH + 26, moveLabel: 'Guess', rows: m.turns, setup: m.setup, mode: m.mode })
 
   savePrint(pd, m, 'psychicnum')
 }

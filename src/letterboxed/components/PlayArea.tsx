@@ -23,14 +23,13 @@ import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandle
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { chainAt, describeAt } from '../lib/history'
+import { setupRows } from '../lib/setupSummary'
 import { helpPillText } from '../lib/help'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
-import { difficultyValue } from '../../common/lib/game/difficulty'
 import { buildLetterboxedPrintModel } from '../pdf/model'
 import { printLetterboxedPdf } from '../pdf/printLetterboxedPdf'
-import { PAR } from '../lib/board'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -76,6 +75,18 @@ export function PlayArea(ctx: GamePageCtx) {
   const { game, playerRows, myRow, events, loading, rowsLoaded } = useGame(gameId, session.user.id)
 
   const letterboxedSetup = setup as LetterboxedSetup
+
+  // The setup recap, built ONCE and handed to both consumers — the info column
+  // renders it as <li>s, the print model prints the same array. Literally the
+  // same object, which is a stronger guarantee than "both call the same
+  // function" (docs/pdf.md → Setup rows). Empty until the game row lands; the
+  // print effect below is guarded on `game` anyway, and the info column doesn't
+  // render until after the loading return.
+  const summaryRows = useMemo(
+    () => (game ? setupRows(letterboxedSetup, game.mode, players) : []),
+    [letterboxedSetup, game, players],
+  )
+
   const infoSheet = useInfoSheet()
   const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
   const { localFeedback, showLocalFeedback, clearLocalFeedback } = useLocalFeedback()
@@ -326,10 +337,7 @@ export function PlayArea(ctx: GamePageCtx) {
       events,
       selfId: session.user.id,
       summary: `${lettersCovered}/${BOARD_SIZE} letters · ${chain.length}/${maxWords} words`,
-      setup: [
-        { label: 'Word limit', value: `par + ${letterboxedSetup.extra_words} (${PAR + letterboxedSetup.extra_words} words)` },
-        { label: 'Dictionary', value: difficultyValue(letterboxedSetup.legal_band) },
-      ],
+      setup: summaryRows,
     })
     menu.setGameSections(
       buildGameMenu({
@@ -353,7 +361,7 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => menu.setGameSections([])
   }, [
     menu, game, isTerminal, myConceded, brand, title, solutionRevealed,
-    players, playerRows, events, session.user.id, letterboxedSetup,
+    players, playerRows, events, session.user.id, letterboxedSetup, summaryRows,
     lettersCovered, chain.length, maxWords,
   ])
 
@@ -515,7 +523,7 @@ export function PlayArea(ctx: GamePageCtx) {
           wordsByUser={wordsByUser}
           coveredByUser={coveredByUser}
           concededIds={concededIds}
-          setup={letterboxedSetup}
+          setupRows={summaryRows}
           onHint={takeHint}
           onSpoiler={takeSpoiler}
           onReveal={() => void handleReveal()}

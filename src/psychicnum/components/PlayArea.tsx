@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx } from '../../common/lib/games'
 import type { PsychicnumSetup } from '../lib/setup'
@@ -13,7 +13,7 @@ import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useCon
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
-import { difficultyValue } from '../../common/lib/game/difficulty'
+import { setupRows } from '../lib/setupSummary'
 import { memberById } from '../../common/lib/game/peers'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -104,6 +104,16 @@ export function PlayArea({
   // someone merely reviewing it. Same call connections + wordle + waffle made.
   const celebration = useCelebration(playState === 'won')
 
+  // The setup recap, built ONCE and handed to both consumers — the info column
+  // renders it as <li>s, the print model prints the same array (docs/pdf.md →
+  // Setup rows). Literally the same object, which beats "both call the same
+  // function": this is the game whose two hand-written lists had drifted into
+  // reporting different facts on paper than on screen.
+  const summaryRows = useMemo(
+    () => setupRows(setup as unknown as PsychicnumSetup, mode ?? 'coop', players),
+    [setup, mode, players],
+  )
+
   // I dropped out of a compete race (a real loss; the others keep racing). Read
   // from the common roster (prop `players`, always present) so it's available
   // here — above the early returns — for the game-menu effect. (The board/strip
@@ -149,7 +159,6 @@ export function PlayArea({
     for (const g of guesses) if (g.kind === 'guess') results.set(g.word, g.is_correct)
     const found = [...results.values()].filter(Boolean).length
     const guessesUsed = guesses.filter((g) => g.kind === 'guess').length
-    const s = setup as unknown as PsychicnumSetup
     const model = {
       brand,
       gameTitle: title,
@@ -170,11 +179,8 @@ export function PlayArea({
               ? `${g.word.toUpperCase()} — Answer`
               : `${g.word.toUpperCase()} — ${g.is_correct ? 'Correct' : 'Incorrect'}`,
       })),
-      // Relevant setup only (the timer isn't relevant on a print).
-      setup: [
-        { label: 'Difficulty', value: difficultyValue(s.difficulty) },
-        { label: 'Guesses', value: String(s.guesses) },
-      ],
+      mode: mode ?? 'coop',
+      setup: summaryRows,
     }
     menu.setGameSections(
       buildGameMenu({
@@ -208,7 +214,7 @@ export function PlayArea({
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, mode, isTerminal, myConceded, secretsShown, game, guesses, players, brand, title, setup])
+  }, [menu, mode, isTerminal, myConceded, secretsShown, game, guesses, players, brand, title, setup, summaryRows])
 
   // Per-opponent secrets-found count we've already announced (compete tension).
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
@@ -571,8 +577,7 @@ export function PlayArea({
         startingNewGame={startingNewGame}
         onBackToClub={goToClub}
         // ── Setup disclosure ──
-        setup={psychicnumSetup}
-        wordCount={game.words.length}
+        setupRows={summaryRows}
         // ── Turn-history log ──
         guesses={guesses}
         isTerminal={isTerminal}

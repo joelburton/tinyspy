@@ -292,6 +292,7 @@ export function PlayArea(ctx: GamePageCtx) {
     const { data, error } = await db
       .rpc('create_game', {
         target_club: ctx.clubHandle,
+        mode: 'compete',
         setup: ctx.setup as unknown as BananagramsSetup,
         player_user_ids: ctx.players.map((p) => p.user_id),
       })
@@ -353,10 +354,12 @@ export function PlayArea(ctx: GamePageCtx) {
         summary: `${placed} tile${placed === 1 ? '' : 's'} placed · ${words.length} word${words.length === 1 ? '' : 's'}`,
         board: boardToGrid(board),
         // Relevant setup only — the timer + dump destination don't describe the board.
+        mode: 'compete' as const,
         setup: [
-          { label: 'Starter hand', value: `${setup.hand_size} tiles` },
-          { label: 'Bunch', value: `${setup.bunch_size} tiles` },
+          { key: 'hand_size', label: 'Starter hand', value: `${setup.hand_size} tiles` },
+          { key: 'bunch_size', label: 'Bunch', value: `${setup.bunch_size} tiles` },
           {
+            key: 'word_check',
             label: 'Words',
             value: setup.word_check === 'off'
               ? 'Not checked'

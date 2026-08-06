@@ -53,26 +53,26 @@ describe('drawTurnLog', () => {
 
   it('draws a placeholder row when there are no turns', () => {
     const { pd, calls } = fakePd()
-    drawTurnLog(pd, { startY: 100, moveLabel: 'Move', rows: [], setup: [] })
+    drawTurnLog(pd, { startY: 100, moveLabel: 'Move', rows: [], setup: [], mode: 'coop' as const })
     expect(calls.some((c) => c.m === 'text' && c.args[0] === 'No turns yet.')).toBe(true)
   })
 
   it('uses a custom empty message when given one', () => {
     const { pd, calls } = fakePd()
-    drawTurnLog(pd, { startY: 100, moveLabel: 'Guess', rows: [], setup: [], emptyText: 'No guesses.' })
+    drawTurnLog(pd, { startY: 100, moveLabel: 'Guess', rows: [], setup: [], mode: 'coop' as const, emptyText: 'No guesses.' })
     expect(calls.some((c) => c.m === 'text' && c.args[0] === 'No guesses.')).toBe(true)
   })
 
   it('does not paginate a short log', () => {
     const { pd, calls } = fakePd()
-    drawTurnLog(pd, { startY: 100, moveLabel: 'Move', rows: rows(5), setup: [] })
+    drawTurnLog(pd, { startY: 100, moveLabel: 'Move', rows: rows(5), setup: [], mode: 'coop' as const })
     expect(calls.filter((c) => c.m === 'addPage')).toHaveLength(0)
   })
 
   it('spills a long log onto further pages (column-then-page flow)', () => {
     const { pd, calls } = fakePd()
     // Far more rows than two columns of one page can hold → at least one addPage.
-    drawTurnLog(pd, { startY: 100, moveLabel: 'Move', rows: rows(300), setup: [] })
+    drawTurnLog(pd, { startY: 100, moveLabel: 'Move', rows: rows(300), setup: [], mode: 'coop' as const })
     expect(calls.filter((c) => c.m === 'addPage').length).toBeGreaterThanOrEqual(1)
   })
 })

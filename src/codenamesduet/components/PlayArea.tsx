@@ -402,6 +402,7 @@ export function PlayArea({
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,
+        mode: 'coop',
         setup: codenamesduetSetup,
         player_user_ids: members.map((m) => m.user_id),
       })
@@ -465,7 +466,8 @@ export function PlayArea({
             totalAgents: TOTAL_AGENTS,
             turnNumber: game.turn_number,
             turnCap: codenamesduetSetup.turns,
-            setup: [{ label: 'Turns', value: String(codenamesduetSetup.turns) }],
+            mode: 'coop' as const,
+            setup: [{ key: 'turns', label: 'Turns', value: String(codenamesduetSetup.turns) }],
           })
         : null
     menu.setGameSections(

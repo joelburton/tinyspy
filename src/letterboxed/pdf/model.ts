@@ -1,4 +1,4 @@
-import type { PrintHeader } from '../../common/pdf/frame'
+import type { PrintHeader, SetupRow } from '../../common/pdf/frame'
 import type { TurnRow } from '../../common/pdf/turnLog'
 import { BOARD_SIZE, coveredLetters } from '../lib/board'
 import type { EventRow, PlayerRow } from '../hooks/useGame'
@@ -76,7 +76,7 @@ export function buildLetterboxedPrintModel(o: {
   selfId: string
   /** The on-screen status line, repeated under the title. */
   summary: string
-  setup: { label: string; value: string }[]
+  setup: SetupRow[]
 }): LetterboxedPrintModel {
   const header: PrintHeader = {
     brand: o.brand,
@@ -84,6 +84,7 @@ export function buildLetterboxedPrintModel(o: {
     date: o.date,
     summary: o.summary,
     setup: o.setup,
+    mode: o.mode,
   }
 
   const trackFor = (who: string, chain: string[], rows: EventRow[]): PrintTrack => ({

@@ -468,11 +468,12 @@ export function PlayArea(ctx: GamePageCtx) {
           // that truncates to clear the date — this line doesn't, so it's the
           // one that can be relied on to carry the theme.
           summary: `“${game.clue}” · ${found.length} word${found.length === 1 ? '' : 's'}`,
+          mode: game?.mode ?? 'coop',
           setup: [
-            { label: 'Hint dictionary', value: difficultyValue(game.band) },
-            { label: 'Words per hint', value: String(game.hint_cost) },
-            { label: 'Shortest word', value: `${game.min_word_length} letters` },
-            { label: 'Timer', value: timerLabel(strandsSetup.timer) },
+            { key: 'band', label: 'Hint dictionary', value: difficultyValue(game.band) },
+            { key: 'hint_cost', label: 'Words per hint', value: String(game.hint_cost) },
+            { key: 'min_word_length', label: 'Shortest word', value: `${game.min_word_length} letters` },
+            { key: 'timer', label: 'Timer', value: timerLabel(strandsSetup.timer) },
           ],
         },
         board: game.board,

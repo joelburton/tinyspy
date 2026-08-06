@@ -40,7 +40,7 @@ export function drawWordListBody(
   const boardTop = margin + 44
   const { w, h } = drawBoard(margin, boardTop)
   const boardBottom = boardTop + h
-  const setupBottom = drawSetup(doc, m.setup, margin + w + 26, boardTop + 9)
+  const setupBottom = drawSetup(doc, m.setup, margin + w + 26, boardTop + 9, m.mode)
 
   // ── Words: column-major alphabetical columns, below the board + setup ──
   drawWordColumns(pd, {

@@ -1,4 +1,7 @@
 import { jsPDF } from 'jspdf'
+import type { SetupRow } from '../lib/game/setupRows'
+
+export type { SetupRow }
 
 /**
  * The shared frame for every game's print-to-PDF (see docs/pdf.md). These are the
@@ -29,8 +32,24 @@ export type PrintHeader = {
   date: string
   /** One-line game-state summary under the title (matches the on-screen status). */
   summary: string
-  /** Relevant setup options (label + value). The timer is excluded (not relevant on paper). */
-  setup: { label: string; value: string }[]
+  /** EVERY setup option (label + value), timer included — a printout is a record, and
+   *  one that omits the constraints misreports the achievement (docs/pdf.md → Setup
+   *  rows). This reverses an earlier rule that printed "the relevant options only".
+   *
+   *  Comes from the game's `lib/setupSummary.ts`, the SAME array its info column
+   *  renders, so paper and screen can't drift.
+   *
+   *  IN FLIGHT (branch `pdf-setup`): not every game has been moved across yet — see
+   *  docs/pdf-setup-plan.md for the remaining list. */
+  setup: SetupRow[]
+  /** Co-op or compete, which the Setup heading carries (`Setup: Co-op`) rather than
+   *  spending a row on — mode is locked at the GAMETYPE level (`manifest.mode`) and is
+   *  never a control on the setup form, so it frames the block instead of sitting in
+   *  it. REQUIRED, deliberately: as an optional argument the fifteenth game forgets it
+   *  and quietly prints a bare "Setup" that looks perfectly fine. The screen doesn't
+   *  repeat the mode (its header and the club listing already say it); a PDF has no
+   *  chrome, so it must carry its own framing. */
+  mode: 'coop' | 'compete'
 }
 
 /** A fresh document plus its cached page geometry — threaded through the helpers. */
@@ -68,9 +87,19 @@ export function drawHeader(pd: PrintDoc, m: PrintHeader): void {
 
 /** Draw a "Setup" sub-heading + its `label: value` lines at (x, y). Returns the y just
  *  below the block, so the caller can flow content after it (or measure its height). */
-export function drawSetup(doc: jsPDF, items: { label: string; value: string }[], x: number, y: number): number {
+export function drawSetup(
+  doc: jsPDF,
+  items: SetupRow[],
+  x: number,
+  y: number,
+  mode: 'coop' | 'compete',
+): number {
   doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(BLACK) // smaller sub-heading
-  doc.text('Setup', x, y)
+  // The mode rides the heading rather than a row — see PrintHeader.mode. The
+  // wording matches the app's own mode pills so paper can't invent a third
+  // spelling, and the hyphen in "Co-op" is plain ASCII (an en-dash would not
+  // survive WinAnsi).
+  doc.text(`Setup: ${mode === 'coop' ? 'Co-op' : 'Compete'}`, x, y)
   let cy = y + 13
   items.forEach((it) => {
     doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)

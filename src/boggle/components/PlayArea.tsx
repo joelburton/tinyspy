@@ -237,12 +237,13 @@ export function PlayArea(ctx: GamePageCtx) {
       summary: `${myCount} / ${game.required_words_count} words · ${myScore} pts`,
       board: boardToDisplay(game.board, game.n),
       // Relevant setup only (the timer isn't relevant on a print).
+      mode: game?.mode ?? 'coop',
       setup: [
-        { label: 'Dice', value: DICE_BY_NAME[boggleSetup.dice_set]?.desc ?? boggleSetup.dice_set },
-        { label: 'Required words', value: difficultyValue(boggleSetup.band) },
-        { label: 'Bonus words', value: difficultyValue(boggleSetup.legal_band) },
-        { label: 'Min length', value: `${boggleSetup.min_word_length} letters` },
-        { label: 'Scoring', value: ladder.charAt(0).toUpperCase() + ladder.slice(1) },
+        { key: 'dice_set', label: 'Dice', value: DICE_BY_NAME[boggleSetup.dice_set]?.desc ?? boggleSetup.dice_set },
+        { key: 'band', label: 'Required words', value: difficultyValue(boggleSetup.band) },
+        { key: 'legal_band', label: 'Bonus words', value: difficultyValue(boggleSetup.legal_band) },
+        { key: 'min_word_length', label: 'Min length', value: `${boggleSetup.min_word_length} letters` },
+        { key: 'ladder', label: 'Scoring', value: ladder.charAt(0).toUpperCase() + ladder.slice(1) },
       ],
       // Alphabetical — the 5-column list renders them column-major.
       words,

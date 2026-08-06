@@ -344,7 +344,7 @@ export function PlayArea({
                 .filter((w): w is string => w !== null))
             : null,
           answerShown,
-          setup: [{ label: 'Extra swaps', value: String(game.max_swaps - game.par_swaps) }],
+          setup: [{ key: 'extra_swaps', label: 'Extra swaps', value: String(game.max_swaps - game.par_swaps) }],
         })
       : null
     menu.setGameSections(
