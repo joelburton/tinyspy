@@ -579,7 +579,7 @@ function buildOver({
       return {
         tone: 'won',
         verdict: `Won: all twelve in ${wordsUsed} ${wordsUsed === 1 ? 'word' : 'words'}`,
-        message: 'You covered the board!',
+        message: 'All letters used!',
       }
     }
     if (playState === 'lost') {
