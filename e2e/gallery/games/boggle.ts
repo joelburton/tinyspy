@@ -27,9 +27,9 @@ export const boggleGallery: GameGallery = {
   members: 2,
   cells: [
     { mode: 'coop', phase: 'fresh' },
-    { mode: 'coop', phase: 'mid', note: 'two words found' },
+    { mode: 'coop', phase: 'mid', note: 'one word found' },
     { mode: 'compete', phase: 'fresh' },
-    { mode: 'compete', phase: 'mid', note: 'two words found' },
+    { mode: 'compete', phase: 'mid', note: 'one word found' },
     { mode: 'compete', phase: 'ended', note: 'stopped by agreement' },
     { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },
 
@@ -37,7 +37,7 @@ export const boggleGallery: GameGallery = {
 
   async build(club: E2EClub, cell: Cell) {
     const { id, gametype } = await createBoggleGame(club, cell.mode)
-    if (cell.phase === 'mid') await play(club, id, [{ word: 'cat', points: 1 }, { word: 'art', points: 1 }])
+    if (cell.phase === 'mid') await play(club, id, [{ word: 'cat', points: 1 }])
     if (cell.phase === 'ended') await endGame(club, 'boggle', id)
 
     return { gametype, id, viewer: club.members[0] }

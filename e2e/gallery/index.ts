@@ -212,16 +212,32 @@ export function renderIndex(
   /* Four phases across — one game's whole arc, left to right. */
   .strip { display: flex; gap: .75rem; }
   figure { margin: 0; flex: 0 0 auto; width: 240px; }
-  figure img { width: 100%; height: 190px; object-fit: contain; object-position: top;
-               border: 1px solid #000000; border-radius: 6px;
-               background: #ffffff; display: block; }
+  /* ONE box for all three kinds of tile — a screenshot, a paper link, and a
+     hole must occupy identical space or the captions below them don't line up
+     and the row reads as ragged.
+     BORDER-BOX is the load-bearing part (and note: no backticks in here — this
+     stylesheet lives inside a template literal, and one terminates it): the
+     hole carries padding and every
+     tile a border, and under the default content-box those ADD to the declared
+     size — holes came out 258x208 against an image's 242x192, sixteen pixels
+     adrift in both directions. The anchor goes block for the same reason: an
+     inline one contributes a baseline gap under the image. */
+  figure img, figure .hole, figure .paper {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    height: 190px;
+  }
+  figure > a { display: block; }
+  figure img { object-fit: contain; object-position: top;
+               border: 1px solid #000000; border-radius: 6px; background: #ffffff; }
   /* A printout's tile is a link, not a preview: an <embed> wraps every tile in
      the browser's PDF viewer, a lot of machinery for a thumbnail nobody reads
      at 240px. Same box as the others so the row stays aligned. */
-  .paper { height: 190px; border: 1px solid #000000; border-radius: 6px;
-           background: #ffffff; display: flex; flex-direction: column;
-           align-items: center; justify-content: center; gap: .4rem;
-           text-decoration: none; color: #000000; }
+  .paper { border: 1px solid #000000; border-radius: 6px; background: #ffffff;
+           display: flex; flex-direction: column; align-items: center;
+           justify-content: center; gap: .4rem; text-decoration: none;
+           color: #000000; }
   .paper:hover { background: #ffffff; outline: 2px solid #000000; }
   .paperMark { font: 700 .95rem/1 system-ui; letter-spacing: .12em;
                border: 2px solid #000000; border-radius: 4px; padding: .45rem .6rem; }
@@ -230,7 +246,7 @@ export function renderIndex(
   /* A missing tile is marked by a DASHED border and its own words, not by
      dimming — a hole is information ("nobody has looked at this state"), so it
      has to be as readable as everything else. */
-  .hole { width: 100%; height: 190px; border: 1px dashed #000000; border-radius: 6px;
+  .hole { border: 1px dashed #000000; border-radius: 6px;
           display: flex; align-items: center; justify-content: center; text-align: center;
           padding: .5rem; color: #000000; font-size: .75rem; background: #ffffff; }
   figcaption { margin-top: .35rem; font-weight: 700; color: #000000; }
