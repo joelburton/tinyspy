@@ -403,6 +403,31 @@ db: db-schema-sql db-data ## a WORKING database: structure + every table's data
 db-seed: ## local only: the dev personas + clubs (seed.dev.sql)
 	@SUPABASE_DB_URL=$(LOCAL_DB_URL) npm run _seed
 
+# db-seed's counterpart for a REAL person: one account, ahead of their first
+# sign-in, so a friend arrives to a handle + solo club instead of the claim
+# screen. Unlike db-seed it takes ENV, because provisioning into the hosted
+# project is the entire point — and unlike seed.dev.sql it fabricates no auth
+# rows, driving the Admin API and the real claim_username RPC instead.
+#
+# HANDLE, not USERNAME: make imports the environment as variables, and
+# USERNAME is set by default in some shells — which would silently supply a
+# wrong-but-plausible default for the one field that can't be changed later.
+# A name the environment might already own is a trap, so it doesn't get used.
+#
+# The same trap caught COLOR for real: npm exports COLOR ('0'/'1', its own
+# colour-support flag) into every script it runs, so the value handed to
+# `npm run` was overwritten before the script read it. The flag you type is
+# still COLOR=… — it's passed along under PLAYER_COLOR, which npm doesn't own.
+#
+# The values are single-quoted into the child's environment rather than
+# interpolated into a command line, so an address with a `+` or a shell
+# metacharacter can't be mangled or re-parsed.
+.PHONY: db-add-user
+db-add-user: ## create a player account ahead of their first sign-in (EMAIL, HANDLE, COLOR, DRY=1)
+	@$(PRELUDE)
+	echo "── add user → $(ENV)"
+	EMAIL='$(EMAIL)' HANDLE='$(HANDLE)' PLAYER_COLOR='$(COLOR)' DRY='$(DRY)' npm run --silent _user:add
+
 # An interactive shell on whichever database ENV names — the thing you reach
 # for when a target did something surprising. SQL="..." runs one statement and
 # exits instead. The prod prelude announces the target first: `gmake db-psql

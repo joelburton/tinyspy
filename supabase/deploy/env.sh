@@ -194,6 +194,12 @@ require_project() {
 SUPABASE_URL="https://${PROJECT_REF}.supabase.co"
 export SUPABASE_URL
 export SUPABASE_SERVICE_ROLE_KEY
+# The anon key is exported too, for the same reason the service-role one is:
+# a child process can't see a plain shell variable. `db-add-user` needs it —
+# it signs in AS the new player to call claim_username, and that call must
+# carry the anon key rather than the service-role one, so a dropped
+# Authorization header degrades to "anonymous", never to "superuser".
+export SUPABASE_PUBLISHABLE_KEY
 export SUPABASE_DB_PASSWORD="$DB_PASSWORD"
 
 # Fetch whichever API keys we're missing for an EXISTING project.

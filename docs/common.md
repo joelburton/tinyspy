@@ -309,6 +309,49 @@ Reject reasons:
 
 The 23503 case surfaces when a stale JWT from a previous Supabase project sits in localStorage but its `auth.uid()` no longer exists. `ClaimHandleScreen` catches that error and calls `supabase.auth.signOut()` to reset back to LoginScreen.
 
+#### Provisioning a player ahead of their first sign-in
+
+`gmake db-add-user ENV=… EMAIL=… HANDLE=… [COLOR=…] [DRY=1]` runs the flow
+above *for* someone, before they have ever visited. It exists because steps 1–5
+are otherwise a two-step dance when inviting a friend: they sign in, tell you
+the handle they picked, and only then can you build a club around them. Provision
+first and you choose the handle, create the club in the normal "New club" dialog
+while they're still in your inbox, and their first magic link drops them straight
+into it — step 2 finds a profile, so `needsClaim` is false and the claim screen
+never appears.
+
+It does **not** fabricate auth rows the way `supabase/seed.dev.sql` does (that
+file is local-only for exactly this reason). `supabase/scripts/add-user.ts`:
+
+1. `admin.createUser({ email, email_confirm: true })` — GoTrue writes the eight
+   token columns and the `auth.identities` row itself. No usable password is
+   left behind; the password grant rejects every attempt.
+2. `admin.generateLink({ type: 'magiclink' })` — mints a single-use OTP and
+   **returns** it instead of mailing it, so provisioning is silent.
+3. `verifyOtp(…)` → a real session, exactly as clicking the link produces.
+4. `common.claim_username(…)` **as that user** — the real RPC, unmodified.
+
+Step 4 is the whole point: `claim_username` is `auth.uid()`-gated, so it can
+only act for the caller, and re-implementing its four inserts in a script would
+duplicate "what a new player consists of" — a set that has already grown once,
+when `clubs_gametypes` seeding was added. Driving the real RPC means the CLI
+cannot drift from what happens at a real sign-in.
+
+Because GoTrue keys accounts by email, the friend's own magic link later signs
+them into this same row. The OTP redeemed above is single-use and independent
+of any link they request afterward.
+
+The preflight reads (is the handle free? does this email already have an
+account?) go over `SUPABASE_DB_URL` rather than PostgREST: `service_role` holds
+only `usage on schema common`, and `select` on `common.profiles` is granted to
+`authenticated` alone, so widening a grant would be the alternative. If step 2,
+3 or 4 fails, the created auth user is deleted again, so a failed run leaves
+nothing behind and can simply be re-run.
+
+Only the account and its solo club — **not** friend clubs. `create_club`
+resolves usernames → ids and auto-adds the caller, so the app's own dialog
+already handles those once the profile exists.
+
 ## RPCs
 
 All RPCs in `common` are `security definer` and granted only to the `authenticated` role.
