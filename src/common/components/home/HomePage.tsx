@@ -7,6 +7,7 @@ import { useSwallowTab } from '../../hooks/input/useSwallowTab'
 import { db as commonDb } from '../../db'
 import { useProfile } from '../../hooks/session/useProfile'
 import { useRealtimeRefetch } from '../../hooks/realtime/useRealtimeRefetch'
+import { Dot } from '../text/Dot'
 import { PuzpuzpuzWordmark } from '../branding/PuzpuzpuzWordmark'
 import { PuzpuzpuzLogo } from '../branding/PuzpuzpuzLogo'
 import { Menu, type MenuHandle } from '../panels/Menu'
@@ -50,7 +51,8 @@ type Props = {
  * solo space without an `eq('created_by', …)` filter.
  */
 export function HomePage({ session }: Props) {
-  const username = useProfile(session)?.username ?? null
+  const profile = useProfile(session)
+  const username = profile?.username ?? null
   const [clubs, setClubs] = useState<ClubListEntry[]>([])
 
   // Load every club the caller is a member of (incl. their solo club),
@@ -196,12 +198,32 @@ export function HomePage({ session }: Props) {
           triggerLabel="Main menu"
         />
       </header>
-      <div className="card">
+      <div className={cls('card', styles.card)}>
         <PuzpuzpuzWordmark />
-        <h1>Welcome{username ? `, ${username}` : ''}</h1>
-        <p className="muted">{session.user.email}</p>
+        {/* Greeting leads with the identity DISC in the user's own profile
+            color — the app-wide "this color is you" marker (docs/ui.md →
+            "Player identity = a colored disc"). Home is where that's worth
+            re-stating: it's the last thing you see before entering a club,
+            and inside a game the disc is how you find yourself on the board.
+            Hence the name first and the greeting second — "● joel —
+            welcome!" puts the identity where the eye lands, where "Welcome,
+            joel" buried it behind a salutation.
 
-        <section>
+            The email that used to sit under this is gone: it's what they
+            just typed to get here, so telling them is filler, and an address
+            is the least club-like way to say who someone is. */}
+        <h1 className={styles.greeting}>
+          {username ? (
+            <>
+              <Dot color={profile?.color} className={styles.greetingDot} />
+              {username} — welcome!
+            </>
+          ) : (
+            'Welcome!'
+          )}
+        </h1>
+
+        <section className={styles.clubsSection}>
           {/* Section header is a flex row: title on the left, the
               quiet "+ New club" button on the right. Creating a new
               club is the uncommon path (most users land here, click
@@ -243,7 +265,20 @@ export function HomePage({ session }: Props) {
                 // list navigates away on click, so it's the same symmetry
                 // ClubPage's game list has rather than something you'd notice
                 // here today.
-                <li key={c.handle} onClick={() => setCursor(i)}>
+                <li
+                  key={c.handle}
+                  onClick={() => setCursor(i)}
+                  // Keep the ring in view now that the list scrolls (it does
+                  // once the clubs outgrow the card — see .clubsList). Without
+                  // this, Up/Down walks the cursor straight out of the visible
+                  // box, since the focus is on the LIST and never moves to the
+                  // row the browser would otherwise scroll to. The same ref
+                  // callback ClubPage's two lists use, on the <li> rather than
+                  // the row itself because <Link> forwards only anchor attrs.
+                  ref={
+                    i === kbCursor ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined
+                  }
+                >
                   <Link
                     to={`/c/${c.handle}`}
                     className={cls(styles.clubItem, i === kbCursor && styles.kbCursor)}

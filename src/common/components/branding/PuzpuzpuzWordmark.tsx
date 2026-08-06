@@ -5,7 +5,8 @@ import styles from './PuzpuzpuzWordmark.module.css'
  * The big PuzPuzPuz wordmark — the colorful "Puz! Puz! Puz!" lockup shown as the
  * top image on the two `.card` shell screens: the pre-login `LoginScreen` (in
  * place of a text title) and the signed-in clubs-list `HomePage` (above the
- * "Welcome, …" heading). One component so the two stay in visual lockstep.
+ * "● <name> — welcome!" greeting). One component so the two stay in visual
+ * lockstep.
  *
  * Distinct from `<PuzpuzpuzLogo>`, which is the small square logo used as a menu
  * trigger (ClubPage header). This is the wide horizontal wordmark.

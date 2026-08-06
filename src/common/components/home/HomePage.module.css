@@ -1,3 +1,19 @@
+/* The greeting — "● joel — welcome!". Flex so the identity disc sits on the
+ * text's centre line rather than its baseline; a disc hung off the baseline
+ * reads as a bullet point, which is the one thing it must not look like. */
+.greeting {
+  display: flex;
+  align-items: center;
+}
+
+/* The disc is scaled to the h1 rather than left at its em-relative default,
+ * which at this size read as a speck. --dot-size is the shared knob (see
+ * Dot.module.css); the right margin is the gap to the username. */
+.greetingDot {
+  --dot-size: 0.7em;
+  margin-right: 0.45em;
+}
+
 /* "Your clubs" section header — title on the left, "+ New club"
  * button on the right. Flex row with space-between aligns the
  * button to the right edge of the section. h3 default margins
@@ -42,13 +58,21 @@
   text-decoration: none;
 }
 
-/* HomePage clubs list.
+/* HomePage clubs list — the SAME idiom as ClubPage's games list
+ * (.gamesList / .startList there): one framed panel with the rows
+ * abutting inside it and a hairline between them, rather than a
+ * stack of separately-tinted tiles.
  *
- * Each row is the Link itself — the whole tinted surface is the
- * click target, so a user can click anywhere on the row (name,
- * badge, whitespace) to navigate, not just the text label.
- * Browser middle-click / cmd-click for "open in new tab" still
- * works because the row IS an anchor.
+ * Why they match: both are "the list of things you can go into
+ * from here", one level apart — home lists clubs, a club lists its
+ * games. They were drawn differently for no reason other than
+ * having been built at different times, and the tiled version made
+ * home's list read as a row of buttons while the club page's read
+ * as a table of contents. One frame, one rhythm.
+ *
+ * Each row is still the Link itself, so the whole row is the click
+ * target and middle-click / cmd-click "open in new tab" keeps
+ * working because the row IS an anchor.
  *
  * Solo clubs share the row surface with regular clubs; the only
  * visual distinction is an outlined "Solo" pill in the row
@@ -62,32 +86,61 @@
 .clubsList {
   list-style: none;
   margin: 0.5rem 0 0 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  /* No gap: the rows abut and the rule between them is the separation. */
+
+  /* The frame. A step darker than --color-surface-border, matching ClubPage's
+   * panels, so the two pages' lists carry the same weight of line. */
+  background: var(--color-surface);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-lg);
+  /* NO padding: the rows carry their own, so the space above the first row
+   * equals the space between any two, and each row's rule and hover tint run
+   * the full width of the panel instead of floating inside an inset. Same
+   * reasoning as ClubPage's frames. */
+  padding: 0;
+  /* The rows' square corners would otherwise poke out past the frame's
+   * rounding at the top and bottom of the list. `hidden` on the x axis pairs
+   * with the y-axis scroll below — `overflow: hidden` alone would CLIP a long
+   * list instead of letting it scroll. */
+  overflow-x: hidden;
+
+  /* This is the surface that absorbs growth, so the page never scrolls
+   * (docs/ui.md → "Page-height fits the viewport"). Deliberately NOT `flex: 1`:
+   * that would grow the list to fill the card even when three clubs need three
+   * rows. It sizes to its content and only shrinks — and scrolls — once the
+   * frame's max-height above actually bites. */
+  min-height: 0;
+  overflow-y: auto;
 }
 
-/* The clickable row — applied directly to the Link element so
- * the whole tinted area routes on click. Button-like surface
- * (soft fill + border + radius) so it reads as "this is the
- * thing you press" without competing with the page's primary
- * accent-filled buttons. */
+/* The clickable row — applied directly to the Link element so the whole row
+ * routes on click. Bare surface with a hairline underneath: the frame above
+ * is what says "this is a list", so a per-row fill and border would be a
+ * second, competing container. */
 .clubItem {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.5rem 0.7rem;
-  border-radius: var(--radius-md);
-  background: var(--color-surface-hover);
-  border: 1px solid var(--color-surface-border);
+  /* The row owns ALL the list's padding — its frame has none. Matched to
+   * ClubPage's rows so a club row and a game row have the same inset. */
+  padding: 0.5rem 0.9rem;
+  background: transparent;
+  border-bottom: 1px solid var(--color-control-border);
   text-decoration: none;
   color: var(--color-text);
-  transition: background 100ms ease, border-color 100ms ease;
+  transition: background-color 100ms ease;
 }
+
+/* The last row's rule would be a line with nothing under it — the frame's own
+ * border already closes the block. */
+.clubsList li:last-child .clubItem {
+  border-bottom: none;
+}
+
 .clubItem:hover {
-  background: var(--color-surface-border);
-  border-color: var(--color-control-border-2);
+  background: var(--color-surface-hover);
   text-decoration: none;
 }
 
@@ -119,34 +172,72 @@
 
 /* The keyboard list-nav cursor — the ring marking which club Enter would open.
  * The LIST holds the actual focus (it's the tab stop); this ring says which row
- * it's pointing at. Same treatment as ClubPage's `.kbCursor` so the two lists
- * read as one idiom: accent ring, offset just outside the row's own border,
- * radius matched so it hugs the row. */
+ * it's pointing at. Identical to ClubPage's `.kbCursor`, down to the INSET
+ * offset: the rows abut now, so a ring drawn outside the row would overlap its
+ * neighbour and get clipped by the frame's overflow at the first and last row. */
 .kbCursor {
   outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
-  border-radius: var(--radius-md);
+  outline-offset: -2px;
 }
 
-/* The list container is focusable (the tab stop) but shows no ring of its own —
- * the row cursor above IS the focus indicator, and two rings would compete. */
+/* The focused list warms its border to the accent, exactly as ClubPage's two
+ * panels do — the frame IS the focus indicator, so no default outline (which
+ * would double up with the row ring inside it). */
 .clubsList:focus,
 .clubsList:focus-visible {
   outline: none;
+  border-color: var(--color-accent);
 }
 
 /* The page frame — chrome strip on top, the content card below. Home is the
  * one page whose body is a centered `.card`, so this exists purely to give the
  * header somewhere to live OUTSIDE it: inside, the header inherited the card's
  * 2rem padding and its border, so it read as page content and lined up with
- * nothing else in the app. No height here (unlike ClubPage's frame, which needs
- * one so its scrolling lists have an upper bound) — home's card sizes to its
- * content. */
+ * nothing else in the app.
+ *
+ * MAX-height, where ClubPage's frame takes a fixed `height` — and the
+ * difference is the point (docs/ui.md → "Page-height fits the viewport"). Home
+ * is a centered card sized to its content, so a fixed height would stretch it
+ * to the full viewport and strand a two-club list at the top of a tall empty
+ * box. A max-height leaves the common case exactly as it looks today and only
+ * binds when the clubs would otherwise push the page into scrolling — at which
+ * point the LIST scrolls (see .clubsList) and the page still doesn't.
+ *
+ * `svh`, not `vh`, for the mobile-Safari reason documented on `body`. */
 .frame {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  max-height: calc(100svh - 2 * var(--page-padding-y));
+}
+
+/* Home's `.card` (the shared class supplies the surface + padding; this adds
+ * only the layout) becomes a flex column that may shrink, so the bound above
+ * can reach the list inside it. `min-height: 0` is the load-bearing half: a
+ * flex item's floor is its content by default, which would let the card keep
+ * its natural height and push the page into a scroll anyway — the same trap
+ * the mobile InfoSheet hit. */
+.card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Everything above the clubs section is fixed furniture and must NOT absorb the
+ * squeeze — the wordmark especially, which is a `width: 100%` <img> and would
+ * simply get shorter (it takes no className of its own, hence the child
+ * selector rather than a class on the component). */
+.card > *:not(.clubsSection) {
+  flex-shrink: 0;
+}
+
+/* The section between the card and the scrolling list — same flex-column +
+ * min-height: 0 relay, or the bound stops here and the list never scrolls. */
+.clubsSection {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* The same fixed-chrome strip ClubPage carries, down to the gap: square site

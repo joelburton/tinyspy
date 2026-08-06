@@ -233,6 +233,7 @@ Game-by-game and page-by-page, not a global `body { overflow: hidden }` bomb. Pa
 Today this principle binds on:
 
 - **ClubPage** — fits the viewport via `height: calc(100vh - body padding)`; the "Your games" list is a fixed-size frame with internal scroll. See [ClubPage header](#clubpage-header) below.
+- **HomePage** — same bound, but as a **`max-height`** rather than a `height`, and the distinction is worth copying for any centered-card page. Home's body is a `.card` sized to its content, so a fixed height would stretch it to the full viewport and strand a two-club list at the top of a tall empty box. A max-height leaves the ordinary case looking exactly as it did and only binds when the clubs would otherwise scroll the page — at which point the club list scrolls instead. Getting there needs the whole ancestor chain to relay the bound (`.frame` → `.card` → the section → the `<ul>`, each a flex column with `min-height: 0`); the fixed furniture above the list takes `flex-shrink: 0`, or the wordmark — a `width: 100%` `<img>` — absorbs the squeeze by getting shorter.
 
 Future targets:
 
@@ -540,7 +541,7 @@ Same principle, applied to components.
 
 ## Player identity = a colored disc
 
-A member's palette color (`MEMBER_COLORS` via `colorVarFor`), rendered as a **filled circle**, is the canonical visual anchor for "this player." It already recurs across the app — the `<PlayersStrip>` presence dots, the `<ChatBubble>` unread fill, the `<ColorChoiceList>` swatches, and now the per-finder markers in the spellingbee / boggle `<WordList>`. Treat it as a convention, not a coincidence: when a surface needs to say *who*, reach for a colored disc.
+A member's palette color (`MEMBER_COLORS` via `colorVarFor`), rendered as a **filled circle**, is the canonical visual anchor for "this player." It already recurs across the app — the `<PlayersStrip>` presence dots, the `<ChatBubble>` unread fill, the `<ColorChoiceList>` swatches, the per-finder markers in the spellingbee / boggle `<WordList>`, and the HomePage greeting ("● joel — welcome!"), which is the one place the disc says *you* rather than *someone else*: home is the last screen before a club, and inside a game the disc is how a player finds themselves. Treat it as a convention, not a coincidence: when a surface needs to say *who*, reach for a colored disc.
 
 **The disc is one shared component: `<Dot>`** (`common/components/text/Dot`). It draws the fill PLUS the color's paired **`-border` ring** (`--color-member-NAME-border`, resolved via `borderVarFor` — OKLCH-darkened companions defined next to each fill in theme.css). The ring is what lets a light fill (yellow) read against the page background, and it's why identity discs are never unicode `●` glyphs: a glyph can't wear a border, and its size/baseline drift by font. `<Dot hollow>` is the "nobody" variant — an empty outline for an away member (PlayersStrip presence) or an unfound word (WordList reveal). Size/ring-width/hollow-ring-color tune per site via `--dot-size` / `--dot-border-width` / `--dot-ring` on a caller class. Feedback pills take the actor's color **name** in `GenericFeedbackMsg.dot` and render it with `<Dot>` themselves.
 
