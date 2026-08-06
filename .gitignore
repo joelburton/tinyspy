@@ -77,3 +77,9 @@ deno.lock
 
 # make stamp files — "what we last loaded, per ENV" (see the Makefile)
 .make/
+
+# The screenshot gallery's WORKING output — regenerated wholesale by every
+# `gmake gallery` run, so committing it would be a diff of ~30 changed PNGs
+# every time. Snapshots worth keeping get copied to gallery-keep/ (committed)
+# via `gmake gallery-keep NAME=…`. See docs/gallery-plan.md.
+/gallery/

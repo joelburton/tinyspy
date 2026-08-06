@@ -755,6 +755,25 @@ dev-types: ## regenerate src/types/db.ts from the live local schema
 gallery: ## screenshot every game state → gallery/index.html (needs `npm run dev`)
 	@npm run --silent _gallery
 
+# Promote the current gallery into the COMMITTED folder.
+#
+# `gallery/` is gitignored because every run rewrites all of it — committing
+# that would be thirty changed PNGs per look, burying the one that mattered.
+# This keeps the runs that are worth remembering: before/after a visual pass,
+# or just "what did this look like in July".
+#
+# Copies the WHOLE folder, deliberately: index.html links its tiles by relative
+# path, so a hand-picked subset renders a sheet of broken images.
+.PHONY: gallery-keep
+gallery-keep: ## copy gallery/ → gallery-keep/<date>-<NAME>/ (committed)
+	@[[ -n "$(NAME)" ]] || { echo "REFUSED: pass NAME=<label>, e.g. NAME=before-mobile-pass" >&2; exit 1; }
+	[[ -f gallery/index.html ]] || { echo "REFUSED: no gallery/index.html — run \`gmake gallery\` first" >&2; exit 1; }
+	dest="gallery-keep/$$(date +%Y-%m-%d)-$(NAME)"
+	rm -rf "$$dest"
+	mkdir -p "$$dest"
+	cp gallery/* "$$dest"/
+	echo "── kept $$(ls "$$dest" | wc -l | tr -d ' ') files → $$dest/index.html"
+
 # The make system's own test suite — the only part of this repo with no pgTAP
 # or playwright coverage, and the part that can write to prod. It re-checks
 # the two bug classes that kept recurring here (see the script's header).

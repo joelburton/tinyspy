@@ -116,16 +116,26 @@ club + users under a fixed prefix. Keep a `RESET=1` flag for when local data
 gets cluttered — you've said the local DB is expendable, so the escape hatch is
 free, it just shouldn't be the default cost of every run.
 
-## Committed, not gitignored
+## Two folders: working output vs kept snapshots
 
-Your call, and I think it's right: the history is the point — being able to see
-what the club page looked like in July is worth more than a clean tree.
+The history IS worth having — seeing what the club page looked like in July
+beats a clean tree. But every run rewrites the *whole* output, so committing the
+working folder means a thirty-PNG diff each time you glance at anything, which
+buries the one change that mattered.
 
-One caveat to decide up front: ~180 PNGs is roughly 10–25 MB per full run, and
-git keeps every version forever. So **treat a gallery run as a deliberate act**
-(run it, look, commit when it's worth a marker) rather than something that fires
-on every change. If it does start to bloat, the lever is capture resolution, not
-throwing the history away.
+So it splits:
+
+- **`gallery/`** — gitignored. What `gmake gallery` writes, wholesale, every run.
+- **`gallery-keep/<date>-<name>/`** — committed. Runs promoted deliberately with
+  `gmake gallery-keep NAME=before-mobile-pass`.
+
+**The target copies the entire folder, not selected images**, because
+`index.html` links tiles by relative path — a hand-picked subset renders a sheet
+of broken images. That subtlety is exactly why this is a make target rather than
+a note telling you to use `cp`.
+
+Worth keeping: before a visual pass (so the after has something to sit beside),
+after it, and anything you'd want to point at later. Not every run.
 
 ## Where it lives
 

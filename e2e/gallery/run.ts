@@ -107,9 +107,11 @@ async function main() {
   const games = only?.length ? ALL.filter((g) => only.includes(g.game)) : ALL
   if (!games.length) throw new Error(`no gallery games matched GAMES=${process.env.GAMES}`)
 
-  // Wipe the image folder so a removed cell doesn't leave a stale tile behind
-  // (the index would still be right, but the file would linger and confuse a
-  // `git status`). The folder is COMMITTED — its history is the point.
+  // Wipe the image folder so a removed cell doesn't leave a stale tile behind.
+  // Safe to be destructive: `gallery/` is gitignored WORKING output, rewritten
+  // wholesale by every run. Snapshots worth remembering live in the committed
+  // `gallery-keep/`, promoted by `gmake gallery-keep NAME=…` — which is what
+  // keeps git history free of thirty-PNG diffs from every casual look.
   rmSync(ROOT, { recursive: true, force: true })
   mkdirSync(ROOT, { recursive: true })
 
