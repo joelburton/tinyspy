@@ -1,4 +1,5 @@
 import { asUser, createLetterboxedGame, type E2EClub } from '../../helpers/fixtures'
+import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'
 
 /**
@@ -33,6 +34,9 @@ export const letterboxedGallery: GameGallery = {
     { mode: 'compete', phase: 'mid', note: 'one word played' },
     { mode: 'compete', phase: 'won', note: 'first to cover' },
     { mode: 'compete', phase: 'lost', note: 'everyone conceded — no natural loss' },
+    { mode: 'compete', phase: 'ended', note: 'stopped by agreement' },
+    { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },
+
   ],
 
   async build(club: E2EClub, cell: Cell) {
@@ -64,6 +68,8 @@ export const letterboxedGallery: GameGallery = {
         if (res.error) throw new Error(`letterboxed.concede(${m.username}): ${res.error.message}`)
       }
     }
+
+    if (cell.phase === 'ended') await endGame(club, 'letterboxed', id)
 
     return { gametype, id, viewer }
   },

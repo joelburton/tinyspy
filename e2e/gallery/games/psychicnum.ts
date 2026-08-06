@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { asUser, createGame, type E2EClub } from '../../helpers/fixtures'
+import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'
 
 const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -42,6 +43,8 @@ export const psychicnumGallery: GameGallery = {
     { mode: 'coop', phase: 'mid', note: 'two guesses, one hit' },
     { mode: 'coop', phase: 'won', note: 'all three secrets' },
     { mode: 'coop', phase: 'lost', note: 'guesses spent' },
+    { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },
+
   ],
 
   async build(club: E2EClub, cell: Cell) {
@@ -65,6 +68,8 @@ export const psychicnumGallery: GameGallery = {
     if (cell.phase === 'won') for (const s of secrets) await guess(s)
     // The budget is seven; seven misses spend it without finding anything.
     if (cell.phase === 'lost') for (const w of misses.slice(0, 7)) await guess(w)
+
+    if (cell.phase === 'ended') await endGame(club, 'psychicnum', id)
 
     return { gametype, id, viewer }
   },

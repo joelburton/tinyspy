@@ -1,4 +1,5 @@
 import { asUser, createBoggleGame, type E2EClub } from '../../helpers/fixtures'
+import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'
 
 /** These games are TRUSTING-COMMIT: the FE scores a word and sends the score
@@ -29,11 +30,16 @@ export const boggleGallery: GameGallery = {
     { mode: 'coop', phase: 'mid', note: 'two words found' },
     { mode: 'compete', phase: 'fresh' },
     { mode: 'compete', phase: 'mid', note: 'two words found' },
+    { mode: 'compete', phase: 'ended', note: 'stopped by agreement' },
+    { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },
+
   ],
 
   async build(club: E2EClub, cell: Cell) {
     const { id, gametype } = await createBoggleGame(club, cell.mode)
     if (cell.phase === 'mid') await play(club, id, [{ word: 'cat', points: 1 }, { word: 'art', points: 1 }])
+    if (cell.phase === 'ended') await endGame(club, 'boggle', id)
+
     return { gametype, id, viewer: club.members[0] }
   },
 }

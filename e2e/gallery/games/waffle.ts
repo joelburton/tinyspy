@@ -1,4 +1,5 @@
 import { asUser, createWaffleGame, type E2EClub } from '../../helpers/fixtures'
+import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'
 
 /**
@@ -29,6 +30,9 @@ export const waffleGallery: GameGallery = {
     { mode: 'compete', phase: 'mid', note: 'one wrong swap' },
     { mode: 'compete', phase: 'won', note: 'first to solve' },
     { mode: 'compete', phase: 'lost', note: 'swaps spent unsolved' },
+    { mode: 'compete', phase: 'ended', note: 'stopped by agreement' },
+    { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },
+
   ],
 
   async build(club: E2EClub, cell: Cell) {
@@ -41,6 +45,8 @@ export const waffleGallery: GameGallery = {
       // back and forth spends them all without ever solving the board.
       for (let i = 0; i < 6; i++) await swap(club, id, 2, 3)
     }
+    if (cell.phase === 'ended') await endGame(club, 'waffle', id)
+
     return { gametype, id, viewer: club.members[0] }
   },
 }

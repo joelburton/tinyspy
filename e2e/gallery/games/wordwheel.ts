@@ -1,4 +1,5 @@
 import { asUser, createWordwheelGame, type E2EClub } from '../../helpers/fixtures'
+import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'
 
 /** These games are TRUSTING-COMMIT: the FE scores a word and sends the score
@@ -45,6 +46,9 @@ export const wordwheelGallery: GameGallery = {
     { mode: 'compete', phase: 'fresh' },
     { mode: 'compete', phase: 'mid', note: 'three words found' },
     { mode: 'compete', phase: 'won', note: 'first to the rank' },
+    { mode: 'compete', phase: 'ended', note: 'stopped by agreement' },
+    { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },
+
   ],
 
   async build(club: E2EClub, cell: Cell) {
@@ -53,6 +57,8 @@ export const wordwheelGallery: GameGallery = {
     const { id, gametype } = await createWordwheelGame(club, cell.mode, undefined, 1)
     if (cell.phase === 'mid') await play(club, id, REQUIRED.slice(0, 3))
     if (cell.phase === 'won') await play(club, id, REQUIRED)
+    if (cell.phase === 'ended') await endGame(club, 'wordwheel', id)
+
     return { gametype, id, viewer: club.members[0] }
   },
 }

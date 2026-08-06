@@ -5,6 +5,7 @@ import {
   seedWordleGuesses,
   type E2EClub,
 } from '../../helpers/fixtures'
+import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'
 
 const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -52,6 +53,9 @@ export const wordleGallery: GameGallery = {
     { mode: 'compete', phase: 'mid', note: 'two guesses in' },
     { mode: 'compete', phase: 'won', note: 'first to solve' },
     { mode: 'compete', phase: 'lost', note: 'everyone out of guesses' },
+    { mode: 'compete', phase: 'ended', note: 'stopped by agreement' },
+    { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },
+
   ],
 
   async build(club: E2EClub, cell: Cell) {
@@ -73,6 +77,8 @@ export const wordleGallery: GameGallery = {
         .rpc('submit_guess', { target_game: id, guess: targetOf(id) })
       if (res.error) throw new Error(`wordle.submit_guess(target): ${res.error.message}`)
     }
+
+    if (cell.phase === 'ended') await endGame(club, 'wordle', id)
 
     return { gametype, id, viewer }
   },

@@ -46,7 +46,8 @@
 import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test'
-import { createClubWithMembers, type E2EClub } from '../helpers/fixtures'
+import { type E2EClub } from '../helpers/fixtures'
+import { galleryClub } from './personas'
 import { signIn } from '../helpers/session'
 import { renderIndex, renderViewer, type Shot } from './index'
 import { PHASES, type BuiltGame, type Cell, type GameGallery } from './types'
@@ -316,11 +317,10 @@ async function main() {
     const browser = await chromium.launch()
     try {
       for (const g of games) {
-        // One club per game, sized for its widest cell. Compete needs a rival
-        // to exist even when only one seat is photographed.
-        const club = await createClubWithMembers(
-          Array.from({ length: g.members }, (_, i) => `g${g.game.slice(0, 4)}${i}`),
-        )
+        // One club per game, seated with the DEV PERSONAS rather than
+        // throwaway accounts — so every game the gallery makes is one you can
+        // open in a browser and iterate against (see personas.ts).
+        const club = await galleryClub(g.brand, g.members)
         for (const cell of g.cells) {
           let built
           try {

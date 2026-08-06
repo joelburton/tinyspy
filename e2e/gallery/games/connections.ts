@@ -1,4 +1,5 @@
 import { asUser, createConnectionsGame, type E2EClub } from '../../helpers/fixtures'
+import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'
 
 /**
@@ -53,6 +54,9 @@ export const connectionsGallery: GameGallery = {
     { mode: 'compete', phase: 'mid', note: 'one group found' },
     { mode: 'compete', phase: 'won', note: 'all four groups' },
     { mode: 'compete', phase: 'lost', note: 'four mistakes' },
+    { mode: 'compete', phase: 'ended', note: 'stopped by agreement' },
+    { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },
+
   ],
 
   async build(club: E2EClub, cell: Cell) {
@@ -66,6 +70,8 @@ export const connectionsGallery: GameGallery = {
       // wrong every time, which is all this needs.
       for (let i = 0; i < 4; i++) await guess(club, id, WRONG, 'wrong', null)
     }
+    if (cell.phase === 'ended') await endGame(club, 'connections', id)
+
     return { gametype, id, viewer: club.members[0] }
   },
 }

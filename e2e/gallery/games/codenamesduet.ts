@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { asUser, createCodenamesduetGame, type E2EClub, type E2EMember } from '../../helpers/fixtures'
+import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'
 
 const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -59,6 +60,8 @@ export const codenamesduetGallery: GameGallery = {
     { mode: 'coop', phase: 'mid', note: 'a clue and two agents' },
     { mode: 'coop', phase: 'won', note: 'all fifteen found' },
     { mode: 'coop', phase: 'lost', note: 'hit the assassin' },
+    { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },
+
   ],
 
   async build(club: E2EClub, cell: Cell) {
@@ -138,6 +141,8 @@ export const codenamesduetGallery: GameGallery = {
         }
       }
     }
+
+    if (cell.phase === 'ended') await endGame(club, 'codenamesduet', id)
 
     return { gametype, id, viewer }
   },

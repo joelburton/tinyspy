@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { asUser, createCrosswordsGame, type E2EClub } from '../../helpers/fixtures'
+import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'
 
 const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -54,6 +55,11 @@ export const crosswordsGallery: GameGallery = {
     { mode: 'compete', phase: 'fresh' },
     { mode: 'compete', phase: 'mid', note: 'a few squares filled' },
     { mode: 'compete', phase: 'won', note: 'first to complete' },
+    // Coop only: `end_game` here is coop-only by design — a compete racer
+    // drops out by CONCEDING, which is a loss rather than a neutral stop, so
+    // compete has no `ended` to show.
+    { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },
+
   ],
 
   async build(club: E2EClub, cell: Cell) {
@@ -77,6 +83,8 @@ export const crosswordsGallery: GameGallery = {
         })
       if (res.error) throw new Error(`crosswords.set_cell(${sq.row},${sq.col}): ${res.error.message}`)
     }
+    if (cell.phase === 'ended') await endGame(club, 'crosswords', id)
+
     return { gametype, id, viewer }
   },
 }

@@ -1,4 +1,5 @@
 import { createScrabbleGame, type E2EClub } from '../../helpers/fixtures'
+import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'
 
 /**
@@ -15,10 +16,15 @@ export const scrabbleGallery: GameGallery = {
   cells: [
     { mode: 'coop', phase: 'fresh' },
     { mode: 'compete', phase: 'fresh' },
+    { mode: 'compete', phase: 'ended', note: 'stopped by agreement' },
+    { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },
+
   ],
 
   async build(club: E2EClub, cell: Cell) {
     const { id, gametype } = await createScrabbleGame(club, cell.mode)
+    if (cell.phase === 'ended') await endGame(club, 'scrabble', id)
+
     return { gametype, id, viewer: club.members[0] }
   },
 }
