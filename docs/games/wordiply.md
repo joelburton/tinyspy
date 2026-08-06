@@ -636,3 +636,22 @@ next to the thing it was chosen over. The chosen option is in **bold**.
 10. **Live readout** — **resolved: word length only during play**; length score %, letter
     count, and the longest word appear only at terminal (§2). Compete opponents show just
     guesses used mid-game.
+
+## Deferred
+
+**A way for coop to WIN or LOSE.** Today coop has neither: spending the five
+guesses, or stopping on purpose, both land on the neutral `ended`
+([`supabase/sql/wordiply.sql`](../../supabase/sql/wordiply.sql) — *"Spending the
+guesses, or stopping on purpose, are just finishing"*). Compete resolves
+properly, through the length-score → letter-count comparator, so only the
+shared game has no verdict.
+
+That is arguably right — the game is a score, not a race, and the readouts stay
+hidden until terminal so there's a reveal either way. But it means a coop table
+finishes with no answer to "did we do well?", which every other coop game on the
+roster gives them. Options if it's worth fixing: a target length score the
+setup dialog offers (spellingbee's `target_rank` shape), a par derived from the
+board's `longest_words`, or leaving it neutral and saying so in the rules.
+
+Surfaced 2026-08-06 by the screenshot gallery, which wanted an end-state to
+photograph and found coop had none to show.

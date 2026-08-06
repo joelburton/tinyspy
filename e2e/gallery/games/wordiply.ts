@@ -23,13 +23,22 @@ export const wordiplyGallery: GameGallery = {
   cells: [
     { mode: 'coop', phase: 'fresh' },
     { mode: 'coop', phase: 'mid', note: 'two guesses in' },
+    // Coop has no win or loss to reach — see docs/games/wordiply.md → Deferred.
+    { mode: 'coop', phase: 'ended', note: 'five guesses spent' },
     { mode: 'compete', phase: 'fresh' },
     { mode: 'compete', phase: 'mid', note: 'two guesses in' },
+    { mode: 'compete', phase: 'won', note: 'best length score' },
   ],
 
   async build(club: E2EClub, cell: Cell) {
     const { id, gametype } = await createWordiplyGame(club, cell.mode)
     if (cell.phase === 'mid') await play(club, id, ['bar', 'scar'])
+    // Five guesses is the whole budget, so this reaches the terminal in both
+    // modes — neutral in coop, the comparator's winner in compete. `hangars`
+    // is the board's longest word, so the viewer is the one who took it.
+    if (cell.phase === 'ended' || cell.phase === 'won') {
+      await play(club, id, ['bar', 'car', 'arc', 'arts', 'hangars'])
+    }
     return { gametype, id, viewer: club.members[0] }
   },
 }

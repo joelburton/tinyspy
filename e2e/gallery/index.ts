@@ -20,6 +20,7 @@ const LABEL: Record<Phase, string> = {
   mid: 'Midway',
   won: 'End — won',
   lost: 'End — lost',
+  ended: 'Ended',
 }
 
 /**

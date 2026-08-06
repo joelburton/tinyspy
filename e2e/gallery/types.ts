@@ -45,8 +45,22 @@ export type Phase =
    * says why.
    */
   | 'lost'
+  /**
+   * Terminal, and NEITHER — a neutral finish.
+   *
+   * Some games can only end this way. wordiply's coop spends its five guesses
+   * and stops, with no verdict at all ("spending the guesses, or stopping on
+   * purpose, are just finishing"), and the manual "we agreed to stop" ending
+   * lands here in every game that offers it.
+   *
+   * It earns a column of its own rather than borrowing `lost`, because a
+   * neutral finish and a defeat are different screens and mislabelling one as
+   * the other is exactly the sort of thing this sheet exists to catch. Games
+   * that can't end neutrally simply don't declare it.
+   */
+  | 'ended'
 
-export const PHASES: readonly Phase[] = ['fresh', 'mid', 'won', 'lost']
+export const PHASES: readonly Phase[] = ['fresh', 'mid', 'won', 'lost', 'ended']
 
 /** One tile of the contact sheet, before it's been photographed. */
 export type Cell = {
