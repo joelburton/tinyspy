@@ -74,7 +74,27 @@ export {
   // broadcasts your staged tiles for the team to preview read-only). The share
   // node-graph glyph is the near-universal "send this to others" idiom.
   Share as IconShare,
-  ChevronLeft as IconBack, // back to club
+  // Go UP ONE LEVEL — game → club today, and the same idea wherever it lands
+  // next. Named for the direction rather than a destination, unlike every
+  // other glyph here, and that's deliberate on two counts.
+  //
+  // First, it can't be confused: the ups never co-occur. From a game the only
+  // way up is its club; from a club, home. No screen shows both, so one glyph
+  // has only ever one meaning in place. Contrast the arrow-like cluster
+  // (IconRestart / IconUndo / IconShuffle), which had to be pulled apart
+  // precisely BECAUSE they share an action row and compete for one glance.
+  //
+  // Second, the chevron is the only thing on screen that teaches the `⇧<`
+  // shortcut: the button draws this glyph without printing the key, the menu
+  // item prints the key without drawing the glyph, and the two rhyme. A
+  // destination glyph (a house, a group of people) would read fine and quietly
+  // cost that.
+  //
+  // Revisit if a screen ever offers both ups at once — a breadcrumb, or a home
+  // button beside the back-to-club one. The answer then is probably to add the
+  // WORD ("< Club" / "< Home") rather than to swap the glyph, so the shortcut
+  // mnemonic survives the disambiguation.
+  ChevronLeft as IconBack,
   // restart THIS board from scratch (waffle's replay-board). The skip-back
   // "jump to the start" transport glyph: it rewinds to the beginning of the
   // same board, distinct from IconShuffle's rotate (rearrange, new look).

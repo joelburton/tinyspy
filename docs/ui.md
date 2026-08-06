@@ -752,12 +752,29 @@ icon buttons).
 | button | Lucide | button | Lucide |
 |---|---|---|---|
 | Rotate / shuffle | `RotateCw` | Pass | `SkipForward` |
-| Back to club | `ChevronLeft` | Swap tiles | `ArrowLeftRight` |
+| Up one level (back to club) | `ChevronLeft` | Swap tiles | `ArrowLeftRight` |
 | Submit a move | `Triangle` (points up) | Recall | `Undo2` |
 | Get hint | `Lightbulb` | Dump | `ArrowLeftRight` |
 | Use AI (e.g. clue suggester) | `Sparkles` | Pause | `Pause` |
 | Spoiler — one item, mid-game | `Eye` (`IconSpoiler`) | Peel | `Banana` (`IconPeel`) |
 | Check my own work against the rules | `SpellCheck` (`IconWordCheck`) | | |
+
+**One glyph names a direction, not a thing: `IconBack`.** Every other entry
+above names the action or the object; the chevron names "up one level" (game →
+club, and club → home behind `⇧<`). Two reasons it stays that way, both worth
+knowing before someone "fixes" it into a `House` and a `Users`:
+
+- **The ups never co-occur**, so it can't be ambiguous — from a game the only
+  way up is its club, from a club it's home, and no screen offers both. That's
+  what separates it from the arrow-like cluster (`IconRestart` / `IconUndo` /
+  `IconShuffle`), which *had* to be told apart because they share an action row.
+- **It's the only thing that teaches `⇧<`.** The button draws the glyph without
+  printing the key; the menu item prints the key without drawing the glyph. The
+  chevron looking like `<` is what ties them together, and a destination glyph
+  would quietly spend that.
+
+If a screen ever does offer both ups at once, prefer adding the **word** ("<
+Club" / "< Home") over swapping the glyph, so the mnemonic survives.
 | Reveal — the whole solution, at game-over | `View` (`IconReveal`) | | |
 | End game | `OctagonX` (`IconEnd`) | Zoom to fit | `Fullscreen` (`IconZoomFit`) |
 | Concede | `Flag` (`IconConcede`) | | |
