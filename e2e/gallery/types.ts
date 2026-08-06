@@ -30,7 +30,20 @@ export type Phase =
   | 'mid'
   /** Terminal, and the players did it. */
   | 'won'
-  /** Terminal, and they didn't — out of guesses, out of time, or stopped. */
+  /**
+   * Terminal, and they didn't.
+   *
+   * **One per mode, and prefer the game's OWN losing condition** — out of
+   * guesses, out of time, stack not cleared. A concede or a manual stop is
+   * SHELL behaviour that renders near-identically in all fifteen games, so
+   * spending the slot on it means the sheet shows you the shared chrome
+   * fifteen times and the game's real defeat screen never.
+   *
+   * Fall back to concede only where a game has no natural loss — letterboxed
+   * compete is the case: undo refunds, so the only way a non-conceded player
+   * stops racing is by winning. Note it on the cell when you do, so the sheet
+   * says why.
+   */
   | 'lost'
 
 export const PHASES: readonly Phase[] = ['fresh', 'mid', 'won', 'lost']
@@ -51,9 +64,14 @@ export type Cell = {
    * it puts the paper next to the screenshot of the SAME state, which is the
    * comparison that matters: does the printout say what the screen says?
    *
-   * So each game marks the states worth printing. Usually the richest one (a
-   * win, with a full board and its record), plus a fresh board for the games
-   * whose printout doubles as something to solve on paper.
+   * **Every game prints at least one TERMINAL state.** That's what a printout
+   * is — a record of a game played — so a game that prints none has nothing to
+   * check, and the sheet would quietly show it as four "not printed" holes that
+   * read like an oversight rather than a decision.
+   *
+   * Games whose board is worth solving on paper (letterboxed, boggle,
+   * crosswords) print a FRESH board as well: there the printout is also a thing
+   * you hand someone, and the blank page is the point.
    */
   pdf?: boolean
 }

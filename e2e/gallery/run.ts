@@ -271,6 +271,34 @@ async function main() {
   writeFileSync(join(ROOT, 'index.html'), renderIndex(shots, stamp))
   const ok = shots.filter((s) => s.file).length
   console.log(`\n${ok}/${shots.length} tiles → ${ROOT}/index.html`)
+
+  // Cells nobody declared, listed where you'll actually see them. This is a
+  // NOTE, not a failure: the script can't tell "unreachable" from "not written
+  // yet", and making it assert would turn a browsing tool into a test — the one
+  // thing the design rules out. But it does have to say something, because the
+  // gap it names is exactly how both games shipped without a compete loss.
+  const undeclared = shots.filter((s) => s.missing === 'no cell declared')
+  if (undeclared.length) {
+    const seen = new Set<string>()
+    console.log('\n  note: cells never declared')
+    for (const s of undeclared) {
+      const key = `${s.game} ${s.cell.mode}/${s.cell.phase}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      console.log(`    ${s.game.padEnd(14)}${s.cell.mode}/${s.cell.phase}`)
+    }
+    console.log('  — add a cell, or ignore if the state is unreachable')
+  }
+
+  // Same, for the print floor: a game with no printed terminal has nothing on
+  // paper to check, which is a convention rather than something to enforce.
+  for (const g of games) {
+    const printedTerminal = g.cells.some((c) => c.pdf && (c.phase === 'won' || c.phase === 'lost'))
+    if (!printedTerminal) {
+      console.log(`\n  note: ${g.game} prints no terminal state — a printout is a RECORD,`)
+      console.log('        so every game should print at least one finished game')
+    }
+  }
 }
 
 main()

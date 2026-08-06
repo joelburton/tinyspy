@@ -31,7 +31,7 @@ export const letterboxedGallery: GameGallery = {
     { mode: 'compete', phase: 'fresh' },
     { mode: 'compete', phase: 'mid', note: 'one word played' },
     { mode: 'compete', phase: 'won', note: 'first to cover', pdf: true },
-    { mode: 'compete', phase: 'lost', note: 'everyone conceded' },
+    { mode: 'compete', phase: 'lost', note: 'everyone conceded — no natural loss' },
   ],
 
   async build(club: E2EClub, cell: Cell) {

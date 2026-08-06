@@ -104,6 +104,27 @@ games have no natural loss. **A missing tile is informative** — it says nobody
 has looked at that state — so the sheet should draw the hole rather than close
 the gap.
 
+## Three conventions (decided 2026-08-05)
+
+**One `lost` per mode, and prefer the game's OWN losing condition** — out of
+guesses, out of time, stack not cleared. A concede or a manual stop is *shell*
+behaviour that renders near-identically in all fifteen games, so spending the
+slot on it shows you the shared chrome fifteen times and the game's real defeat
+screen never. Fall back to concede only where a game has no natural loss —
+letterboxed compete is the case (undo refunds, so a non-conceded player only
+stops by winning) — and note it on the cell so the sheet says why.
+
+**Every game prints at least one TERMINAL state.** A printout is a record of a
+game played, so a game printing none has nothing to check. Games whose board is
+worth solving on paper (letterboxed, boggle, crosswords) print a FRESH board
+too. The runner prints a note when a game breaks this.
+
+**Undeclared cells are reported, not enforced.** The runner lists them at the
+end of every run. It stays a NOTE because the script can't tell "unreachable"
+from "not written yet", and making it assert would turn a browsing tool into a
+test — the one thing the design rules out. But it has to say something: this
+gap is exactly how both first games shipped without a compete loss.
+
 ## The matrix
 
 | axis | values |
