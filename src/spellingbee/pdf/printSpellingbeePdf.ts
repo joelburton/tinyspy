@@ -1,6 +1,6 @@
 import type { jsPDF } from 'jspdf'
 import { BLACK, DARK_GREY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
-import { type WordRow } from '../../common/pdf/wordColumns'
+import type { WordSection } from '../../common/pdf/wordSections'
 import { drawWordListBody } from '../../common/pdf/wordListBody'
 import { BOX_H, BOX_W, HEX_H, HEX_POSITIONS, HEX_SHRINK, HEX_VERTS, HEX_W } from '../lib/honeycomb'
 
@@ -21,7 +21,7 @@ export type SpellingbeePrintModel = PrintHeader & {
   outerLetters: string[]
   centerLetter: string
   /** The word list, ALREADY sorted alphabetically. */
-  words: WordRow[]
+  sections: WordSection[]
 }
 
 const HEX_W_PT = 56 // printed hex width (fixes the board size, like boggle's tile size)

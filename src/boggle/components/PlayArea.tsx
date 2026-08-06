@@ -24,6 +24,7 @@ import { useGame } from '../hooks/useGame'
 import { buildRevealWords } from '../../common/lib/game/revealWords'
 import { buildDisplayRows } from '../lib/displayRows'
 import { printBogglePdf } from '../pdf/printBogglePdf'
+import { buildWordSections } from '../../common/pdf/wordSections'
 import { db } from '../db'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -241,13 +242,20 @@ export function PlayArea(ctx: GamePageCtx) {
       brand,
       gameTitle: title,
       date: new Date().toLocaleDateString(),
-      // Exactly the on-screen InfoCol status: found / required words · score.
-      summary: `${myCount} / ${game.required_words_count} words · ${myScore} pts`,
+      // Coop's counts are the TEAM's, so the header can state them. Compete's
+      // are per-player — each section carries its own — so the header states
+      // only the shared target, rather than reporting the viewer's tally as if
+      // it were the table's.
+      summary:
+        game.mode === 'compete'
+          ? `${game.required_words_count} word${game.required_words_count === 1 ? '' : 's'} to find`
+          : `${myCount} / ${game.required_words_count} words · ${myScore} pts`,
       board: boardToDisplay(game.board, game.n),
       mode: game?.mode ?? 'coop',
       setup: summaryRows,
-      // Alphabetical — the 5-column list renders them column-major.
-      words,
+      // Coop prints one shared list; compete a section per player, each with
+      // its own score, plus a trailing "Not found" for the terminal reveal.
+      sections: buildWordSections(words, game.mode, players, myId),
     }
     // The FULL boggle menu: Help (top) + our Print item + the End/Concede +
     // Back-to-club tail. The End/Concede handlers dispatch through the stable
@@ -274,7 +282,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, boggleSetup, hasBonusDifficulty, ladder, isTerminal, solutionRevealed, myConceded, myCount, myScore, summaryRows])
+  }, [menu, game, foundWords, players, brand, title, boggleSetup, hasBonusDifficulty, ladder, isTerminal, solutionRevealed, myConceded, myCount, myScore, summaryRows, myId])
 
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); only the

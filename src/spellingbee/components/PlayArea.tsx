@@ -27,6 +27,7 @@ import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useCon
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { printSpellingbeePdf } from '../pdf/printSpellingbeePdf'
+import { buildWordSections } from '../../common/pdf/wordSections'
 import shared from '../../common/components/game/PlayArea.module.css'
 import surface from '../../common/components/game/foundWordsPlayArea.module.css'
 import styles from './PlayArea.module.css'
@@ -189,13 +190,20 @@ export function PlayArea(ctx: GamePageCtx) {
       brand,
       gameTitle: title,
       date: new Date().toLocaleDateString(),
-      // Exactly the on-screen InfoCol status (RankBar rank + the Score / Words stats).
-      summary: `${RANKS[rankIdx]} · Score ${foundWordsScore} / ${game.required_words_score} · Words ${foundWordsCount} / ${game.required_words_count}`,
+      // Coop's rank + totals are the TEAM's, so the header states them. Compete's
+      // are per-player — each section carries its own — so the header states only
+      // the shared targets rather than reporting the viewer's as the table's.
+      summary:
+        game.mode === 'compete'
+          ? `Target: ${game.required_words_score} pts · ${game.required_words_count} words`
+          : `${RANKS[rankIdx]} · Score ${foundWordsScore} / ${game.required_words_score} · Words ${foundWordsCount} / ${game.required_words_count}`,
       outerLetters: game.outer_letters.split(''),
       centerLetter: game.center_letter,
       mode: game?.mode ?? 'coop',
       setup: summaryRows,
-      words,
+      // Coop prints one shared list; compete a section per player, each with its
+      // own score, plus a trailing "Not found" for the terminal reveal.
+      sections: buildWordSections(words, game.mode, players, session.user.id),
     }
     // The FULL spellingbee menu: Help (top) + the Print item + the End/Concede +
     // Back-to-club tail, all from `buildGameMenu`. End/concede dispatch through the
@@ -224,7 +232,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, spellingbeeSetup, hasBonus, isTerminal, solutionRevealed, myConceded, foundWordsScore, foundWordsCount, summaryRows])
+  }, [menu, game, foundWords, players, brand, title, spellingbeeSetup, hasBonus, isTerminal, solutionRevealed, myConceded, foundWordsScore, foundWordsCount, summaryRows, session.user.id])
 
   // ─── Allowed-letter set (drives illegal-letter dim) ────
   const allowedLetters = useMemo(() => {

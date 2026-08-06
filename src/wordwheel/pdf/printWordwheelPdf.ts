@@ -1,6 +1,6 @@
 import type { jsPDF } from 'jspdf'
 import { BLACK, DARK_GREY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
-import { type WordRow } from '../../common/pdf/wordColumns'
+import type { WordSection } from '../../common/pdf/wordSections'
 import { drawWordListBody } from '../../common/pdf/wordListBody'
 import { BOX_H, BOX_W, TILE_POSITIONS } from '../lib/wheel'
 
@@ -26,7 +26,7 @@ export type WordwheelPrintModel = PrintHeader & {
   outerLetters: string[]
   centerLetter: string
   /** The word list, ALREADY sorted alphabetically. */
-  words: WordRow[]
+  sections: WordSection[]
 }
 
 /** Printed width of the whole wheel, in points — fixes the board size (like boggle's

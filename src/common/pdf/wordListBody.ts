@@ -1,11 +1,11 @@
 import { drawSetup, type PrintDoc, type PrintHeader } from './frame'
-import { drawWordColumns, type WordRow } from './wordColumns'
+import { drawWordColumns } from './wordColumns'
+import type { WordSection } from './wordSections'
 
 /** The knobs the three word-list printers actually vary. Everything else about the
  *  layout (the offsets) is shared and lives below. */
 type WordListOpts = {
-  /** Column count for the found-words list. boggle/spellingbee use 4; bananagrams,
-   *  whose board leaves a wider band below it, uses 6. Default 4. */
+  /** Column count for the found-words list. Default 4. */
   cols?: number
   /** Placeholder shown when there are no word rows (only bananagrams sets one —
    *  an empty grid is a real, printable state there). */
@@ -14,11 +14,15 @@ type WordListOpts = {
 
 /**
  * The shared body layout for the **word-list PDF family** (boggle + spellingbee +
- * bananagrams; the stated template for future word-list printers — see docs/pdf.md →
+ * wordwheel; the stated template for future word-list printers — see docs/pdf.md →
  * the two body families): a board at the top-left, the Setup block to its right, and
  * the found-words list below both in column-major columns. The layout offsets (the
  * header gap `44`, the setup gutter `26`/`9`, the words gap `24`) live here ONCE
  * instead of being copied into each printer.
+ *
+ * The list is a list of SECTIONS, stacked. Coop passes one (the plain shared
+ * list); compete passes one per player, each with its own score, plus a trailing
+ * "Not found" block — see `buildWordSections`.
  *
  * The per-game differences are the **board** and two small knobs (`cols`, `emptyText`),
  * so the caller passes a `drawBoard(x, y) → { w, h }` that renders its board at (x, y)
@@ -30,7 +34,7 @@ type WordListOpts = {
  */
 export function drawWordListBody(
   pd: PrintDoc,
-  m: PrintHeader & { words: WordRow[] },
+  m: PrintHeader & { sections: WordSection[] },
   drawBoard: (x: number, y: number) => { w: number; h: number },
   opts: WordListOpts = {},
 ): void {
@@ -42,11 +46,17 @@ export function drawWordListBody(
   const boardBottom = boardTop + h
   const setupBottom = drawSetup(doc, m.setup, margin + w + 26, boardTop + 9, m.mode)
 
-  // ── Words: column-major alphabetical columns, below the board + setup ──
-  drawWordColumns(pd, {
-    startY: Math.max(boardBottom, setupBottom) + 24,
-    cols: opts.cols ?? 4,
-    rows: m.words,
-    ...(opts.emptyText ? { emptyText: opts.emptyText } : {}),
+  // ── Words: one stacked block per section, below the board + setup ──
+  let y = Math.max(boardBottom, setupBottom) + 24
+  m.sections.forEach((section) => {
+    y =
+      drawWordColumns(pd, {
+        startY: y,
+        cols: opts.cols ?? 4,
+        rows: section.words,
+        ...(section.who ? { heading: section.who } : {}),
+        ...(section.tally ? { subheading: section.tally } : {}),
+        ...(opts.emptyText ? { emptyText: opts.emptyText } : {}),
+      }) + 20
   })
 }

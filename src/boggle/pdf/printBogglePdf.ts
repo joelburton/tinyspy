@@ -1,5 +1,5 @@
 import { BLACK, DARK_GREY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
-import { type WordRow } from '../../common/pdf/wordColumns'
+import type { WordSection } from '../../common/pdf/wordSections'
 import { drawWordListBody } from '../../common/pdf/wordListBody'
 import type { jsPDF } from 'jspdf'
 
@@ -16,9 +16,9 @@ import type { jsPDF } from 'jspdf'
 export type BogglePrintModel = PrintHeader & {
   /** The board as a grid of display faces (`boardToDisplay` — 'A', 'Qu', '?', …). */
   board: string[][]
-  /** The word list, ALREADY sorted alphabetically (found rows carry score + finder;
-   *  a `found: null` row is a missed required word — bare, shown at terminal only). */
-  words: WordRow[]
+  /** The word list as printed BLOCKS: one for coop, one per player for compete
+   *  (plus a trailing "Not found"). See `common/pdf/wordSections.ts`. */
+  sections: WordSection[]
 }
 
 const TILE = 26 // fixed board-tile size (= scrabble's rack-tile size)

@@ -301,27 +301,37 @@ turn — matches the shared `<TurnLog>`), a `#` / `Player` / <what-happened> tab
 thin rule between turns; the Setup section is appended at the end of the flow.
 
 **Body family 2 — word-list games (`wordListBody.ts` over `wordColumns.ts`; boggle,
-spellingbee, bananagrams).** A board top-left, the Setup to its **right**, and below them
+spellingbee, wordwheel).** A board top-left, the Setup to its **right**, and below them
 the words in **N balanced, column-major, alphabetical columns** (each row
 `word (·bonus dot) … +score  finder`). The whole skeleton — the board/Setup/words
 placement and the layout offsets — is the shared `drawWordListBody`; each printer passes
 only a `drawBoard(x, y) → { w, h }` callback and the `cols`/`emptyText` knobs.
-The board is per-game: boggle draws a tile grid; spellingbee draws its 7-hex honeycomb
-(from `spellingbee/lib/honeycomb.ts`, the same geometry the on-screen SVG board uses —
-white hexes, the center distinguished only by a thicker border). Spellingbee also uses
-the `pangram` row flag (pangrams print **bold**).
+The board is per-game: boggle draws a tile grid; spellingbee and wordwheel draw their
+7-hex honeycomb / 9-tile wheel (from `spellingbee/lib/honeycomb.ts`, the same geometry
+the on-screen SVG board uses — white hexes, the center distinguished only by a thicker
+border). Both also use the `pangram` row flag (pangrams print **bold**). The tile size
+is **fixed**, so a 6×6 prints bigger than a 4×4 — it isn't scaled to a column.
 
-Board sizing has two sub-shapes. boggle + spellingbee use a **fixed** tile size (so a
-6×6 prints bigger than a 4×4 — it isn't scaled to a column). **bananagrams is the
-exception**: its crossword is an arbitrary shape built somewhere in a big 25×25 arena,
-so the board is handed in **already cropped to the used tiles** (`boardToGrid`) and the
-tile size is **derived** so that crop fills ~75% of the content width (clamped so it
-can't overflow the page height, and a `MAX_TILE` cap so a near-empty board doesn't
-balloon) — the board is the headline of the page, the Setup tucks into the ~25% beside
-it. bananagrams's words carry **no score or finder** (a Bananagrams grid is one
-player's, not "found" by anyone), so every row is a bare `found: null` word — enumerated
-by `bananagrams/lib/words.ts`'s `boardWords` (the FE twin of the server's win-time spell
-check: every 2+ run across + down), then de-duped + alphabetised.
+**The word list is a stack of SECTIONS, and that's what compete needs.** Coop passes
+one unattributed section: a single shared hunt, one list, each row keeping its finder,
+and the team's totals already stated in the page header. Compete passes **one section
+per player** — heading, that player's own `n words · m pts`, then their words in
+columns — because in compete both the words and the score are per-player facts. It
+used to print one merged list under one global tally, which reported *the viewer's*
+numbers as though they were the table's and left authorship to a name squeezed onto
+the end of each row. `buildWordSections` (`common/pdf/wordSections.ts`) does the split
+for all three games.
+
+Three details of that split are deliberate. Sections follow **roster order**, and a
+player who found nothing still gets one — finding nothing is a result, not a reason to
+be omitted. The per-row **finder is dropped inside a player's section**, since the
+heading already says whose it is. And words nobody found (the terminal reveal, which
+arrives as `found: null` rows) go **last under "Not found"** rather than under any
+player, because filing a miss under a name would credit it to them.
+
+In compete the page **header** drops the tally too, stating only the shared target
+(`30 words to find`, `Target: 50 pts · 30 words`) — there is no single number for a
+table where everyone scored differently.
 
 **Body family 3 — grid-plus-clue-columns (`src/crosswords/pdf/`; crosswords) — a
 deliberate whole-cloth exception.** Crosswords does NOT use the shared `common/pdf`

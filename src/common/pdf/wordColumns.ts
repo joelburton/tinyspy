@@ -28,21 +28,44 @@ export type WordRow = {
   pangram?: boolean
 }
 
-/** Draw the "Words" heading at (margin, startY) + the balanced N-column word list below. */
+/**
+ * Draw the "Words" heading at (margin, startY) + the balanced N-column word list
+ * below. Returns the y BELOW the block, so a caller stacking several lists (a
+ * compete printout's section per player) knows where the next one starts.
+ *
+ * `subheading` is that section's own tally line ("12 words · 34 pts"), sitting
+ * between the heading and the columns.
+ */
 export function drawWordColumns(
   pd: PrintDoc,
-  o: { startY: number; cols: number; rows: WordRow[]; heading?: string; emptyText?: string },
-): void {
+  o: {
+    startY: number
+    cols: number
+    rows: WordRow[]
+    heading?: string
+    subheading?: string
+    emptyText?: string
+  },
+): number {
   const { doc, pageW, margin, pageBottom } = pd
   doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(BLACK)
   doc.text(o.heading ?? 'Words', margin, o.startY)
 
+  let headBottom = o.startY
+  if (o.subheading) {
+    headBottom += 12
+    doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(BLACK)
+    doc.text(o.subheading, margin, headBottom)
+  }
+
   const colW = (pageW - 2 * margin) / o.cols
   let remaining = o.rows
-  let top = o.startY + 12
+  let top = headBottom + 12
+  let bottom = top
   if (!remaining.length) {
     doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(BLACK)
     doc.text(o.emptyText ?? 'No words yet.', margin, top + 4)
+    bottom = top + 8
   }
   while (remaining.length) {
     // Balance across ALL columns (⌈n / cols⌉ rows), capped by what fits on the page.
@@ -55,11 +78,14 @@ export function drawWordColumns(
       drawWordRow(pd, w, margin + c * colW, top + r * ROW_H, colW)
     })
     remaining = remaining.slice(perPage)
+    bottom = top + rowsPerCol * ROW_H
     if (remaining.length) {
       doc.addPage()
       top = margin
+      bottom = top
     }
   }
+  return bottom
 }
 
 /** One cell: word (+ bonus dot) left, and — for a FOUND word — +score and finder
