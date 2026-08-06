@@ -37,10 +37,8 @@ export type PrintHeader = {
    *  rows). This reverses an earlier rule that printed "the relevant options only".
    *
    *  Comes from the game's `lib/setupSummary.ts`, the SAME array its info column
-   *  renders, so paper and screen can't drift.
-   *
-   *  IN FLIGHT (branch `pdf-setup`): not every game has been moved across yet — see
-   *  docs/pdf-setup-plan.md for the remaining list. */
+   *  renders, so paper and screen can't drift. Every game has one except crosswords,
+   *  which has no Setup block on either surface (docs/pdf.md → Setup rows). */
   setup: SetupRow[]
   /** Co-op or compete, which the Setup heading carries (`Setup: Co-op`) rather than
    *  spending a row on — mode is locked at the GAMETYPE level (`manifest.mode`) and is

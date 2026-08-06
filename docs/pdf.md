@@ -171,11 +171,6 @@ above) — a game picks one.
 
 ### Setup rows
 
-> **In flight** (branch `pdf-setup`) — the rules below are decided and the reversal
-> above is live in this doc; the shared module is landing game by game. See
-> [pdf-setup-plan.md](pdf-setup-plan.md) for what's done and what's left, and delete
-> this note (and that file) when the sweep finishes.
-
 **One source per game feeds both the info column and the paper.** Each game exports
 `setupRows(setup, ctx) => SetupRow[]` from `<game>/lib/setupSummary.ts` (the same
 per-game seam `lib/history.ts` uses); `<SetupDisclosure>` renders it as `<li>`s and the
@@ -201,6 +196,18 @@ Three rules hold the shape:
   row, with an explicit opt-out list for keys that aren't player choices. A convention
   that two files agree is what we had, and it drifted; this makes it a failing build
   instead.
+
+Fourteen games have one. **crosswords is the documented exception**: it never had a
+recap on either surface — no `<SetupDisclosure>`, and its PDF is the whole-cloth ported
+printer with no Setup block — so there was nothing to unify, and adding one would be new
+UI rather than a sweep. `src/setupRows.test.ts` names it explicitly, so the exception is
+a decision on record rather than a game the guard forgot.
+
+The sweep that introduced this found what a hand-kept convention hides: bananagrams'
+two word-check bands appeared on **neither** surface, and boggle printed
+`Win at: undefined%` (the screen row tested `=== null` where an unset threshold is
+`undefined` — latent behind a closed disclosure, glaring once it printed). Both were
+found by the coverage test, not by reading.
 
 **Body family 3 — track games (`columns.ts`; wordle, waffle, strands).** One column per
 BOARD: its grid, then whatever belongs to that grid (wordle adds its QWERTY
