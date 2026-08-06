@@ -82,10 +82,31 @@ export function renderViewer(): string {
 `
 }
 
-export function renderIndex(shots: Shot[], stamp: string): string {
-  const games = [...new Set(shots.map((s) => s.game))].sort()
-  const viewports = [...new Set(shots.map((s) => s.viewport))]
+/** Heading label for each capture technology, in the order they're shown. */
+const TECH: Array<{ key: string; label: string }> = [
+  { key: 'desktop', label: 'Desktop' },
+  { key: 'mobile', label: 'Mobile' },
+  { key: 'pdf', label: 'PDF' },
+]
+
+/**
+ * @param brands codename → player-facing brand, for the "SnakeBox (letterboxed)"
+ *   headings. Both names: the sheet is read by someone thinking in brands and
+ *   edited by someone thinking in code names.
+ */
+export function renderIndex(
+  shots: Shot[],
+  stamp: string,
+  brands: Record<string, string>,
+): string {
   const modes: Array<'coop' | 'compete'> = ['coop', 'compete']
+  const title = (g: string) => `${brands[g] ?? g} (${g})`
+  // Alphabetical by BRAND — that's the name on the heading and in the jump
+  // list, so it's the one someone scans for. A game with no brand declared
+  // sorts by its code name, which is what its heading shows anyway.
+  const games = [...new Set(shots.map((s) => s.game))].sort((a, b) =>
+    (brands[a] ?? a).localeCompare(brands[b] ?? b),
+  )
 
   const at = (game: string, mode: string, phase: string, viewport: string) =>
     shots.find(
@@ -96,44 +117,60 @@ export function renderIndex(shots: Shot[], stamp: string): string {
         s.viewport === viewport,
     )
 
+  /** Does this game have anything under (tech, mode)? */
+  const has = (game: string, tech: string, mode: string) =>
+    PHASES.some((phase) => {
+      const shot = at(game, mode, phase, tech)
+      // A game with NO declared cell for a mode simply doesn't HAVE that mode
+      // (bananagrams is compete-only, codenamesduet coop-only), so its heading
+      // goes rather than sitting over four holes: a hole means "nobody has
+      // looked at this state", which would be a lie about a mode that can't be
+      // played at all.
+      return shot && !(shot.file === null && shot.missing === 'no cell declared')
+    })
+
+  const strip = (game: string, tech: string, mode: string) =>
+    PHASES.map((phase) => {
+      const shot = at(game, mode, phase, tech)
+      const body = !shot?.file
+        ? `<div class="hole">${shot?.missing ?? 'not captured'}</div>`
+        : shot.file.endsWith('.pdf')
+          ? `<a href="${shot.file}" target="_blank" class="paper"><span class="paperMark">PDF</span><span class="paperName">${shot.file}</span></a>`
+          : `<a href="viewer.html?img=${encodeURIComponent(shot.file)}" target="_blank"><img src="${shot.file}" loading="lazy" alt="${game} ${mode} ${phase} ${tech}"></a>`
+      const note = shot?.cell.note ? `<div class="note">${shot.cell.note}</div>` : ''
+      return `<figure>
+        ${body}
+        <figcaption>${LABEL[phase]}${note}</figcaption>
+      </figure>`
+    }).join('')
+
   const sections = games
     .map((game) => {
-      const rows = viewports
-        .flatMap((vp) =>
-          modes.map((mode) => {
-            const cells = PHASES.map((phase) => at(game, mode, phase, vp))
-            // A game with NO declared cell for a mode simply doesn't HAVE that
-            // mode (bananagrams is compete-only, codenamesduet coop-only), so
-            // the row goes rather than drawing four holes: a hole means "nobody
-            // has looked at this state", which would be a lie about a mode the
-            // game can't be played in. Same for a paper row nobody asked to print.
-            if (cells.every((c) => !c || (!c.file && c.missing === 'no cell declared'))) return ''
-            if (vp === 'pdf' && cells.every((c) => !c?.file)) return ''
-
-            const tiles = PHASES.map((phase) => {
-              const shot = at(game, mode, phase, vp)
-              const body = !shot?.file
-                ? `<div class="hole">${shot?.missing ?? 'not captured'}</div>`
-                : shot.file.endsWith('.pdf')
-                  ? `<a href="${shot.file}" target="_blank" class="paper"><span class="paperMark">PDF</span><span class="paperName">${shot.file}</span></a>`
-                  : `<a href="viewer.html?img=${encodeURIComponent(shot.file)}" target="_blank"><img src="${shot.file}" loading="lazy" alt="${game} ${mode} ${phase} ${vp}"></a>`
-              const note = shot?.cell.note ? `<div class="note">${shot.cell.note}</div>` : ''
-              return `<figure>
-                ${body}
-                <figcaption>${LABEL[phase]}${note}</figcaption>
-              </figure>`
-            }).join('')
-
-            return `<h3>${vp} · ${mode === 'coop' ? 'Co-op' : 'Compete'}</h3>
-              <div class="strip">${tiles}</div>`
-          }),
-        )
-        .join('')
-      return `<section class="game" id="${game}"><h2>${game}</h2>${rows}</section>`
+      const techBlocks = TECH.map(({ key, label }) => {
+        const modeBlocks = modes
+          .filter((mode) => has(game, key, mode))
+          .map(
+            (mode) => `<h4>${mode === 'coop' ? 'Co-op' : 'Compete'}</h4>
+              <div class="strip">${strip(game, key, mode)}</div>`,
+          )
+          .join('')
+        if (!modeBlocks) return ''
+        return `<h3 id="${game}-${key}">${label}</h3>${modeBlocks}`
+      }).join('')
+      return `<section class="game" id="${game}"><h2>${title(game)}</h2>${techBlocks}</section>`
     })
     .join('')
 
-  const nav = games.map((g) => `<a href="#${g}">${g}</a>`).join('')
+  // The jump list: a row per game, with a link straight to each of its three
+  // technology blocks. Fifteen games x three blocks is a lot of scrolling, and
+  // "show me every game's mobile" is a question this answers in one click.
+  const nav = games
+    .map(
+      (g) => `<li><a class="navGame" href="#${g}">${title(g)}</a>${TECH.map(
+        ({ key, label }) => ` <a class="navTech" href="#${g}-${key}">${label}</a>`,
+      ).join('')}</li>`,
+    )
+    .join('')
 
   return `<!doctype html>
 <meta charset="utf-8">
@@ -155,15 +192,21 @@ export function renderIndex(shots: Shot[], stamp: string): string {
   .stamp { color: #000000; margin-bottom: .75rem; }
   /* Fifteen games is a lot of scrolling; the jump list makes "show me
      stackdown" one click rather than a hunt. */
-  .nav { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.5rem; }
-  .nav a { font-size: .8rem; padding: .2rem .5rem; border: 1px solid #000000;
-           border-radius: 999px; text-decoration: none; color: #000000;
-           background: #ffffff; }
-  .nav a:hover { background: #000000; color: #ffffff; }
+  .nav { list-style: none; margin: 0 0 2rem; padding: 0; }
+  .nav li { display: flex; align-items: baseline; gap: .4rem; padding: .15rem 0; }
+  .navGame { font-weight: 700; color: #000000; text-decoration: none;
+             min-width: 20rem; }
+  .navGame:hover { text-decoration: underline; }
+  .navTech { font-size: .8rem; padding: .1rem .5rem; border: 1px solid #000000;
+             border-radius: 999px; text-decoration: none; color: #000000;
+             background: #ffffff; }
+  .navTech:hover { background: #000000; color: #ffffff; }
   .game { scroll-margin-top: 1rem; }
-  h2 { margin: 2.5rem 0 .25rem; font-size: 1.25rem; color: #000000;
+  h2 { margin: 3rem 0 .25rem; font-size: 1.25rem; color: #000000;
        border-bottom: 2px solid #000000; padding-bottom: .3rem; }
-  h3 { margin: 1.25rem 0 .5rem; font-size: .8rem; font-weight: 700; color: #000000;
+  h3 { margin: 1.5rem 0 .5rem; font-size: 1rem; font-weight: 700; color: #000000;
+       scroll-margin-top: 1rem; }
+  h4 { margin: 1rem 0 .5rem; font-size: .8rem; font-weight: 700; color: #000000;
        text-transform: uppercase; letter-spacing: .06em; }
   /* Four phases across — one game's whole arc, left to right. */
   .strip { display: flex; gap: .75rem; }
@@ -194,7 +237,7 @@ export function renderIndex(shots: Shot[], stamp: string): string {
 </style>
 <h1>PuzPuzPuz — game gallery</h1>
 <div class="stamp">${stamp} · ${shots.filter((s) => s.file).length} of ${shots.length} tiles captured</div>
-<div class="nav">${nav}</div>
+<ul class="nav">${nav}</ul>
 ${sections}
 `
 }

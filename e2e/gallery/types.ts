@@ -67,8 +67,19 @@ export type BuiltGame = {
 }
 
 export type GameGallery = {
-  /** Folder + heading name — the game's code name (docs/naming.md). */
+  /** The game's CODE name (docs/naming.md) — file names, anchors, GAMES=. */
   game: string
+  /**
+   * The player-facing BRAND ("SnakeBox", "MothCubes"), for the sheet's heading:
+   * "SnakeBox (letterboxed)". Both names, because the sheet is read by someone
+   * thinking in brands and edited by someone thinking in code names.
+   *
+   * Restated here rather than read from `manifest.BRAND`, which would be the
+   * single source of truth — a plain node script can't import the manifests,
+   * since they reach into `.css` and `.svg`. Keep it in step by hand; it's one
+   * string per game and the sheet shows it at the top of every section.
+   */
+  brand: string
   /**
    * The cells this game HAS. Ragged on purpose: bananagrams is compete-only,
    * codenamesduet coop-only, and several games have no natural loss. A cell

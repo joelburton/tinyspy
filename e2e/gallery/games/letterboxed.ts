@@ -22,6 +22,7 @@ async function play(club: E2EClub, gameId: string, words: string[]): Promise<voi
 
 export const letterboxedGallery: GameGallery = {
   game: 'letterboxed',
+  brand: 'SnakeBox',
   members: 2,
   cells: [
     { mode: 'coop', phase: 'fresh' },

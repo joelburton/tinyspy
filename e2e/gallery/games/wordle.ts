@@ -41,6 +41,7 @@ function targetOf(gameId: string): string {
  */
 export const wordleGallery: GameGallery = {
   game: 'wordle',
+  brand: 'WordNerd',
   members: 2,
   cells: [
     { mode: 'coop', phase: 'fresh' },

@@ -263,7 +263,8 @@ async function main() {
   }
 
   const stamp = new Date().toISOString().replace('T', ' ').slice(0, 16)
-  writeFileSync(join(ROOT, 'index.html'), renderIndex(shots, stamp))
+  const brands = Object.fromEntries(games.map((g) => [g.game, g.brand]))
+  writeFileSync(join(ROOT, 'index.html'), renderIndex(shots, stamp, brands))
   writeFileSync(join(ROOT, 'viewer.html'), renderViewer())
   const ok = shots.filter((s) => s.file).length
   console.log(`\n${ok}/${shots.length} tiles → ${ROOT}/index.html`)
