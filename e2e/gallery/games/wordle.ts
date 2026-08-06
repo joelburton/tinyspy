@@ -76,6 +76,18 @@ export const wordleGallery: GameGallery = {
         .schema('wordle')
         .rpc('submit_guess', { target_game: id, guess: targetOf(id) })
       if (res.error) throw new Error(`wordle.submit_guess(target): ${res.error.message}`)
+
+      // SOLVING FIRST DOESN'T END A COMPETE RACE — the winner is fewest
+      // guesses, so the game waits until every player is done, and a solver
+      // just goes locally terminal while the others play on. The same rule the
+      // `lost` branch already followed; missing here, this cell photographed a
+      // still-running board under a heading that said someone had won, until
+      // the runner's terminal check caught it.
+      if (cell.mode === 'compete') {
+        for (const m of club.members) {
+          if (m.userId !== viewer.userId) await seedWordleGuesses(m, id, 6)
+        }
+      }
     }
 
     if (cell.phase === 'ended') await endGame(club, 'wordle', id)

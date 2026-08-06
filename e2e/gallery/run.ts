@@ -44,6 +44,7 @@
  */
 
 import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
 import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test'
 import { type E2EClub } from '../helpers/fixtures'
@@ -85,6 +86,78 @@ const ALL: GameGallery[] = [
   wordwheelGallery,
 ]
 
+
+/**
+ * Mark every game this member is in as an invitation already seen.
+ *
+ * A player who didn't create a game gets an "X added you to a new Y game"
+ * popup, suppressed once by a `seen` set in localStorage. Every gallery context
+ * is a brand-new browser profile, so that set starts empty — and by the time
+ * the run photographs a cell from a NON-creator's chair (the losing seat of a
+ * compete terminal, say), every game the run has ever made stacks up as Join
+ * toasts over the info column.
+ *
+ * Scoped to the MEMBER, not to the club: each game gets its own club, but the
+ * invitation query doesn't care about clubs — it asks "what games am I a player
+ * in?" — so a club-scoped seed left every other game's invite still popping.
+ *
+ * Seeding the set is the honest fix rather than clicking the toasts away: in a
+ * real club these invitations surfaced when they happened, days ago. What's
+ * unreal here is the fresh browser profile, not the dismissal.
+ */
+async function suppressInvites(ctx: BrowserContext, userId: string): Promise<void> {
+  const ids = execFileSync(
+    'psql',
+    [
+      'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
+      '-X',
+      '-tA',
+      '-c',
+      `select game_id from common.game_players where user_id = '${userId}';`,
+    ],
+    { encoding: 'utf8' },
+  )
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+  await ctx.addInitScript(
+    `localStorage.setItem('puzpuzpuz:gameInvitesSeen', ${JSON.stringify(JSON.stringify(ids))})`,
+  )
+}
+
+/**
+ * A terminal cell must have actually reached a terminal.
+ *
+ * wordiply's compete `won` tile was a mid-race board for weeks: compete gives
+ * each player their OWN five guesses, so the builder spending one player's five
+ * left the game running, and the screenshot showed a half-played board under a
+ * heading that said someone had won. Nothing caught it, because a screenshot
+ * asserts nothing — it renders whatever it's given, and a plausible-looking
+ * wrong state is exactly what this whole sheet exists to expose, not to publish.
+ *
+ * So the one thing worth asserting is the thing a cell CLAIMS: a cell called
+ * `won`, `lost` or `ended` must leave `common.games.is_terminal` true. Failing
+ * loudly turns a silently-wrong tile into a hole with a reason on it.
+ */
+function assertPhaseReached(gameId: string, phase: string): void {
+  if (phase !== 'won' && phase !== 'lost' && phase !== 'ended') return
+  const terminal = execFileSync(
+    'psql',
+    [
+      'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
+      '-X',
+      '-tA',
+      '-c',
+      `select is_terminal from common.games where id = '${gameId}';`,
+    ],
+    { encoding: 'utf8' },
+  ).trim()
+  if (terminal !== 't') {
+    throw new Error(
+      `cell claims '${phase}' but the game is still playing — the builder did not reach a terminal`,
+    )
+  }
+}
 
 const ROOT = 'gallery'
 const BASE = 'http://localhost:5173'
@@ -152,6 +225,7 @@ async function shoot(
         viewport: isViewer ? { width: vp.width, height: vp.height } : { width: 1280, height: 900 },
       })
       contexts.push(ctx)
+      await suppressInvites(ctx, member.userId)
       await signIn(ctx, member.session)
       const page = await ctx.newPage()
       await page.goto(url)
@@ -210,6 +284,7 @@ async function print(
     for (const member of club.members) {
       const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
       contexts.push(ctx)
+      await suppressInvites(ctx, member.userId)
       await signIn(ctx, member.session)
       const page = await ctx.newPage()
       await page.goto(`${BASE}/g/${built.gametype}/${built.id}`)
@@ -330,6 +405,7 @@ async function main() {
           let built
           try {
             built = await g.build(club, cell)
+            assertPhaseReached(built.id, cell.phase)
           } catch (err) {
             console.error(`  ✗ ${g.game} ${cell.mode}/${cell.phase}: ${msg(err)}`)
             continue
