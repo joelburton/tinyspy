@@ -153,8 +153,16 @@ async function main() {
     await browser.close()
   }
 
-  // Ragged by design: a game that has no `lost` cell gets an explicit hole, so
+  // Ragged by design: a cell a game didn't declare gets an explicit hole, so
   // "nobody has looked at this state" reads as information rather than absence.
+  //
+  // The wording is "no cell declared", NOT "no such state" — the script cannot
+  // know a state is unreachable, only that nobody wrote a builder for it. The
+  // first version claimed the stronger thing and was WRONG about it: both games
+  // here have a real compete loss (letterboxed when everyone concedes, wordle
+  // when every racer burns their budget), and the sheet was quietly asserting
+  // those couldn't happen. A hole should invite "should that be there?", which
+  // is exactly the question it failed to prompt.
   for (const g of games) {
     for (const mode of ['coop', 'compete'] as const) {
       for (const phase of ['fresh', 'mid', 'won', 'lost'] as const) {
@@ -166,7 +174,7 @@ async function main() {
             cell: { mode, phase },
             viewport: vp.name,
             file: null,
-            missing: 'no such state',
+            missing: 'no cell declared',
           })
         }
       }

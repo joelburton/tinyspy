@@ -31,6 +31,7 @@ export const letterboxedGallery: GameGallery = {
     { mode: 'compete', phase: 'fresh' },
     { mode: 'compete', phase: 'mid', note: 'one word played' },
     { mode: 'compete', phase: 'won', note: 'first to cover' },
+    { mode: 'compete', phase: 'lost', note: 'everyone conceded' },
   ],
 
   async build(club: E2EClub, cell: Cell) {
@@ -39,7 +40,7 @@ export const letterboxedGallery: GameGallery = {
 
     if (cell.phase === 'mid') await play(club, id, ['adg'])
     if (cell.phase === 'won') await play(club, id, ['adgjbehk', 'kcfil'])
-    if (cell.phase === 'lost') {
+    if (cell.phase === 'lost' && cell.mode === 'coop') {
       // A coop loss is the clock running out short of twelve — one word played,
       // then the timeout resolution. `submit_timeout` is the same RPC the FE's
       // timer fires, so the status blob and verdict are the real ones.
@@ -48,6 +49,19 @@ export const letterboxedGallery: GameGallery = {
         .schema('letterboxed')
         .rpc('submit_timeout', { target_game: id })
       if (res.error) throw new Error(`letterboxed.submit_timeout: ${res.error.message}`)
+    }
+
+    if (cell.phase === 'lost' && cell.mode === 'compete') {
+      // letterboxed is not an elimination game — undo refunds, so the only way
+      // a non-conceded player stops racing is by winning. That makes CONCEDE
+      // the route to a collective compete loss: common.concede ends the game
+      // `lost_compete` once no non-conceded player is left.
+      for (const m of club.members) {
+        const res = await asUser(m.session.access_token)
+          .schema('letterboxed')
+          .rpc('concede', { target_game: id })
+        if (res.error) throw new Error(`letterboxed.concede(${m.username}): ${res.error.message}`)
+      }
     }
 
     return { gametype, id, viewer }

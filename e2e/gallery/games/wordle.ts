@@ -50,6 +50,7 @@ export const wordleGallery: GameGallery = {
     { mode: 'compete', phase: 'fresh' },
     { mode: 'compete', phase: 'mid', note: 'two guesses in' },
     { mode: 'compete', phase: 'won', note: 'first to solve' },
+    { mode: 'compete', phase: 'lost', note: 'everyone out of guesses' },
   ],
 
   async build(club: E2EClub, cell: Cell) {
@@ -57,7 +58,13 @@ export const wordleGallery: GameGallery = {
     const viewer = club.members[0]
 
     if (cell.phase === 'mid') await seedWordleGuesses(viewer, id, 2)
-    if (cell.phase === 'lost') await seedWordleGuesses(viewer, id, 6)
+    if (cell.phase === 'lost') {
+      // Compete gives each racer their own budget, so the race is only lost
+      // once EVERY player has burned theirs — one player exhausting just takes
+      // them out of it. Coop shares one budget, so the viewer alone suffices.
+      const racers = cell.mode === 'compete' ? club.members : [viewer]
+      for (const m of racers) await seedWordleGuesses(m, id, 6)
+    }
     if (cell.phase === 'won') {
       await seedWordleGuesses(viewer, id, 2)
       const res = await asUser(viewer.session.access_token)
