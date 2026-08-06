@@ -22,7 +22,7 @@ exclusion until 2026-08-02 — see the note under the table for what changed.)
 | psychicnum | ✅ | turn-log family |
 | scrabble | ✅ | turn-log family |
 | spellingbee | ✅ | word-list family |
-| stackdown | ✅ | turn-log family — the stack drawn in layer order; white fill IS the occlusion |
+| stackdown | ✅ | track family — a board per player; the stack drawn in layer order, white fill IS the occlusion |
 | strands | ✅ | **track family** — one track per board; colour encoded as shape |
 | waffle | ✅ | **track family** — one column per board; the 4-state tile encoding |
 | wordiply | ✅ | turn-log family — the only printer with **no board**: its page *is* the log |
@@ -54,7 +54,7 @@ atoms and each game composes them with its OWN board renderer + a plain-data mod
 | `common/pdf/columns.ts` | wordle, waffle, strands | `drawInTracks` — lays a page out as N side-by-side player tracks, capped at 3 per page, spilling onto further pages |
 | `common/pdf/marks.ts` | psychicnum, codenamesduet | `drawCheck` / `drawCross` / `drawDash` — the ✓ / ✗ / – outcome marks, DRAWN from line segments because jsPDF's core fonts are WinAnsi and have no such glyphs. Each takes a centre + size, so the caller owns placement (a cell corner, a keycard inset) |
 | `common/pdf/frame.ts` | **all** | the shade constants, `PrintHeader` base model, `newPrintDoc`, `drawHeader`, `drawSetup`, `fit`, `savePrint` |
-| `common/pdf/turnLog.ts` | scrabble, psychicnum, wordiply, connections, stackdown, codenamesduet | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
+| `common/pdf/turnLog.ts` | scrabble, psychicnum, wordiply, connections, codenamesduet | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
 | `common/pdf/wordColumns.ts` | boggle, spellingbee, wordwheel, bananagrams | `drawWordColumns` — the balanced N-column alphabetical word list; per-word flags `bonus` (a dot) and `pangram` (bold) let each game opt in, and a `found: null` row is a bare word (no score/finder — every bananagrams row) |
 | `common/pdf/wordListBody.ts` | boggle, spellingbee, wordwheel, bananagrams | `drawWordListBody` — the **whole word-list body skeleton** (board top-left / Setup to its right / `drawWordColumns` below), pinning the shared layout offsets in one place. The caller passes a `drawBoard(x, y) → { w, h }` callback (its only real difference) plus two knobs: `cols` (4, or bananagrams' 6) and `emptyText` |
 
@@ -209,7 +209,7 @@ two word-check bands appeared on **neither** surface, and boggle printed
 `undefined` — latent behind a closed disclosure, glaring once it printed). Both were
 found by the coverage test, not by reading.
 
-**Body family 3 — track games (`columns.ts`; wordle, waffle, strands).** One column per
+**Body family 3 — track games (`columns.ts`; wordle, waffle, strands, stackdown).** One column per
 BOARD: its grid, then whatever belongs to that grid (wordle adds its QWERTY
 keyboard), then that board's own log. The newspaper flow is wrong here — it's one
 stream wrapping between columns, which in compete would file one player's guesses
@@ -220,7 +220,20 @@ six players, and six columns on a letter page puts a wordle keyboard under 9pt p
 key. Three keeps the realistic two-or-three-player game on one sheet and spills the
 rest rather than shrinking past legibility.
 
-**Body family 1 — turn-log games (`turnLog.ts`; scrabble, psychicnum, wordiply, connections, stackdown, codenamesduet).**
+Note what this costs COOP: a single track is still a third of the page, because
+`drawInTracks` sizes columns from the cap rather than from how many this page
+happens to hold — otherwise a 4-player game's second page would draw one giant
+board beside the first page's three. A lone coop board with white space to its
+right is the accepted price of that consistency, and every game in this family
+pays it.
+
+**stackdown joined this family** (2026-08-06) after printing compete as ONE board
+under a MERGED log — the viewer's stack beneath everybody's words, so a
+two-player race read as though one person had played alone. It's the exact
+failure the family exists to prevent; it just wasn't noticed until the gallery
+put a compete printout next to its screen.
+
+**Body family 1 — turn-log games (`turnLog.ts`; scrabble, psychicnum, wordiply, connections, codenamesduet).**
 connections is the worked example of the colour rules two sections up. A solved
 category is a full-bleed coloured band on screen; on paper it becomes a **thick
 coloured border** (four full-width fills is an enormous amount of ink, and
@@ -241,7 +254,9 @@ So drawing the tiles in `z` order reproduces the stack with no shading, and no
 rule bent. It shares `letterCorner` with the board component, so a partly covered
 tile tucks its letter into the same visible quadrant on paper as on screen. The
 screen's depth ramp is deliberately dropped — the overlap already says what's on
-top, so a shade would be decoration.
+top, so a shade would be decoration. (stackdown prints in the TRACK family above,
+not this one — it's described here because the occlusion trick is the interesting
+part of how its board is drawn, wherever that board sits.)
 
 **codenamesduet** is the densest case: three independent facts share every tile —
 what HAPPENED on it, what it is on *your* key, and (at terminal) what it is on

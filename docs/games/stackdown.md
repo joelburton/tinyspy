@@ -523,14 +523,25 @@ quadrant on paper as on screen — sharing that function is what stops the two
 drifting. The screen's warm depth ramp is deliberately NOT carried over: the
 overlap already says what's on top, so a shade would be decoration.
 
-Which tiles print follows the screen exactly, and now by construction rather
-than by hand: `PlayArea` computes `offBoard` **once** and gives the board the ids
-and the print model the filtered list. It used to be written twice, once per
-surface, which is the same drift the [setup rows](../pdf.md#setup-rows) were
-extracted to stop. While playing, tiles spent on accepted words (and the ones
-picked into the word being built) are hidden; **at terminal the board comes back
-only if it was cleared** — see the `Board` note above for why an uncleared board
-must stay as it ended.
+**One column per board** ([pdf.md → body family 3](../pdf.md)): coop prints the
+single shared stack as "Team" with a log that names who played each word;
+**compete prints a board per player**, each with its own words and its own
+"n/6 cleared" line, three across a page. Compete used to print one board under a
+merged log — the viewer's stack beneath everybody's words — so a two-player race
+read as though one person had played alone. The per-player boards are only
+available at terminal, when RLS opens everyone's submissions; during play the
+viewer holds nobody else's, so only their own column prints (a column built from
+rows you can't see would draw a full untouched stack, which reads as "they've
+cleared nothing" rather than "not visible yet").
+
+Which tiles print follows the screen exactly, and by construction rather than by
+hand: `lib/board.ts` exports `offBoardIds`, and the screen, the printout and each
+per-player track all call it. It used to be written twice, once per surface,
+agreeing only by hand — the same drift the [setup rows](../pdf.md#setup-rows)
+were extracted to stop. While playing, tiles spent on accepted words (and the
+ones picked into the word being built) are hidden; **at terminal the board comes
+back only if it was cleared** — see the `Board` note above for why an uncleared
+board must stay as it ended.
 
 The six words are **terminal-only**, three times over: the server withholds
 `solution` until the row is terminal (`games_state` gates it), the FE holds it

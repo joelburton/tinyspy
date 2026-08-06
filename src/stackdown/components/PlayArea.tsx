@@ -22,6 +22,7 @@ import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { db } from '../db'
 import { db as commonDb } from '../../common/db'
 import { turnSnapshot } from '../lib/history'
+import { offBoardIds } from '../lib/board'
 import type { StackdownSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
@@ -406,48 +407,16 @@ export function PlayArea({
     ? self?.found_count ?? 0
     : submissions.filter((s) => s.valid).length
 
-  // Which tiles are OFF the board — the one rule, hoisted above the early return
-  // so the print model (built in the menu effect, a hook, which can't move below
-  // one) and the board itself read the same answer. It used to be written twice,
-  // once here for the paper and once below for the screen, and the two agreed
-  // only by hand.
-  //
-  // While playing: hide the tiles spent on accepted words, plus the ones picked
-  // up into the word being built.
-  //
-  // At terminal it depends on whether the stack came DOWN:
-  //   - cleared → put every tile back. There'd be nothing left to look at
-  //     otherwise, and the finished stack is the thing worth reviewing.
-  //   - not cleared → leave it exactly as they left it. Restoring here draws a
-  //     full stack under the words "Lost: stack not cleared", which claims they
-  //     got nowhere — the gallery caught a 1-of-6 game showing all thirty tiles.
-  //     Where they actually stopped is the whole record of how it went.
+  // Which tiles are OFF the board, from the shared rule in `lib/board.ts` — the
+  // same one each compete print track applies to its own player. Hoisted above
+  // the early return because the print model is built in a hook (the menu
+  // effect), which can't sit below one.
   //
   // `removedTileIds` is per-viewer (coop shares every submission, compete shows
-  // you your own), so "cleared" here means the board THIS viewer was working on,
-  // which is the right question in both modes.
-  const offBoard = useMemo(() => {
-    const off = new Set<number>()
-    if (!game) return off
-    if (isTerminal) {
-      const cleared = removedTileIds.size >= game.tiles.length
-      if (!cleared) for (const id of removedTileIds) off.add(id)
-      // Note the in-progress `currentWord` is deliberately NOT subtracted at
-      // terminal: those tiles were picked up but never spent, so they're still
-      // on the stack.
-      return off
-    }
-    for (const id of removedTileIds) off.add(id)
-    for (const id of currentWord) off.add(id)
-    return off
-  }, [game, isTerminal, removedTileIds, currentWord])
-
-  // The tiles to SHOW — the same rule, applied. The board takes `offBoard`
-  // directly (it needs the ids to compute what's exposed); the print model takes
-  // the filtered list.
-  const shownTiles = useMemo(
-    () => (game ? game.tiles.filter((t) => !offBoard.has(t.id)) : []),
-    [game, offBoard],
+  // you your own), so "cleared" here means the board THIS viewer was working on.
+  const offBoard = useMemo(
+    () => (game ? offBoardIds(game.tiles, removedTileIds, currentWord, isTerminal) : new Set<number>()),
+    [game, isTerminal, removedTileIds, currentWord],
   )
 
   const menuMode = game?.mode === 'compete' ? 'compete' : 'coop'
@@ -461,7 +430,11 @@ export function PlayArea({
           brand,
           gameTitle: title,
           date: new Date().toLocaleDateString(),
-          tiles: shownTiles,
+          // The WHOLE stack: compete prints a board per player and each has
+          // cleared a different set, so the model works out what's still down
+          // per track rather than taking the viewer's board for everyone's.
+          allTiles: game.tiles,
+          currentWord,
           solution: solutionShown ? game.solution : null,
           submissions,
           players,
@@ -511,7 +484,7 @@ export function PlayArea({
     revealSolution, solutionShown,
     // The print model's inputs. It's rebuilt whenever the printable state moves,
     // which is what makes the snapshot current at click time.
-    brand, title, game, shownTiles, submissions, players, session.user.id, foundCount, setup,
+    brand, title, game, currentWord, submissions, players, session.user.id, foundCount, setup,
     summaryRows,
   ])
 

@@ -1,12 +1,19 @@
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GREY, drawHeader, newPrintDoc, savePrint } from '../../common/pdf/frame'
-import { drawTurnLog, twoColGeom } from '../../common/pdf/turnLog'
+import { BLACK, DARK_GREY, drawHeader, drawSetup, fit, newPrintDoc, savePrint } from '../../common/pdf/frame'
+import { drawInTracks, type Track } from '../../common/pdf/columns'
 import { letterCorner, type Tile } from '../lib/board'
-import type { StackdownPrintModel } from './model'
+import type { PrintTrack, StackdownPrintModel } from './model'
 
 /**
- * stackdown's print-to-PDF — the **turn-log body family** (docs/pdf.md): the
- * stack in the left column, the word log beneath.
+ * stackdown's print-to-PDF — the **track family** (docs/pdf.md; see
+ * `common/pdf/columns.ts`): one column per board, each with the word log that
+ * belongs to it.
+ *
+ * Coop is a single track — one shared stack. **Compete gives every player their
+ * own stack**, and printing it as one board and one merged log was simply
+ * wrong: it showed the viewer's board under a log of everybody's words, so a
+ * two-player game looked like one person had played alone. Same reasoning that
+ * put wordle and waffle in this family, and the same three-per-page cap.
  *
  * **The stack is the interesting bit, and it prints almost for free.** A
  * mahjong-style board is defined by occlusion — a raised tile hides what's under
@@ -35,25 +42,61 @@ const STEP_RATIO = 32 / 55 // screen STEP / TILE
 export function printStackdownPdf(m: StackdownPrintModel): void {
   const pd = newPrintDoc()
   const { doc } = pd
-  const { leftX, colW, colTop } = twoColGeom(pd)
 
   drawHeader(pd, m)
+  const { bottom, left, width } = drawInTracks(pd, m.tracks, (t, track) =>
+    drawTrack(doc, t, track),
+  )
 
-  let y = colTop
-  if (m.tiles.length) y = drawStack(doc, m.tiles, leftX, y, colW) + 16
-  else y = drawCleared(doc, leftX, y) + 16
-  if (m.solution) y = drawSolution(doc, m.solution, leftX, y, colW) + 4
-
-  drawTurnLog(pd, {
-    startY: y,
-    moveLabel: 'Word',
-    rows: m.turns,
-    setup: m.setup,
-    mode: m.mode,
-    emptyText: 'No words yet.',
-  })
+  // The six words and the setup are page-wide, under the tracks: both describe
+  // the GAME, not any one player's board, and repeating them per column would
+  // say the same thing three times.
+  let y = bottom + 18
+  if (m.solution) y = drawSolution(doc, m.solution, left, y, width) + 14
+  if (m.setup.length) drawSetup(doc, m.setup, left, y, m.mode)
 
   savePrint(pd, m, 'stackdown')
+}
+
+/** One column: whose board it is, the stack, how far they got, then their words. */
+function drawTrack(doc: jsPDF, t: PrintTrack, track: Track): number {
+  doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(BLACK)
+  doc.text(fit(doc, t.who, track.width), track.x, track.top)
+
+  let y = track.top + 10
+  y = t.tiles.length
+    ? drawStack(doc, t.tiles, track.x, y, track.width) + 12
+    : drawCleared(doc, track.x, y) + 12
+
+  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+  doc.text(fit(doc, t.result, track.width), track.x, y)
+  y += 14
+
+  return drawWordList(doc, t, track, y)
+}
+
+/** That board's words, one per line — the per-column log. */
+function drawWordList(doc: jsPDF, t: PrintTrack, track: Track, y: number): number {
+  doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
+  doc.text('Words', track.x, y)
+  let cy = y + 12
+  if (!t.turns.length) {
+    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+    doc.text('None yet.', track.x, cy)
+    return cy
+  }
+  t.turns.forEach((turn) => {
+    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+    doc.text(String(turn.seq), track.x, cy)
+    doc.setTextColor(BLACK)
+    // Coop's one board is worked by everyone, so its log names who played each
+    // word; a compete column is one person's, so the model leaves `who` empty
+    // and the line is just the word.
+    const line = turn.who ? `${turn.text}  ${turn.who}` : turn.text
+    doc.text(fit(doc, line, track.width - 14), track.x + 12, cy)
+    cy += 10
+  })
+  return cy
 }
 
 /**

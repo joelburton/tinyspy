@@ -29,7 +29,10 @@ const base = {
   brand: 'Stackdown',
   gameTitle: 'Board 12',
   date: '1 Jan 2026',
-  tiles: [tile(1, 0, 0), tile(2, 1, 0)],
+  // Six tiles: enough that clearing a five-tile word leaves one behind, which
+  // is what distinguishes "stopped part-way" from "cleared".
+  allTiles: [tile(1, 0, 0), tile(2, 1, 0), tile(3, 2, 0), tile(4, 3, 0), tile(5, 4, 0), tile(6, 5, 0)],
+  currentWord: [] as number[],
   solution: null as string[] | null,
   submissions: [] as SubmissionRow[],
   players: [
@@ -78,7 +81,7 @@ describe('buildStackdownPrintModel — the log', () => {
         sub({ seq: 4, kind: 'reveal', word: 'crane', tile_ids: null, valid: null }),
       ],
     })
-    expect(m.turns.map((t) => t.text)).toEqual([
+    expect(m.tracks[0].turns.map((t) => t.text)).toEqual([
       'STACK',
       'QQQQ — not a word',
       'Hint: a pile of things',
@@ -86,39 +89,88 @@ describe('buildStackdownPrintModel — the log', () => {
     ])
   })
 
-  it('names the player on every row', () => {
+  it("names the player on coop's shared log", () => {
     const m = buildStackdownPrintModel({
       ...base,
       submissions: [sub(), sub({ seq: 2, user_id: 'u2' })],
     })
-    expect(m.turns.map((t) => t.who)).toEqual(['me', 'moth'])
+    expect(m.tracks[0].turns.map((t) => t.who)).toEqual(['me', 'moth'])
+  })
+})
+
+describe('buildStackdownPrintModel — one track per board', () => {
+  const subs = [
+    sub({ seq: 1, user_id: 'u1', word: 'stack' }),
+    sub({ seq: 2, user_id: 'u2', word: 'crane' }),
+  ]
+
+  it('coop is ONE shared stack, however many players', () => {
+    const m = buildStackdownPrintModel({ ...base, submissions: subs })
+    expect(m.tracks.map((t) => t.who)).toEqual(['Team'])
   })
 
-  it('groups compete by player (self first); coop keeps play order', () => {
-    const subs = [
-      sub({ seq: 1, user_id: 'u2' }),
-      sub({ seq: 2, user_id: 'u1' }),
-      sub({ seq: 3, user_id: 'u2' }),
-    ]
-    expect(
-      buildStackdownPrintModel({ ...base, mode: 'compete', submissions: subs }).turns.map((t) => t.who),
-    ).toEqual(['me', 'moth', 'moth'])
-    expect(buildStackdownPrintModel({ ...base, submissions: subs }).turns.map((t) => t.who)).toEqual([
-      'moth',
-      'me',
-      'moth',
-    ])
+  it('compete at terminal gives every player their own board and log', () => {
+    // The bug this replaces: one board and one MERGED log, so a two-player race
+    // printed as though one person had played alone.
+    const m = buildStackdownPrintModel({
+      ...base, mode: 'compete', isTerminal: true, submissions: subs,
+    })
+    expect(m.tracks.map((t) => t.who)).toEqual(['me (you)', 'moth'])
+    expect(m.tracks.map((t) => t.turns.map((r) => r.text))).toEqual([['STACK'], ['CRANE']])
+    // A compete column's log doesn't name anybody — the heading already did.
+    expect(m.tracks.flatMap((t) => t.turns.map((r) => r.who))).toEqual(['', ''])
+  })
+
+  it('compete MID-GAME shows only the viewer — RLS hides the rest', () => {
+    // A column built from rows the viewer can't see would draw a full untouched
+    // stack, which reads as "they've cleared nothing" rather than "not yet visible".
+    const m = buildStackdownPrintModel({ ...base, mode: 'compete', submissions: subs })
+    expect(m.tracks.map((t) => t.who)).toEqual(['You'])
+    expect(m.tracks[0].turns.map((r) => r.text)).toEqual(['STACK'])
+  })
+
+  it('each compete board reflects only ITS OWN cleared tiles', () => {
+    const m = buildStackdownPrintModel({
+      ...base,
+      mode: 'compete',
+      isTerminal: true,
+      submissions: [sub({ seq: 1, user_id: 'u1', tile_ids: [1, 2, 3, 4, 5] })],
+    })
+    // u1 spent five of the six; u2 played nothing, so their stack is untouched.
+    expect(m.tracks[0].tiles.map((t) => t.id)).toEqual([6])
+    expect(m.tracks[1].tiles.map((t) => t.id)).toEqual([1, 2, 3, 4, 5, 6])
+  })
+
+  it('restores a CLEARED board, and leaves an uncleared one where it stopped', () => {
+    const all = [tile(1, 0, 0), tile(2, 1, 0), tile(3, 2, 0), tile(4, 3, 0), tile(5, 4, 0)]
+    const cleared = buildStackdownPrintModel({
+      ...base, allTiles: all, isTerminal: true,
+      submissions: [sub({ tile_ids: [1, 2, 3, 4, 5] })],
+    })
+    // Every tile gone => put them all back; a blank page is nothing to review.
+    expect(cleared.tracks[0].tiles).toHaveLength(5)
+
+    const stopped = buildStackdownPrintModel({
+      ...base, allTiles: all, isTerminal: true,
+      submissions: [sub({ tile_ids: [1, 2] })],
+    })
+    expect(stopped.tracks[0].tiles.map((t) => t.id)).toEqual([3, 4, 5])
   })
 })
 
 describe('buildStackdownPrintModel — summary', () => {
   it('reports words cleared and stack remaining', () => {
     const m = buildStackdownPrintModel({ ...base })
-    expect(m.summary).toBe('2/6 words cleared · 2 tiles left')
+    expect(m.summary).toBe('2/6 words cleared · 6 tiles left')
   })
 
   it('says "1 tile", not "1 tiles"', () => {
-    const m = buildStackdownPrintModel({ ...base, tiles: [tile(1, 0, 0)] })
+    const m = buildStackdownPrintModel({ ...base, allTiles: [tile(1, 0, 0)] })
     expect(m.summary).toContain('1 tile left')
+  })
+
+  it('drops the tile count in compete — several boards, no single number', () => {
+    const m = buildStackdownPrintModel({ ...base, mode: 'compete' })
+    expect(m.summary).toBe('2/6 words cleared')
   })
 })

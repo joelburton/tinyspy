@@ -41,6 +41,42 @@ export function covers(a: Tile, b: Tile): boolean {
 }
 
 /**
+ * Which tiles are OFF the board — the rule the screen, the printout and every
+ * per-player print track all read.
+ *
+ * While playing: the tiles spent on accepted words, plus the ones currently
+ * picked up into the word being built.
+ *
+ * At terminal it turns on whether the stack came DOWN:
+ *   - **cleared** → nothing is off. Every tile goes back, because a cleared
+ *     board would otherwise be blank and the finished stack is the thing worth
+ *     reviewing.
+ *   - **not cleared** → the spent tiles stay gone, so the board reads exactly
+ *     as the players left it. Restoring here draws a full stack under the words
+ *     "Lost: stack not cleared", which claims they got nowhere; where they
+ *     actually stopped is the whole record of how it went.
+ *
+ * `currentWord` is deliberately ignored at terminal: those tiles were picked up
+ * but never spent, so they're still on the stack.
+ *
+ * Lives here, not in the PlayArea, because compete prints one board PER PLAYER
+ * and each of those has to answer the same question about someone else's
+ * submissions — and because it was written twice (screen and paper) before this,
+ * agreeing only by hand.
+ */
+export function offBoardIds(
+  tiles: Tile[],
+  removed: Iterable<number>,
+  currentWord: Iterable<number>,
+  isTerminal: boolean,
+): Set<number> {
+  const off = new Set<number>(removed)
+  if (isTerminal) return off.size >= tiles.length ? new Set<number>() : off
+  for (const id of currentWord) off.add(id)
+  return off
+}
+
+/**
  * IDs of the tiles that are exposed (selectable) given a set of
  * already-removed tile IDs. A tile is exposed when, among the tiles
  * that remain, none covers it. Mirrors `stackdown._is_exposed` on the
