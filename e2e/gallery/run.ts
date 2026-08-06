@@ -27,13 +27,14 @@
  *         GAMES=letterboxed npm run _gallery      — just one game
  */
 
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { mkdirSync, renameSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { chromium, type Browser, type BrowserContext } from '@playwright/test'
 import { createClubWithMembers, type E2EClub } from '../helpers/fixtures'
 import { signIn } from '../helpers/session'
 import { renderIndex, type Shot } from './index'
-import type { BuiltGame, GameGallery } from './types'
+import type { BuiltGame, Cell, GameGallery } from './types'
 import { letterboxedGallery } from './games/letterboxed'
 import { wordleGallery } from './games/wordle'
 
@@ -102,6 +103,66 @@ async function shoot(
   }
 }
 
+/**
+ * Print one state and put the PAPER in the sheet.
+ *
+ * The whole point of having it here is adjacency: the printout lands next to
+ * the screenshot of the same state, so "does the paper say what the screen
+ * says?" is a glance rather than an exercise. Today's session found two drifts
+ * (a setup list reporting different facts on paper, and a literal
+ * "undefined%") that only surfaced because a PDF happened to get rendered —
+ * this is that, on purpose.
+ *
+ * Rendered to PNG with `pdftoppm` (poppler, the same tool docs/pdf.md names for
+ * eyeballing a printout) so it sits in an <img> like everything else. PAGE ONE
+ * only: a long game spills onto further pages, and page 1 is where the header,
+ * the board and the Setup block live — the parts worth comparing across games.
+ */
+async function print(
+  browser: Browser,
+  g: GameGallery,
+  cell: Cell,
+  built: BuiltGame,
+  club: E2EClub,
+): Promise<string> {
+  const contexts: BrowserContext[] = []
+  try {
+    // Same presence rule as a screenshot: a non-terminal game whose players
+    // aren't all connected is paused, and a paused game has no menu to print
+    // from. Cheap to just join everyone.
+    let viewerPage
+    for (const member of club.members) {
+      const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+      contexts.push(ctx)
+      await signIn(ctx, member.session)
+      const page = await ctx.newPage()
+      await page.goto(`${BASE}/g/${built.gametype}/${built.id}`)
+      if (member.userId === built.viewer.userId) viewerPage = page
+    }
+    if (!viewerPage) throw new Error('the viewer is not a member of the club')
+    await viewerPage.waitForSelector('[class*="boardCol"]', { timeout: 20000 })
+    await viewerPage.waitForTimeout(800)
+
+    await viewerPage.getByRole('button', { name: 'Game menu' }).click()
+    const [download] = await Promise.all([
+      viewerPage.waitForEvent('download'),
+      viewerPage.getByText('Print board (PDF)').click(),
+    ])
+
+    const stem = `${g.game}-${cell.mode}-${cell.phase}-pdf`
+    const pdf = join(ROOT, `${stem}.pdf`)
+    await download.saveAs(pdf)
+    execFileSync('pdftoppm', ['-png', '-r', '80', '-f', '1', '-l', '1', pdf, join(ROOT, stem)])
+    // pdftoppm suffixes the page number; drop it so the sheet's naming stays
+    // uniform, and drop the source PDF — the PNG is what gets looked at.
+    renameSync(join(ROOT, `${stem}-1.png`), join(ROOT, `${stem}.png`))
+    unlinkSync(pdf)
+    return join(ROOT, `${stem}.png`)
+  } finally {
+    for (const c of contexts) await c.close()
+  }
+}
+
 async function main() {
   const only = process.env.GAMES?.split(',').map((s) => s.trim()).filter(Boolean)
   const games = only?.length ? ALL.filter((g) => only.includes(g.game)) : ALL
@@ -147,6 +208,20 @@ async function main() {
             shots.push({ game: g.game, cell, viewport: vp.name, file: null, missing: why })
           }
         }
+        // 'pdf' rides the VIEWPORT axis, so the sheet groups printouts into
+        // their own section with no renderer change — paper is just another way
+        // of looking at the same state.
+        if (cell.pdf) {
+          try {
+            const file = await print(browser, g, cell, built, club)
+            console.log(`  ✓ ${file}`)
+            shots.push({ game: g.game, cell, viewport: 'pdf', file: file.slice(ROOT.length + 1) })
+          } catch (err) {
+            const why = err instanceof Error ? err.message : String(err)
+            console.error(`  ✗ ${g.game} ${cell.mode}/${cell.phase} pdf: ${why}`)
+            shots.push({ game: g.game, cell, viewport: 'pdf', file: null, missing: why })
+          }
+        }
       }
     }
   } finally {
@@ -166,13 +241,25 @@ async function main() {
   for (const g of games) {
     for (const mode of ['coop', 'compete'] as const) {
       for (const phase of ['fresh', 'mid', 'won', 'lost'] as const) {
-        const declared = g.cells.some((c) => c.mode === mode && c.phase === phase)
+        const declared = g.cells.find((c) => c.mode === mode && c.phase === phase)
+        // The paper section needs its own hole: a state can be perfectly well
+        // declared and simply not marked for printing, which is a different
+        // fact from "nobody built this state at all".
+        if (declared && !declared.pdf) {
+          shots.push({
+            game: g.game,
+            cell: declared,
+            viewport: 'pdf',
+            file: null,
+            missing: 'not printed',
+          })
+        }
         if (declared) continue
-        for (const vp of VIEWPORTS) {
+        for (const vp of [...VIEWPORTS.map((v) => v.name), 'pdf']) {
           shots.push({
             game: g.game,
             cell: { mode, phase },
-            viewport: vp.name,
+            viewport: vp,
             file: null,
             missing: 'no cell declared',
           })

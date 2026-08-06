@@ -90,10 +90,16 @@ export function renderIndex(shots: Shot[], stamp: string): string {
      comparison this tool exists for. */
   .strip { display: flex; gap: .75rem; overflow-x: auto; padding-bottom: .5rem; }
   figure { margin: 0; flex: 0 0 auto; width: 240px; }
-  figure img { width: 100%; border: 1px solid #ccc; border-radius: 6px;
+  /* A fixed BOX with contain, not a fluid width: PDFs are portrait and
+     screenshots landscape, so sizing by width alone made a paper tile three
+     times the height of the one beside it and left every caption on a
+     different line. One box height per strip keeps the row scannable, which
+     is the entire job of a contact sheet. */
+  figure img { width: 100%; height: 190px; object-fit: contain; object-position: top;
+               border: 1px solid #ccc; border-radius: 6px;
                background: #fff; display: block; }
   figure.empty { opacity: .55; }
-  .hole { width: 100%; aspect-ratio: 4/3; border: 1px dashed #bbb; border-radius: 6px;
+  .hole { width: 100%; height: 190px; border: 1px dashed #bbb; border-radius: 6px;
           display: flex; align-items: center; justify-content: center; text-align: center;
           padding: .5rem; color: #888; font-size: .75rem; background: #f2f2f2; }
   figcaption { margin-top: .35rem; font-weight: 600; }

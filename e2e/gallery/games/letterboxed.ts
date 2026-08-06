@@ -24,13 +24,13 @@ export const letterboxedGallery: GameGallery = {
   game: 'letterboxed',
   members: 2,
   cells: [
-    { mode: 'coop', phase: 'fresh' },
+    { mode: 'coop', phase: 'fresh', pdf: true },
     { mode: 'coop', phase: 'mid', note: 'one word played' },
-    { mode: 'coop', phase: 'won', note: 'all twelve covered' },
+    { mode: 'coop', phase: 'won', note: 'all twelve covered', pdf: true },
     { mode: 'coop', phase: 'lost', note: 'timed out' },
     { mode: 'compete', phase: 'fresh' },
     { mode: 'compete', phase: 'mid', note: 'one word played' },
-    { mode: 'compete', phase: 'won', note: 'first to cover' },
+    { mode: 'compete', phase: 'won', note: 'first to cover', pdf: true },
     { mode: 'compete', phase: 'lost', note: 'everyone conceded' },
   ],
 
