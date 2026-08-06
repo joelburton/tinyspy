@@ -763,13 +763,31 @@ dev-types: ## regenerate src/types/db.ts from the live local schema
 # what this run did.
 .PHONY: gallery
 gallery: ## screenshot game states → gallery/index.html (GAME=, TECH=; needs `npm run dev`)
-	@npm run --silent _gallery -- $(GAME) $(TECH)
+	@# Delete the sheet HERE, not in the script: a syntax error kills the
+	# script before its own cleanup runs, and the stale index survives
+	# exactly the failure it most needs to not survive.
+	rm -f gallery/index.html
+	npm run --silent _gallery -- $(GAME) $(TECH) || { \
+	  echo ""; \
+	  echo "═══ GALLERY BUILD FAILED — gallery/index.html was NOT written ═══" >&2; \
+	  echo "    (deleted before the run, so there's no stale sheet to mistake" >&2; \
+	  echo "     for a good one — fix the error above and run again)" >&2; \
+	  exit 1; }
 
 # Rebuild the sheet without capturing anything — for when the INDEX changed
 # (a new game registered, the renderer edited) but the images didn't.
 .PHONY: gallery-index
 gallery-index: ## rebuild gallery/index.html from the files already on disk
-	@npm run --silent _gallery -- index
+	@# Delete the sheet HERE, not in the script: a syntax error kills the
+	# script before its own cleanup runs, and the stale index survives
+	# exactly the failure it most needs to not survive.
+	rm -f gallery/index.html
+	npm run --silent _gallery -- index || { \
+	  echo ""; \
+	  echo "═══ INDEX BUILD FAILED — gallery/index.html was NOT written ═══" >&2; \
+	  echo "    (deleted before the run, so there's no stale sheet to mistake" >&2; \
+	  echo "     for a good one — fix the error above and run again)" >&2; \
+	  exit 1; }
 
 # Promote the current gallery into the COMMITTED folder.
 #

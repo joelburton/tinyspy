@@ -303,6 +303,11 @@ async function main() {
 
   mkdirSync(ROOT, { recursive: true })
 
+  // (The Makefile deletes gallery/index.html before invoking this, so a run
+  // that dies leaves NO sheet rather than yesterday's. It has to happen out
+  // there: a syntax error kills this file before any line of it runs, which is
+  // precisely the failure that most needs the stale sheet gone.)
+
   if (!indexOnly) {
     // Prune ONLY what's about to be regenerated, so a cell removed from a
     // builder doesn't leave a stale tile behind while the rest of the sheet

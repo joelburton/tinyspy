@@ -388,6 +388,9 @@ export async function createCrosswordsGame(
 export async function createCrosswordsGameSized(
   club: E2EClub,
   size = 15,
+  /** Coop by default; the screenshot gallery wants both siblings on the same
+   *  full-size grid, and nothing about the puzzle differs between them. */
+  mode: 'coop' | 'compete' = 'coop',
 ): Promise<{ id: string; gametype: string }> {
   type CellSpec = { kind: 'cell'; number: number | null; fill: null }
   const cells: CellSpec[][] = []
@@ -441,11 +444,11 @@ export async function createCrosswordsGameSized(
       target_club: club.handle,
       setup: { timer: { kind: 'none' }, puzzle_id: ins.data.id },
       player_user_ids: club.members.map((m) => m.userId),
-      mode: 'coop',
+      mode,
     })
   if (res.error) throw new Error(`crosswords.create_game: ${res.error.message}`)
   const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: 'crosswords_coop' }
+  return { id: (row as { id: string }).id, gametype: `crosswords_${mode}` }
 }
 
 /**
