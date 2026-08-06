@@ -444,6 +444,60 @@ $$;
 revoke execute on function letterboxed._sync_status(uuid) from public;
 
 -- ============================================================
+-- letterboxed._end_game — common.end_game, minus the win-reveal
+-- ============================================================
+-- Every terminal transition in this file goes through here instead of calling
+-- common.end_game directly, for one reason: A WIN MUST NOT OPEN THE SEEDED
+-- PAIR.
+--
+-- The shared rule reveals the solution on any winning play_state, on the
+-- stated premise that "you can only win these games by producing the
+-- solution, so it's already in front of you." That premise is true for its
+-- authors — waffle's solved grid IS the answer, and wordle's win is the
+-- target typed out. It is false here. A letterboxed win is covering the
+-- twelve letters with ANY chain inside the cap; the seeded pair is a
+-- different, usually much shorter answer that the players never saw. It is
+-- precisely the thing the Reveal button exists to hand over, so winning has
+-- to leave it closed. (The compete TIMEOUT path resolves on coverage and also
+-- ends 'won_compete' without anyone having produced a solution at all.)
+--
+-- Restores the PRIOR value rather than forcing false, which keeps the shared
+-- rule's own "a second ending can't un-reveal what's already on screen": a
+-- player may press Reveal the moment the game ends, and a later terminal
+-- write must not shut it again.
+--
+-- Not a fix for the shared rule, which is right for the games that use it —
+-- expressing "does winning show the answer?" per gametype would want a column
+-- on common.gametypes, and that is a schema change. This is the same
+-- statement, scoped to the one game whose answer differs.
+create or replace function letterboxed._end_game(
+  target_game uuid,
+  play_state text,
+  status jsonb,
+  player_results jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path = letterboxed, common, public, extensions
+as $$
+declare
+  was_revealed boolean;
+begin
+  select g.solution_revealed into was_revealed
+    from common.games g where g.id = target_game;
+
+  perform common.end_game(target_game, play_state, status, player_results);
+
+  if not was_revealed then
+    update common.games set solution_revealed = false where id = target_game;
+  end if;
+end;
+$$;
+
+revoke execute on function letterboxed._end_game(uuid, text, jsonb, jsonb) from public;
+
+-- ============================================================
 -- letterboxed.create_game — mode is a positional arg
 -- ============================================================
 -- Setup shape (server validates):
@@ -766,7 +820,7 @@ begin
       select jsonb_object_agg(user_id::text, '{"won": true}'::jsonb)
         into winner_results
         from common.game_players where game_id = target_game;
-      perform common.end_game(
+      perform letterboxed._end_game(
         target_game, 'won',
         -- status MERGES (see common.end_game), so every value the terminal
         -- asserts must be spelled out here — a missing letters_covered
@@ -787,7 +841,7 @@ begin
                jsonb_build_object('won', gp.user_id = caller_id))
         into winner_results
         from common.game_players gp where gp.game_id = target_game;
-      perform common.end_game(
+      perform letterboxed._end_game(
         target_game, 'won_compete',
         jsonb_build_object('mode', 'compete', 'solved', true,
                            'winner_id', caller_id,
@@ -1058,7 +1112,7 @@ begin
     select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
       into player_results
       from common.game_players where game_id = target_game;
-    perform common.end_game(
+    perform letterboxed._end_game(
       target_game, 'lost',
       jsonb_build_object(
         'mode', 'coop', 'solved', false, 'timed_out', true,
@@ -1105,7 +1159,7 @@ begin
   -- the per-row verdict. That flag is what the FE reads for "did I win" —
   -- co-winners mean there is no single winner_id to trust, and among tied
   -- rows the display order is arbitrary, so leaderboard[0] is not it.
-  perform common.end_game(
+  perform letterboxed._end_game(
     target_game, 'won_compete',
     jsonb_build_object('mode', 'compete', 'solved', false, 'timed_out', true,
                        'best_letters_covered', best_covered,
@@ -1169,7 +1223,7 @@ begin
     into player_results
     from common.game_players where game_id = target_game;
 
-  perform common.end_game(
+  perform letterboxed._end_game(
     target_game,
     'ended',
     jsonb_build_object('mode', g_row.mode, 'solved', false, 'stopped', true)

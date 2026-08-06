@@ -50,9 +50,16 @@ select is(
   'won',
   'sanity: the board is covered and the game won'
 );
+-- Winning does NOT open the seeded pair here — a letterboxed win is any
+-- covering chain, not the seeded two (see reveal_test.sql). So press Reveal
+-- for real, otherwise "replay clears the flag" would pass against a flag that
+-- was never set.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select common.reveal_solution((select id from g));
+reset role;
 select ok(
   (select solution_revealed from common.games where id = (select id from g)),
-  'sanity: a win auto-reveals the seeded solution'
+  'sanity: Reveal opens the seeded solution at terminal'
 );
 
 -- ── The access rule ─────────────────────────────────────────

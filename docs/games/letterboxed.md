@@ -90,8 +90,13 @@ Three different trust postures coexist here, each for its own reason:
   instead of the most complex plpgsql in the repo (§6), and the FE can refuse a
   bad word instantly. The solution is **display-gated, not shielded**: the
   gametype sets `hides_solution`, so the seeded pair stays covered until the
-  shared terminal Reveal (`common.reveal_solution`) — a win opens it
-  automatically. Gating it server-side would guard nothing, since any two-word
+  shared terminal Reveal (`common.reveal_solution`) — including after a **win**,
+  which is the one place letterboxed departs from the shared rule. Winning is
+  covering the twelve with *any* chain inside the cap, so unlike waffle (the
+  solved grid is the answer) or wordle (you typed the target) it does **not**
+  put the seeded pair on screen; `common.end_game` would open it anyway, so
+  every terminal write here routes through `letterboxed._end_game`, which
+  restores the flag (§5). Gating it server-side would guard nothing, since any two-word
   solution is one BFS away from the shipped list; the seeded pair is stored
   because it's the *gettable* one (band ≤ 2 by construction), not because it's
   secret.
@@ -169,7 +174,8 @@ coverage) / `lost_compete` (all conceded, or a timed-out race nobody scored in)
 | `submit_timeout(target_game)` | Coop → **`lost`** (one chain, it didn't reach twelve; nothing to rank). Compete → resolve on **most letters covered → fewest words → co-winners** (the wordiply comparator shape: a shared win beats an arbitrary one). Both ranking numbers were already public during the race, so the resolution reveals nothing new. |
 | `end_game(target_game)` | The neutral manual stop, `ended` in **both** modes — a group agreeing to stop is agreeing not to have a result. |
 | `concede(target_game)` | A one-line wrapper over `common.concede` — the generic helper is right here because letterboxed is **not** an elimination game (undo refunds, so the only way a non-conceded player stops racing is winning, which already ends the game). A conceder is out in both directions: the move RPCs refuse them, and the timeout ranking excludes them. |
-| `replay_board(target_game)` | The cheapest replay on the roster — the board is immutable data, so there's nothing to rebuild: clear the chains, drop the log, rewind the turn pointer, `reset_game` a fresh status blob. Nothing is re-revealed (a loss keeps the pair covered, so a replay is a genuine second try). |
+| `replay_board(target_game)` | The cheapest replay on the roster — the board is immutable data, so there's nothing to rebuild: clear the chains, drop the log, rewind the turn pointer, `reset_game` a fresh status blob. Nothing is re-revealed (no ending opens the pair by itself, so a replay is a genuine second try). |
+| `_end_game(target_game, play_state, status, player_results)` | **Internal.** `common.end_game` with letterboxed's one deviation, and the single seam every terminal write above goes through. The shared helper opens the solution on any winning `play_state`, on the premise that a win *is* the solution produced — true for waffle and wordle, false here (§4): a win is any covering chain, and the compete timeout resolves to `won_compete` with nobody having solved anything. So it restores the flag's prior value afterwards — *prior*, not `false`, so a Reveal pressed the moment the game ended survives a later terminal write. Expressing this properly would want a "does winning show the answer?" column on `common.gametypes`; that's a schema change, and this is the same statement scoped to the one game that needs it. |
 
 Every mid-game transition calls `_sync_status` (the wordle `_sync_title`
 pattern: derived, not remembered per-writer), so the club-page label is correct
