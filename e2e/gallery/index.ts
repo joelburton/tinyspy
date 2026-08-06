@@ -73,7 +73,7 @@ export function renderIndex(shots: Shot[], stamp: string): string {
                   ? `<a href="${shot.file}" target="_blank" class="paper"><span class="paperMark">PDF</span><span class="paperName">${shot.file}</span></a>`
                   : `<a href="${shot.file}" target="_blank"><img src="${shot.file}" loading="lazy" alt="${game} ${mode} ${phase} ${vp}"></a>`
               const note = shot?.cell.note ? `<div class="note">${shot.cell.note}</div>` : ''
-              return `<figure class="${shot?.file ? '' : 'empty'}">
+              return `<figure>
                 ${body}
                 <figcaption>${LABEL[phase]}${note}</figcaption>
               </figure>`
@@ -94,45 +94,58 @@ export function renderIndex(shots: Shot[], stamp: string): string {
 <meta charset="utf-8">
 <title>PuzPuzPuz — game gallery</title>
 <style>
+  /* WHITE background, BLACK text. Every text colour on this page is #000 and
+     the page itself is #fff — no muted greys, no dimmed captions, no faded
+     "secondary" text.
+     Grey-on-grey is a readability failure before it is a style, and a page
+     whose entire job is "look carefully at these images and read what's under
+     them" has no business making any of its labels harder to read than the
+     rest. Structure is carried by weight, size, borders and spacing, which
+     cost no contrast. If something here needs de-emphasising, change its SIZE
+     or WEIGHT — do not reach for grey. */
   :root { color-scheme: light; }
-  body { margin: 0; padding: 1.5rem; background: #fafafa;
-         font: 14px/1.4 system-ui, -apple-system, sans-serif; color: #222; }
-  h1 { margin: 0 0 .25rem; font-size: 1.4rem; }
-  .stamp { color: #666; margin-bottom: .75rem; }
+  body { margin: 0; padding: 1.5rem; background: #ffffff;
+         font: 14px/1.4 system-ui, -apple-system, sans-serif; color: #000000; }
+  h1 { margin: 0 0 .25rem; font-size: 1.4rem; color: #000000; }
+  .stamp { color: #000000; margin-bottom: .75rem; }
   /* Fifteen games is a lot of scrolling; the jump list makes "show me
      stackdown" one click rather than a hunt. */
   .nav { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.5rem; }
-  .nav a { font-size: .8rem; padding: .2rem .5rem; border: 1px solid #ccc;
-           border-radius: 999px; text-decoration: none; color: #444; background: #fff; }
-  .nav a:hover { border-color: #888; }
+  .nav a { font-size: .8rem; padding: .2rem .5rem; border: 1px solid #000000;
+           border-radius: 999px; text-decoration: none; color: #000000;
+           background: #ffffff; }
+  .nav a:hover { background: #000000; color: #ffffff; }
   .game { scroll-margin-top: 1rem; }
-  h2 { margin: 2.5rem 0 .25rem; font-size: 1.25rem; border-bottom: 2px solid #ccc;
-       padding-bottom: .3rem; }
-  h3 { margin: 1.25rem 0 .5rem; font-size: .8rem; font-weight: 600;
-       text-transform: uppercase; letter-spacing: .06em; color: #555; }
+  h2 { margin: 2.5rem 0 .25rem; font-size: 1.25rem; color: #000000;
+       border-bottom: 2px solid #000000; padding-bottom: .3rem; }
+  h3 { margin: 1.25rem 0 .5rem; font-size: .8rem; font-weight: 700; color: #000000;
+       text-transform: uppercase; letter-spacing: .06em; }
   /* Four phases across — one game's whole arc, left to right. */
   .strip { display: flex; gap: .75rem; }
   figure { margin: 0; flex: 0 0 auto; width: 240px; }
   figure img { width: 100%; height: 190px; object-fit: contain; object-position: top;
-               border: 1px solid #ccc; border-radius: 6px;
-               background: #fff; display: block; }
+               border: 1px solid #000000; border-radius: 6px;
+               background: #ffffff; display: block; }
   /* A printout's tile is a link, not a preview: an <embed> wraps every tile in
      the browser's PDF viewer, a lot of machinery for a thumbnail nobody reads
      at 240px. Same box as the others so the row stays aligned. */
-  .paper { height: 190px; border: 1px solid #ccc; border-radius: 6px; background: #fff;
-           display: flex; flex-direction: column; align-items: center;
-           justify-content: center; gap: .4rem; text-decoration: none; color: #444; }
-  .paper:hover { border-color: #888; }
-  .paperMark { font: 600 .95rem/1 system-ui; letter-spacing: .12em;
-               border: 2px solid #bbb; border-radius: 4px; padding: .45rem .6rem; }
-  .paperName { font-size: .7rem; color: #888; max-width: 90%; overflow: hidden;
+  .paper { height: 190px; border: 1px solid #000000; border-radius: 6px;
+           background: #ffffff; display: flex; flex-direction: column;
+           align-items: center; justify-content: center; gap: .4rem;
+           text-decoration: none; color: #000000; }
+  .paper:hover { background: #ffffff; outline: 2px solid #000000; }
+  .paperMark { font: 700 .95rem/1 system-ui; letter-spacing: .12em;
+               border: 2px solid #000000; border-radius: 4px; padding: .45rem .6rem; }
+  .paperName { font-size: .7rem; color: #000000; max-width: 90%; overflow: hidden;
                text-overflow: ellipsis; white-space: nowrap; }
-  figure.empty { opacity: .55; }
-  .hole { width: 100%; height: 190px; border: 1px dashed #bbb; border-radius: 6px;
+  /* A missing tile is marked by a DASHED border and its own words, not by
+     dimming — a hole is information ("nobody has looked at this state"), so it
+     has to be as readable as everything else. */
+  .hole { width: 100%; height: 190px; border: 1px dashed #000000; border-radius: 6px;
           display: flex; align-items: center; justify-content: center; text-align: center;
-          padding: .5rem; color: #888; font-size: .75rem; background: #f2f2f2; }
-  figcaption { margin-top: .35rem; font-weight: 600; }
-  .note { font-weight: 400; color: #666; font-size: .8rem; }
+          padding: .5rem; color: #000000; font-size: .75rem; background: #ffffff; }
+  figcaption { margin-top: .35rem; font-weight: 700; color: #000000; }
+  .note { font-weight: 400; color: #000000; font-size: .8rem; }
 </style>
 <h1>PuzPuzPuz — game gallery</h1>
 <div class="stamp">${stamp} · ${shots.filter((s) => s.file).length} of ${shots.length} tiles captured</div>
