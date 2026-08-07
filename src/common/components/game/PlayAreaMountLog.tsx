@@ -36,7 +36,39 @@ import { logStamp } from '../../lib/supabase/realtimeDiag'
  *   - **both lines, then blank** → the game component itself rendered
  *     empty; the gametype + play_state in the slot line say exactly which
  *     game and state to reproduce against.
+ *
+ * The slot-mount log is followed by a one-line **browser snapshot**
+ * (viewport, DPR, screen, an approximate zoom, root font size, UA) so a
+ * filtered-to-`[ui]` copy-paste carries the environment along with the
+ * lifecycle. It re-logs on every remount on purpose — zoom and window
+ * size can change mid-session, and a pause/resume captures the new state.
  */
+
+/** One-line environment snapshot for the mount log. All raw measurements
+ *  plus two derived hints, each with a known caveat:
+ *    - `zoom` ≈ outerWidth/innerWidth is the classic desktop heuristic,
+ *      but DOCKED DEVTOOLS shrink innerWidth and skew it high — and the
+ *      reporter will usually have devtools open to copy the log. Treat it
+ *      as a hint; dpr + root font are the trustworthy zoom signals
+ *      (browser zoom scales dpr on Chrome/Firefox, and a user-enlarged
+ *      font changes rem — which the app's 56.25rem breakpoint runs on).
+ *    - `pinch` (visualViewport.scale) only appears when ≠ 1. */
+function browserInfoLine(): string {
+  const zoom =
+    window.outerWidth > 0 && window.innerWidth > 0
+      ? `${Math.round((window.outerWidth / window.innerWidth) * 100)}%`
+      : '?'
+  const pinch = window.visualViewport?.scale
+  return (
+    `viewport ${window.innerWidth}×${window.innerHeight}` +
+    ` | dpr ${window.devicePixelRatio}` +
+    ` | screen ${screen.width}×${screen.height}` +
+    ` | zoom ~${zoom}` +
+    ` | root font ${getComputedStyle(document.documentElement).fontSize}` +
+    (pinch != null && pinch !== 1 ? ` | pinch ${pinch}` : '') +
+    ` | ${navigator.userAgent}`
+  )
+}
 
 /** Wraps the play-surface slot; logs when GamePage mounts/unmounts it. */
 export function PlayAreaSlotLog({
@@ -63,6 +95,7 @@ export function PlayAreaSlotLog({
       `[ui ${logStamp()}] playarea slot mounted — ${gametype} ${gameId} ` +
         `(play_state=${atMount.playState} terminal=${atMount.isTerminal})`,
     )
+    console.log(`[ui ${logStamp()}] browser — ${browserInfoLine()}`)
     return () => {
       console.log(`[ui ${logStamp()}] playarea slot unmounted — ${gametype} ${gameId}`)
     }
