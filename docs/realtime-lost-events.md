@@ -274,6 +274,23 @@ Being straight about the limits of this:
   poller attachment, confirmed by the `system` message) is protocol-level,
   not a local-stack artifact.
 
+**Update 2026-08-07 — the "other route" has zero confirmed sightings.** The
+second long-standing member of the timeout-flake family, bananagrams'
+peer-count spec, was armed with the `[rt]` trail plus an at-failure server
+read, reproduced at ~1-in-3 locally, and convicted as **not realtime at
+all**: the spec updated bob's board via a server-side RPC while bob's page
+was open, and the page's one-shot post-load autosave (usePlayerBoard's
+load-time `setBoard` re-fires the autosave effect ~800ms in) flushed its own
+still-empty board over the write. The channel delivered every event it was
+ever given. With that resolved, every historically-observed "lost event" now
+has a non-mysterious explanation — the deaf window (fixed by the attach
+refetch) or a test racing the client it stood behind — and the hypothesized
+warm-channel subscription/WAL race has never actually been caught. The
+armed spec (evidence dump on failure) stays as the sentinel in case it ever
+is. Moral for test authors: **never mutate a player's FE-owned state by RPC
+while that player's page is open** — the client will flush its own copy
+over yours, and it will look exactly like a realtime failure.
+
 So: the mechanism below the "first channel after a boot" boundary is a
 hypothesis, and a failure that doesn't show a `Stop tenant` in the logs is not
 explained by this document.

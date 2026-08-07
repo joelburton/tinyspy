@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { test, expect } from '@playwright/test'
 import {
   createSoloClub,
@@ -259,6 +260,17 @@ test.describe('bananagrams peer counts', () => {
     const ctxA = await browser.newContext()
     await signIn(ctxA, alice.session)
     const pageA = await ctxA.newPage()
+    // Alice's [rt] console trail (realtimeDiag). This test is the original
+    // lost-event suspect (docs/realtime-lost-events.md) and has only ever
+    // failed inside full-suite runs — where nobody can rerun it under a
+    // debugger — so it carries its own evidence: on failure, the trail says
+    // whether the CDC event arrived (UI-side bug) or never did (lost after
+    // attach — the still-unexplained route the deaf-window fix doesn't cover).
+    const rtLines: string[] = []
+    pageA.on('console', (m) => {
+      const t = m.text()
+      if (t.startsWith('[rt ')) rtLines.push(t)
+    })
     const ctxB = await browser.newContext()
     await signIn(ctxB, bob.session)
     const pageB = await ctxB.newPage()
@@ -273,9 +285,50 @@ test.describe('bananagrams peer counts', () => {
     await expect(bobCount).toHaveText('15', { timeout: 15000 })
 
     // Bob places two tiles (15 held − 2 placed = 13 left) → alice's strip
-    // updates live.
-    await saveBananagramsBoard(bob, game.id, 'AB' + '.'.repeat(25 * 25 - 2))
-    await expect(bobCount).toHaveText('13')
+    // updates live. THROUGH HIS PAGE, not an RPC behind it: bob's open client
+    // one-shot-autosaves its own (empty) board ~800ms after load
+    // (usePlayerBoard's post-load setBoard re-fires the autosave effect), so
+    // a server-side write races that flush and loses to bob's own empty
+    // snapshot — which was exactly this test's long-standing "realtime"
+    // flake. Placing via the UI is also simply what the test claims to test.
+    const bobTiles = pageB.locator('[data-zone="hand"] > *')
+    await expect(bobTiles.first()).toBeVisible({ timeout: 15000 })
+    const l1 = (await bobTiles.nth(0).textContent())!.trim()
+    const l2 = (await bobTiles.nth(1).textContent())!.trim()
+    const cellA = pageB.locator('[data-cell][data-x="12"][data-y="12"]')
+    const cellB = pageB.locator('[data-cell][data-x="13"][data-y="12"]')
+    await cellA.click()
+    await pageB.keyboard.type(l1)
+    await expect(cellA).toContainText(l1) // echo-verified before moving on
+    await cellB.click()
+    await pageB.keyboard.type(l2)
+    await expect(cellB).toContainText(l2)
+    // Wall-clock of the placement, for aligning with the [rt] stamps — any
+    // progress event delivered before this moment was page-mount noise.
+    const savedAt = new Date().toTimeString().slice(0, 8) + '.' + String(Date.now() % 1000).padStart(3, '0')
+    try {
+      await expect(bobCount).toHaveText('13')
+    } catch (err) {
+      // Evidence dump before failing (this is the original lost-event
+      // suspect; it fails too rarely to debug live, so the failure must
+      // convict itself):
+      //  - the server's row AT FAILURE TIME, read via psql before teardown —
+      //    bob's page overwrites the board with its own empty snapshot on
+      //    unmount, so a post-test read is contaminated;
+      //  - the save's completion time;
+      //  - alice's [rt] trail. An `event … bananagrams.progress` line AFTER
+      //    savedAt means delivery worked and the UI is at fault; none means
+      //    the event was LOST on a live channel.
+      const serverRow = execFileSync(
+        'psql',
+        ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-tAX', '-c',
+         `select user_id, unplaced from bananagrams.progress where game_id = '${game.id}';`],
+        { encoding: 'utf8' },
+      ).trim()
+      console.log(`save committed at ${savedAt}; server progress rows AT FAILURE:\n${serverRow}`)
+      console.log(`[rt] trail from alice's page at failure:\n${rtLines.join('\n')}`)
+      throw err
+    }
 
     await ctxA.close()
     await ctxB.close()
