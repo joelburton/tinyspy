@@ -6,6 +6,7 @@ import { ClubPage } from './common/components/club/ClubPage'
 import { CreateClubPage } from './common/components/club/CreateClubPage'
 import { GamePage } from './common/components/game/GamePage'
 import { PlayAreaErrorBoundary } from './common/components/game/PlayAreaErrorBoundary'
+import { PlayAreaSlotLog, PlayAreaReadyLog } from './common/components/game/PlayAreaMountLog'
 import { HomePage } from './common/components/home/HomePage'
 import { EditProfileDialog } from './common/components/account/EditProfileDialog'
 import { useEditProfileOpen, setEditProfileOpen } from './common/lib/account/editProfileStore'
@@ -132,11 +133,22 @@ export default function App() {
               gametype={gametype}
             >
               {(ctx) => (
-                <PlayAreaErrorBoundary>
-                  <Suspense fallback={<p>Loading game…</p>}>
-                    <PlayArea {...ctx} />
-                  </Suspense>
-                </PlayAreaErrorBoundary>
+                // The two mount-only console breadcrumbs for "blank play
+                // area" reports — slot handed over vs game code actually
+                // committed. See PlayAreaMountLog for how to read them.
+                <PlayAreaSlotLog
+                  gametype={gametype}
+                  gameId={gameId}
+                  playState={ctx.playState}
+                  isTerminal={ctx.isTerminal}
+                >
+                  <PlayAreaErrorBoundary>
+                    <Suspense fallback={<p>Loading game…</p>}>
+                      <PlayAreaReadyLog gametype={gametype} />
+                      <PlayArea {...ctx} />
+                    </Suspense>
+                  </PlayAreaErrorBoundary>
+                </PlayAreaSlotLog>
               )}
             </GamePage>
           )
