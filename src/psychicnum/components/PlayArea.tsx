@@ -22,6 +22,7 @@ import { db } from '../db'
 import { db as commonDb } from '../../common/db'
 import { useGame } from '../hooks/useGame'
 import { printPsychicnumPdf } from '../pdf/printPsychicnumPdf'
+import { buildPsychicnumPrintModel } from '../pdf/model'
 import { turnSnapshot } from '../lib/history'
 import { capitalize } from '../lib/capitalize'
 import { stickyPill } from '../../common/lib/game/localPills'
@@ -153,35 +154,21 @@ export function PlayArea({
   // stable `actionsRef` so this effect needn't depend on the later handlers.
   useEffect(() => {
     if (!game) return
-    // Board results: fold the 'guess' turns into word → was-a-secret (the same
-    // rule the live board + lib/history use).
-    const results = new Map<string, boolean>()
-    for (const g of guesses) if (g.kind === 'guess') results.set(g.word, g.is_correct)
-    const found = [...results.values()].filter(Boolean).length
-    const guessesUsed = guesses.filter((g) => g.kind === 'guess').length
-    const model = {
+    // The board/turn/score judgment (whose marks belong on whose board — one
+    // merged track in coop, one PER PLAYER at compete terminal) lives in the
+    // pure builder; see pdf/model.ts.
+    const model = buildPsychicnumPrintModel({
       brand,
       gameTitle: title,
       date: new Date().toLocaleDateString(),
-      summary: `${found} of 3 secrets found · ${guessesUsed} guess${guessesUsed === 1 ? '' : 'es'} used`,
-      board: game.words.map((w) => ({
-        word: w.toUpperCase(),
-        state: results.has(w) ? (results.get(w) ? 'correct' : 'miss') : 'undecided',
-      })) as { word: string; state: 'correct' | 'miss' | 'undecided' }[],
-      cols: Math.ceil(Math.sqrt(game.words.length)),
-      turns: guesses.map((g, i) => ({
-        seq: i + 1,
-        who: memberById(players, g.user_id)?.username ?? 'someone',
-        text:
-          g.kind === 'hint'
-            ? `Hint: ${g.word}`
-            : g.kind === 'reveal'
-              ? `${g.word.toUpperCase()} — Answer`
-              : `${g.word.toUpperCase()} — ${g.is_correct ? 'Correct' : 'Incorrect'}`,
-      })),
       mode: mode ?? 'coop',
+      isTerminal,
+      words: game.words,
+      guesses,
+      players,
+      selfId: session.user.id,
       setup: summaryRows,
-    }
+    })
     menu.setGameSections(
       buildGameMenu({
         menu,
@@ -214,7 +201,7 @@ export function PlayArea({
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, mode, isTerminal, myConceded, secretsShown, game, guesses, players, brand, title, setup, summaryRows])
+  }, [menu, mode, isTerminal, myConceded, secretsShown, game, guesses, players, brand, title, setup, summaryRows, session.user.id])
 
   // Per-opponent secrets-found count we've already announced (compete tension).
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
