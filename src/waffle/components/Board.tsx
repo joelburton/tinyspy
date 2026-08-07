@@ -21,6 +21,12 @@ type Props = {
   highlight?: ReadonlySet<number>
   /** Swap the letters of two filled cells. */
   onSwap: (a: number, b: number) => void
+  /** The swap in flight, or null. Its two cells get the pulsing `.swapping`
+   *  ring — "your click landed; the server is working" — and ALL swap input
+   *  is ignored until it settles: a production round-trip can run a second
+   *  or two, and the reflexive did-I-misclick re-tap of the same two tiles
+   *  would otherwise queue the REVERSE swap. */
+  pendingSwap?: readonly [number, number] | null
 }
 
 /**
@@ -36,7 +42,7 @@ type Props = {
  * skipped — it would bury the color). The square board lives in a `.board`
  * wrapper, top-aligned in the shared `.boardCol` (see Board.module.css).
  */
-export function Board({ board, colors, disabled, viewing = false, highlight, onSwap }: Props) {
+export function Board({ board, colors, disabled, viewing = false, highlight, onSwap, pendingSwap = null }: Props) {
   const [selected, setSelected] = useState<number | null>(null)
   // Drag source (HTML5 drag-and-drop, the desktop alternative to tap). Drag is a
   // MOUSE affordance: on a touch device it's off (HTML5 DnD doesn't fire on touch
@@ -82,8 +88,12 @@ export function Board({ board, colors, disabled, viewing = false, highlight, onS
     [board, viewing],
   )
 
+  // While a swap is in flight, EVERY input path stays quiet (tap, drag, and
+  // the keyboard — a focused tile's Enter/Space lands in `activate` too).
+  const inFlight = pendingSwap !== null
+
   function activate(pos: number) {
-    if (disabled || isHole(pos)) return
+    if (disabled || inFlight || isHole(pos)) return
     if (selected === null) {
       setSelected(pos)
     } else if (selected === pos) {
@@ -97,7 +107,7 @@ export function Board({ board, colors, disabled, viewing = false, highlight, onS
   function drop(pos: number) {
     const from = dragFrom.current
     dragFrom.current = null
-    if (from === null || from === pos || isHole(from) || isHole(pos) || disabled) {
+    if (from === null || from === pos || isHole(from) || isHole(pos) || disabled || inFlight) {
       return
     }
     onSwap(from, pos)
@@ -127,6 +137,7 @@ export function Board({ board, colors, disabled, viewing = false, highlight, onS
                 shared.tile,
                 styles[color],
                 selected === pos && styles.selected,
+                pendingSwap?.includes(pos) && styles.swapping,
                 flashing.has(pos) && styles.justSwapped,
                 highlight?.has(pos) && styles.viewedTile,
               )}

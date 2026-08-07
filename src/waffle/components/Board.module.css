@@ -143,6 +143,24 @@
   z-index: 1;
 }
 
+/* The two tiles of a swap IN FLIGHT — submitted, server round-trip running.
+ * A production round-trip can take a second or two, and with no feedback in
+ * that gap players re-tap the same two tiles ("did I misclick?"), which would
+ * queue the reverse swap; the pulsing ring says "it's happening" while input
+ * is gated (Board.tsx). Same outline vocabulary as `.selected` (the pick ring
+ * these tiles just wore — the pulse reads as "your pick is working"), and the
+ * pulse animates `outline-color` only: no transform, no layout shift. */
+.swapping {
+  outline: 4px solid var(--waffle-select-ring);
+  outline-offset: 2px;
+  animation: waffle-swap-pending 0.8s ease-in-out infinite;
+}
+
+@keyframes waffle-swap-pending {
+  0%, 100% { outline-color: var(--waffle-select-ring); }
+  50%      { outline-color: transparent; }
+}
+
 /* Recently-swapped tiles briefly pop, so the eye tracks the two that moved (the
  * only other change-signal is the recolor). Set for ~480ms after the board
  * updates, by diffing prev vs. next board (see Board.tsx). A swapped tile is
@@ -161,6 +179,10 @@
 @media (prefers-reduced-motion: reduce) {
   /* Drop the motion; the recolor still signals the swap landed. */
   .justSwapped {
+    animation: none;
+  }
+  /* The in-flight ring holds steady instead of pulsing — still marks the pair. */
+  .swapping {
     animation: none;
   }
 }

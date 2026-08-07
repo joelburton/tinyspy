@@ -441,3 +441,44 @@ describe('waffle PlayArea — turn-history viewer (coop)', () => {
     expect(screen.queryByLabelText('Exit viewing')).not.toBeInTheDocument()
   })
 })
+
+describe('waffle PlayArea — swap in flight', () => {
+  // The production complaint this pins: a slow submit_swap (1–2s) with no
+  // feedback invites re-tapping the same two tiles, which queues the REVERSE
+  // swap. A submitted swap must (a) mark both tiles with the in-flight ring
+  // and (b) single-flight — further swap input is dropped until it settles.
+  it('marks both tiles, gates further swaps until the RPC settles', async () => {
+    const user = userEvent.setup()
+    let settle!: (v: { error: null }) => void
+    rpc.mockImplementation((fn: string) =>
+      fn === 'submit_swap'
+        ? new Promise((resolve) => {
+            settle = resolve
+          })
+        : Promise.resolve({ error: null }),
+    )
+    render(<PlayArea {...makeCtx()} />)
+
+    const tiles = within(screen.getByRole('grid')).getAllByRole('button')
+    await user.click(tiles[0])
+    await user.click(tiles[1])
+    expect(rpc).toHaveBeenCalledTimes(1)
+    expect(rpc).toHaveBeenCalledWith('submit_swap', expect.objectContaining({ pos_a: 0, pos_b: 1 }))
+
+    // Both tiles wear the in-flight marker…
+    expect(tiles[0].className).toMatch(/swapping/)
+    expect(tiles[1].className).toMatch(/swapping/)
+
+    // …and the did-I-misclick re-tap (same two tiles — the reverse swap) is dropped.
+    await user.click(tiles[0])
+    await user.click(tiles[1])
+    expect(rpc).toHaveBeenCalledTimes(1)
+
+    // Settling clears the marker and reopens input.
+    await act(async () => settle({ error: null }))
+    await waitFor(() => expect(tiles[0].className).not.toMatch(/swapping/))
+    await user.click(tiles[0])
+    await user.click(tiles[2])
+    expect(rpc).toHaveBeenCalledTimes(2)
+  })
+})

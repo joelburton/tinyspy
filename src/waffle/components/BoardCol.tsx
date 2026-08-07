@@ -29,6 +29,7 @@ export function BoardCol({
   viewingDescription,
   onExitViewing,
   onSwap,
+  pendingSwap,
   localPill,
 }: {
   // ── Mobile-only status strip ──
@@ -58,6 +59,9 @@ export function BoardCol({
   // ── Move ──
   /** Swap the letters of two filled cells — the one committed action up. */
   onSwap: (a: number, b: number) => void
+  /** The swap currently in flight (its two cells pulse; input is gated), or
+   *  null. See PlayArea's `pendingSwap`. */
+  pendingSwap: readonly [number, number] | null
 
   // ── Below-board own-move feedback (PlayArea computes the pill) ──
   /** The below-board pill to show (terminal verdict / waiting / own-move error), or null. */
@@ -83,6 +87,7 @@ export function BoardCol({
         viewing={viewing}
         highlight={highlight}
         onSwap={onSwap}
+        pendingSwap={pendingSwap}
       />
 
       <div className={styles.belowBoard}>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useMemo } from 'react'
+import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
 import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
@@ -189,15 +189,32 @@ export function PlayArea({
     [playerStates, game, players, session.user.id, globalFeedback],
   )
 
-  const handleSwap = useCallback(
+  // The swap in flight, or null. A production round-trip can take a second or
+  // two, and with NO feedback in that gap players assume the click missed and
+  // tap the same two tiles again — which queues the REVERSE swap and undoes
+  // the first. So a submitted swap (a) marks both tiles with the pulsing
+  // in-flight ring (Board's `.swapping`), and (b) single-flights: further
+  // swap input is dropped until the RPC settles (useSingleFlight is the
+  // gate; this state is the render).
+  // (An optimistic local swap was considered and rejected: in coop a peer's
+  // swap can land first, so a preview could show an exchange that never
+  // happens that way.)
+  const [pendingSwap, setPendingSwap] = useState<readonly [number, number] | null>(null)
+  const doSwap = useCallback(
     async (a: number, b: number) => {
-      const { error } = await db.rpc('submit_swap', { target_game: gameId, pos_a: a, pos_b: b })
-      // Own-action error → the local below-board flash. Success: the swap mutated
-      // waffle.players → realtime refetch re-renders the board + colors.
-      if (error) showLocalFeedback(ownAction('error', error.message))
+      setPendingSwap([a, b])
+      try {
+        const { error } = await db.rpc('submit_swap', { target_game: gameId, pos_a: a, pos_b: b })
+        // Own-action error → the local below-board flash. Success: the swap mutated
+        // waffle.players → realtime refetch re-renders the board + colors.
+        if (error) showLocalFeedback(ownAction('error', error.message))
+      } finally {
+        setPendingSwap(null)
+      }
     },
     [gameId, showLocalFeedback],
   )
+  const [handleSwap] = useSingleFlight(doSwap)
 
   // Concede lives on the COMMON roster (ctx `players`), computed here (before the
   // handlers + the menu effect) so both can read it. Drives the shared trio's
@@ -533,6 +550,7 @@ export function PlayArea({
         viewingDescription={snap ? snap.description : null}
         onExitViewing={exitViewing}
         onSwap={handleSwap}
+        pendingSwap={pendingSwap}
         localPill={localPill}
       />
 
