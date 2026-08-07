@@ -44,8 +44,8 @@ import type { PrintTrack, PrintTurn, StrandsPrintModel } from './model'
  */
 
 /** Board geometry, as a fraction of a track's width. */
-const LINE_W = 1.1 // a found word's connector
-const SPANGRAM_W = 2.4 // the one word that names the theme
+const LINE_W = 1.4 // a found word's connector
+const SPANGRAM_W = 2.8 // the one word that names the theme
 const MISSED_DASH: [number, number] = [2.2, 2] // "nobody got this"
 const ROW_H = 11 // a printed log row
 const MARK_X = 3 // the verdict glyph's column
