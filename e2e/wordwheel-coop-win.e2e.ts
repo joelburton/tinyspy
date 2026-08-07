@@ -1,6 +1,26 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { createSoloClub, createWordwheelGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+
+/**
+ * Type a word and submit it — with the entry box's echo VERIFIED first.
+ *
+ * Typing straight after the board becomes visible can lose the leading
+ * keystroke: `useCaptureKeys` attaches its window listener in an effect,
+ * which runs a beat after the paint that satisfied the visibility wait.
+ * Seen live (2026-08-07): `type('bead')` arrived as `EAD — too short` and
+ * the spec starved waiting for a pill that could never come. So: clear,
+ * type, check the entry box heard the WHOLE word (EntryBox's
+ * `data-testid="entry-value"`), retry if not, and only then press Enter.
+ */
+async function submitWord(page: Page, word: string): Promise<void> {
+  await expect(async () => {
+    for (let i = 0; i < word.length + 2; i++) await page.keyboard.press('Backspace')
+    await page.keyboard.type(word)
+    await expect(page.getByTestId('entry-value')).toHaveText(word.toUpperCase(), { timeout: 500 })
+  }).toPass({ timeout: 10_000 })
+  await page.keyboard.press('Enter')
+}
 
 /**
  * wordwheel's COOP win condition — the team picks a rank to reach, and the
@@ -28,14 +48,12 @@ test('coop: crossing the target rank wins, celebrates once, and shows the verdic
   await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
 
   // Below the target: an ordinary word, no celebration, still playing.
-  await page.keyboard.type('bead')
-  await page.keyboard.press('Enter')
+  await submitWord(page, 'bead')
   await expect(page.getByText('BEAD — +1')).toBeVisible()
   await expect(page.getByRole('dialog', { name: /you win/i })).toHaveCount(0)
 
   // The word that crosses it: 1 + 24 = 25 ≥ 14 (Solid).
-  await page.keyboard.type('abcdefghi')
-  await page.keyboard.press('Enter')
+  await submitWord(page, 'abcdefghi')
 
   // The celebration pops at the moment of the win…
   const celebration = page.getByRole('dialog', { name: /you win/i })
@@ -70,8 +88,7 @@ test('coop: with no target, ending is neutral and nothing celebrates', async ({ 
   await page.goto(`/g/${game.gametype}/${game.id}`)
   await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
 
-  await page.keyboard.type('abcdefghi')
-  await page.keyboard.press('Enter')
+  await submitWord(page, 'abcdefghi')
   await expect(page.getByText('ABCDEFGHI — pangram +24')).toBeVisible()
   // 24 points would be past Solid — but with no target there's nothing to cross.
   await expect(page.getByRole('dialog', { name: /you win/i })).toHaveCount(0)
