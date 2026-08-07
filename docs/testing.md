@@ -366,22 +366,39 @@ it.
 
 ### Coverage
 
-393 of 450 tiles as of 2026-08-06. The remaining gaps are unreachable states,
-not unwritten builders: scrabble and wordiply **coop have no win** (nobody to
-beat — a shared budget spent is just finishing), crosswords' `end_game` is
-coop-only by design (compete drops out via concede), and a bananagrams win
-needs a solver — peel the bunch dry *and* lay every held tile into one legal
-mass.
+**411 of 450 tiles as of 2026-08-06 — everything reachable is photographed.**
+The 39 remaining tiles are exactly 13 cells that CANNOT have an asset:
 
-That claim was once FALSE, which is worth remembering: psychicnum's whole
-compete column (15 tiles) was missing for months because its builder declared
-no compete cells — the shared `createGame` fixture hardcoded coop, and the
-docstring rationalized the fixture's limitation into "the game is coop-only".
-The gap report can't catch this: a mode a game declares nothing for is
-indistinguishable from a mode it doesn't have (that rule is what keeps
-bananagrams' nonexistent coop out of the report). So the check that DOES work
-is manual and belongs in review: **a game's declared cells must cover every
-mode its manifest registers.**
+- **10 cells: the mode doesn't exist.** bananagrams is single-mode (no coop
+  gametype — everyone races private boards); codenamesduet is inherently
+  cooperative (no compete gametype). Five phases each.
+- **3 cells: the mode exists, the state doesn't.** scrabble coop and wordiply
+  coop **have no win** (`playing / ended / lost` vocabularies — a shared
+  budget spent is just finishing; only compete produces a winner), and
+  crosswords compete has no neutral end (`end_game` raises "coop-only";
+  compete terminals are `won_compete` / `lost_compete` via concede).
+
+Getting here surfaced TWO ways a hole can lie, both worth remembering:
+
+- **An undeclared mode is invisible.** psychicnum's whole compete column was
+  missing because its builder declared no compete cells — the old `createGame`
+  fixture hardcoded coop and the docstring rationalized that into "the game is
+  coop-only". The gap report can't catch it (an undeclared mode is
+  indistinguishable from a nonexistent one), so the check is manual and
+  belongs in review: **a game's declared cells must cover every mode its
+  manifest registers.**
+- **A declared cell can fail silently.** FIVE builders (connections' losses,
+  waffle's compete terminals, strands' compete win) errored on every run —
+  their ✗ lines scrolled past, the summary only reported *undeclared* cells,
+  and the doc claimed the holes were unreachable. The recurring root cause:
+  **compete races end only when NOBODY is still racing** — a builder that
+  plays only the viewer leaves the rival racing and the game non-terminal
+  (wordle's builder learned this first; waffle/strands/connections repeated
+  it). The runner now prints a ⚠ list of declared cells with no file on disk,
+  so this class can't hide again. (Also in that sweep: bananagrams' "a win
+  needs a solver" was an overstatement — with `word_check: 'off'` a winning
+  peel checks geometry only, so lay-everything + drain + peel-dry wins
+  through the game's own RPC.)
 
 ## Repo-wide invariant guards
 

@@ -472,6 +472,26 @@ async function main() {
     for (const g of gaps) console.log(`    ${g}`)
     console.log('  — add a cell, or ignore if the state is unreachable')
   }
+
+  // DECLARED cells with no file on disk — a builder that failed (its ✗ scrolled
+  // past mid-run) or was added and never run. This is the category the summary
+  // used to omit, which let FIVE broken builders (connections' losses, waffle's
+  // compete terminals, strands' compete win) hide behind a green-looking sheet
+  // for months while the docs claimed every hole was an unreachable state. A
+  // declared cell asserts "this state exists and matters"; a hole under it is
+  // always work, never information.
+  const failed = [
+    ...new Set(
+      shots
+        .filter((s) => s.missing === 'not captured yet')
+        .map((s) => `${s.game.padEnd(14)}${s.cell.mode}/${s.cell.phase}`),
+    ),
+  ]
+  if (failed.length) {
+    console.log(`\n  ⚠ ${failed.length} DECLARED cells have no tiles on disk (build failed or never ran):`)
+    for (const f of failed) console.log(`    ${f}`)
+    console.log('  — rerun those games and read their ✗ lines')
+  }
 }
 
 /** An error's message, however it was thrown. */

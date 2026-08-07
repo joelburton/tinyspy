@@ -1,4 +1,4 @@
-import { asUser, createStrandsGame, type E2EClub } from '../../helpers/fixtures'
+import { asUser, createStrandsGame, type E2EClub, type E2EMember } from '../../helpers/fixtures'
 import { endGame } from '../endGame'
 import { timeOut } from '../timeOut'
 import type { Cell, GameGallery } from '../types'
@@ -15,12 +15,12 @@ import type { Cell, GameGallery } from '../types'
  * finding them all IS the win — there's nothing left to find.
  */
 async function trace(
-  club: E2EClub,
+  member: E2EMember,
   gameId: string,
   paths: Array<Array<[number, number]>>,
 ): Promise<void> {
   for (const path of paths) {
-    const res = await asUser(club.members[0].session.access_token)
+    const res = await asUser(member.session.access_token)
       .schema('strands')
       .rpc('submit_path', { target_game: gameId, path })
     if (res.error) throw new Error(`strands.submit_path: ${res.error.message}`)
@@ -50,11 +50,19 @@ export const strandsGallery: GameGallery = {
     // (club, puzzleDate, mode) — the date sits between them.
     const { id, gametype, words } = await createStrandsGame(club, undefined, cell.mode)
     const paths = words.map((w) => w.coords)
-    if (cell.phase === 'mid') await trace(club, id, paths.slice(0, 2))
-    if (cell.phase === 'won') await trace(club, id, paths)
+    const viewer = club.members[0]
+    if (cell.phase === 'mid') await trace(viewer, id, paths.slice(0, 2))
+    if (cell.phase === 'won') {
+      await trace(viewer, id, paths)
+      // Compete: a solver only goes LOCALLY terminal — the winner (fewest
+      // hints, earliest solve breaking the tie) can't be crowned until nobody
+      // is still racing. The rival finishing too, also on zero hints, ends the
+      // race with the tiebreak going to the viewer, who solved first.
+      if (cell.mode === 'compete') await trace(club.members[1], id, paths)
+    }
     if (cell.phase === 'lost') await timeOut(club, 'strands', id)
     if (cell.phase === 'ended') await endGame(club, 'strands', id)
 
-    return { gametype, id, viewer: club.members[0] }
+    return { gametype, id, viewer }
   },
 }

@@ -1,4 +1,4 @@
-import { asUser, createConnectionsGame, type E2EClub } from '../../helpers/fixtures'
+import { asUser, createConnectionsGame, type E2EClub, type E2EMember } from '../../helpers/fixtures'
 import { endGame } from '../endGame'
 import type { Cell, GameGallery } from '../types'
 
@@ -20,17 +20,24 @@ const CATEGORIES: string[][] = [
   ['DAGGER', 'DELTA', 'DIAMOND', 'DRAGON'],
 ]
 
-/** One tile from each category — wrong by construction, four times over. */
-const WRONG = CATEGORIES.map((c) => c[0])
+/**
+ * Four DISTINCT wrong sets — one tile from each category, rotating which:
+ * `[A0,B0,C0,D0]`, `[A1,B1,C1,D1]`, … Each is wrong by construction, and no
+ * two are the same set, which matters because the server DEDUPS a repeated
+ * (order-insensitive) tile set instead of counting it again. The old builder
+ * submitted one wrong set four times — one mistake registered, the game never
+ * left 'playing', and the lost cells were holes in the sheet for months.
+ */
+const WRONG_SETS = [0, 1, 2, 3].map((i) => CATEGORIES.map((c) => c[i]))
 
 async function guess(
-  club: E2EClub,
+  member: E2EMember,
   gameId: string,
   tiles: string[],
   result: 'correct' | 'wrong',
   rank: number | null,
 ): Promise<void> {
-  const res = await asUser(club.members[0].session.access_token)
+  const res = await asUser(member.session.access_token)
     .schema('connections')
     .rpc('submit_guess', {
       target_game: gameId,
@@ -61,17 +68,23 @@ export const connectionsGallery: GameGallery = {
 
   async build(club: E2EClub, cell: Cell) {
     const { id, gametype } = await createConnectionsGame(club, cell.mode)
-    if (cell.phase === 'mid') await guess(club, id, CATEGORIES[0], 'correct', 0)
+    const viewer = club.members[0]
+    const rival = club.members[1]
+    if (cell.phase === 'mid') await guess(viewer, id, CATEGORIES[0], 'correct', 0)
     if (cell.phase === 'won') {
-      for (let r = 0; r < CATEGORIES.length; r++) await guess(club, id, CATEGORIES[r], 'correct', r)
+      for (let r = 0; r < CATEGORIES.length; r++) await guess(viewer, id, CATEGORIES[r], 'correct', r)
     }
     if (cell.phase === 'lost') {
-      // The mistake budget is four; the same cross-category set each time is
-      // wrong every time, which is all this needs.
-      for (let i = 0; i < 4; i++) await guess(club, id, WRONG, 'wrong', null)
+      // Four mistakes eliminate a player. Coop shares one mistake budget, so
+      // the viewer alone loses it; compete counts per player and the game only
+      // ends when the LAST racer is eliminated — so the rival goes out too.
+      for (const set of WRONG_SETS) await guess(viewer, id, set, 'wrong', null)
+      if (cell.mode === 'compete') {
+        for (const set of WRONG_SETS) await guess(rival, id, set, 'wrong', null)
+      }
     }
     if (cell.phase === 'ended') await endGame(club, 'connections', id)
 
-    return { gametype, id, viewer: club.members[0] }
+    return { gametype, id, viewer }
   },
 }
