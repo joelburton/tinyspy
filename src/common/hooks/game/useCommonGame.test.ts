@@ -118,6 +118,9 @@ function buildChannel() {
         handlers[`broadcast:${filterOrEvent.event}`] = handler
       } else if (kind === 'presence') {
         handlers[`presence:${filterOrEvent.event}`] = handler
+      } else if (kind === 'system') {
+        // The deaf-window closer's binding (lib/supabase/postgresAttached.ts).
+        handlers['system'] = handler
       }
       return this
     }),
@@ -489,5 +492,40 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
     )
     expect(result.current.paused).toBe(false)
     expect(result.current.manuallyPausedBy).toBeNull()
+  })
+})
+
+describe('useCommonGame — deaf-window closer', () => {
+  // The postgres_changes attach confirmation must re-run load(): SUBSCRIBED
+  // is only the join ack, and a common.games write landing before the WAL
+  // poller carries the subscription is dropped — the attach-time re-read is
+  // what closes that window (lib/supabase/postgresAttached.ts +
+  // docs/realtime-lost-events.md; pinned end-to-end by
+  // e2e/realtime-deaf-window.e2e.ts).
+  it('re-loads when the postgres_changes attach is confirmed', async () => {
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    const gamesReads = () =>
+      mockSchemaFrom.mock.calls.filter((c) => c[0] === 'games').length
+    const before = gamesReads()
+    act(() => {
+      handlers['system']?.({ status: 'ok', extension: 'postgres_changes' })
+    })
+    await waitFor(() => expect(gamesReads()).toBe(before + 1))
+  })
+
+  it('ignores system payloads that are not the attach ok', async () => {
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    const gamesReads = () =>
+      mockSchemaFrom.mock.calls.filter((c) => c[0] === 'games').length
+    const before = gamesReads()
+    act(() => {
+      handlers['system']?.({ status: 'error', extension: 'postgres_changes' })
+      handlers['system']?.({ status: 'ok', extension: 'presence' })
+    })
+    expect(gamesReads()).toBe(before)
   })
 })

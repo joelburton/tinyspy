@@ -35,19 +35,31 @@ at 9s, a lost one never arrives at all.
 
 ## Reproducing it
 
-**The repro-turned-regression spec** (2026-08-06, supersedes the
-bare-restart recipe below): `e2e/realtime-deaf-window.e2e.ts`. It engineers
-a guaranteed hit — caps the tenant at `--cpus=0.3` (a slow boot stretches
-the deaf window to ~8s), restarts it, waits for the exact moment the tenant
-starts accepting joins, loads the page so the game room subscribes inside
-the window, then ends the game server-side and asserts the verdict appears.
-Two console-line guards (via the `[rt]` instrumentation) make the timing
-honest: the terminal write must land after the on-SUBSCRIBED refetch and
-before the channel's `system ok`, else the attempt discards its game and
-retries. It was written `test.fail`-pinned and reliably red (4/4
-window-hits, verdict never arrived); the attach-refetch fix flipped it
-green — the event is still dropped by the server, but the `system ok`
-refetch now reads the terminal state — and the marker came off.
+**The repro-turned-regression specs** (2026-08-06, supersede the
+bare-restart recipe below): `e2e/realtime-deaf-window.e2e.ts`, two layers.
+
+The **deterministic wiring guard** loads a game page normally and asserts
+the factory's cause-tagged `refetch #N (attached)` console line follows the
+data channel's `system ok` — no docker, no timing, red on every run if the
+attach refetch is unwired (verified by planting; `useCommonGame`'s half is
+pinned at the unit level).
+
+The **engineered end-to-end test** lands a terminal write inside a real
+deaf window: cap the tenant's CPU (a slow boot widens the window), restart
+it, navigate at the moment it starts accepting joins, end the game
+server-side, assert the verdict appears. Console-line guards keep the
+timing honest — the write must land after the on-SUBSCRIBED refetch and
+before `system ok`, else the attempt logs the window width it measured,
+burns its game, and retries at a harder CPU cap. It was written
+`test.fail`-pinned and reliably red (verdict never arrived); the
+attach-refetch fix flipped it green — the event is still dropped by the
+server, but the `system ok` refetch reads the terminal state — and the
+marker came off. **It is best-effort by nature**: the window's width varies
+with machine state (measured 5–22ms on one warmed-up boot vs seconds on
+another, same CPU cap), so when no attempt can land inside it the test
+SKIPS loudly with the measured widths instead of failing — an unhittable
+window is an environment race, not an app bug, and the deterministic guard
+above still covers the fix.
 
 The original bare-restart recipe — kept because it's what the numbers below
 came from:
