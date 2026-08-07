@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../../../types/db'
+import { instrumentChannel, rtLog, rtVerbose } from './realtimeDiag'
 
 /**
  * The single Supabase client used everywhere in the app.
@@ -80,4 +81,40 @@ export const supabase = createClient<Database>(url, publishableKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
+  realtime: {
+    // Socket-level health, always on. 'sent'/'ok' is the routine ~25s
+    // pulse (logged only in verbose mode); anything else — 'timeout',
+    // 'error', 'disconnected' — means the socket itself is in trouble,
+    // which is a different failure than a single deaf channel and worth
+    // distinguishing in a friend's console screenshot.
+    heartbeatCallback: (status: string, latency?: number) => {
+      const routine = status === 'sent' || status === 'ok'
+      if (routine && !rtVerbose()) return
+      rtLog(
+        'socket',
+        `heartbeat ${status}${latency != null ? ` (${Math.round(latency)}ms)` : ''}`,
+        undefined,
+        routine ? 'log' : 'warn',
+      )
+    },
+    // Deep-debug lever: localStorage.setItem('rt-verbose', '1') + reload
+    // turns on realtime-js's own logger (every push/receive the socket
+    // sees). See realtimeDiag.ts for the full story.
+    ...(rtVerbose()
+      ? {
+          logger: (kind: string, msg: string, data?: unknown) =>
+            console.log(`[rt-verbose] ${kind}: ${msg}`, data ?? ''),
+          logLevel: 'info' as const,
+        }
+      : {}),
+  },
 })
+
+// Route every channel the app creates through the realtime diagnostics
+// (subscribe statuses, the postgres-changes `system` health message, event
+// deliveries, teardowns — see realtimeDiag.ts). Patching the factory here
+// covers all fifteen games' data channels plus the game/club rooms, chat,
+// presence, and scratchpad without touching each hook.
+const rawChannel = supabase.channel.bind(supabase)
+supabase.channel = (...args: Parameters<typeof supabase.channel>) =>
+  instrumentChannel(rawChannel(...args))

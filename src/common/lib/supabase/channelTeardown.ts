@@ -1,5 +1,6 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from './supabase'
+import { rtLog } from './realtimeDiag'
 
 /**
  * Serialize teardown → re-create for **stable-name** Realtime channels.
@@ -70,6 +71,14 @@ function bareName(topic: string): string {
 export function releaseChannel(ch: RealtimeChannel): Promise<unknown> {
   const name = bareName(ch.topic)
   const done = Promise.resolve(supabase.removeChannel(ch))
+    // Diagnostics: removeChannel resolves 'ok' | 'timed out' | 'error'.
+    // A 'timed out' here is exactly the state that wedges a same-named
+    // re-join (the room stays parked in `leaving` until this settles) —
+    // worth a console line when chasing a join that never happened.
+    .then((status) => {
+      rtLog(name, `teardown ${String(status)}`, undefined,
+        status === 'ok' ? 'log' : 'warn')
+    })
     .catch((err) => {
       console.error(`releaseChannel: removing "${name}" failed`, err)
     })

@@ -35,13 +35,37 @@ at 9s, a lost one never arrives at all.
 
 ## Reproducing it
 
-Deterministic:
+**The pinned repro spec** (2026-08-06, supersedes the bare-restart recipe
+below): `e2e/realtime-deaf-window.e2e.ts`. It engineers a guaranteed hit —
+caps the tenant at `--cpus=0.3` (a slow boot stretches the deaf window to
+~8s), restarts it, waits for the exact moment the tenant starts accepting
+joins, loads the page so the game room subscribes inside the window, then
+ends the game server-side and asserts the verdict appears. Today it never
+does; the spec carries a `test.fail` marker so the suite stays green until
+the fix lands, at which point it "passes unexpectedly" and the marker comes
+off. Two console-line guards (via the `[rt]` instrumentation) make the
+timing honest: the terminal write must land after the on-SUBSCRIBED refetch
+and before the channel's `system ok`, else the attempt discards its game and
+retries. Measured 4/4 window-hits on the first attempt.
+
+The original bare-restart recipe — kept because it's what the numbers below
+came from:
 
 ```bash
 docker restart supabase_realtime_codenames
 # wait for healthy, then run any spec that needs a live event
 npx playwright test e2e/wordwheel-coop-win.e2e.ts --grep "celebrates once"
 ```
+
+**Caveat discovered later the same day: this recipe's determinism depends on
+machine load.** The window's width tracks how slowly the tenant boots. On
+the suite-loaded machine where this doc was first written it failed 3/3; on
+an idle machine the same recipe passes 3/3, because the tenant boots fast
+enough that the page's channels join after the window has already closed
+(measured: an idle boot gives the first join batch ~1.3s of window, and
+everyone joining later single-digit milliseconds — a browser page can't get
+there in time). The CPU cap in the pinned spec exists precisely to take
+machine load out of the equation.
 
 Measured, three restarts, three runs:
 
@@ -74,6 +98,53 @@ plausible story is that the poller isn't carrying that subscription yet when the
 channel reports `SUBSCRIBED`. Plausible, not proven — treat the boundary as
 "first channel after a boot", which is what's actually been observed.
 
+**Update 2026-08-06 — the two-phase subscribe is real and measurable.**
+Reading realtime-js 2.108.1: the client fires `SUBSCRIBED` on the **join ack**
+(the tenant accepted the topic and assigned binding ids). Attaching those
+bindings to the WAL poller is a *second, asynchronous phase* on the server,
+and its outcome arrives later as a separate `system` message on the channel:
+
+```
+{ "message": "Subscribed to PostgreSQL", "status": "ok",
+  "extension": "postgres_changes", "channel": "…" }
+```
+
+(or `status: "error"` when it fails). Measured against the local stack with a
+bare supabase-js probe, **warm** tenant:
+
+```
++39ms    STATUS: SUBSCRIBED
++3025ms  SYSTEM: Subscribed to PostgreSQL (status ok)
+```
+
+So even on a healthy tenant there is a ~3s window where the client believes
+it's live but the poller attachment is unconfirmed. And the window is not a
+formality — **events committed inside it are permanently lost**. Measured
+with a second probe (tenant restarted, then one message committed every
+300ms against a `common.messages` subscription):
+
+```
++22ms     STATUS: SUBSCRIBED
++2223ms   SYSTEM: Subscribed to PostgreSQL (status ok)
+
+committed  314…1824ms   → LOST      (6 of 6, every one before system-ok)
+committed 2228…10009ms  → delivered (27 of 27, every one after)
+```
+
+The cut is exact: last loss at 1824ms, first delivery at 2228ms, `system ok`
+at 2223ms. So "the first channel after a boot is deaf" refines to: **every
+fresh channel has a multi-second deaf window between `SUBSCRIBED` and
+`system ok`, and an event committed in that window is dropped, not
+delayed.** This also explains why most specs (and most real play) survive:
+the refetch-on-any-event hooks heal a mid-window loss at the *next*
+delivered event — the permanent damage is when the lost event is the LAST
+one (a coop win, an opponent's final move), which is exactly the shape of
+every observed failure.
+
+Until 2026-08-06 nothing in the app listened for the `system` message — a
+deaf-window channel, an errored channel, and a healthy one looked identical.
+Now every channel logs it (see Instrumentation below).
+
 Two things that are NOT the cause, both checked and cleared:
 
 - **Subscribe latency.** A cold tenant reports `SUBSCRIBED` in 25ms, a warm one
@@ -97,8 +168,43 @@ this state stays deaf until something else remounts the channel.
 **This is a real player-facing risk, not only a test artifact.** A player whose
 client connects at the wrong moment sees a game that quietly stops updating —
 their partner's moves never arrive — with nothing on screen suggesting a
-problem. Nothing has been done about it; see
-[deferred.md](deferred.md) → Common.
+problem. No *recovery* exists yet (see [deferred.md](deferred.md) → Common),
+but as of 2026-08-06 the state is at least *visible*: the console
+instrumentation below leaves an evidence trail in any real browser.
+
+## Instrumentation (2026-08-06)
+
+Every Realtime channel in the app is instrumented centrally — `supabase.ts`
+wraps the `supabase.channel()` factory with
+`common/lib/supabase/realtimeDiag.ts`, so all fifteen games' data channels,
+the game/club rooms, chat, presence, and scratchpad are covered without
+per-hook wiring. Always-on console lines (low-frequency by design):
+
+| line | meaning |
+|---|---|
+| `[rt …] <topic> — status SUBSCRIBED / CHANNEL_ERROR / TIMED_OUT / CLOSED` | every subscribe-status transition; failures are `console.warn` |
+| `[rt …] <topic> — system ok: Subscribed to PostgreSQL` | **the poller really carries this channel's subscription** — the all-clear |
+| `[rt …] <topic> — event UPDATE common.games` | a delivered postgres-changes event (payload `errors` surfaced when set) |
+| `[rt …] <topic> — broadcast "manualPause"` | a delivered broadcast |
+| `[rt …] <topic> — refetch #3 (event)` | `useRealtimeRefetch` ran its load, and why (`mount` / `subscribed` / `event`) |
+| `[rt …] game:<id> — load #2: play_state=playing terminal=false players=2` | what `useCommonGame`'s load actually saw |
+| `[rt …] <topic> — unsubscribing / teardown ok` | deliberate teardown — distinguishes "left" from "went deaf" |
+| `[rt …] socket — heartbeat timeout/disconnected` | the socket itself is in trouble (routine `sent`/`ok` pulses are not logged) |
+
+**Reading the trail:** healthy is `status SUBSCRIBED` → `system ok` (~2–3s
+apart even on a healthy tenant — that gap IS the deaf window; events
+committed between the two lines are lost). A channel with `SUBSCRIBED` and
+**no** `system ok` ever is fully deaf. A stale-looking client whose last
+lines are a `(subscribed)` refetch and a `system ok` — with no `(event)`
+refetch after a peer's move — lost that move inside the window.
+
+For deep debugging in a deployed browser there is a verbose mode — the raw
+realtime-js socket log (every push/receive/heartbeat):
+
+```js
+localStorage.setItem('rt-verbose', '1')   // then reload
+localStorage.removeItem('rt-verbose')     // back to normal
+```
 
 ## Which specs are sensitive
 
@@ -138,8 +244,15 @@ Being straight about the limits of this:
   which argues against the tenant having shut down mid-run. The reproduction
   above is real and deterministic, but it may be one route to a lost event
   rather than the only one — a narrow subscription/WAL race could produce the
-  same signature with the tenant up the whole time.
-- The internal reason the first channel is deaf is inferred, not measured.
+  same signature with the tenant up the whole time. (The measured
+  SUBSCRIBED→`system ok` deaf window is exactly such a race, and it exists on
+  a warm tenant too — so a full-suite failure no longer needs a tenant
+  restart to be explained: it needs an event committed within ~2–3s of the
+  page's subscribe.)
+- Whether the window is the SAME width on hosted (prod) Realtime as on the
+  local stack has not been measured — only that the mechanism (join ack ≠
+  poller attachment, confirmed by the `system` message) is protocol-level,
+  not a local-stack artifact.
 
 So: the mechanism below the "first channel after a boot" boundary is a
 hypothesis, and a failure that doesn't show a `Stop tenant` in the logs is not

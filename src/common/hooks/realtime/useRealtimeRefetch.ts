@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase/supabase'
 import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
+import { rtLog } from '../../lib/supabase/realtimeDiag'
 
 /**
  * One Postgres-changes subscription target — schema + table +
@@ -159,8 +160,13 @@ export function useRealtimeRefetch({
     // committing — see RealtimeLoad). "Latest refetch wins," not "last to land."
     let generation = 0
 
-    function refetch() {
+    // `cause` is diagnostics-only: pairs each refetch in the console with
+    // what provoked it (mount / SUBSCRIBED / a delivered event), so a
+    // deaf channel shows as "mount + subscribed refetches ran, then
+    // nothing" — see docs/realtime-lost-events.md.
+    function refetch(cause: 'mount' | 'subscribed' | 'event') {
       const myGen = ++generation
+      rtLog(`${channelPrefix}:${id}`, `refetch #${myGen} (${cause})`)
       // `mounted()` now means "still mounted AND still the newest load."
       const isCurrent = () => mounted && myGen === generation
       // Fire-and-forget. The caller's load handles its own guard + setState;
@@ -174,7 +180,7 @@ export function useRealtimeRefetch({
     // it'll re-run (a brief double-fetch on first mount,
     // accepted as the cost of fast initial render + correctness
     // after reconnect).
-    refetch()
+    refetch('mount')
 
     let chain = supabase.channel(
       `${channelPrefix}:${id}:${channelDedupSuffix()}`,
@@ -183,11 +189,11 @@ export function useRealtimeRefetch({
       chain = chain.on(
         'postgres_changes',
         { event: '*', schema: t.schema, table: t.table, filter: t.filter },
-        refetch,
+        () => refetch('event'),
       )
     }
     const channel = chain.subscribe((status) => {
-      if (status === 'SUBSCRIBED') refetch()
+      if (status === 'SUBSCRIBED') refetch('subscribed')
     })
 
     return () => {

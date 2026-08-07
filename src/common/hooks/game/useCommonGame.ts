@@ -4,6 +4,7 @@ import { db as commonDb } from '../../db'
 import { navigate } from '../../lib/routing/router'
 import { supabase } from '../../lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
+import { rtLog } from '../../lib/supabase/realtimeDiag'
 import { computePause } from '../../lib/game/pause'
 import type { GamePlayer, Member, TimerMode } from '../../lib/games'
 import { useGameTimer } from './useGameTimer'
@@ -306,6 +307,15 @@ export function useCommonGame(
         })
       }
 
+      // Diagnostics: what this load actually saw. The lost-event failure
+      // mode ends with "the last refetch saw a game still in progress" —
+      // this line is that moment, timestamped, in a real browser's console.
+      rtLog(
+        `game:${gameId}`,
+        `load #${myGen}: play_state=${gameData.play_state}` +
+          ` terminal=${gameData.is_terminal} players=${playerList.length}`,
+      )
+
       clubHandleRef.current = gameData.club_handle
       setCommonGame({
         ...gameData,
@@ -403,6 +413,7 @@ export function useCommonGame(
         }
         presentUserIdsRef.current = ids
         setPresentUserIds(ids)
+        rtLog(room, `presence sync: [${[...ids].join(', ')}]`)
       })
 
       ch.subscribe((status) => {
@@ -442,8 +453,13 @@ export function useCommonGame(
     }
 
     const pending = channelLeaving(room)
-    if (pending) void pending.then(joinRoom)
-    else joinRoom()
+    if (pending) {
+      // The previous mount of this room is still mid-leave (StrictMode
+      // double-mount; club↔game navigation). Log both ends so a join that
+      // never happened is traceable to a teardown that never resolved.
+      rtLog(room, 'join deferred: waiting for previous teardown')
+      void pending.then(joinRoom)
+    } else joinRoom()
 
     load()
 
@@ -467,6 +483,7 @@ export function useCommonGame(
       const ids = presentUserIdsRef.current
       const iAmLastOrUnknown =
         ids.size === 0 || (ids.size === 1 && ids.has(session.user.id))
+      rtLog(room, `leaving (lastViewer=${iAmLastOrUnknown})`)
       if (iAmLastOrUnknown) {
         // Fragile, same shape as set_current_view above: errors
         // logged-and-swallowed. The RPC is idempotent (its
