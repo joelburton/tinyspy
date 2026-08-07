@@ -366,11 +366,22 @@ it.
 
 ### Coverage
 
-378 of 450 tiles as of 2026-08-06. The gaps are unreachable states, not unwritten
-builders: scrabble and wordiply **coop have no win** (nobody to beat — a shared
-budget spent is just finishing), crosswords' `end_game` is coop-only by design
-(compete drops out via concede), and a bananagrams win needs a solver — peel the
-bunch dry *and* lay every held tile into one legal mass.
+393 of 450 tiles as of 2026-08-06. The remaining gaps are unreachable states,
+not unwritten builders: scrabble and wordiply **coop have no win** (nobody to
+beat — a shared budget spent is just finishing), crosswords' `end_game` is
+coop-only by design (compete drops out via concede), and a bananagrams win
+needs a solver — peel the bunch dry *and* lay every held tile into one legal
+mass.
+
+That claim was once FALSE, which is worth remembering: psychicnum's whole
+compete column (15 tiles) was missing for months because its builder declared
+no compete cells — the shared `createGame` fixture hardcoded coop, and the
+docstring rationalized the fixture's limitation into "the game is coop-only".
+The gap report can't catch this: a mode a game declares nothing for is
+indistinguishable from a mode it doesn't have (that rule is what keeps
+bananagrams' nonexistent coop out of the report). So the check that DOES work
+is manual and belongs in review: **a game's declared cells must cover every
+mode its manifest registers.**
 
 ## Repo-wide invariant guards
 

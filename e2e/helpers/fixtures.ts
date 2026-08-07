@@ -191,9 +191,17 @@ export function expireSession(session: Session): Session {
  * pause case) is up to the test — it depends only on whether a browser
  * navigates to the game's GamePage. Returns the id + the gametype
  * (for building the `/g/<gametype>/<id>` URL).
+ *
+ * This is the OLDEST fixture in the file (it predates the per-game
+ * naming — hence plain `createGame`), and until 2026-08-06 it also
+ * predated the mode parameter every later fixture carries. That
+ * hardcoded coop was then mistaken for a property of the game itself
+ * and cost the gallery psychicnum's whole compete column.
  */
 export async function createGame(
   club: E2EClub,
+  mode: 'coop' | 'compete' = 'coop',
+  playerUserIds: string[] = club.members.map((m) => m.userId),
 ): Promise<{ id: string; gametype: string }> {
   const creator = club.members[0]
   const res = await asUser(creator.session.access_token)
@@ -205,12 +213,12 @@ export async function createGame(
       // timer stays `none` on purpose: a countdown could flip the game to
       // 'lost' mid-test and make presence/heal assertions flaky.
       setup: { guesses: 7, word_count: 10, difficulty: 3, timer: { kind: 'none' } },
-      player_user_ids: club.members.map((m) => m.userId),
-      mode: 'coop',
+      player_user_ids: playerUserIds,
+      mode,
     })
   if (res.error) throw new Error(`psychicnum.create_game: ${res.error.message}`)
   const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: 'psychicnum_coop' }
+  return { id: (row as { id: string }).id, gametype: `psychicnum_${mode}` }
 }
 
 /**

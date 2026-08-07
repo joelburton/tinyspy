@@ -453,8 +453,12 @@ async function main() {
   // gap that let the first two games ship with no compete loss at all.
   //
   // A mode a game declares NOTHING for is a mode it doesn't HAVE (bananagrams
-  // is compete-only; codenamesduet and psychicnum coop-only), so its phases
-  // aren't gaps, and listing them would bury the real ones.
+  // is compete-only; codenamesduet coop-only), so its phases aren't gaps, and
+  // listing them would bury the real ones. ⚠ The known blind spot: this rule
+  // makes an INCOMPLETELY-declared game indistinguishable from a single-mode
+  // one — psychicnum's compete column was missing for months because its
+  // builder declared no compete cells and nothing here could tell. When a new
+  // game lands, check its cells against its manifest pair, not this report.
   const playable = new Set(ALL.flatMap((g) => g.cells.map((c) => `${g.game}/${c.mode}`)))
   const gaps = [
     ...new Set(
