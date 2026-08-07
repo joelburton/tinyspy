@@ -336,6 +336,12 @@ live updates silently die for all tables on that channel, with no error.
 Each game's `schema_test.sql` pins its publication membership, and each
 game's migration adds its tables at the bottom of the file.
 
+**The publication is not the only way live updates die silently.** A channel
+whose tables are all published can still report `SUBSCRIBED` and then deliver
+nothing — see [realtime-lost-events.md](realtime-lost-events.md). The symptoms
+are identical (a page that quietly stops updating), so check the publication
+first, since it's the cheap check, and reach for that doc when it's intact.
+
 Related server-side subtleties:
 
 - **`REPLICA IDENTITY FULL` on `common.games`** — ClubPage's subscription
