@@ -112,7 +112,8 @@ function drawBoard(
   // ── Paths first ──
   for (const w of t.words) {
     if (w.coords.length < 2) continue
-    doc.setDrawColor(w.missed ? MEDIUM_GREY : DARK_GREY)
+    // doc.setDrawColor(w.missed ? MEDIUM_GREY : DARK_GREY)
+    doc.setDrawColor(DARK_GREY)
     doc.setLineWidth(w.isSpangram ? SPANGRAM_W : LINE_W)
     // A dash pattern is the missed encoding. Reset it after, or every later
     // stroke on the page inherits it — jsPDF's line-dash is document state, not
