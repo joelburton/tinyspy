@@ -16,7 +16,7 @@ exclusion until 2026-08-02 — see the note under the table for what changed.)
 | bananagrams | ✅ | track family — a board + word list per player, **two** columns (the board is wide) |
 | boggle | ✅ | word-list family |
 | codenamesduet | ✅ | turn-log family — three facts per tile, all carried by drawn marks (see below) |
-| connections | ✅ | turn-log family — category bands as coloured **borders** + an A–D letter (see below) |
+| connections | ✅ | **both families, by mode**: coop = turn-log (shared board + newspaper flow); compete = track family — per player: their earned bands, their unsolved tiles as the plain grid, their score, their log (the full answer prints once, on the viewer's track). Bands everywhere are coloured **borders** + an A–D letter (see below) |
 | crosswords | ✅ | its own third body family (a whole-cloth ported printer); the only game with **two** print items — the puzzle and a separate answer key |
 | letterboxed | ✅ | **track family** — one track per board (coop one, compete one per player); a covered letter is a heavy black ring + bold glyph, an untouched one a thin grey ring; the chain as a numbered list |
 | psychicnum | ✅ | **both families, by mode**: coop = turn-log (one shared board + the newspaper flow); compete = track family (a board with the player's OWN ✓/✗, their score line and their guess list per track — a merged board is a lie when every player races their own copy) |

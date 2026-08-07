@@ -4,7 +4,10 @@
  * The renderer is smoke-tested by `e2e/connections-print.e2e.ts`; what's pinned
  * here is the judgment — above all the **A–D letter**, which is the only thing
  * telling a black-and-white reader which category was which once the band
- * colours have all flattened to the same grey.
+ * colours have all flattened to the same grey; and **whose bands belong on
+ * whose board** — compete splits into one track per player, the full answer
+ * prints once (on the viewer's track), and a rival's track shows only what
+ * they earned.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -55,11 +58,15 @@ const base = {
   setup: [{ key: 'puzzle', label: 'Puzzle', value: '2026-01-01' }],
 }
 
+/** Coop's single shared track — where most band judgments are pinned. */
+const team = (over: Partial<Parameters<typeof buildConnectionsPrintModel>[0]>) =>
+  buildConnectionsPrintModel({ ...base, ...over }).tracks[0]
+
 describe('buildConnectionsPrintModel — bands', () => {
   it('gives every band its A–D letter, in difficulty order', () => {
-    const m = buildConnectionsPrintModel({ ...base, matched: [matched(2), matched(0)] })
+    const t = team({ matched: [matched(2), matched(0)] })
     // Sorted by rank regardless of the order they were solved in.
-    expect(m.bands.map((b) => [b.rank, b.letter])).toEqual([
+    expect(t.bands.map((b) => [b.rank, b.letter])).toEqual([
       [0, 'A'],
       [2, 'C'],
     ])
@@ -69,74 +76,118 @@ describe('buildConnectionsPrintModel — bands', () => {
   it('prints solved and end-of-game-revealed bands IDENTICALLY', () => {
     // Matching the screen: a category you worked out and one the game handed
     // you look the same, on purpose.
-    const m = buildConnectionsPrintModel({
-      ...base,
+    const t = team({
       isTerminal: true,
       matched: [matched(0)],
       unmatched: [CATS[1], CATS[2], CATS[3]],
     })
-    expect(m.bands).toHaveLength(4)
-    expect(Object.keys(m.bands[0])).toEqual(Object.keys(m.bands[1]))
-    expect(m.bands.map((b) => b.letter)).toEqual(['A', 'B', 'C', 'D'])
+    expect(t.bands).toHaveLength(4)
+    expect(Object.keys(t.bands[0])).toEqual(Object.keys(t.bands[1]))
+    expect(t.bands.map((b) => b.letter)).toEqual(['A', 'B', 'C', 'D'])
   })
 
   it('carries each band’s name and its four words', () => {
-    const m = buildConnectionsPrintModel({ ...base, matched: [matched(1)] })
-    expect(m.bands[0].name).toBe('Starts with B')
-    expect(m.bands[0].tiles).toEqual(['BANANA', 'BIRCH', 'BREAD', 'BRICK'])
+    const t = team({ matched: [matched(1)] })
+    expect(t.bands[0].name).toBe('Starts with B')
+    expect(t.bands[0].tiles).toEqual(['BANANA', 'BIRCH', 'BREAD', 'BRICK'])
+  })
+
+  it('never prints a tile both as a band and as a leftover (the reveal double-draw)', () => {
+    // Before 2026-08-06 the terminal reveal handed the printer every unsolved
+    // tile twice — once inside its revealed band, once in the leftover grid
+    // below — because remainingTiles was filtered against MATCHED tiles only.
+    const t = team({
+      isTerminal: true,
+      matched: [matched(0)],
+      unmatched: [CATS[1], CATS[2], CATS[3]],
+      remainingTiles: [...CATS[1].tiles, ...CATS[2].tiles, ...CATS[3].tiles],
+    })
+    expect(t.remainingTiles).toEqual([])
   })
 })
 
 describe('buildConnectionsPrintModel — the log', () => {
   it('names a correct guess by its category LETTER, tying the row to the band', () => {
-    const m = buildConnectionsPrintModel({
-      ...base,
+    const t = team({
       guesses: [guess({ result: 'correct', matched_category_rank: 2, tiles: CATS[2].tiles })],
     })
-    expect(m.turns[0].text).toBe('C: CASTLE · CIRCLE · CLOUD · CROWN')
+    expect(t.turns[0].text).toBe('C: CASTLE · CIRCLE · CLOUD · CROWN')
   })
 
   it('keeps the other two verdicts terse — the move column holds ~38 chars', () => {
-    const m = buildConnectionsPrintModel({
-      ...base,
+    const t = team({
       guesses: [guess({ result: 'oneAway' }), guess({ id: 'g2', result: 'wrong' })],
     })
-    expect(m.turns[0].text).toMatch(/^1 away: /)
-    expect(m.turns[1].text).toMatch(/^miss: /)
+    expect(t.turns[0].text).toMatch(/^1 away: /)
+    expect(t.turns[1].text).toMatch(/^miss: /)
     // ~38 chars is what the renderer's move column actually holds at 9pt, and
     // four tiles plus the prefix has to fit inside it. Measured, not guessed —
     // 'one away — …' overflowed and truncated the last tile.
-    m.turns.forEach((t) => expect(t.text.length).toBeLessThanOrEqual(38))
+    t.turns.forEach((x) => expect(x.text.length).toBeLessThanOrEqual(38))
   })
 
-  it('names the guesser on every row', () => {
+  it('names the guesser on every coop row', () => {
+    const t = team({ guesses: [guess(), guess({ id: 'g2', user_id: 'u2' })] })
+    expect(t.turns.map((x) => x.who)).toEqual(['me', 'moth'])
+  })
+})
+
+describe('buildConnectionsPrintModel — compete splits per player', () => {
+  const gs = [
+    guess({ id: 'a', user_id: 'u1', result: 'correct', matched_category_rank: 0, tiles: CATS[0].tiles }),
+    guess({ id: 'b', user_id: 'u2', result: 'correct', matched_category_rank: 2, tiles: CATS[2].tiles }),
+    guess({ id: 'c', user_id: 'u2', result: 'wrong' }),
+  ]
+
+  it('at terminal: one track per player, each with only their own earned bands', () => {
     const m = buildConnectionsPrintModel({
       ...base,
-      guesses: [guess(), guess({ id: 'g2', user_id: 'u2' })],
+      mode: 'compete',
+      isTerminal: true,
+      guesses: gs,
+      matched: [matched(0)],
+      unmatched: [CATS[1], CATS[2], CATS[3]],
+      remainingTiles: [...CATS[1].tiles, ...CATS[2].tiles, ...CATS[3].tiles],
     })
-    expect(m.turns.map((t) => t.who)).toEqual(['me', 'moth'])
+    expect(m.tracks.map((t) => t.who)).toEqual(['me (you)', 'moth'])
+
+    const [mine, theirs] = m.tracks
+    // The viewer's track carries the full answer (their reveal), like their
+    // screen; the rival's shows only the band THEY earned, everything else
+    // still the plain grid — that's their story.
+    expect(mine.bands.map((b) => b.letter)).toEqual(['A', 'B', 'C', 'D'])
+    expect(mine.remainingTiles).toEqual([])
+    expect(theirs.bands.map((b) => b.letter)).toEqual(['C'])
+    expect(theirs.remainingTiles).toEqual([...CATS[0].tiles, ...CATS[1].tiles, ...CATS[3].tiles])
+    // Scores and logs are per player too.
+    expect(mine.result).toBe('1/4 categories found · 1/4 mistakes')
+    expect(theirs.result).toBe('1/4 categories found · 1/4 mistakes')
+    expect(mine.turns).toHaveLength(1)
+    expect(theirs.turns.map((x) => x.text)).toEqual([
+      'C: CASTLE · CIRCLE · CLOUD · CROWN',
+      'miss: ALPHA · ANGEL · APPLE · BANANA',
+    ])
   })
 
-  it('groups compete by player (self first); coop stays in play order', () => {
-    const gs = [
-      guess({ id: 'a', user_id: 'u2', guessed_at: '2026-01-01T00:00:01Z' }),
-      guess({ id: 'b', user_id: 'u1', guessed_at: '2026-01-01T00:00:02Z' }),
-      guess({ id: 'c', user_id: 'u2', guessed_at: '2026-01-01T00:00:03Z' }),
-    ]
-    expect(
-      buildConnectionsPrintModel({ ...base, mode: 'compete', guesses: gs }).turns.map((t) => t.who),
-    ).toEqual(['me', 'moth', 'moth'])
-    expect(buildConnectionsPrintModel({ ...base, guesses: gs }).turns.map((t) => t.who)).toEqual([
-      'moth',
-      'me',
-      'moth',
-    ])
+  it('mid-game: only the viewer\'s track (rivals\' guesses are hidden)', () => {
+    const m = buildConnectionsPrintModel({
+      ...base,
+      mode: 'compete',
+      guesses: gs.filter((g) => g.user_id === 'u1'),
+      matched: [matched(0)],
+      remainingTiles: [...CATS[1].tiles, ...CATS[2].tiles, ...CATS[3].tiles],
+    })
+    expect(m.tracks.map((t) => t.who)).toEqual(['You'])
+    expect(m.tracks[0].bands.map((b) => b.letter)).toEqual(['A'])
+    expect(m.tracks[0].remainingTiles).toHaveLength(12)
   })
 })
 
 describe('buildConnectionsPrintModel — summary', () => {
-  it('mirrors the on-screen readout', () => {
-    const m = buildConnectionsPrintModel({ ...base, matched: [matched(0), matched(1)], mistakes: 3 })
-    expect(m.summary).toBe('2/4 categories found · 3/4 mistakes')
+  it('coop mirrors the on-screen readout; compete says what the page holds', () => {
+    const coop = buildConnectionsPrintModel({ ...base, matched: [matched(0), matched(1)], mistakes: 3 })
+    expect(coop.summary).toBe('2/4 categories found · 3/4 mistakes')
+    const compete = buildConnectionsPrintModel({ ...base, mode: 'compete' })
+    expect(compete.summary).toBe('Compete · 2 players')
   })
 })

@@ -1,16 +1,33 @@
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GREY, drawHeader, fit, newPrintDoc, savePrint } from '../../common/pdf/frame'
+import {
+  BLACK,
+  DARK_GREY,
+  drawHeader,
+  drawSetup,
+  fit,
+  newPrintDoc,
+  savePrint,
+} from '../../common/pdf/frame'
+import { drawInTracks, type Track } from '../../common/pdf/columns'
 import { drawTurnLog, twoColGeom } from '../../common/pdf/turnLog'
 import type { CategoryRank } from '../lib/board'
-import type { ConnectionsPrintModel, PrintBand } from './model'
+import type { ConnectionsPrintModel, PrintBand, PrintTrack } from './model'
 
 /**
- * connections' print-to-PDF — the **turn-log body family** (docs/pdf.md): the
- * board in the left column, `drawTurnLog` beneath it.
+ * connections' print-to-PDF. The model (see ./model.ts) decides whose bands
+ * belong on whose board; this file only draws.
  *
- * The board is the interesting part. On screen it's a single grid whose rows
- * are either a full-width solved-category band or a row of four tiles; that
- * translates directly, with two deliberate changes for paper:
+ * Two layouts, one per mode:
+ *   - **coop** — the turn-log body family (docs/pdf.md): the shared board in
+ *     the left column, `drawTurnLog` beneath it.
+ *   - **compete** — one **track per player** (`common/pdf/columns.ts`, up to
+ *     three per page): their own bands, their own leftover tiles, their own
+ *     score line and guess list. A merged board is a lie in compete — every
+ *     player races their own copy.
+ *
+ * The board drawing is the interesting part either way. On screen a solved
+ * category is a full-width coloured band; that translates directly, with two
+ * deliberate changes for paper:
  *
  *  1. **A thick coloured border, not a fill.** A band's colour is a full-bleed
  *     background on screen. Four of those is an enormous amount of ink for a
@@ -39,59 +56,105 @@ const BORDER_RGB: Record<CategoryRank, [number, number, number]> = {
 }
 
 const BAND_BORDER_W = 2.5
-const BAND_H = 42
 const BAND_GAP = 6
-const TILE_H = 26
 const COLS = 4
+
+/** Per-width drawing sizes: the full-width coop column vs a third-width
+ *  compete track. One derived object so band and grid can't disagree. */
+function sizesFor(w: number) {
+  const compact = w < 250
+  return compact
+    ? { bandH: 34, nameSize: 8, tileLineSize: 7, letterSize: 9, tileH: 20, tileFontMax: 7 }
+    : { bandH: 42, nameSize: 10, tileLineSize: 9, letterSize: 11, tileH: 26, tileFontMax: 9 }
+}
 
 /** Generate the PDF and hand it to the browser as a download. */
 export function printConnectionsPdf(m: ConnectionsPrintModel): void {
   const pd = newPrintDoc()
   const { doc } = pd
-  const { leftX, colW, colTop } = twoColGeom(pd)
 
   drawHeader(pd, m)
 
-  let y = colTop
-  m.bands.forEach((b) => {
-    drawBand(doc, b, leftX, y, colW)
-    y += BAND_H + BAND_GAP
-  })
-  if (m.remainingTiles.length) y = drawTiles(doc, m.remainingTiles, leftX, y, colW)
-
-  drawTurnLog(pd, {
-    startY: y + 14,
-    moveLabel: 'Guess',
-    rows: m.turns,
-    setup: m.setup,
-    mode: m.mode,
-    emptyText: 'No guesses yet.',
-  })
+  if (m.mode === 'coop') {
+    // ── Coop: the shared board (left column) + the newspaper guess flow ──
+    const { leftX, colW, colTop } = twoColGeom(pd)
+    const t = m.tracks[0]
+    const y = drawBoard(doc, t, leftX, colTop, colW)
+    drawTurnLog(pd, {
+      startY: y + 14,
+      moveLabel: 'Guess',
+      rows: t.turns,
+      setup: m.setup,
+      mode: m.mode,
+      emptyText: 'No guesses yet.',
+    })
+  } else {
+    // ── Compete: one track per player — bands, tiles, score, own log ──
+    const { bottom, left } = drawInTracks(pd, m.tracks, (t, track) =>
+      drawCompeteTrack(doc, t, track),
+    )
+    if (m.setup.length) drawSetup(doc, m.setup, left, bottom + 18, m.mode)
+  }
 
   savePrint(pd, m, 'connections')
+}
+
+/** One player's column: name, their board, their readout, their guesses. */
+function drawCompeteTrack(doc: jsPDF, t: PrintTrack, track: Track): number {
+  doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(BLACK)
+  doc.text(fit(doc, t.who, track.width), track.x, track.top)
+
+  let y = track.top + 8
+  y = drawBoard(doc, t, track.x, y, track.width)
+
+  y += 12
+  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+  doc.text(fit(doc, t.result, track.width), track.x, y)
+  y += 14
+
+  return drawGuessList(doc, t, track, y)
+}
+
+/** A track's board — its bands, then whatever tiles aren't banded. Returns
+ *  the y below the block. */
+function drawBoard(doc: jsPDF, t: PrintTrack, x: number, y: number, w: number): number {
+  const s = sizesFor(w)
+  t.bands.forEach((b) => {
+    drawBand(doc, b, x, y, w, s)
+    y += s.bandH + BAND_GAP
+  })
+  if (t.remainingTiles.length) y = drawTiles(doc, t.remainingTiles, x, y, w, s)
+  return y
 }
 
 /**
  * One solved category: a bordered box holding its letter, name and four words.
  * No fill — the border is the whole colour budget.
  */
-function drawBand(doc: jsPDF, b: PrintBand, x: number, y: number, w: number): void {
+function drawBand(
+  doc: jsPDF,
+  b: PrintBand,
+  x: number,
+  y: number,
+  w: number,
+  s: ReturnType<typeof sizesFor>,
+): void {
   const [r, g, bl] = BORDER_RGB[b.rank]
-  doc.setLineWidth(BAND_BORDER_W).setDrawColor(r, g, bl).rect(x, y, w, BAND_H, 'S')
+  doc.setLineWidth(BAND_BORDER_W).setDrawColor(r, g, bl).rect(x, y, w, s.bandH, 'S')
 
   // The letter, top-left INSIDE the border — the B&W-safe rank signal. Drawn in
   // the band's own colour so it doubles as a swatch on a colour printer, but it
   // reads perfectly well as a plain bold letter without one.
-  doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(r, g, bl)
-  doc.text(b.letter, x + 7, y + 14)
+  doc.setFont('helvetica', 'bold').setFontSize(s.letterSize).setTextColor(r, g, bl)
+  doc.text(b.letter, x + 7, y + s.bandH * 0.33)
 
   // Name + members, indented past the letter so nothing collides with it.
-  const textX = x + 22
-  const textW = w - 28
-  doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(BLACK)
-  doc.text(fit(doc, b.name, textW), textX, y + 15)
-  doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(BLACK)
-  doc.text(fit(doc, b.tiles.join(' · '), textW), textX, y + 30)
+  const textX = x + 20
+  const textW = w - 26
+  doc.setFont('helvetica', 'bold').setFontSize(s.nameSize).setTextColor(BLACK)
+  doc.text(fit(doc, b.name, textW), textX, y + s.bandH * 0.36)
+  doc.setFont('helvetica', 'normal').setFontSize(s.tileLineSize).setTextColor(BLACK)
+  doc.text(fit(doc, b.tiles.join(' · '), textW), textX, y + s.bandH * 0.72)
 }
 
 /**
@@ -99,20 +162,49 @@ function drawBand(doc: jsPDF, b: PrintBand, x: number, y: number, w: number): vo
  * screen's grid. Dark-grey borders, since an unsolved tile carries no rank and
  * so no colour. Returns the y below the block.
  */
-function drawTiles(doc: jsPDF, tiles: string[], x: number, y: number, w: number): number {
+function drawTiles(
+  doc: jsPDF,
+  tiles: string[],
+  x: number,
+  y: number,
+  w: number,
+  s: ReturnType<typeof sizesFor>,
+): number {
   const cellW = w / COLS
   doc.setLineWidth(0.6).setDrawColor(DARK_GREY)
   // ONE size for every tile — the largest that fits the longest word, so the
   // grid reads evenly rather than each cell shrinking to its own content.
-  doc.setFont('helvetica', 'bold').setFontSize(9)
+  doc.setFont('helvetica', 'bold').setFontSize(s.tileFontMax)
   const longest = tiles.reduce((t, w2) => (w2.length > t.length ? w2 : t), '')
-  const size = Math.min(9, (9 * (cellW - 8)) / Math.max(doc.getTextWidth(longest), 1))
+  const size = Math.min(s.tileFontMax, (s.tileFontMax * (cellW - 8)) / Math.max(doc.getTextWidth(longest), 1))
   tiles.forEach((t, i) => {
     const px = x + (i % COLS) * cellW
-    const py = y + Math.floor(i / COLS) * TILE_H
-    doc.setDrawColor(DARK_GREY).rect(px, py, cellW, TILE_H, 'S')
+    const py = y + Math.floor(i / COLS) * s.tileH
+    doc.setDrawColor(DARK_GREY).rect(px, py, cellW, s.tileH, 'S')
     doc.setFontSize(size).setTextColor(BLACK)
-    doc.text(t, px + cellW / 2, py + TILE_H / 2 + size * 0.35, { align: 'center' })
+    doc.text(t, px + cellW / 2, py + s.tileH / 2 + size * 0.35, { align: 'center' })
   })
-  return y + Math.ceil(tiles.length / COLS) * TILE_H
+  return y + Math.ceil(tiles.length / COLS) * s.tileH
+}
+
+/** A track's own guess list — the same compact shape the other track-family
+ *  printers use. A budget is four mistakes + four solves, so it never
+ *  paginates. */
+function drawGuessList(doc: jsPDF, t: PrintTrack, track: Track, y: number): number {
+  doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
+  doc.text('Guesses', track.x, y)
+  let cy = y + 12
+  if (!t.turns.length) {
+    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+    doc.text('None yet.', track.x, cy)
+    return cy
+  }
+  t.turns.forEach((turn) => {
+    doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(DARK_GREY)
+    doc.text(String(turn.seq), track.x, cy)
+    doc.setTextColor(BLACK)
+    doc.text(fit(doc, turn.text, track.width - 14), track.x + 12, cy)
+    cy += 11
+  })
+  return cy
 }
