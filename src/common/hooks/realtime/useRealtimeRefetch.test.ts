@@ -9,6 +9,9 @@
  * What's covered:
  *   - Initial load runs on mount.
  *   - SUBSCRIBED status triggers a refetch.
+ *   - The postgres_changes attach confirmation (`system ok`)
+ *     triggers a refetch — the deaf-window closer — and other
+ *     system payloads don't.
  *   - A postgres-changes event fires the load.
  *   - Multiple-table form: each subscribed table fires the same
  *     load.
@@ -54,6 +57,10 @@ type StatusCallback = (status: string) => void
  *  calls, keyed by table name. Tests fire by table. */
 let handlersByTable: Record<string, () => void> = {}
 let statusCb: StatusCallback | null = null
+/** The `.on('system', ...)` handler — the deaf-window closer's
+ *  input (see lib/supabase/postgresAttached.ts). Tests feed it
+ *  attach-confirmation payloads. */
+let systemCb: ((payload: Record<string, unknown>) => void) | null = null
 /** Names of channels that have been created (in order) — lets
  *  the `id`-changes-rebuild test verify a fresh channel went up
  *  with the new id segment. */
@@ -64,11 +71,15 @@ function buildChannel(name: string) {
   const ch = {
     on: vi.fn(function (
       this: typeof ch,
-      _event: string,
-      filter: { table: string },
-      handler: () => void,
+      event: string,
+      filter: { table?: string },
+      handler: (payload?: unknown) => void,
     ) {
-      handlersByTable[filter.table] = handler
+      if (event === 'postgres_changes' && filter.table) {
+        handlersByTable[filter.table] = handler
+      } else if (event === 'system') {
+        systemCb = handler
+      }
       return this
     }),
     subscribe: vi.fn(function (this: typeof ch, cb: StatusCallback) {
@@ -82,6 +93,7 @@ function buildChannel(name: string) {
 beforeEach(() => {
   handlersByTable = {}
   statusCb = null
+  systemCb = null
   channelNames = []
   mockChannel.mockReset()
   mockChannel.mockImplementation((name: string) => buildChannel(name))
@@ -188,6 +200,40 @@ describe('useRealtimeRefetch', () => {
     expect(load).toHaveBeenCalledTimes(1)
     act(() => statusCb!('CHANNEL_ERROR'))
     act(() => statusCb!('CLOSED'))
+    expect(load).toHaveBeenCalledTimes(1)
+  })
+
+  it('refires the load when the postgres_changes attach is confirmed (deaf-window closer)', () => {
+    const load = vi.fn().mockResolvedValue(undefined)
+    renderHook(() =>
+      useRealtimeRefetch({
+        tables: ONE_TABLE,
+        load,
+        channelPrefix: 'clues',
+        id: 'g1',
+      }),
+    )
+    expect(load).toHaveBeenCalledTimes(1)
+    // The server's "Subscribed to PostgreSQL" system message — proof the
+    // WAL poller carries this channel's subscription. Events committed
+    // before it are dropped, so this refetch is what closes the window.
+    act(() => systemCb!({ status: 'ok', extension: 'postgres_changes' }))
+    expect(load).toHaveBeenCalledTimes(2)
+  })
+
+  it('ignores system payloads that are not the postgres_changes attach ok', () => {
+    const load = vi.fn().mockResolvedValue(undefined)
+    renderHook(() =>
+      useRealtimeRefetch({
+        tables: ONE_TABLE,
+        load,
+        channelPrefix: 'clues',
+        id: 'g1',
+      }),
+    )
+    expect(load).toHaveBeenCalledTimes(1)
+    act(() => systemCb!({ status: 'error', extension: 'postgres_changes' }))
+    act(() => systemCb!({ status: 'ok', extension: 'presence' }))
     expect(load).toHaveBeenCalledTimes(1)
   })
 

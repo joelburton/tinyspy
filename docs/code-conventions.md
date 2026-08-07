@@ -198,7 +198,7 @@ Two shapes recur across the per-game data hooks, and the choice between them is 
 
 #### Pattern A — refetch-only via `useRealtimeRefetch`
 
-For hooks that subscribe to postgres-changes and refetch on any event. The recurring shape — initial load → postgres-changes subscription → SUBSCRIBED-driven refetch on reconnect → cleanup — is factored into [`useRealtimeRefetch`](../src/common/hooks/realtime/useRealtimeRefetch.ts). Canonical calls:
+For hooks that subscribe to postgres-changes and refetch on any event. The recurring shape — initial load → postgres-changes subscription → SUBSCRIBED-driven refetch on reconnect → attach-confirmation refetch (the deaf-window closer, [`postgresAttached.ts`](../src/common/lib/supabase/postgresAttached.ts) / [realtime-lost-events.md](realtime-lost-events.md)) → cleanup — is factored into [`useRealtimeRefetch`](../src/common/hooks/realtime/useRealtimeRefetch.ts). Canonical calls:
 
 ```ts
 useRealtimeRefetch({
@@ -218,7 +218,7 @@ The `tables` field accepts one subscription or an array — psychicnum's useGame
 
 The channel name is UUID-suffixed (`<prefix>:<id>:<uuid>`) — every peer's tab gets its own room. That's safe because there's no peer-coordination state on this channel.
 
-Tested at [`useRealtimeRefetch.test.ts`](../src/common/hooks/realtime/useRealtimeRefetch.test.ts) — initial load, SUBSCRIBED refetch, event refetch, multi-table fan-in, `id`-change channel rebuild, cleanup mounted-guard, ref-trick (caller-fresh-load-each-render doesn't thrash the channel).
+Tested at [`useRealtimeRefetch.test.ts`](../src/common/hooks/realtime/useRealtimeRefetch.test.ts) — initial load, SUBSCRIBED refetch, attach-confirmation refetch (+ its not-ok filter), event refetch, multi-table fan-in, `id`-change channel rebuild, cleanup mounted-guard, ref-trick (caller-fresh-load-each-render doesn't thrash the channel).
 
 #### Pattern B — broadcast-coupled, hand-rolled, single stable-name channel
 

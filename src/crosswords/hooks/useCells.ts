@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { channelDedupSuffix } from '../../common/lib/supabase/channelDedup'
+import { onPostgresAttached } from '../../common/lib/supabase/postgresAttached'
 import { db } from '../db'
 import type { MarkSide, MarkType } from '../lib/types'
 
@@ -151,6 +152,12 @@ export function useCells(
         })
       },
     )
+    // Deaf-window closer: re-read the grid once the postgres_changes attach
+    // is confirmed — a peer's keystroke committed between SUBSCRIBED (the
+    // join ack) and the attach is dropped, and the "newer wins" version
+    // merge makes the extra load safe. See lib/supabase/postgresAttached.ts
+    // + docs/realtime-lost-events.md.
+    onPostgresAttached(ch, () => void load())
     ch.subscribe((status) => {
       if (status === 'SUBSCRIBED') void load()
     })

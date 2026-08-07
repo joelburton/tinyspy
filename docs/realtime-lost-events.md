@@ -35,18 +35,19 @@ at 9s, a lost one never arrives at all.
 
 ## Reproducing it
 
-**The pinned repro spec** (2026-08-06, supersedes the bare-restart recipe
-below): `e2e/realtime-deaf-window.e2e.ts`. It engineers a guaranteed hit —
-caps the tenant at `--cpus=0.3` (a slow boot stretches the deaf window to
-~8s), restarts it, waits for the exact moment the tenant starts accepting
-joins, loads the page so the game room subscribes inside the window, then
-ends the game server-side and asserts the verdict appears. Today it never
-does; the spec carries a `test.fail` marker so the suite stays green until
-the fix lands, at which point it "passes unexpectedly" and the marker comes
-off. Two console-line guards (via the `[rt]` instrumentation) make the
-timing honest: the terminal write must land after the on-SUBSCRIBED refetch
-and before the channel's `system ok`, else the attempt discards its game and
-retries. Measured 4/4 window-hits on the first attempt.
+**The repro-turned-regression spec** (2026-08-06, supersedes the
+bare-restart recipe below): `e2e/realtime-deaf-window.e2e.ts`. It engineers
+a guaranteed hit — caps the tenant at `--cpus=0.3` (a slow boot stretches
+the deaf window to ~8s), restarts it, waits for the exact moment the tenant
+starts accepting joins, loads the page so the game room subscribes inside
+the window, then ends the game server-side and asserts the verdict appears.
+Two console-line guards (via the `[rt]` instrumentation) make the timing
+honest: the terminal write must land after the on-SUBSCRIBED refetch and
+before the channel's `system ok`, else the attempt discards its game and
+retries. It was written `test.fail`-pinned and reliably red (4/4
+window-hits, verdict never arrived); the attach-refetch fix flipped it
+green — the event is still dropped by the server, but the `system ok`
+refetch now reads the terminal state — and the marker came off.
 
 The original bare-restart recipe — kept because it's what the numbers below
 came from:
@@ -154,23 +155,30 @@ Two things that are NOT the cause, both checked and cleared:
   whole subscription silently ([supabase.md](supabase.md)), so it's always worth
   ruling out first — but it was intact here.
 
-## Why the app can't recover
+## Why the app couldn't recover — and the fix
 
 `useCommonGame` refetches on every `SUBSCRIBED`, which is the right defence
-against a *reconnect*: come back, re-read, catch up. It does not help here,
+against a *reconnect*: come back, re-read, catch up. It did not help here,
 because **`SUBSCRIBED` already fired** — before the channel could carry events.
 The refetch ran, saw a game still in progress, and that was the last time this
-client learned anything.
+client learned anything. This was a real player-facing bug, not only a test
+artifact: a player whose client connected at the wrong moment saw a game that
+quietly stopped updating — their partner's moves never arrived — with nothing
+on screen suggesting a problem.
 
-There is no heartbeat, no staleness check, and no post-move re-read. A client in
-this state stays deaf until something else remounts the channel.
-
-**This is a real player-facing risk, not only a test artifact.** A player whose
-client connects at the wrong moment sees a game that quietly stops updating —
-their partner's moves never arrive — with nothing on screen suggesting a
-problem. No *recovery* exists yet (see [deferred.md](deferred.md) → Common),
-but as of 2026-08-06 the state is at least *visible*: the console
-instrumentation below leaves an evidence trail in any real browser.
+**The fix (2026-08-06): refetch again when the attach is confirmed.** The
+`system` "Subscribed to PostgreSQL" message is the missing signal — it means
+the WAL poller really carries this channel's subscription, so a re-read at
+that moment closes the window: anything committed during the gap is picked up
+by the refetch, and everything after it arrives as events. The helper is
+[`common/lib/supabase/postgresAttached.ts`](../src/common/lib/supabase/postgresAttached.ts)
+(`onPostgresAttached(channel, cb)`), and every postgres_changes consumer
+wires it in next to its SUBSCRIBED refetch: the `useRealtimeRefetch` factory
+(all pattern-A game hooks), `useCommonGame`, the ClubPage games list,
+`useGameInvitations`, `useClubChat`, `useScratchpad`, connections' `useGame`,
+and crosswords' `useCells`. Like SUBSCRIBED, the confirmation re-fires on
+every rejoin, so reconnects keep the same protection. The regression test
+below flipped from red to green on exactly this change.
 
 ## Instrumentation (2026-08-06)
 

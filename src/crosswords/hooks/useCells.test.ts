@@ -105,8 +105,11 @@ function buildMocks() {
   // ch = channel(name); ch.on(event, opts, handler) → ch; ch.subscribe(cb) → ch.
   mockChannel.mockImplementation(() => {
     const chain: Record<string, unknown> = {
-      on: (_event: string, _opts: unknown, handler: (p: { new: CellRow }) => void) => {
-        cdcHandler = handler
+      // Only the CDC binding is captured — the hook also binds 'system'
+      // (the deaf-window closer, lib/supabase/postgresAttached.ts), which
+      // must not clobber the handler under test.
+      on: (event: string, _opts: unknown, handler: (p: { new: CellRow }) => void) => {
+        if (event === 'postgres_changes') cdcHandler = handler
         return chain
       },
       subscribe: (cb: (status: string) => void) => {

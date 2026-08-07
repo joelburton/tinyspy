@@ -49,11 +49,13 @@ const {
   const channelObj = {
     on: vi.fn(function (
       this: typeof channelObj,
-      _event: string,
+      event: string,
       _filter: unknown,
       handler: InsertHandler,
     ) {
-      handlers.insert = handler
+      // Only the INSERT binding is captured — the hook also binds 'system'
+      // (the deaf-window closer), which must not clobber it.
+      if (event === 'postgres_changes') handlers.insert = handler
       return this
     }),
     subscribe: vi.fn(function (this: typeof channelObj, cb: StatusCallback) {
@@ -115,11 +117,12 @@ beforeEach(() => {
   const channelObj = {
     on: vi.fn(function (
       this: { on: unknown; subscribe: unknown },
-      _event: string,
+      event: string,
       _filter: unknown,
       handler: InsertHandler,
     ) {
-      channelHandlers.insert = handler
+      // Same postgres_changes-only capture as the module-level mock above.
+      if (event === 'postgres_changes') channelHandlers.insert = handler
       return this
     }),
     subscribe: vi.fn(function (

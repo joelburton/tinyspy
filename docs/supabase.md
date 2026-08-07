@@ -293,8 +293,11 @@ the short version, with every current member:
 1. **Pattern A — refetch-on-any-event via
    [`useRealtimeRefetch`](../src/common/hooks/realtime/useRealtimeRefetch.ts).**
    The default. Initial load + refetch on every CDC event + refetch on
-   every SUBSCRIBED (reconnect catch-up), with a generation counter so a
-   slow superseded load can't clobber a newer one. Members: codenamesduet
+   every SUBSCRIBED (reconnect catch-up) + refetch on the
+   postgres_changes **attach confirmation** (the deaf-window closer —
+   [`postgresAttached.ts`](../src/common/lib/supabase/postgresAttached.ts),
+   [realtime-lost-events.md](realtime-lost-events.md)), with a generation
+   counter so a slow superseded load can't clobber a newer one. Members: codenamesduet
    (×3 hooks), psychicnum, wordle, stackdown, scrabble (data side),
    waffle, bananagrams (×2 hooks), boggle, wordiply, strands, letterboxed,
    the spellingbee/wordwheel factory, HomePage.
@@ -314,11 +317,19 @@ the short version, with every current member:
 
 ### Reconnect story
 
-Three cooperating pieces:
+Four cooperating pieces:
 
 - Every data hook refetches on **every SUBSCRIBED status**, not just the
   first — that's the catch-up after a dropped socket (events during the
   gap are simply refetched over).
+- Every postgres_changes hook ALSO refetches when the server confirms the
+  subscription is attached to the WAL poller (the `system` "Subscribed to
+  PostgreSQL" message, via
+  [`onPostgresAttached`](../src/common/lib/supabase/postgresAttached.ts)).
+  SUBSCRIBED is only the join ack; events committed before the attach are
+  dropped, so without this second refetch a write landing in that gap was
+  lost for good — the measured **deaf window** of
+  [realtime-lost-events.md](realtime-lost-events.md).
 - [`useRealtimeReconnect`](../src/common/hooks/realtime/useRealtimeReconnect.ts)
   (mounted once at app level) nudges the socket on visibilitychange /
   focus / online, so the SUBSCRIBED refetch actually fires promptly after

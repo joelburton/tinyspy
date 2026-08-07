@@ -6,6 +6,7 @@ import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardo
 import { Link } from '../../lib/routing/Link'
 import { navigate } from '../../lib/routing/router'
 import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
+import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
 import { useAppShortcuts, isNonGameField } from '../../hooks/input/useAppShortcuts'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
 import { MODE_LABEL, playerCountFits } from '../../lib/games'
@@ -724,9 +725,14 @@ export function ClubPage({ handle, session }: Props) {
         },
         () => loadGames(),
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') loadGames()
-      })
+    // Deaf-window closer: reload once the postgres_changes attach is
+    // confirmed — SUBSCRIBED below is only the join ack, and an event
+    // committed before the attach is dropped. See
+    // lib/supabase/postgresAttached.ts + docs/realtime-lost-events.md.
+    onPostgresAttached(channel, () => loadGames())
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') loadGames()
+    })
 
     return () => {
       mounted = false

@@ -4,6 +4,7 @@ import { db as commonDb } from '../../db'
 import { navigate } from '../../lib/routing/router'
 import { supabase } from '../../lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
+import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
 import { rtLog } from '../../lib/supabase/realtimeDiag'
 import { computePause } from '../../lib/game/pause'
 import type { GamePlayer, Member, TimerMode } from '../../lib/games'
@@ -395,6 +396,14 @@ export function useCommonGame(
         if (!handle) return
         navigate(`/c/${handle}`)
       })
+
+      // The deaf-window closer: SUBSCRIBED below is only the join ack, and a
+      // common.games/game_players write landing before the WAL poller really
+      // carries this channel's subscription is dropped — for THIS channel
+      // that's a game ending invisibly (the exact bug the pinned repro spec
+      // demonstrates). Re-read once the attach is confirmed. See
+      // lib/supabase/postgresAttached.ts + docs/realtime-lost-events.md.
+      onPostgresAttached(ch, () => void load())
 
       // Presence: dedupe to user_ids so multiple tabs of the same
       // user don't double-count. We also mirror to a ref so the

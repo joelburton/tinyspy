@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
+import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
 
 const commonDb = supabase.schema('common')
 
@@ -129,6 +130,11 @@ export function useScratchpad(
           }
         })
       }
+      // Deaf-window closer: re-read once the postgres_changes attach is
+      // confirmed — a pad write committed between SUBSCRIBED (the join ack)
+      // and the attach is dropped. See lib/supabase/postgresAttached.ts +
+      // docs/realtime-lost-events.md.
+      onPostgresAttached(ch, () => void load())
       ch.subscribe((status) => {
         if (status === 'SUBSCRIBED') void load()
       })

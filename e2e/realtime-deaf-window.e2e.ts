@@ -5,8 +5,11 @@ import { asUser, createSoloClub, createWordwheelGame, type E2EClub } from './hel
 import { signIn } from './helpers/session'
 
 /**
- * THE DEAF-WINDOW REPRO — a pinned, currently-failing demonstration of the
- * lost-event bug (docs/realtime-lost-events.md).
+ * THE DEAF-WINDOW REGRESSION TEST — engineers the lost-event scenario of
+ * docs/realtime-lost-events.md and asserts the app recovers. Written first
+ * as a `test.fail`-pinned repro that reliably demonstrated the bug; the
+ * attach-time refetch (lib/supabase/postgresAttached.ts) flipped it green
+ * and the marker came off.
  *
  * The mechanism: `SUBSCRIBED` is only the join ack. The WAL-poller attachment
  * is confirmed later by the channel's `system` message ("Subscribed to
@@ -43,21 +46,13 @@ import { signIn } from './helpers/session'
  *     that attempt burns its game and retries fresh (the edge is a race
  *     against the boot; ~3 attempts have always sufficed in practice).
  *
- * On a hit, the assertion: the verdict pill must appear. Today it never does
- * — the UPDATE was dropped, nothing else writes this game, and the page shows
- * a live board with an "End game" button for a game that is already over.
- *
- * `test.fail` pins the bug: today the suite stays green because the failure
- * is expected. When the fix lands (refetch again on `system ok`, closing the
- * window), this spec will "pass unexpectedly" and go red — the forcing
- * function to delete the marker and promote it to a plain regression test.
+ * On a hit, the assertion: the verdict pill must appear. The UPDATE event
+ * itself is still dropped by the server — what makes the verdict arrive is
+ * the room's refetch when its `system ok` lands (the deaf-window closer in
+ * every postgres_changes hook). Before that fix, the page kept a live board
+ * with an "End game" button for a game that was already over, forever.
  */
 test('a game ended inside the deaf window shows its verdict to the viewer', async ({ browser }) => {
-  test.fail(
-    true,
-    'KNOWN BUG: events committed in the SUBSCRIBED→system-ok deaf window are lost ' +
-      '(docs/realtime-lost-events.md). Remove this marker when the system-ok refetch fix lands.',
-  )
   const club = await createSoloClub('rtwin')
 
   // Slow the tenant's boot for the duration of the test (see docstring) and

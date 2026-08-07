@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase/supabase'
 import { db as commonDb } from '../../db'
 import { navigate, usePath } from '../../lib/routing/router'
 import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
+import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
 import { games } from '../../../games'
 import {
   loadSeenInvites,
@@ -116,6 +117,11 @@ export function useGameInvitations(session: Session): {
         },
         () => void load(),
       )
+      // Deaf-window closer: rescan once the postgres_changes attach is
+      // confirmed — an invite INSERT committed between SUBSCRIBED (the join
+      // ack) and the attach is dropped. See lib/supabase/postgresAttached.ts
+      // + docs/realtime-lost-events.md.
+      onPostgresAttached(ch, () => void load())
       ch.subscribe((status) => {
         if (status === 'SUBSCRIBED') void load()
       })

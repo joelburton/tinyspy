@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../common/lib/supabase/channelTeardown'
+import { onPostgresAttached } from '../../common/lib/supabase/postgresAttached'
 import { db } from '../db'
 import type { Database } from '../../types/db'
 import type { Member } from '../../common/lib/games'
@@ -283,6 +284,11 @@ export function useGame(
         applySelection(payload as SelectionEvent),
       )
 
+      // Deaf-window closer: re-read once the postgres_changes attach is
+      // confirmed — a move committed between SUBSCRIBED (the join ack) and
+      // the attach is dropped. See lib/supabase/postgresAttached.ts +
+      // docs/realtime-lost-events.md.
+      onPostgresAttached(ch, () => load())
       // SUBSCRIBED fires on initial subscribe AND on every reconnect,
       // so this single hook covers both the mount-time fetch and the
       // missed-events-on-reconnect refetch.

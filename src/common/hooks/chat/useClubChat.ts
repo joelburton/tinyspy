@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase/supabase'
 import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
+import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
 import { db as commonDb } from '../../db'
 import type { Database } from '../../../types/db'
 
@@ -127,9 +128,14 @@ export function useClubChat(clubHandle: string) {
           )
         },
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') load()
-      })
+    // Deaf-window closer: reload once the postgres_changes attach is
+    // confirmed — an INSERT committed between SUBSCRIBED (the join ack) and
+    // the attach is dropped, and mergeSnapshot makes the extra load safe.
+    // See lib/supabase/postgresAttached.ts + docs/realtime-lost-events.md.
+    onPostgresAttached(channel, () => load())
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') load()
+    })
 
     return () => {
       mounted = false

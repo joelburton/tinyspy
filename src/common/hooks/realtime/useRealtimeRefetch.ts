@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase/supabase'
 import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
+import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
 import { rtLog } from '../../lib/supabase/realtimeDiag'
 
 /**
@@ -76,6 +77,13 @@ type Config = {
  *   3. **Refetch on every SUBSCRIBED status.** Covers the
  *      "reconnect dropped events" gap that postgres-changes alone
  *      leaves open.
+ *   3b. **Refetch again when the postgres_changes attach is
+ *      confirmed.** SUBSCRIBED is only the join ack; events
+ *      committed before the server's "Subscribed to PostgreSQL"
+ *      confirmation are dropped, so the SUBSCRIBED refetch can be
+ *      the last thing a deaf-window client ever learns. The
+ *      attach-time refetch closes that window. See
+ *      lib/supabase/postgresAttached.ts + docs/realtime-lost-events.md.
  *   4. **Per-effect UUID-suffixed channel name.** Sidesteps
  *      supabase-js's name-cache + StrictMode double-mount
  *      collision. See `channelDedup.ts` for the rationale.
@@ -161,10 +169,9 @@ export function useRealtimeRefetch({
     let generation = 0
 
     // `cause` is diagnostics-only: pairs each refetch in the console with
-    // what provoked it (mount / SUBSCRIBED / a delivered event), so a
-    // deaf channel shows as "mount + subscribed refetches ran, then
-    // nothing" — see docs/realtime-lost-events.md.
-    function refetch(cause: 'mount' | 'subscribed' | 'event') {
+    // what provoked it (mount / SUBSCRIBED / the postgres_changes attach
+    // confirmation / a delivered event) — see docs/realtime-lost-events.md.
+    function refetch(cause: 'mount' | 'subscribed' | 'attached' | 'event') {
       const myGen = ++generation
       rtLog(`${channelPrefix}:${id}`, `refetch #${myGen} (${cause})`)
       // `mounted()` now means "still mounted AND still the newest load."
@@ -192,6 +199,9 @@ export function useRealtimeRefetch({
         () => refetch('event'),
       )
     }
+    // The deaf-window closer (docstring point 3b): re-read once the WAL
+    // poller really carries this channel's subscription.
+    onPostgresAttached(chain, () => refetch('attached'))
     const channel = chain.subscribe((status) => {
       if (status === 'SUBSCRIBED') refetch('subscribed')
     })
