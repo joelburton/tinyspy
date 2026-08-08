@@ -53,12 +53,13 @@ export function buildDisplayRows(
       finderIds: findersByWord.get(r.word) ?? [r.user_id],
       isBonus: r.is_bonus,
       isPangram: r.is_pangram,
+      points: r.points,
     })
   }
   if (revealWords) {
     for (const sw of revealWords) {
       if (foundByWord.has(sw.word)) continue // shadowed by a found row
-      rows.push({ kind: 'unfound', word: sw.word, isBonus: sw.is_bonus, isPangram: sw.is_pangram })
+      rows.push({ kind: 'unfound', word: sw.word, isBonus: sw.is_bonus, isPangram: sw.is_pangram, points: sw.points })
     }
   }
 

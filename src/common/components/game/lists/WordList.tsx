@@ -50,8 +50,11 @@ export type WordListRow =
     finderIds?: string[]
     isBonus?: boolean
     isPangram?: boolean
+    /** The word's score, for the heading's filtered tally. Optional: a game
+     *  without per-word scoring omits it and the heading shows count only. */
+    points?: number
   }
-  | { kind: 'unfound'; word: string; isBonus?: boolean; isPangram?: boolean }
+  | { kind: 'unfound'; word: string; isBonus?: boolean; isPangram?: boolean; points?: number }
 
 type Props = {
   /** The merged, alphabetized rows (built by the game's `buildDisplayRows`). */
@@ -119,6 +122,15 @@ export function WordList({
   const wordFilter = useWordListFilter({ rows, players, selfId, isCompete, isTerminal, hasBonus })
   const shown = wordFilter.filter(rows)
 
+  // The heading tallies THE FILTERED LIST — "Words: 7 · Score: 10" — so the
+  // filters become a reading tool: flip WHO to a player to see their coop
+  // contribution, or to Missed at terminal to see what the reveal cost.
+  // Score only when this game's rows carry points at all — and gated on ALL
+  // rows (not `shown`) so the score doesn't blink away when a filter empties
+  // the list ("Score: 0" is an answer; a vanishing label is a question).
+  const hasPoints = useMemo(() => rows.some((r) => r.points !== undefined), [rows])
+  const shownScore = shown.reduce((sum, r) => sum + (r.points ?? 0), 0)
+
   // Color-NAME lookup by user_id (the shared <Dot> + colorVarFor resolve it).
   // Players list is small (<10 in realistic clubs) so a Map+get rather than
   // .find on each row.
@@ -166,7 +178,10 @@ export function WordList({
       {/* Heading + the KIND/WHO selects on one line — the same header-row chrome
           the turn log's picker wears (`infoPanel.headerRow`). */}
       <div className={infoPanel.headerRow}>
-        <h3 className={infoPanel.heading}>{heading}</h3>
+        <h3 className={infoPanel.heading}>
+          {`${heading}: ${shown.length}`}
+          {hasPoints && ` · Score: ${shownScore}`}
+        </h3>
         {wordFilter.picker}
       </div>
       {/* The list in a bordered card — the same scroll-box chrome the shared

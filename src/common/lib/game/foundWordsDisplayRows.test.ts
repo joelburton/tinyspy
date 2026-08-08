@@ -84,7 +84,7 @@ describe('buildDisplayRows', () => {
 
   it('includes unfound required words as unfound rows', () => {
     const rows = buildDisplayRows([], [rw('zzzz', false, true)])
-    expect(rows).toEqual([{ kind: 'unfound', word: 'zzzz', isPangram: true, isBonus: false }])
+    expect(rows).toEqual([{ kind: 'unfound', word: 'zzzz', isPangram: true, isBonus: false, points: 1 }])
   })
 
   it('carries is_bonus onto unfound rows — the reveal covers BOTH lists', () => {

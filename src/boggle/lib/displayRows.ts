@@ -12,7 +12,7 @@ import type { FoundWordRow } from '../hooks/useGame'
  */
 export function buildDisplayRows(
   foundWords: FoundWordRow[],
-  revealWords: ReadonlyArray<{ word: string; is_bonus: boolean }> | null | undefined,
+  revealWords: ReadonlyArray<{ word: string; points: number; is_bonus: boolean }> | null | undefined,
 ): WordListRow[] {
   const foundByWord = new Map<string, FoundWordRow>()
   const findersByWord = new Map<string, string[]>()
@@ -31,12 +31,13 @@ export function buildDisplayRows(
       userId: r.user_id,
       finderIds: findersByWord.get(r.word) ?? [r.user_id],
       isBonus: r.is_bonus,
+      points: r.points,
     })
   }
   if (revealWords) {
     for (const rw of revealWords) {
       if (foundByWord.has(rw.word)) continue // found word shadows the reveal entry
-      rows.push({ kind: 'unfound', word: rw.word, isBonus: rw.is_bonus })
+      rows.push({ kind: 'unfound', word: rw.word, isBonus: rw.is_bonus, points: rw.points })
     }
   }
 

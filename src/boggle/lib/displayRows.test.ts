@@ -7,7 +7,7 @@ const fw = (word: string, user_id: string, found_at: string, is_bonus = false): 
 })
 const words = (rows: ReturnType<typeof buildDisplayRows>) => rows.map((r) => r.word)
 /** A reveal entry. `is_bonus` says which shipped list it came from. */
-const rw = (word: string, is_bonus = false) => ({ word, is_bonus })
+const rw = (word: string, is_bonus = false) => ({ word, points: 1, is_bonus })
 
 describe('buildDisplayRows', () => {
   it('sorts alphabetically, each found word once', () => {
