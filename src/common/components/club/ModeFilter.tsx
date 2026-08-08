@@ -1,18 +1,5 @@
-import { MODE_LABEL } from '../../lib/games'
+import { MODE_FILTER_OPTIONS, type ModeFilterValue } from './modeFilterOptions'
 import styles from './clubFilters.module.css'
-
-/** What the start-a-new-game list is filtered to. `'all'` is the default —
- *  no filtering — and the two others are manifest `mode` values verbatim,
- *  so filtering is a straight equality test on the manifest. */
-export type ModeFilterValue = 'all' | 'coop' | 'compete'
-
-const OPTIONS: { value: ModeFilterValue; label: string }[] = [
-  { value: 'all', label: 'All' },
-  // The UI spells coop "Co-op" — from the single labels map, not inline
-  // (see MODE_LABEL's docstring).
-  { value: 'coop', label: MODE_LABEL.coop },
-  { value: 'compete', label: MODE_LABEL.compete },
-]
 
 type Props = {
   value: ModeFilterValue
@@ -43,7 +30,7 @@ export function ModeFilter({ value, onChange, soloClub }: Props) {
   if (soloClub) return null
   return (
     <div className={styles.modeFilter} role="group" aria-label="Filter games by mode">
-      {OPTIONS.map((o) => (
+      {MODE_FILTER_OPTIONS.map((o) => (
         <button
           key={o.value}
           type="button"

@@ -104,6 +104,60 @@ test.describe('club page list filters', () => {
   })
 
   /**
+   * The two filters persist DIFFERENTLY, and the asymmetry is the point (see
+   * ClubPage's note where they're declared):
+   *
+   *   - the MODE filter is a standing taste — "I'm here to play compete games" —
+   *     that narrows a menu of things you could start, hiding nothing that
+   *     exists, so re-picking it every visit is pure friction. It sticks, in
+   *     localStorage, keyed by user;
+   *   - the GAMETYPE filter narrows a list of the club's REAL games, so a
+   *     remembered one hides games that are still there. It resets.
+   *
+   * Both halves are asserted here because "sticky" and "not sticky" are equally
+   * easy to break, and only one of them looks like a bug when it happens.
+   */
+  test('the mode filter survives a reload; the gametype filter does not', async ({
+    browser,
+  }) => {
+    const club = await createClubWithMembers(['flp', 'flq'])
+    await createWordleGame(club, 'coop')
+    await createWaffleGame(club, 'compete')
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/c/${club.handle}`)
+    await expect(page.getByText('Start a new game')).toBeVisible({ timeout: 20000 })
+    await expect(page.getByText('Join the active game')).toHaveCount(0, { timeout: 20000 })
+
+    const headings = page.locator('[class*="_headingRow_"]')
+    const modeButton = (name: string) => headings.getByRole('button', { name, exact: true })
+    const select = headings.getByLabel('Filter your games by game')
+
+    await modeButton('Compete').click()
+    await expect(modeButton('Compete')).toHaveAttribute('aria-pressed', 'true')
+    await select.selectOption('wordle')
+
+    await page.reload()
+    await expect(page.getByText('Start a new game')).toBeVisible({ timeout: 20000 })
+
+    // The taste came back…
+    await expect(modeButton('Compete')).toHaveAttribute('aria-pressed', 'true')
+    await expect(modeButton('All')).toHaveAttribute('aria-pressed', 'false')
+    // …and the hide-real-games filter did not.
+    await expect(select).toHaveValue('all')
+
+    // It's a preference, not a trap: switching back sticks just as readily.
+    await modeButton('All').click()
+    await page.reload()
+    await expect(page.getByText('Start a new game')).toBeVisible({ timeout: 20000 })
+    await expect(modeButton('All')).toHaveAttribute('aria-pressed', 'true')
+
+    await ctx.close()
+  })
+
+  /**
    * A solo club draws no coop/compete distinction anywhere (`<ModePill>`
    * suppresses the badge there), so it gets NO mode filter — offering to sort
    * by a distinction the page isn't showing is worse than the empty space.

@@ -9,6 +9,7 @@ import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
 import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
 import { useAppShortcuts, isNonGameField } from '../../hooks/input/useAppShortcuts'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
+import { useStickyChoice } from '../../hooks/ui/useStickyChoice'
 import { MODE_LABEL, playerCountFits } from '../../lib/games'
 import { useClubPresence } from '../../hooks/realtime/useClubPresence'
 import { useClubSetupPresence } from '../../hooks/realtime/useClubSetupPresence'
@@ -18,7 +19,8 @@ import { ClubGameCard } from './ClubGameCard'
 import { ClubHelp } from './ClubHelp'
 import { EditClubDialog } from './EditClubDialog'
 import { GametypeFilter, type GametypeOption } from './GametypeFilter'
-import { ModeFilter, type ModeFilterValue } from './ModeFilter'
+import { ModeFilter } from './ModeFilter'
+import { MODE_FILTER_VALUES, type ModeFilterValue } from './modeFilterOptions'
 import { Menu, type MenuHandle } from '../panels/Menu'
 import { TriggerWithChevron } from '../panels/TriggerWithChevron'
 import { PuzpuzpuzLogo } from '../branding/PuzpuzpuzLogo'
@@ -132,11 +134,26 @@ export function ClubPage({ handle, session }: Props) {
   //   • your games       → by gametype FAMILY (a baseGametype, or 'all'), so
   //                        "Wordle" covers wordle_coop + wordle_compete
   //
-  // Deliberately NOT persisted (no localStorage, no clubs_gametypes column):
-  // a filter is a way to find something right now, not a preference about the
-  // club, and a club page that remembers it was filtered a week ago looks
-  // broken ("where did our games go?").
-  const [modeFilter, setModeFilter] = useState<ModeFilterValue>('all')
+  // The two are persisted DIFFERENTLY, because they mean different things:
+  //
+  //   • The mode filter is a STANDING TASTE — "I'm here to play compete games" —
+  //     and it narrows a menu of things you could start, hiding nothing that
+  //     exists. Re-picking it on every visit is friction, so it sticks (per
+  //     user, across clubs: the taste is yours, not the club's).
+  //   • The gametype filter is NOT persisted. It narrows a list of the club's
+  //     real games, so a remembered one hides games that are still there — a
+  //     club page that opens already filtered from a week ago reads as broken
+  //     ("where did our games go?"). It's a way to find something right now,
+  //     which is over when you leave.
+  //
+  // Keyed by user id so two accounts sharing a browser don't inherit each
+  // other's taste. `selfId` is a prop-derived value available on the first
+  // render, so the hook's read-the-key-once contract is satisfied.
+  const [modeFilter, setModeFilter] = useStickyChoice<ModeFilterValue>(
+    `puzpuzpuz:club:modeFilter:${selfId}`,
+    MODE_FILTER_VALUES,
+    'all',
+  )
   const [gametypeFilter, setGametypeFilter] = useState<string>('all')
 
   // Club presence: who's in the club orbit right now (this page, or
