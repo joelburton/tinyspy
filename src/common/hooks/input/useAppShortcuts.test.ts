@@ -75,6 +75,33 @@ describe('useAppShortcuts', () => {
     expect(getChatOpen()).toBe(true)
   })
 
+  it('⌥` toggles the anagram dialog — matched by CODE, surviving the mac dead key', () => {
+    const { result } = renderHook(() => useAppShortcuts(vi.fn()))
+    expect(result.current).toBeNull()
+
+    // On macOS ⌥` is the accent composer, so e.key arrives as 'Dead' — the
+    // physical e.code is what the binding matches.
+    const chord = () =>
+      document.body.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Dead', code: 'Backquote', altKey: true, bubbles: true }),
+      )
+    act(() => { chord() })
+    expect(result.current).not.toBeNull()
+    // The same chord toggles it closed.
+    act(() => { chord() })
+    expect(result.current).toBeNull()
+  })
+
+  it('a bare backquote (no alt) is not the anagram chord', () => {
+    const { result } = renderHook(() => useAppShortcuts(vi.fn()))
+    act(() => {
+      document.body.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '`', code: 'Backquote', bubbles: true }),
+      )
+    })
+    expect(result.current).toBeNull()
+  })
+
   it('does NOT fire while a non-game field is focused (setup input, chat box)', () => {
     const openMenu = vi.fn()
     const { result } = renderHook(() => useAppShortcuts(openMenu))
@@ -85,6 +112,9 @@ describe('useAppShortcuts', () => {
     press('/', input)
     press('?', input)
     press('~', input)
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Dead', code: 'Backquote', altKey: true, bubbles: true }),
+    )
     expect(getChatOpen()).toBe(false)
     expect(openMenu).not.toHaveBeenCalled()
     expect(result.current).toBeNull()

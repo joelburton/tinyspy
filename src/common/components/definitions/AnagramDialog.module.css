@@ -1,0 +1,117 @@
+/* Body of the ⌥` anagram finder. The FloatingPanel shell provides the
+ * surface/header/drag; this styles the search row, the terse syntax hint,
+ * and the scrolling result list. The search row + input + button rules
+ * mirror WordLookupDialog.module.css — same family, same look. */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100%;
+  /* The scroll box below needs a bounded flex parent, or IT wins and the
+   * panel grows instead (the InfoSheet flex-column lesson). */
+  min-height: 0;
+}
+
+.form {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+}
+
+/* iOS focus-zoom floor (docs/mobile.md → Decisions #3) — same rule as the
+ * word-lookup input: under 16px a phone zooms in on focus and stays there. */
+@media (--touch) {
+  .input {
+    font-size: 16px;
+  }
+}
+
+.input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+.button {
+  flex: 0 0 auto;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  color: #fff;
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--color-accent-hover);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* The syntax line — instructional chrome, not content, so muted. */
+.hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-sys-error-red);
+}
+
+.count {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+/* The result list: the one flexible child, scrolling INSIDE the panel —
+ * min-height: 0 is what lets flex actually bound it (without it the list
+ * pushes the panel taller and nothing scrolls). */
+.list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.15rem 0 0;
+  list-style: none;
+  border-top: 1px solid var(--color-surface-border);
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.15rem 0.25rem;
+}
+
+.word {
+  font-size: 0.95rem;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+/* The band number — context beside the word, muted BY REQUEST (the spec
+ * asked for it muted; not the don't-default-to-muted case). */
+.band {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}

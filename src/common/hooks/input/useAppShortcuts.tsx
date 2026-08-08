@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { AnagramDialog } from '../../components/definitions/AnagramDialog'
 import { WordLookupDialog } from '../../components/definitions/WordLookupDialog'
 import { setChatOpen } from '../../lib/chat/chatOpenStore'
 
@@ -18,6 +19,13 @@ import { setChatOpen } from '../../lib/chat/chatOpenStore'
  *     this hook — there's nothing page-specific to wire up. (This used
  *     to be re-implemented per-game in spellingbee/scrabble; it now lives
  *     here so it works almost everywhere.)
+ *   - `⌥\`` toggles the anagram finder (AnagramDialog) — the lookup
+ *     dialog's sibling, owned the same way. Matched by PHYSICAL key
+ *     (`e.code === 'Backquote'` + altKey): on macOS Option-backquote is
+ *     the dead-key accent composer, so `e.key` arrives as 'Dead' — the
+ *     same trap `⌥+` solves by matching `code === 'Equal'`. Shift-
+ *     agnostic, so "option-tilde" and "option-backquote" both land;
+ *     preventDefault keeps the composer from firing.
  *
  * These fire when nothing is focused (the common case mid-game, where
  * word games read keys off `window`) AND when a *game* input is focused
@@ -59,6 +67,8 @@ export function useAppShortcuts(
   // The `~` lookup dialog's open/closed state lives here so the dialog
   // can be owned + rendered centrally for every page (see docstring).
   const [lookupOpen, setLookupOpen] = useState(false)
+  // Same ownership for the ⌥` anagram finder.
+  const [anagramsOpen, setAnagramsOpen] = useState(false)
 
   // Read through a ref so the listener still registers exactly once — the flag
   // is a constant per call site in practice, but this keeps the effect's deps
@@ -70,6 +80,16 @@ export function useAppShortcuts(
 
   useEffect(function attachShortcuts() {
     function onKeyDown(e: KeyboardEvent) {
+      // ⌥` — the anagram finder, before the e.key dispatch below because on
+      // macOS this chord's e.key is 'Dead' (see docstring). A toggle: the
+      // same chord closes it (when focus isn't in a text field — from
+      // inside the dialog's own input, Escape is the close).
+      if (e.code === 'Backquote' && e.altKey && !e.metaKey && !e.ctrlKey) {
+        if (isNonGameField(e.target)) return
+        e.preventDefault()
+        setAnagramsOpen((open) => !open)
+        return
+      }
       if (e.key !== '/' && e.key !== '?' && e.key !== '~') return
       // An unbound `/` is left to the browser (find-in-page), not swallowed.
       if (e.key === '/' && !chatEnabledRef.current) return
@@ -97,9 +117,15 @@ export function useAppShortcuts(
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
-  return lookupOpen
-    ? <WordLookupDialog onClose={() => setLookupOpen(false)} />
-    : null
+  // Null when both are closed — callers (and tests) treat "nothing to
+  // render" as null, not an empty fragment.
+  if (!lookupOpen && !anagramsOpen) return null
+  return (
+    <>
+      {lookupOpen && <WordLookupDialog onClose={() => setLookupOpen(false)} />}
+      {anagramsOpen && <AnagramDialog onClose={() => setAnagramsOpen(false)} />}
+    </>
+  )
 }
 
 /**

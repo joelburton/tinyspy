@@ -914,6 +914,10 @@ export type Database = {
     }
     Functions: {
       _advance_turn: { Args: { target_game: string }; Returns: undefined }
+      _anagram_fits: {
+        Args: { floats: number[]; pat: string; w: string; wilds: number }
+        Returns: boolean
+      }
       _assign_turn_order: {
         Args: { first_user_id: string; target_game: string }
         Returns: undefined
@@ -923,6 +927,13 @@ export type Database = {
         Returns: undefined
       }
       _set_conceded: { Args: { target_game: string }; Returns: string }
+      anagrams: {
+        Args: { letters: string }
+        Returns: {
+          difficulty: number
+          word: string
+        }[]
+      }
       cache_definition: {
         Args: { p_def: string; p_source: string; p_word: string }
         Returns: undefined
@@ -1722,6 +1733,15 @@ export type Database = {
       _chain_for: { Args: { g_id: string; u_id: string }; Returns: string[] }
       _covered: { Args: { chain: string[] }; Returns: number }
       _covered_for: { Args: { g_id: string; u_id: string }; Returns: number }
+      _end_game: {
+        Args: {
+          play_state: string
+          player_results: Json
+          status: Json
+          target_game: string
+        }
+        Returns: undefined
+      }
       _leaderboard: { Args: { g_id: string }; Returns: Json }
       _sync_status: { Args: { g_id: string }; Returns: undefined }
       _word_count_for: { Args: { g_id: string; u_id: string }; Returns: number }

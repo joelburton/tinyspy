@@ -1967,6 +1967,134 @@ grant execute on function common.word_letter_mask(text) to authenticated;
 grant select on common.words to authenticated;
 
 -- ============================================================
+-- common.anagrams — the ⌥` anagram finder's search
+-- ============================================================
+-- The dictionary tool behind the global anagram popup: given a letters
+-- pattern, return every word of EXACTLY that length the pattern can spell,
+-- with its difficulty band. The pattern's syntax (the dialog teaches it):
+--
+--   - lowercase letter — a tile that can land anywhere ("floats")
+--   - '?'              — a floating wildcard, pays any one letter
+--   - UPPERCASE letter — pinned: the word must have this letter at this
+--                        exact position ("Acer" finds acer + acre, not race)
+--
+-- All-uppercase degenerates to an exact-word check, which is a feature.
+--
+-- **No content filter, ruled deliberately (2026-08-07):** the player typed
+-- the letters, so the whole dictionary answers — crude/slur/slang words
+-- included. This is the opposite of the app-surfaces tier the scrabble AI
+-- uses (docs/common.md → Which words a game may use), on purpose; a pgTAP
+-- test pins it so a future cleanup doesn't quietly re-filter.
+--
+-- Match runs in three stages, cheapest first, over the len-exact subset:
+--   1. the PIN check as a LIKE pattern (pinned letters literal, every
+--      floating slot '_') — free positional filtering;
+--   2. the letter_mask prefilter: distinct letters the input doesn't hold
+--      at all must be payable by wildcards (bit_count ≤ k) — the same
+--      subset trick the stackdown builder uses, k=0 collapsing to
+--      mask & ~input_mask = 0;
+--   3. the exact multiset fold (_anagram_fits) on the few survivors: each
+--      UNPINNED word position consumes a floating letter or a wildcard.
+--
+-- Ordered difficulty then word — familiar words first, the useful order
+-- when hunting a word you might actually know.
+
+create or replace function common._anagram_fits(
+  w text,
+  pat text,          -- the LIKE pattern: pinned letters literal, '_' = floating slot
+  floats int[],      -- 26 counts of the floating (lowercase) letters
+  wilds int
+)
+returns boolean
+language plpgsql
+immutable
+as $$
+declare
+  i   int;
+  idx int;
+begin
+  -- Only the floating slots consume from the pool; pinned positions were
+  -- already matched (and paid for) by the LIKE pattern. No leftover check
+  -- needed: slots = floats + wilds exactly (same length, pins excluded),
+  -- so an unconsumed float forces wilds negative before the loop ends.
+  for i in 1..length(w) loop
+    if substr(pat, i, 1) = '_' then
+      idx := ascii(substr(w, i, 1)) - 96;
+      if floats[idx] > 0 then
+        floats[idx] := floats[idx] - 1;
+      else
+        wilds := wilds - 1;
+        if wilds < 0 then
+          return false;
+        end if;
+      end if;
+    end if;
+  end loop;
+  return true;
+end;
+$$;
+revoke execute on function common._anagram_fits(text, text, int[], int) from public;
+
+-- SECURITY DEFINER (house pattern): the internal _anagram_fits helper is
+-- revoked from callers, so an invoker-rights version 403s the moment an
+-- authenticated player's call reaches it.
+create or replace function common.anagrams(letters text)
+returns table (word text, difficulty smallint)
+language plpgsql
+stable
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  n       int;
+  k       int := 0;                                -- wildcards
+  floats  int[] := array_fill(0, array[26]);       -- floating letters only
+  in_mask bigint := 0;                             -- ALL input letters, pinned too
+  pat     text := '';                              -- the LIKE pattern
+  i   int;
+  c   text;
+  idx int;
+begin
+  if letters is null or letters !~ '^[A-Za-z?]{2,15}$' then
+    raise exception 'letters must be 2-15 characters of a-z, A-Z, or ?'
+      using errcode = 'P0001';
+  end if;
+  n := length(letters);
+
+  for i in 1..n loop
+    c := substr(letters, i, 1);
+    if c = '?' then
+      k := k + 1;
+      pat := pat || '_';
+    -- ascii(), NOT `c between 'A' and 'Z'`: BETWEEN on text is collation-
+    -- ordered, and en_US interleaves cases ('a' sorts inside A..Z) — the
+    -- range test pinned every lowercase letter too. Bytes don't lie.
+    elsif ascii(c) between 65 and 90 then
+      c := lower(c);
+      pat := pat || c;                             -- pinned: literal in the pattern
+      in_mask := in_mask | (1::bigint << (ascii(c) - 97));
+    else
+      pat := pat || '_';
+      idx := ascii(c) - 96;
+      floats[idx] := floats[idx] + 1;
+      in_mask := in_mask | (1::bigint << (idx - 1));
+    end if;
+  end loop;
+
+  return query
+  select w.word, w.difficulty
+    from common.words w
+   where w.len = n
+     and w.word like pat
+     and bit_count((w.letter_mask & ~in_mask)::bit(64)) <= k
+     and common._anagram_fits(w.word, pat, floats, k)
+   order by w.difficulty, w.word;
+end;
+$$;
+revoke execute on function common.anagrams(text) from public;
+grant execute on function common.anagrams(text) to authenticated;
+
+-- ============================================================
 -- common.cache_definition — the lazy definition-fill write path
 -- ============================================================
 -- The click-to-define popover + "look up any word" shortcut read

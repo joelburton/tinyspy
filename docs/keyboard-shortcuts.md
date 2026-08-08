@@ -48,6 +48,7 @@ type literally in a non-game field (chat, a setup form, the scratchpad).
 | `/` | Open club chat and focus its input. Already-open stays open and refocuses. |
 | `?` | Open the logo / game menu. |
 | `~` | Open the free-form **look up a word** dialog. |
+| `⌥~` | Toggle the **anagram finder** — enter letters, get every word of exactly that length. Lowercase letters float, `?` is a wildcard, an UPPERCASE letter is pinned to its position (`Acer` → acer + acre, never race). Matched on the physical key (`e.code === 'Backquote'` + Option): on macOS the chord is the dead-key accent composer, so `e.key` is `'Dead'` — the `⌥+`/`Equal` trick again. |
 
 ## Global — any play area
 
