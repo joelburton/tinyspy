@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createCrosswordsGameSized } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { settled } from './helpers/ready'
 
 /**
  * crosswords' mobile layout (docs/mobile.md): the grid + the active-clue bar
@@ -30,6 +31,8 @@ test.describe('crosswords mobile', () => {
       const page = await ctx.newPage()
       await page.goto(`/g/${game.gametype}/${game.id}`)
       await expect(page.locator('[data-xw-cell]')).toHaveCount(225, { timeout: 20000 })
+      // …and is LISTENING, not merely mounted (see helpers/ready).
+      await settled(page)
 
       // The page never scrolls (docs/ui.md → page fits the viewport).
       const m = await page.evaluate(() => ({

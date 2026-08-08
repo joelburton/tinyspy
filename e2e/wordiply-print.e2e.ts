@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createWordiplyGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { boardReady } from './helpers/ready'
 
 /**
  * Smoke: wordiply's "Print board (PDF)" menu item generates + downloads a real PDF
@@ -27,7 +28,7 @@ test.describe('wordiply — print board', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${gametype}/${id}`)
-    await expect(page.getByText('AR', { exact: true })).toBeVisible({ timeout: 20000 })
+    await boardReady(page, page.getByText('AR', { exact: true }))
 
     // One accepted guess and one reject, so the printed log has both row kinds.
     await page.keyboard.type('hangars')

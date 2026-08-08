@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createSpellingbeeGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { boardReady } from './helpers/ready'
 
 /**
  * spellingbee's COOP win condition — the team picks a rank to reach, and the
@@ -25,7 +26,7 @@ test('coop: crossing the target rank wins, celebrates once, and shows the verdic
   await signIn(ctx, club.members[0].session)
   const page = await ctx.newPage()
   await page.goto(`/g/${game.gametype}/${game.id}`)
-  await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
+  await boardReady(page, page.locator('[class*="boardCol"]').first())
 
   // Below the target: an ordinary word, no celebration, still playing.
   await page.keyboard.type('bead')
@@ -68,7 +69,7 @@ test('coop: with no target, ending is neutral and nothing celebrates', async ({ 
   await signIn(ctx, club.members[0].session)
   const page = await ctx.newPage()
   await page.goto(`/g/${game.gametype}/${game.id}`)
-  await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
+  await boardReady(page, page.locator('[class*="boardCol"]').first())
 
   await page.keyboard.type('abcdefg')
   await page.keyboard.press('Enter')

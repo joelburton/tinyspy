@@ -6,6 +6,7 @@ import {
   createSoloClub,
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { settled } from './helpers/ready'
 
 /**
  * Smoke test for the CrossPlay (crosswords) coop play loop on screen: the
@@ -26,6 +27,8 @@ test.describe('crosswords play loop', () => {
 
     // The 2×2 grid renders all 4 fillable cells.
     await expect(page.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+    // …and is LISTENING, not merely mounted (see helpers/ready).
+    await settled(page)
 
     // Fill the grid: click each cell, type its answer. The window key-capture
     // model means we type on the page keyboard, not into a field.
@@ -54,6 +57,8 @@ test.describe('crosswords play loop', () => {
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await expect(page.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+    // …and is LISTENING, not merely mounted (see helpers/ready).
+    await settled(page)
 
     const cell00 = page.locator('[data-xw-cell][data-row="0"][data-col="0"]')
 
@@ -126,6 +131,8 @@ test.describe('crosswords play loop', () => {
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await expect(page.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+    // …and is LISTENING, not merely mounted (see helpers/ready).
+    await settled(page)
 
     const fill = async (row: number, col: number, letter: string) => {
       await page.locator(`[data-xw-cell][data-row="${row}"][data-col="${col}"]`).click()
@@ -150,6 +157,8 @@ test.describe('crosswords play loop', () => {
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await expect(page.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+    // …and is LISTENING, not merely mounted (see helpers/ready).
+    await settled(page)
 
     await page.getByRole('button', { name: 'Game menu' }).click()
     const download = page.waitForEvent('download')
@@ -246,6 +255,8 @@ test.describe('crosswords play loop', () => {
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await expect(page.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+    // …and is LISTENING, not merely mounted (see helpers/ready).
+    await settled(page)
 
     const cell = (r: number, c: number) =>
       page.locator(`[data-xw-cell][data-row="${r}"][data-col="${c}"]`)
@@ -300,6 +311,8 @@ test.describe('crosswords play loop', () => {
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await expect(page.locator('[data-xw-cell]')).toHaveCount(4, { timeout: 15000 })
+    // …and is LISTENING, not merely mounted (see helpers/ready).
+    await settled(page)
 
     const cell = page.locator('[data-xw-cell][data-row="0"][data-col="0"]')
     await cell.click()

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createWordiplyGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { boardReady } from './helpers/ready'
 
 /**
  * Live-update smoke test for wordiply (WordWire). Guards the load-bearing
@@ -27,7 +28,7 @@ test.describe('wordiply live updates', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
     // The base 'ar' is shown plainly at the top of the board.
-    await expect(page.getByText('AR', { exact: true })).toBeVisible({ timeout: 15000 })
+    await boardReady(page, page.getByText('AR', { exact: true }), 15000)
     // Starts with no guesses spent.
     await expect(page.getByText(/0 \/ 5 guesses/)).toBeVisible()
 

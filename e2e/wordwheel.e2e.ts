@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createWordwheelGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { boardReady } from './helpers/ready'
 
 /**
  * Live-update smoke test for wordwheel (MooseWheel). The reported bug: after a
@@ -29,9 +30,7 @@ test.describe('wordwheel live updates', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
     // Wait for the wheel to render + the capture keyboard to attach before typing.
-    await expect(page.getByRole('group', { name: 'Letter wheel' })).toBeVisible({
-      timeout: 15000,
-    })
+    await boardReady(page, page.getByRole('group', { name: 'Letter wheel' }), 15000)
 
     const submit = async (w: string) => {
       await page.keyboard.type(w)

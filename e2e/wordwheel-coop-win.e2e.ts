@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { createSoloClub, createWordwheelGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { boardReady } from './helpers/ready'
 
 /**
  * Type a word and submit it — with the entry box's echo VERIFIED first.
@@ -45,7 +46,7 @@ test('coop: crossing the target rank wins, celebrates once, and shows the verdic
   await signIn(ctx, club.members[0].session)
   const page = await ctx.newPage()
   await page.goto(`/g/${game.gametype}/${game.id}`)
-  await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
+  await boardReady(page, page.locator('[class*="boardCol"]').first())
 
   // Below the target: an ordinary word, no celebration, still playing.
   await submitWord(page, 'bead')
@@ -86,7 +87,7 @@ test('coop: with no target, ending is neutral and nothing celebrates', async ({ 
   await signIn(ctx, club.members[0].session)
   const page = await ctx.newPage()
   await page.goto(`/g/${game.gametype}/${game.id}`)
-  await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
+  await boardReady(page, page.locator('[class*="boardCol"]').first())
 
   await submitWord(page, 'abcdefghi')
   await expect(page.getByText('ABCDEFGHI — pangram +24')).toBeVisible()

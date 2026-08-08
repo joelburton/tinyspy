@@ -9,6 +9,7 @@ import {
   drainBananagramsPool,
 } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { boardReady, settled } from './helpers/ready'
 
 /**
  * Smoke test for the bananagrams play surface actually rendering ON SCREEN.
@@ -43,6 +44,8 @@ test.describe('bananagrams renders', () => {
     // and the column must be on screen (not pushed off to the right).
     const handTiles = page.locator('[data-zone="hand"] > *')
     await expect(handTiles).toHaveCount(15, { timeout: 15000 })
+    // …and is LISTENING, not merely mounted (see helpers/ready).
+    await settled(page)
     const handBox = await handTiles.first().boundingBox()
     expect(handBox, 'first hand tile has a box').not.toBeNull()
     expect(handBox!.x, 'hand is on screen (not pushed off the right)').toBeLessThan(vp.width)
@@ -103,7 +106,7 @@ test.describe('bananagrams persistence', () => {
 
     // Place the first hand tile at the center cell via the keyboard cursor.
     const firstTile = page.locator('[data-zone="hand"] > *').first()
-    await expect(firstTile).toBeVisible({ timeout: 15000 })
+    await boardReady(page, firstTile, 15000)
     const letter = (await firstTile.textContent())!.trim()
     const centerCell = page.locator('[data-cell][data-x="12"][data-y="12"]')
     await centerCell.click()

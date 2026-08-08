@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createSpellingbeeGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { boardReady } from './helpers/ready'
 
 /**
  * Smoke test for the FreeBee (spellingbee) play loop on screen, after the
@@ -29,9 +30,7 @@ test.describe('spellingbee play loop', () => {
 
     // Wait for the board to render + the capture keyboard to attach before
     // typing (the honeycomb group appears once the game header has loaded).
-    await expect(page.getByRole('group', { name: 'Letter honeycomb' })).toBeVisible({
-      timeout: 15000,
-    })
+    await boardReady(page, page.getByRole('group', { name: 'Letter honeycomb' }), 15000)
 
     // v3 move entry is the shared CAPTURE model (window key-capture + a
     // chrome-less <EntryBox>), so type on the page keyboard.

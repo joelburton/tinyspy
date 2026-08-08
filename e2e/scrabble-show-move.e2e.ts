@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { createClubWithMembers, createScrabbleGame, setScrabbleRack } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { settled } from './helpers/ready'
 
 /**
  * Coop "show a move": a player broadcasts their in-progress (staged) tiles to
@@ -42,6 +43,9 @@ test.describe('scrabble — show a move (coop)', () => {
     const rackA = pageA.locator('[data-zone="rack"] [data-rack-tile]')
     await expect(rackA).toHaveCount(7, { timeout: 20_000 })
     await expect(pageB.locator('[data-cell]')).toHaveCount(225, { timeout: 20_000 })
+    // …and both are LISTENING, not merely mounted (see helpers/ready).
+    await settled(pageA)
+    await settled(pageB)
 
     // Alice stages CAT from the center star (7,7): click sets the cursor, typing
     // advances right — C→(7,7) A→(8,7) T→(9,7).

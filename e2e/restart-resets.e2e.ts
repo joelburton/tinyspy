@@ -29,12 +29,21 @@ import { signIn } from './helpers/session'
  * game's own replay test; it's the one assertion none of them were making.
  */
 
-/** End the game from the menu, through whatever confirm the game shows. */
+/**
+ * End the game from the menu, through the confirm modal.
+ *
+ * The confirm is unconditional — END_GAME_CONFIRM fires before every pre-terminal
+ * `end_game`, in every game — so this CLICKS it rather than probing first. An
+ * `if (await confirm.isVisible())` guard here is a race, not defensiveness:
+ * `isVisible()` is a one-shot probe, the dialog is a React state render, and
+ * under full-suite load the probe lost, skipped the click, and left the dialog
+ * sitting open until the verdict assertion timed out (strands, 2026-08-07).
+ * Auto-waiting `click()` — what every other e2e file here does — can't lose it.
+ */
 async function endGame(page: Page) {
   await page.getByRole('button', { name: 'Game menu' }).click()
   await page.getByRole('menuitem', { name: /^End game/ }).click()
-  const confirm = page.locator('[data-floating-panel]').getByRole('button', { name: /End game/ })
-  if (await confirm.isVisible().catch(() => false)) await confirm.click()
+  await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
 }
 
 /** Restart from the menu (no confirm at terminal — see useStandardGameActions). */
@@ -122,8 +131,9 @@ test('connections: Restart un-reveals a spent hint', async ({ browser }) => {
 
   await page.getByRole('button', { name: 'Game menu' }).click()
   await page.getByRole('menuitem', { name: 'Restart' }).click()
-  const confirm = page.locator('[data-floating-panel]').getByRole('button', { name: /Restart/ })
-  if (await confirm.isVisible().catch(() => false)) await confirm.click()
+  // Mid-game, so RESTART_CONFIRM always shows — click it, don't probe for it
+  // (same one-shot-isVisible race as endGame above).
+  await page.locator('[data-floating-panel]').getByRole('button', { name: 'Restart' }).click()
   await page.waitForTimeout(2000)
 
   // All four are hidden again — the second attempt is blind.

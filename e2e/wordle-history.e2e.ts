@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { createSoloClub, createWordleGame, seedWordleGuesses } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { boardReady } from './helpers/ready'
 
 /**
  * Turn-history viewer for wordle — the feature added on the (still monolithic)
@@ -34,7 +35,7 @@ test.describe('wordle turn-history viewer', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+    await boardReady(page, page.locator('[data-board]'))
 
     // Both guesses log a #N handle (`[data-turn-number]`); wait for them to arrive.
     const handles = page.locator('[data-turn-number]')

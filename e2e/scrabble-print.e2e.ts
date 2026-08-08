@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createScrabbleGame, setScrabbleRack } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { settled } from './helpers/ready'
 
 /**
  * SPIKE smoke (branch `scrabble-jspdf`): the "Print board (PDF)" menu item actually
@@ -24,6 +25,8 @@ test.describe('scrabble — print board (jsPDF spike)', () => {
 
     // Play CAT so the printed board + moves table aren't empty.
     await expect(page.locator('[data-zone="rack"] [data-rack-tile]')).toHaveCount(7, { timeout: 15_000 })
+    // …and is LISTENING, not merely mounted (see helpers/ready).
+    await settled(page)
     await page.locator('[data-cell][data-x="7"][data-y="7"]').click()
     await page.keyboard.type('CAT')
     await page.keyboard.press('Enter')

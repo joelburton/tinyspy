@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createLetterboxedGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { boardReady } from './helpers/ready'
 
 /**
  * Smoke: letterboxed's "Print board (PDF)" menu item generates + downloads a
@@ -23,7 +24,7 @@ test.describe('letterboxed — print board', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${gametype}/${id}`)
-    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 20000 })
+    await boardReady(page, page.locator('svg text').first())
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createSpellingbeeGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { boardReady } from './helpers/ready'
 
 const WORDS = ['bead', 'beef', 'face', 'fade', 'cage', 'cafe', 'deaf', 'aged', 'bade', 'feed', 'edge', 'abed', 'babe', 'cede', 'dead', 'deed', 'gaff', 'egg', 'ebb', 'add']
 
@@ -11,7 +12,7 @@ test('spellingbee desktop unchanged', async ({ browser }) => {
   await signIn(ctx, club.members[0].session)
   const page = await ctx.newPage()
   await page.goto(`/g/${game.gametype}/${game.id}`)
-  await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
+  await boardReady(page, page.locator('[class*="boardCol"]').first())
   for (const w of WORDS) { await page.keyboard.type(w); await page.keyboard.press('Enter') }
   await page.waitForTimeout(400)
   const m = await page.evaluate(() => {
@@ -34,7 +35,7 @@ test('spellingbee mobile — full-width sheet', async ({ browser }) => {
   await signIn(ctx, club.members[0].session)
   const page = await ctx.newPage()
   await page.goto(`/g/${game.gametype}/${game.id}`)
-  await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
+  await boardReady(page, page.locator('[class*="boardCol"]').first())
   for (const w of WORDS.slice(0, 14)) { await page.keyboard.type(w); await page.keyboard.press('Enter') }
   const s = await page.evaluate(() => ({
     sw: document.documentElement.scrollWidth, iw: window.innerWidth,

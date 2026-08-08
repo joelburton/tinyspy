@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createScrabbleGame, setScrabbleRack } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { boardReady, settled } from './helpers/ready'
 
 /**
  * Full-turn smoke for scrabble: type a word at the center and Submit, then check it
@@ -31,6 +32,8 @@ test.describe('scrabble — play a turn', () => {
     // The pinned rack renders its 7 tiles.
     const rackTiles = page.locator('[data-zone="rack"] [data-rack-tile]')
     await expect(rackTiles).toHaveCount(7, { timeout: 15000 })
+    // …and is LISTENING, not merely mounted (see helpers/ready).
+    await settled(page)
 
     // Type CAT from the center star (7,7). Clicking the cell sets the keyboard
     // cursor; it advances right, so C→(7,7) A→(8,7) T→(9,7) — a legal first move.
@@ -74,7 +77,7 @@ test.describe('scrabble replay + new game', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+    await boardReady(page, page.locator('[data-board]'))
 
     // Play CAT at the centre so there's a committed tile + a log row to wipe.
     const center = page.locator('[data-cell][data-x="7"][data-y="7"]')
@@ -103,7 +106,7 @@ test.describe('scrabble replay + new game', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+    await boardReady(page, page.locator('[data-board]'))
 
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'New game' }).click()
@@ -113,7 +116,7 @@ test.describe('scrabble replay + new game', () => {
 
     await page.waitForURL((u) => u.pathname.startsWith(`/g/${game.gametype}/`) &&
                                 !u.pathname.endsWith(game.id), { timeout: 15000 })
-    await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+    await boardReady(page, page.locator('[data-board]'))
     await ctx.close()
   })
 })

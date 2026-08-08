@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createLetterboxedGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { boardReady } from './helpers/ready'
 
 /**
  * Smoke test for letterboxed (SnakeBox), covering the two input paths the game
@@ -26,7 +27,7 @@ test.describe('letterboxed', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
     // The board renders all twelve letters.
-    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+    await boardReady(page, page.locator('svg text').first(), 15000)
     await expect(page.locator('svg text')).toHaveCount(12)
 
     // Nothing covered yet.
@@ -68,7 +69,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+    await boardReady(page, page.locator('svg text').first(), 15000)
 
     // Sides are `abc | def | ghi | jkl`, so B cannot follow A — they share a
     // side. The keystroke is refused rather than accepted-then-rejected.
@@ -91,7 +92,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+    await boardReady(page, page.locator('svg text').first(), 15000)
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
@@ -121,7 +122,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+    await boardReady(page, page.locator('svg text').first(), 15000)
 
     const boardTop = async () => {
       const svgs = page.locator('svg')
@@ -166,7 +167,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+    await boardReady(page, page.locator('svg text').first(), 15000)
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
@@ -211,7 +212,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+    await boardReady(page, page.locator('svg text').first(), 15000)
 
     // HINT describes the word without giving it: the fixture's two-word
     // solution opens with ADGJBEHK — 8 letters, so three of them (four only
@@ -243,7 +244,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+    await boardReady(page, page.locator('svg text').first(), 15000)
 
     await page.getByRole('button', { name: /end game/i }).click()
     const confirm = page.getByRole('button', { name: /^(end|yes|confirm)/i }).last()
@@ -268,7 +269,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+    await boardReady(page, page.locator('svg text').first(), 15000)
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
@@ -315,7 +316,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+    await boardReady(page, page.locator('svg text').first(), 15000)
 
     const pills = () =>
       page.evaluate(() =>
@@ -367,7 +368,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('svg text').first()).toBeVisible({ timeout: 15000 })
+    await boardReady(page, page.locator('svg text').first(), 15000)
 
     const letter = (ch: string) => page.locator('svg g').filter({ hasText: new RegExp(`^${ch}$`) })
 

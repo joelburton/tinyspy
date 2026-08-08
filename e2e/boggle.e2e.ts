@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { createSoloClub, createBoggleGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { settled } from './helpers/ready'
 
 /**
  * Smoke test for the MothCubes (boggle) play loop on screen: the board renders,
@@ -23,6 +24,8 @@ test.describe('boggle play loop', () => {
 
     // The 4×4 board renders all 16 tiles.
     await expect(page.locator('[data-boggle-tile]')).toHaveCount(16, { timeout: 15000 })
+    // …and is LISTENING, not merely mounted (see helpers/ready).
+    await settled(page)
 
     // v3 move entry is the shared CAPTURE model (window key-capture + a
     // chrome-less <EntryBox> display — no <input>), so type on the page keyboard
@@ -58,6 +61,8 @@ test.describe('boggle play loop', () => {
 
     const tiles = page.locator('[data-boggle-tile]')
     await expect(tiles).toHaveCount(16, { timeout: 15000 })
+    // …and is LISTENING, not merely mounted (see helpers/ready).
+    await settled(page)
     // Highlighted path tiles carry the (hashed) `.selected` class.
     const selected = page.locator('[data-boggle-tile][class*="selected"]')
 
@@ -117,6 +122,8 @@ test.describe('boggle play loop', () => {
 
     const tiles = page.locator('[data-boggle-tile]')
     await expect(tiles).toHaveCount(16, { timeout: 15000 })
+    // …and is LISTENING, not merely mounted (see helpers/ready).
+    await settled(page)
 
     // Word 1: trace C(0) A(1) T(2) and submit via the button → lands.
     await tiles.nth(0).click()
