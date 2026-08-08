@@ -720,6 +720,36 @@ Below the definition, `DefinitionView` also shows a small muted line of the word
 
 **The `~` lookup shortcut (app-global).** The free-form lookup dialog is **not** per-game — it's wired once in `common/hooks/input/useAppShortcuts` alongside `/` (chat) and `?` (menu), so it works on any real page (see [App-level keyboard shortcuts](#app-level-keyboard-shortcuts)). The hook itself owns the dialog's open/closed state and *returns* the `WordLookupDialog` node, which ClubPage / GamePage render in their tree; there's nothing per-game to wire up. (It started life re-implemented in spellingbee + scrabble `PlayArea`s; promoting it to the app shell removed those copies and made it available everywhere.)
 
+## The ⌥` anagram finder
+
+The lookup dialog's sibling: a global popup (`AnagramDialog` — same
+FloatingPanel chrome, same type-and-Enter shape, owned by `useAppShortcuts`
+the same way) that anagrams a letters pattern into every dictionary word of
+**exactly** that length, band number muted beside each word, in a list that
+scrolls inside the fixed panel. Result words are click-to-define.
+
+**The pattern syntax** (one terse hint line in the dialog teaches it):
+lowercase letters float anywhere, `?` is a floating wildcard, an UPPERCASE
+letter is **pinned** to its exact position — `Acer` finds acer + acre, never
+race; all-caps degenerates to an exact-word check. Case therefore survives
+untouched from input to RPC.
+
+**Server** — `common.anagrams(letters)` in `sql/common.sql` (SECURITY
+DEFINER: the revoked `_anagram_fits` helper 403s an invoker-rights version).
+Three stages cheapest-first over the len-exact subset: the pins as a LIKE
+pattern, the `letter_mask` bitmask prefilter (wildcard-payable via
+`bit_count`), then the exact multiset fold on survivors — ~18ms on a
+7-letter full scan, no index needed. Deliberately **unfiltered** (ruled
+2026-08-07): the player typed the letters, so crude/slur/slang words answer
+too — pinned by pgTAP so a cleanup can't quietly re-filter. One trap worth
+remembering: `c between 'A' and 'Z'` is **collation-ordered** and en_US
+interleaves cases (it silently pinned every lowercase letter); the check
+uses `ascii()` bounds now.
+
+**The chord** matches `e.code === 'Backquote'` + Alt because macOS makes ⌥`
+the dead-key accent composer (`e.key === 'Dead'`) — the `⌥+`/`Equal` trick
+again; see [keyboard-shortcuts.md](keyboard-shortcuts.md).
+
 ## Dictionary curation (edit / add / delete a word)
 
 The in-app half of the wordlist-curation loop: a trusted player who spots a

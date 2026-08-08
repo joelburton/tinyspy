@@ -433,7 +433,17 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   a waffle, with holes), sized via container-query units. Tiles use the shared
   `.tile` chrome, painted with the shared **Wordle colors** (`--wordle-*` in
   `common/theme.css`, shared with wordle); a picked-up tile gets waffle's own
-  ring (the shared dark `.selected` fill would bury the color). Below it the
+  ring (the shared dark `.selected` fill would bury the color). While a
+  `submit_swap` is **in flight** (a second or two against prod), the submitted
+  pair wears a **pulsing ring** (same outline vocabulary as the pick ring,
+  animating `outline-color` only — no layout shift; reduced-motion holds a
+  steady ring) and swap input **single-flights** (`useSingleFlight`; tap, drag,
+  and keyboard all funnel through the same two gated paths) — without both,
+  players read the silent gap as a missed click and tap the same two tiles
+  again, queueing the REVERSE swap. An optimistic local swap was considered
+  and rejected: in coop a peer's swap can land first, so a preview could show
+  an exchange that never happens that way (the comment in `PlayArea` records
+  the decision). Below it the
   **`.belowBoard` local-feedback slot** holds a centered `<FeedbackPill>` — a
   transient own-action error during play, the sticky "waiting" pill when the
   player is locally terminal, or the permanent fill verdict at game-over. (The

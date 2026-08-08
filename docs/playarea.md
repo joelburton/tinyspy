@@ -506,6 +506,19 @@ The list header carries **two** selects, from
 Resting state reads **"Legal · All"**. The aggregates are the defaults in both
 modes (unlike the turn log's compete default — here the list already *is* yours).
 
+### The heading tallies the FILTERED list
+
+The card's heading counts and scores whatever the two filters currently show —
+**"Words: 7 · Score: 10"** — which turns the filters into a reading tool: flip
+WHO to a player to see their coop contribution, to Missed at terminal to see
+what the reveal cost, KIND to Bonus to see what the wider dictionary was worth.
+Rows carry an optional `points`; the score segment renders only when the
+game's rows carry points at all, gated on ALL rows rather than the filtered
+set, so an empty filter reads "Score: 0" instead of the segment vanishing
+(no heading reflow as filters flip). Games whose lists don't score (none
+today, but the prop is optional) get a count-only heading. Pinned by
+`WordList.test.tsx` — whole-list, per-player, missed, and count-only.
+
 - **Why two controls and not one flat list.** They answer independent questions, so
   one select can't express "leah's bonus words" — and worse, picking `Bonus` would
   silently discard a `leah` selection with nothing on screen admitting it. Two
