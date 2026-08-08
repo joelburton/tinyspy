@@ -2095,6 +2095,239 @@ revoke execute on function common.anagrams(text) from public;
 grant execute on function common.anagrams(text) to authenticated;
 
 -- ============================================================
+-- Dictionary curation — update_word / delete_word / add_word
+-- ============================================================
+-- The in-app half of the wordlist-curation loop, gated on
+-- profiles.can_edit_words (granted by hand in SQL — see the column's
+-- comment). Every change applies to common.words LIVE and journals itself
+-- in common.words_edits; the journal is the export artifact the upstream
+-- wordlist-manager consumes (capture-first — see the table's comment for
+-- the reimport caveat).
+--
+-- Live-apply is safe against running games, verified per-game (2026-08-08):
+-- games copy their word lists at creation and nothing foreign-keys into
+-- common.words. The one ordering rule it depends on: a game that validates
+-- submissions against the live dictionary must check its own solution
+-- FIRST (wordle.submit_guess learned this; stackdown always knew) — so a
+-- re-banded answer still solves. May-enter checks (scrabble, strands
+-- hint-words, bananagrams check_board) feel a band edit immediately, which
+-- is the edit working, not a bug.
+
+-- The permission gate. Returns the caller's id + username (the journal
+-- caches the username — an export artifact must not dangle on user
+-- deletion, hence no FK on edited_by either).
+create or replace function common._require_word_editor()
+returns table (editor_id uuid, editor_username text)
+language plpgsql
+stable
+security definer
+set search_path = common, public, extensions
+as $$
+begin
+  return query
+  select p.user_id, p.username
+    from common.profiles p
+   where p.user_id = auth.uid()
+     and p.can_edit_words;
+  if not found then
+    raise exception 'word editing requires the can_edit_words permission'
+      using errcode = '42501';
+  end if;
+end;
+$$;
+revoke execute on function common._require_word_editor() from public;
+
+-- The editable column set, shared by update_word and add_word. definition
+-- edits also stamp definition_source = 'm' (manual — the provenance value
+-- the schema reserved for exactly this). Numbers are range-checked here so
+-- a typo'd band is a clean error, not a constraint explosion.
+create or replace function common._validate_word_fields(fields jsonb)
+returns void
+language plpgsql
+immutable
+as $$
+declare
+  k text;
+begin
+  for k in select jsonb_object_keys(fields) loop
+    if k not in ('definition', 'hint', 'difficulty', 'crude', 'slur', 'slang',
+                 'american', 'british', 'canadian', 'australian') then
+      raise exception 'not an editable field: %', k using errcode = 'P0001';
+    end if;
+  end loop;
+  if fields ? 'difficulty'
+     and (fields->>'difficulty')::int not between 1 and 6 then
+    raise exception 'difficulty must be 1-6' using errcode = 'P0001';
+  end if;
+  if fields ? 'crude' and (fields->>'crude')::int not between 0 and 2 then
+    raise exception 'crude must be 0-2' using errcode = 'P0001';
+  end if;
+  if fields ? 'slur' and (fields->>'slur')::int not between 0 and 2 then
+    raise exception 'slur must be 0-2' using errcode = 'P0001';
+  end if;
+end;
+$$;
+revoke execute on function common._validate_word_fields(jsonb) from public;
+
+-- Patch an existing word. `patch` holds ONLY the changed fields (that's
+-- what the journal's `new` records); a key present with a null value
+-- clears the column (definition/hint).
+create or replace function common.update_word(
+  target_word text,
+  patch jsonb,
+  note text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  ed  record;
+  w   common.words%rowtype;
+begin
+  select * into ed from common._require_word_editor();
+  perform common._validate_word_fields(patch);
+  if patch = '{}'::jsonb then
+    raise exception 'nothing to change' using errcode = 'P0001';
+  end if;
+
+  select * into w from common.words where word = lower(target_word) for update;
+  if not found then
+    raise exception 'no such word: %', target_word using errcode = 'P0002';
+  end if;
+
+  update common.words set
+    definition = case when patch ? 'definition' then patch->>'definition' else definition end,
+    -- 'm' = manual, the provenance the schema reserved for hand edits.
+    definition_source = case when patch ? 'definition' then 'm' else definition_source end,
+    hint       = case when patch ? 'hint'       then patch->>'hint'              else hint end,
+    difficulty = case when patch ? 'difficulty' then (patch->>'difficulty')::smallint else difficulty end,
+    crude      = case when patch ? 'crude'      then (patch->>'crude')::smallint else crude end,
+    slur       = case when patch ? 'slur'       then (patch->>'slur')::smallint  else slur end,
+    slang      = case when patch ? 'slang'      then (patch->>'slang')::boolean  else slang end,
+    american   = case when patch ? 'american'   then (patch->>'american')::boolean   else american end,
+    british    = case when patch ? 'british'    then (patch->>'british')::boolean    else british end,
+    canadian   = case when patch ? 'canadian'   then (patch->>'canadian')::boolean   else canadian end,
+    australian = case when patch ? 'australian' then (patch->>'australian')::boolean else australian end
+  where word = w.word;
+
+  insert into common.words_edits (word, kind, old, new, note, edited_by, edited_by_username)
+  values (w.word, 'update', to_jsonb(w), patch, note, ed.editor_id, ed.editor_username);
+end;
+$$;
+revoke execute on function common.update_word(text, jsonb, text) from public;
+grant execute on function common.update_word(text, jsonb, text) to authenticated;
+
+-- Remove a word — a hard DELETE, deliberately (2026-08-08): nothing
+-- foreign-keys into common.words, games snapshot their lists at creation,
+-- and every reader (validators, board builders, the lookup + anagram
+-- dialogs) naturally doesn't-see an absent row — whereas a `deleted` flag
+-- would make every reader responsible for filtering it, forever. The
+-- journal's `old` snapshot is the only remaining copy: it's the restore
+-- path and the upstream export. (Soft edge: words.root_word is a plain
+-- text pointer, so deleting a lemma leaves inflections naming a word that
+-- no longer exists — a dangling STRING, harmless.)
+create or replace function common.delete_word(
+  target_word text,
+  note text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  ed record;
+  w  common.words%rowtype;
+begin
+  select * into ed from common._require_word_editor();
+  select * into w from common.words where word = lower(target_word) for update;
+  if not found then
+    raise exception 'no such word: %', target_word using errcode = 'P0002';
+  end if;
+
+  delete from common.words where word = w.word;
+
+  insert into common.words_edits (word, kind, old, new, note, edited_by, edited_by_username)
+  values (w.word, 'delete', to_jsonb(w), null, note, ed.editor_id, ed.editor_username);
+end;
+$$;
+revoke execute on function common.delete_word(text, text) from public;
+grant execute on function common.delete_word(text, text) to authenticated;
+
+-- Add a word. `fields` uses the same editable set; difficulty is required
+-- (there is no sensible default band), everything else defaults to the
+-- import's defaults. len derives, letter_mask generates.
+create or replace function common.add_word(
+  new_word text,
+  fields jsonb,
+  note text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = common, public, extensions
+as $$
+declare
+  ed record;
+  w  common.words%rowtype;
+begin
+  select * into ed from common._require_word_editor();
+  perform common._validate_word_fields(fields);
+
+  new_word := lower(trim(coalesce(new_word, '')));
+  -- 1..45 matches the dictionary's real range ('a' to the 45-letter lung
+  -- disease); lowercase a-z only, like every imported word.
+  if new_word !~ '^[a-z]{1,45}$' then
+    raise exception 'a word is 1-45 lowercase letters' using errcode = 'P0001';
+  end if;
+  if not fields ? 'difficulty' then
+    raise exception 'difficulty is required for a new word' using errcode = 'P0001';
+  end if;
+  if exists (select 1 from common.words cw where cw.word = new_word) then
+    raise exception 'already in the dictionary: %', new_word using errcode = 'P0001';
+  end if;
+
+  insert into common.words
+    (word, difficulty, american, british, canadian, australian,
+     crude, slur, slang, len, definition, definition_source, hint)
+  values
+    (new_word,
+     (fields->>'difficulty')::smallint,
+     coalesce((fields->>'american')::boolean, false),
+     coalesce((fields->>'british')::boolean, false),
+     coalesce((fields->>'canadian')::boolean, false),
+     coalesce((fields->>'australian')::boolean, false),
+     coalesce((fields->>'crude')::smallint, 0),
+     coalesce((fields->>'slur')::smallint, 0),
+     coalesce((fields->>'slang')::boolean, false),
+     char_length(new_word),
+     fields->>'definition',
+     case when fields->>'definition' is not null then 'm' end,
+     fields->>'hint')
+  returning * into w;
+
+  insert into common.words_edits (word, kind, old, new, note, edited_by, edited_by_username)
+  values (w.word, 'add', null, to_jsonb(w), note, ed.editor_id, ed.editor_username);
+end;
+$$;
+revoke execute on function common.add_word(text, jsonb, text) from public;
+grant execute on function common.add_word(text, jsonb, text) to authenticated;
+
+-- The journal itself: writes only through the RPCs above (SECURITY
+-- DEFINER — no direct grants); readable by editors, so a future "recent
+-- edits" surface is possible without a new door.
+drop policy if exists words_edits_select on common.words_edits;
+create policy words_edits_select on common.words_edits
+  for select to authenticated
+  using (exists (
+    select 1 from common.profiles p
+     where p.user_id = auth.uid() and p.can_edit_words
+  ));
+grant select on common.words_edits to authenticated;
+
+-- ============================================================
 -- common.cache_definition — the lazy definition-fill write path
 -- ============================================================
 -- The click-to-define popover + "look up any word" shortcut read

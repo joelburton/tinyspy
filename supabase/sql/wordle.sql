@@ -532,7 +532,15 @@ begin
   -- Legal guess = a real 5-letter word of difficulty ≤ the game's legal_guess
   -- band (setup choice). No dialect / slur / slang filter (Wordle is permissive
   -- on guesses — only the difficulty band gates them).
-  if not exists (
+  --
+  -- THE ANSWER IS CHECKED FIRST, before the dictionary (stackdown's rule,
+  -- learned here 2026-08-08): the band is read LIVE from common.words, and
+  -- the target was banded at game creation — so a word edit (or an upstream
+  -- re-band + reimport) can move the answer above legal_guess mid-game.
+  -- Gate-then-compare made that an UNWINNABLE game: typing the actual
+  -- answer returned notAWord. A solved game must never hear "not a word",
+  -- whatever the dictionary says today.
+  if norm <> lower(g_row.target) and not exists (
     select 1 from common.words
      where word = norm and len = 5 and difficulty <= g_row.legal_guess
   ) then

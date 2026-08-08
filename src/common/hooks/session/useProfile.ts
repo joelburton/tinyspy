@@ -8,6 +8,10 @@ import { db as commonDb } from '../../db'
 export type Profile = {
   username: string
   color: string
+  /** May this user edit the shared dictionary? Drives the edit-word link in
+   *  DefinitionView + the account menu's "Add word" (granted by hand in SQL
+   *  — see the column's comment in the common migration). */
+  can_edit_words: boolean
 }
 
 /**
@@ -50,7 +54,7 @@ async function ensureLoaded(userId: string) {
   notify()
   const { data, error } = await commonDb
     .from('profiles')
-    .select('username, color')
+    .select('username, color, can_edit_words')
     .eq('user_id', userId)
     .single()
   if (loadedFor !== userId) return // a newer load superseded this one
@@ -63,7 +67,7 @@ async function ensureLoaded(userId: string) {
     loadedFor = null
     return
   }
-  current = { username: data.username, color: data.color }
+  current = { username: data.username, color: data.color, can_edit_words: data.can_edit_words }
   notify()
 }
 
@@ -87,6 +91,17 @@ export function useProfile(session: Session): Profile | null {
  * the optimistic in-memory update so every reader (and any other
  * reader) repaints immediately.
  */
+/**
+ * The already-loaded profile snapshot, for components with no `session` in
+ * reach (DefinitionView renders inside popovers far from the page shell).
+ * Subscribe-only: it never triggers a load — but the account menu calls
+ * `useProfile` on every page, so the store is warm in practice; a cold
+ * store just means the editor link stays hidden, which is the safe default.
+ */
+export function useCurrentProfile(): Profile | null {
+  return useSyncExternalStore(subscribe, getSnapshot)
+}
+
 export function setProfileColor(color: string) {
   if (current) {
     current = { ...current, color }

@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { useProfile } from '../session/useProfile'
 import { supabase } from '../../lib/supabase/supabase'
 import { setEditProfileOpen } from '../../lib/account/editProfileStore'
+import { setWordEdit } from '../../lib/definitions/wordEditStore'
 import type { MenuSection } from '../../lib/games'
 
 /**
@@ -54,6 +55,16 @@ export function useAccountMenuSection(session: Session): MenuSection {
               label: 'Profile',
               onClick: () => setEditProfileOpen(true),
             },
+            // Dictionary curation — editors only (profiles.can_edit_words;
+            // the RPC enforces the same gate server-side). Everyone else
+            // never sees the item.
+            ...(profile?.can_edit_words
+              ? [{
+                  id: 'add-word',
+                  label: 'Add word',
+                  onClick: () => setWordEdit({ mode: 'add' }),
+                }]
+              : []),
             {
               id: 'logout',
               label: 'Log out',
@@ -67,6 +78,6 @@ export function useAccountMenuSection(session: Session): MenuSection {
         },
       ],
     }),
-    [username, color],
+    [username, color, profile?.can_edit_words],
   )
 }

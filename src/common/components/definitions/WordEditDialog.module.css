@@ -1,0 +1,106 @@
+/* The word-edit form, inside the FloatingPanel shell. Input chrome mirrors
+ * the definitions-family dialogs (WordLookup/Anagram); the layout is a plain
+ * stacked form — this is a curator's power tool, not player chrome. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.field input,
+.field textarea {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+}
+
+.field input:focus,
+.field textarea:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+/* Band / crude / slur on one row — three small numbers, not three rows. */
+.numbers {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.numbers .field {
+  flex: 1 1 0;
+}
+
+.checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-sys-error-red);
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: auto; /* pin the buttons to the panel's bottom edge */
+}
+
+.saveButton {
+  margin-left: auto;
+  padding: 0.4rem 1rem;
+  font-size: 0.9rem;
+  color: #fff;
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.saveButton:hover {
+  background: var(--color-accent-hover);
+}
+
+.saveButton:disabled,
+.deleteButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Destructive, so it wears the system-error red — as an OUTLINE, not a fill:
+ * it sits next to Save and must read as the dangerous option, not the loud one. */
+.deleteButton {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  color: var(--color-sys-error-red);
+  background: var(--color-surface);
+  border: 1px solid var(--color-sys-error-red);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}

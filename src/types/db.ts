@@ -803,6 +803,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          can_edit_words: boolean
           color: string
           created_at: string
           theme: string | null
@@ -810,6 +811,7 @@ export type Database = {
           username: string
         }
         Insert: {
+          can_edit_words?: boolean
           color: string
           created_at?: string
           theme?: string | null
@@ -817,6 +819,7 @@ export type Database = {
           username: string
         }
         Update: {
+          can_edit_words?: boolean
           color?: string
           created_at?: string
           theme?: string | null
@@ -908,6 +911,42 @@ export type Database = {
         }
         Relationships: []
       }
+      words_edits: {
+        Row: {
+          edited_at: string
+          edited_by: string
+          edited_by_username: string
+          id: number
+          kind: string
+          new: Json | null
+          note: string | null
+          old: Json | null
+          word: string
+        }
+        Insert: {
+          edited_at?: string
+          edited_by: string
+          edited_by_username: string
+          id?: never
+          kind: string
+          new?: Json | null
+          note?: string | null
+          old?: Json | null
+          word: string
+        }
+        Update: {
+          edited_at?: string
+          edited_by?: string
+          edited_by_username?: string
+          id?: never
+          kind?: string
+          new?: Json | null
+          note?: string | null
+          old?: Json | null
+          word?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -926,7 +965,19 @@ export type Database = {
         Args: { caller: string; target_game: string }
         Returns: undefined
       }
+      _require_word_editor: {
+        Args: never
+        Returns: {
+          editor_id: string
+          editor_username: string
+        }[]
+      }
       _set_conceded: { Args: { target_game: string }; Returns: string }
+      _validate_word_fields: { Args: { fields: Json }; Returns: undefined }
+      add_word: {
+        Args: { fields: Json; new_word: string; note?: string }
+        Returns: undefined
+      }
       anagrams: {
         Args: { letters: string }
         Returns: {
@@ -966,6 +1017,10 @@ export type Database = {
         }[]
       }
       delete_game: { Args: { target_game: string }; Returns: undefined }
+      delete_word: {
+        Args: { note?: string; target_word: string }
+        Returns: undefined
+      }
       end_game: {
         Args: {
           play_state: string
@@ -1009,6 +1064,10 @@ export type Database = {
       update_profile_color: { Args: { new_color: string }; Returns: undefined }
       update_state: {
         Args: { play_state: string; status: Json; target_game: string }
+        Returns: undefined
+      }
+      update_word: {
+        Args: { note?: string; patch: Json; target_word: string }
         Returns: undefined
       }
       word_letter_mask: { Args: { w: string }; Returns: number }

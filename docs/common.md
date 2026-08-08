@@ -720,6 +720,74 @@ Below the definition, `DefinitionView` also shows a small muted line of the word
 
 **The `~` lookup shortcut (app-global).** The free-form lookup dialog is **not** per-game — it's wired once in `common/hooks/input/useAppShortcuts` alongside `/` (chat) and `?` (menu), so it works on any real page (see [App-level keyboard shortcuts](#app-level-keyboard-shortcuts)). The hook itself owns the dialog's open/closed state and *returns* the `WordLookupDialog` node, which ClubPage / GamePage render in their tree; there's nothing per-game to wire up. (It started life re-implemented in spellingbee + scrabble `PlayArea`s; promoting it to the app shell removed those copies and made it available everywhere.)
 
+## Dictionary curation (edit / add / delete a word)
+
+The in-app half of the wordlist-curation loop: a trusted player who spots a
+problem word mid-game — a wrong band, a missing definition, a word that
+shouldn't be in the list at all — fixes it on the spot instead of writing it
+down for later. **Capture-first**: the point is recording the problems we
+actually see; the upstream wordlist-manager process (`~/src/gamelist`) later
+reads the journal and folds the changes into the source TSV.
+
+**Who.** `common.profiles.can_edit_words` (boolean, default false), granted by
+hand in SQL on prod — no admin UI. Non-editors never see the affordances, and
+every RPC re-checks the flag server-side (`_require_word_editor`).
+
+**Where.** Two openers, both editors-only: an "Edit word…" link at the bottom
+of `DefinitionView` (so it appears on every definition surface at once — the
+click-to-define popover, the `~` lookup, the anagram finder), and an "Add
+word" item in the account submenu. Both set the shared `wordEditStore`;
+`WordEditDialog` mounts at the App level (the same FloatingPanel-offset reason
+as `EditProfileDialog`). The form edits definition, hint, band, crude, slur,
+slang, and the four dialect flags; add mode is the same form plus the word
+itself. Numbers are plain inputs — the RPC range-checks, so a typo is a clean
+inline error.
+
+**How.** Three SECURITY DEFINER RPCs in [`supabase/sql/common.sql`](../supabase/sql/common.sql):
+
+- **`update_word(target_word, patch jsonb, note)`** — applies a
+  *changed-fields-only* patch (the FE diffs against the loaded row, so the
+  journal's `new` never claims an untouched column). A definition change
+  stamps `definition_source = 'm'` (manual — the provenance letter the schema
+  reserved for exactly this).
+- **`delete_word(target_word, note)`** — a hard DELETE. Safe because nothing
+  references `common.words` by FK (verified 2026-08-08: games copy words into
+  their own tables at creation; `words.root_word` is a plain-text pointer that
+  may dangle harmlessly). The journal keeps the full row snapshot.
+- **`add_word(new_word, fields jsonb, note)`** — `^[a-z]{1,45}$`, band
+  required, `len` derived, `letter_mask` generated.
+
+**The journal — `common.words_edits`.** Every call writes one row: `word`,
+`kind` (`update`/`delete`/`add`), `old` (full row snapshot before), `new` (the
+patch / inserted row), `note`, `edited_by` + `edited_by_username`, `edited_at`.
+The `note` is the curator's free-text aside to the wordlist process ("saw this
+in wordle, way too obscure for band 2"). Edits apply to `common.words` LIVE
+*and* journal — the journal is how the upstream TSV catches up, not a pending
+queue. RLS: editors-only select.
+
+**Live-edit safety — the solution-before-dictionary rule.** Editing a band (or
+deleting a word) mid-game is safe because games either copy their word lists
+at creation time (spellingbee, wordwheel, boggle, wordiply, letterboxed,
+psychicnum) or only consult the live list for *may-enter* checks where a
+shifted band just changes what a player can type (scrabble, strands' hint
+words, bananagrams' check). The one rule this imposes: **a game validating
+guesses against live `common.words` must check its own solution first**, so
+the answer stays enterable even if its band moves out of the game's range.
+stackdown always did this; wordle had the bug (found in the 2026-08-08 audit)
+and now short-circuits `norm = target` before the dictionary lookup —
+[`banded_answer_test.sql`](../supabase/tests/wordle/banded_answer_test.sql)
+pins it.
+
+**Caveat**: `gmake all-words` TRUNCATEs and re-imports the list, wiping any
+in-app edit not yet folded into the source TSV. That's the designed flow —
+the journal survives (it's a separate table) and is the reconciliation
+record.
+
+Tests: [`words_edit_test.sql`](../supabase/tests/common/words_edit_test.sql)
+(gate, live-apply, journal contents, validation, delete, add),
+[`word-edit.e2e.ts`](../e2e/word-edit.e2e.ts) (the full editor loop through
+the real UI + the non-editor negative).
+
 ## Common testing
 
 See [`testing.md`](testing.md) for the full theory. Common-layer specifics:

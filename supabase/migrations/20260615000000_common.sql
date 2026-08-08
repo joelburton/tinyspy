@@ -137,7 +137,21 @@ create table common.profiles (
   -- The write path, when it lands, is an RPC like `update_profile_color`, not
   -- a direct UPDATE — this table has no UPDATE policy on purpose.
   theme text,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- Word-curation permission: may this user edit the shared dictionary
+  -- (common.update_word / delete_word / add_word, and the FE's edit-word
+  -- form)? The app's first per-user permission — one boolean, not a roles
+  -- array, deliberately (YAGNI). There is NO admin UI for it: it's granted
+  -- by hand in SQL (`update common.profiles set can_edit_words = true
+  -- where username = '…'`), which suits a permission only a couple of
+  -- friends will ever hold. Same exposure story as color/theme: club
+  -- members can see who's an editor, and that's fine.
+  --
+  -- Declared LAST on purpose: prod received it as an in-place baseline edit
+  -- + a hand-run ALTER TABLE ADD COLUMN (2026-08-08, preserving prod data),
+  -- and ADD COLUMN appends — so the baseline order must match or db-drift
+  -- flags a phantom.
+  can_edit_words boolean not null default false
 );
 
 -- ============================================================
@@ -818,3 +832,42 @@ create table common.words (
 -- so it's defined where that query lives, not here.
 create index common_words_difficulty_idx on common.words (difficulty);
 create index common_words_len_idx  on common.words (len);
+
+-- ============================================================
+-- common.words_edits — the dictionary-curation journal
+-- ============================================================
+-- Every in-app dictionary change (common.update_word / delete_word /
+-- add_word — gated on profiles.can_edit_words) is journaled here. This is
+-- the CAPTURE-FIRST half of the curation story: `common.words` stays a
+-- cache of the upstream gamelist, an in-app edit applies live AND records
+-- itself here, and the journal is the export artifact the upstream
+-- wordlist-manager consumes to make the edit permanent. Until then, a
+-- reimport clobbers the live change (and resurrects a deleted word) — the
+-- journal survives to say so.
+--
+--   kind 'update' — old = the FULL prior row, new = only the changed fields
+--   kind 'delete' — old = the full row (the only copy after a hard DELETE:
+--                   nothing foreign-keys into common.words, and games copy
+--                   their word lists at creation, so absence is safe), new NULL
+--   kind 'add'    — old NULL, new = the full inserted row
+--
+-- `note` is the curator's aside ("saw this in wordle, way too obscure") —
+-- free text that shapes the upstream process, not data the app reads.
+-- edited_by_username is CACHED (the house pattern): the journal is an
+-- export artifact and must not dangle on user deletion, so no FK on
+-- edited_by either.
+create table common.words_edits (
+  id        bigint generated always as identity primary key,
+  word      text not null,
+  kind      text not null check (kind in ('update', 'delete', 'add')),
+  old       jsonb,
+  new       jsonb,
+  note      text,
+  edited_by uuid not null,
+  edited_by_username text not null,
+  edited_at timestamptz not null default now()
+);
+
+-- RLS on from day one (the migration owns enablement, like every table
+-- here; the editors-only policy lives in supabase/sql/common.sql).
+alter table common.words_edits enable row level security;

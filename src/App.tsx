@@ -10,6 +10,8 @@ import { PlayAreaSlotLog, PlayAreaReadyLog } from './common/components/game/Play
 import { HomePage } from './common/components/home/HomePage'
 import { EditProfileDialog } from './common/components/account/EditProfileDialog'
 import { useEditProfileOpen, setEditProfileOpen } from './common/lib/account/editProfileStore'
+import { WordEditDialog } from './common/components/definitions/WordEditDialog'
+import { useWordEdit } from './common/lib/definitions/wordEditStore'
 import { GameInvitations } from './common/components/game/GameInvitations'
 import { ToastHost } from './common/components/toasts/ToastHost'
 import { TooltipHost } from './common/components/tooltips/TooltipHost'
@@ -75,6 +77,10 @@ export default function App() {
   // a page's flex column it lands far from where you expect (docs/ui.md). The
   // flag therefore has to cross subtrees, hence the store rather than useState.
   const editingProfile = useEditProfileOpen()
+  // The word-edit dialog (editors only — its openers are gated) mounts at the
+  // App level like EditProfileDialog, and for the same FloatingPanel-offset
+  // reason. Keyed by the request so switching words remounts fresh state.
+  const wordEdit = useWordEdit()
 
   if (loading) return <div className="card">Loading…</div>
   if (!session) return <LoginScreen />
@@ -170,6 +176,13 @@ export default function App() {
           session={session}
           onSaved={() => setEditProfileOpen(false)}
           onCancel={() => setEditProfileOpen(false)}
+        />
+      )}
+      {wordEdit && (
+        <WordEditDialog
+          // Keyed by the target so switching words remounts fresh form state.
+          key={wordEdit.mode === 'edit' ? wordEdit.word : 'add'}
+          request={wordEdit}
         />
       )}
       {/* Mounted after the auth + claim-handle gates, so invitations

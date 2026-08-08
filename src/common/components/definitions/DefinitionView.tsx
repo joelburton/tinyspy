@@ -1,4 +1,6 @@
 import { useDefinition, type WordMeta } from '../../hooks/definitions/useDefinition'
+import { useCurrentProfile } from '../../hooks/session/useProfile'
+import { setWordEdit } from '../../lib/definitions/wordEditStore'
 import { parseDefinition } from '../../lib/definitions/parseDefinition'
 import styles from './DefinitionView.module.css'
 
@@ -43,6 +45,7 @@ type Props = {
  */
 export function DefinitionView({ word, onNavigate }: Props) {
   const { result, loading, error } = useDefinition(word)
+  const canEdit = useCurrentProfile()?.can_edit_words ?? false
 
   if (!word) return null
 
@@ -94,6 +97,24 @@ export function DefinitionView({ word, onNavigate }: Props) {
         // Categorization line — shown for any in-list word, even one with no
         // definition (it's still a real word with a band / flags).
         <div className={styles.meta}>{metaTags(result.meta).join(' · ')}</div>
+      )}
+      {/* Curation: editors get the edit-word link on every definition surface
+          at once (this view backs the click-to-define popover, the ~ lookup
+          AND the anagram finder). Snapshot-only profile read — the store is
+          warm because the account menu loads it on every page; cold means
+          the link stays hidden, the safe default. The RPC re-checks the
+          permission server-side regardless. */}
+      {!loading && canEdit && !result?.unknown && (
+        <button
+          type="button"
+          className={styles.editLink}
+          onClick={(e) => {
+            e.stopPropagation() // don't let the popover's click-to-close eat it
+            setWordEdit({ mode: 'edit', word: word.toLowerCase() })
+          }}
+        >
+          Edit word…
+        </button>
       )}
     </div>
   )
