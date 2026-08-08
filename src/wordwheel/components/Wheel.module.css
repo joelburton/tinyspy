@@ -36,6 +36,16 @@
   width: calc(300 * var(--u));
   height: calc(300 * var(--u));
   overflow: visible;
+
+  /* Touch behaviour for the whole wheel — on the <svg>, not on the `.tile`
+   * groups, because `touch-action` is IGNORED on an SVG child (a `<g>`
+   * generates no CSS box, so the browser drops it silently). Without this,
+   * spelling a word by tapping tiles quickly loses letters to iOS Safari's
+   * double-tap-to-zoom. This game inherited its shape from spellingbee but not
+   * the rule; spellingbee had it in the ignored place, so neither wheel-shaped
+   * game was ever actually covered. */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* One tile = a clickable group (button semantics live in Tile.tsx via

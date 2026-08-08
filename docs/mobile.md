@@ -873,6 +873,28 @@ same three (they're not the shared `.tile`, so they replicate it locally). The
 zoom-suppression *feel* is an on-device check — Playwright can't reproduce
 Safari's gesture heuristics (recorded in [deferred.md](deferred.md)).
 
+> **`touch-action` is INERT on an SVG child element.** A `<g>`, `<circle>` or
+> `<polygon>` generates no CSS box, so the browser drops the declaration
+> silently — it computes fine, it just never applies. On an SVG board the rule
+> must go on the **`<svg>` root** (or an HTML ancestor); one declaration there
+> covers every tile, because a touch's effective behaviour is resolved by
+> walking up from the element it hit.
+>
+> This is not theoretical: spellingbee shipped `touch-action: manipulation` on
+> `.hex` — with a comment explaining exactly why the hive needed it — and the
+> hive kept double-tap-to-zoom the whole time, eating the second of two quick
+> taps and losing a letter mid-word on iOS. wordwheel, forked from it, never had
+> the rule at all; strands' bespoke tiles were missed too. All three fixed
+> 2026-08-08. Measured: a drag beginning on a `touch-action: none` `<g>` scrolls
+> the page as far as an unrestricted element, while the same rule on the
+> enclosing `<svg>` stops it dead.
+>
+> Because the failure is invisible in the source — the rule is *right there* —
+> [`tap-targets.e2e.ts`](../e2e/tap-targets.e2e.ts) asks the browser instead,
+> walking each tapped board's real tap target up its ancestors and failing
+> unless something that can actually carry `touch-action` does. **A new game
+> with a tapped board goes in that list.**
+
 **The pass now covers every game except one.** Fourteen games follow the
 info-sheet recipe, and since the sheet went full-bleed they all follow the
 *same* one — there is no longer a wide/plain split: **spellingbee / boggle /

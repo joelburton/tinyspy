@@ -144,6 +144,13 @@
   border: none;
   background: none;
   padding: 0;
+  /* Finding a word here is a rapid run of taps across adjacent letters, so opt
+   * out of double-tap-to-zoom and its tap delay — the same treatment the shared
+   * `.tile` gives every other tapped board (common/PlayArea.module.css), which
+   * these bespoke tiles never picked up. Plus the grey tap-flash, which paints
+   * a rectangle over a round disc. */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -38,6 +38,28 @@
   width: calc(256 * var(--u));
   height: calc(267 * var(--u));
   overflow: visible;
+
+  /* Touch behaviour for the whole hive — declared HERE, on the <svg>, and not on
+   * the `.hex` groups it actually describes.
+   *
+   * `touch-action` is IGNORED on an SVG child element: a `<g>` generates no CSS
+   * box, so the browser drops the declaration silently and the hive keeps
+   * iOS Safari's double-tap-to-zoom (and with it the swallowed second tap that
+   * loses a letter when you spell a word by tapping quickly). Measured: a drag
+   * starting on a `touch-action: none` <g> scrolls the page exactly as far as an
+   * unrestricted element; the same rule on the enclosing <svg> stops it dead.
+   *
+   * The ancestor is enough — the effective touch-action for a touch walks up
+   * from the element it hit, so one declaration here covers all seven hexes.
+   * `overflow: visible` doesn't leak: a hex painting past the viewBox is still a
+   * DOM descendant. Same pattern letterboxed's `.board` uses.
+   *
+   * `-webkit-tap-highlight-color` moved along with it (inherited, so it reaches
+   * the hexes from here): it kills the grey box the browser paints over the
+   * hex's square BOUNDING box, which both looks wrong on a hexagon and hides
+   * our own hex-shaped flash. */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* One hex = a clickable group (button semantics live in Letter.tsx via
@@ -49,13 +71,6 @@
   transform-box: fill-box;
   transform-origin: center;
   transition: transform 80ms ease, filter 80ms ease;
-  /* Suppress the mobile browser's default tap-highlight — it paints a grey box
-   * over the hex's (square) BOUNDING BOX, which both looks wrong on a hexagon and
-   * hides our own hex-shaped flash below. */
-  -webkit-tap-highlight-color: transparent;
-  /* Spelling out a word is rapid taps around the hive — opt out of iOS Safari's
-   * double-tap-to-zoom + the residual tap delay so the taps stay crisp. */
-  touch-action: manipulation;
 }
 .hex:hover {
   filter: brightness(0.96);
