@@ -550,8 +550,15 @@ db-drift: ## report schema drift: ENV's database vs the migration baselines
 	# file when the summary flags something. When stdout isn't a tty (always
 	# true in a recipe) the CLI emits one JSON envelope {"diff":"…"} with
 	# progress on stderr — jq unwraps it into readable SQL.
+	#
+	# -R + fromjson?: the CLI occasionally puts a NON-JSON line on stdout
+	# ahead of the envelope (its once-a-day update-available notice did it,
+	# 2026-08-08 — a plain `jq .diff` died with parse error / exit 5 under
+	# pipefail). Reading raw lines and keeping only the ones that parse as
+	# JSON drops that pollution without a grep in the pipe (whose no-match
+	# exit would itself trip pipefail).
 	f=$$(mktemp /tmp/db-drift-$(ENV).XXXXXX)
-	supabase $(SUPA_FLAGS) db diff --db-url "$$SUPABASE_DB_URL" | jq -r '.diff // empty' > "$$f"
+	supabase $(SUPA_FLAGS) db diff --db-url "$$SUPABASE_DB_URL" | jq -Rr 'fromjson? | .diff // empty' > "$$f"
 	echo "── full diff: $$f ($$(wc -l < "$$f" | tr -d ' ') lines; sql/-managed objects are expected noise)"
 	echo "── SHAPE lines (the signal):"
 	grep -inE '^[[:space:]]*(create|alter|drop)[[:space:]]+(table|index|unique index|type|sequence)' "$$f" \
