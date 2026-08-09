@@ -38,8 +38,8 @@ import { logStamp } from '../../lib/supabase/realtimeDiag'
  *     game and state to reproduce against.
  *
  * The slot-mount log is followed by a one-line **browser snapshot**
- * (viewport, DPR, screen, an approximate zoom, root font size, UA) so a
- * filtered-to-`[ui]` copy-paste carries the environment along with the
+ * (viewport, DPR, screen, an approximate zoom, root font size, pointer, UA) so
+ * a filtered-to-`[ui]` copy-paste carries the environment along with the
  * lifecycle. It re-logs on every remount on purpose — zoom and window
  * size can change mid-session, and a pause/resume captures the new state.
  */
@@ -52,19 +52,39 @@ import { logStamp } from '../../lib/supabase/realtimeDiag'
  *      as a hint; dpr + root font are the trustworthy zoom signals
  *      (browser zoom scales dpr on Chrome/Firefox, and a user-enlarged
  *      font changes rem — which the app's 56.25rem breakpoint runs on).
- *    - `pinch` (visualViewport.scale) only appears when ≠ 1. */
+ *    - `pinch` (visualViewport.scale) only appears when ≠ 1.
+ *    - `pointer` is the PRIMARY pointer, with every pointer the device has in
+ *      brackets — `coarse (any: coarse+fine)` is a touchscreen laptop, where
+ *      the touch panel answers first but a trackpad is right there. That
+ *      distinction decides a real gate: bananagrams blocks on `pointer: coarse`
+ *      alone, so a laptop reporting coarse gets the desktop-only screen while
+ *      holding a mouse. Reading it out of a log beats guessing from a UA
+ *      string, which says nothing about pointers at all. */
 function browserInfoLine(): string {
   const zoom =
     window.outerWidth > 0 && window.innerWidth > 0
       ? `${Math.round((window.outerWidth / window.innerWidth) * 100)}%`
       : '?'
   const pinch = window.visualViewport?.scale
+  // `matchMedia` is universally supported in the browsers this app targets;
+  // the `?.` guards a non-DOM test environment rather than an old browser.
+  const mq = (q: string) => window.matchMedia?.(q).matches ?? false
+  const primaryPointer = mq('(pointer: coarse)')
+    ? 'coarse'
+    : mq('(pointer: fine)')
+      ? 'fine'
+      : 'none'
+  const anyPointer =
+    [mq('(any-pointer: fine)') && 'fine', mq('(any-pointer: coarse)') && 'coarse']
+      .filter(Boolean)
+      .join('+') || 'none'
   return (
     `viewport ${window.innerWidth}×${window.innerHeight}` +
     ` | dpr ${window.devicePixelRatio}` +
     ` | screen ${screen.width}×${screen.height}` +
     ` | zoom ~${zoom}` +
     ` | root font ${getComputedStyle(document.documentElement).fontSize}` +
+    ` | pointer ${primaryPointer} (any: ${anyPointer})` +
     (pinch != null && pinch !== 1 ? ` | pinch ${pinch}` : '') +
     ` | ${navigator.userAgent}`
   )
