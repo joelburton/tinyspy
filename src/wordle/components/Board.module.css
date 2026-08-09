@@ -40,24 +40,32 @@
   gap: var(--grid-gap);
 }
 
-/* Mobile (docs/mobile.md): on desktop the board hugs its width and the whole
- * board+keyboard stack centers in the tall column with slack to spare. On a
- * phone the column is only `100svh - chrome` tall and the keyboard + feedback
- * slot eat a fixed ~14.65rem of it, so on a SHORT phone the width-hug board can
- * push the keyboard off-screen. Cap the board by the LEFTOVER height (converted
- * to a width via the board's own cols/rows aspect ratio) so board + keyboard
- * always fit — no clip, no page scroll. `max-width` composes with the shared
- * `hugRectWidth` (the smaller wins) and keeps tiles square via `aspect-ratio`;
- * it does NOT touch the keyboard, which sizes off `--avail-w` directly. The
- * ~15rem reserve = keyboard (10.4rem) + feedback slot (2.75rem) + the two
- * 0.75rem column gaps, rounded up for a hair of slack. On tall phones the
- * per-tile cap wins instead and this is inert. */
-@media (--mobile) {
-  .grid {
-    max-width: calc(
-      (100svh - var(--game-chrome-height) - 15rem) * var(--cols) / var(--rows)
-    );
-  }
+/* Cap the board by the LEFTOVER HEIGHT — at every width, not just on a phone.
+ *
+ * wordle is the only game that stacks a board AND an on-screen keyboard in the
+ * board column, so it's the only one where the board hugging its width can push
+ * something else off-screen. The column is `100svh - chrome` tall and the
+ * keyboard + feedback slot eat a fixed ~14.65rem of it; converting what's left
+ * into a width via the board's own cols/rows aspect ratio keeps the whole stack
+ * on screen with square tiles. `max-width` composes with the shared
+ * `hugRectWidth` (the smaller wins); the keyboard is untouched, sizing off
+ * `--avail-w` directly. The ~15rem reserve = keyboard (10.4rem) + feedback slot
+ * (2.75rem) + the two 0.75rem column gaps, rounded up for a hair of slack.
+ *
+ * This lived under `@media (--mobile)` until 2026-08-08, on the reasoning that
+ * "on desktop the stack centers in the tall column with slack to spare" — which
+ * is true of a tall desktop and false of a SHORT one. A 2256×1504 laptop panel
+ * at 200% Windows scaling hands the browser 1128×752 CSS px, and ~617 of that
+ * survives the browser chrome: desktop-width, phone-height. wordle then clipped
+ * by 33px while the other twelve games, which all size off `--avail-h`, were
+ * fine at 560. Ungating cost nothing, because the cap is INERT whenever there's
+ * room — measured identical at 720px and 900px (board 318×383 either way), and
+ * only engaging below that (248×298 at 617px). The same reason it's already
+ * inert on a tall phone, where the per-tile cap wins. */
+.grid {
+  max-width: calc(
+    (100svh - var(--game-chrome-height) - 15rem) * var(--cols) / var(--rows)
+  );
 }
 
 /* Turn-history: the guess row the viewed turn added — a yellow ring around it

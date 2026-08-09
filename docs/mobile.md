@@ -532,14 +532,26 @@ variation rather than psychicnum's assumptions:
 - **psychicnum** (the POC / reference) — board is a single grid that flex-fills
   the column. No divergence; this is the baseline shape.
 - **wordle** — board **+ on-screen keyboard** stacked in the board column (the
-  only game that does this). **Divergence:** the board must cap its height, or on
-  a short phone (e.g. iPhone SE) the keyboard is pushed off-screen. Done with a
-  `@media (--mobile)` `max-width` on the board grid ([`Board.module.css`](../src/wordle/components/Board.module.css))
+  only game that does this). **Divergence:** the board must cap its height, or a
+  short viewport pushes the keyboard off-screen. Done with a `max-width` on the
+  board grid ([`Board.module.css`](../src/wordle/components/Board.module.css))
   derived from the leftover height (`100svh − chrome − ~15rem` of keyboard +
   feedback + gaps), converted to a width via the board's own aspect ratio so
   tiles stay square and the keyboard's own width is untouched. Guarded by
   [`wordle-mobile.e2e.ts`](../e2e/wordle-mobile.e2e.ts) at a tall + short
   viewport (no page scroll; whole keyboard on-screen; sheet opens/closes).
+
+  **The cap is NOT gated to mobile** (it was until 2026-08-08). "Short" is not
+  the same question as "narrow", and wordle is the one game where they come
+  apart: a laptop panel scaled to 200% in Windows is desktop-*width* and
+  phone-*height* — 1128×752 CSS px, ~617 after browser chrome — and wordle
+  clipped by 33px there while the other twelve games sized off `--avail-h` and
+  fit at 560. Ungating is free because the cap is inert whenever there's room:
+  board measured at 318×383 at both 720px and 900px of viewport height, before
+  and after, engaging only below that (248×298 at 617px). Same reason it's
+  already inert on a tall phone, where the per-tile cap wins. **The lesson
+  generalises** — a mobile media query is the right home for a rule about
+  *layout shape*, and the wrong one for a rule about *running out of room*.
   wordle needs **no keyboard/input machinery** — its on-screen keyboard is taps,
   and it has no `<input>`, so none of the panel-keyboard/focus-zoom work applies.
 - **codenamesduet** — the guesser taps tiles (no keyboard), but the **clue-giver
@@ -600,8 +612,9 @@ A converted game is now: `useInfoSheet()`, `cls(shared.layout, shared.mobileFill
 styles.layout)`, and `<InfoSheet>{<InfoCol/>}</InfoSheet>` — ~5 lines, no CSS.
 psychicnum / wordle / codenamesduet were refactored onto it (net line removal,
 desktop unchanged, e2e green). What stays PER-GAME is the board's own mobile
-SIZING — psychicnum flex-fills, wordle caps by leftover height for its keyboard,
-codenamesduet keeps a full board + scroll.
+SIZING — psychicnum flex-fills, wordle caps by leftover height for its keyboard
+(at every width, not just here — see its bullet above), codenamesduet keeps a
+full board + scroll.
 
 **stackdown** was then the first *new* conversion on the extracted recipe — and
 it proved the payoff: pure recipe, **no board divergence**. Its square board is
