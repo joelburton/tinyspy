@@ -5,6 +5,21 @@ import { DICE_BY_NAME } from './dice'
 import type { BoggleSetup } from './setup'
 
 /**
+ * One "Board constraints" grid row (Words / Score / Longest), read back as a
+ * sentence — or `null` when the player set neither bound, since a recap must
+ * not assert a choice nobody made (setupRows.ts → The rule).
+ *
+ * Spelled out rather than punctuated as a range (`10-20`): these rows sit in a
+ * flat list beside "Min word length: 3", where a bare pair of numbers would
+ * read as two separate facts, and the same string has to work on paper.
+ */
+function boundsValue(min: number | undefined, max: number | undefined): string | null {
+  if (min == null && max == null) return null
+  if (min != null && max != null) return min === max ? `exactly ${min}` : `${min} to ${max}`
+  return min != null ? `at least ${min}` : `at most ${max}`
+}
+
+/**
  * boggle's setup recap — ONE array, rendered by the info column and the PDF
  * alike (docs/pdf.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
  *
@@ -41,6 +56,30 @@ export function setupRows(
       // behind a closed disclosure, glaring once it printed.
       value: setup.win_percent == null ? 'none' : `${setup.win_percent}%`,
     },
+    // The "Board constraints" section, one row per grid row, in the dialog's
+    // order — the generator's targets, measured against the REQUIRED words. A
+    // pair the player left blank produces no row at all, so a board built with
+    // no constraints reads as a recap with none.
+    //
+    // Keyed `constraints.*` because the setup holds them in one nested object:
+    // setupRows.test.ts excuses `constraints` itself from needing a row of its
+    // own ONLY on the promise that its parts appear as `constraints.` rows, and
+    // it checks that promise rather than taking it (it used to take it — which
+    // is how these went missing from both surfaces in the first place).
+    ...CONSTRAINT_ROWS.flatMap(({ key, label, min, max }) => {
+      const value = boundsValue(setup.constraints?.[min], setup.constraints?.[max])
+      return value ? [{ key: `constraints.${key}`, label, value }] : []
+    }),
     timerRow(setup.timer),
   ]
 }
+
+/** The three min/max pairs the setup form offers, in its own order. Mirrors
+ *  `CONSTRAINT_ROWS` in components/SetupForm.tsx — same three facts, the
+ *  screen's labels made self-describing for a flat list ("Longest" alone says
+ *  nothing once it's out of the grid). */
+const CONSTRAINT_ROWS = [
+  { key: 'words', label: 'Board words', min: 'minWords', max: 'maxWords' },
+  { key: 'score', label: 'Board score', min: 'minScore', max: 'maxScore' },
+  { key: 'longest', label: 'Longest word', min: 'minLongest', max: 'maxLongest' },
+] as const

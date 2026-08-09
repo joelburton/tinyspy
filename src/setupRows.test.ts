@@ -63,13 +63,25 @@ const NOT_A_ROW: Record<string, string> = {
   source: 'folded into the single Puzzle row',
   filename: 'folded into the single Puzzle row',
   board: 'an uploaded board, not a choice to recap',
-  // Constraints object (boggle) — the individual limits are their own rows.
-  constraints: 'a nested object; its parts are separate rows',
   // bananagrams' word-check bands qualify `word_check`, so they follow it and
   // vanish with it — and the default is 'off'. (This test is what found them
   // missing from BOTH surfaces.)
   dict_2: 'shown only when word-checking is on',
   dict_3plus: 'shown only when word-checking is on',
+}
+
+/**
+ * Setup keys holding a NESTED OBJECT, whose parts appear as their own rows
+ * keyed `<key>.<part>` — so the parent key needs no row of its own.
+ *
+ * Separate from NOT_A_ROW because this excuse makes a CLAIM, and the test below
+ * checks it. boggle's `constraints` sat in NOT_A_ROW saying "its parts are
+ * separate rows" when its parts were on neither surface: the guard read as
+ * green while the board's own generation targets went unrecorded on screen and
+ * on paper. An exemption the test can verify is worth four that it can't.
+ */
+const PARTS_AS_ROWS: Record<string, string> = {
+  constraints: 'boggle board-generation targets — one row per min/max pair',
 }
 
 const PLAYERS: Member[] = [
@@ -116,12 +128,31 @@ describe('setup recaps', () => {
       it('covers every key of the default setup', () => {
         const shown = new Set(rows.map((r) => r.key))
         const uncovered = Object.keys(manifest.setupForm.defaults as object).filter(
-          (k) => !shown.has(k) && !NOT_A_ROW[k],
+          (k) => !shown.has(k) && !NOT_A_ROW[k] && !PARTS_AS_ROWS[k],
         )
         expect(
           uncovered,
           'each setup key needs a row, or an entry in NOT_A_ROW saying why not',
         ).toEqual([])
+      })
+
+      it('makes good on every PARTS_AS_ROWS promise', () => {
+        const defaults = manifest.setupForm.defaults as Record<string, unknown>
+        for (const key of Object.keys(PARTS_AS_ROWS)) {
+          const nested = defaults[key]
+          // Only a nested object that actually HOLDS something owes rows — an
+          // absent or all-empty one is a choice nobody made, and the rule says
+          // that produces no row.
+          if (!nested || typeof nested !== 'object') continue
+          const set = Object.values(nested as Record<string, unknown>).some((v) => v != null)
+          if (!set) continue
+          const parts = rows.filter((r) => r.key.startsWith(`${key}.`))
+          expect(
+            parts.length,
+            `\`${key}\` is excused from having a row because its parts are ` +
+              `separate rows — so it must emit at least one \`${key}.*\` row`,
+          ).toBeGreaterThan(0)
+        }
       })
     })
   }
