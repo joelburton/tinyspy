@@ -307,7 +307,7 @@ src/codenamesduet/
                           columns write it), the header peer-status pill (`useTurnPill`),
                           and the turn-history `viewing` state keyed by `turn_number`.
                           The info column runs the shared readouts in the canonical order
-                          (`.infoState` = "{green}/15 agents · turn n/cap", then the
+                          (`.infoState` = "{green}/15 agents · n/cap turns spent", then the
                           finished-player banners, `.infoActions` = End, `.infoHelp` =
                           phase copy, and the `.infoSetup` disclosure = turn cap + first
                           clue-giver) above the GameTurnLog. **Turn-history viewer:**
@@ -330,7 +330,7 @@ src/codenamesduet/
                           End / help / setup) above the GameTurnLog. Near-zero state —
                           arranges shared pieces + emits `onSelectTurn` / `onEndGame` up.
     InfoCol.module.css
-    StateLine.tsx         The core live-state readout — "3/15 agents · 4/9 turns"
+    StateLine.tsx         The core live-state readout — "3/15 agents · 3/9 turns spent"
                           ("sudden death" replaces the turn counter once the budget
                           is spent). Its own component because it renders TWICE, in
                           two places that must never drift: the info column's

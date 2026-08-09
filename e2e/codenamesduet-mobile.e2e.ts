@@ -69,7 +69,9 @@ test.describe('codenamesduet mobile', () => {
     // renders, so the two can't drift.
     const statusBar = page.locator('[data-mobile-status]')
     await expect(statusBar).toBeVisible()
-    await expect(statusBar).toHaveText('0/15 agents · 1/9 turns')
+    // "0/9 turns SPENT" on turn one — the counter reports turns used, not the
+    // turn you're on (see StateLine). Nothing is spent until a turn ends.
+    await expect(statusBar).toHaveText('0/15 agents · 0/9 turns spent')
     // It sits ABOVE the board (and shortens it) rather than overlaying it.
     const barBox = (await statusBar.boundingBox())!
     const boardBox = (await page.locator('[data-board]').boundingBox())!
@@ -82,7 +84,7 @@ test.describe('codenamesduet mobile', () => {
     // ~full width, so it covers the bar; this is the copy you read there).
     await page.getByRole('button', { name: 'Game info' }).click()
     await expect(page.locator('[data-info-sheet] [class*="infoState"]')).toHaveText(
-      '0/15 agents · 1/9 turns',
+      '0/15 agents · 0/9 turns spent',
     )
 
     await ctxAlice.close(); await ctxBob.close()
