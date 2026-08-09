@@ -633,7 +633,19 @@ begin
         'turns_used',
           (select (setup->>'turns')::int
              from common.games where id = target_game)
-            - g_row.turns_remaining
+            - g_row.turns_remaining,
+        -- Stated here rather than left to the merge. This branch can BE a green
+        -- reveal — the 15th agent is what wins — and it returns before the
+        -- update_state below that would otherwise have bumped the count. Since
+        -- common.end_game MERGES its status object, omitting this left the
+        -- previous value standing and a won game listed as "14/15 agents".
+        -- The other two endings (assassin, spent clock) were right only by
+        -- luck, the last green having bumped it on its way past; now every
+        -- terminal write states its own number, which is the convention
+        -- (docs/supabase.md → the status blob).
+        'greens_found',
+          (select count(*) from codenamesduet.words
+            where game_id = target_game and revealed_as = 'G')
       ),
       player_results
     );
