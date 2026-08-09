@@ -130,6 +130,11 @@ export function WordList({
   // the list ("Score: 0" is an answer; a vanishing label is a question).
   const hasPoints = useMemo(() => rows.some((r) => r.points !== undefined), [rows])
   const shownScore = shown.reduce((sum, r) => sum + (r.points ?? 0), 0)
+  // The longest word in the filtered list, in letters. Ungated, unlike Score:
+  // every word list has lengths, so there's no "does this game have it" question
+  // to ask — and like the other two it reads 0 rather than vanishing when a
+  // filter empties the list.
+  const shownLongest = shown.reduce((n, r) => Math.max(n, r.word.length), 0)
 
   // Color-NAME lookup by user_id (the shared <Dot> + colorVarFor resolve it).
   // Players list is small (<10 in realistic clubs) so a Map+get rather than
@@ -181,6 +186,12 @@ export function WordList({
         <h3 className={infoPanel.heading}>
           {`${heading}: ${shown.length}`}
           {hasPoints && ` · Score: ${shownScore}`}
+          {/* Third tally, DESKTOP ONLY — below the breakpoint this heading
+              shares its line with both filter selects inside the info sheet,
+              and the third clause is what doesn't fit. Hidden in CSS rather
+              than dropped from the tree so there's one string to reason about
+              (and the test can assert it at any viewport). */}
+          <span className={styles.longest}>{` · Longest: ${shownLongest}`}</span>
         </h3>
         {wordFilter.picker}
       </div>

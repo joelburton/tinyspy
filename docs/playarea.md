@@ -508,16 +508,30 @@ modes (unlike the turn log's compete default — here the list already *is* your
 
 ### The heading tallies the FILTERED list
 
-The card's heading counts and scores whatever the two filters currently show —
-**"Words: 7 · Score: 10"** — which turns the filters into a reading tool: flip
-WHO to a player to see their coop contribution, to Missed at terminal to see
-what the reveal cost, KIND to Bonus to see what the wider dictionary was worth.
+The card's heading counts, scores and measures whatever the two filters
+currently show — **"Words: 7 · Score: 10 · Longest: 5"** — which turns the
+filters into a reading tool: flip WHO to a player to see their coop
+contribution, to Missed at terminal to see what the reveal cost, KIND to Bonus
+to see what the wider dictionary was worth.
+
 Rows carry an optional `points`; the score segment renders only when the
 game's rows carry points at all, gated on ALL rows rather than the filtered
 set, so an empty filter reads "Score: 0" instead of the segment vanishing
 (no heading reflow as filters flip). Games whose lists don't score (none
-today, but the prop is optional) get a count-only heading. Pinned by
-`WordList.test.tsx` — whole-list, per-player, missed, and count-only.
+today, but the prop is optional) get a count-only heading.
+
+**Longest** is the longest shown word in LETTERS. Ungated — every word list has
+lengths, so there's no "does this game have it" question to ask — and
+**desktop-only**: below the breakpoint the info column becomes the off-canvas
+sheet, where this heading shares one line with both filter selects, and the
+third clause is what doesn't fit. It's hidden by a media query rather than
+dropped from the tree, so there's one string to reason about at every width;
+`spellingbee-mobile.e2e.ts` pins both halves (visible in `innerText` on
+desktop, absent there but still present in `textContent` in the sheet), which
+is what stops a future fix from removing the span instead of hiding it.
+
+Pinned by `WordList.test.tsx` — whole-list, per-player, missed, count-only, and
+the longest tracking the filter.
 
 - **Why two controls and not one flat list.** They answer independent questions, so
   one select can't express "leah's bonus words" — and worse, picking `Bonus` would

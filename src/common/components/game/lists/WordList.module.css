@@ -143,3 +143,19 @@
 .unfound {
   color: var(--color-muted);
 }
+
+/* The heading's third tally ("· Longest: 10"). Desktop only: below the
+ * breakpoint the info column becomes the off-canvas sheet, where this heading
+ * shares one line with the KIND and WHO selects — the count and the score earn
+ * their place there, the longest word doesn't. `nowrap` keeps the clause whole
+ * on the desktop side, so a narrow info column breaks BETWEEN tallies rather
+ * than inside one. */
+.longest {
+  white-space: nowrap;
+}
+
+@media (--mobile) {
+  .longest {
+    display: none;
+  }
+}

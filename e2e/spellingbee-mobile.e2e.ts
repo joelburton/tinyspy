@@ -25,6 +25,11 @@ test('spellingbee desktop unchanged', async ({ browser }) => {
   // Info col is still the fixed 53rem (~848px), flush against the layout's right edge.
   expect(m.infoW).toBeGreaterThan(820)
   expect(m.layoutRight - m.infoRight).toBeLessThan(4) // flush right
+  // The word list's third tally is a DESKTOP-only clause — here it shows.
+  // `innerText` (not textContent) is the point: the span stays in the DOM at
+  // every width and CSS decides, so only rendered text can tell the two apart.
+  const deskHeading = page.locator('h3').filter({ hasText: /^Words:/ }).first()
+  expect(await deskHeading.evaluate((el) => (el as HTMLElement).innerText)).toMatch(/· Longest: \d+/)
   await ctx.close()
 })
 
@@ -66,5 +71,14 @@ test('spellingbee mobile — full-width sheet', async ({ browser }) => {
   const wrap = (await page.locator('[data-info-sheet]').boundingBox())!
   console.log('MOBILE SHEET', JSON.stringify({ x: Math.round(wrap.x), w: Math.round(wrap.width), iw: s.iw }))
   expect(wrap.width).toBeGreaterThanOrEqual(s.iw - 1) // full device width
+
+  // …and in that sheet the heading shares one line with both filter selects, so
+  // the third tally is hidden here — the count and the score earn their place,
+  // the longest word doesn't. Hidden by CSS, NOT dropped from the tree: the
+  // textContent assertion pins that, so a future "fix" that removes the span
+  // instead of hiding it fails rather than silently changing the approach.
+  const sheetHeading = page.locator('h3').filter({ hasText: /^Words:/ }).first()
+  expect(await sheetHeading.evaluate((el) => (el as HTMLElement).innerText)).not.toMatch(/Longest/)
+  expect(await sheetHeading.evaluate((el) => el.textContent)).toMatch(/· Longest: \d+/)
   await ctx.close()
 })
