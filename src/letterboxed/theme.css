@@ -9,6 +9,12 @@
  *                             The one "brand" colour.
  *   --letterboxed-used        A letter already covered by the chain. Reads as
  *                             "done" without competing with the live path.
+ *   --letterboxed-ghost       The last SUBMITTED word's path, still on the
+ *                             board until you commit to a next letter. Grey on
+ *                             purpose: a move already made must not read as the
+ *                             line you're drawing now, and the accent green is
+ *                             spoken for. Same idea as strands' `missed` track —
+ *                             the same shape in a quieter voice.
  *   --letterboxed-box         The square the letters sit on.
  *   --letterboxed-tile        A letter's resting fill.
  *   --letterboxed-tile-text   A resting letter's glyph.
@@ -25,6 +31,7 @@
 :root {
   --letterboxed-accent:     #3f9d5c;
   --letterboxed-used:       var(--color-outcome-won-bg);
+  --letterboxed-ghost:      var(--color-control-text-2);
   --letterboxed-box:        var(--color-divider);
   --letterboxed-tile:       var(--color-surface);
   --letterboxed-tile-text:  var(--color-text);

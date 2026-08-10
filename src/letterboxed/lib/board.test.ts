@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canFollow, coveredLetters, rejectReason, tailLetter } from './board'
+import { canFollow, coveredLetters, layout, pathPoints, rejectReason, tailLetter } from './board'
 
 /**
  * The FE half of the rulebook. The server re-checks every rule (pgTAP pins
@@ -86,5 +86,41 @@ describe('rejectReason', () => {
   it('everything legal but absent from the playable list is simply not a word', () => {
     // g→a→d crosses sides fine; it just is not in the shipped list.
     expect(rejectReason('gad', board)).toBe('Not a word')
+  })
+})
+
+describe('pathPoints', () => {
+  // Top side a b c, right d e f, bottom g h i (right-to-left), left j k l.
+  const nodes = layout('abcdefghijkl')
+  const at = (letter: string) => {
+    const n = nodes.find((x) => x.letter === letter)!
+    return `${n.x},${n.y}`
+  }
+
+  it('is empty for an empty word, so nothing renders', () => {
+    expect(pathPoints('', nodes)).toBe('')
+  })
+
+  it('gives ONE point for a single letter — no visible segment', () => {
+    // This is what lets the carried-over first letter draw nothing without a
+    // special case in the component.
+    expect(pathPoints('a', nodes)).toBe(at('a'))
+  })
+
+  it('walks the letters in order', () => {
+    expect(pathPoints('cad', nodes)).toBe([at('c'), at('a'), at('d')].join(' '))
+  })
+
+  it('revisits a node for a repeated letter, doubling the line back', () => {
+    // Deliberate: the board's letters are distinct, so a repeat can only mean
+    // returning to the same place.
+    expect(pathPoints('aba', nodes)).toBe([at('a'), at('b'), at('a')].join(' '))
+  })
+
+  it('skips a letter that is not on the board rather than throwing', () => {
+    // Entry only admits board letters, so this is belt-and-braces — but a
+    // ghost is built from a SUBMITTED word, and a board rebuilt under it
+    // shouldn't crash the surface.
+    expect(pathPoints('azb', nodes)).toBe([at('a'), at('b')].join(' '))
   })
 })

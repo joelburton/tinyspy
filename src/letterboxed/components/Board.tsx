@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { cls } from '../../common/lib/util/cls'
-import { canFollow, coveredLetters, EDGE, layout, NODE_R, SPAN, type Node } from '../lib/board'
+import { canFollow, coveredLetters, EDGE, layout, NODE_R, pathPoints, SPAN } from '../lib/board'
 import styles from './Board.module.css'
 import play from './PlayArea.module.css'
 
@@ -44,19 +44,26 @@ export function Board({
 }) {
   const nodes = useMemo(() => layout(sides), [sides])
   const covered = useMemo(() => coveredLetters(chain), [chain])
-  const byLetter = useMemo(() => new Map(nodes.map((n) => [n.letter, n])), [nodes])
-
   const last = word[word.length - 1]
-  // The path the word in progress traces. Every letter of `word` is on the
-  // board (entry only admits board letters), so the lookup can't miss.
-  const points = useMemo(
-    () =>
-      [...word]
-        .map((c) => byLetter.get(c))
-        .filter((n): n is Node => n !== undefined)
-        .map((n) => `${n.x},${n.y}`)
-        .join(' '),
-    [word, byLetter],
+  // The path the word in progress traces.
+  const points = useMemo(() => pathPoints(word, nodes), [word, nodes])
+
+  /**
+   * The GHOST: the last submitted word's path, in grey, so everyone can see
+   * where the chain just went — in coop that's whoever played it, since the
+   * chain is shared and arrives by realtime; in compete `chain` is your own
+   * (rivals' are column-shielded), so it's your own last word and can't leak.
+   *
+   * It survives the word's FIRST letter, which is not a choice — it's carried
+   * over from the previous word's tail — and clears on the second, the moment
+   * the player has actually decided something. `word.length < 2` is that rule.
+   *
+   * The history viewer gets this for free: it passes `word=''` and a snapshot
+   * `chain`, so stepping back through turns replays each word's path.
+   */
+  const ghostPoints = useMemo(
+    () => (word.length < 2 ? pathPoints(chain[chain.length - 1] ?? '', nodes) : ''),
+    [word, chain, nodes],
   )
 
   return (
@@ -74,7 +81,10 @@ export function Board({
         rx="1.5"
       />
 
-      {/* The chain line sits under the letters so a node is never obscured. */}
+      {/* Both lines sit under the letters so a node is never obscured. The ghost
+          is first so a live path drawn over it wins — they only overlap while
+          the carried first letter is down, which draws no segment anyway. */}
+      {ghostPoints && <polyline className={styles.ghostPath} points={ghostPoints} />}
       {points && <polyline className={styles.path} points={points} />}
 
       {nodes.map((n) => {

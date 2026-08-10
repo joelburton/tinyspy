@@ -348,6 +348,30 @@ validation lives in [`lib/board.ts`](../../src/letterboxed/lib/board.ts)
 (`rejectReason`, ordered so the most actionable complaint wins — "Must start
 with T" beats "Not a word") and the commit is a plain RPC.
 
+**Two paths are drawn on the board.** The word you're typing traces the accent
+green; the last SUBMITTED word stays behind it in grey (`--letterboxed-ghost`)
+— a **ghost** of where the chain just went. In coop that's whoever played it,
+since the chain is shared and arrives by realtime; in compete `chain` is your
+own, so it's your own last word and can't leak a rival's (their chains are
+column-shielded — §3).
+
+Both lines come from one derivation, [`pathPoints`](../../src/letterboxed/lib/board.ts),
+so they can't disagree about where a word goes. **No path is stored anywhere:**
+the board's twelve letters are distinct, so a word determines its route
+uniquely — which is the fact that makes the whole feature free of schema, RPC
+and realtime work. A repeated letter (ONION) revisits its node and the line
+doubles back; that's the geometry being honest.
+
+**When the ghost clears is the deliberate part.** It survives the next word's
+FIRST letter, because that letter isn't a choice — it's carried over from the
+previous word's tail — and clears on the second, the moment the player commits
+to a direction. That's `word.length < 2`, and it's the assertion
+[`letterboxed.e2e.ts`](../../e2e/letterboxed.e2e.ts) cares about most: bracketing
+"appears" and "disappears" alone would pass an implementation that cleared a
+keystroke too early. The turn-history viewer inherits it for nothing — it
+passes `word=''` with a snapshot chain, so stepping back through turns replays
+each word's route.
+
 **The chain strip sits ABOVE the board** (`<ChainStrip>`), not in the info
 column: the chain is the game's central state — what you've played, and
 therefore what letter the next word must start with — and on a phone the info

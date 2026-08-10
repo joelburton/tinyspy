@@ -151,3 +151,31 @@ export function layout(sides: string): Node[] {
   )
   return out
 }
+
+/**
+ * The polyline a word traces across the board, as an SVG `points` string —
+ * `""` when there's nothing to draw.
+ *
+ * Pure, and here rather than in the component, because two different lines are
+ * built from it now: the word being typed, and the GHOST of the last submitted
+ * word (Board.tsx). One derivation means the two can't disagree about where a
+ * word goes.
+ *
+ * A word maps to exactly one path because the board's twelve letters are
+ * DISTINCT — that's what makes the ghost possible at all without storing a path
+ * alongside the word. A repeated letter (ONION) revisits its node, so the line
+ * doubles back on itself rather than drawing a loop; that's the geometry being
+ * honest, not a bug.
+ *
+ * A single point produces a `points` string that renders no visible segment,
+ * which is what makes a one-letter word (the carried-over first letter) draw
+ * nothing without needing a special case.
+ */
+export function pathPoints(word: string, nodes: Node[]): string {
+  const byLetter = new Map(nodes.map((n) => [n.letter, n]))
+  return [...word]
+    .map((c) => byLetter.get(c))
+    .filter((n): n is Node => n !== undefined)
+    .map((n) => `${n.x},${n.y}`)
+    .join(' ')
+}
