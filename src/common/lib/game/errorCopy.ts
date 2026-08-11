@@ -109,6 +109,14 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
       `No unique-letter boards at required difficulty ${d[0]} — try a higher difficulty or turn off "unique letters only"`,
   },
 
+  // ── boggle ──
+  // The constraint pickers are the setup form's own input, and an
+  // unsatisfiable combination is a real answer the server is first to give
+  // (the generator ran out of attempts under its CPU budget). Edge-fn-raised
+  // (boggle-build-board); the words are the function's original sentence,
+  // approved verbatim 2026-08-12.
+  'no-board-fits': { text: () => 'No board met those constraints — please relax them.' },
+
   // ── scrabble ──
   // The board and the bag are SHARED even in compete, so a rival's play lands
   // between your stage and your commit: the square you were about to use is

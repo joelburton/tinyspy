@@ -32,7 +32,6 @@ const FUNCTIONS_DIR = join(__dirname, '..', 'supabase', 'functions')
 
 /** Not yet converted to fe-error-keys — shrink me to zero, one round at a time. */
 const UNCONVERTED = new Set([
-  'boggle-build-board',
   'codenamesduet-suggest-clue',
   'common-define',
   'crosswords-explain-clue',

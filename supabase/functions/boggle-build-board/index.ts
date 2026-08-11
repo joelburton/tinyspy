@@ -22,7 +22,14 @@
  *   POST /functions/v1/boggle-build-board
  *   { target_club, mode, player_user_ids,
  *     setup: { timer, dice_set, band, legal_band, min_word_length, scoring_ladder, win_percent, constraints } }
- *   → { id }   ·   → { error } (400/401/422/500)
+ *   → { id }   ·   → { error: fe-error-key, code?: SQLSTATE } (400/401/422/500)
+ *
+ * Errors are fe-error-keys (`key|detail|` — docs/edge-fn-error-keys-plan.md;
+ * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
+ * word. The one player-reachable key is `no-board-fits|` (unsatisfiable
+ * constraint pickers — carries ERROR_COPY); the rest (bad-method / bad-band /
+ * bad-request / edge-internal) are "impossible without an FE bug" — no copy,
+ * they render as faults. A create_game raise relays with its SQLSTATE.
  *
  * Secrets / env: SUPABASE_URL + SUPABASE_ANON_KEY (auto-injected). The caller's
  * JWT carries every authorization signal: common.words + the bundled dict are
@@ -34,7 +41,7 @@ import { generateBoard, listBonusWords, type BoardConstraints } from '../../../s
 import { DICE_BY_NAME } from '../../../src/boggle/lib/dice.ts'
 import { LADDERS, type LadderName } from '../../../src/boggle/lib/solver.ts'
 import { requiredTrie, legalTrie } from './dict.ts'
-import { json, preflight } from '../_shared/http.ts'
+import { edgeInternal, json, preflight } from '../_shared/http.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 
 interface BoggleSetup {
@@ -53,7 +60,7 @@ interface BoggleSetup {
 serve(async (req: Request): Promise<Response> => {
   const pre = preflight(req)
   if (pre) return pre
-  if (req.method !== 'POST') return json({ error: 'POST only' }, 405)
+  if (req.method !== 'POST') return json({ error: 'bad-method|' }, 405)
 
   try {
     const parsed = await parseBuildBoardRequest(req, 'boggle-build-board')
@@ -62,21 +69,27 @@ serve(async (req: Request): Promise<Response> => {
     const setup = parsed.setup as BoggleSetup
 
     const set = DICE_BY_NAME[setup.dice_set ?? '4']
-    if (!set) return json({ error: `unknown dice_set: ${setup.dice_set}` }, 400)
+    if (!set) {
+      console.log(`boggle-build-board reject: unknown dice_set ${setup.dice_set}`)
+      return json({ error: 'bad-request|dice_set|' }, 400)
+    }
     const band = setup.band ?? 3
-    if (band < 1 || band > 6) return json({ error: `band out of range: ${band}` }, 400)
+    if (band < 1 || band > 6) return json({ error: `bad-band|${band}|` }, 400)
     // The bonus (legal) band — the difficulty ceiling for the extra words a player
     // may discover beyond the required set. Must be at least `band` (required
     // words are legal too) and at most 6. create_game re-validates.
     const legalBand = setup.legal_band ?? band
     if (legalBand < band || legalBand > 6) {
-      return json({ error: `legal_band out of range: ${legalBand}` }, 400)
+      return json({ error: `bad-band|${legalBand}|` }, 400)
     }
     // Validate the ladder here (the trust boundary): it comes from untyped JSON
     // and flows straight into the solver's scoring, which would crash on an
     // unknown key. create_game re-validates, but generation runs first.
     const ladder = setup.scoring_ladder ?? 'basic'
-    if (!(ladder in LADDERS)) return json({ error: `unknown scoring_ladder: ${ladder}` }, 400)
+    if (!(ladder in LADDERS)) {
+      console.log(`boggle-build-board reject: unknown scoring_ladder ${ladder}`)
+      return json({ error: 'bad-request|scoring_ladder|' }, 400)
+    }
 
     // ─── Generate the board (cached band trie + synchronous solve loop) ─────
     const trie = await requiredTrie(band)
@@ -89,7 +102,10 @@ serve(async (req: Request): Promise<Response> => {
     // maxMs bounds the busy loop under the edge worker's CPU ceiling; an
     // unsatisfiable constraint returns null → 422 instead of killing the worker.
     const board = generateBoard(trie, set, constraints, seed, 200_000, 1000)
-    if (!board) return json({ error: 'No board met those constraints — please relax them.' }, 422)
+    // Player-reachable: the constraint pickers are the form's own input and
+    // an unsatisfiable combination is a real answer. Carries ERROR_COPY
+    // ("No board met those constraints — please relax them.").
+    if (!board) return json({ error: 'no-board-fits|' }, 422)
 
     // ─── Enumerate the bonus set (post-acceptance, does NOT affect the board) ──
     // The full legal list = required ∪ bonus; the FE validates + scores guesses
@@ -124,6 +140,6 @@ serve(async (req: Request): Promise<Response> => {
     )
   } catch (e) {
     console.error('boggle-build-board threw:', e)
-    return json({ error: String(e instanceof Error ? e.message : e) }, 500)
+    return edgeInternal(e)
   }
 })
