@@ -670,8 +670,15 @@ export async function createLetterboxedGame(
   extraWords = 3,
 ): Promise<{ id: string; gametype: string }> {
   const creator = club.members[0]
+  // `zq` prefix, not `q`: these must be words the DICTIONARY DOES NOT HAVE.
+  // That's what makes the board synthetic, and the hint search reads
+  // `clean_words` — playable_words joined against common.words — so a single
+  // real word in here stops the board being synthetic at all. `qat` used to
+  // sneak in from the old `q` prefix and left the fixture with a one-word clean
+  // list: too small to hint from, too big to trip the empty-list fallback, so
+  // the hint spec failed with "No words to play" on a board of 207 words.
   const filler = Array.from({ length: 200 }, (_, i) =>
-    `q${String.fromCharCode(97 + Math.floor(i / 26))}${String.fromCharCode(97 + (i % 26))}`,
+    `zq${String.fromCharCode(97 + Math.floor(i / 26))}${String.fromCharCode(97 + (i % 26))}`,
   )
   const res = await asUser(creator.session.access_token)
     .schema('letterboxed')

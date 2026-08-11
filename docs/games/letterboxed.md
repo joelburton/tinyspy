@@ -396,6 +396,15 @@ a board is only as rich as what the hint can suggest, while the
 one-word-solvable re-roll tests the whole accept list (a board a player can
 finish in one typed word is trivial either way).
 
+**The hint falls back when `clean_words` is EMPTY.** An empty clean list isn't
+a board with no clean words — it's a broken derivation (see below), and telling
+a player "No words to play" about a board holding hundreds is a lie with no
+remedy. So the search uses the accept list in that one case. It does NOT cover
+a single word going missing: a dictionary DELETION silently shrinks a live
+board's hint corpus by one, which can make the search report a route as
+unreachable when a route exists. Storing `clean_words` at build time is the
+real fix if curation ever deletes routinely.
+
 `clean_words` is **computed by the `games_state` view, not stored** — no second
 column, so the shape migration stays applied-and-untouched, and it tracks the
 dictionary: re-flag a word as a slur in the editor and hints stop offering it on

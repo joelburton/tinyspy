@@ -241,9 +241,24 @@ export function PlayArea(ctx: GamePageCtx) {
       // rule). Searching the accept list would let a spoiler answer "the word
       // is BITCH", which is precisely the asymmetry the two tiers exist for.
       //
+      // ...UNLESS the clean list is EMPTY, which is not a board — it's a broken
+      // derivation. `clean_words` is computed by joining the board's words
+      // against `common.words` (games_state), so it empties wholesale when
+      // those words aren't in the dictionary at all: a synthetic test fixture,
+      // or a dictionary that was never imported. Refusing to hint then tells
+      // the player "No words to play" about a board full of words, which is a
+      // lie with no remedy. Falling back to the accept list keeps the feature
+      // honest; the purity guarantee is worth less than truthfulness in a state
+      // where nothing is clean because nothing is known.
+      //
+      // This does NOT cover a single word going missing (a dictionary deletion
+      // shrinking a live board's corpus by one). That case still silently
+      // narrows the search — see docs/games/letterboxed.md.
+      //
       // The room left under the cap rides along so the search can refuse to
       // point down a road the cap cuts off (the offPar answer below).
-      const r = suggest(game.cleanWords, sides, chain, maxWords - chain.length)
+      const corpus = game.cleanWords.length > 0 ? game.cleanWords : game.playableWords
+      const r = suggest(corpus, sides, chain, maxWords - chain.length)
 
       if (!isSuggestion(r)) {
         // All three are DIAGNOSIS ONLY — none of them ends in "take a word

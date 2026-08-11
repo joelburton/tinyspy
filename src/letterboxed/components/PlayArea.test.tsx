@@ -335,3 +335,50 @@ describe('letterboxed PlayArea — server keys become player copy', () => {
     expect(screen.queryByText(/TypeError/)).toBeNull()
   })
 })
+
+/**
+ * The empty-clean-list fallback, added after a real e2e failure.
+ *
+ * `clean_words` is DERIVED — games_state joins the board's words against
+ * common.words — so it empties wholesale whenever those words aren't in the
+ * dictionary: a synthetic test board, or a database whose word import never
+ * ran. The hint then had nothing to search and told the player "No words to
+ * play" about a board full of words.
+ */
+describe('letterboxed PlayArea — the hint corpus when clean_words is empty', () => {
+  it('falls back to the accept list rather than claiming the board is empty', () => {
+    h.result = loaded(loadedGame({
+      playableWords: ['bad', 'dig', 'gab'],
+      cleanWords: [],            // the broken derivation
+      max_words: 5,
+    }))
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    act(() => menuItems(ctx).get('hint')?.onClick())
+    // Something is offered — the exact word doesn't matter, only that the
+    // search ran against a non-empty corpus.
+    expect(screen.queryByText('No words to play')).toBeNull()
+  })
+
+  it('still prefers the clean list when it has anything in it', () => {
+    // The purity guarantee is untouched in every normal case: only a WHOLLY
+    // empty clean list triggers the fallback, never a merely smaller one.
+    h.result = loaded(loadedGame({
+      playableWords: ['bad', 'dig', 'gab'],
+      cleanWords: ['bad'],
+      max_words: 5,
+    }))
+    h.result.myRow = { ...myRow, chain: ['bad'] }
+    h.result.playerRows = [h.result.myRow]
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    act(() => menuItems(ctx).get('hint')?.onClick())
+    // Tail is D. 'dig' is in the accept list and NOT in the clean list, so a
+    // fallback would have SUGGESTED it. Instead we get the unreachable line —
+    // which proves both mechanisms at once: the search ran on the clean list
+    // (no suggestion), and the stuck test still consulted the ACCEPT list, so
+    // it refused to claim "No word starts with D" while `dig` sits there
+    // playable.
+    expect(screen.getByText('No winning path from here')).toBeInTheDocument()
+  })
+})
