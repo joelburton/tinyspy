@@ -60,7 +60,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select strands.spend_hint(%L) $$, (select id from game)),
   'P0001',
-  'not enough hint points',
+  'not-enough-hint-points|',
   'an empty bar cannot be spent'
 );
 
@@ -69,7 +69,7 @@ select strands.submit_path((select id from game), pg_temp.strands_prefix_path(0,
 select throws_ok(
   format($$ select strands.spend_hint(%L) $$, (select id from game)),
   'P0001',
-  'not enough hint points',
+  'not-enough-hint-points|',
   'a PARTLY full bar (1 of 2) still cannot be spent'
 );
 
@@ -183,7 +183,7 @@ select strands.submit_path((select id from game), pg_temp.strands_prefix_path(3,
 select throws_ok(
   format($$ select strands.spend_hint(%L) $$, (select id from game)),
   'P0001',
-  'a hint is already showing',
+  'hint-already-showing|',
   'a second hint is refused while one is unsolved — the board rings one word'
 );
 

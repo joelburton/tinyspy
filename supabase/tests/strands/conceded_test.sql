@@ -50,13 +50,13 @@ select strands.concede((select id from g_guard));
 select throws_ok(
   format($$ select strands.submit_path(%L::uuid, %L::jsonb) $$,
          (select id from g_guard), pg_temp.strands_row_path(0)::text),
-  'P0001', 'you have conceded',
+  'P0001', 'you-conceded|',
   'a conceded player''s trace is refused — she is out of the race'
 );
 
 select throws_ok(
   format($$ select strands.spend_hint(%L::uuid) $$, (select id from g_guard)),
-  'P0001', 'you have conceded',
+  'P0001', 'you-conceded|',
   'and so is her hint spend'
 );
 

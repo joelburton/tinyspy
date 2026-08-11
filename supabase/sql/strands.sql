@@ -347,7 +347,8 @@ begin
   -- Compete needs an opposing PLAYER. The manifest hides its Start button in a
   -- one-player club; this is the server-side catch.
   if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
-    raise exception 'compete mode requires at least 2 players' using errcode = 'P0001';
+    raise exception 'too-few-players|' using errcode = 'P0001',
+      detail = 'compete needs >= 2 players';
   end if;
 
   -- Upper bound must agree with `numberOfPlayers` in the manifest.
@@ -355,12 +356,14 @@ begin
 
   -- ─── Validate setup ──────────────────────────────────────
   if (setup->>'puzzleId') is null then
-    raise exception 'setup.puzzleId is required' using errcode = 'P0001';
+    raise exception 'missing-puzzle-id|' using errcode = 'P0001',
+      detail = 'setup.puzzleId absent';
   end if;
   begin
     s_puzzle_id := (setup->>'puzzleId')::uuid;
   exception when invalid_text_representation then
-    raise exception 'setup.puzzleId must be a uuid' using errcode = 'P0001';
+    raise exception 'bad-puzzle-id|' using errcode = 'P0001',
+      detail = 'setup.puzzleId is not a uuid';
   end;
 
   -- Defaults match the manifest's, so an older client that omits a knob still
@@ -372,13 +375,16 @@ begin
   v_min_word_length := coalesce((setup->>'min_word_length')::int, 4);
 
   if v_band < 1 or v_band > 6 then
-    raise exception 'setup.band must be 1..6' using errcode = 'P0001';
+    raise exception 'bad-band|' using errcode = 'P0001',
+      detail = 'setup.band must be 1..6';
   end if;
   if v_hint_cost < 1 or v_hint_cost > 10 then
-    raise exception 'setup.hint_cost must be 1..10' using errcode = 'P0001';
+    raise exception 'bad-hint-cost|' using errcode = 'P0001',
+      detail = 'setup.hint_cost must be 1..10';
   end if;
   if v_min_word_length < 3 or v_min_word_length > 8 then
-    raise exception 'setup.min_word_length must be 3..8' using errcode = 'P0001';
+    raise exception 'bad-min-word-length|' using errcode = 'P0001',
+      detail = 'setup.min_word_length must be 3..8';
   end if;
 
   perform common.require_valid_timer(setup->'timer');
@@ -388,7 +394,8 @@ begin
   select * into puzzle_row from strands.puzzles
    where strands.puzzles.id = s_puzzle_id;
   if not found then
-    raise exception 'puzzle not found' using errcode = 'P0002';
+    raise exception 'no-puzzle|' using errcode = 'P0002',
+      detail = 'no strands.puzzles row for that id; run the puzzle import';
   end if;
 
   -- Title = "<date>: <clue>", e.g. "2025-06-15: Here's to him!". The clue is
@@ -415,11 +422,13 @@ begin
     begin
       first_turn := (setup->>'first_turn_user_id')::uuid;
     exception when invalid_text_representation then
-      raise exception 'setup.first_turn_user_id must be a uuid' using errcode = 'P0001';
+      raise exception 'bad-first-turn|' using errcode = 'P0001',
+      detail = 'setup.first_turn_user_id is not a uuid';
     end;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'setup.first_turn_user_id must be one of the players'
-        using errcode = 'P0001';
+      raise exception 'bad-first-turn|'
+        using errcode = 'P0001',
+      detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
   end if;
@@ -699,12 +708,14 @@ begin
 
   select * into g_row from strands.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no strands.games row for target_game';
   end if;
 
   select play_state into play from common.games where id = target_game;
   if play <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- A conceded player is out of the race — no more traces. The FE freezes the
@@ -713,7 +724,8 @@ begin
   -- complete the win condition and be recorded the winner.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this compete race';
   end if;
 
   -- Turn-order gate (no-op for free-for-all). Before classification, so an
@@ -722,11 +734,13 @@ begin
 
   -- ─── Structural validation (hard rejects) ────────────────
   if path is null or jsonb_typeof(path) <> 'array' then
-    raise exception 'path must be a json array' using errcode = 'P0001';
+    raise exception 'bad-path|' using errcode = 'P0001',
+      detail = 'path must be a json array';
   end if;
   n := jsonb_array_length(path);
   if n < 1 then
-    raise exception 'path must have at least one cell' using errcode = 'P0001';
+    raise exception 'bad-path|' using errcode = 'P0001',
+      detail = 'path must have at least one cell';
   end if;
 
   -- Every element must be a two-number [row, col] BEFORE the casts below, so a
@@ -743,7 +757,8 @@ begin
         or (e->>0)::numeric <> floor((e->>0)::numeric)
         or (e->>1)::numeric <> floor((e->>1)::numeric)
   ) then
-    raise exception 'each path cell must be [row, col]' using errcode = 'P0001';
+    raise exception 'bad-path-cell|' using errcode = 'P0001',
+      detail = 'each path cell must be [row, col]';
   end if;
 
   select array_agg(((e->>0)::numeric)::int order by ord),
@@ -755,23 +770,27 @@ begin
 
   for i in 1..n loop
     if rs[i] < 0 or rs[i] > 7 or cs[i] < 0 or cs[i] > 5 then
-      raise exception 'path cell % is off the board', i - 1 using errcode = 'P0001';
+      raise exception 'path-off-board|%|', i - 1 using errcode = 'P0001',
+      detail = 'a path cell is outside the 8x6 board';
     end if;
     if (rs[i] || ',' || cs[i]) = any (consumed) then
-      raise exception 'path crosses an already-found word' using errcode = 'P0001';
+      raise exception 'path-crosses-found|' using errcode = 'P0001',
+      detail = 'a path cell belongs to an already-found word';
     end if;
     if i > 1 then
       -- 8-way adjacency: diagonals count. Same rule as
       -- src/strands/lib/board.ts `adjacent` and the puzzle importer's.
       if abs(rs[i] - rs[i-1]) > 1 or abs(cs[i] - cs[i-1]) > 1
          or (rs[i] = rs[i-1] and cs[i] = cs[i-1]) then
-        raise exception 'path cells % and % are not adjacent', i - 2, i - 1
-          using errcode = 'P0001';
+        raise exception 'path-not-adjacent|%|%|', i - 2, i - 1
+          using errcode = 'P0001',
+      detail = 'consecutive path cells must be 8-way adjacent';
       end if;
       -- No revisiting: a trace may not cross itself.
       if exists (select 1 from generate_series(1, i - 1) k
                   where rs[k] = rs[i] and cs[k] = cs[i]) then
-        raise exception 'path revisits a cell' using errcode = 'P0001';
+        raise exception 'path-revisits|' using errcode = 'P0001',
+      detail = 'a path may not use a cell twice';
       end if;
     end if;
   end loop;
@@ -983,34 +1002,40 @@ begin
 
   select * into g_row from strands.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no strands.games row for target_game';
   end if;
 
   select play_state into play from common.games where id = target_game;
   if play <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- Same guard as submit_path: a conceded player has no race left to hint.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this compete race';
   end if;
 
   select * into p_row from strands.players
    where game_id = target_game and user_id = caller_id;
   if p_row.solved then
-    raise exception 'you have already solved this board' using errcode = 'P0001';
+    raise exception 'already-solved|' using errcode = 'P0001',
+      detail = 'this player has already consumed the board';
   end if;
 
   if p_row.hint_points < g_row.hint_cost then
-    raise exception 'not enough hint points' using errcode = 'P0001';
+    raise exception 'not-enough-hint-points|' using errcode = 'P0001',
+      detail = 'the hint bar is not full';
   end if;
 
   -- An unspent hint blocks a second one: the board can only ring one word at a
   -- time without becoming unreadable, and the bar is capped anyway.
   if p_row.active_hint_coords is not null then
-    raise exception 'a hint is already showing' using errcode = 'P0001';
+    raise exception 'hint-already-showing|' using errcode = 'P0001',
+      detail = 'one theme word is already ringed';
   end if;
 
   -- A word already found is not worth revealing. WHOSE finds count is the
@@ -1033,7 +1058,8 @@ begin
 
   if coords is null then
     -- Defensive: a board with everything found should already be terminal.
-    raise exception 'nothing left to hint' using errcode = 'P0001';
+    raise exception 'nothing-to-hint|' using errcode = 'P0001',
+      detail = 'every theme word is already found';
   end if;
 
   -- Coop shares the pool, so the spend AND the reveal land on every row — one
@@ -1090,14 +1116,16 @@ begin
 
   perform 1 from strands.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no strands.games row for target_game';
   end if;
 
   select play_state into play from common.games where id = target_game;
   if play <> 'playing' then
     -- Idempotency: a second click, or one racing a win, raises and the FE
     -- swallows it the same way the other games do.
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   select count(*) into v_found
@@ -1150,10 +1178,12 @@ begin
   -- strands.games → common.games on every path, so no deadlock.
   select mode into g_mode from strands.games where id = target_game for update;
   if g_mode is null then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no strands.games row for target_game';
   end if;
   if g_mode <> 'compete' then
-    raise exception 'concede is compete-only' using errcode = 'P0001';
+    raise exception 'concede-not-in-coop|' using errcode = 'P0001',
+      detail = 'coop ends the whole table instead';
   end if;
 
   perform common._set_conceded(target_game);
@@ -1191,7 +1221,8 @@ begin
   -- was just reset.
   select * into g_row from strands.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no strands.games row for target_game';
   end if;
 
   delete from strands.events where game_id = target_game;
@@ -1256,12 +1287,14 @@ begin
 
   select * into g_row from strands.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no strands.games row for target_game';
   end if;
 
   select play_state into play from common.games where id = target_game;
   if play <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   if g_row.mode = 'compete' then

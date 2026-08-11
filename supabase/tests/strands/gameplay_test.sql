@@ -253,7 +253,7 @@ select throws_ok(
   format($$ select strands.submit_path(%L, %L::jsonb) $$,
          (select id from ambgame), pg_temp.strands_abba_canonical()::text),
   'P0001',
-  'path crosses an already-found word',
+  'path-crosses-found|',
   'and it consumed the tiles — the canonical trace can''t be run afterwards'
 );
 

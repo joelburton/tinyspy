@@ -48,7 +48,7 @@ select throws_ok(
   format($$ select strands.create_game(%L, %L::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete') $$,
          (select handle from club), pg_temp.strands_setup((select puzzle_id from fix))::text),
   'P0001',
-  'compete mode requires at least 2 players',
+  'too-few-players|',
   'a one-player compete game is refused — a race needs somebody to race'
 );
 
@@ -158,7 +158,7 @@ select is(
 select throws_ok(
   format($$ select strands.spend_hint(%L) $$, (select id from game)),
   'P0001',
-  'you have already solved this board',
+  'already-solved|',
   'a solved player can''t keep spending hints (their number is final)'
 );
 

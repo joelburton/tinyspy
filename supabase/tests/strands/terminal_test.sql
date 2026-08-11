@@ -143,7 +143,7 @@ select is(
 select throws_ok(
   format($$ select strands.end_game(%L) $$, (select id from game2)),
   'P0001',
-  'game is not in progress',
+  'game-not-in-play|',
   'ending twice raises — idempotency the FE swallows, as elsewhere'
 );
 

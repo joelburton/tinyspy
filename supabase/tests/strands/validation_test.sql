@@ -43,24 +43,24 @@ $$;
 
 -- ── Not even a path ──
 select throws_ok(pg_temp.submit('"zigzag"'),
-  'P0001', 'path must be a json array',
+  'P0001', 'bad-path|',
   'a JSON string is refused by name');
 
 select throws_ok(pg_temp.submit('[]'),
-  'P0001', 'path must have at least one cell',
+  'P0001', 'bad-path|',
   'an empty array is refused by name');
 
 -- ── Malformed cells: every shape gets the SAME designed error ──
 select throws_ok(pg_temp.submit('[[0,0],[2]]'),
-  'P0001', 'each path cell must be [row, col]',
+  'P0001', 'bad-path-cell|',
   'a one-element cell is refused by name (not a 23502 from the insert)');
 
 select throws_ok(pg_temp.submit('[[0,0],["a",1]]'),
-  'P0001', 'each path cell must be [row, col]',
+  'P0001', 'bad-path-cell|',
   'a non-numeric member is refused by name (not a 22P02 from the cast)');
 
 select throws_ok(pg_temp.submit('[[0,0],[0,1.5]]'),
-  'P0001', 'each path cell must be [row, col]',
+  'P0001', 'bad-path-cell|',
   'a fractional coordinate is refused by name');
 
 -- ── …but an INTEGRAL float is normalized, not refused ──
@@ -72,21 +72,21 @@ select is(
 
 -- ── Geometry ──
 select throws_ok(pg_temp.submit('[[0,5],[0,6]]'),
-  'P0001', 'path cell 1 is off the board',
+  'P0001', 'path-off-board|1|',
   'an off-board cell is refused, naming WHICH cell');
 
 select throws_ok(pg_temp.submit('[[0,0],[2,2]]'),
-  'P0001', 'path cells 0 and 1 are not adjacent',
+  'P0001', 'path-not-adjacent|0|1|',
   'a jump is refused — 8-way adjacency is the rule');
 
 select throws_ok(pg_temp.submit('[[0,0],[0,1],[0,0]]'),
-  'P0001', 'path revisits a cell',
+  'P0001', 'path-revisits|',
   'a self-crossing trace is refused');
 
 -- ── Spent tiles lock ──
 select strands.submit_path((select id from g), pg_temp.strands_row_path(0));
 select throws_ok(pg_temp.submit(pg_temp.strands_prefix_path(0, 4)::text),
-  'P0001', 'path crosses an already-found word',
+  'P0001', 'path-crosses-found|',
   'a found word''s tiles are spent — tracing through them is refused');
 
 select * from finish();

@@ -96,6 +96,17 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // classifyFailure reads the key before the SQLSTATE (serverError.ts).
   'no-required-words': { text: () => 'No words for those letters — try others, or a lower band' },
 
+  // ── strands ──
+  // The earned-hint economy, which nothing else on the roster has. All three
+  // are reachable, and in COOP the hint bar is shared — so a teammate can fill
+  // it, spend it, or ring a word between your check and your click.
+  'not-enough-hint-points': { text: () => 'Hint bar not full yet', tone: 'info' },
+  'hint-already-showing': { text: () => 'A hint is already showing', tone: 'info' },
+  // The one path check a teammate can cause: they found a word that overlaps
+  // the path you were drawing. Every other path rejection means the FE built a
+  // shape it should never have built.
+  'path-crosses-found': { text: () => 'Crosses a found word' },
+
   // ── psychicnum ──
   // The FE checks board membership before submitting but NOT whether a word was
   // already tried, so this one is reached by ordinary typing — not a race, not a
