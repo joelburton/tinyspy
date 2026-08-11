@@ -27,7 +27,7 @@ select * from waffle.create_game(
 -- Validation (as ada, a player). These raise before any mutation.
 select throws_ok(
   format($$ select waffle.submit_swap(%L::uuid, 6, 0) $$, (select id from g1)),
-  'P0001', NULL, 'cannot swap a hole cell');
+  'P0001', NULL, 'swap-on-hole|');
 select throws_ok(
   format($$ select waffle.submit_swap(%L::uuid, 0, 0) $$, (select id from g1)),
   'P0001', NULL, 'cannot swap a cell with itself');

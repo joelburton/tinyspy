@@ -54,7 +54,7 @@ select throws_ok(
          'coop', pg_temp.waffle_board()) $$,
     (select handle from club)
   ),
-  'P0001', 'setup.extra_swaps must be 0..15 (got 99)',
+  'P0001', 'bad-extra-swaps|99|',
   'extra_swaps above 15 is rejected'
 );
 
@@ -67,7 +67,7 @@ select throws_ok(
          'coop', pg_temp.waffle_board()) $$,
     (select handle from club)
   ),
-  'P0001', 'setup.difficulty must be 1..6 (got 9)',
+  'P0001', 'bad-band|9|',
   'difficulty outside 1..6 is rejected'
 );
 
@@ -79,7 +79,7 @@ select throws_ok(
          'coop', pg_temp.waffle_board() || '{"solution": "abc"}'::jsonb) $$,
     (select handle from club)
   ),
-  'P0001', 'board.solution / board.scramble must be 25-char strings',
+  'P0001', 'bad-board|',
   'a solution that is not 25 chars is rejected'
 );
 
@@ -91,7 +91,7 @@ select throws_ok(
          'coop', pg_temp.waffle_board() || '{"par_swaps": 0}'::jsonb) $$,
     (select handle from club)
   ),
-  'P0001', 'board.par_swaps must be a positive int (got 0)',
+  'P0001', 'bad-par-swaps|0|',
   'a non-positive par_swaps is rejected'
 );
 
@@ -108,7 +108,7 @@ select throws_ok(
              'scramble', 'abcdefghijklmnopqrstuvwxy')) $$,
     (select handle from club)
   ),
-  'P0001', 'board.solution holes must be at cells 7/9/17/19',
+  'P0001', 'bad-board-holes|',
   'a solution without holes at the interior cells is rejected'
 );
 
@@ -124,7 +124,7 @@ select throws_ok(
            '{"scramble": "zacdef.g.hijklmn.o.pqrstu"}'::jsonb) $$,
     (select handle from club)
   ),
-  'P0001', 'board.scramble must be a rearrangement of board.solution',
+  'P0001', 'scramble-mismatch|',
   'a scramble whose letters differ from the solution is rejected'
 );
 

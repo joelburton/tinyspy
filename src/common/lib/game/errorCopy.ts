@@ -96,6 +96,11 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // classifyFailure reads the key before the SQLSTATE (serverError.ts).
   'no-required-words': { text: () => 'No words for those letters — try others, or a lower band' },
 
+  // ── waffle ──
+  // A shared coop grid with a shared swap budget, so both are lost races: a
+  // teammate spent the last swap, or solved it, while your swap was in flight.
+  'no-swaps-left': { text: () => 'No swaps left', tone: 'info' },
+
   // ── wordle ──
   // Both are per-player states a second submit can land on: the coop board is
   // shared, so a teammate's winning guess can arrive while yours is in flight.

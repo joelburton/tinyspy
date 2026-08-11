@@ -462,8 +462,9 @@ begin
   -- ─── Validate setup.extra_swaps (the swap-budget knob) ───
   s_extra := coalesce((setup->>'extra_swaps')::int, 5);
   if s_extra < 0 or s_extra > 15 then
-    raise exception 'setup.extra_swaps must be 0..15 (got %)', s_extra
-      using errcode = 'P0001';
+    raise exception 'bad-extra-swaps|%|', s_extra
+      using errcode = 'P0001',
+      detail = 'setup.extra_swaps must be 0..15';
   end if;
 
   -- ─── Validate setup.difficulty (the vocab band) ──────────
@@ -473,8 +474,9 @@ begin
   -- DB change since boards are generated on demand per band.
   s_difficulty := coalesce((setup->>'difficulty')::int, 2);
   if s_difficulty not between 1 and 6 then
-    raise exception 'setup.difficulty must be 1..6 (got %)', s_difficulty
-      using errcode = 'P0001';
+    raise exception 'bad-band|%|', s_difficulty
+      using errcode = 'P0001',
+      detail = 'setup.difficulty must be 1..6';
   end if;
 
   perform common.require_valid_timer(setup->'timer');
@@ -485,18 +487,21 @@ begin
   b_par      := (board->>'par_swaps')::int;
   if b_solution is null or length(b_solution) <> 25
      or b_scramble is null or length(b_scramble) <> 25 then
-    raise exception 'board.solution / board.scramble must be 25-char strings'
-      using errcode = 'P0001';
+    raise exception 'bad-board|'
+      using errcode = 'P0001',
+      detail = 'solution and scramble must both be 25-char strings';
   end if;
   if b_par is null or b_par < 1 then
-    raise exception 'board.par_swaps must be a positive int (got %)', b_par
-      using errcode = 'P0001';
+    raise exception 'bad-par-swaps|%|', b_par
+      using errcode = 'P0001',
+      detail = 'board.par_swaps must be a positive int';
   end if;
   -- Holes ('.') at the four interior cells (1-based 7, 9, 17, 19).
   if substr(b_solution, 7, 1) <> '.' or substr(b_solution, 9, 1) <> '.'
      or substr(b_solution, 17, 1) <> '.' or substr(b_solution, 19, 1) <> '.' then
-    raise exception 'board.solution holes must be at cells 7/9/17/19'
-      using errcode = 'P0001';
+    raise exception 'bad-board-holes|'
+      using errcode = 'P0001',
+      detail = 'board.solution holes must sit at 7/9/17/19';
   end if;
   -- Integrity: the scramble is a rearrangement of the solution (same
   -- letters), so it's solvable by swaps alone.
@@ -505,8 +510,9 @@ begin
      is distinct from
      (select array_agg(c order by c)
         from regexp_split_to_table(b_scramble, '') c) then
-    raise exception 'board.scramble must be a rearrangement of board.solution'
-      using errcode = 'P0001';
+    raise exception 'scramble-mismatch|'
+      using errcode = 'P0001',
+      detail = 'scramble must be a permutation of solution';
   end if;
 
   budget := b_par + s_extra;
@@ -531,8 +537,9 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'setup.first_turn_user_id must be one of the players'
-        using errcode = 'P0001';
+      raise exception 'bad-first-turn|'
+        using errcode = 'P0001',
+      detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
   end if;
@@ -712,14 +719,16 @@ begin
 
   select * into g_row from waffle.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no waffle.games row for target_game';
   end if;
 
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'swaps only allowed during active play'
-      using errcode = 'P0001';
+    raise exception 'game-not-in-play|'
+      using errcode = 'P0001',
+      detail = 'swaps require an active play_state';
   end if;
 
   -- A conceded player is out of the race — no more swaps. The FE gates
@@ -727,7 +736,8 @@ begin
   -- concede commits, or a stale second tab).
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this compete race';
   end if;
 
   -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
@@ -739,11 +749,13 @@ begin
   -- ─── Validate the two positions ──────────────────────────
   if pos_a is null or pos_b is null or pos_a = pos_b
      or pos_a < 0 or pos_a > 24 or pos_b < 0 or pos_b > 24 then
-    raise exception 'swap needs two distinct cells in 0..24'
-      using errcode = 'P0001';
+    raise exception 'bad-swap-cells|'
+      using errcode = 'P0001',
+      detail = 'swap needs two distinct cells in 0..24';
   end if;
   if pos_a in (6, 8, 16, 18) or pos_b in (6, 8, 16, 18) then
-    raise exception 'cannot swap a hole cell' using errcode = 'P0001';
+    raise exception 'swap-on-hole|' using errcode = 'P0001',
+      detail = 'cells 7/9/17/19 are holes and hold no tile';
   end if;
 
   -- The caller's working board (coop rows are identical; compete is
@@ -754,10 +766,12 @@ begin
   -- A solved player is locked (matters in compete, where the game
   -- continues for others after one player solves).
   if p_solved then
-    raise exception 'you have already solved this puzzle' using errcode = 'P0001';
+    raise exception 'already-solved|' using errcode = 'P0001',
+      detail = 'this player has already solved the grid';
   end if;
   if p_swaps >= g_row.max_swaps then
-    raise exception 'no swaps remaining' using errcode = 'P0001';
+    raise exception 'no-swaps-left|' using errcode = 'P0001',
+      detail = 'the swap budget for this player/team is spent';
   end if;
 
   -- Apply the swap (overlay/substr are 1-based). Both placements use
@@ -914,7 +928,8 @@ declare
 begin
   select * into g_row from waffle.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no waffle.games row for target_game';
   end if;
 
   perform common.require_game_player(target_game);
@@ -922,7 +937,8 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   if g_row.mode = 'coop' then
@@ -1020,7 +1036,8 @@ declare
 begin
   select * into g_row from waffle.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no waffle.games row for target_game';
   end if;
 
   perform common.require_game_player(target_game);
@@ -1030,7 +1047,8 @@ begin
   if current_play_state <> 'playing' then
     -- Idempotency: a second click (or a click racing the countdown
     -- timer's submit_timeout) raises this; the FE swallows it.
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- Nobody won — the friends agreed to stop. Same {"won": false}
@@ -1112,7 +1130,8 @@ begin
   -- move re-terminalling the board that was just reset.
   select * into g_row from waffle.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no waffle.games row for target_game';
   end if;
 
   update waffle.players
