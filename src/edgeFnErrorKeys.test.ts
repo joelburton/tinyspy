@@ -35,8 +35,6 @@ const UNCONVERTED = new Set([
   'codenamesduet-suggest-clue',
   'common-define',
   'crosswords-explain-clue',
-  'crosswords-import-guardian',
-  'crosswords-import-nyt',
   'scrabble-ai-move',
   'scrabble-suggest-move',
 ])
@@ -57,6 +55,16 @@ const APPROVED_EXPRESSIONS: Array<{ file: string; snippet: string; why: string }
     file: 'wordwheel-build-board/index.ts',
     snippet: '{ error: err }',
     why: "validateCustomLetters returns an fe-error-key (board.ts — bad-custom-*), pinned by board_test.ts",
+  },
+  {
+    file: 'crosswords-import-nyt/index.ts',
+    snippet: 'error: error.message, code: error.code',
+    why: 'the create_game relay (the importers call it inline): the RPC message IS an fe-error-key, passed with its SQLSTATE',
+  },
+  {
+    file: 'crosswords-import-guardian/index.ts',
+    snippet: 'error: error.message, code: error.code',
+    why: 'the create_game relay (the importers call it inline): the RPC message IS an fe-error-key, passed with its SQLSTATE',
   },
 ]
 

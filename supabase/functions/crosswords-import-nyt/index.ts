@@ -24,7 +24,14 @@
  *
  * Calling shape (FE, via invokeStartGameEdgeFn):
  *   POST { target_club, mode, player_user_ids, setup: { timer, date } }
- *   → { id }  ·  → { error } (400/401/422/500/502)
+ *   → { id }  ·  → { error: fe-error-key, code?: SQLSTATE } (400/401/422/500/502)
+ *
+ * Errors are fe-error-keys (docs/edge-fn-error-keys-plan.md; guarded by
+ * src/edgeFnErrorKeys.test.ts). Player-reachable, with ERROR_COPY: nyt-auth|
+ * (the pasted cookie was rejected), nyt-no-puzzle|date|, nyt-fetch| (NYT down
+ * or answering garbage). The rest — bad-request, the cookie-jar config
+ * problems, create_game's no-row — are copyless faults; a create_game raise
+ * relays verbatim with its SQLSTATE.
  *
  * Secrets: NYT_COOKIE_JAR (Joel's subscription cookie — raw JSON `{name:value}`
  * OR base64-of-JSON; refreshed with crossplay's dump-nyt-cookies tool).
@@ -41,7 +48,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { PNG } from 'npm:pngjs'
 import { Buffer } from 'node:buffer'
-import { json, preflight } from '../_shared/http.ts'
+import { edgeInternal, json, preflight } from '../_shared/http.ts'
 import { callerClient } from '../_shared/startGame.ts'
 import type { Json } from '../../../src/types/db.ts'
 import { convertNytPuzzle, type NytPuzzleResponse } from '../../../src/crosswords/lib/nyt.ts'
@@ -63,23 +70,23 @@ const NYT_UA =
 /** The cookie jar secret is raw JSON `{name:value}` or base64-of-that. */
 function cookieHeaderFromEnv(): string {
   const raw = (Deno.env.get('NYT_COOKIE_JAR') ?? '').trim()
-  if (!raw) throw new NytAuthError('NYT_COOKIE_JAR secret is not set.')
+  if (!raw) throw new Error('NYT_COOKIE_JAR secret is not set.')
   let jsonStr = raw
   if (!raw.startsWith('{')) {
     try {
       jsonStr = atob(raw)
     } catch {
-      throw new NytFetchError('NYT_COOKIE_JAR is neither JSON nor base64.')
+      throw new Error('NYT_COOKIE_JAR is neither JSON nor base64.')
     }
   }
   let jar: Record<string, unknown>
   try {
     jar = JSON.parse(jsonStr)
   } catch {
-    throw new NytFetchError('NYT_COOKIE_JAR is not valid JSON.')
+    throw new Error('NYT_COOKIE_JAR is not valid JSON.')
   }
   const pairs = Object.entries(jar).filter(([, v]) => typeof v === 'string')
-  if (pairs.length === 0) throw new NytFetchError('NYT_COOKIE_JAR has no cookies.')
+  if (pairs.length === 0) throw new Error('NYT_COOKIE_JAR has no cookies.')
   return pairs.map(([k, v]) => `${k}=${v}`).join('; ')
 }
 
@@ -167,7 +174,7 @@ serve(async (req) => {
   if (pre) return pre
 
   const authHeader = req.headers.get('Authorization')
-  if (!authHeader) return json({ error: 'missing Authorization header' }, 401)
+  if (!authHeader) return json({ error: 'not-authenticated|' }, 401)
 
   let body: {
     target_club?: string
@@ -178,15 +185,15 @@ serve(async (req) => {
   try {
     body = await req.json()
   } catch {
-    return json({ error: 'invalid JSON body' }, 400)
+    return json({ error: 'bad-request|body|' }, 400)
   }
   const { target_club, mode, player_user_ids, setup } = body
   const date = setup?.date
   if (!target_club || !mode || !Array.isArray(player_user_ids)) {
-    return json({ error: 'target_club, mode, player_user_ids are required' }, 400)
+    return json({ error: 'bad-request|body|' }, 400)
   }
   if (!date || !DATE_RE.test(date)) {
-    return json({ error: 'setup.date must be YYYY-MM-DD' }, 400)
+    return json({ error: 'bad-request|date|' }, 400)
   }
 
   // 1–2. Fetch + convert. The puzzle data is NOT stored in crosswords.puzzles
@@ -215,10 +222,15 @@ serve(async (req) => {
     }
     board = { meta, solution }
   } catch (e) {
-    if (e instanceof NytAuthError) return json({ error: e.message }, 401)
-    if (e instanceof NytNoPuzzleError) return json({ error: e.message }, 422)
-    if (e instanceof NytFetchError) return json({ error: e.message }, 502)
-    return json({ error: `NYT import failed: ${(e as Error).message}` }, 400)
+    // fe-error-keys out; the specific cause stays in the serve log. nyt-auth
+    // and nyt-no-puzzle carry ERROR_COPY (player-fixable: the pasted cookie /
+    // the picked date); nyt-fetch's copy says try later; anything else — the
+    // cookie-jar config problems included — is an edge-internal fault.
+    console.log(`crosswords-import-nyt failed: ${(e as Error).message}`)
+    if (e instanceof NytAuthError) return json({ error: 'nyt-auth|' }, 401)
+    if (e instanceof NytNoPuzzleError) return json({ error: `nyt-no-puzzle|${date}|` }, 422)
+    if (e instanceof NytFetchError) return json({ error: 'nyt-fetch|' }, 502)
+    return edgeInternal(e)
   }
 
   // 3. create_game AS THE CALLER (authority on membership + setup), with the
@@ -231,8 +243,8 @@ serve(async (req) => {
     mode,
     board,
   })
-  if (error) return json({ error: error.message }, 400)
+  if (error) return json({ error: error.message, code: error.code }, 400)
   const rows = (data as Array<{ id: string }> | null) ?? []
-  if (rows.length === 0) return json({ error: 'create_game returned no row' }, 500)
+  if (rows.length === 0) return json({ error: 'edge-internal|create_game returned no row|' }, 500)
   return json({ id: rows[0].id })
 })

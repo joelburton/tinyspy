@@ -23,7 +23,13 @@
  *
  * Calling shape (FE, via invokeStartGameEdgeFn):
  *   POST { target_club, mode, player_user_ids, setup: { timer, series } }
- *   → { id }  ·  → { error } (400/401/422/502)
+ *   → { id }  ·  → { error: fe-error-key, code?: SQLSTATE } (400/401/422/502)
+ *
+ * Errors are fe-error-keys (docs/edge-fn-error-keys-plan.md; guarded by
+ * src/edgeFnErrorKeys.test.ts). Player-reachable, with ERROR_COPY:
+ * guardian-fetch| (the Guardian down or answering garbage). The rest —
+ * bad-request, guardian-convert|, create_game's no-row — are copyless
+ * faults; a create_game raise relays verbatim with its SQLSTATE.
  *
  * `series` is one of the slugs below (Quick / Cryptic / …). A Prize or Weekend
  * puzzle fetched before its reveal date has no published answers; the
@@ -31,7 +37,7 @@
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
-import { json, preflight } from '../_shared/http.ts'
+import { edgeInternal, json, preflight } from '../_shared/http.ts'
 import { callerClient } from '../_shared/startGame.ts'
 import type { Json } from '../../../src/types/db.ts'
 import { convertGuardianPuzzle, GuardianConvertError, type GuardianData } from '../../../src/crosswords/lib/guardian.ts'
@@ -119,7 +125,7 @@ serve(async (req) => {
   if (pre) return pre
 
   const authHeader = req.headers.get('Authorization')
-  if (!authHeader) return json({ error: 'missing Authorization header' }, 401)
+  if (!authHeader) return json({ error: 'not-authenticated|' }, 401)
 
   let body: {
     target_club?: string
@@ -130,15 +136,15 @@ serve(async (req) => {
   try {
     body = await req.json()
   } catch {
-    return json({ error: 'invalid JSON body' }, 400)
+    return json({ error: 'bad-request|body|' }, 400)
   }
   const { target_club, mode, player_user_ids, setup } = body
   const series = setup?.series
   if (!target_club || !mode || !Array.isArray(player_user_ids)) {
-    return json({ error: 'target_club, mode, player_user_ids are required' }, 400)
+    return json({ error: 'bad-request|body|' }, 400)
   }
   if (!series || !SERIES.has(series)) {
-    return json({ error: `setup.series must be one of: ${[...SERIES].join(', ')}` }, 400)
+    return json({ error: 'bad-request|series|' }, 400)
   }
 
   // 1–2. Fetch + convert. NOT stored in crosswords.puzzles (that's the curated
@@ -154,9 +160,13 @@ serve(async (req) => {
     const data = await fetchLatestGuardian(series)
     board = convertGuardianPuzzle(data)
   } catch (e) {
-    if (e instanceof GuardianConvertError) return json({ error: e.message }, 422)
-    if (e instanceof GuardianFetchError) return json({ error: e.message }, 502)
-    return json({ error: `Guardian import failed: ${(e as Error).message}` }, 400)
+    // fe-error-keys out; the specific cause stays in the serve log.
+    // guardian-fetch carries ERROR_COPY (the Guardian is down / unreachable —
+    // try later); a conversion failure is a pipeline fault, copyless.
+    console.log(`crosswords-import-guardian failed: ${(e as Error).message}`)
+    if (e instanceof GuardianConvertError) return json({ error: 'guardian-convert|' }, 422)
+    if (e instanceof GuardianFetchError) return json({ error: 'guardian-fetch|' }, 502)
+    return edgeInternal(e)
   }
 
   // 3. create_game AS THE CALLER (authority on membership + setup), inline board.
@@ -168,8 +178,8 @@ serve(async (req) => {
     mode,
     board,
   })
-  if (error) return json({ error: error.message }, 400)
+  if (error) return json({ error: error.message, code: error.code }, 400)
   const rows = (data as Array<{ id: string }> | null) ?? []
-  if (rows.length === 0) return json({ error: 'create_game returned no row' }, 500)
+  if (rows.length === 0) return json({ error: 'edge-internal|create_game returned no row|' }, 500)
   return json({ id: rows[0].id })
 })
