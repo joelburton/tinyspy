@@ -1,3 +1,4 @@
+import { failureText } from '../../lib/game/serverError'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { games } from '../../../games'
@@ -78,7 +79,8 @@ export function EditClubDialog({
     })
     if (rpcError) {
       setBusy(false)
-      setError(rpcError.message)
+      // Classified: the club-name rules' keys show their ERROR_COPY sentences.
+      setError(failureText(rpcError, 'club'))
       return
     }
     // Don't bother clearing `busy` — onSaved unmounts us.

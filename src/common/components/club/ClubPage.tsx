@@ -585,7 +585,7 @@ export function ClubPage({ handle, session }: Props) {
         .maybeSingle()
       if (!mounted) return
       if (clubError) {
-        setError(clubError.message)
+        setError(failureText(clubError, 'load club'))
         setLoading(false)
         return
       }
@@ -602,7 +602,7 @@ export function ClubPage({ handle, session }: Props) {
         .eq('club_handle', clubData.handle)
       if (!mounted) return
       if (membersError) {
-        setError(membersError.message)
+        setError(failureText(membersError, 'load members'))
         setLoading(false)
         return
       }

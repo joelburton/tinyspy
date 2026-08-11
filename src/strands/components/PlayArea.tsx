@@ -1,4 +1,4 @@
-import { failureMessage } from '../../common/lib/game/serverError'
+import { failureMessage, faultMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
@@ -387,7 +387,11 @@ export function PlayArea(ctx: GamePageCtx) {
         .eq('club_handle', clubHandle).eq('mode', game.mode),
     ])
     if (lookupError) {
-      showLocalFeedback(stickyPill('error', lookupError.message))
+      // New game is a FAULT SURFACE (serverError.ts → faultMessage): the
+      // archive lookup failing is an outage or a bug, never gameplay — and a
+      // dropped connection now reads `new game: Server; try refresh` instead
+      // of raw browser prose in a pill.
+      showLocalFeedback(faultMessage(lookupError, 'new game'))
       return
     }
     const played = new Set(

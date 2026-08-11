@@ -20,6 +20,17 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /**
+ * The detection pattern, shared by the offender scan and the stale-entry
+ * check. Deliberately WIDE: any identifier containing err/Err (error,
+ * lookupError, cacheErr, …) plus the bare `e` of a catch clause — strands
+ * shipped `lookupError.message` straight into a pill precisely because the
+ * old pattern only matched identifiers named exactly err/error (review
+ * finding 4). Wide + a short justified allowlist beats narrow + silent
+ * misses.
+ */
+const MESSAGE_READ = /\b(?:e|[\w$]*[eE]rr[\w$]*)\??\.message\b/
+
+/**
  * Files allowed to touch a raw `.message`, each for a reason that is not "a
  * server error on its way to a player". Keep this list SHORT and justified —
  * adding to it is the exact move this guard exists to make deliberate.
@@ -32,24 +43,12 @@ const ALLOWED = new Map<string, string>([
   // rendering it.
   ['src/common/hooks/game/useWordSubmit.ts', 'normalises a thrown rejection into a CallError'],
   ['src/common/lib/supabase/callEdgeFn.ts', 'builds the classifiable CallError off a functions-js failure'],
-  // Returns the string UP to a caller, which classifies it. The edge-function
-  // path strips the SQLSTATE, so the message is the only thing left to carry.
-  ['src/common/lib/game/manifestRpcs.ts', 'passes the message to its caller, which classifies'],
-  // A manifest's `startGameInClub` returns `{ error: string }` UP to
-  // SetupGameDialog, which classifies it. The edge-function path strips the
-  // SQLSTATE, so the message is the only thing left to carry — passing it along
-  // is the mechanism, not a bypass.
-  ['src/bananagrams/manifest.ts', 'returns the message to SetupGameDialog, which classifies'],
-  ['src/codenamesduet/manifest.ts', 'returns the message to SetupGameDialog, which classifies'],
-  ['src/connections/manifest.ts', 'returns the message to SetupGameDialog, which classifies'],
-  ['src/crosswords/manifest.ts', 'returns the message to SetupGameDialog, which classifies'],
-  ['src/psychicnum/manifest.ts', 'returns the message to SetupGameDialog, which classifies'],
-  ['src/scrabble/manifest.ts', 'returns the message to SetupGameDialog, which classifies'],
-  ['src/stackdown/manifest.ts', 'returns the message to SetupGameDialog, which classifies'],
-  ['src/strands/manifest.ts', 'returns the message to SetupGameDialog, which classifies'],
-  ['src/wordle/manifest.ts', 'returns the message to SetupGameDialog, which classifies'],
   // Not server errors at all.
   ['src/crosswords/components/SetupForm.tsx', 'a FileReader failure reading a local .ipuz'],
+  // GoTrue auth errors are the AUTH SERVICE's own user-facing text ("Token has
+  // expired or is invalid") — not our DB speaking, no fe-error-keys, and its
+  // sentences are written for end users. The form line shows them as-is.
+  ['src/common/components/auth/LoginScreen.tsx', "GoTrue's own user-facing auth errors, shown in the form line"],
   ['src/common/components/game/PlayAreaErrorBoundary.tsx', 'a React render error, not a server one'],
 ])
 
@@ -69,7 +68,7 @@ describe('no raw server message reaches a UI sink', () => {
       const src = readFileSync(file, 'utf8')
       const lines = src.split('\n')
       lines.forEach((line, i) => {
-        if (!/\berr(or)?\??\.message\b/.test(line)) return
+        if (!MESSAGE_READ.test(line)) return
         // A WINDOW, not the line: a console call is a log rather than a sink,
         // and reading the message to BUILD a CallError is the opposite of
         // rendering it — but a wrapped call puts `failureText(` several lines
@@ -91,7 +90,7 @@ describe('no raw server message reaches a UI sink', () => {
     // keeps meaning "these are the exceptions" rather than accumulating.
     const stale = [...ALLOWED.keys()].filter((f) => {
       const src = readFileSync(f, 'utf8')
-      return !/\berr(or)?\??\.message\b/.test(src)
+      return !MESSAGE_READ.test(src)
     })
     expect(stale, 'allowlisted but no longer touching .message — remove').toEqual([])
   })

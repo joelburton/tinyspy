@@ -1,3 +1,4 @@
+import { failureText } from '../../lib/game/serverError'
 import { useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
@@ -49,7 +50,9 @@ export function EditProfileDialog({ session, onSaved, onCancel }: Props) {
     })
     if (rpcError) {
       setBusy(false)
-      setError(rpcError.message)
+      // Classified: an expected key shows its ERROR_COPY sentence ("That
+      // username is taken"), not the raw fe-error-key.
+      setError(failureText(rpcError, 'profile'))
       return
     }
     setProfileColor(selected) // live-update the menu dot + any reader
