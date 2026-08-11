@@ -60,7 +60,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   $$ select submit_clue((select id from g), 'CLUE', 1) $$,
   'P0001',
-  'clues only allowed during active play',
+  'game-not-in-play|',
   'submit_clue is rejected when play_state = sudden_death'
 );
 

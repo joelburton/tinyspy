@@ -224,23 +224,27 @@ begin
   -- NULL as the empty string and we'd raise "...must be 9, 10, or
   -- 11 (got )" — readable, but confusingly empty in the parens.
   if (setup->>'turns') is null then
-    raise exception 'setup.turns is required' using errcode = 'P0001';
+    raise exception 'missing-turns|' using errcode = 'P0001',
+      detail = 'setup.turns absent';
   end if;
   s_turns := (setup->>'turns')::int;
   if s_turns not in (9, 10, 11) then
-    raise exception 'setup.turns must be 9, 10, or 11 (got %)', s_turns
-      using errcode = 'P0001';
+    raise exception 'bad-turns|%|', s_turns
+      using errcode = 'P0001',
+      detail = 'setup.turns must be 9, 10 or 11';
   end if;
 
   if (setup->>'first_clue_giver_user_id') is null then
-    raise exception 'setup.first_clue_giver_user_id is required'
-      using errcode = 'P0001';
+    raise exception 'missing-first-clue-giver|'
+      using errcode = 'P0001',
+      detail = 'setup.first_clue_giver_user_id absent';
   end if;
   begin
     s_first := (setup->>'first_clue_giver_user_id')::uuid;
   exception when invalid_text_representation then
-    raise exception 'setup.first_clue_giver_user_id must be a uuid'
-      using errcode = 'P0001';
+    raise exception 'bad-first-clue-giver|'
+      using errcode = 'P0001',
+      detail = 'setup.first_clue_giver_user_id is not a uuid';
   end;
 
   -- Timer is a per-game setup choice. Shape validation is shared
@@ -254,13 +258,15 @@ begin
   -- ─── Validate player_user_ids size + first-clue-giver ─
   -- codenamesduet is intrinsically 2-player.
   if array_length(player_user_ids, 1) <> 2 then
-    raise exception 'codenamesduet requires exactly 2 players (got %)',
+    raise exception 'bad-player-count|%|',
       coalesce(array_length(player_user_ids, 1), 0)
-      using errcode = 'P0001';
+      using errcode = 'P0001',
+      detail = 'codenamesduet is exactly 2 players';
   end if;
   if s_first <> player_user_ids[1] and s_first <> player_user_ids[2] then
-    raise exception 'setup.first_clue_giver_user_id must be one of player_user_ids'
-      using errcode = 'P0001';
+    raise exception 'bad-first-clue-giver|'
+      using errcode = 'P0001',
+      detail = 'the first clue-giver must be one of the players';
   end if;
 
   -- Assign A/B: first-clue-giver is A (since A always opens the
@@ -276,8 +282,9 @@ begin
   select array_agg(word) into picked_words
     from (select word from codenamesduet.word_pool order by random() limit 25) sub;
   if array_length(picked_words, 1) <> 25 then
-    raise exception 'word_pool must contain at least 25 words'
-      using errcode = 'P0001';
+    raise exception 'too-few-words|'
+      using errcode = 'P0001',
+      detail = 'codenamesduet.word_pool has fewer than 25 rows; run the seed';
   end if;
 
   -- ─── Build title ────────────────────────────────────
@@ -412,14 +419,16 @@ begin
   select * into g_row from codenamesduet.games
    where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no codenamesduet.games row for target_game';
   end if;
 
   select play_state into current_play_state
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    raise exception 'clues only allowed during active play' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'clues require an active play_state';
   end if;
 
   -- Auth + game-player gate. See common.require_game_player —
@@ -434,14 +443,16 @@ begin
                  end;
 
   if caller_seat <> g_row.current_clue_giver then
-    raise exception 'not your turn to give a clue' using errcode = 'P0001';
+    raise exception 'not-clue-giver|' using errcode = 'P0001',
+      detail = 'the other player holds the clue-giver seat';
   end if;
 
   if exists (
     select 1 from codenamesduet.clues
     where game_id = target_game and turn_number = g_row.turn_number
   ) then
-    raise exception 'a clue has already been submitted this turn' using errcode = 'P0001';
+    raise exception 'clue-already-given|' using errcode = 'P0001',
+      detail = 'one clue per turn';
   end if;
 
   insert into codenamesduet.clues (game_id, turn_number, by_seat, word, count)
@@ -483,20 +494,23 @@ declare
   end_state text;
 begin
   if target_position < 0 or target_position > 24 then
-    raise exception 'position must be 0..24' using errcode = 'P0001';
+    raise exception 'bad-position|' using errcode = 'P0001',
+      detail = 'a board position is 0..24';
   end if;
 
   select * into g_row from codenamesduet.games
    where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no codenamesduet.games row for target_game';
   end if;
 
   select play_state into current_play_state
     from common.games where id = target_game;
 
   if current_play_state not in ('playing', 'sudden_death') then
-    raise exception 'game is not in a guessable state' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -519,13 +533,15 @@ begin
   -- still use the partner's view (the seat opposite the caller).
   if current_play_state = 'playing' then
     if caller_seat = g_row.current_clue_giver then
-      raise exception 'you are the clue-giver this turn' using errcode = 'P0001';
+      raise exception 'you-are-clue-giver|' using errcode = 'P0001',
+      detail = 'the clue-giver may not also guess';
     end if;
     if not exists (
       select 1 from codenamesduet.clues
       where game_id = target_game and turn_number = g_row.turn_number
     ) then
-      raise exception 'waiting for clue this turn' using errcode = 'P0001';
+      raise exception 'no-clue-yet|' using errcode = 'P0001',
+      detail = 'no clue has been submitted for this turn';
     end if;
     key_owner_seat := g_row.current_clue_giver;
   else
@@ -543,7 +559,8 @@ begin
            or (caller_seat = 'A' and w.neutral_a)
            or (caller_seat = 'B' and w.neutral_b))
   ) then
-    raise exception 'cell already revealed' using errcode = 'P0001';
+    raise exception 'already-revealed|' using errcode = 'P0001',
+      detail = 'that cell has already been turned over';
   end if;
 
   -- Pick the key from the column matching the labeling seat.
@@ -714,7 +731,8 @@ begin
    where codenamesduet.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no codenamesduet.games row for target_game';
   end if;
 
   -- Auth + game-player gate. See common.require_game_player.
@@ -724,7 +742,8 @@ begin
     from common.games where id = target_game;
 
   if current_play_state not in ('playing', 'sudden_death') then
-    raise exception 'game is not active' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   update codenamesduet.games
@@ -791,7 +810,8 @@ begin
   perform common.require_game_player(target_game);
 
   if not exists (select 1 from codenamesduet.games where id = target_game) then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no codenamesduet.games row for target_game';
   end if;
 
   -- The turn budget is re-read from setup, not from the row: turns_remaining
@@ -865,7 +885,8 @@ begin
    where codenamesduet.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no codenamesduet.games row for target_game';
   end if;
 
   -- Auth + game-player gate. See common.require_game_player.
@@ -877,7 +898,8 @@ begin
   -- Both codenamesduet active states qualify — the friends can bail out
   -- mid-clue-loop or mid-sudden-death alike.
   if current_play_state not in ('playing', 'sudden_death') then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- Cooperative game: nobody "wins" a manually-stopped game. Every
@@ -932,14 +954,16 @@ begin
   select * into g_row from codenamesduet.games
    where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no codenamesduet.games row for target_game';
   end if;
 
   select play_state into current_play_state
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    raise exception 'can only pass during active play' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'passing requires an active play_state';
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -949,14 +973,16 @@ begin
                  end;
 
   if caller_seat = g_row.current_clue_giver then
-    raise exception 'clue-giver cannot pass — submit a clue first' using errcode = 'P0001';
+    raise exception 'clue-giver-cannot-pass|' using errcode = 'P0001',
+      detail = 'the clue-giver''s exit is submitting a clue';
   end if;
 
   if not exists (
     select 1 from codenamesduet.clues
     where game_id = target_game and turn_number = g_row.turn_number
   ) then
-    raise exception 'waiting for clue this turn' using errcode = 'P0001';
+    raise exception 'no-clue-yet|' using errcode = 'P0001',
+      detail = 'no clue has been submitted for this turn';
   end if;
 
   perform codenamesduet._end_turn(target_game);
@@ -1007,7 +1033,8 @@ declare
 begin
   select * into g_row from codenamesduet.games where id = target_game;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no codenamesduet.games row for target_game';
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -1024,12 +1051,14 @@ begin
     from common.games where id = target_game;
 
   if current_play_state not in ('playing', 'sudden_death') then
-    raise exception 'no suggestions outside of active play' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'the AI suggester requires an active play_state';
   end if;
 
   if caller_seat is distinct from g_row.current_clue_giver then
-    raise exception 'only the current clue-giver can request a suggestion'
-      using errcode = 'P0001';
+    raise exception 'not-clue-giver|'
+      using errcode = 'P0001',
+      detail = 'only the clue-giver may ask the AI';
   end if;
 
   -- Build the context object. Each of the three category lookups

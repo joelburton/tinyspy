@@ -44,7 +44,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select throws_ok(
   $$ select submit_clue((select id from g1), 'TOOLS', 2) $$,
   'P0001',
-  'not your turn to give a clue',
+  'not-clue-giver|',
   'submit_clue rejects when caller is not the current clue-giver'
 );
 
@@ -52,7 +52,7 @@ select throws_ok(
 select throws_ok(
   $$ select submit_guess((select id from g1), 0) $$,
   'P0001',
-  'waiting for clue this turn',
+  'no-clue-yet|',
   'submit_guess rejects in the clue phase (no clue submitted yet)'
 );
 
@@ -63,7 +63,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   $$ select submit_guess((select id from g1), 0) $$,
   'P0001',
-  'you are the clue-giver this turn',
+  'you-are-clue-giver|',
   'submit_guess rejects the clue-giver'
 );
 
@@ -80,7 +80,7 @@ select lives_ok(
 select throws_ok(
   $$ select submit_clue((select id from g1), 'OTHER', 1) $$,
   'P0001',
-  'a clue has already been submitted this turn',
+  'clue-already-given|',
   'submit_clue rejects a second clue in the same turn'
 );
 

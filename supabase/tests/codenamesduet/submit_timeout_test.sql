@@ -92,7 +92,7 @@ select throws_ok(
     (select id from g)
   ),
   'P0001',
-  'game is not active',
+  'game-not-in-play|',
   'submit_timeout: rejects on already-terminal games'
 );
 

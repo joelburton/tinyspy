@@ -103,7 +103,7 @@ select throws_ok(
     (select id from g)
   ),
   'P0001',
-  'game is not in progress',
+  'game-not-in-play|',
   'end_game: rejects on already-terminal games'
 );
 

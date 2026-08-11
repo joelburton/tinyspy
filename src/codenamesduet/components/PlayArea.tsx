@@ -1,3 +1,4 @@
+import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useRef, useState, type ReactNode, useMemo } from 'react'
 import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import type { GenericFeedbackApi, GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx } from '../../common/lib/games'
@@ -369,8 +370,8 @@ export function PlayArea({
    *  its menu twin. Common RPC, because the flag is common
    *  (`common.games.solution_revealed`); terminal-only server-side. */
   const revealPeerKey = useCallback(async () => {
-    const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
-    if (error) showLocalFeedback(ownAction('error', `Reveal failed: ${error.message}`))
+    const bad = await callRpc(commonDb, 'reveal_solution', { target_game: gameId })
+    if (bad) showLocalFeedback(bad)
   }, [gameId, showLocalFeedback])
 
   /** Restart — run this board back with the same key cards (2026-08-03).
@@ -381,15 +382,15 @@ export function PlayArea({
    *  has New game, the next item down. Confirmed mid-game like everywhere. */
   const handleRestart = useCallback(async () => {
     if (!isTerminal && !(await confirmAction(RESTART_CONFIRM))) return
-    const { error } = await db.rpc('replay_board', { target_game: gameId })
-    if (error) showLocalFeedback(ownAction('error', `Replay failed: ${error.message}`))
+    const bad = await callRpc(db, 'replay_board', { target_game: gameId })
+    if (bad) showLocalFeedback(bad)
   }, [gameId, isTerminal, confirmAction, showLocalFeedback])
 
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
     if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback(ownAction('error', `End game failed: ${error.message}`))
+    const bad = await callRpc(db, 'end_game', { target_game: gameId })
+    if (bad) showLocalFeedback(bad)
   }, [gameId, isTerminal, showLocalFeedback, confirmAction])
 
   // ─── New game ───────────────────────────────────────────
@@ -624,7 +625,7 @@ export function PlayArea({
         onExitViewing={exitViewing}
         // ── Guess dispatch (BoardCol owns submit_guess) ──
         gameId={gameId}
-        onError={(m) => showLocalFeedback(ownAction('error', m))}
+        onError={showLocalFeedback}
         clearLocalFeedback={clearLocalFeedback}
         // ── Below-board slot content ──
         over={over}

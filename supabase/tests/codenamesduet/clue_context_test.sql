@@ -49,7 +49,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select throws_ok(
   $$ select get_clue_context((select id from g)) $$,
   'P0001',
-  'only the current clue-giver can request a suggestion',
+  'not-clue-giver|',
   'get_clue_context rejects the non-clue-giver player'
 );
 
@@ -74,7 +74,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   $$ select get_clue_context((select id from done_game)) $$,
   'P0001',
-  'no suggestions outside of active play',
+  'game-not-in-play|',
   'get_clue_context rejects when game is terminal'
 );
 

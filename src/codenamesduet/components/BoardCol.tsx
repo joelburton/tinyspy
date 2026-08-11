@@ -1,3 +1,4 @@
+import { failureMessage } from '../../common/lib/game/serverError'
 import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
@@ -101,7 +102,9 @@ export function BoardCol({
   gameId: string
   /** Report an own-action error (a rejected guess / a clue-panel error) — PlayArea
    *  routes it to the shared below-board pill (the channel InfoCol's End writes too). */
-  onError: (message: string) => void
+  /** Show a failed call. Takes the whole message so a FAULT keeps its bare-red
+   *  look (lib/game/serverError.ts) — a string sink would flatten it to a pill. */
+  onError: (msg: GenericFeedbackMsg) => void
   /** Clear the below-board pill (a new guess dismisses the previous one). */
   clearLocalFeedback: () => void
 
@@ -151,7 +154,7 @@ export function BoardCol({
       guessInFlight.current = false
       if (error) {
         console.error('submit_guess failed', error)
-        onError(error.message)
+        onError(failureMessage(error, 'guess'))
       }
       // Success: the reveal arrives via Realtime → useBoard refetches → the tile
       // re-renders with its result color. No optimistic update, no flash.

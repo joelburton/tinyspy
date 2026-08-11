@@ -103,7 +103,7 @@ select throws_ok(
     (select handle from club3)
   ),
   'P0001',
-  'codenamesduet requires exactly 2 players (got 3)',
+  'bad-player-count|3|',
   'create_game: wrong-size player_user_ids is rejected with the actual count'
 );
 
@@ -127,7 +127,7 @@ select throws_ok(
     (select handle from club2)
   ),
   'P0001',
-  'setup.turns must be 9, 10, or 11 (got 7)',
+  'bad-turns|7|',
   'create_game: setup.turns outside {9,10,11} is rejected'
 );
 
@@ -144,7 +144,7 @@ select throws_ok(
     (select handle from club2)
   ),
   'P0001',
-  'setup.turns is required',
+  'missing-turns|',
   'create_game: missing setup.turns is rejected with its own message'
 );
 
@@ -159,7 +159,7 @@ select throws_ok(
     (select handle from club2)
   ),
   'P0001',
-  'setup.first_clue_giver_user_id is required',
+  'missing-first-clue-giver|',
   'create_game: missing first_clue_giver_user_id is rejected with its own message'
 );
 
@@ -177,7 +177,7 @@ select throws_ok(
     (select handle from club2)
   ),
   'P0001',
-  'setup.first_clue_giver_user_id must be a uuid',
+  'bad-first-clue-giver|',
   'create_game: malformed first_clue_giver_user_id is rejected'
 );
 
@@ -195,7 +195,7 @@ select throws_ok(
     (select handle from club2)
   ),
   'P0001',
-  'setup.first_clue_giver_user_id must be one of player_user_ids',
+  'bad-first-clue-giver|',
   'create_game: first_clue_giver_user_id not in player_user_ids is rejected'
 );
 

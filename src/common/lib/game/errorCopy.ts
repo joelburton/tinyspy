@@ -96,6 +96,17 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // classifyFailure reads the key before the SQLSTATE (serverError.ts).
   'no-required-words': { text: () => 'No words for those letters — try others, or a lower band' },
 
+  // ── codenamesduet ──
+  // Two seats taking turns, so both can race the turn flip: the clue arrives
+  // just as you tap, or the flip lands just as you do. All four are ordinary
+  // two-player timing, not broken clients.
+  'not-clue-giver': { text: () => 'Not the clue-giver', tone: 'info' },
+  'you-are-clue-giver': { text: () => "You're giving the clue", tone: 'info' },
+  'no-clue-yet': { text: () => 'Wait for the clue', tone: 'info' },
+  'clue-already-given': { text: () => 'Clue already given', tone: 'info' },
+  // Your partner turned that cell over in the same moment.
+  'already-revealed': { text: () => 'Already revealed', tone: 'info' },
+
   // ── strands ──
   // The earned-hint economy, which nothing else on the roster has. All three
   // are reachable, and in COOP the hint bar is shared — so a teammate can fill

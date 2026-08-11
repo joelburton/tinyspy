@@ -34,6 +34,8 @@ const ACTION: Record<string, string> = {
   clear_chain: 'clear',
   log_help: 'help',
   check_cells: 'check',
+  submit_clue: 'clue',
+  pass_turn: 'pass',
   reveal_cells: 'reveal',
 }
 

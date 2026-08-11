@@ -1,3 +1,5 @@
+import { failureMessage } from '../../common/lib/game/serverError'
+import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent } from 'react'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { cls } from '../../common/lib/util/cls'
@@ -30,7 +32,9 @@ type CluePanelProps = {
   /** Report an own-action error (a failed clue submit / suggestion / pass). Goes
    *  to PlayArea's local feedback pill — NOT an inline line, so the slot height
    *  (and the board above) never changes. */
-  onError: (message: string) => void
+  /** Show a failed call. Takes the whole message so a FAULT keeps its bare-red
+   *  look (lib/game/serverError.ts) — a string sink would flatten it to a pill. */
+  onError: (msg: GenericFeedbackMsg) => void
   /** Open / update / close the AI clue-suggestion dialog. PlayArea owns the
    *  state and renders the <ClueSuggestionModal> HIGH in the tree: the board
    *  column is a flex column, and <FloatingPanel> (react-rnd) positions from its
@@ -186,7 +190,9 @@ function ClueForm({
   onSuggestionChange,
 }: {
   gameId: string
-  onError: (message: string) => void
+  /** Show a failed call. Takes the whole message so a FAULT keeps its bare-red
+   *  look (lib/game/serverError.ts) — a string sink would flatten it to a pill. */
+  onError: (msg: GenericFeedbackMsg) => void
   onSuggestionChange: (state: SuggestState | null) => void
 }) {
   // Count is a string (not a number) so the input can start empty — defaulting
@@ -230,7 +236,7 @@ function ClueForm({
     })
     setBusy(false)
     if (error) {
-      onError(error.message)
+      onError(failureMessage(error, 'clue'))
       return
     }
     // Clear on success; the panel swaps to the guess-phase view once Realtime
@@ -391,7 +397,9 @@ function PassButton({
   onError,
 }: {
   gameId: string
-  onError: (message: string) => void
+  /** Show a failed call. Takes the whole message so a FAULT keeps its bare-red
+   *  look (lib/game/serverError.ts) — a string sink would flatten it to a pill. */
+  onError: (msg: GenericFeedbackMsg) => void
 }) {
   const [busy, setBusy] = useState(false)
   // Icon-only on a phone (the below-board row is tight); label → aria-label/title.
@@ -405,7 +413,7 @@ function PassButton({
         setBusy(true)
         const { error } = await db.rpc('pass_turn', { target_game: gameId })
         setBusy(false)
-        if (error) onError(error.message)
+        if (error) onError(failureMessage(error, 'pass'))
       }}
     />
   )
