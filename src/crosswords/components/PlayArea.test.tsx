@@ -223,7 +223,10 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     // Check + Reveal are now ONE row each — six flat rows collapsed into two
     // submenus (this menu already runs long enough to scroll).
     expect(items.map((i) => i.id)).toEqual([
-      'help',
+      // help + chat are `buildGameMenu`'s framing pair, above every game's own
+      // sections: chat has a header bubble and a `/` shortcut, and this row is
+      // the labelled twin that writes that shortcut down (gameMenu.ts).
+      'help', 'chat',
       'pencil', 'enter-rebus', 'collapse-rebuses',
       'note', 'explain', 'scratchpad', 'print', 'download-ipuz', 'print-solution',
       'check', 'reveal',
