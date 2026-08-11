@@ -121,3 +121,28 @@ describe('TooltipHost', () => {
     })
   })
 })
+
+/**
+ * The half of the long-press contract that lives in CSS, guarded by reading the
+ * stylesheet — jsdom applies no global sheet, and no desktop browser (headless
+ * or not) reproduces the behavior this prevents.
+ *
+ * iOS Safari answers a long press with its OWN callout — Copy / Look Up /
+ * Share — which opened right over our bubble. It is NOT the `contextmenu` event
+ * the host suppresses for Android (Safari doesn't fire that on a long press),
+ * so the only lever is declarative. Delete this rule and every icon-only button
+ * on an iPhone goes back to being unlearnable: the label appears under a system
+ * menu covering it.
+ */
+describe('the iOS long-press callout is suppressed in CSS', () => {
+  it('theme.css turns the callout off on every [data-tooltip] target', async () => {
+    const { readFileSync } = await import('node:fs')
+    const css = readFileSync('src/common/theme.css', 'utf8')
+    const rule = css.match(/\[data-tooltip\]\s*\{[^}]*\}/)?.[0] ?? ''
+    expect(rule, 'no [data-tooltip] rule in theme.css').not.toBe('')
+    expect(rule).toContain('-webkit-touch-callout: none')
+    // The callout is the text-selection UI wearing another hat, so the pair
+    // travels together.
+    expect(rule).toContain('user-select: none')
+  })
+})

@@ -566,9 +566,24 @@ a {
 /* Styled tooltips: any element with a `data-tooltip` attribute gets the fast
    dark bubble — rendered by the single <TooltipHost> (mounted in App.tsx, like
    ToastHost), which measures and CLAMPS the bubble to the viewport (above the
-   anchor, flipped below near the top edge). No CSS here on purpose: an earlier
-   pure-CSS ::after version overflowed at viewport edges and clipped under
-   overflow-hidden ancestors. See common/components/tooltips/TooltipHost.tsx. */
+   anchor, flipped below near the top edge). None of the bubble's LOOK is here
+   on purpose: an earlier pure-CSS ::after version overflowed at viewport edges
+   and clipped under overflow-hidden ancestors. See
+   common/components/tooltips/TooltipHost.tsx.
+
+   What IS here is the one thing only CSS can say: on a tooltip target, the long
+   press belongs to US. TooltipHost claims it to reveal the button's name, and
+   iOS Safari would otherwise open its own callout (Copy / Look Up / Share) over
+   the bubble. That callout is NOT the `contextmenu` event TooltipHost already
+   suppresses — Safari doesn't fire that for a long press — so it can only be
+   turned off declaratively. `user-select` goes with it because the callout is
+   the text-selection UI wearing a different hat; nothing here is text worth
+   selecting (every `data-tooltip` carrier is a <button>). */
+[data-tooltip] {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
 
 .muted {
   color: var(--color-muted);

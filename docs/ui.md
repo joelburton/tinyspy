@@ -828,7 +828,18 @@ browser, where removing the suppression opens the confirm dialog. The bubble is
 dismissed by the next touch (there's no pointer-leave to end it — a stuck bubble
 is the failure the old blanket gate avoided), a drag cancels it as a scroll, and
 `contextmenu` is suppressed on tooltip targets so Android's own menu doesn't
-open over it. Pinned by
+open over it.
+
+**The two platforms need two different suppressions**, which is worth knowing
+before someone consolidates them. Android's long-press menu arrives as a
+`contextmenu` event, so `TooltipHost` calls `preventDefault()` on it. iOS
+Safari's callout (Copy / Look Up / Share) does **not** — Safari fires no
+`contextmenu` for a long press — so the JS half can't touch it; it takes
+`-webkit-touch-callout: none` (plus `user-select: none`, since the callout is
+the text-selection UI in another hat) on `[data-tooltip]` in `theme.css`.
+Without it the bubble still opens on an iPhone, with the system menu sitting on
+top of it. No desktop browser reproduces this, headless or not, so the CSS rule
+is guarded by reading the stylesheet. Pinned by
 [`TooltipHost.test.tsx`](../src/common/components/tooltips/TooltipHost.test.tsx)
 and [`tooltip-longpress.e2e.ts`](../e2e/tooltip-longpress.e2e.ts).
 
