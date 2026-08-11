@@ -94,7 +94,7 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // real answer to a real request — not a re-check of something the FE already
   // refused. It arrives through the build-board EDGE FUNCTION, which is why
   // classifyFailure reads the key before the SQLSTATE (serverError.ts).
-  'no-required-words': { text: () => 'No words for those letters — try others, or a lower band' },
+  'no-required-words': { text: () => 'No words for those letters' },
 
   // ── scrabble ──
   // The board and the bag are SHARED even in compete, so a rival's play lands
