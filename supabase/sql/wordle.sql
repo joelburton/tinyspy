@@ -216,8 +216,9 @@ begin
   -- ─── Validate setup.max_guesses ──────────────────────────
   s_max_guesses := coalesce((setup->>'max_guesses')::int, 6);
   if s_max_guesses < 5 or s_max_guesses > 8 then
-    raise exception 'setup.max_guesses must be 5..8 (got %)', s_max_guesses
-      using errcode = 'P0001';
+    raise exception 'bad-max-guesses|%|', s_max_guesses
+      using errcode = 'P0001',
+      detail = 'setup.max_guesses must be 5..8';
   end if;
 
   -- ─── Validate the word bands ─────────────────────────────
@@ -227,18 +228,21 @@ begin
   -- (it tops out at band 2), else answer_source.
   s_answer_source := coalesce((setup->>'answer_source')::int, 0);
   if s_answer_source < 0 or s_answer_source > 6 then
-    raise exception 'setup.answer_source must be 0..6 (got %)', s_answer_source
-      using errcode = 'P0001';
+    raise exception 'bad-answer-source|%|', s_answer_source
+      using errcode = 'P0001',
+      detail = 'setup.answer_source must be 0..6';
   end if;
   s_legal_guess := coalesce((setup->>'legal_guess')::int, 4);
   if s_legal_guess < 1 or s_legal_guess > 6 then
-    raise exception 'setup.legal_guess must be 1..6 (got %)', s_legal_guess
-      using errcode = 'P0001';
+    raise exception 'bad-legal-band|%|', s_legal_guess
+      using errcode = 'P0001',
+      detail = 'setup.legal_guess must be 1..6';
   end if;
   s_answer_max := case when s_answer_source = 0 then 2 else s_answer_source end;
   if s_legal_guess < s_answer_max then
-    raise exception 'setup.legal_guess (%) must reach the answer band (%)',
-      s_legal_guess, s_answer_max using errcode = 'P0001';
+    raise exception 'bad-legal-band|%|%|',
+      s_legal_guess, s_answer_max using errcode = 'P0001',
+      detail = 'legal_guess must be >= the answer band';
   end if;
 
   perform common.require_valid_timer(setup->'timer');
@@ -272,8 +276,9 @@ begin
      order by random() limit 1;
   end if;
   if v_target is null then
-    raise exception 'no answer words for that band — run gmake all-words'
-      using errcode = 'P0002';
+    raise exception 'no-answer-words|'
+      using errcode = 'P0002',
+      detail = 'common.words has no answer candidates at that band; run gmake all-words';
   end if;
 
   new_id := common.create_game(
@@ -296,8 +301,9 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'setup.first_turn_user_id must be one of the players'
-        using errcode = 'P0001';
+      raise exception 'bad-first-turn|'
+        using errcode = 'P0001',
+      detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
   end if;
@@ -474,13 +480,15 @@ begin
 
   select * into g_row from wordle.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no wordle.games row for target_game';
   end if;
 
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
@@ -501,10 +509,12 @@ begin
     from wordle.players
    where game_id = target_game and user_id = caller_id;
   if p_solved then
-    raise exception 'you have already solved this puzzle' using errcode = 'P0001';
+    raise exception 'already-solved|' using errcode = 'P0001',
+      detail = 'this player has already found the answer';
   end if;
   if p_used >= g_row.max_guesses then
-    raise exception 'no guesses remaining' using errcode = 'P0001';
+    raise exception 'no-guesses-left|' using errcode = 'P0001',
+      detail = 'the guess budget for this player/team is spent';
   end if;
 
   -- ─── Soft reject: duplicate (no burn) ────────────────────
@@ -692,7 +702,8 @@ declare
 begin
   select * into g_row from wordle.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no wordle.games row for target_game';
   end if;
 
   perform common.require_game_player(target_game);
@@ -700,7 +711,8 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   if g_row.mode = 'coop' then
@@ -776,7 +788,8 @@ declare
   player_results     jsonb;
 begin
   if not exists (select 1 from wordle.games where id = target_game) then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no wordle.games row for target_game';
   end if;
 
   perform common.require_game_player(target_game);
@@ -784,7 +797,8 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
@@ -856,7 +870,8 @@ begin
   -- move re-terminalling the board that was just reset.
   select * into g_row from wordle.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no wordle.games row for target_game';
   end if;
 
   update wordle.players

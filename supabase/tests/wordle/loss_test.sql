@@ -7,11 +7,11 @@
 --
 --   Coop: the 5th wrong guess (max_guesses=5) flips the shared board to
 --   `lost` with everyone {won:false}, reveals the target, and a further
---   guess is rejected ('game is not in progress').
+--   guess is rejected ('game-not-in-play|').
 --
 --   Compete: a player who exhausts their OWN budget while an opponent is
 --   still playing does NOT end the game, and a further guess from that
---   player raises 'no guesses remaining' (the line 429 guard, which is
+--   player raises 'no-guesses-left|' (the line 429 guard, which is
 --   only reachable in compete — in coop, exhaustion makes the game
 --   terminal first).
 --
@@ -100,7 +100,7 @@ select throws_ok(
     $$ select wordle.submit_guess(%L, %L) $$,
     (select id from g_coop), (select word from valw where rn = 1)
   ),
-  'P0001', 'game is not in progress',
+  'P0001', 'game-not-in-play|',
   'coop: guessing after a lost game is rejected'
 );
 
@@ -116,13 +116,13 @@ select is((select (res->>'terminal')::boolean from p5), false,
   'compete: one player exhausting her budget does NOT end the game (bea still playing)');
 
 -- ada is now out of guesses while the game is still 'playing' → the
--- 'no guesses remaining' guard fires (unreachable in coop).
+-- 'no-guesses-left|' guard fires (unreachable in coop).
 select throws_ok(
   format(
     $$ select wordle.submit_guess(%L, %L) $$,
     (select id from g_comp), (select word from valw where rn = 1)
   ),
-  'P0001', 'no guesses remaining',
+  'P0001', 'no-guesses-left|',
   'compete: a guess past a player''s own exhausted budget is rejected'
 );
 

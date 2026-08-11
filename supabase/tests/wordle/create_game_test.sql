@@ -94,13 +94,13 @@ select ok(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select wordle.create_game(%L, '{"max_guesses":6,"answer_source":7,"legal_guess":6,"timer":{"kind":"none"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$, (select handle from club)),
-  'P0001', 'setup.answer_source must be 0..6 (got 7)', 'answer_source above 6 is rejected');
+  'P0001', 'bad-answer-source|7|', 'answer_source above 6 is rejected');
 select throws_ok(
   format($$ select wordle.create_game(%L, '{"max_guesses":6,"answer_source":1,"legal_guess":7,"timer":{"kind":"none"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$, (select handle from club)),
-  'P0001', 'setup.legal_guess must be 1..6 (got 7)', 'legal_guess above 6 is rejected');
+  'P0001', 'bad-legal-band|7|', 'legal_guess above 6 is rejected');
 select throws_ok(
   format($$ select wordle.create_game(%L, '{"max_guesses":6,"answer_source":5,"legal_guess":4,"timer":{"kind":"none"}}'::jsonb, array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop') $$, (select handle from club)),
-  'P0001', 'setup.legal_guess (4) must reach the answer band (5)',
+  'P0001', 'bad-legal-band|4|5|',
   'a legal_guess below the answer band is rejected');
 
 select * from finish();

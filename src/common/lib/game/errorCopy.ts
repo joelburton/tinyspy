@@ -96,6 +96,11 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // classifyFailure reads the key before the SQLSTATE (serverError.ts).
   'no-required-words': { text: () => 'No words for those letters — try others, or a lower band' },
 
+  // ── wordle ──
+  // Both are per-player states a second submit can land on: the coop board is
+  // shared, so a teammate's winning guess can arrive while yours is in flight.
+  'already-solved': { text: () => 'Already solved', tone: 'info' },
+
   // ── wordiply ──
   // The guess budget is REAL and, in coop, SHARED — so a teammate can spend the
   // last of five between your check and your submit. That's a lost race, same

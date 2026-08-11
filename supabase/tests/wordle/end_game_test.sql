@@ -32,7 +32,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select wordle.submit_timeout(%L::uuid) $$, (select id from g1)),
-  'P0001', 'game is not in progress',
+  'P0001', 'game-not-in-play|',
   'submit_timeout is idempotent (second call raises P0001)');
 
 -- ── Manual end (end_game) → neutral 'ended' ─────────────────
