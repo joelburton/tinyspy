@@ -86,7 +86,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select wordiply.end_game(%L::uuid) $$, (select id from end_g)),
   'P0001',
-  'game is not in progress',
+  'game-not-in-play|',
   'coop end_game: a second call raises P0001'
 );
 

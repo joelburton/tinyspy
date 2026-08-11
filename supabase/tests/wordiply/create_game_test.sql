@@ -213,7 +213,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.target_rank is not a wordiply setting',
+  'no-target-rank|',
   'rejects setup.target_rank (wordiply is not a race-to-rank)'
 );
 
@@ -226,7 +226,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'compete mode requires at least 2 players',
+  'too-few-players|',
   'compete with 1 player rejected'
 );
 
@@ -304,7 +304,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'board.longest_words must be a non-empty array',
+  'bad-longest-words|',
   'rejects empty board.longest_words'
 );
 
@@ -318,7 +318,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'board.legal_words must be a non-empty array',
+  'bad-legal-words|',
   'rejects empty board.legal_words'
 );
 

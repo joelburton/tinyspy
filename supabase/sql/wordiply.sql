@@ -298,23 +298,26 @@ begin
   perform common.require_valid_mode(mode);
   if mode = 'compete' then
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'compete mode requires at least 2 players'
-        using errcode = 'P0001';
+      raise exception 'too-few-players|'
+        using errcode = 'P0001',
+      detail = 'compete needs >= 2 players';
     end if;
   end if;
   perform common.require_player_count_max(player_user_ids, 6);
 
   -- ─── Reject deprecated / inapplicable setup fields ───────
   if setup ? 'target_rank' then
-    raise exception 'setup.target_rank is not a wordiply setting'
-      using errcode = 'P0001';
+    raise exception 'no-target-rank|'
+      using errcode = 'P0001',
+      detail = 'wordiply has no target_rank; the setup carried one';
   end if;
 
   -- ─── Validate the dictionary band ────────────────────────
   s_difficulty := coalesce((setup->>'difficulty')::int, 5);
   if s_difficulty < 1 or s_difficulty > 6 then
-    raise exception 'setup.difficulty must be 1..6 (got %)', s_difficulty
-      using errcode = 'P0001';
+    raise exception 'bad-band|%|', s_difficulty
+      using errcode = 'P0001',
+      detail = 'setup.difficulty must be 1..6';
   end if;
 
   perform common.require_valid_timer(setup->'timer');
@@ -322,8 +325,9 @@ begin
   -- ─── Board structure validation ──────────────────────────
   b_base := board->>'base';
   if b_base is null or b_base !~ '^[a-z]{2,4}$' then
-    raise exception 'board.base must be 2–4 lowercase ASCII letters (got %)',
-      coalesce(b_base, 'null') using errcode = 'P0001';
+    raise exception 'bad-base|%|',
+      coalesce(b_base, 'null') using errcode = 'P0001',
+      detail = 'board.base must be 2-4 lowercase ASCII letters';
   end if;
   b_base_len := char_length(b_base);
 
@@ -332,19 +336,22 @@ begin
   -- or there's nothing to reach for. (The edge fn targets +3; this is the
   -- looser server floor a misbehaving builder can't sneak past.)
   if b_max_word_length is null or b_max_word_length < b_base_len + 2 then
-    raise exception 'board.max_word_length must be ≥ base length + 2 (got %)',
-      coalesce(b_max_word_length::text, 'null') using errcode = 'P0001';
+    raise exception 'bad-max-word-length|%|',
+      coalesce(b_max_word_length::text, 'null') using errcode = 'P0001',
+      detail = 'max_word_length must be >= base length + 2';
   end if;
 
   if jsonb_typeof(board->'longest_words') <> 'array'
      or jsonb_array_length(board->'longest_words') < 1 then
-    raise exception 'board.longest_words must be a non-empty array'
-      using errcode = 'P0001';
+    raise exception 'bad-longest-words|'
+      using errcode = 'P0001',
+      detail = 'board.longest_words must be a non-empty jsonb array';
   end if;
   if jsonb_typeof(board->'legal_words') <> 'array'
      or jsonb_array_length(board->'legal_words') < 1 then
-    raise exception 'board.legal_words must be a non-empty array'
-      using errcode = 'P0001';
+    raise exception 'bad-legal-words|'
+      using errcode = 'P0001',
+      detail = 'board.legal_words must be a non-empty jsonb array';
   end if;
 
   -- ─── Title ───────────────────────────────────────────────
@@ -370,8 +377,9 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'setup.first_turn_user_id must be one of the players'
-        using errcode = 'P0001';
+      raise exception 'bad-first-turn|'
+        using errcode = 'P0001',
+      detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
   end if;
@@ -678,7 +686,8 @@ begin
    where wordiply.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no wordiply.games row for target_game';
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -686,12 +695,14 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this compete race';
   end if;
 
   -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
@@ -715,7 +726,8 @@ begin
       from wordiply.guesses where game_id = target_game and user_id = caller_id and valid;
   end if;
   if track_count >= 5 then
-    raise exception 'no guesses remaining' using errcode = 'P0001';
+    raise exception 'no-guesses-left|' using errcode = 'P0001',
+      detail = 'the guess budget for this player/team is spent';
   end if;
 
   -- ─── Mode-aware dedup, FIRST (alias fw — `word` is also the param name) ──
@@ -869,7 +881,8 @@ begin
    where wordiply.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no wordiply.games row for target_game';
   end if;
 
   perform common.require_game_player(target_game);
@@ -877,7 +890,8 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   if g_row.mode = 'coop' then
@@ -916,7 +930,8 @@ begin
    where wordiply.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no wordiply.games row for target_game';
   end if;
 
   perform common.require_game_player(target_game);
@@ -924,7 +939,8 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   if g_row.mode = 'coop' then
@@ -966,7 +982,8 @@ begin
   -- guesses_used claiming 0). The lock serializes them.
   select * into g_row from wordiply.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no wordiply.games row for target_game';
   end if;
 
   delete from wordiply.guesses where game_id = target_game;

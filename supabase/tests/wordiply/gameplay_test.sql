@@ -21,7 +21,7 @@
 --      too_short ('ar'), missing_base ('zzzz').
 --   3. Dedup: coop dedups across the team; compete per-user (two players
 --      CAN submit the same word in compete).
---   4. Budget: the 6th guess raises 'no guesses remaining'.
+--   4. Budget: the 6th guess raises 'no-guesses-left|'.
 --   5. A conceded player cannot submit.
 --   6. Coop 5th shared guess auto-terminates (ended/complete; scores in status).
 --   7. RLS: compete opponent's guesses hidden mid-game, visible at terminal;
@@ -162,7 +162,7 @@ select is(
 );
 
 -- ============================================================
--- (4) Budget: the team's 6th guess raises 'no guesses remaining'
+-- (4) Budget: the team's 6th guess raises 'no-guesses-left|'
 -- ============================================================
 -- One guess exists (ada's). Add three more (guesses 2..4), then bea's fifth
 -- auto-terminates the game — so instead we prove the budget ceiling by
@@ -181,7 +181,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select wordiply.submit_guess(%L::uuid, 'arfff') $$, (select id from g)),
   'P0001',
-  'no guesses remaining',
+  'no-guesses-left|',
   'coop: the 6th shared guess raises "no guesses remaining"'
 );
 
@@ -206,7 +206,7 @@ select wordiply.concede((select id from cg));
 select throws_ok(
   format($$ select wordiply.submit_guess(%L::uuid, 'arxx') $$, (select id from cg)),
   'P0001',
-  'you have conceded',
+  'you-conceded|',
   'a conceded player cannot submit a guess'
 );
 

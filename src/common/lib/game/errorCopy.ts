@@ -96,6 +96,12 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // classifyFailure reads the key before the SQLSTATE (serverError.ts).
   'no-required-words': { text: () => 'No words for those letters — try others, or a lower band' },
 
+  // ── wordiply ──
+  // The guess budget is REAL and, in coop, SHARED — so a teammate can spend the
+  // last of five between your check and your submit. That's a lost race, same
+  // family as letterboxed's below.
+  'no-guesses-left': { text: () => 'No guesses left', tone: 'info' },
+
   // ── letterboxed ──
   // Its coop chain is SHARED and free-for-all, so a teammate's word can land
   // between your local check and your submit. These four are that race — you
