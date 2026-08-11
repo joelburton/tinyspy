@@ -436,4 +436,43 @@ test.describe('letterboxed', () => {
 
     await ctx.close()
   })
+
+  /**
+   * Tapping the feedback message dismisses it (docs/ui.md → Feedback pill).
+   *
+   * Found on an iPhone: rejecting a word leaves "Not a word" in the entry's
+   * slot, and the only way to clear it was to start typing the next one — which
+   * on touch means tapping a letter, since there is no keyboard. The message
+   * itself was the most conspicuous thing on screen and the one thing that
+   * ignored you. The app's rule was already "your next action clears it"; a tap
+   * on the message is an action.
+   *
+   * Phone-sized on purpose: this is the surface where the gesture is the only
+   * convenient one.
+   */
+  test('tapping the feedback pill dismisses it', async ({ browser }) => {
+    const club = await createSoloClub('lbtap')
+    const game = await createLetterboxedGame(club)
+    const ctx = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+      isMobile: true,
+    })
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await boardReady(page, page.locator('svg text').first(), 15000)
+
+    // Reject a word: three board letters that don't spell anything.
+    await page.keyboard.type('adl')
+    await page.keyboard.press('Enter')
+    const pill = page.getByText(/not a word/i).first()
+    await expect(pill).toBeVisible({ timeout: 10000 })
+
+    // Tap the message itself — the gesture that used to do nothing.
+    await pill.tap()
+    await expect(pill, 'the pill clears on a tap').toBeHidden({ timeout: 5000 })
+
+    await ctx.close()
+  })
 })

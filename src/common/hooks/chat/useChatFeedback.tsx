@@ -60,7 +60,6 @@ export function useChatFeedback({
       const text = body.length > MAX_PILL_CHARS ? `${body.slice(0, MAX_PILL_CHARS)}…` : body
       return {
         tone: 'neutral',
-        variant: 'outline',
         // The leading identity disc in the caller's spec's "()"; omitted (no
         // disc) for an unresolvable sender rather than a misleading default color.
         dot: member?.color,
@@ -71,7 +70,7 @@ export function useChatFeedback({
         ),
         // Timed: auto-clears after 2s (or sooner if another global feedback —
         // a peer game event, the next chat message — replaces it).
-        dismiss: { kind: 'timed', ms: 2000 },
+        mode: { kind: 'timed', ms: 2000 },
       }
     },
     globalFeedback,

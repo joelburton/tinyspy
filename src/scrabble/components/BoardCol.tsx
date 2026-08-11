@@ -833,6 +833,7 @@ export function BoardCol({
                 canSubmit={canSubmit}
                 canShare={canShare}
                 onShare={shareCurrentMove}
+                onDismissPill={clearLocalFeedback}
                 pill={localPill}
                 onSubmit={() => void submit()}
                 onRecall={recallAll}

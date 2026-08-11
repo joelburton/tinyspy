@@ -123,3 +123,12 @@
 .outline {
   background: var(--color-surface);
 }
+
+/* Tap/click anywhere on the pill to dismiss it — the `sticky` and `timed`
+ * modes only (see GenericFeedbackPill.tsx). The cursor is the
+ * only affordance: on touch the gesture teaches itself by working, and on
+ * desktop a pointer says "this responds" without adding chrome to a message
+ * that's meant to be read and forgotten. */
+.tappable {
+  cursor: pointer;
+}

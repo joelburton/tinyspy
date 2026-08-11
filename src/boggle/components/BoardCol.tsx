@@ -69,6 +69,7 @@ export function BoardCol({
   // ── Below-board pill (channel owned by PlayArea) ──
   over,
   localPill,
+  onDismissPill,
 }: {
   // ── Mobile-only status block ──
   /** The figures behind the 4-cell `<Stats>` grid — the SAME component the info
@@ -101,6 +102,9 @@ export function BoardCol({
   over: (TerminalCopy & { verdictNode?: ReactNode }) | null
   /** The own-move pill to show while the entry is empty (a word result), or null. */
   localPill: GenericFeedbackMsg | null
+  /** Clear the local pill — tapping a transient one dismisses it, the same
+   *  way the next keystroke does (docs/ui.md → Feedback pill). */
+  onDismissPill: () => void
 }) {
   // Number of 90° clockwise turns applied to the displayed grid (local view only).
   const [turns, setTurns] = useState(0)
@@ -250,6 +254,7 @@ export function BoardCol({
             onAnyKey={onAnyKey}
             charFor={asciiLetters('upper')}
             recall={lastWord}
+            onDismissPill={onDismissPill}
             pill={
               over
                 ? terminalPill(over.tone, over.verdictNode ?? over.verdict)

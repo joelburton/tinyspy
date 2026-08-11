@@ -109,7 +109,7 @@ export function PlayArea({
   // modal: backdrop-blocked board, dialog-owned keyboard).
   const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
   const showLocalFeedback = useCallback(
-    (m: LocalFeedbackMsg) => showMsg({ ...m, variant: 'outline', dismiss: { kind: 'sticky' } }),
+    (m: LocalFeedbackMsg) => showMsg({ ...m, mode: { kind: 'sticky' } }),
     [showMsg],
   )
 
@@ -271,10 +271,9 @@ export function PlayArea({
       : aiMemberOfSeat(latest.seat)
     globalFeedback.show({
       tone: latest.kind === 'word' ? 'success' : 'neutral',
-      variant: 'outline',
       dot: colorVarFor(actor?.color),
       text: peerMoveText(actor?.username ?? 'Someone', latest),
-      dismiss: { kind: 'timed' },
+      mode: { kind: 'timed' },
     })
   }, [plays, game, isCompete, session.user.id, players, aiMemberOfSeat, globalFeedback])
 

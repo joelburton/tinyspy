@@ -213,6 +213,7 @@ export function BoardCol({
             // missing the centre / isn't in the list stays submittable — that
             // reject carries a genuinely useful reason.
             submitDisabled={!wordFitsWheel(word, letterCounts)}
+            onDismissPill={clearLocalFeedback}
             pill={
               isTerminal && over
                 ? terminalPill(over.tone, over.verdictNode ?? over.verdict)

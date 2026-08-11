@@ -76,7 +76,7 @@ describe('useChatFeedback', () => {
     const msg = globalFeedback.show.mock.calls[0][0] as GenericFeedbackMsg
     expect(readPill(msg)).toEqual({ handle: 'bea', body: 'hello there' })
     expect(msg.dot).toBeTruthy() // a resolved member → an identity disc
-    expect(msg.dismiss).toEqual({ kind: 'timed', ms: 2000 })
+    expect(msg.mode).toEqual({ kind: 'timed', ms: 2000 })
     expect(msg.tone).toBe('neutral')
   })
 

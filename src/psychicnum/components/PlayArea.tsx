@@ -251,19 +251,17 @@ export function PlayArea({
       if (g.kind === 'hint' || g.kind === 'reveal') {
         return {
           tone: 'warning',
-          variant: 'outline',
           text: (
             <>
               <ActorDot actor={member} fallback="Someone" />{' '}
               {g.kind === 'hint' ? 'got hint' : 'revealed word'}
             </>
           ),
-          dismiss: { kind: 'timed' },
+          mode: { kind: 'timed' },
         }
       }
       return {
         tone: g.is_correct ? 'success' : 'error',
-        variant: 'outline',
         // "Correct: WORD" / "Wrong: WORD" — the label carries the outcome (with
         // the tone), leaving the header pill's ~26 phone characters for the word
         // itself rather than a sentence around it.
@@ -274,7 +272,7 @@ export function PlayArea({
             {g.word.toUpperCase()}
           </>
         ),
-        dismiss: { kind: 'timed' },
+        mode: { kind: 'timed' },
       }
     },
     globalFeedback,
@@ -298,13 +296,12 @@ export function PlayArea({
       const member = memberById(players, p.user_id)
       globalFeedback.show({
         tone: 'success',
-        variant: 'outline',
         text: (
           <>
             <ActorDot actor={member} fallback="Someone" /> guessed a word
           </>
         ),
-        dismiss: { kind: 'timed' },
+        mode: { kind: 'timed' },
       })
     }
   }, [playerBudgets, mode, players, session.user.id, globalFeedback])

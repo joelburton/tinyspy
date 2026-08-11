@@ -177,8 +177,7 @@ export function PlayArea(ctx: GamePageCtx) {
       showLocalFeedback({
         tone: 'success',
         text: `${word.toUpperCase()} — ${wordsLeft} ${wordsLeft === 1 ? 'word' : 'words'} left`,
-        variant: 'outline',
-        dismiss: { kind: 'timed' },
+        mode: { kind: 'timed' },
       })
     } else {
       clearLocalFeedback()
@@ -385,14 +384,13 @@ export function PlayArea(ctx: GamePageCtx) {
         if (e.word) showLocalFeedback(stickyPill('info', helpPillText(e.kind, e.word)))
         return {
           tone: 'info',
-          variant: 'outline',
           text: (
             <>
               <ActorDot actor={member} fallback="A teammate" />{' '}
               {e.kind === 'hint' ? 'got a hint' : 'revealed a word'}
             </>
           ),
-          dismiss: { kind: 'timed' },
+          mode: { kind: 'timed' },
         }
       }
       const what =
@@ -405,13 +403,12 @@ export function PlayArea(ctx: GamePageCtx) {
             : 'cleared the chain'
       return {
         tone: e.kind === 'played' ? 'success' : 'info',
-        variant: 'outline',
         text: (
           <>
             <ActorDot actor={member} fallback="A teammate" /> {what}
           </>
         ),
-        dismiss: { kind: 'timed' },
+        mode: { kind: 'timed' },
       }
     },
     globalFeedback,

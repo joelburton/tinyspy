@@ -12,10 +12,6 @@ import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 
-/** The below-board pill is never closeable, so the × never renders and this is
- *  never called — but `<GenericFeedbackPill>` requires the prop. */
-const noop = () => {}
-
 /**
  * wordle's board column — the `<Board>` plus the below-board region under it
  * (the turn-viewer banner, the fixed-height local-feedback pill slot, and the
@@ -271,7 +267,7 @@ export function BoardCol({
           </div>
         )}
         <div className={shared.localFeedback}>
-          {localPill && <GenericFeedbackPill msg={localPill} onClose={noop} />}
+          {localPill && <GenericFeedbackPill msg={localPill} onClose={clearLocalFeedback} />}
         </div>
         <div className={styles.moveArea}>
           <GuessKeyboard

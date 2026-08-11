@@ -46,6 +46,7 @@ export function Controls({
   canShare,
   onShare,
   pill,
+  onDismissPill,
   onSubmit,
   onRecall,
   onExchange,
@@ -70,6 +71,9 @@ export function Controls({
   /** An own-move / terminal pill to show IN the commit slot (replacing the commit
    *  buttons + filling its width), or null to show the buttons. */
   pill: GenericFeedbackMsg | null
+  /** Clear the pill — tapping a transient one dismisses it, the same way the
+   *  next keystroke does (docs/ui.md → Feedback pill). */
+  onDismissPill: () => void
   onSubmit: () => void
   onRecall: () => void
   onExchange: () => void
@@ -89,9 +93,8 @@ export function Controls({
       >
         {pill ? (
           // Sticky local feedback — no × (the next move dismisses it). onClose is
-          // unused for a sticky pill, but the prop is required.
           <div className={shared.localFeedback}>
-            <GenericFeedbackPill msg={pill} onClose={() => {}} />
+            <GenericFeedbackPill msg={pill} onClose={onDismissPill} />
           </div>
         ) : (
           <div className={styles.commitButtons}>

@@ -99,13 +99,18 @@ export function BoardCol({
           <div className={styles.verdictSlot}>
             <GenericFeedbackPill
               msg={terminalPill(over.tone, over.verdictNode ?? over.verdict)}
-              onClose={() => {}}
+              // Permanent, so this is never called — but the real dismiss beats
+              // an inline no-op that reads like an oversight. (wordiply keeps two
+              // separate slots rather than one: the verdict replaces the whole
+              // keyboard area, while a reject pill sits above a keyboard that
+              // stays. So there's nothing here to resolve into one pill.)
+              onClose={clearLocalFeedback}
             />
           </div>
         ) : (
           <>
             <div className={styles.kbFeedback}>
-              {rejectPill && <GenericFeedbackPill msg={rejectPill} onClose={() => {}} />}
+              {rejectPill && <GenericFeedbackPill msg={rejectPill} onClose={clearLocalFeedback} />}
             </div>
             <GuessKeyboard onKey={typeLetter} onEnter={onSubmit} onBackspace={backspace} disabled={entryDisabled} />
           </>

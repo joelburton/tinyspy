@@ -16,11 +16,26 @@ type Props = {
  * centered, for the player's own move). See docs/ui.md → "Feedback pill" for the
  * full API contract.
  *
- * Three dismiss modes:
- *   - `timed`:    self-clears via `<GamePage>`'s auto-clear effect.
- *   - `sticky`:   stays until the caller's next `show()`/`clear()` (or, for a
- *                 directly-rendered local pill, until the host swaps it out).
- *   - `closeable`: renders a × button that calls `onClose`. Click-to-dismiss.
+ * Four modes (`msg.mode` — see GenericFeedbackMsg for the full contract):
+ *   - `sticky`:    stays until something replaces it or the player acts — a
+ *                  keystroke, a tile click, or a tap on the pill.
+ *   - `timed`:     self-clears via the host's auto-clear effect; a tap kills it
+ *                  early.
+ *   - `manual`:    the × is the ONLY way out. A tap on the body deliberately
+ *                  does nothing — its whole point is see-and-acknowledge, and a
+ *                  body that swallowed the gesture would make the × decorative.
+ *   - `permanent`: a standing condition (the terminal verdict, "Conceded — race
+ *                  continues"). Nothing dismisses it; a later pill REPLACES it.
+ *                  The tinted background is what says so.
+ *
+ * Tapping a `sticky` or `timed` pill dismisses it, because the app's rule was
+ * always "your next action clears the feedback" and a tap is an action. On touch
+ * that rule had one fewer way to fire — no keystroke — so the message was the
+ * most conspicuous thing on screen and the only one that ignored you.
+ *
+ * A plain click handler, not a `role="button"`: a board can show a hundred of
+ * these over a game and none of them should become tab stops. `cursor: pointer`
+ * is what tells a mouse user the same thing the tap teaches by working.
  *
  * Visual tone (`success` / `error` / `warning` / `neutral` / `info`) picks a
  * background + border color via a CSS-class branch. Tones are global UI-state
@@ -37,14 +52,28 @@ type Props = {
  * actor in a peer message (docs/ui.md → "Player identity = a colored disc").
  */
 export function GenericFeedbackPill({ msg, onClose }: Props) {
-  const outline = msg.variant === 'outline'
+  const { kind } = msg.mode
+  // Appearance follows the mode: only a PERMANENT condition wears the tinted
+  // background. Everything else is a message, and messages are outlined.
+  const outline = kind !== 'permanent'
+  // A direct reading of the modes: sticky and timed are messages you're done
+  // with, `manual` insists on its ×, `permanent` isn't dismissable at all.
+  const tapToDismiss = kind === 'sticky' || kind === 'timed'
   return (
-    <div className={cls(styles.pill, styles[msg.tone], outline && styles.outline)}>
+    <div
+      className={cls(
+        styles.pill,
+        styles[msg.tone],
+        outline && styles.outline,
+        tapToDismiss && styles.tappable,
+      )}
+      onClick={tapToDismiss ? onClose : undefined}
+    >
       {/* `dot` is the actor's color NAME; null still shows the neutral disc
           (see GenericFeedbackMsg.dot) — only an ABSENT dot renders nothing. */}
       {msg.dot !== undefined && <Dot color={msg.dot} className={styles.dot} />}
       <span className={styles.text}>{msg.text}</span>
-      {msg.dismiss.kind === 'closeable' && (
+      {kind === 'manual' && (
         <button
           type="button"
           className={styles.close}

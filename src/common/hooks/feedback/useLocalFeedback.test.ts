@@ -15,12 +15,12 @@ import type { GenericFeedbackMsg } from '../../lib/games'
 const timed = (text: string, ms?: number): GenericFeedbackMsg => ({
   tone: 'success',
   text,
-  dismiss: { kind: 'timed', ...(ms !== undefined ? { ms } : {}) },
+  mode: { kind: 'timed', ...(ms !== undefined ? { ms } : {}) },
 })
 const sticky = (text: string): GenericFeedbackMsg => ({
   tone: 'error',
   text,
-  dismiss: { kind: 'sticky' },
+  mode: { kind: 'sticky' },
 })
 
 beforeEach(() => {

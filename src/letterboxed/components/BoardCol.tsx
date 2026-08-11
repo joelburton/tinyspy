@@ -254,6 +254,7 @@ export function BoardCol({
           // Per-character rendering, so the carried-over first letter can say
           // it isn't yours to delete.
           children={<TypedWord word={word} seedLength={seed.length} />}
+          onDismissPill={clearLocalFeedback}
           pill={pill}
           // Also hard-off while a past move is open: freezing capture lets a
           // keystroke fall through to PlayArea's exitOnKey (back to live)

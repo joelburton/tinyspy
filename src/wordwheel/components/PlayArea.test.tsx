@@ -419,7 +419,7 @@ describe('wordwheel PlayArea — compete opponent rank climb', () => {
     rerender(<PlayArea {...props} status={{ leaderboard: [entry(2)] }} />)
     const rankMsg = vi.mocked(gf.show).mock.calls.at(-1)![0]
     expect(nodeText(rankMsg.text)).toMatch(/^moth reached /)
-    expect(rankMsg.dismiss).toEqual({ kind: 'sticky' })
+    expect(rankMsg.mode).toEqual({ kind: 'sticky' })
   })
 })
 

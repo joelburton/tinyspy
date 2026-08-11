@@ -21,10 +21,6 @@ import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 
-/** The terminal / waiting pills are never closeable, so the × is never rendered and
- *  this is never called — but `<GenericFeedbackPill>` requires the prop. */
-const noop = () => {}
-
 /** Empty selection map — the board draws no selection while viewing a past turn. */
 const NO_OWNERS: ReadonlyMap<string, string> = new Map()
 
@@ -222,6 +218,18 @@ export function BoardCol({
     toggleTile(tile)
   }
 
+  // The below-board slot shows exactly ONE pill, by the shared priority
+  // (localPills.ts): the terminal verdict, then "you're out of the race" while
+  // the others play on, then your own move result. `null` means the slot is free
+  // for the move controls instead. Resolving it here rather than branching in
+  // the JSX is what keeps one render and one dismiss handler — the permanent
+  // pills simply never call it.
+  const slotPill = !showInput
+    ? over
+      ? terminalPill(over.tone, over.verdict)
+      : outOfRacePill(myConceded)
+    : localPill
+
   return (
     <div className={shared.boardCol}>
       {/* One grid: solved categories as full-width band rows + the remaining tiles.
@@ -277,14 +285,14 @@ export function BoardCol({
               </button>
             </div>
           )}
-          {showInput ? (
-            localPill ? (
-              // My own guess result — a centered local pill (sticky; a tile click
-              // dismisses it). Same register as the header pill.
-              <div className={shared.localFeedback}>
-                <GenericFeedbackPill msg={localPill} onClose={noop} />
-              </div>
-            ) : (
+          {/* One slot, one pill. The priority is resolved into `slotPill` above,
+              not branched here (localPills.ts → the below-board slot's order), so
+              there's a single render and a single dismiss handler. */}
+          {slotPill ? (
+            <div className={shared.localFeedback}>
+              <GenericFeedbackPill msg={slotPill} onClose={clearLocalFeedback} />
+            </div>
+          ) : (
               <div className={styles.moveArea}>
                 {/* "Mistakes (lose at 4)" — the caller's OWN mistakes made (shared in
                     coop, personal in compete). margin-right:auto pushes the buttons
@@ -307,16 +315,6 @@ export function BoardCol({
                   className={styles.inputButton}
                 />
               </div>
-            )
-          ) : (
-            // Terminal / eliminated — a PERMANENT outcome pill at game over, or a
-            // sticky "you're out" while the rest race on.
-            <div className={shared.localFeedback}>
-              <GenericFeedbackPill
-                msg={over ? terminalPill(over.tone, over.verdict) : outOfRacePill(myConceded)}
-                onClose={noop}
-              />
-            </div>
           )}
         </div>
       </div>

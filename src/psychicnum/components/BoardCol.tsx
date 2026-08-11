@@ -14,10 +14,6 @@ import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 
-/** The terminal / waiting pills are never closeable, so the × is never rendered and
- *  this is never called — but `<GenericFeedbackPill>` requires the prop. */
-const noop = () => {}
-
 /** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */
 function shuffled<T>(arr: readonly T[]): T[] {
   const out = arr.slice()
@@ -189,6 +185,16 @@ export function BoardCol({
   // or the full word is typed.)
   const selected = pending === '' ? null : pending
 
+  // The below-board slot's one pill, by the shared priority (localPills.ts):
+  // the terminal verdict, then "out of guesses" while the others play on.
+  // `null` hands the slot to the entry row, which shows the own-move pill in
+  // place of its controls while nothing is typed.
+  const slotPill = over
+    ? terminalPill(over.tone, over.verdict)
+    : !canGuess
+      ? outOfRacePill(myConceded, 'Out of guesses — race continues')
+      : null
+
   return (
     <div className={shared.boardCol}>
       {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
@@ -248,14 +254,14 @@ export function BoardCol({
               </button>
             </div>
           )}
-          {over ? (
+          {/* One slot, one pill: the priority is resolved into `slotPill` above
+              rather than branched here (localPills.ts → the below-board slot's
+              order), so there's a single render and a single dismiss handler. */}
+          {slotPill ? (
             <div className={shared.localFeedback}>
-              <GenericFeedbackPill
-                msg={terminalPill(over.tone, over.verdict)}
-                onClose={noop}
-              />
+              <GenericFeedbackPill msg={slotPill} onClose={clearLocalFeedback} />
             </div>
-          ) : canGuess ? (
+          ) : (
             /* The shared <EntryRow> (icon-only Delete + the EntryBox + icon-only
                Submit + the capture keyboard). `bigEntry` bumps the entry font
                (psychicnum's one short guess word reads large). The own-move pill
@@ -273,15 +279,9 @@ export function BoardCol({
               onAnyKey={clearLocalFeedback}
               recall={lastGuess}
               className={styles.bigEntry}
+              onDismissPill={clearLocalFeedback}
               pill={pending === '' ? localPill : null}
             />
-          ) : (
-            <div className={shared.localFeedback}>
-              <GenericFeedbackPill
-                msg={outOfRacePill(myConceded, 'Out of guesses — race continues')}
-                onClose={noop}
-              />
-            </div>
           )}
         </div>
       </div>

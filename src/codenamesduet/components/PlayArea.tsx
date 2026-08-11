@@ -79,8 +79,7 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
 const ownAction = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg => ({
   tone,
   text,
-  variant: 'outline',
-  dismiss: { kind: 'timed' },
+  mode: { kind: 'timed' },
 })
 
 /** Per-status terminal copy for codenamesduet. `playState` is the authoritative
@@ -166,7 +165,13 @@ function useTurnPill(args: {
   let key: string | null = null
   let node: ReactNode = null
   let tone: GenericFeedbackTone = 'neutral'
-  let outline = false // peer-status pills are transient/outline; sudden death is a filled warning
+  // Peer-status pills are messages (sticky — "moth is writing a clue" is true
+  // until it isn't). Sudden death is a CONDITION: once the turn budget is spent
+  // you're in it for the rest of the game, and only the verdict replaces it —
+  // which is what `permanent` means, and why it wears the filled background.
+  // The KIND, not the object: an object literal is a new identity every render,
+  // which would re-run the effect below on each one.
+  let modeKind: GenericFeedbackMsg['mode']['kind'] = 'permanent'
   if (game && !gameOver) {
     const me = players.find((p) => p.user_id === sessionUserId)
     const peer = players.find((p) => p.user_id !== sessionUserId)
@@ -181,7 +186,7 @@ function useTurnPill(args: {
       node = 'Sudden death: wrong loses'
       tone = 'error'
     } else {
-      outline = true
+      modeKind = 'sticky'
       // What the peer is doing — the phrase WITHOUT their name (the ActorDot
       // supplies "● moth" ahead of it), and without a verb ("● moth guessing"):
       // see the phone-width note above.
@@ -217,10 +222,9 @@ function useTurnPill(args: {
     feedback.show({
       tone,
       text: node,
-      ...(outline ? { variant: 'outline' as const } : {}),
-      dismiss: { kind: 'sticky' },
+      mode: { kind: modeKind },
     })
-  }, [key, tone, node, outline, feedback])
+  }, [key, tone, node, modeKind, feedback])
 }
 
 /** Every duet board has fifteen green agents (the StateLine prints the same

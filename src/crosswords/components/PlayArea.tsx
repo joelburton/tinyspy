@@ -64,7 +64,7 @@ import '../theme.css'
 const PENCIL_SKIPPED_MSG: GenericFeedbackMsg = {
   tone: 'info',
   text: 'Check skips pencil marks',
-  dismiss: { kind: 'timed' },
+  mode: { kind: 'timed' },
 }
 
 /** A download-safe filename stem from a puzzle id. Library ids are plain, but

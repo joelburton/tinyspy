@@ -171,15 +171,36 @@ export type GenericFeedbackMsg = {
    *  fallback — an unresolvable member); ABSENT shows none. See docs/ui.md →
    *  "Player identity = a colored disc". */
   dot?: string | null
-  /** Pill style. `'fill'` (default) tints the background by tone — for local
-   *  validation. `'outline'` colors only the border (no fill), using the
-   *  green/red outcome palette — for identity/peer messages, where a tinted
-   *  fill would clash with the leading `dot`. */
-  variant?: 'fill' | 'outline'
-  dismiss:
-    | { kind: 'timed'; ms?: number }
+  /**
+   * What KIND of message this is — which decides both how it goes away and how
+   * it looks. One field, four values, no impossible combinations:
+   *
+   *   - **`sticky`** — "make sure they see this". Stays until something replaces
+   *     it or the player acts: a keystroke, a tile click, or a tap on the pill.
+   *     The common case for an own-move result ("Not a word").
+   *   - **`timed`** — self-clears after `ms` (each surface has its own default).
+   *     A tap dismisses it early. Peer narration, acknowledgements.
+   *   - **`manual`** — an × is the ONLY way out; a keystroke or a tap on the body
+   *     won't do it. For the rare message the player should actively acknowledge
+   *     (stackdown's revealed-word spoiler, which has to linger while they hunt).
+   *   - **`permanent`** — a standing condition, not a message: the terminal
+   *     verdict, or "Conceded — race continues". Nothing dismisses it; only a
+   *     later pill REPLACES it (out-of-race gives way to the final verdict).
+   *     Renders with the tinted background that says "this is the state now".
+   *
+   * This used to be two fields — a `variant` for appearance beside a `dismiss`
+   * for behaviour — whose product allowed six states for four real meanings.
+   * "Permanent" had no name: it was spelled `variant: 'fill'` + sticky, so
+   * whether a pill could be dismissed had to be read off a styling prop. The
+   * out-of-race pill was filed as sticky for exactly that reason, and eight
+   * transient messages wore the permanent background by forgetting to say
+   * `outline`. Appearance now follows the mode, so neither mistake is sayable.
+   */
+  mode:
     | { kind: 'sticky' }
-    | { kind: 'closeable' }
+    | { kind: 'timed'; ms?: number }
+    | { kind: 'manual' }
+    | { kind: 'permanent' }
 }
 
 export type GenericFeedbackApi = {

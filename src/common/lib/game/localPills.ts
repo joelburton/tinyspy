@@ -12,10 +12,18 @@ import type { GenericFeedbackMsg, GenericFeedbackTone } from '../games'
  *   3. the transient **own-move** result (`stickyPill`) — outline, sticky.
  *
  * The look encodes meaning (see docs/ui.md → Feedback pill):
- *   - **fill** = permanent / authoritative (the game's over);
- *   - **outline** = your own transient move result;
- *   - **sticky** = stays until the next move dismisses it (a keystroke / tile
- *     click routed through `clearLocalFeedback`), as opposed to `timed`.
+ *   - **`permanent`** = a standing condition, not a message: the game's over,
+ *     or you're out of the race. Nothing dismisses it — a later pill REPLACES
+ *     it, which is how out-of-race gives way to the final verdict. It wears the
+ *     tinted background that says "this is the state now".
+ *   - **`sticky`** = your own transient move result. Stays until the next move
+ *     dismisses it — a keystroke, a tile click, or a tap on the pill itself.
+ *
+ * out-of-race was `sticky` until 2026-08-10, which was the one miscategorised
+ * pill in the app: a standing condition filed as a message, so a keystroke wiped
+ * it and the player lost the only statement of their own status. It was possible
+ * to file it wrong because `permanent` had no name — it was spelled as a styling
+ * choice (`variant: 'fill'`) beside a behaviour choice.
  *
  * Before this file that contract lived only as ~25 copies-by-convention across
  * the ten games (three of them in per-game `lib/` builders that cross-referenced
@@ -35,7 +43,7 @@ type OutcomeTone = 'won' | 'lost' | 'neutral'
  * `localPill` copies + `useWordSubmit`'s private copy.
  */
 export function stickyPill(tone: GenericFeedbackTone, text: string): GenericFeedbackMsg {
-  return { tone, text, variant: 'outline', dismiss: { kind: 'sticky' } }
+  return { tone, text, mode: { kind: 'sticky' } }
 }
 
 /**
@@ -51,8 +59,7 @@ export function terminalPill(tone: OutcomeTone, text: ReactNode): GenericFeedbac
   return {
     tone: tone === 'won' ? 'success' : tone === 'lost' ? 'error' : 'neutral',
     text,
-    variant: 'fill',
-    dismiss: { kind: 'sticky' },
+    mode: { kind: 'permanent' },
   }
 }
 
@@ -73,5 +80,9 @@ export function outOfRacePill(
   myConceded: boolean,
   activeText = 'Lost — race continues',
 ): GenericFeedbackMsg {
-  return stickyPill('neutral', myConceded ? 'Conceded — race continues' : activeText)
+  return {
+    tone: 'neutral',
+    text: myConceded ? 'Conceded — race continues' : activeText,
+    mode: { kind: 'permanent' },
+  }
 }

@@ -327,8 +327,8 @@ export function ClubPage({ handle, session }: Props) {
   // extracting into a hook if a third consumer arrives.
   useEffect(function autoClearTimedFeedback() {
     if (!globalFeedback) return
-    if (globalFeedback.dismiss.kind !== 'timed') return
-    const ms = globalFeedback.dismiss.ms ?? 3000
+    if (globalFeedback.mode.kind !== 'timed') return
+    const ms = globalFeedback.mode.ms ?? 3000
     const t = setTimeout(() => setGlobalFeedback(null), ms)
     return () => clearTimeout(t)
   }, [globalFeedback])
@@ -547,7 +547,7 @@ export function ClubPage({ handle, session }: Props) {
     setGlobalFeedback({
       tone: 'neutral',
       text: `${deleted?.title ?? 'Game'} deleted`,
-      dismiss: { kind: 'timed' },
+      mode: { kind: 'timed' },
     })
     // No explicit list refresh — the postgres-changes
     // subscription below fires DELETE on common.games and our
@@ -903,7 +903,7 @@ export function ClubPage({ handle, session }: Props) {
           onClick: () => setGlobalFeedback({
             tone: 'info',
             text: 'Rename club: coming soon',
-            dismiss: { kind: 'timed' },
+            mode: { kind: 'timed' },
           }),
         },
       ],

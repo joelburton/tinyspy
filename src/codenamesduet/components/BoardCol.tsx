@@ -17,10 +17,6 @@ import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 
-/** The below-board pills are never closeable, so the × is never rendered and this is
- *  never called — but `<GenericFeedbackPill>` requires the prop. */
-const noop = () => {}
-
 /**
  * codenamesduet's board column — the 5×5 `Board` plus the fixed-height
  * below-board slot under it (the turn-viewer banner, the CluePanel during play, or a
@@ -163,6 +159,11 @@ export function BoardCol({
     [gameId, onError, clearLocalFeedback],
   )
 
+  // The below-board slot's one pill, by the shared priority (localPills.ts):
+  // the terminal verdict, then the own-action result. `null` hands the slot back
+  // to the clue panel.
+  const slotPill = over ? terminalPill(over.tone, over.verdict) : localPill
+
   return (
     <div className={shared.boardCol}>
       {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
@@ -215,15 +216,14 @@ export function BoardCol({
               </button>
             </div>
           )}
-          {over ? (
-            <div className={shared.localFeedback}>
-              <GenericFeedbackPill msg={terminalPill(over.tone, over.verdict)} onClose={noop} />
-            </div>
-          ) : localPill ? (
+          {/* One slot, one pill: the priority is resolved into `slotPill` above
+              rather than branched here (localPills.ts → the below-board slot's
+              order), so there's a single render and a single dismiss handler. */}
+          {slotPill ? (
             <div className={shared.localFeedback}>
               {/* Own-action flash is error-only here (a rejected guess / failed End);
                   the success path shows on the board + turn log instead. */}
-              <GenericFeedbackPill msg={localPill} onClose={noop} />
+              <GenericFeedbackPill msg={slotPill} onClose={clearLocalFeedback} />
             </div>
           ) : (
             <div className={styles.moveArea}>

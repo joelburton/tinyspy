@@ -7,10 +7,6 @@ import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 
-/** waffle's pills are never closeable (the × is never rendered), but the shared
- *  `<GenericFeedbackPill>` requires the prop. */
-const noop = () => {}
-
 /**
  * waffle's board column — the square `Board` plus the below-board region (the
  * feedback pill + the turn-viewer banner). The move IS the board (tap two tiles to
@@ -31,6 +27,7 @@ export function BoardCol({
   onSwap,
   pendingSwap,
   localPill,
+  onDismissPill,
 }: {
   // ── Mobile-only status strip ──
   /** The core state readout (the `<StateLine>` the InfoCol also renders), shown
@@ -66,6 +63,9 @@ export function BoardCol({
   // ── Below-board own-move feedback (PlayArea computes the pill) ──
   /** The below-board pill to show (terminal verdict / waiting / own-move error), or null. */
   localPill: GenericFeedbackMsg | null
+  /** Clear the local pill — tapping a transient one dismisses it, the same
+   *  way the next keystroke does (docs/ui.md → Feedback pill). */
+  onDismissPill: () => void
 }) {
   const viewing = viewingDescription !== null
 
@@ -119,7 +119,7 @@ export function BoardCol({
             appears/clears. The multi-line answer reveal is NOT here (it lives in the
             info column's `<SolutionReveal>` — it would overflow the viewport). */}
         <div className={shared.localFeedback}>
-          {localPill && <GenericFeedbackPill msg={localPill} onClose={noop} />}
+          {localPill && <GenericFeedbackPill msg={localPill} onClose={onDismissPill} />}
         </div>
       </div>
     </div>

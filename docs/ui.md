@@ -72,12 +72,11 @@ type FeedbackMsg = {
   tone: FeedbackTone
   text: string
   dot?: string                          // leading player-color disc (from colorVarFor) — identity anchor for peer messages
-  variant?: 'fill' | 'outline'          // 'outline' (transient, default) = white bg + tone border;
-                                        // 'fill' (permanent) = lightened-tone bg + tone border (reads *more* like its tone)
-  dismiss:
-    | { kind: 'timed'; ms?: number }   // self-dismiss after delay (default ~2200ms)
-    | { kind: 'sticky' }                // persists until caller's next show()/clear()
-    | { kind: 'closeable' }             // persists; user-dismissed via × on the pill
+  mode:                                 // what KIND of message — decides both behaviour AND look
+    | { kind: 'sticky' }                // until replaced, or the player acts (key / tile / tap the pill)
+    | { kind: 'timed'; ms?: number }    // self-dismisses after the delay; a tap kills it early
+    | { kind: 'manual' }                // the × is the ONLY way out
+    | { kind: 'permanent' }             // a standing condition; only a later pill REPLACES it
 }
 
 feedback: {
@@ -89,10 +88,17 @@ feedback: {
 **Dismiss modes — when to use each:**
 
 - **`timed`** for transient acknowledgment that auto-fades. connections's "Already tried that," "Wrong guess." The default workhorse.
-- **`sticky`** for state-driven info the game itself will clear. codenamesduet's "Waiting for clue from peer" persists until the clue arrives, at which point the per-game hook calls `show()` again with new content (or `clear()`) — caller-controlled lifetime.
-- **`closeable`** for user-acknowledged content. Persistent tips, instructional banners, warnings the player should see-and-dismiss. Renders a `×` button on the pill.
+- **`sticky`** for "make sure they see this" — an own-move result like "Not a word". Stays until something replaces it or the player acts: a keystroke, a tile click, or a tap on the pill.
+- **`manual`** for the rare message the player should actively acknowledge, where a stray keystroke mustn't wipe it — stackdown's revealed-word spoiler, which has to linger while they hunt for the tiles. The `×` is the only way out. (Named `manual`, not `closeable`: every mode but `permanent` can be closed, so `closeable` didn't distinguish it from anything.)
+- **`permanent`** for a standing CONDITION rather than a message: the terminal verdict, "Conceded — race continues", codenamesduet's sudden death. Nothing dismisses it — a later pill **replaces** it, which is how out-of-race gives way to the final verdict.
 
-**Transient vs permanent (`variant`).** Every pill's **whole border is the tone color** (saturated `--color-outcome-*-strong`) — a thick **left bar** (like the turn-log outcome bars) plus thin sides in the *same* color, uniform width on every pill. (A pale-grey side border read as no border, so the sides carry the tone too; `neutral` has no tone, so its border is a visible dark grey.) The `variant` axis only changes the **background**: most feedback is *transient* and uses the default `outline` — a plain white background. *Permanent* feedback — the terminal message, or an end-game mode like codenamesduet's sudden death — uses `fill`: a **lightened-tone background**, so a permanent `error` (light-red fill) reads as *more* emphatically "error" than a transient one (white fill). The fill is the permanence signal. **Peer identity is independent of this axis:** a message about another player ("● leah found APPLE") carries a leading `dot` in their player color regardless of fill/outline — the dot, never the fill, says *who* (the `dot`-carries-identity rule from [Player identity = a colored disc](#player-identity--a-colored-disc)).
+**One field, because the alternative leaked.** This used to be two — a `variant` for appearance beside a `dismiss` for behaviour — whose product allowed six states for four real meanings. "Permanent" had no name; it was spelled `variant: 'fill'` + `sticky`, so *whether a pill could be dismissed* had to be read off a styling prop. Two bugs came straight out of that: the out-of-race pill was filed as `sticky` (so a keystroke wiped the only statement of the player's own status), and eight transient messages wore the permanent background by forgetting to say `outline`. Appearance now follows the mode, and neither mistake is expressible.
+
+**Tapping the pill dismisses it** — the `sticky` and `timed` modes. This isn't a new interaction: the rule was always *"your next action clears the feedback"* (a keystroke via `useCaptureKeys`, a tile click via the game's own handler), and tapping the message **is** an action. On touch that rule had one fewer way to fire — there is no next keystroke — so a player who read "Not a word" and tapped it got nothing, and had to start the next word to clear it (found on a phone playing letterboxed). Both feedback areas behave the same way, local and global, because a rule the player has to learn twice isn't a rule.
+
+Two exclusions, both deliberate. **`manual` keeps its `×` as the only target** — its whole point is see-and-acknowledge, and a body that swallowed the gesture would make the `×` look decorative. **`permanent` isn't dismissable at all**: it's a condition, not a message you've finished reading, and nothing would bring it back. The pill is a plain click target, never a `role="button"`: a game can show a hundred of these and none of them should become tab stops; `cursor: pointer` tells a mouse user what the tap teaches by working. Pinned by [`GenericFeedbackPill.test.tsx`](../src/common/components/feedback/GenericFeedbackPill.test.tsx) (both exclusions, both directions) and [`letterboxed.e2e.ts`](../e2e/letterboxed.e2e.ts) at phone size.
+
+**Transient vs permanent (the look, which now follows `mode`).** Every pill's **whole border is the tone color** (saturated `--color-outcome-*-strong`) — a thick **left bar** (like the turn-log outcome bars) plus thin sides in the *same* color, uniform width on every pill. (A pale-grey side border read as no border, so the sides carry the tone too; `neutral` has no tone, so its border is a visible dark grey.) The mode only changes the **background**: `sticky` / `timed` / `manual` are *messages* and get a plain white background. `permanent` — the terminal verdict, out-of-race, an end-game mode like codenamesduet's sudden death — gets a **lightened-tone background**, so a permanent `error` (light-red fill) reads as *more* emphatically "error" than a transient one (white fill). The fill is the permanence signal. **Peer identity is independent of it:** a message about another player ("● leah found APPLE") carries a leading `dot` in their player color whatever its mode — the dot, never the fill, says *who* (the `dot`-carries-identity rule from [Player identity = a colored disc](#player-identity--a-colored-disc)).
 
 **Tone follows the event, not the viewer's stake.** One event reads as **one tone everywhere**, regardless of whether it helps or hurts the viewer. A *found word is green* in **both** modes: coop (a teammate found one) and compete (an opponent found one — adverse to me, but still "they found a word"). We do **not** recolor by competitive stake. Otherwise the player maintains two color-meanings for the same event — green-means-found in coop, something-else in compete — which is hard to learn and easy to misread; the identity `dot` already says *who*, so the tone is free to say only *what happened*.
 

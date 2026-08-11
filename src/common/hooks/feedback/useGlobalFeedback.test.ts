@@ -19,7 +19,7 @@ type Props = { enabled: boolean; items: readonly string[]; ready?: boolean }
 function setup(initial: Props) {
   const globalFeedback = { show: vi.fn(), clear: vi.fn() }
   const messageFor = (item: string): GenericFeedbackMsg | null =>
-    item === 'self' ? null : { tone: 'neutral', text: item, dismiss: { kind: 'timed' } }
+    item === 'self' ? null : { tone: 'neutral', text: item, mode: { kind: 'timed' } }
   const { rerender } = renderHook(
     (p: Props) =>
       useGlobalFeedback({

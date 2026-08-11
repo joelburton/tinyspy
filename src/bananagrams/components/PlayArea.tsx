@@ -63,10 +63,6 @@ import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
  * the game stays live; the last player to concede ends it as a collective loss.
  */
 
-/** Local feedback pills here are never closeable, so the × never renders and
- *  this is never called — but `<GenericFeedbackPill>` requires the prop. */
-const noop = () => {}
-
 export function PlayArea(ctx: GamePageCtx) {
   // Tab does nothing while the board has the keyboard — this play surface is
   // not a form, so native Tab would walk out to the header buttons and on into
@@ -118,7 +114,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const peel = useCallback(async (): Promise<{ illegalCells: number[] } | null> => {
     const { data, error } = await db.rpc('peel', { target_game: gameId })
     if (error) {
-      showLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
+      showLocalFeedback({ tone: 'error', text: error.message, mode: { kind: 'sticky' } })
       return null
     }
     // A blocked peel: the board isn't win-legal (disconnected, or — with
@@ -134,8 +130,7 @@ export function PlayArea(ctx: GamePageCtx) {
       showLocalFeedback({
         tone: 'error',
         text: 'Fix the highlighted tiles before peeling — every word must be real and the grid one connected piece.',
-        variant: 'outline',
-        dismiss: { kind: 'sticky' },
+        mode: { kind: 'sticky' },
       })
       return { illegalCells: res.invalid_cells ?? [] }
     }
@@ -160,7 +155,7 @@ export function PlayArea(ctx: GamePageCtx) {
                   text: `${r.count} tile${r.count === 1 ? '' : 's'} highlighted — either not a real word, or not joined to the grid.`,
                 }
               : { tone: 'error' as const, text: `Check failed: ${r.message}` }
-      showLocalFeedback({ ...msg, variant: 'outline', dismiss: { kind: 'sticky' } })
+      showLocalFeedback({ ...msg, mode: { kind: 'sticky' } })
     },
     [showLocalFeedback],
   )
@@ -177,7 +172,7 @@ export function PlayArea(ctx: GamePageCtx) {
       const { error } = await db.rpc('dump', { target_game: gameId, tile })
       if (error) {
         dumpPending.current = false // no tiles change is coming
-        showLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
+        showLocalFeedback({ tone: 'error', text: error.message, mode: { kind: 'sticky' } })
       }
     },
     [gameId, showLocalFeedback],
@@ -205,15 +200,13 @@ export function PlayArea(ctx: GamePageCtx) {
               drew {grew + 1}.
             </>
           ),
-          variant: 'outline',
-          dismiss: { kind: 'timed', ms: 2500 },
+          mode: { kind: 'timed', ms: 2500 },
         })
       } else {
         showLocalFeedback({
           tone: 'neutral',
           text: `🍌 Peel! You drew ${grew} tile${grew === 1 ? '' : 's'}.`,
-          variant: 'outline',
-          dismiss: { kind: 'timed', ms: 2500 },
+          mode: { kind: 'timed', ms: 2500 },
         })
       }
     }
@@ -228,7 +221,7 @@ export function PlayArea(ctx: GamePageCtx) {
     if (!window.confirm(CONCEDE_CONFIRM)) return
     const { error } = await db.rpc('concede', { target_game: gameId })
     if (error) {
-      showLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
+      showLocalFeedback({ tone: 'error', text: error.message, mode: { kind: 'sticky' } })
     }
   }, [gameId, isTerminal, showLocalFeedback])
 
@@ -283,7 +276,7 @@ export function PlayArea(ctx: GamePageCtx) {
     if (!(await confirmAction(END_GAME_CONFIRM))) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) {
-      showLocalFeedback({ tone: 'error', text: error.message, variant: 'outline', dismiss: { kind: 'sticky' } })
+      showLocalFeedback({ tone: 'error', text: error.message, mode: { kind: 'sticky' } })
     }
   }, [gameId, isTerminal, showLocalFeedback, confirmAction])
   const endGameRef = useRef<() => void>(() => {})
@@ -303,7 +296,7 @@ export function PlayArea(ctx: GamePageCtx) {
     if (!isTerminal && !(await confirmAction(RESTART_CONFIRM))) return
     const { error } = await db.rpc('replay_board', { target_game: gameId })
     if (error) {
-      showLocalFeedback({ tone: 'error', text: `Replay failed: ${error.message}`, variant: 'outline', dismiss: { kind: 'sticky' } })
+      showLocalFeedback({ tone: 'error', text: `Replay failed: ${error.message}`, mode: { kind: 'sticky' } })
     }
   }, [gameId, isTerminal, showLocalFeedback, confirmAction])
   const restartRef = useRef<() => void>(() => {})
@@ -329,8 +322,7 @@ export function PlayArea(ctx: GamePageCtx) {
       showLocalFeedback({
         tone: 'error',
         text: `New game failed: ${error?.message ?? 'unknown'}`,
-        variant: 'outline',
-        dismiss: { kind: 'sticky' },
+        mode: { kind: 'sticky' },
       })
       return
     }
@@ -632,7 +624,7 @@ export function PlayArea(ctx: GamePageCtx) {
         reportBoardRef={boardRef}
         infoTop={infoTop}
         infoActions={infoActions}
-        localPill={localFeedbackMsg && <GenericFeedbackPill msg={localFeedbackMsg} onClose={noop} />}
+        localPill={localFeedbackMsg && <GenericFeedbackPill msg={localFeedbackMsg} onClose={clearLocalFeedback} />}
       />
       {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
           in-page by the below-board pill + the info-column outcome line. The WINNER gets

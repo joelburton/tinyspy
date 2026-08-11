@@ -190,6 +190,7 @@ export function BoardCol({
             charFor={asciiLetters('upper')}
             onExtraKey={handleEntryExtraKey}
             recall={lastWord}
+            onDismissPill={clearLocalFeedback}
             pill={
               isTerminal && over
                 ? terminalPill(over.tone, over.verdictNode ?? over.verdict)

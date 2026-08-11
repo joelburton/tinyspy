@@ -250,12 +250,12 @@ export function GamePage({
   // default is the ONE peer-pill lifetime for the whole app (ClubPage matches):
   // five games used to pass `ms: 3000` explicitly and five took a 2200 default,
   // so the same class of message — a peer did something — read for different
-  // lengths depending on which game you were in. Sticky and closeable modes are
+  // lengths depending on which game you were in. The other modes are
   // explicit no-ops at this layer.
   useEffect(function autoClearTimedFeedback() {
     if (!globalFeedback) return
-    if (globalFeedback.dismiss.kind !== 'timed') return
-    const ms = globalFeedback.dismiss.ms ?? PEER_PILL_MS
+    if (globalFeedback.mode.kind !== 'timed') return
+    const ms = globalFeedback.mode.ms ?? PEER_PILL_MS
     const t = setTimeout(() => setGlobalFeedback(null), ms)
     return () => clearTimeout(t)
   }, [globalFeedback])
@@ -548,7 +548,7 @@ export function GamePage({
                   setGlobalFeedback({
                     tone: 'error',
                     text: `Couldn't end the game: ${error}`,
-                    dismiss: { kind: 'sticky' },
+                    mode: { kind: 'sticky' },
                   })
                 }
               }

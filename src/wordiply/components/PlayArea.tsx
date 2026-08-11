@@ -323,7 +323,6 @@ export function PlayArea(ctx: GamePageCtx) {
       const member = players.find((p) => p.user_id === r.user_id)
       return {
         tone: 'success',
-        variant: 'outline',
         // No verb: the dot names who, the word is the news, the count is its
         // length. "played" earned no room in a ~26-char header pill.
         text: (
@@ -331,7 +330,7 @@ export function PlayArea(ctx: GamePageCtx) {
             <ActorDot actor={member} fallback="A teammate" /> {r.word.toUpperCase()} ({r.length})
           </>
         ),
-        dismiss: { kind: 'timed' },
+        mode: { kind: 'timed' },
       }
     },
     globalFeedback,

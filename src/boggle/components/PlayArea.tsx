@@ -375,7 +375,6 @@ export function PlayArea(ctx: GamePageCtx) {
       const label = wordWithBonusDot(r.word, r.is_bonus)
       return {
         tone: 'success',
-        variant: 'outline',
         // A long find leads with the flourish (spellingbee's "pangram 🐝 WORD
         // +14" shape) so the headline reads before the word does — and so the
         // line fits the header pill's ~26 phone characters.
@@ -388,7 +387,7 @@ export function PlayArea(ctx: GamePageCtx) {
             <ActorDot actor={member} fallback="A teammate" /> found {label} +{r.points}
           </>
         ),
-        dismiss: { kind: 'timed' },
+        mode: { kind: 'timed' },
       }
     },
     globalFeedback,
@@ -474,6 +473,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // beside it. The InfoCol's LocalTerminalRow says the same thing tersely —
         // dual placement is the rule (docs/playarea.md), and on a phone the InfoCol
         // is off-canvas, making this the ONLY copy the player sees.
+        onDismissPill={clearLocalFeedback}
         localPill={isLocallyDone ? outOfRacePill(true) : localFeedback}
       />
 

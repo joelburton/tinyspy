@@ -59,7 +59,6 @@ export function waitingTurnPill(current: Member | undefined): GenericFeedbackMsg
   return {
     tone: 'neutral',
     text: waitingFor(current),
-    variant: 'outline',
-    dismiss: { kind: 'sticky' },
+    mode: { kind: 'sticky' },
   }
 }

@@ -152,8 +152,8 @@ export function PlayArea({
   const celebration = useCelebration(playState === 'won')
 
   const showLocalFeedback = useCallback(
-    (text: string, tone: GenericFeedbackTone, dismiss: GenericFeedbackMsg['dismiss'] = { kind: 'sticky' }) =>
-      showMsg({ tone, text, variant: 'outline', dismiss }),
+    (text: string, tone: GenericFeedbackTone, mode: GenericFeedbackMsg['mode'] = { kind: 'sticky' }) =>
+      showMsg({ tone, text, mode }),
     [showMsg],
   )
 
@@ -254,7 +254,7 @@ export function PlayArea({
   // generated boards are solvable in order; may be removed once boards are trusted.
   // Named `spoilNext`, not `revealNext`: "reveal" on this page now means the WHOLE
   // solution at game-over (the red boxed-eye button below).
-  // Surfaced in the LOCAL feedback slot (the player's own request) — closeable so it
+  // Surfaced in the LOCAL feedback slot (the player's own request) — `manual` so it
   // lingers while they hunt for the tiles.
   const spoilNext = useCallback(async () => {
     const { data, error } = await db.rpc('reveal_next_word', { target_game: gameId })
@@ -266,7 +266,7 @@ export function PlayArea({
     showLocalFeedback(
       word ? `Next word: ${word.toUpperCase()}` : 'All words cleared',
       'warning', // a spoiler is a "help, not good-or-bad" action — amber like the button
-      { kind: 'closeable' },
+      { kind: 'manual' },
     )
   }, [gameId, showLocalFeedback])
 
@@ -289,7 +289,7 @@ export function PlayArea({
     showLocalFeedback(
       hint ? `Hint: ${hint}` : 'No hint for this word yet',
       'warning', // a hint is a "help, not good-or-bad" action — amber like the button
-      { kind: 'closeable' },
+      { kind: 'manual' },
     )
   }, [gameId, showLocalFeedback])
 
@@ -502,9 +502,9 @@ export function PlayArea({
       const member = players.find((p) => p.user_id === s.user_id)
       const who = <ActorDot actor={member} fallback="A teammate" />
       if (s.kind === 'hint')
-        return { tone: 'warning', text: <>{who} revealed a hint</>, dismiss: { kind: 'timed' } }
+        return { tone: 'warning', text: <>{who} revealed a hint</>, mode: { kind: 'timed' } }
       if (s.kind === 'reveal')
-        return { tone: 'warning', text: <>{who} took a spoiler</>, dismiss: { kind: 'timed' } }
+        return { tone: 'warning', text: <>{who} took a spoiler</>, mode: { kind: 'timed' } }
       // kind === 'word': ALSO flash the letters green/red in the WordEntry ring (an
       // ambient cue, not the pill). Safe to fire here — the hook calls messageFor
       // exactly once per NEW peer submission, mirroring the one pill.
@@ -514,8 +514,8 @@ export function PlayArea({
       // "tried X" (not "tried X — not a word"): the header pill fits ~26 chars on
       // a phone and ellipsises silently, and the error tone already says it failed.
       return valid
-        ? { tone: 'success', text: <>{who} found {word}</>, dismiss: { kind: 'timed' } }
-        : { tone: 'error', text: <>{who} tried {word}</>, dismiss: { kind: 'timed' } }
+        ? { tone: 'success', text: <>{who} found {word}</>, mode: { kind: 'timed' } }
+        : { tone: 'error', text: <>{who} tried {word}</>, mode: { kind: 'timed' } }
     },
     globalFeedback,
   })

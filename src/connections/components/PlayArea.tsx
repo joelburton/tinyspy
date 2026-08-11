@@ -223,25 +223,23 @@ export function PlayArea({
         // board at the same moment, so naming it here says nothing new.
         return {
           tone: 'success',
-          variant: 'outline',
           text: (
             <>
               <ActorDot actor={member} fallback="Someone" /> found category
             </>
           ),
-          dismiss: { kind: 'timed' },
+          mode: { kind: 'timed' },
         }
       }
       return {
         tone: g.result === 'oneAway' ? 'near' : 'error',
-        variant: 'outline',
         text: (
           <>
             <ActorDot actor={member} fallback="Someone" />{' '}
             {g.result === 'oneAway' ? 'was one away' : 'guessed wrong'}
           </>
         ),
-        dismiss: { kind: 'timed' },
+        mode: { kind: 'timed' },
       }
     },
     globalFeedback,

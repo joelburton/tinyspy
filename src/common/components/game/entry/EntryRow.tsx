@@ -10,8 +10,6 @@ import { SubmitButton } from '../../buttons/SubmitButton'
 import shared from '../PlayArea.module.css'
 import styles from './EntryRow.module.css'
 
-/** Local feedback pills here are sticky (dismissed by the next move), so the × is
- *  never rendered and `onClose` is never called — but `<GenericFeedbackPill>` needs it. */
 const noop = () => {}
 
 type Props = {
@@ -35,6 +33,14 @@ type Props = {
    * capture hook below stays live and the next key reclaims the slot.
    */
   pill?: GenericFeedbackMsg | null
+  /**
+   * Dismiss the pill. Tapping a transient pill clears it, the same way the next
+   * keystroke does (docs/ui.md → Feedback pill) — which matters most on touch,
+   * where there IS no next keystroke. Optional: a host whose pill is built
+   * inline from game state (a terminal verdict) has nothing to clear, and such
+   * pills are `fill`, which is never tap-dismissable anyway.
+   */
+  onDismissPill?: () => void
   /** Loading / terminal: capture is a hard no-op and the buttons are disabled. */
   disabled?: boolean
   /** Mid-submit: capture blocks edits/submit and the Submit button is disabled. */
@@ -86,6 +92,7 @@ export function EntryRow({
   placeholder,
   children,
   pill,
+  onDismissPill,
   disabled = false,
   busy = false,
   submitDisabled = false,
@@ -114,7 +121,7 @@ export function EntryRow({
   if (pill) {
     return (
       <div className={shared.localFeedback}>
-        <GenericFeedbackPill msg={pill} onClose={noop} />
+        <GenericFeedbackPill msg={pill} onClose={onDismissPill ?? noop} />
       </div>
     )
   }

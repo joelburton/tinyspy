@@ -587,7 +587,7 @@ export function PlayArea(ctx: GamePageCtx) {
         ?? (events.length === 0 && trace.length === 0
         // The quotes carry it: no "Theme:" prefix, which a phone has no room
         // for and which a quoted phrase under the board doesn't need.
-          ? { tone: 'neutral' as const, text: `“${game.clue}”`, variant: 'outline' as const, dismiss: { kind: 'sticky' as const } }
+          ? { tone: 'neutral' as const, text: `“${game.clue}”`, variant: 'outline' as const, mode: { kind: 'sticky' as const } }
           : null)
 
   // At the reveal, the words nobody found. `game.solution` is null until then,

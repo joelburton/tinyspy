@@ -162,13 +162,12 @@ export function PlayArea({
       const member = memberById(members, g.user_id)
       return {
         tone: 'neutral',
-        variant: 'outline',
         text: (
           <>
             <ActorDot actor={member} fallback="Someone" /> guessed {g.guess.toUpperCase()}
           </>
         ),
-        dismiss: { kind: 'timed' },
+        mode: { kind: 'timed' },
       }
     },
     globalFeedback,
@@ -194,13 +193,12 @@ export function PlayArea({
       const member = memberById(members, id)
       return {
         tone: 'success',
-        variant: 'outline',
         text: (
           <>
             <ActorDot actor={member} fallback="Someone" /> solved it
           </>
         ),
-        dismiss: { kind: 'timed' },
+        mode: { kind: 'timed' },
       }
     },
     globalFeedback,

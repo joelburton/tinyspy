@@ -398,7 +398,6 @@ export function PlayArea(ctx: GamePageCtx) {
       const member = players.find((p) => p.user_id === r.user_id)
       return {
         tone: 'success',
-        variant: 'outline',
         // A pangram leads with the label + the bee, so the headline reads before
         // the word does — and so the line fits the header pill's ~26 phone
         // characters, which "found WORD +14 — pangram! 🐝" did not.
@@ -413,7 +412,7 @@ export function PlayArea(ctx: GamePageCtx) {
             {wordWithBonusDot(r.word, r.is_bonus)} +{r.points}
           </>
         ),
-        dismiss: { kind: 'timed' },
+        mode: { kind: 'timed' },
       }
     },
     globalFeedback,
@@ -444,14 +443,13 @@ export function PlayArea(ctx: GamePageCtx) {
         const member = players.find((p) => p.user_id === row.user_id)
         globalFeedback.show({
           tone: 'info',
-          variant: 'outline',
           text: (
             <>
               <ActorDot actor={member} fallback="An opponent" /> reached{' '}
               {RANKS[row.rank_idx] ?? 'a new rank'}
             </>
           ),
-          dismiss: { kind: 'sticky' },
+          mode: { kind: 'sticky' },
         })
       }
     }

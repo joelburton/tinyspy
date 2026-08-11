@@ -42,8 +42,7 @@ import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 const ownAction = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg => ({
   tone,
   text,
-  variant: 'outline',
-  dismiss: { kind: 'timed' },
+  mode: { kind: 'timed' },
 })
 
 /**
@@ -163,25 +162,23 @@ export function PlayArea({
           // event). Adverse to me in compete, but the tone names the event, not my stake.
           globalFeedback.show({
             tone: 'success',
-            variant: 'outline',
             text: (
               <>
                 <ActorDot actor={member} fallback="Someone" /> solved it
               </>
             ),
-            dismiss: { kind: 'timed' },
+            mode: { kind: 'timed' },
           })
         } else if (out && !prev.out) {
           // Out of swaps is a milestone — important, neither clearly good nor bad → warning.
           globalFeedback.show({
             tone: 'warning',
-            variant: 'outline',
             text: (
               <>
                 <ActorDot actor={member} fallback="Someone" /> out of swaps
               </>
             ),
-            dismiss: { kind: 'timed' },
+            mode: { kind: 'timed' },
           })
         }
       }
@@ -551,6 +548,7 @@ export function PlayArea({
         onExitViewing={exitViewing}
         onSwap={handleSwap}
         pendingSwap={pendingSwap}
+        onDismissPill={clearLocalFeedback}
         localPill={localPill}
       />
 
