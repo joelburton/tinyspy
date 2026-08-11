@@ -17,6 +17,7 @@ import type { LetterboxedSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
+import { callRpc } from '../../common/lib/game/callRpc'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
@@ -158,10 +159,10 @@ export function PlayArea(ctx: GamePageCtx) {
       return
     }
     setBusy(true)
-    const { error } = await db.rpc('submit_word', { target_game: gameId, submitted: word })
+    const refused = await callRpc(db, 'submit_word', { target_game: gameId, submitted: word })
     setBusy(false)
-    if (error) {
-      showLocalFeedback(stickyPill('error', error.message))
+    if (refused) {
+      showLocalFeedback(refused)
       return
     }
     // The next word's first letter comes from the chain, which the realtime
@@ -206,10 +207,10 @@ export function PlayArea(ctx: GamePageCtx) {
   const runChainRpc = useCallback(
     async (fn: 'undo_word' | 'clear_chain') => {
       setBusy(true)
-      const { error } = await db.rpc(fn, { target_game: gameId })
+      const bad = await callRpc(db, fn, { target_game: gameId })
       setBusy(false)
-      if (error) {
-        showLocalFeedback(stickyPill('error', error.message))
+      if (bad) {
+        showLocalFeedback(bad)
         return
       }
       setDraft('')
@@ -325,8 +326,8 @@ export function PlayArea(ctx: GamePageCtx) {
   // one: common.reveal_solution enforces "only once the game is over for
   // everyone", so a player who dropped out can't spoil a live race.
   const handleReveal = useCallback(async () => {
-    const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', `Reveal failed: ${error.message}`))
+    const bad = await callRpc(commonDb, 'reveal_solution', { target_game: gameId })
+    if (bad) showLocalFeedback(bad)
   }, [gameId, showLocalFeedback])
 
   // ─── End / Concede / Replay — the shared trio ──────────

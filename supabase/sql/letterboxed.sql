@@ -610,8 +610,9 @@ begin
     -- compete Start button in 1-player clubs; this is the server-side
     -- catch. Matches psychicnum + connections.
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'compete mode requires at least 2 players'
-        using errcode = 'P0001';
+      raise exception 'too-few-players|'
+        using errcode = 'P0001',
+      detail = 'compete needs >= 2 players';
     end if;
   end if;
 
@@ -620,8 +621,9 @@ begin
   -- ─── Validate setup ──────────────────────────────────────
   s_extra_words := coalesce((setup->>'extra_words')::int, 3);
   if s_extra_words < 0 or s_extra_words > 5 then
-    raise exception 'setup.extra_words must be 0..5 (got %)', s_extra_words
-      using errcode = 'P0001';
+    raise exception 'bad-extra-words|%|', s_extra_words
+      using errcode = 'P0001',
+      detail = 'setup.extra_words must be 0..5';
   end if;
   -- PAR = 2 on every board this pipeline builds (see the header). Resolved
   -- here rather than stored as a `par` column, which would be a constant
@@ -630,8 +632,9 @@ begin
 
   s_legal_band := coalesce((setup->>'legal_band')::int, 5);
   if s_legal_band < 1 or s_legal_band > 6 then
-    raise exception 'setup.legal_band must be 1..6 (got %)', s_legal_band
-      using errcode = 'P0001';
+    raise exception 'bad-legal-band|%|', s_legal_band
+      using errcode = 'P0001',
+      detail = 'setup.legal_band must be 1..6';
   end if;
 
   perform common.require_valid_timer(setup->'timer');
@@ -639,19 +642,22 @@ begin
   -- ─── Validate the board ──────────────────────────────────
   b_sides := board->>'sides';
   if b_sides is null or b_sides !~ '^[a-z]{12}$' then
-    raise exception 'board.sides must be 12 lowercase ASCII letters (got %)',
+    raise exception 'bad-sides|%|',
                     coalesce(b_sides, 'null')
-      using errcode = 'P0001';
+      using errcode = 'P0001',
+      detail = 'board.sides must be 12 lowercase ASCII letters';
   end if;
   -- Letter Boxed never repeats a letter: the board is a SET of twelve.
   if (select count(distinct c) from regexp_split_to_table(b_sides, '') c) <> 12 then
-    raise exception 'board.sides must be twelve DISTINCT letters (got %)', b_sides
-      using errcode = 'P0001';
+    raise exception 'repeated-side-letter|%|', b_sides
+      using errcode = 'P0001',
+      detail = 'board.sides must be twelve DISTINCT letters';
   end if;
 
   if jsonb_typeof(board->'playable_words') <> 'array' then
-    raise exception 'board.playable_words must be an array'
-      using errcode = 'P0001';
+    raise exception 'bad-playable-words|'
+      using errcode = 'P0001',
+      detail = 'board.playable_words must be a jsonb array';
   end if;
   b_words := board->'playable_words';
   -- The richness floor. A board with too few findable words is a
@@ -660,9 +666,10 @@ begin
   -- measured 25th percentile is 210+ at every band, so this trims only
   -- the thin tail — the edge function's gate must agree.
   if jsonb_array_length(b_words) < 150 then
-    raise exception 'board.playable_words must hold >= 150 words (got %); the edge function''s gate must agree',
+    raise exception 'too-few-playable-words|%|',
                     jsonb_array_length(b_words)
-      using errcode = 'P0001';
+      using errcode = 'P0001',
+      detail = 'board.playable_words must hold >= 150; the edge function''s gate must agree';
   end if;
 
   -- ─── The winnability invariant ───────────────────────────
@@ -670,25 +677,29 @@ begin
   -- SOLVED, which is the promise the seed pipeline exists to keep.
   b_solution := array(select jsonb_array_elements_text(board->'solution'));
   if cardinality(b_solution) <> 2 then
-    raise exception 'board.solution must hold exactly 2 words'
-      using errcode = 'P0001';
+    raise exception 'bad-solution-length|'
+      using errcode = 'P0001',
+      detail = 'board.solution must hold exactly 2 words';
   end if;
   sol_a := b_solution[1];
   sol_b := b_solution[2];
 
   if not (b_words ? sol_a) or not (b_words ? sol_b) then
-    raise exception 'board.solution words must both appear in playable_words'
-      using errcode = 'P0001';
+    raise exception 'solution-unplayable|'
+      using errcode = 'P0001',
+      detail = 'both solution words must appear in playable_words';
   end if;
   if right(sol_a, 1) <> left(sol_b, 1) then
-    raise exception 'board.solution must chain: % ends in "%", % starts with "%"',
+    raise exception 'solution-unchained|%|%|%|%|',
                     sol_a, right(sol_a, 1), sol_b, left(sol_b, 1)
-      using errcode = 'P0001';
+      using errcode = 'P0001',
+      detail = 'board.solution must chain: word_a''s last letter is word_b''s first';
   end if;
   if letterboxed._covered(b_solution) <> 12 then
-    raise exception 'board.solution must cover all twelve letters (covers %)',
+    raise exception 'solution-uncovered|%|',
                     letterboxed._covered(b_solution)
-      using errcode = 'P0001';
+      using errcode = 'P0001',
+      detail = 'board.solution must cover all twelve letters';
   end if;
 
   -- ─── Title ───────────────────────────────────────────────
@@ -719,8 +730,9 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'setup.first_turn_user_id must be one of the players'
-        using errcode = 'P0001';
+      raise exception 'bad-first-turn|'
+        using errcode = 'P0001',
+      detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
   end if;
@@ -775,10 +787,12 @@ begin
 
   select * into g_row from letterboxed.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no letterboxed.games row for target_game';
   end if;
   if (select is_terminal from common.games where id = target_game) then
-    raise exception 'game already ended' using errcode = 'P0001';
+    raise exception 'already-ended|' using errcode = 'P0001',
+      detail = 'common.games.play_state is terminal';
   end if;
 
   -- A conceded player's chain is frozen. The FE already disables the board
@@ -788,7 +802,8 @@ begin
   -- branch below would crown them. A drop-out forfeits (strands' ruling).
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this compete race';
   end if;
 
   -- No-op when the game isn't turn-based (the pointer is null).
@@ -796,16 +811,18 @@ begin
 
   v_word := lower(trim(submitted));
   if v_word !~ '^[a-z]{3,}$' then
-    raise exception 'a word must be at least three letters'
-      using errcode = 'P0001';
+    raise exception 'word-too-short|'
+      using errcode = 'P0001',
+      detail = 'a word must be at least three letters';
   end if;
 
   -- One membership test covers the dictionary, the board's letters AND
   -- the same-side rule: playable_words is exactly the set of words that
   -- satisfy all three, computed once when the board was built.
   if not (g_row.playable_words ? v_word) then
-    raise exception '% cannot be played on this board', upper(v_word)
-      using errcode = 'P0001';
+    raise exception 'unplayable-board|%|', upper(v_word)
+      using errcode = 'P0001',
+      detail = 'word is absent from playable_words (dictionary, letters or side rule)';
   end if;
 
   -- In coop every row holds the same chain, so the caller's own row is
@@ -816,21 +833,24 @@ begin
    for update;
 
   if cardinality(v_chain) >= g_row.max_words then
-    raise exception 'the chain is full at % words — undo to try another route',
+    raise exception 'chain-full|%|',
                     g_row.max_words
-      using errcode = 'P0001';
+      using errcode = 'P0001',
+      detail = 'the chain is already at max_words';
   end if;
 
   if v_word = any(v_chain) then
-    raise exception '% is already in the chain', upper(v_word)
-      using errcode = 'P0001';
+    raise exception 'already-in-chain|%|', upper(v_word)
+      using errcode = 'P0001',
+      detail = 'a repeat is a no-op loop';
   end if;
 
   if cardinality(v_chain) > 0 then
     v_tail := right(v_chain[cardinality(v_chain)], 1);
     if left(v_word, 1) <> v_tail then
-      raise exception 'the next word must start with %', upper(v_tail)
-        using errcode = 'P0001';
+      raise exception 'wrong-tail|%|', upper(v_tail)
+        using errcode = 'P0001',
+      detail = 'the next word must start with the chain tail''s last letter';
     end if;
   end if;
 
@@ -951,16 +971,19 @@ begin
 
   select * into g_row from letterboxed.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no letterboxed.games row for target_game';
   end if;
   if (select is_terminal from common.games where id = target_game) then
-    raise exception 'game already ended' using errcode = 'P0001';
+    raise exception 'already-ended|' using errcode = 'P0001',
+      detail = 'common.games.play_state is terminal';
   end if;
 
   -- Same guard as submit_word: a conceded player's chain is frozen.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this compete race';
   end if;
 
   perform common._require_turn(target_game, caller_id);
@@ -971,7 +994,8 @@ begin
    for update;
 
   if coalesce(cardinality(v_chain), 0) = 0 then
-    raise exception 'there is nothing to undo' using errcode = 'P0001';
+    raise exception 'nothing-to-undo|' using errcode = 'P0001',
+      detail = 'the chain is empty';
   end if;
 
   v_popped := v_chain[cardinality(v_chain)];
@@ -1018,21 +1042,25 @@ begin
 
   select * into g_row from letterboxed.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no letterboxed.games row for target_game';
   end if;
   if (select is_terminal from common.games where id = target_game) then
-    raise exception 'game already ended' using errcode = 'P0001';
+    raise exception 'already-ended|' using errcode = 'P0001',
+      detail = 'common.games.play_state is terminal';
   end if;
 
   -- Same guard as submit_word: a conceded player's chain is frozen.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this compete race';
   end if;
 
   if (select current_turn_user_id from common.games where id = target_game) is not null then
-    raise exception 'clear is not available in turn-by-turn co-op — undo instead'
-      using errcode = 'P0001';
+    raise exception 'clear-not-in-turns|'
+      using errcode = 'P0001',
+      detail = 'turn-by-turn coop offers undo, not clear';
   end if;
 
   if g_row.mode = 'coop' then
@@ -1085,16 +1113,20 @@ begin
 
   select * into g_row from letterboxed.games where id = target_game;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no letterboxed.games row for target_game';
   end if;
   if g_row.mode <> 'coop' then
-    raise exception 'help is not available in compete' using errcode = 'P0001';
+    raise exception 'help-not-in-compete|' using errcode = 'P0001',
+      detail = 'hint/spoiler would be a win button in a race';
   end if;
   if kind not in ('hint', 'spoiler') then
-    raise exception 'kind must be hint or spoiler (got %)', kind using errcode = 'P0001';
+    raise exception 'bad-help-kind|%|', kind using errcode = 'P0001',
+      detail = 'log_help kind must be hint or spoiler';
   end if;
   if (select is_terminal from common.games where id = target_game) then
-    raise exception 'game already ended' using errcode = 'P0001';
+    raise exception 'already-ended|' using errcode = 'P0001',
+      detail = 'common.games.play_state is terminal';
   end if;
 
   -- Per-PLAYER, even in coop where the chain is shared: this counts who
@@ -1147,7 +1179,8 @@ begin
 
   select * into g_row from letterboxed.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no letterboxed.games row for target_game';
   end if;
   if (select is_terminal from common.games where id = target_game) then
     return;   -- already over; a late timer tick is a no-op
@@ -1258,7 +1291,8 @@ begin
 
   select * into g_row from letterboxed.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no letterboxed.games row for target_game';
   end if;
   if (select is_terminal from common.games where id = target_game) then
     return;
@@ -1334,7 +1368,8 @@ begin
   -- in-flight game-ENDING move re-terminalling the board just reset.
   select * into g_row from letterboxed.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no letterboxed.games row for target_game';
   end if;
 
   update letterboxed.players

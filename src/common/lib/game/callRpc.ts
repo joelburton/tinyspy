@@ -40,7 +40,9 @@ export function actionName(rpc: string): string {
   return ACTION[rpc] ?? rpc.replace(/_/g, ' ')
 }
 
-/** The `{ error }` shape every supabase call resolves to. */
+/** The `{ error }` shape every supabase call resolves to. Structural and
+ *  minimal — a schema-scoped client's `rpc` returns a builder with far more on
+ *  it, and only the error is needed here. */
 type CallResult = { error: { message?: string; code?: string } | null }
 
 /**
@@ -60,12 +62,15 @@ type CallResult = { error: { message?: string; code?: string } | null }
  *
  * Returns `null` on success, so the call site reads as a guard.
  */
-export async function callRpc<A extends object>(
-  db: { rpc: (fn: never, args: A) => PromiseLike<CallResult> },
-  fn: string,
+export async function callRpc<F extends string, A extends object>(
+  // Generic over the FUNCTION NAME so each game's schema-typed `db`
+  // (`supabase.schema('letterboxed')`) satisfies it — the same structural trick
+  // manifestRpcs.ts uses, and the reason this isn't typed against one client.
+  db: { rpc: (fn: F, args: A) => PromiseLike<CallResult> },
+  fn: F,
   args: A,
 ): Promise<GenericFeedbackMsg | null> {
-  const { error } = await db.rpc(fn as never, args)
+  const { error } = await db.rpc(fn, args)
   if (!error) return null
   return failureMessage(error, actionName(fn))
 }

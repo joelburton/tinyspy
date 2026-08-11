@@ -112,21 +112,21 @@ select is(
 select throws_ok(
   format('select letterboxed.submit_word(%L, %L)', (select id from g), 'zzz'),
   'P0001',
-  'ZZZ cannot be played on this board',
+  'unplayable-board|ZZZ|',
   'a word outside playable_words is refused'
 );
 
 select throws_ok(
   format('select letterboxed.submit_word(%L, %L)', (select id from g), 'ila'),
   'P0001',
-  'the next word must start with G',
+  'wrong-tail|G|',
   'THE CHAIN RULE: the next word must start with the tail letter'
 );
 
 select throws_ok(
   format('select letterboxed.submit_word(%L, %L)', (select id from g), 'ad'),
   'P0001',
-  'a word must be at least three letters',
+  'word-too-short|',
   'two letters is below the floor'
 );
 
@@ -139,7 +139,7 @@ select lives_ok(
 select throws_ok(
   format('select letterboxed.submit_word(%L, %L)', (select id from g), 'gjb'),
   'P0001',
-  'GJB is already in the chain',
+  'already-in-chain|GJB|',
   'a repeat is a no-op loop and is refused'
 );
 
@@ -210,7 +210,7 @@ select is(
 select throws_ok(
   format('select letterboxed.submit_word(%L, %L)', (select id from g), 'adg'),
   'P0001',
-  'game already ended',
+  'already-ended|',
   'no further moves once it is over'
 );
 
@@ -281,7 +281,7 @@ select letterboxed.submit_word((select id from gt), 'gjb');
 select throws_ok(
   format('select letterboxed.submit_word(%L, %L)', (select id from gt), 'beh'),
   'P0001',
-  'the chain is full at 2 words — undo to try another route',
+  'chain-full|2|',
   'a full chain refuses a further word'
 );
 

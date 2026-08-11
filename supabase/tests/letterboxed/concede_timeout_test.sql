@@ -56,21 +56,21 @@ select letterboxed.concede((select id from ga));
 select throws_ok(
   format('select letterboxed.submit_word(%L, %L)', (select id from ga), 'kcf'),
   'P0001',
-  'you have conceded',
+  'you-conceded|',
   'a conceded player cannot submit a word'
 );
 
 select throws_ok(
   format('select letterboxed.undo_word(%L)', (select id from ga)),
   'P0001',
-  'you have conceded',
+  'you-conceded|',
   'a conceded player cannot undo'
 );
 
 select throws_ok(
   format('select letterboxed.clear_chain(%L)', (select id from ga)),
   'P0001',
-  'you have conceded',
+  'you-conceded|',
   'a conceded player cannot clear'
 );
 

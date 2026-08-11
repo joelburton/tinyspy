@@ -46,8 +46,28 @@ export type ErrorCopyEntry = {
 }
 
 /**
- * The table. Empty until each game is converted — during the migration every
- * unconverted message falls through to the fault path, which is the intended
- * "visibly broken while we work" state.
+ * The table. Games are converted one at a time; anything not yet converted
+ * falls through to the fault path, which is the intended "visibly broken while
+ * we work" state.
  */
-export const ERROR_COPY: Record<string, ErrorCopyEntry> = {}
+export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
+  // ── letterboxed ──
+  // Its coop chain is SHARED and free-for-all, so a teammate's word can land
+  // between your local check and your submit. These four are that race — you
+  // made a legal move and lost it — which is the only way a letterboxed player
+  // reaches the server's validation at all. Every other raise in that file
+  // re-checks something `rejectReason` already refused locally, so it can't be
+  // reached without a broken client and is deliberately absent here.
+  //
+  // The words are `rejectReason`'s own, verbatim: the same rule arriving by a
+  // different route must not be described differently.
+  'chain-full': { text: () => 'Chain is full' },
+  'already-in-chain': { text: () => 'Already played' },
+  'wrong-tail': { text: (d) => `Must start with ${d[0]}` },
+  // Not a failure — news. A teammate finished, conceded the group out, or the
+  // clock ran out while your word was in flight; `info` says "this is what
+  // happened" rather than "you did something wrong".
+  'already-ended': { text: () => 'Game over', tone: 'info' },
+  // Undo is likewise racy in coop: two players can undo the same last word.
+  'nothing-to-undo': { text: () => 'Nothing to undo' },
+}

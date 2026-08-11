@@ -13,6 +13,7 @@
  * needed; everything else renders for real.
  */
 import { act, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
@@ -281,5 +282,56 @@ describe('letterboxed PlayArea — the accept list is wider than the hint list',
     askHint(ctx)
     expect(screen.queryByText('No word starts with C')).toBeNull()
     expect(screen.getByText('No winning path from here')).toBeInTheDocument()
+  })
+})
+
+/**
+ * The server-key path, end to end: a rejection leaves SQL as a machine key and
+ * arrives on screen as words written in TypeScript.
+ *
+ * Driven through UNDO: one RPC, reachable mid-game from the chain strip's ×.
+ * The submit path runs the same `callRpc`, but reaching it means getting a word
+ * past `rejectReason` first — a different test's job.
+ */
+describe('letterboxed PlayArea — server keys become player copy', () => {
+  /** Take back the last word and have the server refuse it. Undo is used
+   *  rather than Reveal because it's reachable MID-GAME: at terminal the
+   *  verdict pill owns the slot by priority (localPills.ts) and would hide
+   *  whatever we're asserting. */
+  async function undoWith(error: { message: string; code: string }) {
+    rpc.mockResolvedValue({ error })
+    h.result = loaded(loadedGame())
+    h.result.myRow = { ...myRow, chain: ['bad'] }
+    h.result.playerRows = [h.result.myRow]
+    const user = userEvent.setup()
+    render(<PlayArea {...makeCtx()} />)
+    await user.click(screen.getByRole('button', { name: 'Take back BAD' }))
+  }
+
+  it('a key WITH copy shows the TypeScript words, never the key', async () => {
+    await undoWith({ message: 'already-ended|', code: 'P0001' })
+    expect(screen.getByText('Game over')).toBeInTheDocument()
+    expect(screen.queryByText(/already-ended/)).toBeNull()
+  })
+
+  it('...and as a normal pill, because it was anticipated', async () => {
+    await undoWith({ message: 'already-ended|', code: 'P0001' })
+    expect(screen.getByText('Game over').closest('[class*="fault"]')).toBeNull()
+  })
+
+  it('a key with NO copy shows raw, as a fault — nobody wrote words for it', async () => {
+    // `game-not-found` is unreachable in normal play, so it has no entry. The
+    // action name comes from the FE, which is the only side that knows it.
+    await undoWith({ message: 'game-not-found|', code: 'P0002' })
+    const shown = screen.getByText('undo|game-not-found|')
+    expect(shown.closest('[class*="fault"]')).not.toBeNull()
+  })
+
+  it('a transport failure never shows the browser wording', async () => {
+    // A rejected fetch arrives with no SQLSTATE; postgrest-js puts the
+    // browser's opaque phrasing in `message`, which is worthless to a player.
+    await undoWith({ message: 'TypeError: Load failed', code: '' })
+    expect(screen.getByText('undo: Server; try refresh')).toBeInTheDocument()
+    expect(screen.queryByText(/TypeError/)).toBeNull()
   })
 })

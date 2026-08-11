@@ -65,7 +65,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format('select letterboxed.submit_word(%L, %L)', (select id from g), 'zzz'),
   'P0001',
-  'ZZZ cannot be played on this board',
+  'unplayable-board|ZZZ|',
   'turns: an unplayable word is refused'
 );
 reset role;
@@ -107,7 +107,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format('select letterboxed.clear_chain(%L)', (select id from g)),
   'P0001',
-  'clear is not available in turn-by-turn co-op — undo instead',
+  'clear-not-in-turns|',
   'turns: clear is refused (it would undercut undo''s per-turn pricing)'
 );
 

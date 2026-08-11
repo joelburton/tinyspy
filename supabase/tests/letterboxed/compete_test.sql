@@ -97,7 +97,7 @@ select is(
 select throws_ok(
   format('select letterboxed.submit_word(%L, %L)', (select id from g), 'gjb'),
   'P0001',
-  'game already ended',
+  'already-ended|',
   'no further moves once it is over'
 );
 
