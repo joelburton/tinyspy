@@ -122,10 +122,26 @@ refused my move"** from **"the app is broken"** before anyone reads a word. The
 whole point of the split is remote diagnosis, since most reports arrive as a
 phone call rather than a console.
 
-- **Nothing authors a fault by hand.** `GenericFeedbackMsg.fault` is set only by
-  [`failureMessage`](../src/common/lib/game/serverError.ts), and it's what's
-  left when no copy exists for whatever came back — see
+- **Nothing authors a fault by hand.** `GenericFeedbackMsg.fault` is set only
+  inside [`serverError.ts`](../src/common/lib/game/serverError.ts) — by
+  `failureMessage` when no copy exists for whatever came back, and by
+  `faultMessage` on a **fault surface** (below) — see
   [supabase.md → Server errors](supabase.md#server-errors-the-server-raises-a-key-typescript-owns-the-words).
+- **Look and words are independent axes.** The *surface* decides pill vs
+  fault; the copy table decides only the words. A pill is the game talking
+  about **play** — a local rejection, or a server race a player can genuinely
+  lose ("Already played", "Not your turn", an End/Concede/Restart arriving
+  second). An action with no ordinary way to fail is a **fault surface**: the
+  in-game "New game" button, in every game (its setup already built a game
+  once, so anything that comes back is a bug or an outage). There
+  `faultMessage` renders EVERY failure with the fault look — wearing the
+  copy's sentence when one exists ("No words for those letters"), the raw
+  `action|key|` shape otherwise, always `error`-toned (a fault is never news)
+  and always logged.
+- **Planned follow-up: the fault MODAL** (docs/edge-fn-error-keys-plan.md →
+  Follow-up round): faults move out of the below-board slot into a modal —
+  room for the full message, and "did a box pop up?" is even easier to answer
+  down a phone line. Faults only; pills and form validation stay put.
 - **It keeps the pill's box metrics** — same padding, same single nowrap line —
   so swapping one for the other can't change the reserved slot's height and
   shift the board.

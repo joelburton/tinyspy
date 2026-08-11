@@ -492,6 +492,40 @@ saying "Not your turn" is the game working, and logging it would bury the
 faults. A transport failure gets two `[db]` lines by design — `dbFetch` reports
 the request (path, elapsed, online), `logFault` reports what the player saw.
 
+### Edge functions speak the same language (fe-error-keys)
+
+The `key|detail1|detail2|` format is called an **fe-error-key**, and as of
+2026-08-12 **every edge function returns its errors as one** — the same
+contract SQL raises follow, extended over the second server surface:
+
+- The envelope is `{ error: '<fe-error-key>', code?: '<SQLSTATE>' }` with the
+  usual HTTP statuses. `code` is present whenever the error came from the DB
+  (the create_game / context-RPC relays pass it through), restoring what
+  functions-js strips in transit.
+- Each function's catch-all wraps as `edge-internal|<message>|`
+  (`_shared/http.ts → edgeInternal`), so even a crash comes back key-shaped —
+  which makes a NON-key, codeless failure provably environmental.
+- The FE consumes every edge function through **`callEdgeFn`**
+  (`common/lib/supabase/callEdgeFn.ts`), never a raw
+  `supabase.functions.invoke`: it does the read-once body unwrap, relays
+  `code`, and sets `answered: true` when the function actually spoke — the
+  marker that keeps a server's answer out of the transport bucket
+  ("Server; try refresh" may only ever describe a request that died in
+  transit).
+- **A rule saying "no" is still an ANSWER, not an error** — crosswords'
+  explain-clue returns `{ reason: 'unsolved' }` on a 200 and the FE narrates
+  it; that shape is preferred over minting a key wherever it fits.
+- Guarded by [`edgeFnErrorKeys.test.ts`](../src/edgeFnErrorKeys.test.ts):
+  every `json({ error: … })` literal must be key-shaped; non-literal values
+  need a per-expression justification (never a per-file exemption).
+  [`serverErrorKeys.test.ts`](../src/serverErrorKeys.test.ts) collects keys
+  from BOTH sources, so edge-only keys with copy aren't orphans.
+- **Fault surfaces vs pill surfaces**: gameplay actions classify via
+  `failureMessage` (expected keys → pills); actions with no ordinary way to
+  fail — the in-game "New game" button on every game — go through
+  `faultMessage`, which always renders the fault look, wearing the copy's
+  words when they exist (docs/ui.md → Faults).
+
 ## RLS & grants
 
 The philosophy is in [CLAUDE.md → Trust model](../CLAUDE.md) and

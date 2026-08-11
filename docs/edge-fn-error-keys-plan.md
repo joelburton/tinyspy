@@ -1,5 +1,12 @@
 # Edge-function fe-error-keys — conversion plan (2026-08-12)
 
+**STATUS: conversion COMPLETE, same day — all thirteen functions done, the
+guard's left-to-do list is empty, durable rules recorded in docs/supabase.md →
+"Edge functions speak the same language" and docs/ui.md → Faults.** What
+remains live in this doc: the fault-MODAL follow-up round (below), and the
+scrabble-suggest display question deferred to it. Delete the rest of this doc
+whenever convenient.
+
 A working document (delete once worked; durable rules land in
 docs/supabase.md → Server errors). Agreed with Joel 2026-08-12, following the
 server-error-keys branch review (docs/server-error-keys-review.md).
