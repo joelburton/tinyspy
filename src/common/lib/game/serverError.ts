@@ -84,13 +84,22 @@ export type CallError = { message?: string; code?: string } | null | undefined
  */
 export function classifyFailure(error: CallError): Failure {
   const message = error?.message ?? ''
+  // The KEY is checked before the SQLSTATE, and the order is load-bearing.
+  // A key that travels through an EDGE FUNCTION loses its code on the way:
+  // functions-js reports its own error and the real one is dug back out of the
+  // response body by `unwrapEdgeFnError`, which recovers the message and
+  // nothing else. Testing `code` first would file every one of those — every
+  // failed New game — as a transport failure. Prose can't parse as a key, so
+  // looking here first costs nothing.
+  const parsed = parseServerKey(message)
+  if (parsed) {
+    return ERROR_COPY[parsed.key]
+      ? { kind: 'expected', key: parsed.key, details: parsed.details }
+      : { kind: 'fault', raw: message }
+  }
   if (!error?.code) {
     const offline = typeof navigator !== 'undefined' && navigator.onLine === false
     return { kind: 'transport', cause: offline ? 'Offline' : 'Server' }
-  }
-  const parsed = parseServerKey(message)
-  if (parsed && ERROR_COPY[parsed.key]) {
-    return { kind: 'expected', key: parsed.key, details: parsed.details }
   }
   return { kind: 'fault', raw: message }
 }

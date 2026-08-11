@@ -259,7 +259,7 @@ select is(
 select throws_ok(
   format($$ select spellingbee.submit_word(%L::uuid, 'face', 1, false, false) $$, (select id from compete_g)),
   'P0001',
-  'game is not in progress',
+  'game-not-in-play|',
   'post-terminal submit_word raises P0001'
 );
 
@@ -378,7 +378,7 @@ select is(
 select throws_ok(
   format($$ select spellingbee.submit_timeout(%L::uuid) $$, (select id from timeout_g)),
   'P0001',
-  'game is not in progress',
+  'game-not-in-play|',
   'submit_timeout: second call raises P0001 (idempotent at the FE-swallow layer)'
 );
 
@@ -450,7 +450,7 @@ select is(
 select throws_ok(
   format($$ select spellingbee.end_game(%L::uuid) $$, (select id from end_g)),
   'P0001',
-  'game is not in progress',
+  'game-not-in-play|',
   'end_game: second call raises P0001 (idempotent at the FE-swallow layer)'
 );
 

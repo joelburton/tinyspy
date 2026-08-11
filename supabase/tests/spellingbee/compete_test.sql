@@ -168,7 +168,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select throws_ok(
   format($$ select spellingbee.submit_word(%L::uuid, 'face', 1, false, false) $$, (select id from g)),
   'P0001',
-  'game is not in progress',
+  'game-not-in-play|',
   'compete: post-win opponent submit is rejected'
 );
 

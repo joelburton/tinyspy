@@ -1,3 +1,4 @@
+import { failureText } from '../../lib/game/serverError'
 import { Suspense, useState } from 'react'
 import { MODE_LABEL, type GameManifest, type Member, type RichMessage as RichMessageType } from '../../lib/games'
 import { FloatingPanel } from '../panels/FloatingPanel'
@@ -180,7 +181,18 @@ export function SetupGameDialog({
     const result = await manifest.startGameInClub(clubHandle, setup, playerUserIds)
     if ('error' in result) {
       setBusy(false)
-      setError(result.error)
+      // `startGameInClub` returns a bare STRING — the build-board edge function
+      // strips the SQLSTATE on the way out (see classifyFailure), so the key is
+      // all that survives. `failureText` reads it anyway, which is how a real
+      // setup rejection like `no-required-words|` becomes a sentence instead of
+      // the raw key.
+      // A RichMessage is already frontend-authored (a manifest builds it for
+      // its own reasons), so only a raw string goes through the classifier.
+      setError(
+        typeof result.error === 'string'
+          ? failureText({ message: result.error }, 'new game')
+          : result.error,
+      )
       return
     }
     // Don't bother clearing `busy` — we're about to unmount.

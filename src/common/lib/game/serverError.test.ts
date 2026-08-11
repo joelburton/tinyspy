@@ -120,3 +120,37 @@ describe('failureMessage', () => {
     spy.mockRestore()
   })
 })
+
+/**
+ * The EDGE-FUNCTION path, found while converting spellingbee: a key raised by
+ * SQL inside a build-board function arrives at the frontend with its SQLSTATE
+ * stripped. functions-js reports its own generic error and the real one is dug
+ * out of the response body by `unwrapEdgeFnError`, which recovers the message
+ * and nothing else.
+ *
+ * Every "New game" failure takes that path, so getting it wrong would file all
+ * of them as transport failures — "new game: Server; try refresh" on a board
+ * the server refused for a reason it had stated precisely.
+ */
+describe('classifyFailure — a key that lost its SQLSTATE', () => {
+  it('is still EXPECTED when the key has copy, code or no code', () => {
+    withCopy('no-required-words', { text: () => 'No words for those letters' })
+    expect(classifyFailure({ message: 'no-required-words|' })).toEqual({
+      kind: 'expected', key: 'no-required-words', details: [],
+    })
+    expect(classifyFailure({ message: 'no-required-words|', code: '' })).toEqual({
+      kind: 'expected', key: 'no-required-words', details: [],
+    })
+  })
+
+  it('is a FAULT, not transport, when the key has no copy', () => {
+    // The distinction that matters: the server DID answer. Calling it transport
+    // would tell the player to check their connection over a rule decision.
+    expect(classifyFailure({ message: 'bad-outer-letters|7|', code: '' }))
+      .toEqual({ kind: 'fault', raw: 'bad-outer-letters|7|' })
+  })
+
+  it('still calls a genuinely codeless NON-key transport', () => {
+    expect(classifyFailure({ message: 'TypeError: Load failed', code: '' }).kind).toBe('transport')
+  })
+})

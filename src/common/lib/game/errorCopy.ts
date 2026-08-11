@@ -89,6 +89,13 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   'bad-word': { text: () => 'A word is 1–45 lowercase letters' },
   'missing-difficulty': { text: () => 'Pick a difficulty' },
 
+  // ── spellingbee / wordwheel ──
+  // Custom letters are a player's own choice in the setup form, so this is a
+  // real answer to a real request — not a re-check of something the FE already
+  // refused. It arrives through the build-board EDGE FUNCTION, which is why
+  // classifyFailure reads the key before the SQLSTATE (serverError.ts).
+  'no-required-words': { text: () => 'No words for those letters — try others, or a lower band' },
+
   // ── letterboxed ──
   // Its coop chain is SHARED and free-for-all, so a teammate's word can land
   // between your local check and your submit. These four are that race — you
