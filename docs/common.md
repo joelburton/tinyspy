@@ -671,8 +671,8 @@ the kind decides the filter. This replaces "each game filters to its own taste":
 
 | tier | the filter | what it governs |
 |---|---|---|
-| **must-reach** — a word the game *makes* a player produce, or puts on screen as important | `slur = 0 AND crude = 0 AND slang = false AND american` | wordle's answer, wordiply's longest word, psychicnum's board, stackdown's six words, waffle's board, the required sets in spellingbee / wordwheel / boggle, wordiply's legal set (it also picks the showcased longest word) |
-| **may-enter** — a word a player *chooses* to type, scoring or not | anything: `slur` / `crude` / `slang` / dialect unrestricted, `difficulty` alone gates it | wordle's guesses, boggle's bonus list, spellingbee + wordwheel's legal sets, scrabble's `play_word`, bananagrams' board check |
+| **must-reach** — a word the game *makes* a player produce, or puts on screen as important | `slur = 0 AND crude = 0 AND slang = false AND american` | wordle's answer, wordiply's longest word, psychicnum's board, stackdown's six words, waffle's board, the required sets in spellingbee / wordwheel / boggle, wordiply's legal set (it also picks the showcased longest word), letterboxed's `clean_words` (what its hint may suggest) |
+| **may-enter** — a word a player *chooses* to type, scoring or not | anything: `slur` / `crude` / `slang` / dialect unrestricted, `difficulty` alone gates it | wordle's guesses, boggle's bonus list, spellingbee + wordwheel's legal sets, scrabble's `play_word`, bananagrams' board check, letterboxed's `playable_words` |
 
 A word the **app** produces follows the must-reach tier even when the equivalent
 player action is may-enter, because nobody chose it: scrabble's AI (both the
@@ -692,6 +692,17 @@ was missing `american` and `slang` on both branches (clean-filtering the curated
 NYT list drops 26 of 2315 — a deliberate ~1% divergence from the original), and
 stackdown's board generator was missing `slang`, which meant regenerating 92 of
 its 1204 pre-generated boards.
+
+A third turned up in play on 2026-08-10: **letterboxed had only one list**.
+`candidate_words` applied the must-reach filter in its `WHERE`, and the result
+served as the board pool, the hint search's corpus AND the accept list — so
+typing `BITCH` (band 1, `slur = 1`) was refused from the player's own keyboard.
+The fix is the shape this rule wants: gate the query on band and board shape
+alone, return purity as an `is_clean` flag (spellingbee's `is_required` by
+another name), store the wide list, and compute the clean subset back out in
+`games_state`. The failure mode to recognize is **one list doing two jobs** —
+if a game has a single word list and both tiers apply to it, one of them is
+wrong.
 
 **How a game uses it.** spellingbee defines its slice in `spellingbee.candidate_words`: legal = `difficulty ≤ 5`, required = `difficulty ≤ 3 AND american AND NOT slang AND slur = 0 AND crude = 0`, `len ≥ 4`. waffle picks a pre-generated puzzle whose hardest word is exactly the chosen band. Bands a game uses (or offers) are a per-game choice; the list itself holds every band.
 

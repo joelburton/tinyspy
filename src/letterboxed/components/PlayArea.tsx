@@ -234,9 +234,15 @@ export function PlayArea(ctx: GamePageCtx) {
   const askHelp = useCallback(
     (kind: 'hint' | 'spoiler') => {
       if (!game) return
+      // `cleanWords`, NOT `playableWords` — the accept list carries crude,
+      // slur, slang and dialect words because the PLAYER may type them, and a
+      // hint is the game speaking (docs/common.md → the word list's filter
+      // rule). Searching the accept list would let a spoiler answer "the word
+      // is BITCH", which is precisely the asymmetry the two tiers exist for.
+      //
       // The room left under the cap rides along so the search can refuse to
       // point down a road the cap cuts off (the offPar answer below).
-      const r = suggest(game.playableWords, sides, chain, maxWords - chain.length)
+      const r = suggest(game.cleanWords, sides, chain, maxWords - chain.length)
 
       if (!isSuggestion(r)) {
         // All three are DIAGNOSIS ONLY — none of them ends in "take a word
@@ -256,10 +262,21 @@ export function PlayArea(ctx: GamePageCtx) {
         // reading as a bug. A chain word starting with G means an earlier word
         // ended in G, which is ordinary play, not a corner case.
         const spentTail = tail !== null && chain.some((w) => w.startsWith(tail))
+        // `suggest` searched the CLEAN list, so its "stuck" means "no word I'd
+        // offer follows the tail" — which is not the same as "no legal move",
+        // now that the accept list is wider. Re-ask that question against the
+        // accept list, because "No word starts with G" is a claim about the
+        // RULES and would be a lie if a crude or dialect G-word is sitting
+        // there playable. When one is, the honest answer is the unreachable
+        // line: there's a move, just no route the hint can name.
+        const stuck =
+          r.kind === 'stuck' &&
+          !(tail !== null &&
+            game.playableWords.some((w) => w.startsWith(tail) && !chain.includes(w)))
         showLocalFeedback(
           stickyPill(
             'warning',
-            r.kind === 'stuck'
+            stuck
               // Naming the letter is the whole message: "no word starts with G"
               // is something the player can act on and remember, where "dead
               // end" only said that something was wrong. A null tail means an

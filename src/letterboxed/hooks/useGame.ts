@@ -25,9 +25,16 @@ export type LetterboxedGame = {
   /** Twelve letters in SIDE ORDER — positions 0-2 are one side, 3-5 the next,
    *  and so on. See lib/board.ts. */
   sides: string
-  /** Every word playable on this board. Shipped so the FE can reject a bad
-   *  word instantly, and (later) run the hint search locally. */
+  /** The ACCEPT list: every word a player may type on this board. Band-gated
+   *  only — crude / slur / slang / dialect words are all in here, because the
+   *  player chose to type them (docs/common.md → the word list's filter rule).
+   *  Shipped so the FE can reject a bad word instantly. */
   playableWords: string[]
+  /** The must-reach SUBSET of `playableWords` — what the hint search is allowed
+   *  to suggest, since a hint puts a word on screen. Computed by the
+   *  games_state view, so it tracks later dictionary edits without the board
+   *  being rebuilt. Never used to reject a move; that's `playableWords`. */
+  cleanWords: string[]
   /** The seeded two-word solution. Shipped from the start, RENDERED only at
    *  terminal — the board's own word list would give it away anyway, so
    *  hiding it server-side would guard nothing. */
@@ -111,7 +118,7 @@ export function useGame(gameId: string, selfId: string): {
     void (async () => {
       const { data } = await db
         .from('games_state')
-        .select('id, club_handle, mode, sides, playable_words, solution, max_words, legal_band, created_at')
+        .select('id, club_handle, mode, sides, playable_words, clean_words, solution, max_words, legal_band, created_at')
         .eq('id', gameId)
         .maybeSingle()
       if (!mounted) return
@@ -122,6 +129,7 @@ export function useGame(gameId: string, selfId: string): {
           mode: data.mode as 'coop' | 'compete',
           sides: data.sides as string,
           playableWords: (data.playable_words as string[]) ?? [],
+          cleanWords: (data.clean_words as string[]) ?? [],
           solution: (data.solution as string[]) ?? [],
           max_words: data.max_words as number,
           legal_band: data.legal_band as number,

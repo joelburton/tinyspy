@@ -359,9 +359,39 @@ No service role — the caller's JWT carries every signal, same as the siblings.
 more legal words means more escape routes off an awkward tail letter — median
 playable words per board runs **280 → 850 across bands 1 → 5**, a genuine 3×
 lever on how much room a player has. Same inversion strands' band has, and the
-schema comment says so because it's the mistake a future reader will make. The
-roster-standard clean filters apply (`crude = 0 AND slur = 0`, no slang,
-`american AND british`).
+schema comment says so because it's the mistake a future reader will make.
+
+### The two word lists
+
+Band is the ONLY filter on what a player may type. `candidate_words` gates on
+band, length, the board's letter set and the no-doubled-letter rule — nothing
+else — so `playable_words` holds crude, slur, slang and dialect-only words too.
+That's the may-enter tier ([common.md → the word list's filter
+rule](../common.md#the-word-list-commonwords)): a player typing `BITCH` (band 1, `slur = 1`)
+chose it, and the game has no business refusing it. It used to, until
+2026-08-10.
+
+What the game itself OFFERS is the must-reach tier, and that's `clean_words` —
+`american AND british AND crude = 0 AND slur = 0 AND NOT slang`, the subset the
+hint search reads. A hint puts a word on screen and a spoiler hands it over, so
+neither may draw from the wide list. Purity rides out of `candidate_words` as an
+`is_clean` flag (spellingbee's `is_required` under another name) and the board
+builder uses it to judge richness: **the ≥150 floor counts CLEAN words**, since
+a board is only as rich as what the hint can suggest, while the
+one-word-solvable re-roll tests the whole accept list (a board a player can
+finish in one typed word is trivial either way).
+
+`clean_words` is **computed by the `games_state` view, not stored** — no second
+column, so the shape migration stays applied-and-untouched, and it tracks the
+dictionary: re-flag a word as a slur in the editor and hints stop offering it on
+boards built months ago. The cost is one indexed join per game load, which
+happens once because the board header is immutable.
+
+One consequence worth keeping: `stuck` ("No word starts with G") is a claim
+about the RULES, so `PlayArea` re-tests it against `playable_words` after the
+clean search reports it. If a crude G-word is sitting there playable, the honest
+answer is "No winning path from here" — there IS a move, just none the hint can
+name.
 
 ---
 

@@ -220,15 +220,32 @@ grant execute on function letterboxed._covered_for(uuid, uuid) to authenticated;
 -- The FE's read path for a letterboxed game header. `security_invoker =
 -- true` so RLS on the base table evaluates as the caller.
 --
--- A PURE PASS-THROUGH, deliberately: `solution` is not gated to
+-- NOTHING IS GATED, deliberately: `solution` is not held back to
 -- terminal even though the FE only renders it there. Gating would guard
 -- nothing — playable_words ships from game start (the hint search needs
 -- it locally), and any two-word solution is a breadth-first search away
 -- from that list. The seeded pair is stored because it is the GETTABLE
--- one, not because it is secret. Every game's FE reads
--- `<schema>.games_state`, so the uniform seam is worth keeping even
--- when the view adds only `security_invoker`.
+-- one, not because it is secret.
 
+-- The one COMPUTED column: `clean_words` is the must-reach
+-- SUBSET of playable_words, computed on read rather than stored.
+--
+-- Stored playable_words is the ACCEPT list (band only — see
+-- candidate_words), and the hint search must not suggest out of it: a
+-- hint puts a word on screen, which is the must-reach tier. So the FE
+-- needs both, and the question is where the second list comes from.
+--
+-- Computing it here rather than storing a second column buys two things.
+-- It needs no DDL, so the game's shape migration stays applied-and-
+-- untouched (editing one in place never reaches prod — see CLAUDE.md).
+-- And it tracks the DICTIONARY: re-flag a word as a slur in the editor
+-- and hints stop offering it immediately, on boards built months ago,
+-- with nothing to regenerate.
+--
+-- The cost is one indexed join per game load, over the 580-6,600 words a
+-- board carries. That load happens ONCE per game by design (the board
+-- header is immutable, so useGame fetches it a single time), which is
+-- what makes a join affordable here and nowhere near the move loop.
 drop view if exists letterboxed.games_state;
 create view letterboxed.games_state with (security_invoker = true) as
 select
@@ -237,6 +254,11 @@ select
   g.mode,
   g.sides,
   g.playable_words,
+  (select coalesce(jsonb_agg(w.word), '[]'::jsonb)
+     from jsonb_array_elements_text(g.playable_words) as pw(word)
+     join common.words w on w.word = pw.word
+    where w.american and w.british
+      and w.crude = 0 and w.slur = 0 and not w.slang) as clean_words,
   g.solution,
   g.max_words,
   g.legal_band,
@@ -287,21 +309,44 @@ grant select on letterboxed.players_state to authenticated;
 -- playable on any board (a repeated letter is trivially same-side), and
 -- dropping them in SQL keeps the builder from shipping them into a
 -- board's playable_words by omission.
+--
+-- ─── The two tiers (docs/common.md → the word list's filter rule) ───
+-- The WHERE gates on band and on the board's shape ALONE. Purity rides
+-- along as `is_clean` instead, exactly the way spellingbee returns
+-- `is_required` — because the two tiers answer different questions:
+--
+--   may-enter  — a word the player CHOOSES to type. Band only: crude,
+--                slur, slang and dialect all unrestricted. This is the
+--                board's accept list.
+--   must-reach — a word the GAME puts in front of a player: the seeded
+--                solution, and anything the hint search can suggest.
+--                Clean, so we never hand someone a slur they didn't ask
+--                for.
+--
+-- This function used to apply the must-reach filter in its WHERE, which
+-- collapsed the tiers into one list and made the clean set do duty as
+-- the accept list too — so a band-1 word like BITCH (slur = 1) was
+-- refused from a human's own keyboard. The asymmetry is the point.
+-- The return type gained `is_clean`, and Postgres won't let a replace
+-- change a function's return type — so this file drops first. It stays:
+-- supabase/sql/ is re-applied IN FULL on every deploy, and a database
+-- still carrying the one-column version has to be able to catch up.
+drop function if exists letterboxed.candidate_words(bigint, int);
 create or replace function letterboxed.candidate_words(
   board_mask bigint,
   max_band int
 )
-returns table(word text)
+returns table(word text, is_clean boolean)
 language sql
 stable
 security definer
 set search_path = letterboxed, common, public, extensions
 as $$
-  select w.word
+  select w.word,
+         (w.american and w.british
+            and w.crude = 0 and w.slur = 0 and not w.slang) as is_clean
     from common.words w
    where w.difficulty <= max_band
-     and w.american and w.british
-     and w.crude = 0 and w.slur = 0 and not w.slang
      and w.len >= 3
      and (w.letter_mask & ~board_mask) = 0
      and w.word !~ '(.)\1';

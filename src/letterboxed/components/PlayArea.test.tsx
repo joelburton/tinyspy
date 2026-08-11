@@ -52,13 +52,22 @@ const myRow: PlayerRow = {
   solved_at: null,
 }
 
+/**
+ * A loaded board header. The two word lists are the two TIERS
+ * (docs/common.md → the word list's filter rule): `playableWords` is what a
+ * player may TYPE (band only), `cleanWords` is what the hint may SUGGEST.
+ * They're equal unless a test says otherwise, so only the tests about the
+ * asymmetry have to think about it.
+ */
 function loadedGame(over: Partial<LetterboxedGame> = {}): LetterboxedGame {
+  const playableWords = over.playableWords ?? ['bad', 'dig']
   return {
     id: 'g1',
     club_handle: 'testclub',
     mode: 'coop',
     sides: SIDES,
-    playableWords: ['bad', 'dig'],
+    playableWords,
+    cleanWords: playableWords,
     solution: ['bad', 'dig'],
     max_words: 5,
     ...over,
@@ -218,6 +227,59 @@ describe('letterboxed PlayArea — why there is no hint', () => {
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
     askHint(ctx)
+    expect(screen.getByText('No winning path from here')).toBeInTheDocument()
+  })
+})
+
+/**
+ * The two TIERS, which BITCH found the hard way: it's a band-1 word
+ * (`slur = 1`), so the old single-list board refused it from a player's own
+ * keyboard. Now the accept list is band-gated only and the hint search reads a
+ * clean subset — "we don't put a slur in front of you, and we don't stop you
+ * typing one" (docs/common.md → the word list's filter rule).
+ */
+describe('letterboxed PlayArea — the accept list is wider than the hint list', () => {
+  function askHint(ctx: GamePageCtx) {
+    act(() => menuItems(ctx).get('hint')?.onClick())
+  }
+
+  it('a word only the ACCEPT list has is never handed over by the SPOILER', () => {
+    // Asserted through the spoiler, not the hint: a hint prints a prefix, so it
+    // would hide a leak behind "6 letters starting with CDE". The spoiler prints
+    // the word — the surface where handing over a slur would actually show.
+    // CDEFGHIJKL is a ONE-WORD FINISH from here — the search's ideal answer,
+    // and the only one. It's in the accept list and not the clean list, so the
+    // spoiler must refuse rather than hand it over.
+    h.result = loaded(loadedGame({
+      playableWords: ['abc', 'cdefghijkl'],
+      cleanWords: ['abc'],
+      max_words: 5,
+    }))
+    h.result.myRow = { ...myRow, chain: ['abc'] }
+    h.result.playerRows = [h.result.myRow]
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    act(() => menuItems(ctx).get('spoiler')?.onClick())
+    expect(screen.queryByText('CDEFGHIJKL'), 'the spoiler handed over an unclean word').toBeNull()
+    // ...and says so, rather than silently doing nothing.
+    expect(screen.getByText('No winning path from here')).toBeInTheDocument()
+  })
+
+  it('"no word starts with C" is judged on the ACCEPT list, so it cannot lie', () => {
+    // The clean search sees nothing after C and would say "stuck" — but CDEFGH
+    // is right there, playable. Claiming no C-word exists would be false about
+    // the RULES, so the honest answer is that there's no route to offer.
+    h.result = loaded(loadedGame({
+      playableWords: ['abc', 'cdefgh'],
+      cleanWords: ['abc'],
+      max_words: 5,
+    }))
+    h.result.myRow = { ...myRow, chain: ['abc'] }
+    h.result.playerRows = [h.result.myRow]
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    askHint(ctx)
+    expect(screen.queryByText('No word starts with C')).toBeNull()
     expect(screen.getByText('No winning path from here')).toBeInTheDocument()
   })
 })

@@ -1705,6 +1705,7 @@ export type Database = {
     Views: {
       games_state: {
         Row: {
+          clean_words: Json | null
           club_handle: string | null
           created_at: string | null
           id: string | null
@@ -1716,6 +1717,7 @@ export type Database = {
           solution: string[] | null
         }
         Insert: {
+          clean_words?: never
           club_handle?: string | null
           created_at?: string | null
           id?: string | null
@@ -1727,6 +1729,7 @@ export type Database = {
           solution?: string[] | null
         }
         Update: {
+          clean_words?: never
           club_handle?: string | null
           created_at?: string | null
           id?: string | null
@@ -1807,6 +1810,7 @@ export type Database = {
       candidate_words: {
         Args: { board_mask: number; max_band: number }
         Returns: {
+          is_clean: boolean
           word: string
         }[]
       }

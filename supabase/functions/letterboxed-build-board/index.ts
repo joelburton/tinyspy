@@ -16,9 +16,12 @@
  *      words playable. Re-rolled per game, which is what lets one seed back
  *      many distinct-feeling boards.
  *   3. FETCH every word whose letters fit the board (candidate_words), then
- *      filter to those the partition actually permits.
- *   4. GATE on richness (>= 150 playable words) and on not being solvable in
- *      one word; re-roll from step 1 if either fails.
+ *      filter to those the partition actually permits. What's stored is the
+ *      ACCEPT list — band-gated only — because a player may type a crude or
+ *      dialect word the game would never itself offer; the clean subset the
+ *      hint search draws from is computed back out by the games_state view.
+ *   4. GATE on richness (>= 150 CLEAN playable words) and on the whole accept
+ *      list not being solvable in one word; re-roll from step 1 if either fails.
  *   5. HAND OFF to letterboxed.create_game, which re-validates everything —
  *      including that the seeded pair really does chain and cover the twelve.
  *
@@ -66,8 +69,10 @@ import {
 
 const FN = 'letterboxed-build-board'
 
-/** Minimum findable words for a board to be worth playing. Must agree with
- *  letterboxed.create_game's own gate, which is the server-side catch. The
+/** Minimum findable words for a board to be worth playing — counted over the
+ *  CLEAN subset, since that's what the hint search can suggest. Stricter than
+ *  letterboxed.create_game's own gate, which can only count the accept list it
+ *  is handed (clean >= 150 implies accept >= 150, so the two still agree). The
  *  measured 25th percentile is 210+ at every band, so this trims only the
  *  thin tail. */
 const MIN_PLAYABLE_WORDS = 150
@@ -129,15 +134,27 @@ async function attemptBoard(
     .rpc('candidate_words', { board_mask: letterMask(seed.letters), max_band: legalBand })
   if (candErr) throw new Error(`candidate_words failed: ${candErr.message}`)
 
-  const candidates = ((candRows as Array<{ word: string }> | null) ?? []).map((r) => r.word)
-  const playable = buildPlayableWords(candidates, sides)
+  // candidate_words gates on band + board shape only; purity rides along as
+  // `is_clean` (docs/common.md → the word list's filter rule). `playable_words`
+  // is therefore the ACCEPT list — everything a player may legally type here —
+  // while the clean subset is what the board is JUDGED on below.
+  const candRowsTyped = (candRows as Array<{ word: string; is_clean: boolean }> | null) ?? []
+  const cleanSet = new Set(candRowsTyped.filter((r) => r.is_clean).map((r) => r.word))
+  const playable = buildPlayableWords(candRowsTyped.map((r) => r.word), sides)
+  const cleanPlayable = playable.filter((w) => cleanSet.has(w))
 
-  if (playable.length < MIN_PLAYABLE_WORDS) {
+  // The richness floor is measured on the CLEAN set, not the accept list: a
+  // board is only as rich as what the hint search can actually offer, and the
+  // crude/slang tail would otherwise pad a thin board over the line.
+  if (cleanPlayable.length < MIN_PLAYABLE_WORDS) {
     console.log(
-      `${FN} re-roll: ${seed.letters} yields only ${playable.length} playable words`,
+      `${FN} re-roll: ${seed.letters} yields only ${cleanPlayable.length} clean playable words`,
     )
     return null
   }
+  // Solvability, by contrast, is judged on the WHOLE accept list: a board a
+  // player can finish in one typed word is trivial whether or not we'd have
+  // suggested that word.
   if (isOneWordSolvable(playable)) {
     console.log(`${FN} re-roll: ${seed.letters} is solvable in one word`)
     return null
@@ -145,7 +162,7 @@ async function attemptBoard(
 
   console.log(
     `${FN} board: sides=${sides} seed=${seed.word_a}/${seed.word_b} ` +
-      `band=${seed.difficulty} playable=${playable.length}`,
+      `band=${seed.difficulty} playable=${playable.length} clean=${cleanPlayable.length}`,
   )
   return { sides, playable_words: playable, solution: [seed.word_a, seed.word_b] }
 }
