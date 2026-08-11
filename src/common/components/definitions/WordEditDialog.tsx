@@ -84,8 +84,19 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
         .eq('word', request.word)
         .maybeSingle()
       if (!mounted) return
-      if (err || !data) {
+      if (err) {
         setError(failureText(err, 'dictionary'))
+        return
+      }
+      if (!data) {
+        // A successful query that found no row is an ANSWER, not a failure —
+        // another editor deleted the word between the popover and this Edit
+        // click. Domain copy, no classifier, no [db] log. (Feeding the null
+        // error to the classifier used to misfile this as transport:
+        // "dictionary: Server; try refresh" over a word that just isn't there.)
+        // Same words as ERROR_COPY's server-raised `no-such-word` entry — one
+        // fact, one sentence, whichever side states it.
+        setError(`No such word: ${request.word}`)
         return
       }
       const loaded: Fields = {
