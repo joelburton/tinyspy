@@ -33,6 +33,8 @@ const ACTION: Record<string, string> = {
   undo_word: 'undo',
   clear_chain: 'clear',
   log_help: 'help',
+  check_cells: 'check',
+  reveal_cells: 'reveal',
 }
 
 /** The player-facing name for an RPC or edge function. */

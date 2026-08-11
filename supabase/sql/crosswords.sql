@@ -302,7 +302,8 @@ begin
   perform common.require_club_member(target_club);
   perform common.require_valid_mode(mode);
   if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
-    raise exception 'compete needs at least 2 players' using errcode = 'P0001';
+    raise exception 'too-few-players|' using errcode = 'P0001',
+      detail = 'compete needs >= 2 players';
   end if;
   perform common.require_player_count_max(player_user_ids, 8);
   perform common.require_valid_timer(coalesce(setup -> 'timer', '{"kind":"none"}'::jsonb));
@@ -318,7 +319,8 @@ begin
     v_meta := board -> 'meta';
     v_solution := board -> 'solution';
     if v_meta is null or v_solution is null then
-      raise exception 'board must carry meta + solution' using errcode = 'P0001';
+      raise exception 'bad-board|' using errcode = 'P0001',
+      detail = 'the board blob needs both meta and solution';
     end if;
     v_puzzle_id := null;
   else
@@ -326,12 +328,14 @@ begin
     -- `returns table(id uuid)` OUT column shadows an unqualified `id`.)
     v_puzzle_id := nullif(setup ->> 'puzzle_id', '')::uuid;
     if v_puzzle_id is null then
-      raise exception 'setup.puzzle_id is required' using errcode = 'P0001';
+      raise exception 'missing-puzzle-id|' using errcode = 'P0001',
+      detail = 'setup.puzzle_id absent';
     end if;
     select p.meta, p.solution into v_meta, v_solution
       from crosswords.puzzles p where p.id = v_puzzle_id;
     if not found then
-      raise exception 'puzzle % not found', v_puzzle_id using errcode = 'P0001';
+      raise exception 'no-puzzle|%|', v_puzzle_id using errcode = 'P0001',
+      detail = 'no crosswords.puzzles row for that id; run the puzzle import';
     end if;
   end if;
 
@@ -431,11 +435,13 @@ begin
   select mode into v_mode from crosswords.games where id = target_game;
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
-    raise exception 'game is not in play' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
   if (select conceded from common.game_players
         where game_id = target_game and user_id = v_caller) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this compete race';
   end if;
   v_owner := case when v_mode = 'coop' then null else v_caller end;
 
@@ -448,7 +454,8 @@ begin
     -- check alone would persist. (An empty fill clears the cell — handled
     -- by the branch above.)
     if v_fill !~ '^[A-Z]{1,8}$' then
-      raise exception 'fill must be 1 to 8 letters' using errcode = 'P0001';
+      raise exception 'bad-fill|' using errcode = 'P0001',
+      detail = 'a cell fill is 1 to 8 letters';
     end if;
   end if;
   v_pencil := coalesce(p_pencil, false) and v_fill is not null;
@@ -462,7 +469,8 @@ begin
      and c.row = p_row and c.col = p_col
   returning c.version into v_version;
   if not found then
-    raise exception 'not an editable cell' using errcode = 'P0001';
+    raise exception 'cell-not-editable|' using errcode = 'P0001',
+      detail = 'that cell is a block or a given';
   end if;
 
   v_solved := crosswords._maybe_finish(target_game, v_owner, v_mode, v_caller);
@@ -506,17 +514,21 @@ begin
   select mode into v_mode from crosswords.games where id = target_game;
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
-    raise exception 'game is not in play' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
   if (select conceded from common.game_players
         where game_id = target_game and user_id = v_caller) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this compete race';
   end if;
   if p_side not in ('right', 'bottom') then
-    raise exception 'side must be right or bottom' using errcode = 'P0001';
+    raise exception 'bad-side|' using errcode = 'P0001',
+      detail = 'a mark''s side must be right or bottom';
   end if;
   if p_mark is not null and p_mark not in ('break', 'hyphen') then
-    raise exception 'mark must be break, hyphen, or null' using errcode = 'P0001';
+    raise exception 'bad-mark|' using errcode = 'P0001',
+      detail = 'mark must be break, hyphen or null';
   end if;
   v_owner := case when v_mode = 'coop' then null else v_caller end;
 
@@ -529,7 +541,8 @@ begin
      and c.row = p_row and c.col = p_col
   returning c.version into v_version;
   if not found then
-    raise exception 'not an editable cell' using errcode = 'P0001';
+    raise exception 'cell-not-editable|' using errcode = 'P0001',
+      detail = 'that cell is a block or a given';
   end if;
 
   return query select v_version;
@@ -566,13 +579,15 @@ begin
   select mode into v_mode from crosswords.games where id = target_game;
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
-    raise exception 'game is not in play' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
   -- A conceded compete player is out — no checking their (frozen) grid, same
   -- guard set_cell has (reveal_cells is coop-only, where nobody concedes).
   if (select conceded from common.game_players
         where game_id = target_game and user_id = v_caller) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this compete race';
   end if;
   v_owner := case when v_mode = 'coop' then null else v_caller end;
 
@@ -609,11 +624,13 @@ begin
   perform common.require_game_player(target_game);
   select mode into v_mode from crosswords.games where id = target_game;
   if v_mode <> 'coop' then
-    raise exception 'reveal is coop-only' using errcode = 'P0001';
+    raise exception 'reveal-not-in-compete|' using errcode = 'P0001',
+      detail = 'revealing your own grid would trivially win a race';
   end if;
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then
-    raise exception 'game is not in play' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   update crosswords.cells c
@@ -684,7 +701,8 @@ begin
 
   select mode into v_mode from crosswords.games where id = target_game;
   if v_mode is null then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no crosswords.games row for target_game';
   end if;
   -- The status blob create_game seeds, rebuilt: `reset_game` ASSIGNS status, so
   -- anything the listing label reads has to be restated here or it's lost.
@@ -833,8 +851,9 @@ begin
   perform common.require_game_player(target_game);
   select mode into v_mode from crosswords.games where id = target_game;
   if v_mode <> 'coop' then
-    raise exception 'end_game is coop-only (compete drops out via concede)'
-      using errcode = 'P0001';
+    raise exception 'end-not-in-compete|'
+      using errcode = 'P0001',
+      detail = 'compete drops out per player via concede';
   end if;
   select play_state into v_playstate from common.games where id = target_game;
   if v_playstate is distinct from 'playing' then

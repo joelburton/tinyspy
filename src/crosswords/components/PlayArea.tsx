@@ -1,3 +1,4 @@
+import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconNewGame, IconPrint, IconRestart, IconReveal, IconScratchpad } from '../../common/components/icons'
 import type { GamePageCtx, Member } from '../../common/lib/games'
@@ -490,8 +491,8 @@ export function PlayArea(ctx: GamePageCtx) {
   const handleRestart = useCallback(async () => {
     if (!isTerminal && !(await confirmAction(RESTART_CONFIRM))) return
     clearLocalFeedback()
-    const { error } = await db.rpc('replay_board', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', `Replay failed: ${error.message}`))
+    const bad = await callRpc(db, 'replay_board', { target_game: gameId })
+    if (bad) showLocalFeedback(bad)
   }, [isTerminal, gameId, confirmAction, showLocalFeedback, clearLocalFeedback])
 
   // Show note — open the setter's note locally AND (in coop) broadcast so
@@ -748,13 +749,13 @@ export function PlayArea(ctx: GamePageCtx) {
   // Always confirmed via the shared modal — crosswords previously ended unconfirmed.
   const handleEndGame = useCallback(async () => {
     if (!(await confirmAction(END_GAME_CONFIRM))) return
-    const { error } = await db.rpc('end_game', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', `End game failed: ${error.message}`))
+    const bad = await callRpc(db, 'end_game', { target_game: gameId })
+    if (bad) showLocalFeedback(bad)
   }, [gameId, showLocalFeedback, confirmAction])
 
   const handleConcede = useCallback(async () => {
-    const { error } = await db.rpc('concede', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', `Concede failed: ${error.message}`))
+    const bad = await callRpc(db, 'concede', { target_game: gameId })
+    if (bad) showLocalFeedback(bad)
   }, [gameId, showLocalFeedback])
 
   // New game — unlike every other game's "same setup, fresh randomness", this
@@ -816,9 +817,9 @@ export function PlayArea(ctx: GamePageCtx) {
       // desktop (sheet never open) and when already closed (menu path).
       closeInfoSheet()
       clearLocalFeedback()
-      const { error } = await db.rpc('check_cells', { target_game: gameId, p_cells: target })
-      if (error) {
-        showLocalFeedback(stickyPill('error', `Check failed: ${error.message}`))
+      const bad = await callRpc(db, 'check_cells', { target_game: gameId, p_cells: target })
+      if (bad) {
+        showLocalFeedback(bad)
         return
       }
       // Check deliberately skips pencil cells (a pencilled letter is a guess, not
@@ -842,9 +843,9 @@ export function PlayArea(ctx: GamePageCtx) {
       // error pill) are visible. No-op on desktop / when already closed.
       closeInfoSheet()
       clearLocalFeedback()
-      const { error } = await db.rpc('reveal_cells', { target_game: gameId, p_cells: target })
-      if (error) {
-        showLocalFeedback(stickyPill('error', `Reveal failed: ${error.message}`))
+      const bad = await callRpc(db, 'reveal_cells', { target_game: gameId, p_cells: target })
+      if (bad) {
+        showLocalFeedback(bad)
         return
       }
       // Flash the revealed cells on teammates' grids in my color — the reveal's
