@@ -109,6 +109,33 @@ Two exclusions, both deliberate. **`manual` keeps its `×` as the only target** 
 - The state lives in `<GamePage>`; the auto-clear timer for `timed` mode is owned by `<GamePage>`, not the caller.
 - **Pause transitions don't auto-clear feedback.** `<PauseOverlay>` covers the play surface, not the header; an active pill stays readable through a pause/resume cycle. If a specific feedback shouldn't survive a pause, the caller clears it explicitly.
 
+#### Faults — the one thing that is NOT a pill
+
+A **fault** is a failure nobody planned for: a bug, or a request that never
+reached the server. It renders as **bare red text on the page's own
+background** — no border, no fill, no rounded chip — deliberately unlike every
+normal message.
+
+The difference is functional, not decorative. It lets a player answer *"is it a
+rounded pill or plain red text?"* down a phone line, which separates **"the game
+refused my move"** from **"the app is broken"** before anyone reads a word. The
+whole point of the split is remote diagnosis, since most reports arrive as a
+phone call rather than a console.
+
+- **Nothing authors a fault by hand.** `GenericFeedbackMsg.fault` is set only by
+  [`failureMessage`](../src/common/lib/game/serverError.ts), and it's what's
+  left when no copy exists for whatever came back — see
+  [supabase.md → Server errors](supabase.md#server-errors-the-server-raises-a-key-typescript-owns-the-words).
+- **It keeps the pill's box metrics** — same padding, same single nowrap line —
+  so swapping one for the other can't change the reserved slot's height and
+  shift the board.
+- **Mode is `manual`** (× only). This is the message that has to survive the
+  next keystroke long enough to be read out.
+- **What it says**: a transport failure gets `word: Server; try refresh` (the
+  action, the cause, a suggestion); a bug gets the raw `action|key|detail|`,
+  unedited — it isn't written for a player, but hiding it would leave nothing
+  to read back.
+
 ### Toasts
 
 A **toast** is a bottom-right **announcement** — a *different surface* from the feedback pill above, for a different job. Feedback is about *your* action, near your eyes (the input, or the header for peer moves); a toast is a *club/game event you should notice wherever you are on the page* — a friend added you to a game, a friend is setting up the next one. Toasts **stack vertically** (newest nearest the corner), sit **above everything including the chat panel** (z-index 12000), and each carries an **✕** plus an optional single **action button** (e.g. "Join"). There are no validity tones here — a toast is neutral chrome with a tone accent stripe; it's an announcement, not a verdict.

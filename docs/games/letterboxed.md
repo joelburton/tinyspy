@@ -361,6 +361,21 @@ playable words per board runs **280 → 850 across bands 1 → 5**, a genuine 3�
 lever on how much room a player has. Same inversion strands' band has, and the
 schema comment says so because it's the mistake a future reader will make.
 
+### Server rejections
+
+Every `raise` here is a key, not a sentence
+([supabase.md → Server errors](../supabase.md#server-errors-the-server-raises-a-key-typescript-owns-the-words)).
+Five have player copy, and which five is the whole point: coop's chain is
+SHARED and free-for-all, so a teammate's word can land between your local check
+and your submit — `chain-full`, `already-in-chain`, `wrong-tail`,
+`already-ended`, `nothing-to-undo`. That's a legal move that lost a race.
+
+Every other raise re-validates something `rejectReason` already refused
+locally, so it can't be reached without a broken client and deliberately has no
+copy: it shows as a fault. `unplayable-board|BITCH|` on screen means the
+frontend is out of step with the board, which is exactly what you'd want to
+know.
+
 ### The two word lists
 
 Band is the ONLY filter on what a player may type. `candidate_words` gates on

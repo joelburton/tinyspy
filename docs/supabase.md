@@ -420,6 +420,67 @@ creation, and `unwrapEdgeFnError` for reading the real server message out
 of a FunctionsHttpError's read-once body. `useStandardGameActions` builds
 the End/Concede/Replay handlers on top.
 
+## Server errors: the server raises a KEY, TypeScript owns the words
+
+**No `raise exception` anywhere in `supabase/sql/` writes a sentence for a
+player.** It raises a machine-shaped key; the frontend decides what, if
+anything, a person reads. This replaced 418 hand-written English messages
+across sixteen files (2026-08-11).
+
+```sql
+raise exception 'chain-full|%|', g_row.max_words
+  using errcode = 'P0001', detail = 'the chain is already at max_words';
+```
+
+**The format is `key|detail1|detail2|`** — kebab-case, and it **always ends
+with the delimiter**, so a trailing `|` on screen is how you tell a whole
+message from an ellipsised one on a phone. Details are positional; only a copy
+entry reads them.
+
+**`DETAIL` carries the human explanation**, for logs and psql. PostgREST passes
+it through as `error.details`, so it reaches the console too — it is never
+shown to a player. Mind the escaping: an apostrophe inside it (`the board's
+words`) silently terminates the SQL literal, which bit three times during the
+conversion.
+
+**The shape is deliberately not prose.** If one of these ever reaches a player
+it must look like the bug it is, rather than like something written for them.
+
+### What decides whether a player sees words or a key
+
+[`ERROR_COPY`](../src/common/lib/game/errorCopy.ts) — **its membership is the
+whole classification**, and SQL gets no say:
+
+| the frontend has copy for the key | → | a normal feedback pill, in whatever tone fits |
+| **no copy, no key, or no SQLSTATE** | → | a **fault**: bare red text (see [ui.md](ui.md)) |
+
+The server can't classify this itself, and shouldn't try. Whether a raise is
+reachable depends on whether the FRONTEND checks the same rule first, and that
+changes per mode and over time — `already-in-chain` is a lost race in coop and
+unreachable in compete. Writing copy IS the act of declaring a key expected.
+
+Today: **175 distinct keys, 52 with copy, 123 without** — and that ratio is
+healthy, not a backlog. Most raises re-validate something the FE already
+refused, so they can only fire against a broken client.
+
+### Rules of thumb when adding a raise
+
+- **Reuse a key before minting one.** A key is shared vocabulary:
+  `game-not-in-play` is raised by nine schemas and means one thing. The test is
+  whether ONE sentence could serve both sites — not whether they read similarly.
+  (wordiply's `setup.difficulty` wanted common's `bad-difficulty`, which is the
+  dictionary editor's field. It got `bad-band` instead.)
+- **Only write copy for what a player can actually reach** — a lost race, a
+  form the server validates first, a budget a teammate can spend. Everything
+  else should fault.
+- **A rule saying "no" is often an ANSWER, not an exception.** scrabble's
+  dictionary rejection returns `{result:'invalid', bad_words}` and stackdown's
+  exhausted cheats return `null`; neither appears in this system at all, and
+  both are the better design.
+- Guarded by [`serverErrorKeys.test.ts`](../src/serverErrorKeys.test.ts): prose
+  in a raise FAILS, copy for a key nothing raises FAILS, and the covered /
+  uncovered split is printed on every run.
+
 ## RLS & grants
 
 The philosophy is in [CLAUDE.md → Trust model](../CLAUDE.md) and

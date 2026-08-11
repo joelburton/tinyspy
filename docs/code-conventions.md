@@ -623,6 +623,19 @@ When the code wants to discriminate "is this me or someone else in this game?", 
 
 **"Feedback"** here means specifically **a message shown in the global feedback area (the GamePage-header pill) or the local feedback area (the below-board pill)** — nothing else. Lighting up a board cell, underlining a new word in the WordList, or an OpponentStrip readout are all "feedback" in plain English, but they are **not** feedback in this codebase's sense (they're the ambient display layer). Only the two pill channels count.
 
+**Never pass a server's `error.message` to a feedback sink.** Use
+[`callRpc`](../src/common/lib/game/callRpc.ts) (returns a ready message or
+`null`) or `failureMessage(error, action)`. The server raises machine keys and
+TypeScript owns every player-facing word — see
+[supabase.md → Server errors](supabase.md#server-errors-the-server-raises-a-key-typescript-owns-the-words).
+Passing the raw message through is what put `TypeError: Load failed` and
+`the chain is full at 5 words — undo to try another route` in front of players.
+
+A sink that takes a **string** loses the fault styling, since a string can't
+carry the flag: prefer `(msg: GenericFeedbackMsg) => void`. `showError` in
+`useStandardGameActions` is the remaining string sink, and it's why a fault
+arriving through End / Concede / Restart still wears a pill.
+
 Two hard rules for anything that *sets, holds, renders, or types* one of those pill messages:
 
 1. **Every feedback identifier is qualified by channel — `Global`, `Local`, or `Generic`. Nothing is named bare `feedback`.** `Global` = the header pill (peer / opponent news). `Local` = the below-board pill (the player's own move / own state). `Generic` = machinery genuinely shared by both channels (the renderer, the message type/tone, the shared state primitive). If a name resists all three labels, that's a signal it's mis-scoped — find a clearer one. The bare word is banned even when it reads heavier (`GenericFeedbackTone`, `GENERIC_FEEDBACK_DISMISS_MS`): the weight is the tell that you're touching shared machinery.
