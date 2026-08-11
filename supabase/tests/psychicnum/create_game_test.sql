@@ -107,7 +107,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'compete mode requires at least 2 players',
+  'too-few-players|',
   'compete mode rejects 1-player arrays'
 );
 
@@ -140,7 +140,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.guesses must be 3, 5, 7, or 9 (got 4)',
+  'bad-guesses|4|',
   'guesses out of range is rejected'
 );
 
@@ -153,7 +153,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.guesses is required',
+  'missing-guesses|',
   'missing guesses is rejected'
 );
 
@@ -166,7 +166,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.word_count is required',
+  'missing-word-count|',
   'missing word_count is rejected'
 );
 
@@ -179,7 +179,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.word_count must be 5..20 (got 4)',
+  'bad-word-count|4|',
   'word_count out of range is rejected'
 );
 

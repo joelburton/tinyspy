@@ -96,6 +96,19 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // classifyFailure reads the key before the SQLSTATE (serverError.ts).
   'no-required-words': { text: () => 'No words for those letters — try others, or a lower band' },
 
+  // ── psychicnum ──
+  // The FE checks board membership before submitting but NOT whether a word was
+  // already tried, so this one is reached by ordinary typing — not a race, not a
+  // broken client. The most straightforwardly player-facing key in the sweep.
+  'already-guessed': { text: () => 'Already guessed' },
+  // The two cheat rungs, exhausted. psychicnum RAISES here where stackdown
+  // returns null and lets the FE narrate — a real divergence between the two
+  // implementations of the same feature, recorded rather than smoothed over.
+  'nothing-to-hint': { text: () => 'Nothing left to hint', tone: 'info' },
+  'nothing-to-spoil': { text: () => 'Nothing left to show', tone: 'info' },
+  // A setup choice the dictionary can't satisfy: more words than that band has.
+  'too-few-words': { text: () => 'Not enough words at that difficulty' },
+
   // ── connections ──
   // Elimination is connections' own end-state — four mistakes and you're out —
   // and in coop the mistake budget is SHARED, so a teammate's fourth wrong

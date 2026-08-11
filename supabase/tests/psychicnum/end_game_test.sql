@@ -91,7 +91,7 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select throws_ok(
   format($$ select psychicnum.end_game(%L::uuid) $$, (select id from coop_g)),
-  'P0001', 'game is not in progress',
+  'P0001', 'game-not-in-play|',
   'coop: second end_game on terminal game raises P0001'
 );
 
@@ -145,7 +145,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select psychicnum.end_game(%L::uuid) $$, (select id from comp_g)),
-  'P0001', 'game is not in progress',
+  'P0001', 'game-not-in-play|',
   'compete: second end_game on terminal game raises P0001'
 );
 

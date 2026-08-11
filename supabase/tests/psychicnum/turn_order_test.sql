@@ -112,7 +112,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select psychicnum.submit_guess(%L::uuid, 'zdelta') $$, (select id from turn_g)),
-  'P0001', 'word already guessed',
+  'P0001', 'already-guessed|',
   'turns: a duplicate (soft-reject) guess is rejected'
 );
 reset role;
@@ -152,7 +152,7 @@ select throws_ok(
       'coop'
     )
   $$, (select handle from club)),
-  'P0001', 'setup.first_turn_user_id must be one of the players',
+  'P0001', 'bad-first-turn|',
   'turns: create_game rejects a first player who is not in the game'
 );
 

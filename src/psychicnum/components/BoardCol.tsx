@@ -1,3 +1,4 @@
+import { failureMessage } from '../../common/lib/game/serverError'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
@@ -7,7 +8,6 @@ import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
 import { EntryRow } from '../../common/components/game/entry/EntryRow'
 import { db } from '../db'
-import { capitalize } from '../lib/capitalize'
 import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import { Board } from './Board'
 import shared from '../../common/components/game/PlayArea.module.css'
@@ -169,7 +169,10 @@ export function BoardCol({
     const { data, error } = await db.rpc('submit_guess', { target_game: gameId, guess })
     setSubmitting(false)
     if (error) {
-      showLocalFeedback(stickyPill('error', capitalize(error.message)))
+      // The server's answer is a KEY; the words come from ERROR_COPY, and the
+      // LOOK comes with them (a rule we anticipated is a pill, anything else a
+      // fault). `capitalize` went with the prose it used to tidy.
+      showLocalFeedback(failureMessage(error, 'guess'))
       return
     }
     showLocalFeedback(

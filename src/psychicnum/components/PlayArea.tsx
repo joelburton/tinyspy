@@ -1,3 +1,4 @@
+import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
@@ -25,7 +26,6 @@ import { useGame } from '../hooks/useGame'
 import { printPsychicnumPdf } from '../pdf/printPsychicnumPdf'
 import { buildPsychicnumPrintModel } from '../pdf/model'
 import { turnSnapshot } from '../lib/history'
-import { capitalize } from '../lib/capitalize'
 import { stickyPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { BoardCol } from './BoardCol'
@@ -259,8 +259,8 @@ export function PlayArea({
   // (`common.games.solution_revealed`); it's terminal-only server-side, so the
   // disabled-until-terminal menu item is a UI convenience, not the gate.
   const revealSecrets = useCallback(async () => {
-    const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
+    const bad = await callRpc(commonDb, 'reveal_solution', { target_game: gameId })
+    if (bad) showLocalFeedback(bad)
   }, [gameId, showLocalFeedback])
 
   // Hint (a clue) and spoiler (the answer word itself) both land in the turn log
@@ -274,16 +274,16 @@ export function PlayArea({
   // twins then share ONE pair of handlers, the way End / Concede already do.
   const getHint = useCallback(async () => {
     setHinting(true)
-    const { error } = await db.rpc('request_hint', { target_game: gameId })
+    const bad = await callRpc(db, 'request_hint', { target_game: gameId })
     setHinting(false)
-    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
+    if (bad) showLocalFeedback(bad)
   }, [gameId, showLocalFeedback])
 
   const getSpoiler = useCallback(async () => {
     setSpoiling(true)
-    const { error } = await db.rpc('request_reveal', { target_game: gameId })
+    const bad = await callRpc(db, 'request_reveal', { target_game: gameId })
     setSpoiling(false)
-    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
+    if (bad) showLocalFeedback(bad)
   }, [gameId, showLocalFeedback])
 
   // narrated in the header. My own events are excluded — my guesses get the
@@ -379,11 +379,14 @@ export function PlayArea({
   // can list them in its deps. (The crosswords `actionsRef` pattern.)
   //
   // End / Concede / Replay come from the shared `useStandardGameActions`;
-  // psychicnum's own bits are the capitalize-the-RPC-error pill, the replay
-  // sentence, and the post-replay cleanup (leave the turn-history view, clear
-  // the pill).
+  // psychicnum's own bits are the replay sentence and the post-replay cleanup
+  // (leave the turn-history view, clear the pill).
+  //
+  // No `capitalize` any more: it existed to tidy the server's lowercase prose
+  // ("game is not in progress" → "Game is not in progress"), and there is no
+  // server prose left. What arrives here is already a caption TypeScript wrote.
   const showError = useCallback(
-    (m: string) => showLocalFeedback(stickyPill('error', capitalize(m))),
+    (m: string) => showLocalFeedback(stickyPill('error', m)),
     [showLocalFeedback],
   )
   // (No reveal-flag reset here: `common.reset_game` clears solution_revealed

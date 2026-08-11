@@ -70,7 +70,7 @@ update psychicnum.games
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select psychicnum.submit_guess(%L::uuid, 'zzulu') $$, (select id from coop_g)),
-  'P0001', 'not a word on the board',
+  'P0001', 'not-on-board|',
   'coop: a word not on the board is rejected'
 );
 
@@ -126,7 +126,7 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select throws_ok(
   format($$ select psychicnum.submit_guess(%L::uuid, 'zalpha') $$, (select id from coop_g)),
-  'P0001', 'word already guessed',
+  'P0001', 'already-guessed|',
   'coop: re-guessing a word another player took is rejected'
 );
 
@@ -202,7 +202,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select psychicnum.submit_guess(%L::uuid, 'zecho') $$, (select id from coop_g)),
-  'P0001', 'game is not active',
+  'P0001', 'game-not-in-play|',
   'coop: submit_guess on terminal game rejected'
 );
 
@@ -372,7 +372,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select psychicnum.submit_guess(%L::uuid, 'zalpha') $$, (select id from comp_g)),
-  'P0001', 'game is not active',
+  'P0001', 'game-not-in-play|',
   'compete: game ends for everyone on the win, even those with budget left'
 );
 
@@ -405,7 +405,7 @@ select psychicnum.submit_guess((select id from comp_loss), 'zfoxtrot');
 -- ada now at 0 budget; trying to guess again raises.
 select throws_ok(
   format($$ select psychicnum.submit_guess(%L::uuid, 'zgolf') $$, (select id from comp_loss)),
-  'P0001', 'no guesses remaining',
+  'P0001', 'no-guesses-left|',
   'compete: caller with 0 budget cannot submit (P0001)'
 );
 

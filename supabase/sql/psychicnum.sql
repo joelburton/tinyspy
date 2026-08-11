@@ -194,8 +194,9 @@ begin
     -- button in 1-player clubs; this guard is the server-side
     -- catch.
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'compete mode requires at least 2 players'
-        using errcode = 'P0001';
+      raise exception 'too-few-players|'
+        using errcode = 'P0001',
+      detail = 'compete needs >= 2 players';
     end if;
   end if;
 
@@ -207,32 +208,38 @@ begin
 
   -- ─── Validate setup shape ────────────────────────────
   if (setup->>'guesses') is null then
-    raise exception 'setup.guesses is required' using errcode = 'P0001';
+    raise exception 'missing-guesses|' using errcode = 'P0001',
+      detail = 'setup.guesses absent';
   end if;
   s_guesses := (setup->>'guesses')::int;
   if s_guesses not in (3, 5, 7, 9) then
-    raise exception 'setup.guesses must be 3, 5, 7, or 9 (got %)', s_guesses
-      using errcode = 'P0001';
+    raise exception 'bad-guesses|%|', s_guesses
+      using errcode = 'P0001',
+      detail = 'setup.guesses must be 3, 5, 7 or 9';
   end if;
 
   -- ─── Validate the board size (how many words) ──────────────
   if (setup->>'word_count') is null then
-    raise exception 'setup.word_count is required' using errcode = 'P0001';
+    raise exception 'missing-word-count|' using errcode = 'P0001',
+      detail = 'setup.word_count absent';
   end if;
   s_word_count := (setup->>'word_count')::int;
   if s_word_count < 5 or s_word_count > 20 then
-    raise exception 'setup.word_count must be 5..20 (got %)', s_word_count
-      using errcode = 'P0001';
+    raise exception 'bad-word-count|%|', s_word_count
+      using errcode = 'P0001',
+      detail = 'setup.word_count must be 5..20';
   end if;
 
   -- ─── Validate the dictionary difficulty band ───────────────
   if (setup->>'difficulty') is null then
-    raise exception 'setup.difficulty is required' using errcode = 'P0001';
+    raise exception 'missing-band|' using errcode = 'P0001',
+      detail = 'setup.difficulty absent';
   end if;
   s_difficulty := (setup->>'difficulty')::int;
   if s_difficulty < 1 or s_difficulty > 6 then
-    raise exception 'setup.difficulty must be 1..6 (got %)', s_difficulty
-      using errcode = 'P0001';
+    raise exception 'bad-band|%|', s_difficulty
+      using errcode = 'P0001',
+      detail = 'setup.difficulty must be 1..6';
   end if;
 
   perform common.require_valid_timer(setup->'timer');
@@ -259,7 +266,8 @@ begin
   if coalesce(array_length(s_words, 1), 0) < s_word_count then
     -- Effectively impossible (the band-1 clean set is large), but guard so a
     -- short board never silently ships.
-    raise exception 'not enough words for that difficulty' using errcode = 'P0001';
+    raise exception 'too-few-words|' using errcode = 'P0001',
+      detail = 'common.words has fewer clean words than word_count at that band';
   end if;
 
   -- Three DISTINCT secrets sampled from the board words.
@@ -312,8 +320,9 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'setup.first_turn_user_id must be one of the players'
-        using errcode = 'P0001';
+      raise exception 'bad-first-turn|'
+        using errcode = 'P0001',
+      detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
   end if;
@@ -435,7 +444,8 @@ begin
    where psychicnum.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no psychicnum.games row for target_game';
   end if;
 
   -- Normalize and require the guess to be one of the board words (the player
@@ -443,7 +453,8 @@ begin
   -- the old 1..max range check).
   w := lower(trim(coalesce(guess, '')));
   if not (w = any(g.words)) then
-    raise exception 'not a word on the board' using errcode = 'P0001';
+    raise exception 'not-on-board|' using errcode = 'P0001',
+      detail = 'the guess is not one of the board''s words';
   end if;
 
   -- Auth + game-player gate.
@@ -454,7 +465,8 @@ begin
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    raise exception 'game is not active' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
@@ -470,7 +482,8 @@ begin
   -- complete the win condition and be recorded the winner.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this compete race';
   end if;
 
   -- Per-mode budget check on the caller's row.
@@ -480,10 +493,12 @@ begin
   if caller_remaining is null then
     -- Shouldn't happen — require_game_player passed, so the row
     -- exists. Defensive.
-    raise exception 'no budget row for caller' using errcode = 'P0002';
+    raise exception 'not-a-player|' using errcode = 'P0002',
+      detail = 'no psychicnum.players budget row for the caller';
   end if;
   if caller_remaining <= 0 then
-    raise exception 'no guesses remaining' using errcode = 'P0001';
+    raise exception 'no-guesses-left|' using errcode = 'P0001',
+      detail = 'this player''s guess budget is spent';
   end if;
 
   -- Reject a word already taken (in scope: coop = anyone's, compete =
@@ -493,7 +508,8 @@ begin
      where game_id = target_game and kind = 'guess' and word = w
        and (g.mode = 'coop' or user_id = caller_id)
   ) then
-    raise exception 'word already guessed' using errcode = 'P0001';
+    raise exception 'already-guessed|' using errcode = 'P0001',
+      detail = 'that word is already in the guess log';
   end if;
 
   is_correct := (w = any(g.secrets));
@@ -790,7 +806,8 @@ begin
    where psychicnum.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no psychicnum.games row for target_game';
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -798,12 +815,14 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game is not active' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   reveal_word := psychicnum._unfound_secret(g, caller_id);
   if reveal_word is null then
-    raise exception 'nothing left to reveal' using errcode = 'P0001';
+    raise exception 'nothing-to-spoil|' using errcode = 'P0001',
+      detail = 'every secret has already been spoiled';
   end if;
 
   insert into psychicnum.guesses (game_id, user_id, word, is_correct, kind)
@@ -845,7 +864,8 @@ begin
    where psychicnum.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no psychicnum.games row for target_game';
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -853,12 +873,14 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game is not active' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   secret_word := psychicnum._unfound_secret(g, caller_id);
   if secret_word is null then
-    raise exception 'nothing left to hint' using errcode = 'P0001';
+    raise exception 'nothing-to-hint|' using errcode = 'P0001',
+      detail = 'every secret already has a hint logged';
   end if;
 
   -- The clue for that word, or the literal fallback when it has none.
@@ -910,7 +932,8 @@ begin
    where psychicnum.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no psychicnum.games row for target_game';
   end if;
 
   perform common.require_game_player(target_game);
@@ -920,7 +943,8 @@ begin
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    raise exception 'game is not active' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
@@ -1012,7 +1036,8 @@ begin
    where psychicnum.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no psychicnum.games row for target_game';
   end if;
 
   perform common.require_game_player(target_game);
@@ -1025,7 +1050,8 @@ begin
     -- timer expiry / winning guess in another tab) raises this;
     -- the FE swallows it the same way it does for submit_timeout's
     -- "already terminal" race.
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- Manual stop has no winner — every player gets {won:false}.
@@ -1098,7 +1124,8 @@ begin
   -- move re-terminalling the board that was just reset.
   select * into g_row from psychicnum.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no psychicnum.games row for target_game';
   end if;
 
   select (setup->>'guesses')::int into v_guesses
