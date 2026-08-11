@@ -132,3 +132,28 @@
 .tappable {
   cursor: pointer;
 }
+
+/* ── FAULT: something broke, so it must not look like feedback ──
+ * Bare red text on the page's own background — no border, no fill, no rounded
+ * chip. That difference is the point: a player can answer "is it a pill or
+ * plain red text?" down a phone line, which separates "the game refused my
+ * move" from "the app is broken" before anyone reads a word of it.
+ *
+ * It keeps the pill's BOX METRICS — same padding, same line, same nowrap +
+ * ellipsis — so swapping one for the other can't change the reserved slot's
+ * height and shift the board (docs/ui.md → Layout stability). Only the chrome
+ * and the color differ.
+ *
+ * `--color-sys-error-red` is the system red used by `.error` text elsewhere,
+ * not the pill's tone palette: this is deliberately outside the feedback
+ * vocabulary, because it isn't feedback. */
+.fault {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.85rem;
+  max-width: 100%;
+  white-space: nowrap;
+  color: var(--color-sys-error-red);
+  font-weight: 600;
+}

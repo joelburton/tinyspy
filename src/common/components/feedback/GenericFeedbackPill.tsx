@@ -53,6 +53,23 @@ type Props = {
  */
 export function GenericFeedbackPill({ msg, onClose }: Props) {
   const { kind } = msg.mode
+  // ── A FAULT is not a pill ───────────────────────────────────
+  // Something broke, or the request never arrived. It gets bare red text on the
+  // page's own background instead of the rounded, bordered chip every normal
+  // message wears — so "the game refused my move" and "the app is broken" are
+  // distinguishable at a glance, and answerable down a phone line by shape
+  // alone. It keeps its × (faults are `manual`): this is the message that has
+  // to survive long enough to be read out.
+  if (msg.fault) {
+    return (
+      <div className={styles.fault}>
+        <span className={styles.text}>{msg.text}</span>
+        <button type="button" className={styles.close} onClick={onClose} aria-label="Dismiss">
+          ×
+        </button>
+      </div>
+    )
+  }
   // Appearance follows the mode: only a PERMANENT condition wears the tinted
   // background. Everything else is a message, and messages are outlined.
   const outline = kind !== 'permanent'

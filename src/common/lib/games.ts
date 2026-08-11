@@ -165,6 +165,18 @@ export type GenericFeedbackMsg = {
    *  can embed an inline icon (e.g. bananagrams' dump pill leads with the
    *  exchange glyph, matching its dump zone). */
   text: ReactNode
+  /**
+   * This message is a FAULT, not feedback — something broke, or the request
+   * never arrived. Renders as bare red text instead of a pill, deliberately
+   * unlike every normal message: the visual difference is what lets a player
+   * answer "is it a rounded pill or plain red text?" down a phone line, which
+   * separates "the game refused my move" from "the app is broken" without
+   * anyone having to read the words.
+   *
+   * Set only by `failureMessage` (lib/game/serverError.ts) — a fault is never
+   * authored by hand, it's what's left when no copy exists for what came back.
+   */
+  fault?: true
   /** Optional leading identity disc — the actor's profile-color NAME
    *  ('red' … 'pink'), rendered as the shared `<Dot>` (fill + paired border)
    *  before the text: the identity anchor for group/peer messages
