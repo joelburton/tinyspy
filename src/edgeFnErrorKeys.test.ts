@@ -42,7 +42,6 @@ const UNCONVERTED = new Set([
   'scrabble-ai-move',
   'scrabble-suggest-move',
   'spellingbee-build-board',
-  'waffle-build-board',
   'wordiply-build-board',
   'wordwheel-build-board',
 ])

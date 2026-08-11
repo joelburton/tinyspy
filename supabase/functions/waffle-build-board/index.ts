@@ -37,13 +37,20 @@
  *     player_user_ids: uuid[],
  *     mode: 'coop' | 'compete' }
  *   → { id: uuid }  (200)
- *   → { error: string }  (400/401/403/500)
+ *   → { error: fe-error-key, code?: SQLSTATE }  (400/401/403/500)
+ *
+ * Errors are fe-error-keys (`key|detail|` — docs/edge-fn-error-keys-plan.md;
+ * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
+ * word. This function's own keys are all "impossible without an FE bug or a
+ * broken environment" (bad-band / no-candidate-words / board-attempts-
+ * exhausted / edge-internal), so none carry copy — they render as faults.
+ * A create_game raise relays verbatim with its SQLSTATE (invokeCreateGame).
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { buildWaffleBoard, type WordRow } from './gen.ts'
-import { json, preflight } from '../_shared/http.ts'
+import { edgeInternal, json, preflight } from '../_shared/http.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 
 /** Page size for the word-fetch loop — an optimization knob, NOT a
@@ -113,8 +120,8 @@ serve(async (req) => {
     // offers a subset); create_game re-validates after we build.
     const band = setup.difficulty ?? DEFAULT_BAND
     if (!Number.isInteger(band) || band < MIN_BAND || band > MAX_BAND) {
-      console.log(`waffle-build-board reject: invalid difficulty "${band}"`)
-      return json({ error: `setup.difficulty must be ${MIN_BAND}..${MAX_BAND}` }, 400)
+      console.log(`waffle-build-board reject: invalid difficulty "${band}" (must be ${MIN_BAND}..${MAX_BAND})`)
+      return json({ error: `bad-band|${band}|` }, 400)
     }
     console.log(`waffle-build-board: band=${band}`)
 
@@ -122,14 +129,18 @@ serve(async (req) => {
     const words = await fetchCandidateWords(supabase, band)
     console.log(`fetched ${words.length} candidate 5-letter words (band <= ${band})`)
     if (words.length === 0) {
-      return json({ error: `no candidate words for band ${band}` }, 500)
+      // A healthy DB has candidates at every band, so this is a data/config
+      // problem (an empty common.words after a reset without db-data), not a
+      // player-reachable state. Key only, no copy — it renders as a fault.
+      console.log(`waffle-build-board reject: no candidate words for band ${band}`)
+      return json({ error: `no-candidate-words|${band}|` }, 500)
     }
 
     // ─── 2. Build a board of exactly this band ────────────
     const board = buildWaffleBoard(words, band)
     if (board === null) {
       console.log(`reject: could not build a band-${band} board`)
-      return json({ error: `could not build a band-${band} board` }, 500)
+      return json({ error: `board-attempts-exhausted|band-${band}|` }, 500)
     }
     console.log(`board: solution=${board.solution} par=${board.par}`)
 
@@ -148,6 +159,6 @@ serve(async (req) => {
     )
   } catch (e) {
     console.error('waffle-build-board threw:', e)
-    return json({ error: String(e instanceof Error ? e.message : e) }, 500)
+    return edgeInternal(e)
   }
 })
