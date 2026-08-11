@@ -39,7 +39,7 @@ select throws_ok(
        'coop'
      ) $$,
   '42501',
-  'must be authenticated',
+  'not-authenticated|',
   'unauthenticated create_game is rejected'
 );
 
@@ -72,7 +72,7 @@ select throws_ok(
     (select handle from club)
   ),
   '42501',
-  'not a member of this club',
+  'not-club-member|',
   'non-member create_game is rejected'
 );
 
@@ -89,7 +89,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'mode must be coop or compete (got bogus)',
+  'bad-mode|bogus|',
   'mode validation rejects unknown values'
 );
 
@@ -192,7 +192,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.timer is required',
+  'missing-timer|',
   'missing timer is rejected'
 );
 

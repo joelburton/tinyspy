@@ -63,10 +63,12 @@ describe('AnagramDialog', () => {
     await user.type(input, 'zzzz{Enter}')
     await waitFor(() => expect(screen.getByText('No words.')).toBeInTheDocument())
 
-    mockRpc.mockResolvedValue({ data: null, error: { message: 'letters must be 2-15 characters of a-z, A-Z, or ?' } })
+    // The server raises a KEY now; the sentence below is TypeScript's
+    // (lib/game/errorCopy.ts), which is the point of the redesign.
+    mockRpc.mockResolvedValue({ data: null, error: { message: 'bad-anagram-input|', code: 'P0001' } })
     await user.type(input, '{Enter}')
     await waitFor(() =>
-      expect(screen.getByText(/letters must be 2-15/)).toBeInTheDocument(),
+      expect(screen.getByText('2–15 letters, or ?')).toBeInTheDocument(),
     )
   })
 })

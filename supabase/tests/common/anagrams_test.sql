@@ -90,13 +90,13 @@ select results_eq(
 -- ── Input validation ──
 select throws_ok(
   $$ select * from common.anagrams('ab1') $$,
-  'P0001', 'letters must be 2-15 characters of a-z, A-Z, or ?',
+  'P0001', 'bad-anagram-input|',
   'digits are rejected'
 );
 
 select throws_ok(
   $$ select * from common.anagrams('a') $$,
-  'P0001', 'letters must be 2-15 characters of a-z, A-Z, or ?',
+  'P0001', 'bad-anagram-input|',
   'a single letter is rejected'
 );
 

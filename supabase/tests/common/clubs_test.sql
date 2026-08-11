@@ -71,7 +71,7 @@ select set_config('request.jwt.claims', '', true)
 select throws_ok(
   $$ select common.create_club('Some Club', array['ada','bea']) $$,
   '42501',
-  'must be authenticated',
+  'not-authenticated|',
   'create_club: not authenticated raises 42501'
 );
 
@@ -80,7 +80,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   $$ select common.create_club('!!!', array['bea']) $$,
   'P0001',
-  'club name must contain alphanumeric characters',
+  'club-name-not-alnum|',
   'create_club: name with no alphanumerics is rejected'
 );
 
@@ -91,7 +91,7 @@ select throws_ok(
 select throws_ok(
   $$ select common.create_club('The Wednesday Night Word Game Society', array['bea']) $$,
   'P0001',
-  'club name must be 20 characters or fewer',
+  'club-name-too-long|20|',
   'create_club: a name over 20 characters is rejected'
 );
 select lives_ok(
@@ -102,7 +102,7 @@ select lives_ok(
 select throws_ok(
   $$ select common.create_club('Some Club', array['nonesuch']) $$,
   'P0002',
-  'unknown usernames: nonesuch',
+  'unknown-usernames|nonesuch|',
   'create_club: unknown username is rejected with the offending name'
 );
 
@@ -112,7 +112,7 @@ select throws_ok(
 select throws_ok(
   $$ select common.create_club('Just Me', array['ada']) $$,
   'P0001',
-  'a club must have at least 2 members',
+  'club-too-small|2|',
   'create_club: lone-caller membership is rejected'
 );
 
@@ -120,7 +120,7 @@ select throws_ok(
 select throws_ok(
   $$ select common.create_club('Empty Members', array[]::text[]) $$,
   'P0001',
-  'a club must have at least 2 members',
+  'club-too-small|2|',
   'create_club: empty member list is rejected'
 );
 

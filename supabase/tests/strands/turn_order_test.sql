@@ -53,7 +53,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select throws_ok(
   format($$ select strands.submit_path(%L::uuid, %L::jsonb) $$,
          (select id from g), pg_temp.strands_row_path(0)::text),
-  'P0001', 'not your turn',
+  'P0001', 'not-your-turn|',
   'turns: the non-current player is rejected'
 );
 

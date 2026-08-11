@@ -71,7 +71,7 @@ select * from waffle.create_game(
 );
 select throws_ok(
   format($$ select waffle.concede(%L) $$, (select id from gc)),
-  'P0001', 'concede is only for compete games',
+  'P0001', 'concede-not-in-coop|',
   'conceding a coop game is rejected');
 
 select * from finish();

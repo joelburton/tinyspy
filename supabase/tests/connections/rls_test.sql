@@ -92,7 +92,7 @@ select throws_ok(
     (select id from g)
   ),
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'dee cannot call submit_guess on a game she didn''t play (via require_game_player)'
 );
 
@@ -102,7 +102,7 @@ select throws_ok(
     (select handle from club), (select id from puzzle)
   ),
   '42501',
-  'not a member of this club',
+  'not-club-member|',
   'dee cannot call create_game on a club she is outside'
 );
 

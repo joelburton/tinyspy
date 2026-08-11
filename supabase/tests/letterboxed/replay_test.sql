@@ -67,7 +67,7 @@ select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select throws_ok(
   format('select letterboxed.replay_board(%L)', (select id from g)),
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'a club member who is not a player cannot restart the game'
 );
 

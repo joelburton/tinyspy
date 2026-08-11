@@ -144,7 +144,7 @@ select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format($$ select common.tick_timer(%L::uuid) $$, (select id from g)),
   '42501',
-  'not a member of this club',
+  'not-club-member|',
   'tick_timer: non-member is rejected'
 );
 
@@ -153,7 +153,7 @@ select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   $$ select common.tick_timer('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid) $$,
   'P0002',
-  'game not found',
+  'game-not-found|',
   'tick_timer: unknown game raises P0002'
 );
 

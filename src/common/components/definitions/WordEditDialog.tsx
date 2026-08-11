@@ -1,3 +1,4 @@
+import { failureText } from '../../lib/game/serverError'
 import { useEffect, useState, type FormEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { setWordEdit, type WordEditRequest } from '../../lib/definitions/wordEditStore'
@@ -147,7 +148,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
         })
     setBusy(false)
     if (res.error) {
-      setError(res.error.message)
+      setError(failureText(res.error, 'dictionary'))
       return
     }
     setWordEdit(null)
@@ -171,7 +172,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
     })
     setBusy(false)
     if (res.error) {
-      setError(res.error.message)
+      setError(failureText(res.error, 'dictionary'))
       return
     }
     setWordEdit(null)

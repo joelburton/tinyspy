@@ -41,7 +41,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   $$ select common.update_profile_color('chartreuse') $$,
-  'P0001', 'not a valid player color: chartreuse',
+  'P0001', 'bad-color|chartreuse|',
   'an off-palette color is rejected');
 select is(
   (select color from common.profiles

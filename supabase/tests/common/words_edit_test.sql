@@ -32,7 +32,7 @@ values
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select throws_ok(
   $$ select common.update_word('zqedita', '{"difficulty": 3}'::jsonb) $$,
-  '42501', 'word editing requires the can_edit_words permission',
+  '42501', 'not-word-editor|',
   'a non-editor cannot update a word'
 );
 select is(
@@ -72,17 +72,17 @@ select is(
 -- ── validation ──
 select throws_ok(
   $$ select common.update_word('zqedita', '{"wordle": true}'::jsonb) $$,
-  'P0001', 'not an editable field: wordle',
+  'P0001', 'bad-word-field|wordle|',
   'only the editable column set is patchable'
 );
 select throws_ok(
   $$ select common.update_word('zqedita', '{"difficulty": 7}'::jsonb) $$,
-  'P0001', 'difficulty must be 1-6',
+  'P0001', 'bad-difficulty|',
   'a typo band is a clean rejection'
 );
 select throws_ok(
   $$ select common.update_word('zqnope', '{"difficulty": 3}'::jsonb) $$,
-  'P0002', 'no such word: zqnope',
+  'P0002', 'no-such-word|zqnope|',
   'patching a missing word says so'
 );
 
@@ -123,17 +123,17 @@ select is(
 );
 select throws_ok(
   $$ select common.add_word('zqeditnew', '{"difficulty": 1}'::jsonb) $$,
-  'P0001', 'already in the dictionary: zqeditnew',
+  'P0001', 'word-exists|zqeditnew|',
   'a duplicate add is rejected'
 );
 select throws_ok(
   $$ select common.add_word('Zq1', '{"difficulty": 1}'::jsonb) $$,
-  'P0001', 'a word is 1-45 lowercase letters',
+  'P0001', 'bad-word|',
   'a malformed word is rejected'
 );
 select throws_ok(
   $$ select common.add_word('zqblank', '{"slang": true}'::jsonb) $$,
-  'P0001', 'difficulty is required for a new word',
+  'P0001', 'missing-difficulty|',
   'a new word must state its band'
 );
 

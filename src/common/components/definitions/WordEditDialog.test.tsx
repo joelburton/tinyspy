@@ -83,7 +83,7 @@ describe('WordEditDialog', () => {
     // (An out-of-range number never even submits — the native min/max
     // constraint blocks the form — so the server rejection is exercised
     // with an in-range value and a mocked refusal.)
-    mockRpc.mockResolvedValue({ error: { message: 'word editing requires the can_edit_words permission' } })
+    mockRpc.mockResolvedValue({ error: { message: 'not-word-editor|', code: '42501' } })
     const user = userEvent.setup()
     render(<WordEditDialog request={{ mode: 'edit', word: 'acre' }} />)
     const band = await screen.findByLabelText('Band')
@@ -92,7 +92,7 @@ describe('WordEditDialog', () => {
     await user.type(band, '5')
     await user.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() =>
-      expect(screen.getByText(/can_edit_words permission/)).toBeInTheDocument(),
+      expect(screen.getByText("You can't edit the dictionary")).toBeInTheDocument(),
     )
   })
 })

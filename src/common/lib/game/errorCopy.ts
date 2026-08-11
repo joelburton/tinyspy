@@ -51,6 +51,44 @@ export type ErrorCopyEntry = {
  * we work" state.
  */
 export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
+  // ── common: every game reaches these ──
+  // Unlike a game's own file, common holds two quite different populations.
+  // The GAME-lifecycle raises are races, same as letterboxed's: a peer ended
+  // the game, took the turn, or conceded while your call was in flight.
+  'not-your-turn': { text: () => 'Not your turn' },
+  'game-not-in-play': { text: () => 'Game over', tone: 'info' },
+  'game-not-over': { text: () => 'Not over yet', tone: 'info' },
+  'you-conceded': { text: () => 'Already conceded', tone: 'info' },
+  'not-a-player': { text: () => "You're not in this game" },
+  'not-club-member': { text: () => "You're not in this club" },
+  // A session that expired under a page left open overnight — the one fault
+  // here with a real remedy, so it names it.
+  'not-authenticated': { text: () => 'Signed out; try refresh' },
+
+  // The FORM raises are the other population, and they're the reason common
+  // needs far more copy than a game does: for a club name, a username or a
+  // chat message the server is the FIRST validator, not a second one. There's
+  // no local check to lose a race with — these fire on ordinary use.
+  'club-name-too-long': { text: (d) => `Club name: max ${d[0]} characters` },
+  'club-name-not-alnum': { text: () => 'Club name needs a letter or digit' },
+  'club-name-start': { text: () => 'Club name must start with a letter' },
+  'club-too-small': { text: () => 'A club needs at least 2 members' },
+  'unknown-usernames': { text: (d) => `No such user: ${d[0]}` },
+  'empty-message': { text: () => 'Nothing to send' },
+  'message-too-long': { text: (d) => `Too long: max ${d[0]} characters` },
+  'bad-username': { text: () => '3–15 chars: a–z, 0–9, -, starting with a letter' },
+  'username-claimed': { text: () => 'That username is taken' },
+  'bad-anagram-input': { text: () => '2–15 letters, or ?' },
+
+  // Dictionary curation. Editors-only, but an editor is still a player who
+  // deserves a sentence rather than a key.
+  'not-word-editor': { text: () => "You can't edit the dictionary" },
+  'no-such-word': { text: (d) => `No such word: ${d[0]}` },
+  'word-exists': { text: (d) => `Already in the dictionary: ${d[0]}` },
+  'no-word-change': { text: () => 'Nothing changed' },
+  'bad-word': { text: () => 'A word is 1–45 lowercase letters' },
+  'missing-difficulty': { text: () => 'Pick a difficulty' },
+
   // ── letterboxed ──
   // Its coop chain is SHARED and free-for-all, so a teammate's word can land
   // between your local check and your submit. These four are that race — you

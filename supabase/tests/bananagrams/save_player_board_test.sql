@@ -85,7 +85,7 @@ select throws_ok(
     (select id from mg_game), repeat('.', 25 * 25)
   ),
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'a non-player cannot snapshot a board'
 );
 

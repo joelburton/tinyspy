@@ -83,7 +83,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select common.reveal_solution(%L) $$, current_setting('test.game_id')),
   'P0001',
-  'game is not over',
+  'game-not-over|',
   'reveal is rejected while the game is in progress'
 );
 
@@ -100,7 +100,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select common.reveal_solution(%L) $$, current_setting('test.game_id')),
   'P0001',
-  'game is not over',
+  'game-not-over|',
   'a conceded player cannot reveal while the others race'
 );
 reset role;
@@ -120,7 +120,7 @@ select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select throws_ok(
   format($$ select common.reveal_solution(%L) $$, current_setting('test.game_id')),
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'a non-player cannot reveal'
 );
 reset role;

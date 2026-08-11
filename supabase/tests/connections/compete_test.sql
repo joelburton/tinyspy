@@ -64,7 +64,7 @@ select throws_ok(
     (select handle from club), (select id from puzzle)
   ),
   'P0001',
-  'mode must be coop or compete (got sudden-death)',
+  'bad-mode|sudden-death|',
   'create_game: invalid mode value is rejected'
 );
 

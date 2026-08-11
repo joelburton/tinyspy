@@ -270,13 +270,16 @@ declare
 begin
   caller_id := common.require_game_player(target_game);
   if p_owner_id is not null and p_owner_id <> caller_id then
-    raise exception 'cannot write another player''s scratchpad' using errcode = '42501';
+    raise exception 'not-your-scratchpad|' using errcode = '42501',
+      detail = 'scratchpad writes are owner-only';
   end if;
   if (select play_state from common.games where id = target_game) is distinct from 'playing' then
-    raise exception 'game is not in play' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
   if char_length(coalesce(p_body, '')) > 10000 then
-    raise exception 'scratchpad over 10000 characters' using errcode = 'P0001';
+    raise exception 'scratchpad-too-long|10000|' using errcode = 'P0001',
+      detail = 'scratchpad body exceeds the cap';
   end if;
 
   insert into common.game_scratchpads (game_id, owner_id, body)
@@ -404,14 +407,16 @@ declare
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    raise exception 'must be authenticated' using errcode = '42501';
+    raise exception 'not-authenticated|' using errcode = '42501',
+      detail = 'auth.uid() is null';
   end if;
 
   if not exists (
     select 1 from common.clubs_members
     where club_handle = target_club and user_id = caller_id
   ) then
-    raise exception 'not a member of this club' using errcode = '42501';
+    raise exception 'not-club-member|' using errcode = '42501',
+      detail = 'caller is not in common.club_members for this club';
   end if;
 
   return caller_id;
@@ -459,7 +464,8 @@ declare
   timer_seconds int;
 begin
   if timer is null then
-    raise exception 'setup.timer is required' using errcode = 'P0001';
+    raise exception 'missing-timer|' using errcode = 'P0001',
+      detail = 'setup.timer absent';
   end if;
 
   timer_kind := timer->>'kind';
@@ -468,26 +474,28 @@ begin
   -- through the next check unraised. Separate "is required" vs
   -- "must be" messages give clearer FE error display.
   if timer_kind is null then
-    raise exception 'setup.timer.kind is required' using errcode = 'P0001';
+    raise exception 'missing-timer-kind|' using errcode = 'P0001',
+      detail = 'setup.timer.kind absent';
   end if;
   if timer_kind not in ('none', 'countup', 'countdown') then
-    raise exception
-      'setup.timer.kind must be none, countup, or countdown (got %)',
+    raise exception 'bad-timer-kind|%|',
       timer_kind
-      using errcode = 'P0001';
+      using errcode = 'P0001',
+      detail = 'timer kind must be none, countup or countdown';
   end if;
 
   if timer_kind = 'countdown' then
     if (timer->>'seconds') is null then
-      raise exception 'setup.timer.seconds is required for countdown'
-        using errcode = 'P0001';
+      raise exception 'missing-timer-seconds|'
+        using errcode = 'P0001',
+      detail = 'countdown needs setup.timer.seconds';
     end if;
     timer_seconds := (timer->>'seconds')::int;
     if timer_seconds < 1 or timer_seconds > 3600 then
-      raise exception
-        'setup.timer.seconds must be 1..3600 (got %)',
+      raise exception 'bad-timer-seconds|%|',
         timer_seconds
-        using errcode = 'P0001';
+        using errcode = 'P0001',
+      detail = 'countdown seconds must be 1..3600';
     end if;
   end if;
 end;
@@ -517,7 +525,8 @@ immutable
 as $$
 begin
   if p_mode not in ('coop', 'compete') then
-    raise exception 'mode must be coop or compete (got %)', p_mode using errcode = 'P0001';
+    raise exception 'bad-mode|%|', p_mode using errcode = 'P0001',
+      detail = 'mode must be coop or compete';
   end if;
 end;
 $$;
@@ -547,7 +556,8 @@ immutable
 as $$
 begin
   if p_mode <> 'compete' then
-    raise exception 'concede is only for compete games' using errcode = 'P0001';
+    raise exception 'concede-not-in-coop|' using errcode = 'P0001',
+      detail = 'coop ends the whole table instead';
   end if;
 end;
 $$;
@@ -694,8 +704,9 @@ begin
   if player_user_ids is null
      or array_length(player_user_ids, 1) is null
      or array_length(player_user_ids, 1) = 0 then
-    raise exception 'player_user_ids must not be empty'
-      using errcode = 'P0001';
+    raise exception 'no-players|'
+      using errcode = 'P0001',
+      detail = 'player_user_ids was empty';
   end if;
 
   -- Identify any listed uid that isn't in clubs_members for this
@@ -709,9 +720,10 @@ begin
   );
 
   if array_length(non_members, 1) > 0 then
-    raise exception 'player_user_ids contains non-members: %',
+    raise exception 'players-not-in-club|%|',
       array_to_string(non_members, ', ')
-      using errcode = 'P0001';
+      using errcode = 'P0001',
+      detail = 'every player must already be a club member';
   end if;
 
   -- Vacate the prior current-view game (if any) for this club —
@@ -797,14 +809,16 @@ declare
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    raise exception 'must be authenticated' using errcode = '42501';
+    raise exception 'not-authenticated|' using errcode = '42501',
+      detail = 'auth.uid() is null';
   end if;
 
   if not exists (
     select 1 from common.game_players
     where game_id = target_game and user_id = caller_id
   ) then
-    raise exception 'not playing this game' using errcode = '42501';
+    raise exception 'not-a-player|' using errcode = '42501',
+      detail = 'caller has no common.game_players row';
   end if;
 
   return caller_id;
@@ -945,7 +959,8 @@ begin
   select current_turn_user_id into cur
     from common.games where id = target_game;
   if cur is not null and caller is distinct from cur then
-    raise exception 'not your turn' using errcode = 'P0001';
+    raise exception 'not-your-turn|' using errcode = 'P0001',
+      detail = 'current_turn_user_id is another player';
   end if;
 end;
 $$;
@@ -1012,7 +1027,8 @@ begin
    where games.id = target_game;
 
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no common.games row for target_game';
   end if;
 end;
 $$;
@@ -1101,7 +1117,8 @@ begin
    where games.id = target_game;
 
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no common.games row for target_game';
   end if;
 
   -- Per-player results — iterate the jsonb object.
@@ -1149,10 +1166,12 @@ begin
 
   select is_terminal into terminal from common.games where id = target_game;
   if terminal is null then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no common.games row for target_game';
   end if;
   if not terminal then
-    raise exception 'game is not over' using errcode = 'P0001';
+    raise exception 'game-not-over|' using errcode = 'P0001',
+      detail = 'play_state is still active; the solution stays shielded';
   end if;
 
   update common.games
@@ -1212,7 +1231,8 @@ begin
    where id = target_game;
 
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no common.games row for target_game';
   end if;
 
   update common.game_players
@@ -1265,21 +1285,24 @@ declare
 begin
   perform 1 from common.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no common.games row for target_game';
   end if;
 
   caller_id := common.require_game_player(target_game);
 
   select is_terminal into is_over from common.games where id = target_game;
   if is_over then
-    raise exception 'game is already over' using errcode = 'P0001';
+    raise exception 'already-ended|' using errcode = 'P0001',
+      detail = 'play_state is already terminal';
   end if;
 
   select conceded into already
     from common.game_players
    where game_id = target_game and user_id = caller_id;
   if already then
-    raise exception 'you have already conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'this player''s conceded flag is already set';
   end if;
 
   update common.game_players
@@ -1401,7 +1424,8 @@ declare
 begin
   select club_handle into target_club from common.games where id = target_game;
   if target_club is null then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no common.games row for target_game';
   end if;
 
   perform common.require_club_member(target_club);
@@ -1452,7 +1476,8 @@ declare
 begin
   select club_handle into target_club from common.games where id = target_game;
   if target_club is null then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no common.games row for target_game';
   end if;
 
   perform common.require_club_member(target_club);
@@ -1505,7 +1530,8 @@ declare
 begin
   select club_handle into target_club from common.games where id = target_game;
   if target_club is null then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no common.games row for target_game';
   end if;
   perform common.require_club_member(target_club);
 
@@ -1574,7 +1600,8 @@ declare
 begin
   select club_handle into target_club from common.games where id = target_game;
   if target_club is null then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no common.games row for target_game';
   end if;
 
   perform common.require_club_member(target_club);
@@ -1633,29 +1660,33 @@ declare
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    raise exception 'must be authenticated' using errcode = '42501';
+    raise exception 'not-authenticated|' using errcode = '42501',
+      detail = 'auth.uid() is null';
   end if;
 
   -- Length first, and as a clean P0001 like the two name errors below: the
   -- table's own CHECK would raise 23514, which CreateClubPage renders verbatim
   -- ("new row for relation \"clubs\" violates check constraint …").
   if char_length(club_name) > 20 then
-    raise exception 'club name must be 20 characters or fewer'
-      using errcode = 'P0001';
+    raise exception 'club-name-too-long|20|'
+      using errcode = 'P0001',
+      detail = 'club name length cap';
   end if;
 
   new_handle := common.slugify_club_name(club_name);
   if length(new_handle) = 0 then
-    raise exception 'club name must contain alphanumeric characters'
-      using errcode = 'P0001';
+    raise exception 'club-name-not-alnum|'
+      using errcode = 'P0001',
+      detail = 'club name needs at least one alphanumeric';
   end if;
   -- The handle CHECK regex requires a leading letter. Surface a
   -- clean P0001 instead of letting the constraint raise 23514,
   -- so the FE's inline error reads as a name problem ("add a
   -- letter") rather than a database error.
   if new_handle !~ '^[a-z]' then
-    raise exception 'club name must start with a letter'
-      using errcode = 'P0001';
+    raise exception 'club-name-start|'
+      using errcode = 'P0001',
+      detail = 'club name must begin with a letter';
   end if;
 
   -- Resolve usernames → user_ids; collect any that didn't map.
@@ -1674,8 +1705,9 @@ begin
   left join common.profiles p on p.username = u;
 
   if array_length(unknown_names, 1) > 0 then
-    raise exception 'unknown usernames: %', array_to_string(unknown_names, ', ')
-      using errcode = 'P0002';
+    raise exception 'unknown-usernames|%|', array_to_string(unknown_names, ', ')
+      using errcode = 'P0002',
+      detail = 'no profile matches these usernames';
   end if;
 
   -- Auto-add the caller if they weren't in the list.
@@ -1684,8 +1716,9 @@ begin
   end if;
 
   if coalesce(array_length(resolved_ids, 1), 0) < 2 then
-    raise exception 'a club must have at least 2 members'
-      using errcode = 'P0001';
+    raise exception 'club-too-small|2|'
+      using errcode = 'P0001',
+      detail = 'a club needs the creator plus one';
   end if;
 
   -- The PK on clubs.handle does collision enforcement; we let
@@ -1795,11 +1828,13 @@ begin
   caller_id := common.require_club_member(target_club);
 
   if length(trimmed) = 0 then
-    raise exception 'message must not be empty' using errcode = 'P0001';
+    raise exception 'empty-message|' using errcode = 'P0001',
+      detail = 'chat body was blank';
   end if;
 
   if length(trimmed) > 1000 then
-    raise exception 'message too long (max 1000 chars)' using errcode = 'P0001';
+    raise exception 'message-too-long|1000|' using errcode = 'P0001',
+      detail = 'chat body over the cap';
   end if;
 
   insert into common.messages (club_handle, user_id, content)
@@ -1863,15 +1898,17 @@ declare
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    raise exception 'must be authenticated' using errcode = '42501';
+    raise exception 'not-authenticated|' using errcode = '42501',
+      detail = 'auth.uid() is null';
   end if;
 
   -- Clean P0001 if the requested handle doesn't match the regex.
   -- (The profiles CHECK would raise 23514 from the same input;
   -- this just gives the FE a friendlier error string.)
   if desired !~ '^[a-z][a-z0-9-]{2,14}$' then
-    raise exception 'username must be 3–15 chars, lowercase letters/digits/hyphens, starting with a letter'
-      using errcode = 'P0001';
+    raise exception 'bad-username|'
+      using errcode = 'P0001',
+      detail = 'username must match ^[a-z][a-z0-9-]{2,14}$';
   end if;
 
   -- Block double-claim explicitly — without this, the same user
@@ -1879,7 +1916,8 @@ begin
   -- couldn't distinguish "this user already claimed" from "this
   -- username is taken by someone else."
   if exists (select 1 from common.profiles where user_id = caller_id) then
-    raise exception 'profile already claimed' using errcode = 'P0001';
+    raise exception 'username-claimed|' using errcode = 'P0001',
+      detail = 'this profile already has a username';
   end if;
 
   -- The player picks their color on the claim form (the FE defaults it
@@ -1890,7 +1928,8 @@ begin
   -- common.color_for_username remains for that deterministic seeding.)
   if chosen_color not in
        ('red', 'orange', 'yellow', 'green', 'brown', 'blue', 'purple', 'pink') then
-    raise exception 'not a valid player color: %', chosen_color using errcode = 'P0001';
+    raise exception 'bad-color|%|', chosen_color using errcode = 'P0001',
+      detail = 'color must be one of the member palette';
   end if;
 
   insert into common.profiles (user_id, username, color)
@@ -1932,7 +1971,8 @@ declare
 begin
   caller_id := auth.uid();
   if caller_id is null then
-    raise exception 'must be authenticated' using errcode = '42501';
+    raise exception 'not-authenticated|' using errcode = '42501',
+      detail = 'auth.uid() is null';
   end if;
 
   -- Friendly P0001 instead of the raw 23514 the CHECK would raise. The
@@ -1940,12 +1980,14 @@ begin
   -- MEMBER_COLORS in memberColor.ts).
   if new_color not in
        ('red', 'orange', 'yellow', 'green', 'brown', 'blue', 'purple', 'pink') then
-    raise exception 'not a valid player color: %', new_color using errcode = 'P0001';
+    raise exception 'bad-color|%|', new_color using errcode = 'P0001',
+      detail = 'color must be one of the member palette';
   end if;
 
   update common.profiles set color = new_color where user_id = caller_id;
   if not found then
-    raise exception 'no profile to update' using errcode = 'P0001';
+    raise exception 'no-profile|' using errcode = 'P0001',
+      detail = 'no profiles row for the caller';
   end if;
 end;
 $$;
@@ -2056,8 +2098,9 @@ declare
   idx int;
 begin
   if letters is null or letters !~ '^[A-Za-z?]{2,15}$' then
-    raise exception 'letters must be 2-15 characters of a-z, A-Z, or ?'
-      using errcode = 'P0001';
+    raise exception 'bad-anagram-input|'
+      using errcode = 'P0001',
+      detail = 'anagram input must be 2-15 letters or ?';
   end if;
   n := length(letters);
 
@@ -2130,8 +2173,9 @@ begin
    where p.user_id = auth.uid()
      and p.can_edit_words;
   if not found then
-    raise exception 'word editing requires the can_edit_words permission'
-      using errcode = '42501';
+    raise exception 'not-word-editor|'
+      using errcode = '42501',
+      detail = 'profiles.can_edit_words is false';
   end if;
 end;
 $$;
@@ -2152,18 +2196,22 @@ begin
   for k in select jsonb_object_keys(fields) loop
     if k not in ('definition', 'hint', 'difficulty', 'crude', 'slur', 'slang',
                  'american', 'british', 'canadian', 'australian') then
-      raise exception 'not an editable field: %', k using errcode = 'P0001';
+      raise exception 'bad-word-field|%|', k using errcode = 'P0001',
+      detail = 'field is not in the editable allow-list';
     end if;
   end loop;
   if fields ? 'difficulty'
      and (fields->>'difficulty')::int not between 1 and 6 then
-    raise exception 'difficulty must be 1-6' using errcode = 'P0001';
+    raise exception 'bad-difficulty|' using errcode = 'P0001',
+      detail = 'words.difficulty is 1-6';
   end if;
   if fields ? 'crude' and (fields->>'crude')::int not between 0 and 2 then
-    raise exception 'crude must be 0-2' using errcode = 'P0001';
+    raise exception 'bad-crude|' using errcode = 'P0001',
+      detail = 'words.crude is 0-2';
   end if;
   if fields ? 'slur' and (fields->>'slur')::int not between 0 and 2 then
-    raise exception 'slur must be 0-2' using errcode = 'P0001';
+    raise exception 'bad-slur|' using errcode = 'P0001',
+      detail = 'words.slur is 0-2';
   end if;
 end;
 $$;
@@ -2189,12 +2237,14 @@ begin
   select * into ed from common._require_word_editor();
   perform common._validate_word_fields(patch);
   if patch = '{}'::jsonb then
-    raise exception 'nothing to change' using errcode = 'P0001';
+    raise exception 'no-word-change|' using errcode = 'P0001',
+      detail = 'the edit was a no-op';
   end if;
 
   select * into w from common.words where word = lower(target_word) for update;
   if not found then
-    raise exception 'no such word: %', target_word using errcode = 'P0002';
+    raise exception 'no-such-word|%|', target_word using errcode = 'P0002',
+      detail = 'word absent from common.words';
   end if;
 
   update common.words set
@@ -2244,7 +2294,8 @@ begin
   select * into ed from common._require_word_editor();
   select * into w from common.words where word = lower(target_word) for update;
   if not found then
-    raise exception 'no such word: %', target_word using errcode = 'P0002';
+    raise exception 'no-such-word|%|', target_word using errcode = 'P0002',
+      detail = 'word absent from common.words';
   end if;
 
   delete from common.words where word = w.word;
@@ -2280,13 +2331,16 @@ begin
   -- 1..45 matches the dictionary's real range ('a' to the 45-letter lung
   -- disease); lowercase a-z only, like every imported word.
   if new_word !~ '^[a-z]{1,45}$' then
-    raise exception 'a word is 1-45 lowercase letters' using errcode = 'P0001';
+    raise exception 'bad-word|' using errcode = 'P0001',
+      detail = 'new word must be 1-45 lowercase letters';
   end if;
   if not fields ? 'difficulty' then
-    raise exception 'difficulty is required for a new word' using errcode = 'P0001';
+    raise exception 'missing-difficulty|' using errcode = 'P0001',
+      detail = 'add_word needs a difficulty';
   end if;
   if exists (select 1 from common.words cw where cw.word = new_word) then
-    raise exception 'already in the dictionary: %', new_word using errcode = 'P0001';
+    raise exception 'word-exists|%|', new_word using errcode = 'P0001',
+      detail = 'word already present in common.words';
   end if;
 
   insert into common.words
@@ -2398,9 +2452,10 @@ set search_path = common, public, extensions
 as $$
 begin
   if array_length(player_user_ids, 1) > max_count then
-    raise exception 'player_user_ids has % entries (max %)',
+    raise exception 'too-many-players|%|%|',
                     array_length(player_user_ids, 1), max_count
-      using errcode = 'P0001';
+      using errcode = 'P0001',
+      detail = 'player count exceeds the gametype''s max';
   end if;
 end;
 $$;

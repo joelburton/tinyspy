@@ -73,7 +73,7 @@ select throws_ok(
     (select handle from club2)
   ),
   '42501',
-  'must be authenticated',
+  'not-authenticated|',
   'create_game: not authenticated raises 42501'
 );
 
@@ -86,7 +86,7 @@ select throws_ok(
     (select handle from club2)
   ),
   '42501',
-  'not a member of this club',
+  'not-club-member|',
   'create_game: non-member is rejected'
 );
 
@@ -223,7 +223,7 @@ select throws_ok(
     (select handle from club2)
   ),
   'P0001',
-  'setup.timer is required',
+  'missing-timer|',
   'create_game: missing setup.timer is rejected'
 );
 
@@ -242,7 +242,7 @@ select throws_ok(
     (select handle from club2)
   ),
   'P0001',
-  'setup.timer.kind must be none, countup, or countdown (got fast)',
+  'bad-timer-kind|fast|',
   'create_game: bogus timer.kind is rejected'
 );
 
@@ -261,7 +261,7 @@ select throws_ok(
     (select handle from club2)
   ),
   'P0001',
-  'setup.timer.seconds is required for countdown',
+  'missing-timer-seconds|',
   'create_game: countdown without seconds is rejected'
 );
 
@@ -280,7 +280,7 @@ select throws_ok(
     (select handle from club2)
   ),
   'P0001',
-  'setup.timer.seconds must be 1..3600 (got 0)',
+  'bad-timer-seconds|0|',
   'create_game: countdown with seconds=0 is rejected'
 );
 

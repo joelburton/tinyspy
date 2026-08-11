@@ -118,7 +118,7 @@ select throws_ok(
     (select id from g2)
   ),
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'submit_timeout: non-player rejected via require_game_player'
 );
 

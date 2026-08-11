@@ -37,7 +37,7 @@ select throws_ok(
        array['ada11111-1111-1111-1111-111111111111'::uuid]
      ) $$,
   '42501',
-  'must be authenticated',
+  'not-authenticated|',
   'unauthenticated create_game is rejected'
 );
 
@@ -206,7 +206,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.timer is required',
+  'missing-timer|',
   'missing timer is rejected'
 );
 

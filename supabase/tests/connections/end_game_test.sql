@@ -178,7 +178,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format($$ select connections.end_game(%L::uuid) $$, (select id from g_auth)),
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'end_game: non-player (dee, outsider) is rejected with 42501'
 );
 

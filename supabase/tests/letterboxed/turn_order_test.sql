@@ -56,7 +56,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select throws_ok(
   format('select letterboxed.submit_word(%L, %L)', (select id from g), 'adg'),
   'P0001',
-  'not your turn',
+  'not-your-turn|',
   'turns: the non-current player is rejected'
 );
 

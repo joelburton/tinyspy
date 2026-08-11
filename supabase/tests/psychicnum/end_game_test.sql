@@ -46,7 +46,7 @@ update psychicnum.games set secrets = array['alpha','bravo','charlie'] where id 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format($$ select psychicnum.end_game(%L::uuid) $$, (select id from coop_g)),
-  '42501', 'not playing this game',
+  '42501', 'not-a-player|',
   'coop: non-player end_game rejected'
 );
 

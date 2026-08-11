@@ -110,7 +110,7 @@ select throws_ok(
     (select id from g)
   ),
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'submit_guess: non-player is rejected (via require_game_player)'
 );
 

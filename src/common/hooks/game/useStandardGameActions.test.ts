@@ -71,10 +71,12 @@ describe('endGame', () => {
 
   it('surfaces an RPC failure through showError', async () => {
     const { result, rpc, showError } = setup()
-    rpc.mockResolvedValue({ error: { message: 'boom' } })
+    // A keyed rejection the copy table knows: the words a player reads are
+    // TypeScript's, not the server's (lib/game/errorCopy.ts).
+    rpc.mockResolvedValue({ error: { message: 'not-your-turn|', code: 'P0001' } })
     act(() => result.current.endGame())
     await flush()
-    expect(showError).toHaveBeenCalledWith('End game failed: boom')
+    expect(showError).toHaveBeenCalledWith('Not your turn')
   })
 })
 
@@ -105,10 +107,10 @@ describe('concede', () => {
 
   it('surfaces an RPC failure through showError', async () => {
     const { result, rpc, showError } = setup()
-    rpc.mockResolvedValue({ error: { message: 'nope' } })
+    rpc.mockResolvedValue({ error: { message: 'nope', code: '42501' } })
     act(() => result.current.concede())
     await flush()
-    expect(showError).toHaveBeenCalledWith('Concede failed: nope')
+    expect(showError).toHaveBeenCalledWith('concede|nope')
   })
 })
 
@@ -145,10 +147,10 @@ describe('restart', () => {
 
   it('does NOT run onRestarted when the RPC fails', async () => {
     const { result, rpc, showError, onRestarted } = setup({ isTerminal: true })
-    rpc.mockResolvedValue({ error: { message: 'reset failed' } })
+    rpc.mockResolvedValue({ error: { message: 'TypeError: Load failed', code: '' } })
     act(() => result.current.restart())
     await flush()
-    expect(showError).toHaveBeenCalledWith('Replay failed: reset failed')
+    expect(showError).toHaveBeenCalledWith('restart: Server; try refresh')
     expect(onRestarted).not.toHaveBeenCalled()
   })
 
@@ -172,7 +174,7 @@ describe('restart', () => {
 
   it('is retryable once the first replay settles — including after a failure', async () => {
     const { result, rpc, showError } = setup({ isTerminal: true })
-    rpc.mockResolvedValue({ error: { message: 'reset failed' } })
+    rpc.mockResolvedValue({ error: { message: 'TypeError: Load failed', code: '' } })
     act(() => result.current.restart())
     await flush()
     expect(showError).toHaveBeenCalledTimes(1)

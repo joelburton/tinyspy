@@ -106,14 +106,14 @@ select is(
 select throws_ok(
   $$ select submit_clue((select id from g), 'X', 1) $$,
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'dee cannot call submit_clue on a game she didn''t play'
 );
 
 select throws_ok(
   $$ select submit_guess((select id from g), 0) $$,
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'dee cannot call submit_guess on a game she didn''t play'
 );
 

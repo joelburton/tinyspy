@@ -55,7 +55,7 @@ select * from stackdown.create_game(
   'coop');
 select throws_ok(
   format($$ select stackdown.concede(%L) $$, (select id from gc)),
-  'P0001', 'concede is only for compete games',
+  'P0001', 'concede-not-in-coop|',
   'conceding a coop game is rejected');
 
 select * from finish();

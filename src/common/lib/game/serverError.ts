@@ -138,3 +138,19 @@ export function failureMessage(error: CallError, action: string): GenericFeedbac
     mode: { kind: 'manual' },
   }
 }
+
+/**
+ * The failure's TEXT, for the sinks that take a string rather than a message —
+ * form error lines, and the shared game actions whose `showError` each game
+ * wraps in its own pill builder.
+ *
+ * The words are identical to `failureMessage`'s; what a string sink loses is
+ * the FAULT STYLING, since it can't carry the flag. Those call sites therefore
+ * still show a fault as an ordinary red pill. That's the remaining gap in the
+ * migration, and it closes per game as each one's pill sink learns to take a
+ * `GenericFeedbackMsg` instead of a string.
+ */
+export function failureText(error: CallError, action: string): string {
+  const msg = failureMessage(error, action)
+  return typeof msg.text === 'string' ? msg.text : String(msg.text)
+}

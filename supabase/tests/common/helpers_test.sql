@@ -72,7 +72,7 @@ select throws_ok(
     (select handle from club)
   ),
   '42501',
-  'must be authenticated',
+  'not-authenticated|',
   'require_club_member: null auth.uid() raises 42501'
 );
 
@@ -84,7 +84,7 @@ select throws_ok(
     (select handle from club)
   ),
   '42501',
-  'not a member of this club',
+  'not-club-member|',
   'require_club_member: non-member raises 42501'
 );
 
@@ -107,7 +107,7 @@ select set_config('request.jwt.claims', '', true);
 select throws_ok(
   $$ select common.require_valid_timer(null::jsonb) $$,
   'P0001',
-  'setup.timer is required',
+  'missing-timer|',
   'require_valid_timer: null raises setup.timer is required'
 );
 
@@ -115,7 +115,7 @@ select throws_ok(
 select throws_ok(
   $$ select common.require_valid_timer('{"kind":"fast"}'::jsonb) $$,
   'P0001',
-  'setup.timer.kind must be none, countup, or countdown (got fast)',
+  'bad-timer-kind|fast|',
   'require_valid_timer: bogus kind raises with the value in the message'
 );
 
@@ -123,7 +123,7 @@ select throws_ok(
 select throws_ok(
   $$ select common.require_valid_timer('{}'::jsonb) $$,
   'P0001',
-  'setup.timer.kind is required',
+  'missing-timer-kind|',
   'require_valid_timer: missing kind raises with its own message'
 );
 
@@ -131,7 +131,7 @@ select throws_ok(
 select throws_ok(
   $$ select common.require_valid_timer('{"kind":"countdown"}'::jsonb) $$,
   'P0001',
-  'setup.timer.seconds is required for countdown',
+  'missing-timer-seconds|',
   'require_valid_timer: countdown without seconds raises the right error'
 );
 
@@ -139,7 +139,7 @@ select throws_ok(
 select throws_ok(
   $$ select common.require_valid_timer('{"kind":"countdown","seconds":0}'::jsonb) $$,
   'P0001',
-  'setup.timer.seconds must be 1..3600 (got 0)',
+  'bad-timer-seconds|0|',
   'require_valid_timer: countdown seconds=0 is rejected'
 );
 
@@ -147,7 +147,7 @@ select throws_ok(
 select throws_ok(
   $$ select common.require_valid_timer('{"kind":"countdown","seconds":3601}'::jsonb) $$,
   'P0001',
-  'setup.timer.seconds must be 1..3600 (got 3601)',
+  'bad-timer-seconds|3601|',
   'require_valid_timer: countdown seconds=3601 is rejected'
 );
 

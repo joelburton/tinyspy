@@ -1,3 +1,5 @@
+import { actionName } from '../../lib/game/callRpc'
+import { failureText } from '../../lib/game/serverError'
 import { useState, type FormEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { useDefinePopover } from '../../hooks/definitions/useDefinePopover'
@@ -41,7 +43,7 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
     setSearching(false)
     if (res.error) {
       setResults(null)
-      setError(res.error.message)
+      setError(failureText(res.error, actionName('anagrams')))
       return
     }
     setResults((res.data ?? []) as Result[])

@@ -119,7 +119,7 @@ reset role;
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format($$ select bananagrams.replay_board(%L::uuid) $$, (select id from g1)),
-  '42501', 'not playing this game', 'a non-player cannot restart');
+  '42501', 'not-a-player|', 'a non-player cannot restart');
 reset role;
 
 select * from finish();

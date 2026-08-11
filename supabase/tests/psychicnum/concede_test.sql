@@ -61,7 +61,7 @@ select psychicnum.create_game(
 ) as id;
 select throws_ok(
   format($$ select psychicnum.concede(%L) $$, (select id from gc)),
-  'P0001', 'concede is only for compete games',
+  'P0001', 'concede-not-in-coop|',
   'conceding a coop game is rejected');
 
 select * from finish();

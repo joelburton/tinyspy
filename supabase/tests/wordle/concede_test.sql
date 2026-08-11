@@ -107,7 +107,7 @@ select * from wordle.create_game(
 select throws_ok(
   format($$ select wordle.concede(%L) $$, (select id from gc)),
   'P0001',
-  'concede is only for compete games',
+  'concede-not-in-coop|',
   'conceding a coop game is rejected'
 );
 

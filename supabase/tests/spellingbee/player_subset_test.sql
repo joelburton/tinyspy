@@ -71,7 +71,7 @@ select is(
 select throws_ok(
   format($$ select spellingbee.submit_word(%L::uuid, 'face', 1, false, false) $$, (select id from g)),
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'cade (member, not a player) CANNOT submit_word — acting is player-gated'
 );
 

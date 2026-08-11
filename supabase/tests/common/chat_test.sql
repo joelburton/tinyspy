@@ -50,7 +50,7 @@ select set_config('role', 'postgres', true);
 select throws_ok(
   format($q$ select common.send_message(%L, 'hi') $q$, (select handle from club)),
   '42501',
-  'must be authenticated',
+  'not-authenticated|',
   'send_message: not authenticated raises 42501'
 );
 
@@ -59,7 +59,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format($q$ select common.send_message(%L, 'sneaking in') $q$, (select handle from club)),
   '42501',
-  'not a member of this club',
+  'not-club-member|',
   'send_message: non-member is rejected'
 );
 
@@ -69,14 +69,14 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($q$ select common.send_message(%L, '   ') $q$, (select handle from club)),
   'P0001',
-  'message must not be empty',
+  'empty-message|',
   'send_message: whitespace-only message is rejected'
 );
 
 select throws_ok(
   format($q$ select common.send_message(%L, repeat('x', 1001)) $q$, (select handle from club)),
   'P0001',
-  'message too long (max 1000 chars)',
+  'message-too-long|1000|',
   'send_message: over-1000-char message is rejected'
 );
 

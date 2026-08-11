@@ -133,7 +133,7 @@ select throws_ok(
     (select handle from club)
   ),
   '42501',
-  'not a member of this club',
+  'not-club-member|',
   'create_game: non-member caller is rejected (via require_club_member)'
 );
 
@@ -148,7 +148,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'player_user_ids must not be empty',
+  'no-players|',
   'create_game: empty player_user_ids is rejected'
 );
 
@@ -166,7 +166,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'player_user_ids contains non-members: dee44444-4444-4444-4444-444444444444',
+  'players-not-in-club|dee44444-4444-4444-4444-444444444444|',
   'create_game: rejects when a listed uid isn''t in clubs_members'
 );
 
@@ -220,7 +220,7 @@ select throws_ok(
     current_setting('test.created_game_id')::uuid
   ),
   '42501',
-  'must be authenticated',
+  'not-authenticated|',
   'require_game_player: null auth.uid() raises 42501'
 );
 
@@ -231,7 +231,7 @@ select throws_ok(
     current_setting('test.created_game_id')::uuid
   ),
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'require_game_player: outsider raises 42501'
 );
 
@@ -330,7 +330,7 @@ select throws_ok(
   $$ select common.end_game('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid,
                             'won', '{}'::jsonb, '{}'::jsonb) $$,
   'P0002',
-  'game not found',
+  'game-not-found|',
   'end_game: unknown game raises P0002'
 );
 
@@ -448,7 +448,7 @@ select throws_ok(
     current_setting('test.second_game_id')::uuid
   ),
   '42501',
-  'not a member of this club',
+  'not-club-member|',
   'set_current_view: non-member is rejected'
 );
 select throws_ok(
@@ -457,7 +457,7 @@ select throws_ok(
     current_setting('test.second_game_id')::uuid
   ),
   '42501',
-  'not a member of this club',
+  'not-club-member|',
   'unset_current_view: non-member is rejected'
 );
 
@@ -466,7 +466,7 @@ select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   $$ select common.set_current_view('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid) $$,
   'P0002',
-  'game not found',
+  'game-not-found|',
   'set_current_view: unknown game raises P0002'
 );
 
@@ -664,7 +664,7 @@ select throws_ok(
     current_setting('test.second_game_id')::uuid
   ),
   '42501',
-  'not a member of this club',
+  'not-club-member|',
   'delete_game: non-member is rejected'
 );
 
@@ -672,7 +672,7 @@ select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   $$ select common.delete_game('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid) $$,
   'P0002',
-  'game not found',
+  'game-not-found|',
   'delete_game: unknown game raises P0002'
 );
 

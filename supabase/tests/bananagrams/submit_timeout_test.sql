@@ -93,7 +93,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format($$ select bananagrams.submit_timeout(%L) $$, (select id from g1)),
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'a non-player cannot fire the timeout'
 );
 

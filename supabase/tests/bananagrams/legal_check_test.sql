@@ -359,7 +359,7 @@ select set_config('request.jwt.claims', '', true);
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format($$ select bananagrams.check_board(%L::uuid) $$, (select id from gh)),
-  '42501', 'not playing this game',
+  '42501', 'not-a-player|',
   'check_board: a non-player is rejected');
 reset role;
 select set_config('request.jwt.claims', '', true);

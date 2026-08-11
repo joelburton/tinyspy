@@ -37,7 +37,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   $$ select get_clue_context((select id from g)) $$,
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'get_clue_context rejects a non-player caller (via require_game_player)'
 );
 

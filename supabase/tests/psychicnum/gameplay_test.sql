@@ -78,7 +78,7 @@ select throws_ok(
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format($$ select psychicnum.submit_guess(%L::uuid, 'zdelta') $$, (select id from coop_g)),
-  '42501', 'not playing this game',
+  '42501', 'not-a-player|',
   'coop: non-player submit_guess rejected'
 );
 

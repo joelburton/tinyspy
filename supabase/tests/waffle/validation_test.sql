@@ -41,7 +41,7 @@ select throws_ok(
          'solo', pg_temp.waffle_board()) $$,
     (select handle from club)
   ),
-  'P0001', 'mode must be coop or compete (got solo)',
+  'P0001', 'bad-mode|solo|',
   'mode outside {coop, compete} is rejected'
 );
 

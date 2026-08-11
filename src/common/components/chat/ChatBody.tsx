@@ -1,3 +1,5 @@
+import { actionName } from '../../lib/game/callRpc'
+import { failureText } from '../../lib/game/serverError'
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { colorVarFor } from '../../lib/color/memberColor'
@@ -77,7 +79,7 @@ export function ChatBody({ clubHandle, members, messages, loading }: Props) {
     })
     setBusy(false)
     if (error) {
-      setError(error.message)
+      setError(failureText(error, actionName('send_message')))
       return
     }
     setInput('')

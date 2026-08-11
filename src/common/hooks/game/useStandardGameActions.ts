@@ -1,3 +1,5 @@
+import { actionName } from '../../lib/game/callRpc'
+import { failureText } from '../../lib/game/serverError'
 import { useCallback, useRef } from 'react'
 import { END_GAME_CONFIRM, RESTART_CONFIRM, type ConfirmOptions } from '../ui/useConfirmDialog'
 
@@ -81,7 +83,7 @@ export function useStandardGameActions({
       if (isTerminal) return
       if (!(await confirm(END_GAME_CONFIRM))) return
       const { error } = await db.rpc('end_game', { target_game: gameId })
-      if (error) showError(`End game failed: ${error.message}`)
+      if (error) showError(failureText(error, actionName('end_game')))
     })()
   }, [db, gameId, isTerminal, confirm, showError])
 
@@ -91,7 +93,7 @@ export function useStandardGameActions({
       if (isTerminal || myConceded) return
       if (!window.confirm(CONCEDE_CONFIRM)) return
       const { error } = await db.rpc('concede', { target_game: gameId })
-      if (error) showError(`Concede failed: ${error.message}`)
+      if (error) showError(failureText(error, actionName('concede')))
     })()
   }, [db, gameId, isTerminal, myConceded, showError])
 
@@ -133,7 +135,7 @@ export function useStandardGameActions({
       try {
         const { error } = await db.rpc('replay_board', { target_game: gameId })
         if (error) {
-          showError(`Replay failed: ${error.message}`)
+          showError(failureText(error, actionName('replay_board')))
           return
         }
         onRestarted?.()

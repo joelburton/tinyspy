@@ -73,7 +73,7 @@ select is(
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select throws_ok(
   format($$ select stackdown.reveal_next_word(%L) $$, (select id from g)),
-  '42501', 'not playing this game',
+  '42501', 'not-a-player|',
   'a non-player cannot reveal');
 
 -- ── After clearing the first word, reveal advances ──────────────────

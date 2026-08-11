@@ -66,7 +66,7 @@ select is(
 select throws_ok(
   format($$ select bananagrams.concede(%L) $$, (select id from g1)),
   'P0001',
-  'you have already conceded',
+  'you-conceded|',
   'conceding twice is rejected'
 );
 
@@ -161,7 +161,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format($$ select bananagrams.concede(%L) $$, (select id from g1)),
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'a non-player cannot concede'
 );
 
@@ -170,7 +170,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select bananagrams.concede(%L) $$, (select id from g1)),
   'P0001',
-  'game is already over',
+  'already-ended|',
   'conceding a finished game is rejected'
 );
 

@@ -220,7 +220,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format($$ select strands.spend_hint(%L) $$, (select id from game)),
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'an outsider cannot spend the club''s hint'
 );
 

@@ -129,7 +129,7 @@ select throws_ok(
     (select id from g2)
   ),
   '42501',
-  'not playing this game',
+  'not-a-player|',
   'end_game: non-player rejected via require_game_player'
 );
 

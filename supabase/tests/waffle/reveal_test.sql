@@ -81,7 +81,7 @@ reset role;
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select throws_ok(
   format($$ select common.reveal_solution(%L::uuid) $$, (select id from g1)),
-  '42501', 'not playing this game',
+  '42501', 'not-a-player|',
   'a non-player cannot reveal the answer');
 reset role;
 
