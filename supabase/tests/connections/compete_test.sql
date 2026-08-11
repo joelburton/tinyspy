@@ -82,7 +82,7 @@ select throws_ok(
     (select handle from club), (select id from puzzle)
   ),
   'P0001',
-  'compete mode requires at least 2 players',
+  'too-few-players|',
   'create_game: compete with 1 player is rejected'
 );
 
@@ -260,7 +260,7 @@ select throws_ok(
     (select id from g)
   ),
   'P0001',
-  'game is not in progress',
+  'game-not-in-play|',
   'submit_guess (compete): post-win opponent submit is rejected'
 );
 
@@ -317,7 +317,7 @@ select throws_ok(
     (select id from g2)
   ),
   'P0001',
-  'you are eliminated from this game',
+  'eliminated|',
   'submit_guess (compete): eliminated player''s submit is rejected'
 );
 
@@ -390,7 +390,7 @@ select throws_ok(
   format($$ select connections.submit_timeout(%L::uuid) $$,
          (select id from g3)),
   'P0001',
-  'game is not in progress',
+  'game-not-in-play|',
   'submit_timeout (compete): second call on already-terminal game raises P0001'
 );
 

@@ -94,7 +94,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.puzzleId is required',
+  'missing-puzzle-id|',
   'create_game: missing setup.puzzleId is rejected'
 );
 
@@ -105,7 +105,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.puzzleId must be a uuid',
+  'bad-puzzle-id|',
   'create_game: malformed puzzleId is rejected'
 );
 
@@ -116,7 +116,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0002',
-  'puzzle not found',
+  'no-puzzle|',
   'create_game: unknown puzzleId is rejected'
 );
 

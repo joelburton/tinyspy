@@ -211,8 +211,9 @@ begin
     -- compete Start button in 1-player clubs; this guard is the
     -- server-side catch. Matches psychicnum's pattern.
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'compete mode requires at least 2 players'
-        using errcode = 'P0001';
+      raise exception 'too-few-players|'
+        using errcode = 'P0001',
+      detail = 'compete needs >= 2 players';
     end if;
   end if;
 
@@ -226,13 +227,15 @@ begin
   -- field-named message. The FE's date-picker can't normally
   -- produce these, but a curious client could send anything.
   if (setup->>'puzzleId') is null then
-    raise exception 'setup.puzzleId is required' using errcode = 'P0001';
+    raise exception 'missing-puzzle-id|' using errcode = 'P0001',
+      detail = 'setup.puzzleId absent';
   end if;
   begin
     s_puzzle_id := (setup->>'puzzleId')::uuid;
   exception when invalid_text_representation then
-    raise exception 'setup.puzzleId must be a uuid'
-      using errcode = 'P0001';
+    raise exception 'bad-puzzle-id|'
+      using errcode = 'P0001',
+      detail = 'setup.puzzleId is not a uuid';
   end;
 
   -- Canonical timer-shape validation. See common.require_valid_timer
@@ -246,7 +249,8 @@ begin
   select * into puzzle_row from connections.puzzles
    where connections.puzzles.id = s_puzzle_id;
   if not found then
-    raise exception 'puzzle not found' using errcode = 'P0002';
+    raise exception 'no-puzzle|' using errcode = 'P0002',
+      detail = 'no connections.puzzles row for that id; run the puzzle import';
   end if;
 
   board_categories := puzzle_row.categories;
@@ -306,8 +310,9 @@ begin
   if mode = 'coop' and setup->>'coop_style' = 'turns' then
     first_turn := (setup->>'first_turn_user_id')::uuid;
     if first_turn is null or not (first_turn = any(player_user_ids)) then
-      raise exception 'setup.first_turn_user_id must be one of the players'
-        using errcode = 'P0001';
+      raise exception 'bad-first-turn|'
+        using errcode = 'P0001',
+      detail = 'setup.first_turn_user_id must be one of the players';
     end if;
     perform common._assign_turn_order(new_id, first_turn);
   end if;
@@ -468,7 +473,8 @@ begin
    where connections.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no connections.games row for target_game';
   end if;
 
   -- Auth + game-player gate (deferred to after the lock). See
@@ -482,7 +488,8 @@ begin
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- A conceded player is out of the race — no more guesses. The FE gates
@@ -491,7 +498,8 @@ begin
   -- complete the win condition and be recorded the winner.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this compete race';
   end if;
 
   -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
@@ -508,21 +516,24 @@ begin
   -- payloads (lengths, enum values) so the data we persist is at
   -- least well-typed.
   if tiles is null or array_length(tiles, 1) <> 4 then
-    raise exception 'must submit exactly 4 tiles (got %)',
+    raise exception 'bad-selection|%|',
                     coalesce(array_length(tiles, 1), 0)
-      using errcode = 'P0001';
+      using errcode = 'P0001',
+      detail = 'a guess is exactly 4 tile ids';
   end if;
 
   if result not in ('correct', 'oneAway', 'wrong') then
-    raise exception 'result must be correct, oneAway, or wrong (got %)', result
-      using errcode = 'P0001';
+    raise exception 'bad-result|%|', result
+      using errcode = 'P0001',
+      detail = 'result must be correct, oneAway or wrong';
   end if;
 
   if result = 'correct' then
     if matched_category_rank is null
        or matched_category_rank not between 0 and 3 then
-      raise exception 'matched_category_rank must be 0..3 when result is correct'
-        using errcode = 'P0001';
+      raise exception 'bad-category-rank|'
+        using errcode = 'P0001',
+      detail = 'a correct guess must name a category rank 0..3';
     end if;
   end if;
 
@@ -533,15 +544,17 @@ begin
   if caller_mistakes is null then
     -- require_game_player passed but there's no players row;
     -- shouldn't happen since create_game seeds them. Defensive.
-    raise exception 'no player row for caller' using errcode = 'P0002';
+    raise exception 'not-a-player|' using errcode = 'P0002',
+      detail = 'no connections.players row for the caller';
   end if;
 
   -- Compete-only: eliminated players can't submit. (In coop the
   -- whole game would already be terminal at mistake_count=4, so
   -- the play_state guard above catches it.)
   if g_row.mode = 'compete' and caller_mistakes >= 4 then
-    raise exception 'you are eliminated from this game'
-      using errcode = 'P0001';
+    raise exception 'eliminated|'
+      using errcode = 'P0001',
+      detail = 'this player is out on mistakes';
   end if;
 
   -- ─── Correct guess ───────────────────────────────────────
@@ -835,7 +848,8 @@ begin
    where connections.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no connections.games row for target_game';
   end if;
 
   -- Auth + game-player gate. See common.require_game_player.
@@ -845,7 +859,8 @@ begin
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
@@ -945,7 +960,8 @@ begin
    where connections.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no connections.games row for target_game';
   end if;
 
   -- Auth + game-player gate. Same as submit_timeout: any current
@@ -960,7 +976,8 @@ begin
     -- Idempotency: a second click (or a click racing a timeout /
     -- a solve) raises this and the FE swallows it the same way it
     -- does for submit_timeout's "already terminal" race.
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- Every player gets the bare {"won": false}. Identical in coop
@@ -1066,7 +1083,8 @@ begin
   -- beyond the existence check; the LOCK is the point.
   select * into g_row from connections.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no connections.games row for target_game';
   end if;
 
   update connections.players

@@ -96,6 +96,13 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // classifyFailure reads the key before the SQLSTATE (serverError.ts).
   'no-required-words': { text: () => 'No words for those letters — try others, or a lower band' },
 
+  // ── connections ──
+  // Elimination is connections' own end-state — four mistakes and you're out —
+  // and in coop the mistake budget is SHARED, so a teammate's fourth wrong
+  // guess can eliminate the team while your submit is in flight. `info`: it's
+  // the state of the game, not a complaint about the guess.
+  'eliminated': { text: () => 'Out of mistakes', tone: 'info' },
+
   // ── waffle ──
   // A shared coop grid with a shared swap budget, so both are lost races: a
   // teammate spent the last swap, or solved it, while your swap was in flight.

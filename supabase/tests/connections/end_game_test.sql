@@ -115,7 +115,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select connections.end_game(%L::uuid) $$, (select id from g_coop)),
   'P0001',
-  'game is not in progress',
+  'game-not-in-play|',
   'coop end_game: second call raises P0001 (idempotent at the FE-swallow layer)'
 );
 

@@ -61,7 +61,7 @@ select throws_ok(
     (select id from g)
   ),
   'P0001',
-  'must submit exactly 4 tiles (got 3)',
+  'bad-selection|3|',
   'submit_guess: 3-tile guess is rejected'
 );
 
@@ -77,7 +77,7 @@ select throws_ok(
     (select id from g)
   ),
   'P0001',
-  'result must be correct, oneAway, or wrong (got banana)',
+  'bad-result|banana|',
   'submit_guess: bogus result enum is rejected'
 );
 
@@ -93,7 +93,7 @@ select throws_ok(
     (select id from g)
   ),
   'P0001',
-  'matched_category_rank must be 0..3 when result is correct',
+  'bad-category-rank|',
   'submit_guess: correct without matched_category_rank is rejected'
 );
 
@@ -360,7 +360,7 @@ select throws_ok(
     (select id from g3)
   ),
   'P0001',
-  'game is not in progress',
+  'game-not-in-play|',
   'submit_timeout: rejects on already-terminal games'
 );
 
