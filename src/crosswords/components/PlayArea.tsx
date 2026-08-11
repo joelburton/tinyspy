@@ -51,7 +51,7 @@ import { NumberJumpDialog } from './NumberJumpDialog'
 import { NoteDialog } from './NoteDialog'
 import { ExplainDialog, type ExplainState } from './ExplainDialog'
 import { enumerationFor } from '../lib/enumeration'
-import { supabase } from '../../common/lib/supabase/supabase'
+import { callEdgeFn } from '../../common/lib/supabase/callEdgeFn'
 import { ClueLists } from './ClueLists'
 import { ClueText } from './ClueText'
 import { stripClueEmphasis } from '../lib/clueRuns'
@@ -449,37 +449,34 @@ export function PlayArea(ctx: GamePageCtx) {
     }
     setExplainLabel(ctx.label)
     setExplain({ kind: 'loading' })
-    const { data, error } = await supabase.functions.invoke('crosswords-explain-clue', {
-      body: { gameId, cells: ctx.cells, clueText: ctx.clueText, enumeration: ctx.enumeration },
+    // Failures come classified through callEdgeFn (fe-error-key + SQLSTATE +
+    // the answered marker); "unsolved" is not one of them — it's an ANSWER,
+    // a 200 `{ reason: 'unsolved' }` this side narrates in its own words.
+    // (This used to be a hand unwrap of a 409 body; moving the answer to a
+    // 200 is what let it fold into the shared wrapper.)
+    const res = await callEdgeFn('crosswords-explain-clue', {
+      gameId, cells: ctx.cells, clueText: ctx.clueText, enumeration: ctx.enumeration,
     })
-    if (error || (data as { error?: string } | null)?.error) {
-      // supabase-js reports a non-2xx as its own error; the real body is on
-      // `error.context` (a Response we read once) — a 409 carries `reason`.
-      let reason: string | undefined
-      let serverMsg: string | undefined
-      const resp = (error as { context?: Response } | null)?.context
-      if (resp) {
-        try {
-          const parsed = (await resp.json()) as { reason?: string; error?: string }
-          reason = parsed.reason
-          serverMsg = parsed.error
-        } catch {
-          // not JSON — fall through
-        }
-      }
+    if (res.error) {
+      setExplain({ kind: 'error', message: failureText(res.error, 'explain') })
+      return
+    }
+    const payload = res.data as { explanation?: string; reason?: string; error?: string } | null
+    if (payload?.reason === 'unsolved') {
+      setExplain({ kind: 'error', message: 'Solve this clue correctly first, then I can explain it.' })
+      return
+    }
+    if (!payload?.explanation) {
       setExplain({
         kind: 'error',
-        message:
-          reason === 'unsolved'
-            ? 'Solve this clue correctly first, then I can explain it.'
-            : failureText(
-                { message: serverMsg ?? (data as { error?: string } | null)?.error ?? error?.message },
-                'explain',
-              ),
+        message: failureText(
+          { message: payload?.error ?? 'no explanation in the response', answered: true },
+          'explain',
+        ),
       })
       return
     }
-    setExplain({ kind: 'ok', explanation: (data as { explanation: string }).explanation })
+    setExplain({ kind: 'ok', explanation: payload.explanation })
   }, [gameId])
 
   // Clear board — a destructive "start over" (blanks my grid, keeps givens +

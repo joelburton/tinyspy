@@ -144,6 +144,7 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // where the sentence names the task (clue vs explanation), because the
   // point of messages is to be clear.
   'ai-clue-declined': { text: () => 'The model declined to suggest a clue — try again' },
+  'ai-explain-declined': { text: () => 'The model declined to explain this clue — try again' },
   'ai-truncated': { text: () => 'The model response was truncated — try again' },
   'ai-malformed': { text: () => 'The model returned a garbled answer — try again' },
 

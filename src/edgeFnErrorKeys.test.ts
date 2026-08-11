@@ -33,7 +33,6 @@ const FUNCTIONS_DIR = join(__dirname, '..', 'supabase', 'functions')
 /** Not yet converted to fe-error-keys — shrink me to zero, one round at a time. */
 const UNCONVERTED = new Set([
   'common-define',
-  'crosswords-explain-clue',
   'scrabble-ai-move',
   'scrabble-suggest-move',
 ])
@@ -69,6 +68,11 @@ const APPROVED_EXPRESSIONS: Array<{ file: string; snippet: string; why: string }
     file: 'codenamesduet-suggest-clue/index.ts',
     snippet: 'error: error.message, code: error.code',
     why: 'the get_clue_context relay: the RPC message IS an fe-error-key, passed with its SQLSTATE',
+  },
+  {
+    file: 'crosswords-explain-clue/index.ts',
+    snippet: 'error: error.message, code: error.code',
+    why: 'the reveal_solved_word relay: the RPC message IS an fe-error-key, passed with its SQLSTATE',
   },
 ]
 
