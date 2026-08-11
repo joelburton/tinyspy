@@ -50,12 +50,18 @@
  *     player_user_ids: uuid[],
  *     mode: 'coop' | 'compete' }
  *   → { id: uuid }  (200)
- *   → { error: string }  (400/401/403/500)
+ *   → { error: fe-error-key, code?: SQLSTATE }  (400/401/403/500)
+ *
+ * Errors are fe-error-keys (`key|detail|` — docs/edge-fn-error-keys-plan.md;
+ * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
+ * word. This function's own keys (wordiply-build-failed / edge-internal) are
+ * "impossible without a broken pipeline" — no copy; they render as faults.
+ * A create_game raise relays verbatim with its SQLSTATE (invokeCreateGame).
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
-import { json, preflight } from '../_shared/http.ts'
+import { edgeInternal, json, preflight } from '../_shared/http.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 
 // ───────────────────────────────────────────────────────────
@@ -205,10 +211,9 @@ serve(async (req) => {
 
     if (board === null) {
       console.log(`reject: no candidate base cleared the gate in ${candidates.length} tries`)
-      return json(
-        { error: 'could not build a wordiply board — try again or a different difficulty' },
-        500,
-      )
+      // Every candidate base failed the max-children gate — a generation dead
+      // end, not a player-reachable state. Key only, no copy; it faults.
+      return json({ error: 'wordiply-build-failed|' }, 500)
     }
     console.log(
       `board: base=${board.base} max_word_length=${board.max_word_length}`
@@ -223,6 +228,6 @@ serve(async (req) => {
     )
   } catch (e) {
     console.error('wordiply-build-board threw:', e)
-    return json({ error: String(e instanceof Error ? e.message : e) }, 500)
+    return edgeInternal(e)
   }
 })

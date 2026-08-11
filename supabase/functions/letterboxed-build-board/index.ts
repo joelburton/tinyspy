@@ -52,12 +52,19 @@
  *     player_user_ids: uuid[],
  *     mode: 'coop' | 'compete' }
  *   → { id: uuid }  (200)
- *   → { error: string }  (400/401/500)
+ *   → { error: fe-error-key, code?: SQLSTATE }  (400/401/500)
+ *
+ * Errors are fe-error-keys (`key|detail|` — docs/edge-fn-error-keys-plan.md;
+ * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
+ * word. This function's own keys are all "impossible without an FE bug or a
+ * broken pipeline" (bad-band / board-attempts-exhausted / unsolvable-board /
+ * edge-internal), so none carry copy — they render as faults. A create_game
+ * raise relays verbatim with its SQLSTATE (invokeCreateGame).
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
-import { json, preflight } from '../_shared/http.ts'
+import { edgeInternal, json, preflight } from '../_shared/http.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 import {
   BOARD_SIZE,
@@ -175,13 +182,14 @@ serve(async (req: Request) => {
   if (parsed instanceof Response) return parsed
   const { targetClub, setup, mode, playerUserIds, supabase } = parsed
 
-  // Setup validation is create_game's job — it is the authority, and its
-  // messages are the user-facing ones. legal_band is read here only because
-  // the board cannot be built without knowing which words count.
+  // Setup validation is create_game's job — it is the authority. legal_band is
+  // read here only because the board cannot be built without knowing which
+  // words count; the FE constrains it to 1..6, so this re-check is
+  // "impossible" and carries no copy (docs/edge-fn-error-keys-plan.md).
   const legalBand = Number(setup.legal_band ?? 5)
   if (!Number.isInteger(legalBand) || legalBand < 1 || legalBand > 6) {
-    console.log(`${FN} reject: bad legal_band ${setup.legal_band}`)
-    return json({ error: 'setup.legal_band must be an integer 1..6' }, 400)
+    console.log(`${FN} reject: bad legal_band ${setup.legal_band} (must be an integer 1..6)`)
+    return json({ error: `bad-band|${setup.legal_band}|` }, 400)
   }
 
   let board: Board | null = null
@@ -192,14 +200,12 @@ serve(async (req: Request) => {
     }
   } catch (e) {
     console.log(`${FN} error:`, (e as Error).message)
-    return json({ error: (e as Error).message }, 500)
+    return edgeInternal(e)
   }
 
   if (!board) {
-    return json(
-      { error: `could not build a board in ${MAX_ATTEMPTS} attempts` },
-      500,
-    )
+    console.log(`${FN} reject: could not build a board in ${MAX_ATTEMPTS} attempts`)
+    return json({ error: `board-attempts-exhausted|${MAX_ATTEMPTS}|` }, 500)
   }
 
   // Sanity: the invariant create_game will re-check anyway. Asserting it here
@@ -208,7 +214,7 @@ serve(async (req: Request) => {
   const covered = new Set(board.solution.join('')).size
   if (covered !== BOARD_SIZE) {
     console.log(`${FN} error: solution covers ${covered}/${BOARD_SIZE} letters`)
-    return json({ error: 'built an unsolvable board' }, 500)
+    return json({ error: 'unsolvable-board|' }, 500)
   }
 
   return await invokeCreateGame(

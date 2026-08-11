@@ -38,11 +38,9 @@ const UNCONVERTED = new Set([
   'crosswords-explain-clue',
   'crosswords-import-guardian',
   'crosswords-import-nyt',
-  'letterboxed-build-board',
   'scrabble-ai-move',
   'scrabble-suggest-move',
   'spellingbee-build-board',
-  'wordiply-build-board',
   'wordwheel-build-board',
 ])
 
