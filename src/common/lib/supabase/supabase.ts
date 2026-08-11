@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { dbFetch } from './dbFetch'
 import type { Database } from '../../../types/db'
 import { instrumentChannel, rtLog, rtVerbose } from './realtimeDiag'
 
@@ -74,6 +75,11 @@ if (!url || !publishableKey) {
 }
 
 export const supabase = createClient<Database>(url, publishableKey, {
+  // Every request — PostgREST, edge functions, auth — goes through one fetch
+  // so a request that never reached the server is noticed ONCE rather than at
+  // 47 call sites, and so its pill tells the player to refresh instead of
+  // looking like a rejected move. See dbFetch.ts.
+  global: { fetch: dbFetch },
   auth: {
     // Stated explicitly — these are the supabase-js defaults but making
     // them visible documents the contract.
