@@ -41,7 +41,14 @@ type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number
  * connection mid-play would have been flattened into a pill that looks exactly
  * like a rejected word (lib/game/serverError.ts).
  */
-export type LocalFeedbackMsg = Omit<GenericFeedbackMsg, 'mode'>
+/** What BoardCol's sink accepts: a message whose `mode` is OPTIONAL. Hand-built
+ *  own-move pills omit it and get the wrapper's sticky default; a classified
+ *  message (`failureMessage`) carries its own — and a fault's `manual` mode
+ *  must survive the trip, or the one message meant to be read down a phone
+ *  line is dismissed by the next tile click (review finding 7). */
+export type LocalFeedbackMsg = Omit<GenericFeedbackMsg, 'mode'> & {
+  mode?: GenericFeedbackMsg['mode']
+}
 
 /**
  * What read-only overlay is open on the board — the shared history viewer's id,
@@ -584,7 +591,8 @@ export function BoardCol({
     const ev = evaluatePlay(board, placements)
     // Submit is allowed for any placed tiles (it doesn't gate on legal geometry).
     // An illegal shape never reaches the server; surface the reason as an own-move
-    // error pill in the commit slot and stop here.
+    // error pill in the commit slot and stop here. (`ev.error` is evaluatePlay's
+    // own FE-authored sentence — gameplay validation copy, not server text.)
     if (!ev.valid) {
       showLocalFeedback({ tone: 'error', text: ev.error })
       return

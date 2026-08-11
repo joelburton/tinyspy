@@ -110,8 +110,13 @@ export function PlayArea({
   // The shared end-game confirm modal (replaces window.confirm — a true
   // modal: backdrop-blocked board, dialog-owned keyboard).
   const { confirm: confirmAction, confirmDialog } = useConfirmDialog()
+  // Sticky is a DEFAULT, not an override: hand-built {tone, text} pills omit
+  // `mode` and get it stamped; a classified message keeps the mode the
+  // classifier chose — a fault's `manual` must not be downgraded to sticky
+  // (it used to be, so a play_word fault could vanish mid-read behind the
+  // next feedback event — review finding 7).
   const showLocalFeedback = useCallback(
-    (m: LocalFeedbackMsg) => showMsg({ ...m, mode: { kind: 'sticky' } }),
+    (m: LocalFeedbackMsg) => showMsg({ ...m, mode: m.mode ?? { kind: 'sticky' } }),
     [showMsg],
   )
 
