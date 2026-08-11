@@ -14,6 +14,13 @@
  *      the FE, which fills it into the existing clue inputs for the
  *      user to review + edit before submitting.
  *
+ * Errors are fe-error-keys (`key|detail|` — docs/edge-fn-error-keys-plan.md;
+ * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
+ * word. With ERROR_COPY (shown in the clue dialog's message area):
+ * ai-clue-declined|, ai-truncated|, ai-malformed|. Copyless faults:
+ * bad-request / not-authenticated / no-unrevealed-agents / ai-unconfigured /
+ * edge-internal. An RPC raise relays verbatim with its SQLSTATE.
+ *
  * Secrets:
  *   - ANTHROPIC_API_KEY  required; set via `supabase secrets set` in prod
  *                        or in `supabase/functions/.env` locally.
@@ -51,7 +58,7 @@ type Suggestion = {
   reasoning: string
 }
 
-import { json, preflight } from '../_shared/http.ts'
+import { edgeInternal, json, preflight } from '../_shared/http.ts'
 
 serve(async (req) => {
   const pre = preflight(req)
@@ -61,11 +68,11 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}))
     const gameId = body.gameId
     if (!gameId || typeof gameId !== 'string') {
-      return json({ error: 'gameId (uuid string) required' }, 400)
+      return json({ error: 'bad-request|gameId|' }, 400)
     }
 
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return json({ error: 'authorization required' }, 401)
+    if (!authHeader) return json({ error: 'not-authenticated|' }, 401)
 
     // Step 1: pull the board context as the calling user. The RPC enforces
     // membership + turn + status; if any fails we forward the message.
@@ -81,11 +88,13 @@ serve(async (req) => {
     const { data, error } = await supabase
       .schema('codenamesduet')
       .rpc('get_clue_context', { target_game: gameId })
-    if (error) return json({ error: error.message }, 403)
+    if (error) return json({ error: error.message, code: error.code }, 403)
 
     const ctx = data as ClueContext
     if (!ctx.greens || ctx.greens.length === 0) {
-      return json({ error: 'no unrevealed agents to suggest a clue for' }, 400)
+      // The FE greys the suggest button once every agent is revealed, so this
+      // re-check is "impossible" — key only, no copy; it renders as a fault.
+      return json({ error: 'no-unrevealed-agents|' }, 400)
     }
 
     // Step 2: ask Claude. Structured outputs (`output_config.format`) constrains
@@ -96,10 +105,8 @@ serve(async (req) => {
     // the discarded scratchpad field the tool schema used to carry.
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!apiKey) {
-      return json(
-        { error: 'ANTHROPIC_API_KEY not configured for this Edge Function' },
-        500,
-      )
+      // Config, not play — a copyless fault (the raw key IS the diagnosis).
+      return json({ error: 'ai-unconfigured|' }, 500)
     }
     const anthropic = new Anthropic({ apiKey })
 
@@ -170,10 +177,10 @@ serve(async (req) => {
     // or a truncated reply won't carry valid schema JSON — check stop_reason
     // before touching the content, and fail loudly rather than parse garbage.
     if (result.stop_reason === 'refusal') {
-      return json({ error: 'the model declined to suggest a clue' }, 502)
+      return json({ error: 'ai-clue-declined|' }, 502)
     }
     if (result.stop_reason === 'max_tokens') {
-      return json({ error: 'the model response was truncated; try again' }, 502)
+      return json({ error: 'ai-truncated|' }, 502)
     }
 
     // Native thinking arrives as its own content blocks (summarized text). Log
@@ -189,13 +196,13 @@ serve(async (req) => {
     // no tool_use block to dig out anymore.
     const textBlock = result.content.find((b) => b.type === 'text')
     if (!textBlock || textBlock.type !== 'text') {
-      return json({ error: 'model did not return a structured suggestion' }, 502)
+      return json({ error: 'ai-malformed|' }, 502)
     }
     let suggestion: Suggestion
     try {
       suggestion = JSON.parse(textBlock.text) as Suggestion
     } catch {
-      return json({ error: 'model returned malformed suggestion JSON' }, 502)
+      return json({ error: 'ai-malformed|' }, 502)
     }
 
     // Append the exact target agents as their own paragraph, so the player sees
@@ -215,7 +222,7 @@ serve(async (req) => {
     return json({ suggestion })
   } catch (e) {
     console.error('suggest-clue failed', e)
-    return json({ error: String(e instanceof Error ? e.message : e) }, 500)
+    return edgeInternal(e)
   }
 })
 

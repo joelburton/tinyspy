@@ -138,6 +138,15 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // A setup pair that can't seat everyone: players x hand size beats the bunch.
   'bunch-too-small': { text: (d) => `Bunch too small: ${d[2]} tiles needed, ${d[3]} in the bunch` },
 
+  // ── AI features (codenamesduet clue suggester; more surfaces convert soon) ──
+  // Model flakiness a retry genuinely fixes — real answers, shown in the AI
+  // panels' own message areas. Wording approved 2026-08-12; per-surface keys
+  // where the sentence names the task (clue vs explanation), because the
+  // point of messages is to be clear.
+  'ai-clue-declined': { text: () => 'The model declined to suggest a clue — try again' },
+  'ai-truncated': { text: () => 'The model response was truncated — try again' },
+  'ai-malformed': { text: () => 'The model returned a garbled answer — try again' },
+
   // ── codenamesduet ──
   // Two seats taking turns, so both can race the turn flip: the clue arrives
   // just as you tap, or the flip lands just as you do. All four are ordinary

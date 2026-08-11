@@ -32,7 +32,6 @@ const FUNCTIONS_DIR = join(__dirname, '..', 'supabase', 'functions')
 
 /** Not yet converted to fe-error-keys — shrink me to zero, one round at a time. */
 const UNCONVERTED = new Set([
-  'codenamesduet-suggest-clue',
   'common-define',
   'crosswords-explain-clue',
   'scrabble-ai-move',
@@ -65,6 +64,11 @@ const APPROVED_EXPRESSIONS: Array<{ file: string; snippet: string; why: string }
     file: 'crosswords-import-guardian/index.ts',
     snippet: 'error: error.message, code: error.code',
     why: 'the create_game relay (the importers call it inline): the RPC message IS an fe-error-key, passed with its SQLSTATE',
+  },
+  {
+    file: 'codenamesduet-suggest-clue/index.ts',
+    snippet: 'error: error.message, code: error.code',
+    why: 'the get_clue_context relay: the RPC message IS an fe-error-key, passed with its SQLSTATE',
   },
 ]
 

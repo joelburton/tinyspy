@@ -2,7 +2,7 @@ import { failureText } from '../../common/lib/game/serverError'
 import { failureMessage } from '../../common/lib/game/serverError'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent } from 'react'
-import { supabase } from '../../common/lib/supabase/supabase'
+import { callEdgeFn } from '../../common/lib/supabase/callEdgeFn'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot, ActorTag } from '../../common/components/game/lists/ActorMention'
 import { FloatingPanel } from '../../common/components/panels/FloatingPanel'
@@ -258,20 +258,25 @@ function ClueForm({
     console.log('[ClueHint] button clicked → open dialog (loading)')
     setSuggesting(true)
     onSuggestionChange({ status: 'loading' })
-    const { data, error } = await supabase.functions.invoke(
-      'codenamesduet-suggest-clue',
-      { body: { gameId } },
-    )
+    // callEdgeFn hands back a classifiable error (fe-error-key + SQLSTATE +
+    // the answered marker), so the panel's message is the copy-table's
+    // sentence — "The model declined to suggest a clue — try again" — or a
+    // fault's raw key, never functions-js's generic prose.
+    const res = await callEdgeFn('codenamesduet-suggest-clue', { gameId })
     setSuggesting(false)
-    if (error || data?.error) {
+    const payload = res.data as { suggestion?: unknown; error?: string } | null
+    if (res.error || !payload || payload.error || !payload.suggestion) {
       console.log('[ClueHint] response = error')
       onSuggestionChange({
         status: 'error',
-        message: failureText({ message: error?.message ?? data?.error }, 'AI clue'),
+        message: failureText(
+          res.error ?? { message: payload?.error ?? 'no suggestion in the response', answered: true },
+          'AI clue',
+        ),
       })
       return
     }
-    const s = data.suggestion as { clue: string; count: number; reasoning: string }
+    const s = payload.suggestion as { clue: string; count: number; reasoning: string }
     const upper = s.clue.toUpperCase()
     setWord(upper)
     setCount(String(s.count))
