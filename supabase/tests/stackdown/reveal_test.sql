@@ -101,7 +101,7 @@ select stackdown.submit_word((select id from g), pg_temp.sd_seq(6));
 -- the post-game reveal lives in games_state.solution instead.
 select throws_ok(
   format($$ select stackdown.reveal_next_word(%L) $$, (select id from g)),
-  'P0001', 'game is not in progress',
+  'P0001', 'game-not-in-play|',
   'once the board is cleared the game is terminal → reveal is closed');
 
 -- And the solution is now openly revealed via games_state.

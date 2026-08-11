@@ -26,7 +26,7 @@ select * from stackdown.create_game(
 -- ── Unreachable tiles (tile 21 is covered at the start) ─────────────
 select throws_ok(
   format($$ select stackdown.submit_word(%L, array[21,4,11,6,2]) $$, (select id from g)),
-  'P0001', 'tiles are not reachable in that order',
+  'P0001', 'tiles-unreachable|',
   'submitting unreachable tiles is rejected');
 
 -- ── A reachable non-word → invalid (logged, no advance) ─────────────

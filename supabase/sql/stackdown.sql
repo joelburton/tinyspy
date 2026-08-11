@@ -184,15 +184,17 @@ begin
   -- library actually holds boards for is accepted.
   v_band := coalesce((setup->>'band')::int, 1);
   if v_band < 1 or v_band > 6 then
-    raise exception 'band must be between 1 and 6 (got %)', v_band
-      using errcode = 'P0001';
+    raise exception 'bad-band|%|', v_band
+      using errcode = 'P0001',
+      detail = 'setup band must be 1..6';
   end if;
 
   -- Claim a random pre-generated board OF THE CHOSEN BAND.
   select * into b from stackdown.boards where band = v_band order by random() limit 1;
   if not found then
-    raise exception 'no stackdown boards available for band % — run the board import', v_band
-      using errcode = 'P0001';
+    raise exception 'no-boards|%|', v_band
+      using errcode = 'P0001',
+      detail = 'stackdown.boards is empty at that band; run gmake g-stackdown-puzzles + the import';
   end if;
 
   -- "New game" until words start clearing. Coop rewrites this title to the
@@ -259,12 +261,14 @@ begin
 
   select * into g_row from stackdown.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no stackdown.games row for target_game';
   end if;
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- A conceded player is out of the race — no more words. The FE gates
@@ -273,14 +277,16 @@ begin
   -- word could crown them the winner.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this compete race';
   end if;
 
   -- Compete: a finished player can't keep submitting.
   if g_row.mode = 'compete'
      and (select solved from stackdown.players
             where game_id = target_game and user_id = caller_id) then
-    raise exception 'you have already cleared the board' using errcode = 'P0001';
+    raise exception 'already-solved|' using errcode = 'P0001',
+      detail = 'this player has already cleared the stack';
   end if;
 
   -- Removed set: coop = union over ALL valid submissions (shared board);
@@ -294,16 +300,19 @@ begin
   -- ─── Validate the submitted tiles ──────────────────────────
   if array_length(tile_ids, 1) is distinct from 5
      or (select count(distinct e) from unnest(tile_ids) e) <> 5 then
-    raise exception 'a word is exactly five distinct tiles' using errcode = 'P0001';
+    raise exception 'bad-word-length|' using errcode = 'P0001',
+      detail = 'a submitted word is exactly five distinct tile ids';
   end if;
   if tile_ids && removed then
-    raise exception 'a submitted tile is already removed' using errcode = 'P0001';
+    raise exception 'tile-gone|' using errcode = 'P0001',
+      detail = 'a submitted tile has already been cleared';
   end if;
   -- Reveal-respecting: each tile must be exposed at the moment it's picked.
   gone := removed;
   foreach tid in array tile_ids loop
     if not stackdown._is_exposed(g_row.tiles, gone, tid) then
-      raise exception 'tiles are not reachable in that order' using errcode = 'P0001';
+      raise exception 'tiles-unreachable|' using errcode = 'P0001',
+      detail = 'a tile was covered at the moment it was picked';
     end if;
     gone := gone || tid;
   end loop;
@@ -433,12 +442,14 @@ begin
   -- against concurrent submits / reveals on this game.
   select * into g_row from stackdown.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no stackdown.games row for target_game';
   end if;
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   select count(*) into cleared
@@ -511,12 +522,14 @@ begin
   -- reveal_next_word).
   select * into g_row from stackdown.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no stackdown.games row for target_game';
   end if;
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   select count(*) into cleared
@@ -572,14 +585,16 @@ declare
 begin
   select * into g_row from stackdown.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no stackdown.games row for target_game';
   end if;
 
   perform common.require_game_player(target_game);
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   if g_row.mode = 'coop' then
@@ -630,14 +645,16 @@ declare
 begin
   select * into g_row from stackdown.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no stackdown.games row for target_game';
   end if;
 
   perform common.require_game_player(target_game);
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
@@ -725,7 +742,8 @@ begin
   -- move re-terminalling the board that was just reset.
   select * into g_row from stackdown.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no stackdown.games row for target_game';
   end if;
 
   update stackdown.players

@@ -40,7 +40,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select stackdown.end_game(%L) $$, (select id from g1)),
-  'P0001', 'game is not in progress',
+  'P0001', 'game-not-in-play|',
   'ending an already-ended game is rejected');
 
 -- ── Countdown timeout → loss ────────────────────────────────────────
