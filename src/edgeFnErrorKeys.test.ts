@@ -40,7 +40,6 @@ const UNCONVERTED = new Set([
   'crosswords-import-nyt',
   'scrabble-ai-move',
   'scrabble-suggest-move',
-  'wordwheel-build-board',
 ])
 
 /** Non-literal `error:` values that are allowed, each with its reason. */
@@ -52,6 +51,11 @@ const APPROVED_EXPRESSIONS: Array<{ file: string; snippet: string; why: string }
   },
   {
     file: 'spellingbee-build-board/index.ts',
+    snippet: '{ error: err }',
+    why: "validateCustomLetters returns an fe-error-key (board.ts — bad-custom-*), pinned by board_test.ts",
+  },
+  {
+    file: 'wordwheel-build-board/index.ts',
     snippet: '{ error: err }',
     why: "validateCustomLetters returns an fe-error-key (board.ts — bad-custom-*), pinned by board_test.ts",
   },

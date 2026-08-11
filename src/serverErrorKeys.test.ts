@@ -1,11 +1,14 @@
 /**
  * The server-error key INVENTORY — a repo-wide guard over the contract the
- * sixteen SQL files and `ERROR_COPY` share.
+ * sixteen SQL files, the edge functions, and `ERROR_COPY` share.
  *
  * Every `raise exception` in `supabase/sql/` emits a machine key
- * (`chain-full|5|`) and the frontend decides what, if anything, a player reads
- * (lib/game/serverError.ts). Nothing links the two sides at compile time — SQL
- * is text as far as TypeScript is concerned — so these assertions are the link.
+ * (`chain-full|5|`), and every edge-function error return carries one too
+ * (`json({ error: 'no-pangram-seeds|3|' })` — docs/edge-fn-error-keys-plan.md;
+ * shape-guarded by edgeFnErrorKeys.test.ts). The frontend decides what, if
+ * anything, a player reads (lib/game/serverError.ts). Nothing links the sides
+ * at compile time — SQL and Deno are text as far as this app's TypeScript is
+ * concerned — so these assertions are the link.
  *
  * ─── Why one is a FAILURE and one is only a REPORT ───────────
  * A key with no copy is a legitimate, common state: it means "no one expected a
@@ -23,16 +26,39 @@ import { describe, expect, it } from 'vitest'
 import { ERROR_COPY } from './common/lib/game/errorCopy'
 
 const SQL_DIR = 'supabase/sql'
+const FN_DIR = 'supabase/functions'
 
-/** Every key raised anywhere in supabase/sql/, with the files that raise it. */
+/** Every .ts file under supabase/functions (skipping tests), recursively. */
+function edgeFnFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const p = join(dir, e.name)
+    if (e.isDirectory()) return e.name.startsWith('.') ? [] : edgeFnFiles(p)
+    return e.name.endsWith('.ts') && !e.name.endsWith('_test.ts') ? [p] : []
+  })
+}
+
+/** Every key raised anywhere in supabase/sql/ or returned as an edge-function
+ *  error, with the files that emit it. Both sources feed the same ERROR_COPY
+ *  table, so the orphan check below must know both. */
 function raisedKeys(): Map<string, Set<string>> {
   const out = new Map<string, Set<string>>()
+  const add = (key: string, source: string) => {
+    if (!out.has(key)) out.set(key, new Set())
+    out.get(key)!.add(source)
+  }
   for (const file of readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'))) {
     const sql = readFileSync(join(SQL_DIR, file), 'utf8')
     for (const m of sql.matchAll(/raise exception '([a-z][a-z0-9-]*)\|/g)) {
-      const key = m[1]
-      if (!out.has(key)) out.set(key, new Set())
-      out.get(key)!.add(file.replace('.sql', ''))
+      add(m[1], file.replace('.sql', ''))
+    }
+  }
+  for (const file of edgeFnFiles(FN_DIR)) {
+    const src = readFileSync(file, 'utf8')
+    // Key-headed string/template literals in error positions — the return
+    // values themselves (json({ error: 'x|' })) and helpers that produce them
+    // (validateCustomLetters' return 'bad-custom-center|').
+    for (const m of src.matchAll(/['"\x60]([a-z][a-z0-9-]*)\|/g)) {
+      add(m[1], file.slice(FN_DIR.length + 1))
     }
   }
   return out

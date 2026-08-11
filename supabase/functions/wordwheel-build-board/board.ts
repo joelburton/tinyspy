@@ -219,12 +219,16 @@ export function buildBoard(
  *  centre may repeat an outer). Unlike spellingbee, 's' is allowed (a tile
  *  per use makes it ordinary). Both inputs are already lowercased/trimmed
  *  by the caller. */
+// Returns the fe-error-key for the failed rule, or null when the letters are
+// valid. Keys, not sentences: the FE pre-validates the same rules in the setup
+// form, so reaching one of these means a broken client — they carry no copy
+// and render as faults (docs/edge-fn-error-keys-plan.md).
 export function validateCustomLetters(center: string, letters: string): string | null {
   if (!/^[a-z]$/.test(center)) {
-    return 'custom center must be a single letter a–z'
+    return 'bad-custom-center|'
   }
   if (!/^[a-z]{8}$/.test(letters)) {
-    return 'custom letters must be eight letters a–z'
+    return 'bad-custom-letters|'
   }
   return null
 }

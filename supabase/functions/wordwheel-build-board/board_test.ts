@@ -170,17 +170,17 @@ Deno.test('validateCustomLetters: eight outer + one centre, dupes and s allowed'
 Deno.test('validateCustomLetters: rejects a bad centre or wrong outer length', () => {
   eq(
     validateCustomLetters('ab', 'abcdefgh'),
-    'custom center must be a single letter a–z',
+    'bad-custom-center|',
     'two-char centre rejected',
   )
   eq(
     validateCustomLetters('e', 'abcdefg'),
-    'custom letters must be eight letters a–z',
+    'bad-custom-letters|',
     'seven outer letters rejected',
   )
   eq(
     validateCustomLetters('3', 'abcdefgh'),
-    'custom center must be a single letter a–z',
+    'bad-custom-center|',
     'non-letter centre rejected',
   )
 })

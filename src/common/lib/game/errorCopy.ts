@@ -96,6 +96,19 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // classifyFailure reads the key before the SQLSTATE (serverError.ts).
   'no-required-words': { text: () => 'No words for those letters' },
 
+  // ── wordwheel ──
+  // Two more setup answers the server is first to check: a low required band
+  // can have zero nine-letter pangram seeds at all, and the "unique letters
+  // only" option can empty the pool at a low band. Both are edge-fn-raised
+  // (wordwheel-build-board); the words are Joel's, approved 2026-08-12 —
+  // note "higher difficulty" is the CORRECT direction here (the seed pool
+  // grows with the band), unlike no-required-words' old backwards advice.
+  'no-pangram-seeds': { text: (d) => `No pangram seeds at required difficulty ${d[0]}` },
+  'no-unique-letter-boards': {
+    text: (d) =>
+      `No unique-letter boards at required difficulty ${d[0]} — try a higher difficulty or turn off "unique letters only"`,
+  },
+
   // ── scrabble ──
   // The board and the bag are SHARED even in compete, so a rival's play lands
   // between your stage and your commit: the square you were about to use is
