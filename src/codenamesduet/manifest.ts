@@ -92,7 +92,7 @@ export const codenamesduetGame: GameManifest = {
       })
       .single()
     if (error || !data) {
-      return { error: error?.message ?? `failed to start ${BRAND} game` }
+      return { error: error ?? { message: `failed to start ${BRAND} game`, answered: true as const } }
     }
     return { id: data.id }
   },

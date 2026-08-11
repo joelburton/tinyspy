@@ -80,7 +80,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
       })
       .single()
     if (error || !data) {
-      return { error: error?.message ?? `failed to start ${brand} (${mode}) game` }
+      return { error: error ?? { message: `failed to start ${brand} (${mode}) game`, answered: true as const } }
     }
     return { id: data.id }
   }

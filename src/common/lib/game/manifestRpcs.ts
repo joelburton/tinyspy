@@ -11,8 +11,10 @@
 import { callEdgeFn } from '../supabase/callEdgeFn'
 import type { CallError } from './serverError'
 
-/** The manifest contract's dispatcher result: an optional error message. */
-export type RpcResult = { error?: string }
+/** The manifest contract's dispatcher result: an optional STRUCTURED error
+ *  (message + SQLSTATE), ready for the classifier — flattening to a string
+ *  here is what used to cost GamePage the code and the copy table both. */
+export type RpcResult = { error?: NonNullable<CallError> }
 
 /**
  * A minimal structural view of a schema-scoped Supabase client's `.rpc`, narrow
@@ -26,7 +28,7 @@ type RpcClient<F extends string> = {
   rpc: (
     fn: F,
     args: { target_game: string },
-  ) => PromiseLike<{ error: { message: string } | null }>
+  ) => PromiseLike<{ error: { message: string; code?: string } | null }>
 }
 
 /**
@@ -47,7 +49,7 @@ export function makeRpcDispatcher<F extends string>(
 ): (gameId: string) => Promise<RpcResult> {
   return async (gameId: string) => {
     const { error } = await db.rpc(fnName, { target_game: gameId })
-    return error ? { error: error.message } : {}
+    return error ? { error } : {}
   }
 }
 

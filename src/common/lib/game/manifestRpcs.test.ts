@@ -32,11 +32,11 @@ describe('makeRpcDispatcher', () => {
     expect(rpc).toHaveBeenCalledWith('submit_timeout', { target_game: 'game-1' })
   })
 
-  it('surfaces the RPC error message verbatim', async () => {
-    const rpc = vi.fn().mockResolvedValue({ error: { message: 'game is not in progress' } })
+  it('surfaces the STRUCTURED error — message and code intact for the classifier', async () => {
+    const rpc = vi.fn().mockResolvedValue({ error: { message: 'game-not-in-play|', code: 'P0001' } })
     const endGame = makeRpcDispatcher({ rpc }, 'end_game')
 
-    expect(await endGame('game-2')).toEqual({ error: 'game is not in progress' })
+    expect(await endGame('game-2')).toEqual({ error: { message: 'game-not-in-play|', code: 'P0001' } })
     expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'game-2' })
   })
 })

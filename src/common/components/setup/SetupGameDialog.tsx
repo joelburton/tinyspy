@@ -181,19 +181,16 @@ export function SetupGameDialog({
     const result = await manifest.startGameInClub(clubHandle, setup, playerUserIds)
     if ('error' in result) {
       setBusy(false)
-      // Three shapes (see startGameInClub in games.ts). A STRING is a raw
-      // server message off a direct create_game RPC — an fe-error-key, which
-      // `failureText` translates. A CallError is the classified shape off an
-      // edge-fn path, carrying the relayed SQLSTATE and the answered marker —
-      // which is what keeps a function's real answer ("no candidate words for
-      // band 3") out of the transport bucket in this form's error line. A
-      // RichMessage (array) is already frontend-authored; render as-is.
+      // Two shapes (see startGameInClub in games.ts). A RichMessage (array)
+      // is already frontend-authored; render as-is. Everything else is the
+      // STRUCTURED CallError — message + relayed SQLSTATE + the answered
+      // marker — which `failureText` classifies, keeping a server's real
+      // answer ("no candidate words for band 3") out of the transport bucket
+      // in this form's error line.
       setError(
-        typeof result.error === 'string'
-          ? failureText({ message: result.error }, 'new game')
-          : Array.isArray(result.error)
-            ? result.error
-            : failureText(result.error, 'new game'),
+        Array.isArray(result.error)
+          ? result.error
+          : failureText(result.error, 'new game'),
       )
       return
     }

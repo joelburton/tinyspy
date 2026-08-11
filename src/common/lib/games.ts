@@ -661,12 +661,13 @@ export type GameManifest = {
    *
    * Returns `{ id }` on success or `{ error }`, which the dialog
    * routes through the server-error classifier before a player
-   * reads it (SetupGameDialog): a string is a raw server message
-   * (an fe-error-key, for a direct create_game RPC), a CallError
-   * is the classified shape from an edge-fn path (carrying the
-   * relayed SQLSTATE + the answered marker), and a RichMessage is
-   * already frontend-authored. Server-side validation is the
-   * trust boundary — the FE-collected setup is not trusted.
+   * reads it (SetupGameDialog): a CallError is the STRUCTURED
+   * failure (message + SQLSTATE + the answered marker — direct
+   * RPC and edge-fn paths both produce it; no manifest flattens
+   * to a string, which would cost the code AND misfile coded
+   * prose as transport), and a RichMessage is already
+   * frontend-authored. Server-side validation is the trust
+   * boundary — the FE-collected setup is not trusted.
    *
    * Lives on the manifest so common code (ClubPage,
    * SetupGameDialog) can iterate `games` without importing from
@@ -676,7 +677,7 @@ export type GameManifest = {
     clubHandle: string,
     setup: unknown,
     playerUserIds: string[],
-  ) => Promise<{ id: string } | { error: string | RichMessage | NonNullable<CallError> }>
+  ) => Promise<{ id: string } | { error: RichMessage | NonNullable<CallError> }>
 
   /**
    * Render a one-line label for a single `common.games` row,
@@ -706,7 +707,7 @@ export type GameManifest = {
    * status jsonb. Dispatching at the FE keeps the SQL side from
    * needing per-gametype branches.
    */
-  submitTimeout: (gameId: string) => Promise<{ error?: string }>
+  submitTimeout: (gameId: string) => Promise<{ error?: NonNullable<CallError> }>
 
   /**
    * End this game NOW (irreversible). Dispatches to the gametype's own
@@ -726,7 +727,7 @@ export type GameManifest = {
    * per-player `concede` (drop out = a real loss; the others keep racing), so
    * "end the whole race now" doesn't exist for it.
    */
-  endGame?: (gameId: string) => Promise<{ error?: string }>
+  endGame?: (gameId: string) => Promise<{ error?: NonNullable<CallError> }>
 }
 
 /**

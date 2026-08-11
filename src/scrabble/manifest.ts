@@ -41,7 +41,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
       })
       .single()
     if (error || !data) {
-      return { error: error?.message ?? `failed to start ${brand} (${mode})` }
+      return { error: error ?? { message: `failed to start ${brand} (${mode})`, answered: true as const } }
     }
     return { id: data.id }
   }

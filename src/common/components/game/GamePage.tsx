@@ -17,6 +17,7 @@ import type {
   MenuSection,
 } from '../../lib/games'
 import { END_OR_CONCEDE_IDS, NEW_GAME_ID } from '../../lib/game/gameMenu'
+import { failureMessage } from '../../lib/game/serverError'
 import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
 import { useIsMobile } from '../../hooks/ui/useIsMobile'
@@ -224,8 +225,12 @@ export function GamePage({
         // is a real error we want to see during alpha.
         // `[db]` so it sits in the same filter as every other failed call —
         // this one never reaches a player, which is exactly why it needs to be
-        // findable in a log.
-        console.error(`[db] submitTimeout failed: ${result.error}`)
+        // findable in a log. The dispatcher keeps the error STRUCTURED now, so
+        // the SQLSTATE makes it into the line.
+        console.error(
+          `[db] submitTimeout failed: ${result.error.message}`
+          + (result.error.code ? ` (code=${result.error.code})` : ''),
+        )
       }
     })
   }, [timer.expired, paused, commonGame, gameId, gametype])
@@ -548,11 +553,13 @@ export function GamePage({
                 if (!(await confirmAction(END_GAME_CONFIRM))) return
                 const { error } = await endGameFn(gameId)
                 if (error) {
-                  setGlobalFeedback({
-                    tone: 'error',
-                    text: `Couldn't end the game: ${error}`,
-                    mode: { kind: 'sticky' },
-                  })
+                  // Classified, not hand-built: a lost End race shows
+                  // game-not-in-play's "Game over" info pill (the same copy the
+                  // in-game End action shows), and anything unexpected wears
+                  // the fault look. This used to interpolate the raw server
+                  // string into a prefixed pill — a bypass the guard couldn't
+                  // see because the flattening happened a file away.
+                  setGlobalFeedback(failureMessage(error, 'end game'))
                 }
               }
             : undefined
