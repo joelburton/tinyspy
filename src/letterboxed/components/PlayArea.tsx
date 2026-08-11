@@ -5,6 +5,7 @@ import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { outOfRacePill, stickyPill } from '../../common/lib/game/localPills'
+import { faultMessage } from '../../common/lib/game/serverError'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { db } from '../db'
 import { db as commonDb } from '../../common/db'
@@ -371,11 +372,15 @@ export function PlayArea(ctx: GamePageCtx) {
       brand,
     )
     if ('error' in res) {
-      showError(`New game failed: ${res.error}`)
+      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
+      // already built a game once, so anything that comes back is a bug or an
+      // outage — never a pill. Copy supplies the words when it has them; the
+      // real message survives otherwise (res.error is a classifiable CallError).
+      showLocalFeedback(faultMessage(res.error, 'new game'))
       return
     }
     goToGame(`letterboxed_${gameMode}`, res.id)
-  }, [gameMode, clubHandle, setup, players, brand, goToGame, showError, confirmAction, isTerminal])
+  }, [gameMode, clubHandle, setup, players, brand, goToGame, showLocalFeedback, confirmAction, isTerminal])
 
   // Single-flight: "New game" has three triggers (terminal button, menu item,
   // the global `+`) and create_game is NOT idempotent — guarding the handler

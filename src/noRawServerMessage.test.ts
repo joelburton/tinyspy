@@ -31,6 +31,7 @@ const ALLOWED = new Map<string, string>([
   // Reads the message to build a CallError for the classifier — the opposite of
   // rendering it.
   ['src/common/hooks/game/useWordSubmit.ts', 'normalises a thrown rejection into a CallError'],
+  ['src/common/lib/supabase/callEdgeFn.ts', 'builds the classifiable CallError off a functions-js failure'],
   // Returns the string UP to a caller, which classifies it. The edge-function
   // path strips the SQLSTATE, so the message is the only thing left to carry.
   ['src/common/lib/game/manifestRpcs.ts', 'passes the message to its caller, which classifies'],

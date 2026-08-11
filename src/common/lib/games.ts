@@ -1,6 +1,9 @@
 import type { Session } from '@supabase/supabase-js'
 import type { ComponentType, ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
+// Type-only and circular-safe: serverError.ts imports GenericFeedbackMsg from
+// this file; both imports are erased at runtime.
+import type { CallError } from './game/serverError'
 
 /**
  * FE-facing labels for a gametype's interaction `mode`. The DB, code,
@@ -656,8 +659,13 @@ export type GameManifest = {
    *     defaults this to every current club member; the caller
    *     does NOT have to be in the list.
    *
-   * Returns `{ id }` on success or `{ error }` whose message
-   * the UI surfaces verbatim. Server-side validation is the
+   * Returns `{ id }` on success or `{ error }`, which the dialog
+   * routes through the server-error classifier before a player
+   * reads it (SetupGameDialog): a string is a raw server message
+   * (an fe-error-key, for a direct create_game RPC), a CallError
+   * is the classified shape from an edge-fn path (carrying the
+   * relayed SQLSTATE + the answered marker), and a RichMessage is
+   * already frontend-authored. Server-side validation is the
    * trust boundary — the FE-collected setup is not trusted.
    *
    * Lives on the manifest so common code (ClubPage,
@@ -668,7 +676,7 @@ export type GameManifest = {
     clubHandle: string,
     setup: unknown,
     playerUserIds: string[],
-  ) => Promise<{ id: string } | { error: string | RichMessage }>
+  ) => Promise<{ id: string } | { error: string | RichMessage | NonNullable<CallError> }>
 
   /**
    * Render a one-line label for a single `common.games` row,

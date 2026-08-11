@@ -1,6 +1,6 @@
 import { failureMessage } from '../../lib/game/serverError'
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
-import type { GenericFeedbackMsg, GenericFeedbackTone } from '../../lib/games'
+import type { GenericFeedbackMsg } from '../../lib/games'
 import { useLocalFeedback } from '../feedback/useLocalFeedback'
 import { stickyPill } from '../../lib/game/localPills'
 
@@ -100,10 +100,12 @@ export type WordSubmitApi = {
   submit: () => void
   localFeedback: GenericFeedbackMsg | null
   clearLocalFeedback: () => void
-  /** Push an own-move message into the same below-board pill, in the shared
-   *  outline+sticky style — for the game's *sibling* own-actions that aren't word
-   *  submits (e.g. a failed End). Keeps one feedback slot with one look. */
-  showLocalFeedback: (tone: GenericFeedbackTone, text: string) => void
+  /** Push a message into the same below-board pill — for the game's *sibling*
+   *  own-actions that aren't word submits (a failed End, a failed New game).
+   *  Takes the full msg (build one with `stickyPill`) so a message carrying
+   *  more than tone+text — `faultMessage`'s fault styling — isn't flattened on
+   *  the way through. Keeps one feedback slot with one look. */
+  showLocalFeedback: (msg: GenericFeedbackMsg) => void
 }
 
 /**
@@ -170,11 +172,6 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     wordRef.current = typeof v === 'function' ? v(wordRef.current) : v
     setWordState(v)
   }, [])
-
-  const showLocalFeedback = useCallback(
-    (tone: GenericFeedbackTone, text: string) => showPill(stickyPill(tone, text)),
-    [showPill],
-  )
 
   const submit = useCallback(() => {
     const c = cfgRef.current
@@ -249,5 +246,5 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     )
   }, [showPill])
 
-  return { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback }
+  return { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback: showPill }
 }

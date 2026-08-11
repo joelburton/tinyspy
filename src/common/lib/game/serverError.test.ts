@@ -15,7 +15,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ERROR_COPY } from './errorCopy'
-import { classifyFailure, failureMessage, parseServerKey } from './serverError'
+import { classifyFailure, failureMessage, faultMessage, parseServerKey } from './serverError'
 
 /** ERROR_COPY is a module-level table; tests that add to it clean up after. */
 const added: string[] = []
@@ -80,6 +80,22 @@ describe('classifyFailure', () => {
   it('calls a codeless error TRANSPORT — a rejected fetch has no SQLSTATE', () => {
     expect(classifyFailure({ message: 'TypeError: Load failed', code: '' }))
       .toEqual({ kind: 'transport', cause: 'Server' })
+  })
+
+  // ── The `answered` marker (callEdgeFn) ─────────────────────
+  // An edge function's prose answer arrives codeless — indistinguishable from
+  // a dead connection by `code` alone. `answered` (set only by callEdgeFn,
+  // which read the message out of a real response body) is the disambiguator:
+  // "Server; try refresh" must never replace a real answer like boggle's
+  // "No board met those constraints".
+  it('calls codeless-but-ANSWERED prose a FAULT, never transport', () => {
+    expect(classifyFailure({ message: 'no candidate words for band 3', answered: true }))
+      .toEqual({ kind: 'fault', raw: 'no candidate words for band 3' })
+  })
+
+  it('an answered fe-error-key still classifies by the key', () => {
+    withCopy('chain-full', { text: () => 'Chain is full' })
+    expect(classifyFailure({ message: 'chain-full|5|', answered: true }).kind).toBe('expected')
   })
 })
 
@@ -152,6 +168,61 @@ describe('classifyFailure — a key that lost its SQLSTATE', () => {
 
   it('still calls a genuinely codeless NON-key transport', () => {
     expect(classifyFailure({ message: 'TypeError: Load failed', code: '' }).kind).toBe('transport')
+  })
+})
+
+/**
+ * faultMessage — the formatter for a FAULT SURFACE (today: the in-game "New
+ * game" button). The rule it pins: LOOK and WORDS are independent axes. The
+ * surface decides the look (always the fault treatment — a New-game failure is
+ * a bug or an outage, never gameplay); the copy table still decides the words
+ * when it has them.
+ */
+describe('faultMessage', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('renders a key WITH copy as a fault wearing the copy words', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    withCopy('no-required-words', { text: () => 'No words for those letters' })
+    const msg = faultMessage({ message: 'no-required-words|', answered: true }, 'new game')
+    // The copy's words — the same sentence the setup form shows…
+    expect(msg.text).toBe('No words for those letters')
+    // …but the FAULT look, not a pill: on this surface nothing is gameplay.
+    expect(msg.fault).toBe(true)
+    expect(msg.tone).toBe('error')
+    expect(msg.mode).toEqual({ kind: 'manual' })
+  })
+
+  it('ignores a friendly tone — a fault is never news', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    withCopy('already-ended', { text: () => 'Game over', tone: 'info' })
+    expect(faultMessage({ message: 'already-ended|', code: 'P0001' }, 'new game').tone).toBe('error')
+  })
+
+  it('LOGS a copy-carrying fault under [db] — unlike the same key through failureMessage', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    withCopy('no-required-words', { text: () => 'No words for those letters' })
+    faultMessage({ message: 'no-required-words|', details: 'zero words fit' }, 'new game')
+    const line = spy.mock.calls[0][0] as string
+    expect(line).toContain('[db]')
+    expect(line).toContain('FAULT on new game')
+    expect(line).toContain('detail="zero words fit"')
+    // The raw fe-error-key rides in the log (the screen shows the copy).
+    expect(line).toContain('raw="no-required-words|"')
+  })
+
+  it('shows a server prose ANSWER raw — never "Server; try refresh"', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const msg = faultMessage({ message: 'no candidate words for band 3', answered: true }, 'new game')
+    expect(msg.fault).toBe(true)
+    expect(msg.text).toBe('new game|no candidate words for band 3')
+  })
+
+  it('keeps the transport line for a genuinely unanswered failure', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const msg = faultMessage({ message: 'TypeError: Load failed', code: '' }, 'new game')
+    expect(msg.fault).toBe(true)
+    expect(msg.text).toBe('new game: Server; try refresh')
   })
 })
 

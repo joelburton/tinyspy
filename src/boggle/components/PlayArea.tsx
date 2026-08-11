@@ -12,7 +12,8 @@ import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
-import { outOfRacePill } from '../../common/lib/game/localPills'
+import { outOfRacePill, stickyPill } from '../../common/lib/game/localPills'
+import { faultMessage } from '../../common/lib/game/serverError'
 import { memberById } from '../../common/lib/game/peers'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/game/useWordSubmit'
@@ -290,7 +291,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // failure-pill format + the replay sentence are boggle's. Its errors share the
   // same below-board pill as a word submit (via showLocalFeedback). New game
   // stays below — its create path diverges per game.
-  const showError = useCallback((m: string) => showLocalFeedback('error', m), [showLocalFeedback])
+  const showError = useCallback((m: string) => showLocalFeedback(stickyPill('error', m)), [showLocalFeedback])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
@@ -324,7 +325,11 @@ export function PlayArea(ctx: GamePageCtx) {
       brand,
     )
     if ('error' in res) {
-      showLocalFeedback('error', `New game failed: ${res.error}`)
+      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
+      // already built a game once, so anything that comes back is a bug or an
+      // outage — never a pill. Copy supplies the words when it has them; the
+      // real message survives otherwise (res.error is a classifiable CallError).
+      showLocalFeedback(faultMessage(res.error, 'new game'))
       return
     }
     goToGame(`boggle_${gameMode}`, res.id)

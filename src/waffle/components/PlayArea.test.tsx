@@ -238,9 +238,15 @@ describe('waffle PlayArea — new game (menu)', () => {
     await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('waffle_coop', 'fresh-game-id'))
   })
 
-  it('surfaces an edge-function error in the local pill (no navigation)', async () => {
+  it('surfaces an edge-function error as a FAULT carrying the real message (no navigation)', async () => {
     const user = userEvent.setup()
-    startEdgeFn.mockResolvedValue({ error: 'no words for that band' })
+    // New game is a FAULT SURFACE (serverError.ts → faultMessage), and
+    // `invokeStartGameEdgeFn` now returns a classifiable CallError. The
+    // `answered` marker is what keeps the function's real answer on screen —
+    // as the bare-red fault `new game|…` — instead of the transport line's
+    // "Server; try refresh", which must never replace a server's answer.
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    startEdgeFn.mockResolvedValue({ error: { message: 'no words for that band', answered: true } })
     h.result = loaded(coopGame)
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
@@ -248,9 +254,12 @@ describe('waffle PlayArea — new game (menu)', () => {
     act(() => menuItems(ctx).find((i) => i.id === 'new-game')!.onClick())
     await user.click(await screen.findByRole('button', { name: 'Start new game' }))
     await waitFor(() =>
-      expect(screen.getByText('New game failed: no words for that band')).toBeInTheDocument(),
+      expect(screen.getByText('new game|no words for that band')).toBeInTheDocument(),
     )
     expect(ctx.goToGame).not.toHaveBeenCalled()
+    // Faults leave a [db] trail; expected pills don't. This one must.
+    expect(consoleSpy.mock.calls.some((c) => String(c[0]).includes('FAULT on new game'))).toBe(true)
+    consoleSpy.mockRestore()
   })
 })
 

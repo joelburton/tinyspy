@@ -70,9 +70,17 @@ export type Failure =
  *
  *  `details` is PL/pgSQL's DETAIL, which PostgREST passes straight through — the
  *  human explanation written beside every raise. It is never shown to a player;
- *  it exists for the `[db]` log below, which is the only place it surfaces. */
+ *  it exists for the `[db]` log below, which is the only place it surfaces.
+ *
+ *  `answered` says the SERVER PRODUCED this error — set by `callEdgeFn` when it
+ *  read the message out of a real response body. It exists because an edge
+ *  function strips the SQLSTATE: without it, prose recovered from a function's
+ *  response is indistinguishable from a dead connection, and classifyFailure's
+ *  no-code heuristic would file a genuine server answer ("no candidate words
+ *  for band 3") as transport — telling the player to refresh over a data
+ *  problem. Direct PostgREST calls never set it; their SQLSTATE is the proof. */
 export type CallError =
-  | { message?: string; code?: string; details?: string | null; hint?: string | null }
+  | { message?: string; code?: string; details?: string | null; hint?: string | null; answered?: true }
   | null
   | undefined
 
@@ -93,19 +101,23 @@ export type CallError =
 export function classifyFailure(error: CallError): Failure {
   const message = error?.message ?? ''
   // The KEY is checked before the SQLSTATE, and the order is load-bearing.
-  // A key that travels through an EDGE FUNCTION loses its code on the way:
+  // A key that travels through an EDGE FUNCTION can lose its code on the way:
   // functions-js reports its own error and the real one is dug back out of the
-  // response body by `unwrapEdgeFnError`, which recovers the message and
-  // nothing else. Testing `code` first would file every one of those — every
-  // failed New game — as a transport failure. Prose can't parse as a key, so
-  // looking here first costs nothing.
+  // response body by `callEdgeFn` — which relays `code` when the function
+  // returned one, but older functions return only the message. Testing `code`
+  // first would file those — every failed New game — as transport failures.
+  // Prose can't parse as a key, so looking here first costs nothing.
   const parsed = parseServerKey(message)
   if (parsed) {
     return ERROR_COPY[parsed.key]
       ? { kind: 'expected', key: parsed.key, details: parsed.details }
       : { kind: 'fault', raw: message }
   }
-  if (!error?.code) {
+  // Codeless AND unanswered — nothing server-side produced this. `answered`
+  // (set by callEdgeFn when it read the error out of a response body) keeps a
+  // server's prose answer out of this branch: "Server; try refresh" must only
+  // ever describe a request that genuinely died in transit.
+  if (!error?.code && !error?.answered) {
     const offline = typeof navigator !== 'undefined' && navigator.onLine === false
     return { kind: 'transport', cause: offline ? 'Offline' : 'Server' }
   }
@@ -131,10 +143,15 @@ export function classifyFailure(error: CallError): Failure {
  * among them.
  */
 function logFault(action: string, error: CallError, shown: string) {
+  const raw = error?.message ?? ''
   const bits = [
     error?.code ? `code=${error.code}` : 'no-code',
     error?.details ? `detail="${error.details}"` : null,
     error?.hint ? `hint="${error.hint}"` : null,
+    // The raw server text, whenever the screen shows something else — a
+    // transport line's terse cause, or a translated fault's copy. Without it,
+    // that text would surface NOWHERE: not shown, not logged.
+    raw && !shown.includes(raw) ? `raw="${raw}"` : null,
   ].filter(Boolean)
   console.error(`[db] ${logStamp()} FAULT on ${action}: ${shown} (${bits.join(' ')})`)
 }
@@ -175,6 +192,34 @@ export function failureMessage(error: CallError, action: string): GenericFeedbac
   const text = `${action}|${failure.raw}`
   logFault(action, error, text)
   return { tone: 'error', fault: true, text, mode: { kind: 'manual' } }
+}
+
+/**
+ * The failure message for a FAULT SURFACE — an action whose failure is never
+ * gameplay. `failureMessage` above classifies by ERROR_COPY membership because
+ * a pill surface (a board move, End/Concede/Restart) can lose an ordinary
+ * race; but some actions have no ordinary way to fail at all. The in-game
+ * "New game" button is the roster's case: its setup already built a game once,
+ * so anything that comes back — a dead edge function, an RPC raise, a key the
+ * setup form would have caught — is a bug or an outage, not play.
+ *
+ * So: ALWAYS the fault look (bare red, no tone but error, manual dismiss),
+ * always logged under `[db]`. The copy table still supplies the WORDS when it
+ * has them — the look says "broken", the sentence may as well be readable —
+ * with the raw `action|key|` shape as the fallback that keeps the fe-error-key
+ * on screen for a phone-line diagnosis.
+ */
+export function faultMessage(error: CallError, action: string): GenericFeedbackMsg {
+  const failure = classifyFailure(error)
+  if (failure.kind === 'expected') {
+    const text = ERROR_COPY[failure.key].text(failure.details)
+    logFault(action, error, text)
+    return { tone: 'error', fault: true, text, mode: { kind: 'manual' } }
+  }
+  // Keyless, unknown-key, and transport failures already render as faults —
+  // and with `answered` in play, a server's prose answer arrives here as a
+  // fault carrying its real text, never as "Server; try refresh".
+  return failureMessage(error, action)
 }
 
 /**

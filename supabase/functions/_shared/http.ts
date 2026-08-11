@@ -23,3 +23,17 @@ export const json = (body: unknown, status = 200): Response =>
  *  or `null` to proceed with the real request. */
 export const preflight = (req: Request): Response | null =>
   req.method === 'OPTIONS' ? new Response('ok', { headers: cors }) : null
+
+/**
+ * The catch-all error response: an UNCAUGHT exception, wrapped as an
+ * fe-error-key so even a crash comes back key-shaped.
+ *
+ * Every edge-function error return carries an fe-error-key
+ * (`key|detail1|detail2|` — docs/edge-fn-error-keys-plan.md): the FE owns all
+ * player-facing words, and a non-key response can then only mean the request
+ * never reached the function at all. The raw message rides as the detail —
+ * it's for the console/log audience, and the fault display shows it verbatim,
+ * which for an internal error is exactly right (it announces "bug").
+ */
+export const edgeInternal = (e: unknown, status = 500): Response =>
+  json({ error: `edge-internal|${String(e instanceof Error ? e.message : e)}|` }, status)

@@ -75,24 +75,24 @@ export async function parseBuildBoardRequest(
 
   if (!targetClub || typeof targetClub !== 'string') {
     console.log(`${fnName} reject: missing target_club; body keys =`, Object.keys(body))
-    return json({ error: 'target_club (uuid string) required' }, 400)
+    return json({ error: 'bad-request|target_club|' }, 400)
   }
   if (!setup || typeof setup !== 'object') {
     console.log(`${fnName} reject: missing/invalid setup`)
-    return json({ error: 'setup (object) required' }, 400)
+    return json({ error: 'bad-request|setup|' }, 400)
   }
   if (mode !== 'coop' && mode !== 'compete') {
     console.log(`${fnName} reject: invalid mode "${mode}"`)
-    return json({ error: 'mode ("coop" | "compete") required' }, 400)
+    return json({ error: 'bad-request|mode|' }, 400)
   }
   if (!Array.isArray(playerUserIds) || playerUserIds.length === 0) {
     console.log(`${fnName} reject: missing player_user_ids`)
-    return json({ error: 'player_user_ids (non-empty uuid[]) required' }, 400)
+    return json({ error: 'bad-request|player_user_ids|' }, 400)
   }
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
     console.log(`${fnName} reject: no Authorization header`)
-    return json({ error: 'authorization required' }, 401)
+    return json({ error: 'not-authenticated|' }, 401)
   }
 
   console.log(`${fnName} accepted: target_club=${targetClub}, players=${playerUserIds.length}`)
@@ -109,10 +109,14 @@ export async function parseBuildBoardRequest(
 /**
  * The create_game handoff a board-builder ends with: call `<schema>.create_game`
  * over PostgREST (as the caller) and map its result to the function's HTTP
- * response — an RPC error → 400 (the RPC is the authority on membership + setup
- * validation, so its message is the user-facing one), a missing row → 500, else
- * `{ id }`. The board payload is game-specific, passed straight through in
- * `args.board`.
+ * response — an RPC error → 400, a missing row → 500, else `{ id }`. The board
+ * payload is game-specific, passed straight through in `args.board`.
+ *
+ * The relayed error is the RPC's fe-error-key VERBATIM, plus its SQLSTATE as
+ * `code` — restoring what functions-js strips in transit, so the FE classifies
+ * a relayed raise exactly like a direct RPC failure (docs/supabase.md →
+ * Server errors; docs/edge-fn-error-keys-plan.md). The words a player reads
+ * are the FE's, never this relay's.
  *
  * Pass `fnName` to emit the tagged diagnostic logs (RPC error / no-row / success
  * id); omit it for a silent handoff.
@@ -132,12 +136,12 @@ export async function invokeCreateGame(
   const { data, error } = await supabase.schema(schema).rpc('create_game', args)
   if (error) {
     if (fnName) console.log(`${fnName} create_game RPC error:`, error.message)
-    return json({ error: error.message }, 400)
+    return json({ error: error.message, code: error.code }, 400)
   }
   const rows = (data as Array<{ id: string }> | null) ?? []
   if (rows.length === 0) {
     if (fnName) console.log(`${fnName} reject: create_game returned no row`)
-    return json({ error: 'create_game returned no row' }, 500)
+    return json({ error: 'edge-internal|create_game returned no row|' }, 500)
   }
   if (fnName) console.log(`${fnName} success: id=${rows[0].id}`)
   return json({ id: rows[0].id })

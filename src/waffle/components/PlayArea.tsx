@@ -1,4 +1,4 @@
-import { failureMessage } from '../../common/lib/game/serverError'
+import { failureMessage, faultMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
 import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
@@ -289,7 +289,11 @@ export function PlayArea({
       brand,
     )
     if ('error' in res) {
-      showLocalFeedback(ownAction('error', `New game failed: ${res.error}`))
+      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
+      // already built a game once, so anything that comes back is a bug or an
+      // outage — never a pill. Copy supplies the words when it has them; the
+      // real message survives otherwise (res.error is a classifiable CallError).
+      showLocalFeedback(faultMessage(res.error, 'new game'))
       return
     }
     goToGame(`waffle_${gameMode}`, res.id)

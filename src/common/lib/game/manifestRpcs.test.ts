@@ -8,7 +8,7 @@
  * makeRpcDispatcher takes the `db` as a param, so it's tested with a fake
  * client (no mocking). invokeStartGameEdgeFn reaches the module-level
  * `supabase.functions.invoke`, so that one module is mocked; the real
- * unwrapEdgeFnError runs, driven by a fake `context` Response.
+ * callEdgeFn unwrap runs, driven by a fake `context` Response.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -62,34 +62,36 @@ describe('invokeStartGameEdgeFn', () => {
     expect(mockInvoke).toHaveBeenCalledWith('boggle-build-board', { body })
   })
 
-  it('unwraps the real server error off error.context (the subtle read-once path)', async () => {
+  it('unwraps the real server error off error.context, ANSWERED and code-bearing', async () => {
     mockInvoke.mockResolvedValue({
       data: null,
       // invoke reports a generic message; the real error rides on context.json().
+      // callEdgeFn recovers it plus the relayed SQLSTATE, and marks it answered
+      // so a codeless prose answer can never misfile as transport.
       error: {
         message: 'Edge Function returned a non-2xx status code',
-        context: { json: async () => ({ error: 'no eligible pangram seeds' }) },
+        context: { json: async () => ({ error: 'no-required-words|', code: 'P0001' }) },
       },
     })
 
     expect(await invokeStartGameEdgeFn('spellingbee-build-board', body, 'FreeBee')).toEqual({
-      error: 'no eligible pangram seeds',
+      error: { message: 'no-required-words|', code: 'P0001', answered: true },
     })
   })
 
-  it('falls back to error.message when there is no context to unwrap', async () => {
+  it('a contextless failure is transport-shaped: codeless and UNanswered', async () => {
     mockInvoke.mockResolvedValue({ data: null, error: { message: 'network down' } })
 
     expect(await invokeStartGameEdgeFn('waffle-build-board', body, 'Waffle')).toEqual({
-      error: 'network down',
+      error: { message: 'network down', code: '' },
     })
   })
 
-  it('treats a 200 with an { error } body as a failure', async () => {
+  it('treats a 200 with an { error } body as an answered failure', async () => {
     mockInvoke.mockResolvedValue({ data: { error: 'those letters yield no words' }, error: null })
 
     expect(await invokeStartGameEdgeFn('spellingbee-build-board', body, 'FreeBee')).toEqual({
-      error: 'those letters yield no words',
+      error: { message: 'those letters yield no words', answered: true },
     })
   })
 
@@ -97,7 +99,7 @@ describe('invokeStartGameEdgeFn', () => {
     mockInvoke.mockResolvedValue({ data: {}, error: null })
 
     expect(await invokeStartGameEdgeFn('boggle-build-board', body, 'MothCubes')).toEqual({
-      error: 'failed to start MothCubes (coop) game',
+      error: { message: 'failed to start MothCubes (coop) game', answered: true },
     })
   })
 })

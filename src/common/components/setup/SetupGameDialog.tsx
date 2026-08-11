@@ -181,17 +181,19 @@ export function SetupGameDialog({
     const result = await manifest.startGameInClub(clubHandle, setup, playerUserIds)
     if ('error' in result) {
       setBusy(false)
-      // `startGameInClub` returns a bare STRING — the build-board edge function
-      // strips the SQLSTATE on the way out (see classifyFailure), so the key is
-      // all that survives. `failureText` reads it anyway, which is how a real
-      // setup rejection like `no-required-words|` becomes a sentence instead of
-      // the raw key.
-      // A RichMessage is already frontend-authored (a manifest builds it for
-      // its own reasons), so only a raw string goes through the classifier.
+      // Three shapes (see startGameInClub in games.ts). A STRING is a raw
+      // server message off a direct create_game RPC — an fe-error-key, which
+      // `failureText` translates. A CallError is the classified shape off an
+      // edge-fn path, carrying the relayed SQLSTATE and the answered marker —
+      // which is what keeps a function's real answer ("no candidate words for
+      // band 3") out of the transport bucket in this form's error line. A
+      // RichMessage (array) is already frontend-authored; render as-is.
       setError(
         typeof result.error === 'string'
           ? failureText({ message: result.error }, 'new game')
-          : result.error,
+          : Array.isArray(result.error)
+            ? result.error
+            : failureText(result.error, 'new game'),
       )
       return
     }

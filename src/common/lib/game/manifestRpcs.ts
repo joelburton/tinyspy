@@ -8,8 +8,8 @@
  * unwrap (see `invokeStartGameEdgeFn`) — exist exactly once.
  */
 
-import { supabase } from '../supabase/supabase'
-import { unwrapEdgeFnError } from '../supabase/edgeFnError'
+import { callEdgeFn } from '../supabase/callEdgeFn'
+import type { CallError } from './serverError'
 
 /** The manifest contract's dispatcher result: an optional error message. */
 export type RpcResult = { error?: string }
@@ -62,11 +62,12 @@ export type StartGameBody = {
 
 /**
  * Invoke a `<game>-build-board` edge function and normalize its result to the
- * manifest's `{ id } | { error }` union. The **subtle** part boggle, spellingbee,
- * and waffle each copied verbatim — reading the real server error off the
- * read-once `error.context` — now lives in `unwrapEdgeFnError`. On success we
- * still guard the `{ id }` payload here (a 200 with an `{ error }` body is
- * possible).
+ * manifest's `{ id } | { error }` union. The invoke + read-once error unwrap
+ * live in `callEdgeFn`, which returns a CLASSIFIABLE CallError — carrying the
+ * relayed SQLSTATE (`code`) and the "the function answered" marker — so every
+ * consumer routes it through the classifier instead of stringifying it. On
+ * success we still guard the `{ id }` payload here (a 200 with an `{ error }`
+ * body is possible).
  *
  * `brand` + `mode` only feed the last-resort "failed to start …" message.
  */
@@ -74,14 +75,20 @@ export async function invokeStartGameEdgeFn(
   fnName: string,
   body: StartGameBody,
   brand: string,
-): Promise<{ id: string } | { error: string }> {
-  const { data, error } = await supabase.functions.invoke(fnName, { body })
-  if (error) {
-    return { error: (await unwrapEdgeFnError(error)) ?? error.message }
-  }
-  const payload = data as { id?: string; error?: string } | null
+): Promise<{ id: string } | { error: NonNullable<CallError> }> {
+  const res = await callEdgeFn(fnName, body)
+  if (res.error) return { error: res.error }
+  const payload = res.data as { id?: string; error?: string; code?: string } | null
   if (!payload || payload.error || !payload.id) {
-    return { error: payload?.error ?? `failed to start ${brand} (${body.mode}) game` }
+    // A 2xx that isn't the success shape. The function answered — so this is
+    // never transport — carrying its own words or the last-resort description.
+    return {
+      error: {
+        message: payload?.error ?? `failed to start ${brand} (${body.mode}) game`,
+        ...(payload?.code ? { code: payload.code } : {}),
+        answered: true,
+      },
+    }
   }
   return { id: payload.id }
 }

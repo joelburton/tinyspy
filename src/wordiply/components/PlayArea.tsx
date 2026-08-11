@@ -4,7 +4,8 @@ import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { outOfRacePill } from '../../common/lib/game/localPills'
+import { outOfRacePill, stickyPill } from '../../common/lib/game/localPills'
+import { faultMessage } from '../../common/lib/game/serverError'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { db } from '../db'
 import { useGame, type GuessRow } from '../hooks/useGame'
@@ -191,7 +192,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // The byte-identical shared handlers (useStandardGameActions); only the
   // failure-pill format + the replay sentence are wordiply's. New game stays
   // below — its create path diverges per game.
-  const showError = useCallback((m: string) => showLocalFeedback('error', m), [showLocalFeedback])
+  const showError = useCallback((m: string) => showLocalFeedback(stickyPill('error', m)), [showLocalFeedback])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
@@ -215,7 +216,11 @@ export function PlayArea(ctx: GamePageCtx) {
       brand,
     )
     if ('error' in res) {
-      showLocalFeedback('error', `New game failed: ${res.error}`)
+      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
+      // already built a game once, so anything that comes back is a bug or an
+      // outage — never a pill. Copy supplies the words when it has them; the
+      // real message survives otherwise (res.error is a classifiable CallError).
+      showLocalFeedback(faultMessage(res.error, 'new game'))
       return
     }
     goToGame(`wordiply_${gameMode}`, res.id)

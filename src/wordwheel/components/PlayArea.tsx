@@ -11,7 +11,8 @@ import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useWordSubmit, wordWithBonusDot, type WordEntry } from '../../common/hooks/game/useWordSubmit'
 import { memberById } from '../../common/lib/game/peers'
-import { outOfRacePill } from '../../common/lib/game/localPills'
+import { outOfRacePill, stickyPill } from '../../common/lib/game/localPills'
+import { faultMessage } from '../../common/lib/game/serverError'
 import { readLeaderboard } from '../../common/lib/game/foundWordsLeaderboard'
 import { currentRankIndex, RANKS } from '../../common/lib/game/rankLadder'
 import type { WordwheelSetup } from '../lib/setup'
@@ -312,7 +313,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // three are the byte-identical shared handlers (useStandardGameActions); only
   // the failure-pill format + the replay sentence are wordwheel's. New game stays
   // below — its create path diverges per game.
-  const showError = useCallback((m: string) => showLocalFeedback('error', m), [showLocalFeedback])
+  const showError = useCallback((m: string) => showLocalFeedback(stickyPill('error', m)), [showLocalFeedback])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
@@ -352,7 +353,11 @@ export function PlayArea(ctx: GamePageCtx) {
       brand,
     )
     if ('error' in res) {
-      showLocalFeedback('error', `New game failed: ${res.error}`)
+      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
+      // already built a game once, so anything that comes back is a bug or an
+      // outage — never a pill. Copy supplies the words when it has them; the
+      // real message survives otherwise (res.error is a classifiable CallError).
+      showLocalFeedback(faultMessage(res.error, 'new game'))
       return
     }
     goToGame(`wordwheel_${gameMode}`, res.id)
