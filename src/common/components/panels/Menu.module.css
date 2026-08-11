@@ -252,3 +252,30 @@
   flex: none;
   margin-right: -1rem;
 }
+
+/* The leading glyph slot — the icon language's legend (MenuItem.icon).
+ *
+ * A FIXED box, rendered for every row as soon as any row in the menu has an
+ * icon, so the labels share one text column. Reserving it per-menu rather than
+ * always means a menu with no icons is untouched.
+ *
+ * `flex: none` so a glyph never stretches the row, and the box is sized to the
+ * 15px icon rather than the icon sizing the box — a future glyph with different
+ * bearings then can't shift every label beside it. */
+.itemIconSlot {
+  flex: none;
+  width: 1.05rem;
+  /* Cancel most of the row's `gap`, which exists as the wide label↔shortcut
+   * gutter and would otherwise strand the glyph far from the name it labels —
+   * the same negative-margin trick, for the same reason, as `.itemDot`. */
+  margin-right: -1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* The glyph is a quiet index, not a second label: it sits at the muted weight
+   * so the words stay the thing you read. */
+  color: var(--color-control-text-2);
+  /* The row is `align-items: baseline` for the label/shortcut; an icon has no
+   * baseline worth aligning, so nudge it onto the text's optical line. */
+  align-self: center;
+}

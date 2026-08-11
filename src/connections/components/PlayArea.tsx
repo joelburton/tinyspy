@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { IconHint, IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx } from '../../common/lib/games'
 import { colorByUserIdMap } from '../../common/lib/color/memberColor'
@@ -446,13 +447,16 @@ export function PlayArea({
         extra: [
           {
             items: [
+              // The info column's Hints button is icon-only, so this is where its
+              // name lives — and the glyph beside it is what teaches the pairing.
+              { id: 'hints', icon: IconHint, label: 'Hints', onClick: () => setHintsOpen((o) => !o) },
               // The same pair the terminal action row offers, reachable mid-game too.
-              { id: 'restart', label: 'Restart', onClick: () => actionsRef.current.restart() },
-              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current.newGame() },
+              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current.restart() },
+              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current.newGame() },
             ],
           },
           ...(printModel
-            ? [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printConnectionsPdf(printModel) }] }]
+            ? [{ items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printConnectionsPdf(printModel) }] }]
             : []),
         ],
       }),

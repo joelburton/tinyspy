@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { buildWordlePrintModel } from '../pdf/model'
 import { printWordlePdf } from '../pdf/printWordlePdf'
@@ -350,12 +351,13 @@ export function PlayArea({
           // empty on desktop where the column is always visible.
           {
             items: [
-              { id: 'restart', label: 'Restart', onClick: () => actionsRef.current.restart() },
+              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current.restart() },
               // Same setup + roster, a fresh random target, a NEW game id.
-              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current.newGame() },
+              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current.newGame() },
               {
                 id: 'reveal',
-                label: 'Reveal answer',
+            icon: IconReveal,
+            label: 'Reveal answer',
                 // Terminal-only, matching common.reveal_solution's own gate.
                 disabled: !isTerminal || answerShown,
                 onClick: () => actionsRef.current.reveal(),
@@ -363,7 +365,7 @@ export function PlayArea({
             ],
           },
           ...(printModel
-            ? [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printWordlePdf(printModel) }] }]
+            ? [{ items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printWordlePdf(printModel) }] }]
             : []),
         ],
       }),

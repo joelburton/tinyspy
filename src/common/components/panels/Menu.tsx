@@ -155,6 +155,14 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
   const flatItems = sections.flatMap((s) => s.items)
 
   /**
+   * Does any row in this menu carry a glyph? If so every row reserves the
+   * gutter, so labels line up in one column instead of going ragged. A menu with
+   * no icons at all (nothing in it maps to the icon language) reserves nothing
+   * and looks exactly as it did — a feature it doesn't use costs it no indent.
+   */
+  const hasIcons = flatItems.some((i) => i.icon !== undefined)
+
+  /**
    * The rows the KEYBOARD is currently walking — the single list that owns
    * focus. This is where the hybrid collapses to almost nothing: in BOTH
    * presentations an open submenu takes over navigation entirely, so the only
@@ -387,7 +395,29 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
             way every other "who" surface in the app draws it. Not rendered on
             the drill-down's Back row: that row names where you're going, not a
             person. */}
-        {!isBack && item?.dot && <Dot color={item.dot} className={styles.itemDot} />}
+        {/* ONE leading slot, shared by the two things that can sit before a
+            label: the identity disc (who) and the action's glyph (what). No row
+            carries both — an account row names a person, an action names a
+            deed — so they take turns rather than stacking, which is what keeps
+            every label in the same column.
+
+            The slot is reserved for EVERY row as soon as any row in the menu
+            has an icon (the legend — MenuItem.icon); a menu with none renders
+            the disc inline exactly as it always did, so it gains no indent for
+            a feature it doesn't use. Not rendered on the drill-down's Back row:
+            that row names where you're going, not a person or an action. */}
+        {hasIcons ? (
+          <span className={styles.itemIconSlot} aria-hidden>
+            {!isBack &&
+              (item?.dot ? (
+                <Dot color={item.dot} />
+              ) : item?.icon ? (
+                <item.icon size={15} />
+              ) : null)}
+          </span>
+        ) : (
+          !isBack && item?.dot && <Dot color={item.dot} className={styles.itemDot} />
+        )}
         <span className={styles.itemLabel}>
           {isBack ? `‹ ${submenu?.parent.label ?? 'Back'}` : item?.label}
         </span>

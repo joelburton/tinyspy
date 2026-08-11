@@ -253,6 +253,17 @@ a counter beside the score would read as something the game holds against you
 (help is deliberately unpenalized). The per-player tally stays as the cheap
 number the log would otherwise have to be folded to get.
 
+**The help pills are `sticky`, not `manual` — deliberately, and this is the one
+place a hint isn't** ([ui.md → Feedback pill](../ui.md#feedback-pill)). The mode
+exists for content the player must keep reading while they act on it, and
+stackdown's spoiler uses it for exactly that reason: you hunt tiles across the
+board with it open, so a click must not take it away. Here the opposite holds —
+the pill occupies the **entry's slot**, so the moment you act on the hint (type,
+or click a letter) you need that slot back. `manual` would mean either blocking
+input until the × is pressed, or a pill covering the entry you're typing into.
+Losing it costs nothing: the turn log keeps the CONTENT, so the pill is a
+convenience copy and never the record.
+
 A stuck **compete** player has no detector, which is fine: undo is free and
 refunds, so they can always back out — they just have to notice themselves.
 

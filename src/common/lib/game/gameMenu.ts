@@ -1,3 +1,5 @@
+import { IconBack, IconChat, IconConcede, IconEnd, IconHelp } from '../../components/icons'
+import { setChatOpen } from '../chat/chatOpenStore'
 import type { MenuApi, MenuHeader, MenuItem, MenuSection } from '../games'
 
 /**
@@ -46,6 +48,7 @@ export function buildGameMenu(opts: {
   const endItem: MenuItem = {
     id: 'end-game',
     label: 'End game',
+    icon: IconEnd,
     // The shortcut belongs to whichever item is the mode's PRIMARY exit —
     // Concede in a race, End otherwise — so a compete game offering both keeps
     // ⌥⌫ on Concede.
@@ -56,6 +59,7 @@ export function buildGameMenu(opts: {
   const concedeItem: MenuItem = {
     id: 'concede',
     label: 'Concede game',
+    icon: IconConcede,
     shortcut: '⌥⌫',
     disabled: isTerminal || !!conceded,
     onClick: () => onConcede?.(),
@@ -68,12 +72,39 @@ export function buildGameMenu(opts: {
   return [
     // A header-only section (no items) at the very top when a header is given.
     ...(header ? [{ header, items: [] }] : []),
-    { items: [{ id: 'help', label: 'Help', onClick: menu.openHelp }] },
+    {
+      items: [
+        {
+          id: 'help',
+          label: 'Help',
+          icon: IconHelp,
+          onClick: menu.openHelp,
+        },
+        {
+          // Chat has a bubble in the header and a `/` shortcut, and the menu row
+          // exists for BOTH: it's the labelled twin every other action has (the
+          // bubble is an icon like the rest), and it's where the shortcut gets
+          // advertised — the shortcut column is the only place `/` is written
+          // down in the app.
+          id: 'chat',
+          label: 'Open chat',
+          icon: IconChat,
+          shortcut: '/',
+          onClick: () => setChatOpen(true),
+        },
+      ],
+    },
     ...extra,
     {
       items: [
         ...exits,
-        { id: 'back', label: 'Back to club', shortcut: '⇧<', onClick: menu.requestBackToClub },
+        {
+          id: 'back',
+          label: 'Back to club',
+          icon: IconBack,
+          shortcut: '⇧<',
+          onClick: menu.requestBackToClub,
+        },
       ],
     },
   ]

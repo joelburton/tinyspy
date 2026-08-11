@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx } from '../../common/lib/games'
@@ -248,6 +249,17 @@ export function PlayArea(ctx: GamePageCtx) {
         return
       }
 
+      // STICKY, not `manual` — deliberate, and the one place a hint isn't.
+      //
+      // stackdown's spoiler is `manual` because you hunt tiles across the board
+      // with it open; a click must not take it away. Here the opposite is true:
+      // the pill occupies the ENTRY's slot, so the moment you act on the hint —
+      // type, or click a letter — you need that slot back. Making it `manual`
+      // would mean either blocking input until the × is pressed, or a pill that
+      // hides the entry you're typing into.
+      //
+      // It costs nothing to lose: the turn log keeps the hint's CONTENT ("Hint:
+      // 8 letters: ADG"), so the pill is a convenience copy, not the record.
       showLocalFeedback(stickyPill('info', helpPillText(kind, r.word)))
       void db
         .rpc('log_help', { target_game: gameId, word_shown: r.word, kind })
@@ -349,11 +361,11 @@ export function PlayArea(ctx: GamePageCtx) {
         extra: [
           {
             items: [
-              { id: 'restart', label: 'Restart', onClick: () => actionsRef.current?.restart() },
-              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
+              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current?.restart() },
+              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
             ],
           },
-          { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printLetterboxedPdf(printModel) }] },
+          { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printLetterboxedPdf(printModel) }] },
         ],
       }),
     )

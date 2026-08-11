@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx, Member } from '../../common/lib/games'
@@ -291,11 +292,11 @@ export function PlayArea(ctx: GamePageCtx) {
         extra: [
           {
             items: [
-              { id: 'restart', label: 'Restart', onClick: () => actionsRef.current?.restart() },
-              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
+              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current?.restart() },
+              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
             ],
           },
-          { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printWordiplyPdf(printModel) }] },
+          { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printWordiplyPdf(printModel) }] },
         ],
       }),
     )

@@ -10,6 +10,7 @@ import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
 import { useAppShortcuts, isNonGameField } from '../../hooks/input/useAppShortcuts'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
 import { useStickyChoice } from '../../hooks/ui/useStickyChoice'
+import { IconBack, IconHelp } from '../icons'
 import { MODE_LABEL, playerCountFits } from '../../lib/games'
 import { useClubPresence } from '../../hooks/realtime/useClubPresence'
 import { useClubSetupPresence } from '../../hooks/realtime/useClubSetupPresence'
@@ -884,11 +885,15 @@ export function ClubPage({ handle, session }: Props) {
         {
           id: 'help',
           label: 'Help',
+          icon: IconHelp,
           onClick: () => setHelpOpen(true),
         },
         {
           id: 'home',
           label: 'Back to home',
+          // The same chevron the game menu's "Back to club" wears: one glyph
+          // names "up one level" everywhere (docs/ui.md → Button iconography).
+          icon: IconBack,
           shortcut: '⇧<',
           onClick: () => navigate('/'),
         },

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
+import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
@@ -380,19 +381,20 @@ export function PlayArea({
         extra: [
           {
             items: [
-              { id: 'restart', label: 'Restart', onClick: restart },
+              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: restart },
               // Same setup + roster, a fresh randomly-built board, a NEW game id.
-              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
+              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
               {
                 id: 'reveal',
-                label: 'Reveal answer',
+            icon: IconReveal,
+            label: 'Reveal answer',
                 disabled: revealDisabled,
                 onClick: () => void handleRevealAnswer(),
               },
             ],
           },
           ...(printModel
-            ? [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printWafflePdf(printModel) }] }]
+            ? [{ items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printWafflePdf(printModel) }] }]
             : []),
         ],
       }),

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { outOfRacePill, terminalPill } from '../../common/lib/game/localPills'
@@ -374,12 +375,12 @@ export function PlayArea({
         onEndGame: () => actionsRef.current?.endGame(),
         onConcede: () => actionsRef.current?.concede(),
         extra: [
-          { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printScrabblePdf(model) }] },
+          { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printScrabblePdf(model) }] },
           {
             items: [
               // The same pair the terminal action row offers, reachable mid-game too.
-              { id: 'restart', label: 'Restart', onClick: () => actionsRef.current?.restart() },
-              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
+              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current?.restart() },
+              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
             ],
           },
         ],

@@ -6,6 +6,13 @@ import styles from './TooltipHost.module.css'
  *  quicker than the native title bubble (which some browsers delay past the
  *  point anyone notices — the reason this system exists). */
 const SHOW_DELAY_MS = 400
+/** How long a touch must be held before the label appears. Longer than the
+ *  hover beat: a hover is already an expression of interest, whereas a press
+ *  starts out indistinguishable from a tap, so the hold has to clear the
+ *  ordinary-tap duration before it can mean something else. */
+const LONG_PRESS_MS = 450
+/** A press that wanders further than this is a scroll, not a hold. */
+const MOVE_TOLERANCE_PX = 10
 /** Gap between the anchor and the bubble; margin kept from the viewport edge. */
 const GAP_PX = 8
 const EDGE_MARGIN_PX = 4
@@ -100,6 +107,76 @@ export function TooltipHost() {
     const onMouseDown = () => hide()
     const onScroll = () => setAnchor(null)
 
+    // ── Touch: LONG-PRESS reveals the label ──────────────────────────────
+    //
+    // Icon-only buttons carry their names in these bubbles, and a touch device
+    // has no hover to ask with — so on touch the same bubble opens on a press
+    // and hold. Nothing is lost by claiming the gesture: a button has no text
+    // to select, and long-press costs nothing to anyone who already knows the
+    // glyph (unlike a tap-to-reveal, which would tax every future tap).
+    //
+    // The bubble is dismissed by the next touch anywhere. That end matters: a
+    // touch bubble has no pointer-leave to close it, and a stuck bubble is the
+    // exact failure the old blanket touch gate existed to avoid.
+    let pressTimer: number | undefined
+    let pressStart: { x: number; y: number } | null = null
+    let suppressClick = false
+
+    const cancelPress = () => {
+      clearTimeout(pressTimer)
+      pressStart = null
+    }
+    const onTouchStart = (e: TouchEvent) => {
+      // A visible bubble means the previous press is being dismissed by this
+      // touch; don't immediately open another.
+      if (current) {
+        hide()
+        return
+      }
+      const t = e.touches[0]
+      const el = (e.target as Element | null)?.closest?.('[data-tooltip]') ?? null
+      if (!el || !t) return
+      pressStart = { x: t.clientX, y: t.clientY }
+      clearTimeout(pressTimer)
+      pressTimer = window.setTimeout(() => {
+        const text = el.getAttribute('data-tooltip')
+        if (!text) return
+        current = el
+        setAnchor({ el, text })
+        // THE load-bearing line. Lifting after a long press still fires a
+        // click, so without this, holding a button to learn that it says
+        // "Restart" would restart the game. Swallow exactly the next click.
+        suppressClick = true
+      }, LONG_PRESS_MS)
+    }
+    const onTouchMove = (e: TouchEvent) => {
+      const t = e.touches[0]
+      if (!pressStart || !t) return
+      // A drag is a scroll, not a press.
+      if (Math.abs(t.clientX - pressStart.x) > MOVE_TOLERANCE_PX ||
+          Math.abs(t.clientY - pressStart.y) > MOVE_TOLERANCE_PX) {
+        cancelPress()
+      }
+    }
+    const onTouchEnd = () => cancelPress()
+    const onClickCapture = (e: MouseEvent) => {
+      if (!suppressClick) return
+      suppressClick = false
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    // Android's long-press menu would otherwise open over the bubble.
+    const onContextMenu = (e: Event) => {
+      if ((e.target as Element | null)?.closest?.('[data-tooltip]')) e.preventDefault()
+    }
+
+    document.addEventListener('touchstart', onTouchStart, { passive: true })
+    document.addEventListener('touchmove', onTouchMove, { passive: true })
+    document.addEventListener('touchend', onTouchEnd)
+    document.addEventListener('touchcancel', onTouchEnd)
+    document.addEventListener('click', onClickCapture, { capture: true })
+    document.addEventListener('contextmenu', onContextMenu)
+
     document.addEventListener('mouseover', onMouseOver)
     document.addEventListener('mouseout', onMouseOut)
     document.addEventListener('focusin', onFocusIn)
@@ -108,6 +185,13 @@ export function TooltipHost() {
     document.addEventListener('scroll', onScroll, { capture: true, passive: true })
     return () => {
       clearTimeout(timer)
+      clearTimeout(pressTimer)
+      document.removeEventListener('touchstart', onTouchStart)
+      document.removeEventListener('touchmove', onTouchMove)
+      document.removeEventListener('touchend', onTouchEnd)
+      document.removeEventListener('touchcancel', onTouchEnd)
+      document.removeEventListener('click', onClickCapture, { capture: true })
+      document.removeEventListener('contextmenu', onContextMenu)
       document.removeEventListener('mouseover', onMouseOver)
       document.removeEventListener('mouseout', onMouseOut)
       document.removeEventListener('focusin', onFocusIn)

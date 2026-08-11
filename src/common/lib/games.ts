@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 import type { ComponentType, ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
 
 /**
  * FE-facing labels for a gametype's interaction `mode`. The DB, code,
@@ -232,6 +233,27 @@ type MenuItemBase = {
    * and the button's accessible name both depend on that.
    */
   dot?: string
+  /**
+   * The action's glyph, drawn before the label — **the icon language's legend**.
+   *
+   * Icon-only buttons carry their names in hover tooltips, which touch devices
+   * don't have (TooltipHost gates hover off there — a tap's synthetic hover
+   * leaves a stuck bubble). The menu already spells those same actions out in
+   * words, so showing each one's glyph beside its name teaches the association
+   * once, at the point of need, and it reads in all fifteen games afterwards.
+   * It costs no board space and nothing per interaction, which is why it beats
+   * both a Help-page legend and a tap-to-reveal on the buttons themselves.
+   *
+   * **Take it from `common/components/icons.ts`, never `lucide-react`.** That
+   * registry is "the ONE place that maps an action to its glyph"; the menu
+   * joining it is what stops a legend from ever teaching a symbol the button
+   * doesn't use. `LucideIcon` is the same type `ActionButton.icon` takes, so a
+   * menu row and its button can be handed the identical value.
+   *
+   * A menu with NO icons reserves no gutter; one with any reserves it for all,
+   * so labels line up rather than going ragged (Menu.module.css).
+   */
+  icon?: LucideIcon
 }
 
 /** A row that DOES something when activated. The common case. */

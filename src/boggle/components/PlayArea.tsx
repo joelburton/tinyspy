@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
@@ -270,12 +271,12 @@ export function PlayArea(ctx: GamePageCtx) {
         onConcede: () => actionsRef.current?.concede(),
         extra: [
           // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
-          { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printBogglePdf(model) }] },
+          { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printBogglePdf(model) }] },
           {
             items: [
               // Same board, wiped finds / same setup, fresh board + id.
-              { id: 'restart', label: 'Restart', onClick: () => actionsRef.current?.restart() },
-              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
+              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current?.restart() },
+              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
             ],
           },
         ],

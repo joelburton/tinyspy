@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx } from '../../common/lib/games'
 import type { PsychicnumSetup } from '../lib/setup'
@@ -179,19 +180,20 @@ export function PlayArea({
         onConcede: () => actionsRef.current?.concede(),
         extra: [
           // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
-          { items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printPsychicnumPdf(model) }] },
+          { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printPsychicnumPdf(model) }] },
           {
             items: [
               // The same pair the terminal action row offers, reachable mid-game too.
-              { id: 'restart', label: 'Restart', onClick: () => actionsRef.current?.restart() },
-              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
+              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current?.restart() },
+              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
               // The menu twin of the terminal row's boxed-eye button — the same
               // local toggle, so a player who's scrolled past the row can still
               // reach it. Inert mid-game: there's nothing to ring until the
               // server unshields the secrets at terminal.
               {
                 id: 'reveal',
-                label: 'Reveal secrets',
+            icon: IconReveal,
+            label: 'Reveal secrets',
                 disabled: !isTerminal || secretsShown,
                 onClick: () => actionsRef.current?.reveal(),
               },

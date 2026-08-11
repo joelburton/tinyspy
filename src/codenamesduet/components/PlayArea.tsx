@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode, useMemo } from 'react'
+import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import type { GenericFeedbackApi, GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx } from '../../common/lib/games'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { cls } from '../../common/lib/util/cls'
@@ -493,21 +494,22 @@ export function PlayArea({
           // The same actions the terminal row offers, reachable mid-game too.
           {
             items: [
-              { id: 'restart', label: 'Restart', onClick: () => void handleRestart() },
-              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
+              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => void handleRestart() },
+              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
               // The menu twin of the terminal row's boxed-eye button. Inert
               // until the game's over — mid-game the partner's card is the
               // whole point of the game.
               {
                 id: 'reveal',
-                label: "Reveal partner's key",
+            icon: IconReveal,
+            label: "Reveal partner's key",
                 disabled: !isTerminal || peerKeyShown,
                 onClick: () => void revealPeerKey(),
               },
             ],
           },
           ...(printModel
-            ? [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printCodenamesduetPdf(printModel) }] }]
+            ? [{ items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printCodenamesduetPdf(printModel) }] }]
             : []),
         ],
       }),

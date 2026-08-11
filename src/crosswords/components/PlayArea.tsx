@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { IconNewGame, IconPrint, IconRestart, IconReveal, IconScratchpad } from '../../common/components/icons'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
@@ -614,9 +615,16 @@ export function PlayArea(ctx: GamePageCtx) {
                 disabled: !hasNote,
                 onClick: () => void handleExplain(),
               },
-              { id: 'scratchpad', label: 'Scratchpad', shortcut: '⌥S', onClick: () => setScratchpadOpen(true) },
+              {
+                id: 'scratchpad',
+                icon: IconScratchpad,
+                label: 'Scratchpad',
+                shortcut: '⌥S',
+                onClick: () => setScratchpadOpen(true),
+              },
               {
                 id: 'print',
+                icon: IconPrint,
                 label: 'Print / Save as PDF',
                 onClick: () => {
                   const s = printStateRef.current
@@ -682,11 +690,12 @@ export function PlayArea(ctx: GamePageCtx) {
               // Destructive "start over": blank my grid (givens + answer kept).
               // Restart replaced "Clear board": the same wipe, under the name
               // the other twelve games use, and reachable at terminal too.
-              { id: 'restart', label: 'Restart', onClick: () => void handleRestart() },
+              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => void handleRestart() },
               {
                 // Post-game answer key — disabled until terminal (the server
                 // only unshields the solution then); disables itself once shown.
                 id: 'reveal-board',
+                icon: IconReveal,
                 label: 'Reveal board',
                 disabled: !isTerminal || solutionRevealed,
                 onClick: () => void handleRevealBoard(),
@@ -697,6 +706,7 @@ export function PlayArea(ctx: GamePageCtx) {
                 // game directly. Also the phone route to it — the terminal row
                 // lives in the off-canvas info sheet there.
                 id: 'new-game',
+                icon: IconNewGame,
                 label: 'New game',
                 shortcut: '+',
                 onClick: () => actionsRef.current?.newGame(),

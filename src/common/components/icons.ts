@@ -95,6 +95,23 @@ export {
   // WORD ("< Club" / "< Home") rather than to swap the glyph, so the shortcut
   // mnemonic survives the disambiguation.
   ChevronLeft as IconBack,
+  // Print to PDF. The one glyph here with NO button — print is a menu-only
+  // action — but the menu's legend earns it anyway: a printer is instantly
+  // scannable in a list of words, and if a print button ever appears it has
+  // already been taught. (docs/ui.md → Button iconography.)
+  Printer as IconPrint,
+  // The shared notes panel. ScratchpadBubble still INLINES its own notepad SVG,
+  // so the menu's legend and the bubble don't yet show the same glyph — the
+  // remaining half of the job chat just finished.
+  NotepadText as IconScratchpad,
+  // Club chat. The bubbles hand-rolled this for years: the inlined path was
+  // FEATHER's `message-circle`, i.e. a frozen copy of Lucide's own ancestor
+  // from before this app used Lucide at all. Harmless until the menu started
+  // teaching glyphs — a legend that shows a different bubble than the header
+  // does is worse than no legend — so ChatBubble and FloatingChat now render
+  // this, and Lucide's redrawn (rounder, chunkier-tailed) version is what you
+  // see in both places.
+  MessageCircle as IconChat,
   // restart THIS board from scratch (waffle's replay-board). The skip-back
   // "jump to the start" transport glyph: it rewinds to the beginning of the
   // same board, distinct from IconShuffle's rotate (rearrange, new look).

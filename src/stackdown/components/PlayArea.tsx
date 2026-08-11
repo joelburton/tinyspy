@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import type {
   GenericFeedbackMsg,
@@ -457,23 +458,24 @@ export function PlayArea({
         extra: [
           {
             items: [
-              { id: 'restart', label: 'Restart', onClick: restart },
+              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: restart },
               // Same setup + roster, a freshly claimed board, a NEW game id.
-              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
+              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
               // The menu twin of the terminal row's boxed-eye button — same
               // local toggle, reachable from the menu the whole time so a
               // player who dismissed the row can still get to it. Mid-game it's
               // inert: there's nothing to reveal until the server unshields.
               {
                 id: 'reveal',
-                label: 'Reveal solution',
+            icon: IconReveal,
+            label: 'Reveal solution',
                 disabled: !isTerminal || solutionShown,
                 onClick: () => void revealSolution(),
               },
             ],
           },
           ...(printModel
-            ? [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printStackdownPdf(printModel) }] }]
+            ? [{ items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printStackdownPdf(printModel) }] }]
             : []),
         ],
       }),

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useMemo } from 'react'
+import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { timerLabel } from '../../common/lib/game/timerLabel'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
@@ -422,12 +423,12 @@ export function PlayArea(ctx: GamePageCtx) {
         onEndGame: () => endGameRef.current(),
         offerEndInCompete: true,
         extra: [
-          { items: [{ id: 'print', label: 'Print board (PDF)', onClick: doPrint }] },
+          { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: doPrint }] },
           // The same pair the terminal row offers, reachable mid-game too.
           {
             items: [
-              { id: 'restart', label: 'Restart', onClick: () => restartRef.current() },
-              { id: 'new-game', label: 'New game', shortcut: '+', onClick: () => newGameRef.current() },
+              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => restartRef.current() },
+              { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => newGameRef.current() },
             ],
           },
         ],

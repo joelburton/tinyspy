@@ -767,6 +767,45 @@ icon buttons).
 | Spoiler — one item, mid-game | `Eye` (`IconSpoiler`) | Peel | `Banana` (`IconPeel`) |
 | Check my own work against the rules | `SpellCheck` (`IconWordCheck`) | | |
 
+**The menu is the legend.** Icon-only buttons carry their names in hover
+tooltips, and a touch device has no hover — `TooltipHost` disables the hover
+path there outright, because a tap's synthetic hover leaves a stuck bubble. So
+the glyphs had no legend on the surface with the least room for words. The fix
+is [`MenuItem.icon`](../src/common/lib/games.ts): the game menu already spells
+these actions out (Restart, New game, Reveal answer, End game, Concede, Back to
+club, Print), so each row shows its glyph beside its name. The pairing is taught
+once, at the point of need, and reads in all fifteen games afterwards — for no
+board space and no per-tap cost, which is what rules out a tap-to-reveal on the
+buttons themselves (it would tax every future tap to answer a first-encounter
+question) and a Help-page legend (nobody opens it at the moment of doubt).
+
+Two rules keep it honest. **Icons come from the semantic registry**, never
+`lucide-react` directly — the registry is the one place a glyph is chosen, so
+the menu can never teach a symbol the button doesn't use; `MenuItem.icon` is
+typed `LucideIcon`, the same type `ActionButton.icon` takes. And **the gutter is
+reserved per menu**: once any row has an icon every row gets the slot, so labels
+share one column instead of going ragged — while a menu with no icons at all
+(nothing in it maps to the language) gains no indent for a feature it doesn't
+use. The disc and the glyph SHARE that slot: an account row names a person, an
+action names a deed, and no row is both. Which rows get one: everything with a
+button glyph, plus Print — a printer is instantly scannable in a list of words,
+and if a print button ever appears it has already been taught. Pinned by
+[`Menu.test.tsx`](../src/common/components/panels/Menu.test.tsx).
+
+**Long-press names a button on touch.** Holding an icon-only control opens the
+same bubble hover would. Nothing is lost by claiming the gesture — a button has
+no text to select — and it costs nothing to anyone who already knows the glyph.
+**The load-bearing detail: the press must swallow the click that follows it.**
+Lifting after a long press still fires `click`, so without that, holding a
+button to learn it says "End game" would *end the game* — verified in a real
+browser, where removing the suppression opens the confirm dialog. The bubble is
+dismissed by the next touch (there's no pointer-leave to end it — a stuck bubble
+is the failure the old blanket gate avoided), a drag cancels it as a scroll, and
+`contextmenu` is suppressed on tooltip targets so Android's own menu doesn't
+open over it. Pinned by
+[`TooltipHost.test.tsx`](../src/common/components/tooltips/TooltipHost.test.tsx)
+and [`tooltip-longpress.e2e.ts`](../e2e/tooltip-longpress.e2e.ts).
+
 **One glyph names a direction, not a thing: `IconBack`.** Every other entry
 above names the action or the object; the chevron names "up one level" (game →
 club, and club → home behind `⇧<`). Two reasons it stays that way, both worth

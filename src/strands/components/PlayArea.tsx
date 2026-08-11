@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import { setupRows } from '../lib/setupSummary'
 import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
@@ -502,7 +503,7 @@ export function PlayArea(ctx: GamePageCtx) {
           // on desktop, where that column is always visible.
           {
             items: [
-              { id: 'restart', label: 'Restart', onClick: () => actionsRef.current.restart() },
+              { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current.restart() },
               // NEW_GAME_ID is a contract with the shell, not a name: the `+`
               // shortcut finds the item by that id and inherits its disabled
               // state. strands' New game is the NEXT DAY'S puzzle.
@@ -515,7 +516,8 @@ export function PlayArea(ctx: GamePageCtx) {
               },
               {
                 id: 'reveal',
-                label: 'Reveal answer',
+            icon: IconReveal,
+            label: 'Reveal answer',
                 // Terminal-only, matching common.reveal_solution's own gate,
                 // and gone once it's already shown.
                 disabled: !isTerminal || solutionRevealed,
@@ -524,7 +526,7 @@ export function PlayArea(ctx: GamePageCtx) {
             ],
           },
           ...(printModel
-            ? [{ items: [{ id: 'print', label: 'Print board (PDF)', onClick: () => printStrandsPdf(printModel) }] }]
+            ? [{ items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printStrandsPdf(printModel) }] }]
             : []),
         ],
       }),

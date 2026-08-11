@@ -34,6 +34,7 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { IconRestart } from '../icons'
 import { Menu } from './Menu'
 import type { MenuSection } from '../../lib/games'
 
@@ -649,5 +650,45 @@ describe('Menu — submenus (mobile drill-down)', () => {
     expect(screen.getByRole('menuitem', { name: 'Profile' })).toHaveFocus()
     await user.keyboard('{ArrowUp}')
     expect(screen.getByRole('menuitem', { name: '‹ Account' })).toHaveFocus()
+  })
+})
+
+/**
+ * The icon gutter — the icon language's legend (MenuItem.icon, docs/ui.md →
+ * Button iconography). Icon-only buttons carry their names in hover tooltips,
+ * which touch devices don't have; the menu spells the same actions out in
+ * words, so the glyph beside the name teaches the pairing once.
+ *
+ * What's pinned is the ALIGNMENT rule, because it's the part that silently
+ * degrades: the slot is reserved for every row as soon as any row has an icon,
+ * so an icon-less label doesn't hang left of the others. And a menu with no
+ * icons at all reserves nothing — it gains no indent for a feature it isn't
+ * using.
+ */
+describe('Menu — the icon gutter', () => {
+  const slots = () =>
+    document.querySelectorAll('[role="menuitem"] > span[aria-hidden="true"]:first-child')
+
+  it('reserves the slot on EVERY row once any row has an icon', async () => {
+    const user = userEvent.setup()
+    renderMenu([
+      {
+        items: [
+          { id: 'a', label: 'Alpha', icon: IconRestart, onClick: () => {} },
+          { id: 'b', label: 'Beta', onClick: () => {} },
+        ],
+      },
+    ])
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    // Both rows: the one with the glyph, and the one that only needs to line up.
+    expect(slots()).toHaveLength(2)
+    expect(document.querySelectorAll('[role="menuitem"] svg')).toHaveLength(1)
+  })
+
+  it('reserves nothing when no row has an icon', async () => {
+    const user = userEvent.setup()
+    renderMenu(singleSection([{ id: 'a', label: 'Alpha' }, { id: 'b', label: 'Beta' }]))
+    await user.click(screen.getByRole('button', { name: 'Test menu' }))
+    expect(slots()).toHaveLength(0)
   })
 })
