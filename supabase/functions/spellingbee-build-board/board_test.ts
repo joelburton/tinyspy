@@ -122,22 +122,22 @@ Deno.test('validateCustomLetters: seven distinct non-s letters pass', () => {
 Deno.test('validateCustomLetters: rejects s, duplicates, and wrong counts', () => {
   eq(
     validateCustomLetters('s', 'cabdon'),
-    'custom center must be a single letter a–z (not s)',
+    'bad-custom-center|',
     "'s' centre rejected",
   )
   eq(
     validateCustomLetters('e', 'cabdos'),
-    'custom letters must be six letters a–z (no s)',
+    'bad-custom-letters|',
     "'s' among outer letters rejected",
   )
   eq(
     validateCustomLetters('e', 'cabdoe'),
-    'all seven custom letters must be different',
+    'bad-custom-duplicates|',
     'a duplicate (e appears twice) rejected',
   )
   eq(
     validateCustomLetters('e', 'cabdo'),
-    'custom letters must be six letters a–z (no s)',
+    'bad-custom-letters|',
     'five outer letters rejected',
   )
 })

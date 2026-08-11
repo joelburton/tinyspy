@@ -60,12 +60,21 @@
  *     player_user_ids: uuid[],
  *     mode: 'coop' | 'compete' }
  *   → { id: uuid }  (200)
- *   → { error: string }  (400/401/403/500)
+ *   → { error: fe-error-key, code?: SQLSTATE }  (400/401/403/500)
+ *
+ * Errors are fe-error-keys (`key|detail|` — docs/edge-fn-error-keys-plan.md;
+ * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
+ * word. The one player-reachable key is `no-required-words|band|` (custom
+ * letters with no words at the band — reuses SQL's key + its ERROR_COPY
+ * sentence); the rest (bad-custom-* / overlap-cap-exhausted /
+ * quality-gate-failed / edge-internal) are "impossible without an FE bug or a
+ * broken pipeline" — no copy, they render as faults. A create_game raise
+ * relays verbatim with its SQLSTATE (invokeCreateGame).
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
-import { json, preflight } from '../_shared/http.ts'
+import { edgeInternal, json, preflight } from '../_shared/http.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
 import {
   type Board,
@@ -313,7 +322,8 @@ serve(async (req) => {
       // rank ladder would be degenerate (Genius at 0 points).
       const err = validateCustomLetters(customCenter, customLetters)
       if (err) {
-        console.log(`reject: custom letters invalid — ${err}`)
+        // `err` is an fe-error-key from board.ts (guard: APPROVED_EXPRESSIONS).
+        console.log(`reject: custom letters invalid — ${err} (${customLetters}+${customCenter})`)
         return json({ error: err }, 400)
       }
       const mask = letterMask(customLetters + customCenter)
@@ -324,15 +334,12 @@ serve(async (req) => {
         `custom board: ${customLetters}+${customCenter} → ${board.required_words_count} required words`,
       )
       if (board.required_words_count < 1) {
-        console.log('reject: custom letters yield no required words')
-        return json(
-          {
-            error:
-              `those letters yield no required words at difficulty ${requiredBand}`
-              + ` — try a lower required difficulty or different letters`,
-          },
-          400,
-        )
+        // The one player-reachable rejection here (custom letters are the
+        // form's own input; the server is the first validator of this rule) —
+        // the same rule create_game re-checks, so it reuses SQL's key and the
+        // dialog shows its ERROR_COPY sentence ("No words for those letters").
+        console.log(`reject: custom letters yield no required words at band ${requiredBand}`)
+        return json({ error: `no-required-words|${requiredBand}|` }, 400)
       }
     } else {
       // ─── Random board: sample a pangram seed + center ────────────────────
@@ -346,10 +353,7 @@ serve(async (req) => {
       const eligible = applyOverlapCap(allPangrams, previousMask)
       if (eligible.length === 0) {
         console.log('reject: empty pangram pool after overlap cap')
-        return json(
-          { error: 'no eligible pangram seeds after applying overlap cap' },
-          500,
-        )
+        return json({ error: 'overlap-cap-exhausted|' }, 500)
       }
       const weighted = buildWeightedPool(eligible)
 
@@ -386,10 +390,7 @@ serve(async (req) => {
 
       if (board === null) {
         console.log(`reject: no seed/center cleared the ${MIN_REQUIRED_WORDS_COUNT}-word gate in ${MAX_SEED_ATTEMPTS} seeds`)
-        return json(
-          { error: `could not build a board with ≥${MIN_REQUIRED_WORDS_COUNT} required words` },
-          500,
-        )
+        return json({ error: `quality-gate-failed|${MIN_REQUIRED_WORDS_COUNT}|` }, 500)
       }
     }
     console.log(
@@ -406,9 +407,6 @@ serve(async (req) => {
     )
   } catch (e) {
     console.error('spellingbee-build-board threw:', e)
-    return json(
-      { error: String(e instanceof Error ? e.message : e) },
-      500,
-    )
+    return edgeInternal(e)
   }
 })

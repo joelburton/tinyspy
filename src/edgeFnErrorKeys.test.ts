@@ -40,7 +40,6 @@ const UNCONVERTED = new Set([
   'crosswords-import-nyt',
   'scrabble-ai-move',
   'scrabble-suggest-move',
-  'spellingbee-build-board',
   'wordwheel-build-board',
 ])
 
@@ -50,6 +49,11 @@ const APPROVED_EXPRESSIONS: Array<{ file: string; snippet: string; why: string }
     file: '_shared/startGame.ts',
     snippet: 'error: error.message, code: error.code',
     why: 'the create_game relay: the RPC message IS an fe-error-key (SQL raises them), passed verbatim with its SQLSTATE',
+  },
+  {
+    file: 'spellingbee-build-board/index.ts',
+    snippet: '{ error: err }',
+    why: "validateCustomLetters returns an fe-error-key (board.ts — bad-custom-*), pinned by board_test.ts",
   },
 ]
 

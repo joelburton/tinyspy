@@ -137,6 +137,26 @@ Wording for `ai-*` copy = Joel's call; current sentences carried as proposals.
 5. Guard hardening (findings 7's regex + 9's per-line allowlist) + the new
    edge-fn key-shape guard — every guard verified by planting.
 
+## Follow-up round (after the conversions): the fault MODAL
+
+Agreed 2026-08-12. Faults stop rendering in the below-board slot (too small —
+scrabble's especially — and ellipsis fights the read-it-aloud goal) and pop a
+MODAL instead: room for the action, the full unellipsised message, and a
+possible copy-details affordance. Rules:
+
+- **Faults only** — feedback pills and form validation are untouched.
+- Initially a modal for EVERY fault, simplest behavior; refinements (e.g.
+  replace-don't-stack under a per-keystroke fault storm) can come later.
+- A fault during SETUP-DIALOG submit also gets the modal (the dialog's red
+  line stays for validation only).
+- scrabble's AI-suggest errors: discuss at scrabble's conversion; Joel leans
+  fault-dialog for those too.
+- Implementation shape: route at the chokepoint (the shared pill renderer's
+  `fault: true` branch → a single global fault-modal host, ToastHost-style),
+  so all fifteen games convert with no per-game edits; `failureMessage` /
+  `faultMessage` unchanged. Behavior-matrix table first, per
+  [[error-ux-behavior-matrix]].
+
 ## Open points for Joel
 
 - Copy for the REACH keys (proposals to be presented verbatim before any

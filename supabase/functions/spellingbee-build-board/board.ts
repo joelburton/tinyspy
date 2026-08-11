@@ -184,15 +184,20 @@ export function buildBoard(
  *  a single center + six OTHER letters, all seven distinct lowercase a–z, none
  *  being 's' (the Spelling Bee rule). Both inputs are already lowercased/trimmed
  *  by the caller. */
+// Returns the fe-error-key for the failed rule, or null when the letters are
+// valid. Keys, not sentences: the FE pre-validates the same rules in the setup
+// form (customLettersError in src/spellingbee/lib/setup.ts), so reaching one
+// of these means a broken client — they carry no copy and render as faults
+// (docs/edge-fn-error-keys-plan.md).
 export function validateCustomLetters(center: string, letters: string): string | null {
   if (!/^[a-z]$/.test(center) || center === 's') {
-    return 'custom center must be a single letter a–z (not s)'
+    return 'bad-custom-center|'
   }
   if (!/^[a-z]{6}$/.test(letters) || letters.includes('s')) {
-    return 'custom letters must be six letters a–z (no s)'
+    return 'bad-custom-letters|'
   }
   if (new Set(center + letters).size !== 7) {
-    return 'all seven custom letters must be different'
+    return 'bad-custom-duplicates|'
   }
   return null
 }
