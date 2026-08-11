@@ -116,7 +116,7 @@ select throws_ok(
   format($$ select wordwheel.submit_word(%L, 'cafe', 1, false, false) $$,
          (select id from g)),
   'P0001',
-  'game is not in progress',
+  'game-not-in-play|',
   'coop: no more words after the team wins'
 );
 

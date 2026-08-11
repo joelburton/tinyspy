@@ -342,8 +342,9 @@ begin
     -- compete Start button in 1-player clubs; this is the
     -- server-side catch. Matches psychicnum + connections.
     if coalesce(array_length(player_user_ids, 1), 0) < 2 then
-      raise exception 'compete mode requires at least 2 players'
-        using errcode = 'P0001';
+      raise exception 'too-few-players|'
+        using errcode = 'P0001',
+      detail = 'compete needs >= 2 players';
     end if;
   end if;
 
@@ -358,19 +359,22 @@ begin
   --          End button. Absent and explicit null are the same thing, so a FE
   --          that always sends the key can send null for "none".
   if mode = 'compete' and (setup->>'target_rank') is null then
-    raise exception 'setup.target_rank is required when mode=compete'
-      using errcode = 'P0001';
+    raise exception 'missing-target-rank|'
+      using errcode = 'P0001',
+      detail = 'compete needs a target_rank';
   end if;
   if (setup->>'target_rank') is not null then
     begin
       s_target_rank := (setup->>'target_rank')::int;
     exception when invalid_text_representation then
-      raise exception 'setup.target_rank must be an integer'
-        using errcode = 'P0001';
+      raise exception 'target-rank-not-int|'
+        using errcode = 'P0001',
+      detail = 'setup.target_rank must be an integer';
     end;
     if s_target_rank < 0 or s_target_rank > 6 then
-      raise exception 'setup.target_rank must be 0..6 (got %)', s_target_rank
-        using errcode = 'P0001';
+      raise exception 'bad-target-rank|%|', s_target_rank
+        using errcode = 'P0001',
+      detail = 'setup.target_rank must be 0..6';
     end if;
   end if;
 
@@ -383,13 +387,15 @@ begin
   -- authority on the shape.
   s_required := coalesce((setup->>'required')::int, 3);
   if s_required < 1 or s_required > 6 then
-    raise exception 'setup.required must be 1..6 (got %)', s_required
-      using errcode = 'P0001';
+    raise exception 'bad-required-band|%|', s_required
+      using errcode = 'P0001',
+      detail = 'setup.required must be 1..6';
   end if;
   s_legal := coalesce((setup->>'legal')::int, 5);
   if s_legal < s_required or s_legal > 6 then
-    raise exception 'setup.legal (%) must be between required (%) and 6',
-      s_legal, s_required using errcode = 'P0001';
+    raise exception 'bad-legal-band|%|%|',
+      s_legal, s_required using errcode = 'P0001',
+      detail = 'setup.legal must be between required and 6';
   end if;
 
   perform common.require_valid_timer(setup->'timer');
@@ -399,9 +405,10 @@ begin
   b_center := board->>'center_letter';
 
   if b_outer is null or length(b_outer) <> 8 then
-    raise exception 'board.outer_letters must be 8 characters (got %)',
+    raise exception 'bad-outer-letters|%|',
                     coalesce(length(b_outer)::text, 'null')
-      using errcode = 'P0001';
+      using errcode = 'P0001',
+      detail = 'board.outer_letters must be 8 characters';
   end if;
   -- Any 8 lowercase ASCII letters — duplicates allowed (the wheel is a
   -- multiset; a wheel with two 'b' tiles is a legal, ordinary board).
@@ -410,19 +417,22 @@ begin
   -- any word; word wheel spends a tile per use, so 's' pluralizes at most
   -- once per 's' tile (as the classic wheel has it).
   if b_outer !~ '^[a-z]{8}$' then
-    raise exception 'board.outer_letters must be 8 lowercase ASCII letters'
-      using errcode = 'P0001';
+    raise exception 'bad-outer-letters|'
+      using errcode = 'P0001',
+      detail = 'outer letters must be lowercase ASCII';
   end if;
 
   if b_center is null or length(b_center) <> 1 then
-    raise exception 'board.center_letter must be 1 character'
-      using errcode = 'P0001';
+    raise exception 'bad-center-letter|'
+      using errcode = 'P0001',
+      detail = 'board.center_letter must be exactly 1 character';
   end if;
   -- The centre MAY also appear among the outer letters — that's just a wheel
   -- with two tiles carrying the same letter, one of them the centre.
   if b_center !~ '^[a-z]$' then
-    raise exception 'board.center_letter must be a lowercase ASCII letter'
-      using errcode = 'P0001';
+    raise exception 'bad-center-letter|'
+      using errcode = 'P0001',
+      detail = 'center must be a lowercase ASCII letter';
   end if;
 
   b_required_words_score := (board->>'required_words_score')::int;
@@ -434,8 +444,9 @@ begin
   is_custom_board := coalesce(setup->>'custom_letters', '') <> '';
   if is_custom_board then
     if b_required_words_count < 1 then
-      raise exception 'those custom letters yield no required words; pick different letters or a lower required band'
-        using errcode = 'P0001';
+      raise exception 'no-required-words|'
+        using errcode = 'P0001',
+      detail = 'the chosen wheel produces an empty required set at that band';
     end if;
   elsif b_required_words_count < 15 then
     -- PROVISIONAL threshold: a 9-tile wheel where each tile is spent per use
@@ -443,18 +454,21 @@ begin
     -- reuse), so the ≥15 floor is lower than spellingbee's ≥30. Tune against
     -- the seed data's word_counts once the import has run; the edge function's
     -- builder must target the same number.
-    raise exception 'board.required_words_count must be ≥ 15 (got %); the edge function''s gate must agree',
+    raise exception 'too-few-required-words|%|',
                     b_required_words_count
-      using errcode = 'P0001';
+      using errcode = 'P0001',
+      detail = 'required_words_count must be >= 15; the edge function''s gate must agree';
   end if;
 
   if jsonb_typeof(board->'required_words') <> 'array' then
-    raise exception 'board.required_words must be an array'
-      using errcode = 'P0001';
+    raise exception 'bad-required-words|'
+      using errcode = 'P0001',
+      detail = 'board.required_words must be a jsonb array';
   end if;
   if jsonb_typeof(board->'bonus_words') <> 'array' then
-    raise exception 'board.bonus_words must be an array'
-      using errcode = 'P0001';
+    raise exception 'bad-bonus-words|'
+      using errcode = 'P0001',
+      detail = 'board.bonus_words must be a jsonb array';
   end if;
 
   -- ─── Title ───────────────────────────────────────────────
@@ -633,7 +647,8 @@ begin
    where wordwheel.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no wordwheel.games row for target_game';
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -645,7 +660,8 @@ begin
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- A conceded player is out of the race — no more words. The FE gates
@@ -654,7 +670,8 @@ begin
   -- reach the target rank and be recorded the winner.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this compete race';
   end if;
 
   -- Normalize for storage + dedup (the FE already validated legality).
@@ -911,7 +928,8 @@ begin
    where wordwheel.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no wordwheel.games row for target_game';
   end if;
 
   perform common.require_game_player(target_game);
@@ -920,7 +938,8 @@ begin
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   if g_row.mode = 'coop' then
@@ -1083,7 +1102,8 @@ begin
    where wordwheel.games.id = target_game
    for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no wordwheel.games row for target_game';
   end if;
 
   perform common.require_game_player(target_game);
@@ -1095,7 +1115,8 @@ begin
     -- Idempotency: a second click (or a concurrent click + timer
     -- expiry) raises this and the FE swallows it the same way
     -- it does for submit_timeout's "already terminal" race.
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   if g_row.mode = 'coop' then
@@ -1229,7 +1250,8 @@ begin
   -- move re-terminalling the board that was just reset.
   select * into g_row from wordwheel.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no wordwheel.games row for target_game';
   end if;
 
   delete from wordwheel.found_words where game_id = target_game;

@@ -227,7 +227,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'compete mode requires at least 2 players',
+  'too-few-players|',
   'compete with 1 player rejected'
 );
 
@@ -246,7 +246,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.target_rank is required when mode=compete',
+  'missing-target-rank|',
   'compete without target_rank rejected'
 );
 
