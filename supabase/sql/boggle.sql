@@ -86,7 +86,8 @@ begin
   -- ─── Mode + player-count ─────────────────────────────────
   perform common.require_valid_mode(mode);
   if mode = 'compete' and coalesce(array_length(player_user_ids, 1), 0) < 2 then
-    raise exception 'compete mode requires at least 2 players' using errcode = 'P0001';
+    raise exception 'too-few-players|' using errcode = 'P0001',
+      detail = 'compete needs >= 2 players';
   end if;
   perform common.require_player_count_max(player_user_ids, 8);
 
@@ -95,13 +96,15 @@ begin
 
   s_min_word_length := coalesce((setup->>'min_word_length')::int, 3);
   if s_min_word_length < 3 or s_min_word_length > 9 then
-    raise exception 'setup.min_word_length must be 3..9 (got %)', s_min_word_length
-      using errcode = 'P0001';
+    raise exception 'bad-min-word-length|%|', s_min_word_length
+      using errcode = 'P0001',
+      detail = 'setup.min_word_length must be 3..9';
   end if;
 
   s_band := (setup->>'band')::int;
   if s_band is null or s_band < 1 or s_band > 6 then
-    raise exception 'setup.band must be 1..6 (got %)', setup->>'band' using errcode = 'P0001';
+    raise exception 'bad-band|%|', setup->>'band' using errcode = 'P0001',
+      detail = 'setup.band must be 1..6';
   end if;
 
   -- The legal (bonus) band is the difficulty ceiling for words that aren't on
@@ -109,18 +112,21 @@ begin
   -- (every required word is, by definition, also legal) and at most 6.
   s_legal_band := (setup->>'legal_band')::int;
   if s_legal_band is null or s_legal_band < s_band or s_legal_band > 6 then
-    raise exception 'setup.legal_band must be band..6 (got %)', setup->>'legal_band'
-      using errcode = 'P0001';
+    raise exception 'bad-legal-band|%|', setup->>'legal_band'
+      using errcode = 'P0001',
+      detail = 'setup.legal_band must be between band and 6';
   end if;
 
   s_ladder := setup->>'scoring_ladder';
   if s_ladder is null or s_ladder not in ('flat', 'basic', 'fib', 'big') then
-    raise exception 'setup.scoring_ladder must be flat|basic|fib|big (got %)', s_ladder
-      using errcode = 'P0001';
+    raise exception 'bad-scoring-ladder|%|', s_ladder
+      using errcode = 'P0001',
+      detail = 'scoring_ladder must be flat, basic, fib or big';
   end if;
 
   if coalesce(setup->>'dice_set', '') = '' then
-    raise exception 'setup.dice_set is required' using errcode = 'P0001';
+    raise exception 'missing-dice-set|' using errcode = 'P0001',
+      detail = 'setup.dice_set absent';
   end if;
 
   -- win_percent: NULL/absent = "no target"; otherwise 50..100 in steps of 5.
@@ -128,26 +134,31 @@ begin
   s_win_percent := (setup->>'win_percent')::int;   -- NULL when absent or JSON null
   if s_win_percent is not null
      and (s_win_percent < 50 or s_win_percent > 100 or s_win_percent % 5 <> 0) then
-    raise exception 'setup.win_percent must be 50..100 in steps of 5, or null (got %)', s_win_percent
-      using errcode = 'P0001';
+    raise exception 'bad-win-percent|%|', s_win_percent
+      using errcode = 'P0001',
+      detail = 'win_percent must be 50..100 in steps of 5, or null';
   end if;
 
   -- ─── Board validation (built by the edge function) ───────
   b_board := board->>'board';
   b_n := (board->>'n')::int;
   if b_board is null or b_n is null or b_n < 4 or b_n > 6 then
-    raise exception 'board.board / board.n invalid' using errcode = 'P0001';
+    raise exception 'bad-board|' using errcode = 'P0001',
+      detail = 'board.board / board.n missing or malformed';
   end if;
   if length(b_board) <> b_n * b_n then
-    raise exception 'board length % != n² (% )', length(b_board), b_n * b_n using errcode = 'P0001';
+    raise exception 'bad-board-length|%|%|', length(b_board), b_n * b_n using errcode = 'P0001',
+      detail = 'board length must be n squared';
   end if;
   if jsonb_typeof(board->'required_words') <> 'array' then
-    raise exception 'board.required_words must be an array' using errcode = 'P0001';
+    raise exception 'bad-required-words|' using errcode = 'P0001',
+      detail = 'board.required_words must be a jsonb array';
   end if;
   -- bonus_words is optional (empty when legal_band == band); if present it must
   -- be an array of the same { word, points } shape.
   if board ? 'bonus_words' and jsonb_typeof(board->'bonus_words') <> 'array' then
-    raise exception 'board.bonus_words must be an array' using errcode = 'P0001';
+    raise exception 'bad-bonus-words|' using errcode = 'P0001',
+      detail = 'board.bonus_words must be a jsonb array';
   end if;
   b_required_count := (board->>'required_words_count')::int;
   b_required_score := (board->>'required_words_score')::int;
@@ -290,7 +301,8 @@ begin
     from boggle.games bg join common.games cg on cg.id = bg.id
    where bg.id = target_game;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no boggle.games row for target_game';
   end if;
   if g_playstate <> 'playing' then
     return jsonb_build_object('result', 'gameOver', 'points', 0);
@@ -302,7 +314,8 @@ begin
   -- return) so useWordSubmit releases the optimistically-accepted word.
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this compete race';
   end if;
 
   w_lower := lower(coalesce(word, ''));
@@ -399,7 +412,8 @@ begin
     into g_mode, g_req_count, g_req_score, g_win_pct
     from boggle.games where id = target_game;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no boggle.games row for target_game';
   end if;
 
   if g_mode = 'coop' then
@@ -582,7 +596,8 @@ begin
   -- move re-terminalling the board that was just reset.
   select * into g_row from boggle.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no boggle.games row for target_game';
   end if;
 
   delete from boggle.found_words where game_id = target_game;

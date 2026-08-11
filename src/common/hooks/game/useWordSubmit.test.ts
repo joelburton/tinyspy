@@ -206,16 +206,22 @@ describe('useWordSubmit', () => {
   it('releases the word on a failed commit so a retry succeeds', async () => {
     const commit = vi
       .fn()
-      .mockResolvedValueOnce({ error: { message: 'network boom' } })
+      // No SQLSTATE — a request that never reached the server, which is what
+      // "the commit lost" almost always is here.
+      .mockResolvedValueOnce({ error: { message: 'TypeError: Load failed', code: '' } })
       .mockResolvedValueOnce({ error: null })
     const cfg = makeCfg({ commit })
     const { result, type, submit } = setup(cfg)
 
     type('apple')
     await submit()
-    // The background commit rejected → error pill + the word is freed.
+    // The background commit rejected → the word is freed, and the player is
+    // told in words TypeScript owns. The browser's opaque phrasing never shows.
     expect(result.current.localFeedback?.tone).toBe('error')
-    expect(result.current.localFeedback?.text).toBe('network boom')
+    expect(result.current.localFeedback?.text).toBe('word: Server; try refresh')
+    // ...and as a FAULT, not a normal pill: nothing about a dead connection is
+    // a game outcome (lib/game/serverError.ts).
+    expect(result.current.localFeedback?.fault).toBe(true)
 
     // Retyping + resubmitting is allowed (not stuck on "already found").
     type('apple')

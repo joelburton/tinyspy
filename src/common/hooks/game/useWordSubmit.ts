@@ -1,3 +1,4 @@
+import { failureMessage } from '../../lib/game/serverError'
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import type { GenericFeedbackMsg, GenericFeedbackTone } from '../../lib/games'
 import { useLocalFeedback } from '../feedback/useLocalFeedback'
@@ -62,7 +63,7 @@ export type WordSubmitConfig = {
   lookup: (word: string) => WordEntry | null
   /** The trusting-commit RPC. The hook fires this in the background and only
    *  awaits to surface an error + release the pending word. */
-  commit: (entry: WordEntry) => Promise<{ error: { message: string } | null }>
+  commit: (entry: WordEntry) => Promise<{ error: { message: string; code?: string } | null }>
   /** Why did `lookup` miss? Returns just the lowercase *reason* — the hook wraps
    *  it in the shared `WORD — reason` line. Per-game vocabulary: boggle "not on
    *  board" (untraceable) vs "not a word"; spellingbee "bad letters" / "missing
@@ -226,15 +227,25 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     const body = `${entry.isPangram ? 'pangram ' : ''}+${entry.points}`
     showPill(stickyPill('success', line(w, body, entry.isBonus)))
 
-    const release = (message: string) => {
+    // The commit lost: free the word so it can be retried, and say why in the
+    // words TypeScript owns. `failureMessage` decides the LOOK too — a rule the
+    // server anticipated is a normal pill, anything else is a fault — so this
+    // takes the whole message rather than a string (lib/game/serverError.ts).
+    const release = (msg: GenericFeedbackMsg) => {
       pendingRef.current.delete(w) // free it so the player can retry
-      showPill(stickyPill('error', message))
+      showPill(msg)
     }
     c.commit(entry).then(
       ({ error }) => {
-        if (error) release(error.message)
+        if (error) release(failureMessage(error, 'word'))
       },
-      (err: unknown) => release(err instanceof Error ? err.message : 'Submit failed'),
+      // A THROWN rejection rather than an `{ error }` — no SQLSTATE exists, so
+      // this is the transport path by construction.
+      (err: unknown) =>
+        release(failureMessage(
+          { message: err instanceof Error ? err.message : String(err), code: '' },
+          'word',
+        )),
     )
   }, [showPill])
 
