@@ -48,8 +48,6 @@ const ALLOWED = new Map<string, string>([
   ['src/stackdown/manifest.ts', 'returns the message to SetupGameDialog, which classifies'],
   ['src/strands/manifest.ts', 'returns the message to SetupGameDialog, which classifies'],
   ['src/wordle/manifest.ts', 'returns the message to SetupGameDialog, which classifies'],
-  // Same pass-through shape: useCells hands the string to crosswords' PlayArea.
-  ['src/crosswords/hooks/useCells.ts', 'returns the message to its caller, which classifies'],
   // Not server errors at all.
   ['src/crosswords/components/SetupForm.tsx', 'a FileReader failure reading a local .ipuz'],
   ['src/common/components/game/PlayAreaErrorBoundary.tsx', 'a React render error, not a server one'],

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { CallError } from '../../common/lib/game/serverError'
 import { supabase } from '../../common/lib/supabase/supabase'
 import { channelDedupSuffix } from '../../common/lib/supabase/channelDedup'
 import { onPostgresAttached } from '../../common/lib/supabase/postgresAttached'
@@ -20,8 +21,13 @@ export type CellState = {
 /** Live cell state keyed `${row}:${col}`. */
 export type CellsMap = Map<string, CellState>
 
-export type SetCellResult = { solved: boolean } | { error: string }
-export type SetMarkResult = { ok: true } | { error: string }
+// The error branch carries the STRUCTURED CallError (message + SQLSTATE), not
+// a flattened string: the caller classifies it (failureMessage) so a lost race
+// shows its ERROR_COPY pill ("Game over") and a dead connection shows the
+// transport fault — never raw server text in a pill. This hook only rolls the
+// optimistic write back; the words are the surface's job.
+export type SetCellResult = { solved: boolean } | { error: NonNullable<CallError> }
+export type SetMarkResult = { ok: true } | { error: NonNullable<CallError> }
 
 export const cellKey = (row: number, col: number) => `${row}:${col}`
 
@@ -217,7 +223,10 @@ export function useCells(
           out.set(key, prevCell)
           return out
         })
-        return { error: error?.message ?? 'set_cell failed' }
+        // `.single()` makes no-row a real coded error, so a null `error` with
+        // no data shouldn't happen — the fallback keeps the classifier from
+        // ever being handed null (it is marked answered: a 2xx arrived).
+        return { error: error ?? { message: 'set_cell returned no row', answered: true as const } }
       }
       // Adopt the authoritative version so our own CDC echo is dropped.
       // Marks live on the same row and aren't touched by a fill, so carry
@@ -271,7 +280,7 @@ export function useCells(
           out.set(key, prevCell)
           return out
         })
-        return { error: error?.message ?? 'set_mark failed' }
+        return { error: error ?? { message: 'set_mark returned no row', answered: true as const } }
       }
       // Adopt the authoritative version; the whole cell is otherwise unchanged.
       const held = cellsRef.current.get(key)

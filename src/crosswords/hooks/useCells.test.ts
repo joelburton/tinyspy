@@ -221,7 +221,7 @@ describe('useCells — failed setCell rolls back (C2)', () => {
     await act(async () => {
       out = await result.current.setCell(0, 0, 'B', false)
     })
-    expect(out).toEqual({ error: 'boom' })
+    expect(out).toEqual({ error: { message: 'boom' } })
     // The cell is back to its pre-write state — NOT stranded at 'B' version 3
     // (which the strict `>` merge could never repair).
     expect(result.current.cells.get(cellKey(0, 0))?.fill).toBe('A')
@@ -311,7 +311,7 @@ describe('useCells — setMark (cryptic edge marks)', () => {
     await act(async () => {
       out = await result.current.setMark(0, 0, 'right', null)
     })
-    expect(out).toEqual({ error: 'nope' })
+    expect(out).toEqual({ error: { message: 'nope' } })
     // Reverted to the pre-write mark, not left cleared.
     expect(result.current.cells.get(cellKey(0, 0))?.markRight).toBe('hyphen')
     expect(result.current.cells.get(cellKey(0, 0))?.version).toBe(3)

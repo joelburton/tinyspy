@@ -22,7 +22,7 @@ import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { navigate } from '../../common/lib/routing/router'
 import { setScratchpadOpen } from '../../common/lib/scratchpad/scratchpadOpenStore'
 import { writeIpuz } from '../lib/parse/ipuz'
-import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
+import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
@@ -240,7 +240,11 @@ export function PlayArea(ctx: GamePageCtx) {
       clearLocalFeedback()
       const res = await setCell(row, col, fill, pencil)
       if ('error' in res) {
-        showLocalFeedback(stickyPill('error', res.error))
+        // Classified, not raw: the compete race (a rival finishing while this
+        // keystroke was in flight) shows game-not-in-play's "Game over" info
+        // pill; a dead connection shows the `letter: Server; try refresh`
+        // fault; anything else faults carrying what the server actually said.
+        showLocalFeedback(failureMessage(res.error, 'letter'))
         return
       }
       if (fill != null) broadcastFill(row, col)
@@ -256,7 +260,7 @@ export function PlayArea(ctx: GamePageCtx) {
       const cur = cells.get(cellKey(row, col))
       const current = side === 'right' ? cur?.markRight : cur?.markBottom
       const res = await setMark(row, col, side, nextMarkState(current ?? undefined))
-      if ('error' in res) showLocalFeedback(stickyPill('error', res.error))
+      if ('error' in res) showLocalFeedback(failureMessage(res.error, 'mark'))
     },
     [cells, setMark, showLocalFeedback],
   )
