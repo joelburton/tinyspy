@@ -772,8 +772,15 @@ tooltips, and a touch device has no hover — `TooltipHost` disables the hover
 path there outright, because a tap's synthetic hover leaves a stuck bubble. So
 the glyphs had no legend on the surface with the least room for words. The fix
 is [`MenuItem.icon`](../src/common/lib/games.ts): the game menu already spells
-these actions out (Restart, New game, Reveal answer, End game, Concede, Back to
-club, Print), so each row shows its glyph beside its name. The pairing is taught
+these actions out (Restart, New game, Reveal answer, Hint, Spoiler, End game,
+Concede, Back to club, Print), so each row shows its glyph beside its name.
+A button whose glyph isn't in the menu yet gets a row **added** — that's how
+hint + spoiler reached letterboxed, psychicnum and stackdown, and how
+letterboxed got the Reveal solution row its terminal button had been missing.
+A greyed row still teaches, so a row is disabled rather than dropped when the
+action isn't available — the exception being an action the mode never offers at
+all (letterboxed's help ladder in compete, crosswords' Reveal submenu), where
+naming a glyph the surface never shows would teach a lie. The pairing is taught
 once, at the point of need, and reads in all fifteen games afterwards — for no
 board space and no per-tap cost, which is what rules out a tap-to-reveal on the
 buttons themselves (it would tax every future tap to answer a first-encounter
@@ -791,6 +798,25 @@ action names a deed, and no row is both. Which rows get one: everything with a
 button glyph, plus Print — a printer is instantly scannable in a list of words,
 and if a print button ever appears it has already been taught. Pinned by
 [`Menu.test.tsx`](../src/common/components/panels/Menu.test.tsx).
+
+**Four glyphs are self-evident and are exempt.** Not every icon-only button
+needs a menu row: some glyphs are read correctly by anyone who has used a
+computer, and a row for them would pad every menu to teach nothing.
+
+| exempt glyph | where |
+|---|---|
+| Shuffle / rotate (`IconShuffle`) | boggle, connections, psychicnum, scrabble, spellingbee, wordwheel, bananagrams |
+| Pause | the `GamePage` header, every game |
+| Delete / backspace (`IconDelete`) | the shared `EntryRow` |
+| Submit — the up-arrow (`IconSubmit`) | `EntryRow`, and each game's commit button |
+
+The test is whether the glyph is a *convention* — a backspace arrow and a pause
+bar mean the same thing in every app the friends already use — not whether it's
+merely *guessable*. A lightbulb is guessable; whether it hands you a clue or the
+answer is exactly what the menu row settles, so hint and spoiler are not exempt.
+The rest of the audited list (scrabble's commit row, the phone-only icon-only
+buttons, crosswords' lettered squares) is **still open** — not exempt, not yet
+paired.
 
 **Long-press names a button on touch.** Holding an icon-only control opens the
 same bubble hover would. Nothing is lost by claiming the gesture — a button has

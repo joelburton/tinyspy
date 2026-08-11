@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
+import { IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import type {
   GenericFeedbackMsg,
@@ -207,6 +207,13 @@ export function PlayArea({
 
   const canPlay =
     !!self && !isTerminal && !submitting && !(isCompete && mySolved) && !myConceded
+
+  // The gate on the two CHEATS (hint / spoiler), which is looser than `canPlay`:
+  // a solved compete player waiting out the race still sees both buttons in the
+  // info column, so this mirrors that row's condition exactly rather than
+  // inventing a second answer. Read by the game menu, where the pair's menu
+  // twins live.
+  const canAskHelp = !!self && !isTerminal && !myConceded
 
   // Locally terminal (compete only): I conceded but the game continues for the
   // others. stackdown has no elimination, so conceding is the only path to it — it
@@ -456,6 +463,18 @@ export function PlayArea({
         onEndGame: endGame,
         onConcede: concede,
         extra: [
+          // The menu twins of the info column's two cheats. The row is what
+          // NAMES those glyphs (docs/ui.md → the menu is the legend), so it's
+          // greyed rather than dropped once you can't ask: a disabled row still
+          // teaches the lightbulb and the bare eye. The labels are the buttons'
+          // richer tooltip copy, not their terse aria-labels — a menu has room
+          // to say which word it acts on.
+          {
+            items: [
+              { id: 'hint', icon: IconHint, label: 'Hint for next word', disabled: !canAskHelp, onClick: () => void revealHint() },
+              { id: 'spoiler', icon: IconSpoiler, label: 'Cheat for next word', disabled: !canAskHelp, onClick: () => void spoilNext() },
+            ],
+          },
           {
             items: [
               { id: 'restart', icon: IconRestart, label: 'Restart', onClick: restart },
@@ -483,7 +502,7 @@ export function PlayArea({
     return () => menu.setGameSections([])
   }, [
     menu, menuMode, isTerminal, myConceded, endGame, concede, restart, handleNewGame,
-    revealSolution, solutionShown,
+    revealSolution, solutionShown, canAskHelp, revealHint, spoilNext,
     // The print model's inputs. It's rebuilt whenever the printable state moves,
     // which is what makes the snapshot current at click time.
     brand, title, game, currentWord, submissions, players, session.user.id, foundCount, setup,

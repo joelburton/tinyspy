@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
+import { IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx } from '../../common/lib/games'
@@ -114,6 +114,9 @@ export function PlayArea(ctx: GamePageCtx) {
     concede: () => void
     restart: () => void
     newGame: () => void
+    hint: () => void
+    spoiler: () => void
+    reveal: () => void
   } | null>(null)
 
   // Only the letters the player typed/clicked. The mandatory first letter is
@@ -325,8 +328,11 @@ export function PlayArea(ctx: GamePageCtx) {
       concede,
       restart,
       newGame: () => void handleNewGame(),
+      hint: takeHint,
+      spoiler: takeSpoiler,
+      reveal: () => void handleReveal(),
     }
-  }, [endGame, concede, restart, handleNewGame])
+  }, [endGame, concede, restart, handleNewGame, takeHint, takeSpoiler, handleReveal])
 
   // ─── GamePage menu ─────────────────────────────────────
   // The print model is built HERE, from live state, and is a snapshot at click
@@ -359,10 +365,36 @@ export function PlayArea(ctx: GamePageCtx) {
         onEndGame: () => actionsRef.current?.endGame(),
         onConcede: () => actionsRef.current?.concede(),
         extra: [
+          // The menu twins of the info column's help ladder. COOP ONLY — the
+          // whole pair is omitted in compete, where the buttons don't render
+          // either (in a race "first past the bar wins" would make either one a
+          // win button, and the server refuses them there too). A menu that
+          // named a glyph the surface never shows would teach a lie; crosswords
+          // drops its Reveal submenu in compete for exactly this reason.
+          ...(game.mode === 'coop'
+            ? [{
+              items: [
+                { id: 'hint', icon: IconHint, label: 'Hint', disabled: isTerminal, onClick: () => actionsRef.current?.hint() },
+                { id: 'spoiler', icon: IconSpoiler, label: 'Show the word', disabled: isTerminal, onClick: () => actionsRef.current?.spoiler() },
+              ],
+            }]
+            : []),
           {
             items: [
               { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current?.restart() },
               { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
+              // The menu twin of the terminal row's boxed-eye button — the same
+              // shared display flag, reachable the whole time so a player who
+              // scrolled past the row can still get to it. Inert until the game
+              // is over for EVERYONE, which is where common.reveal_solution
+              // enforces it too; the disabled row is a UI convenience, not the gate.
+              {
+                id: 'reveal',
+                icon: IconReveal,
+                label: 'Reveal solution',
+                disabled: !isTerminal || solutionRevealed,
+                onClick: () => actionsRef.current?.reveal(),
+              },
             ],
           },
           { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printLetterboxedPdf(printModel) }] },

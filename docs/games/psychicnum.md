@@ -34,6 +34,7 @@ Both siblings share the same display `name` — the brand, `PsychicNum`, read fr
 - **Two helpers, both free + logged amber in the turn log, neither finds the secret or decrements the budget:**
   - **Hint** (`request_hint`): shows the *clue* for an unfound secret (`common.words.hint` — a category/near-synonym nudge). Many words have no clue, so it falls back to the literal "No hint available". The clue (not the word) is what's logged, so a hint never leaks the answer.
   - **Spoiler** (`request_reveal`): shows the *answer* — an unfound secret word itself. The toy "hint that's really the answer." The FE button is the amber bare-eye `SpoilerButton`; the red boxed-eye `RevealButton` is a different thing (the whole board's secrets, terminal only). The RPC keeps its `request_reveal` name — only the player-facing vocabulary moved.
+  - Both are also **menu rows** ("Hint" / "Spoiler"), greyed in step with the buttons — the menu is where the lightbulb and the bare eye get named ([ui.md → the menu is the legend](../ui.md#button-iconography)). The two handlers are hoisted into `actionsRef` so the row and the button fire the same one.
 - Setup form collects: **guess budget** (one of 3/5/7/9), **words on the board** (`word_count`, 5–20), **word difficulty** (the shared `<DifficultyField>` band), **timer** (none/countup/countdown, MM:SS for countdown).
 - The mode (coop vs compete) is **NOT** a setup field — it's locked at the gametype level, picked by which Start button the player clicks. See [The sibling-manifest pattern](#the-sibling-manifest-pattern) above.
 

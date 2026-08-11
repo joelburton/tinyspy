@@ -238,6 +238,12 @@ iconography](../ui.md#button-iconography)):
    `hintPrefix` in `lib/help.ts`, the ONE definition of the rule).
 2. **`spoiler`** — the word itself.
 
+Both rungs also appear as **menu rows** ("Hint" / "Show the word"), coop-only
+like the buttons — the menu is where their lightbulb and bare-eye glyphs get
+named ([ui.md → the menu is the legend](../ui.md#button-iconography)). The menu
+carries **Reveal solution** for the same reason: the terminal row's boxed-eye
+button had no legend row, the only reveal-capable game missing one.
+
 Both call `log_help`, which bumps `hints_used` and writes an `events` row, and
 the content reaches **every coop player, on three surfaces** (Joel's spec,
 2026-08-05): the requester's own pill; the teammates' pills — a header line

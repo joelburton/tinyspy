@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
+import { IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx } from '../../common/lib/games'
 import type { PsychicnumSetup } from '../lib/setup'
@@ -122,6 +122,29 @@ export function PlayArea({
   // recompute it below where the other conceded-set derivations live.)
   const myConceded = players.find((p) => p.user_id === session.user.id)?.conceded ?? false
 
+  // My remaining guesses, and from it the "can I still act?" gate. Both live up
+  // here — above the early returns — for the same reason `myConceded` does: the
+  // game-menu effect below needs them to grey the Hint / Spoiler rows in step
+  // with the InfoCol buttons they name. `playerBudgets` is [] until the fetch
+  // lands, so a pre-load menu reads "no guesses left" and the pair is greyed;
+  // the row still shows its glyph, which is the point of it being there.
+  const selfBudget =
+    playerBudgets.find((p) => p.user_id === session.user.id)
+      ?.guesses_remaining ?? 0
+  // Am I a live PARTICIPANT (not out of budget, not conceded, game not over)?
+  // This drives the terminal-vs-play LOOK in both columns. It deliberately does
+  // NOT fold in turn-order: a player who's merely waiting their turn isn't
+  // "done", so they must not get the locally-terminal "out of guesses" look.
+  // Turn-order gates the actual input separately (`isMyTurn`, passed to BoardCol).
+  const canGuess = !isTerminal && selfBudget > 0 && !myConceded
+
+  // The Hint / Spoiler in-flight flags (their buttons live in InfoCol, their
+  // menu twins in the game menu; the RPCs stay here in the coordinator). Also up
+  // here so the menu effect can read them — the guess input + the board shuffle
+  // moved into BoardCol.
+  const [hinting, setHinting] = useState(false)
+  const [spoiling, setSpoiling] = useState(false)
+
   // The End / Concede action handlers, held in a stable ref so the game-menu
   // effect's onClick closures can call them without depending on the concrete
   // handlers (whose closures change each render). Populated by the effect just
@@ -132,6 +155,8 @@ export function PlayArea({
     restart: () => void
     newGame: () => void
     reveal: () => void
+    hint: () => void
+    spoiler: () => void
   } | null>(null)
 
   // ─── Terminal secrets reveal ─────────────────────────────────────
@@ -179,6 +204,16 @@ export function PlayArea({
         onEndGame: () => actionsRef.current?.end(),
         onConcede: () => actionsRef.current?.concede(),
         extra: [
+          // The menu twins of the info column's two help buttons. The row is
+          // what NAMES those glyphs (docs/ui.md → the menu is the legend), so
+          // it's greyed rather than dropped when you can't ask: a disabled row
+          // still teaches the lightbulb and the bare eye.
+          {
+            items: [
+              { id: 'hint', icon: IconHint, label: 'Hint', disabled: !canGuess || hinting, onClick: () => actionsRef.current?.hint() },
+              { id: 'spoiler', icon: IconSpoiler, label: 'Spoiler', disabled: !canGuess || spoiling, onClick: () => actionsRef.current?.spoiler() },
+            ],
+          },
           // Mobile-only "Game info" item (off-canvas info column); empty on desktop.
           { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printPsychicnumPdf(model) }] },
           {
@@ -203,15 +238,10 @@ export function PlayArea({
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, mode, isTerminal, myConceded, secretsShown, game, guesses, players, brand, title, setup, summaryRows, session.user.id])
+  }, [menu, mode, isTerminal, myConceded, secretsShown, canGuess, hinting, spoiling, game, guesses, players, brand, title, setup, summaryRows, session.user.id])
 
   // Per-opponent secrets-found count we've already announced (compete tension).
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
-
-  // The Hint / Spoiler in-flight flags (their buttons live in InfoCol; the RPCs stay
-  // here in the coordinator). The guess input + the board shuffle moved into BoardCol.
-  const [hinting, setHinting] = useState(false)
-  const [spoiling, setSpoiling] = useState(false)
 
   // ─── Local feedback (own-action) — the coordinator owns the channel ────
   // The below-board own-move pill ("Correct"/"Incorrect", a validation error) is the
@@ -230,6 +260,29 @@ export function PlayArea({
   // disabled-until-terminal menu item is a UI convenience, not the gate.
   const revealSecrets = useCallback(async () => {
     const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
+    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
+  }, [gameId, showLocalFeedback])
+
+  // Hint (a clue) and spoiler (the answer word itself) both land in the turn log
+  // via realtime; coop teammates get a header pill. Nothing to do with the
+  // return value here — the helper rows arrive over the subscription. The RPC
+  // keeps its `request_reveal` name; only the FE vocabulary moved, so that "reveal"
+  // on this page means the whole solution at game-over.
+  //
+  // Both are useCallbacks up here (not plain functions below the early returns)
+  // so the actionsRef effect can list them — the InfoCol buttons and their menu
+  // twins then share ONE pair of handlers, the way End / Concede already do.
+  const getHint = useCallback(async () => {
+    setHinting(true)
+    const { error } = await db.rpc('request_hint', { target_game: gameId })
+    setHinting(false)
+    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
+  }, [gameId, showLocalFeedback])
+
+  const getSpoiler = useCallback(async () => {
+    setSpoiling(true)
+    const { error } = await db.rpc('request_reveal', { target_game: gameId })
+    setSpoiling(false)
     if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
   }, [gameId, showLocalFeedback])
 
@@ -398,15 +451,14 @@ export function PlayArea({
       restart,
       newGame: () => void handleNewGame(),
       reveal: () => void revealSecrets(),
+      hint: () => void getHint(),
+      spoiler: () => void getSpoiler(),
     }
-  }, [endGame, concede, restart, handleNewGame, revealSecrets])
+  }, [endGame, concede, restart, handleNewGame, revealSecrets, getHint, getSpoiler])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
 
-  const selfBudget =
-    playerBudgets.find((p) => p.user_id === session.user.id)
-      ?.guesses_remaining ?? 0
   const selfSecretsFound =
     playerBudgets.find((p) => p.user_id === session.user.id)?.found_secrets_count ?? 0
 
@@ -453,31 +505,9 @@ export function PlayArea({
   const totalGuesses = psychicnumSetup.guesses
   const guessesUsed = totalGuesses - selfBudget
 
-  // Am I a live PARTICIPANT (not out of budget, not conceded, game not over)?
-  // This drives the terminal-vs-play LOOK in both columns. It deliberately does
-  // NOT fold in turn-order: a player who's merely waiting their turn isn't
-  // "done", so they must not get the locally-terminal "out of guesses" look.
-  // Turn-order gates the actual input separately (`isMyTurn`, passed to BoardCol).
-  const canGuess = !over && selfBudget > 0 && !myConceded
-
-  // Hint (a clue) and spoiler (the answer word itself) both land in the turn log
-  // via realtime; coop teammates get a header pill. Nothing to do with the
-  // return value here — the helper rows arrive over the subscription. The RPC
-  // keeps its `request_reveal` name; only the FE vocabulary moved, so that "reveal"
-  // on this page means the whole solution at game-over.
-  const getHint = async () => {
-    setHinting(true)
-    const { error } = await db.rpc('request_hint', { target_game: gameId })
-    setHinting(false)
-    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
-  }
-
-  const getSpoiler = async () => {
-    setSpoiling(true)
-    const { error } = await db.rpc('request_reveal', { target_game: gameId })
-    setSpoiling(false)
-    if (error) showLocalFeedback(stickyPill('error', capitalize(error.message)))
-  }
+  // (canGuess, and the Hint / Spoiler handlers behind it, are hoisted above the
+  // early returns so the game menu can name and grey them in step with the
+  // InfoCol buttons — see the actionsRef block.)
 
   // (endGame / handleConcede are hoisted above the early returns — see the
   // actionsRef block — so the menu, ⌥⌫, and InfoCol's buttons share one pair.)

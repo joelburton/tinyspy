@@ -285,7 +285,11 @@ creation, so it's self-contained; `board_id` is provenance only.
   math as `reveal_next_word`, but the word never reaches the client — only the
   hint text crosses the wire. Every stackdown word is a 5-letter Wordle word, so
   it's always in `common.words`' hint set; no fallback. The FE's **Reveal hint**
-  action button shows it in the same local below-board feedback slot. Logs a `kind='hint'` request row
+  action button shows it in the same local below-board feedback slot. Both
+  cheats also carry **menu rows** ("Hint for next word" / "Cheat for next word"
+  — the buttons' tooltip copy, since a menu has room to say which word it acts
+  on), which is where their lightbulb and bare-eye glyphs get named ([ui.md →
+  the menu is the legend](../ui.md#button-iconography)). Logs a `kind='hint'` request row
   storing the clue text (shown in the log as "Hint: <clue>") the same way. Both requests ride the submissions RLS, so a
   coop request shows to everyone and a compete one only to the requester.
 

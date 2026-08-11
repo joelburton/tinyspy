@@ -272,3 +272,42 @@ describe('stackdown PlayArea — turn-history viewer', () => {
     expect(screen.queryByText('L')).not.toBeInTheDocument()
   })
 })
+
+describe('stackdown PlayArea — the game menu names the cheat glyphs', () => {
+  /** Flatten what PlayArea handed `menu.setGameSections` into id → item. */
+  function menuItems(ctx: GamePageCtx) {
+    const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
+    const sections = setSections.mock.calls.at(-1)?.[0] ?? []
+    return new Map(
+      (sections as { items: { id: string; label: string; icon?: unknown; disabled?: boolean; onClick: () => void }[] }[])
+        .flatMap((s) => s.items)
+        .map((i) => [i.id, i]),
+    )
+  }
+
+  // Both cheats are ICON-ONLY buttons in the info column, so the menu row is the
+  // only place their lightbulb and bare eye get named (docs/ui.md → the menu is
+  // the legend) — a row without its glyph would teach nothing.
+  it('offers Hint + Spoiler rows carrying their glyphs, wired to the same RPCs', async () => {
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    const items = menuItems(ctx)
+    expect(items.get('hint')?.label).toBe('Hint for next word')
+    expect(items.get('hint')?.icon).toBeTruthy()
+    expect(items.get('spoiler')?.label).toBe('Cheat for next word')
+    expect(items.get('spoiler')?.icon).toBeTruthy()
+
+    items.get('hint')?.onClick()
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('reveal_next_hint', { target_game: 'g1' }))
+    items.get('spoiler')?.onClick()
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('reveal_next_word', { target_game: 'g1' }))
+  })
+
+  it('greys the pair at terminal — disabled, never dropped, so the glyph still reads', () => {
+    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
+    render(<PlayArea {...ctx} />)
+    const items = menuItems(ctx)
+    expect(items.get('hint')?.disabled).toBe(true)
+    expect(items.get('spoiler')?.disabled).toBe(true)
+  })
+})
