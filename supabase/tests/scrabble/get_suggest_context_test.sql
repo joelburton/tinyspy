@@ -43,7 +43,7 @@ create temp table gcp on commit drop as
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete');
 select throws_ok($$
   select scrabble.get_suggest_context((select id from gcp))
-$$, 'P0001', 'suggestions are a coop-mode feature',
+$$, 'P0001', 'suggest-not-in-compete|',
   'a compete game is rejected — hints are a coop feature');
 reset role;
 
@@ -53,7 +53,7 @@ update common.games set play_state = 'suspended' where id = (select id from gco)
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok($$
   select scrabble.get_suggest_context((select id from gco))
-$$, 'P0001', 'no suggestions outside of active play',
+$$, 'P0001', 'game-not-in-play|',
   'a non-playing game is rejected');
 reset role;
 update common.games set play_state = 'playing' where id = (select id from gco);

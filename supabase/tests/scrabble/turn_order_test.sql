@@ -10,7 +10,7 @@
 -- coop branch as the word path.
 -- Covers:
 --   1. create_game seats the common pointer on the chosen first player
---   2. an out-of-turn coop move is rejected ('not your turn')
+--   2. an out-of-turn coop move is rejected ('not-your-turn|')
 --   3. an accepted coop move advances the common pointer
 --   4. a soft-rejected move (invalid tile) does NOT advance
 --   5. free-for-all coop (no coop_style) leaves the pointer null and ungated

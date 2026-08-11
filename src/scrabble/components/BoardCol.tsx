@@ -1,5 +1,6 @@
+import { failureMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
-import type { GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
+import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { useFlash } from '../../common/hooks/ui/useFlash'
 import { cls } from '../../common/lib/util/cls'
 import { ShuffleButton } from '../../common/components/buttons/ShuffleButton'
@@ -29,7 +30,18 @@ type DragSource = { kind: 'rack'; rackIdx: number } | { kind: 'board'; x: number
 /** The player's own-move result, shown as a sticky pill in the commit slot. The
  *  turn machine reports these UP via `showLocalFeedback`; PlayArea owns the channel (it
  *  also folds the terminal verdict in), because InfoCol's End/Concede write to it too. */
-export type LocalFeedbackMsg = { tone: GenericFeedbackTone; text: string }
+/**
+ * The below-board message shape. This used to be scrabble's own narrower type
+ * (`{ tone, text: string }`) — a private duplicate of the shared one, from
+ * before `GenericFeedbackMsg` carried modes. It's the shared type MINUS its
+ * mode, which PlayArea supplies: the channel is always sticky here.
+ *
+ * Widened when the server-error keys landed, because a FAULT has to survive the
+ * trip: a string-only `text` cannot carry the `fault` flag, so a dead
+ * connection mid-play would have been flattened into a pill that looks exactly
+ * like a rejected word (lib/game/serverError.ts).
+ */
+export type LocalFeedbackMsg = Omit<GenericFeedbackMsg, 'mode'>
 
 /**
  * What read-only overlay is open on the board — the shared history viewer's id,
@@ -599,7 +611,7 @@ export function BoardCol({
     if (error) {
       lastActionRef.current = prevAction // the move didn't land — un-claim it
       pendingDrawRef.current = prevDraw
-      showLocalFeedback({ tone: 'error', text: error.message })
+      showLocalFeedback(failureMessage(error, 'play'))
       return
     }
     const res = data as { result: string; bad_words?: string[]; drawn?: string[] }
@@ -647,7 +659,7 @@ export function BoardCol({
     if (error) {
       lastActionRef.current = prevAction
       pendingDrawRef.current = prevDraw
-      showLocalFeedback({ tone: 'error', text: error.message })
+      showLocalFeedback(failureMessage(error, 'swap'))
       return
     }
     const res = data as { result: string; drawn?: string[] }
@@ -669,7 +681,7 @@ export function BoardCol({
     // disabled until tiles are selected, so it's rarely hit by accident.
     if (!window.confirm('Do you really want to pass your turn?')) return
     const { error } = await db.rpc('pass_turn', { target_game: gameId, base_version: game.version })
-    if (error) showLocalFeedback({ tone: 'error', text: error.message })
+    if (error) showLocalFeedback(failureMessage(error, 'pass'))
   }, [game.version, gameId, showLocalFeedback])
 
   // Show-a-move (coop): broadcast my staged tiles to teammates for a read-only

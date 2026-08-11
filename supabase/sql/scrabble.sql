@@ -85,7 +85,8 @@ begin
   foreach t in array p_remove loop
     pos := array_position(r, t);
     if pos is null then
-      raise exception 'tile % is not in the rack', t using errcode = 'P0001';
+      raise exception 'tile-not-in-rack|%|', t using errcode = 'P0001',
+      detail = 'the staged tile is not in the caller''s rack per the server';
     end if;
     -- splice element `pos` out (works at either end and down to empty)
     r := r[1:pos-1] || r[pos+1:];
@@ -555,7 +556,8 @@ begin
   -- Up to 4 players; compete needs at least 2 (a 1-player race is degenerate).
   perform common.require_player_count_max(player_user_ids, 4);
   if array_length(player_user_ids, 1) is null then
-    raise exception 'a game needs at least one player' using errcode = 'P0001';
+    raise exception 'no-players|' using errcode = 'P0001',
+      detail = 'player_user_ids was empty';
   end if;
 
   perform common.require_valid_mode(mode);
@@ -563,10 +565,12 @@ begin
   s_dict_2     := coalesce((setup->>'dict_2')::int, 3);
   s_dict_3plus := coalesce((setup->>'dict_3plus')::int, 3);
   if s_dict_2 < 1 or s_dict_2 > 6 then
-    raise exception 'setup.dict_2 must be 1..6 (got %)', s_dict_2 using errcode = 'P0001';
+    raise exception 'bad-dict-2|%|', s_dict_2 using errcode = 'P0001',
+      detail = 'setup.dict_2 must be 1..6';
   end if;
   if s_dict_3plus < 1 or s_dict_3plus > 6 then
-    raise exception 'setup.dict_3plus must be 1..6 (got %)', s_dict_3plus using errcode = 'P0001';
+    raise exception 'bad-dict-3plus|%|', s_dict_3plus using errcode = 'P0001',
+      detail = 'setup.dict_3plus must be 1..6';
   end if;
 
   -- AI players (compete only; docs/scrabble-ai-strength.md). 0..3 AI seats, all
@@ -574,10 +578,12 @@ begin
   -- common.game_players / profiles) and seated AFTER the humans.
   v_ai_count := coalesce((setup->>'ai_count')::int, 0);
   if v_ai_count < 0 or v_ai_count > 3 then
-    raise exception 'setup.ai_count must be 0..3 (got %)', v_ai_count using errcode = 'P0001';
+    raise exception 'bad-ai-count|%|', v_ai_count using errcode = 'P0001',
+      detail = 'setup.ai_count must be 0..3';
   end if;
   if v_ai_count > 0 and mode <> 'compete' then
-    raise exception 'AI players are a compete-mode feature' using errcode = 'P0001';
+    raise exception 'ai-not-in-coop|' using errcode = 'P0001',
+      detail = 'AI opponents seat only in compete';
   end if;
   if v_ai_count > 0 then
     v_ai_level := setup->>'ai_level';
@@ -588,13 +594,15 @@ begin
                    when 'intermediate' then 4 when 'strong' then 6 when 'best' then 6
                    else null end;
     if v_ai_band is null then
-      raise exception 'unknown ai_level %', coalesce(v_ai_level, '(null)') using errcode = 'P0001';
+      raise exception 'bad-ai-level|%|', coalesce(v_ai_level, '(null)') using errcode = 'P0001',
+      detail = 'ai_level is not one of the known levels';
     end if;
     -- The game's dictionary must be at least as wide as the AI knows, else it
     -- can't play at its tuned strength (docs/scrabble-ai-strength.md band rule).
     if s_dict_2 < v_ai_band or s_dict_3plus < v_ai_band then
-      raise exception 'dictionary bands must be >= the AI band (% for level %)',
-        v_ai_band, v_ai_level using errcode = 'P0001';
+      raise exception 'bad-dict-band|%|%|',
+        v_ai_band, v_ai_level using errcode = 'P0001',
+      detail = 'the dictionary bands must reach the AI''s band';
     end if;
   end if;
 
@@ -602,10 +610,12 @@ begin
   -- (humans + AI) is 2..4 in compete.
   v_total := array_length(player_user_ids, 1) + v_ai_count;
   if mode = 'compete' and v_total < 2 then
-    raise exception 'compete mode requires at least 2 players (humans + AI)' using errcode = 'P0001';
+    raise exception 'too-few-players|' using errcode = 'P0001',
+      detail = 'compete needs >= 2 seats including AI';
   end if;
   if v_total > 4 then
-    raise exception 'at most 4 players (humans + AI), got %', v_total using errcode = 'P0001';
+    raise exception 'too-many-players|%|', v_total using errcode = 'P0001',
+      detail = 'scrabble seats at most 4';
   end if;
 
   perform common.require_valid_timer(setup->'timer');
@@ -668,8 +678,9 @@ begin
     if setup->>'coop_style' = 'turns' then
       first_turn := (setup->>'first_turn_user_id')::uuid;
       if first_turn is null or not (first_turn = any(player_user_ids)) then
-        raise exception 'setup.first_turn_user_id must be one of the players'
-          using errcode = 'P0001';
+        raise exception 'bad-first-turn|'
+          using errcode = 'P0001',
+      detail = 'setup.first_turn_user_id must be one of the players';
       end if;
       perform common._assign_turn_order(new_id, first_turn);
     end if;
@@ -733,12 +744,14 @@ begin
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no scrabble.games row for target_game';
   end if;
 
   select g2.play_state into play_state from common.games g2 where g2.id = target_game;
   if play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- ─── Optimistic-concurrency gate ─────────────────────────
@@ -749,7 +762,8 @@ begin
   -- ─── Turn check (compete only) ───────────────────────────
   -- By SEAT (current_seat), so the same gate works whoever occupies it.
   if g.mode = 'compete' and p_seat is distinct from g.current_seat then
-    raise exception 'not your turn' using errcode = 'P0001';
+    raise exception 'not-your-turn|' using errcode = 'P0001',
+      detail = 'another seat holds the turn';
   end if;
 
   -- ─── Coop turn-order (opt-in) ────────────────────────────
@@ -761,7 +775,8 @@ begin
   end if;
 
   if coalesce(array_length(p_words, 1), 0) = 0 then
-    raise exception 'a play must form at least one word' using errcode = 'P0001';
+    raise exception 'no-word-formed|' using errcode = 'P0001',
+      detail = 'a play must form at least one word';
   end if;
 
   v_rack  := case when g.mode = 'coop' then g.shared_rack
@@ -778,11 +793,13 @@ begin
     v_letter := upper(rec->>'letter');
     v_blank  := coalesce((rec->>'blank')::boolean, false);
     if v_x < 0 or v_x > 14 or v_y < 0 or v_y > 14 then
-      raise exception 'placement out of bounds' using errcode = 'P0001';
+      raise exception 'out-of-bounds|' using errcode = 'P0001',
+      detail = 'a placement falls outside the 15x15 grid';
     end if;
     v_idx := v_y * 15 + v_x;
     if jsonb_typeof(v_board -> v_idx) = 'object' then
-      raise exception 'square % is already occupied', v_idx using errcode = 'P0001';
+      raise exception 'square-taken|%|', v_idx using errcode = 'P0001',
+      detail = 'a rival''s tile already sits on that square';
     end if;
     v_consumed := v_consumed || (case when v_blank then '?' else v_letter end);
     v_board := jsonb_set(v_board, array[v_idx::text],
@@ -897,7 +914,8 @@ begin
   caller_id := common.require_game_player(target_game);
   v_seat    := scrabble._seat_of(target_game, caller_id);
   if v_seat is null then
-    raise exception 'you are not seated in this game' using errcode = 'P0001';
+    raise exception 'not-a-player|' using errcode = 'P0001',
+      detail = 'no scrabble seat for the caller';
   end if;
   return scrabble._commit_word(target_game, v_seat, base_version, placements, words, score);
 end;
@@ -928,7 +946,8 @@ begin
   perform common.require_game_player(target_game);
   if not exists (select 1 from scrabble.players
                   where game_id = target_game and seat = p_seat and ai_level is not null) then
-    raise exception 'seat % is not an AI seat', p_seat using errcode = 'P0001';
+    raise exception 'not-an-ai-seat|%|', p_seat using errcode = 'P0001',
+      detail = 'that seat is a human';
   end if;
   return scrabble._commit_word(target_game, p_seat, base_version, placements, words, score);
 end;
@@ -971,19 +990,22 @@ begin
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no scrabble.games row for target_game';
   end if;
 
   select g2.play_state into play_state from common.games g2 where g2.id = target_game;
   if play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   if g.version <> base_version then
     return jsonb_build_object('result', 'stale', 'version', g.version);
   end if;
   if g.mode = 'compete' and p_seat is distinct from g.current_seat then
-    raise exception 'not your turn' using errcode = 'P0001';
+    raise exception 'not-your-turn|' using errcode = 'P0001',
+      detail = 'another seat holds the turn';
   end if;
 
   -- Coop turn-order (opt-in): gate the shared-rack exchange on the common
@@ -994,10 +1016,12 @@ begin
 
   v_n := coalesce(array_length(rack_tiles, 1), 0);
   if v_n = 0 then
-    raise exception 'choose at least one tile to exchange' using errcode = 'P0001';
+    raise exception 'no-tiles-chosen|' using errcode = 'P0001',
+      detail = 'an exchange needs at least one tile';
   end if;
   if coalesce(array_length(g.bag, 1), 0) < 7 then
-    raise exception 'not enough tiles in the bag to exchange' using errcode = 'P0001';
+    raise exception 'bag-too-low|' using errcode = 'P0001',
+      detail = 'the bag holds fewer tiles than the exchange asks for';
   end if;
 
   v_rack := case when g.mode = 'coop' then g.shared_rack
@@ -1065,7 +1089,8 @@ begin
   caller_id := common.require_game_player(target_game);
   v_seat    := scrabble._seat_of(target_game, caller_id);
   if v_seat is null then
-    raise exception 'you are not seated in this game' using errcode = 'P0001';
+    raise exception 'not-a-player|' using errcode = 'P0001',
+      detail = 'no scrabble seat for the caller';
   end if;
   return scrabble._commit_exchange(target_game, v_seat, base_version, rack_tiles);
 end;
@@ -1085,7 +1110,8 @@ begin
   perform common.require_game_player(target_game);
   if not exists (select 1 from scrabble.players
                   where game_id = target_game and seat = p_seat and ai_level is not null) then
-    raise exception 'seat % is not an AI seat', p_seat using errcode = 'P0001';
+    raise exception 'not-an-ai-seat|%|', p_seat using errcode = 'P0001',
+      detail = 'that seat is a human';
   end if;
   return scrabble._commit_exchange(target_game, p_seat, base_version, rack_tiles);
 end;
@@ -1119,22 +1145,26 @@ begin
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no scrabble.games row for target_game';
   end if;
   if g.mode <> 'compete' then
-    raise exception 'passing only applies in compete mode' using errcode = 'P0001';
+    raise exception 'pass-not-in-coop|' using errcode = 'P0001',
+      detail = 'coop has no turns to pass';
   end if;
 
   select g2.play_state into play_state from common.games g2 where g2.id = target_game;
   if play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   if g.version <> base_version then
     return jsonb_build_object('result', 'stale', 'version', g.version);
   end if;
   if p_seat is distinct from g.current_seat then
-    raise exception 'not your turn' using errcode = 'P0001';
+    raise exception 'not-your-turn|' using errcode = 'P0001',
+      detail = 'another seat holds the turn';
   end if;
 
   v_seq := coalesce((select max(seq) from scrabble.plays where game_id = target_game), 0) + 1;
@@ -1191,7 +1221,8 @@ begin
   caller_id := common.require_game_player(target_game);
   v_seat    := scrabble._seat_of(target_game, caller_id);
   if v_seat is null then
-    raise exception 'you are not seated in this game' using errcode = 'P0001';
+    raise exception 'not-a-player|' using errcode = 'P0001',
+      detail = 'no scrabble seat for the caller';
   end if;
   return scrabble._commit_pass(target_game, v_seat, base_version);
 end;
@@ -1211,7 +1242,8 @@ begin
   perform common.require_game_player(target_game);
   if not exists (select 1 from scrabble.players
                   where game_id = target_game and seat = p_seat and ai_level is not null) then
-    raise exception 'seat % is not an AI seat', p_seat using errcode = 'P0001';
+    raise exception 'not-an-ai-seat|%|', p_seat using errcode = 'P0001',
+      detail = 'that seat is a human';
   end if;
   return scrabble._commit_pass(target_game, p_seat, base_version);
 end;
@@ -1302,13 +1334,15 @@ begin
   -- raise below. Mirrors every other scrabble mutation + bananagrams.
   perform 1 from scrabble.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no scrabble.games row for target_game';
   end if;
   perform common.require_game_player(target_game);
 
   select g2.play_state into play_state from common.games g2 where g2.id = target_game;
   if play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- Nobody went out — just score the leftover racks and crown the leader.
@@ -1353,12 +1387,14 @@ begin
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no scrabble.games row for target_game';
   end if;
 
   select g2.play_state into cur_state from common.games g2 where g2.id = target_game;
   if cur_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   if g.mode = 'coop' then
@@ -1424,13 +1460,15 @@ begin
 
   select * into g from scrabble.games where id = target_game;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no scrabble.games row for target_game';
   end if;
 
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'no suggestions outside of active play' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'the AI suggester requires an active play_state';
   end if;
 
   -- Compete hints are a house-rules question, deliberately deferred
@@ -1438,7 +1476,8 @@ begin
   -- so this gate is also what keeps the suggester from becoming a
   -- rack-reading side channel.
   if g.mode <> 'coop' then
-    raise exception 'suggestions are a coop-mode feature' using errcode = 'P0001';
+    raise exception 'suggest-not-in-compete|' using errcode = 'P0001',
+      detail = 'the AI suggester would be a win button in a race';
   end if;
 
   return jsonb_build_object(
@@ -1484,7 +1523,8 @@ begin
 
   select * into g from scrabble.games where id = target_game;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no scrabble.games row for target_game';
   end if;
 
   select play_state into cur_state from common.games where id = target_game;
@@ -1570,7 +1610,8 @@ begin
   -- RPCs lock the same row), or the re-deal could land on a half-applied play.
   select * into g_row from scrabble.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no scrabble.games row for target_game';
   end if;
 
   select array_agg(t order by random()) into v_bag from unnest(scrabble._new_bag()) t;

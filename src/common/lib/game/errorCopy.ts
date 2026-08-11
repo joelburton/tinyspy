@@ -96,6 +96,15 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // classifyFailure reads the key before the SQLSTATE (serverError.ts).
   'no-required-words': { text: () => 'No words for those letters — try others, or a lower band' },
 
+  // ── scrabble ──
+  // The board and the bag are SHARED even in compete, so a rival's play lands
+  // between your stage and your commit: the square you were about to use is
+  // taken, or the bag no longer covers your exchange. The rack is server-owned,
+  // so it too can disagree with the screen for a moment.
+  'square-taken': { text: () => 'That square is taken' },
+  'bag-too-low': { text: () => 'Not enough tiles in the bag' },
+  'tile-not-in-rack': { text: () => "That tile isn't in your rack" },
+
   // ── bananagrams ──
   // The bunch is SHARED, so a rival's peel can empty it between your check and
   // your dump. And the board is FE-owned while the tiles are server-owned
