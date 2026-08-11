@@ -84,7 +84,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select bananagrams.submit_timeout(%L) $$, (select id from g1)),
   'P0001',
-  'game is not in progress',
+  'game-not-in-play|',
   'timing out an already-terminal game is rejected'
 );
 

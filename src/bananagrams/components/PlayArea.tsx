@@ -1,3 +1,4 @@
+import { failureMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useRef, useMemo } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
@@ -115,7 +116,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const peel = useCallback(async (): Promise<{ illegalCells: number[] } | null> => {
     const { data, error } = await db.rpc('peel', { target_game: gameId })
     if (error) {
-      showLocalFeedback({ tone: 'error', text: error.message, mode: { kind: 'sticky' } })
+      showLocalFeedback(failureMessage(error, 'peel'))
       return null
     }
     // A blocked peel: the board isn't win-legal (disconnected, or — with
@@ -173,7 +174,7 @@ export function PlayArea(ctx: GamePageCtx) {
       const { error } = await db.rpc('dump', { target_game: gameId, tile })
       if (error) {
         dumpPending.current = false // no tiles change is coming
-        showLocalFeedback({ tone: 'error', text: error.message, mode: { kind: 'sticky' } })
+        showLocalFeedback(failureMessage(error, 'dump'))
       }
     },
     [gameId, showLocalFeedback],
@@ -222,7 +223,7 @@ export function PlayArea(ctx: GamePageCtx) {
     if (!window.confirm(CONCEDE_CONFIRM)) return
     const { error } = await db.rpc('concede', { target_game: gameId })
     if (error) {
-      showLocalFeedback({ tone: 'error', text: error.message, mode: { kind: 'sticky' } })
+      showLocalFeedback(failureMessage(error, 'concede'))
     }
   }, [gameId, isTerminal, showLocalFeedback])
 
@@ -277,7 +278,7 @@ export function PlayArea(ctx: GamePageCtx) {
     if (!(await confirmAction(END_GAME_CONFIRM))) return
     const { error } = await db.rpc('end_game', { target_game: gameId })
     if (error) {
-      showLocalFeedback({ tone: 'error', text: error.message, mode: { kind: 'sticky' } })
+      showLocalFeedback(failureMessage(error, 'end game'))
     }
   }, [gameId, isTerminal, showLocalFeedback, confirmAction])
   const endGameRef = useRef<() => void>(() => {})
@@ -297,7 +298,7 @@ export function PlayArea(ctx: GamePageCtx) {
     if (!isTerminal && !(await confirmAction(RESTART_CONFIRM))) return
     const { error } = await db.rpc('replay_board', { target_game: gameId })
     if (error) {
-      showLocalFeedback({ tone: 'error', text: `Replay failed: ${error.message}`, mode: { kind: 'sticky' } })
+      showLocalFeedback(failureMessage(error, 'restart'))
     }
   }, [gameId, isTerminal, showLocalFeedback, confirmAction])
   const restartRef = useRef<() => void>(() => {})

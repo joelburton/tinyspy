@@ -73,7 +73,7 @@ select throws_ok(
     (select id from mg_game)
   ),
   'P0001',
-  'board must be a 625-char string',
+  'bad-board|',
   'a board that is not 625 chars is rejected'
 );
 

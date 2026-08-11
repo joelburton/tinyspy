@@ -167,12 +167,14 @@ begin
 
   -- ─── Validate setup shape ────────────────────────────
   if (setup->>'hand_size') is null then
-    raise exception 'setup.hand_size is required' using errcode = 'P0001';
+    raise exception 'missing-hand-size|' using errcode = 'P0001',
+      detail = 'setup.hand_size absent';
   end if;
   s_hand_size := (setup->>'hand_size')::int;
   if s_hand_size not in (15, 21) then
-    raise exception 'setup.hand_size must be 15 or 21 (got %)', s_hand_size
-      using errcode = 'P0001';
+    raise exception 'bad-hand-size|%|', s_hand_size
+      using errcode = 'P0001',
+      detail = 'setup.hand_size must be 15 or 21';
   end if;
 
   -- bunch_size: how many tiles to draw from the 144-tile set for this game.
@@ -181,17 +183,20 @@ begin
   -- the FE disables Start on the same check (see bananagrams bunchSizeError),
   -- but the server is the authority.
   if (setup->>'bunch_size') is null then
-    raise exception 'setup.bunch_size is required' using errcode = 'P0001';
+    raise exception 'missing-bunch-size|' using errcode = 'P0001',
+      detail = 'setup.bunch_size absent';
   end if;
   s_bunch_size := (setup->>'bunch_size')::int;
   if s_bunch_size < 1 or s_bunch_size > 144 then
-    raise exception 'setup.bunch_size must be between 1 and 144 (got %)', s_bunch_size
-      using errcode = 'P0001';
+    raise exception 'bad-bunch-size|%|', s_bunch_size
+      using errcode = 'P0001',
+      detail = 'setup.bunch_size must be 1..144';
   end if;
   if player_count * s_hand_size > s_bunch_size then
-    raise exception 'not enough tiles: % players × % = % needed, bunch holds %',
+    raise exception 'bunch-too-small|%|%|%|%|',
       player_count, s_hand_size, player_count * s_hand_size, s_bunch_size
-      using errcode = 'P0001';
+      using errcode = 'P0001',
+      detail = 'players x hand_size exceeds bunch_size';
   end if;
 
   -- word_check (optional, default 'off'): how strictly real words are enforced.
@@ -205,27 +210,32 @@ begin
   --              longer words (1..6).
   s_word_check := coalesce(setup->>'word_check', 'off');
   if s_word_check not in ('off', 'win', 'strict') then
-    raise exception 'setup.word_check must be off, win or strict (got %)', s_word_check
-      using errcode = 'P0001';
+    raise exception 'bad-word-check|%|', s_word_check
+      using errcode = 'P0001',
+      detail = 'word_check must be off, win or strict';
   end if;
   if s_word_check <> 'off' then
     if (setup->>'dict_2') is null then
-      raise exception 'setup.dict_2 is required unless word_check is off'
-        using errcode = 'P0001';
+      raise exception 'missing-dict-2|'
+        using errcode = 'P0001',
+      detail = 'dict_2 required when word_check is on';
     end if;
     s_dict_2 := (setup->>'dict_2')::int;
     if s_dict_2 < 2 or s_dict_2 > 6 then
-      raise exception 'setup.dict_2 must be between 2 and 6 (got %)', s_dict_2
-        using errcode = 'P0001';
+      raise exception 'bad-dict-2|%|', s_dict_2
+        using errcode = 'P0001',
+      detail = 'setup.dict_2 must be 2..6';
     end if;
     if (setup->>'dict_3plus') is null then
-      raise exception 'setup.dict_3plus is required unless word_check is off'
-        using errcode = 'P0001';
+      raise exception 'missing-dict-3plus|'
+        using errcode = 'P0001',
+      detail = 'dict_3plus required when word_check is on';
     end if;
     s_dict_3plus := (setup->>'dict_3plus')::int;
     if s_dict_3plus < 1 or s_dict_3plus > 6 then
-      raise exception 'setup.dict_3plus must be between 1 and 6 (got %)', s_dict_3plus
-        using errcode = 'P0001';
+      raise exception 'bad-dict-3plus|%|', s_dict_3plus
+        using errcode = 'P0001',
+      detail = 'setup.dict_3plus must be 1..6';
     end if;
   end if;
 
@@ -368,7 +378,8 @@ begin
 
   select is_terminal into is_term from common.games where id = target_game;
   if is_term is null then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no bananagrams.games row for target_game';
   end if;
   if is_term then
     return; -- harmless no-op after game-over
@@ -382,7 +393,8 @@ begin
   end if;
 
   if length(board) <> 25 * 25 then
-    raise exception 'board must be a 625-char string' using errcode = 'P0001';
+    raise exception 'bad-board|' using errcode = 'P0001',
+      detail = 'the 25x25 board snapshot must be 625 chars';
   end if;
 
   update bananagrams.player_boards
@@ -561,7 +573,8 @@ begin
   -- Serialize concurrent peels on the gametype row (see header).
   perform 1 from bananagrams.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no bananagrams.games row for target_game';
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -569,14 +582,16 @@ begin
   select play_state, setup into current_play_state, s_setup
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game is not active' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- A conceded player is out of the race — they can't peel. Conceded now
   -- lives on common.game_players (the shared per-player drop-out flag).
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this race';
   end if;
 
   -- Gate: the caller's hand must be empty (every held tile placed).
@@ -585,10 +600,12 @@ begin
     from bananagrams.player_boards
    where game_id = target_game and user_id = caller_id;
   if v_board is null then
-    raise exception 'no board for caller' using errcode = 'P0002';
+    raise exception 'not-a-player|' using errcode = 'P0002',
+      detail = 'no bananagrams.boards row for the caller';
   end if;
   if n_placed <> n_tiles then
-    raise exception 'your hand is not empty' using errcode = 'P0001';
+    raise exception 'hand-not-empty|' using errcode = 'P0001',
+      detail = 'peel requires every tile placed on the board';
   end if;
 
   s_peel_count := greatest(coalesce((s_setup->>'peel_count')::int, 1), 1);
@@ -751,7 +768,8 @@ begin
     from bananagrams.player_boards
    where game_id = target_game and user_id = v_caller;
   if v_board is null then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no bananagrams.games row for target_game';
   end if;
 
   select setup into v_setup from common.games where id = target_game;
@@ -831,7 +849,8 @@ begin
   -- Serialize against concurrent peels/dumps on the shared bunch.
   perform 1 from bananagrams.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no bananagrams.games row for target_game';
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -839,7 +858,8 @@ begin
   select play_state, setup into current_play_state, s_setup
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game is not active' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- A conceded player is out of the race — they can't drain the shared
@@ -848,12 +868,14 @@ begin
   -- or a stale second tab).
   if (select conceded from common.game_players
         where game_id = target_game and user_id = caller_id) then
-    raise exception 'you have conceded' using errcode = 'P0001';
+    raise exception 'you-conceded|' using errcode = 'P0001',
+      detail = 'caller already dropped out of this race';
   end if;
 
   tile := upper(tile);
   if tile !~ '^[A-Z]$' then
-    raise exception 'tile must be a single letter' using errcode = 'P0001';
+    raise exception 'bad-tile|' using errcode = 'P0001',
+      detail = 'a tile id is a single letter';
   end if;
 
   s_dump_count := greatest(coalesce((s_setup->>'dump_count')::int, 3), 1);
@@ -864,7 +886,8 @@ begin
   -- to-bag mode the bag can top up a draw the bunch can't cover (return-to-bunch
   -- keeps the bag empty, so this reduces to "bunch < dump_count" there).
   if length(s_bunch) + length(s_bag) < s_dump_count then
-    raise exception 'not enough tiles to dump' using errcode = 'P0001';
+    raise exception 'bunch-too-low|' using errcode = 'P0001',
+      detail = 'the bunch holds fewer than the 3 tiles a dump returns';
   end if;
 
   -- The caller must hold the tile they're dumping.
@@ -873,7 +896,8 @@ begin
    where game_id = target_game and user_id = caller_id;
   pos := position(tile in caller_tiles);
   if pos = 0 then
-    raise exception 'you do not hold that tile' using errcode = 'P0001';
+    raise exception 'tile-not-held|' using errcode = 'P0001',
+      detail = 'the dumped tile is not in the caller''s hand per the server';
   end if;
 
   -- Draw dump_count from the FRONT of the bunch first, then top up from the
@@ -949,7 +973,8 @@ begin
   -- serialize — only one of them writes the terminal state.
   perform 1 from bananagrams.games where id = target_game for update;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no bananagrams.games row for target_game';
   end if;
 
   perform common.require_game_player(target_game);
@@ -957,7 +982,8 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- Everyone {"won": false}: time ran out with nobody going out.
@@ -1026,7 +1052,8 @@ begin
 
   select * into g_row from bananagrams.games where id = target_game;
   if not found then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no bananagrams.games row for target_game';
   end if;
 
   select count(*) into n_players
@@ -1141,7 +1168,8 @@ declare
   player_results     jsonb;
 begin
   if not exists (select 1 from bananagrams.games where id = target_game) then
-    raise exception 'game not found' using errcode = 'P0002';
+    raise exception 'game-not-found|' using errcode = 'P0002',
+      detail = 'no bananagrams.games row for target_game';
   end if;
 
   perform common.require_game_player(target_game);
@@ -1149,7 +1177,8 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
   if current_play_state <> 'playing' then
-    raise exception 'game is not in progress' using errcode = 'P0001';
+    raise exception 'game-not-in-play|' using errcode = 'P0001',
+      detail = 'play_state is not an active state';
   end if;
 
   -- Nobody won — the friends agreed to stop. A player who had already

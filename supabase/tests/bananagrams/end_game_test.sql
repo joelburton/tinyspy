@@ -66,7 +66,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select bananagrams.end_game(%L::uuid) $$, (select id from g1)),
-  'P0001', 'game is not in progress',
+  'P0001', 'game-not-in-play|',
   'ending an already-terminal game is rejected');
 
 -- ─── (3) A conceded player stays conceded ────────────────────

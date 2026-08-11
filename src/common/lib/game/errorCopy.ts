@@ -96,6 +96,18 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // classifyFailure reads the key before the SQLSTATE (serverError.ts).
   'no-required-words': { text: () => 'No words for those letters — try others, or a lower band' },
 
+  // ── bananagrams ──
+  // The bunch is SHARED, so a rival's peel can empty it between your check and
+  // your dump. And the board is FE-owned while the tiles are server-owned
+  // (docs/games/bananagrams.md), so the server's view of your hand can
+  // legitimately differ from the screen's for a moment — which makes these
+  // three ordinary play, not broken clients.
+  'bunch-too-low': { text: () => 'Bunch too low to dump', tone: 'info' },
+  'hand-not-empty': { text: () => 'Place all your tiles first' },
+  'tile-not-held': { text: () => "You don't have that tile" },
+  // A setup pair that can't seat everyone: players x hand size beats the bunch.
+  'bunch-too-small': { text: (d) => `Bunch too small: ${d[2]} tiles needed, ${d[3]} in the bunch` },
+
   // ── codenamesduet ──
   // Two seats taking turns, so both can race the turn flip: the clue arrives
   // just as you tap, or the flip lands just as you do. All four are ordinary

@@ -38,7 +38,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select bananagrams.peel(%L) $$, (select id from g1)),
   'P0001',
-  'your hand is not empty',
+  'hand-not-empty|',
   'cannot peel with tiles still in hand'
 );
 
@@ -155,7 +155,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select bananagrams.peel(%L) $$, (select id from g2)),
   'P0001',
-  'game is not active',
+  'game-not-in-play|',
   'peeling after the game is over is rejected'
 );
 

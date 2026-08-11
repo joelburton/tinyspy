@@ -211,7 +211,7 @@ select throws_ok(
                 and user_id = 'ada11111-1111-1111-1111-111111111111')) = 0
        limit 1)),
   'P0001',
-  'you do not hold that tile',
+  'tile-not-held|',
   'cannot dump a tile you do not hold'
 );
 
@@ -234,7 +234,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select throws_ok(
   format($$ select bananagrams.dump(%L, 'A') $$, (select id from g1)),
   'P0001',
-  'not enough tiles to dump',
+  'bunch-too-low|',
   'cannot dump when bunch + bag is smaller than dump_count'
 );
 

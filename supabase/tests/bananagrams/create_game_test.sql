@@ -80,7 +80,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.hand_size is required',
+  'missing-hand-size|',
   'missing hand_size is rejected'
 );
 
@@ -92,7 +92,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.hand_size must be 15 or 21 (got 10)',
+  'bad-hand-size|10|',
   'hand_size outside {15, 21} is rejected'
 );
 
@@ -104,7 +104,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.bunch_size is required',
+  'missing-bunch-size|',
   'missing bunch_size is rejected'
 );
 
@@ -116,7 +116,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.bunch_size must be between 1 and 144 (got 200)',
+  'bad-bunch-size|200|',
   'bunch_size above 144 is rejected'
 );
 
@@ -129,7 +129,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'not enough tiles: 2 players × 21 = 42 needed, bunch holds 40',
+  'bunch-too-small|2|21|42|40|',
   'a bunch too small to deal every hand is rejected'
 );
 
@@ -142,7 +142,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.word_check must be off, win or strict (got bogus)',
+  'bad-word-check|bogus|',
   'an unknown word_check value is rejected'
 );
 
@@ -155,7 +155,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.dict_2 is required unless word_check is off',
+  'missing-dict-2|',
   'word_check on without dict_2 is rejected'
 );
 
@@ -168,7 +168,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.dict_2 must be between 2 and 6 (got 1)',
+  'bad-dict-2|1|',
   'dict_2 below 2 is rejected'
 );
 
@@ -181,7 +181,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.dict_3plus is required unless word_check is off',
+  'missing-dict-3plus|',
   'word_check on without dict_3plus is rejected'
 );
 
@@ -194,7 +194,7 @@ select throws_ok(
     (select handle from club)
   ),
   'P0001',
-  'setup.dict_3plus must be between 1 and 6 (got 7)',
+  'bad-dict-3plus|7|',
   'dict_3plus above 6 is rejected'
 );
 
