@@ -1,3 +1,4 @@
+import { failureText } from '../../common/lib/game/serverError'
 import { failureMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useRef, useMemo } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
@@ -323,7 +324,7 @@ export function PlayArea(ctx: GamePageCtx) {
     if (error || !data) {
       showLocalFeedback({
         tone: 'error',
-        text: `New game failed: ${error?.message ?? 'unknown'}`,
+        text: failureText(error, 'new game'),
         mode: { kind: 'sticky' },
       })
       return

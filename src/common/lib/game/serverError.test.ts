@@ -154,3 +154,47 @@ describe('classifyFailure — a key that lost its SQLSTATE', () => {
     expect(classifyFailure({ message: 'TypeError: Load failed', code: '' }).kind).toBe('transport')
   })
 })
+
+/**
+ * Every FAULT reaches the console under `[db]`.
+ *
+ * A fault shows a key or a terse cause on screen, so everything that would
+ * explain it has to go somewhere — and PL/pgSQL's DETAIL, written beside every
+ * one of the 418 raises, surfaces NOWHERE else. Without this line a bug report
+ * is a friend reading a key down a phone with no way to look up what it meant.
+ */
+describe('faults are logged under [db]', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('logs an unknown key with its SQLSTATE and its DETAIL', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    failureMessage(
+      { message: 'unplayable-board|BITCH|', code: 'P0001', details: 'word is absent from playable_words' },
+      'word',
+    )
+    const line = spy.mock.calls[0][0] as string
+    expect(line).toContain('[db]')
+    expect(line).toContain('FAULT on word')
+    expect(line).toContain('word|unplayable-board|BITCH|')
+    expect(line).toContain('code=P0001')
+    expect(line).toContain('detail="word is absent from playable_words"')
+  })
+
+  it('logs a transport failure, and says there was no SQLSTATE', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    failureMessage({ message: 'TypeError: Load failed', code: '' }, 'reveal')
+    const line = spy.mock.calls[0][0] as string
+    expect(line).toContain('FAULT on reveal')
+    expect(line).toContain('reveal: Server; try refresh')
+    expect(line).toContain('no-code')
+  })
+
+  it('does NOT log an expected rejection — a pill is the game working', () => {
+    // Logging these would bury the faults among them: "Not your turn" is not an
+    // incident.
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    withCopy('chain-full', { text: () => 'Chain is full' })
+    failureMessage({ message: 'chain-full|5|', code: 'P0001' }, 'word')
+    expect(spy).not.toHaveBeenCalled()
+  })
+})

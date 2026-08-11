@@ -1,3 +1,4 @@
+import { failureMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
@@ -255,7 +256,7 @@ export function PlayArea({
       })
       .single()
     if (error || !data) {
-      showLocalFeedback(stickyPill('error', `New game failed: ${error?.message ?? 'unknown'}`))
+      showLocalFeedback(failureMessage(error, 'new game'))
       return
     }
     goToGame(`wordle_${gameMode}`, (data as { id: string }).id)
@@ -287,7 +288,7 @@ export function PlayArea({
   // this only flips the shared display flag.
   const handleReveal = useCallback(async () => {
     const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', `Reveal failed: ${error.message}`))
+    if (error) showLocalFeedback(failureMessage(error, 'reveal'))
   }, [gameId, showLocalFeedback])
 
   // ─── Header menu (each game owns its whole menu) ───────────────

@@ -480,6 +480,17 @@ refused, so they can only fire against a broken client.
 - Guarded by [`serverErrorKeys.test.ts`](../src/serverErrorKeys.test.ts): prose
   in a raise FAILS, copy for a key nothing raises FAILS, and the covered /
   uncovered split is printed on every run.
+- And by [`noRawServerMessage.test.ts`](../src/noRawServerMessage.test.ts): a
+  call site that renders `error.message` instead of classifying it FAILS. That
+  bypass is invisible without a guard — it defeats the copy table, the fault
+  styling and the log together, while looking like perfectly ordinary code.
+
+**Every FAULT is logged under `[db]`** (`failureMessage` → `logFault`), carrying
+the action, the SQLSTATE and the raise's DETAIL — which is the only place that
+sentence ever surfaces. Expected rejections are deliberately NOT logged: a pill
+saying "Not your turn" is the game working, and logging it would bury the
+faults. A transport failure gets two `[db]` lines by design — `dbFetch` reports
+the request (path, elapsed, online), `logFault` reports what the player saw.
 
 ## RLS & grants
 

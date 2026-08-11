@@ -35,6 +35,8 @@ const ACTION: Record<string, string> = {
   log_help: 'help',
   check_cells: 'check',
   submit_clue: 'clue',
+  delete_game: 'delete game',
+  check_board: 'check board',
   pass_turn: 'pass',
   reveal_cells: 'reveal',
 }

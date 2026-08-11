@@ -1,3 +1,4 @@
+import { failureMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
 import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
@@ -205,7 +206,7 @@ export function PlayArea({
         const { error } = await db.rpc('submit_swap', { target_game: gameId, pos_a: a, pos_b: b })
         // Own-action error → the local below-board flash. Success: the swap mutated
         // waffle.players → realtime refetch re-renders the board + colors.
-        if (error) showLocalFeedback(ownAction('error', error.message))
+        if (error) showLocalFeedback(failureMessage(error, 'swap'))
       } finally {
         setPendingSwap(null)
       }
@@ -321,7 +322,7 @@ export function PlayArea({
   // shared display flag and each client swaps its DISPLAYED board.
   const handleRevealAnswer = useCallback(async () => {
     const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
-    if (error) showLocalFeedback(ownAction('error', `Reveal failed: ${error.message}`))
+    if (error) showLocalFeedback(failureMessage(error, 'reveal'))
   }, [gameId, showLocalFeedback])
 
   // Game menu: waffle now owns its FULL menu (Help + its own items + End/Concede +

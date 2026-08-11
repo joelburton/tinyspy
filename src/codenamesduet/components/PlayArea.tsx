@@ -1,3 +1,4 @@
+import { failureMessage } from '../../common/lib/game/serverError'
 import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useRef, useState, type ReactNode, useMemo } from 'react'
 import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
@@ -75,14 +76,12 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
  * everything in sync.
  */
 
-/** Build codenamesduet's own-action local pill: outline + TIMED (auto-clears
- *  after a beat — the only own-move feedback is a rejected guess / failed End /
- *  clue-panel error). A pure msg-builder over the shared `useLocalFeedback`. */
-const ownAction = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg => ({
-  tone,
-  text,
-  mode: { kind: 'timed' },
-})
+/* `ownAction` lived here — a TIMED own-move pill builder. Every caller was a
+ * failed RPC, and those now come from `failureMessage`, which returns `sticky`
+ * for a rejection and `manual` for a fault. So codenamesduet's errors stopped
+ * auto-clearing after a beat; they wait for the next move like every other
+ * game's. That's the roster convention this file was the last to hold out
+ * against, and losing the builder is how it joined. */
 
 /** Per-status terminal copy for codenamesduet. `playState` is the authoritative
  *  input — only terminal states appear here. Returns the shared `TerminalCopy`
@@ -422,7 +421,7 @@ export function PlayArea({
       })
       .single()
     if (error || !data) {
-      showLocalFeedback(ownAction('error', `New game failed: ${error?.message ?? 'unknown'}`))
+      showLocalFeedback(failureMessage(error, 'new game'))
       return
     }
     goToGame('codenamesduet', (data as { id: string }).id)

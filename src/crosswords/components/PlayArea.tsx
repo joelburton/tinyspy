@@ -1,3 +1,4 @@
+import { failureMessage, failureText } from '../../common/lib/game/serverError'
 import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconNewGame, IconPrint, IconRestart, IconReveal, IconScratchpad } from '../../common/components/icons'
@@ -471,7 +472,10 @@ export function PlayArea(ctx: GamePageCtx) {
         message:
           reason === 'unsolved'
             ? 'Solve this clue correctly first, then I can explain it.'
-            : (serverMsg ?? (data as { error?: string } | null)?.error ?? error?.message ?? 'Could not fetch an explanation.'),
+            : failureText(
+                { message: serverMsg ?? (data as { error?: string } | null)?.error ?? error?.message },
+                'explain',
+              ),
       })
       return
     }
@@ -512,7 +516,7 @@ export function PlayArea(ctx: GamePageCtx) {
     if (!state) return
     const { data, error } = await db.rpc('export_solution', { target_game: gameId })
     if (error || !data) {
-      showLocalFeedback(stickyPill('error', `Download failed: ${error?.message ?? 'no solution'}`))
+      showLocalFeedback(failureMessage(error, 'download'))
       return
     }
     const ipuz = writeIpuz(state, data as unknown as (string[] | null)[][])
@@ -537,7 +541,7 @@ export function PlayArea(ctx: GamePageCtx) {
     if (!state) return
     const { data, error } = await db.rpc('export_solution', { target_game: gameId })
     if (error || !data) {
-      showLocalFeedback(stickyPill('error', `Answer key failed: ${error?.message ?? 'no solution'}`))
+      showLocalFeedback(failureMessage(error, 'answer key'))
       return
     }
     await printCrosswordsSolutionPdf(

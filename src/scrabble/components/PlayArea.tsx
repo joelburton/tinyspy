@@ -1,3 +1,4 @@
+import { failureText } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
@@ -301,7 +302,13 @@ export function PlayArea({
       // invoke folds a non-2xx into its own generic message; the real server
       // error rides on error.context, a Response readable once (the shared
       // unwrap, also used by invokeStartGameEdgeFn).
-      setSuggest({ status: 'error', message: (await unwrapEdgeFnError(error)) ?? error.message })
+      // The edge function strips the SQLSTATE, so the key is all that survives —
+      // `failureText` reads it anyway (classifyFailure checks the key first) and
+      // logs the fault under [db] like every other one.
+      setSuggest({
+        status: 'error',
+        message: failureText({ message: (await unwrapEdgeFnError(error)) ?? error.message }, 'suggest'),
+      })
       return
     }
     const payload = data as { moves?: RankedMove[]; version?: number; error?: string } | null

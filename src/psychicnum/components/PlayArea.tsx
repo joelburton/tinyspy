@@ -1,3 +1,4 @@
+import { failureMessage } from '../../common/lib/game/serverError'
 import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
@@ -427,7 +428,7 @@ export function PlayArea({
       })
       .single()
     if (error || !data) {
-      showLocalFeedback(stickyPill('error', `New game failed: ${error?.message ?? 'unknown'}`))
+      showLocalFeedback(failureMessage(error, 'new game'))
       return
     }
     goToGame(`psychicnum_${mode}`, (data as { id: string }).id)

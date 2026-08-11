@@ -1,3 +1,4 @@
+import { failureMessage } from '../../common/lib/game/serverError'
 import { useCallback, useState } from 'react'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
@@ -175,7 +176,7 @@ export function BoardCol({
       if (error) {
         setPending(null)
         // A real failure (not a soft reject) → error-toned, still sticky.
-        showLocalFeedback(stickyPill('error', error.message))
+        showLocalFeedback(failureMessage(error, 'guess'))
         return
       }
       const res = data as { result: string }

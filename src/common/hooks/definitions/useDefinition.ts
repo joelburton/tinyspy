@@ -1,3 +1,4 @@
+import { failureText } from '../../lib/game/serverError'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase/supabase'
 
@@ -79,7 +80,7 @@ export function useDefinition(word: string | null): State {
           setLoaded({
             forWord: word,
             result: null,
-            error: error?.message ?? data?.error ?? 'lookup failed',
+            error: failureText({ message: error?.message ?? data?.error }, 'define'),
           })
           return
         }

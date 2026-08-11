@@ -1,3 +1,4 @@
+import { failureMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconHint, IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
@@ -338,7 +339,7 @@ export function PlayArea({
       })
       .single()
     if (error || !data) {
-      showLocalFeedback(stickyPill('error', `New game failed: ${error?.message ?? 'unknown'}`))
+      showLocalFeedback(failureMessage(error, 'new game'))
       return
     }
     goToGame(`connections_${gameMode}`, (data as { id: string }).id)

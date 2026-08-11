@@ -1,3 +1,4 @@
+import { failureText } from '../../common/lib/game/serverError'
 import { failureMessage } from '../../common/lib/game/serverError'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent } from 'react'
@@ -266,7 +267,7 @@ function ClueForm({
       console.log('[ClueHint] response = error')
       onSuggestionChange({
         status: 'error',
-        message: error?.message ?? data?.error ?? 'Could not fetch a suggestion.',
+        message: failureText({ message: error?.message ?? data?.error }, 'AI clue'),
       })
       return
     }

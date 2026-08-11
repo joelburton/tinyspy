@@ -85,7 +85,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
         .maybeSingle()
       if (!mounted) return
       if (err || !data) {
-        setError(err?.message ?? `No such word: ${request.word}`)
+        setError(failureText(err, 'dictionary'))
         return
       }
       const loaded: Fields = {

@@ -1,3 +1,4 @@
+import { failureMessage } from '../../common/lib/game/serverError'
 import { useEffect, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
@@ -173,7 +174,7 @@ export function BoardCol({
     })
     setSubmitting(false)
     if (error) {
-      showLocalFeedback(stickyPill('error', error.message))
+      showLocalFeedback(failureMessage(error, 'guess'))
       return
     }
     // Own-result flash in the commit slot, then clear the selection in EVERY case:

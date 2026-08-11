@@ -1,3 +1,4 @@
+import { failureMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
@@ -245,7 +246,7 @@ export function PlayArea(ctx: GamePageCtx) {
       })
       setBusy(false)
       if (error) {
-        showLocalFeedback(stickyPill('error', error.message))
+        showLocalFeedback(failureMessage(error, 'word'))
         return
       }
       const r = data as SubmitResult
@@ -334,7 +335,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const spendHint = useCallback(async () => {
     const { error } = await db.rpc('spend_hint', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', error.message))
+    if (error) showLocalFeedback(failureMessage(error, 'hint'))
   }, [gameId, showLocalFeedback])
 
   // End / Concede / Replay from the shared hook, so their confirm copy and
@@ -351,7 +352,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const handleReveal = useCallback(async () => {
     const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
-    if (error) showLocalFeedback(stickyPill('error', error.message))
+    if (error) showLocalFeedback(failureMessage(error, 'reveal'))
   }, [gameId, showLocalFeedback])
 
   /**
@@ -429,7 +430,7 @@ export function PlayArea(ctx: GamePageCtx) {
       })
       .single()
     if (error || !data) {
-      showLocalFeedback(stickyPill('error', error?.message ?? 'could not start a new game'))
+      showLocalFeedback(failureMessage(error, 'new game'))
       return
     }
     goToGame(`strands_${game.mode}`, data.id)

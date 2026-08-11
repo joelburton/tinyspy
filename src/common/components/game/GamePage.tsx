@@ -222,7 +222,10 @@ export function GamePage({
         // P0001 'game is not active' on a peer-race is silently
         // swallowed by the manifest implementation; anything else
         // is a real error we want to see during alpha.
-        console.error('submitTimeout failed', result.error)
+        // `[db]` so it sits in the same filter as every other failed call —
+        // this one never reaches a player, which is exactly why it needs to be
+        // findable in a log.
+        console.error(`[db] submitTimeout failed: ${result.error}`)
       }
     })
   }, [timer.expired, paused, commonGame, gameId, gametype])

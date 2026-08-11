@@ -1,3 +1,4 @@
+import { failureText } from '../../common/lib/game/serverError'
 import {
   useCallback,
   useEffect,
@@ -490,7 +491,7 @@ export function usePlayerBoard({
       await db.rpc('save_player_board', { target_game: gameId, board: boardRef.current })
       const { data, error } = await db.rpc('check_board', { target_game: gameId })
       if (error) {
-        onCheckResult?.({ kind: 'error', message: error.message })
+        onCheckResult?.({ kind: 'error', message: failureText(error, 'check board') })
         return
       }
       const res = data as { invalid_cells: number[]; placed: number } | null

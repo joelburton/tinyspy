@@ -1,4 +1,5 @@
 import type { GenericFeedbackMsg } from '../games'
+import { logStamp } from '../supabase/realtimeDiag'
 import { ERROR_COPY } from './errorCopy'
 
 /**
@@ -65,8 +66,15 @@ export type Failure =
   | { kind: 'transport'; cause: 'Offline' | 'Server' }
 
 /** The subset of a supabase error this needs. Structural so a PostgrestError,
- *  a FunctionsError, or a hand-built `{ message }` all satisfy it. */
-export type CallError = { message?: string; code?: string } | null | undefined
+ *  a FunctionsError, or a hand-built `{ message }` all satisfy it.
+ *
+ *  `details` is PL/pgSQL's DETAIL, which PostgREST passes straight through — the
+ *  human explanation written beside every raise. It is never shown to a player;
+ *  it exists for the `[db]` log below, which is the only place it surfaces. */
+export type CallError =
+  | { message?: string; code?: string; details?: string | null; hint?: string | null }
+  | null
+  | undefined
 
 /**
  * Classify a failed call.
@@ -105,6 +113,33 @@ export function classifyFailure(error: CallError): Failure {
 }
 
 /**
+ * Narrate a FAULT to the console under `[db]`.
+ *
+ * A fault is, by definition, something nobody wrote words for — so the screen
+ * shows a key or a terse cause, and everything that would explain it has to go
+ * somewhere. This is that somewhere, and it's the only place PL/pgSQL's DETAIL
+ * ever surfaces: the sentence written beside each raise, invisible until now.
+ *
+ * `[db]` deliberately matches `dbFetch`'s tag rather than starting a third
+ * channel. The two lines are complementary, and a transport failure gets both:
+ * dbFetch reports the REQUEST (path, elapsed, online), this reports what the
+ * PLAYER ended up seeing and for which action. Filtering the console to `[db]`
+ * gives the whole story of a failed call in order.
+ *
+ * Expected rejections are NOT logged. They're the game working — a pill saying
+ * "Not your turn" is not an incident, and logging them would bury the faults
+ * among them.
+ */
+function logFault(action: string, error: CallError, shown: string) {
+  const bits = [
+    error?.code ? `code=${error.code}` : 'no-code',
+    error?.details ? `detail="${error.details}"` : null,
+    error?.hint ? `hint="${error.hint}"` : null,
+  ].filter(Boolean)
+  console.error(`[db] ${logStamp()} FAULT on ${action}: ${shown} (${bits.join(' ')})`)
+}
+
+/**
  * The player-facing message for a failed call.
  *
  * `action` is the player's word for what they were doing — "word", "reveal",
@@ -130,22 +165,16 @@ export function failureMessage(error: CallError, action: string): GenericFeedbac
   // stay on screen long enough to be read down a phone line, and every other
   // dismissal path would take it away mid-sentence.
   if (failure.kind === 'transport') {
-    return {
-      tone: 'error',
-      fault: true,
-      text: `${action}: ${failure.cause}; try ${failure.cause === 'Offline' ? 'again' : 'refresh'}`,
-      mode: { kind: 'manual' },
-    }
+    const text = `${action}: ${failure.cause}; try ${failure.cause === 'Offline' ? 'again' : 'refresh'}`
+    logFault(action, error, text)
+    return { tone: 'error', fault: true, text, mode: { kind: 'manual' } }
   }
-  return {
-    tone: 'error',
-    fault: true,
-    // Raw and unedited. It isn't written for them — but hiding it behind
-    // "something broke" would leave nothing to read back, and a friend reading
-    // out `word|unplayable-board|BITCH|` is the whole diagnosis.
-    text: `${action}|${failure.raw}`,
-    mode: { kind: 'manual' },
-  }
+  // Raw and unedited. It isn't written for them — but hiding it behind
+  // "something broke" would leave nothing to read back, and a friend reading
+  // out `word|unplayable-board|BITCH|` is the whole diagnosis.
+  const text = `${action}|${failure.raw}`
+  logFault(action, error, text)
+  return { tone: 'error', fault: true, text, mode: { kind: 'manual' } }
 }
 
 /**

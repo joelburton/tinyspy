@@ -636,6 +636,16 @@ carry the flag: prefer `(msg: GenericFeedbackMsg) => void`. `showError` in
 `useStandardGameActions` is the remaining string sink, and it's why a fault
 arriving through End / Concede / Restart still wears a pill.
 
+**This is enforced, because being careful wasn't enough.**
+[`noRawServerMessage.test.ts`](../src/noRawServerMessage.test.ts) fails on any
+`error.message` read that isn't a log, isn't feeding `failureText` /
+`failureMessage`, and isn't in its short justified allowlist. It exists because
+five games shipped briefly showing `no-guesses-left|` as a red pill: their SQL
+had been converted to keys while their own call sites still handed the raw
+string straight to a pill, which defeats the copy table, the fault styling and
+the `[db]` log at once — and nothing failed. Writing the guard immediately found
+**nine more sites** a hand-grep had missed, all spelled `error?.message`.
+
 Two hard rules for anything that *sets, holds, renders, or types* one of those pill messages:
 
 1. **Every feedback identifier is qualified by channel — `Global`, `Local`, or `Generic`. Nothing is named bare `feedback`.** `Global` = the header pill (peer / opponent news). `Local` = the below-board pill (the player's own move / own state). `Generic` = machinery genuinely shared by both channels (the renderer, the message type/tone, the shared state primitive). If a name resists all three labels, that's a signal it's mis-scoped — find a clearer one. The bare word is banned even when it reads heavier (`GenericFeedbackTone`, `GENERIC_FEEDBACK_DISMISS_MS`): the weight is the tell that you're touching shared machinery.

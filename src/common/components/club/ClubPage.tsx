@@ -1,3 +1,4 @@
+import { failureText } from '../../lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
@@ -536,7 +537,7 @@ export function ClubPage({ handle, session }: Props) {
 
     const { error } = await commonDb.rpc('delete_game', { target_game: gameId })
     if (error) {
-      setStartError(`Couldn't delete game: ${error.message}`)
+      setStartError(failureText(error, 'delete game'))
       throw error  // bubble to the card so it returns from 'deleting' to 'idle'
     }
     // Surface a transient toast in the header's status slot so

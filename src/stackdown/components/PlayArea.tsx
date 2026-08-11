@@ -1,3 +1,4 @@
+import { failureText } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
@@ -236,7 +237,7 @@ export function PlayArea({
       if (error) {
         // Reachability/lock races (rare in friendly coop) land here.
         clearWord()
-        showLocalFeedback(error.message, 'error')
+        showLocalFeedback(failureText(error, 'word'), 'error')
         return
       }
       const res = data as { result: 'accepted' | 'invalid'; word: string }
@@ -267,7 +268,7 @@ export function PlayArea({
   const spoilNext = useCallback(async () => {
     const { data, error } = await db.rpc('reveal_next_word', { target_game: gameId })
     if (error) {
-      showLocalFeedback(error.message, 'error')
+      showLocalFeedback(failureText(error, 'hint'), 'error')
       return
     }
     const word = data as string | null
@@ -290,7 +291,7 @@ export function PlayArea({
   const revealHint = useCallback(async () => {
     const { data, error } = await db.rpc('reveal_next_hint', { target_game: gameId })
     if (error) {
-      showLocalFeedback(error.message, 'error')
+      showLocalFeedback(failureText(error, 'spoiler'), 'error')
       return
     }
     const hint = data as string | null
@@ -316,7 +317,7 @@ export function PlayArea({
   const solutionShown = solutionRevealed
   const revealSolution = useCallback(async () => {
     const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
-    if (error) showLocalFeedback(error.message, 'error')
+    if (error) showLocalFeedback(failureText(error, 'reveal'), 'error')
   }, [gameId, showLocalFeedback])
 
   // ─── End / Concede / Replay — the shared trio ─────────────────
@@ -370,7 +371,7 @@ export function PlayArea({
       })
       .single()
     if (error || !data) {
-      showLocalFeedback(`New game failed: ${error?.message ?? 'unknown'}`, 'error')
+      showLocalFeedback(failureText(error, 'new game'), 'error')
       return
     }
     goToGame(`stackdown_${gameMode}`, (data as { id: string }).id)

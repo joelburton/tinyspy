@@ -1,3 +1,4 @@
+import { failureText } from '../../lib/game/serverError'
 import { useEffect, useState, type SubmitEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
@@ -165,7 +166,7 @@ export function CreateClubPage({ session: _session }: Props) {
         // raw constraint name never reaches the user.
         setError('That club name can’t be used — please try a different one.')
       } else {
-        setError(error?.message ?? 'Could not create the club.')
+        setError(failureText(error, 'create club'))
       }
       return
     }
