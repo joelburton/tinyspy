@@ -1,4 +1,5 @@
 import { failureText } from '../../common/lib/game/serverError'
+import { actionName } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
@@ -237,7 +238,7 @@ export function PlayArea({
       if (error) {
         // Reachability/lock races (rare in friendly coop) land here.
         clearWord()
-        showLocalFeedback(failureText(error, 'word'), 'error')
+        showLocalFeedback(failureText(error, actionName('submit_word')), 'error')
         return
       }
       const res = data as { result: 'accepted' | 'invalid'; word: string }
@@ -268,7 +269,10 @@ export function PlayArea({
   const spoilNext = useCallback(async () => {
     const { data, error } = await db.rpc('reveal_next_word', { target_game: gameId })
     if (error) {
-      showLocalFeedback(failureText(error, 'hint'), 'error')
+      // actionName, not a retyped label: the two cheat RPCs' names each contain
+      // the OTHER cheat's word (reveal_next_word IS the spoiler), and a
+      // hand-typed pair here shipped crossed — a failed Spoiler said `hint|…`.
+      showLocalFeedback(failureText(error, actionName('reveal_next_word')), 'error')
       return
     }
     const word = data as string | null
@@ -291,7 +295,7 @@ export function PlayArea({
   const revealHint = useCallback(async () => {
     const { data, error } = await db.rpc('reveal_next_hint', { target_game: gameId })
     if (error) {
-      showLocalFeedback(failureText(error, 'spoiler'), 'error')
+      showLocalFeedback(failureText(error, actionName('reveal_next_hint')), 'error')
       return
     }
     const hint = data as string | null
@@ -317,7 +321,7 @@ export function PlayArea({
   const solutionShown = solutionRevealed
   const revealSolution = useCallback(async () => {
     const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
-    if (error) showLocalFeedback(failureText(error, 'reveal'), 'error')
+    if (error) showLocalFeedback(failureText(error, actionName('reveal_solution')), 'error')
   }, [gameId, showLocalFeedback])
 
   // ─── End / Concede / Replay — the shared trio ─────────────────
@@ -371,7 +375,7 @@ export function PlayArea({
       })
       .single()
     if (error || !data) {
-      showLocalFeedback(failureText(error, 'new game'), 'error')
+      showLocalFeedback(failureText(error, actionName('create_game')), 'error')
       return
     }
     goToGame(`stackdown_${gameMode}`, (data as { id: string }).id)
