@@ -12,7 +12,7 @@
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else renders for real.
  */
-import { render } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
@@ -152,5 +152,72 @@ describe('letterboxed PlayArea — the game menu is the icon legend', () => {
     render(<PlayArea {...ctx} />)
     menuItems(ctx).get('reveal')?.onClick()
     expect(commonDb.rpc).toHaveBeenCalledWith('reveal_solution', { target_game: 'g1' })
+  })
+})
+
+/**
+ * The three REFUSALS the hint search can answer with (lib/solve.ts's
+ * NoSuggestion). Each names a different wall, and the pill is the only place
+ * that distinction reaches the player — so these pin both the branch and the
+ * copy. Short copy is load-bearing here, not taste: the pill is `nowrap` +
+ * ellipsis in a reserved-height slot, so a long sentence truncates mid-word.
+ *
+ * Fired through the game menu's Hint row rather than the button, which also
+ * proves the row is wired to the same handler.
+ */
+describe('letterboxed PlayArea — why there is no hint', () => {
+  /** Take the hint via the menu row and read back the pill it wrote. `act` so
+   *  the feedback state lands before the assertion — the row's onClick is a
+   *  plain handler call, not a React-dispatched event. */
+  function askHint(ctx: GamePageCtx) {
+    act(() => menuItems(ctx).get('hint')?.onClick())
+  }
+
+  it('stuck: names the letter nothing follows', () => {
+    // Tail is D; the board has no D-word at all, so there is no legal move.
+    h.result = loaded(loadedGame({ playableWords: ['bad', 'cab'], max_words: 5 }))
+    h.result.myRow = { ...myRow, chain: ['bad'] }
+    h.result.playerRows = [h.result.myRow]
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    askHint(ctx)
+    expect(screen.getByText('No word starts with D')).toBeInTheDocument()
+  })
+
+  it('stuck on a letter I already spent: says "no OTHER word"', () => {
+    // DAB → BAD leaves the tail back on D, and DAB was the board's only D-word.
+    // The player can see a D-word in their own chain, so the bare "No word
+    // starts with D" would read as a bug rather than as a rule.
+    h.result = loaded(loadedGame({ playableWords: ['dab', 'bad'], max_words: 5 }))
+    h.result.myRow = { ...myRow, chain: ['dab', 'bad'] }
+    h.result.playerRows = [h.result.myRow]
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    askHint(ctx)
+    expect(screen.getByText('No other word starts with D')).toBeInTheDocument()
+  })
+
+  it('off par: a finish exists, but it is longer than the room left', () => {
+    // ABC played, cap 2 ⇒ one word left; the shortest finish is two
+    // (CDEFGH then HIJKL), so pointing at CDEFGH would walk into the cap.
+    h.result = loaded(loadedGame({ playableWords: ['abc', 'cdefgh', 'hijkl'], max_words: 2 }))
+    h.result.myRow = { ...myRow, chain: ['abc'] }
+    h.result.playerRows = [h.result.myRow]
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    askHint(ctx)
+    expect(screen.getByText('Best solution needs 2 words')).toBeInTheDocument()
+  })
+
+  it('unreachable: words follow, but no route ever covers the board', () => {
+    // CBA follows ABC and then dead-ends back at a played word — the frontier
+    // empties with every letter past C still uncovered. The cap is irrelevant.
+    h.result = loaded(loadedGame({ playableWords: ['abc', 'cba'], max_words: 9 }))
+    h.result.myRow = { ...myRow, chain: ['abc'] }
+    h.result.playerRows = [h.result.myRow]
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    askHint(ctx)
+    expect(screen.getByText('No winning path from here')).toBeInTheDocument()
   })
 })

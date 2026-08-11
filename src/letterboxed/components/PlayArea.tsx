@@ -239,14 +239,41 @@ export function PlayArea(ctx: GamePageCtx) {
       const r = suggest(game.playableWords, sides, chain, maxWords - chain.length)
 
       if (!isSuggestion(r)) {
+        // All three are DIAGNOSIS ONLY — none of them ends in "take a word
+        // back" any more. The remedy is the same in every case, the chain
+        // strip's × is right there, and the pill is `nowrap` + ellipsis inside
+        // a reserved-height slot (GenericFeedbackPill), so a sentence that
+        // doesn't fit is a sentence nobody reads: the off-par one used to run
+        // 74 characters and truncated mid-word even on desktop. Spend the
+        // characters on WHICH wall you hit, not on the shared way out.
+        const tail = tailLetter(chain as string[])
+        // Did I already SPEND a word starting with the tail letter? `suggest`
+        // excludes words already in the chain (the server refuses a repeat), so
+        // there are two ways to be stuck on G and they deserve different
+        // sentences: the board never had a G-word, or it had one and I've used
+        // it. The second is the crueller one — the player can see a G-word right
+        // there in their own chain — so the message says "other" and stops it
+        // reading as a bug. A chain word starting with G means an earlier word
+        // ended in G, which is ordinary play, not a corner case.
+        const spentTail = tail !== null && chain.some((w) => w.startsWith(tail))
         showLocalFeedback(
           stickyPill(
             'warning',
             r.kind === 'stuck'
-              ? 'Dead end — take a word back'
+              // Naming the letter is the whole message: "no word starts with G"
+              // is something the player can act on and remember, where "dead
+              // end" only said that something was wrong. A null tail means an
+              // empty chain, where `stuck` can't fire (with no tail every word
+              // is an opener) — the fallback is for the type, not for a state
+              // that happens.
+              ? tail
+                ? `No ${spentTail ? 'other ' : ''}word starts with ${tail.toUpperCase()}`
+                : 'No words to play'
               : r.kind === 'offPar'
-                ? `The shortest finish is ${r.wordsToFinish} ${r.wordsToFinish === 1 ? 'word' : 'words'} — more than you have left. Take a word back`
-                : 'No way home from here — take a word back',
+                // The one case carrying a number, and the reason it exists: the
+                // board IS solvable, just not in the words left under the cap.
+                ? `Best solution needs ${r.wordsToFinish} ${r.wordsToFinish === 1 ? 'word' : 'words'}`
+                : 'No winning path from here',
           ),
         )
         return

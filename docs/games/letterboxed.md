@@ -227,8 +227,19 @@ BFS on every click, so the suggestion is genuinely optimal. It returns a next
 word **on a shortest path to covering all twelve** within the remaining word
 budget — among equal-length routes, the one covering the most new letters (the
 greedier-looking move is the one a player would rather be shown). The same call
-detects **stuck** (nothing can follow the tail — "Dead end, take a word back")
-and **unreachable** (words exist, but no route home from here).
+also answers with one of three refusals, and the pill says WHICH wall you hit:
+
+| refusal | what happened | pill |
+|---|---|---|
+| **stuck** | No unplayed word starts with the tail letter — there's no legal move at all. Can't fire on an empty chain (no tail ⇒ every word opens). **Two sentences**, because "unplayed" is doing real work: if the chain already contains a G-word, the player can see one right there, so the pill says **"No other word starts with G"** — otherwise the bare form would read as a bug rather than as the no-repeats rule. | "No word starts with G" / "No **other** word starts with G" |
+| **offPar** | A finish exists, but it's longer than the room left (`max_words − chain`). Naming its first word would walk the player into the cap, so the length is reported instead. The bar shrinks as you play: the same position is fine on move one and off par on move three. | "Best solution needs 2 words" |
+| **unreachable** | Words follow, but no route from here ever covers all twelve — some letter is stranded from the tail. Nothing to do with the cap. (Bounded at 12 words by the BFS; sound in practice, since a useful word covers new ground.) | "No winning path from here" |
+
+All three are **diagnosis only**. They used to end in "take a word back", which
+is the remedy in every case and therefore worth no characters: the pill is
+`nowrap` + ellipsis in a reserved-height slot, so the off-par sentence ran 74
+characters and truncated mid-word on DESKTOP. The undo × is on the chain strip
+either way.
 
 Two rungs, the shared help ladder ([ui.md → button
 iconography](../ui.md#button-iconography)):
