@@ -31,7 +31,7 @@
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
-import { json, preflight } from '../_shared/http.ts'
+import { edgeInternal, json, preflight } from '../_shared/http.ts'
 import { callerClient } from '../_shared/startGame.ts'
 import { walkWord } from '../../../src/common/lib/game/trie.ts'
 import type { Cell } from '../../../src/scrabble/lib/board.ts'
@@ -50,16 +50,16 @@ type SuggestContext = {
 serve(async (req: Request): Promise<Response> => {
   const pre = preflight(req)
   if (pre) return pre
-  if (req.method !== 'POST') return json({ error: 'POST only' }, 405)
+  if (req.method !== 'POST') return json({ error: 'bad-method|' }, 405)
 
   try {
     const body = await req.json().catch(() => ({}))
     const gameId: unknown = body.game_id
     if (!gameId || typeof gameId !== 'string') {
-      return json({ error: 'game_id (uuid string) required' }, 400)
+      return json({ error: 'bad-request|game_id|' }, 400)
     }
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return json({ error: 'authorization required' }, 401)
+    if (!authHeader) return json({ error: 'not-authenticated|' }, 401)
 
     // ─── The context snapshot, as the caller ───────────────────────────────
     // `.schema('scrabble')` is required — supabase-js defaults to `public`.
@@ -67,7 +67,7 @@ serve(async (req: Request): Promise<Response> => {
     const { data, error } = await supabase
       .schema('scrabble')
       .rpc('get_suggest_context', { target_game: gameId })
-    if (error) return json({ error: error.message }, 403)
+    if (error) return json({ error: error.message, code: error.code }, 403)
     const ctx = data as SuggestContext
 
     // ─── Generate + rank (cached trie; the compute itself is synchronous) ──
@@ -101,6 +101,6 @@ serve(async (req: Request): Promise<Response> => {
     return json({ moves: ranked, version: ctx.version })
   } catch (e) {
     console.error('scrabble-suggest-move threw:', e)
-    return json({ error: String(e instanceof Error ? e.message : e) }, 500)
+    return edgeInternal(e)
   }
 })

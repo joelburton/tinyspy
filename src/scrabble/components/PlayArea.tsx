@@ -1,4 +1,4 @@
-import { failureText } from '../../common/lib/game/serverError'
+import { failureText, faultMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
@@ -17,8 +17,8 @@ import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { colorVarFor } from '../../common/lib/color/memberColor'
-import { supabase } from '../../common/lib/supabase/supabase'
-import { unwrapEdgeFnError } from '../../common/lib/supabase/edgeFnError'
+import { callEdgeFn } from '../../common/lib/supabase/callEdgeFn'
+import { logStamp } from '../../common/lib/supabase/realtimeDiag'
 import { db } from '../db'
 import type { ScrabbleSetup } from '../lib/setup'
 import type { Placement } from '../lib/play'
@@ -224,8 +224,7 @@ export function PlayArea({
     if (aiPokeVersionRef.current === game.version) return
     const pokedVersion = game.version
     aiPokeVersionRef.current = pokedVersion
-    void supabase.functions
-      .invoke('scrabble-ai-move', { body: { game_id: gameId } })
+    void callEdgeFn('scrabble-ai-move', { game_id: gameId })
       .then(({ error }) => {
         if (error) throw error
       })
@@ -295,24 +294,21 @@ export function PlayArea({
   )
   const handleSuggest = useCallback(async () => {
     setSuggest({ status: 'loading' })
-    const { data, error } = await supabase.functions.invoke('scrabble-suggest-move', {
-      body: { game_id: gameId },
-    })
-    if (error) {
-      // invoke folds a non-2xx into its own generic message; the real server
-      // error rides on error.context, a Response readable once (the shared
-      // unwrap, also used by invokeStartGameEdgeFn).
-      // The edge function strips the SQLSTATE, so the key is all that survives —
-      // `failureText` reads it anyway (classifyFailure checks the key first) and
-      // logs the fault under [db] like every other one.
-      setSuggest({
-        status: 'error',
-        message: failureText({ message: (await unwrapEdgeFnError(error)) ?? error.message }, 'suggest'),
-      })
+    // callEdgeFn hands back a classifiable error (fe-error-key + relayed
+    // SQLSTATE + the answered marker), so the panel's red line shows the
+    // copy-table's words — or a fault's raw key — never functions-js's
+    // generic prose, and never "Server; try refresh" over a real answer.
+    const res = await callEdgeFn('scrabble-suggest-move', { game_id: gameId })
+    if (res.error) {
+      setSuggest({ status: 'error', message: failureText(res.error, 'suggest') })
       return
     }
-    const payload = data as { moves?: RankedMove[]; version?: number; error?: string } | null
+    const payload = res.data as { moves?: RankedMove[]; version?: number; error?: string } | null
     if (!payload || payload.error || !Array.isArray(payload.moves) || typeof payload.version !== 'number') {
+      // A 200 whose body isn't the contract — as much a fault as the branch
+      // above, so it gets the same [db] trail (the screen shows the panel's
+      // red line either way; the console is where the diagnosis lives).
+      console.error(`[db] ${logStamp()} FAULT on suggest: 200 with unexpected body ${JSON.stringify(payload)?.slice(0, 200)}`)
       setSuggest({ status: 'error', message: payload?.error ?? 'Could not fetch suggestions.' })
       return
     }
@@ -456,11 +452,15 @@ export function PlayArea({
       })
       .single()
     if (error || !data) {
-      showLocalFeedback({ tone: 'error', text: `New game failed: ${error?.message ?? 'unknown'}` })
+      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this
+      // setup already built a game once, so any failure here is a bug or an
+      // outage — never a pill. Straight to showMsg: the sticky-forcing
+      // wrapper would flatten the fault's manual-dismiss mode.
+      showMsg(faultMessage(error, 'new game'))
       return
     }
     goToGame(`scrabble_${gameMode}`, (data as { id: string }).id)
-  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
+  }, [gameMode, clubHandle, setup, players, goToGame, showMsg, confirmAction, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the
   // game-menu item, and the global `+` shortcut), and `common.create_game` is

@@ -23,7 +23,7 @@
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
-import { json, preflight } from '../_shared/http.ts'
+import { edgeInternal, json, preflight } from '../_shared/http.ts'
 import { callerClient } from '../_shared/startGame.ts'
 import type { Cell } from '../../../src/scrabble/lib/board.ts'
 import type { Bands } from '../../../src/scrabble/lib/suggest.ts'
@@ -50,16 +50,16 @@ const MAX_AI_MOVES = 40
 serve(async (req: Request): Promise<Response> => {
   const pre = preflight(req)
   if (pre) return pre
-  if (req.method !== 'POST') return json({ error: 'POST only' }, 405)
+  if (req.method !== 'POST') return json({ error: 'bad-method|' }, 405)
 
   try {
     const body = await req.json().catch(() => ({}))
     const gameId: unknown = body.game_id
     if (!gameId || typeof gameId !== 'string') {
-      return json({ error: 'game_id (uuid string) required' }, 400)
+      return json({ error: 'bad-request|game_id|' }, 400)
     }
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return json({ error: 'authorization required' }, 401)
+    if (!authHeader) return json({ error: 'not-authenticated|' }, 401)
 
     const db = callerClient(authHeader).schema('scrabble')
     const trie = await ratedTrie()
@@ -73,6 +73,9 @@ serve(async (req: Request): Promise<Response> => {
     // than an error. That is exactly how a wrong RPC name (`ai_pass` for
     // `ai_pass_turn`) survived ~30 moves of this game unnoticed — it only fires
     // on the branch the AI hadn't needed yet.
+    // `message` is the failing RPC's error.message — an fe-error-key (SQL
+    // raises them; guard: APPROVED_EXPRESSIONS). Nothing here is player-facing
+    // (the FE poke is fire-and-forget), but the contract holds everywhere.
     const fail = (where: string, message: string) => {
       console.error(`[ai-move] game ${gameId}: FAILED at ${where} after ${played} move(s) —`, message)
       return json({ error: message }, 500)
@@ -81,7 +84,7 @@ serve(async (req: Request): Promise<Response> => {
       const { data, error } = await db.rpc('get_ai_context', { target_game: gameId })
       if (error) {
         console.error(`[ai-move] game ${gameId}: get_ai_context failed —`, error.message)
-        return json({ error: error.message }, 403)
+        return json({ error: error.message, code: error.code }, 403)
       }
       const ctx = data as AiContext
       if (ctx.done) break
@@ -134,6 +137,6 @@ serve(async (req: Request): Promise<Response> => {
     return json({ ok: true, moves: played })
   } catch (e) {
     console.error('scrabble-ai-move threw:', e)
-    return json({ error: String(e instanceof Error ? e.message : e) }, 500)
+    return edgeInternal(e)
   }
 })

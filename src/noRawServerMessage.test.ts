@@ -35,7 +35,6 @@ const ALLOWED = new Map<string, string>([
   // Returns the string UP to a caller, which classifies it. The edge-function
   // path strips the SQLSTATE, so the message is the only thing left to carry.
   ['src/common/lib/game/manifestRpcs.ts', 'passes the message to its caller, which classifies'],
-  ['src/scrabble/components/PlayArea.tsx', 'unwraps an edge-fn body, then classifies it'],
   // A manifest's `startGameInClub` returns `{ error: string }` UP to
   // SetupGameDialog, which classifies it. The edge-function path strips the
   // SQLSTATE, so the message is the only thing left to carry — passing it along

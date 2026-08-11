@@ -141,7 +141,7 @@ describe('failureMessage', () => {
  * The EDGE-FUNCTION path, found while converting spellingbee: a key raised by
  * SQL inside a build-board function arrives at the frontend with its SQLSTATE
  * stripped. functions-js reports its own generic error and the real one is dug
- * out of the response body by `unwrapEdgeFnError`, which recovers the message
+ * out of the response body by `callEdgeFn`, which recovers the message
  * and nothing else.
  *
  * Every "New game" failure takes that path, so getting it wrong would file all
