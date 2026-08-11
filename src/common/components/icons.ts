@@ -100,10 +100,12 @@ export {
   // scannable in a list of words, and if a print button ever appears it has
   // already been taught. (docs/ui.md → Button iconography.)
   Printer as IconPrint,
-  // The shared notes panel. ScratchpadBubble still INLINES its own notepad SVG,
-  // so the menu's legend and the bubble don't yet show the same glyph — the
-  // remaining half of the job chat just finished.
-  NotepadText as IconScratchpad,
+  // The shared notes panel. `FilePenLine` (a page, a ruled line, a pen) over
+  // `NotepadText` (a spiral pad): it's the closer match to the hand-rolled glyph
+  // the bubble wore for years, so adopting the registry barely moves the header
+  // — and the pen is the part that says "you WRITE here", which is what
+  // separates a scratchpad from any other document.
+  FilePenLine as IconScratchpad,
   // Club chat. The bubbles hand-rolled this for years: the inlined path was
   // FEATHER's `message-circle`, i.e. a frozen copy of Lucide's own ancestor
   // from before this app used Lucide at all. Harmless until the menu started
