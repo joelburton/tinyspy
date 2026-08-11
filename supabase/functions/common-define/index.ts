@@ -43,7 +43,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-import { json, preflight } from '../_shared/http.ts'
+import { edgeInternal, json, preflight } from '../_shared/http.ts'
 
 /** Permissive but bounded normalization for the free-form lookup box.
  *  Lowercase, trim, collapse internal whitespace. Returns null if the
@@ -85,11 +85,11 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return json({ error: 'authorization required' }, 401)
+    if (!authHeader) return json({ error: 'not-authenticated|' }, 401)
 
     const body = await req.json().catch(() => ({}))
     const word = normalizeWord(body.word)
-    if (!word) return json({ error: 'a word (string) is required' }, 400)
+    if (!word) return json({ error: 'bad-request|word|' }, 400)
 
     // Caller-scoped client: validates the JWT and does the read under
     // the authenticated SELECT grant.
@@ -99,7 +99,7 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } },
     )
     const { data: auth } = await userClient.auth.getUser()
-    if (!auth?.user) return json({ error: 'invalid or expired session' }, 401)
+    if (!auth?.user) return json({ error: 'not-authenticated|' }, 401)
 
     // Step 1: cache read against the master word list. Also pull the
     // categorization columns so the FE can show the word's band / dialects /
@@ -160,17 +160,18 @@ serve(async (req) => {
       // 200 even for non-words). Any non-200 is a transient failure:
       // surface it WITHOUT caching a tombstone.
       if (!res.ok) {
-        return json(
-          { error: `dictionary source returned ${res.status}`, word },
-          502,
-        )
+        // Player-reachable in the wait-it-out sense (the external dictionary
+        // API is down or rate-limiting) — carries ERROR_COPY; the status rides
+        // as the detail and in this log line.
+        console.log(`common-define: dictionary source returned ${res.status} for "${word}"`)
+        return json({ error: `dictionary-source-failed|${res.status}|`, word }, 502)
       }
       def = formatWiktionary((await res.json()) as WiktResponse)
     } catch (e) {
-      return json(
-        { error: `dictionary lookup failed: ${String(e)}`, word },
-        502,
-      )
+      // Timeout / network from the edge worker to the dictionary API — the
+      // same wait-it-out answer as a bad status.
+      console.log(`common-define: dictionary lookup threw for "${word}" — ${String(e)}`)
+      return json({ error: 'dictionary-source-failed|', word }, 502)
     }
 
     // Step 3: cache the definitive answer (def or tombstone) via the
@@ -192,6 +193,6 @@ serve(async (req) => {
     return json({ word, def, source: 'w', cached: false, meta })
   } catch (e) {
     console.error('define failed', e)
-    return json({ error: String(e instanceof Error ? e.message : e) }, 500)
+    return edgeInternal(e)
   }
 })

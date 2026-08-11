@@ -30,10 +30,11 @@ import { describe, expect, it } from 'vitest'
 
 const FUNCTIONS_DIR = join(__dirname, '..', 'supabase', 'functions')
 
-/** Not yet converted to fe-error-keys — shrink me to zero, one round at a time. */
-const UNCONVERTED = new Set([
-  'common-define',
-])
+/** Not yet converted to fe-error-keys. EMPTY as of 2026-08-12 — all thirteen
+ *  functions are converted and under enforcement. Stays here as the door for
+ *  a future function to convert through (a new fn starts enforced; only add
+ *  an entry deliberately, with a plan to remove it). */
+const UNCONVERTED = new Set<string>([])
 
 /** Non-literal `error:` values that are allowed, each with its reason. */
 const APPROVED_EXPRESSIONS: Array<{ file: string; snippet: string; why: string }> = [

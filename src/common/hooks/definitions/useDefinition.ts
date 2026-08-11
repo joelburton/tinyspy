@@ -1,6 +1,6 @@
 import { failureText } from '../../lib/game/serverError'
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase/supabase'
+import { callEdgeFn } from '../../lib/supabase/callEdgeFn'
 
 /** A word's categorization from `common.words` — band, dialects, slur/crude
  *  levels, slang, wordle-list membership. Present on any in-list word; absent
@@ -70,26 +70,26 @@ export function useDefinition(word: string | null): State {
     if (!word) return
     let cancelled = false
 
-    supabase.functions
-      .invoke('common-define', { body: { word } })
-      .then(({ data, error }) => {
-        if (cancelled) return
-        // Dual-check: a transport error OR an in-body `error` field
-        // (the same pattern codenamesduet's clue suggester uses).
-        if (error || data?.error) {
-          setLoaded({
-            forWord: word,
-            result: null,
-            error: failureText({ message: error?.message ?? data?.error }, 'define'),
-          })
-          return
-        }
+    // callEdgeFn hands back a classifiable error (fe-error-key + the answered
+    // marker), so the popover's red line shows the copy-table's words —
+    // "Dictionary service couldn't be reached — try again later" — or a
+    // fault's raw key, never functions-js's generic prose.
+    void callEdgeFn('common-define', { word }).then((res) => {
+      if (cancelled) return
+      const payload = res.data as (DefinitionResult & { error?: string }) | null
+      if (res.error || !payload || payload.error) {
         setLoaded({
           forWord: word,
-          result: data as DefinitionResult,
-          error: null,
+          result: null,
+          error: failureText(
+            res.error ?? { message: payload?.error ?? 'no definition in the response', answered: true },
+            'define',
+          ),
         })
-      })
+        return
+      }
+      setLoaded({ forWord: word, result: payload, error: null })
+    })
 
     return () => {
       cancelled = true
