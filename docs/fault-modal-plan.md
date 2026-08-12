@@ -27,8 +27,10 @@ modal.
 | New-game fault (all 15 games) | bare-red line | modal |
 | SetupGameDialog: validation (expected keys, RichMessage) | form red line | unchanged |
 | SetupGameDialog: fault / transport | form red line | **modal**, dialog stays open behind (ruled 2026-08-12) |
-| account/club forms + WordEditDialog: fault / transport | form red line | DECISION A below |
-| scrabble AI-suggest fault | panel red line | DECISION B below (Joel leans modal) |
+| account/club forms + WordEditDialog: fault / transport | form red line | **modal** (ruled A: faults yes, validation stays in-form) |
+| scrabble AI-suggest fault | panel red line | **modal** (ruled B) |
+| codenamesduet AI-clue fault (the Claude call) | clue dialog's message area | **modal** (ruled B — "tinyspy too") |
+| crosswords explain-clue fault (also a Claude call) | explain panel | **modal** — folded in under the same rule; the `unsolved` ANSWER stays panel-side. Flagged for Joel: not named in ruling B, included for consistency |
 | GoTrue login errors | form line (allowlisted; the auth service's own text) | unchanged — not our fault system |
 | crosswords keystroke storm (dead connection) | one bare-red line, replaced per keystroke | one modal per fault, QUEUED — the accepted "for now"; the first revisit trigger |
 
@@ -39,9 +41,11 @@ modal.
 faults; a single `<FaultDialog>` host mounted once in App.tsx renders the
 head of the queue; Dismiss pops it and the next fault (if any) appears.
 Strictly one visible modal at a time, each fault its own modal, no merging —
-per the ruling. The crosswords storm can queue many; accepted for now,
-recorded as the revisit trigger (dedupe-while-identical-is-open being the
-likely first refinement).
+per the ruling. **Queue cap: 5 (ruled D).** No filtering, no batching: while
+a modal is up and the queue is full, NEW faults are silently dropped from the
+UI — "silently" meaning no modal; the `[db]` console line still fires for
+every one of them (the classifier logs before routing), so nothing is lost
+to diagnosis.
 
 **The modal.** Built on the ConfirmDialog machinery (FloatingPanel with
 `backdrop` — pointer-blocking, dimmed — plus `useFocusTrap` and dialog-owned
@@ -95,16 +99,22 @@ dialog stays open behind the modal so the player can retry after dismissing.
 - A copy-details button — line 3 shows the info instead; revisit if wanted.
 - Changing any classifier WORDS.
 
-## Open decisions (Joel)
+## Decisions (ruled 2026-08-13)
 
-- **A.** Account/club forms + WordEditDialog: do their fault/transport
-  failures pop the modal too (validation stays in-form)? Consistency with
-  "a modal for every fault" says yes; the original framing said "not forms".
-- **B.** scrabble AI-suggest faults → modal (Joel leans yes)? Its
-  malformed-200 fallback line ("Could not fetch suggestions.") would come
-  along or stay panel-side.
-- **C.** Dismissal: Close button + Escape, backdrop-click inert — confirm.
-- **D.** The queue is unbounded for now — confirm, or set a generous cap.
+- **A.** Forms (account/club, WordEditDialog): failures that classify as
+  fault/transport — anything bad user input alone can't produce — pop the
+  MODAL. Validation stays in-form.
+- **B.** AI-panel faults pop the modal: scrabble's suggester AND
+  codenamesduet's clue hint ("tinyspy") — a Claude-call error is a fault.
+  crosswords' explain-clue folded in under the same rule (flagged above).
+- **C.** Close button + Escape; backdrop-click inert.
+- **D.** Queue capped at 5; overflow silently dropped from the UI (still
+  console-logged); no filtering or batching.
+
+The rulings generalize cleanly: **every failure that classifies as
+fault/transport pops the modal, on every surface; expected rejections,
+validation, and answers stay where they are.** That single sentence is what
+docs/ui.md gets when this is worked.
 
 ## Order of work
 
