@@ -117,12 +117,14 @@ describe('concede', () => {
     await flush()
     // The fault flag and its manual mode survive the trip now that the sink
     // takes the full message — this styling is what the widening was for.
-    expect(showError).toHaveBeenCalledWith({
+    expect(showError).toHaveBeenCalledWith(expect.objectContaining({
       tone: 'error',
       fault: true,
       text: 'concede|nope',
       mode: { kind: 'manual' },
-    })
+      // The modal's line-3 payload rides along on every fault.
+      diagnostics: expect.stringContaining('code=42501'),
+    }))
   })
 })
 
@@ -162,12 +164,11 @@ describe('restart', () => {
     rpc.mockResolvedValue({ error: { message: 'TypeError: Load failed', code: '' } })
     act(() => result.current.restart())
     await flush()
-    expect(showError).toHaveBeenCalledWith({
-      tone: 'error',
+    expect(showError).toHaveBeenCalledWith(expect.objectContaining({
       fault: true,
       text: 'restart: Server; try refresh',
-      mode: { kind: 'manual' },
-    })
+      diagnostics: expect.stringContaining('no-code'),
+    }))
     expect(onRestarted).not.toHaveBeenCalled()
   })
 

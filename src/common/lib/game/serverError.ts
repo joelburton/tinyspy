@@ -80,7 +80,17 @@ export type Failure =
  *  for band 3") as transport — telling the player to refresh over a data
  *  problem. Direct PostgREST calls never set it; their SQLSTATE is the proof. */
 export type CallError =
-  | { message?: string; code?: string; details?: string | null; hint?: string | null; answered?: true }
+  | {
+      message?: string
+      code?: string
+      details?: string | null
+      hint?: string | null
+      answered?: true
+      /** The HTTP status, when the failure came through an edge function
+       *  (callEdgeFn captures it off the read-once Response). Direct
+       *  PostgREST errors don't carry one. Diagnostics-only. */
+      status?: number
+    }
   | null
   | undefined
 
@@ -142,10 +152,19 @@ export function classifyFailure(error: CallError): Failure {
  * "Not your turn" is not an incident, and logging them would bury the faults
  * among them.
  */
-function logFault(action: string, error: CallError, shown: string) {
+/**
+ * Everything we know about a fault, as ONE line of `k=v` bits — the shared
+ * builder behind BOTH audiences: the `[db]` console line and the fault
+ * modal's small diagnostics text (FaultDialog line 3). One builder so the
+ * screen and the log can never drift.
+ */
+function faultBits(error: CallError, shown: string): string {
   const raw = error?.message ?? ''
+  const key = parseServerKey(raw)?.key
   const bits = [
+    key ? `key=${key}` : null,
     error?.code ? `code=${error.code}` : 'no-code',
+    error?.status ? `status=${error.status}` : null,
     error?.details ? `detail="${error.details}"` : null,
     error?.hint ? `hint="${error.hint}"` : null,
     // The raw server text, whenever the screen shows something else — a
@@ -153,7 +172,16 @@ function logFault(action: string, error: CallError, shown: string) {
     // that text would surface NOWHERE: not shown, not logged.
     raw && !shown.includes(raw) ? `raw="${raw}"` : null,
   ].filter(Boolean)
-  console.error(`[db] ${logStamp()} FAULT on ${action}: ${shown} (${bits.join(' ')})`)
+  return bits.join(' ')
+}
+
+/** The fault modal's line-3 text: the action, the bits, the moment. */
+function faultDiagnostics(action: string, error: CallError, shown: string): string {
+  return `${action} — ${faultBits(error, shown)} — ${logStamp()}`
+}
+
+function logFault(action: string, error: CallError, shown: string) {
+  console.error(`[db] ${logStamp()} FAULT on ${action}: ${shown} (${faultBits(error, shown)})`)
 }
 
 /**
@@ -184,14 +212,20 @@ export function failureMessage(error: CallError, action: string): GenericFeedbac
   if (failure.kind === 'transport') {
     const text = `${action}: ${failure.cause}; try ${failure.cause === 'Offline' ? 'again' : 'refresh'}`
     logFault(action, error, text)
-    return { tone: 'error', fault: true, text, mode: { kind: 'manual' } }
+    return {
+      tone: 'error', fault: true, text, mode: { kind: 'manual' },
+      diagnostics: faultDiagnostics(action, error, text),
+    }
   }
   // Raw and unedited. It isn't written for them — but hiding it behind
   // "something broke" would leave nothing to read back, and a friend reading
   // out `word|unplayable-board|BITCH|` is the whole diagnosis.
   const text = `${action}|${failure.raw}`
   logFault(action, error, text)
-  return { tone: 'error', fault: true, text, mode: { kind: 'manual' } }
+  return {
+    tone: 'error', fault: true, text, mode: { kind: 'manual' },
+    diagnostics: faultDiagnostics(action, error, text),
+  }
 }
 
 /**
@@ -214,7 +248,10 @@ export function faultMessage(error: CallError, action: string): GenericFeedbackM
   if (failure.kind === 'expected') {
     const text = ERROR_COPY[failure.key].text(failure.details)
     logFault(action, error, text)
-    return { tone: 'error', fault: true, text, mode: { kind: 'manual' } }
+    return {
+      tone: 'error', fault: true, text, mode: { kind: 'manual' },
+      diagnostics: faultDiagnostics(action, error, text),
+    }
   }
   // Keyless, unknown-key, and transport failures already render as faults —
   // and with `answered` in play, a server's prose answer arrives here as a

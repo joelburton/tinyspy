@@ -180,6 +180,11 @@ export type GenericFeedbackMsg = {
    * authored by hand, it's what's left when no copy exists for what came back.
    */
   fault?: true
+  /** Fault-only: the diagnostics line for the fault modal (FaultDialog) —
+   *  the same k=v bits the `[db]` console line carries, built by ONE shared
+   *  builder in serverError.ts so screen and log can't drift. Never set by
+   *  hand; the classifier's fault/transport branches attach it. */
+  diagnostics?: string
   /** Optional leading identity disc — the actor's profile-color NAME
    *  ('red' … 'pink'), rendered as the shared `<Dot>` (fill + paired border)
    *  before the text: the identity anchor for group/peer messages

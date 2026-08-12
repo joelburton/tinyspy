@@ -41,7 +41,8 @@ export async function callEdgeFn(
   if (!error) return { data, error: null }
 
   // A body that parses as OUR `{ error }` shape is proof our function
-  // answered; read it once.
+  // answered; read it once. The HTTP status rides along for the diagnostics
+  // line (the fault modal + the [db] log) — it exists only on this path.
   const ctx = (error as { context?: Response }).context
   if (ctx) {
     try {
@@ -52,6 +53,7 @@ export async function callEdgeFn(
           error: {
             message: parsed.error,
             ...(typeof parsed.code === 'string' ? { code: parsed.code } : {}),
+            status: ctx.status,
             answered: true,
           },
         }

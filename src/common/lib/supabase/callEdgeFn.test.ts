@@ -38,7 +38,8 @@ describe('callEdgeFn', () => {
       error: fnError(JSON.stringify({ error: 'no-required-words|', code: 'P0001' })),
     })
     const res = await callEdgeFn('x-build-board', {})
-    expect(res.error).toEqual({ message: 'no-required-words|', code: 'P0001', answered: true })
+    // status 200 is the fixture Response's default; real failures carry 4xx/5xx.
+    expect(res.error).toEqual({ message: 'no-required-words|', code: 'P0001', status: 200, answered: true })
   })
 
   it('recovers a codeless body and still marks it answered — prose is a FAULT, not transport', async () => {
@@ -47,7 +48,7 @@ describe('callEdgeFn', () => {
       error: fnError(JSON.stringify({ error: 'no candidate words for band 3' })),
     })
     const res = await callEdgeFn('x-build-board', {})
-    expect(res.error).toEqual({ message: 'no candidate words for band 3', answered: true })
+    expect(res.error).toEqual({ message: 'no candidate words for band 3', status: 200, answered: true })
   })
 
   it('treats a non-JSON body (a gateway answered, not our function) as transport', async () => {
