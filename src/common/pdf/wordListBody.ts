@@ -44,7 +44,11 @@ export function drawWordListBody(
   const boardTop = margin + 44
   const { w, h } = drawBoard(margin, boardTop)
   const boardBottom = boardTop + h
-  const setupBottom = drawSetup(doc, m.setup, margin + w + 26, boardTop + 9, m.mode)
+  // Setup sits right of the board and runs to the right margin — pass that
+  // width so a long value (MothCubes' whole board on the `Letters` row, a big
+  // roster) wraps inside the page instead of off it.
+  const setupX = margin + w + 26
+  const setupBottom = drawSetup(doc, m.setup, setupX, boardTop + 9, m.mode, pd.pageW - margin - setupX)
 
   // ── Words: one stacked block per section, below the board + setup ──
   let y = Math.max(boardBottom, setupBottom) + 24

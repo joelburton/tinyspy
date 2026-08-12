@@ -83,14 +83,30 @@ export function drawHeader(pd: PrintDoc, m: PrintHeader): void {
   doc.text(m.summary, margin, margin + 24)
 }
 
-/** Draw a "Setup" sub-heading + its `label: value` lines at (x, y). Returns the y just
- *  below the block, so the caller can flow content after it (or measure its height). */
+/**
+ * Draw a "Setup" sub-heading + its `label: value` lines at (x, y). Returns the y
+ * just below the block, so the caller can flow content after it (or measure its
+ * height).
+ *
+ * `maxW` (optional) is the width the block has to live in. Given one, a value
+ * too long for the space WRAPS onto further lines, indented under the value so
+ * the row still reads as one row. Without it, a long value runs on — which is
+ * the historical behaviour, kept for `turnLog`'s caller, whose column layout
+ * pre-computes the block's height as one line per row.
+ *
+ * Wrapping isn't hypothetical tidiness: MothCubes' `Letters` row prints the
+ * whole board (up to 36 tiles), and the roster row prints every username, so
+ * both can outgrow a column. Truncating them was the alternative and it's the
+ * wrong one here — the Letters row exists to be copied off the paper into the
+ * next game's dialog, and half a board is worse than a wrapped one.
+ */
 export function drawSetup(
   doc: jsPDF,
   items: SetupRow[],
   x: number,
   y: number,
   mode: 'coop' | 'compete',
+  maxW?: number,
 ): number {
   doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(BLACK) // smaller sub-heading
   // The mode rides the heading rather than a row — see PrintHeader.mode. The
@@ -104,8 +120,15 @@ export function drawSetup(
     doc.text(`${it.label}: `, x, cy)
     const labelW = doc.getTextWidth(`${it.label}: `)
     doc.setFont('helvetica', 'normal').setTextColor(BLACK)
-    doc.text(it.value, x + labelW, cy)
-    cy += 13
+    // Values hang off the label, and wrapped lines hang under the value rather
+    // than under the label — so a two-line row still reads as one fact.
+    const valueW = maxW === undefined ? 0 : maxW - labelW
+    const lines: string[] =
+      valueW > 0 ? (doc.splitTextToSize(it.value, valueW) as string[]) : [it.value]
+    lines.forEach((line) => {
+      doc.text(line, x + labelW, cy)
+      cy += 13
+    })
   })
   return cy
 }

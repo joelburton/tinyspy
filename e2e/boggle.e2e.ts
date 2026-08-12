@@ -41,6 +41,13 @@ test.describe('boggle play loop', () => {
     await page.keyboard.press('Enter')
     await expect(page.locator('[data-word="zzz"]')).toHaveCount(0)
 
+    // The recap names the board — and this game's board was NOT hand-picked,
+    // which is the half of the rule worth pinning: the `Letters` row is there
+    // either way, so the letters can always be copied into a next game
+    // (setupRows.ts → the board-identity exception).
+    await page.getByText('Setup options').click()
+    await expect(page.getByText('Letters: CATR XXXX XXXX XXXX')).toBeVisible()
+
     await ctx.close()
   })
 
@@ -140,6 +147,57 @@ test.describe('boggle play loop', () => {
     const pill = page.locator('[class*="belowBoard"]').first()
     await expect(pill).toContainText(/already found/i, { timeout: 10000 })
     await expect(pill).not.toContainText(/too short/i)
+
+    await ctx.close()
+  })
+})
+
+/**
+ * Custom board (setup) + the `Letters` recap row — the round trip that is the
+ * whole point of the feature: you read a board off one game and type it into
+ * the next. Drives the real setup dialog through the real
+ * `boggle-build-board` edge function (custom branch: no rolling, no
+ * constraints), then reads the board back off the info column in the same
+ * written form it was typed in.
+ *
+ * The board is chosen for words, not for edge cases: CATS/AREA/TILE/NEST has
+ * "cat", "eat", "tile" and plenty more, so it clears the ≥1 required-word floor
+ * comfortably at the default band.
+ */
+test.describe('boggle custom board', () => {
+  const CUSTOM_BOARD = 'CATS AREA TILE NEST'
+
+  test('a typed board is the board you play, and the recap reads it back', async ({
+    browser,
+  }) => {
+    const club = await createSoloClub('bgcb')
+    const [alice] = club.members
+    const ctx = await browser.newContext()
+    await signIn(ctx, alice.session)
+    const page = await ctx.newPage()
+    await page.goto(`/c/${club.handle}`)
+
+    // Open the MothCubes coop setup dialog (coop is the enabled button in a
+    // solo club; compete needs a second player).
+    await page.getByRole('button', { name: /MothCubes/ }).first().click()
+
+    // The custom board lives behind a collapsed disclosure — expand it, then
+    // type the tiles exactly as a recap would print them.
+    await page.getByText('Custom board (optional)').click()
+    await page.getByRole('textbox', { name: 'Custom board' }).fill(CUSTOM_BOARD)
+
+    // Start → the edge function solves exactly this board and lands us on it.
+    await page.getByRole('button', { name: /^Start MothCubes/ }).click()
+
+    const tiles = page.locator('[data-boggle-tile]')
+    await expect(tiles).toHaveCount(16, { timeout: 20000 })
+    // The tiles ARE the typed board, in row-major order.
+    expect((await tiles.allInnerTexts()).join('')).toBe(CUSTOM_BOARD.replace(/ /g, ''))
+
+    // And the recap prints it back in the form the dialog takes — the round
+    // trip a friend actually uses (docs/games/boggle.md → Custom board).
+    await page.getByText('Setup options').click()
+    await expect(page.getByText(`Letters: ${CUSTOM_BOARD}`)).toBeVisible()
 
     await ctx.close()
   })

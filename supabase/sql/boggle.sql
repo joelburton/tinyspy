@@ -80,6 +80,10 @@ declare
   b_n int;
   b_required_count int;
   b_required_score int;
+  -- A player-typed board (setup.custom_board non-empty) — the board came from
+  -- the dialog, not the roll loop. Changes what we demand of it, and keeps it
+  -- out of the club's saved default.
+  is_custom_board boolean;
 begin
   perform common.require_club_member(target_club);
 
@@ -163,6 +167,19 @@ begin
   b_required_count := (board->>'required_words_count')::int;
   b_required_score := (board->>'required_words_score')::int;
 
+  -- A player-typed board (setup.custom_board non-empty) skipped the roll loop
+  -- entirely, so nothing measured it. It must still have SOMETHING to find:
+  -- `win_percent` is a share of the required-words score, so a board with none
+  -- makes the threshold 0 and the first bonus word wins the game. The edge
+  -- function checks this too; rechecked here so a misbehaving builder can't
+  -- sneak a degenerate board past. (Rolled boards are governed by their own
+  -- constraints, which are the player's to set — including none.)
+  is_custom_board := coalesce(setup->>'custom_board', '') <> '';
+  if is_custom_board and coalesce(b_required_count, 0) < 1 then
+    raise exception 'no-required-words|%|', s_band using errcode = 'P0001',
+      detail = 'the typed board produces no words at that band';
+  end if;
+
   -- ─── Title + gametype ────────────────────────────────────
   -- Brand ("MothCubes") lives only in the manifest; the stored title is the
   -- board's size and its top row — "4×4 ABQuD" — which both sizes a game and
@@ -183,8 +200,13 @@ begin
   effective_gametype := 'boggle_' || mode;
 
   -- ─── common.games header (saves setup as the club default) ─
+  -- Saved-default arg: the whole setup, MINUS the one-off custom board. A
+  -- hand-typed board is a "here, try these letters" for one game, not the club's
+  -- new baseline, so the next dialog opens with the field blank and rolls again
+  -- (freebee + word wheel strip their custom letters the same way).
   new_id := common.create_game(
-    target_club, effective_gametype, player_user_ids, game_title, setup, setup
+    target_club, effective_gametype, player_user_ids, game_title, setup,
+    setup - 'custom_board'
   );
 
   insert into boggle.games (

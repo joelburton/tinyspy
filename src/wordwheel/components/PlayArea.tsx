@@ -73,8 +73,17 @@ export function PlayArea(ctx: GamePageCtx) {
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
   // (docs/pdf.md → Setup rows).
+  // The wheel's own letters ride along as the recap's `Letters` row. Passed as
+  // its stored center/outer; the row alphabetizes them, so every player — and
+  // the printout — names this wheel the same way, whatever the local shuffle.
   const summaryRows = useMemo(
-    () => setupRows(wordwheelSetup, game?.mode ?? 'coop', players),
+    () =>
+      setupRows(
+        wordwheelSetup,
+        game?.mode ?? 'coop',
+        players,
+        game ? { center: game.center_letter, outer: game.outer_letters } : null,
+      ),
     [wordwheelSetup, game, players],
   )
 

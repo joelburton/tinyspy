@@ -22,6 +22,25 @@ function fakeDoc() {
       get(_t, prop: string) {
         if (prop === 'getTextWidth') return (s: unknown) => (s == null ? 0 : String(s).length)
         if (prop === 'internal') return { pageSize: { getWidth: () => 612, getHeight: () => 792 } }
+        // MODELLED, not recorded: drawSetup wraps with this, and the recording
+        // no-op below returns the doc where the caller needs a string[]. Greedy
+        // word wrap, like jsPDF's own — and with width = 1pt/char (above), a
+        // "line" is just `w` characters, so the expected split is countable by
+        // hand in a test.
+        if (prop === 'splitTextToSize') {
+          return (s: unknown, w: number) => {
+            const lines: string[] = []
+            for (const word of String(s).split(' ')) {
+              const last = lines[lines.length - 1]
+              if (last !== undefined && `${last} ${word}`.length <= w) {
+                lines[lines.length - 1] = `${last} ${word}`
+              } else {
+                lines.push(word)
+              }
+            }
+            return lines.length ? lines : ['']
+          }
+        }
         return (...args: unknown[]) => {
           calls.push({ m: prop, args })
           return doc
@@ -94,6 +113,51 @@ describe('drawSetup', () => {
     const { pd, calls } = fakePd()
     drawSetup(pd.doc, [], 40, 100, 'compete')
     expect(calls.some((c) => c.m === 'text' && c.args[0] === 'Setup: Compete')).toBe(true)
+  })
+
+  // Wrapping (the optional `maxW`). Worth pinning because the failure it
+  // prevents is invisible in review and easy to miss on paper: an over-long
+  // value doesn't clip or error, it draws past the right edge and off the
+  // sheet. Two rows have no natural length bound — MothCubes' `Letters` prints
+  // a whole 6×6 board, the roster prints every username.
+  describe('a value too wide for the space', () => {
+    // 41 characters = 41pt under the fake's 1pt/char.
+    const LETTERS = [
+      { key: 'letters', label: 'Letters', value: 'CATSER AREANT TILESO NESTAR PLANES TRACES' },
+    ]
+    /** Every `text()` call drawn at the VALUE's x (past the label), in order. */
+    const valueLines = (calls: Array<{ m: string; args: unknown[] }>) =>
+      calls.filter((c) => c.m === 'text' && (c.args[1] as number) > 40)
+
+    it('wraps, hanging under the value rather than the label', () => {
+      const { pd, calls } = fakePd()
+      // 30pt total − 9pt of "Letters: " leaves 21pt, so this splits in two.
+      const bottom = drawSetup(pd.doc, LETTERS, 40, 100, 'coop', 30)
+
+      const lines = valueLines(calls)
+      expect(lines.map((c) => c.args[0])).toEqual([
+        'CATSER AREANT TILESO',
+        'NESTAR PLANES TRACES',
+      ])
+      // One x for every line: continuation hangs under the value, so a two-line
+      // row still reads as one fact.
+      expect(new Set(lines.map((c) => c.args[1])).size).toBe(1)
+      // And the returned cursor counts every line drawn — otherwise a caller
+      // flowing content after the block would overlap it.
+      expect(bottom).toBe(100 + 13 + lines.length * 13)
+    })
+
+    it('is left alone when it fits', () => {
+      const { pd, calls } = fakePd()
+      drawSetup(pd.doc, LETTERS, 40, 100, 'coop', 400)
+      expect(valueLines(calls)).toHaveLength(1)
+    })
+
+    it('is left alone when no width is given (the turn-log caller)', () => {
+      const { pd, calls } = fakePd()
+      drawSetup(pd.doc, LETTERS, 40, 100, 'coop')
+      expect(valueLines(calls)).toHaveLength(1)
+    })
   })
 })
 

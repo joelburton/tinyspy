@@ -53,8 +53,13 @@ const NOT_A_ROW: Record<string, string> = {
   unique_letters: 'omitted unless the constraint is on',
   ai_count: 'compete-only, and only when AI seats were taken',
   ai_level: 'reported inside the AI row, not on its own',
-  custom_center: 'a board-generation override, not a recap line',
-  custom_letters: 'a board-generation override, not a recap line',
+  // The three letter games' board overrides. Each DOES reach the recap — as the
+  // `Letters` row naming the board it produced (setupRows.ts → BOARD_KEY) — but
+  // that row is keyed to the board, not to the override, and it's there whether
+  // the letters were typed or rolled. The override itself is never a row.
+  custom_center: 'a board-generation override; the board it made is the Letters row',
+  custom_letters: 'a board-generation override; the board it made is the Letters row',
+  custom_board: 'a board-generation override; the board it made is the Letters row',
   // Puzzle-identity plumbing: the recap shows ONE "Puzzle" row built from these.
   puzzle_id: 'folded into the single Puzzle row',
   puzzleId: 'folded into the single Puzzle row',

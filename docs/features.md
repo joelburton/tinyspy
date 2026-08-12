@@ -234,7 +234,11 @@ Dictionary/difficulty band at setup:  PN FB MC RA SD SS WN MG MW WW PP SB
   (PP's + SB's bands run the OTHER way: a wider dictionary means more hint
   words / more escape routes off an awkward tail letter, so a HIGHER band makes
   them easier. SB also has the par + extra_words cap — see Move/guess budget.)
-Custom letters too:  FB MW (MW also a "unique letters only" board constraint)
+Hand-pick the board's letters instead of a random one:  FB MW MC
+  (FB/MW take a centre + the others; MC takes the whole grid, written as the
+  recap prints it. MW also has a "unique letters only" board constraint.)
+Every one of the three ALSO prints the board's letters in its setup recap,
+random or hand-picked, so a board you liked can be copied into the next game.
 (library games WK/CP pick a puzzle instead; TS has no difficulty knob)
 
 ## Timer

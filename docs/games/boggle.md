@@ -185,6 +185,54 @@ the extreme corner (an easy band *and* a required 11-letter word). Cold start
 (decode the asset + build the first band trie) is a one-time ~166 ms per isolate.
 Both sit comfortably inside an on-demand "Start game" action.
 
+### Custom board (player-typed tiles)
+
+One OPTIONAL setup field lets a player hand the game its board instead of rolling
+one: **`setup.custom_board`**, the tiles as text. Blank → the roll loop above runs
+as normal; set → the edge function **skips rolling entirely**, parses the tiles,
+solves that one board, and creates the game. Available in **either mode**. The
+SetupForm surfaces a "Custom board (optional)" disclosure under the dice set; the
+manifest's `validate` (`customBoardError`) gates Start on the same parse the
+server runs. This is freebee's and MooseWheel's "custom letters" feature, in the
+shape a grid needs — the three letter games now all have one.
+
+The **written form** is the board read like English: rows top to bottom, a space
+between them, e.g. `ABCD EFGH IJKL MNOP`. It is exactly what the recap's
+`Letters` row prints ([§8](#8-frontend-srcboggle)), which is the point — you read
+a board off a game you liked (on screen or on paper) and paste it into the next
+game's dialog to hand a friend the same puzzle. `src/boggle/lib/customBoard.ts`
+owns **both** directions so they can't drift, and `customBoard.test.ts` asserts
+`parse(format(board)) === board` over rolls of every dice set.
+
+- **Two-letter tiles are spelled as they print** — `Qu In Th Er He An` — and a
+  blank is `?`. The parser recognizes a digraph only when written **capital then
+  lowercase**: `Qu` is one tile, `QU` and `qu` are two. That rule is load-bearing,
+  not tidiness: a bare `Q` face is real (4×4 Classic's `ABJMOQ` die), so `QU` is
+  genuinely ambiguous, and all six digraphs are common letter pairs — a
+  case-insensitive parse would silently swallow `an`/`in`/`th`/`er`/`he` out of an
+  ordinary lowercase paste. Keying on case makes each spelling mean one thing and
+  makes the printed form the one that round-trips.
+- **The dice set fixes the size.** A custom board must have exactly `n²` tiles for
+  the currently-picked set; a mismatch is a Start-blocking message
+  ("A 4×4 board needs 16 tiles — that's 25"), deliberately not a guess at which
+  of the four 5×5 sets you meant. The set therefore still chose something real,
+  which is why its `Board` recap row stays.
+- **Constraints don't apply, and their recap rows vanish.** Nothing is being
+  rejection-sampled, so the min/max word/score/longest targets had no effect on
+  this board — and a recap must not assert a choice that didn't apply
+  (`lib/setupSummary.ts`).
+- **The floor is ≥1 required word.** A custom board is whatever the player's tiles
+  yield, so there's no quality gate — but `setup.win_percent` is a *share of the
+  required-words score*, so a board with none would put the threshold at 0 and
+  hand the win to the first bonus word. Both the edge function (422,
+  `no-required-words|<band>|`) and `create_game` (P0001) reject that. Rolled
+  boards keep no such floor: their constraints are the player's to set, including
+  none.
+- **One-off, not a new default.** `create_game` strips `custom_board` from the
+  setup it saves as the club's `clubs_gametypes.default_setup`, so the next
+  dialog opens with the field blank and rolls again — the same treatment
+  freebee/MooseWheel give their custom letters.
+
 ---
 
 ## 5. Dictionary delivery
@@ -268,7 +316,10 @@ game is terminal, then all.
   the `common.games` header + the `boggle.games` row (`win_percent` denormalized
   onto it); titles the game `n×n <top row>` (e.g. `4×4 ABQuD` — the board's first
   `n` faces, with a multiface die expanded to the two letters a player sees on the
-  tile). The board is public, so nothing is leaked.
+  tile). The board is public, so nothing is leaked. On a **custom board**
+  (`setup.custom_board` present) it also demands ≥1 required word and strips the
+  one-off board from the setup saved as the club's default — see
+  [§4 → Custom board](#custom-board-player-typed-tiles).
 - **`submit_word(target_game, word, points, is_bonus)`** — the **trusting commit**.
   The FE validated the word against the shipped legal list (required ∪ bonus) and
   scored it, so the RPC trusts `word` + `points` + `is_bonus` and only:
@@ -406,6 +457,16 @@ board), swapped in for spellingbee's hex flower.
   the **action row** (`EndGameButton` coop / `ConcedeGameButton` compete during play;
   the bold outcome line + a compact back-to-club button at terminal), a **help line**,
   the **setup disclosure**, and the **`WordList`** filling the rest.
+  - **The `Letters` row** leads the setup disclosure, under the roster, and the PDF
+    prints the identical row (one `setupRows()` feeds both — [pdf.md → Setup
+    rows](../pdf.md#setup-rows)). It names the board this game was played on —
+    `Letters: ABCD EFGH IJKL MNOP` — **rolled or typed alike**, in the written form
+    the setup dialog's custom-board field takes back
+    ([§4 → Custom board](#custom-board-player-typed-tiles)). Printing it for a
+    ROLLED board is the documented board-identity exception to "the recap is the
+    dialog read back" (`common/lib/game/setupRows.ts` → `BOARD_KEY`): a row that
+    appeared only on hand-picked boards would be exactly the half you never need
+    to copy.
   - **`WordList`:** the **shared `common/components/game/lists/WordList`** (identical to
     spellingbee's, since it IS the same component) — finder color (coop), a bonus
     dot, a 5 s new-word flash (`common/hooks/game/useRecentlyFound`), click-to-define via
@@ -450,16 +511,20 @@ a miss → not-a-word if it traces on the board (`lib/boardTrace`), else
 not-on-board; too short / duplicate → instant info. The server only records +
 dedups the accepted words.
 
-**Setup form.** Dice set · required difficulty (the shared `DifficultyField`,
-full `universal…expert` list) · legal/bonus difficulty (a second `DifficultyField`
-whose minimum tracks the required band) · scoring ladder · minimum word length ·
-an optional collapsible **Board constraints** min/max grid (words / score /
-longest) · timer. Mode-aware copy (coop vs compete).
+**Setup form.** Dice set · an optional **Custom board** (the tiles, typed — see
+[§4 → Custom board](#custom-board-player-typed-tiles)) · required difficulty (the
+shared `DifficultyField`, full `universal…expert` list) · legal/bonus difficulty
+(a second `DifficultyField` whose minimum tracks the required band) · scoring
+ladder · minimum word length · an optional collapsible **Board constraints**
+min/max grid (words / score / longest) · timer. Mode-aware copy (coop vs
+compete). Start is gated by `boggleSetupError` = the cross-field band rules, then
+the custom-board parse.
 
 Other files: `manifest.ts` (the two sibling manifests, `BRAND='MothCubes'`,
 `startGameInClub` → invoke `boggle-build-board`, `submitTimeout`, `labelFor`),
 `db.ts`, `theme.css`, `logo.svg`, `hooks/useGame.ts` (realtime refetch on
-`boggle.{games, found_words}`), `lib/{setup, boardTrace, displayRows}`. Registered
+`boggle.{games, found_words}`), `lib/{setup, customBoard, boardTrace,
+displayRows}`. Registered
 in `src/games.ts`; `boggle` is in `supabase/config.toml` schemas and the eslint
 `GAMETYPES`. Presence-pause is inherited via `<GamePage>` + `useCommonGame`
 ([[feedback_pause_on_disconnect]]).
@@ -483,6 +548,12 @@ language + helpers live in [docs/pdf.md](../pdf.md).
   display.
 - `generate.test.ts`, `boardTrace.test.ts` (traces validated against the solver),
   `displayRows.test.ts`, `setup.test.ts` (the cross-field band guard).
+- `customBoard.test.ts` — the custom-board **round trip**, which is the property
+  the feature rests on: `parse(format(board)) === board` over 200 rolls of each
+  of the eight dice sets, plus a guard that those rolls actually reach the
+  multiface + blank faces (a round trip covering nothing but A–Z would pass while
+  proving nothing). Then the mixed-case rule by name — `Qu` is one tile, `QU` and
+  `qu` are two, and a lowercase paste keeps its `an`/`in`/`th` intact.
 
 **pgTAP** (`supabase/tests/boggle/`):
 - `create_game_test` — the happy paths (header + per-game row + status) and the
@@ -497,9 +568,16 @@ language + helpers live in [docs/pdf.md](../pdf.md).
   team (coop) or the first player to cross (compete) wins the moment the
   required-words score reaches the target; compete is a race naming the crosser.
 - `rls_test` — coop sees all / compete own-only-until-terminal.
+- `custom_board_test` — the RPC's half of the custom board: it's accepted and
+  stored, `custom_board` is stripped from the club's saved default, a custom
+  board with zero required words is rejected, and a ROLLED board with none is
+  not (the floor is custom-only, on purpose).
 
 **e2e** (`e2e/boggle.e2e.ts`) — drives the running app: the board renders, a
-required word lands, an off-board word is rejected.
+required word lands, an off-board word is rejected, and the recap's `Letters`
+row names the (rolled) board. A second spec drives the setup dialog through the
+real edge function with a **typed** board and reads it back off the info column
+in the form it was typed — the round trip end to end.
 
 ---
 

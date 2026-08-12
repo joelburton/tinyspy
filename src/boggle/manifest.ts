@@ -6,7 +6,7 @@ import { makeRpcDispatcher, invokeStartGameEdgeFn } from '../common/lib/game/man
 import {
   DEFAULT_BOGGLE_SETUP_COMPETE,
   DEFAULT_BOGGLE_SETUP_COOP,
-  legalError,
+  boggleSetupError,
   type BoggleSetup,
 } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -133,7 +133,7 @@ export const boggleCoopGame: GameManifest = {
   setupForm: {
     Component: setupFormLoader,
     defaults: DEFAULT_BOGGLE_SETUP_COOP,
-    validate: (setup) => legalError(setup as BoggleSetup),
+    validate: (setup) => boggleSetupError(setup as BoggleSetup),
   },
   startGameInClub: startGameInClubFactory('coop', BRAND),
   labelFor: (row) => coopLabel(row),
@@ -156,7 +156,7 @@ export const boggleCompeteGame: GameManifest = {
   setupForm: {
     Component: setupFormLoader,
     defaults: DEFAULT_BOGGLE_SETUP_COMPETE,
-    validate: (setup) => legalError(setup as BoggleSetup),
+    validate: (setup) => boggleSetupError(setup as BoggleSetup),
   },
   startGameInClub: startGameInClubFactory('compete', BRAND),
   labelFor: (row) => competeLabel(row),

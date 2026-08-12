@@ -1,7 +1,8 @@
 import type { Member } from '../../common/lib/games'
 import { difficultyValue } from '../../common/lib/game/difficulty'
-import { rosterRow, timerRow, type SetupRow } from '../../common/lib/game/setupRows'
+import { BOARD_KEY, rosterRow, timerRow, type SetupRow } from '../../common/lib/game/setupRows'
 import { DICE_BY_NAME } from './dice'
+import { formatBoard } from './customBoard'
 import type { BoggleSetup } from './setup'
 
 /**
@@ -27,18 +28,36 @@ function boundsValue(min: number | undefined, max: number | undefined): string |
  * "Min word length" vs "Min length", "Dictionary (required)" vs "Required
  * words") — one fact named twice by two files. These are the screen's, since
  * that's the wording players actually learned.
+ *
+ * The `Letters` row is the documented board-identity exception (setupRows.ts →
+ * BOARD_KEY): the tiles this game was actually played on, rolled or typed,
+ * written exactly as the setup dialog's custom-board field takes them back
+ * (`lib/customBoard.ts` owns both directions). It leads, under the roster —
+ * on a kept record, WHICH board this was outranks how it was configured, and
+ * it's the line you copy to hand a friend the same board.
+ *
+ * "Board" stays the DICE SET, which is a different fact and still a control:
+ * it's what a rolled board was rolled from, and (custom or not) it's what fixed
+ * the side length.
  */
 export function setupRows(
   setup: BoggleSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
+  /** The board's raw face string + side length, or null while the game row is
+   *  still loading. */
+  board: { board: string; n: number } | null = null,
 ): SetupRow[] {
   // Derived here rather than taken as an argument: it's a pure function of a
   // setup KEY, and the component computed it too late in its render to hand over.
   const ladderLabel =
     setup.scoring_ladder.charAt(0).toUpperCase() + setup.scoring_ladder.slice(1)
+  // A player-typed board means the roll loop never ran, so its targets applied
+  // to nothing — and a recap must not assert a choice that had no effect.
+  const isCustomBoard = (setup.custom_board ?? '').trim() !== ''
   return [
     rosterRow(players),
+    ...(board ? [{ key: BOARD_KEY, label: 'Letters', value: formatBoard(board.board, board.n) }] : []),
     {
       key: 'dice_set',
       label: 'Board',
@@ -66,10 +85,17 @@ export function setupRows(
     // own ONLY on the promise that its parts appear as `constraints.` rows, and
     // it checks that promise rather than taking it (it used to take it — which
     // is how these went missing from both surfaces in the first place).
-    ...CONSTRAINT_ROWS.flatMap(({ key, label, min, max }) => {
-      const value = boundsValue(setup.constraints?.[min], setup.constraints?.[max])
-      return value ? [{ key: `constraints.${key}`, label, value }] : []
-    }),
+    //
+    // They vanish wholesale for a custom board: the tiles came from the player,
+    // nothing was rejection-sampled, and printing "Board words: at least 10"
+    // beside a board that was never measured against it would be a lie the
+    // reader can't detect.
+    ...(isCustomBoard
+      ? []
+      : CONSTRAINT_ROWS.flatMap(({ key, label, min, max }) => {
+          const value = boundsValue(setup.constraints?.[min], setup.constraints?.[max])
+          return value ? [{ key: `constraints.${key}`, label, value }] : []
+        })),
     timerRow(setup.timer),
   ]
 }

@@ -191,6 +191,27 @@ Three rules hold the shape:
 - **Values are plain strings.** The PDF is WinAnsi and can't render a React node (or an
   `→`), so it's the lower bound — which is the right way round. Screen-only richness
   lives outside the shared rows.
+  - **A long value wraps** rather than running off the sheet, indented under the value
+    so a two-line row still reads as one fact (`drawSetup`'s optional `maxW`, passed by
+    the word-list body which knows its width; `frame.test.ts` guards it). Two rows have
+    no natural length bound — MothCubes' `Letters` prints a whole 6×6 board, the roster
+    prints every username — and an over-long value doesn't clip or error, it just draws
+    past the edge. Truncating was the alternative and it's wrong here: the Letters row
+    exists to be copied off the paper. The **turn-log** body deliberately doesn't pass a
+    width — its column layout pre-computes the block's height as one line per row.
+- **The board's own letters are the one allowed non-control row.** The three
+  letter games that build a board out of letters — freebee, MooseWheel,
+  MothCubes — each lead with a `Letters` row naming the board itself, printed
+  whether the letters were hand-picked in the dialog or generated. It earns the
+  exception twice over: all three dialogs can TAKE those letters as input, so the
+  row is the round trip (read a board you liked off the screen or off the paper,
+  paste it into the next game's dialog to hand a friend the same puzzle — a row
+  that appeared only on hand-picked boards would be exactly the half nobody needs
+  to copy), and like the roster it's the most useful line on a record you keep,
+  since nothing else says WHICH board this was. The key is the shared
+  `BOARD_KEY`; each game formats its own value (`A-CHIROT` for the centre-letter
+  pair, `ABCD EFGH IJKL MNOP` for the grid). Derived numbers still belong in Help
+  — this is an exception, not a loophole.
 - **Every row carries the setup `key` it describes**, which nothing renders. A
   roster-wide test uses it to assert that every key in a game's default setup produces a
   row, with an explicit opt-out list for keys that aren't player choices. A convention

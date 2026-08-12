@@ -10,6 +10,20 @@
   margin-top: 0.75rem;
 }
 
+/* The optional custom-board input — one line holding the whole board, so it
+ * takes the full width and sets its rows in mono to line up under each other.
+ *
+ * Deliberately NOT `text-transform: uppercase` (freebee's letter inputs are):
+ * boggle's two-letter tiles are recognized by their case — `Qu` is one tile,
+ * `QU` is two (lib/customBoard.ts → The mixed-case rule) — so a field that
+ * displayed everything uppercase would show a different board than the one it
+ * holds. */
+.boardInput {
+  width: 100%;
+  font-family: monospace;
+  letter-spacing: 0.12em;
+}
+
 /* The "Board constraints" min/max grid. */
 .grid {
   display: grid;

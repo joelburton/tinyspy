@@ -7,8 +7,9 @@ import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import type { BoardConstraints } from '../lib/generate'
 import { WIN_PERCENT_OPTIONS, type BoggleSetup } from '../lib/setup'
+import { cleanCustomBoard, twoLetterList } from '../lib/customBoard'
 import type { LadderName } from '../lib/solver'
-import { DICE_SETS } from '../lib/dice'
+import { DICE_SETS, DICE_BY_NAME } from '../lib/dice'
 import shared from '../../common/components/fields/setupForm.module.css'
 import styles from './SetupForm.module.css'
 
@@ -56,6 +57,14 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
   // Disclosure summaries carry the current value so each section reads without
   // opening (the spellingbee pattern — see its SetupForm).
   const diceLabel = `Dice set: ${DICE_SETS.find((d) => d.name === s.dice_set)?.desc ?? s.dice_set}`
+  // The chosen dice set fixes the board's side length, which is the whole
+  // relationship between it and a custom board: n² tiles, or the Start gate
+  // says so (lib/setup.ts → customBoardError).
+  const diceSet = DICE_BY_NAME[s.dice_set]
+  const customBoard = s.custom_board ?? ''
+  const customBoardLabel = customBoard.trim()
+    ? `Custom board: ${customBoard.trim()}`
+    : 'Custom board (optional)'
   const dictLabel = `Dictionaries: ${difficultyValue(s.band)} / ${difficultyValue(s.legal_band)}`
   const ladderLabel =
     SCORING_LADDERS.find((l) => l.name === s.scoring_ladder)?.label ?? s.scoring_ladder
@@ -84,6 +93,39 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
             </option>
           ))}
         </SelectField>
+      </SetupSection>
+
+      {/* Optional custom board, behind a disclosure whose summary shows the typed
+          tiles (e.g. "Custom board: ABCD EFGH IJKL MNOP") or "(optional)" when
+          blank. Blank → a rolled board (the normal path); fill it to play exactly
+          these tiles — which is how you hand a friend a board you liked, read
+          straight off its info column or its printout.
+
+          Sits under "Dice set" because that's what it depends on: the chosen set
+          fixes the side length, so it fixes the tile count. Start is gated on
+          `customBoardError` (via the manifest's validate), so a miscounted or
+          unreadable board blocks it with an inline reason. Cleared input stores
+          `undefined` so the edge function sees it as absent → roll. */}
+      <SetupSection label={customBoardLabel}>
+        <p className="muted">
+          Leave blank to roll a random board, or type one: every tile, rows top to
+          bottom{diceSet ? ` (${diceSet.n * diceSet.n} of them for a ${diceSet.desc})` : ''}.
+          Write a two-letter tile the way it prints — {twoLetterList()} — and{' '}
+          <strong>?</strong> for a blank.
+        </p>
+        <input
+          type="text"
+          autoComplete="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          value={customBoard}
+          onChange={(e) =>
+            onChange({ ...s, custom_board: cleanCustomBoard(e.target.value) || undefined })
+          }
+          className={styles.boardInput}
+          placeholder={diceSet ? exampleBoard(diceSet.n) : ''}
+          aria-label="Custom board"
+        />
       </SetupSection>
 
       {/* "Dictionaries" — the required/legal word bands, the summary showing the
@@ -179,6 +221,21 @@ export function SetupForm({ mode, value, onChange }: SetupBodyProps) {
       <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
     </div>
   )
+}
+
+/**
+ * The custom-board field's placeholder: n rows of n letters, so the shape the
+ * field wants is visible before anything is typed. Alphabetical and wrapped at
+ * Z — a shape, deliberately not a board anyone would play.
+ */
+function exampleBoard(n: number): string {
+  const rows: string[] = []
+  for (let y = 0; y < n; y++) {
+    let row = ''
+    for (let x = 0; x < n; x++) row += String.fromCharCode(65 + ((y * n + x) % 26))
+    rows.push(row)
+  }
+  return rows.join(' ')
 }
 
 function Row({

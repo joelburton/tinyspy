@@ -97,8 +97,16 @@ export function PlayArea(ctx: GamePageCtx) {
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
   // (docs/pdf.md → Setup rows).
+  // The board itself rides along as the recap's `Letters` row — the raw face
+  // string, which `setupRows` writes out the way the setup dialog takes it back.
   const summaryRows = useMemo(
-    () => setupRows(boggleSetup, game?.mode ?? 'coop', players),
+    () =>
+      setupRows(
+        boggleSetup,
+        game?.mode ?? 'coop',
+        players,
+        game ? { board: game.board, n: game.n } : null,
+      ),
     [boggleSetup, game, players],
   )
   const ladder: LadderName = (boggleSetup.scoring_ladder as LadderName) ?? 'basic'

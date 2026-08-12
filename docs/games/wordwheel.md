@@ -160,7 +160,16 @@ both a fitting word *and* an over-demanding word come back).
   (**duplicates allowed** — the wheel is a multiset, and the centre may repeat an
   outer; `s` allowed). Validated identically in `create_game`, the edge function,
   and `src/wordwheel/lib/setup.ts`. A custom board doesn't guarantee a pangram
-  (nothing says the player's multiset spells a 9-letter word).
+  (nothing says the player's multiset spells a 9-letter word). The setup recap's
+  **`Letters` row** prints this wheel as `A-BCDEFGHI` (centre, dash, the eight
+  others alphabetized, so one wheel always reads one way — not the order a
+  player's shuffle happens to be showing, and not the arbitrary stored order a
+  hand-picked wheel arrives in) for **every** wheel, random or hand-picked, on
+  screen and on the PDF alike: the same shape these fields take back, so "try
+  this wheel" is a copy rather than a transcription. Sorting is lossless — the
+  wheel is a centre plus a multiset, so a duplicate just sorts beside its twin. Shared with freebee as `centerLettersRow`; the
+  board-identity exception is documented in
+  [pdf.md → Setup rows](../pdf.md#setup-rows).
 - **Board constraint — "unique letters only"** (`setup.unique_letters`, a
   "Board constraints" disclosure in `SetupForm`): when on, the edge function
   samples only seeds whose nine letters are all distinct (`new Set(letters).size

@@ -3,6 +3,7 @@ import type { BoardConstraints } from './generate'
 import type { LadderName } from './solver'
 import { LADDERS } from './solver'
 import { DICE_BY_NAME } from './dice'
+import { parseCustomBoard } from './customBoard'
 
 /**
  * The setup blob the dialog collects and `boggle.create_game` validates. `mode`
@@ -30,6 +31,24 @@ export interface BoggleSetup {
    *  half the required total. */
   win_percent: number | null
   constraints?: BoardConstraints
+  /**
+   * An OPTIONAL player-typed board — the tiles themselves, written the way the
+   * recap prints them (`"ABQuD EFGH IJKL MNOP"`; see `lib/customBoard.ts`).
+   * Set → the edge function solves exactly this board instead of rolling one;
+   * blank/absent → the normal roll. Either mode.
+   *
+   * Stored AS TYPED rather than as the internal face string: the field has to
+   * survive half-finished input (you can't hold a partial board in a canonical
+   * encoding), and keeping the text means what you pasted is what you see. The
+   * server re-parses — it never trusts the client's reading.
+   *
+   * Because the player chose the tiles, a custom board skips BOTH the
+   * `constraints` targets (nothing is being rejection-sampled) and the roll
+   * loop's quality bar; it need only yield ≥1 required word, or `win_percent`
+   * would compute a threshold of zero. It is NOT saved as the club's next
+   * default — a one-off, not a new baseline (see `boggle.create_game`).
+   */
+  custom_board?: string
 }
 
 /** The `win_percent` dropdown options: None (null) + 50…100 by 5. */
@@ -76,4 +95,35 @@ export function legalError(s: BoggleSetup): string | null {
     return 'Win target must be 50–100% in steps of 5, or None'
   }
   return null
+}
+
+/**
+ * Why the optional custom board is unusable, or `null` if it's fine (including
+ * the common "left blank" case → a rolled board).
+ *
+ * The tile count is judged against the DICE SET currently picked, since that's
+ * what fixes the board's side length — paste a 5×5 while the dialog says 4×4
+ * and this says so, rather than guessing which of the four 5×5 sets you meant.
+ * `parseCustomBoard` owns the reading itself, and the edge function calls the
+ * same function server-side; this is the fail-fast, not the authority.
+ */
+export function customBoardError(s: BoggleSetup): string | null {
+  const text = (s.custom_board ?? '').trim()
+  if (!text) return null // blank → roll a board, the normal path
+  const set = DICE_BY_NAME[s.dice_set]
+  // An unknown dice set is `legalError`'s to report, and it runs first; without
+  // a set there's no side length to check the tile count against.
+  if (!set) return null
+  const parsed = parseCustomBoard(text, set.n)
+  return parsed.ok ? null : parsed.error
+}
+
+/**
+ * The single Start-gate validator for both manifests: the cross-field setup
+ * rules OR the custom-board rules, whichever fails first (the manifest's
+ * `validate` shows the returned string and disables Start until it's `null`).
+ * Mirrors freebee's `spellingbeeSetupError`.
+ */
+export function boggleSetupError(s: BoggleSetup): string | null {
+  return legalError(s) ?? customBoardError(s)
 }
