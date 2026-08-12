@@ -6,7 +6,6 @@ import { db } from '../db'
 import type { CrosswordsSetup } from '../lib/setup'
 import { GUARDIAN_SERIES } from '../lib/setup'
 import { importCrosswordFile } from '../lib/importFile'
-import type { PuzzleMeta } from '../lib/types'
 import styles from './SetupForm.module.css'
 // The game's tokens, again. PlayArea side-effect-imports this too, but the
 // setup form is its OWN lazy chunk that renders in the club's start-game
@@ -16,8 +15,41 @@ import styles from './SetupForm.module.css'
 // computes to `initial` — so those rules paint nothing at all, silently.
 import '../theme.css'
 
+/**
+ * Whether the club opening this dialog has played a given puzzle, as
+ * `crosswords.library_for_club` tags it. Not per-player and not per-mode —
+ * "have WE done this one" is a question about the club, so a puzzle solved
+ * cooperatively reads `solved` in the compete dialog too.
+ */
+type PuzzleStatus = 'solved' | 'playing' | 'lost' | 'unplayed'
+
 /** A library puzzle as the picker sees it — id + the non-spoiler meta. */
-type LibraryPuzzle = { id: string; title: string; author: string; size: string }
+type LibraryPuzzle = {
+  id: string
+  title: string
+  author: string
+  size: string
+  status: PuzzleStatus
+}
+
+/**
+ * The club-history stripe down each row's leading edge. Same outcome-color
+ * vocabulary the club page uses for a game's own state, so green/yellow/red
+ * mean here what they mean there.
+ */
+const STATUS_CLASS: Record<PuzzleStatus, string> = {
+  solved: styles.statusSolved!,
+  playing: styles.statusPlaying!,
+  lost: styles.statusLost!,
+  unplayed: styles.statusUnplayed!,
+}
+
+/** The RPC types `status` as plain `text`. Anything the FE doesn't recognise
+ *  (a status added server-side first) falls back to the neutral bar rather
+ *  than rendering an unstyled row. */
+function statusClass(status: string): string {
+  return STATUS_CLASS[status as PuzzleStatus] ?? STATUS_CLASS.unplayed
+}
 
 /** Today as YYYY-MM-DD (the NYT date input's default + max). */
 function todayStr(): string {
@@ -30,8 +62,12 @@ function todayStr(): string {
  * is written into `setup` (`source` + `puzzle_id` / `date` / `series` /
  * `board`); library → `create_game` RPC, NYT + Guardian → their import edge
  * functions, upload → the FE-parsed inline board.
+ *
+ * The library list is club-aware: each row carries a color bar for whether
+ * this club has already solved / started / lost that puzzle, which is what
+ * makes "find the one we haven't done" a glance rather than a memory test.
  */
-export function SetupForm({ value, onChange }: SetupBodyProps) {
+export function SetupForm({ clubHandle, value, onChange }: SetupBodyProps) {
   const s = value as CrosswordsSetup
   const [puzzles, setPuzzles] = useState<LibraryPuzzle[] | null>(null)
   const [query, setQuery] = useState('')
@@ -59,31 +95,32 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
     }
   }
 
+  // One RPC rather than "list the puzzles, then colour them": the join to
+  // play_state crosses schemas (crosswords.games → common.games), which
+  // PostgREST embeds can't express, and doing it in two reads would paint
+  // the rows and then recolour them a beat later. It's also ~200× less over
+  // the wire than the `select id, meta` this replaced — `meta` is the whole
+  // template (every cell, number, block, circle) and the row shows four
+  // scalars off it. Ordering + the source='library' filter live in the RPC.
   useEffect(() => {
     let active = true
     void (async () => {
-      const { data } = await db
-        .from('puzzles')
-        .select('id, meta')
-        .eq('source', 'library')
-        .order('created_at', { ascending: false })
+      const { data } = await db.rpc('library_for_club', { target_club: clubHandle })
       if (!active || !data) return
       setPuzzles(
-        data.map((row) => {
-          const m = row.meta as unknown as PuzzleMeta
-          return {
-            id: row.id,
-            title: m.title || 'Untitled',
-            author: m.author || '',
-            size: `${m.width}×${m.height}`,
-          }
-        }),
+        data.map((row) => ({
+          id: row.id,
+          title: row.title,
+          author: row.author,
+          size: `${row.width}×${row.height}`,
+          status: row.status as PuzzleStatus,
+        })),
       )
     })()
     return () => {
       active = false
     }
-  }, [])
+  }, [clubHandle])
 
   const source = s.source ?? 'library'
   // The Guardian series currently chosen (falls back to the first) — drives
@@ -273,7 +310,11 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
                 <button
                   key={p.id}
                   type="button"
-                  className={cls(styles.item, s.puzzle_id === p.id && styles.selected)}
+                  className={cls(
+                    styles.item,
+                    statusClass(p.status),
+                    s.puzzle_id === p.id && styles.selected,
+                  )}
                   onClick={() => onChange({ ...s, puzzle_id: p.id })}
                 >
                   <span className={styles.itemTitle}>

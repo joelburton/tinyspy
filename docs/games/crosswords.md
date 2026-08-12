@@ -107,10 +107,11 @@ and given cells are mirrored **from crossplay's `ws.ts`** (`fillMatchesSolution`
 Given cells are correct by construction and aren't in the `cells` table, so the
 solved-check reads `cells` + `solution` only (no `meta` join).
 
-## 4. RPCs (all `security definer`, revoke-public / grant-authenticated)
+## 4. RPCs (`security definer` unless noted, revoke-public / grant-authenticated)
 
 Because definer functions read the shielded `solution`, check and reveal are
-plain RPCs — no edge function needed.
+plain RPCs — no edge function needed. The one exception is
+`library_for_club`, which is deliberately **invoker** (see its row).
 
 | RPC | behavior |
 |---|---|
@@ -123,6 +124,7 @@ plain RPCs — no edge function needed.
 | `reveal_cells(target_game, cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil. **Coop only** (reveal-all would trivially win the compete race). Runs the solve check afterwards, since a reveal can complete the grid — including "Reveal puzzle", which ends the game as a normal `won` (deliberate; §9). On success the FE broadcasts the revealed coords on the peer channel so teammates flash them in the actor's color (the CDC arrives colorless). |
 | `clear_board(target_game)` | Destructive "start over" (crossplay parity): blanks every fillable cell on the caller's grid (the shared grid in coop, own in compete) and drops its `pencil` / `wrong` / `revealed` flags + cryptic edge marks. Givens live on the template, so they're preserved; the answer is untouched. Guards: membership, `play_state = playing`, not conceded. No solve check (clearing only removes fills). FE surfaces it as a **confirmed** game-menu item. |
 | `end_game(target_game)` | Coop mutual give-up → neutral `ended` (`outcome: 'manual'`). Terminal unshields the solution (`games_state`), but the FE only shows it on demand — the "Reveal board" menu item (§7 → Terminal). |
+| `library_for_club(target_club)` — **`security invoker`** | Backs the setup form's Library picker: every library puzzle (id, title, author, width, height) plus a per-club **`status`** — `solved` / `playing` / `lost` / `unplayed` — so each row can carry a club-history color bar. Invoker is load-bearing twice over: the `puzzles` **column grant** is what hides `solution`, and `common.games`'s club-member RLS is what stops one club's history showing in another's picker (a non-member just sees an all-`unplayed` library). Status **precedence** is solved → playing → lost, so one win makes a puzzle permanently green and `ended` shares the yellow bucket with `playing`. **Mode-agnostic** by design — a coop solve colors the compete dialog too. Why a function where connections uses a view (`connections.club_game_status`): the join to `play_state` is cross-schema *and* has to be OUTER, and the club is an input to it — a view exposing `club_handle` from the games side is inner by construction and would drop exactly the unplayed rows the picker exists to show. |
 | `concede` / `submit_timeout` | Standard. The setup form offers the shared `<TimerField>` like every other game; a countdown expiring takes the whole table down (coop → `lost`, compete → `lost_compete`), stamped `outcome: 'timeout'` so the verdict reads "Out of time" rather than the concede wording those same states otherwise carry. |
 
 ## 5. Puzzle sourcing
@@ -136,6 +138,12 @@ Guardian / Upload):
   folder (Joel keeps his own puzzle files; nothing committed). After a reset
   the library is empty until re-run (`gmake db-reset` chains it via `db-data`) —
   same posture as the other library games.
+  The picker reads the library through **`library_for_club`** (§4), not a plain
+  table select, so every row arrives tagged with whether *this club* has already
+  solved / started / lost that puzzle — a 4px color bar down the row's leading
+  edge, in the shared `--color-outcome-*` vocabulary the club page uses. The bar
+  is painted on every row (unplayed gets the near-white neutral) so it can never
+  reflow the list. One round trip, so the list is never drawn and then recolored.
   The parsers themselves live in **`src/crosswords/lib/parse/`** (see §6).
   Author-side companions (ported from crossplay): **`crosswords:puz-to-ipuz`**
   (convert a `.puz` → `.ipuz` via `parsePuzBuffer` + `writeIpuz`) and
@@ -418,7 +426,12 @@ non-game menus keep standard Esc-restores-focus a11y.)
   (set_cell, check, reveal, set_mark, `_matches`) / win (solve, pencil-counts,
   first-correct-wins) / rls (compete privacy) / concede + give-up / timeout
   (countdown expiry → a loss for everyone, coop `lost` / compete `lost_compete`
-  with `outcome: 'timeout'`; idempotent by no-op on a second call). Plus
+  with `outcome: 'timeout'`; idempotent by no-op on a second call) /
+  `library_for_club` (the four statuses, `ended` folding into the yellow bucket,
+  solved-beats-playing-beats-lost precedence when one puzzle has several games,
+  one row per puzzle despite the fan-out join, club scoping in **both**
+  directions, and the RLS property that makes a non-member see an all-`unplayed`
+  library — the test that would catch a `security definer` rewrite). Plus
   `common/scratchpad_test.sql`.
 - Vitest — `lib/` (`cursor`, `nyt`, `importFile`, `marks`, `enumeration`,
   `guardian` — the entry-based Guardian conversion incl. the
@@ -455,12 +468,15 @@ This is the **canonical deferred register** for crosswords — distilled from th
 - **NYT dedup** — inline NYT games aren't stored, so re-fetching a date makes a new
   game (fine; NYT was always kept out of the library).
 - **Library picker bound before the bulk import** (from the 2026-07-12 supabase
-  review) — `SetupForm.tsx`'s `source = 'library'` query is a plain unbounded
-  `select` on `crosswords.puzzles`. Fine today (~3 curated puzzles), but the planned
-  dictionary-puzzle import will push it past PostgREST's `max_rows` cap. Deliberately
-  **not** fixed pre-emptively: >10k puzzles needs a real picker UI (search/filter, not
-  a flat list) anyway, so do the bound **with** that import, not before. Minimum safe
-  change if the import lands first: `.limit()` + a truncation note in the UI.
+  review) — the picker query is unbounded: it's now `library_for_club` (§4), which
+  orders by `created_at desc` but has no `LIMIT`. Still fine (a few hundred
+  curated puzzles against a `max_rows` of 10000), and the club-history work cut
+  the payload ~200× by returning four scalars instead of each puzzle's whole
+  `meta`, which buys a lot of headroom — but neither is a bound. Deliberately
+  **not** fixed pre-emptively: >10k puzzles needs a real picker UI (search/filter,
+  not a flat list) anyway, so do the bound **with** that import, not before.
+  Minimum safe change if the import lands first: a `LIMIT` in the RPC + a
+  truncation note in the UI.
 - **Scratchpad lock races C3b / C3c** (review 2026-07-05) — simultaneous first
   keystrokes from two clients can each adopt the *other's* claim (both read-only for
   ~`STALE_MS`, and the loser's in-flight flush still lands); a late joiner sees no

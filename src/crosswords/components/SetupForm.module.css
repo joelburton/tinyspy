@@ -99,6 +99,11 @@
   color: var(--color-text);
   text-align: left;
   border-bottom: 1px solid var(--crosswords-row-rule);
+  /* The club-history stripe (see .status* below). Declared on the BASE row so
+   * all four states — including "never played" — occupy the same 4px: the bar
+   * can never change a row's metrics, and nothing shifts when the statuses
+   * land with the list. */
+  border-left: 4px solid var(--color-outcome-neutral-bg);
   font: inherit;
 }
 .item:last-child { border-bottom: none; }
@@ -107,6 +112,27 @@
 .selected:hover {
   background: var(--crosswords-in-word);
 }
+
+/* ─── Club-history stripe ─────────────────────────────────────
+ *
+ * "Has THIS club played this puzzle?", from crosswords.library_for_club.
+ * The colors are the shared --color-outcome-* tokens, so green / yellow /
+ * red mean here exactly what they mean on the club page's game cards
+ * instead of a private palette the picker invents.
+ *
+ * Only the COLOR varies, never the width — that's what keeps the stripe
+ * from reflowing the list. */
+.statusSolved  { border-left-color: var(--color-outcome-won-border); }
+/* Yellow covers both "a game is live" and "a game was ended manually" — the
+ * RPC folds them into one bucket. Same tone the club page uses for "still
+ * open, we'll come back to it". */
+.statusPlaying { border-left-color: var(--color-outcome-active-border); }
+.statusLost    { border-left-color: var(--color-outcome-lost-border); }
+/* Neither transparent nor the strong neutral: near-white keeps the stripe
+ * honest about its width while leaving all the signal to the three played
+ * states. Most of a library is unplayed, and a mid-grey stripe on every one
+ * of those rows would read as noise competing with the real colors. */
+.statusUnplayed { border-left-color: var(--color-outcome-neutral-bg); }
 
 /* One line per row (rows are fixed-height): a long title ellipsizes instead
  * of wrapping. */

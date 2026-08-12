@@ -1480,6 +1480,17 @@ export type Database = {
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
       export_solution: { Args: { target_game: string }; Returns: Json }
+      library_for_club: {
+        Args: { target_club: string }
+        Returns: {
+          author: string
+          height: number
+          id: string
+          status: string
+          title: string
+          width: number
+        }[]
+      }
       replay_board: { Args: { target_game: string }; Returns: undefined }
       reveal_cells: {
         Args: { p_cells: Json; target_game: string }
@@ -1843,6 +1854,15 @@ export type Database = {
         }[]
       }
       replay_board: { Args: { target_game: string }; Returns: undefined }
+      seed_for: {
+        Args: { board_letters: string }
+        Returns: {
+          difficulty: number
+          letters: string
+          word_a: string
+          word_b: string
+        }[]
+      }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
       submit_word: {
         Args: { submitted: string; target_game: string }

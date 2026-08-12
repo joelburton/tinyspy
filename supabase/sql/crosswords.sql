@@ -175,6 +175,113 @@ create view crosswords.games_state with (security_invoker = true) as
 grant select on crosswords.games_state to authenticated;
 
 -- ============================================================
+-- library_for_club — the setup-form picker list, colored by club history
+-- ============================================================
+-- One row per library puzzle, plus a `status` saying whether THIS club has
+-- played it, so the picker can paint a color bar per row and the club can
+-- see at a glance which crossword to do next.
+--
+-- Why a FUNCTION, when connections answers the same question with a view
+-- (connections.club_game_status):
+--
+--   * something SQL-side has to do the join either way — reaching
+--     play_state means crosswords.games -> common.games, which is
+--     CROSS-SCHEMA, and PostgREST's embed syntax doesn't resolve those
+--     (code-conventions.md → "Cross-schema embeds").
+--   * but a view can't do it HERE, because the join has to be OUTER and
+--     the club is an input to it. A view exposing club_handle from the
+--     games side is inner by construction: an unplayed puzzle's row has a
+--     null club_handle, so the FE's `.eq('club_handle', …)` drops exactly
+--     the rows the picker most wants to show. Hence a parameter.
+--     (connections escapes this because its calendar is a date grid the FE
+--     builds itself — it never needs the unplayed rows back from SQL.)
+--   * one round trip means the list arrives already colored, instead of
+--     painting rows and recoloring them a beat later.
+--
+-- It also slims the picker's payload by ~200×. The query this replaced was
+-- `select id, meta`, and `meta` is the whole immutable template (grid
+-- cells, numbering, blocks, circles, shading, givens) — ~12 kB for a 15×15
+-- — of which the row renders four scalars.
+--
+-- SECURITY INVOKER (the default; named here because it is load-bearing):
+--   * the `crosswords.puzzles` COLUMN GRANT is what hides `solution`, and a
+--     DEFINER function would run straight past it (a pgTAP test pins that
+--     grant, so this would be a silent way around a guarded shield);
+--   * common.games's club-member RLS is what stops one club's history
+--     leaking into another's picker. A non-member sees every puzzle as
+--     'unplayed' rather than an error, which is the right degradation.
+--
+-- `status` precedence — solved beats playing beats lost:
+--   'solved'   — some game in this club won it (coop `won` / compete
+--                `won_compete`). Sticky: replaying can't un-solve it.
+--   'playing'  — no win, but a game is live or was ended manually
+--                ('playing', 'ended', and any future non-terminal state,
+--                which is why this arm is written as "not a win and not a
+--                loss" rather than an allow-list that a new state escapes).
+--   'lost'     — games exist and every one lost (timeout, or all racers
+--                conceding).
+--   'unplayed' — this club has no game on this puzzle.
+--
+-- Mode is deliberately NOT a parameter: "have we done this puzzle" is a
+-- question about the club, not about coop vs compete, so a puzzle the club
+-- solved cooperatively shows solved in the compete dialog too.
+create or replace function crosswords.library_for_club(target_club text)
+returns table (
+  id     uuid,
+  title  text,
+  author text,
+  width  int,
+  height int,
+  status text
+)
+language sql
+stable
+security invoker
+set search_path = crosswords, common, public, extensions
+as $$
+  -- Every column reference is table-qualified on purpose: the OUT columns
+  -- above (`id`, `title`, `status`, …) shadow unqualified names, and
+  -- `common.games` really does have `id`, `title` and `status` columns.
+  select
+    p.id,
+    coalesce(nullif(btrim(p.meta ->> 'title'), ''), 'Untitled') as title,
+    coalesce(btrim(p.meta ->> 'author'), '')                    as author,
+    (p.meta ->> 'width')::int                                   as width,
+    (p.meta ->> 'height')::int                                  as height,
+    case
+      when count(*) filter (
+             where cg.play_state in ('won', 'won_compete')
+           ) > 0 then 'solved'
+      when count(*) filter (
+             where cg.play_state is not null
+               and cg.play_state not in
+                   ('won', 'won_compete', 'lost', 'lost_compete')
+           ) > 0 then 'playing'
+      -- count(cg.id), NOT count(*): a LEFT JOIN that matched nothing still
+      -- yields one row per puzzle, so count(*) is never 0 and every
+      -- unplayed puzzle would report 'lost'.
+      when count(cg.id) > 0 then 'lost'
+      else 'unplayed'
+    end as status
+  from crosswords.puzzles p
+  -- LEFT, and the club test rides on the JOIN rather than a WHERE: both so
+  -- that a puzzle this club has never touched keeps its row. Moving
+  -- `club_handle` into a WHERE would quietly turn this back into an inner
+  -- join and hide every unplayed puzzle.
+  left join crosswords.games xg
+         on xg.puzzle_id = p.id
+        and xg.club_handle = target_club
+  left join common.games cg on cg.id = xg.id
+  where p.source = 'library'
+  -- Grouping by the PK lets the select + order reach p's other columns
+  -- (functional dependency), so `meta` needn't be in the GROUP BY.
+  group by p.id
+  order by p.created_at desc;
+$$;
+revoke execute on function crosswords.library_for_club(text) from public;
+grant execute on function crosswords.library_for_club(text) to authenticated;
+
+-- ============================================================
 -- Terminal helpers
 -- ============================================================
 
