@@ -18,6 +18,7 @@ import type {
 } from '../../lib/games'
 import { END_OR_CONCEDE_IDS, NEW_GAME_ID } from '../../lib/game/gameMenu'
 import { failureMessage } from '../../lib/game/serverError'
+import { presentFault } from '../../lib/fault/faultStore'
 import { useAppShortcuts } from '../../hooks/input/useAppShortcuts'
 import { useAccountMenuSection } from '../../hooks/account/useAccountMenuSection'
 import { useIsMobile } from '../../hooks/ui/useIsMobile'
@@ -268,8 +269,14 @@ export function GamePage({
     return () => clearTimeout(t)
   }, [globalFeedback])
 
-  // Stable identities for the feedback API exposed to PlayArea.
+  // Stable identities for the feedback API exposed to PlayArea. A FAULT never
+  // enters the slot: it routes to the fault MODAL instead (docs/ui.md →
+  // Faults) — one branch here covers every game's global sink.
   const globalFeedbackShow = useCallback((msg: GenericFeedbackMsg) => {
+    if (msg.fault) {
+      presentFault({ text: msg.text, diagnostics: msg.diagnostics })
+      return
+    }
     setGlobalFeedback(msg)
   }, [])
   const globalFeedbackClear = useCallback(() => {
@@ -559,7 +566,7 @@ export function GamePage({
                   // the fault look. This used to interpolate the raw server
                   // string into a prefixed pill — a bypass the guard couldn't
                   // see because the flattening happened a file away.
-                  setGlobalFeedback(failureMessage(error, 'end game'))
+                  globalFeedbackShow(failureMessage(error, 'end game'))
                 }
               }
             : undefined

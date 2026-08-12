@@ -1,0 +1,34 @@
+/* The fault modal's three lines (FaultDialog.tsx; docs/ui.md → Faults).
+   The panel shell + backdrop come from FloatingPanel; only the body is ours. */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Line 1: the shape test. Red, unmissable, no softening. */
+.heading {
+  color: var(--color-sys-error-red);
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Line 2: the classifier's words — copy sentence or raw fe-error-key. Wraps
+   freely; a raw key must be readable in full (no ellipsis — the modal exists
+   because the pill slot couldn't afford that). */
+.message {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Line 3: the diagnostics — deliberately small and muted (secondary by
+   design: line 2 is what a player reads, this is what they read ALOUD to
+   whoever debugs). Same content as the [db] console line. */
+.diagnostics {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}

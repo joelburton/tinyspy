@@ -1,4 +1,4 @@
-import { failureText } from '../../lib/game/serverError'
+import { formFailureText } from '../../lib/game/serverError'
 import { Suspense, useState } from 'react'
 import { MODE_LABEL, type GameManifest, type Member, type RichMessage as RichMessageType } from '../../lib/games'
 import { FloatingPanel } from '../panels/FloatingPanel'
@@ -183,14 +183,14 @@ export function SetupGameDialog({
       setBusy(false)
       // Two shapes (see startGameInClub in games.ts). A RichMessage (array)
       // is already frontend-authored; render as-is. Everything else is the
-      // STRUCTURED CallError — message + relayed SQLSTATE + the answered
-      // marker — which `failureText` classifies, keeping a server's real
-      // answer ("no candidate words for band 3") out of the transport bucket
-      // in this form's error line.
+      // STRUCTURED CallError, split by surface rule (docs/ui.md → Faults):
+      // a validation ANSWER ("no candidate words for band 3") stays on this
+      // form's red line; a fault/transport pops the fault MODAL — the dialog
+      // stays open behind it so the player can retry after dismissing.
       setError(
         Array.isArray(result.error)
           ? result.error
-          : failureText(result.error, 'new game'),
+          : formFailureText(result.error, 'new game'),
       )
       return
     }

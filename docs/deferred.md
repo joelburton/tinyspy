@@ -81,28 +81,6 @@ The channel-qualified feedback split shipped — **local** feedback is `useLocal
 
 - **One follow-up remains:** unify the *turn-outcome* vocabulary across games — deliberately deferred. Concretely, the two channels name the same idea differently: `TurnOutcome` (TurnLog) is `good` / `bad` / `partial` / `neutral`, while the feedback pill's tone vocabulary uses `near` for what the log calls `partial` (connections maps its one-away to `partial`; the pill calls that tone `near`).
 
-### The fault MODAL (agreed 2026-08-12, not yet built)
-
-Faults stop rendering in the below-board slot (too small — scrabble's
-especially — and ellipsis fights the read-it-aloud goal) and pop a MODAL
-instead: room for the action, the full unellipsised message, and a possible
-copy-details affordance. Joel's rulings:
-
-- **Faults only** — feedback pills and form validation are untouched.
-- Initially a modal for EVERY fault, simplest behavior; refinements (e.g.
-  replace-don't-stack under crosswords' per-keystroke fault storm on a dead
-  connection) can come later.
-- A fault during SETUP-DIALOG submit also gets the modal (the dialog's red
-  line stays for validation only).
-- scrabble's AI-suggest errors currently stay in their panel; Joel leans
-  fault-dialog for those too — decide when building this.
-- Implementation shape: route at the chokepoint (the shared pill renderer's
-  `fault: true` branch → one global fault-modal host, ToastHost-style), so
-  all fifteen games convert with no per-game edits; `failureMessage` /
-  `faultMessage` unchanged. Behavior-matrix table first (an input-class ×
-  surface table of every fault-producing path, before and after).
-
-
 ## Mobile
 
 Carried over from the 2026-07-10 mobile-FE review (that review doc has since been retired; its live items are these). The design + what shipped are documented in [`mobile.md`](mobile.md); these are the pieces deliberately left, plus two on-device checks still owed.

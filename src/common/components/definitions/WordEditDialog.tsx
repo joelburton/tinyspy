@@ -1,4 +1,4 @@
-import { failureText } from '../../lib/game/serverError'
+import { formFailureText } from '../../lib/game/serverError'
 import { useEffect, useState, type FormEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { setWordEdit, type WordEditRequest } from '../../lib/definitions/wordEditStore'
@@ -85,7 +85,9 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
         .maybeSingle()
       if (!mounted) return
       if (err) {
-        setError(failureText(err, 'dictionary'))
+        // A load failure is a fault (nothing an editor typed can cause it) —
+        // formFailureText pops the modal and the form line stays empty.
+        setError(formFailureText(err, 'dictionary'))
         return
       }
       if (!data) {
@@ -159,7 +161,9 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
         })
     setBusy(false)
     if (res.error) {
-      setError(failureText(res.error, 'dictionary'))
+      // Validation (word-exists, bad-word, …) stays on the form's line; a
+      // fault pops the modal.
+      setError(formFailureText(res.error, 'dictionary'))
       return
     }
     setWordEdit(null)
@@ -183,7 +187,7 @@ export function WordEditDialog({ request }: { request: WordEditRequest }) {
     })
     setBusy(false)
     if (res.error) {
-      setError(failureText(res.error, 'dictionary'))
+      setError(formFailureText(res.error, 'dictionary'))
       return
     }
     setWordEdit(null)

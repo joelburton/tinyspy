@@ -20,6 +20,7 @@ import { gp } from '../../common/test/gamePlayers'
 import type { EventRow, LetterboxedGame, PlayerRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
+import { clearFaultsForTest, peekFaultsForTest } from '../../common/lib/fault/faultStore'
 
 type GameHook = {
   game: LetterboxedGame | null
@@ -115,6 +116,7 @@ function menuItems(ctx: GamePageCtx) {
 }
 
 beforeEach(() => {
+  clearFaultsForTest()
   h.result = loaded(loadedGame())
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null, data: null })
@@ -319,20 +321,22 @@ describe('letterboxed PlayArea — server keys become player copy', () => {
     expect(screen.getByText('Game over').closest('[class*="fault"]')).toBeNull()
   })
 
-  it('a key with NO copy shows raw, as a fault — nobody wrote words for it', async () => {
+  it('a key with NO copy routes to the fault MODAL, raw — nobody wrote words for it', async () => {
     // `game-not-found` is unreachable in normal play, so it has no entry. The
     // action name comes from the FE, which is the only side that knows it.
+    // Faults never enter the slot any more — the sink sends them to the fault
+    // modal's queue (docs/ui.md → Faults).
     await undoWith({ message: 'game-not-found|', code: 'P0002' })
-    const shown = screen.getByText('undo|game-not-found|')
-    expect(shown.closest('[class*="fault"]')).not.toBeNull()
+    expect(screen.queryByText('undo|game-not-found|')).toBeNull()
+    expect(peekFaultsForTest().map((f) => f.text)).toContain('undo|game-not-found|')
   })
 
   it('a transport failure never shows the browser wording', async () => {
     // A rejected fetch arrives with no SQLSTATE; postgrest-js puts the
     // browser's opaque phrasing in `message`, which is worthless to a player.
     await undoWith({ message: 'TypeError: Load failed', code: '' })
-    expect(screen.getByText('undo: Server; try refresh')).toBeInTheDocument()
     expect(screen.queryByText(/TypeError/)).toBeNull()
+    expect(peekFaultsForTest().map((f) => f.text)).toContain('undo: Server; try refresh')
   })
 })
 

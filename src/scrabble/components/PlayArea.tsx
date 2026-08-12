@@ -1,4 +1,4 @@
-import { failureText, faultMessage } from '../../common/lib/game/serverError'
+import { faultMessage, formFailureText } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import type { GenericFeedbackMsg, GamePageCtx, Member } from '../../common/lib/games'
@@ -18,7 +18,6 @@ import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { colorVarFor } from '../../common/lib/color/memberColor'
 import { callEdgeFn } from '../../common/lib/supabase/callEdgeFn'
-import { logStamp } from '../../common/lib/supabase/realtimeDiag'
 import { db } from '../db'
 import type { ScrabbleSetup } from '../lib/setup'
 import type { Placement } from '../lib/play'
@@ -305,16 +304,23 @@ export function PlayArea({
     // generic prose, and never "Server; try refresh" over a real answer.
     const res = await callEdgeFn('scrabble-suggest-move', { game_id: gameId })
     if (res.error) {
-      setSuggest({ status: 'error', message: failureText(res.error, 'suggest') })
+      // Split by surface rule (docs/ui.md → Faults): an EXPECTED answer (the
+      // ai-* keys with copy) stays on the panel's red line; a fault pops the
+      // modal and the panel resets to idle.
+      const text = formFailureText(res.error, 'suggest')
+      setSuggest(text ? { status: 'error', message: text } : { status: 'idle' })
       return
     }
     const payload = res.data as { moves?: RankedMove[]; version?: number; error?: string } | null
     if (!payload || payload.error || !Array.isArray(payload.moves) || typeof payload.version !== 'number') {
-      // A 200 whose body isn't the contract — as much a fault as the branch
-      // above, so it gets the same [db] trail (the screen shows the panel's
-      // red line either way; the console is where the diagnosis lives).
-      console.error(`[db] ${logStamp()} FAULT on suggest: 200 with unexpected body ${JSON.stringify(payload)?.slice(0, 200)}`)
-      setSuggest({ status: 'error', message: payload?.error ?? 'Could not fetch suggestions.' })
+      // A 200 whose body isn't the contract is a fault too — through the
+      // classifier (answered: a 2xx arrived), which logs the [db] line and
+      // pops the modal.
+      const text = formFailureText(
+        { message: payload?.error ?? 'suggest returned an unexpected body', answered: true },
+        'suggest',
+      )
+      setSuggest(text ? { status: 'error', message: text } : { status: 'idle' })
       return
     }
     // We do NOT reject a version mismatch here. The response's version is the

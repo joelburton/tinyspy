@@ -1,5 +1,4 @@
-import { failureText } from '../../common/lib/game/serverError'
-import { failureMessage } from '../../common/lib/game/serverError'
+import { failureMessage, formFailureText } from '../../common/lib/game/serverError'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { useRef, useState, type KeyboardEvent, type RefObject, type SubmitEvent } from 'react'
 import { callEdgeFn } from '../../common/lib/supabase/callEdgeFn'
@@ -267,13 +266,15 @@ function ClueForm({
     const payload = res.data as { suggestion?: unknown; error?: string } | null
     if (res.error || !payload || payload.error || !payload.suggestion) {
       console.log('[ClueHint] response = error')
-      onSuggestionChange({
-        status: 'error',
-        message: failureText(
-          res.error ?? { message: payload?.error ?? 'no suggestion in the response', answered: true },
-          'AI clue',
-        ),
-      })
+      // Split by surface rule (docs/ui.md → Faults): an EXPECTED answer —
+      // ai-clue-declined / ai-truncated / ai-malformed, the model RAN — stays
+      // in the suggestion dialog as its sentence; a fault pops the modal and
+      // closes the suggestion dialog (there is nothing to show in it).
+      const text = formFailureText(
+        res.error ?? { message: payload?.error ?? 'no suggestion in the response', answered: true },
+        'AI clue',
+      )
+      onSuggestionChange(text ? { status: 'error', message: text } : null)
       return
     }
     const s = payload.suggestion as { clue: string; count: number; reasoning: string }

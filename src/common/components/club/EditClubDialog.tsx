@@ -1,4 +1,4 @@
-import { failureText } from '../../lib/game/serverError'
+import { formFailureText } from '../../lib/game/serverError'
 import { useState } from 'react'
 import { db as commonDb } from '../../db'
 import { games } from '../../../games'
@@ -79,8 +79,9 @@ export function EditClubDialog({
     })
     if (rpcError) {
       setBusy(false)
-      // Classified: the club-name rules' keys show their ERROR_COPY sentences.
-      setError(failureText(rpcError, 'club'))
+      // Split by surface rule: the club-name rules' keys show their ERROR_COPY
+      // sentences on the form's line; a fault pops the modal.
+      setError(formFailureText(rpcError, 'club'))
       return
     }
     // Don't bother clearing `busy` — onSaved unmounts us.

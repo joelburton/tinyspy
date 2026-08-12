@@ -65,15 +65,17 @@ test.describe('codenamesduet below-board layout stability', () => {
     await expect(pageBob.getByText(/waiting for/i).first()).toBeVisible({ timeout: 15000 })
     const bWait = await boardHeight(pageBob)
 
-    // ── Alice clicks the AI clue button and the edge function errors (route-mocked
-    //    to a non-2xx). The suggestion opens its own floating dialog (which surfaces
-    //    the API error), NOT a slot swap — so the form stays put and the board
-    //    must not move.
+    // ── Alice clicks the AI clue button and the edge function answers with an
+    //    EXPECTED fe-error-key (the model declined — it RAN). That stays in the
+    //    suggestion's own floating dialog as its ERROR_COPY sentence, NOT a slot
+    //    swap — so the form stays put and the board must not move.
+    //    (A keyless FAULT instead pops the fault MODAL and closes the dialog —
+    //    exercised below.)
     await pageAlice.route('**/functions/v1/codenamesduet-suggest-clue', (route) =>
       route.fulfill({
-        status: 500,
+        status: 502,
         contentType: 'application/json',
-        body: '{"error":"boom"}',
+        body: '{"error":"ai-clue-declined|"}',
       }),
     )
     // `exact: true`: the accessible-name substring match otherwise also catches
@@ -98,11 +100,35 @@ test.describe('codenamesduet below-board layout stability', () => {
     expect(panel!.x + panel!.width).toBeLessThanOrEqual(viewport.width)
     expect(panel!.y + panel!.height).toBeLessThanOrEqual(viewport.height)
 
+    // The declined sentence is ERROR_COPY's, rendered in the dialog.
+    await expect(
+      pageAlice.getByText('The model declined to suggest a clue — try again'),
+    ).toBeVisible()
     await expect(countInput).toBeVisible()
     const aError = await boardHeight(pageAlice)
     // Dismiss the dialog so it can't overlap the form for the submit below.
     await pageAlice.getByRole('button', { name: 'Close' }).click()
     await expect(pageAlice.getByText('Clue suggestion')).toBeHidden()
+
+    // ── The FAULT case: keyless prose off the edge fn is a fault — it pops the
+    //    blocking fault MODAL (docs/ui.md → Faults) and the suggestion dialog
+    //    never opens. The modal overlays (no reflow), so the board holds too.
+    await pageAlice.unroute('**/functions/v1/codenamesduet-suggest-clue')
+    await pageAlice.route('**/functions/v1/codenamesduet-suggest-clue', (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: '{"error":"boom"}',
+      }),
+    )
+    await pageAlice.getByRole('button', { name: 'AI', exact: true }).click()
+    await expect(pageAlice.getByText('AI clue|boom')).toBeVisible({ timeout: 10000 })
+    await expect(pageAlice.getByText('Clue suggestion')).toBeHidden()
+    const aFault = await boardHeight(pageAlice)
+    // Two dismissers by design (the body button + the panel header's ×) —
+    // target the body button by its text.
+    await pageAlice.getByText('Close', { exact: true }).click()
+    await expect(pageAlice.getByText('AI clue|boom')).toBeHidden()
 
     // ── Alice submits a clue → guess phase. She now sees the clue + "waiting for
     //    bob to guess".
@@ -120,6 +146,7 @@ test.describe('codenamesduet below-board layout stability', () => {
     // states (sub-pixel tolerance covers rounding). If the slot ever grew, the
     // flex:1 board would shrink and these would differ.
     expect(Math.abs(aError - aForm)).toBeLessThan(1)
+    expect(Math.abs(aFault - aForm)).toBeLessThan(1)
     expect(Math.abs(aGuess - aForm)).toBeLessThan(1)
     expect(Math.abs(bGuess - bWait)).toBeLessThan(1)
 

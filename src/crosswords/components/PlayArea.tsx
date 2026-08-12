@@ -1,4 +1,4 @@
-import { failureMessage, failureText } from '../../common/lib/game/serverError'
+import { failureMessage, formFailureText } from '../../common/lib/game/serverError'
 import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconNewGame, IconPrint, IconRestart, IconReveal, IconScratchpad } from '../../common/components/icons'
@@ -462,7 +462,12 @@ export function PlayArea(ctx: GamePageCtx) {
       gameId, cells: ctx.cells, clueText: ctx.clueText, enumeration: ctx.enumeration,
     })
     if (res.error) {
-      setExplain({ kind: 'error', message: failureText(res.error, 'explain') })
+      // Split by surface rule (docs/ui.md → Faults): an EXPECTED answer —
+      // ai-explain-declined / ai-truncated, the model RAN — stays in the
+      // explain dialog as its sentence; a fault pops the modal and closes the
+      // dialog (there is nothing to show in it).
+      const text = formFailureText(res.error, 'explain')
+      setExplain(text ? { kind: 'error', message: text } : null)
       return
     }
     const payload = res.data as { explanation?: string; reason?: string; error?: string } | null
@@ -471,13 +476,11 @@ export function PlayArea(ctx: GamePageCtx) {
       return
     }
     if (!payload?.explanation) {
-      setExplain({
-        kind: 'error',
-        message: failureText(
-          { message: payload?.error ?? 'no explanation in the response', answered: true },
-          'explain',
-        ),
-      })
+      const text = formFailureText(
+        { message: payload?.error ?? 'no explanation in the response', answered: true },
+        'explain',
+      )
+      setExplain(text ? { kind: 'error', message: text } : null)
       return
     }
     setExplain({ kind: 'ok', explanation: payload.explanation })

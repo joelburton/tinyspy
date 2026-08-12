@@ -109,48 +109,63 @@ Two exclusions, both deliberate. **`manual` keeps its `×` as the only target** 
 - The state lives in `<GamePage>`; the auto-clear timer for `timed` mode is owned by `<GamePage>`, not the caller.
 - **Pause transitions don't auto-clear feedback.** `<PauseOverlay>` covers the play surface, not the header; an active pill stays readable through a pause/resume cycle. If a specific feedback shouldn't survive a pause, the caller clears it explicitly.
 
-#### Faults — the one thing that is NOT a pill
+#### Faults — the one thing that is NOT a pill: the fault MODAL
 
 A **fault** is a failure nobody planned for: a bug, or a request that never
-reached the server. It renders as **bare red text on the page's own
-background** — no border, no fill, no rounded chip — deliberately unlike every
-normal message.
+reached the server. It renders as a blocking **modal** (`<FaultDialog>`, one
+host mounted in App.tsx) — dimmed backdrop, nothing outside it interactable —
+deliberately unlike every normal message. The phone-line shape test got even
+easier: *"did a box pop up?"* separates **"the game refused my move"** from
+**"the app is broken"** before anyone reads a word.
 
-The difference is functional, not decorative. It lets a player answer *"is it a
-rounded pill or plain red text?"* down a phone line, which separates **"the game
-refused my move"** from **"the app is broken"** before anyone reads a word. The
-whole point of the split is remote diagnosis, since most reports arrive as a
-phone call rather than a console.
+Three lines (Joel's spec, 2026-08-13):
 
-- **Nothing authors a fault by hand.** `GenericFeedbackMsg.fault` is set only
-  inside [`serverError.ts`](../src/common/lib/game/serverError.ts) — by
-  `failureMessage` when no copy exists for whatever came back, and by
-  `faultMessage` on a **fault surface** (below) — see
+1. **"Error"**, red.
+2. **The message** — the classifier's words: `ERROR_COPY`'s sentence when the
+   key has copy on a fault surface, the raw `action|key|detail|` otherwise,
+   the transport line (`word: Server; try refresh`) when nothing answered.
+3. **The diagnostics**, small and muted — everything we know (action,
+   fe-error-key, SQLSTATE, HTTP status, DETAIL, raw text, timestamp): the
+   SAME string the `[db]` console line carries, from one shared builder
+   (`faultBits` in serverError.ts), so screen and log can never drift.
+
+Dismissal: the Close button or Esc — backdrop clicks are deliberately inert
+(see-and-acknowledge). One fault at a time; each fault is its own modal
+(no batching); the queue caps at 5 and silently drops overflow from the UI —
+every dropped fault still has its `[db]` line, since the classifier logs
+before routing.
+
+**The one rule:** *every failure that classifies as fault/transport pops the
+modal, on every surface; expected rejections, validation, and answers stay
+where they are.* Mechanics:
+
+- **Nothing authors a fault by hand.** `GenericFeedbackMsg.fault` (+ its
+  `diagnostics`) is set only inside
+  [`serverError.ts`](../src/common/lib/game/serverError.ts) — by
+  `failureMessage` when no copy exists for what came back, and by
+  `faultMessage` on a fault surface (in-game New game, where nothing that
+  comes back is gameplay) — see
   [supabase.md → Server errors](supabase.md#server-errors-the-server-raises-a-key-typescript-owns-the-words).
-- **Look and words are independent axes.** The *surface* decides pill vs
-  fault; the copy table decides only the words. A pill is the game talking
-  about **play** — a local rejection, or a server race a player can genuinely
-  lose ("Already played", "Not your turn", an End/Concede/Restart arriving
-  second). An action with no ordinary way to fail is a **fault surface**: the
-  in-game "New game" button, in every game (its setup already built a game
-  once, so anything that comes back is a bug or an outage). There
-  `faultMessage` renders EVERY failure with the fault look — wearing the
-  copy's sentence when one exists ("No words for those letters"), the raw
-  `action|key|` shape otherwise, always `error`-toned (a fault is never news)
-  and always logged.
-- **Planned follow-up: the fault MODAL** (docs/supabase.md → Server errors →
-  Follow-up round): faults move out of the below-board slot into a modal —
-  room for the full message, and "did a box pop up?" is even easier to answer
-  down a phone line. Faults only; pills and form validation stay put.
-- **It keeps the pill's box metrics** — same padding, same single nowrap line —
-  so swapping one for the other can't change the reserved slot's height and
-  shift the board.
-- **Mode is `manual`** (× only). This is the message that has to survive the
-  next keystroke long enough to be read out.
-- **What it says**: a transport failure gets `word: Server; try refresh` (the
-  action, the cause, a suggestion); a bug gets the raw `action|key|detail|`,
-  unedited — it isn't written for a player, but hiding it would leave nothing
-  to read back.
+- **Routing lives at the sink chokepoints**, not per game:
+  `useLocalFeedback.show` and the GamePage global slot send `fault: true`
+  messages to the fault store instead of slot state, so no game wires
+  anything and `GenericFeedbackPill` has no fault branch (guarded by
+  `faultStore.test.ts` — a fault can never reach a slot). The reserved
+  below-board slot simply never shows one.
+- **Form/panel surfaces** use `formFailureText`: an expected rejection
+  returns its sentence for the surface's own red line (the setup dialog's
+  validation, the club-name rules, the AI panels' "the model declined —
+  try again"); a fault pops the modal and the surface resets. The two page
+  LOADS in ClubPage stay in-page — a page that failed to load has nothing to
+  render behind a modal, so its own error state is the right surface.
+- **Look and words are independent axes.** The surface decides pill vs
+  fault; the copy table decides only the words — a fault surface wears the
+  copy's sentence when one exists, always `error`-toned (a fault is never
+  news), always logged.
+- **Testing the look:** real faults are bugs or dead networks, so
+  `window.pupfault()` (registered by FaultDialog) pops a canned one from the
+  browser console — `pupfault('text', 'diagnostics')` to shape your own. For
+  a genuine one: DevTools → Network → Offline, then any action.
 
 ### Toasts
 

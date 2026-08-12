@@ -24,6 +24,7 @@ import { db } from '../db'
 import { db as commonDb } from '../../common/db'
 import { invokeStartGameEdgeFn } from '../../common/lib/game/manifestRpcs'
 import { PlayArea } from './PlayArea'
+import { clearFaultsForTest, peekFaultsForTest } from '../../common/lib/fault/faultStore'
 
 type GameHook = {
   game: WaffleGame | null
@@ -106,6 +107,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
 }
 
 beforeEach(() => {
+  clearFaultsForTest()
   h.result = loaded(coopGame)
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null })
@@ -253,9 +255,11 @@ describe('waffle PlayArea — new game (menu)', () => {
 
     act(() => menuItems(ctx).find((i) => i.id === 'new-game')!.onClick())
     await user.click(await screen.findByRole('button', { name: 'Start new game' }))
+    // Faults route to the MODAL queue now, never a slot (docs/ui.md → Faults).
     await waitFor(() =>
-      expect(screen.getByText('new game|no words for that band')).toBeInTheDocument(),
+      expect(peekFaultsForTest().map((f) => f.text)).toContain('new game|no words for that band'),
     )
+    expect(screen.queryByText('new game|no words for that band')).toBeNull()
     expect(ctx.goToGame).not.toHaveBeenCalled()
     // Faults leave a [db] trail; expected pills don't. This one must.
     expect(consoleSpy.mock.calls.some((c) => String(c[0]).includes('FAULT on new game'))).toBe(true)

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 
 /**
@@ -10,6 +10,7 @@ import { renderHook, act } from '@testing-library/react'
  * rejected with the per-game reason and NEVER hits the RPC; and a failed commit
  * releases the word so a retry works.
  */
+import { clearFaultsForTest, peekFaultsForTest } from '../../lib/fault/faultStore'
 import { useWordSubmit, type WordSubmitConfig, type WordEntry } from './useWordSubmit'
 
 const APPLE: WordEntry = { word: 'apple', points: 5, isBonus: false }
@@ -47,6 +48,8 @@ function setup(cfg: WordSubmitConfig) {
   }
   return { ...view, type, submit }
 }
+
+beforeEach(() => clearFaultsForTest())
 
 describe('useWordSubmit', () => {
   it('accepts a legal word: fires commit once and shows a success pill', async () => {
@@ -216,12 +219,10 @@ describe('useWordSubmit', () => {
     type('apple')
     await submit()
     // The background commit rejected → the word is freed, and the player is
-    // told in words TypeScript owns. The browser's opaque phrasing never shows.
-    expect(result.current.localFeedback?.tone).toBe('error')
-    expect(result.current.localFeedback?.text).toBe('word: Server; try refresh')
-    // ...and as a FAULT, not a normal pill: nothing about a dead connection is
-    // a game outcome (lib/game/serverError.ts).
-    expect(result.current.localFeedback?.fault).toBe(true)
+    // told in words TypeScript owns, via the fault MODAL (a fault never enters
+    // the slot — docs/ui.md → Faults). The browser's opaque phrasing never shows.
+    expect(result.current.localFeedback).toBeNull()
+    expect(peekFaultsForTest().map((f) => f.text)).toContain('word: Server; try refresh')
 
     // Retyping + resubmitting is allowed (not stuck on "already found").
     type('apple')

@@ -226,10 +226,13 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
 
     // The commit lost: free the word so it can be retried, and say why in the
     // words TypeScript owns. `failureMessage` decides the LOOK too — a rule the
-    // server anticipated is a normal pill, anything else is a fault — so this
-    // takes the whole message rather than a string (lib/game/serverError.ts).
+    // server anticipated replaces the optimistic pill; a FAULT routes to the
+    // modal (the sink's branch), so the stale "+N" success pill must be
+    // cleared here explicitly or it would keep claiming a word that never
+    // landed behind the modal.
     const release = (msg: GenericFeedbackMsg) => {
       pendingRef.current.delete(w) // free it so the player can retry
+      if (msg.fault) clearLocalFeedback()
       showPill(msg)
     }
     c.commit(entry).then(
@@ -244,7 +247,7 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
           'word',
         )),
     )
-  }, [showPill])
+  }, [showPill, clearLocalFeedback])
 
   return { word, setWord, lastWord, submit, localFeedback, clearLocalFeedback, showLocalFeedback: showPill }
 }

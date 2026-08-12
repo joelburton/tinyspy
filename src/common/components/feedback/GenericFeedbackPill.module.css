@@ -147,13 +147,3 @@
  * `--color-sys-error-red` is the system red used by `.error` text elsewhere,
  * not the pill's tone palette: this is deliberately outside the feedback
  * vocabulary, because it isn't feedback. */
-.fault {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.85rem;
-  max-width: 100%;
-  white-space: nowrap;
-  color: var(--color-sys-error-red);
-  font-weight: 600;
-}

@@ -1,4 +1,5 @@
 import type { GenericFeedbackMsg } from '../games'
+import { presentFault } from '../fault/faultStore'
 import { logStamp } from '../supabase/realtimeDiag'
 import { ERROR_COPY } from './errorCopy'
 
@@ -257,6 +258,25 @@ export function faultMessage(error: CallError, action: string): GenericFeedbackM
   // and with `answered` in play, a server's prose answer arrives here as a
   // fault carrying its real text, never as "Server; try refresh".
   return failureMessage(error, action)
+}
+
+/**
+ * The failure for a FORM or PANEL surface: an EXPECTED rejection returns its
+ * text for the surface's own red line (validation and answers stay in-form —
+ * Joel's rule); a fault/transport presents the fault MODAL and returns null,
+ * so the surface shows nothing and resets itself. One call, both outcomes:
+ *
+ *     const text = formFailureText(error, 'club')
+ *     if (text) setError(text)          // validation — the form's line
+ *     else …reset local state…          // fault — the modal has it
+ */
+export function formFailureText(error: CallError, action: string): string | null {
+  const msg = failureMessage(error, action)
+  if (msg.fault) {
+    presentFault({ text: msg.text, diagnostics: msg.diagnostics })
+    return null
+  }
+  return typeof msg.text === 'string' ? msg.text : String(msg.text)
 }
 
 /**

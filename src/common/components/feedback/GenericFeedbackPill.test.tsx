@@ -92,44 +92,6 @@ describe('GenericFeedbackPill — tap to dismiss', () => {
   })
 })
 
-/**
- * A FAULT renders as bare red text, not a pill. The visual difference is
- * load-bearing rather than cosmetic: it's what lets a player answer "is it a
- * rounded pill or plain red text?" down a phone line, separating "the game
- * refused my move" from "the app is broken" before anyone reads the words.
- */
-describe('GenericFeedbackPill — faults', () => {
-  const fault = {
-    tone: 'error' as const,
-    fault: true as const,
-    text: 'word|unplayable-board|BITCH|',
-    mode: { kind: 'manual' as const },
-  }
-
-  it('wears none of the pill chrome', () => {
-    const { container } = render(<GenericFeedbackPill msg={fault} onClose={() => {}} />)
-    expect(container.querySelector('[class*="pill"]')).toBeNull()
-    expect(container.querySelector('[class*="fault"]')).not.toBeNull()
-  })
-
-  it('shows the raw server text verbatim — it is the whole diagnosis', () => {
-    render(<GenericFeedbackPill msg={fault} onClose={() => {}} />)
-    expect(screen.getByText('word|unplayable-board|BITCH|')).toBeInTheDocument()
-  })
-
-  it('keeps its × — a fault must not vanish before it can be read out', async () => {
-    const onClose = vi.fn()
-    const user = userEvent.setup()
-    render(<GenericFeedbackPill msg={fault} onClose={onClose} />)
-    await user.click(screen.getByRole('button', { name: 'Dismiss' }))
-    expect(onClose).toHaveBeenCalled()
-  })
-
-  it('does NOT dismiss on a body tap, unlike a sticky pill', async () => {
-    const onClose = vi.fn()
-    const user = userEvent.setup()
-    render(<GenericFeedbackPill msg={fault} onClose={onClose} />)
-    await user.click(screen.getByText('word|unplayable-board|BITCH|'))
-    expect(onClose).not.toHaveBeenCalled()
-  })
-})
+/* The fault describe block retired 2026-08-13: faults never reach this
+ * component any more — the sinks route them to the fault MODAL (FaultDialog;
+ * docs/ui.md → Faults), guarded by faultStore.test.ts's routing tests. */

@@ -1,4 +1,4 @@
-import { failureText } from '../../lib/game/serverError'
+import { formFailureText } from '../../lib/game/serverError'
 import { useState, type SubmitEvent } from 'react'
 import { db as commonDb } from '../../db'
 import { supabase } from '../../lib/supabase/supabase'
@@ -121,9 +121,9 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
         setError('Your session expired — signing you out.')
         await supabase.auth.signOut()
       } else {
-        // Classified: username-claimed| / bad-username| show their ERROR_COPY
-        // sentences, not raw fe-error-keys.
-        setError(failureText(rpcError, 'username'))
+        // Split by surface rule: username-claimed| / bad-username| show their
+        // ERROR_COPY sentences on the form's line; a fault pops the modal.
+        setError(formFailureText(rpcError, 'username'))
       }
       return
     }

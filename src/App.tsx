@@ -14,6 +14,7 @@ import { WordEditDialog } from './common/components/definitions/WordEditDialog'
 import { useWordEdit } from './common/lib/definitions/wordEditStore'
 import { GameInvitations } from './common/components/game/GameInvitations'
 import { ToastHost } from './common/components/toasts/ToastHost'
+import { FaultDialog } from './common/components/feedback/FaultDialog'
 import { TooltipHost } from './common/components/tooltips/TooltipHost'
 import { useRealtimeReconnect } from './common/hooks/realtime/useRealtimeReconnect'
 import { useBacktickEscape } from './common/hooks/input/useBacktickEscape'
@@ -192,6 +193,10 @@ export default function App() {
           above everything, portaled to <body>). */}
       <GameInvitations session={session} />
       <ToastHost />
+      {/* The ONE fault-modal host (docs/ui.md → Faults): every sink routes
+          fault-classified failures into the shared fault store; this renders
+          them one at a time as a blocking modal. */}
+      <FaultDialog />
       {/* The styled-tooltip renderer for every `data-tooltip` element
           (buttons' hover bubbles) — one delegated host, viewport-clamped. */}
       <TooltipHost />
