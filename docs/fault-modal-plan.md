@@ -30,7 +30,7 @@ modal.
 | account/club forms + WordEditDialog: fault / transport | form red line | **modal** (ruled A: faults yes, validation stays in-form) |
 | scrabble AI-suggest fault | panel red line | **modal** (ruled B) |
 | codenamesduet AI-clue fault (the Claude call) | clue dialog's message area | **modal** (ruled B — "tinyspy too") |
-| crosswords explain-clue fault (also a Claude call) | explain panel | **modal** — folded in under the same rule; the `unsolved` ANSWER stays panel-side. Flagged for Joel: not named in ruling B, included for consistency |
+| crosswords explain-clue fault (also a Claude call) | explain panel | **modal** (confirmed) — the `unsolved` ANSWER and the ai-* expected keys stay panel-side |
 | GoTrue login errors | form line (allowlisted; the auth service's own text) | unchanged — not our fault system |
 | crosswords keystroke storm (dead connection) | one bare-red line, replaced per keystroke | one modal per fault, QUEUED — the accepted "for now"; the first revisit trigger |
 
@@ -104,9 +104,14 @@ dialog stays open behind the modal so the player can retry after dismissing.
 - **A.** Forms (account/club, WordEditDialog): failures that classify as
   fault/transport — anything bad user input alone can't produce — pop the
   MODAL. Validation stays in-form.
-- **B.** AI-panel faults pop the modal: scrabble's suggester AND
-  codenamesduet's clue hint ("tinyspy") — a Claude-call error is a fault.
-  crosswords' explain-clue folded in under the same rule (flagged above).
+- **B.** AI-panel faults pop the modal: scrabble's suggester, codenamesduet's
+  clue hint ("tinyspy"), AND crosswords' explain-clue (confirmed 2026-08-13).
+  The ran-vs-broke line, per Joel: the model RUNNING and coming back
+  empty-handed is NOT a fault — and the copy table already encodes that:
+  ai-clue-declined / ai-explain-declined / ai-truncated / ai-malformed carry
+  copy, classify as EXPECTED, and stay in their panels as sentences; only
+  the copyless failures (ai-unconfigured, edge-internal, unknown relayed
+  raises, transport) are faults and pop the modal.
 - **C.** Close button + Escape; backdrop-click inert.
 - **D.** Queue capped at 5; overflow silently dropped from the UI (still
   console-logged); no filtering or batching.
