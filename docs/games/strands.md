@@ -257,14 +257,14 @@ connecting line**, so the player still works out the order.
   lost, and nothing warns about it — the full bar is the signal, which is why the
   filled state is styled distinctly rather than merely being 100% wide.
 - **The button is clickable before the bar fills**, and answers the click with
-  the count still to go — a `warning` pill, "3 words needed for a hint". The bar
+  the count still to go — a `warning` pill, "3 more words needed for a hint". The bar
   shows *progress* but never states the remaining number, so an early click is a
   fair question, and a disabled button is the one response that can't answer it.
   The two states still read differently: the button only fills amber
   (`hintReady`) when a hint is actually there to cash. Words is the literal unit
   — `spend_hint`'s ledger adds exactly one point per valid non-theme word — and
-  the singular ("1 word needed") is unit-tested, since it's the state preceding
-  every hint anyone ever earns.
+  the singular ("1 more word needed") is unit-tested, since it's the state
+  preceding every hint anyone ever earns.
 - **One hint at a time.** A second is refused while one is unsolved; the board
   can only ring one word legibly.
 - **Not turn-gated.** Spending is a decision about a team resource, not a move.

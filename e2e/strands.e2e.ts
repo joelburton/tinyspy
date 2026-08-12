@@ -187,7 +187,7 @@ test.describe('strands hint economy', () => {
     const hint = page.getByRole('button', { name: /hint/i })
     await expect(hint).toBeEnabled()
     await hint.click()
-    await expect(page.getByText('3 words needed for a hint')).toBeVisible()
+    await expect(page.getByText('3 more words needed for a hint')).toBeVisible()
 
     await ctx.close()
   })

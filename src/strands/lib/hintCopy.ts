@@ -13,5 +13,5 @@
  * of one.
  */
 export function hintShortfallText(short: number): string {
-  return `${short} word${short === 1 ? '' : 's'} needed for a hint`
+  return `${short} more word${short === 1 ? '' : 's'} needed for a hint`
 }
