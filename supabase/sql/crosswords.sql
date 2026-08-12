@@ -276,7 +276,14 @@ as $$
   -- Grouping by the PK lets the select + order reach p's other columns
   -- (functional dependency), so `meta` needn't be in the GROUP BY.
   group by p.id
-  order by p.created_at desc;
+  -- Alphabetical by title, case-insensitively — the picker is a list you
+  -- scan by name, and import order (the previous `created_at desc`) is an
+  -- accident of how the files happened to land. The expression is repeated
+  -- rather than `order by title`, because the OUT column of that name would
+  -- shadow it. `created_at desc` breaks ties so equal titles hold a stable,
+  -- newest-first order instead of whatever the plan happens to emit.
+  order by lower(coalesce(nullif(btrim(p.meta ->> 'title'), ''), 'Untitled')),
+           p.created_at desc;
 $$;
 revoke execute on function crosswords.library_for_club(text) from public;
 grant execute on function crosswords.library_for_club(text) to authenticated;
