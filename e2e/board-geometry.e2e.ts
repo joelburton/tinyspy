@@ -124,6 +124,21 @@ async function measureSoloWithBoard(
 
 test.describe('hug-board geometry (§3.2 no-op guard)', () => {
   test('every touched board renders at its baseline geometry', async ({ browser }) => {
+    // This one test builds and measures TWELVE games; every other test in the
+    // suite does one or two, and the config's 45s was sized for those ("the
+    // suite is small, so this is cheap"). It normally runs in 12–19s, so 45s
+    // looks like headroom and isn't: when the whole run is slow, the budget
+    // expires while measureBoard is still waiting, and a test-level timeout
+    // says only "45s passed" — it can't say WHICH board never arrived.
+    //
+    // The point of raising it is to make a future failure MEAN something. With
+    // room to run, measureBoard's own 20s assertion fires first and names the
+    // board. A timeout here after this would be real evidence of a hang, not
+    // an ambiguity. (Seen once on 2026-08-12, in a suite run that took 9.3m
+    // against a usual ~6m; 21 attempts to reproduce — isolated, under CPU load,
+    // and in-suite — all passed, so the cause is still unknown.)
+    test.setTimeout(120_000)
+
     const measured: Record<string, Box> = {}
 
     // ── Single-player games: one solo club + browser context each. ──────────
