@@ -30,14 +30,16 @@ export function Help({ onClose, brand }: Props) {
           in the slots below the board.
         </li>
         <li>
-          The fifth letter <strong>submits</strong> automatically. A real
+          The fifth letter completes the word — then <strong>submit</strong> it
+          with the button right of the slots, or <kbd>Enter</kbd>. A real
           5-letter word is accepted and those tiles leave for good,
           exposing what was underneath.
         </li>
         <li>
           Not a word? It's logged as a miss and the tiles return to the
-          board. Click a tile in the word to take it back (and every tile
-          after it).
+          board. To take tiles back before you submit: the button left of the
+          slots (or <kbd>Backspace</kbd>) returns the last one, and clicking a
+          tile in the word returns it and every tile after it.
         </li>
       </ul>
       <p>

@@ -1,9 +1,11 @@
-/* The five-slot word-entry row under the board. */
+/* The five-slot word-entry row under the board — the middle of the move row,
+ * flanked by the ⌫ and Submit buttons (BoardCol.module.css → `.moveArea`, which
+ * owns the spacing above: a margin here would offset the slots from the buttons
+ * they're supposed to line up with). */
 .row {
   display: flex;
   gap: 8px;
   justify-content: center;
-  margin-top: 1rem;
 }
 
 /* One slot. Empty slots are a dashed placeholder; filled slots carry the

@@ -345,7 +345,7 @@ prettier title here.
 stackdown is a **v3** game ([ui.md → Game versions](../ui.md#game-versions-v1--v3)): it renders on the shared
 two-column PlayArea scaffold (`common/components/game/PlayArea.module.css` — `.layout` /
 `.boardCol` / `.infoCol` / `.actionSlot`). The board column holds the stacked-tile
-board, the five-slot `WordEntry`, and a fixed-height **local feedback slot**; the
+board, the **move row**, and a fixed-height **local feedback slot**; the
 info column runs **state → opponent strip → action row → help → setup → log** in
 that fixed order. Feedback is **split** the canonical way: the player's OWN move
 results (a rejected word, a keystroke matching no/too-many exposed tiles, a
@@ -354,6 +354,28 @@ reveal's answer, an error, the terminal verdict) show as a centered
 pill (with the teammate's identity disc). An accepted / rejected word additionally
 flashes its letters green/red in the `WordEntry` ring (strong outcome colors) — so
 the local pill carries only the results a ring can't.
+
+**The move row** is `⌫ | the five-slot WordEntry | Submit` — the arrangement the
+shared `<EntryRow>` gives every typing game ([playarea.md → Text entry](../playarea.md#text-entry--capture-not-input)),
+rebuilt locally rather than reused, because stackdown's "entry" is a grid of
+picked-up **tiles**, not a text buffer: `EntryRow`'s capture keyboard,
+arrow-history and string `value` have nothing to bind to. The two buttons ARE the
+shared ones, so the control reads as the same control it is elsewhere.
+
+- **Filling the fifth slot does not submit.** You commit deliberately — the
+  Submit button or `Enter`. It used to submit the moment the fifth tile landed,
+  which made a wrong fifth tile unrecoverable: the game committed under your
+  finger. Now the completed word waits, and Submit is enabled at exactly five
+  tiles (a word is always five, so that's the entire gate).
+- **Three ways to take a tile back**, all of them kept: `⌫` or the ⌫ button
+  removes the most recent, and clicking a filled slot returns that tile *and
+  every tile after it* (the word is an order — you can't pull one from the middle
+  and keep the rest). The button is the touch-reachable twin of the key, which is
+  the real gain: stackdown has a supported phone layout and no keyboard there.
+- **Non-swap, unlike `EntryRow`**: the feedback pill does NOT take the row's slot
+  over — it has its own reserved row below — so the buttons stay visible while a
+  pill shows. Both buttons stay mounted and merely disabled when they can't act
+  (including while a past turn is being viewed), so the region never reflows.
 
 At terminal, no modal carries the verdict
 ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
@@ -509,6 +531,16 @@ lives in `setup.psql` — which **deletes any library boards first** so
 database that has run `g-stackdown-puzzles` would have real boards in scope and the
 fixture-encoded `sd_seq()` would spell the wrong tiles). FE: the `board.test.ts`
 Vitest above.
+
+**e2e** (`e2e/stackdown-*.e2e.ts`): history (the turn viewer), mobile, print, and
+**entry** — the move row's affordance. That last one is e2e rather than unit
+because what it pins is spread across three places that only exist together in a
+document: the fifth tile no longer submitting (the click handler), the buttons'
+enabled-ness (derived state), and `Enter` (the global key handler). A unit test
+could hold any one of them and still let the control feel wrong. It submits a
+deliberately INVALID word — the fixture board's solution letters are mostly
+buried at the start, and an invalid word exercises the whole commit path (round
+trip, tiles bounced back, pill) without depending on which letters are on top.
 
 ## 6. Printing the board (PDF)
 

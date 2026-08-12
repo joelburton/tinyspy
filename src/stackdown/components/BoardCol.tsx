@@ -4,6 +4,8 @@ import { useFlash } from '../../common/hooks/ui/useFlash'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import type { GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
+import { DeleteButton } from '../../common/components/buttons/DeleteButton'
+import { SubmitButton } from '../../common/components/buttons/SubmitButton'
 import { exposedIds, type Tile } from '../lib/board'
 import { Board } from './Board'
 import { WordEntry, type WordFlash } from './WordEntry'
@@ -77,7 +79,9 @@ export function BoardCol({
   appendTile: (tileId: number) => number[] | null
   /** Return a slot's tile and every tile after it. */
   retractTo: (index: number) => void
-  /** Emit a completed 5-tile word up — PlayArea owns the RPC + commit/clear. */
+  /** Emit the completed 5-tile word up — PlayArea owns the RPC + commit/clear.
+   *  Only ever called on a deliberate submit (the button or Enter); picking the
+   *  fifth tile no longer fires it. */
   onSubmitWord: (tileIds: number[]) => void
 
   // ── Below-board own-move feedback (the channel is owned by PlayArea) ──
@@ -101,19 +105,45 @@ export function BoardCol({
   // the state lives here (unlike the word-slot flash, which a teammate can trigger).
   const [flashIds, flashTiles] = useFlash<number>(900)
 
-  // ─── Tile click → extend the word, submit on the fifth ────────
+  // ─── Tile click → extend the word ─────────────────────────────
+  // Filling the fifth slot deliberately does NOT submit: the word sits there
+  // until you commit it with the Submit button or Enter. Picking a wrong fifth
+  // tile used to be unrecoverable — the game committed under your finger — and
+  // making the last tile just another tile is most of the point of the change.
   const onTileClick = useCallback(
     (tileId: number) => {
       if (readOnly) return
       clearFlash() // starting a new word drops any lingering word flash
       clearLocalFeedback() // …and the previous move's local pill (next-move-dismisses rule)
-      const word = appendTile(tileId)
-      if (word && word.length === 5) onSubmitWord(word)
+      appendTile(tileId)
     },
-    [readOnly, appendTile, onSubmitWord, clearFlash, clearLocalFeedback],
+    [readOnly, appendTile, clearFlash, clearLocalFeedback],
   )
 
+  // ─── The two explicit move controls ───────────────────────────
+  // A word is exactly five tiles, so that's the whole submit gate. Both
+  // predicates also drive the buttons' `disabled`, so the keyboard and the
+  // buttons can't disagree about what's possible right now.
+  const canSubmit = !readOnly && currentWord.length === 5
+  const canDelete = !readOnly && currentWord.length > 0
+
+  const submitWord = useCallback(() => {
+    if (canSubmit) onSubmitWord(currentWord)
+  }, [canSubmit, onSubmitWord, currentWord])
+
+  /** Return the most recent tile — the ⌫ button and physical Backspace share it. */
+  const deleteLast = useCallback(() => {
+    if (!canDelete) return
+    // A ⌫ click is a move like any keystroke, so it dismisses sticky feedback
+    // the same way (the EntryRow rule — it matters most on touch, where there
+    // is no next keystroke to do it).
+    clearLocalFeedback()
+    retractTo(currentWord.length - 1)
+  }, [canDelete, clearLocalFeedback, retractTo, currentWord.length])
+
   // ─── Physical keyboard ────────────────────────────────────────
+  // Enter submits (below five tiles it's a deliberate no-op, matching the
+  // disabled Submit button — there's nothing to say, so it says nothing).
   // Backspace returns the most recent tile; a letter key plays the matching tile —
   // but ONLY if exactly one exposed tile bears it (the word is the selection order,
   // so an ambiguous letter can't pick for you). 0 matches is an error; >1 flashes
@@ -132,9 +162,14 @@ export function BoardCol({
     // Any handled keystroke is a "next move" — clear the previous local pill. The
     // no-match / ambiguous branches below set a fresh one after this.
     clearLocalFeedback()
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      submitWord()
+      return
+    }
     if (e.key === 'Backspace') {
       e.preventDefault()
-      if (currentWord.length > 0) retractTo(currentWord.length - 1)
+      deleteLast()
       return
     }
     if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
@@ -193,7 +228,21 @@ export function BoardCol({
             </button>
           </div>
         )}
+        {/* The move row: ⌫ | the five slots | Submit — the arrangement the shared
+            <EntryRow> gives every typing game (docs/playarea.md → Text entry), built
+            here rather than reused, because stackdown's "entry" is a grid of
+            picked-up TILES, not a text buffer: EntryRow's capture keyboard,
+            arrow-history and string `value` have nothing to bind to. The two
+            buttons are the shared ones, so the control reads as the same control
+            it is elsewhere.
+
+            Both stay MOUNTED and merely disabled when they can't act — including
+            while a past turn is being viewed — so the region never reflows (the
+            reserve-the-slot rule, docs/ui.md). The ⌫ is the touch-reachable twin
+            of physical Backspace, which is the real gain: stackdown has a
+            supported phone layout and no keyboard there. */}
         <div className={styles.moveArea}>
+          <DeleteButton iconOnly onClick={deleteLast} disabled={!canDelete} />
           <WordEntry
             tiles={tiles}
             currentWord={currentWord}
@@ -201,6 +250,7 @@ export function BoardCol({
             onRetract={retractTo}
             flash={flash}
           />
+          <SubmitButton iconOnly onClick={submitWord} disabled={!canSubmit} />
         </div>
         {/* The LOCAL feedback area — reserves its own height (shared
             `.localFeedback`) so the board above never reflows when the pill

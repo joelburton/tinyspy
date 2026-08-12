@@ -242,7 +242,8 @@ No text entry — a letter names a *tile*, not a character.
 | key | what it does |
 |---|---|
 | `A`–`Z` | Play the matching exposed tile — but only if **exactly one** exposed tile bears that letter (the word is the selection order, so an ambiguous letter can't pick for you). Zero matches → an error pill; more than one → the candidates flash and you're asked to click one. |
-| `⌫` | Return the most recently picked tile. |
+| `⌫` | Return the most recently picked tile. The ⌫ button left of the word slots does the same thing (and is how you do it on a phone). |
+| `Enter` | Submit the word. A word is exactly five tiles, so below five this is a **deliberate no-op** — it matches the disabled Submit button rather than explaining itself. Filling the fifth slot does NOT submit: the word waits for you, so a wrong fifth tile is recoverable. |
 
 ## strands
 
