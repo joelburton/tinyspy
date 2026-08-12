@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { createSoloClub, createStrandsGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
+import { boardReady } from './helpers/ready'
 
 /**
  * strands typed input + the move row.
@@ -39,7 +40,14 @@ async function openGame(browser: import('@playwright/test').Browser, handle: str
   await signIn(ctx, club.members[0].session)
   const page = await ctx.newPage()
   await page.goto(`/g/${game.gametype}/${game.id}`)
-  await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+  // boardReady, not a bare toBeVisible: every test here types the instant the
+  // board appears, which is the exact shape helpers/ready.ts documents as
+  // dropping a first keystroke ~1% of the time. NOTE this is not a diagnosed
+  // fix for anything — a 240-load A/B of the 'q' assertion below came back
+  // 0/120 either way, so the one observed failure (2026-08-11, 1 in ~9 full
+  // suite runs) is still unexplained. This just retires the one hazard we can
+  // name, so the next occurrence has a smaller search space.
+  await boardReady(page, page.locator('[data-board]'), 20000)
   return { ctx, page }
 }
 
