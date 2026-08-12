@@ -138,7 +138,7 @@ phone call rather than a console.
   copy's sentence when one exists ("No words for those letters"), the raw
   `action|key|` shape otherwise, always `error`-toned (a fault is never news)
   and always logged.
-- **Planned follow-up: the fault MODAL** (docs/edge-fn-error-keys-plan.md →
+- **Planned follow-up: the fault MODAL** (docs/supabase.md → Server errors →
   Follow-up round): faults move out of the below-board slot into a modal —
   room for the full message, and "did a box pop up?" is even easier to answer
   down a phone line. Faults only; pills and form validation stay put.

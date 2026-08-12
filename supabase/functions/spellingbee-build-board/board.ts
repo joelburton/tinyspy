@@ -188,7 +188,7 @@ export function buildBoard(
 // valid. Keys, not sentences: the FE pre-validates the same rules in the setup
 // form (customLettersError in src/spellingbee/lib/setup.ts), so reaching one
 // of these means a broken client — they carry no copy and render as faults
-// (docs/edge-fn-error-keys-plan.md).
+// (docs/supabase.md → Server errors).
 export function validateCustomLetters(center: string, letters: string): string | null {
   if (!/^[a-z]$/.test(center) || center === 's') {
     return 'bad-custom-center|'

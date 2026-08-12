@@ -62,7 +62,7 @@
  *   → { id: uuid }  (200)
  *   → { error: fe-error-key, code?: SQLSTATE }  (400/401/403/500)
  *
- * Errors are fe-error-keys (`key|detail|` — docs/edge-fn-error-keys-plan.md;
+ * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
  * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
  * word. The one player-reachable key is `no-required-words|band|` (custom
  * letters with no words at the band — reuses SQL's key + its ERROR_COPY

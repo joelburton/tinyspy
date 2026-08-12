@@ -24,7 +24,7 @@
  *     setup: { timer, dice_set, band, legal_band, min_word_length, scoring_ladder, win_percent, constraints } }
  *   → { id }   ·   → { error: fe-error-key, code?: SQLSTATE } (400/401/422/500)
  *
- * Errors are fe-error-keys (`key|detail|` — docs/edge-fn-error-keys-plan.md;
+ * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
  * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
  * word. The one player-reachable key is `no-board-fits|` (unsatisfiable
  * constraint pickers — carries ERROR_COPY); the rest (bad-method / bad-band /

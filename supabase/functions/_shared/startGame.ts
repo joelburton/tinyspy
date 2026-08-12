@@ -115,7 +115,7 @@ export async function parseBuildBoardRequest(
  * The relayed error is the RPC's fe-error-key VERBATIM, plus its SQLSTATE as
  * `code` — restoring what functions-js strips in transit, so the FE classifies
  * a relayed raise exactly like a direct RPC failure (docs/supabase.md →
- * Server errors; docs/edge-fn-error-keys-plan.md). The words a player reads
+ * Server errors; docs/supabase.md → Server errors). The words a player reads
  * are the FE's, never this relay's.
  *
  * Pass `fnName` to emit the tagged diagnostic logs (RPC error / no-row / success

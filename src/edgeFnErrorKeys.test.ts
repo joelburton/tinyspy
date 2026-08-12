@@ -1,7 +1,7 @@
 /**
  * GUARD: every edge-function error return carries an fe-error-key.
  *
- * The contract (docs/edge-fn-error-keys-plan.md): an edge function's
+ * The contract (docs/supabase.md → Server errors): an edge function's
  * `json({ error: … })` value is a `key|detail1|detail2|` shape — kebab-case
  * key, ending in `|` — never player-facing prose. The FE owns every word a
  * player reads; a function that answers prose defeats the copy table AND the
@@ -20,7 +20,7 @@
  *     file-granular allowlist, review finding 9).
  *
  * UNCONVERTED lists the functions not yet migrated (the burn-down list —
- * docs/edge-fn-error-keys-plan.md). Deleting a function's entry as its
+ * docs/supabase.md → Server errors). Deleting a function's entry as its
  * conversion lands is part of that conversion; a NEW violation in a converted
  * function fails immediately.
  */

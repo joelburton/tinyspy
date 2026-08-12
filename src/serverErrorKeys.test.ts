@@ -4,7 +4,7 @@
  *
  * Every `raise exception` in `supabase/sql/` emits a machine key
  * (`chain-full|5|`), and every edge-function error return carries one too
- * (`json({ error: 'no-pangram-seeds|3|' })` — docs/edge-fn-error-keys-plan.md;
+ * (`json({ error: 'no-pangram-seeds|3|' })` — docs/supabase.md → Server errors;
  * shape-guarded by edgeFnErrorKeys.test.ts). The frontend decides what, if
  * anything, a player reads (lib/game/serverError.ts). Nothing links the sides
  * at compile time — SQL and Deno are text as far as this app's TypeScript is

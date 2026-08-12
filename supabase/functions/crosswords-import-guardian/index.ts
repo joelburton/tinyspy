@@ -25,7 +25,7 @@
  *   POST { target_club, mode, player_user_ids, setup: { timer, series } }
  *   → { id }  ·  → { error: fe-error-key, code?: SQLSTATE } (400/401/422/502)
  *
- * Errors are fe-error-keys (docs/edge-fn-error-keys-plan.md; guarded by
+ * Errors are fe-error-keys (docs/supabase.md → Server errors; guarded by
  * src/edgeFnErrorKeys.test.ts). Player-reachable, with ERROR_COPY:
  * guardian-fetch| (the Guardian down or answering garbage). The rest —
  * bad-request, guardian-convert|, create_game's no-row — are copyless

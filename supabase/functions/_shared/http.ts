@@ -29,7 +29,7 @@ export const preflight = (req: Request): Response | null =>
  * fe-error-key so even a crash comes back key-shaped.
  *
  * Every edge-function error return carries an fe-error-key
- * (`key|detail1|detail2|` — docs/edge-fn-error-keys-plan.md): the FE owns all
+ * (`key|detail1|detail2|` — docs/supabase.md → Server errors): the FE owns all
  * player-facing words, and a non-key response can then only mean the request
  * never reached the function at all. The raw message rides as the detail —
  * it's for the console/log audience, and the fault display shows it verbatim,

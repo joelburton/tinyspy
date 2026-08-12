@@ -25,7 +25,7 @@ import type { CallError } from '../game/serverError'
  * ─── The contract with edge functions ─────────────────────────
  * Every function returns errors as `{ error: '<fe-error-key>', code? }` —
  * `key|detail1|detail2|` shapes, never player-facing prose (the fe-error-key
- * plan, docs/edge-fn-error-keys-plan.md; guarded by edgeFnErrorKeys.test.ts).
+ * contract, docs/supabase.md → Server errors; guarded by edgeFnErrorKeys.test.ts).
  * So in the converted world a NON-key, UNANSWERED failure here can only be
  * environmental, which is what finally makes the transport wording honest.
  *

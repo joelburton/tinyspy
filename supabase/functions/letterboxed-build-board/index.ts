@@ -54,7 +54,7 @@
  *   → { id: uuid }  (200)
  *   → { error: fe-error-key, code?: SQLSTATE }  (400/401/500)
  *
- * Errors are fe-error-keys (`key|detail|` — docs/edge-fn-error-keys-plan.md;
+ * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
  * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
  * word. This function's own keys are all "impossible without an FE bug or a
  * broken pipeline" (bad-band / board-attempts-exhausted / unsolvable-board /
@@ -185,7 +185,7 @@ serve(async (req: Request) => {
   // Setup validation is create_game's job — it is the authority. legal_band is
   // read here only because the board cannot be built without knowing which
   // words count; the FE constrains it to 1..6, so this re-check is
-  // "impossible" and carries no copy (docs/edge-fn-error-keys-plan.md).
+  // "impossible" and carries no copy (docs/supabase.md → Server errors).
   const legalBand = Number(setup.legal_band ?? 5)
   if (!Number.isInteger(legalBand) || legalBand < 1 || legalBand > 6) {
     console.log(`${FN} reject: bad legal_band ${setup.legal_band} (must be an integer 1..6)`)
