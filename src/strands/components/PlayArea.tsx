@@ -24,6 +24,7 @@ import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { consumedCells, coordKey, wordFromPath, type Coord } from '../lib/board'
 import { clickTile, typeLetter, type Trace } from '../lib/trace'
+import { hintShortfallText } from '../lib/hintCopy'
 import { snapshotAt } from '../lib/history'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGame } from '../hooks/useGame'
@@ -398,9 +399,19 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   const spendHint = useCallback(async () => {
+    // Not enough points yet. The button stays CLICKABLE in this state on
+    // purpose (see HintBar): a control that does nothing and won't say why is
+    // the worst of the three options, and the bar beside it shows progress
+    // without ever naming the number still to go. So the click answers the
+    // question it was really asking — "how much further?".
+    const short = (game?.hint_cost ?? 0) - (me?.hint_points ?? 0)
+    if (short > 0) {
+      showLocalFeedback(stickyPill('warning', hintShortfallText(short)))
+      return
+    }
     const { error } = await db.rpc('spend_hint', { target_game: gameId })
     if (error) showLocalFeedback(failureMessage(error, 'hint'))
-  }, [gameId, showLocalFeedback])
+  }, [gameId, showLocalFeedback, game?.hint_cost, me?.hint_points])
 
   // End / Concede / Replay from the shared hook, so their confirm copy and
   // error handling match the other games'.

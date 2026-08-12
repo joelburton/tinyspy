@@ -28,6 +28,11 @@ type Props = {
  * unspent earn nothing — and nothing warns about it, deliberately. That makes
  * the filled state load-bearing, which is why it gets its own styling rather
  * than just being "100% wide".
+ *
+ * **The button is clickable before the bar fills**, and the host answers that
+ * click with the number of words still to go. The bar shows *progress* but
+ * never states the remaining count, so an early click is a fair question — and
+ * a disabled button is the one response that can't answer it.
  */
 export function HintBar({ points, cost, showing, disabled, onSpend }: Props) {
   const full = points >= cost
@@ -56,7 +61,14 @@ export function HintBar({ points, cost, showing, disabled, onSpend }: Props) {
         onClick={onSpend}
         // A hint already on the board blocks a second one: the board can only
         // ring one word legibly, and the server refuses anyway.
-        disabled={disabled || !full || showing}
+        //
+        // An UNFILLED bar deliberately does NOT disable it. Clicking early is a
+        // question — "how many more?" — and a dead button refuses to answer;
+        // the host handles the click by saying the number in the feedback pill
+        // (see PlayArea's `spendHint`). The two states still look different:
+        // `hintReady` fills the button amber only when a hint is actually
+        // there to cash.
+        disabled={disabled || showing}
         title={
           showing
             ? 'A hint is already showing'

@@ -161,3 +161,34 @@ test.describe('strands play loop', () => {
     await ctx.close()
   })
 })
+
+/**
+ * The hint economy's ONE interactive question: "how much further?".
+ *
+ * The bar shows progress but never names the count still to go, so an early
+ * click on the Hint button is a fair question — which is why the button stays
+ * clickable before the bar fills and the click answers in the feedback pill,
+ * rather than being a dead control that refuses to say anything.
+ */
+test.describe('strands hint economy', () => {
+  test('clicking Hint before it is earned says how many words are left', async ({ browser }) => {
+    const club = await createSoloClub('pphint')
+    const game = await createStrandsGame(club)
+
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+    await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+
+    // The fixture sets hint_cost = 3 and nothing has been found, so the answer
+    // is the whole cost. The count is literally words: the ledger adds exactly
+    // one point per valid non-theme word.
+    const hint = page.getByRole('button', { name: /hint/i })
+    await expect(hint).toBeEnabled()
+    await hint.click()
+    await expect(page.getByText('3 words needed for a hint')).toBeVisible()
+
+    await ctx.close()
+  })
+})
