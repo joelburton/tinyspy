@@ -1,4 +1,4 @@
-import { failureText } from '../../common/lib/game/serverError'
+import { failureText, faultMessage } from '../../common/lib/game/serverError'
 import { actionName } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
@@ -371,11 +371,14 @@ export function PlayArea({
       })
       .single()
     if (error || !data) {
-      showLocalFeedback(failureText(error, actionName('create_game')), 'error')
+      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
+      // already built a game once, so any failure here is a bug or an outage
+      // — never a pill. Copy supplies the words when it has them.
+      showMsg(faultMessage(error, actionName('create_game')))
       return
     }
     goToGame(`stackdown_${gameMode}`, (data as { id: string }).id)
-  }, [gameMode, clubHandle, setup, players, goToGame, showLocalFeedback, confirmAction, isTerminal])
+  }, [gameMode, clubHandle, setup, players, goToGame, showMsg, confirmAction, isTerminal])
 
   // Single-flight guard. New game has THREE triggers (the terminal button, the
   // game-menu item, and the global `+` shortcut), and `common.create_game` is

@@ -434,7 +434,10 @@ export function PlayArea(ctx: GamePageCtx) {
       })
       .single()
     if (error || !data) {
-      showLocalFeedback(failureMessage(error, 'new game'))
+      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
+      // already built a game once, so any failure here is a bug or an outage
+      // — never a pill. Copy supplies the words when it has them.
+      showLocalFeedback(faultMessage(error, 'new game'))
       return
     }
     goToGame(`strands_${game.mode}`, data.id)

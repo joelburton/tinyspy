@@ -1,5 +1,4 @@
-import { failureText } from '../../common/lib/game/serverError'
-import { failureMessage } from '../../common/lib/game/serverError'
+import { failureMessage, faultMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useRef, useMemo } from 'react'
 import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
@@ -322,11 +321,10 @@ export function PlayArea(ctx: GamePageCtx) {
       })
       .single()
     if (error || !data) {
-      showLocalFeedback({
-        tone: 'error',
-        text: failureText(error, 'new game'),
-        mode: { kind: 'sticky' },
-      })
+      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
+      // already built a game once, so any failure here is a bug or an outage
+      // — never a pill. Copy supplies the words when it has them.
+      showLocalFeedback(faultMessage(error, 'new game'))
       return
     }
     ctx.goToGame('bananagrams', (data as { id: string }).id)

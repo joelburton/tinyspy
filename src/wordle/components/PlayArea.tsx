@@ -1,4 +1,4 @@
-import { failureMessage } from '../../common/lib/game/serverError'
+import { failureMessage, faultMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
@@ -256,7 +256,10 @@ export function PlayArea({
       })
       .single()
     if (error || !data) {
-      showLocalFeedback(failureMessage(error, 'new game'))
+      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
+      // already built a game once, so any failure here is a bug or an outage
+      // — never a pill. Copy supplies the words when it has them.
+      showLocalFeedback(faultMessage(error, 'new game'))
       return
     }
     goToGame(`wordle_${gameMode}`, (data as { id: string }).id)

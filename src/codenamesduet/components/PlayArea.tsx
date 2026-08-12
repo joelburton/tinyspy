@@ -1,4 +1,4 @@
-import { failureMessage } from '../../common/lib/game/serverError'
+import { faultMessage } from '../../common/lib/game/serverError'
 import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useRef, useState, type ReactNode, useMemo } from 'react'
 import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
@@ -421,7 +421,10 @@ export function PlayArea({
       })
       .single()
     if (error || !data) {
-      showLocalFeedback(failureMessage(error, 'new game'))
+      // New game is a FAULT SURFACE (serverError.ts → faultMessage): this setup
+      // already built a game once, so any failure here is a bug or an outage
+      // — never a pill. Copy supplies the words when it has them.
+      showLocalFeedback(faultMessage(error, 'new game'))
       return
     }
     goToGame('codenamesduet', (data as { id: string }).id)
