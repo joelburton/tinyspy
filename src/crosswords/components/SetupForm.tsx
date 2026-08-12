@@ -8,6 +8,13 @@ import { GUARDIAN_SERIES } from '../lib/setup'
 import { importCrosswordFile } from '../lib/importFile'
 import type { PuzzleMeta } from '../lib/types'
 import styles from './SetupForm.module.css'
+// The game's tokens, again. PlayArea side-effect-imports this too, but the
+// setup form is its OWN lazy chunk that renders in the club's start-game
+// dialog — long before any PlayArea chunk loads. Without this import the
+// crossword tokens below (row hover, selected row, row rule, the active
+// source tab's yellow) are undefined, and `background: var(--undefined)`
+// computes to `initial` — so those rules paint nothing at all, silently.
+import '../theme.css'
 
 /** A library puzzle as the picker sees it — id + the non-spoiler meta. */
 type LibraryPuzzle = { id: string; title: string; author: string; size: string }
@@ -253,8 +260,12 @@ export function SetupForm({ value, onChange }: SetupBodyProps) {
               <div className={styles.empty}>Loading puzzles…</div>
             ) : filtered.length === 0 ? (
               <div className={styles.empty}>
+                {/* The empty library reads as a plain fact, NOT as the import
+                    command that fills it: this is a player-facing dialog and
+                    the fix is Joel's to run, not theirs. A shell command here
+                    tells a friend on production to do something they can't. */}
                 {puzzles && puzzles.length === 0
-                  ? 'No puzzles in the library yet — run `gmake g-crosswords-puzzles ENV=local`.'
+                  ? 'No puzzles found.'
                   : 'No puzzles match that filter.'}
               </div>
             ) : (
