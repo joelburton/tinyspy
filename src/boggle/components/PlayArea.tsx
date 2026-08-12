@@ -12,7 +12,7 @@ import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
-import { outOfRacePill, stickyPill } from '../../common/lib/game/localPills'
+import { outOfRacePill } from '../../common/lib/game/localPills'
 import { faultMessage } from '../../common/lib/game/serverError'
 import { memberById } from '../../common/lib/game/peers'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
@@ -291,14 +291,13 @@ export function PlayArea(ctx: GamePageCtx) {
   // failure-pill format + the replay sentence are boggle's. Its errors share the
   // same below-board pill as a word submit (via showLocalFeedback). New game
   // stays below — its create path diverges per game.
-  const showError = useCallback((m: string) => showLocalFeedback(stickyPill('error', m)), [showLocalFeedback])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    showError,
+    showError: showLocalFeedback,
   })
 
   // ─── New game — a FRESH game (new id, new board) with THIS game's setup ──

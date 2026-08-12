@@ -347,17 +347,13 @@ export function PlayArea(ctx: GamePageCtx) {
   }, [gameId, showLocalFeedback])
 
   // ─── End / Concede / Replay — the shared trio ──────────
-  const showError = useCallback(
-    (m: string) => showLocalFeedback(stickyPill('error', m)),
-    [showLocalFeedback],
-  )
   const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    showError,
+    showError: showLocalFeedback,
   })
 
   const gameMode = game?.mode

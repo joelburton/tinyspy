@@ -4,7 +4,7 @@ import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
-import { outOfRacePill, stickyPill } from '../../common/lib/game/localPills'
+import { outOfRacePill } from '../../common/lib/game/localPills'
 import { faultMessage } from '../../common/lib/game/serverError'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { db } from '../db'
@@ -192,14 +192,13 @@ export function PlayArea(ctx: GamePageCtx) {
   // The byte-identical shared handlers (useStandardGameActions); only the
   // failure-pill format + the replay sentence are wordiply's. New game stays
   // below — its create path diverges per game.
-  const showError = useCallback((m: string) => showLocalFeedback(stickyPill('error', m)), [showLocalFeedback])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    showError,
+    showError: showLocalFeedback,
   })
 
   const gameMode = game?.mode

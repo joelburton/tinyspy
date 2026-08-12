@@ -331,10 +331,6 @@ export function PlayArea({
   // solution, everything the players did wiped. stackdown's own bits are the
   // failure-pill format, the replay sentence, and the post-replay cleanup
   // (leave the turn-history view, clear the pill, re-hide a revealed solution).
-  const showError = useCallback(
-    (m: string) => showLocalFeedback(m, 'error'),
-    [showLocalFeedback],
-  )
   // (No reveal-flag reset here: `common.reset_game` clears solution_revealed
   //  server-side, so the new run starts blind on every client at once.)
   const onRestarted = useCallback(() => {
@@ -347,7 +343,7 @@ export function PlayArea({
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    showError,
+    showError: showMsg,
     onRestarted,
   })
 

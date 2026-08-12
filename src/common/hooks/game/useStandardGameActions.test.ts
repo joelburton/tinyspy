@@ -69,14 +69,19 @@ describe('endGame', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('surfaces an RPC failure through showError', async () => {
+  it('surfaces an RPC failure through showError as the full message', async () => {
     const { result, rpc, showError } = setup()
     // A keyed rejection the copy table knows: the words a player reads are
-    // TypeScript's, not the server's (lib/game/errorCopy.ts).
+    // TypeScript's, not the server's (lib/game/errorCopy.ts). The sink gets the
+    // whole GenericFeedbackMsg — an expected race stays an ordinary pill.
     rpc.mockResolvedValue({ error: { message: 'not-your-turn|', code: 'P0001' } })
     act(() => result.current.endGame())
     await flush()
-    expect(showError).toHaveBeenCalledWith('Not your turn')
+    expect(showError).toHaveBeenCalledWith({
+      tone: 'error',
+      text: 'Not your turn',
+      mode: { kind: 'sticky' },
+    })
   })
 })
 
@@ -105,12 +110,19 @@ describe('concede', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('surfaces an RPC failure through showError', async () => {
+  it('surfaces an unexpected RPC failure as a FAULT, not a pill', async () => {
     const { result, rpc, showError } = setup()
     rpc.mockResolvedValue({ error: { message: 'nope', code: '42501' } })
     act(() => result.current.concede())
     await flush()
-    expect(showError).toHaveBeenCalledWith('concede|nope')
+    // The fault flag and its manual mode survive the trip now that the sink
+    // takes the full message — this styling is what the widening was for.
+    expect(showError).toHaveBeenCalledWith({
+      tone: 'error',
+      fault: true,
+      text: 'concede|nope',
+      mode: { kind: 'manual' },
+    })
   })
 })
 
@@ -150,7 +162,12 @@ describe('restart', () => {
     rpc.mockResolvedValue({ error: { message: 'TypeError: Load failed', code: '' } })
     act(() => result.current.restart())
     await flush()
-    expect(showError).toHaveBeenCalledWith('restart: Server; try refresh')
+    expect(showError).toHaveBeenCalledWith({
+      tone: 'error',
+      fault: true,
+      text: 'restart: Server; try refresh',
+      mode: { kind: 'manual' },
+    })
     expect(onRestarted).not.toHaveBeenCalled()
   })
 

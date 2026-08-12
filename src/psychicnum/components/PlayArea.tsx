@@ -27,7 +27,6 @@ import { useGame } from '../hooks/useGame'
 import { printPsychicnumPdf } from '../pdf/printPsychicnumPdf'
 import { buildPsychicnumPrintModel } from '../pdf/model'
 import { turnSnapshot } from '../lib/history'
-import { stickyPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -383,13 +382,6 @@ export function PlayArea({
   // psychicnum's own bits are the replay sentence and the post-replay cleanup
   // (leave the turn-history view, clear the pill).
   //
-  // No `capitalize` any more: it existed to tidy the server's lowercase prose
-  // ("game is not in progress" → "Game is not in progress"), and there is no
-  // server prose left. What arrives here is already a caption TypeScript wrote.
-  const showError = useCallback(
-    (m: string) => showLocalFeedback(stickyPill('error', m)),
-    [showLocalFeedback],
-  )
   // (No reveal-flag reset here: `common.reset_game` clears solution_revealed
   //  server-side, so the same three secrets are hunted blind again.)
   const onRestarted = useCallback(() => {
@@ -402,7 +394,7 @@ export function PlayArea({
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    showError,
+    showError: showLocalFeedback,
     onRestarted,
   })
 

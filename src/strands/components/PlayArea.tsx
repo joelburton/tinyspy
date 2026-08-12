@@ -347,7 +347,7 @@ export function PlayArea(ctx: GamePageCtx) {
     isTerminal,
     myConceded: players.find((p) => p.user_id === session.user.id)?.conceded ?? false,
     confirm: confirmAction,
-    showError: (m) => showLocalFeedback(stickyPill('error', m)),
+    showError: showLocalFeedback,
   })
 
   const handleReveal = useCallback(async () => {

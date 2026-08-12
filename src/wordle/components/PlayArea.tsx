@@ -23,7 +23,7 @@ import { db } from '../db'
 import { db as commonDb } from '../../common/db'
 import { useGame } from '../hooks/useGame'
 import { turnSnapshot } from '../lib/history'
-import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
+import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import type { WordleSetup } from '../lib/setup'
 import { memberById } from '../../common/lib/game/peers'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
@@ -208,11 +208,11 @@ export function PlayArea({
 
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); wordle's own
-  // bits are the `stickyPill` failure pill, the replay sentence, and the
-  // post-replay cleanup (leave the history view, clear the pill, re-hide a
-  // locally-revealed answer so the new run starts blind). New game + Reveal
-  // answer stay below — their paths diverge (new game is a direct create_game).
-  const showError = useCallback((m: string) => showLocalFeedback(stickyPill('error', m)), [showLocalFeedback])
+  // bits are the replay sentence and the post-replay cleanup (leave the
+  // history view, clear the pill, re-hide a locally-revealed answer so the new
+  // run starts blind). Failures arrive fully classified — tone and fault
+  // styling intact. New game + Reveal answer stay below — their paths diverge
+  // (new game is a direct create_game).
   // (No local re-hide: `common.reset_game` clears solution_revealed, so the
   //  replayed word is hidden again on every client.)
   const onRestarted = useCallback(() => {
@@ -225,7 +225,7 @@ export function PlayArea({
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    showError,
+    showError: showLocalFeedback,
     onRestarted,
   })
 

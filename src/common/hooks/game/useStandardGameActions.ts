@@ -1,5 +1,6 @@
 import { actionName } from '../../lib/game/callRpc'
-import { failureText } from '../../lib/game/serverError'
+import type { GenericFeedbackMsg } from '../../lib/games'
+import { failureMessage } from '../../lib/game/serverError'
 import { useCallback, useRef } from 'react'
 import { END_GAME_CONFIRM, RESTART_CONFIRM, type ConfirmOptions } from '../ui/useConfirmDialog'
 
@@ -29,14 +30,18 @@ type GameRpcClient = {
 }
 
 /**
- * The End / Concede / Replay handlers shared by ten games (spellingbee,
+ * The End / Concede / Replay handlers shared by twelve games (spellingbee,
  * wordwheel, wordiply, boggle, waffle, wordle, psychicnum, stackdown, scrabble,
- * connections). Their PlayAreas
+ * connections, strands, letterboxed). Their PlayAreas
  * each hand-rolled the same three handlers (byte-identical modulo the
  * schema-scoped `db`); this owns the one copy. The genuinely per-game bits stay
  * callbacks/params, so no deliberate difference is flattened:
- *   - `showError` formats the game's own failure pill (the games differ:
- *      `showLocalFeedback('error', m)` vs a `stickyPill` / `ownAction` pill);
+ *   - `showError` is the game's own local-feedback sink (`useLocalFeedback`'s
+ *      `showLocalFeedback`, whatever the game names it). The hook hands it a
+ *      fully-built `GenericFeedbackMsg`, so a failure keeps everything the
+ *      classifier decided: an expected race is a pill in its copy's tone
+ *      ("Game over" as info), and a FAULT keeps the bare-red look + manual
+ *      dismissal that a string could not carry;
  *   - `onRestarted` runs a game's post-replay cleanup (wordle/waffle re-hide the
  *      answer + leave the history view; the others pass nothing).
  *
@@ -71,8 +76,9 @@ export function useStandardGameActions({
   /** The styled end-game confirm (a game's `useConfirmDialog().confirm`). */
   confirm: (opts: ConfirmOptions) => Promise<boolean>
 
-  /** Show a failure message as this game's own local pill. */
-  showError: (message: string) => void
+  /** The game's local-feedback sink. Receives the full classified message so
+   *  tone and fault styling survive the trip (see the docstring above). */
+  showError: (msg: GenericFeedbackMsg) => void
   /** Optional post-restart cleanup (wordle/waffle re-hide the answer, etc.). */
   onRestarted?: () => void
 }): StandardGameActions {
@@ -83,7 +89,7 @@ export function useStandardGameActions({
       if (isTerminal) return
       if (!(await confirm(END_GAME_CONFIRM))) return
       const { error } = await db.rpc('end_game', { target_game: gameId })
-      if (error) showError(failureText(error, actionName('end_game')))
+      if (error) showError(failureMessage(error, actionName('end_game')))
     })()
   }, [db, gameId, isTerminal, confirm, showError])
 
@@ -93,7 +99,7 @@ export function useStandardGameActions({
       if (isTerminal || myConceded) return
       if (!window.confirm(CONCEDE_CONFIRM)) return
       const { error } = await db.rpc('concede', { target_game: gameId })
-      if (error) showError(failureText(error, actionName('concede')))
+      if (error) showError(failureMessage(error, actionName('concede')))
     })()
   }, [db, gameId, isTerminal, myConceded, showError])
 
@@ -135,7 +141,7 @@ export function useStandardGameActions({
       try {
         const { error } = await db.rpc('replay_board', { target_game: gameId })
         if (error) {
-          showError(failureText(error, actionName('replay_board')))
+          showError(failureMessage(error, actionName('replay_board')))
           return
         }
         onRestarted?.()

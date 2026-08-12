@@ -407,10 +407,6 @@ export function PlayArea({
   // the standard layout, not a generated puzzle, so there's no board to restore.
   // A replay re-deals — fresh bag, new racks, empty grid — keeping the setup,
   // roster, seats and any AI opponents. Hence the confirm's wording.
-  const showError = useCallback(
-    (m: string) => showLocalFeedback({ tone: 'error', text: m }),
-    [showLocalFeedback],
-  )
   const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
@@ -421,7 +417,7 @@ export function PlayArea({
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    showError,
+    showError: showLocalFeedback,
     onRestarted,
   })
 

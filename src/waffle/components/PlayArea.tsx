@@ -1,7 +1,7 @@
 import { failureMessage, faultMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
 import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
-import type { GamePageCtx, GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
+import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
@@ -37,15 +37,6 @@ import styles from './PlayArea.module.css'
 import '../theme.css'
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
-
-/** Build waffle's own-action local pill: outline + TIMED (auto-clears after a
- *  beat — waffle's only own-move feedback is a rejected swap / failed End, a
- *  transient nudge). A pure msg-builder over the shared `useLocalFeedback`. */
-const ownAction = (tone: GenericFeedbackTone, text: string): GenericFeedbackMsg => ({
-  tone,
-  text,
-  mode: { kind: 'timed' },
-})
 
 /**
  * waffle's play surface, shared by the coop and compete manifests, on the shared
@@ -227,13 +218,12 @@ export function PlayArea({
 
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); waffle's own
-  // bits are the `ownAction` failure pill, the replay sentence, and the
-  // post-replay cleanup (leave the history view, clear the pill, re-hide a
-  // locally-revealed answer). New game + Reveal answer stay below.
-  const showError = useCallback(
-    (m: string) => showLocalFeedback(ownAction('error', m)),
-    [showLocalFeedback],
-  )
+  // bits are the replay sentence and the post-replay cleanup (leave the
+  // history view, clear the pill, re-hide a locally-revealed answer).
+  // Failures arrive fully classified. (The old local `ownAction` builder
+  // stamped these TIMED so they auto-faded — ruled drift 2026-08-13; a race's
+  // "Game over" now sticks like every other game's, and a fault is manual.)
+  // New game + Reveal answer stay below.
   // (The new run starts blind on every client: `common.reset_game` clears
   //  solution_revealed, so there's no local flag to re-hide here.)
   const onRestarted = useCallback(() => {
@@ -246,7 +236,7 @@ export function PlayArea({
     isTerminal,
     myConceded,
     confirm: confirmAction,
-    showError,
+    showError: showLocalFeedback,
     onRestarted,
   })
 

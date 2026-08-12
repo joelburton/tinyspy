@@ -28,7 +28,6 @@ import { useGame } from '../hooks/useGame'
 import type { ConnectionsSetup } from '../lib/setup'
 import { nextUnplayedPuzzle } from '../../common/lib/game/nextPuzzle'
 import { turnSnapshot } from '../lib/history'
-import { stickyPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -268,7 +267,7 @@ export function PlayArea({
       isTerminal,
       myConceded,
       confirm: confirmAction,
-      showError: (message) => showLocalFeedback(stickyPill('error', message)),
+      showError: showLocalFeedback,
       onRestarted: () => {
         exitViewing()
         clearLocalFeedback()
