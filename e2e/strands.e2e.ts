@@ -92,7 +92,14 @@ test.describe('strands play loop', () => {
 
     // Two letters is under min_word_length (4) and isn't a theme path.
     await page.keyboard.press('Enter')
-    await expect(page.getByText(/— too short/)).toBeVisible({ timeout: 10000 })
+    // SCOPED to the pill, because the very next assertion proves this same
+    // phrase also lands in the turn log: an unscoped getByText matches both and
+    // dies of strict mode the moment the log row wins the race to render. It
+    // used to pass only because the pill (local, instant) normally beat the log
+    // row (server round-trip) to the first poll — a coin flip that came up tails
+    // on run 9 of 9, 2026-08-12.
+    const pill = page.locator('[class*="pill"]').filter({ hasText: /— too short/ })
+    await expect(pill).toBeVisible({ timeout: 10000 })
 
     // Rejects are LOGGED, deliberately: the log is the record of what was tried.
     await expect(page.locator('table').getByText(/too short/)).toBeVisible()
