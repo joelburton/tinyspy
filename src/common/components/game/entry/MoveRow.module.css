@@ -1,0 +1,16 @@
+/* The shared move row (MoveRow.tsx): an icon-only Delete button | whatever is
+ * being entered | an icon-only Submit button, on one centered line. The display
+ * between them flex-fills where it can (see EntryBox.module.css → `.box
+ * { flex: 1 }`); the buttons keep their intrinsic icon-square size at the ends.
+ *
+ * Rendered by every EntryBox game (via <EntryRow>), by stackdown's five tile
+ * slots and by strands' traced-word echo, so the control is one control
+ * everywhere. The fixed slot HEIGHT and the board-matched WIDTH stay with each
+ * host's below-board region — those are board-specific. */
+.moveRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}

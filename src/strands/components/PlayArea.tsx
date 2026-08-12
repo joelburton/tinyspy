@@ -8,6 +8,7 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
+import { useFlash } from '../../common/hooks/ui/useFlash'
 import { outOfRacePill, stickyPill, terminalPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { memberById } from '../../common/lib/game/peers'
@@ -22,7 +23,7 @@ import { printStrandsPdf } from '../pdf/printStrandsPdf'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { consumedCells, coordKey, wordFromPath, type Coord } from '../lib/board'
-import { clickTile, type Trace } from '../lib/trace'
+import { clickTile, typeLetter, type Trace } from '../lib/trace'
 import { snapshotAt } from '../lib/history'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGame } from '../hooks/useGame'
@@ -204,6 +205,13 @@ export function PlayArea(ctx: GamePageCtx) {
   const [rawTrace, setTrace] = useState<Trace>([])
   const [busy, setBusy] = useState(false)
 
+  // The ambiguous-letter flash: a typed letter matched several cells, so they
+  // ring red for a beat and the player clicks the one they meant. Local input
+  // feedback owned here (nothing else can trigger it) — the same shape
+  // stackdown's ambiguous-tile flash uses. The set is only ever iterated, never
+  // `.has()`-tested, so holding tuples in it is fine (identity would be, too).
+  const [ambiguous, flashAmbiguous] = useFlash<Coord>(1000)
+
   /**
    * The turn-history viewer. Exit-on-click is built into the shared hook; the
    * key path is wired below (a bare keystroke returns to live and is consumed,
@@ -272,6 +280,10 @@ export function PlayArea(ctx: GamePageCtx) {
         return
       }
       clearLocalFeedback()
+      // A click ANSWERS the ambiguous-letter question, so the red rings go now
+      // rather than sitting there for the rest of their second, pointing at
+      // cells the player has already chosen between.
+      flashAmbiguous([])
       const next = clickTile(trace, at, consumed)
       setTrace(next.trace)
       if (next.submit) void submit(next.trace)
@@ -279,14 +291,35 @@ export function PlayArea(ctx: GamePageCtx) {
     // `consumed` is rebuilt each render from `found`; listing it would rerun
     // this on every render for no benefit, so the found LENGTH stands in.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [busy, trace, found.length, submit, clearLocalFeedback, viewer],
+    [busy, trace, found.length, submit, clearLocalFeedback, flashAmbiguous, viewer],
   )
 
+  /** Take back the last traced cell — the ⌫ button and Backspace share it.
+   *  Pops the DERIVED trace, not the raw state: after a peer's find consumes my
+   *  selected tiles the visible trace is already empty, and popping the raw one
+   *  would resurrect its stale prefix. */
+  const deleteLast = useCallback(() => {
+    clearLocalFeedback()
+    setTrace(trace.slice(0, -1))
+  }, [trace, clearLocalFeedback])
+
+  /** Submit the trace — the Submit button, Enter, and re-clicking the last cell
+   *  all land here. */
+  const submitTrace = useCallback(() => {
+    if (trace.length) void submit(trace)
+  }, [trace, submit])
+
   /**
-   * The board's keyboard, such as it is. strands takes no typed WORDS — a board
-   * repeats letters, so a typed string doesn't identify a path — but the three
-   * keys that act on a trace rather than compose one are worth having:
+   * The board's keyboard. strands still takes no typed WORDS — a board repeats
+   * letters, so a typed *string* doesn't identify a path — but a typed LETTER
+   * can, when it's resolved against the cells that could actually come next:
    *
+   *   - **A–Z** resolves through `typeLetter` (lib/trace.ts). Exactly one
+   *     candidate extends the trace; several ring red for a beat and wait for a
+   *     click; none says so in the pill, since that's almost always a mistake
+   *     rather than an ambiguity. The first letter of a word competes with all
+   *     48 cells and so is usually a click; every letter after it competes only
+   *     with ≤8 neighbours and so usually just works.
    *   - **Backspace** drops the last tile, so a misclick costs one key instead
    *     of restarting the word;
    *   - **Enter** submits, the keyboard twin of re-clicking the last tile;
@@ -318,18 +351,49 @@ export function PlayArea(ctx: GamePageCtx) {
         if (isTerminal || busy || !isMyTurn) return
         if (e.key === 'Backspace') {
           e.preventDefault()
-          // Pop the DERIVED trace, not the raw state: after a peer's find
-          // consumes my selected tiles the visible trace is already empty, and
-          // popping the raw one would resurrect its stale prefix.
-          setTrace(trace.slice(0, -1))
+          deleteLast()
           return
         }
-        if (e.key === 'Enter' && trace.length) {
+        if (e.key === 'Enter') {
           e.preventDefault()
-          void submit(trace)
+          submitTrace()
+          return
+        }
+        if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key) && game) {
+          e.preventDefault()
+          const r = typeLetter(trace, e.key, game.board, consumed)
+          if (r.kind === 'extend') {
+            // Same as a click: this keystroke resolved things, so any rings from
+            // a previous one stop pointing.
+            flashAmbiguous([])
+            setTrace([...trace, r.at])
+          } else if (r.kind === 'ambiguous') {
+            // No pill here on purpose: this row IS the entry area, so a pill
+            // would hide the word being built to say something the board can
+            // say better. The red rings ARE the message.
+            flashAmbiguous(r.candidates)
+          } else {
+            // Nothing matched. Unlike the ambiguous case there is nothing on the
+            // board to point at, and it's nearly always a player mistake rather
+            // than a choice to make — so it gets words.
+            showLocalFeedback(
+              stickyPill(
+                'error',
+                trace.length
+                  ? `No “${e.key.toUpperCase()}” next to that letter`
+                  : `No “${e.key.toUpperCase()}” left on the board`,
+              ),
+            )
+          }
         }
       },
-      [isTerminal, busy, isMyTurn, trace, submit, clearLocalFeedback, viewer],
+      // `consumed` is rebuilt each render from `found`; the found LENGTH stands
+      // in for it, exactly as in onTileClick above.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [
+        isTerminal, busy, isMyTurn, trace, game, found.length, deleteLast, submitTrace,
+        flashAmbiguous, showLocalFeedback, clearLocalFeedback, viewer,
+      ],
     ),
   )
 
@@ -649,6 +713,15 @@ export function PlayArea(ctx: GamePageCtx) {
         // The word being traced. Shares its slot with the verdict pill — you are
         // either building a word or reading what the last one did.
         echo={trace.length ? wordFromPath(game.board, trace) : ''}
+        onDelete={deleteLast}
+        onSubmit={submitTrace}
+        // One gate for both controls: with nothing traced there is nothing to
+        // take back OR submit, and a frozen board freezes them too. They stay
+        // MOUNTED and merely disabled, so the slot never reflows.
+        entryDisabled={
+          trace.length === 0 || isTerminal || isLocallyDone || busy || waiting
+        }
+        ambiguous={[...ambiguous]}
         pill={pill}
         onDismissPill={clearLocalFeedback}
         hintPoints={me?.hint_points ?? 0}

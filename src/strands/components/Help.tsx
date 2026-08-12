@@ -27,7 +27,16 @@ export function Help({ onClose, brand }: Props) {
           touch — sideways, up and down, or <em>diagonally</em>.
         </li>
         <li>
-          <strong>Click the last letter again</strong> to submit it. Clicking an
+          <strong>Or type it.</strong> Once a word has a first letter, typing picks
+          the neighbour that matches — usually there's only one. When several
+          letters could be meant, they ring red: click the one you want. (A word's
+          <em>first</em> letter is usually a click, since the same letter appears
+          all over the board.)
+        </li>
+        <li>
+          <strong>Click the last letter again</strong> to submit it — or press{' '}
+          <kbd>Enter</kbd>, or the submit button beside the word. <kbd>⌫</kbd>{' '}
+          (and the button left of the word) takes back one letter; clicking an
           earlier letter in your trace backs up to just before it, and clicking far
           away starts over from there.
         </li>

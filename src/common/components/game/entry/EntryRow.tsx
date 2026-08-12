@@ -1,14 +1,11 @@
 import type { ReactNode } from 'react'
-import { cls } from '../../../lib/util/cls'
 import type { GenericFeedbackMsg } from '../../../lib/games'
 import { useCaptureKeys } from '../../../hooks/input/useCaptureKeys'
 import { useArrowHistory } from '../../../hooks/input/useArrowHistory'
 import { EntryBox } from './EntryBox'
+import { MoveRow } from './MoveRow'
 import { GenericFeedbackPill } from '../../feedback/GenericFeedbackPill'
-import { DeleteButton } from '../../buttons/DeleteButton'
-import { SubmitButton } from '../../buttons/SubmitButton'
 import shared from '../PlayArea.module.css'
-import styles from './EntryRow.module.css'
 
 const noop = () => {}
 
@@ -74,12 +71,19 @@ type Props = {
  *
  *   1. the **capture keyboard** (`useCaptureKeys` — letters/Backspace/Enter, the
  *      ArrowUp-recall / ArrowDown-clear history, the modifier bail + Tab swallow);
- *   2. the **controls** — an icon-only `<DeleteButton>` and `<SubmitButton>`
- *      flanking the chrome-less `<EntryBox>` (which flex-fills the row between them);
+ *   2. the **controls** — the shared `<MoveRow>` (⌫ | display | Submit) around a
+ *      chrome-less `<EntryBox>`;
  *   3. the **pill swap** — when `pill` is set it replaces the controls with a
  *      centered `<GenericFeedbackPill>` (the own-move result / terminal verdict), in the
  *      same slot, without unmounting (so the capture stays live and a keystroke
  *      dismisses the pill).
+ *
+ * **This is the TYPING half.** The row itself is `<MoveRow>`, split out because
+ * two games need the same control without this keyboard: stackdown enters TILES
+ * (no text buffer at all), and strands enters a PATH (its string is derived from
+ * the trace, so `value`/`onChange` run backwards). Reach for MoveRow directly
+ * when a keystroke doesn't mean "append this character"; reach for EntryRow when
+ * it does.
  *
  * What stays with the host: the below-board *slot* (its board-matched width +
  * reserved height), the capture *values* (`value`/`onSubmit`/`charFor`/…), and
@@ -133,12 +137,16 @@ export function EntryRow({
   }
 
   return (
-    <div className={cls(styles.moveArea, className)}>
-      <DeleteButton iconOnly onClick={handleDelete} disabled={empty || disabled} />
+    <MoveRow
+      className={className}
+      onDelete={handleDelete}
+      onSubmit={onSubmit}
+      deleteDisabled={empty || disabled}
+      submitDisabled={empty || disabled || busy || submitDisabled}
+    >
       <EntryBox value={value} placeholder={placeholder}>
         {children}
       </EntryBox>
-      <SubmitButton iconOnly onClick={onSubmit} disabled={empty || disabled || busy || submitDisabled} />
-    </div>
+    </MoveRow>
   )
 }

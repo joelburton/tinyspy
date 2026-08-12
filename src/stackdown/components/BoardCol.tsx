@@ -4,8 +4,7 @@ import { useFlash } from '../../common/hooks/ui/useFlash'
 import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandler'
 import type { GenericFeedbackMsg, GenericFeedbackTone } from '../../common/lib/games'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
-import { DeleteButton } from '../../common/components/buttons/DeleteButton'
-import { SubmitButton } from '../../common/components/buttons/SubmitButton'
+import { MoveRow } from '../../common/components/game/entry/MoveRow'
 import { exposedIds, type Tile } from '../lib/board'
 import { Board } from './Board'
 import { WordEntry, type WordFlash } from './WordEntry'
@@ -228,21 +227,24 @@ export function BoardCol({
             </button>
           </div>
         )}
-        {/* The move row: ⌫ | the five slots | Submit — the arrangement the shared
-            <EntryRow> gives every typing game (docs/playarea.md → Text entry), built
-            here rather than reused, because stackdown's "entry" is a grid of
-            picked-up TILES, not a text buffer: EntryRow's capture keyboard,
-            arrow-history and string `value` have nothing to bind to. The two
-            buttons are the shared ones, so the control reads as the same control
-            it is elsewhere.
+        {/* The shared move row (docs/playarea.md → Text entry) around the five
+            slots. stackdown can't use <EntryRow> — its "entry" is a grid of
+            picked-up TILES, so EntryRow's capture keyboard, arrow-history and
+            string `value` have nothing to bind to — but the ROW is the same row,
+            which is what `<MoveRow>` exists to share.
 
-            Both stay MOUNTED and merely disabled when they can't act — including
-            while a past turn is being viewed — so the region never reflows (the
-            reserve-the-slot rule, docs/ui.md). The ⌫ is the touch-reachable twin
-            of physical Backspace, which is the real gain: stackdown has a
-            supported phone layout and no keyboard there. */}
-        <div className={styles.moveArea}>
-          <DeleteButton iconOnly onClick={deleteLast} disabled={!canDelete} />
+            Both buttons stay MOUNTED and merely disabled when they can't act —
+            including while a past turn is being viewed — so the region never
+            reflows (the reserve-the-slot rule, docs/ui.md). The ⌫ is the
+            touch-reachable twin of physical Backspace, which is the real gain:
+            stackdown has a supported phone layout and no keyboard there. */}
+        <MoveRow
+          className={styles.moveArea}
+          onDelete={deleteLast}
+          onSubmit={submitWord}
+          deleteDisabled={!canDelete}
+          submitDisabled={!canSubmit}
+        >
           <WordEntry
             tiles={tiles}
             currentWord={currentWord}
@@ -250,8 +252,7 @@ export function BoardCol({
             onRetract={retractTo}
             flash={flash}
           />
-          <SubmitButton iconOnly onClick={submitWord} disabled={!canSubmit} />
-        </div>
+        </MoveRow>
         {/* The LOCAL feedback area — reserves its own height (shared
             `.localFeedback`) so the board above never reflows when the pill
             appears/clears. */}

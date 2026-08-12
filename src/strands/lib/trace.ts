@@ -1,23 +1,35 @@
 /**
- * The **trace reducer** — strands' entire input model, as one pure function.
+ * The **trace reducer** — strands' entire input model, as two pure functions:
+ * one for a click (`clickTile`), one for a keystroke (`typeLetter`).
  *
- * strands has no text entry at all, which makes it the first game in the roster
- * with none. The reason is specific rather than stylistic: a board repeats
- * letters, so a typed string doesn't identify a path. `PAPARAZZI` on a board
- * with four `A`s is genuinely ambiguous — it matters *which* `A` you meant, and
- * only clicking says that. (Physical keys still do everything else: this is
- * about word entry, not about keyboard support in general.)
+ * **strands still takes no typed WORDS**, and the original reason stands: a
+ * board repeats letters, so a typed *string* doesn't identify a path.
+ * `PAPARAZZI` on a board with four `A`s is genuinely ambiguous — it matters
+ * *which* `A` you meant, and a string never says.
+ *
+ * What `typeLetter` adds is not word entry but **letter-at-a-time cell
+ * selection**, which sidesteps that rather than ignoring it: a keystroke is
+ * resolved against the cells that could actually come next, and it only moves
+ * the trace when exactly one qualifies. So the rule the old design derived from
+ * ("a string can't name a path") is refined, not reversed — the disambiguation
+ * that used to be "click the letter you meant" now happens per keystroke, and
+ * falls back to clicking exactly when it must.
+ *
+ * That works because of an asymmetry in the board: the FIRST letter of a word
+ * competes with all 48 cells and is usually ambiguous, but every letter after it
+ * competes only with the ≤8 neighbours of the last cell and is usually unique.
+ * In practice you click a word's opening letter and type the rest.
  *
  * Keeping the machine pure and separate from the component means the rules can
  * be tested exhaustively without rendering anything, and the component reduces
- * to "draw the trace, forward the clicks".
+ * to "draw the trace, forward the clicks and keys".
  *
  * Drag-to-trace is deliberately not built (2026-08-04): it isn't a speed game,
  * click-by-click is simpler, and it can be layered on later as a second way to
  * produce the same actions.
  */
 
-import { adjacent, coordKey, type Coord } from './board'
+import { adjacent, coordKey, letterAt, type Board, type Coord } from './board'
 
 /** The tiles currently selected, in the order they were clicked. */
 export type Trace = readonly Coord[]
@@ -76,4 +88,72 @@ export function clickTile(
 /** Abandon the current trace (the Escape / click-away path). */
 export function clearTrace(): TraceResult {
   return { trace: [], submit: false }
+}
+
+/**
+ * What a typed letter resolved to. Three outcomes, because a keystroke can name
+ * a cell, name nothing, or name several:
+ *
+ *  - `extend` — exactly one cell qualified; `at` is it, and the caller appends.
+ *  - `none` — no cell qualified. Almost always a player mistake ("there's no D
+ *    next to that letter"), so the caller SAYS so; it is not a silent no-op.
+ *  - `ambiguous` — several qualified, and only a click can choose between them.
+ *    `candidates` is every one, for the caller to mark on the board.
+ */
+export type TypeResult =
+  | { kind: 'extend'; at: Coord }
+  | { kind: 'none' }
+  | { kind: 'ambiguous'; candidates: Coord[] }
+
+/**
+ * Resolve a typed letter against the board — the keyboard twin of `clickTile`.
+ *
+ * Which cells are even eligible depends on whether a word is under way, and
+ * that's the whole trick (see the module header):
+ *
+ *  - **Empty trace** → any unconsumed cell bearing the letter. A word can start
+ *    anywhere, so this competes with the whole board and is usually ambiguous.
+ *  - **Mid-trace** → only cells 8-way ADJACENT to the last one, unconsumed, and
+ *    **not already in the trace** (a path can't visit a cell twice — clicking
+ *    one of your own cells means "undo back to here", which is a different
+ *    action and stays click-only). Eight neighbours minus the ones already used
+ *    is a small field, so this is usually unique — which is what makes typing
+ *    the rest of a word work.
+ *
+ * Consumed cells (spent on a found theme word) are excluded throughout, exactly
+ * as `clickTile` ignores clicks on them.
+ *
+ * Note what this deliberately does NOT do: an unmatched letter never restarts
+ * the trace somewhere else, the way a far CLICK does. A click names a cell
+ * unambiguously; a keystroke doesn't, so jumping the trace across the board on
+ * one would be a guess at the player's intent.
+ */
+export function typeLetter(
+  trace: Trace,
+  letter: string,
+  board: Board,
+  consumed: ReadonlySet<string>,
+): TypeResult {
+  const want = letter.toUpperCase()
+  const last = trace[trace.length - 1]
+  const inTrace = new Set(trace.map(coordKey))
+
+  const candidates: Coord[] = []
+  for (let r = 0; r < board.length; r++) {
+    for (let c = 0; c < board[r].length; c++) {
+      const at: Coord = [r, c]
+      const key = coordKey(at)
+      if (consumed.has(key)) continue
+      if (letterAt(board, at).toUpperCase() !== want) continue
+      if (last) {
+        if (inTrace.has(key)) continue
+        if (!adjacent(last, at)) continue
+      }
+      candidates.push(at)
+    }
+  }
+
+  if (candidates.length === 0) return { kind: 'none' }
+  if (candidates.length === 1) return { kind: 'extend', at: candidates[0] }
+  return { kind: 'ambiguous', candidates }
 }

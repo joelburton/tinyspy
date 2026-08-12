@@ -124,6 +124,17 @@
   stroke-width: 0.1;
 }
 
+/* A typed letter that matched several cells — "click the one you meant". The
+ * system-error red, at the viewed-turn ring's weight so it reads as emphatically
+ * as the other rings; solid rather than the hint's dashes, because this is one
+ * moment's answer to one keystroke, not a standing state. Fades itself out via
+ * the column's flash timer (~1s). */
+.discAmbiguous {
+  fill: none;
+  stroke: var(--color-sys-error-red);
+  stroke-width: 0.1;
+}
+
 .discHint {
   fill: none;
   stroke: var(--strands-hint-ring);

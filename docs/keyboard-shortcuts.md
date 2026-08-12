@@ -247,13 +247,17 @@ No text entry — a letter names a *tile*, not a character.
 
 ## strands
 
-No text entry at all: the board repeats letters, so a typed string can't
-identify a path. Only the keys that act *on* a trace.
+No typed WORDS: the board repeats letters, so a typed *string* can't identify a
+path. But a typed **letter** can, once it's resolved against the cells that could
+actually come next — which is what the `A`–`Z` row below does. The old rule is
+refined, not reversed: the disambiguation that used to be "click the letter you
+meant" now happens per keystroke, and falls back to clicking exactly when it must.
 
 | key | what it does |
 |---|---|
-| `⌫` | Drop the last tile from the trace — a misclick costs one key, not the whole word. |
-| `Enter` | Submit the trace (the keyboard twin of re-clicking the last tile). |
+| `A`–`Z` | Extend the trace with the matching cell. Which cells are eligible depends on where you are: with **nothing traced**, any unused cell on the board (usually several — so this is usually a click); **mid-word**, only the ≤8 neighbours of the last cell, minus the ones already used (usually exactly one — so the rest of a word usually just types). Several matches → they ring **red** for a beat and wait for a click, with no pill: this row *is* the entry area, so a pill would hide the word to say what the board says better. No match → an error pill, since that's a mistake rather than a choice. An unmatched letter never restarts the trace elsewhere the way a far *click* does. |
+| `⌫` | Drop the last tile from the trace — a misclick costs one key, not the whole word. Same as the ⌫ button left of the word. |
+| `Enter` | Submit the trace (the keyboard twin of re-clicking the last tile, and of the submit button right of the word). |
 
 ## waffle
 

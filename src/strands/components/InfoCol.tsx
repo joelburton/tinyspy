@@ -180,8 +180,9 @@ export function InfoCol({
         {/* ── Help ── only while it's actionable; never silently swapped. */}
         {!over && !isLocallyDone && (
           <p className={shared.infoHelp}>
-            Click letters in order — they may touch diagonally. Click the last one
-            again (or press <kbd>Enter</kbd>) to submit; <kbd>⌫</kbd> undoes one.
+            Click letters in order — they may touch diagonally. After the first,
+            you can type the rest. Click the last one again (or press{' '}
+            <kbd>Enter</kbd>) to submit; <kbd>⌫</kbd> undoes one.
           </p>
         )}
 

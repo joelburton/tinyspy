@@ -28,6 +28,10 @@ type Props = {
   /** The cells the viewed turn traced — ringed, so a rejected word's route is
    *  visible even though it changed nothing. */
   highlight?: Coord[]
+  /** Cells a typed letter matched when it matched MORE THAN ONE — ringed red for
+   *  a beat, meaning "several of these; click the one you meant". Empty at rest;
+   *  the flash timer lives in the column that feeds this. */
+  ambiguous?: Coord[]
 }
 
 /**
@@ -62,6 +66,7 @@ export function Board({
   disabled,
   viewing,
   highlight = [],
+  ambiguous = [],
 }: Props) {
   const traceKeys = new Set(trace.map(coordKey))
   const lastKey = trace.length ? coordKey(trace[trace.length - 1]) : null
@@ -164,6 +169,23 @@ export function Board({
             cx={cx(c[1])}
             cy={cy(c[0])}
             r={0.42}
+          />
+        ))}
+
+        {/* A typed letter that matched SEVERAL cells: ring them all, red, for a
+            beat. A ring rather than a box because this board has no boxes — the
+            deliberate absence of tile borders is the point of its look (see the
+            module header), and rings are already its vocabulary for "this cell,
+            no claim about order" (hints, the viewed turn). Red because it's the
+            one thing on this board that means "your input didn't land". Drawn
+            LAST so it sits over a hint ring on the same cell. */}
+        {ambiguous.map((c) => (
+          <circle
+            key={`a${coordKey(c)}`}
+            className={styles.discAmbiguous}
+            cx={cx(c[1])}
+            cy={cy(c[0])}
+            r={0.44}
           />
         ))}
       </svg>

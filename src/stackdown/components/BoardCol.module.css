@@ -29,23 +29,17 @@
   position: relative;
 }
 
-/* The move row: ⌫ | the five word slots | Submit, on one centered line — the
- * same arrangement (and the same gap) as the shared <EntryRow> the typing games
- * use, so the control reads as one control across the app.
+/* stackdown's slice of the shared `<MoveRow>` (⌫ | the five word slots |
+ * Submit): only the spacing above it, since the row's layout is the shared one.
  *
- * stackdown is NON-SWAP: unlike EntryRow, the feedback pill does NOT take this
- * slot over — it has its own reserved row below (the shared `.localFeedback`,
- * whose min-height keeps the board from shifting as the pill appears/clears).
- * So these buttons stay visible while a pill is showing.
+ * stackdown is NON-SWAP: unlike `<EntryRow>`, the feedback pill does NOT take
+ * this row's place — it has its own reserved slot below (the shared
+ * `.localFeedback`, whose min-height keeps the board from shifting as the pill
+ * appears/clears). So these buttons stay visible while a pill is showing.
  *
- * `margin-top` lives here rather than on the WordEntry's own `.row`: the buttons
+ * The margin lives here rather than on the WordEntry's own `.row`: the buttons
  * are centered against the slots, and a margin inside the flex line would push
  * the slots down relative to them. */
 .moveArea {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
   margin-top: 1rem;
 }

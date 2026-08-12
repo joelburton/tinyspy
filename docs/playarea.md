@@ -208,13 +208,28 @@ anywhere never interrupts entry.
 
 Every such game renders the shared **`<EntryRow>`** (`common/components/game/entry/EntryRow.tsx`):
 one component bundling the whole entry control so it looks + behaves identically
-everywhere — an icon-only `<DeleteButton>` + the `<EntryBox>` (which flex-fills the
-row) + an icon-only `<SubmitButton>`, the `useCaptureKeys` keyboard, and the
-**pill swap** (pass a `pill` and it renders that `<FeedbackPill>` in place of the
-controls — the own-move result / terminal verdict — without unmounting, so a
-keystroke still dismisses it). The host owns only the below-board *slot* (its
-board-matched width + reserved height) and which `pill` to show. A new word game
-gets the entire entry for free.
+everywhere — the `useCaptureKeys` keyboard, the **pill swap** (pass a `pill` and
+it renders that `<FeedbackPill>` in place of the controls — the own-move result /
+terminal verdict — without unmounting, so a keystroke still dismisses it), and
+the row itself. The host owns only the below-board *slot* (its board-matched
+width + reserved height) and which `pill` to show. A new word game gets the
+entire entry for free.
+
+**The row is its own component** — **`<MoveRow>`** (`…/entry/MoveRow.tsx`):
+`⌫ | whatever you're entering | Submit`, the two icon-only buttons at the ends
+and the display flex-filling between them. Split out from `<EntryRow>` because
+two games need that exact control *without* the capture keyboard, since a
+keystroke there doesn't mean "append this character":
+
+| | what's being entered | why not `<EntryRow>` |
+|---|---|---|
+| **stackdown** | five slots holding picked-up **tiles** | no text buffer at all — a letter names a tile |
+| **strands** | an `<EntryBox>` over the **traced path** | the string is *derived* from the path, so `value`/`onChange` run backwards |
+
+Reach for `<EntryRow>` when a keystroke appends a character; reach for
+`<MoveRow>` directly when it doesn't. Both games still route their keys through
+their own handler and hand `<MoveRow>` two callbacks — which is the seam that
+lets the control look identical while meaning something different.
 
 **Free-text / phrase entry** (codenamesduet's clue — arbitrary words, spaces,
 mid-string editing) is the exception: it stays a real `<input data-game-input>`,

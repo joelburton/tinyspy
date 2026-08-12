@@ -2,6 +2,8 @@ import { GenericFeedbackPill } from '../../common/components/feedback/GenericFee
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import type { Coord } from '../lib/board'
+import { MoveRow } from '../../common/components/game/entry/MoveRow'
+import { EntryBox } from '../../common/components/game/entry/EntryBox'
 import { Board, type FoundPath } from './Board'
 import { HintBar } from './HintBar'
 import history from '../../common/components/game/lists/historyViewer.module.css'
@@ -30,6 +32,15 @@ type Props = {
   onExitViewing: () => void
   /** The word being traced, as text. Empty when nothing is selected. */
   echo: string
+  /** Take back the last traced cell (the ⌫ button; Backspace does the same). */
+  onDelete: () => void
+  /** Submit the trace (the Submit button; Enter and re-clicking the last cell
+   *  do the same). */
+  onSubmit: () => void
+  /** Nothing is being traced, or the board is frozen — both controls inert. */
+  entryDisabled: boolean
+  /** Cells a typed letter matched when it matched several — ringed red for a beat. */
+  ambiguous: Coord[]
   /** The pill that replaces the echo: an own-move verdict, or the terminal one. */
   pill: GenericFeedbackMsg | null
   onDismissPill: () => void
@@ -41,13 +52,14 @@ type Props = {
 }
 
 /**
- * strands' board column: the grid, the echo/verdict slot, and the hint bar.
+ * strands' board column: the grid, the move-row/verdict slot, and the hint bar.
  *
- * The **echo and the pill share one fixed-height slot** because they are
+ * The **move row and the pill share one fixed-height slot** because they are
  * mutually exclusive in time — you are either building a word or reading what
- * the last one did. Fixed height because the slot empties between traces, and a
- * collapsing row would bounce the board on every submission (the no-reflow
- * rule).
+ * the last one did. (That swap is `<EntryRow>`'s own behaviour; stackdown, whose
+ * pill has a separate reserved row, is the odd one out.) Fixed height because
+ * the slot empties between traces, and a collapsing row would bounce the board
+ * on every submission (the no-reflow rule).
  *
  * The **hint bar lives here rather than in the info column**, deliberately: on a
  * phone the info column goes off-canvas into the InfoSheet, and the hint economy
@@ -67,6 +79,10 @@ export function BoardCol({
   viewingDescription,
   onExitViewing,
   echo,
+  onDelete,
+  onSubmit,
+  entryDisabled,
+  ambiguous,
   pill,
   onDismissPill,
   hintPoints,
@@ -86,6 +102,7 @@ export function BoardCol({
         disabled={disabled}
         viewing={viewing}
         highlight={highlight}
+        ambiguous={ambiguous}
       />
 
       {/* While replaying, the banner takes the echo/pill slot: what you want
@@ -118,7 +135,25 @@ export function BoardCol({
         ) : pill ? (
           <GenericFeedbackPill msg={pill} onClose={onDismissPill} />
         ) : (
-          <span className={styles.echo}>{echo}</span>
+          /* The shared move row (docs/playarea.md → Text entry) around the
+             traced word. strands can't use <EntryRow>: its string is DERIVED
+             from the path (`wordFromPath`), so `value`/`onChange` run backwards
+             — a keystroke here resolves to a CELL, not to a character. What it
+             shares is the row, the EntryBox and the two buttons, which is what
+             makes it the same control players learned elsewhere.
+
+             The buttons are the pointer twins of Backspace and Enter, and the
+             real gain is touch: on a phone there is no keyboard, so before this
+             the only way to submit was re-clicking the last letter. */
+          <MoveRow
+            className={styles.moveRow}
+            onDelete={onDelete}
+            onSubmit={onSubmit}
+            deleteDisabled={entryDisabled}
+            submitDisabled={entryDisabled}
+          >
+            <EntryBox value={echo} className={styles.echo} />
+          </MoveRow>
         )}
       </div>
 

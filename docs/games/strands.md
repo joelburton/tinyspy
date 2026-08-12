@@ -272,12 +272,44 @@ connecting line**, so the player still works out the order.
 
 Folder mirrors the other games'. Two notes worth carrying:
 
-**No text entry at all** — the first game on the roster with none. A board
-repeats letters, so a typed string doesn't identify a path: `PAPARAZZI` on a
-board with four `A`s is genuinely ambiguous. Physical keys still do the rest —
-**Backspace** drops the last tile, **Enter** submits, **Tab** is swallowed, and
-any key dismisses the last pill. The tiles are `tabIndex={-1}`: 48 tab stops
-would bury every real control, the same reasoning the shared `WordList` records.
+**No typed WORDS — but typed LETTERS.** A board repeats letters, so a typed
+*string* doesn't identify a path: `PAPARAZZI` on a board with four `A`s is
+genuinely ambiguous, and that hasn't changed. What changed is where the
+disambiguation happens. `typeLetter` (lib/trace.ts, the keyboard twin of
+`clickTile`) resolves one keystroke against the cells that could actually come
+next:
+
+- **Nothing traced** → any unused cell bearing the letter, anywhere. That
+  competes with all 48 cells, so it's usually ambiguous — a word's first letter
+  is usually a click.
+- **Mid-word** → only the ≤8 neighbours of the last cell, minus cells already in
+  the trace (a path can't visit one twice; clicking your own cell still means
+  "undo back to here", which stays click-only). A small field, so this is usually
+  unique — which is what makes typing the *rest* of a word work.
+- **Several matches** → they ring **red** for a beat and wait for a click. No
+  pill: this slot IS the entry area, so a pill would hide the word being built to
+  say something the board says better. **No match** → an error pill, because
+  that's nearly always a mistake rather than a choice.
+- An unmatched letter **never restarts the trace elsewhere** the way a far
+  *click* does. A click names a cell unambiguously; a keystroke doesn't, so
+  jumping the trace across the board would be guessing at intent.
+
+So the rule the original design derived from still holds — it's refined, not
+reversed. Physical keys also do the rest: **Backspace** drops the last tile,
+**Enter** submits, **Tab** is swallowed, and any key dismisses the last pill. The
+tiles are `tabIndex={-1}`: 48 tab stops would bury every real control, the same
+reasoning the shared `WordList` records.
+
+**The move row** is the shared `<MoveRow>` (⌫ | the traced word in an
+`<EntryBox>` | Submit) — the same control every other game's entry wears. strands
+can't use `<EntryRow>`: its string is *derived* from the path (`wordFromPath`),
+so EntryRow's `value`/`onChange` contract runs backwards. The buttons are the
+pointer twins of Backspace and Enter, and the win is touch — on a phone there's
+no keyboard, so submitting used to mean re-clicking the last letter and nothing
+else. The row **shares its fixed-height slot with the verdict pill** (you're
+either building a word or reading what the last one did), which is `<EntryRow>`'s
+own behaviour; stackdown, whose pill has a separate reserved row, is the odd one
+out.
 
 **Bare letters, no tile boxes** — a documented departure from the
 tile-and-warm-ramp vocabulary in [ui.md](../ui.md). A disc IS the mark here, and

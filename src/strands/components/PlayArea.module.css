@@ -70,11 +70,23 @@
  *
  * Stays inside `.echoSlot`'s 2.5rem (1.75rem × ~1.2 line-height ≈ 2.1rem), so
  * the below-board reserve in `.layout` is unaffected. */
+/* The traced word inside the shared move row. Overrides only what strands wants
+ * differently from the other EntryBoxes: the theme colour (the word IS the
+ * thread you're drawing on the board, so it wears the board's ink) and the size
+ * it already read at. `--entrybox-font-size` rather than a raw `font-size`
+ * because the shared caret's height tracks that variable — setting the property
+ * directly would leave the caret at the default size beside a bigger word. */
 .echo {
-  font-weight: 700;
-  font-size: 1.75rem;
+  --entrybox-font-size: 1.75rem;
   letter-spacing: 0.08em;
   color: var(--strands-theme);
+}
+
+/* The move row spans the slot, so the EntryBox between the buttons flex-fills
+ * exactly as it does in every other game. Without this the row hugs its content
+ * (the slot centres it) and the buttons crowd a one-letter word. */
+.moveRow {
+  width: 100%;
 }
 
 .clue {
