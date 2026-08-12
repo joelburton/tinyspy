@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { asUser, createCodenamesduetGame, type E2EClub, type E2EMember } from '../../helpers/fixtures'
 import { endGame } from '../endGame'
+import { gameAlreadyOver } from '../serverError'
 import type { Cell, GameGallery } from '../types'
 
 const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -83,7 +84,11 @@ export const codenamesduetGallery: GameGallery = {
       const res = await asUser(guesser.session.access_token)
         .schema('codenamesduet')
         .rpc('submit_guess', { target_game: id, target_position: position })
-      if (res.error?.message.match(/not in|guessable state/)) return false
+      // Same rot as the pass below: `/not in|guessable state/` was written
+      // against prose, and `game-not-in-play|` hyphenates "not-in", so it
+      // stopped matching and a guess into a just-ended game threw instead of
+      // ending the loop.
+      if (gameAlreadyOver(res.error)) return false
       if (res.error) throw new Error(`submit_guess(${position}): ${res.error.message}`)
       return true
     }
@@ -132,13 +137,17 @@ export const codenamesduetGallery: GameGallery = {
         const res = await asUser(guesser.session.access_token)
           .schema('codenamesduet')
           .rpc('pass_turn', { target_game: id })
-        // A pass on a finished game is refused ("can only pass during active
-        // play"), which just means the round before it ended the game — the
-        // fifteenth agent can fall anywhere in a run.
-        if (res.error?.message.includes('active play')) break
-        if (res.error && !res.error.message.match(/not in|state/)) {
-          throw new Error(`pass_turn: ${res.error.message}`)
-        }
+        // A pass on a finished game is refused, which just means the round
+        // before it ended the game — the fifteenth agent can fall anywhere in a
+        // run. Anything else really is a failure.
+        //
+        // This used to be two conditions: a prose match, then a `/not in|state/`
+        // net to tolerate whatever else looked state-ish. Both were written
+        // against server messages that are now `key|detail|` (the net doesn't
+        // even match `game-not-in-play|` — the key hyphenates "not-in"), so the
+        // net catches nothing and the one real case is the key test.
+        if (gameAlreadyOver(res.error)) break
+        if (res.error) throw new Error(`pass_turn: ${res.error.message}`)
       }
     }
 

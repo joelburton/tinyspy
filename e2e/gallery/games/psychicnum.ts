@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { asUser, createGame, type E2EClub } from '../../helpers/fixtures'
 import { endGame } from '../endGame'
+import { gameAlreadyOver } from '../serverError'
 import type { Cell, GameGallery } from '../types'
 
 const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -77,7 +78,7 @@ export const psychicnumGallery: GameGallery = {
         .rpc('submit_guess', { target_game: id, guess: word })
       // Finding the last secret ends the game, so anything after it is refused
       // — for a win-building path that's the success signal, not a failure.
-      if (res.error?.message.includes('not in progress')) return
+      if (gameAlreadyOver(res.error)) return
       if (res.error) throw new Error(`psychicnum.submit_guess(${word}): ${res.error.message}`)
     }
     const guess = (word: string) => guessAs(viewer, word)

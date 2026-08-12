@@ -1,5 +1,6 @@
 import { asUser, createSpellingbeeGame, type E2EClub } from '../../helpers/fixtures'
 import { endGame } from '../endGame'
+import { gameAlreadyOver } from '../serverError'
 import { timeOut } from '../timeOut'
 import type { Cell, GameGallery } from '../types'
 
@@ -19,9 +20,9 @@ async function play(club: E2EClub, gameId: string, words: Word[]): Promise<void>
       .schema('spellingbee')
       .rpc('submit_word', { target_game: gameId, word: w.word, points: w.points, is_pangram: false, is_bonus: false })
     // Reaching the target rank ENDS the game, so the remaining words come back
-    // "not in progress" — which for a win-building path is the success signal,
-    // not a failure. Stop there rather than submitting into a finished game.
-    if (res.error?.message.includes('not in progress')) return
+    // refused — which for a win-building path is the success signal, not a
+    // failure. Stop there rather than submitting into a finished game.
+    if (gameAlreadyOver(res.error)) return
     if (res.error) throw new Error(`spellingbee.submit_word(${w.word}): ${res.error.message}`)
   }
 }
