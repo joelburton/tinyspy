@@ -33,7 +33,7 @@ const ev = (user_id: string, kind: EventRow['kind'], word: string | null): Event
 
 const base = {
   brand: 'SnakeBox',
-  gameTitle: 'ABC·DEF·GHI·JKL',
+  gameTitle: 'ABC-DEF-GHI-JKL',
   date: '5 Aug 2026',
   sides: 'abcdefghijkl',
   solution: ['adgjbehk', 'kcfil'],

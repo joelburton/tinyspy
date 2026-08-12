@@ -254,4 +254,28 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   'already-ended': { text: () => 'Game over', tone: 'info' },
   // Undo is likewise racy in coop: two players can undo the same last word.
   'nothing-to-undo': { text: () => 'Nothing to undo' },
+  // The three ways a player-typed board (setup.custom_sides) fails to make a
+  // game. Like wordiply's pair above, these fire at CREATE time and land on the
+  // setup dialog's error line rather than the below-board pill — and for the
+  // same reason: the frontend validates the SHAPE of a board (twelve distinct
+  // letters) and deliberately can't know whether those letters are one we can
+  // prove solvable in two, since that needs the seed table.
+  //
+  // Three keys rather than one because the fixes are genuinely different, and
+  // the dialog's slot is single-line so each stays a caption:
+  //
+  //   • unknown-board    — nothing to do but check what you typed. Named as
+  //                        "letters" because the sorted SET is what missed;
+  //                        rearranging them wouldn't help.
+  //   • unverified-board — the letters were right, so this one says the
+  //                        arrangement is wrong. Two letters swapped between
+  //                        sides is the shape of it.
+  //   • board-needs-band — the only one with an in-dialog fix, so the copy
+  //                        names the number to raise the dictionary TO.
+  //
+  // A board this app produced reaches none of them: it came out of the seed
+  // table, and its partition is the one that kept the pair playable.
+  'unknown-board': { text: (d) => `No known solution for the letters in ${d[0]}` },
+  'unverified-board': { text: (d) => `${d[0]} isn't solvable in two — check the sides` },
+  'board-needs-band': { text: (d) => `That board needs dictionary ${d[0]} or higher` },
 }

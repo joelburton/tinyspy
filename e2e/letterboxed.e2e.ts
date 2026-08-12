@@ -476,3 +476,114 @@ test.describe('letterboxed', () => {
     await ctx.close()
   })
 })
+
+/**
+ * Custom board (setup) + the `Board` recap row — the round trip that is the
+ * whole point of the feature: you play a board you like and hand it to a
+ * friend. Drives the real setup dialog through the real
+ * `letterboxed-build-board` edge function (custom branch: no sampling, no
+ * re-rolling, no quality gates), which is the ONLY coverage that branch has —
+ * the Deno tests reach `board.ts` but never the seed lookup.
+ *
+ * THE BOARD IS SELF-SOURCED rather than hardcoded, and that is the test's real
+ * subject. A custom board only works if its twelve letters are in
+ * `letterboxed.seeds`, and the design's load-bearing claim is that a board this
+ * game BUILT always is — the builder drew those twelve from a seed row, and
+ * partitioning only reorders them. So the spec rolls a board, reads it off the
+ * screen, and types it back: if that claim is ever false, this goes red without
+ * anyone having to guess which letter sets to hardcode.
+ *
+ * Two clubs, because `is_current_view` allows one live game per club.
+ */
+test.describe('letterboxed custom board', () => {
+  /** The board, read off the twelve SVG letters. They render in `sides` order
+   *  (`layout()` emits side groups 0..3 in turn), which is also the order the
+   *  setup field takes — clockwise from the top-left.
+   *
+   *  `allTextContents`, NOT `allInnerTexts`: these are SVG `<text>` nodes, and
+   *  innerText is an HTML-rendering concept — it comes back empty here, which
+   *  reads exactly like a board that failed to load. */
+  const readBoard = async (page: import('@playwright/test').Page) =>
+    (await page.locator('svg text').allTextContents()).join('')
+
+  test('a rolled board can be typed back, and the recap reads it in the same form', async ({
+    browser,
+  }) => {
+    // Two clubs and two contexts: createSoloClub mints its OWN member each
+    // time, so the second club's page is a 404 to the first club's player.
+    // That separation is the point — this is one person handing a board to
+    // another, not one person replaying their own game.
+    const rollClub = await createSoloClub('lbcb1')
+    const typeClub = await createSoloClub('lbcb2')
+
+    // ── Roll a real board through the edge function's RANDOM path ──
+    const rollCtx = await browser.newContext()
+    await signIn(rollCtx, rollClub.members[0].session)
+    const rollPage = await rollCtx.newPage()
+    await rollPage.goto(`/c/${rollClub.handle}`)
+    await rollPage.getByRole('button', { name: /SnakeBox/ }).first().click()
+    await rollPage.getByRole('button', { name: /^Start SnakeBox/ }).click()
+    await boardReady(rollPage, rollPage.locator('svg text').first(), 20000)
+    await expect(rollPage.locator('svg text')).toHaveCount(12)
+    const rolled = await readBoard(rollPage)
+    expect(rolled).toMatch(/^[A-Z]{12}$/)
+    await rollCtx.close()
+
+    // ── The friend types it in, through the CUSTOM path ──
+    const typeCtx = await browser.newContext()
+    await signIn(typeCtx, typeClub.members[0].session)
+    const page = await typeCtx.newPage()
+    await page.goto(`/c/${typeClub.handle}`)
+    await page.getByRole('button', { name: /SnakeBox/ }).first().click()
+    await page.getByText('Board (optional)').click()
+    // Typed WITH separators, the way the app writes it everywhere — the field
+    // keeps them and `cleanSides` strips them, which is the behaviour here.
+    const written = rolled.match(/.{3}/g)!.join('-')
+    const field = page.getByRole('textbox', { name: 'Custom board' })
+    await field.fill(written)
+    // The separators STAY on screen: you typed a board, so you should see one.
+    await expect(field).toHaveValue(written)
+
+    await page.getByRole('button', { name: /^Start SnakeBox/ }).click()
+
+    // The board IS the one typed — same letters, same sides, same positions.
+    await boardReady(page, page.locator('svg text').first(), 20000)
+    await expect(page.locator('svg text')).toHaveCount(12)
+    expect(await readBoard(page)).toBe(rolled)
+
+    // And the recap prints it in the form the dialog takes back — the round
+    // trip a friend actually uses.
+    await page.getByText('Setup options').click()
+    await expect(page.getByText(`Board: ${written}`)).toBeVisible()
+
+    await typeCtx.close()
+  })
+
+  /**
+   * The rejection a player can actually reach. Twelve distinct letters with no
+   * vowels pass the dialog's own shape check (that is all it can judge), so the
+   * seed lookup is what refuses them — which is exactly the split the feature
+   * is built on: the FE validates shape, the server owns solvability.
+   */
+  test('a board with no known solution is refused, and the dialog says so', async ({
+    browser,
+  }) => {
+    const club = await createSoloClub('lbcb3')
+    const ctx = await browser.newContext()
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/c/${club.handle}`)
+
+    await page.getByRole('button', { name: /SnakeBox/ }).first().click()
+    await page.getByText('Board (optional)').click()
+    await page.getByRole('textbox', { name: 'Custom board' }).fill('BFG-JKP-QVW-XYZ')
+    await page.getByRole('button', { name: /^Start SnakeBox/ }).click()
+
+    // The server's key, rendered by errorCopy — not a raw message, and not a
+    // fault: this is a real answer to a real request.
+    await expect(page.getByText(/No known solution for the letters/i))
+      .toBeVisible({ timeout: 20000 })
+
+    await ctx.close()
+  })
+})

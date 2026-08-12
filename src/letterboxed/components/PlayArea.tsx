@@ -86,7 +86,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // print effect below is guarded on `game` anyway, and the info column doesn't
   // render until after the loading return.
   const summaryRows = useMemo(
-    () => (game ? setupRows(letterboxedSetup, game.mode, players) : []),
+    () => (game ? setupRows(letterboxedSetup, game.mode, players, game.sides) : []),
     [letterboxedSetup, game, players],
   )
 

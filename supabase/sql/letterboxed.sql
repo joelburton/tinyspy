@@ -391,6 +391,51 @@ revoke execute on function letterboxed.pick_seed(int) from public;
 grant execute on function letterboxed.pick_seed(int) to authenticated;
 
 -- ============================================================
+-- letterboxed.seed_for — the seed for ONE named letter set
+-- ============================================================
+-- pick_seed's counterpart for a PLAYER-CHOSEN board (setup.custom_sides,
+-- "play the board my friend sent me"). The board arrives as twelve
+-- letters in side order; sorted, those twelve ARE letterboxed.seeds'
+-- primary key, so recovering the pair that solves them is one index
+-- lookup.
+--
+-- THE POINT OF THE LOOKUP is not to police the player — it is to get
+-- `solution`, which letterboxed.games requires and which the terminal
+-- reveal, the PDF and create_game's winnability check all read. A custom
+-- board that found its pair is indistinguishable from a rolled one
+-- everywhere downstream: par is still 2, the reveal still works.
+--
+-- A board this game BUILT is always here, by construction — the builder
+-- got its twelve letters from a row of this very table, and partitioning
+-- only reorders them. So the re-share case cannot miss. A miss means a
+-- typo, or a board from somewhere else (an NYT puzzle, say) whose twelve
+-- letters have no band <= 2 pair in our dictionary.
+--
+-- SECURITY DEFINER for the same reason pick_seed is: RLS is enabled on
+-- letterboxed.seeds with no select policy, so the table's `grant select
+-- to authenticated` alone yields zero rows. Reading the pool has to go
+-- through a definer function.
+--
+-- The parameter is NOT called `letters`: that is the column's name, and
+-- PL/pgSQL would have to guess which one `where letters = letters` meant.
+-- (This one is `language sql`, but the naming rule is worth keeping
+-- uniform — see the note on common.create_game's `saved_default`.)
+create or replace function letterboxed.seed_for(board_letters text)
+returns table(letters text, word_a text, word_b text, difficulty int)
+language sql
+stable
+security definer
+set search_path = letterboxed, common, public, extensions
+as $$
+  select s.letters::text, s.word_a, s.word_b, s.difficulty
+    from letterboxed.seeds s
+   where s.letters = board_letters;
+$$;
+
+revoke execute on function letterboxed.seed_for(text) from public;
+grant execute on function letterboxed.seed_for(text) to authenticated;
+
+-- ============================================================
 -- letterboxed._leaderboard — compete's public standings
 -- ============================================================
 -- The two numbers a race may reveal, per player, ordered best-first.
@@ -558,10 +603,19 @@ revoke execute on function letterboxed._end_game(uuid, text, jsonb, jsonb) from 
 --       anyway because that is the number players can actually reason
 --       about: "solve it in 5" says nothing on its own, while "par is 2,
 --       you get 3 spare" says exactly how much room you have.
+--
+--       A PLAYER-CHOSEN BOARD DOES NOT CHANGE THIS. The builder proves
+--       par 2 for a typed board the same way it guarantees it for a
+--       rolled one — by finding the seeded pair for those twelve letters
+--       and checking it stays playable under the typed partition — so
+--       there is still no board here whose par is anything but 2.
 --     "legal_band": 1..6   (default 5) — how obscure an accepted word
 --       may be. NOTE THE DIRECTION: higher = EASIER.
 --     "coop_style": 'free' | 'turns',
 --     "first_turn_user_id": uuid (required when coop_style='turns'),
+--     "custom_sides": the twelve letters of a typed board, in side order
+--       (optional; absent = the edge function rolled one). Cross-checked
+--       against board.sides below, then stripped from the club default.
 --     "timer": … }
 --
 -- `board` comes from the letterboxed-build-board edge function:
@@ -654,6 +708,22 @@ begin
       detail = 'board.sides must be twelve DISTINCT letters';
   end if;
 
+  -- A PLAYER-CHOSEN board must be the board they get, character for
+  -- character. The edge function is supposed to pass `setup.custom_sides`
+  -- straight through as `board.sides` (it skips partitionSides entirely),
+  -- and this is what makes that a checked promise rather than a comment:
+  -- the whole feature is "play the exact board my friend sent me", so a
+  -- builder bug that quietly re-partitioned it would hand back a puzzle
+  -- that looks right and isn't. Same cross-check wordiply makes on its
+  -- custom base.
+  if setup->>'custom_sides' is not null
+     and setup->>'custom_sides' <> b_sides then
+    raise exception 'custom-board-mismatch|%|%|',
+                    setup->>'custom_sides', b_sides
+      using errcode = 'P0001',
+      detail = 'board.sides must equal setup.custom_sides exactly';
+  end if;
+
   if jsonb_typeof(board->'playable_words') <> 'array' then
     raise exception 'bad-playable-words|'
       using errcode = 'P0001',
@@ -665,7 +735,15 @@ begin
   -- instead of shipping it, and this is the server-side catch. The
   -- measured 25th percentile is 210+ at every band, so this trims only
   -- the thin tail — the edge function's gate must agree.
-  if jsonb_array_length(b_words) < 150 then
+  --
+  -- IT DOES NOT APPLY TO A PLAYER-CHOSEN BOARD, and the edge function
+  -- skips its own floor to match (the two are documented as having to
+  -- agree, so they move together). This gate exists to stop a ROLLED
+  -- board being thin — nobody asked for that board, so it has to be
+  -- worth playing sight-unseen. You typed this one; how rich it is, is
+  -- your business. Same relaxation spellingbee and wordiply make for
+  -- their custom boards.
+  if setup->>'custom_sides' is null and jsonb_array_length(b_words) < 150 then
     raise exception 'too-few-playable-words|%|',
                     jsonb_array_length(b_words)
       using errcode = 'P0001',
@@ -703,11 +781,18 @@ begin
   end if;
 
   -- ─── Title ───────────────────────────────────────────────
-  -- The board itself, grouped by side: "ABC·DEF·GHI·JKL". Nothing here
+  -- The board itself, grouped by side: "ABC-DEF-GHI-JKL". Nothing here
   -- is secret, so unlike wordle the title needs no re-sync as the game
   -- progresses — the board never changes.
-  game_title := upper(substr(b_sides, 1, 3)) || '·' || upper(substr(b_sides, 4, 3))
-             || '·' || upper(substr(b_sides, 7, 3)) || '·' || upper(substr(b_sides, 10, 3));
+  --
+  -- DASHES, not the middot this used to print, because the title is now
+  -- one of the places a player READS A BOARD OFF to retype it (the info
+  -- column's Board row and the PDF are the others, both via
+  -- lib/customBoard.ts → formatSides). Three renderings of one string
+  -- was drift; the setup dialog strips separators anyway, so either
+  -- would paste, but only one of them is what the app itself writes.
+  game_title := upper(substr(b_sides, 1, 3)) || '-' || upper(substr(b_sides, 4, 3))
+             || '-' || upper(substr(b_sides, 7, 3)) || '-' || upper(substr(b_sides, 10, 3));
 
   effective_gametype := 'letterboxed_' || mode;
 
@@ -716,11 +801,17 @@ begin
   -- validates player_user_ids are all in clubs_members, inserts
   -- common.game_players. Returns the canonical id we FK from.
   --
-  -- saved_default strips first_turn_user_id — "who goes first" is a
-  -- per-game pick, not a club preference (coop_style rides along).
+  -- saved_default strips the per-GAME picks: who goes first (not a club
+  -- preference — coop_style itself rides along), and the typed board.
+  --
+  -- custom_sides especially: a board is an INSTANCE, not a preference.
+  -- Left in the club's default_setup it would prefill the next dialog,
+  -- and every later Start would silently rebuild this same board until
+  -- somebody noticed the field was populated and cleared it. Same reason
+  -- boggle strips custom_board and spellingbee strips custom_letters.
   new_id := common.create_game(
     target_club, effective_gametype, player_user_ids, game_title, setup,
-    setup - 'first_turn_user_id'
+    setup - 'first_turn_user_id' - 'custom_sides'
   );
 
   -- Opt-in turn-by-turn coop: seat the common rotation so submit_word

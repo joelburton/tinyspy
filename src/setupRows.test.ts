@@ -60,6 +60,7 @@ const NOT_A_ROW: Record<string, string> = {
   custom_center: 'a board-generation override; the board it made is the Letters row',
   custom_letters: 'a board-generation override; the board it made is the Letters row',
   custom_board: 'a board-generation override; the board it made is the Letters row',
+  custom_sides: 'a board-generation override; the board it made is the Board row',
   // wordiply's player-chosen starter. Same family, different reason for having
   // no row: its board IS the base, which already reaches both surfaces as the
   // game title, the letters above the grid, and the PDF's own `base` line. A
@@ -99,6 +100,21 @@ const PLAYERS: Member[] = [
   { user_id: 'u2', username: 'bea', color: 'green' },
 ]
 
+/**
+ * Trailing args past `(setup, mode, players)`, for the games whose `setupRows`
+ * takes more. The default `[0, null]` covers the games that take a NUMBER
+ * (waffle's par) or a nullable object (connections' puzzle date) and is enough
+ * to exercise the shape.
+ *
+ * letterboxed needs a real one: its extra arg is the board's `sides` string,
+ * which it formats. A `0` there produces an empty Board row instead of a
+ * malformed one — the row would still be a string, so every assertion below
+ * would pass while the thing being checked wasn't exercised at all.
+ */
+const EXTRA_ARGS: Record<string, unknown[]> = {
+  letterboxed: ['abcdefghijkl'],
+}
+
 /** One manifest per game FAMILY — a coop/compete pair shares a summary module. */
 const BY_SCHEMA = new Map(GAMES.map((g) => [g.schema, g]))
 
@@ -116,12 +132,13 @@ describe('setup recaps', () => {
 
     describe(schema, () => {
       // Extra args (waffle's par, connections' puzzle date) are game-specific;
-      // passing none exercises the shape, and TS pins the real call sites.
+      // the generic pair exercises the shape, EXTRA_ARGS overrides it where a
+      // game needs a real value, and TS pins the real call sites.
       const rows = mod.setupRows(
         manifest.setupForm.defaults as never,
         manifest.mode,
         PLAYERS,
-        ...([0, null] as never[]),
+        ...((EXTRA_ARGS[schema] ?? [0, null]) as never[]),
       )
 
       it('leads with the roster', () => {

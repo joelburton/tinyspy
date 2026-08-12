@@ -1,11 +1,15 @@
+import { useState } from 'react'
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { TimerField } from '../../common/components/fields/TimerField'
 import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
+import { SetupSection } from '../../common/components/setup/SetupSection'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { PAR } from '../lib/board'
+import { cleanSides, formatSides } from '../lib/customBoard'
 import type { LetterboxedSetup } from '../lib/setup'
 import styles from '../../common/components/fields/setupForm.module.css'
+import local from './SetupForm.module.css'
 
 /**
  * letterboxed's per-game setup form. Mode is locked at the gametype level
@@ -21,6 +25,29 @@ import styles from '../../common/components/fields/setupForm.module.css'
  */
 export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
   const s = value as LetterboxedSetup
+
+  // WHAT YOU TYPED, kept separately from what gets stored. The field shows your
+  // text verbatim — dashes, dots, spaces and all — because you should be able
+  // to paste "ABC-DEF-GHI-JKL" and still see a board rather than a run of
+  // twelve letters. `custom_sides` on the setup holds the NORMALISED twelve
+  // (`cleanSides`), the shape the other games store and the shape the server
+  // cross-checks against `board.sides`.
+  //
+  // Local state rather than deriving from `s.custom_sides`, because the two
+  // genuinely differ: normalising is lossy about separators, so the field could
+  // not be reconstructed from the stored value. It initialises from the setup
+  // once, which is right — `custom_sides` is stripped from the club default
+  // (create_game), so a reopened dialog starts blank by design.
+  const [typedSides, setTypedSides] = useState(s.custom_sides ?? '')
+
+  // The section's summary carries its own value, so a closed section still
+  // shows what's set (SetupSection's contract). CANONICAL, not the raw text:
+  // the summary is the board as the app writes it everywhere else, and a
+  // half-typed board summarises honestly ("Board: ABC-DE").
+  const customSides = s.custom_sides ?? ''
+  const customSidesLabel = customSides
+    ? `Board: ${formatSides(customSides)}`
+    : 'Board (optional)'
 
   return (
     <div className={styles.setup}>
@@ -77,6 +104,43 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         value={s.legal_band}
         onChange={(legal_band) => onChange({ ...s, legal_band })}
       />
+
+      {/* Optional custom board, behind a disclosure whose summary shows the
+          board as it's written everywhere else ("Board: ABC-DEF-GHI-JKL") or
+          "(optional)" when blank. Blank → a rolled board (the normal path);
+          fill it to play exactly this one — which is how you send a friend a
+          board you liked, read straight off its info column or its printout.
+
+          Last before the timer because it's the rare knob: the two difficulty
+          fields above are the ones every game touches.
+
+          Start is gated on `customSidesError` (via the manifest's validate),
+          but only on SHAPE — twelve distinct letters. Whether those letters
+          are a board we can prove solvable in two is the edge function's call
+          (it needs the seed table), so an unprovable board fails at Start with
+          the server's reason. Cleared input stores `undefined` so the edge
+          function sees it as absent → roll. */}
+      <SetupSection label={customSidesLabel}>
+        <p className="muted">
+          Leave blank to roll a random board, or type one: all twelve letters,
+          clockwise from the top-left corner. Separators are ignored, so paste
+          it however you have it written.
+        </p>
+        <input
+          type="text"
+          autoComplete="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          value={typedSides}
+          onChange={(e) => {
+            setTypedSides(e.target.value)
+            onChange({ ...s, custom_sides: cleanSides(e.target.value) || undefined })
+          }}
+          className={local.sidesInput}
+          placeholder="ABC-DEF-GHI-JKL"
+          aria-label="Custom board"
+        />
+      </SetupSection>
 
       <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
     </div>

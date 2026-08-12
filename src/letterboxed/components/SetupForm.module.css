@@ -1,0 +1,36 @@
+/* letterboxed's setup dialog — just the optional custom-board input.
+   Everything else in the form is a shared field (SelectField /
+   DifficultyField / TimerField / CoopStyleField) carrying its own styles.
+
+   Matched to wordiply's `.baseInput` and spellingbee's `.letterInput`, the
+   sibling custom-letter controls: the letters you type are the letters you'll
+   see on the board, so they're set monospace + uppercase + tracked out, and
+   centred in a box sized to hold them rather than stretching across the
+   dialog.
+
+   Sized for the WRITTEN board, not the twelve letters: the field keeps your
+   separators ("ABC-DEF-GHI-JKL" is fifteen characters), so a box cut to twelve
+   would scroll the moment you typed it the way it's printed. */
+.sidesInput {
+  width: 17rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-family: monospace;
+  text-align: center;
+}
+
+/* The placeholder has to read as an EXAMPLE, not as a board someone already
+   typed — and this field's placeholder is uniquely able to be mistaken for
+   one, since it's a full twelve letters in the same mono face, tracking and
+   case as real input. The browser default grey sits close enough to the text
+   grey to look like entered content, which would have a player hit Start
+   believing they'd pasted a board.
+
+   So it differs on three axes at once rather than tone alone: much lighter (a
+   mix toward the control background), italic, and untracked. Lifted wholesale
+   from boggle's `.boardInput::placeholder`, which met the same problem first. */
+.sidesInput::placeholder {
+  color: color-mix(in oklab, var(--color-muted) 50%, var(--color-control-bg));
+  font-style: italic;
+  letter-spacing: normal;
+}

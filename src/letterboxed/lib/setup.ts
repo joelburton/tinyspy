@@ -1,5 +1,6 @@
 import type { TimerMode } from '../../common/lib/games'
 import type { CoopTurnSetup } from '../../common/components/fields/CoopStyleField'
+import { parseSides } from './customBoard'
 
 /**
  * letterboxed's per-game setup — collected by the start-game dialog, persisted
@@ -20,6 +21,8 @@ import type { CoopTurnSetup } from '../../common/components/fields/CoopStyleFiel
  *     legal words means more escape routes off an awkward tail letter. (Median
  *     playable words per board runs ~280 at band 1 to ~850 at band 5.) That is
  *     the same inversion strands' band has.
+ *
+ * Plus `custom_sides` — an OPTIONAL player-chosen board (see below).
  */
 export type LetterboxedSetup = CoopTurnSetup & {
   timer: TimerMode
@@ -27,6 +30,50 @@ export type LetterboxedSetup = CoopTurnSetup & {
   extra_words: number
   /** Dictionary band a word must be in to count, 1..6. Higher = EASIER. */
   legal_band: number
+  /**
+   * An OPTIONAL player-chosen board: twelve distinct letters, stored
+   * normalised (lowercase, no separators — `cleanSides`) in the same
+   * clockwise-from-top-left order `letterboxed.games.sides` uses. Blank/absent
+   * means the usual random board — the edge function samples a seed as it
+   * always has. Set it and the builder plays exactly this board, which is how
+   * you send a friend one you liked.
+   *
+   * WHAT MAKES THIS DIFFERENT FROM THE OTHER GAMES' CUSTOM BOARDS: a
+   * letterboxed board has to be KNOWN SOLVABLE IN TWO, and twelve arbitrary
+   * letters almost never are. So the builder does not take your word for it —
+   * it looks the twelve letters up in `letterboxed.seeds` (whose primary key
+   * IS the sorted twelve) to recover the chained pair that solves them, and
+   * checks that pair is still playable under the sides you typed. A board that
+   * came out of this game is in that table BY CONSTRUCTION, so the re-share
+   * case never fails; a mistyped one is rejected at Start.
+   *
+   * That lookup is also why nothing downstream is special-cased: `solution`
+   * gets a real pair, so par stays 2, the reveal works, and the PDF prints
+   * "Solvable in two" exactly as it does for a rolled board.
+   *
+   * Only the SHAPE is checked here (`customSidesError`); whether the letters
+   * are a board we can prove is a seed-table question the frontend can't
+   * answer without a round trip, so the edge function owns it — the same
+   * division wordiply's `customBaseError` makes.
+   *
+   * Not saved as the club's next default: `create_game` strips it before
+   * handing the setup to `common.create_game`. A one-off, not a baseline —
+   * otherwise every later Start would silently rebuild this same board.
+   */
+  custom_sides?: string
+}
+
+/**
+ * Why the optional custom board is invalid, or `null` if it's fine (including
+ * the common "left blank" case → a random board). `parseSides` owns the
+ * reading; the edge function calls the same function server-side, so this is
+ * the fail-fast rather than the authority.
+ */
+export function customSidesError(setup: LetterboxedSetup): string | null {
+  const typed = setup.custom_sides ?? ''
+  if (!typed) return null // blank → a random board
+  const parsed = parseSides(typed)
+  return parsed.ok ? null : parsed.error
 }
 
 /**
@@ -41,7 +88,7 @@ export function letterboxedSetupError(setup: LetterboxedSetup): string | null {
   if (setup.legal_band < 1 || setup.legal_band > 6) {
     return 'Dictionary must be between 1 and 6.'
   }
-  return null
+  return customSidesError(setup)
 }
 
 /**

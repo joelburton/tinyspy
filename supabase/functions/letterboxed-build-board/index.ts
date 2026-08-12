@@ -4,6 +4,15 @@
  * `<codename>-build-board` family (spellingbee, wordwheel, waffle, boggle,
  * wordiply).
  *
+ * TWO paths, picked by whether setup.custom_sides is set:
+ *   • CUSTOM — the player typed a board ("play the one I sent you"). No
+ *     sampling, no re-rolling and no quality gates; the twelve letters are
+ *     looked up in letterboxed.seeds to recover the pair that solves them, and
+ *     that pair is checked against the partition as typed. See
+ *     buildCustomBoard, which also lists the three player-reachable
+ *     rejections.
+ *   • RANDOM — the original path, unchanged, described below.
+ *
  * ── What makes this one different ────────────────────────────────────────
  * The other builders GENERATE a board and then discover what's findable on
  * it. This one runs backwards, because a Letter Boxed board has to be known
@@ -56,10 +65,14 @@
  *
  * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
  * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
- * word. This function's own keys are all "impossible without an FE bug or a
- * broken pipeline" (bad-band / board-attempts-exhausted / unsolvable-board /
- * edge-internal), so none carry copy — they render as faults. A create_game
- * raise relays verbatim with its SQLSTATE (invokeCreateGame).
+ * word. THREE are player-reachable, and only on the custom path — you can
+ * mistype a board (unknown-board / unverified-board) or set the dictionary
+ * below what its solution needs (board-needs-band) — so all three carry copy
+ * in errorCopy.ts and land on the setup dialog's own error line. The rest
+ * (bad-band / bad-custom-board / board-attempts-exhausted / unsolvable-board /
+ * edge-internal) are "impossible without an FE bug or a broken pipeline" — no
+ * copy; they render as faults. A create_game raise relays verbatim with its
+ * SQLSTATE (invokeCreateGame).
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
@@ -73,6 +86,11 @@ import {
   letterMask,
   partitionSides,
 } from './board.ts'
+// Reaching across into the FE tree, the seam boggle-build-board uses for its
+// own custom board: ONE reader for a typed board, so what the setup dialog
+// accepts is exactly what this function will parse. A second copy of those
+// rules would drift into "the dialog took it but the server didn't".
+import { parseSides } from '../../../src/letterboxed/lib/customBoard.ts'
 
 const FN = 'letterboxed-build-board'
 
@@ -174,6 +192,105 @@ async function attemptBoard(
   return { sides, playable_words: playable, solution: [seed.word_a, seed.word_b] }
 }
 
+/**
+ * Why a typed board couldn't be used. A REASON, not a wire format: serve()
+ * turns each into its fe-error-key literal, which keeps every `json({error})`
+ * in this file a literal the edgeFnErrorKeys guard can read (the alternative
+ * was an APPROVED_EXPRESSIONS exemption, and an exemption is worth less than a
+ * shape that doesn't need one).
+ */
+type CustomReject =
+  | { reject: 'unknown-board' }
+  | { reject: 'unverified-board' }
+  | { reject: 'board-needs-band'; band: number }
+
+/**
+ * Build the board a player TYPED (setup.custom_sides) — "play the board my
+ * friend sent me". No sampling, no re-rolling, and no quality gates: you chose
+ * this board, so whether it is rich or trivial is your business, not ours.
+ *
+ * The one thing that is still checked is the one the game cannot do without: a
+ * KNOWN TWO-WORD SOLUTION. `letterboxed.games.solution` is not nullable, and
+ * the terminal reveal, the PDF and create_game's winnability invariant all read
+ * it. So this recovers the pair rather than trusting-and-storing-nothing —
+ * which is why a custom board needs no special case anywhere downstream.
+ *
+ * Three ways it can fail, all of them unreachable for a board this game built:
+ *
+ *   • unknown-board   — no seed for those twelve letters. A mistyped letter, or
+ *                       a board from elsewhere with no band <= 2 pair here.
+ *   • unverified-board— the seed exists but its pair isn't playable under the
+ *                       sides as typed: right letters, wrong arrangement (two
+ *                       letters swapped between sides). Without this check that
+ *                       board would start and simply not be solvable in two.
+ *   • board-needs-band— the pair is band 2 and the game is set to band 1, so the
+ *                       solution wouldn't be a legal word in its own game. We
+ *                       report it rather than quietly raising the dictionary the
+ *                       player picked.
+ *
+ * Genuine failures (a query that errored) THROW, so they surface as faults
+ * rather than as a rejection blaming the player — the same split attemptBoard
+ * makes between "re-roll" and "broken".
+ */
+async function buildCustomBoard(
+  supabase: SupabaseClient,
+  sides: string,
+  legalBand: number,
+): Promise<Board | CustomReject> {
+  // Sorted, the twelve letters ARE letterboxed.seeds' primary key.
+  const sorted = [...sides].sort().join('')
+
+  const { data: seedRows, error: seedErr } = await supabase
+    .schema('letterboxed')
+    .rpc('seed_for', { board_letters: sorted })
+  if (seedErr) throw new Error(`seed_for failed: ${seedErr.message}`)
+
+  const seed = ((seedRows as Seed[] | null) ?? [])[0]
+  if (!seed) {
+    console.log(`${FN} reject: no seed for custom board ${sides} (sorted ${sorted})`)
+    return { reject: 'unknown-board' }
+  }
+
+  // The seeded pair must be LEGAL in the game being built, or the guaranteed
+  // solution isn't in playable_words and create_game rejects the board. The
+  // random path avoids this by asking pick_seed for `least(legal_band, 2)`; a
+  // custom board doesn't get to choose its seed, so it reports instead.
+  if (seed.difficulty > legalBand) {
+    console.log(
+      `${FN} reject: custom board ${sides} needs band ${seed.difficulty}, game is at ${legalBand}`,
+    )
+    return { reject: 'board-needs-band', band: seed.difficulty }
+  }
+
+  const { data: candRows, error: candErr } = await supabase
+    .schema('letterboxed')
+    .rpc('candidate_words', { board_mask: letterMask(sides), max_band: legalBand })
+  if (candErr) throw new Error(`candidate_words failed: ${candErr.message}`)
+
+  // The ACCEPT list, exactly as the random path builds it — band-gated only,
+  // with the clean subset computed back out by the games_state view. NO
+  // richness floor and no one-word-solvable re-roll: both are quality gates on
+  // a board nobody chose, and this one was chosen.
+  const candWords = ((candRows as Array<{ word: string; is_clean: boolean }> | null) ?? [])
+    .map((r) => r.word)
+  const playable = buildPlayableWords(candWords, sides)
+
+  // The partition check. The seed proves these twelve letters are solvable in
+  // two SOMEHOW; this proves they're solvable in two THE WAY YOU ARRANGED THEM.
+  if (!playable.includes(seed.word_a) || !playable.includes(seed.word_b)) {
+    console.log(
+      `${FN} reject: custom board ${sides} does not keep ${seed.word_a}/${seed.word_b} playable`,
+    )
+    return { reject: 'unverified-board' }
+  }
+
+  console.log(
+    `${FN} custom board: sides=${sides} seed=${seed.word_a}/${seed.word_b} ` +
+      `band=${seed.difficulty} playable=${playable.length}`,
+  )
+  return { sides, playable_words: playable, solution: [seed.word_a, seed.word_b] }
+}
+
 serve(async (req: Request) => {
   const pre = preflight(req)
   if (pre) return pre
@@ -192,11 +309,43 @@ serve(async (req: Request) => {
     return json({ error: `bad-band|${setup.legal_band}|` }, 400)
   }
 
+  // A typed board short-circuits the whole sample-and-re-roll loop: there is
+  // exactly one board to try, and it either proves out or is rejected.
+  const typedBoard = String(setup.custom_sides ?? '')
+
   let board: Board | null = null
   try {
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS && !board; attempt++) {
-      board = await attemptBoard(supabase, legalBand)
-      if (!board) console.log(`${FN} attempt ${attempt}/${MAX_ATTEMPTS} rejected`)
+    if (typedBoard) {
+      // Shape is the FE's gate (`customSidesError` runs the same parser), so a
+      // failure here means an FE bug rather than a player mistake — no copy,
+      // renders as a fault. Matches boggle's `bad-custom-board`.
+      const parsed = parseSides(typedBoard)
+      if (!parsed.ok) {
+        console.log(`${FN} reject: custom board unreadable — ${parsed.error}`)
+        return json({ error: 'bad-custom-board|' }, 400)
+      }
+      const built = await buildCustomBoard(supabase, parsed.sides, legalBand)
+      // A rejection is the PLAYER's to see and act on (retype the board, raise
+      // the dictionary), so it's a 400 with its own key — not a re-roll. The
+      // board rides along as the detail on the two "check what you typed"
+      // keys, so the dialog's caption can name it back.
+      if ('reject' in built) {
+        const shown = parsed.sides.toUpperCase()
+        switch (built.reject) {
+          case 'unknown-board':
+            return json({ error: `unknown-board|${shown}|` }, 400)
+          case 'unverified-board':
+            return json({ error: `unverified-board|${shown}|` }, 400)
+          case 'board-needs-band':
+            return json({ error: `board-needs-band|${built.band}|` }, 400)
+        }
+      }
+      board = built
+    } else {
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS && !board; attempt++) {
+        board = await attemptBoard(supabase, legalBand)
+        if (!board) console.log(`${FN} attempt ${attempt}/${MAX_ATTEMPTS} rejected`)
+      }
     }
   } catch (e) {
     console.log(`${FN} error:`, (e as Error).message)

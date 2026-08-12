@@ -54,6 +54,13 @@ it 2000 times). Par can't go *below* 2 either: the builder rejects boards
 solvable in one word. So there is **no `par` column and no build-time solver** —
 `PAR` is the constant `2` in [`lib/board.ts`](../../src/letterboxed/lib/board.ts).
 
+**A player-typed board doesn't change this** (§7). It proves par 2 by the same
+route a rolled board guarantees it — the seed table is asked for the pair that
+solves those twelve letters, and that pair is checked against the partition as
+typed — so a board whose par would be anything else never starts. That's what
+keeps the constant a constant, and it's the reason the typed-board feature
+recovers a solution rather than trusting the player for one.
+
 **The cap is waffle-style `par + extra`:** setup asks for **`extra_words`
 (0..5, default 3)** — how many words *above par* the chain may run to — and
 `create_game` stores it resolved as `max_words = 2 + extra_words`. It's
@@ -166,7 +173,7 @@ coverage) / `lost_compete` (all conceded, or a timed-out race nobody scored in)
 
 | RPC | job |
 |---|---|
-| `create_game(target_club, setup, player_user_ids, mode, board)` | Validates setup (`extra_words` 0..5 → `max_words`, `legal_band` 1..6, timer, turn-coop seating) and the board — including the **winnability invariant**: the seeded pair must chain, cover all twelve, and both appear in `playable_words`, plus a ≥ 150-word richness floor. This is the only place that checks the game is solvable at all. Title is the board itself, grouped by side: `"ABC·DEF·GHI·JKL"` — nothing on it is secret, so unlike wordle it never needs a re-sync. |
+| `create_game(target_club, setup, player_user_ids, mode, board)` | Validates setup (`extra_words` 0..5 → `max_words`, `legal_band` 1..6, timer, turn-coop seating) and the board — including the **winnability invariant**: the seeded pair must chain, cover all twelve, and both appear in `playable_words`, plus a ≥ 150-word richness floor. This is the only place that checks the game is solvable at all. Also cross-checks `setup.custom_sides` against `board.sides` when a board was typed (§7), and strips it from the club default. Title is the board itself, grouped by side: `"ABC-DEF-GHI-JKL"` — nothing on it is secret, so unlike wordle it never needs a re-sync, and the dashes are what make it a string you can paste straight back into the setup dialog. |
 | `submit_word(target_game, submitted)` | The whole rulebook, in rejection order (each raise's wording is what the player reads): ≥ 3 letters → in `playable_words` (one membership test covers the dictionary, the board's letters AND the side rule) → cap not reached → not already in the chain → starts with the tail letter. Appends under the game row lock; covering all twelve **ends the game** (coop: everybody wins; compete: first past the bar wins outright). |
 | `undo_word(target_game)` | Pops the last word and **refunds against the cap** (§2). In turn-by-turn coop it **costs the undoer's turn** — see the pricing below. |
 | `clear_chain(target_game)` | Empties the chain (crosswords' "Clear board" hammer). Refused in turn-by-turn coop, and **has no FE surface at all** — see below. |
@@ -352,6 +359,89 @@ never are.
 
 No service role — the caller's JWT carries every signal, same as the siblings.
 
+### A player-typed board (`setup.custom_sides`)
+
+The dialog's optional **Board** field takes twelve letters and plays *exactly*
+that board — the "I played an interesting one, here, try it" case. Set it and
+steps 1–4 above are replaced wholesale; leave it blank and nothing changes.
+
+The reading rules live in
+[`src/letterboxed/lib/customBoard.ts`](../../src/letterboxed/lib/customBoard.ts)
+and the edge function **imports that file directly** (the seam
+`boggle-build-board` uses), so what the dialog accepts is what the server
+parses. `cleanSides` lowercases and drops every non-letter, which is why
+`ABC-DEF-GHI-JKL`, a middot title from an older game, and four space-separated
+triples all mean the same board.
+
+**The field keeps your separators; the setup stores the twelve letters.** You
+paste `ABC-DEF-GHI-JKL` and the box still reads `ABC-DEF-GHI-JKL` — a board is
+easier to check as four groups than as a run of twelve — while
+`setup.custom_sides` holds the normalised `abcdefghijkl` that `create_game`
+cross-checks against `board.sides`. The two can't be derived from each other
+(normalising is lossy about separators), so `SetupForm` keeps the raw text in
+local state alongside the stored value.
+
+That split is also why `cleanSides` does **not** truncate, unlike spellingbee's
+`cleanLetters` and wordiply's `cleanBase`. Those back a field holding the
+*cleaned* value, so their cap is a visible hard stop. Here a cap would be
+silent — the box would read `ABC-DEF-GHI-JKLM` while the game started on the
+first twelve — so length is `parseSides`' to judge, and it names the count it
+actually read ("that's 13") in both directions.
+
+**Why the letters can be typed back at all:** `sides` is already stored in the
+order a person reads the board — `layout()` walks the top left→right, the right
+top→bottom, the bottom **right→left**, the left **bottom→top**, a clockwise
+circuit from the top-left letter. So `formatSides` is pure chunking and
+`parseSides(formatSides(s)) === s`. The same string appears in three places you
+can read it off: the game title, the info column's **Board** setup row, and the
+PDF's Setup block (the last two from one `setupRows` array).
+
+**The lookup, and why it isn't a quality gate.** `letterboxed.games.solution` is
+`not null`, and the terminal reveal, the PDF and `create_game`'s winnability
+invariant all read it — so a typed board still has to arrive with a pair. It
+gets one from `letterboxed.seed_for(sorted_twelve)`: sorted, the twelve letters
+*are* `letterboxed.seeds`' primary key, so recovering the solving pair is one
+index lookup. **A board this game built is in that table by construction** (the
+builder got its twelve letters from a row of it, and partitioning only reorders
+them), so re-sharing cannot miss.
+
+`seed_for` is `security definer` for the same reason `pick_seed` is: RLS is
+enabled on `letterboxed.seeds` with **no select policy**, so the table's own
+`grant select to authenticated` yields zero rows. A direct read would have
+failed silently — every custom board rejected as unknown, on a correct client
+with a correct seed table. `custom_board_test.sql` pins both halves.
+
+Because the pair is recovered rather than assumed, **nothing downstream is
+special-cased**: par is still 2, the reveal still works, the PDF still prints
+"Solvable in two".
+
+**Gates dropped, and the one kept.** The ≥150 richness floor, the
+one-word-solvable re-roll and the 8-attempt loop all go: they exist to stop a
+*rolled* board being a bad puzzle, and nobody asked for that board — you asked
+for this one. (`create_game` relaxes its own ≥150 catch to match, keyed on
+`custom_sides` being present; the two are documented as having to agree, so they
+move together. Same relaxation spellingbee and wordiply make.) What survives is
+solvability, because that's the promise the whole seed pipeline exists to keep.
+
+Three rejections, all player-reachable and all unreachable for a board this game
+produced:
+
+| key | when | the fix |
+|---|---|---|
+| `unknown-board` | no seed for those twelve letters | check what you typed; the *set* missed, so rearranging won't help |
+| `unverified-board` | the seed exists but its pair isn't playable under the sides **as typed** | right letters, wrong arrangement — two swapped between sides |
+| `board-needs-band` | the pair is band 2 and the game is set to band 1 | raise the dictionary to the number in the message |
+
+`unverified-board` is the one doing real work: without it, a board with two
+letters transposed would start happily and simply not be solvable in two.
+
+`create_game` cross-checks `setup.custom_sides` against `board.sides` and raises
+`custom-board-mismatch` if they differ — the feature is "the *exact* board my
+friend sent me", so a builder bug that quietly re-partitioned it would hand back
+a puzzle that looks right and isn't. And `custom_sides` is stripped from the
+club's `default_setup`: a board is an **instance**, not a preference, and left in
+place it would silently rebuild itself on every later Start.
+
 ### `legal_band` — the one knob, and it runs backwards
 
 `legal_band` (1..6, default 5) is what the server **accepts** and the band
@@ -365,10 +455,18 @@ schema comment says so because it's the mistake a future reader will make.
 
 Every `raise` here is a key, not a sentence
 ([supabase.md → Server errors](../supabase.md#server-errors-the-server-raises-a-key-typescript-owns-the-words)).
-Five have player copy, and which five is the whole point: coop's chain is
-SHARED and free-for-all, so a teammate's word can land between your local check
-and your submit — `chain-full`, `already-in-chain`, `wrong-tail`,
-`already-ended`, `nothing-to-undo`. That's a legal move that lost a race.
+Eight have player copy. Five are mid-game, and which five is the whole point:
+coop's chain is SHARED and free-for-all, so a teammate's word can land between
+your local check and your submit — `chain-full`, `already-in-chain`,
+`wrong-tail`, `already-ended`, `nothing-to-undo`. That's a legal move that lost
+a race.
+
+The other three fire at CREATE time and land on the setup dialog's error line
+rather than the below-board pill: `unknown-board`, `unverified-board` and
+`board-needs-band`, the three ways a typed board fails (above). Same
+classification as the five, for the same reason — the frontend validates the
+*shape* of a board and deliberately can't know whether those twelve letters are
+one we can prove, so a player reaches them on a perfectly good client.
 
 Every other raise re-validates something `rejectReason` already refused
 locally, so it can't be reached without a broken client and deliberately has no
@@ -586,13 +684,21 @@ start on T"). No passing.
 start letter / duplicate / chain full), undo's **refund** (the property that
 makes the cap a shape constraint), clear, the coop win on covering twelve,
 compete's actor-only writes + the `players_state` chain mask, the conceded
-exclusion, and the timeout co-winner tie. The realtime-publication memberships
-are guarded centrally (`supabase/tests/common/realtime_publication_test.sql`);
-the gametype registrations by `clubs_gametypes_test.sql`.
+exclusion, and the timeout co-winner tie. `custom_board_test.sql` — the
+typed-board path (§7): `seed_for` reaching the pool RLS hides **and** the same
+caller getting nothing through the table (the pair that proves the definer
+wrapper is load-bearing), the dash title, the `custom_sides` strip from the club
+default, the `custom-board-mismatch` cross-check, and the richness floor being
+relaxed for a typed board **while still firing on a rolled one**. The
+realtime-publication memberships are guarded centrally
+(`supabase/tests/common/realtime_publication_test.sql`); the gametype
+registrations by `clubs_gametypes_test.sql`.
 
 **Vitest** (`src/letterboxed/`): `lib/solve.test.ts` (the help BFS — shortest
 path, the greedy tie-break, stuck vs unreachable), `lib/history.test.ts` (the
-fold + the inclusive boundary), `pdf/model.test.ts` (the print model, incl. the
+fold + the inclusive boundary), `lib/customBoard.test.ts` (the typed-board
+reader — the `formatSides`/`parseSides` round trip, separators ignored, short
+and repeated-letter rejections), `pdf/model.test.ts` (the print model, incl. the
 reveal gate).
 
 **Edge** (`deno test`): `letterboxed-build-board/board_test.ts` — the pure
