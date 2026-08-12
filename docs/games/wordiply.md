@@ -22,6 +22,8 @@ from **wordle** / **waffle**.
 - The system picks a short **base** (a.k.a. *starter*) — a **2–4 letter combination of
   letters, NOT necessarily a real word** (e.g. `AR`, `OWL`, `GNA`, `ZA`). It's just a
   fragment guesses must contain; there is no "base dictionary" or base-difficulty.
+  A player can also **name the base themselves** at setup — the challenge ("try wordiply
+  with MOTH"). See [§5b](#5b-a-player-chosen-base-setupcustom_base).
 - Players enter **5 guesses**. Every guess **must contain the base as a contiguous
   substring** and be a valid dictionary word in the difficulty band, and must be **longer
   than the base** (you have to _extend_ the starter, not just retype it).
@@ -80,9 +82,13 @@ spoiler for the player's *own* experience, so the FE simply **doesn't render the
 terminal** (next subsection). That's a pure display choice, not a security boundary —
 devtools would reveal it, and per the trust model that's fine.
 
-What every player sees from the start: the **base word** and the **`max_word_length`**
-number (the length-bar's eventual target — a hint, never the answer). Everything is
-club-member-readable; nothing is column-hidden.
+What every player sees from the start is the **base** — and nothing else about the answer.
+`max_word_length` is NOT shown at kickoff: every one of its render sites is terminal-gated
+(`InfoCol`'s `<LengthScoreBar>` and reveal, `PlayArea`'s `buildOver`, and the PDF's
+`reveal`), and mid-game the state block shows only `n / 5 guesses`. Everything is
+club-member-readable and nothing is column-hidden — the secrecy here is a **display**
+choice, not a schema gate, which is the same point the subsection above makes about
+shipping `legal_words`.
 
 ### Live readout = word length only; scores revealed at terminal
 
@@ -193,7 +199,9 @@ Signatures mirror wordwheel one-for-one except the board shape and the validated
 - **`wordiply.create_game(target_club text, setup jsonb, player_user_ids uuid[], mode text, board jsonb) → table(id uuid)`**
   - Validates: membership; player counts (coop `[1,6]`, compete `[2,6]`); `mode`; **rejects
     `setup.target_rank`** (wordiply isn't a race-to-rank); one `difficulty` band 1..6;
-    timer via `common.require_valid_timer`.
+    timer via `common.require_valid_timer`; and the optional **`setup.custom_base`** — its
+    shape, plus the cross-check that `board.base` matches it ([§5b](#5b-a-player-chosen-base-setupcustom_base)).
+    It is stripped from the club's saved default.
   - Validates `board`: `base` 2–4 lowercase letters; `max_word_length ≥ base_len + 2`
     (headroom gate); `longest_words` **and** `legal_words` non-empty. Board content is taken
     at face value (the edge fn computed it under the caller's JWT), structure is
@@ -323,6 +331,80 @@ JWT carries every authz signal; `common.words` + the helpers are authenticated-r
 
 ---
 
+## 5b. A player-chosen base (`setup.custom_base`)
+
+The **challenge**: instead of letting the builder sample, a player types the starter at
+setup — *"try wordiply with MOTH"*. Blank (the default) means the random path above,
+unchanged. This is the same override spellingbee / wordwheel (`custom_center` +
+`custom_letters`) and boggle (`custom_board`) already ship, and it follows their rules:
+a `<SetupSection>` disclosure showing its own value, a cleared input storing `undefined`,
+a relaxed quality gate, and **not** saved as the club's next default (`create_game` strips
+it — otherwise every later game in the club would silently default to `MOTH`).
+
+### The gate
+
+Same `try_base`, different arguments — the gate **function** doesn't branch:
+
+| knob | random | custom | why |
+|---|---|---|---|
+| `CHILD_MIN` | 20 | **1** | you picked it; it only has to be playable |
+| `CHILD_MAX` | 500 | **1000** | for a custom base this bound is purely about **payload** (the whole legal list ships to the FE and lands in the games row), not puzzle quality — which is your call. Deliberately NOT raised for random boards. |
+| `MIN_HEADROOM` | 3 | **3** (unchanged) | the best word must still beat the base by ≥3 letters |
+
+**Headroom is the load-bearing one here, and only here.** With the floor at 20 it never
+fires — a base with 20+ children essentially always has one 3+ letters longer — so it reads
+like dead weight. At the custom floor of 1 it is the only thing standing between you and a
+`MOTH` board whose best answer is `MOTHER`. Measured on 500 real words it rejects `YAKS`
+(best: `kayaks`), `JOEY`, `IBEX`, `ORGY`. `try_base_test.sql` §D pins this, and the
+assertion was verified by breaking the gate first.
+
+Measured over 500 random common 2–4 letter dictionary words at band 5, **450 (90%) yield a
+board**. The rejections are lopsided by length: short bases fail for being too generous
+(9/10 two-letter, 20/118 three-letter), 4-letter bases for being too sparse.
+
+### Validation is split, deliberately
+
+- **The FE checks SHAPE only** (`customBaseError`: 2–4 letters). Whether letters *yield* a
+  board is a dictionary question it can't answer without a round trip, so it doesn't guess —
+  the same deal boggle's generation constraints get.
+- **The edge fn owns the dictionary question**, and rejects at Start with one of two
+  player-reachable keys. `try_base` returns zero rows for *any* gate failure, so the reject
+  path runs one extra `count`-only query (`head: true`, so a 20k-word base transfers nothing)
+  to say which way it failed:
+
+  | key | when | caption |
+  |---|---|---|
+  | `base-too-common` | children > 1000 | `ING matches too many words` |
+  | `base-too-narrow` | 0 children, or best word < base+3 | `No long enough word contains YAKS` |
+
+  Two keys rather than one because the fixes differ — too many wants a *longer* starter, too
+  few a *different* one. Both carry copy in `errorCopy.ts` and land on the **setup dialog's
+  own error line** (`formFailureText` → `failureMessage` → `ERROR_COPY`), not the below-board
+  pill and not the fault modal.
+- **A malformed base is checked FIRST**, before any dictionary query, and returns
+  `bad-custom-base` — no copy, so it faults. Without that guard `m` matches most of the
+  language and comes back as "matches too many words", advising a longer starter for what is
+  really a broken client.
+- **`create_game` cross-checks** that `board.base` is the base that was asked for
+  (`base-mismatch`). Every downstream reader — title, board, scoring — trusts `board.base`,
+  so a builder that ignored the request would hand the player a different game than they set
+  up, and this is the only place that can catch it.
+
+The **previous-base repeat cap is skipped** on this path: re-issuing the same challenge to
+the same club is a legitimate thing to want, and the cap exists to stop *random* boards
+repeating.
+
+### Not built, on purpose
+
+- **No live validity preview in the dialog.** It would have to show `max_word_length`, which
+  is exactly the number the game hides until terminal.
+- **No compete-fairness mechanic.** Whoever picks the base may have a word in mind; that is
+  what a challenge *is*, and the friends-on-a-Zoom-call framing settles it.
+- **No "the base must not be a real word" rule.** The rules already say *not necessarily* a
+  word — `MOTH` is fine, guesses just have to contain it and be longer.
+
+---
+
 ## 6. Modes (coop / compete)
 
 | | coop | compete |
@@ -351,17 +433,22 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   `makeRpcDispatcher`, per-mode `labelFor`. Register both in the games registry + add to the
   CLAUDE.md doc map.
 - **`db.ts`** — typed client on schema `wordiply`.
-- **`lib/setup.ts`** — `WordiplySetup = CoopTurnSetup & { timer, difficulty }`: the
-  intersected `CoopTurnSetup` carries the opt-in turn-by-turn fields (`coop_style`,
+- **`lib/setup.ts`** — `WordiplySetup = CoopTurnSetup & { timer, difficulty, custom_base? }`:
+  the intersected `CoopTurnSetup` carries the opt-in turn-by-turn fields (`coop_style`,
   `first_turn_user_id`) documented in §4's turn-order note. No `target_rank`, no base
-  band. `wordiplySetupError` (difficulty 1..6). Both manifests default `difficulty 5`;
-  the coop default seeds `coop_style: 'free-for-all'`.
+  band. `wordiplySetupError` = the difficulty band (1..6) **and** `customBaseError` (the
+  2–4 letter shape gate — §5b). `cleanBase` normalises a typed starter and is shared with
+  the form so the two can't drift. Both manifests default `difficulty 5`; the coop default
+  seeds `coop_style: 'free-for-all'`; **neither seeds `custom_base`** — blank means random.
 - **`lib/scoring.ts`** — `lengthScore(longest, maxLen)`, `letterCount(lengths)`,
   `compareCompetitors(a, b, timed)` (the comparator, **documented as "must match
   `_finish_compete`"**).
-- **`components/SetupForm.tsx`** — one `<DifficultyField>` ("Dictionary") + `<TimerField>` +
-  the shared `<CoopStyleField>` (the coop free-for-all vs turn-by-turn picker, which also
-  seeds `first_turn_user_id`). No rank picker, no base band, no custom-letters.
+- **`components/SetupForm.tsx`** — one `<DifficultyField>` ("Dictionary") + a
+  **"Starter (optional)"** `<SetupSection>` (the player-chosen base — §5b; its summary
+  carries the value, e.g. `Starter: MOTH`) + `<TimerField>` + the shared `<CoopStyleField>`
+  (the coop free-for-all vs turn-by-turn picker, which also seeds `first_turn_user_id`).
+  No rank picker, no base band. The field is labelled **Starter**, not "base": the schema
+  says `base` but every player-facing string in this game says starter.
 - **`hooks/useGame.ts`** — subscribe to `wordiply.guesses` (+ `wordiply.games` for the
   replay/terminal touch), fetch `games_state` + guesses; derive per-track length score +
   letter count (or read `status.leaderboard`).

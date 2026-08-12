@@ -1,9 +1,11 @@
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
 import { TimerField } from '../../common/components/fields/TimerField'
 import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
+import { SetupSection } from '../../common/components/setup/SetupSection'
 import type { SetupBodyProps } from '../../common/lib/games'
-import type { WordiplySetup } from '../lib/setup'
+import { cleanBase, type WordiplySetup } from '../lib/setup'
 import styles from '../../common/components/fields/setupForm.module.css'
+import local from './SetupForm.module.css'
 
 /**
  * wordiply's per-game setup form. Mode is locked at the gametype level
@@ -20,6 +22,13 @@ import styles from '../../common/components/fields/setupForm.module.css'
  */
 export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
   const s = value as WordiplySetup
+
+  // The custom-starter section's summary carries its own value, so a closed
+  // section still shows what's set (SetupSection's contract).
+  const customBase = s.custom_base ?? ''
+  const customBaseLabel = customBase
+    ? `Starter: ${customBase.toUpperCase()}`
+    : 'Starter (optional)'
 
   return (
     <div className={styles.setup}>
@@ -56,6 +65,38 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         value={s.difficulty}
         onChange={(difficulty) => onChange({ ...s, difficulty })}
       />
+
+      {/* Optional custom starter, behind a disclosure whose summary shows the
+          chosen letters (e.g. "Starter: MOTH") or "(optional)" when blank.
+          Blank → a random starter (the normal path); fill it to play exactly
+          these letters — which is how you send a friend a challenge.
+
+          Start is gated on `customBaseError` (via the manifest's validate), but
+          only on SHAPE: whether the letters yield a board is the edge
+          function's call, so an unusable starter fails at Start with the
+          server's reason — the same deal boggle's constraints get. Cleared
+          input stores `undefined` so the edge function sees it as absent →
+          random. */}
+      <SetupSection label={customBaseLabel}>
+        <p className="muted">
+          Leave blank for a random starter, or set your own: 2–4 letters that
+          every guess must contain. Very short starters usually match too many
+          words to make a puzzle.
+        </p>
+        <input
+          type="text"
+          autoComplete="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          maxLength={4}
+          value={customBase}
+          onChange={(e) =>
+            onChange({ ...s, custom_base: cleanBase(e.target.value) || undefined })
+          }
+          className={local.baseInput}
+          aria-label="Custom starter"
+        />
+      </SetupSection>
 
       <TimerField value={s.timer} onChange={(timer) => onChange({ ...s, timer })} />
     </div>

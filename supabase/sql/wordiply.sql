@@ -250,8 +250,14 @@ grant execute on function wordiply.try_base(text, int, int, int, int) to authent
 -- Setup shape (server validates):
 --   {
 --     "difficulty": 1..6,   -- dictionary band the legal child words are drawn from (default 5)
+--     "custom_base": "moth", -- OPTIONAL player-chosen starter, 2-4 letters
 --     "timer": ( {kind:'none'} | {kind:'countup'} | {kind:'countdown',seconds:int} )
 --   }
+-- `custom_base` is the challenge ("try wordiply with MOTH"): the player names
+-- the base instead of letting the edge fn sample one. We validate its SHAPE and
+-- cross-check that board.base actually matches it; the edge fn owns whether the
+-- letters yield a board (it plays by a looser gate for a chosen base). It is
+-- stripped from the club's saved default — a one-off, not a new baseline.
 -- `mode` ('coop' | 'compete') is a positional argument, not a setup
 -- field. There is NO target_rank — wordiply is not a race-to-rank —
 -- so setup.target_rank is rejected if present.
@@ -284,6 +290,7 @@ as $$
 declare
   new_id uuid;
   s_difficulty int;
+  s_custom_base text;
   b_base text;
   b_base_len int;
   b_max_word_length int;
@@ -322,6 +329,19 @@ begin
 
   perform common.require_valid_timer(setup->'timer');
 
+  -- ─── Validate the optional player-chosen starter ─────────
+  -- setup.custom_base is the "try wordiply with MOTH" challenge: the player
+  -- names the base instead of letting the builder sample one. Only the SHAPE
+  -- is checked here (same rule as board.base below); whether those letters
+  -- YIELD a board is the edge function's job, under a looser gate — see
+  -- docs/games/wordiply.md.
+  s_custom_base := nullif(lower(trim(setup->>'custom_base')), '');
+  if s_custom_base is not null and s_custom_base !~ '^[a-z]{2,4}$' then
+    raise exception 'bad-custom-base|%|', s_custom_base
+      using errcode = 'P0001',
+      detail = 'setup.custom_base must be 2-4 lowercase ASCII letters';
+  end if;
+
   -- ─── Board structure validation ──────────────────────────
   b_base := board->>'base';
   if b_base is null or b_base !~ '^[a-z]{2,4}$' then
@@ -330,6 +350,17 @@ begin
       detail = 'board.base must be 2-4 lowercase ASCII letters';
   end if;
   b_base_len := char_length(b_base);
+
+  -- The builder must have honoured the request. A board whose base isn't the
+  -- one the player asked for is a builder bug, and this is the only place that
+  -- can catch it — every downstream reader (title, board, scoring) trusts
+  -- board.base, and the player would simply be handed a different game than
+  -- the one they set up.
+  if s_custom_base is not null and b_base <> s_custom_base then
+    raise exception 'base-mismatch|%|%|', s_custom_base, b_base
+      using errcode = 'P0001',
+      detail = 'board.base does not match the requested setup.custom_base';
+  end if;
 
   b_max_word_length := (board->>'max_word_length')::int;
   -- Headroom gate: the best word must beat the base by at least 2 letters,
@@ -367,8 +398,11 @@ begin
   new_id := common.create_game(
     target_club, effective_gametype, player_user_ids, game_title, setup,
     -- saved_default strips first_turn_user_id (per-game "who goes first" pick,
-    -- not a per-club preference; coop_style rides).
-    setup - 'first_turn_user_id'
+    -- not a per-club preference; coop_style rides) and custom_base (a one-off
+    -- challenge, not a new baseline — the same call spellingbee makes about
+    -- its custom letters; otherwise every later game in the club would silently
+    -- default to MOTH).
+    setup - 'first_turn_user_id' - 'custom_base'
   );
 
   -- Opt-in turn-by-turn coop: when setup.coop_style='turns', seat the common

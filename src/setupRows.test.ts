@@ -60,6 +60,11 @@ const NOT_A_ROW: Record<string, string> = {
   custom_center: 'a board-generation override; the board it made is the Letters row',
   custom_letters: 'a board-generation override; the board it made is the Letters row',
   custom_board: 'a board-generation override; the board it made is the Letters row',
+  // wordiply's player-chosen starter. Same family, different reason for having
+  // no row: its board IS the base, which already reaches both surfaces as the
+  // game title, the letters above the grid, and the PDF's own `base` line. A
+  // Starter row would restate it.
+  custom_base: 'a board-generation override; the base it set is the title + the board itself',
   // Puzzle-identity plumbing: the recap shows ONE "Puzzle" row built from these.
   puzzle_id: 'folded into the single Puzzle row',
   puzzleId: 'folded into the single Puzzle row',

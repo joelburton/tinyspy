@@ -222,6 +222,18 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // last of five between your check and your submit. That's a lost race, same
   // family as letterboxed's below.
   'no-guesses-left': { text: () => 'No guesses left', tone: 'info' },
+  // The two ways a player-chosen starter (setup.custom_base) fails to make a
+  // board. Unlike everything else here these fire at CREATE time and land on
+  // the setup dialog's error line, not the below-board pill — but the
+  // classification is the same one: the frontend validates the SHAPE of a
+  // starter and deliberately can't know whether it yields a board, so a player
+  // typing ING or YAKS reaches these on a perfectly good client.
+  //
+  // Two keys rather than one because the fixes differ: too many words wants a
+  // LONGER starter, too few wants a DIFFERENT one. The dialog's slot is
+  // single-line, so both stay captions.
+  'base-too-common': { text: (d) => `${d[0]?.toUpperCase()} matches too many words` },
+  'base-too-narrow': { text: (d) => `No long enough word contains ${d[0]?.toUpperCase()}` },
 
   // ── letterboxed ──
   // Its coop chain is SHARED and free-for-all, so a teammate's word can land

@@ -8,6 +8,13 @@
  * longer legal word that contains the base as a contiguous substring. See
  * docs/games/wordiply.md.
  *
+ * TWO paths, picked by whether setup.custom_base is set:
+ *   • CUSTOM — the player typed a starter ("try wordiply with MOTH"). No
+ *     sampling and no repeat cap; the one base goes straight through the gate
+ *     under the looser CUSTOM_* bounds. A rejection is player-reachable and
+ *     says which way it failed (base-too-common / base-too-narrow).
+ *   • RANDOM — the original path, unchanged, described below.
+ *
  * Board-building strategy (a small orchestration over two SQL helpers):
  *   1. wordiply.candidate_bases(source_band, n) hands back N random 2–4
  *      letter substrings of common source words — fragments that appear in
@@ -54,9 +61,12 @@
  *
  * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
  * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
- * word. This function's own keys (wordiply-build-failed / edge-internal) are
- * "impossible without a broken pipeline" — no copy; they render as faults.
- * A create_game raise relays verbatim with its SQLSTATE (invokeCreateGame).
+ * word. Two are player-REACHABLE, and only on the custom path — you can type
+ * ING (base-too-common) or YAKS (base-too-narrow) — so both carry copy in
+ * errorCopy.ts and land on the setup dialog's own error line. The rest
+ * (wordiply-build-failed / edge-internal) are "impossible without a broken
+ * pipeline" — no copy; they render as faults. A create_game raise relays
+ * verbatim with its SQLSTATE (invokeCreateGame).
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
@@ -72,6 +82,12 @@ type Setup = {
   /** Dictionary band the legal child words are drawn from (1..6, default
    *  5, validated server-side by wordiply.create_game). */
   difficulty?: number
+  /** An OPTIONAL player-chosen starter (2–4 letters). Present → skip
+   *  sampling entirely and build from exactly these letters, under the
+   *  relaxed CUSTOM_* gate below. Absent/blank → the usual random board.
+   *  create_game re-validates the shape and cross-checks it against the
+   *  board we return. */
+  custom_base?: string
   timer:
     | { kind: 'none' }
     | { kind: 'countup' }
@@ -104,6 +120,28 @@ const CHILD_MAX = 500
 const MIN_HEADROOM = 3
 /** How many candidate fragments to sample + try before giving up. */
 const ATTEMPTS = 40
+
+/**
+ * The gate for a PLAYER-CHOSEN base (setup.custom_base), which is looser than
+ * the random one in one direction and only one direction:
+ *
+ *  - The child-count FLOOR drops to 1. A random board has to be worth playing
+ *    sight-unseen, so it wants ≥20 matching words; you asked for this base, so
+ *    it only has to be playable at all.
+ *  - The CEILING rises to 1000 (from 500). For a custom base this bound is
+ *    purely about PAYLOAD — the whole legal list ships to the frontend and
+ *    lands in the games row — not about puzzle quality, which is your call.
+ *    Deliberately NOT raised for random boards, where 500 is what keeps a
+ *    rolled board from being an ASH-scale non-puzzle.
+ *  - MIN_HEADROOM is REUSED UNCHANGED, and it is the load-bearing one here.
+ *    With the floor at 20 it never fires (a base with 20+ children essentially
+ *    always has one 3+ letters longer); with the floor at 1 it becomes the only
+ *    thing standing between you and a MOTH board whose best answer is MOTHER.
+ *    Measured on 500 real words: it rejects YAKS (best 'kayaks'), JOEY (best
+ *    'joeys'), IBEX, ORGY.
+ */
+const CUSTOM_CHILD_MIN = 1
+const CUSTOM_CHILD_MAX = 1000
 
 // ───────────────────────────────────────────────────────────
 // PostgREST helpers
@@ -143,19 +181,22 @@ async function fetchCandidateBases(
 
 /** Try one candidate through the gate. Returns the board bits if it
  *  passes, or null if the fragment is rejected (try_base returns zero
- *  rows). */
+ *  rows). Bounds are parameters because the custom-base path uses the
+ *  looser CUSTOM_* ones — the gate FUNCTION is the same either way. */
 async function tryBase(
   supabase: SupabaseClient,
   base: string,
   legalBand: number,
+  minChildren = CHILD_MIN,
+  maxChildren = CHILD_MAX,
 ): Promise<{ max_word_length: number; longest_words: string[]; legal_words: string[] } | null> {
   const { data, error } = await supabase
     .schema('wordiply')
     .rpc('try_base', {
       base,
       legal_band: legalBand,
-      min_children: CHILD_MIN,
-      max_children: CHILD_MAX,
+      min_children: minChildren,
+      max_children: maxChildren,
       min_headroom: MIN_HEADROOM,
     })
   if (error) throw new Error(`tryBase(${base}): ${error.message}`)
@@ -166,6 +207,30 @@ async function tryBase(
   }>
   if (rows.length === 0) return null
   return rows[0]
+}
+
+/**
+ * How many legal words contain `base` — WITHOUT fetching them.
+ *
+ * `try_base` returns zero rows for ANY gate failure, so a rejected custom base
+ * can't say why it was rejected. This answers that, and only on the reject
+ * path: `head: true` makes PostgREST run the function for its count and send
+ * no rows, which matters because the pathological case is exactly the one we'd
+ * be transferring — ING matches 20k words.
+ *
+ * The split is the one a player can act on: too many words means "try a longer
+ * starter", anything else means "try a different one".
+ */
+async function countMatchingWords(
+  supabase: SupabaseClient,
+  base: string,
+  legalBand: number,
+): Promise<number> {
+  const { count, error } = await supabase
+    .schema('wordiply')
+    .rpc('matching_words', { base, legal_band: legalBand }, { count: 'exact', head: true })
+  if (error) throw new Error(`countMatchingWords(${base}): ${error.message}`)
+  return count ?? 0
 }
 
 // ───────────────────────────────────────────────────────────
@@ -186,34 +251,77 @@ serve(async (req) => {
     const difficulty = setup.difficulty ?? 5
     console.log(`wordiply-build-board: difficulty=${difficulty}`)
 
-    const previousBase = await fetchPreviousBase(supabase, targetClub)
-    console.log(`previousBase: ${previousBase ?? 'none'}`)
+    // The player's own starter, if they typed one. create_game re-validates
+    // the shape; here we only need to know whether to sample or not.
+    const customBase = (setup.custom_base ?? '').trim().toLowerCase()
 
-    const candidates = await fetchCandidateBases(supabase, ATTEMPTS)
-    console.log(`fetched ${candidates.length} candidate bases`)
-
-    // Try candidates in order; first one that clears the gate wins. Skip a
-    // repeat of the club's previous base.
     let board: Board | null = null
-    for (const base of candidates) {
-      if (base === previousBase) continue
-      const bits = await tryBase(supabase, base, difficulty)
-      if (bits) {
-        board = {
-          base,
-          max_word_length: bits.max_word_length,
-          longest_words: bits.longest_words,
-          legal_words: bits.legal_words,
-        }
-        break
-      }
-    }
 
-    if (board === null) {
-      console.log(`reject: no candidate base cleared the gate in ${candidates.length} tries`)
-      // Every candidate base failed the max-children gate — a generation dead
-      // end, not a player-reachable state. Key only, no copy; it faults.
-      return json({ error: 'wordiply-build-failed|' }, 500)
+    if (customBase) {
+      // ── The custom path ────────────────────────────────────
+      // No sampling, and no previous-base repeat cap: re-issuing the same
+      // challenge to the same club is a legitimate thing to want, and the cap
+      // exists to keep RANDOM boards from repeating themselves.
+      console.log(`custom base: ${customBase}`)
+      // Shape FIRST. Without this a malformed base still runs the dictionary
+      // query, and 'm' — which matches most of the language — comes back as
+      // "matches too many words", advising a longer starter for what is really
+      // a broken request. The frontend's customBaseError already blocks this,
+      // so reaching it means a broken client: same key create_game raises, and
+      // deliberately NO copy in errorCopy.ts, so it renders as a fault.
+      if (!/^[a-z]{2,4}$/.test(customBase)) {
+        console.log(`reject: custom base ${customBase} is not 2-4 letters`)
+        return json({ error: `bad-custom-base|${customBase}|` }, 400)
+      }
+      const bits = await tryBase(
+        supabase, customBase, difficulty, CUSTOM_CHILD_MIN, CUSTOM_CHILD_MAX,
+      )
+      if (!bits) {
+        // Rejected — say which way, since the two have different fixes. Both
+        // are player-REACHABLE (you can type ING), so both carry copy in
+        // errorCopy.ts and land on the setup dialog's own line, not a fault.
+        const children = await countMatchingWords(supabase, customBase, difficulty)
+        console.log(`reject: custom base ${customBase} has ${children} children`)
+        return children > CUSTOM_CHILD_MAX
+          ? json({ error: `base-too-common|${customBase}|` }, 400)
+          : json({ error: `base-too-narrow|${customBase}|` }, 400)
+      }
+      board = {
+        base: customBase,
+        max_word_length: bits.max_word_length,
+        longest_words: bits.longest_words,
+        legal_words: bits.legal_words,
+      }
+    } else {
+      // ── The random path (unchanged) ────────────────────────
+      const previousBase = await fetchPreviousBase(supabase, targetClub)
+      console.log(`previousBase: ${previousBase ?? 'none'}`)
+
+      const candidates = await fetchCandidateBases(supabase, ATTEMPTS)
+      console.log(`fetched ${candidates.length} candidate bases`)
+
+      // Try candidates in order; first one that clears the gate wins. Skip a
+      // repeat of the club's previous base.
+      for (const base of candidates) {
+        if (base === previousBase) continue
+        const bits = await tryBase(supabase, base, difficulty)
+        if (bits) {
+          board = {
+            base,
+            max_word_length: bits.max_word_length,
+            longest_words: bits.longest_words,
+            legal_words: bits.legal_words,
+          }
+          break
+        }
+      }
+
+      if (board === null) {
+        console.log(`reject: no candidate base cleared the gate in ${candidates.length} tries`)
+        // Every candidate base failed the max-children gate — a generation dead
+        // end, not a player-reachable state. Key only, no copy; it faults.
+        return json({ error: 'wordiply-build-failed|' }, 500)
+      }
     }
     console.log(
       `board: base=${board.base} max_word_length=${board.max_word_length}`

@@ -23,7 +23,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(26);
+select plan(30);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -345,6 +345,77 @@ select throws_ok(
   'P0001',
   null,
   'rejects player_user_ids with > 6 entries (max 6)'
+);
+
+-- ============================================================
+-- (8) setup.custom_base — the player-chosen starter
+-- ============================================================
+--
+-- The "try wordiply with MOTH" challenge. create_game owns two things here:
+-- the SHAPE of the request, and the cross-check that the builder honoured it.
+-- Whether the letters yield a board is the edge function's call, so there is
+-- deliberately no dictionary assertion in this section.
+
+-- Shape: same rule as board.base. A malformed request fails before anything
+-- is created.
+select throws_ok(
+  format(
+    $$ select wordiply.create_game(%L,
+                                  pg_temp.wordiply_setup() || '{"custom_base": "a"}'::jsonb,
+                                  array['ada11111-1111-1111-1111-111111111111'::uuid],
+                                  'coop',
+                                  pg_temp.wordiply_board()) $$,
+    (select handle from club)
+  ),
+  'P0001',
+  'bad-custom-base|a|',
+  'rejects a setup.custom_base that is not 2–4 lowercase ASCII letters'
+);
+
+-- The cross-check. The fixture board's base is 'ar', so asking for 'moth' and
+-- being handed 'ar' is a builder that ignored the request — the ONE place that
+-- can catch it, since every downstream reader trusts board.base.
+select throws_ok(
+  format(
+    $$ select wordiply.create_game(%L,
+                                  pg_temp.wordiply_setup() || '{"custom_base": "moth"}'::jsonb,
+                                  array['ada11111-1111-1111-1111-111111111111'::uuid],
+                                  'coop',
+                                  pg_temp.wordiply_board()) $$,
+    (select handle from club)
+  ),
+  'P0001',
+  'base-mismatch|moth|ar|',
+  'rejects a board whose base is not the requested custom_base'
+);
+
+-- The happy path: asking for the base the board actually carries.
+create temp table gcustom on commit drop as
+select * from wordiply.create_game(
+  (select handle from club),
+  pg_temp.wordiply_setup() || '{"custom_base": "ar"}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid],
+  'coop',
+  pg_temp.wordiply_board()
+);
+
+select is(
+  (select base from wordiply.games where id = (select id from gcustom)),
+  'ar',
+  'accepts a setup.custom_base matching the board and keeps that base'
+);
+
+-- The override is a ONE-OFF, not a new club baseline: it must not come back
+-- as the default the next game is set up with. (spellingbee strips its custom
+-- letters the same way — without this, every later game in the club silently
+-- defaults to the challenge base.)
+select is(
+  (select default_setup ? 'custom_base'
+     from common.clubs_gametypes
+    where club_handle = (select handle from club)
+      and gametype = 'wordiply_coop'),
+  false,
+  'custom_base is stripped from the club''s saved default setup'
 );
 
 -- ============================================================

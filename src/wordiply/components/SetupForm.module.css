@@ -1,0 +1,16 @@
+/* wordiply's setup dialog — just the optional custom-starter input.
+   Everything else in the form is a shared field (DifficultyField / TimerField /
+   CoopStyleField) carrying its own styles.
+
+   Matched to spellingbee's `.letterInput`, the sibling custom-letters control:
+   the letters you type are the letters you'll see on the board, so they're set
+   monospace + uppercase + tracked out, and centred in a box sized to hold them
+   rather than stretching across the dialog. Four letters is the maximum a base
+   can be (wordiply.games.base's own check constraint). */
+.baseInput {
+  width: 6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-family: monospace;
+  text-align: center;
+}

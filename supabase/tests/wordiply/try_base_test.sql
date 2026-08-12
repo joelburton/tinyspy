@@ -24,7 +24,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(9);
+select plan(15);
 
 -- ── A. A generous gate PASSES and returns a well-formed board ────────
 -- 'ar' has many children at band 5 and a max word far longer than 'ar'+1,
@@ -77,6 +77,60 @@ select is(
 select ok(
   (select count(*)::int from wordiply.candidate_bases(3, 20)) <= 20,
   'candidate_bases: returns at most n fragments');
+
+-- ── D. The CUSTOM-BASE bounds (setup.custom_base) ────────────────────
+--
+-- A player-chosen starter goes through this SAME function with a looser gate:
+-- min_children 1 (not 20), max_children 1000 (not 500), min_headroom UNCHANGED
+-- at 3. See the edge fn's CUSTOM_* constants + docs/games/wordiply.md.
+--
+-- The one worth pinning is headroom. With the floor at 20 it never fires — a
+-- base with 20+ children essentially always has one 3+ letters longer — so it
+-- reads like dead weight and would survive a "simplification". At the custom
+-- floor of 1 it is the ONLY thing rejecting a MOTH board whose best answer is
+-- MOTHER. D4/D5 fail if min_headroom stops being enforced.
+--
+-- Still count-independent: bounds are computed from the base's REAL numbers
+-- rather than hardcoded, so a dictionary edit can't turn these red.
+create temp table moth on commit drop as
+  select count(*)::int as children, max(len)::int as best, 4 as blen
+    from wordiply.matching_words('moth', 5);
+
+select ok(
+  (select children from moth) >= 1 and (select best from moth) >= 7,
+  'fixture: MOTH has children and a best word with room to spare');
+
+-- D1: a normal starter clears the custom gate.
+select is(
+  (select count(*)::int from wordiply.try_base('moth', 5, 1, 1000, 3)), 1,
+  'custom gate: a workable player-chosen base returns a board');
+
+-- D2: the floor is enforced, and INCLUSIVE at the base's real count — which is
+-- what makes a floor of 1 mean "anything with at least one child".
+select is(
+  (select count(*)::int from wordiply.try_base(
+     'moth', 5, (select children + 1 from moth), 100000, 3)), 0,
+  'custom gate: min_children above the real count rejects (the floor is real)');
+
+-- D3: the ceiling is enforced — this is the bound that stops ING (20k words)
+-- from shipping its whole legal list into the games row.
+select is(
+  (select count(*)::int from wordiply.try_base(
+     'moth', 5, 1, (select children - 1 from moth), 3)), 0,
+  'custom gate: max_children below the real count rejects (the ceiling is real)');
+
+-- D4 + D5: headroom bites AT THE CUSTOM FLOOR. One letter more than the base's
+-- best word can reach → rejected; exactly reachable → accepted. Both run with
+-- min_children = 1, so ONLY the headroom bound can be deciding.
+select is(
+  (select count(*)::int from wordiply.try_base(
+     'moth', 5, 1, 100000, (select best - blen + 1 from moth))), 0,
+  'custom gate: headroom still rejects when the child floor is 1 (the MOTH/MOTHER rule)');
+
+select is(
+  (select count(*)::int from wordiply.try_base(
+     'moth', 5, 1, 100000, (select best - blen from moth))), 1,
+  'custom gate: headroom exactly met is accepted (the rejection above is the bound, not noise)');
 
 select * from finish();
 rollback;
