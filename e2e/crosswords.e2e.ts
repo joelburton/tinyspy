@@ -318,12 +318,25 @@ test.describe('crosswords play loop', () => {
     await cell.click()
 
     // `|` cycles the right edge: break → hyphen → (cleared).
+    //
+    // settled() BETWEEN presses, not just at mount. The grid's key handler
+    // lives in kbRef, which PlayArea assigns in a passive EFFECT — so React
+    // updates the DOM at commit and refreshes that closure a few milliseconds
+    // later. The attribute assertions below are satisfied at commit, so a press
+    // fired the instant one passes can reach a handler still closed over the
+    // PREVIOUS `cells`, and cycle from the old mark: press 3 read `break` and
+    // sent `hyphen` instead of clearing (2026-08-12, 1 run in ~13). Each settle
+    // waits out that gap. See helpers/ready.ts — "a test that types after
+    // something OTHER than the initial mount needs the same settle".
     await page.keyboard.press('|')
     await expect(cell).toHaveAttribute('data-mark-right', 'break', { timeout: 8000 })
+    await settled(page)
     await page.keyboard.press('|')
     await expect(cell).toHaveAttribute('data-mark-right', 'hyphen')
+    await settled(page)
     await page.keyboard.press('|')
     await expect(cell).not.toHaveAttribute('data-mark-right', /.+/)
+    await settled(page)
 
     // `_` marks the bottom edge independently.
     await page.keyboard.press('_')
