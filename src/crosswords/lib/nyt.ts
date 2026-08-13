@@ -27,7 +27,9 @@ export type NytCell = {
   moreAnswers?: { valid?: string[] }
 }
 export type NytClue = {
-  text?: unknown // string | array | { plain?: string } — HTML
+  /** string | array | { plain?, formatted? }. `formatted` is the one carrying
+   *  markup and is present only on clues that need it — see clueText. */
+  text?: unknown
   direction?: string
   label?: string
 }
@@ -174,12 +176,32 @@ function nytNote(resp: NytPuzzleResponse): string {
     .join('\n\n')
 }
 
-/** Unwrap NYT's polymorphic clue text (string | [first, …] | {plain}) then
- *  strip HTML to plain text. */
+/**
+ * Unwrap NYT's polymorphic clue text (string | [first, …] | {plain, formatted})
+ * then normalize its HTML — keeping italics, which is the whole point of
+ * preferring `formatted`.
+ *
+ * PREFER `formatted`, FALL BACK TO `plain`. A v6 clue object carries `plain`
+ * always and `formatted` only when the clue has markup — e.g. `plain` of
+ * "Mafia members, e.g." against `formatted` of "<i>Mafia members, e.g.</i>",
+ * where the italics are the clue saying "this is the definition by example,
+ * not literal". Reading `plain` unconditionally (what this did until
+ * 2026-08-13, faithfully ported from crossplay, which has the same bug) threw
+ * that away BEFORE htmlToText ran — so the `<i>`→`<em>` normalization below,
+ * and everything downstream that renders it (ClueText, pdf/clues.ts), was
+ * inert on every NYT puzzle ever imported. The Guardian path never had the
+ * problem: its clues arrive as raw HTML strings.
+ *
+ * An empty `formatted` falls back rather than winning, since a blank clue is
+ * never the intended reading of a field that only exists to add something.
+ */
 function clueText(text: unknown): string {
   let raw: unknown = text
   if (Array.isArray(raw)) raw = raw[0]
-  if (raw && typeof raw === 'object') raw = (raw as { plain?: string }).plain ?? ''
+  if (raw && typeof raw === 'object') {
+    const o = raw as { plain?: string; formatted?: string }
+    raw = (typeof o.formatted === 'string' && o.formatted) || o.plain || ''
+  }
   if (typeof raw !== 'string') return ''
   return htmlToText(raw)
 }

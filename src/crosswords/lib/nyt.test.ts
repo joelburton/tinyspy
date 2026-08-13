@@ -154,6 +154,45 @@ describe('convertNytPuzzle — clues + html', () => {
     expect(meta.clues.across[0]!.text).toBe('first')
     expect(meta.clues.down[0]!.text).toBe('plainish')
   })
+
+  // The 2026-08-13 bug: a v6 clue object carries `plain` always and
+  // `formatted` only when there's markup. We read `plain` unconditionally, so
+  // NYT italics were dropped before htmlToText could keep them — every NYT
+  // import ever made was flat. These pin the preference in both directions.
+  it('prefers a clue objects `formatted` over `plain`, keeping the italics', () => {
+    const { meta } = convertNytPuzzle(
+      makeResp({
+        clueList: [
+          {
+            text: { plain: 'Mafia members, e.g.', formatted: '<i>Mafia members, e.g.</i>' },
+            direction: 'across',
+            label: '1',
+          },
+          // The same shape inside the ARRAY form — the other way v6 wraps it.
+          {
+            text: [{ plain: 'Tilted', formatted: '<i>Tilted</i>' }],
+            direction: 'down',
+            label: '2',
+          },
+        ],
+      }),
+    )
+    expect(meta.clues.across[0]!.text).toBe('<em>Mafia members, e.g.</em>')
+    expect(meta.clues.down[0]!.text).toBe('<em>Tilted</em>')
+  })
+
+  it('falls back to `plain` when `formatted` is absent or empty', () => {
+    const { meta } = convertNytPuzzle(
+      makeResp({
+        clueList: [
+          { text: { plain: 'No markup here' }, direction: 'across', label: '1' },
+          { text: { plain: 'Still here', formatted: '' }, direction: 'down', label: '2' },
+        ],
+      }),
+    )
+    expect(meta.clues.across[0]!.text).toBe('No markup here')
+    expect(meta.clues.down[0]!.text).toBe('Still here')
+  })
 })
 
 describe('convertNytPuzzle — meta', () => {
