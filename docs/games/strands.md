@@ -129,7 +129,7 @@ deploy).
 
 | table | purpose |
 |---|---|
-| `puzzles` | The imported NYT archive. `source_id` (puzzle number), `puzzle_date` (unique), `board` (8 rows of 6), `clue`, and the shielded `solution`. Only `(id, source_id, puzzle_date)` are granted to `authenticated` — enough for the date picker, not enough to study tomorrow's board. |
+| `puzzles` | The imported NYT archive. `source_id` (puzzle number), `puzzle_date` (unique), `board` (8 rows of 6), `clue`, and the shielded `solution`. Only `(id, source_id, puzzle_date, clue)` are granted to `authenticated` — enough for the date picker to name what it's offering, not enough to study tomorrow's board. The clue joined that list on 2026-08-13: it's how a person recognises a puzzle (it's the game's own title, and on screen from the first second), so withholding it mostly meant starting one you'd already played. It was never a cheating control either — studying ahead only ever needed starting the puzzle, revealing, and deleting the game. |
 | `games` | One playthrough. Follows the [library-puzzle provenance rule](../common.md#library-puzzle-games-provenance-not-dependency): everything needed to play *and* identify the game is copied on, and `puzzle_id` is a soft FK (`on delete set null`), so the archive can be re-imported freely. Carries the three setup knobs, denormalized because they're immutable and read on every move. |
 | `players` | One row per player: the hint economy (`hint_points`, `hints_spent`, `active_hint_coords`) plus `solved` / `solved_at`. The **same shape in both modes** — coop moves every row in lock-step (the pool is shared), compete moves only the actor's (see [Compete](#8-compete)). Mid-race a rival's private fields are nulled by `players_state`. |
 | `events` | The append-only log — **one table, not two**, and not two *kinds* of table either. `kind` discriminates a **guess** (a submitted path, carrying `word` + `result`) from a **hint** (a cashed token, carrying neither). Found theme words are the projection `result in ('theme','spangram')`; credited hint words are the distinct `hint_word` set. Only state that can't be derived lives as columns — on `players`, above. |
@@ -279,7 +279,17 @@ connecting line**, so the player still works out the order.
 
 ## 6. Frontend
 
-Folder mirrors the other games'. Two notes worth carrying:
+Folder mirrors the other games'. Three notes worth carrying:
+
+**The setup picker shows the clue.** A date names nothing — with 884 of them the
+easy mistake is starting a puzzle you've already played and finding out once the
+board is up. So `SetupForm` selects `clue` alongside the date and prints it under
+the input, quoted, in full-strength text (it's a value you act on, not the muted
+helper line above it). Its `<p>` carries a `min-height` and always renders: the
+archive arrives asynchronously, and three `SetupSection`s plus the timer sit
+below it, so a conditionally-mounted line would drop the rest of the form by a
+row the moment the fetch resolved. One line is enough — measured, the longest
+clue in the archive is 38 characters against a 428px box.
 
 **No typed WORDS — but typed LETTERS.** A board repeats letters, so a typed
 *string* doesn't identify a path: `PAPARAZZI` on a board with four `A`s is

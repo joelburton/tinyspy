@@ -16,7 +16,10 @@
 -- Also pinned: puzzles.solution is unreadable too. Browsing the archive is how
 -- the setup date-picker works, so the rows ARE visible — but a player who can
 -- read tomorrow's answer key from the library has the same leak by another
--- door.
+-- door. The archive's readable set is pinned from BOTH sides: the board and
+-- solution must stay refused, and id/source_id/puzzle_date/clue must stay
+-- readable (the picker breaks silently if a column it needs is revoked — the
+-- fetch ignores its error, so the whole list comes back empty).
 --
 -- Personas: ada + bea in the club; dee is the outsider.
 
@@ -24,7 +27,7 @@ begin;
 
 set search_path = strands, common, public, extensions;
 
-select plan(14);
+select plan(15);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -77,6 +80,17 @@ select throws_ok(
 select lives_ok(
   $$ select id, source_id, puzzle_date from strands.puzzles limit 1 $$,
   'but the date picker CAN list puzzles (id, source_id, puzzle_date)'
+);
+
+-- The clue is READABLE from the archive (2026-08-13), and that is a decision,
+-- not an oversight — so it is pinned rather than left to the absence of a
+-- failing test. The picker shows it under the date so you can recognise a
+-- puzzle you have already played; it is the game's own title and is on screen
+-- from the first second of play, so it reveals nothing the club page doesn't.
+-- The board and solution above stay shielded: those ARE the puzzle.
+select lives_ok(
+  $$ select clue from strands.puzzles limit 1 $$,
+  'and the picker CAN read the clue — it is the puzzle''s label, not its answer'
 );
 
 -- ============================================================

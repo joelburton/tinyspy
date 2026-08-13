@@ -27,13 +27,26 @@ grant usage on schema strands to authenticated;
 -- ============================================================
 -- strands.puzzles — the archive
 -- ============================================================
--- The setup form's date picker lists what's available, and that is ALL an
--- ordinary player may read: not the board, not the clue, and certainly not the
--- solution. Withholding the board is not about cheating (you see it the moment
--- you start) — it just keeps "browse the archive" from becoming "study tomorrow's
--- puzzle". The presence of ANY column grant flips the table to "only granted
--- columns visible", so the safe ones are enumerated and the rest are hidden by
--- omission.
+-- The setup form's date picker lists what's available, plus the CLUE — and
+-- that is all an ordinary player may read: not the board, and certainly not
+-- the solution. The presence of ANY column grant flips the table to "only
+-- granted columns visible", so the safe ones are enumerated and the rest are
+-- hidden by omission.
+--
+-- WHY THE CLUE IS ON THE SAFE SIDE (it was withheld until 2026-08-13). The
+-- picker offers 884 dates and nothing else, so it is easy to start a puzzle
+-- you have already played and only realise once the board is up. The clue is
+-- what a person recognises a puzzle BY — it is already the game's title
+-- ("2025-06-15: Here's to him!", see create_game) and it is on screen from the
+-- first second of play, so a club's past games display it on the club page
+-- regardless.
+--
+-- The old rationale was that hiding it kept "browse the archive" from becoming
+-- "study tomorrow's puzzle". That doesn't survive contact: a player who wanted
+-- to study ahead would start the puzzle, reveal the solution, and delete the
+-- game — the clue grant never stood in their way. It only made the honest case
+-- (which of these have I played?) harder. The board and the solution stay
+-- shielded because those ARE the puzzle; the clue is the label on the tin.
 --
 -- REVOKE FIRST, and this is load-bearing rather than tidy. Grants are ADDITIVE,
 -- so a table-wide `grant select` that ever reached this database — a stray psql
@@ -44,7 +57,7 @@ grant usage on schema strands to authenticated;
 -- (Discovered by planting exactly that break and finding the file couldn't heal
 -- it.)
 revoke select on strands.puzzles from authenticated;
-grant select (id, source_id, puzzle_date) on strands.puzzles to authenticated;
+grant select (id, source_id, puzzle_date, clue) on strands.puzzles to authenticated;
 
 drop policy if exists puzzles_select on strands.puzzles;
 create policy puzzles_select on strands.puzzles
