@@ -33,7 +33,7 @@ begin;
 
 set search_path = letterboxed, common, public, extensions;
 
-select plan(7);
+select plan(9);
 
 \ir ../_shared/setup.psql
 
@@ -94,6 +94,27 @@ select ok(
      where word = 'zoo'
   ),
   'a word using letters the board lacks is still excluded outright'
+);
+
+-- The doubled-letter rule, pinned SEPARATELY from the letter-set rule.
+-- 'egg' is band 1 and every one of its letters is on this board, so the
+-- only thing that can exclude it is the `!~ '(.)\1'` qual — which lives
+-- behind a MATERIALIZED fence (it is the most expensive and least
+-- selective qual, so the planner must not run it first). A rewrite that
+-- lost the qual while moving it would leave every other assertion here
+-- green; 'zoo' above cannot catch it, since z and o are off the board.
+select ok(
+  (select difficulty <= 3 from common.words where word = 'egg'),
+  'fixture: egg is still an easy-band word (so the exclusion below is real)'
+);
+select ok(
+  not exists(
+    select 1 from letterboxed.candidate_words(
+      common.word_letter_mask('abcdefghirst'), 3)
+     where word = 'egg'
+  ),
+  'a DOUBLED-LETTER word whose letters all fit the board is excluded — '
+  'unplayable on every possible board (a letter shares a side with itself)'
 );
 
 select * from finish();

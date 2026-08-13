@@ -308,7 +308,36 @@ grant select on letterboxed.players_state to authenticated;
 -- Words with a DOUBLED LETTER are excluded here too. They can never be
 -- playable on any board (a repeated letter is trivially same-side), and
 -- dropping them in SQL keeps the builder from shipping them into a
--- board's playable_words by omission.
+-- board's playable_words by omission. (The builder's isPlayable would
+-- reject them anyway — a letter shares a side with itself — so this is
+-- deliberate belt-and-braces, not the load-bearing check.)
+--
+-- ─── Why the regex sits behind a MATERIALIZED fence ───
+-- `(.)\1` is a BACKREFERENCE, which puts Postgres on its slower
+-- backtracking regex engine, and it is the least selective qual here: it
+-- removes 24% of the dictionary where the bitmask test removes 95%. Left
+-- to its own estimates the planner ordered it THIRD, ahead of the mask
+-- test, so it ran on essentially all 283k rows. Measured on one board at
+-- band 5 (10,201 rows out, warm cache, repeated calls):
+--
+--   regex ordered first (what the planner chose)    71 ms
+--   regex after the mask test (this shape)          25 ms
+--   regex dropped entirely                          23 ms
+--
+-- The fence buys ~46 ms per build attempt — and ~370 ms on the 8-attempt
+-- re-roll path, the one a player is already waiting through. It also
+-- prices the belt-and-braces above honestly: behind the fence the regex
+-- costs ~2 ms, so keeping it is nearly free; in front of it, it cost 3x
+-- the rest of the query.
+-- AS MATERIALIZED is a documented guarantee (PG12+, which is also when
+-- CTEs stopped being fences by default): the CTE is evaluated once and
+-- the outer qual cannot be pushed into it. The `offset 0` trick would
+-- work today by riding an implementation detail — a subquery carrying
+-- LIMIT/OFFSET isn't pulled up — but nothing documents that, and a
+-- planner that folded away a zero offset would silently undo this with
+-- no diff and no error. The ordering fact is permanent (most expensive
+-- qual, least selective), so it's worth stating rather than hoping the
+-- estimates land right.
 --
 -- ─── The two tiers (docs/common.md → the word list's filter rule) ───
 -- The WHERE gates on band and on the board's shape ALONE. Purity rides
@@ -342,14 +371,18 @@ stable
 security definer
 set search_path = letterboxed, common, public, extensions
 as $$
-  select w.word,
-         (w.american and w.british
-            and w.crude = 0 and w.slur = 0 and not w.slang) as is_clean
-    from common.words w
-   where w.difficulty <= max_band
-     and w.len >= 3
-     and (w.letter_mask & ~board_mask) = 0
-     and w.word !~ '(.)\1';
+  with fits as materialized (
+    select w.word,
+           (w.american and w.british
+              and w.crude = 0 and w.slur = 0 and not w.slang) as is_clean
+      from common.words w
+     where w.difficulty <= max_band
+       and w.len >= 3
+       and (w.letter_mask & ~board_mask) = 0
+  )
+  select f.word, f.is_clean
+    from fits f
+   where f.word !~ '(.)\1';
 $$;
 
 revoke execute on function letterboxed.candidate_words(bigint, int) from public;
