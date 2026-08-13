@@ -212,5 +212,5 @@
   white-space: nowrap;
 }
 
-/* (The "whose turns?" dropdown itself is the shared `infoPanel.select` — see the
- * note there on why the select lives with the panel chrome and not here.) */
+/* (The "whose turns?" dropdown itself is the shared `<FilterSelect>`, which
+ * owns its own styling — the same control the word list's two filters use.) */

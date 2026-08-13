@@ -67,16 +67,25 @@ const dbData: Record<string, unknown[]> = {
   profiles: [{ user_id: 'moth-id', username: 'moth' }],
 }
 
+/** Every `.gt(col, value)` the hook applied, so a test can assert the
+ *  invitation scan is bounded by age and not just by `is_terminal`. */
+const gtCalls: [string, string][] = []
+
 vi.mock('../../db', () => {
   const make = (table: string) => {
     const b: {
       select: () => typeof b
       eq: () => typeof b
+      gt: (col: string, value: string) => typeof b
       in: () => typeof b
       then: (resolve: (v: { data: unknown[]; error: null }) => void) => void
     } = {
       select: () => b,
       eq: () => b,
+      gt: (col, value) => {
+        gtCalls.push([col, value])
+        return b
+      },
       in: () => b,
       then: (resolve) => resolve({ data: dbData[table], error: null }),
     }
@@ -93,6 +102,7 @@ vi.mock('../../lib/game/gameInvites', async (importOriginal) => {
 })
 
 import { useGameInvitations } from './useGameInvitations'
+import { INVITE_MAX_AGE_MS } from '../../lib/game/gameInvites'
 
 const session = { user: { id: 'me-id' } } as unknown as Session
 
@@ -176,5 +186,29 @@ describe('useGameInvitations', () => {
     const { result } = await renderWithInvite()
     act(() => result.current.dismiss(GID))
     expect(result.current.invites).toEqual([])
+  })
+})
+
+/**
+ * The scan's age bound. Without it, `is_terminal = false` is the only filter —
+ * and an abandoned game never becomes terminal, so a sign-in with an empty
+ * `seen` set (new device, cleared storage) popped every unfinished game the
+ * player had ever been seated in.
+ */
+describe('useGameInvitations — the backfill is bounded by age', () => {
+  it('filters the scan on games.started_at, an hour back', async () => {
+    gtCalls.length = 0
+    const before = Date.now()
+    await renderWithInvite()
+    const after = Date.now()
+
+    const [col, value] = gtCalls.find(([c]) => c === 'games.started_at') ?? []
+    expect(col).toBe('games.started_at')
+
+    // The cutoff is "an hour ago" measured at query time — bracketed rather
+    // than compared to a fixed instant, since the clock moves during the test.
+    const cutoff = new Date(value!).getTime()
+    expect(cutoff).toBeGreaterThanOrEqual(before - INVITE_MAX_AGE_MS)
+    expect(cutoff).toBeLessThanOrEqual(after - INVITE_MAX_AGE_MS)
   })
 })

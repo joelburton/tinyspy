@@ -9,11 +9,12 @@
  *   <h3 className={cls(infoPanel.heading, …)}>
  *   <div className={cls(infoPanel.box, styles.box)}>
  *
- * The heading row + filter select (`.headerRow` / `.select` / `.selectGroup`) are
- * here too, because the picker HOOKS render those selects — the turn log's
+ * The heading row and its filter group (`.headerRow` / `.selectGroup`) are here
+ * too, because the picker HOOKS render them — the turn log's
  * `useTurnLogPlayerPicker` and the word list's `useWordListFilter`. Keeping them
  * in a component's private module meant a hook importing that module, which is
- * how the two copies would drift.
+ * how the two copies would drift. (The filter CONTROL is `<FilterSelect>`, which
+ * carries its own styles.)
  *
  * The frame is all that's shared, deliberately. The three interiors have genuinely
  * different jobs — the turn log scrolls vertically, the word list is a
@@ -48,29 +49,12 @@
   flex-shrink: 0;
 }
 
-/* A filter `<select>` in a heading row. Deliberately small + understated — about
- * the height of the heading, no button chrome — since these are rarely-used
- * controls we don't want drawing the eye away from the list itself.
- *
- * Lives here rather than in either list's stylesheet because the HOOKS render
- * these selects, and a hook reaching into a component's private module is how
- * the turn log's copy and the word list's copy would drift apart. */
-.select {
-  font: inherit;
-  font-size: 0.8rem;
-  /* Normal text color — the selection is a real value, not de-emphasized info;
-   * the control reads as understated from its small size + subtle border, not
-   * from muting the text. */
-  color: var(--color-text);
-  background: transparent;
-  border: 1px solid var(--color-divider);
-  border-radius: 4px;
-  padding: 0.05rem 0.3rem;
-  max-width: 9rem;
-  cursor: pointer;
-}
+/* The heading-row filters themselves are `<FilterSelect>` (its own module), not
+ * a `<select>` and not styled here — a native dropdown takes focus, and taking
+ * focus takes the keyboard away from the board. The small, understated look
+ * these had is preserved there; see FilterSelect.tsx for why it isn't native. */
 
-/* Two selects side by side (the word list's KIND + WHO), as one group at the
+/* Two filters side by side (the word list's KIND + WHO), as one group at the
  * right of the heading row. */
 .selectGroup {
   display: flex;

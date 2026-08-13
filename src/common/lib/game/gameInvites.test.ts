@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { newInviteCandidates, type InviteCandidate } from './gameInvites'
+import { INVITE_MAX_AGE_MS, inviteCutoffIso, newInviteCandidates, type InviteCandidate } from './gameInvites'
 
 const me = 'me-id'
 const candidate = (over: Partial<InviteCandidate>): InviteCandidate => ({
@@ -42,5 +42,30 @@ describe('newInviteCandidates', () => {
       { selfId: me, seen: new Set(['seen']) },
     )
     expect(got.map((c) => c.id)).toEqual(['fresh'])
+  })
+})
+
+/**
+ * The age bound on the invitation scan. It lives here rather than in
+ * `newInviteCandidates` because it rides on the QUERY — stale rows never leave
+ * the database — so what's testable is the cutoff arithmetic.
+ */
+describe('inviteCutoffIso', () => {
+  it('is an hour', () => {
+    expect(INVITE_MAX_AGE_MS).toBe(60 * 60_000)
+  })
+
+  it('returns exactly one window back from the instant given', () => {
+    const now = Date.parse('2026-08-13T12:00:00.000Z')
+    expect(inviteCutoffIso(now)).toBe('2026-08-13T11:00:00.000Z')
+  })
+
+  it('a game newer than the cutoff sorts after it; an older one before', () => {
+    const now = Date.parse('2026-08-13T12:00:00.000Z')
+    const cutoff = inviteCutoffIso(now)
+    // PostgREST compares these as timestamps, but ISO-8601 UTC strings are
+    // lexicographically ordered too, so the boundary is easy to state.
+    expect('2026-08-13T11:59:00.000Z' > cutoff).toBe(true) // 1 min old — invited
+    expect('2026-08-13T10:00:00.000Z' > cutoff).toBe(false) // 2 h old — not
   })
 })

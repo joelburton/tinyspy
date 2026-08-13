@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { orderSelfFirst } from '../../lib/game/peers'
 import type { Member } from '../../lib/games'
-import infoPanel from '../../components/game/infoPanel.module.css'
+import { FilterSelect } from '../../components/game/FilterSelect'
 
 /** The minimum a row needs for this hook to filter it: who made it. */
 type ActorRow = { user_id: string }
@@ -143,22 +143,21 @@ export function useTurnLogPlayerPicker<R extends ActorRow>({
   // blanking the log for a frame would read as "nothing happened here".
   const showsEveryone = players.length === 0 || picked === TEAM || picked === ALL
 
+  // FilterSelect, not <select>: a native dropdown holds the keyboard away from
+  // the board and there is no event that reliably hands it back. Same control
+  // the word-list filters use — see FilterSelect's docstring.
   const picker = (
-    <select
-      className={infoPanel.select}
-      aria-label={label}
+    <FilterSelect
+      label={label}
       value={picked}
-      onChange={(e) => setChosen(e.target.value)}
-    >
-      {aggregate && (
-        <option value={aggregate}>{aggregate === TEAM ? 'Team' : 'All'}</option>
-      )}
-      {ordered.map((p) => (
-        <option key={p.user_id} value={p.user_id}>
-          {p.username}
-        </option>
-      ))}
-    </select>
+      onChange={setChosen}
+      options={[
+        ...(aggregate ? [{ value: aggregate, label: aggregate === TEAM ? 'Team' : 'All' }] : []),
+        // Players carry their identity disc; the Team/All aggregate above
+        // doesn't, so FilterSelect indents it to match.
+        ...ordered.map((p) => ({ value: p.user_id, label: p.username, dot: p.color })),
+      ]}
+    />
   )
 
   return {

@@ -9,10 +9,10 @@
  */
 
 import { render, renderHook, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { WordListRow } from '../../components/game/lists/WordList'
 import { gp } from '../../test/gamePlayers'
+import { filterOptions, filterTriggers, pickFilter } from '../../test/filterSelect'
 import { useWordListFilter } from './useWordListFilter'
 
 const found = (word: string, userId: string, extra: Partial<WordListRow> = {}): WordListRow =>
@@ -43,17 +43,15 @@ const setup = (over: Partial<Parameters<typeof useWordListFilter>[0]> = {}) =>
     }),
   )
 
-const optionsOf = (i: number) =>
-  Array.from(screen.getAllByRole('combobox')[i].querySelectorAll('option')).map((o) => o.textContent)
 const KIND = 0
 const WHO = 1
 
 describe('useWordListFilter — the two axes', () => {
-  it('offers KIND then WHO, each a full enumeration', () => {
+  it('offers KIND then WHO, each a full enumeration', async () => {
     const { result } = setup()
     render(<>{result.current.picker}</>)
-    expect(optionsOf(KIND)).toEqual(['Legal', 'Required', 'Bonus'])
-    expect(optionsOf(WHO)).toEqual(['All', 'Found', 'Missed', 'me', 'moth'])
+    expect(await filterOptions(KIND)).toEqual(['Legal', 'Required', 'Bonus'])
+    expect(await filterOptions(WHO)).toEqual(['All', 'Found', 'Missed', 'me', 'moth'])
   })
 
   it('defaults to Legal · All — the whole list', () => {
@@ -61,21 +59,21 @@ describe('useWordListFilter — the two axes', () => {
     expect(result.current.filter(ended)).toHaveLength(4)
   })
 
-  it('drops the KIND select entirely on a board with no bonus list', () => {
+  it('drops the KIND picker entirely on a board with no bonus list', async () => {
     // boggle with legal_band === band: a lone "Legal" option would be a dead
     // control, and "Bonus" could never match.
     const { result } = setup({ hasBonus: false })
     render(<>{result.current.picker}</>)
-    expect(screen.getAllByRole('combobox')).toHaveLength(1)
-    expect(optionsOf(0)).toEqual(['All', 'Found', 'Missed', 'me', 'moth'])
+    expect(filterTriggers()).toHaveLength(1)
+    expect(await filterOptions(0)).toEqual(['All', 'Found', 'Missed', 'me', 'moth'])
   })
 
-  it('names players by handle, including the viewer, self first', () => {
+  it('names players by handle, including the viewer, self first', async () => {
     // Same ruling as the turn log's picker: a list of handles is one list, where
     // labelling yourself "You" makes your own entry a different kind of thing.
     const { result } = setup({ players: [two[1], two[0]] }) // deliberately not self-first
     render(<>{result.current.picker}</>)
-    expect(optionsOf(WHO)).toEqual(['All', 'Found', 'Missed', 'me', 'moth'])
+    expect(await filterOptions(WHO)).toEqual(['All', 'Found', 'Missed', 'me', 'moth'])
   })
 })
 
@@ -85,53 +83,50 @@ describe('useWordListFilter — the two axes', () => {
  * every honesty rule instead.
  */
 describe('useWordListFilter — what each axis gates on', () => {
-  it('offers Found/Missed only once there is something missed to show', () => {
+  it('offers Found/Missed only once there is something missed to show', async () => {
     const { result } = setup({ rows: playing })
     render(<>{result.current.picker}</>)
     // Mid-game every row is a find, so "Found" would be a second name for "All"
     // and "Missed" would resolve to nothing.
-    expect(optionsOf(WHO)).toEqual(['All', 'me', 'moth'])
+    expect(await filterOptions(WHO)).toEqual(['All', 'me', 'moth'])
   })
 
-  it('keeps the full KIND axis mid-game, in BOTH modes', () => {
+  it('keeps the full KIND axis mid-game, in BOTH modes', async () => {
     for (const isCompete of [false, true]) {
       const { result } = setup({ rows: playing, isTerminal: false, isCompete })
       const { unmount } = render(<>{result.current.picker}</>)
-      expect(optionsOf(KIND)).toEqual(['Legal', 'Required', 'Bonus'])
+      expect(await filterOptions(KIND)).toEqual(['Legal', 'Required', 'Bonus'])
       unmount()
     }
   })
 
-  it('compete hides the per-player options until terminal — RLS hides peers', () => {
+  it('compete hides the per-player options until terminal — RLS hides peers', async () => {
     const { result } = setup({ rows: playing, isCompete: true, isTerminal: false })
     render(<>{result.current.picker}</>)
     // Offering moth mid-game would be a menu entry for a guaranteed-empty list.
-    expect(optionsOf(WHO)).toEqual(['All'])
+    expect(await filterOptions(WHO)).toEqual(['All'])
   })
 
-  it('compete offers everyone once the game ends', () => {
+  it('compete offers everyone once the game ends', async () => {
     const { result } = setup({ isCompete: true, isTerminal: true })
     render(<>{result.current.picker}</>)
-    expect(optionsOf(WHO)).toEqual(['All', 'Found', 'Missed', 'me', 'moth'])
+    expect(await filterOptions(WHO)).toEqual(['All', 'Found', 'Missed', 'me', 'moth'])
   })
 
-  it('coop offers the per-player options from the start', () => {
+  it('coop offers the per-player options from the start', async () => {
     const { result } = setup({ rows: playing, isCompete: false, isTerminal: false })
     render(<>{result.current.picker}</>)
-    expect(optionsOf(WHO)).toEqual(['All', 'me', 'moth'])
+    expect(await filterOptions(WHO)).toEqual(['All', 'me', 'moth'])
   })
 
-  it('a solo game has nobody to pick between', () => {
+  it('a solo game has nobody to pick between', async () => {
     const { result } = setup({ rows: playing, players: [two[0]] })
     render(<>{result.current.picker}</>)
-    expect(optionsOf(WHO)).toEqual(['All'])
+    expect(await filterOptions(WHO)).toEqual(['All'])
   })
 })
 
 describe('useWordListFilter — filtering', () => {
-  async function pick(axis: number, value: string) {
-    await userEvent.setup().selectOptions(screen.getAllByRole('combobox')[axis], value)
-  }
   function Probe(over: Partial<Parameters<typeof useWordListFilter>[0]> = {}) {
     const f = useWordListFilter({
       rows: ended, players: two, selfId: 'u1', isCompete: false, isTerminal: true, hasBonus: true, ...over,
@@ -153,29 +148,29 @@ describe('useWordListFilter — filtering', () => {
 
   it('Required keeps found + missed required words only', async () => {
     render(<Probe />)
-    await pick(KIND, 'required')
+    await pickFilter('Required', KIND)
     expect(screen.getByTestId('rows')).toHaveTextContent('bead,bald')
   })
 
   it('Bonus keeps found + missed bonus words only', async () => {
     render(<Probe />)
-    await pick(KIND, 'bonus')
+    await pickFilter('Bonus', KIND)
     expect(screen.getByTestId('rows')).toHaveTextContent('blag,zho')
   })
 
   it('the two axes compose — "moth’s bonus words"', async () => {
     // The whole reason this is two controls rather than one flat list.
     render(<Probe />)
-    await pick(KIND, 'bonus')
-    await pick(WHO, 'u2')
+    await pickFilter('Bonus', KIND)
+    await pickFilter('moth', WHO)
     expect(screen.getByTestId('rows')).toHaveTextContent('blag')
   })
 
   it('Missed keeps only the reveal rows; Found only the finds', async () => {
     render(<Probe />)
-    await pick(WHO, 'missed')
+    await pickFilter('Missed', WHO)
     expect(screen.getByTestId('rows')).toHaveTextContent('bald,zho')
-    await pick(WHO, 'found')
+    await pickFilter('Found', WHO)
     expect(screen.getByTestId('rows')).toHaveTextContent('bead,blag')
   })
 
@@ -185,7 +180,7 @@ describe('useWordListFilter — filtering', () => {
     // attribution choice, not a claim about who else got there.
     const shared: WordListRow[] = [found('bead', 'u2', { finderIds: ['u2', 'u1'] })]
     render(<Probe rows={shared} isCompete isTerminal />)
-    await pick(WHO, 'u1')
+    await pickFilter('me', WHO)
     expect(screen.getByTestId('rows')).toHaveTextContent('bead')
   })
 
@@ -196,7 +191,7 @@ describe('useWordListFilter — filtering', () => {
       return <Probe rows={rows} />
     }
     const { rerender } = render(<Wrap rows={ended} />)
-    await pick(WHO, 'missed')
+    await pickFilter('Missed', WHO)
     expect(screen.getByTestId('rows')).toHaveTextContent('bald,zho')
     rerender(<Wrap rows={playing} />)
     expect(screen.getByTestId('rows')).toHaveTextContent('bead,blag')
@@ -208,9 +203,6 @@ describe('useWordListFilter — filtering', () => {
  * "this game has no words" when really your filter matched none of them.
  */
 describe('useWordListFilter — the empty line names the filter', () => {
-  async function pick(axis: number, value: string) {
-    await userEvent.setup().selectOptions(screen.getAllByRole('combobox')[axis], value)
-  }
   function Probe() {
     const f = useWordListFilter({
       rows: ended, players: two, selfId: 'u1', isCompete: false, isTerminal: true, hasBonus: true,
@@ -225,26 +217,26 @@ describe('useWordListFilter — the empty line names the filter', () => {
 
   it('names the KIND', async () => {
     render(<Probe />)
-    await pick(KIND, 'bonus')
+    await pickFilter('Bonus', KIND)
     expect(screen.getByTestId('empty')).toHaveTextContent('No bonus words yet.')
   })
 
   it('names the player, by handle', async () => {
     render(<Probe />)
-    await pick(WHO, 'u2')
+    await pickFilter('moth', WHO)
     expect(screen.getByTestId('empty')).toHaveTextContent('Nothing from moth yet.')
   })
 
   it('names both when both are narrowed', async () => {
     render(<Probe />)
-    await pick(KIND, 'required')
-    await pick(WHO, 'u2')
+    await pickFilter('Required', KIND)
+    await pickFilter('moth', WHO)
     expect(screen.getByTestId('empty')).toHaveTextContent('No required words from moth yet.')
   })
 
   it('reads as an achievement for Missed, not an absence', async () => {
     render(<Probe />)
-    await pick(WHO, 'missed')
+    await pickFilter('Missed', WHO)
     expect(screen.getByTestId('empty')).toHaveTextContent('Nothing missed.')
   })
 })

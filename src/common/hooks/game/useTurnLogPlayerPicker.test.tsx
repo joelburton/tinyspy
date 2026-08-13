@@ -10,7 +10,7 @@
  */
 
 import { render, renderHook, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { filterOptions, pickFilter } from '../../test/filterSelect'
 import { describe, expect, it } from 'vitest'
 import { gp } from '../../test/gamePlayers'
 import { useTurnLogPlayerPicker } from './useTurnLogPlayerPicker'
@@ -33,8 +33,6 @@ const setup = (over: Partial<Parameters<typeof useTurnLogPlayerPicker>[0]> = {})
     }),
   )
 
-const options = () => screen.getAllByRole('option').map((o) => o.textContent)
-
 /**
  * The shared vocabulary (settled 2026-08-02): solo → your handle; co-op → Team
  * plus every player; compete → All plus every player. Named people are named by
@@ -42,37 +40,37 @@ const options = () => screen.getAllByRole('option').map((o) => o.textContent)
  * thing from everyone else's.
  */
 describe('useTurnLogPlayerPicker — one vocabulary, every game', () => {
-  it('compete lists All, then every player by handle', () => {
+  it('compete lists All, then every player by handle', async () => {
     const { result } = setup()
     render(<>{result.current.picker}</>)
-    expect(options()).toEqual(['All', 'me', 'moth'])
+    expect(await filterOptions()).toEqual(['All', 'me', 'moth'])
   })
 
-  it('co-op lists Team, then every player by handle', () => {
+  it('co-op lists Team, then every player by handle', async () => {
     // Co-op used to collapse to Team ALONE. Per-player entries let you pull one
     // thread out of a shared log — "what did moth actually play?".
     const { result } = setup({ mode: 'coop' })
     render(<>{result.current.picker}</>)
-    expect(options()).toEqual(['Team', 'me', 'moth'])
+    expect(await filterOptions()).toEqual(['Team', 'me', 'moth'])
   })
 
-  it('a solo game is just the one handle — no aggregate', () => {
+  it('a solo game is just the one handle — no aggregate', async () => {
     // "Team" of one, or "All" of one, would be the same list under two names.
     const { result } = setup({ mode: 'coop', players: [two[0]] })
     render(<>{result.current.picker}</>)
-    expect(options()).toEqual(['me'])
+    expect(await filterOptions()).toEqual(['me'])
   })
 
-  it('never labels the viewer "You"', () => {
+  it('never labels the viewer "You"', async () => {
     const { result } = setup()
     render(<>{result.current.picker}</>)
-    expect(options()).not.toContain('You')
+    expect(await filterOptions()).not.toContain('You')
   })
 
-  it('lists the viewer first, whatever order the players arrive in', () => {
+  it('lists the viewer first, whatever order the players arrive in', async () => {
     const { result } = setup({ players: [two[1], two[0]] }) // deliberately not self-first
     render(<>{result.current.picker}</>)
-    expect(options()).toEqual(['All', 'me', 'moth'])
+    expect(await filterOptions()).toEqual(['All', 'me', 'moth'])
   })
 })
 
@@ -111,7 +109,6 @@ describe('useTurnLogPlayerPicker — the default selection', () => {
   })
 
   it('falls back when the picked player stops being offered', async () => {
-    const user = userEvent.setup()
     function Probe({ players }: { players: typeof two }) {
       const w = useTurnLogPlayerPicker<Row>({
         players, selfId: 'u1', mode: 'coop', isTerminal: false,
@@ -124,7 +121,7 @@ describe('useTurnLogPlayerPicker — the default selection', () => {
       )
     }
     const { rerender } = render(<Probe players={two} />)
-    await user.selectOptions(screen.getByRole('combobox'), 'u2')
+    await pickFilter('moth')
     expect(screen.getByTestId('rows')).toHaveTextContent('theirs')
     // moth leaves → back to the default rather than an empty log forever.
     rerender(<Probe players={[two[0]]} />)
@@ -155,7 +152,6 @@ describe('useTurnLogPlayerPicker — when #N may drive the board', () => {
   })
 
   it('a single player picked out of a shared co-op log is NOT', async () => {
-    const user = userEvent.setup()
     function Probe() {
       const who = useTurnLogPlayerPicker<Row>({
         players: two, selfId: 'u1', mode: 'coop', isTerminal: false,
@@ -171,7 +167,7 @@ describe('useTurnLogPlayerPicker — when #N may drive the board', () => {
     render(<Probe />)
     expect(screen.getByTestId('rows')).toHaveTextContent('mine,theirs')
 
-    await user.selectOptions(screen.getByRole('combobox'), 'u2')
+    await pickFilter('moth')
     expect(screen.getByTestId('rows')).toHaveTextContent('theirs')
     // The viewer indexes the log by POSITION, so a filtered list's row 2 isn't
     // the board's turn 2 — the handle has to go inert or #N replays the wrong turn.
@@ -179,7 +175,6 @@ describe('useTurnLogPlayerPicker — when #N may drive the board', () => {
   })
 
   it('compete: my own board yes, an opponent’s and All no', async () => {
-    const user = userEvent.setup()
     function Probe() {
       const who = useTurnLogPlayerPicker<Row>({
         players: two, selfId: 'u1', mode: 'compete', isTerminal: true,
@@ -189,11 +184,11 @@ describe('useTurnLogPlayerPicker — when #N may drive the board', () => {
     render(<Probe />)
     expect(screen.getByTestId('board')).toHaveTextContent('true')
 
-    await user.selectOptions(screen.getByRole('combobox'), 'u2')
+    await pickFilter('moth')
     expect(screen.getByTestId('board')).toHaveTextContent('false')
 
     // All is nobody's board in particular.
-    await user.selectOptions(screen.getByRole('combobox'), 'all')
+    await pickFilter('All')
     expect(screen.getByTestId('board')).toHaveTextContent('false')
   })
 
@@ -215,23 +210,21 @@ describe('useTurnLogPlayerPicker — the honest empty line', () => {
   }
 
   it("says an opponent's empty log is HIDDEN mid-game, and empty at terminal", async () => {
-    const user = userEvent.setup()
     const { rerender } = render(<Probe isTerminal={false} />)
     // My own log: an honest "none yet".
     expect(screen.getByTestId('empty')).toHaveTextContent('No guesses yet.')
 
-    await user.selectOptions(screen.getByRole('combobox'), 'u2')
+    await pickFilter('moth')
     expect(screen.getByTestId('empty')).toHaveTextContent('Hidden until game ends.')
 
     rerender(<Probe isTerminal={true} />)
-    await user.selectOptions(screen.getByRole('combobox'), 'u2')
+    await pickFilter('moth')
     expect(screen.getByTestId('empty')).toHaveTextContent('No guesses yet.')
   })
 
   it('never calls the All view "hidden" — it always carries my own rows', async () => {
-    const user = userEvent.setup()
     render(<Probe isTerminal={false} />)
-    await user.selectOptions(screen.getByRole('combobox'), 'all')
+    await pickFilter('All')
     expect(screen.getByTestId('empty')).toHaveTextContent('No guesses yet.')
   })
 })

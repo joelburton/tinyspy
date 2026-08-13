@@ -1,0 +1,158 @@
+/* FilterSelect — the non-native dropdown used by the in-game info-panel
+ * filters. See FilterSelect.tsx for WHY it isn't a <select>.
+ *
+ * The trigger is deliberately pixel-matched to the old `.select` in
+ * infoPanel.module.css (same font-size, padding, border, radius, max-width),
+ * so swapping a filter over changes its behavior and nothing else. While the
+ * turn-log picker is still native, the two sit side by side in the same info
+ * column and must look identical. */
+
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+/* ─── Trigger ─────────────────────────────────────────────── */
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font: inherit;
+  font-size: 0.8rem;
+  /* Normal text color, matching .select — the current filter is a real value,
+   * understated by size and border rather than by muting it. */
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid var(--color-divider);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+  max-width: 9rem;
+  cursor: pointer;
+  /* This control can never hold focus (the trigger preventDefaults its own
+   * mousedown), so a focus ring would be a lie about where the keyboard is —
+   * the whole point of the component. Belt and braces with that. */
+  outline: none;
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Identity discs ──────────────────────────────────────────
+ *
+ * One knob drives both the disc and the slot reserved for it, so a dot-less
+ * option's label lands on exactly the same text baseline as a dotted one's.
+ * Kept in `em` (matching <Dot>'s own default) so the disc scales with the
+ * option text — which matters at the mobile size, where options grow to 1rem
+ * and a rem-fixed disc would look shrunken beside them. */
+.trigger,
+.option {
+  --filter-select-dot: 0.65em;
+}
+
+.dot {
+  --dot-size: var(--filter-select-dot);
+}
+
+.dotSlot {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--filter-select-dot);
+}
+
+/* The affordance mark: a small solid caret, the same "this opens a list of
+ * choices" language a native <select> uses — NOT the header menus' chevron,
+ * which means "this opens a menu of commands". */
+.caret {
+  flex: none;
+  opacity: 0.7;
+}
+
+/* ─── Popover ─────────────────────────────────────────────── */
+
+/* Elevation idiom copied from Menu's popover / DefinitionPopover: surface +
+ * border + soft shadow, and the same 1500 tier — above page content, below
+ * chat. A literal, not a token: the repo has no z-index scale in theme.css and
+ * bans `var()` fallbacks (src/cssTokens.test.ts fails on phantom tokens). */
+/* The list hangs from the trigger's RIGHT edge and opens leftward, always.
+ * These filters are only ever placed at the right end of a heading row or
+ * column, so right-anchoring is the one correct behavior and not worth a prop
+ * — one rule means the two word-list pickers can't drift apart.
+ *
+ * It's also what keeps a long option honest: usernames have no length cap
+ * (docs/mobile.md still carries "cap handles at 10" as a TODO), and a
+ * left-anchored list would push off-screen and widen the document. Growing
+ * leftward from a right edge can't: the popover's right edge is pinned to a
+ * trigger that is already on-screen, and `max-width` bounds the reach. */
+.popover {
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 0;
+  z-index: 1500;
+  min-width: 100%;
+  width: max-content;
+  max-width: 14rem;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+  padding: 0.15rem;
+  overflow: hidden;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 0.25rem 0.45rem;
+  cursor: pointer;
+  /* An uncapped username can be longer than `.popover`'s max-width. Ellipsize
+   * rather than let it be chopped mid-letter by the popover's `overflow:
+   * hidden` — and never wrap, so every option stays one predictable row. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  outline: none;
+}
+.option:hover {
+  background: var(--color-surface-hover);
+}
+
+/* The current value. Weight rather than color, so it reads as "this one" in
+ * both themes without introducing a palette the info panel doesn't already
+ * use. */
+.optionOn {
+  font-weight: 700;
+}
+
+/* ─── Touch ───────────────────────────────────────────────────
+ *
+ * 56.25rem is the app's shared desktop→mobile line (docs/mobile.md). Below it
+ * the options grow to roughly a 44px tap target with a legible 1rem label —
+ * the thing a native picker gives you for free and the reason not to ship a
+ * cramped custom list on a phone. The TRIGGER stays small: it lives in a tight
+ * heading row, and growing it would reflow the panel. */
+@media (max-width: 56.25rem) {
+  .popover {
+    padding: 0.25rem;
+    max-width: min(18rem, 80vw);
+  }
+  .option {
+    font-size: 1rem;
+    padding: 0.6rem 0.75rem;
+  }
+}

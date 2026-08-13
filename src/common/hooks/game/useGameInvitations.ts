@@ -7,6 +7,7 @@ import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
 import { onPostgresAttached } from '../../lib/supabase/postgresAttached'
 import { games } from '../../../games'
 import {
+  inviteCutoffIso,
   loadSeenInvites,
   markInviteSeen,
   newInviteCandidates,
@@ -34,6 +35,12 @@ function currentGameIdFromPath(path: string): string | null {
  *     AND on reconnect, so we re-scan for non-terminal games I'm a player
  *     in. This recovers invitations sent while I was offline / before my
  *     tab loaded (rare, but the realtime INSERT alone would miss them).
+ *
+ * That re-scan is bounded by AGE as well as by `is_terminal`
+ * (`INVITE_MAX_AGE_MS`) — without it the backfill returns every unfinished
+ * game you've ever been seated in, because an abandoned game never turns
+ * terminal. It never delays a real invite: the realtime path runs the same
+ * query, and a game seconds old clears the cutoff easily.
  *
  * Dedup is the `seen` set (localStorage): a game's invite surfaces once,
  * then is marked seen so a reload / refetch won't re-nag. Dismissed
@@ -70,6 +77,12 @@ export function useGameInvitations(session: Session): {
       .select('games!inner(id, gametype, club_handle, created_by)')
       .eq('user_id', selfId)
       .eq('games.is_terminal', false)
+      // …and recent. `is_terminal = false` alone is not a staleness bound: an
+      // abandoned game never becomes terminal, so without this the scan
+      // returns every unfinished game you've ever been seated in, and an empty
+      // `seen` set (new device, cleared storage) pops the lot at sign-in. See
+      // INVITE_MAX_AGE_MS.
+      .gt('games.started_at', inviteCutoffIso())
     // The embed is to-one (game_players.game_id → games.id), so each row's
     // `games` is a single game object.
     const candidates = (rows ?? []).map((r) => r.games) as InviteCandidate[]

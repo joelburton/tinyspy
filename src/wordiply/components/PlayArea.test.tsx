@@ -306,6 +306,6 @@ describe('wordiply PlayArea — turn log', () => {
     h.result = { game: loadedGame(), guesses: [guess('cart', 1)], loading: false }
     render(<PlayArea {...makeCtx({ players: twoMembers })} />)
     // Two players in COMPETE would list them; a coop pair is one shared "Team".
-    expect(screen.getByRole('combobox', { name: /whose guesses/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /whose guesses/i })).toBeInTheDocument()
   })
 })

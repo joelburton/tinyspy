@@ -19,6 +19,15 @@ gates apply before a key ever reaches game code:
 | **modifier bail** | `Cmd` / `Ctrl` / `Alt` chords go to the browser untouched (`⌥` is the one deliberate exception — crosswords and the shell use it for real shortcuts). |
 | **open menu** | An open `<Menu>` `stopPropagation()`s every key, so window listeners never see them. |
 
+**Why the gates look like this** — see [ui.md → Real forms, and everything
+else](ui.md#real-forms-and-everything-else). Two of these gates are that design
+rule in code: the floating-panel gate *is* "this is a real form, the panel owns
+the keyboard", and the focused-text-field gate is what makes category 3 (chat,
+scratchpad, clue fields) work. Note the `<select>` in the first row is now
+almost vestigial outside real forms: gameplay and club-page dropdowns are
+[`FilterSelect`](../src/common/components/game/FilterSelect.tsx), which never
+takes focus, so it never trips that gate at all.
+
 Two consequences worth knowing:
 
 - **The blinking caret is honest.** The simulated caret in an `<EntryBox>` shows

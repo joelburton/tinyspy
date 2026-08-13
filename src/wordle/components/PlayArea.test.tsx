@@ -23,6 +23,7 @@ import type { WordleGame, WordlePlayerState, GuessRow } from '../hooks/useGame'
 import { db } from '../db'
 import { db as commonDb } from '../../common/db'
 import { PlayArea } from './PlayArea'
+import { filterOptions, pickFilter } from '../../common/test/filterSelect'
 
 // Feedback `text` is now a ReactNode (an <ActorDot> widget + sentence) rather
 // than a string — render it and read the plain text to assert on the wording.
@@ -426,30 +427,29 @@ describe('wordle PlayArea — peer narration (global header)', () => {
 
 describe('wordle PlayArea — opponent picker (compete)', () => {
   it('shows "hidden until game ends" when an opponent is picked during play', async () => {
-    const user = userEvent.setup()
     h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
     render(<PlayArea {...makeCtx({ players: twoMembers })} />)
     // Defaults to my own (empty) board.
     expect(screen.getByText('No guesses yet.')).toBeInTheDocument()
     // Pick the opponent → their guesses are RLS-hidden until the game ends.
-    await user.selectOptions(screen.getByLabelText('Whose guesses to show'), 'u2')
+    await pickFilter('moth')
     expect(screen.getByText('Hidden until game ends.')).toBeInTheDocument()
   })
 })
 
 describe('wordle PlayArea — turn-log picker label', () => {
-  it('names the player by HANDLE in a solo game, even when it’s you', () => {
+  it('names the player by HANDLE in a solo game, even when it’s you', async () => {
     // makeCtx defaults to viewer u1 as the only player. The shared vocabulary
     // names everyone the same way — "You" made your own row read as a different
     // KIND of thing from everyone else's (useTurnLogPlayerPicker).
     render(<PlayArea {...makeCtx()} />)
-    expect(screen.getByRole('option', { name: 'me' })).toBeInTheDocument()
-    expect(screen.queryByRole('option', { name: 'You' })).not.toBeInTheDocument()
+    expect(await filterOptions()).toContain('me')
+    expect(await filterOptions()).not.toContain('You')
     // No aggregate in a solo game — "Team" of one is the same list twice.
-    expect(screen.queryByRole('option', { name: 'Team' })).not.toBeInTheDocument()
+    expect(await filterOptions()).not.toContain('Team')
   })
 
-  it("names the player (not the viewer) when a club member spectates a solo game", () => {
+  it("names the player (not the viewer) when a club member spectates a solo game", async () => {
     // u2 (a club member, not in the game) is watching u1's solo game.
     const ctx = makeCtx({
       session: { user: { id: 'u2' } } as unknown as GamePageCtx['session'],
@@ -461,15 +461,15 @@ describe('wordle PlayArea — turn-log picker label', () => {
       [{ user_id: 'u1', guesses_used: 0, solved: false, solved_at: null }],
     )
     render(<PlayArea {...ctx} />)
-    expect(screen.getByRole('option', { name: 'joel' })).toBeInTheDocument()
-    expect(screen.queryByRole('option', { name: 'You' })).not.toBeInTheDocument()
+    expect(await filterOptions()).toContain('joel')
+    expect(await filterOptions()).not.toContain('You')
   })
 
-  it('shows "Team" AND each player in a multi-player coop game', () => {
+  it('shows "Team" AND each player in a multi-player coop game', async () => {
     render(<PlayArea {...makeCtx({ players: twoMembers })} />)
-    expect(screen.getByRole('option', { name: 'Team' })).toBeInTheDocument()
+    expect(await filterOptions()).toContain('Team')
     // Per-player entries pull one thread out of the shared log.
-    expect(screen.getByRole('option', { name: 'moth' })).toBeInTheDocument()
+    expect(await filterOptions()).toContain('moth')
   })
 })
 

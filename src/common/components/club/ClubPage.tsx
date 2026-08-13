@@ -356,19 +356,6 @@ export function ClubPage({ handle, session }: Props) {
   // stale ring elsewhere in the list).
   const [focusedList, setFocusedList] = useState<'start' | 'games' | null>(null)
 
-  /** Apply the gametype filter, then hand the keyboard back to the games list.
-   *
-   *  The `<select>` has to TAKE focus to open its popup (unlike the mode
-   *  buttons, which decline it on mousedown) — so touching it costs the games
-   *  list its cursor ring and leaves the arrow keys pointing at nothing. Moving
-   *  focus back the moment a choice is committed makes the detour round-trip:
-   *  narrow the list, keep arrowing it. Same hand-back, same reason, as
-   *  `closeSetup`'s return to the start list. `preventScroll` because the list
-   *  is already in view and a focus-scroll would fight the layout. */
-  const handleGametypeFilter = useCallback((value: string) => {
-    setGametypeFilter(value)
-    gamesListRef.current?.focus({ preventScroll: true })
-  }, [])
 
   // The startable games in DISPLAY order — alphabetical by brand (registry
   // order means nothing to a player scanning for a game; the stable sort
@@ -1019,7 +1006,7 @@ export function ClubPage({ handle, session }: Props) {
             <GametypeFilter
               value={selectedGametype}
               options={gametypeOptions}
-              onChange={handleGametypeFilter}
+              onChange={setGametypeFilter}
             />
           )}
         </div>
@@ -1131,7 +1118,7 @@ export function ClubPage({ handle, session }: Props) {
             <GametypeFilter
               value={selectedGametype}
               options={gametypeOptions}
-              onChange={handleGametypeFilter}
+              onChange={setGametypeFilter}
             />
           </div>
           {/* Fixed-size frame with internal scroll. The frame has

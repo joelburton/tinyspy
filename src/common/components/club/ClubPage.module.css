@@ -286,11 +286,14 @@
   }
 
   /* Filter for the showing tab, in the same content well as the tabs it sits
-   * under. Left-aligned: it's a control belonging to the list below, not a
-   * second row of tabs, and the tab bar's full-width split already owns the
-   * "these divide the page" look. */
+   * under. RIGHT-aligned, matching where both filters sit on desktop (at the
+   * right of their list's heading) — so the control doesn't jump sides across
+   * the breakpoint. It also keeps the app's faux-selects uniformly right-hung:
+   * `<FilterSelect>`'s list opens leftward from the trigger's right edge, which
+   * can only stay on-screen if the trigger is itself toward the right. */
   .mobileFilters {
     display: flex;
+    justify-content: flex-end;
     flex-shrink: 0;
     width: 100%;
     max-width: 62.5rem;

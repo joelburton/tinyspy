@@ -280,6 +280,62 @@ Not a big-bang refactor — these get fixed game-by-game as we work through the 
 - **codenamesduet turn-state messaging.** Audit needed — does "your turn to write a clue" occupy the same space as "waiting for peer's clue" and "peer gave you: BIRD 3"?
 - **Guess / clue history scroll containment.** Verify each is a scrollable region inside a fixed outer, not a grow-with-content list.
 
+## Real forms, and everything else
+
+**The rule is about who owns the keyboard.** In a real form the *focused element*
+owns it, so focus is meaningful, a focus ring is an honest signal, and Tab is
+the right way to move. Everywhere else the *app* owns the keyboard, focus is a
+liability rather than a state worth showing, and a ring is a lie about where
+your next keystroke will land. That's the same invariant `useGameHasKeyboard`
+encodes — *caret visible ⟺ keys reach the game* — and a real form is precisely
+where keys deliberately don't reach the game.
+
+Three categories:
+
+**1. Real forms** — things a player *fills out*. The setup dialog (including
+crosswords' date / series / upload tab), the profile form, claim-a-username, the
+get-magic-link and login-with-code forms, and the confirm dialogs
+(`ConfirmDialog`, `SuspendConfirmDialog`, `FaultDialog` — nobody "fills them
+out", but the panel owns the keyboard and its buttons need visible focus).
+
+These may use Tab between elements, native `<select>`s, focus rings, and take
+RETURN / ESCAPE to submit / cancel alongside their buttons.
+
+The boundary is already machine-readable: **`data-floating-panel`**.
+`useGlobalKeyHandler` declines inside it, and `useFocusTrap` / `useSwallowTab`
+hang off the same marker — which is how the setup dialog can be a real form
+while floating over a live game with no special-casing. An audit can start as a
+grep.
+
+**2. Not forms** — the home page, the club page (its filters and its game list),
+and the whole game surface: boards, info panels, turn logs, word lists, mode
+pills.
+
+No general Tab navigation, and **no focus rings**. SPACE and ENTER are trapped
+for specific meanings rather than the browser's "act on the focused thing".
+Dropdowns here are **`<FilterSelect>`**, never a native `<select>` — see that
+component for why a native one can't be made to behave (short version: it takes
+focus to open its popup, and no event reliably tells you when to give the
+keyboard back).
+
+**3. Focused text entry inside a non-form surface** — the club chat box, the
+game scratchpad, codenamesduet's number + clue fields.
+
+These legitimately take focus and own the keyboard *while focused*, but they
+aren't forms: no Tab-to-everywhere, no form semantics. TAB and ESCAPE are
+trapped, and the interesting part is the **way out** —
+`handOffKeyboardOnTab` blurs on Tab to hand the keyboard back to the game
+(Shift-Tab is left alone so a panel's ✕ stays reachable). codenamesduet's two
+clue fields are the case where Tab moves between exactly two controls, and
+nowhere else.
+
+**Keyboard-only users are not a constraint here** (see
+[CLAUDE.md](../CLAUDE.md) → audience): the population is known, and nobody
+navigates the app by keyboard alone. Making an uncommon control
+non-keyboard-reachable is an acceptable trade for one control vocabulary across
+the app. This is *not* the same as dropping keyboard support — the boards are
+keyboard-first by design, and category 3 exists precisely to keep typing working.
+
 ## Page-height fits the viewport
 
 **A page's height equals the viewport's height — content scrolls within fixed sub-frames, not by scrolling the page itself.** Same intent as native apps and the games we replace (NYT Connections in the browser, Wordle, Boggle on a phone): the chrome stays put; growth-prone surfaces (chat, guess history, club's games list) absorb height inside their own frames via `overflow-y: auto`.

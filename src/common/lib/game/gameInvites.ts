@@ -35,11 +35,46 @@ export type GameInvite = {
 }
 
 /**
+ * How recent a game must be to still be worth an invitation.
+ *
+ * **Why an age limit at all.** The scan's only other bound is
+ * `is_terminal = false`, and that is NOT a proxy for "recent": an abandoned
+ * game never becomes terminal — nobody ends it, it just sits there — so the
+ * candidate pool is every unfinished game you have ever been seated in, and it
+ * grows forever. The `seen` set below hid that, right up until it was empty:
+ * signing in on a new device / another browser / after clearing storage popped
+ * the whole accumulated backlog at once. (`SEEN_CAP` eviction gets there too,
+ * more slowly.) Capping the age fixes the cause; `seen` still does its own job
+ * of not nagging twice about one fresh invite.
+ *
+ * An hour, not minutes: the backlog this kills is games days or weeks old, and
+ * a longer window costs nothing while still catching an invite you stepped away
+ * from. Past it, the game is still on the club page — an invitation is a nudge,
+ * not the only route in.
+ *
+ * The cutoff is computed against the CLIENT clock, so a device more than an
+ * hour off would misjudge it. Deliberately not defended against: doing it
+ * server-side means an RPC, and half-hour clock skew doesn't happen on
+ * NTP-synced devices.
+ */
+export const INVITE_MAX_AGE_MS = 60 * 60_000
+
+/** The oldest `common.games.started_at` an invitation may carry, as the ISO
+ *  string PostgREST wants. (`started_at` is the creation stamp — `common.games`
+ *  has no `created_at`.) */
+export function inviteCutoffIso(now: number = Date.now()): string {
+  return new Date(now - INVITE_MAX_AGE_MS).toISOString()
+}
+
+/**
  * Pure: of the games the caller is a player in, which are *new*
  * invitations? Drops games the caller created (they're already in it)
  * and ones already surfaced (`seen`). The currently-viewed game is NOT
  * filtered here — that's a display concern handled at render, so a game
  * you're actively in still gets marked seen and never pops later.
+ *
+ * Age is NOT filtered here — that rides on the query (`inviteCutoffIso`), so
+ * the stale rows never leave the database.
  */
 export function newInviteCandidates(
   candidates: InviteCandidate[],

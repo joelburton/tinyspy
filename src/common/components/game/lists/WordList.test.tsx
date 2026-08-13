@@ -12,10 +12,10 @@
  * assertion's job and not this file's.
  */
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { WordList, type WordListRow } from './WordList'
 import type { Member } from '../../../lib/games'
+import { pickFilter } from '../../../test/filterSelect'
 
 const PLAYERS: Member[] = [
   { user_id: 'ada', username: 'ada', color: 'red' },
@@ -43,15 +43,13 @@ describe('WordList — the heading tally', () => {
   })
 
   it('tracks the WHO filter — a player, then the missed words', async () => {
-    const user = userEvent.setup()
     render(<WordList rows={ROWS} {...base} />)
-    const who = screen.getByLabelText('Whose words to show')
 
-    await user.selectOptions(who, 'bea')
+    await pickFilter('bea')
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Words: 1 · Score: 5')
 
     // The terminal reveal's cost, as a number: what the missed words were worth.
-    await user.selectOptions(who, screen.getByRole('option', { name: 'Missed' }))
+    await pickFilter('Missed')
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Words: 1 · Score: 5')
   })
 
@@ -65,13 +63,12 @@ describe('WordList — the heading tally', () => {
   })
 
   it('reports the longest word IN LETTERS, tracking the filter', async () => {
-    const user = userEvent.setup()
     render(<WordList rows={ROWS} {...base} />)
     // bead(4) beach(5) chafe(5) → 5.
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('· Longest: 5')
 
     // Narrow to ada, whose only word is the 4-letter one.
-    await user.selectOptions(screen.getByLabelText('Whose words to show'), 'ada')
+    await pickFilter('ada')
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('· Longest: 4')
   })
 })

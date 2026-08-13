@@ -21,6 +21,15 @@ import { signIn } from './helpers/session'
  * `_mobileFilters_` for the mobile one. An unscoped `getByRole` would match
  * both instances and trip Playwright's strict mode.
  */
+/** Pick from ClubPage's gametype <FilterSelect> by its visible label. The
+ *  trigger is the button carrying `aria-expanded`; its options only exist in
+ *  the DOM while the list is open. */
+async function pickGametype(page: import('@playwright/test').Page, label: string) {
+  const trigger = page.getByLabel('Filter your games by game')
+  if ((await trigger.getAttribute('aria-expanded')) !== 'true') await trigger.click()
+  await trigger.locator('xpath=../div').getByRole('button', { name: label, exact: true }).click()
+}
+
 test.describe('club page list filters', () => {
   test('mode buttons filter the start list; the gametype dropdown filters your games', async ({
     browser,
@@ -82,22 +91,25 @@ test.describe('club page list filters', () => {
     // ─── Gametype filter ────────────────────────────────────────────────
     // Siblings collapse: ONE option covers wordle_coop + wordle_compete, so
     // the options are the FAMILIES listed (plus "All games"), by baseGametype.
-    const options = await select
-      .locator('option')
-      .evaluateAll((os) => os.map((o) => (o as HTMLOptionElement).value))
-    expect(options).toEqual(['all', 'waffle', 'wordle'])
+    // <FilterSelect>, not a <select>: options exist only while the list is open,
+    // and are labelled with each family's BRAND (manifest.name).
+    await select.click()
+    const options = await select.locator('xpath=../div').getByRole('button').allInnerTexts()
+    expect(options).toEqual(['All games', 'SyrupSwap', 'WordNerd'])
 
-    await select.selectOption('wordle')
+    await pickGametype(page, 'WordNerd')
     // BOTH wordle games survive the family filter; the waffles don't.
     await expect(gameCards).toHaveCount(2)
-    // ...and committing a choice hands the keyboard straight back to the games
-    // list, so the arrow-key cursor is live again without a click or a Tab.
+    // ...and the filter never took focus in the first place, so the games list
+    // keeps its arrow-key cursor without any hand-back. (The old native <select>
+    // stole focus to open its popup and needed ClubPage to give it back — which
+    // it failed to do when you re-picked the option already selected.)
     expect(
-      await page.evaluate(() => document.activeElement?.getAttribute('aria-label')),
-    ).toBe('Your games')
+      await page.evaluate(() => document.activeElement?.tagName),
+    ).not.toBe('BUTTON')
     expect(await startButtons.count()).toBe(allStart) // start list untouched
 
-    await select.selectOption('all')
+    await pickGametype(page, 'All games')
     await expect(gameCards).toHaveCount(4)
 
     await ctx.close()
@@ -137,7 +149,7 @@ test.describe('club page list filters', () => {
 
     await modeButton('Compete').click()
     await expect(modeButton('Compete')).toHaveAttribute('aria-pressed', 'true')
-    await select.selectOption('wordle')
+    await pickGametype(page, 'WordNerd')
 
     await page.reload()
     await expect(page.getByText('Start a new game')).toBeVisible({ timeout: 20000 })
@@ -145,8 +157,9 @@ test.describe('club page list filters', () => {
     // The taste came back…
     await expect(modeButton('Compete')).toHaveAttribute('aria-pressed', 'true')
     await expect(modeButton('All')).toHaveAttribute('aria-pressed', 'false')
-    // …and the hide-real-games filter did not.
-    await expect(select).toHaveValue('all')
+    // …and the hide-real-games filter did not. The trigger shows the current
+    // choice as TEXT now (it's a button, not a <select> with a value).
+    await expect(select).toHaveText('All games')
 
     // It's a preference, not a trap: switching back sticks just as readily.
     await modeButton('All').click()

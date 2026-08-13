@@ -27,12 +27,12 @@
  */
 
 import { render, screen, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { GameTurnLog } from './GameTurnLog'
 import type { GuessRow } from '../hooks/useBoard'
 import type { Player } from '../hooks/useGame'
 import type { Database } from '../../types/db'
+import { filterOptions, pickFilter } from '../../common/test/filterSelect'
 
 // Stable two-seat roster for every render. Colors aren't asserted on (they ride
 // an inline style attr the tests don't introspect), but the lookup needs both
@@ -196,9 +196,9 @@ describe('GameTurnLog — the clue-giver picker', () => {
     clue({ id: 'c2', turn_number: 2, by_seat: 'B', word: 'THEIRS' }),
   ]
 
-  it('lists Team plus both players by handle, and defaults to Team', () => {
+  it('lists Team plus both players by handle, and defaults to Team', async () => {
     renderLog({ clues, guesses: [] })
-    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+    expect(await filterOptions()).toEqual([
       'Team',
       'ada',
       'bea',
@@ -209,17 +209,15 @@ describe('GameTurnLog — the clue-giver picker', () => {
   })
 
   it('narrows to the turns that player CLUED', async () => {
-    const user = userEvent.setup()
     renderLog({ clues, guesses: [] })
-    await user.selectOptions(screen.getByRole('combobox'), 'bea')
+    await pickFilter('bea')
     expect(screen.queryByText('2 MINE')).not.toBeInTheDocument()
     expect(screen.getByText('2 THEIRS')).toBeInTheDocument()
   })
 
   it('says the log is empty (not hidden) when a player has clued nothing', async () => {
-    const user = userEvent.setup()
     renderLog({ clues: [clues[0]], guesses: [] })
-    await user.selectOptions(screen.getByRole('combobox'), 'bea')
+    await pickFilter('bea')
     // Coop hides nothing, so the honest line is the plain empty one.
     expect(screen.getByText('No clues yet.')).toBeInTheDocument()
   })

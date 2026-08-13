@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { WordListRow } from '../../components/game/lists/WordList'
 import infoPanel from '../../components/game/infoPanel.module.css'
 import { orderSelfFirst } from '../../lib/game/peers'
+import { FilterSelect } from '../../components/game/FilterSelect'
 import type { Member } from '../../lib/games'
 
 /**
@@ -138,37 +139,43 @@ export function useWordListFilter({
 
   return {
     picker: (
+      // FilterSelect, not <select>: a native dropdown steals the keyboard from
+      // the board and there's no event that reliably gives it back. See
+      // FilterSelect's docstring.
       <div className={infoPanel.selectGroup}>
         {/* KIND is dropped entirely when there's no bonus list to distinguish —
             a lone "Legal" option would be a dead control. */}
         {hasBonus && (
-          <select
-            className={infoPanel.select}
-            aria-label="Which words to show"
+          <FilterSelect
+            label="Which words to show"
             value={kind}
-            onChange={(e) => setKindChosen(e.target.value)}
-          >
-            <option value={LEGAL}>Legal</option>
-            <option value={REQUIRED}>Required</option>
-            <option value={BONUS}>Bonus</option>
-          </select>
+            onChange={setKindChosen}
+            options={[
+              { value: LEGAL, label: 'Legal' },
+              { value: REQUIRED, label: 'Required' },
+              { value: BONUS, label: 'Bonus' },
+            ]}
+          />
         )}
-        <select
-          className={infoPanel.select}
-          aria-label="Whose words to show"
+        <FilterSelect
+          label="Whose words to show"
           value={who}
-          onChange={(e) => setWhoChosen(e.target.value)}
-        >
-          <option value={ALL}>All</option>
-          {hasMissed && <option value={FOUND}>Found</option>}
-          {hasMissed && <option value={MISSED}>Missed</option>}
-          {peopleVisible &&
-            ordered.map((p) => (
-              <option key={p.user_id} value={p.user_id}>
-                {p.username}
-              </option>
-            ))}
-        </select>
+          onChange={setWhoChosen}
+          options={[
+            { value: ALL, label: 'All' },
+            ...(hasMissed
+              ? [
+                  { value: FOUND, label: 'Found' },
+                  { value: MISSED, label: 'Missed' },
+                ]
+              : []),
+            // Players carry their identity disc; the fixed options above don't,
+            // so FilterSelect indents them to match (see FilterOption.dot).
+            ...(peopleVisible
+              ? ordered.map((p) => ({ value: p.user_id, label: p.username, dot: p.color }))
+              : []),
+          ]}
+        />
       </div>
     ),
     filter: (rs) => rs.filter((r) => matchesKind(r) && matchesWho(r)),
