@@ -3,6 +3,11 @@
   flex-direction: column;
   gap: 0.6rem;
   min-width: 22rem;
+  /* No max-width: the dialog is a FIXED 480px (SetupGameDialog's
+   * `defaultSize`), so the body should FILL it. Capping the form narrower just
+   * leaves dead space down the right-hand side. What keeps a long row from
+   * overflowing that fixed width is the title truncating — see .itemTitle and
+   * .tabStack. */
 }
 
 /* Library / NYT-by-date source toggle. */
@@ -35,8 +40,13 @@
  * which tab is active. That's what keeps the dialog from resizing when the
  * player flips between sources. The inactive bodies are visibility-hidden
  * (unfocusable, unclickable) but stay mounted. */
+/* `minmax(0, 1fr)`, not the default `auto`: an auto grid column is sized to
+ * its MAX-content, so a long row would widen the column (and the dialog) no
+ * matter what .setup's max-width says. The explicit 0 minimum lets the column
+ * be narrower than its content, which is what allows the title to ellipsize. */
 .tabStack {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
 }
 .tabBody {
   grid-area: 1 / 1;
@@ -94,8 +104,7 @@
   background: none;
   /* The base <button> rule paints text white (for accent-filled buttons); this
      is a plain list row on a light surface, so restore the body text color —
-     otherwise the title is white-on-white (only .itemMeta, which sets its own
-     muted color, stays visible). */
+     otherwise the title would be white-on-white. */
   color: var(--color-text);
   text-align: left;
   border-bottom: 1px solid var(--crosswords-row-rule);
@@ -141,8 +150,11 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Load-bearing: a flex item defaults to `min-width: auto`, i.e. it refuses
+   * to shrink below its content. Without this, `text-overflow: ellipsis` never
+   * engages — the title just pushes the row (and the dialog) wider instead. */
+  min-width: 0;
 }
-.itemMeta { color: var(--color-muted); font-size: 0.85rem; white-space: nowrap; }
 
 .empty {
   padding: 1rem;

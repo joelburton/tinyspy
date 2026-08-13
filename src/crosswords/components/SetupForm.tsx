@@ -28,7 +28,6 @@ type LibraryPuzzle = {
   id: string
   title: string
   author: string
-  size: string
   status: PuzzleStatus
 }
 
@@ -112,7 +111,6 @@ export function SetupForm({ clubHandle, value, onChange }: SetupBodyProps) {
           id: row.id,
           title: row.title,
           author: row.author,
-          size: `${row.width}×${row.height}`,
           status: row.status as PuzzleStatus,
         })),
       )
@@ -317,11 +315,14 @@ export function SetupForm({ clubHandle, value, onChange }: SetupBodyProps) {
                   )}
                   onClick={() => onChange({ ...s, puzzle_id: p.id })}
                 >
+                  {/* Title + author only. The grid size used to sit at the
+                      right, but it isn't something you pick a puzzle BY, and
+                      as the row's second column it fought the title for the
+                      width — which is what made the dialog too wide. */}
                   <span className={styles.itemTitle}>
                     {p.title}
                     {p.author ? ` · ${p.author}` : ''}
                   </span>
-                  <span className={styles.itemMeta}>{p.size}</span>
                 </button>
               ))
             )}
