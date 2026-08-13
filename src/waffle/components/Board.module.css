@@ -146,18 +146,19 @@
 /* The two tiles of a swap IN FLIGHT — submitted, server round-trip running.
  * A production round-trip can take a second or two, and with no feedback in
  * that gap players re-tap the same two tiles ("did I misclick?"), which would
- * queue the reverse swap; the pulsing ring says "it's happening" while input
- * is gated (Board.tsx). Same outline vocabulary as `.selected` (the pick ring
- * these tiles just wore — the pulse reads as "your pick is working"), and the
- * pulse animates `outline-color` only: no transform, no layout shift. */
+ * queue the reverse swap; the blinking ring says "it's happening" while input
+ * is gated (Board.tsx). Same outline vocabulary as `.selected` but in accent
+ * blue, not the pick yellow: the color change is what says "sent" rather than
+ * "picked up". Fast blink so it reads as activity even on a short round-trip,
+ * and it animates `outline-color` only: no transform, no layout shift. */
 .swapping {
-  outline: 4px solid var(--waffle-select-ring);
+  outline: 4px solid var(--waffle-pending-ring);
   outline-offset: 2px;
-  animation: waffle-swap-pending 0.8s ease-in-out infinite;
+  animation: waffle-swap-pending 0.35s ease-in-out infinite;
 }
 
 @keyframes waffle-swap-pending {
-  0%, 100% { outline-color: var(--waffle-select-ring); }
+  0%, 100% { outline-color: var(--waffle-pending-ring); }
   50%      { outline-color: transparent; }
 }
 

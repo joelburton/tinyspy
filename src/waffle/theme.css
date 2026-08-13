@@ -11,7 +11,12 @@
  * history frame: you can't pick up a tile while viewing a past turn (the board
  * is read-only then), so the two yellows never appear at once. Imported by the
  * PlayArea (which mounts the grid).
+ *
+ * The in-flight ring (a submitted swap waiting on the server) is deliberately a
+ * DIFFERENT color — the app's accent blue — so "picked up, your move" and
+ * "sent, waiting" never read as the same state on a fast double-tap.
  */
 :root {
   --waffle-select-ring: var(--color-history-viewer);
+  --waffle-pending-ring: var(--color-accent);
 }
