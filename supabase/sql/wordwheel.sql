@@ -29,6 +29,16 @@ grant usage on schema wordwheel to service_role;
 -- no service_role INSERT is needed.
 grant select on wordwheel.pangrams to authenticated;
 
+-- RLS is enabled on this table (20260813000000_rls_seed_tables.sql) so it can't
+-- fail open, but the content is not secret and every authenticated player needs
+-- all of it — so the policy is permissive. The GRANT above is the real gate;
+-- this states the row-level answer instead of leaving it to RLS being off.
+drop policy if exists pangrams_select on wordwheel.pangrams;
+create policy pangrams_select on wordwheel.pangrams
+  for select to authenticated
+  using (true);
+
+
 -- Column-level grant. The word lists are no longer hidden (the FE needs them to
 -- validate guesses locally), so all columns are readable — but we keep the
 -- explicit column list per docs/code-conventions.md → "Avoid SELECT *". `mode` is

@@ -2008,6 +2008,16 @@ grant execute on function common.word_letter_mask(text) to authenticated;
 -- the superuser and bypasses grants.
 grant select on common.words to authenticated;
 
+-- RLS is enabled on this table (20260813000000_rls_seed_tables.sql) so it can't
+-- fail open, but the content is not secret and every authenticated player needs
+-- all of it — so the policy is permissive. The GRANT above is the real gate;
+-- this states the row-level answer instead of leaving it to RLS being off.
+drop policy if exists words_select on common.words;
+create policy words_select on common.words
+  for select to authenticated
+  using (true);
+
+
 -- ============================================================
 -- common.anagrams — the ⌥` anagram finder's search
 -- ============================================================

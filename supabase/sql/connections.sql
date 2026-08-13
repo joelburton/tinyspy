@@ -23,6 +23,16 @@ grant usage on schema connections to authenticated;
 -- create_game RPC reads `categories` to build the board.
 grant select on connections.puzzles to authenticated;
 
+-- RLS is enabled on this table (20260813000000_rls_seed_tables.sql) so it can't
+-- fail open, but the content is not secret and every authenticated player needs
+-- all of it — so the policy is permissive. The GRANT above is the real gate;
+-- this states the row-level answer instead of leaving it to RLS being off.
+drop policy if exists puzzles_select on connections.puzzles;
+create policy puzzles_select on connections.puzzles
+  for select to authenticated
+  using (true);
+
+
 -- The puzzle-import script (supabase/scripts/import-connections-
 -- puzzles.ts) connects as the service_role and needs USAGE on
 -- the schema + INSERT on this table. authenticated has no INSERT
