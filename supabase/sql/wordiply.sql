@@ -57,7 +57,7 @@ create policy guesses_select on wordiply.guesses
          and common.is_club_member(fg.club_handle)
          and (
                fg.mode = 'coop'
-            or guesses.user_id = auth.uid()
+            or guesses.user_id = (select auth.uid())
             or cg.is_terminal
              )
     )

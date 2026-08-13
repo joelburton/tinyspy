@@ -175,7 +175,7 @@ create policy swaps_select on waffle.swaps
        join common.games cg on cg.id = g.id
        where g.id = swaps.game_id
          and common.is_club_member(g.club_handle)
-         and (g.mode = 'coop' or swaps.user_id = auth.uid() or cg.is_terminal)
+         and (g.mode = 'coop' or swaps.user_id = (select auth.uid()) or cg.is_terminal)
     )
   );
 

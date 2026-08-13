@@ -63,7 +63,7 @@ create policy guesses_select on wordle.guesses
          and common.is_club_member(wg.club_handle)
          and (
                wg.mode = 'coop'
-            or guesses.user_id = auth.uid()
+            or guesses.user_id = (select auth.uid())
             or cg.is_terminal
              )
     )

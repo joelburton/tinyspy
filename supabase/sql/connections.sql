@@ -74,7 +74,7 @@ create policy guesses_select on connections.guesses
          and common.is_club_member(g.club_handle)
          and (
                guesses.mode = 'coop'
-            or guesses.user_id = auth.uid()
+            or guesses.user_id = (select auth.uid())
             or cg.is_terminal
              )
     )

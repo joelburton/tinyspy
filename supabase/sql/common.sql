@@ -164,7 +164,7 @@ create policy clubs_select on common.clubs
 drop policy if exists clubs_members_select on common.clubs_members;
 create policy clubs_members_select on common.clubs_members
   for select to authenticated
-  using (user_id = auth.uid() or common.is_club_member(club_handle));
+  using (user_id = (select auth.uid()) or common.is_club_member(club_handle));
 
 drop policy if exists messages_select on common.messages;
 create policy messages_select on common.messages
@@ -246,10 +246,10 @@ drop policy if exists game_scratchpads_select on common.game_scratchpads;
 create policy game_scratchpads_select on common.game_scratchpads
   for select to authenticated
   using (
-    (owner_id is null or owner_id = auth.uid())
+    (owner_id is null or owner_id = (select auth.uid()))
     and exists (
       select 1 from common.game_players gp
-       where gp.game_id = game_scratchpads.game_id and gp.user_id = auth.uid()
+       where gp.game_id = game_scratchpads.game_id and gp.user_id = (select auth.uid())
     )
   );
 
@@ -2387,7 +2387,7 @@ create policy words_edits_select on common.words_edits
   for select to authenticated
   using (exists (
     select 1 from common.profiles p
-     where p.user_id = auth.uid() and p.can_edit_words
+     where p.user_id = (select auth.uid()) and p.can_edit_words
   ));
 grant select on common.words_edits to authenticated;
 

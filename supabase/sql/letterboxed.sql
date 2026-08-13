@@ -95,7 +95,7 @@ create policy events_select on letterboxed.events
          and common.is_club_member(lg.club_handle)
          and (
                lg.mode = 'coop'
-            or events.user_id = auth.uid()
+            or events.user_id = (select auth.uid())
             or cg.is_terminal
              )
     )

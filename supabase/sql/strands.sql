@@ -220,7 +220,7 @@ create policy events_select on strands.events
          and common.is_club_member(sg.club_handle)
          and (
            sg.mode = 'coop'
-           or strands.events.user_id = auth.uid()
+           or strands.events.user_id = (select auth.uid())
            or cg.is_terminal
          )
     )

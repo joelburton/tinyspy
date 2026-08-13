@@ -68,7 +68,7 @@ create policy cells_select on crosswords.cells
         join common.games g on g.id = cg.id
        where cg.id = cells.game_id
          and common.is_club_member(cg.club_handle)
-         and (cg.mode = 'coop' or cells.owner_id = auth.uid() or g.is_terminal)
+         and (cg.mode = 'coop' or cells.owner_id = (select auth.uid()) or g.is_terminal)
     )
   );
 

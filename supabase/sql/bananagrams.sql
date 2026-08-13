@@ -48,7 +48,7 @@ drop policy if exists player_boards_select on bananagrams.player_boards;
 create policy player_boards_select on bananagrams.player_boards
   for select to authenticated
   using (
-    user_id = auth.uid()
+    user_id = (select auth.uid())
     or exists (
       select 1 from bananagrams.games bg
         join common.games cg on cg.id = bg.id

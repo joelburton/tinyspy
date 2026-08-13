@@ -53,7 +53,7 @@ create policy submissions_select on stackdown.submissions
         join common.games cg on cg.id = sg.id
        where sg.id = submissions.game_id
          and common.is_club_member(sg.club_handle)
-         and (sg.mode = 'coop' or submissions.user_id = auth.uid() or cg.is_terminal)
+         and (sg.mode = 'coop' or submissions.user_id = (select auth.uid()) or cg.is_terminal)
     )
   );
 

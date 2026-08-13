@@ -89,7 +89,7 @@ create policy found_words_select on spellingbee.found_words
          and common.is_club_member(fg.club_handle)
          and (
                fg.mode = 'coop'
-            or found_words.user_id = auth.uid()
+            or found_words.user_id = (select auth.uid())
             or cg.is_terminal
              )
     )

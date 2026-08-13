@@ -67,7 +67,7 @@ create policy guesses_select on psychicnum.guesses
        join common.games cg on cg.id = g.id
        where g.id = guesses.game_id
          and common.is_club_member(g.club_handle)
-         and (g.mode = 'coop' or guesses.user_id = auth.uid() or cg.is_terminal)
+         and (g.mode = 'coop' or guesses.user_id = (select auth.uid()) or cg.is_terminal)
     )
   );
 
