@@ -129,7 +129,7 @@ deploy).
 
 | table | purpose |
 |---|---|
-| `puzzles` | The imported NYT archive. `source_id` (puzzle number), `puzzle_date` (unique), `board` (8 rows of 6), `clue`, and the shielded `solution`. Only `(id, source_id, puzzle_date, clue)` are granted to `authenticated` — enough for the date picker to name what it's offering, not enough to study tomorrow's board. The clue joined that list on 2026-08-13: it's how a person recognises a puzzle (it's the game's own title, and on screen from the first second), so withholding it mostly meant starting one you'd already played. It was never a cheating control either — studying ahead only ever needed starting the puzzle, revealing, and deleting the game. |
+| `puzzles` | The imported NYT archive. `source_id` (puzzle number), `puzzle_date` (unique), `board` (8 rows of 6), `clue`, and the shielded `solution`. Only `(id, source_id, puzzle_date, clue)` are granted to `authenticated` — enough for the setup dialog to name the puzzle it's offering, not enough to study tomorrow's board. The clue joined that list on 2026-08-13: it's how a person recognises a puzzle (it's the game's own title, and on screen from the first second), so withholding it mostly meant starting one you'd already played. It was never a cheating control either — studying ahead only ever needed starting the puzzle, revealing, and deleting the game. |
 | `games` | One playthrough. Follows the [library-puzzle provenance rule](../common.md#library-puzzle-games-provenance-not-dependency): everything needed to play *and* identify the game is copied on, and `puzzle_id` is a soft FK (`on delete set null`), so the archive can be re-imported freely. Carries the three setup knobs, denormalized because they're immutable and read on every move. |
 | `players` | One row per player: the hint economy (`hint_points`, `hints_spent`, `active_hint_coords`) plus `solved` / `solved_at`. The **same shape in both modes** — coop moves every row in lock-step (the pool is shared), compete moves only the actor's (see [Compete](#8-compete)). Mid-race a rival's private fields are nulled by `players_state`. |
 | `events` | The append-only log — **one table, not two**, and not two *kinds* of table either. `kind` discriminates a **guess** (a submitted path, carrying `word` + `result`) from a **hint** (a cashed token, carrying neither). Found theme words are the projection `result in ('theme','spangram')`; credited hint words are the distinct `hint_word` set. Only state that can't be derived lives as columns — on `players`, above. |
@@ -281,15 +281,30 @@ connecting line**, so the player still works out the order.
 
 Folder mirrors the other games'. Three notes worth carrying:
 
-**The setup picker shows the clue.** A date names nothing — with 884 of them the
-easy mistake is starting a puzzle you've already played and finding out once the
-board is up. So `SetupForm` selects `clue` alongside the date and prints it under
-the input, quoted, in full-strength text (it's a value you act on, not the muted
-helper line above it). Its `<p>` carries a `min-height` and always renders: the
-archive arrives asynchronously, and three `SetupSection`s plus the timer sit
-below it, so a conditionally-mounted line would drop the rest of the form by a
-row the moment the fetch resolved. One line is enough — measured, the longest
-clue in the archive is 38 characters against a 428px box.
+**There is no puzzle picker.** A date names nothing — with 884 of them, the easy
+mistake was starting one you'd already played and only noticing once the board
+was up. That was first patched by printing the clue under the date input, then
+solved properly by removing the choice: `strands.next_puzzle_for_club(seen_by)`
+hands back the earliest puzzle none of the *selected players* has played, in
+**any club**, and `SetupForm` renders the shared
+`common/components/fields/NextPuzzleField` — one read-only line, `date: clue`.
+
+The clue survives as that line's label, which is where it belonged: it is how a
+person recognises a strands puzzle (it is the game's own title, and on screen
+from the first second of play). The slot keeps a fixed height so the three
+`SetupSection`s and the timer below it can't jump when the RPC lands.
+
+A plain `<input type="date">` sits under the line as the **override** — for the
+rare case where you know the date and want that one, including one you've
+played before. It calls `strands.puzzle_for_date`, which filters nothing and
+starts a second game on a puzzle rather than reopening the first.
+
+The rules, the `security definer` reason, the per-player-not-per-club
+exclusion, the override's deliberate asymmetry and the exhausted state are
+written up once in
+[connections.md → The puzzle you get](connections.md#the-puzzle-you-get); the
+two games' functions are twins. `tests/strands/next_puzzle_test.sql` is where
+both are pinned.
 
 **No typed WORDS — but typed LETTERS.** A board repeats letters, so a typed
 *string* doesn't identify a path: `PAPARAZZI` on a board with four `A`s is
@@ -363,13 +378,19 @@ caps, which is `useWordSubmit`'s `line()` convention. strands can't use that hoo
 *output* instead of inventing a second dialect; `too short` and `not a word` are
 word-for-word boggle's.
 
-**New game advances to the next UNPLAYED puzzle** in the current mode, carrying
-the club's knobs (and the mode itself) forward, and the confirm names the date.
-The played set comes from the `club_game_status` view + the shared
-`nextUnplayedPuzzle` rule (`common/lib/game/nextPuzzle`), exactly connections'
-shape — a "New game" that re-dealt a date the club has seen isn't new. Restart
-is for replaying the same board. At the end of the archive it says so as a
+**New game advances to the next UNPLAYED puzzle**, carrying the club's knobs
+(and the mode itself) forward. It omits `puzzleId` and lets `create_game`
+derive it — the same function the setup dialog previews, so the two can't
+disagree. It still ASKS first and the confirm names the date, which needs a
+read; that preview call exists purely for the wording and can go stale
+harmlessly, because the authority is the create. Restart is for replaying the
+same board. When the archive is spent for these players it says so as a
 one-button notice.
+
+(Until 2026-08-13 this was two FE reads plus the pure `nextUnplayedPuzzle`
+rule, whose exclusion was per-club and per-MODE and walked forward from the
+current date — so a puzzle played alone could resurface in a game with friends,
+and the setup dialog and this button could disagree about what "next" meant.)
 
 ### Print to PDF
 
@@ -595,8 +616,15 @@ carries the three strands rows.
 **FE Vitest** (`src/strands/`): `lib/board.test.ts` + `lib/trace.test.ts` (the
 geometry and the reducer), `lib/board.oracle.test.ts` (the ~2500-word NYT parity
 oracle — see [The oracle](#the-oracle)), `lib/history.test.ts` (the snapshot
-filter), `pdf/model.test.ts` (the print model, incl. the shield). The shared
-`nextUnplayedPuzzle` rule is tested in `common/lib/game/nextPuzzle.test.ts`.
+filter), `pdf/model.test.ts` (the print model, incl. the shield).
+
+**pgTAP** also owns the puzzle choice: `next_puzzle_test.sql` pins
+`next_puzzle_for_club` — ascending, per-PLAYER rather than per-club, spanning
+clubs, and the exhausted case raising `no-unplayed-puzzle|`. Its sixth
+assertion is the one that separates per-player from per-club, and was verified
+by planting the club-based rule and watching only that test fail.
 
 **e2e** (`e2e/`): `strands.e2e.ts` (a coop game played through),
-`strands-mobile.e2e.ts` (the phone layout), `strands-print.e2e.ts` (the PDF).
+`strands-mobile.e2e.ts` (the phone layout), `strands-print.e2e.ts` (the PDF),
+`puzzle-pickers.e2e.ts` (the FE↔server seam: starting with no puzzle chosen,
+and the next dialog then offering a different one).

@@ -68,30 +68,18 @@ test.describe('connections replay + new game', () => {
     await ctx.close()
   })
 
-  test('"New game" at the end of the archive shows a notice, not a repeat', async ({ browser }) => {
-    const club = await createSoloClub('cnend')
-    // The NEWEST imported puzzle → nothing dated after it.
-    const game = await createConnectionsGame(club, 'coop', undefined, await connectionsArchiveEdge('last'))
-    const ctx = await browser.newContext()
-    await signIn(ctx, club.members[0].session)
-    const page = await ctx.newPage()
-    await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
-
-    await page.getByRole('button', { name: 'Game menu' }).click()
-    await page.getByRole('menuitem', { name: 'New game' }).click()
-    // Mid-play, New game CONFIRMS first (it shelves the game in progress —
-    // see NEW_GAME_CONFIRM); say yes and it proceeds.
-    await page.getByRole('button', { name: 'Start new game' }).click()
-
-    // The notice, and NO navigation away from this game.
-    await expect(page.getByText('No more puzzles')).toBeVisible({ timeout: 10000 })
-    // One button, not a question: "Got it" with no Cancel beside it.
-    await expect(page.getByRole('button', { name: 'Got it' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Cancel' })).toHaveCount(0)
-    await page.getByRole('button', { name: 'Got it' }).click()
-    expect(page.url()).toContain(game.id)
-
-    await ctx.close()
-  })
+  // The end-of-archive NOTICE is no longer reachable from e2e, and that is a
+  // consequence of the 2026-08-13 picker rework rather than a gap. "Nothing
+  // left" used to mean "no puzzle dated after this one", which a fixture could
+  // arrange by starting the newest puzzle; it now means every one of the 2,329
+  // imported puzzles has been played by someone at the table. Manufacturing
+  // that would mean either 2,329 games or deleting the archive out from under
+  // every other spec sharing this database.
+  //
+  // So the server half is pgTAP's — tests/strands/next_puzzle_test.sql drives
+  // the archive down to one puzzle inside a rolled-back transaction and pins
+  // `no-unplayed-puzzle|` — and the FE half (a one-button `<ConfirmDialog>`,
+  // `cancelLabel: null`, no navigation) is the same three lines in both games'
+  // PlayAreas. What IS still reachable, and covered above, is the thing that
+  // actually happens every time: New game lands on a DIFFERENT puzzle.
 })

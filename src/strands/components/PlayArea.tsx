@@ -12,7 +12,6 @@ import { useFlash } from '../../common/hooks/ui/useFlash'
 import { outOfRacePill, stickyPill, terminalPill } from '../../common/lib/game/localPills'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { memberById } from '../../common/lib/game/peers'
-import { nextUnplayedPuzzle } from '../../common/lib/game/nextPuzzle'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { NEW_GAME_CONFIRM, useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
@@ -451,16 +450,22 @@ export function PlayArea(ctx: GamePageCtx) {
   const [startNewGame, startingNewGame] = useSingleFlight(async () => {
     if (!game) return
 
-    // Two reads feed the pure rule (`nextUnplayedPuzzle`, unit-tested in
-    // common — the connections shape): the dated archive, and which dates this
-    // club already has a game for IN THIS MODE — a coop game doesn't use up
-    // the compete side, and skipping played dates is the point: a "New game"
-    // that re-dealt a board the club has seen isn't new.
-    const [{ data: puzzleRows, error: lookupError }, { data: statusRows }] = await Promise.all([
-      db.from('puzzles').select('id, puzzle_date').order('puzzle_date', { ascending: true }),
-      db.from('club_game_status').select('puzzle_date')
-        .eq('club_handle', clubHandle).eq('mode', game.mode),
-    ])
+    // WHICH puzzle is the server's call (`strands.next_puzzle_for_club`,
+    // reached below by omitting `puzzleId`) — the same rule, in the same
+    // place, that the setup dialog previews. This used to be two FE reads
+    // plus a pure `nextUnplayedPuzzle` helper whose rule was per-club, per
+    // MODE, and relative to the current puzzle; the server's is per-PLAYER
+    // and spans clubs, so a puzzle you played alone can't resurface in a
+    // game with friends.
+    //
+    // We still ASK first, and the ask names the puzzle — "start a new game"
+    // is vague when the whole point is which one you're about to get. That
+    // needs a read, so this preview call exists purely for the wording. It
+    // can go stale in the same harmless way the setup dialog's line can (a
+    // peer starting that very puzzle in the gap), and for the same reason
+    // nothing downstream depends on it: the authority is the create below.
+    const { data: preview, error: lookupError } = await db
+      .rpc('next_puzzle_for_club', { seen_by: players.map((p) => p.user_id) })
     if (lookupError) {
       // New game is a FAULT SURFACE (serverError.ts → faultMessage): the
       // archive lookup failing is an outage or a bug, never gameplay — and a
@@ -469,20 +474,13 @@ export function PlayArea(ctx: GamePageCtx) {
       showLocalFeedback(faultMessage(lookupError, 'new game'))
       return
     }
-    const played = new Set(
-      ((statusRows ?? []) as { puzzle_date: string }[]).map((r) => r.puzzle_date),
-    )
-    const next = nextUnplayedPuzzle(
-      (puzzleRows ?? []) as { id: string; puzzle_date: string }[],
-      played,
-      game.puzzle_date ?? null,
-    )
+    const next = preview?.[0] ?? null
     if (!next) {
       await confirmAction({
         title: 'No unplayed puzzle',
         message:
-          "You've played every puzzle after this one that we have. Run `gmake g-strands-fetch` "
-          + 'to pick up new ones, or start an older date from the club page.',
+          'Everyone playing has already done every puzzle we have. Run '
+          + '`gmake g-strands-fetch` to pick up new ones.',
         confirmLabel: 'OK',
         cancelLabel: null,
       })
@@ -492,18 +490,24 @@ export function PlayArea(ctx: GamePageCtx) {
     if (
       !(await confirmAction({
         ...NEW_GAME_CONFIRM,
-        // Name the date: "start a new game" is vague when the whole point is
-        // WHICH puzzle you're about to get.
         title: `Play the ${next.puzzle_date} puzzle?`,
       }))
     ) return
 
     // The current MODE rides along — a finished compete race's "New game" is
     // the next race, not a quiet switch to coop.
+    //
+    // `puzzleId` is deliberately ABSENT rather than set to the previewed id:
+    // absence is how create_game is told to choose, so the puzzle we actually
+    // start is decided at create time, after any peer's game has landed.
+    // Carrying THIS game's setup forward with its id would re-start the very
+    // puzzle we just finished.
+    const carried = { ...strandsSetup }
+    delete carried.puzzleId
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,
-        setup: { ...strandsSetup, puzzleId: next.id },
+        setup: carried,
         player_user_ids: players.map((p) => p.user_id),
         mode: game.mode,
       })

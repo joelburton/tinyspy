@@ -170,6 +170,52 @@ Guardian / Upload):
   and `create_game` itself runs `setup := setup - 'board' - 'filename'` as a
   server backstop — the real inline puzzle always rides as the separate `board`
   arg, so it's never wanted in the persisted setup regardless of what the FE sends.
+- **The NYT tab picks a WEEKDAY** (2026-08-13), not a date — a dropdown of
+  Monday…Sunday, each labelled with what it means (`Monday — easiest`,
+  `Saturday — hardest`, `Sunday — big (21×21), medium`). An NYT crossword's day
+  IS its difficulty, so that is the choice a solver actually wants to make, and
+  it's the one thing here that's a standing club preference: `setup.weekday`
+  rides in the saved default while `setup.date` is stripped from it.
+
+  `crosswords.next_nyt_date_for_club(seen_by, dow)` turns it into a date: the
+  **most recent** puzzle of that weekday none of the selected players has
+  played, in any club. Two deliberate differences from connections' and
+  strands' `next_puzzle_for_club`:
+
+  - **Most recent, not earliest.** Their archives are finite and recent, so
+    walking forward through a queue works. NYT's is effectively infinite — a
+    club starting at the 2015 floor and playing weekly would reach the present
+    in ~575 games and never once play a puzzle anyone was talking about.
+  - **It generates rather than scans.** NYT dailies are fetched on demand and
+    never stored (`crosswords.puzzles` is the curated CLI library only), so
+    there is no archive to scan: candidates are computed every seventh day
+    back from the most recent occurrence, and only `crosswords.games` is
+    consulted. The exclusion is per-player across clubs, matching the other
+    two, which is why it's `security definer`.
+
+  Because the fetch needs a concrete date, **the derivation lives in the edge
+  function**, not in `create_game` — the opposite of the other two games. The
+  edge fn resolves the weekday, fetches, and passes the RESOLVED date back into
+  `setup` so `crosswords.games.puzzle_date` records what was actually played.
+  (Until 2026-08-13 it passed `{ timer }` alone, so `date` never reached the
+  row and every NYT game looked unplayed to the walk; `next_nyt_date_test.sql`
+  pins the stamp for that reason.)
+
+  `crosswords.games.puzzle_date` (forward migration `20260813000002`,
+  backfilled from `meta ->> 'id'`) is what all of this excludes on. It exists
+  because NYT and Guardian games ride **inline** — no `crosswords.puzzles` row,
+  so `puzzle_id` is null for exactly the games that matter — and `meta.id` is a
+  field with two other meanings (a library puzzle's source id; the literal
+  `'nyt'` when a response carries no publication date). It is deliberately NOT
+  in the table's column grant: nothing client-side reads it.
+
+  Alongside the dropdown sits the same plain **date override** connections and
+  strands carry: it filters nothing, so an already-played date starts a second
+  game, and picking a weekday clears it rather than leaving a dead control. Its
+  floor is 2015 — NYT's archive runs to 1993, but the series has to stop
+  somewhere and nobody here is working back that far.
+
+  Running out (~600 games of one weekday) raises `no-unplayed-weekday|`.
 - **`crosswords-import-nyt`** edge function — fetches an NYT daily by date
   (list-by-date → first `Normal` puzzle → v6 JSON; browser User-Agent +
   `NYT_COOKIE_JAR` cookie secret **mandatory**), converts via the pure

@@ -27,8 +27,18 @@ export type CrosswordsSetup = {
   source: 'library' | 'nyt' | 'guardian' | 'upload'
   /** Library path. */
   puzzle_id?: string
-  /** NYT path (YYYY-MM-DD). */
+  /** NYT path: the OVERRIDE — a specific date (YYYY-MM-DD). Wins over
+   *  `weekday` when set, and filters nothing: a date this club has already
+   *  played starts a second game on it rather than being refused. Stripped
+   *  from the club's saved default (an instance, not a preference). */
   date?: string
+  /** NYT path: which weekday to play, 0..6 with Sunday = 0 (Postgres `dow`,
+   *  JS `getUTCDay`). The normal path — an NYT crossword's day IS its
+   *  difficulty, so this is a standing club choice and DOES persist as the
+   *  saved default. The server turns it into a concrete date at Start
+   *  (`crosswords.next_nyt_date_for_club`): the most recent puzzle of that
+   *  weekday none of the players has done. */
+  weekday?: number
   /** Guardian path: the series slug (see GUARDIAN_SERIES). */
   series?: string
   /** Upload path: the parsed board. FE-only — `startGameInClub` passes it as
@@ -45,6 +55,10 @@ export const CROSSWORDS_DEFAULTS: CrosswordsSetup = {
   timer: { kind: 'none' },
   source: 'library',
   puzzle_id: '',
+  // Monday — the easiest NYT day, and the natural place for a club that has
+  // never picked to start. Overwritten by the club's saved default the moment
+  // they have one.
+  weekday: 1,
 }
 
 /** The Guardian series the setup form offers, slug → display label + a one-line

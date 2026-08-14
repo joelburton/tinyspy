@@ -56,6 +56,41 @@ function todayStr(): string {
 }
 
 /**
+ * How far back the NYT date override reaches. NYT's own archive runs to 1993,
+ * but a box you can page back thirty years in is a worse tool than a bounded
+ * one, and the weekday walk stops here too. Joel's number.
+ */
+const NYT_EARLIEST = '2015-01-01'
+
+/**
+ * The weekday picker's options — 0..6 with Sunday = 0, matching Postgres
+ * `dow` and JS `getUTCDay`, because the value goes straight to
+ * `crosswords.next_nyt_date_for_club(seen_by, dow)`.
+ *
+ * The difficulty notes are the whole reason this control exists: an NYT
+ * crossword's DAY is its difficulty — Monday easiest, ramping to Saturday,
+ * with Sunday a 21×21 that plays around Thursday's level rather than being
+ * the hardest. A solver picking "Tuesday" is picking a difficulty, and saying
+ * so out loud saves them knowing the convention beforehand.
+ */
+const WEEKDAYS: Array<{ dow: number; name: string; note: string }> = [
+  { dow: 1, name: 'Monday', note: 'easiest' },
+  { dow: 2, name: 'Tuesday', note: 'easy' },
+  { dow: 3, name: 'Wednesday', note: 'medium' },
+  { dow: 4, name: 'Thursday', note: 'medium, usually a twist' },
+  { dow: 5, name: 'Friday', note: 'hard' },
+  { dow: 6, name: 'Saturday', note: 'hardest' },
+  { dow: 0, name: 'Sunday', note: 'big (21×21), medium' },
+]
+
+/** Monday when a club has never chosen — the easiest day to start on. */
+const DEFAULT_WEEKDAY = 1
+
+function weekdayName(dow: number): string {
+  return WEEKDAYS.find((w) => w.dow === dow)?.name ?? 'puzzle'
+}
+
+/**
  * The crosswords setup form: pick a puzzle from the curated library, an NYT
  * daily by date, today's Guardian by series, or an uploaded file. The choice
  * is written into `setup` (`source` + `puzzle_id` / `date` / `series` /
@@ -66,7 +101,7 @@ function todayStr(): string {
  * this club has already solved / started / lost that puzzle, which is what
  * makes "find the one we haven't done" a glance rather than a memory test.
  */
-export function SetupForm({ clubHandle, value, onChange }: SetupBodyProps) {
+export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyProps) {
   const s = value as CrosswordsSetup
   const [puzzles, setPuzzles] = useState<LibraryPuzzle[] | null>(null)
   const [query, setQuery] = useState('')
@@ -120,7 +155,38 @@ export function SetupForm({ clubHandle, value, onChange }: SetupBodyProps) {
     }
   }, [clubHandle])
 
-  const source = s.source ?? 'library'
+  // ─── The NYT tab's preview ───────────────────────────────
+  // Which date the weekday resolves to, asked of the SAME function the edge
+  // function will use at Start (`next_nyt_date_for_club`). Stamped with the
+  // request it answers — the player set and the weekday — so "we're waiting"
+  // is DERIVED from a stale stamp rather than set synchronously in an effect.
+  //
+  // Unlike connections and strands there is no title to preview: an NYT daily
+  // isn't a row anywhere until it has been fetched, so the date is all we can
+  // honestly show. `null` means that weekday is used up.
+  const weekday = s.weekday ?? DEFAULT_WEEKDAY
+  const seenBy = players.map((p) => p.user_id).join(',')
+  const [nextDate, setNextDate] = useState<{ key: string; date: string | null } | null>(null)
+  const nextKey = `${weekday}:${seenBy}`
+  useEffect(() => {
+    let active = true
+    void (async () => {
+      const { data } = await db.rpc('next_nyt_date_for_club', {
+        seen_by: seenBy ? seenBy.split(',') : [],
+        dow: weekday,
+      })
+      if (active) setNextDate({ key: nextKey, date: (data as string | null) ?? null })
+    })()
+    return () => {
+      active = false
+    }
+  }, [nextKey, seenBy, weekday])
+
+  const resolved = nextDate?.key === nextKey ? nextDate.date : undefined
+
+  const today = todayStr()
+
+    const source = s.source ?? 'library'
   // The Guardian series currently chosen (falls back to the first) — drives
   // both the <select> value and the character hint below it.
   const selectedGuardian =
@@ -154,13 +220,11 @@ export function SetupForm({ clubHandle, value, onChange }: SetupBodyProps) {
           className={cls(styles.segBtn, source === 'nyt' && styles.segOn)}
           aria-pressed={source === 'nyt'}
           onClick={() =>
-            onChange({
-              ...s,
-              source: 'nyt',
-              date: s.date || todayStr(),
-              board: undefined,
-              filename: undefined,
-            })
+            // No `date` seeded. It used to default to today, back when the NYT
+            // path REQUIRED a date; now the date box is the override and the
+            // weekday is the normal path, so pre-filling it would leave every
+            // club permanently overriding to today without meaning to.
+            onChange({ ...s, source: 'nyt', board: undefined, filename: undefined })
           }
         >
           NYT
@@ -248,13 +312,57 @@ export function SetupForm({ clubHandle, value, onChange }: SetupBodyProps) {
         </div>
 
         <div className={cls(styles.tabBody, source !== 'nyt' && styles.tabHidden)}>
-          <p className="muted">Import a New York Times daily crossword by date.</p>
+          {/* The date genuinely matters here, unlike connections and strands
+              (whose archives are queues): an NYT crossword's DAY is its
+              difficulty. So the choice is a weekday, and the server turns it
+              into the most recent puzzle of that day nobody playing has done. */}
+          <p className="muted">
+            Import a New York Times daily. Pick a weekday — that&rsquo;s the difficulty —
+            and you&rsquo;ll get the most recent one nobody playing has done.
+          </p>
+          <select
+            className={styles.search}
+            aria-label="Weekday"
+            value={weekday}
+            onChange={(e) =>
+              // Choosing a weekday clears any date override: the two answer the
+              // same question, and leaving a date set would make this control
+              // silently inert.
+              onChange({ ...s, weekday: Number(e.target.value), date: undefined })
+            }
+          >
+            {WEEKDAYS.map((w) => (
+              <option key={w.dow} value={w.dow}>
+                {w.name} — {w.note}
+              </option>
+            ))}
+          </select>
+
+          {/* One line: the date Start will fetch. No title — an NYT daily
+              isn't stored anywhere until it's been fetched, so unlike the
+              other two games' previews there is nothing to name it by. Fixed
+              height so the timer below can't jump when the RPC lands. */}
+          <p className={styles.nextDate}>
+            {s.date
+              ? `Playing ${s.date}`
+              : resolved === undefined
+                ? '\u00a0'
+                : resolved === null
+                  ? `You've played every ${weekdayName(weekday)} back to ${NYT_EARLIEST}.`
+                  : `Next ${weekdayName(weekday)}: ${resolved}`}
+          </p>
+
+          {/* The override, same shape connections and strands carry: a plain
+              date box that filters nothing. Setting it beats the weekday;
+              clearing it hands the choice back. */}
           <input
             className={styles.search}
             type="date"
-            max={todayStr()}
+            aria-label="Puzzle date"
+            min={NYT_EARLIEST}
+            max={today}
             value={s.date ?? ''}
-            onChange={(e) => onChange({ ...s, date: e.target.value })}
+            onChange={(e) => onChange({ ...s, date: e.target.value || undefined })}
           />
         </div>
 

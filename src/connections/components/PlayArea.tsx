@@ -26,7 +26,6 @@ import { db } from '../db'
 import type { CategoryRank } from '../lib/board'
 import { useGame } from '../hooks/useGame'
 import type { ConnectionsSetup } from '../lib/setup'
-import { nextUnplayedPuzzle } from '../../common/lib/game/nextPuzzle'
 import { turnSnapshot } from '../lib/history'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { BoardCol } from './BoardCol'
@@ -280,26 +279,22 @@ export function PlayArea({
     })
 
   // ─── New game — the NEXT unplayed puzzle ───────────────
-  // connections is the one game whose boards are a dated ARCHIVE rather than
-  // something generated per game, so "New game" can't just re-roll: it walks
-  // forward to the next daily puzzle this club hasn't played in this mode
-  // (`nextUnplayedPuzzle`, unit-tested). Two reads feed it — the dated puzzle
-  // list, and the club's per-date game rows via the `club_game_status` view
-  // (the same view the setup form's calendar uses).
+  // connections's boards are a dated ARCHIVE rather than something generated
+  // per game, so "New game" can't just re-roll — it has to move on to a
+  // puzzle nobody here has done. That rule now lives in ONE place, the server
+  // (`connections.next_puzzle_for_club`, reached by simply omitting
+  // `puzzleId`), which is the same thing the setup dialog previews. It used
+  // to be two FE reads plus a pure `nextUnplayedPuzzle` helper, and the two
+  // paths could disagree: that rule was per-club and per-MODE and walked
+  // forward from the current puzzle, so a coop game didn't use up the compete
+  // side and another club's play didn't count at all. The server's is
+  // per-PLAYER and spans clubs, which is what stops a puzzle you played
+  // alone turning up in a game with friends.
   //
-  // When the archive runs out there's nothing sensible to start, so we say so
-  // in a NOTICE (a one-button ConfirmDialog) rather than failing quietly or
-  // starting a repeat.
+  // Running out is now a server raise (`no-unplayed-puzzle|`) rather than a
+  // pre-flight check, so it can't race a peer starting the last puzzle
+  // between our two reads and the create.
   const gameMode = game?.mode
-  // The current game's puzzle date, read at CLICK time so `handleNewGame`'s
-  // identity stays stable across the realtime refetches that re-create `game`
-  // (an unstable handler would rebuild the menu every render — the setState
-  // loop the actionsRef pattern exists to avoid). Synced in a passive effect;
-  // writing a ref during render is forbidden here (react-hooks/refs).
-  const puzzleDateRef = useRef<string | null>(null)
-  useEffect(() => {
-    puzzleDateRef.current = game?.puzzleDate ?? null
-  })
   const createNewGame = useCallback(async () => {
     // Starting a new game mid-play SHELVES this one (create_game clears the
     // club's current-view flag; it stays resumable from the club page). Confirm
@@ -307,32 +302,39 @@ export function PlayArea({
     // copy says shelved, not ended. At terminal there's nothing to interrupt.
     if (!isTerminal && !(await confirmAction(NEW_GAME_CONFIRM))) return
     if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
-    const [{ data: puzzleRows }, { data: statusRows }] = await Promise.all([
-      db.from('puzzles').select('id, puzzle_date').not('puzzle_date', 'is', null).order('puzzle_date'),
-      db.from('club_game_status').select('puzzle_date').eq('club_handle', clubHandle).eq('mode', gameMode),
-    ])
-    const played = new Set(
-      ((statusRows ?? []) as { puzzle_date: string }[]).map((r) => r.puzzle_date),
-    )
-    const next = nextUnplayedPuzzle(
-      ((puzzleRows ?? []) as { id: string; puzzle_date: string }[]),
-      played,
-      puzzleDateRef.current,
-    )
-    if (!next) {
+
+    // Ask what we'd get, purely so running out can be a NOTICE rather than an
+    // error pill: "there is no next puzzle" is a fact about the archive, not a
+    // failure of this click. Same shape strands uses. The answer is advisory —
+    // the create below derives it again, so a peer taking that puzzle in the
+    // gap costs nothing.
+    const { data: preview, error: lookupError } = await db
+      .rpc('next_puzzle_for_club', { seen_by: players.map((p) => p.user_id) })
+    if (lookupError) {
+      showLocalFeedback(faultMessage(lookupError, 'new game'))
+      return
+    }
+    if (!preview?.[0]) {
       await confirmAction({
         title: 'No more puzzles',
         message:
-          "You've played every puzzle after this one that's been imported. Import more, or pick an earlier date from the club page.",
+          'Everyone playing has already done every puzzle we have. Import more with '
+          + '`gmake g-connections-puzzles`, or pick a date in the setup dialog to replay one.',
         confirmLabel: 'Got it',
         cancelLabel: null, // a notice, not a question
       })
       return
     }
+
+    // `puzzleId` is deliberately ABSENT: that is how create_game is told to
+    // choose. Carrying THIS game's setup forward would otherwise re-start the
+    // very puzzle we just finished.
+    const carried = { ...(setup as unknown as ConnectionsSetup) }
+    delete carried.puzzleId
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,
-        setup: { ...(setup as unknown as ConnectionsSetup), puzzleId: next.id },
+        setup: carried,
         player_user_ids: players.map((p) => p.user_id),
         mode: gameMode,
       })

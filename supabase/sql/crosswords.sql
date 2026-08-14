@@ -225,6 +225,69 @@ grant select on crosswords.games_state to authenticated;
 -- Mode is deliberately NOT a parameter: "have we done this puzzle" is a
 -- question about the club, not about coop vs compete, so a puzzle the club
 -- solved cooperatively shows solved in the compete dialog too.
+-- ============================================================
+-- crosswords.next_nyt_date_for_club — which NYT daily you get
+-- ============================================================
+-- The NYT tab picks by WEEKDAY, not by date: an NYT crossword's day IS its
+-- difficulty (Monday easiest, Saturday hardest, Sunday bigger rather than
+-- harder), so "give us a Tuesday" is the choice a solver actually wants to
+-- make. This answers it — the most recent puzzle of that weekday that none of
+-- the players being seated has already played.
+--
+-- WHY IT GENERATES INSTEAD OF SCANNING. connections and strands hold their
+-- archives in a table, so their `next_puzzle_for_club` scans one. NYT is
+-- fetched on demand and never stored (`crosswords.puzzles` is the curated CLI
+-- library only, `source in ('library')`), so there is no archive to scan:
+-- the candidate dates are COMPUTED, every seventh day back from the most
+-- recent occurrence of `dow`, and only the games table is consulted.
+--
+-- MOST RECENT FIRST, unlike its two siblings, and that difference is
+-- deliberate. Their archives are finite and recent, so "earliest unplayed"
+-- walks a club forward through a queue. NYT's is effectively infinite — a
+-- club starting at a 2015 floor and playing weekly would reach the present in
+-- about 575 games, and would never once play a puzzle anyone was talking
+-- about. Recency is most of the point of a daily crossword.
+--
+-- The 2015 floor is the same bound the tab's date input carries: NYT's own
+-- archive runs to 1993, but nobody here is going to work back that far, and
+-- the series has to stop somewhere.
+--
+-- Per-PLAYER and across clubs (`common.game_players`), matching the other two
+-- games — a crossword you solved alone is one you now know the answers to,
+-- wherever you solved it. Hence SECURITY DEFINER: a club-mate's solo games
+-- are invisible to the caller under RLS and still have to count.
+--
+-- Returns NULL when that weekday is used up — the edge function turns that
+-- into `no-unplayed-weekday|`. Reachable only by a club that has played every
+-- one of ~600 Mondays, but it is a real branch and it has copy.
+create or replace function crosswords.next_nyt_date_for_club(seen_by uuid[], dow int)
+returns date
+language sql
+stable
+security definer
+set search_path = crosswords, common, public, extensions
+as $$
+  select d::date
+    from generate_series(
+           -- The most recent `dow` on or before today. The modulo keeps it at
+           -- today when today already IS that weekday.
+           current_date - ((extract(dow from current_date)::int - dow + 7) % 7),
+           date '2015-01-01',
+           interval '-7 days'
+         ) d
+   where not exists (
+           select 1
+             from crosswords.games g
+             join common.game_players gp on gp.game_id = g.id
+            where g.puzzle_date = d::date
+              and gp.user_id = any(seen_by)
+         )
+   limit 1;
+$$;
+
+revoke execute on function crosswords.next_nyt_date_for_club(uuid[], int) from public;
+grant execute on function crosswords.next_nyt_date_for_club(uuid[], int) to authenticated;
+
 create or replace function crosswords.library_for_club(target_club text)
 returns table (
   id     uuid,
@@ -453,11 +516,16 @@ begin
     end if;
   end if;
 
-  -- Saved-default arg: strip `puzzle_id` (like codenamesduet strips
-  -- `first_clue_giver_user_id`). Which puzzle you play is a per-game choice, not a
-  -- club preference — the setup dialog picks a puzzle each time; persisting one
-  -- as the club default would silently re-pick a specific (possibly already
-  -- played) puzzle.
+  -- Saved-default arg. Two things are INSTANCES, not preferences, and both are
+  -- stripped: `puzzle_id` (which library puzzle) and `date` (which NYT daily).
+  -- Persisting either would silently re-pick one specific, probably
+  -- already-played puzzle every time the dialog opened — `date` did exactly
+  -- that until 2026-08-13.
+  --
+  -- `weekday` deliberately RIDES. It is the one genuine preference here: an
+  -- NYT crossword's day is its difficulty, so "we're a Wednesday club" is a
+  -- standing choice, and next_nyt_date_for_club turns it into a fresh date
+  -- each time.
   -- Game title = the PUZZLE's own title (from its meta), like crossplay names a
   -- game after the loaded puzzle — e.g. "NYT Sat 1/1/22: <theme>" or a library
   -- puzzle's embedded title — instead of a generic "New crossword". Falls back to
@@ -465,11 +533,24 @@ begin
   new_id := common.create_game(
     target_club, 'crosswords_' || mode, player_user_ids,
     coalesce(nullif(btrim(v_meta ->> 'title'), ''), 'Crossword'), setup,
-    setup - 'puzzle_id'
+    setup - 'puzzle_id' - 'date'
   );
 
-  insert into crosswords.games (id, club_handle, mode, puzzle_id, meta, solution)
-  values (new_id, target_club, mode, v_puzzle_id, v_meta, v_solution);
+  -- `puzzle_date` is the NYT day this game came from, and ONLY that: it is
+  -- what the setup dialog's calendar colours by (club_nyt_status below), and
+  -- the NYT tab is the only source that picks by date. `setup.date` is the
+  -- field that tab writes; a library / upload / Guardian start leaves it
+  -- absent, so this lands NULL and the calendar never sees the row. The cast
+  -- is guarded rather than trusted — `setup` is caller-supplied jsonb.
+  insert into crosswords.games (id, club_handle, mode, puzzle_id, puzzle_date, meta, solution)
+  values (
+    new_id, target_club, mode, v_puzzle_id,
+    case
+      when setup ->> 'source' = 'nyt' and setup ->> 'date' ~ '^\d{4}-\d{2}-\d{2}$'
+      then (setup ->> 'date')::date
+    end,
+    v_meta, v_solution
+  );
 
   -- Pre-insert the fillable, non-given cells: one shared grid (owner null)
   -- for coop, one grid per player for compete. `with ordinality` gives

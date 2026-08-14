@@ -55,13 +55,13 @@ The schema and FE use a small, deliberate set of terms; the in-codebase glossary
 
 ## Scope (current state)
 
-Ported from an existing personal project (`~/src/connections`). Plays the real NYT Connections archive — every puzzle from 2023-06-12 onward, imported from [Eyefyre/NYT-Connections-Answers](https://github.com/Eyefyre/NYT-Connections-Answers) via `gmake g-connections-puzzles`. The setup dialog has a date picker; create_game copies the chosen puzzle into a fresh `connections.games` row.
+Ported from an existing personal project (`~/src/connections`). Plays the real NYT Connections archive — every puzzle from 2023-06-12 onward, imported from [Eyefyre/NYT-Connections-Answers](https://github.com/Eyefyre/NYT-Connections-Answers) via `gmake g-connections-puzzles`. The setup dialog has **no picker at all**: `create_game` derives which puzzle to play and copies it into a fresh `connections.games` row.
 
 In scope today:
 - Both **coop** and **compete** modes (sibling-manifest pair — see [The sibling-manifest pattern](#the-sibling-manifest-pattern))
 - Real puzzle archive (~1000+ puzzles, daily-updated upstream)
-- Calendar picker in the setup dialog, defaulting to the club's last-played puzzle (stepping one day forward if that one's already finished; most-recent import for a club that's never played). Mode-scoped: the same date can hold a separate coop game and a separate compete game for the same club
-- Same-date-same-mode opens the existing club game (no replay path — picking a date the club already has in this mode reopens that game rather than creating a new one)
+- **No puzzle choice** (2026-08-13). The setup dialog shows one read-only line naming what Start will play — the earliest puzzle none of the *selected players* has played, in **any club**, from `connections.next_puzzle_for_club`. See [The puzzle you get](#the-puzzle-you-get)
+- Same rule drives **New game** in the PlayArea, because it is literally the same function
 - 4-mistake-lose, oneAway feedback, dup-guess-doesn't-hurt
 - Reveal-on-loss (the FE reads `board.categories` directly — no separate RPC, see "FE-knows" below). In compete, individual-elimination triggers a personal reveal while the game keeps going for survivors
 - Compete OpponentStrip showing per-player mistake counts. **During play** that's the entire "what opponents know about you" surface — guesses + matched-categories stay private. **At terminal** (2026-08-02) everyone's guesses open up, and the turn log's "whose guesses?" picker is how you compare lines afterwards — see [Turn log](#turn-log--whose-guesses)
@@ -223,13 +223,65 @@ The **Restart** button in the terminal action row + the "Restart" menu item, bot
 
 The load-bearing detail: **deleting the guess log is also what un-matches the categories.** A matched category IS a `result='correct'` guess row — there's no separate "solved" column — so clearing the log rebuilds the board by construction. Player rows go back to `mistake_count = 0` / `matched_count = 0`; turn-order coop rewinds the pointer to the player seated first; the common half (un-terminal, empty status, per-player results + concede cleared, clock zeroed) is `common.reset_game`. pgTAP: `replay_test.sql`.
 
-### New game — the next unplayed puzzle
+### The puzzle you get
 
-connections is the only game whose boards are a **dated archive** rather than something generated per game, so its **New game** can't just re-roll a board the way every other game's does. It walks FORWARD: the earliest puzzle after this game's `puzzle_date` that this club has no game for **in this mode**. Scoping matters — a coop game doesn't use up the compete side, and another club's play doesn't use up ours (clubs are independent groups of friends).
+connections's boards are a **dated archive** rather than something generated per
+game — but the date carries no meaning the way a crossword's does (a Monday NYT
+crossword and a Saturday one are different animals; connections #900 and #901
+are not). The archive is a **queue**. So there is no picker, and one server
+function answers the only question anyone was asking:
 
-The rule is the pure, unit-tested `lib/nextPuzzle.ts → nextUnplayedPuzzle`; PlayArea supplies the two reads (the dated `puzzles` list, and the club's per-date rows from the `club_game_status` view — the same view the setup form's calendar uses). A game built from a non-NYT puzzle has no `puzzle_date` and so no place in the archive; it falls back to the earliest unplayed puzzle of all.
+```sql
+connections.next_puzzle_for_club(seen_by uuid[])
+```
 
-When nothing is left, we say so in a **notice** — a one-button `<ConfirmDialog>` (`cancelLabel: null`) — rather than failing quietly or handing the group a board they've already played.
+the earliest `puzzle_date` with no game played by any of `seen_by`, ascending.
+
+**`seen_by` is the players being seated, not the club.** A puzzle is out if any
+of them has played it in *any* club. The story: Joel plays #100 alone, then
+opens a Joel+Moth game — offering #100 there is no fun for him and wrecks the
+race. Club membership would be the cruder proxy; using `common.game_players`
+means a puzzle four *other* people played in a big club stays available to the
+two of you who weren't in it. `tests/strands/next_puzzle_test.sql` pins the
+difference (the two games' functions are twins).
+
+It is **`security definer`**, and that is the point rather than an oversight:
+Moth's solo-club games are invisible to Joel under RLS and still have to count.
+What leaks is a puzzle id — never a club, game or name — though a determined
+reader could infer roughly how far a club-mate has got alone. Friends, not
+adversaries.
+
+Matching is on **`puzzle_date`**, not the soft `puzzle_id` FK, which
+`on delete set null` can orphan on a re-import.
+
+**Three callers, one rule.** The setup dialog previews it, `create_game`
+derives it when `setup.puzzleId` is absent, and the PlayArea's **New game**
+omits `puzzleId` for the same reason. The preview is *only* a preview — the
+authority is the derivation at create time, so a peer starting that very puzzle
+while your dialog sits open costs you nothing.
+
+### The override
+
+The setup dialog also carries a plain `<input type="date">`, and it is the
+opposite function in every respect: **`connections.puzzle_for_date(date)`
+filters nothing.** A puzzle every player has finished comes back like any
+other, and starting it creates a SECOND game rather than reopening the first.
+
+That asymmetry is the design, not an oversight. The default exists to stop you
+stumbling into a repeat; an escape hatch that re-applied the same filter
+couldn't express "the one they were talking about at work" or "let's play that
+good one again". `security invoker`, unlike its sibling — it reads only the
+public puzzle archive, never anyone's history.
+
+Leaving the box empty sends no `puzzleId` at all (the key is deleted, not set
+to `''` — an empty string is *present-but-unparseable* and would raise
+`bad-puzzle-id|`). Filling it sends the id, which `create_game` honours. That
+same honouring is what lets every pgTAP and e2e fixture pin a specific puzzle
+to assert against.
+
+When the archive is used up for these players, `create_game` raises
+`no-unplayed-puzzle|` ("Everyone here has played every puzzle" — deliberately
+not "you've played them all", which reads as a lie to whoever hasn't).
 
 ### `connections.end_game(target_game uuid) → void`
 
@@ -431,8 +483,9 @@ src/connections/
                           revealed ranks) — never broadcast or persisted; the revealed set
                           survives hide/show and clears when the play surface unmounts.
     HintList.module.css
-    SetupForm.tsx         Puzzle date picker + timer-mode field. Fetches the puzzle list +
-                          (mode-scoped) club_game_status for the calendar overlay. Defaults
+    SetupForm.tsx         The shared NextPuzzleField (a read-only "next up" line) + the
+                          timer-mode field. No fetching of its own. Formerly: a date picker +
+                          calendar with a mode-scoped club_game_status overlay, defaulting
                           to the club's saved-default puzzle (last one started), stepping
                           one day forward if it's already finished; most-recent import for
                           a never-played club.
@@ -456,9 +509,12 @@ src/connections/
     board.ts              Wire types for the `board` jsonb (Category, Board, CategoryRank).
     evaluate.ts           Pure rules engine: 4-of-4 → correct, 3-of-4 → oneAway.
     evaluate.test.ts      Unit tests for the boundary cases.
-    setup.ts              ConnectionsSetup type (CoopTurnSetup & { puzzleId, timer }) +
-                          DEFAULT_CONNECTIONS_SETUP (empty puzzleId, timer 'none',
-                          coop_style 'free-for-all').
+    setup.ts              ConnectionsSetup type (CoopTurnSetup & { puzzleId?, timer }) +
+                          DEFAULT_CONNECTIONS_SETUP (timer 'none', coop_style
+                          'free-for-all'). puzzleId is OPTIONAL and absent from the
+                          defaults — not '' — because the server reads an absent
+                          puzzleId as "you choose", while '' is present-but-unparseable
+                          and fails the uuid cast.
     rankColors.ts         RANK_TOKEN: rank 0..3 → `--connections-rank-N` CSS-variable lookup.
                           Standalone file so components can import it without tripping Vite
                           Fast Refresh's "components-only file" rule. Consumed by Board
@@ -467,15 +523,10 @@ src/connections/
                           reset). Purely view-local — no broadcast, no server write; losing
                           the order on pause is fine.
     localOrder.test.ts    Unit tests for the shuffle/reset helpers.
-    defaultPuzzle.ts      Pure resolution of the setup dialog's DEFAULT puzzle pick (the club's
-                          saved default → step one day forward if that game's finished → most-
-                          recent import for a never-played club), extracted from SetupForm so
-                          the fiddly rules are unit-testable without the DB-fetching component.
-    defaultPuzzle.test.ts Unit tests for those default-pick rules.
-    nextPuzzle.ts         nextUnplayedPuzzle — the New-game walk-forward rule: the earliest
-                          puzzle after this game's puzzle_date that this club has no game for
-                          in this mode (see "New game" above).
-    nextPuzzle.test.ts    Unit tests for the walk-forward + fallback cases.
+                          (defaultPuzzle.ts and common's nextPuzzle.ts are GONE — the setup
+                          dialog's default-pick rules and the New-game walk-forward rule were
+                          two FE implementations of "which puzzle next", and both are now the
+                          one server function. See "The puzzle you get".)
     history.ts            The turn-history replay (pure + unit-tested). Given the guess log + the
                           static board + a turn's **position** in the log, reconstruct the board
                           *as it was when that turn was submitted*: the bands matched by correct
@@ -490,12 +541,17 @@ src/connections/
     history.test.ts       Unit tests for the snapshot boundary + outcome tinting.
 ```
 
-The date picker itself is **not** connections-specific: the month-grid calendar lives
-in `common/components/fields/Calendar.tsx` (with its `buildMonthGrid` helper in
-`common/lib/util/monthGrid.ts`) so other date-indexed puzzle games can reuse it.
-connections's `SetupForm` maps its `play_state` vocabulary into the calendar's
-gametype-agnostic `OutcomeBucket` (won / lost / active) and passes the puzzle-date set
-+ per-date club outcomes down.
+**The calendar is gone entirely.** The month-grid `Calendar.tsx` and its
+`buildMonthGrid` helper were written here first, then briefly inherited by
+crosswords' NYT tab, and are now deleted: connections and strands have no
+picker at all, and crosswords picks a *weekday* rather than a date off a grid.
+`--color-outcome-active-bg` lost its last reader with it and is recorded in
+`cssTokens.test.ts`'s completeness set rather than deleted, since its
+`-border` companion is still live.
+
+What connections shows instead is `common/components/fields/NextPuzzleField.tsx`,
+shared with strands: the read-only "next up" line, the date override, and a
+fixed-height slot so the sections below can't jump when the RPC lands.
 
 ### Realtime: two channels
 
@@ -559,7 +615,7 @@ Standard — connections's `PlayArea` + `setupForm.Component` ship as their own 
 | `tests/connections/concede_test.sql` | The elimination-game concede: flips the shared conceded flag then re-runs `_maybe_finish_compete` (a conceder counts as not-alive); a concede keeps the game going while an opponent is still alive; both conceding ends it (nobody alive, nobody solved → `lost_compete`); coop is rejected. |
 | `tests/connections/replay_test.sql` | `replay_board` resets the working state on the SAME game row (the frozen board — categories AND tileOrder — stays; deleting the guess log is also what un-matches the categories); both modes reset ALL players; any game player, mid-game or finished; a non-player is rejected. |
 | `tests/connections/turn_order_test.sql` | Opt-in turn-by-turn coop: create_game seats the pointer on the chosen first player, an out-of-turn guess is rejected, and the turn advances on a fresh guess (correct or wrong — both consume the budget) but NOT on the duplicate-tile-set no-op. |
-| `tests/connections/club_game_status_test.sql` | The `club_game_status` view behind the setup form's calendar: the five-column shape (`game_id, club_handle, play_state, is_terminal, puzzle_date`) + RLS (a member sees their club's rows; a non-member sees none). |
+| `tests/connections/club_game_status_test.sql` | The `club_game_status` view: the five-column shape (`game_id, club_handle, play_state, is_terminal, puzzle_date`) + RLS (a member sees their club's rows; a non-member sees none). **Nothing in the FE reads it since the picker went** — `next_puzzle_for_club` answers "which puzzle next" server-side now — but it is kept (and kept tested) as the club-history read any future surface would want, and crosswords' `club_nyt_status` is modelled on it. |
 
 ### Per-game `setup.psql` helpers
 
@@ -575,11 +631,10 @@ Promoted out of inline test fixtures because every connections test needs them a
 | `src/connections/lib/evaluate.test.ts` | The pure-function evaluator: 4-of-4 → correct (with rank + name + tiles), 3-of-4 → oneAway, 0..2 overlap → wrong, fewer-than-4 input → wrong (defensive), order independence, returned-tiles defensive-copy. |
 | `src/connections/lib/localOrder.test.ts` | The per-player local-shuffle ordering helpers (shuffle + reset). |
 | `src/connections/lib/history.test.ts` | The turn-history snapshot boundary (bands strictly-before, THIS turn's tiles still on the grid) + outcome tinting. |
-| `src/connections/lib/nextPuzzle.test.ts` | `nextUnplayedPuzzle` — the New-game walk-forward rule + the no-date fallback. |
-| `src/connections/lib/defaultPuzzle.test.ts` | The setup dialog's default-puzzle pick (saved default → step forward if finished → most-recent import). |
 | `src/connections/hooks/useGame.test.ts` | The realtime-channel lifecycle: the stable `connections:<gameId>` room and the effect's load-bearing dependency array (resubscribes on gameId, not on unread values). |
 | `src/connections/components/PlayArea.test.tsx` | Render + concede wiring (useGame/db mocked): the tree mounts; compete → `connections.concede`, coop → End. |
-| `src/connections/manifest.test.ts` | `startGameInClub`'s existing-game-different-roster path: the rich error naming the players the existing game needs. |
+| `src/connections/manifest.test.ts` | `startGameInClub`: creates via `create_game`, sends NO `puzzleId` when the setup carries none (how the server is told to choose) and passes an explicit one through when given. The find-or-create + roster-mismatch paths it used to guard are gone with the picker. |
+| `supabase/tests/strands/next_puzzle_test.sql` | `next_puzzle_for_club` (strands' copy; connections' is its twin): ascending, per-PLAYER not per-club, across clubs, and the exhausted case raising `no-unplayed-puzzle|`. |
 
 The broadcast / presence *behavior* itself (selection events merging across peers, pause-on-disconnect) still has no FE test — per [testing.md → What we don't test](../testing.md#what-we-dont-test), that integration is covered by manual browser smoke. What `useGame.test.ts` pins is the channel *lifecycle* around it: the stable room name and the resubscription triggers.
 

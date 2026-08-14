@@ -59,6 +59,11 @@ const APPROVED_EXPRESSIONS: Array<{ file: string; snippet: string; why: string }
     why: 'the create_game relay (the importers call it inline): the RPC message IS an fe-error-key, passed with its SQLSTATE',
   },
   {
+    file: 'crosswords-import-nyt/index.ts',
+    snippet: 'error: pickErr.message, code: pickErr.code',
+    why: 'the next_nyt_date_for_club relay — same shape and same reason as the create_game one directly below it: a raise from that RPC is already an fe-error-key, and anything else is a transport failure worth surfacing with its SQLSTATE',
+  },
+  {
     file: 'crosswords-import-guardian/index.ts',
     snippet: 'error: error.message, code: error.code',
     why: 'the create_game relay (the importers call it inline): the RPC message IS an fe-error-key, passed with its SQLSTATE',

@@ -85,17 +85,17 @@ select throws_ok(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
--- missing puzzleId entirely (timer present so we'd pass the
--- timer check if we got that far — the point is puzzleId is
--- validated first)
-select throws_ok(
+-- A MISSING puzzleId is no longer an error — it is the normal case. The setup
+-- dialog lost its date picker, so the server derives the next puzzle none of
+-- the players being seated has played (connections.next_puzzle_for_club). An
+-- explicit id still wins, which is what every other test in this file relies
+-- on. See tests/strands/next_puzzle_test.sql for the derivation's own rules.
+select lives_ok(
   format(
     $$ select connections.create_game(%L, jsonb_build_object('timer', jsonb_build_object('kind', 'none')), array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop') $$,
     (select handle from club)
   ),
-  'P0001',
-  'missing-puzzle-id|',
-  'create_game: missing setup.puzzleId is rejected'
+  'create_game: an ABSENT setup.puzzleId means "you choose" — the server derives one'
 );
 
 -- puzzleId is not a uuid
@@ -285,17 +285,19 @@ select is(
 -- ============================================================
 -- Saved-defaults auto-save in clubs_gametypes
 -- ============================================================
--- connections saves the whole setup ({puzzleId, timer}) — every
--- field is a per-club preference. Saving puzzleId is the anchor
--- for the planned "play the next puzzle in chronological order"
--- date-picker UX: the dialog reads the saved id and offers the
--- next-day puzzle. Today the dialog seeds verbatim.
+-- connections saves the knobs that ARE per-club preferences (the timer), and
+-- deliberately not `puzzleId`. It used to save it, as the anchor for a
+-- planned "play the next puzzle in chronological order" UX;
+-- connections.next_puzzle_for_club is that UX and derives the answer fresh
+-- every time, so a remembered id would only re-pin an already-played puzzle
+-- over the derivation. Stripped in create_game rather than trusted to the
+-- dialog, so an older client's saved value can't ride back in.
 
 select is(
   (select default_setup->>'puzzleId' from common.clubs_gametypes
     where club_handle = (select handle from club) and gametype = 'connections_coop'),
-  (select id::text from puzzle),
-  'saved defaults: connections saves puzzleId verbatim'
+  null,
+  'saved defaults: puzzleId is NOT remembered — the next puzzle is derived, not recalled'
 );
 
 select is(

@@ -40,6 +40,12 @@ import { describe, expect, it } from 'vitest'
  * "the vocabulary is incomplete without this," not "the test is annoying."
  */
 const VOCABULARY_COMPLETENESS = new Set([
+  // Lost its last reader when the setup calendar went (2026-08-13): it filled
+  // an in-progress day's square. Kept for the reason theme.css states about
+  // this whole family — a reader who sees `-active-border` (still live, on the
+  // club card and the library picker's stripe) should find its `-bg`
+  // companion beside it.
+  '--color-outcome-active-bg',
   '--color-outcome-active-strong',
   '--color-outcome-current-bg',
   '--color-outcome-current-strong',

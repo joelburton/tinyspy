@@ -81,11 +81,16 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const endGame = makeRpcDispatcher(db, 'end_game')
 
-/** Start is blocked until a puzzle is chosen (library) / a date is set (NYT) /
- *  a file is parsed (upload). */
+/** Start is blocked until a puzzle is chosen (library) / a weekday or date is
+ *  set (NYT) / a file is parsed (upload). */
 const validate = (setup: unknown): string | null => {
   const s = setup as CrosswordsSetup
-  if (s.source === 'nyt') return s.date ? null : 'Pick a date.'
+  // NYT takes either: a weekday (the normal path — the server resolves it to
+  // the most recent unplayed date) or an explicit date (the override). The
+  // form always has a weekday, so this only fires for a client that cleared it.
+  if (s.source === 'nyt') {
+    return s.date || typeof s.weekday === 'number' ? null : 'Pick a weekday or a date.'
+  }
   if (s.source === 'guardian') return s.series ? null : 'Pick a Guardian series.'
   if (s.source === 'upload') return s.board ? null : 'Choose a .puz or .ipuz file.'
   return s.puzzle_id ? null : 'Pick a puzzle to start.'

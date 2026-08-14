@@ -1,66 +1,33 @@
-import { useEffect, useState } from 'react'
 import { CoopStyleField } from '../../common/components/fields/CoopStyleField'
 import { DifficultyField } from '../../common/components/fields/DifficultyField'
 import { SelectField } from '../../common/components/fields/SelectField'
 import { TimerField } from '../../common/components/fields/TimerField'
+import { NextPuzzleField } from '../../common/components/fields/NextPuzzleField'
 import { SetupSection } from '../../common/components/setup/SetupSection'
 import { difficultyValue } from '../../common/lib/game/difficulty'
 import type { SetupBodyProps } from '../../common/lib/games'
 import { db } from '../db'
 import type { StrandsSetup } from '../lib/setup'
 import form from '../../common/components/fields/setupForm.module.css'
-import local from './SetupForm.module.css'
-
-type PuzzleEntry = { id: string; puzzle_date: string; clue: string }
 
 /**
  * strands' setup form.
  *
- *   - **Puzzle** — a date from the imported NYT archive. The picker resolves a
- *     date to the `puzzleId` the RPC wants; the archive's own min/max bound the
- *     input, so an empty date can't be chosen. The picked puzzle's CLUE shows
- *     under the input, because a date alone is not something anyone recognises
- *     a puzzle by — the clue is (it's the game's title, and it's on screen from
- *     the first second of play). Without it the easiest mistake in this dialog
- *     is starting one you've already played and finding out once the board is
- *     up. Reading it requires the column grant in supabase/sql/strands.sql,
- *     which lists exactly the four columns this component selects.
+ *   - **Puzzle** — a read-only line naming what Start will play, NOT a picker.
+ *     The server chooses (`strands.next_puzzle_for_club`): the earliest puzzle
+ *     none of the selected players has played, in any club. The date picker
+ *     this replaced offered 884 identical-looking dates, and its besetting
+ *     problem was starting one you'd already done — first patched by showing
+ *     the clue under the input, then solved properly by removing the choice.
+ *     The clue survives as the label on that line, which is the right place
+ *     for it: it's how a person recognises a strands puzzle.
  *   - **Hint dictionary** — the band a word must reach to earn a hint point.
  *   - **Words per hint** / **Shortest word**.
  *
  * Plus the shared TimerField and CoopStyleField.
  */
-export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
+export function SetupForm({ brand, mode, players, value, onChange }: SetupBodyProps) {
   const s = value as StrandsSetup
-  const [puzzles, setPuzzles] = useState<PuzzleEntry[]>([])
-
-  // The archive is the only thing this form has to fetch. Ordering newest-first
-  // means [0] is both the default pick and the max date.
-  useEffect(() => {
-    let mounted = true
-    void (async () => {
-      const { data } = await db
-        .from('puzzles')
-        .select('id, puzzle_date, clue')
-        .order('puzzle_date', { ascending: false })
-      if (!mounted) return
-      setPuzzles((data ?? []) as PuzzleEntry[])
-    })()
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  // Default to the newest puzzle once the archive lands. Written as an effect
-  // on the VALUE (not a useState initializer) because the list arrives
-  // asynchronously — freezing a default at mount would pin it to '' forever,
-  // which is the async-default trap the turn-log picker documents.
-  useEffect(() => {
-    if (!s.puzzleId && puzzles.length) onChange({ ...s, puzzleId: puzzles[0].id })
-  }, [puzzles, s, onChange])
-
-  const selected = puzzles.find((p) => p.id === s.puzzleId)
-  const dates = puzzles.map((p) => p.puzzle_date)
 
   return (
     <div className={form.setup}>
@@ -74,33 +41,28 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
         }
       />
 
-      <fieldset className={form.fieldset}>
-        <legend>Puzzle</legend>
-        <p className="muted">Which day's puzzle to play.</p>
-        <input
-          type="date"
-          aria-label="Puzzle date"
-          value={selected?.puzzle_date ?? ''}
-          min={dates[dates.length - 1]}
-          max={dates[0]}
-          onChange={(e) => {
-            const hit = puzzles.find((p) => p.puzzle_date === e.target.value)
-            if (hit) onChange({ ...s, puzzleId: hit.id })
-          }}
-        />
-        {/* The clue for the picked date — quoted, as everywhere else it appears
-            (InfoCol, the mobile sticky pill): the words are the puzzle's, not
-            ours. Full-strength text, not `muted`, because this is a real value
-            you're meant to read and act on, unlike the helper line above it.
-
-            The slot is RESERVED, not conditional: this renders as a non-
-            breaking space before the archive lands rather than mounting once
-            it does. Everything below — three sections and the timer — would
-            otherwise jump down a line the moment the fetch resolved. */}
-        <p className={local.clue} aria-live="off">
-          {selected ? `“${selected.clue}”` : ' '}
-        </p>
-      </fieldset>
+      <NextPuzzleField
+        brand={brand}
+        seenBy={players.map((p) => p.user_id)}
+        load={async (seenBy) => {
+          const { data } = await db.rpc('next_puzzle_for_club', { seen_by: seenBy })
+          // Both RPCs return 0 or 1 rows. Zero from this one means the archive
+          // is spent for these players; zero from the by-date one means no
+          // puzzle that day. NextPuzzleField renders each as its own state.
+          return data?.[0] ?? null
+        }}
+        loadByDate={async (date) => {
+          const { data } = await db.rpc('puzzle_for_date', { target_date: date })
+          return data?.[0] ?? null
+        }}
+        // A chosen date rides in setup.puzzleId; cleared, the key is dropped
+        // entirely — its ABSENCE is what tells create_game to choose.
+        onPick={(puzzleId) => {
+          const next = { ...s, puzzleId }
+          if (puzzleId === undefined) delete next.puzzleId
+          onChange(next)
+        }}
+      />
 
       <SetupSection label={`Hint dictionary: ${difficultyValue(s.band)}`}>
         {/* The direction is counter-intuitive and worth saying out loud: this is

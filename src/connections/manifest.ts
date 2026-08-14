@@ -1,13 +1,8 @@
 import { lazy } from 'react'
-import type { GameManifest, Member, RichMessage } from '../common/lib/games'
+import type { GameManifest } from '../common/lib/games'
 import { db } from './db'
 import { count, outcome, statusLine, tally, wonBy } from '../common/lib/game/statusLabel'
 import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
-// `game_players` and `profiles` live in the `common` schema, not `connections`,
-// so they must be read through the common-scoped client — the connections `db`
-// (`supabase.schema('connections')`) would resolve `connections.game_players`,
-// which doesn't exist. See common/db.ts for this exact cross-feature aliasing.
-import { db as commonDb } from '../common/db'
 import { DEFAULT_CONNECTIONS_SETUP, type ConnectionsSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -76,35 +71,15 @@ const setupFormLoader = lazy(() =>
   import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
 )
 
-// Shared start-game caller. `mode` is the per-manifest constant —
-// the RPC routes on it to write the right gametype string + the
-// per-mode terminal vocabulary.
+// Shared start-game caller. `mode` is the per-manifest constant — the RPC
+// routes on it to write the right gametype string + the per-mode terminal
+// vocabulary.
 //
-// **Find-or-create** preserves the baseline behavior: if this
-// club has already started a game of THIS mode on the picked
-// puzzle, open the existing game rather than create a duplicate.
-// The .eq('mode', mode) filter is what disambiguates the
-// (club, puzzle) pair across the two modes — a club can play the
-// same puzzle in coop AND in compete and they're separate games.
-//
-// RLS makes the lookup safe: the row only appears for club members,
-// belt-and-braces on top of the .eq('club_handle', ...) filter.
-// The rich roster-mismatch error: the message text with the existing game's
-// players named inline as identity discs ("● bert, ● ernie, ● claude"), rendered
-// by <RichMessage> in the setup dialog.
-function rosterMismatchError(players: Member[]): RichMessage {
-  const named: RichMessage = []
-  players.forEach((p, i) => {
-    if (i > 0) named.push(', ')
-    named.push({ player: p })
-  })
-  return [
-    'You already have a game for this puzzle, and it needs these players: ',
-    ...named,
-    '. To play with a different set of players, either choose a different puzzle, or cancel and delete the existing game.',
-  ]
-}
-
+// There is no find-or-create any more, and no roster-mismatch error with it.
+// Both existed to handle "this club already has a game on the picked puzzle",
+// which the setup dialog can no longer produce: it has no picker, and the
+// server hands out the earliest puzzle none of the selected players has
+// played. Resuming a half-finished game is the club page's job.
 //
 // `brand` is the manifest's own `name` (passed in from BRAND below) so
 // the user-facing error reads the brand from the single branding source
@@ -115,44 +90,20 @@ function startGameInClubFactory(mode: 'coop' | 'compete', brand: string) {
     setup: unknown,
     playerUserIds: string[],
   ) => {
-    const s = setup as ConnectionsSetup
-
-    const existing = await db
-      .from('games')
-      .select('id')
-      .eq('club_handle', clubHandle)
-      .eq('puzzle_id', s.puzzleId)
-      .eq('mode', mode)
-      .maybeSingle()
-    if (existing.data) {
-      // A game for this puzzle already exists — one game per shared daily puzzle
-      // per club per mode, INCLUDING finished ones (you shouldn't re-solve a
-      // puzzle the club's already done; delete it to replay). Reopen it only if
-      // its roster matches the new selection; otherwise STOP with a rich error
-      // naming the players it needs — so deselecting a player doesn't silently
-      // drop you into the existing game's roster (the "Waiting for moth" bug).
-      const { data: gp } = await commonDb
-        .from('game_players')
-        .select('user_id')
-        .eq('game_id', existing.data.id)
-      const existingIds = (gp ?? []).map((r) => r.user_id)
-      const selected = new Set(playerUserIds)
-      const sameRoster =
-        existingIds.length === selected.size &&
-        existingIds.every((id) => selected.has(id))
-      if (sameRoster) return { id: existing.data.id }
-
-      const { data: profs } = await commonDb
-        .from('profiles')
-        .select('user_id, username, color')
-        .in('user_id', existingIds)
-      return { error: rosterMismatchError((profs ?? []) as Member[]) }
-    }
-
+    // Plain create — no find-or-create. The dialog can't offer a puzzle that
+    // already has a game (the server hands out the earliest one none of the
+    // selected players has played), so the "reopen the existing game for this
+    // puzzle" branch that used to live here had nothing left to match. It also
+    // carried the roster-mismatch error, whose whole job was refusing to drop
+    // you into an existing game's player list; resuming a half-finished game
+    // is the club page's job now.
+    //
+    // `setup` rides through untouched, and its `puzzleId` is ABSENT — that is
+    // how create_game is told to derive the puzzle.
     const { data, error } = await db
       .rpc('create_game', {
         target_club: clubHandle,
-        setup: s,
+        setup: setup as ConnectionsSetup,
         player_user_ids: playerUserIds,
         mode,
       })

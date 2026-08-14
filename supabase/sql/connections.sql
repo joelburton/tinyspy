@@ -148,6 +148,121 @@ where cg.gametype in ('connections_coop', 'connections_compete')
 grant select on connections.club_game_status to authenticated;
 
 -- ============================================================
+-- connections.next_puzzle_for_club — the only puzzle choice there is
+-- ============================================================
+-- The dialog used to be a calendar: 2,300 dates, and the easy mistake was
+-- starting one the club had already played. For connections the DATE means
+-- nothing — the archive is a queue, not a catalogue — so the picker is gone
+-- and this answers the only question that was ever being asked: give us one
+-- nobody here has seen.
+--
+-- "NOBODY HERE" IS PER-PLAYER, NOT PER-CLUB. `seen_by` is the set of people
+-- about to be seated (create_game's `player_user_ids`, and the same array the
+-- setup dialog passes for its preview). A puzzle is out if ANY of them has
+-- ever been a player on a game of it, in ANY club. The story that drives it:
+-- Joel plays #100 in his solo club, then opens a Joel+Moth game — offering
+-- #100 there is no fun for him and wrecks the race. Membership would be the
+-- cruder proxy (exclude anything played in any club sharing a member); using
+-- game_players instead means a puzzle played by four OTHER people in a big
+-- club stays available to the two of you who weren't in it.
+--
+-- SECURITY DEFINER, and that is the whole point rather than an oversight:
+-- Moth's solo-club games are invisible to Joel under RLS, and they are
+-- exactly what has to be excluded. So this reads past the caller's
+-- visibility on purpose. What escapes is a puzzle id — never a club, a game
+-- or a name — though a determined reader could infer roughly how far a
+-- club-mate has got on their own from which puzzles they are not offered.
+-- Friends, not adversaries (CLAUDE.md's trust model); it is recorded here
+-- rather than pretended away.
+--
+-- Matching is on `puzzle_date`, NOT `puzzle_id`: the FK is soft
+-- (`on delete set null`, the library-puzzle provenance rule), so a
+-- re-import can orphan it, while the denormalized date on the game row is
+-- the durable identity. Ascending, so a club works forward through the
+-- archive in publication order.
+--
+-- Returns 0 rows when everyone here has played everything — create_game
+-- turns that into `no-unplayed-puzzle|`, and the dialog says so up front.
+create or replace function connections.next_puzzle_for_club(seen_by uuid[])
+returns table(id uuid, puzzle_date date, label text)
+language sql
+stable
+security definer
+set search_path = connections, common, public, extensions
+as $$
+  select p.id,
+         p.puzzle_date,
+         -- What the dialog shows as "next up". The date leads (it is the
+         -- puzzle's name, even if nobody picks by it), then the two
+         -- alphabetically-first tiles as a human-readable fingerprint —
+         -- enough to tell two puzzles apart, and no more of a spoiler than
+         -- the sixteen you see a second later.
+         p.puzzle_date::text || ': ' || coalesce(
+           (select string_agg(t.tile, ', ' order by t.tile)
+              from (select jsonb_array_elements_text(c -> 'tiles') as tile
+                      from jsonb_array_elements(p.categories) c
+                     order by 1
+                     limit 2) t),
+           '?')
+    from connections.puzzles p
+   where p.puzzle_date is not null
+     and not exists (
+           select 1
+             from connections.games g
+             join common.game_players gp on gp.game_id = g.id
+            where g.puzzle_date = p.puzzle_date
+              and gp.user_id = any(seen_by)
+         )
+   order by p.puzzle_date
+   limit 1;
+$$;
+
+revoke execute on function connections.next_puzzle_for_club(uuid[]) from public;
+grant execute on function connections.next_puzzle_for_club(uuid[]) to authenticated;
+
+-- ============================================================
+-- connections.puzzle_for_date — the deliberate override
+-- ============================================================
+-- next_puzzle_for_club answers the common case ("give us one nobody here has
+-- done"). This answers the rare one: you know a date and you want THAT
+-- puzzle — the friends talked about it, or you want to replay one together.
+--
+-- It filters NOTHING. A puzzle every player has already finished comes back
+-- exactly like an untouched one, and create_game will start a second game on
+-- it rather than reopening the first. That is the point of an override: the
+-- picker's whole job is to stop you stumbling into a repeat, and this is the
+-- door marked "yes, I mean it".
+--
+-- SECURITY INVOKER (unlike its sibling, which must see across clubs to
+-- exclude): this reads only connections.puzzles, which is public reference
+-- data with a plain select grant. Nothing about anyone's history is involved.
+--
+-- Same return shape as next_puzzle_for_club so the shared setup field can
+-- render either without caring which it asked. Zero rows = no puzzle that
+-- day, which the dialog says out loud rather than silently ignoring.
+create or replace function connections.puzzle_for_date(target_date date)
+returns table(id uuid, puzzle_date date, label text)
+language sql
+stable
+set search_path = connections, common, public, extensions
+as $$
+  select p.id,
+         p.puzzle_date,
+         p.puzzle_date::text || ': ' || coalesce(
+           (select string_agg(t.tile, ', ' order by t.tile)
+              from (select jsonb_array_elements_text(c -> 'tiles') as tile
+                      from jsonb_array_elements(p.categories) c
+                     order by 1
+                     limit 2) t),
+           '?')
+    from connections.puzzles p
+   where p.puzzle_date = target_date;
+$$;
+
+revoke execute on function connections.puzzle_for_date(date) from public;
+grant execute on function connections.puzzle_for_date(date) to authenticated;
+
+-- ============================================================
 -- connections.create_game — start a new game in a club
 -- ============================================================
 -- Validates the mode + setup shape, looks up the puzzle by id,
@@ -232,21 +347,36 @@ begin
   -- declarations in src/connections/manifest.ts.
   perform common.require_player_count_max(player_user_ids, 6);
 
-  -- ─── Validate setup shape ────────────────────────────────
-  -- Missing-vs-bad-value split so each rejection has a clean,
-  -- field-named message. The FE's date-picker can't normally
-  -- produce these, but a curious client could send anything.
+  -- ─── Which puzzle ────────────────────────────────────────
+  -- ABSENT is the normal case now, and it means "you choose": the setup
+  -- dialog has no picker, so the server derives the next puzzle nobody being
+  -- seated has played (next_puzzle_for_club above). Deriving HERE rather
+  -- than trusting a value the dialog computed is what makes the preview and
+  -- the actual start impossible to disagree — if someone else starts the
+  -- same puzzle while your dialog sits open, you get the genuinely-next one
+  -- instead of a duplicate.
+  --
+  -- PRESENT still wins, and that is not a leftover: every test fixture pins
+  -- a specific puzzle (the e2e helpers, pg_temp.connections_setup) because
+  -- the assertions are about THAT puzzle's categories. A server that always
+  -- chose would make those tests assert against whatever the fixture club
+  -- happened not to have played.
   if (setup->>'puzzleId') is null then
-    raise exception 'missing-puzzle-id|' using errcode = 'P0001',
-      detail = 'setup.puzzleId absent';
+    select n.id into s_puzzle_id
+      from connections.next_puzzle_for_club(player_user_ids) n;
+    if s_puzzle_id is null then
+      raise exception 'no-unplayed-puzzle|' using errcode = 'P0001',
+        detail = 'every imported puzzle has been played by one of these players';
+    end if;
+  else
+    begin
+      s_puzzle_id := (setup->>'puzzleId')::uuid;
+    exception when invalid_text_representation then
+      raise exception 'bad-puzzle-id|'
+        using errcode = 'P0001',
+        detail = 'setup.puzzleId is not a uuid';
+    end;
   end if;
-  begin
-    s_puzzle_id := (setup->>'puzzleId')::uuid;
-  exception when invalid_text_representation then
-    raise exception 'bad-puzzle-id|'
-      using errcode = 'P0001',
-      detail = 'setup.puzzleId is not a uuid';
-  end;
 
   -- Canonical timer-shape validation. See common.require_valid_timer
   -- for the accepted shapes and the exact raise messages.
@@ -300,18 +430,19 @@ begin
   -- setup) + game_players, returns the canonical id we'll use
   -- below.
   --
-  -- Saved-default arg: connections's whole setup ({puzzleId, timer})
-  -- is a per-club preference. Saving puzzleId is the anchor for
-  -- the future "play the next puzzle in chronological order" UX —
-  -- the dialog can read it and offer the next-day puzzle. Today's
-  -- dialog seeds verbatim, which means re-opening the dialog
-  -- shows the same puzzle until the user picks a different date.
+  -- Saved-default arg. `puzzleId` used to ride along, as the anchor for a
+  -- "play the next puzzle in chronological order" UX that hadn't been built
+  -- yet. next_puzzle_for_club IS that UX, and it derives the answer fresh
+  -- every time — so a remembered puzzle is now worse than useless: it would
+  -- re-pin a specific (already-played) puzzle over the derivation. Stripped
+  -- explicitly rather than left to the dialog no longer sending one, so a
+  -- stale default saved by an older client can't ride back in.
   new_id := common.create_game(
     target_club, effective_gametype, player_user_ids, game_title,
     setup,
-    -- saved_default strips first_turn_user_id (per-game "who goes first" pick,
-    -- not a per-club preference; the coop_style toggle rides).
-    setup - 'first_turn_user_id'
+    -- Also strips first_turn_user_id (a per-game "who goes first" pick, not
+    -- a per-club preference; the coop_style toggle rides).
+    setup - 'first_turn_user_id' - 'puzzleId'
   );
 
   -- Opt-in turn-by-turn coop: when setup.coop_style='turns', seat the common

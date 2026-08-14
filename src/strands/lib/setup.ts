@@ -10,8 +10,13 @@ import type { CoopTurnSetup } from '../../common/components/fields/CoopStyleFiel
  * type without dragging the manifest into its lazy chunk.
  */
 export type StrandsSetup = CoopTurnSetup & {
-  /** Which archived puzzle to play — the date picker resolves a date to this id. */
-  puzzleId: string
+  /** Which archived puzzle to play — OPTIONAL, because the dialog no longer
+   *  collects it. Absence is how `create_game` is told to derive the next
+   *  puzzle none of the selected players has played
+   *  (`strands.next_puzzle_for_club`). It stays in the type because the RPC
+   *  still honours an explicit id, which is what the pgTAP and e2e fixtures
+   *  pin their assertions to. */
+  puzzleId?: string
   /**
    * Dictionary ceiling for HINT words (1..6).
    *
@@ -42,23 +47,15 @@ export type StrandsSetup = CoopTurnSetup & {
 
 /** Band 5 matches the other word games' "legal" default: generous enough that
  *  hints are earnable without handing them out. */
+/* NO `puzzleId` KEY — not `''`. The server reads an ABSENT puzzleId as "you
+ * choose"; an empty string is present-but-unparseable and would fail the uuid
+ * cast with `bad-puzzle-id|` instead. */
 export const DEFAULT_STRANDS_SETUP_COOP: StrandsSetup = {
-  puzzleId: '',
   band: 5,
   hint_cost: 3,
   min_word_length: 4,
   timer: { kind: 'none' },
   coop_style: 'free-for-all',
-}
-
-/**
- * The Start-gate validator. Only the puzzle pick can be genuinely missing — the
- * numeric knobs come from bounded controls, and the server re-checks every one
- * of them regardless.
- */
-export function strandsSetupError(setup: StrandsSetup): string | null {
-  if (!setup.puzzleId) return 'Pick a puzzle date to play.'
-  return null
 }
 
 /** Compete's defaults. Identical to coop's but for the pacing field, which is

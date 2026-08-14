@@ -180,7 +180,7 @@ serve(async (req) => {
     target_club?: string
     mode?: string
     player_user_ids?: string[]
-    setup?: { timer?: Json; date?: string }
+    setup?: { timer?: Json; date?: string; weekday?: number }
   }
   try {
     body = await req.json()
@@ -188,11 +188,36 @@ serve(async (req) => {
     return json({ error: 'bad-request|body|' }, 400)
   }
   const { target_club, mode, player_user_ids, setup } = body
-  const date = setup?.date
   if (!target_club || !mode || !Array.isArray(player_user_ids)) {
     return json({ error: 'bad-request|body|' }, 400)
   }
-  if (!date || !DATE_RE.test(date)) {
+
+  // ─── Which date ──────────────────────────────────────────
+  // Two ways in, and the fetch needs a concrete one either way — which is why
+  // this derivation lives HERE rather than in create_game the way connections'
+  // and strands' do. Those games' puzzles are rows in a table, so the RPC can
+  // pick one; an NYT daily doesn't exist until it's been fetched.
+  //
+  //   setup.date     — the override. Wins outright, filters nothing, and is
+  //                    what the pgTAP/e2e fixtures pin.
+  //   setup.weekday  — the normal path: 0..6 (Sunday = 0). The server returns
+  //                    the most recent puzzle of that weekday nobody being
+  //                    seated has played (crosswords.next_nyt_date_for_club).
+  const caller = callerClient(authHeader)
+  let date = setup?.date
+  if (!date) {
+    const weekday = setup?.weekday
+    if (typeof weekday !== 'number' || !Number.isInteger(weekday) || weekday < 0 || weekday > 6) {
+      return json({ error: 'bad-request|date|' }, 400)
+    }
+    const { data: picked, error: pickErr } = await caller
+      .schema('crosswords')
+      .rpc('next_nyt_date_for_club', { seen_by: player_user_ids, dow: weekday })
+    if (pickErr) return json({ error: pickErr.message, code: pickErr.code }, 400)
+    if (!picked) return json({ error: `no-unplayed-weekday|${weekday}|` }, 422)
+    date = picked as unknown as string
+  }
+  if (!DATE_RE.test(date)) {
     return json({ error: 'bad-request|date|' }, 400)
   }
 
@@ -235,10 +260,26 @@ serve(async (req) => {
 
   // 3. create_game AS THE CALLER (authority on membership + setup), with the
   // puzzle data inline.
-  const caller = callerClient(authHeader)
+  //
+  // The setup passed on is REBUILT rather than forwarded, so a stale `board` /
+  // `filename` from a source tab-switch can't ride into the persisted setup.
+  // Three fields make the trip, and each earns it:
+  //   source + date — what crosswords.create_game reads to stamp
+  //                   `games.puzzle_date`, which is the column
+  //                   next_nyt_date_for_club then excludes on. (Until
+  //                   2026-08-13 this passed `{ timer }` alone, so the date
+  //                   never reached the row and every NYT game looked unplayed.)
+  //   weekday       — the one genuine club PREFERENCE here; create_game keeps
+  //                   it in the saved default while stripping `date`.
+  // `date` is the RESOLVED one, so what gets recorded is what was fetched.
   const { data, error } = await caller.schema('crosswords').rpc('create_game', {
     target_club,
-    setup: { timer: setup?.timer ?? { kind: 'none' } },
+    setup: {
+      timer: setup?.timer ?? { kind: 'none' },
+      source: 'nyt',
+      date,
+      ...(typeof setup?.weekday === 'number' ? { weekday: setup.weekday } : {}),
+    },
     player_user_ids,
     mode,
     board,

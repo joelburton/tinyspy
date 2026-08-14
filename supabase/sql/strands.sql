@@ -314,6 +314,74 @@ where cg.gametype in ('strands_coop', 'strands_compete');
 grant select on strands.club_game_status to authenticated;
 
 -- ============================================================
+-- strands.next_puzzle_for_club — the only puzzle choice there is
+-- ============================================================
+-- connections.next_puzzle_for_club's twin, and deliberately identical in
+-- shape — read that one for the full reasoning. The short version: the date
+-- picker is gone, because for strands the date means nothing (the archive is
+-- a queue) and the only question anyone was asking is "give us one nobody
+-- here has seen."
+--
+-- `seen_by` is the players about to be seated, not the club's membership: a
+-- puzzle is out if ANY of them has ever been a player on a game of it, in
+-- ANY club — including a solo club the caller cannot see. Hence SECURITY
+-- DEFINER; excluding what a club-mate played alone is the whole point.
+--
+-- Match on `puzzle_date` rather than the soft `puzzle_id` FK, ascending so a
+-- club works forward in publication order. The label is the clue, which is
+-- how a person recognises a strands puzzle — it is already the game's title,
+-- and on screen from the first second of play.
+create or replace function strands.next_puzzle_for_club(seen_by uuid[])
+returns table(id uuid, puzzle_date date, label text)
+language sql
+stable
+security definer
+set search_path = strands, common, public, extensions
+as $$
+  select p.id,
+         p.puzzle_date,
+         p.puzzle_date::text || ': ' || p.clue
+    from strands.puzzles p
+   where not exists (
+           select 1
+             from strands.games g
+             join common.game_players gp on gp.game_id = g.id
+            where g.puzzle_date = p.puzzle_date
+              and gp.user_id = any(seen_by)
+         )
+   order by p.puzzle_date
+   limit 1;
+$$;
+
+revoke execute on function strands.next_puzzle_for_club(uuid[]) from public;
+grant execute on function strands.next_puzzle_for_club(uuid[]) to authenticated;
+
+-- ============================================================
+-- strands.puzzle_for_date — the deliberate override
+-- ============================================================
+-- connections.puzzle_for_date's twin; read that one for the reasoning. The
+-- short version: next_puzzle_for_club answers "give us one nobody here has
+-- done", and this answers "I know the date, I want that one" — filtering
+-- nothing, so an already-played puzzle comes back and starts a SECOND game
+-- rather than reopening the first.
+--
+-- SECURITY INVOKER, unlike its sibling: it reads no history, only the
+-- archive, whose `clue` and `puzzle_date` are already granted.
+create or replace function strands.puzzle_for_date(target_date date)
+returns table(id uuid, puzzle_date date, label text)
+language sql
+stable
+set search_path = strands, common, public, extensions
+as $$
+  select p.id, p.puzzle_date, p.puzzle_date::text || ': ' || p.clue
+    from strands.puzzles p
+   where p.puzzle_date = target_date;
+$$;
+
+revoke execute on function strands.puzzle_for_date(date) from public;
+grant execute on function strands.puzzle_for_date(date) to authenticated;
+
+-- ============================================================
 -- strands.create_game — start a new game in a club
 -- ============================================================
 -- Setup shape (server-validated):
@@ -367,17 +435,28 @@ begin
   -- Upper bound must agree with `numberOfPlayers` in the manifest.
   perform common.require_player_count_max(player_user_ids, 6);
 
-  -- ─── Validate setup ──────────────────────────────────────
+  -- ─── Which puzzle ────────────────────────────────────────
+  -- Absent means "you choose" — the setup dialog has no picker any more, so
+  -- the server derives the next puzzle none of the players being seated has
+  -- seen. Present still wins, because every test fixture pins a specific
+  -- puzzle (its theme words and paths are what the assertions are about).
+  -- See connections.create_game for the full reasoning; the two games do
+  -- this identically on purpose.
   if (setup->>'puzzleId') is null then
-    raise exception 'missing-puzzle-id|' using errcode = 'P0001',
-      detail = 'setup.puzzleId absent';
+    select n.id into s_puzzle_id
+      from strands.next_puzzle_for_club(player_user_ids) n;
+    if s_puzzle_id is null then
+      raise exception 'no-unplayed-puzzle|' using errcode = 'P0001',
+        detail = 'every imported puzzle has been played by one of these players';
+    end if;
+  else
+    begin
+      s_puzzle_id := (setup->>'puzzleId')::uuid;
+    exception when invalid_text_representation then
+      raise exception 'bad-puzzle-id|' using errcode = 'P0001',
+        detail = 'setup.puzzleId is not a uuid';
+    end;
   end if;
-  begin
-    s_puzzle_id := (setup->>'puzzleId')::uuid;
-  exception when invalid_text_representation then
-    raise exception 'bad-puzzle-id|' using errcode = 'P0001',
-      detail = 'setup.puzzleId is not a uuid';
-  end;
 
   -- Defaults match the manifest's, so an older client that omits a knob still
   -- starts a sane game; the range checks then reject anything a curious client

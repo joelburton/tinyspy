@@ -182,6 +182,14 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // (crosswords-import-nyt / -guardian); wording approved 2026-08-12. The
   // specific cause (HTTP status, bot challenge, bad JSON) stays in the
   // function's serve log.
+  // The weekday walk found nothing: this club's players have done every
+  // Monday (or whichever) back to the 2015 floor. Unreachable in practice —
+  // that's ~600 games of one weekday — but it is a real branch, and a fault
+  // would tell the player nothing they could act on. `info`: nobody erred.
+  'no-unplayed-weekday': {
+    text: () => "You've played every one of those",
+    tone: 'info',
+  },
   'nyt-auth': { text: () => 'NYT rejected the cookie — it may be expired' },
   'nyt-no-puzzle': { text: (d) => `No NYT crossword published for ${d[0]}` },
   'nyt-fetch': { text: () => "NYT couldn't be reached — try again later" },
@@ -199,6 +207,21 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   'nothing-to-spoil': { text: () => 'Nothing left to show', tone: 'info' },
   // A setup choice the dictionary can't satisfy: more words than that band has.
   'too-few-words': { text: () => 'Not enough words at that difficulty' },
+
+  // ── connections + strands (the dated archives) ──
+  // Neither game lets you pick a puzzle any more: the server hands out the
+  // earliest one none of the players has seen, in any club
+  // (`next_puzzle_for_club`). This is what it says when there is no such
+  // puzzle left, and it's reachable two ways — the setup dialog's Start, and
+  // the in-game "New game". `info`, because nobody did anything wrong.
+  //
+  // The wording carefully doesn't say "you've played them all": with the
+  // exclusion spanning clubs and players, the usual cause is that SOMEONE at
+  // the table has, which reads as a lie to everyone else.
+  'no-unplayed-puzzle': {
+    text: () => 'Everyone here has played every puzzle',
+    tone: 'info',
+  },
 
   // ── connections ──
   // Elimination is connections' own end-state — four mistakes and you're out —

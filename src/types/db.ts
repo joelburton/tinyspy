@@ -1253,6 +1253,22 @@ export type Database = {
         }[]
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
+      next_puzzle_for_club: {
+        Args: { seen_by: string[] }
+        Returns: {
+          id: string
+          label: string
+          puzzle_date: string
+        }[]
+      }
+      puzzle_for_date: {
+        Args: { target_date: string }
+        Returns: {
+          id: string
+          label: string
+          puzzle_date: string
+        }[]
+      }
       replay_board: { Args: { target_game: string }; Returns: undefined }
       submit_guess: {
         Args: {
@@ -1341,6 +1357,7 @@ export type Database = {
           id: string
           meta: Json
           mode: string
+          puzzle_date: string | null
           puzzle_id: string | null
           solution: Json
         }
@@ -1350,6 +1367,7 @@ export type Database = {
           id: string
           meta: Json
           mode: string
+          puzzle_date?: string | null
           puzzle_id?: string | null
           solution: Json
         }
@@ -1359,10 +1377,18 @@ export type Database = {
           id?: string
           meta?: Json
           mode?: string
+          puzzle_date?: string | null
           puzzle_id?: string | null
           solution?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "games_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "club_nyt_status"
+            referencedColumns: ["game_id"]
+          },
           {
             foreignKeyName: "games_puzzle_id_fkey"
             columns: ["puzzle_id"]
@@ -1401,6 +1427,17 @@ export type Database = {
       }
     }
     Views: {
+      club_nyt_status: {
+        Row: {
+          club_handle: string | null
+          game_id: string | null
+          is_terminal: boolean | null
+          mode: string | null
+          play_state: string | null
+          puzzle_date: string | null
+        }
+        Relationships: []
+      }
       games_state: {
         Row: {
           club_handle: string | null
@@ -1430,6 +1467,13 @@ export type Database = {
           solution?: never
         }
         Relationships: [
+          {
+            foreignKeyName: "games_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "club_nyt_status"
+            referencedColumns: ["game_id"]
+          },
           {
             foreignKeyName: "games_puzzle_id_fkey"
             columns: ["puzzle_id"]
@@ -1490,6 +1534,10 @@ export type Database = {
           title: string
           width: number
         }[]
+      }
+      next_nyt_date_for_club: {
+        Args: { dow: number; seen_by: string[] }
+        Returns: string
       }
       replay_board: { Args: { target_game: string }; Returns: undefined }
       reveal_cells: {
@@ -3183,6 +3231,22 @@ export type Database = {
         }[]
       }
       end_game: { Args: { target_game: string }; Returns: undefined }
+      next_puzzle_for_club: {
+        Args: { seen_by: string[] }
+        Returns: {
+          id: string
+          label: string
+          puzzle_date: string
+        }[]
+      }
+      puzzle_for_date: {
+        Args: { target_date: string }
+        Returns: {
+          id: string
+          label: string
+          puzzle_date: string
+        }[]
+      }
       replay_board: { Args: { target_game: string }; Returns: undefined }
       spend_hint: { Args: { target_game: string }; Returns: Json }
       submit_path: { Args: { path: Json; target_game: string }; Returns: Json }

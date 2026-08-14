@@ -206,3 +206,18 @@
   font-size: 0.9rem;
   margin: 0;
 }
+
+/*
+ * The NYT tab's one line of state: which date Start will fetch.
+ *
+ * Full-strength text, not muted — it's the only concrete fact in the tab, and
+ * the thing to read before pressing Start. The min-height is what stops the
+ * date box and the timer below it jumping a row when the lookup lands, since
+ * the line is empty until then.
+ */
+.nextDate {
+  color: var(--color-text);
+  line-height: 1.4;
+  min-height: 1.4em;
+  margin: 0.5rem 0;
+}

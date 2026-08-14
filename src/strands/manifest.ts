@@ -6,7 +6,6 @@ import { makeRpcDispatcher } from '../common/lib/game/manifestRpcs'
 import {
   DEFAULT_STRANDS_SETUP_COMPETE,
   DEFAULT_STRANDS_SETUP_COOP,
-  strandsSetupError,
   type StrandsSetup,
 } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -136,7 +135,6 @@ export const strandsCoopGame: GameManifest = {
   setupForm: {
     Component: setupFormLoader,
     defaults: DEFAULT_STRANDS_SETUP_COOP,
-    validate: (setup) => strandsSetupError(setup as StrandsSetup),
   },
 
   startGameInClub: startGameInClub('coop'),
@@ -170,7 +168,6 @@ export const strandsCompeteGame: GameManifest = {
   setupForm: {
     Component: setupFormLoader,
     defaults: DEFAULT_STRANDS_SETUP_COMPETE,
-    validate: (setup) => strandsSetupError(setup as StrandsSetup),
   },
 
   startGameInClub: startGameInClub('compete'),

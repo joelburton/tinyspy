@@ -1,0 +1,31 @@
+/*
+ * The one line connections + strands show where a date picker used to be.
+ *
+ * Full-strength `--color-text`, not the `muted` of the helper line above it:
+ * this is the actual value you're about to play, the only concrete fact in
+ * the fieldset, and the thing a player's eye should land on.
+ *
+ * THE MIN-HEIGHT IS THE POINT. The line has three states — waiting on the
+ * RPC, a puzzle, or "you've played them all" — and the fieldsets below it
+ * (the timer, and strands' three knobs) would drop a row when the fetch
+ * landed if the slot collapsed while empty. One line covers every case: the
+ * labels are `YYYY-MM-DD: <clue or two words>`, which fits the 480px dialog
+ * with room to spare, and the exhausted sentence is shorter still.
+ */
+.next {
+  color: var(--color-text);
+  line-height: 1.4;
+  min-height: 1.4em;
+  margin: 0;
+}
+
+/*
+ * The override date box. Sits UNDER the line it overrides, and is deliberately
+ * plain: the common case is leaving it empty, so it should read as a secondary
+ * control rather than the field's main event. Left at its intrinsic width —
+ * a date input sized to its own content is a smaller target than a full-width
+ * box, which is the right weight for something you rarely touch.
+ */
+.date {
+  margin-top: 0.5rem;
+}
