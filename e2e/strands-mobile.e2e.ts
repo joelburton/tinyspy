@@ -87,11 +87,15 @@ test.describe('strands mobile', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
 
-    /** Tap a path, then tap its last letter again to submit. */
+    /** Tap a path, then submit with the move row's button.
+     *
+     *  Re-tapping the last letter used to submit and no longer does
+     *  (2026-08-14) — it takes that letter back, like tapping any other tile
+     *  in the trace. On a phone the Submit button is the only route, since
+     *  there's no Enter key, which is most of why the button exists. */
     const trace = async (cs: ReadonlyArray<readonly [number, number]>) => {
       for (const [r, c] of cs) await page.locator(`[data-cell="${r},${c}"]`).tap()
-      const [r, c] = cs[cs.length - 1]
-      await page.locator(`[data-cell="${r},${c}"]`).tap()
+      await page.getByRole('button', { name: 'Submit' }).tap()
       await page.waitForTimeout(80)
     }
 

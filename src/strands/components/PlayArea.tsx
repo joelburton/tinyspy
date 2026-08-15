@@ -284,9 +284,11 @@ export function PlayArea(ctx: GamePageCtx) {
       // rather than sitting there for the rest of their second, pointing at
       // cells the player has already chosen between.
       flashAmbiguous([])
-      const next = clickTile(trace, at, consumed)
-      setTrace(next.trace)
-      if (next.submit) void submit(next.trace)
+      // A click only ever changes the trace — it can no longer submit
+      // (2026-08-14). Re-clicking the last tile takes it back like any other
+      // selected tile; Enter and the Submit button are the two deliberate
+      // ways to send a word.
+      setTrace(clickTile(trace, at, consumed).trace)
     },
     // `consumed` is rebuilt each render from `found`; listing it would rerun
     // this on every render for no benefit, so the found LENGTH stands in.
@@ -303,8 +305,8 @@ export function PlayArea(ctx: GamePageCtx) {
     setTrace(trace.slice(0, -1))
   }, [trace, clearLocalFeedback])
 
-  /** Submit the trace — the Submit button, Enter, and re-clicking the last cell
-   *  all land here. */
+  /** Submit the trace — the Submit button and Enter both land here, and since
+   *  2026-08-14 they are the only two routes: a click never submits. */
   const submitTrace = useCallback(() => {
     if (trace.length) void submit(trace)
   }, [trace, submit])
@@ -322,7 +324,7 @@ export function PlayArea(ctx: GamePageCtx) {
    *     with ≤8 neighbours and so usually just works.
    *   - **Backspace** drops the last tile, so a misclick costs one key instead
    *     of restarting the word;
-   *   - **Enter** submits, the keyboard twin of re-clicking the last tile;
+   *   - **Enter** submits — one of only two ways, with the Submit button;
    *   - **Tab** is swallowed. The tiles already left the tab order
    *     (`tabIndex={-1}`), so this is belt and braces: nothing on the board
    *     should shift focus mid-trace.

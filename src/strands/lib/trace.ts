@@ -34,12 +34,16 @@ import { adjacent, coordKey, letterAt, type Board, type Coord } from './board'
 /** The tiles currently selected, in the order they were clicked. */
 export type Trace = readonly Coord[]
 
-/** What a click did. `submit` is the caller's cue to send `trace` to the server. */
+/** What a click did — the trace that should replace the current one.
+ *
+ *  A click NEVER submits. Re-clicking the last tile used to (2026-08-14), and
+ *  the affordance was a misclick magnet: the last tile is the one your cursor
+ *  is already on and the one you're most likely to hit while reaching for the
+ *  next letter, so a slip sent a half-built word. Submitting is Enter or the
+ *  Submit button, both of which are deliberate. */
 export type TraceResult = {
   /** The trace after the click. */
   trace: Trace
-  /** True when this click asked to submit — i.e. it re-clicked the last tile. */
-  submit: boolean
 }
 
 /**
@@ -49,16 +53,20 @@ export type TraceResult = {
  *     tiles are spent; a click on one is neither a move nor a mistake, so the
  *     trace is left exactly as it was rather than being cleared out from under
  *     the player.
- *  2. **The tile is the most recent one** — submit. Re-clicking the last tile
- *     is how a word is entered, which is why that tile wears its own marker
- *     (the double ring): without a visible affordance, submission would be
- *     undiscoverable.
- *  3. **The tile is already selected, but isn't the last** — **truncate** to the
- *     prefix before it: that tile and everything clicked after it are dropped,
- *     the earlier tiles stay. Reaching back into your own trace means "undo back
- *     to here", not "scrap it" — the same rule stackdown's word row uses when you
- *     click a filled slot (an order can't lose a middle piece and keep the rest).
- *  4. **Otherwise it's a free tile** — extend when it's 8-way adjacent to the
+ *  2. **The tile is already selected** — **truncate** to the prefix before it:
+ *     that tile and everything clicked after it are dropped, the earlier tiles
+ *     stay. Reaching back into your own trace means "undo back to here", not
+ *     "scrap it" — the same rule stackdown's word row uses when you click a
+ *     filled slot (an order can't lose a middle piece and keep the rest).
+ *
+ *     THE LAST TILE IS NOT A SPECIAL CASE, and stopped being one on
+ *     2026-08-14. Re-clicking it used to submit; now it takes that letter back
+ *     like any other. The old behaviour put a destructive action under the
+ *     cursor's most likely resting place — you reach for the next letter,
+ *     clip the one you just placed, and a half-built word goes to the server.
+ *     Submitting has two deliberate routes (Enter, the Submit button), so it
+ *     did not need a third that fires on a slip.
+ *  3. **Otherwise it's a free tile** — extend when it's 8-way adjacent to the
  *     current end; otherwise **start a new trace there, discarding whatever was
  *     selected**. The old path is not kept, not merged, and not submitted — a
  *     far click means "begin here", and the board is left showing exactly one
@@ -72,22 +80,23 @@ export function clickTile(
   at: Coord,
   consumed: ReadonlySet<string>,
 ): TraceResult {
-  if (consumed.has(coordKey(at))) return { trace, submit: false }
+  if (consumed.has(coordKey(at))) return { trace }
+
+  // No last-tile branch above this: the last tile is found by the same
+  // `findIndex` as any other selected tile, and truncates to the prefix
+  // before it.
+  const seen = trace.findIndex((c) => coordKey(c) === coordKey(at))
+  if (seen >= 0) return { trace: trace.slice(0, seen) }
 
   const last = trace[trace.length - 1]
-  if (last && coordKey(last) === coordKey(at)) return { trace, submit: true }
+  if (last && adjacent(last, at)) return { trace: [...trace, at] }
 
-  const seen = trace.findIndex((c) => coordKey(c) === coordKey(at))
-  if (seen >= 0) return { trace: trace.slice(0, seen), submit: false }
-
-  if (last && adjacent(last, at)) return { trace: [...trace, at], submit: false }
-
-  return { trace: [at], submit: false }
+  return { trace: [at] }
 }
 
 /** Abandon the current trace (the Escape / click-away path). */
 export function clearTrace(): TraceResult {
-  return { trace: [], submit: false }
+  return { trace: [] }
 }
 
 /**

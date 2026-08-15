@@ -7,20 +7,18 @@ const consumedOf = (...cells: Coord[]) => new Set(cells.map(coordKey))
 
 /** Click a run of tiles from empty, returning the final result. */
 function clicks(cells: Coord[], consumed: ReadonlySet<string> = none) {
-  let out = { trace: [] as Trace, submit: false }
+  let out: { trace: Trace } = { trace: [] }
   for (const c of cells) out = clickTile(out.trace, c, consumed)
   return out
 }
 
 describe('clickTile — building a trace', () => {
   it('starts a trace on the first click', () => {
-    expect(clicks([[3, 3]])).toEqual({ trace: [[3, 3]], submit: false })
+    expect(clicks([[3, 3]])).toEqual({ trace: [[3, 3]] })
   })
 
   it('extends through adjacent tiles, keeping click order', () => {
-    const { trace, submit } = clicks([[0, 0], [0, 1], [1, 2]])
-    expect(trace).toEqual([[0, 0], [0, 1], [1, 2]])
-    expect(submit).toBe(false)
+    expect(clicks([[0, 0], [0, 1], [1, 2]]).trace).toEqual([[0, 0], [0, 1], [1, 2]])
   })
 
   it('extends DIAGONALLY — the same 8-way rule the boards need', () => {
@@ -28,21 +26,28 @@ describe('clickTile — building a trace', () => {
   })
 })
 
-describe('clickTile — submitting', () => {
-  it('re-clicking the LAST tile submits, leaving the trace intact to send', () => {
-    const { trace, submit } = clicks([[0, 0], [0, 1], [0, 1]])
-    expect(submit).toBe(true)
-    expect(trace).toEqual([[0, 0], [0, 1]])
+describe('clickTile — the last tile is not special', () => {
+  // Until 2026-08-14 re-clicking the last tile SUBMITTED, and it was a
+  // misclick magnet: that tile sits where the cursor already is, so clipping
+  // it while reaching for the next letter sent a half-built word. It now takes
+  // the letter back like any other selected tile, and submitting is Enter or
+  // the Submit button — both deliberate.
+  it('re-clicking the LAST tile takes that letter back', () => {
+    expect(clicks([[0, 0], [0, 1], [0, 1]]).trace).toEqual([[0, 0]])
   })
 
-  it('a single tile can be submitted', () => {
-    // Length is the server's call, not the tracer's: only IT knows whether a
-    // short path is a theme word, so the reducer must let it through.
-    expect(clicks([[2, 2], [2, 2]])).toEqual({ trace: [[2, 2]], submit: true })
+  it('re-clicking a single-tile trace empties it', () => {
+    expect(clicks([[2, 2], [2, 2]])).toEqual({ trace: [] })
   })
 
-  it('does not submit when a DIFFERENT selected tile is clicked', () => {
-    expect(clicks([[0, 0], [0, 1], [0, 0]]).submit).toBe(false)
+  it('truncates identically wherever in the trace you click', () => {
+    // The last tile and a middle tile take the same path through the reducer:
+    // both drop themselves and everything after. A regression that special-
+    // cased the end again would break exactly one of these.
+    const atEnd = clicks([[0, 0], [0, 1], [1, 2], [1, 2]]).trace
+    const inMiddle = clicks([[0, 0], [0, 1], [1, 2], [0, 1]]).trace
+    expect(atEnd).toEqual([[0, 0], [0, 1]])
+    expect(inMiddle).toEqual([[0, 0]])
   })
 })
 
@@ -63,7 +68,7 @@ describe('clickTile — truncating', () => {
   })
 
   it('clearTrace() abandons the selection', () => {
-    expect(clearTrace()).toEqual({ trace: [], submit: false })
+    expect(clearTrace()).toEqual({ trace: [] })
   })
 })
 
@@ -75,10 +80,7 @@ describe('clickTile — consumed tiles', () => {
     // a mistake, so wiping the player's in-progress trace would punish a
     // misclick — the trace comes back exactly as it was.
     const start = clicks([[0, 0]], consumed)
-    expect(clickTile(start.trace, [0, 1], consumed)).toEqual({
-      trace: [[0, 0]],
-      submit: false,
-    })
+    expect(clickTile(start.trace, [0, 1], consumed)).toEqual({ trace: [[0, 0]] })
   })
 
   it('never starts a trace on a consumed tile', () => {
@@ -103,8 +105,10 @@ describe('clickTile — a far-away click starts over', () => {
     expect(clicks([[0, 0], [0, 1], [5, 5]]).trace).toEqual([[5, 5]])
   })
 
-  it('the abandoned trace is not resubmitted', () => {
-    expect(clicks([[0, 0], [0, 1], [5, 5]]).submit).toBe(false)
+  it('the abandoned trace is dropped, not merged', () => {
+    // It also can't be submitted, but that is no longer a property worth
+    // asserting: NO click submits (see "the last tile is not special").
+    expect(clicks([[0, 0], [0, 1], [5, 5]]).trace).toHaveLength(1)
   })
 })
 

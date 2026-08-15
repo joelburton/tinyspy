@@ -10,7 +10,7 @@ import { signIn } from './helpers/session'
  * supabase/tests/strands/:
  *
  *   1. **the tracer**, since it's the whole input model and has no typed
- *      fallback: clicking tiles in order, re-clicking to submit, Backspace,
+ *      fallback: clicking tiles in order, submitting with Enter, Backspace,
  *      and the fact that a found word's tiles LOCK;
  *   2. **the shield holding in a real client** — the answer must not be sitting
  *      in the page while the game is live;

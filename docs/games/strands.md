@@ -334,13 +334,25 @@ reversed. Physical keys also do the rest: **Backspace** drops the last tile,
 tiles are `tabIndex={-1}`: 48 tab stops would bury every real control, the same
 reasoning the shared `WordList` records.
 
+**A click never submits** (2026-08-14). Re-clicking the last tile used to send
+the word, and it was a misclick magnet: that tile is where the cursor already
+is, so clipping it while reaching for the next letter fired a half-built word
+at the server. It now truncates like any other selected tile — clicking *any*
+letter in the trace, the last one included, backs up to just before it — and
+the two deliberate routes (Enter, the Submit button) carry submission alone.
+That makes the move row load-bearing rather than a convenience, since a phone
+has no Enter key. The last tile keeps its second ring: it marks where the trace
+ends, which is what tells you which neighbours are live and what Backspace will
+take.
+
 **The move row** is the shared `<MoveRow>` (⌫ | the traced word in an
 `<EntryBox>` | Submit) — the same control every other game's entry wears. strands
 can't use `<EntryRow>`: its string is *derived* from the path (`wordFromPath`),
 so EntryRow's `value`/`onChange` contract runs backwards. The buttons are the
 pointer twins of Backspace and Enter, and the win is touch — on a phone there's
-no keyboard, so submitting used to mean re-clicking the last letter and nothing
-else. The row **shares its fixed-height slot with the verdict pill** (you're
+no keyboard, so the Submit button is now the ONLY way to send a word (before
+the row existed, submitting meant re-clicking the last letter; that gesture is
+gone, which is what promoted this button from convenience to necessity). The row **shares its fixed-height slot with the verdict pill** (you're
 either building a word or reading what the last one did), which is `<EntryRow>`'s
 own behaviour; stackdown, whose pill has a separate reserved row, is the odd one
 out.

@@ -34,10 +34,10 @@ export function Help({ onClose, brand }: Props) {
           all over the board.)
         </li>
         <li>
-          <strong>Click the last letter again</strong> to submit it — or press{' '}
-          <kbd>Enter</kbd>, or the submit button beside the word. <kbd>⌫</kbd>{' '}
-          (and the button left of the word) takes back one letter; clicking an
-          earlier letter in your trace backs up to just before it, and clicking far
+          <strong>Press <kbd>Enter</kbd></strong> to submit the word, or the submit
+          button beside it. <kbd>⌫</kbd> (and the button left of the word) takes
+          back one letter; clicking <em>any</em> letter in your trace — including
+          the one you just placed — backs up to just before it, and clicking far
           away starts over from there.
         </li>
         <li>

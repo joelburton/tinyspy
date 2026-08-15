@@ -137,8 +137,12 @@ export function Board({
           />
         ))}
 
-        {/* The most recent tile wears a second ring: re-clicking it is how a word
-            is submitted, and without a marker that affordance is invisible. */}
+        {/* The most recent tile wears a second ring: it marks where the trace
+            currently ENDS, which is what tells you which neighbours are live and
+            what Backspace will take. It used to advertise submission too
+            (re-clicking it sent the word); that gesture went on 2026-08-14, and
+            the ring stays because "you are here" was always the larger half of
+            what it said. */}
         {trace.length > 0 && (
           <circle
             className={styles.discLastRing}

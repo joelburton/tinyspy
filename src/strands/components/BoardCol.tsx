@@ -34,7 +34,7 @@ type Props = {
   echo: string
   /** Take back the last traced cell (the ⌫ button; Backspace does the same). */
   onDelete: () => void
-  /** Submit the trace (the Submit button; Enter and re-clicking the last cell
+  /** Submit the trace (the Submit button; Enter
    *  do the same). */
   onSubmit: () => void
   /** Nothing is being traced, or the board is frozen — both controls inert. */
@@ -143,8 +143,11 @@ export function BoardCol({
              makes it the same control players learned elsewhere.
 
              The buttons are the pointer twins of Backspace and Enter, and the
-             real gain is touch: on a phone there is no keyboard, so before this
-             the only way to submit was re-clicking the last letter. */
+             real gain is touch: on a phone there is no keyboard, so this is the
+             ONLY way to submit. (It used to share that job with re-clicking the
+             last letter, which was removed on 2026-08-14 for being a misclick
+             magnet — which makes this button load-bearing rather than a
+             convenience.) */
           <MoveRow
             className={styles.moveRow}
             onDelete={onDelete}
