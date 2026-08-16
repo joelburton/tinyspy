@@ -93,11 +93,6 @@
   cursor: default;
 }
 
-.tier:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
 /* Achieved tiers take the fill; the border is already the shared dark gold, so
  * the bright square stands out against the white track without the heaviness of
  * a near-black outline (which is reserved for the goal marker below). */
@@ -121,7 +116,13 @@
   border-color: var(--color-text);
 }
 
-/* Tooltip — only renders on hover/focus of its parent dot. */
+/* Tooltip — hover only. On a phone that covers the tap too: touch devices apply
+ * a sticky `:hover` to what you last touched (measured — the tap shows the
+ * bubble with `:focus` false), so the gesture works without the square being
+ * focusable. There is deliberately no `:focus-visible` rule: the tier carries no
+ * tabIndex (see RankBar.tsx), and when it did, this selector is what made the
+ * bubble stick — a click parked focus, the next keystroke promoted it, and
+ * neither the pointer leaving nor Tab could clear it. */
 .tooltip {
   position: absolute;
   bottom: calc(100% + 8px);
@@ -140,8 +141,7 @@
   transition: opacity 80ms ease;
 }
 
-.tier:hover .tooltip,
-.tier:focus-visible .tooltip {
+.tier:hover .tooltip {
   opacity: 1;
 }
 
