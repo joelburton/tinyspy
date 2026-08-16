@@ -40,8 +40,12 @@ import { signIn } from './helpers/session'
 const TAPPED_BOARDS = [
   // The two SVG-drawn boards — the shape that made this bug possible. Their
   // rule has to live on the <svg> root, not on the <g> that is the tile.
-  { name: 'spellingbee', make: createSpellingbeeGame, target: 'g[role="button"]' },
-  { name: 'wordwheel', make: createWordwheelGame, target: 'g[role="button"]' },
+  // `data-hex` / `data-tile`, not `g[role="button"]`: those tiles are
+  // pointer-only and carry no ARIA role (2026-08-16 — the role + tabIndex was an
+  // unreachable button costume that trapped focus instead). The touch-action
+  // rule this asserts lives on the <svg> root either way.
+  { name: 'spellingbee', make: createSpellingbeeGame, target: 'g[data-hex]' },
+  { name: 'wordwheel', make: createWordwheelGame, target: 'g[data-tile]' },
   { name: 'letterboxed', make: createLetterboxedGame, target: 'svg circle' },
   // HTML tiles: bespoke ones (strands, boggle, scrabble) and the shared `.tile`
   // (connections, waffle, stackdown).
