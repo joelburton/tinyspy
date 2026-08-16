@@ -108,9 +108,10 @@ beforeEach(() => {
 describe('wordwheel PlayArea — render smoke', () => {
   it('renders the wheel + RankBar + Stats in coop play', () => {
     render(<PlayArea {...makeCtx()} />)
-    expect(screen.getByRole('group', { name: /wheel/i })).toBeInTheDocument()
-    // The center letter is a labelled tile button.
-    expect(screen.getByRole('button', { name: /center letter/i })).toBeInTheDocument()
+    expect(document.querySelector('[data-wheel]')).toBeInTheDocument()
+    // The centre tile, by its data hook — a tile is pointer-only (Tile.tsx), so
+    // it wears no ARIA role for a test to hang off.
+    expect(document.querySelector('[data-tile][data-center]')).toBeInTheDocument()
     // The WordList rendered (empty during play).
     expect(screen.getByText(/no words yet/i)).toBeInTheDocument()
   })
@@ -285,24 +286,20 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
   it('dims a wheel tile once its letter is in the word (tile-spend rule)', async () => {
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx()} />)
+    // `data-disabled` is the spent marker (it replaced aria-disabled — the tiles
+    // carry no ARIA role, see Tile.tsx).
+    const tile = (letter: string) => document.querySelector(`[data-tile="${letter}"]`)!
     // Before typing: the 'B' tile + the centre 'E' tile are enabled.
-    expect(screen.getByRole('button', { name: 'B' })).not.toHaveAttribute('aria-disabled')
-    expect(screen.getByRole('button', { name: /E \(center letter\)/ })).not.toHaveAttribute(
-      'aria-disabled',
-    )
+    expect(tile('B')).not.toHaveAttribute('data-disabled')
+    expect(tile('E')).not.toHaveAttribute('data-disabled')
     // Type 'be' → both spent → both tiles disabled; an untyped tile ('C') stays enabled.
     await user.keyboard('be')
-    expect(screen.getByRole('button', { name: 'B' })).toHaveAttribute('aria-disabled', 'true')
-    expect(screen.getByRole('button', { name: /E \(center letter\)/ })).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    )
-    expect(screen.getByRole('button', { name: 'C' })).not.toHaveAttribute('aria-disabled')
+    expect(tile('B')).toHaveAttribute('data-disabled', 'true')
+    expect(tile('E')).toHaveAttribute('data-disabled', 'true')
+    expect(tile('C')).not.toHaveAttribute('data-disabled')
     // Backspace re-enables the freed tile.
     await user.keyboard('{Backspace}') // removes 'e'
-    expect(screen.getByRole('button', { name: /E \(center letter\)/ })).not.toHaveAttribute(
-      'aria-disabled',
-    )
+    expect(tile('E')).not.toHaveAttribute('data-disabled')
   })
 
   it('spends duplicate tiles one per occurrence, the centre first', async () => {
@@ -312,23 +309,26 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
     // its outer twin clickable; a second 'e' spends the twin too.
     h.result = loaded(loadedGame({ outer_letters: 'bacdfghe' }))
     render(<PlayArea {...makeCtx()} />)
-    const centerE = () => screen.getByRole('button', { name: /E \(center letter\)/ })
-    const outerE = () => screen.getByRole('button', { name: 'E' })
-    expect(centerE()).not.toHaveAttribute('aria-disabled')
-    expect(outerE()).not.toHaveAttribute('aria-disabled')
+    // Two tiles share the letter, so the centre is told apart by `data-center`
+    // rather than by an accessible name — which is also the only reason those
+    // names existed (Tile.tsx).
+    const centerE = () => document.querySelector('[data-tile="E"][data-center]')!
+    const outerE = () => document.querySelector('[data-tile="E"]:not([data-center])')!
+    expect(centerE()).not.toHaveAttribute('data-disabled')
+    expect(outerE()).not.toHaveAttribute('data-disabled')
     // First 'e': centre spent FIRST, the outer twin still available.
     await user.keyboard('e')
-    expect(centerE()).toHaveAttribute('aria-disabled', 'true')
-    expect(outerE()).not.toHaveAttribute('aria-disabled')
+    expect(centerE()).toHaveAttribute('data-disabled', 'true')
+    expect(outerE()).not.toHaveAttribute('data-disabled')
     // Second 'e': both e-tiles spent.
     await user.keyboard('e')
-    expect(centerE()).toHaveAttribute('aria-disabled', 'true')
-    expect(outerE()).toHaveAttribute('aria-disabled', 'true')
+    expect(centerE()).toHaveAttribute('data-disabled', 'true')
+    expect(outerE()).toHaveAttribute('data-disabled', 'true')
     // Backspace frees one occurrence → the outer twin re-enables, the centre
     // stays spent (it's first in the spend order).
     await user.keyboard('{Backspace}')
-    expect(centerE()).toHaveAttribute('aria-disabled', 'true')
-    expect(outerE()).not.toHaveAttribute('aria-disabled')
+    expect(centerE()).toHaveAttribute('data-disabled', 'true')
+    expect(outerE()).not.toHaveAttribute('data-disabled')
   })
 })
 

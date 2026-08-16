@@ -107,14 +107,28 @@ export function useCaptureKeys({
     //    … — so bail before touching anything (including the Tab swallow below).
     if (e.metaKey || e.ctrlKey || e.altKey) return
 
-    // Hard-off (loading / terminal): do nothing at all. Crucially this is BEFORE
-    // onAnyKey, so a terminal sticky pill isn't dismissed by a stray key.
-    if (disabled) return
-
     // 3. Any key the game sees is the player's next move → dismiss sticky local
     //    feedback. (Runs even while `busy`, since the dismissal is harmless and
-    //    the result it clears is from the previous move.)
-    onAnyKey?.()
+    //    the result it clears is from the previous move.) Gated on the entry
+    //    being live, so a terminal sticky pill isn't dismissed by a stray key.
+    if (!disabled) onAnyKey?.()
+
+    // Game-specific keys get first refusal (they preventDefault + return true to
+    // claim the key), and they get it BEFORE the hard-off below.
+    //
+    // Extra keys are BOARD keys, not entry keys: the only two are
+    // spellingbee's and wordwheel's Space-shuffles, a view-only rearrange of
+    // the letters that acts on the board rather than the word. Its BUTTON is
+    // deliberately live at terminal ("always clickable, even when locked — a
+    // harmless rearrange"), and the key sitting below the hard-off meant the
+    // two disagreed: you could shuffle a finished board by clicking but not by
+    // pressing Space. Also before the busy gate, so it still works mid-submit.
+    if (onExtraKey?.(e)) return
+
+    // Hard-off (loading / terminal): the ENTRY is done, so nothing below here —
+    // no Tab swallow (Tab is only worth stealing while the caret owns the
+    // keyboard), no edits, no submit.
+    if (disabled) return
 
     // 2. Swallow Tab while the entry is live — the caret owns the keyboard, so
     //    moving real focus onto a button would read as a second cursor. (Chat /
@@ -124,11 +138,6 @@ export function useCaptureKeys({
       e.preventDefault()
       return
     }
-
-    // Game-specific keys get first refusal (they preventDefault + return true to
-    // claim the key). Before the busy gate so a view-only key like Space-shuffle
-    // still works mid-submit.
-    if (onExtraKey?.(e)) return
 
     // Soft-busy (mid-submit): dismissal + Tab already handled; block edits + submit.
     if (busy) return

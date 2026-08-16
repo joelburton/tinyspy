@@ -30,7 +30,7 @@ test.describe('spellingbee play loop', () => {
 
     // Wait for the board to render + the capture keyboard to attach before
     // typing (the honeycomb group appears once the game header has loaded).
-    await boardReady(page, page.getByRole('group', { name: 'Letter honeycomb' }), 15000)
+    await boardReady(page, page.locator('[data-hive]'), 15000)
 
     // v3 move entry is the shared CAPTURE model (window key-capture + a
     // chrome-less <EntryBox>), so type on the page keyboard.
@@ -100,11 +100,11 @@ test.describe('spellingbee custom letters', () => {
     await page.getByRole('button', { name: /^Start FreeBee/ }).click()
 
     // The honeycomb renders with EXACTLY our letters: center A, outers C/H/I/R/O/T.
-    await expect(page.getByRole('button', { name: 'A (center letter)' })).toBeVisible({
-      timeout: 20000,
-    })
+    // Selected by `data-hex` — a hex is pointer-only and carries no ARIA role
+    // (Letter.tsx), so there is no accessible name to match on.
+    await expect(page.locator('[data-hex="A"][data-center]')).toBeVisible({ timeout: 20000 })
     for (const letter of ['C', 'H', 'I', 'R', 'O', 'T']) {
-      await expect(page.getByRole('button', { name: letter, exact: true })).toBeVisible()
+      await expect(page.locator(`[data-hex="${letter}"]`)).toBeVisible()
     }
 
     await ctx.close()

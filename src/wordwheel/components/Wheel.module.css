@@ -138,12 +138,6 @@
   stroke-width: 14;
 }
 
-/* Focus ring: recolor + thicken the tile border (reliable in SVG, unlike an
- * outline on a <g>). */
-.tile:focus-visible .tileShape {
-  stroke: var(--color-accent);
-  stroke-width: 4;
-}
 
 .tileText {
   fill: var(--wordwheel-tile-text);

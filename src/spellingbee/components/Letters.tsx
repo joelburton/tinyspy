@@ -46,8 +46,7 @@ export function Letters({ outerLetters, centerLetter, onLetterClick, floatingCon
         <svg
           className={styles.grid}
           viewBox="0 0 256 267"
-          role="group"
-          aria-label="Letter honeycomb"
+          data-hive
         >
           {letters.map((letter, i) => (
             <Letter

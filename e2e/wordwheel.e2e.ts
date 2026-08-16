@@ -30,7 +30,7 @@ test.describe('wordwheel live updates', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
     // Wait for the wheel to render + the capture keyboard to attach before typing.
-    await boardReady(page, page.getByRole('group', { name: 'Letter wheel' }), 15000)
+    await boardReady(page, page.locator('[data-wheel]'), 15000)
 
     const submit = async (w: string) => {
       await page.keyboard.type(w)

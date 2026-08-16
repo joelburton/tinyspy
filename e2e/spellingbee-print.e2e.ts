@@ -19,7 +19,7 @@ test.describe('spellingbee — print board', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${gametype}/${id}`)
-    await expect(page.getByRole('group', { name: 'Letter honeycomb' })).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('[data-hive]')).toBeVisible({ timeout: 15_000 })
 
     await page.getByRole('button', { name: 'Game menu' }).click()
     const [download] = await Promise.all([

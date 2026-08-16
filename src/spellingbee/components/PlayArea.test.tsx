@@ -112,9 +112,11 @@ beforeEach(() => {
 describe('spellingbee PlayArea — render smoke', () => {
   it('renders the honeycomb + RankBar + Stats in coop play', () => {
     render(<PlayArea {...makeCtx()} />)
-    expect(screen.getByRole('group', { name: /honeycomb/i })).toBeInTheDocument()
-    // The center letter is a labelled hex button.
-    expect(screen.getByRole('button', { name: /center letter/i })).toBeInTheDocument()
+    expect(document.querySelector('[data-hive]')).toBeInTheDocument()
+    // The centre hex. Selected by its data hook rather than a role + aria-label:
+    // a hex is pointer-only (see Letter.tsx), so dressing it as a button just to
+    // give the test a handle would put back the costume that trapped focus.
+    expect(document.querySelector('[data-hex][data-center]')).toBeInTheDocument()
     // The WordList rendered (empty during play).
     expect(screen.getByText(/no words yet/i)).toBeInTheDocument()
   })

@@ -33,8 +33,8 @@ test.describe('concede (compete)', () => {
     await pageB.goto(url)
 
     // Wait until both boards are up (both present) so the game is live for Alice.
-    await expect(pageA.getByRole('group', { name: 'Letter wheel' })).toBeVisible({ timeout: 20000 })
-    await expect(pageB.getByRole('group', { name: 'Letter wheel' })).toBeVisible({ timeout: 20000 })
+    await expect(pageA.locator('[data-wheel]')).toBeVisible({ timeout: 20000 })
+    await expect(pageB.locator('[data-wheel]')).toBeVisible({ timeout: 20000 })
 
     // Concede goes through window.confirm — auto-accept it on Alice's page.
     pageA.on('dialog', (d) => void d.accept())

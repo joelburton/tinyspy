@@ -69,8 +69,7 @@ export function Wheel({ outerLetters, centerLetter, onLetterClick, typedCounts, 
         <svg
           className={styles.grid}
           viewBox={`0 0 ${BOX_W} ${BOX_H}`}
-          role="group"
-          aria-label="Letter wheel"
+          data-wheel
         >
           {letters.map((letter, i) => (
             <Tile

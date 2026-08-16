@@ -241,7 +241,7 @@ board exits back to live.
 | `A`–`Z` | Type into the entry (stored uppercase). |
 | `⌫` / `Enter` | Delete / submit. |
 | `↑` `↓` | Recall your last word / clear the entry. |
-| `Space` | **Shuffle the hive** — a fresh visual scan. Works even mid-submit (it's a view-only key). |
+| `Space` | **Shuffle the hive** — a fresh visual scan. A BOARD key, not an entry key: it works mid-submit *and at terminal*, matching the Shuffle button, which is deliberately live on a finished board (a harmless rearrange). `useCaptureKeys` runs `onExtraKey` before its own hard-off for exactly this. |
 | `Enter` / `Space` on a focused letter | Type that letter. Tiles don't take focus on a tap, so this is rarely reached. |
 
 ## stackdown
@@ -305,5 +305,5 @@ Same shape as spellingbee, its fork parent.
 | `A`–`Z` | Type into the entry (stored uppercase). |
 | `⌫` / `Enter` | Delete / submit. `Enter` is **inert** when the typed word can't be spelled from the wheel's tiles — editing stays live so you can fix it, rather than the word submitting and coming back "not a word". |
 | `↑` `↓` | Recall your last word / clear the entry. |
-| `Space` | Shuffle the wheel. |
+| `Space` | Shuffle the wheel — same board key as spellingbee's, live at terminal too. |
 | `Enter` / `Space` on a focused tile | Type that letter. |

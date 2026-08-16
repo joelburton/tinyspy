@@ -61,11 +61,42 @@ describe('useCaptureKeys — core entry', () => {
     expect(onSubmit).toHaveBeenCalledTimes(1) // unchanged — empty Enter doesn't submit
   })
 
-  it('disabled is a complete no-op (no dispatch, no dismissal)', () => {
-    const { onChange, onAnyKey } = setup({ value: 'ca', disabled: true })
+  it('disabled stops the ENTRY dead (no edits, no submit, no dismissal)', () => {
+    const { onChange, onAnyKey, onSubmit } = setup({ value: 'ca', disabled: true })
     press('t')
     press('Backspace')
+    press('Enter')
+    expect(onChange).not.toHaveBeenCalled()
+    expect(onSubmit).not.toHaveBeenCalled()
+    // The dismissal is gated too, so a stray key can't wipe the terminal pill.
+    expect(onAnyKey).not.toHaveBeenCalled()
+  })
+
+  /**
+   * ...but an EXTRA key is a BOARD key, and the board outlives the entry.
+   *
+   * The only two are spellingbee's and wordwheel's Space-shuffles: a view-only
+   * rearrange of the letters. Its BUTTON is deliberately live at terminal ("a
+   * harmless rearrange"), and until 2026-08-16 the key sat below the disabled
+   * bail — so on a finished board you could shuffle by clicking but not by
+   * pressing Space. Reported as a bug, and it was: two controls for one action
+   * disagreeing about when they work.
+   */
+  it('an extra key still fires when the entry is disabled', () => {
+    const onExtraKey = vi.fn((e: KeyboardEvent) => e.key === ' ')
+    const { onChange, onAnyKey } = setup({ value: 'ca', disabled: true, onExtraKey })
+    press(' ')
+    expect(onExtraKey).toHaveBeenCalled()
+    // …and claiming the key still stops everything below it.
     expect(onChange).not.toHaveBeenCalled()
     expect(onAnyKey).not.toHaveBeenCalled()
+  })
+
+  it('an unclaimed extra key falls through to the entry as before', () => {
+    const onExtraKey = vi.fn(() => false)
+    const { onChange } = setup({ value: 'ca', onExtraKey })
+    press('t')
+    expect(onExtraKey).toHaveBeenCalled()
+    expect(onChange).toHaveBeenCalledWith('cat')
   })
 })

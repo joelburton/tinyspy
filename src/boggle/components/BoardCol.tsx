@@ -192,31 +192,23 @@ export function BoardCol({
               <div
                 key={`${y}-${x}`}
                 className={cls(styles.tile, step >= 0 && styles.selected)}
+                // The stable test handle; `data-step` is the tile's 1-based
+                // position in the traced word, absent when it isn't on the path.
                 data-boggle-tile
-                // A blank isn't part of any word, so it isn't interactive.
-                role={isBlank ? undefined : 'button'}
-                tabIndex={isBlank || readOnly ? undefined : 0}
-                aria-label={isBlank ? undefined : cell}
-                aria-pressed={step >= 0 || undefined}
-                // Don't let a pointer tap FOCUS the tile (same guard as spellingbee's
-                // hex Letter). Word entry is the window-level capture keyboard, so a
-                // focused tile would hijack the player's next Enter — pressing Enter to
-                // submit a typed word would instead fire this tile's onKeyDown and trace
-                // the tile onto the word ("submitted 2 letters / a stray last tile").
-                // preventDefault on mousedown keeps focus where it is (touch on iOS
-                // never focuses a div, but desktop/other browsers do).
+                data-step={step >= 0 ? step + 1 : undefined}
+                // POINTER-ONLY: no tabIndex, no role, no Enter/Space keydown.
+                // A tile isn't keyboard-reachable — useCaptureKeys swallows Tab
+                // while play is live — so the button costume was unreachable,
+                // and it was actively harmful: a focused tile's own keydown
+                // would eat the player's next Enter, tracing a stray tile onto
+                // the word instead of submitting it. Nothing to eat it now.
+                // (spellingbee's Letter carries the same note at length.)
+                //
+                // preventDefault on mousedown remains, to stop a click
+                // selecting the tile's letter — the tile can't take focus any
+                // more, so that's all it's for.
                 onMouseDown={isBlank ? undefined : (e) => e.preventDefault()}
                 onClick={isBlank ? undefined : () => handleTap(y, x)}
-                onKeyDown={
-                  isBlank
-                    ? undefined
-                    : (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault()
-                          handleTap(y, x)
-                        }
-                      }
-                }
               >
                 {/* a blank tile (face 0) shows a faint "?", like a scrabble blank */}
                 <span className={isBlank ? styles.blank : undefined}>{cell}</span>

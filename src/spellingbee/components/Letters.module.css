@@ -125,12 +125,6 @@
   stroke: var(--spellingbee-accent-edge);
 }
 
-/* Focus ring: recolor + thicken the hex border (reliable in SVG, unlike an outline
- * on a <g>). */
-.hex:focus-visible .hexShape {
-  stroke: var(--color-accent);
-  stroke-width: 4;
-}
 
 .hexText {
   fill: var(--spellingbee-hex-text);

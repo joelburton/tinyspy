@@ -18,12 +18,23 @@ type Props = {
  * which the old `clip-path` div couldn't give us) plus a centered `<text>`. Drawn
  * inside the parent `<Letters>` svg, so it shares the flower's coordinate space.
  *
- * The group is the interactive element (`role="button"` + `tabIndex` + Enter/Space
- * keydown) since you can't nest a real `<button>` in SVG; the polygon's fill is the
- * hit area, so clicks only land on the hex shape (not its bounding-box corners).
- * `onMouseDown` is intercepted so clicking a letter doesn't steal focus from the
- * typed-word input (same reason as the old button — the next keystroke must still
- * reach the input). SVG `<text>` ignores `text-transform`, so we uppercase here.
+ * The group carries the click (you can't nest a real `<button>` in SVG); the
+ * polygon's fill is the hit area, so clicks only land on the hex shape, not its
+ * bounding-box corners. **POINTER-ONLY**: no `tabIndex`, no `role`, no
+ * Enter/Space keydown. A hex isn't keyboard-reachable and can't be — while play
+ * is live `useCaptureKeys` swallows Tab (the caret owns the keyboard), so the
+ * whole button costume was unreachable scaffolding, and the one path that did
+ * open it (Tab at terminal, where the capture hook goes hard-off) left the hex
+ * focused with a stuck ring and fired `onClick` into an entry the game no longer
+ * accepts. The letters are typed, or clicked; there is no third way.
+ *
+ * `data-hex` / `data-center` are the test hooks that replaced `role="button"` +
+ * `aria-label` — a stable handle without the behaviour an ARIA role implies
+ * (the same reason boggle's tiles carry `data-boggle-tile`).
+ *
+ * `onMouseDown` is still intercepted, now only to stop a click selecting the
+ * letter text — nothing here can take focus any more.
+ * SVG `<text>` ignores `text-transform`, so we uppercase here.
  */
 export function Letter({ letter, isCenter, pos, onClick, flashNonce }: Props) {
   const up = letter.toUpperCase()
@@ -37,16 +48,9 @@ export function Letter({ letter, isCenter, pos, onClick, flashNonce }: Props) {
   return (
     <g
       className={cls(styles.hex, isCenter && styles.center)}
-      role="button"
-      tabIndex={0}
-      aria-label={isCenter ? `${up} (center letter)` : up}
+      data-hex={up}
+      data-center={isCenter || undefined}
       onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onClick()
-        }
-      }}
       onMouseDown={(e) => e.preventDefault()}
     >
       <polygon className={styles.hexShape} points={points} />
