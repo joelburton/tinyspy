@@ -49,7 +49,7 @@ export function InfoCol({
   onSpoiler,
   spoiling,
   onReveal,
-  revealDisabled,
+  secretsShown,
   onEndGame,
   onConcede,
   onRestart,
@@ -98,11 +98,11 @@ export function InfoCol({
    *  bare-eye SpoilerButton). Logs to the turn log like a hint does. */
   onSpoiler: () => void
   spoiling: boolean
-  /** Ring the three secrets at game-over (the red boxed-eye RevealButton + its
-   *  menu twin). Local display toggle — nothing is written. */
+  /** Ring the three secrets at game-over — or un-ring them. A local display
+   *  toggle shared with the menu twin; nothing is written, no peer affected. */
   onReveal: () => void
-  /** The secrets are already ringed, so the reveal control self-disables. */
-  revealDisabled: boolean
+  /** Are the secrets ringed right now? Swaps the button to its Hide face. */
+  secretsShown: boolean
   onEndGame: () => void
   onConcede: () => void
   /** Hunt the SAME board + secrets again from scratch (the menu's Restart item;
@@ -203,7 +203,13 @@ export function InfoCol({
                 again, or deal a new one. */}
             {/* Reveal first: it acts on THIS finished board. Restart / New game
                 are both "move on", and they leave. */}
-            <RevealButton iconOnly onClick={onReveal} disabled={revealDisabled} />
+            <RevealButton
+              iconOnly
+              label="Reveal secrets"
+              revealedLabel="Hide secrets"
+              revealed={secretsShown}
+              onClick={onReveal}
+            />
             <RestartButton iconOnly onClick={onRestart} />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>

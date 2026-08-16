@@ -14,7 +14,7 @@
  * needed; everything else — the board, entry, strip, action row — renders for
  * real. Mirrors wordle's concede tests (the elimination template, commit c1b5df8).
  */
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
@@ -279,5 +279,77 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
     const items = menuItems(spent)
     expect(items.get('hint')?.disabled).toBe(true)
     expect(items.get('spoiler')?.disabled).toBe(true)
+  })
+})
+
+/**
+ * The terminal secrets reveal — rings the three secret tiles on the board, and
+ * the fact that it's a LOCAL, reversible choice (useSolutionReveal). Nothing
+ * rings them automatically: `replay_board` hunts this same board and these same
+ * three secrets again, so a ringed board would leave Restart nothing to find.
+ *
+ * Asserted through the tile's `secret` class — vitest runs with `css: false`,
+ * so CSS-module keys come through unscoped (see vitest.config.ts).
+ */
+describe('psychicnum PlayArea — the terminal secrets reveal', () => {
+  /** Flatten what PlayArea handed `menu.setGameSections` into id → item. */
+  function menuItems(ctx: GamePageCtx) {
+    const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
+    const sections = setSections.mock.calls.at(-1)?.[0] ?? []
+    return new Map(
+      (sections as { items: { id: string; label: string; disabled?: boolean; onClick: () => void }[] }[])
+        .flatMap((s) => s.items)
+        .map((i) => [i.id, i]),
+    )
+  }
+
+  /** How many board tiles are currently ringed as secrets. */
+  const ringed = () =>
+    screen.getAllByRole('button').filter((b) => b.className.includes('secret')).length
+
+  /** A finished game whose secrets have reached this client (the server sends
+   *  them once the game is terminal). */
+  const ended = () => {
+    h.result = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
+    return makeCtx({ isTerminal: true, playState: 'lost' })
+  }
+
+  it('leaves the board un-ringed until this viewer asks', () => {
+    render(<PlayArea {...ended()} />)
+    expect(ringed()).toBe(0)
+    expect(screen.getByRole('button', { name: 'Reveal secrets' })).toBeEnabled()
+  })
+
+  it('Reveal rings the three for me alone — no RPC', async () => {
+    const user = userEvent.setup()
+    render(<PlayArea {...ended()} />)
+    await user.click(screen.getByRole('button', { name: 'Reveal secrets' }))
+    expect(ringed()).toBe(3)
+    // Local state: no teammate's board lit up.
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('the same button un-rings them, restoring the board as it ended', async () => {
+    const user = userEvent.setup()
+    render(<PlayArea {...ended()} />)
+    await user.click(screen.getByRole('button', { name: 'Reveal secrets' }))
+    await user.click(screen.getByRole('button', { name: 'Hide secrets' }))
+    expect(ringed()).toBe(0)
+  })
+
+  it('the menu twin is the same toggle, and flips its label with it', async () => {
+    const ctx = ended()
+    render(<PlayArea {...ctx} />)
+    expect(menuItems(ctx).get('reveal')?.label).toBe('Reveal secrets')
+    act(() => menuItems(ctx).get('reveal')!.onClick())
+    expect(ringed()).toBe(3)
+    await waitFor(() => expect(menuItems(ctx).get('reveal')?.label).toBe('Hide secrets'))
+  })
+
+  it('the menu twin is inert before the game is over for everyone', () => {
+    const ctx = makeCtx()
+    render(<PlayArea {...ctx} />)
+    // Nothing to ring: the secrets don't reach this client until terminal.
+    expect(menuItems(ctx).get('reveal')?.disabled).toBe(true)
   })
 })

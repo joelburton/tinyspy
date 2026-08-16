@@ -1,7 +1,7 @@
 import { faultMessage } from '../../common/lib/game/serverError'
 import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
+import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import type { GamePageCtx } from '../../common/lib/games'
 import type { PsychicnumSetup } from '../lib/setup'
@@ -14,6 +14,7 @@ import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandle
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
+import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { setupRows } from '../lib/setupSummary'
@@ -22,7 +23,6 @@ import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { db } from '../db'
-import { db as commonDb } from '../../common/db'
 import { useGame } from '../hooks/useGame'
 import { printPsychicnumPdf } from '../pdf/printPsychicnumPdf'
 import { buildPsychicnumPrintModel } from '../pdf/model'
@@ -65,7 +65,6 @@ export function PlayArea({
   players,
   playState,
   isTerminal,
-  solutionRevealed,
   timer,
   isMyTurn,
   currentTurnUserId,
@@ -165,13 +164,12 @@ export function PlayArea({
   // its RPC comment), so auto-revealing on a loss would leave Restart with
   // nothing to find.
   //
-  // `secretsShown` is `common.games.solution_revealed`, straight off the row —
-  // the ONE common answer to "may they see it?" (docs/ui.md → Terminal
-  // results). end_game sets it on a win, reveal_solution on the ask, and
-  // reset_game clears it, so Restart re-hides with nothing to remember here.
-  // Being on the row also makes it SHARED: a teammate's Reveal rings the tiles
-  // on this client too, via the same realtime refetch.
-  const secretsShown = solutionRevealed
+  // The ask is LOCAL and reversible (useSolutionReveal): mine alone, so a
+  // teammate can go on eyeing the board for the three while I look, and the
+  // same control un-rings them. The secrets themselves are on every client once
+  // the game is terminal, so this is purely which tiles get rung.
+  const { revealed: secretsShown, toggle: toggleSecrets, hide: hideSecrets } =
+    useSolutionReveal()
   // The FULL psychicnum game menu (Help + Print + End/Concede + Back to club).
   // `buildGameMenu` supplies the framing; `extra` is our one Print item. Print
   // builds its model from the live state (RLS already scoped `guesses`/`results`
@@ -227,9 +225,10 @@ export function PlayArea({
               // server unshields the secrets at terminal.
               {
                 id: 'reveal',
-            icon: IconReveal,
-            label: 'Reveal secrets',
-                disabled: !isTerminal || secretsShown,
+                // The same two faces as the terminal row's button — one toggle.
+                icon: secretsShown ? IconHideSolution : IconReveal,
+                label: secretsShown ? 'Hide secrets' : 'Reveal secrets',
+                disabled: !isTerminal,
                 onClick: () => actionsRef.current?.reveal(),
               },
             ],
@@ -254,15 +253,6 @@ export function PlayArea({
 
   // ─── Coop peer events (group feedback) ─────────────────
   // A teammate's guess (green correct / red not) or hint request (amber) is
-  // Open the secrets for everyone — the terminal RevealButton + its menu twin.
-  // The RPC is common (not psychicnum's), because the flag is
-  // (`common.games.solution_revealed`); it's terminal-only server-side, so the
-  // disabled-until-terminal menu item is a UI convenience, not the gate.
-  const revealSecrets = useCallback(async () => {
-    const bad = await callRpc(commonDb, 'reveal_solution', { target_game: gameId })
-    if (bad) showLocalFeedback(bad)
-  }, [gameId, showLocalFeedback])
-
   // Hint (a clue) and spoiler (the answer word itself) both land in the turn log
   // via realtime; coop teammates get a header pill. Nothing to do with the
   // return value here — the helper rows arrive over the subscription. The RPC
@@ -387,7 +377,11 @@ export function PlayArea({
   const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
-  }, [exitViewing, clearLocalFeedback])
+    // The same board and the same three secrets, hunted again — so un-ring
+    // them. Nothing on the server remembers the reveal any more, which is
+    // exactly why this is spelled out.
+    hideSecrets()
+  }, [exitViewing, clearLocalFeedback, hideSecrets])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
@@ -449,11 +443,11 @@ export function PlayArea({
       concede,
       restart,
       newGame: () => void handleNewGame(),
-      reveal: () => void revealSecrets(),
+      reveal: toggleSecrets,
       hint: () => void getHint(),
       spoiler: () => void getSpoiler(),
     }
-  }, [endGame, concede, restart, handleNewGame, revealSecrets, getHint, getSpoiler])
+  }, [endGame, concede, restart, handleNewGame, toggleSecrets, getHint, getSpoiler])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -583,8 +577,8 @@ export function PlayArea({
         hinting={hinting}
         onSpoiler={() => void getSpoiler()}
         spoiling={spoiling}
-        onReveal={() => void revealSecrets()}
-        revealDisabled={secretsShown}
+        onReveal={toggleSecrets}
+        secretsShown={secretsShown}
         onEndGame={endGame}
         onConcede={concede}
         onRestart={restart}

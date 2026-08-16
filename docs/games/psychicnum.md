@@ -108,7 +108,7 @@ The shape that's the same in both modes:
 - The `psychicnum.players` table (one row per player; structurally identical).
 - The `psychicnum.guesses` table (rows look the same; RLS hides them differently).
 - The setup blob (`PsychicnumSetup` = `CoopTurnSetup & { guesses, word_count, difficulty, timer }` — see `lib/setup.ts`) — same fields, same defaults (`coop_style: 'free-for-all'`; the turn toggle only means something in coop).
-- The hidden-secrets mechanic — both modes unshield the three secrets post-terminal via `games_state`. The FE then rings them only when `common.games.solution_revealed` says so — a clean win or an explicit Reveal: `replay_board` hunts the SAME three again, so auto-ringing a lost board would leave Restart nothing to find (docs/ui.md → Terminal results). The flag is common, shared, and cleared by `reset_game`.
+- The hidden-secrets mechanic — both modes unshield the three secrets post-terminal via `games_state`. The FE then rings them only when THIS viewer presses Reveal — never on its own, a win included: `replay_board` hunts the SAME three again, so a ringed board would leave Restart nothing to find (docs/ui.md → Terminal results). The reveal is local, per-player and reversible, so a teammate can go on eyeing the board while someone else looks, and `onRestarted` un-rings.
 - `common.games.title` formula (the first three board words — see [Title formula](#title-formula)).
 - `common.game_players.result` shape (`{ won: bool }`).
 - `common.update_state` mid-game listing-label payload structure.
@@ -296,7 +296,7 @@ The **End** button in the info-column action row (coop; compete shows **Concede*
 
 Unlike `submit_timeout`, a manual stop is **neither a win nor a loss**, so it writes the uniform terminal `play_state = 'ended'` with `status = {outcome:'manual', mode}` and `result = {won: false}` for every player (psychicnum tracks no per-player score, so there's nothing richer to record). Same shape across both modes. The FE renders `'ended'` neutrally — green "Game ended" copy, not the red loss treatment.
 
-Idempotent on the terminal-state guard: a second concurrent call raises `P0001 'game is not in progress'`, which the FE swallows. **Realtime touch at the tail** — a no-op self-write on `psychicnum.games` (`set club_handle = club_handle`) wakes the FE's schema-scoped subscription to refetch the now-unshielded secrets (which the FE still holds back until a win or a Reveal) — the uniform trick at [common.md → Manual end, step 6](../common.md#manual-end--every-gametypes-end_gametarget_game).
+Idempotent on the terminal-state guard: a second concurrent call raises `P0001 'game is not in progress'`, which the FE swallows. **Realtime touch at the tail** — a no-op self-write on `psychicnum.games` (`set club_handle = club_handle`) wakes the FE's schema-scoped subscription to refetch the now-unshielded secrets (which the FE still holds back until this viewer presses Reveal) — the uniform trick at [common.md → Manual end, step 6](../common.md#manual-end--every-gametypes-end_gametarget_game).
 
 Reject reasons: not authenticated; not a game player; game not found; game status ≠ playing.
 

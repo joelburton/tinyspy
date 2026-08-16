@@ -4,11 +4,13 @@ import { signIn } from './helpers/session'
 
 /**
  * psychicnum's terminal reveal: the board becomes the answer key — but only when
- * asked. The server exposes `secrets` at game over (the `psychicnum.games_view`
- * terminal gate), and the FE holds them back on anything but a clean win, because
+ * asked, and only for the asker. The server exposes `secrets` at game over (the
+ * `psychicnum.games_view` terminal gate), and the FE holds them back until this
+ * viewer presses Reveal — never on its own, a win included, because
  * `replay_board` hunts the SAME three secrets again (docs/ui.md → Terminal
  * results). Pressing Reveal rings every secret's tile bright green — over
- * whatever background it already had, so "was it found?" still reads.
+ * whatever background it already had, so "was it found?" still reads — and
+ * pressing Hide un-rings them.
  *
  * The ring replaced a text list in the below-board pill ("The words were APPLE,
  * RIVER, STONE"), which had no room on a phone and made the player map words back
@@ -17,7 +19,7 @@ import { signIn } from './helpers/session'
  * Browser-only: the ring is CSS (`outline` on a tile), which jsdom can't see, and
  * the "background unchanged" half is only checkable by reading computed styles.
  */
-test('terminal: secrets stay hidden until Reveal, then ring the tiles', async ({
+test('terminal: secrets stay hidden until Reveal, ring the tiles, then un-ring', async ({
   browser,
 }) => {
   const club = await createSoloClub('pnterm')
@@ -51,9 +53,7 @@ test('terminal: secrets stay hidden until Reveal, then ring the tiles', async ({
   // Asking for them rings exactly the three secrets…
   await reveal.click()
   await expect.poll(async () => (await ringed()).length, { timeout: 8000 }).toBe(3)
-  // …the control self-disables once they're on screen…
-  await expect(reveal).toBeDisabled()
-  // …and their BACKGROUNDS are untouched by the ring: this game was ended without
+  // …their BACKGROUNDS are untouched by the ring: this game was ended without
   // a single guess, so every tile — secrets included — still wears the plain tile
   // fill, not a result color.
   const bgs = await page.evaluate(() =>
@@ -70,6 +70,12 @@ test('terminal: secrets stay hidden until Reveal, then ring the tiles', async ({
       ).backgroundColor,
   )
   expect(new Set(bgs)).toEqual(new Set([plain]))
+
+  // The same button, now wearing its Hide face, takes the rings back off — the
+  // board as the players actually left it.
+  await page.getByRole('button', { name: /^hide/i }).click()
+  await expect.poll(async () => (await ringed()).length, { timeout: 8000 }).toBe(0)
+  await expect(reveal).toBeVisible()
 
   // The below-board pill carries the verdict (the shared neutral end copy), not a
   // word list.
