@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { IconNewGame, IconPrint, IconRestart } from '../../common/components/icons'
+import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx, Member } from '../../common/lib/games'
@@ -24,6 +24,7 @@ import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useCon
 import { buildWordiplyPrintModel } from '../pdf/model'
 import { printWordiplyPdf } from '../pdf/printWordiplyPdf'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
+import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import shared from '../../common/components/game/PlayArea.module.css'
@@ -76,7 +77,7 @@ function rejectReason(reason: string | undefined, base: string): string {
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, playState, solutionRevealed, players, session, status,
+    gameId, isTerminal, playState, players, session, status,
     isMyTurn, currentTurnUserId,
     setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback, title,
   } = ctx
@@ -99,8 +100,18 @@ export function PlayArea(ctx: GamePageCtx) {
     endGame: () => void
     concede: () => void
     restart: () => void
+    reveal: () => void
     newGame: () => void
   } | null>(null)
+
+  // ─── The best possible word shows only when asked ──────
+  // wordiply used to hand it over the moment the game ended (it was one of the
+  // two games registered hides_solution = false). It doesn't now: the two
+  // readouts that matter — the length score and the letter count — say how well
+  // you did WITHOUT naming the word, so a table that wants to keep guessing at
+  // it can. Local and reversible, so my looking doesn't end anyone else's think.
+  const { revealed: solutionShown, toggle: toggleSolution, hide: hideSolution } =
+    useSolutionReveal()
 
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
@@ -199,6 +210,9 @@ export function PlayArea(ctx: GamePageCtx) {
     myConceded,
     confirm: confirmAction,
     showError: showLocalFeedback,
+    // The same base, extended again — so put the best word away. Nothing on the
+    // server remembers the reveal any more, which is why this is explicit.
+    onRestarted: hideSolution,
   })
 
   const gameMode = game?.mode
@@ -244,9 +258,10 @@ export function PlayArea(ctx: GamePageCtx) {
       endGame,
       concede,
       restart,
+      reveal: toggleSolution,
       newGame: () => void handleNewGame(),
     }
-  }, [endGame, concede, restart, handleNewGame])
+  }, [endGame, concede, restart, toggleSolution, handleNewGame])
 
   // Compete leaderboard (off the live status jsonb) → per-player metrics.
   // Memoized because the print model (and so the menu effect) depends on it: the
@@ -272,7 +287,7 @@ export function PlayArea(ctx: GamePageCtx) {
       base,
       maxWordLength: game.max_word_length,
       longestWord: game.longestWords[0] ?? null,
-      solutionRevealed,
+      solutionRevealed: solutionShown,
       mode: game.mode,
       isTerminal,
       guesses,
@@ -298,6 +313,16 @@ export function PlayArea(ctx: GamePageCtx) {
             items: [
               { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current?.restart() },
               { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
+              // The menu twin of the terminal row's boxed-eye button — the same
+              // toggle, wearing the same two faces. Inert until the game is
+              // over for everyone, so a player who conceded can't spoil a race.
+              {
+                id: 'reveal',
+                icon: solutionShown ? IconHideSolution : IconReveal,
+                label: solutionShown ? 'Hide best word' : 'Reveal best word',
+                disabled: !isTerminal,
+                onClick: () => actionsRef.current?.reveal(),
+              },
             ],
           },
           { items: [{ id: 'print', icon: IconPrint, label: 'Print board (PDF)', onClick: () => printWordiplyPdf(printModel) }] },
@@ -306,7 +331,7 @@ export function PlayArea(ctx: GamePageCtx) {
     )
     return () => menu.setGameSections([])
   }, [
-    menu, game, isTerminal, solutionRevealed, myConceded,
+    menu, game, isTerminal, solutionShown, myConceded,
     brand, title, base, guesses, players, session.user.id, guessesUsed,
     longest, letters, leaderboard, wordiplySetup,
     summaryRows,
@@ -413,7 +438,8 @@ export function PlayArea(ctx: GamePageCtx) {
           letters={letters}
           maxWordLength={game.max_word_length}
           longestWord={game.longestWords[0] ?? null}
-          solutionRevealed={solutionRevealed}
+          solutionShown={solutionShown}
+          onReveal={toggleSolution}
           base={base}
           opponentReveal={opponentReveal}
           players={players}

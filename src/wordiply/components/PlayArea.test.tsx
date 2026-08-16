@@ -12,10 +12,12 @@
  */
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
 import type { WordiplyGame, GuessRow } from '../hooks/useGame'
+import { db } from '../db'
 import { PlayArea } from './PlayArea'
 
 type GameHook = { game: WordiplyGame | null; guesses: GuessRow[]; loading: boolean }
@@ -149,27 +151,37 @@ describe('wordiply PlayArea — length-only during play', () => {
 })
 
 describe('wordiply PlayArea — terminal reveal', () => {
-  it('reveals the score bar, letter count, and the longest possible word', () => {
+  /** A finished coop game with both readouts in its status blob. */
+  const ended = () => {
     h.result = {
       game: loadedGame(),
       guesses: [guess('bar', 1), guess('stars', 2)],
       loading: false,
     }
-    render(
-      <PlayArea
-        {...makeCtx({
-          isTerminal: true,
-          playState: 'ended',
-          // wordiply never hides its answer, so end_game sets the common flag
-          // at every ending — and the best-possible-word reveal reads it.
-          solutionRevealed: true,
-          status: { outcome: 'complete', length_score: 71, letter_count: 8 },
-        })}
-      />,
-    )
-    // Score bar (longest 'stars'=5 of 7 → 71%) + its anchor now visible.
+    return makeCtx({
+      isTerminal: true,
+      playState: 'ended',
+      status: { outcome: 'complete', length_score: 71, letter_count: 8 },
+    })
+  }
+
+  it('scores the game WITHOUT naming the best word', () => {
+    // The point of the change: the two readouts say how well you did, and the
+    // word itself waits to be asked for, so a table can keep guessing at it.
+    render(<PlayArea {...ended()} />)
+    // Score bar (longest 'stars'=5 of 7 → 71%) + its anchor are visible…
     expect(screen.getByText('71%')).toBeInTheDocument()
     expect(screen.getByText(/possible 7/)).toBeInTheDocument()
+    // …and the word is not.
+    expect(screen.queryByText(/Best possible word/)).not.toBeInTheDocument()
+    expect(screen.queryByText('HANGARS')).not.toBeInTheDocument()
+  })
+
+  it('Reveal names the longest possible word, click-to-define, with no RPC', async () => {
+    const user = userEvent.setup()
+    render(<PlayArea {...ended()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Reveal best word' }))
     // The reveal names the longest possible word (label carries the length)…
     expect(screen.getByText(/Best possible word/)).toBeInTheDocument()
     // …and it's click-to-define: a bare BUTTON carrying the shared affordance.
@@ -179,6 +191,17 @@ describe('wordiply PlayArea — terminal reveal', () => {
       .getAllByTitle('Click to define')
       .find((el) => el.tagName === 'BUTTON')
     expect(defineBtn).toHaveTextContent('HANGARS')
+    // Local state: no peer's board opened.
+    expect(db.rpc as unknown as ReturnType<typeof vi.fn>).not.toHaveBeenCalled()
+  })
+
+  it('the same button hides it again', async () => {
+    const user = userEvent.setup()
+    render(<PlayArea {...ended()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Reveal best word' }))
+    await user.click(screen.getByRole('button', { name: 'Hide best word' }))
+    expect(screen.queryByText(/Best possible word/)).not.toBeInTheDocument()
   })
 
   it('compete terminal reveals opponents’ words but keeps my board to my own', () => {

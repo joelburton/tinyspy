@@ -70,10 +70,10 @@ export function buildWordiplyPrintModel(o: {
   maxWordLength: number
   /** The longest possible word, from the board — the game's solution. */
   longestWord: string | null
-  /** `common.games.solution_revealed`: may the solution be shown? wordiply
-   *  doesn't hide it (gametypes.hides_solution = false), so this is true at
-   *  every ending — but the printout reads the same canonical flag the screen
-   *  does rather than re-deciding with `isTerminal`. */
+  /** Is the best possible word on screen right now (the local reveal toggle)?
+   *  The paper carries the answer only if the page in front of the printer
+   *  does — printing it regardless would route around the Reveal button and
+   *  hand the word to a table still guessing at it. */
   solutionRevealed: boolean
   mode: 'coop' | 'compete'
   isTerminal: boolean

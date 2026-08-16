@@ -93,10 +93,17 @@ shipping `legal_words`.
 ### Live readout = word length only; scores revealed at terminal
 
 After each guess the player sees **only the length of that word** (a small badge on the
-guess row). The two aggregate readouts — **length score %** and **letter count** — and the
-**longest possible word** are shown **only at the end**. Mid-game the felt state is "I found
-a 7-letter word"; the payoff ("that's 78% of the best — and the best was 9") lands at
-terminal.
+guess row). The two aggregate readouts — **length score %** and **letter count** — are shown
+**only at the end**. Mid-game the felt state is "I found a 7-letter word"; the payoff
+("that's 78% of the best") lands at terminal.
+
+The **longest possible word** goes one step further: even at terminal it waits for the
+**Reveal best word** button (`RevealButton`, action row + menu twin — [ui.md → Terminal
+results](../ui.md#terminal-results--the-moment-vs-the-record)). wordiply used to hand it
+over the moment the game ended, which is the whole reason to change it: the score says how
+well you did *without naming the answer*, so a table that wants to keep guessing at
+`_ _ _ _ _ _ _` can. The reveal is local and reversible — mine alone, and the same button
+takes it back — so one impatient player can't end everyone else's think.
 
 Compete mirrors this: mid-game an opponent surfaces only **guesses used (`n/5`)** — never a
 length score, never their words. The length-score reveal is terminal-only for everyone.
@@ -486,11 +493,14 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   **letter-count** stat. Then **`<OpponentStrip>`** (compete; mid-game `metricLabel="Guesses"`,
   value = each opponent's `n/5`; at terminal switch to length score %), then the **action row** —
   ICON-ONLY: playing = End (coop) / Concede (compete) + back-to-club; terminal = the outcome
-  line + `RestartButton` / `NewGameButton` / primary Club via `TerminalActionRow iconOnly`;
+  line + `RestartButton` / `RevealButton` / `NewGameButton` / primary Club via
+  `TerminalActionRow iconOnly`;
   a conceded compete player (the others race on) gets the `LocalTerminalRow` "You conceded"
   + the below-board out-of-race pill —
-  then the **`<SetupDisclosure>`** (difficulty band, timer), then the **terminal reveal**
-  ("Best possible word: **HANGARS** (7)" — full-colour, no card) and, in compete, the
+  then the **`<SetupDisclosure>`** (difficulty band, timer), then the **asked-for reveal**
+  ("Best possible word: **HANGARS** (7)" — full-colour, no card; it grows the column when
+  opened and gives the space back when closed, a blessed exception to
+  [ui.md → Layout stability](../ui.md#layout-stability)) and, in compete, the
   **`<OpponentReveal>`** (`components/OpponentReveal.tsx`): each opponent's actual guessed
   words, rendered **only at terminal** — all game long a compete player sees opponents'
   guess *counts* only (the words are RLS-hidden and never ship); when the RLS opens the
@@ -565,10 +575,12 @@ page *is* the log and `drawTurnLog` starts straight under the header.
 
 The split is deliberate. `model.ts` is pure — no jsPDF — and holds every judgment;
 `printWordiplyPdf.ts` only draws. That's because the judgment is mostly one rule
-worth a test: **the terminal-only reveal has to hold on paper.** Mid-game the page
-shows the guess count and nothing else — no length score, no letter count, no
-longest word — exactly as the screen does. Dumping `status` would have leaked all
-three, so `model.test.ts` pins it.
+worth a test: **the reveal rules have to hold on paper.** Mid-game the page shows
+the guess count and nothing else — no length score, no letter count, no longest
+word — exactly as the screen does. The longest word goes further still: it prints
+only while the reveal toggle is open, so the paper carries the answer only if the
+page in front of the printer does. Dumping `status` would have leaked all three,
+so `model.test.ts` pins it.
 
 What prints:
 
