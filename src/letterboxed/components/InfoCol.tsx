@@ -64,7 +64,7 @@ export function InfoCol({
   onHint,
   onSpoiler,
   onReveal,
-  revealDisabled,
+  solutionShown,
   onEndGame,
   onConcede,
   onRestart,
@@ -107,10 +107,11 @@ export function InfoCol({
   /** Coop only — both refused server-side in compete. */
   onHint: () => void
   onSpoiler: () => void
-  /** Open the seeded solution for everyone (common.reveal_solution). */
+  /** Show the seeded pair — or put it away again. A local display toggle
+   *  shared with the menu twin; nothing is written and no peer is affected. */
   onReveal: () => void
-  /** Already open — a win reveals automatically, so the button goes inert. */
-  revealDisabled: boolean
+  /** Is the pair on screen right now? Swaps the button to its Hide face. */
+  solutionShown: boolean
   onEndGame: () => void
   onConcede: () => void
   onRestart: () => void
@@ -181,7 +182,8 @@ export function InfoCol({
             <RevealButton
               iconOnly
               label="Reveal solution"
-              disabled={revealDisabled}
+              revealedLabel="Hide solution"
+              revealed={solutionShown}
               onClick={onReveal}
             />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
@@ -226,14 +228,18 @@ export function InfoCol({
           </p>
         )}
 
-        {/* The seeded solution — GATED behind the Reveal button above, not
-            shown for free. It ships to the client from game start (the board's
-            own word list would give a solution away anyway), so this is a
-            display gate rather than a security boundary — but it is still the
-            thing that ends the post-mortem, so it waits to be asked for.
-            `terminalExtra`: the one region allowed to grow at game over, ABOVE
-            the setup disclosure per the canonical order (the reveal is the
-            payoff; the recap is bookkeeping). */}
+        {/* The seeded pair — GATED behind the Reveal button above, not shown
+            for free, and never automatically (a win covers the twelve letters
+            with SOME chain; the pair is a different, shorter answer nobody
+            saw). It ships to the client from game start (the board's own word
+            list would give a solution away anyway), so this is a display gate
+            rather than a security boundary — but it is still the thing that
+            ends the post-mortem, so it waits to be asked for, and goes away
+            again when the asker is done. `terminalExtra`: a region allowed to
+            grow when the viewer opens it and to give the space back when they
+            close it (a blessed exception to docs/ui.md → Layout stability),
+            ABOVE the setup disclosure per the canonical order (the reveal is
+            the payoff; the recap is bookkeeping). */}
         {solutionRevealed && solution.length > 0 && (
           <div className={cls(shared.terminalExtra, styles.chainBlock)}>
             <div className={styles.blockTitle}>Solvable in two</div>

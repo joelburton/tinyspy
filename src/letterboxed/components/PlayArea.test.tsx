@@ -12,7 +12,7 @@
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else renders for real.
  */
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
@@ -148,8 +148,8 @@ describe('letterboxed PlayArea — the game menu is the icon legend', () => {
     const reveal = menuItems(live).get('reveal')
     expect(reveal?.label).toBe('Reveal solution')
     expect(reveal?.icon).toBeTruthy()
-    // Present-but-disabled, not absent: a greyed row still teaches its glyph,
-    // and common.reveal_solution is the real gate.
+    // Present-but-disabled, not absent: a greyed row still teaches its glyph.
+    // Terminal-only, so a player who dropped out can't spoil a live race.
     expect(reveal?.disabled).toBe(true)
 
     const done = makeCtx({ isTerminal: true, playState: 'lost' })
@@ -157,13 +157,31 @@ describe('letterboxed PlayArea — the game menu is the icon legend', () => {
     expect(menuItems(done).get('reveal')?.disabled).toBe(false)
   })
 
-  it('the Reveal row fires the shared reveal_solution RPC', async () => {
+  it('the Reveal row is a local toggle — no RPC, and its label flips', async () => {
     const commonDb = (await import('../../common/db')).db as unknown as { rpc: ReturnType<typeof vi.fn> }
+    commonDb.rpc.mockClear()
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
-    commonDb.rpc.mockResolvedValue({ error: null })
     render(<PlayArea {...ctx} />)
-    menuItems(ctx).get('reveal')?.onClick()
-    expect(commonDb.rpc).toHaveBeenCalledWith('reveal_solution', { target_game: 'g1' })
+
+    act(() => menuItems(ctx).get('reveal')!.onClick())
+    // The seeded pair is on screen for ME. No RPC: no peer's board opened.
+    expect(screen.getByText('Solvable in two')).toBeInTheDocument()
+    expect(commonDb.rpc).not.toHaveBeenCalled()
+    await waitFor(() => expect(menuItems(ctx).get('reveal')?.label).toBe('Hide solution'))
+
+    // ...and the same row puts it away again.
+    act(() => menuItems(ctx).get('reveal')!.onClick())
+    expect(screen.queryByText('Solvable in two')).not.toBeInTheDocument()
+  })
+
+  it('never reveals on its own — a WIN leaves the pair closed', () => {
+    // The reason letterboxed had a whole _end_game wrapper: a win here is
+    // covering the twelve letters with SOME chain, not producing the seeded
+    // pair, so winning must not hand it over.
+    const ctx = makeCtx({ isTerminal: true, playState: 'won' })
+    render(<PlayArea {...ctx} />)
+    expect(screen.queryByText('Solvable in two')).not.toBeInTheDocument()
+    expect(menuItems(ctx).get('reveal')?.label).toBe('Reveal solution')
   })
 })
 

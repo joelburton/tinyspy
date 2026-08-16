@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
+import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import type { GamePageCtx } from '../../common/lib/games'
@@ -8,7 +8,6 @@ import { outOfRacePill, stickyPill } from '../../common/lib/game/localPills'
 import { faultMessage } from '../../common/lib/game/serverError'
 import { waitingTurnPill } from '../../common/components/game/turnCopy'
 import { db } from '../db'
-import { db as commonDb } from '../../common/db'
 import { useGame } from '../hooks/useGame'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
@@ -30,6 +29,7 @@ import { setupRows } from '../lib/setupSummary'
 import { helpPillText } from '../lib/help'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
+import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { buildLetterboxedPrintModel } from '../pdf/model'
 import { printLetterboxedPdf } from '../pdf/printLetterboxedPdf'
@@ -71,7 +71,7 @@ type LeaderRow = {
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, playState, solutionRevealed, players, session, status,
+    gameId, isTerminal, playState, players, session, status,
     isMyTurn, currentTurnUserId,
     setup, goToClub, clubHandle, goToGame, menu, brand, globalFeedback, title,
   } = ctx
@@ -338,13 +338,14 @@ export function PlayArea(ctx: GamePageCtx) {
   const takeHint = useCallback(() => askHelp('hint'), [askHelp])
   const takeSpoiler = useCallback(() => askHelp('spoiler'), [askHelp])
 
-  // Reveal the seeded solution — the shared display flag, not a letterboxed
-  // one: common.reveal_solution enforces "only once the game is over for
-  // everyone", so a player who dropped out can't spoil a live race.
-  const handleReveal = useCallback(async () => {
-    const bad = await callRpc(commonDb, 'reveal_solution', { target_game: gameId })
-    if (bad) showLocalFeedback(bad)
-  }, [gameId, showLocalFeedback])
+  // Reveal the seeded pair — LOCAL and reversible (useSolutionReveal), and
+  // never automatic: a letterboxed win is covering the twelve letters with ANY
+  // chain inside the cap, so the pair is a different, usually much shorter
+  // answer the players never saw. It's precisely what the button exists to hand
+  // over, and my asking for it doesn't hand it to anyone else. Terminal-only
+  // (the gate below), so a player who dropped out can't spoil a live race.
+  const { revealed: solutionShown, toggle: toggleSolution, hide: hideSolution } =
+    useSolutionReveal()
 
   // ─── End / Concede / Replay — the shared trio ──────────
   const { endGame, concede, restart } = useStandardGameActions({
@@ -354,6 +355,10 @@ export function PlayArea(ctx: GamePageCtx) {
     myConceded,
     confirm: confirmAction,
     showError: showLocalFeedback,
+    // The same board and the same seeded pair, hunted again — so put the pair
+    // away. Nothing on the server remembers the reveal any more (it's local
+    // state), which is exactly why this is spelled out.
+    onRestarted: hideSolution,
   })
 
   const gameMode = game?.mode
@@ -391,9 +396,9 @@ export function PlayArea(ctx: GamePageCtx) {
       newGame: () => void handleNewGame(),
       hint: takeHint,
       spoiler: takeSpoiler,
-      reveal: () => void handleReveal(),
+      reveal: toggleSolution,
     }
-  }, [endGame, concede, restart, handleNewGame, takeHint, takeSpoiler, handleReveal])
+  }, [endGame, concede, restart, handleNewGame, takeHint, takeSpoiler, toggleSolution])
 
   // ─── GamePage menu ─────────────────────────────────────
   // The print model is built HERE, from live state, and is a snapshot at click
@@ -409,7 +414,7 @@ export function PlayArea(ctx: GamePageCtx) {
       sides: game.sides,
       mode: game.mode,
       solution: game.solution,
-      solutionRevealed,
+      solutionRevealed: solutionShown,
       players,
       playerRows,
       events,
@@ -445,15 +450,14 @@ export function PlayArea(ctx: GamePageCtx) {
               { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => actionsRef.current?.restart() },
               { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current?.newGame() },
               // The menu twin of the terminal row's boxed-eye button — the same
-              // shared display flag, reachable the whole time so a player who
-              // scrolled past the row can still get to it. Inert until the game
-              // is over for EVERYONE, which is where common.reveal_solution
-              // enforces it too; the disabled row is a UI convenience, not the gate.
+              // toggle wearing the same two faces, reachable the whole time so
+              // a player who scrolled past the row can still get to it. Inert
+              // until the game is over for EVERYONE.
               {
                 id: 'reveal',
-                icon: IconReveal,
-                label: 'Reveal solution',
-                disabled: !isTerminal || solutionRevealed,
+                icon: solutionShown ? IconHideSolution : IconReveal,
+                label: solutionShown ? 'Hide solution' : 'Reveal solution',
+                disabled: !isTerminal,
                 onClick: () => actionsRef.current?.reveal(),
               },
             ],
@@ -464,7 +468,7 @@ export function PlayArea(ctx: GamePageCtx) {
     )
     return () => menu.setGameSections([])
   }, [
-    menu, game, isTerminal, myConceded, brand, title, solutionRevealed,
+    menu, game, isTerminal, myConceded, brand, title, solutionShown,
     players, playerRows, events, session.user.id, letterboxedSetup, summaryRows,
     lettersCovered, chain.length, maxWords,
   ])
@@ -617,7 +621,7 @@ export function PlayArea(ctx: GamePageCtx) {
           maxWords={maxWords}
           lettersCovered={lettersCovered}
           solution={game.solution}
-          solutionRevealed={solutionRevealed}
+          solutionRevealed={solutionShown}
           events={events}
           players={players}
           selfId={session.user.id}
@@ -628,8 +632,8 @@ export function PlayArea(ctx: GamePageCtx) {
           setupRows={summaryRows}
           onHint={takeHint}
           onSpoiler={takeSpoiler}
-          onReveal={() => void handleReveal()}
-          revealDisabled={solutionRevealed}
+          onReveal={toggleSolution}
+          solutionShown={solutionShown}
           onEndGame={endGame}
           onConcede={concede}
           onRestart={restart}
