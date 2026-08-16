@@ -53,6 +53,7 @@ export function InfoCol({
   onRestart,
   onRevealAnswer,
   answerShown,
+  answerAlreadyShown,
   onNewGame,
   startingNewGame,
   onBackToClub,
@@ -110,6 +111,9 @@ export function InfoCol({
   /** Is the solution the grid currently shows? Swaps this button and the
    *  matching menu item to their Hide face. */
   answerShown: boolean
+  /** Is it showing because this player SOLVED the grid — in which case their
+   *  own board already IS the answer and the control has nothing to do? */
+  answerAlreadyShown: boolean
   /** Start a fresh follow-up game — same setup, new board + id. */
   onNewGame: () => void
   /** New game is mid-flight — disables the button so a slow network reads as
@@ -234,6 +238,7 @@ export function InfoCol({
               label="Reveal answer"
               revealedLabel="Hide answer"
               revealed={answerShown}
+              alreadyShown={answerAlreadyShown}
               onClick={onRevealAnswer}
             />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />

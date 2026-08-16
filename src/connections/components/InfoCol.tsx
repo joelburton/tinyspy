@@ -56,6 +56,7 @@ export function InfoCol({
   onRestart,
   onReveal,
   solutionShown,
+  solutionAlreadyShown,
   onNewGame,
   startingNewGame,
   onBackToClub,
@@ -112,6 +113,9 @@ export function InfoCol({
   /** Are the unsolved categories on the board right now? Swaps the button to
    *  its Hide face. */
   solutionShown: boolean
+  /** Did this player match all four — in which case every band is already up
+   *  and the control has nothing left to show? */
+  solutionAlreadyShown: boolean
   /** Start the NEXT unplayed daily puzzle — connections' archive is dated, so
    *  this walks forward rather than re-rolling a board. */
   onNewGame: () => void
@@ -207,6 +211,7 @@ export function InfoCol({
               label="Reveal categories"
               revealedLabel="Hide categories"
               revealed={solutionShown}
+              alreadyShown={solutionAlreadyShown}
               onClick={onReveal}
             />
             <RestartButton iconOnly onClick={onRestart} />

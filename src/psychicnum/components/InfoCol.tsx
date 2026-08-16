@@ -50,6 +50,7 @@ export function InfoCol({
   spoiling,
   onReveal,
   secretsShown,
+  secretsAlreadyShown,
   onEndGame,
   onConcede,
   onRestart,
@@ -103,6 +104,9 @@ export function InfoCol({
   onReveal: () => void
   /** Are the secrets ringed right now? Swaps the button to its Hide face. */
   secretsShown: boolean
+  /** Are they ringed because this player found all three? Then the control has
+   *  nothing to do — every secret's tile is already green. */
+  secretsAlreadyShown: boolean
   onEndGame: () => void
   onConcede: () => void
   /** Hunt the SAME board + secrets again from scratch (the menu's Restart item;
@@ -208,6 +212,7 @@ export function InfoCol({
               label="Reveal secrets"
               revealedLabel="Hide secrets"
               revealed={secretsShown}
+              alreadyShown={secretsAlreadyShown}
               onClick={onReveal}
             />
             <RestartButton iconOnly onClick={onRestart} />

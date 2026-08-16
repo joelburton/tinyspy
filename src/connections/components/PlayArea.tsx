@@ -269,8 +269,19 @@ export function PlayArea({
   // bands plus the tiles they never cracked, frozen. Reveal swaps in the four
   // bands; Hide swaps back. Local, so one impatient player can't end everyone's
   // thinking.
-  const { revealed: solutionShown, toggle: toggleSolution, hide: hideSolution } =
-    useSolutionReveal()
+  //
+  // `impliedBy` is the exception: matching all four IS the win, and each match
+  // resolves into a full-width band — so a solver's board already carries every
+  // category and there is nothing left for the reveal to draw. MY four, not the
+  // game's verdict: connections compete ends the race for everyone the moment
+  // one player finishes, and the rest never got there.
+  const iMatchedThemAll = matchedCategories.length >= CATEGORY_COUNT
+  const {
+    revealed: solutionShown,
+    toggle: toggleSolution,
+    reset: resetSolution,
+    impliedBySolve,
+  } = useSolutionReveal({ impliedBy: iMatchedThemAll })
 
   const { endGame: handleEndGame, concede: handleConcede, restart: handleRestart } =
     useStandardGameActions({
@@ -288,9 +299,11 @@ export function PlayArea({
         // clicked Restart — the same limitation every onRestarted cleanup in
         // the roster has; a peer's restart leaves their own list alone.)
         setRevealedHints(new Set())
-        // The same four categories to find again — so put them away. Nothing on
-        // the server remembers the reveal now, which is why this is explicit.
-        hideSolution()
+        // The same four categories to find again — so forget my choice about
+        // them. `reset`, not `hide`: hiding would record an explicit "no" that
+        // outranks the solve-implied default, so matching all four on the
+        // replay wouldn't leave the bands up.
+        resetSolution()
       },
     })
 
@@ -632,6 +645,7 @@ export function PlayArea({
         onRestart={handleRestart}
         onReveal={toggleSolution}
         solutionShown={solutionShown}
+        solutionAlreadyShown={impliedBySolve}
         onNewGame={handleNewGame}
         startingNewGame={startingNewGame}
         onBackToClub={goToClub}

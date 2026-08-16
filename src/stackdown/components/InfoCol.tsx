@@ -55,6 +55,7 @@ export function InfoCol({
   solution,
   onReveal,
   solutionShown,
+  solutionAlreadyShown,
   submissions,
   viewingIndex,
   onSelectTurn,
@@ -122,6 +123,9 @@ export function InfoCol({
   onReveal: () => void
   /** Are the words on screen right now? Swaps the button to its Hide face. */
   solutionShown: boolean
+  /** Are they on screen because this player CLEARED the stack? Then the control
+   *  has nothing to do — it goes inert and says so. */
+  solutionAlreadyShown: boolean
 
   // ── Turn-history log (GameTurnLog) ──
   /** The submission log the log renders + the viewer indexes (by position). */
@@ -181,7 +185,12 @@ export function InfoCol({
                 back, or claim the next one. */}
             {/* Reveal first: it's the one that acts on THIS finished game.
                 Restart / New game are both "move on", and they leave. */}
-            <RevealButton iconOnly revealed={solutionShown} onClick={onReveal} />
+            <RevealButton
+              iconOnly
+              revealed={solutionShown}
+              alreadyShown={solutionAlreadyShown}
+              onClick={onReveal}
+            />
             <RestartButton iconOnly onClick={onRestart} />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>

@@ -420,8 +420,20 @@ export function PlayArea(ctx: GamePageCtx) {
   // tracing keeps their board untouched while I look, and Hide takes the
   // unfound words back off mine. The solution reaches this client once the game
   // is terminal (strands._solution_for), so this is purely what's drawn.
-  const { revealed: solutionShown, toggle: toggleSolution, hide: hideSolution } =
-    useSolutionReveal()
+  //
+  // `impliedBy` is the exception: strands' theme words TILE the board exactly,
+  // so solving it consumes every cell — there are no unfound words left to draw
+  // and the player has traced each one. What the reveal still adds is the
+  // `Words:` line, which names them as click-to-define text (a board draws
+  // paths, never spellings). MY solve, not the game's verdict: strands compete
+  // deliberately doesn't end on first solve, and a rival still tracing hasn't
+  // earned it.
+  const {
+    revealed: solutionShown,
+    toggle: toggleSolution,
+    reset: resetSolution,
+    impliedBySolve,
+  } = useSolutionReveal({ impliedBy: me?.solved ?? false })
 
   // End / Concede / Replay from the shared hook, so their confirm copy and
   // error handling match the other games'.
@@ -433,9 +445,11 @@ export function PlayArea(ctx: GamePageCtx) {
     myConceded: players.find((p) => p.user_id === session.user.id)?.conceded ?? false,
     confirm: confirmAction,
     showError: showLocalFeedback,
-    // The same board, traced again — so put the answer away. Nothing on the
-    // server remembers the reveal now, which is why this is explicit.
-    onRestarted: hideSolution,
+    // The same board, traced again — so forget my choice about the answer.
+    // `reset`, not `hide`: hiding would record an explicit "no" that outranks
+    // the solve-implied default, so solving the replayed board wouldn't show
+    // the words.
+    onRestarted: resetSolution,
   })
 
   /**
@@ -614,11 +628,15 @@ export function PlayArea(ctx: GamePageCtx) {
                 id: 'reveal',
                 // The same two faces as the terminal row's button — one toggle.
                 icon: solutionShown ? IconHideSolution : IconReveal,
-                label: solutionShown ? 'Hide answer' : 'Reveal answer',
+                label: impliedBySolve
+                  ? 'Solution already shown'
+                  : solutionShown
+                    ? 'Hide answer'
+                    : 'Reveal answer',
                 // Terminal-only: _solution_for withholds the words until the
                 // game is over for everyone, so a rival who solved early or
                 // conceded can't pull them while the others are still tracing.
-                disabled: !isTerminal,
+                disabled: !isTerminal || impliedBySolve,
                 onClick: () => actionsRef.current.reveal(),
               },
             ],
@@ -630,7 +648,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
   }, [
-    menu, isTerminal, solutionShown, startingNewGame,
+    menu, isTerminal, solutionShown, impliedBySolve, startingNewGame,
     // The print model's inputs — rebuilt whenever the printable state moves, so
     // the snapshot is current at click time.
     brand, title, game, events, players, playerStates, selfId, strandsSetup, found.length,
@@ -776,6 +794,7 @@ export function PlayArea(ctx: GamePageCtx) {
           isTerminal={isTerminal}
           over={over}
           solutionShown={solutionShown}
+          solutionAlreadyShown={impliedBySolve}
           solutionWords={solutionWords}
           currentTurnUserId={ctx.currentTurnUserId ?? null}
           clue={game.clue}

@@ -321,9 +321,22 @@ describe('waffle PlayArea — icon-only action rows', () => {
     expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeEnabled()
   })
 
-  it('a win does not autoreveal — the button is offered, not spent', () => {
+  it('SOLVING it leaves the control with nothing to do', () => {
+    // A waffle win IS the solved grid, so the answer is already on screen and
+    // "reveal" would swap in an identical board. The control says so instead.
     h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION }, [{ ...me, solved: true }])
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    expect(screen.getByRole('button', { name: 'Solution already shown' })).toBeDisabled()
+  })
+
+  it('a terminal I did NOT solve still waits to be asked', () => {
+    // "Did I solve it", never "was the game won" — a compete racer who ran out
+    // of swaps must not be handed the grid.
+    h.result = loaded({ ...coopGame, mode: 'compete', solution: FIXTURE_SOLUTION }, [
+      { ...me, solved: false },
+    ])
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won_compete' })} />)
+    expect(screen.queryByText('ABCDE')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeEnabled()
   })
 

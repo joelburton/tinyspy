@@ -316,7 +316,17 @@ export function PlayArea({
   // same control puts it away again. The words themselves are on every client
   // once the game is terminal (stackdown._solution_for), so this is purely
   // what's drawn.
-  const { revealed: solutionShown, toggle: toggleSolution, hide: hideSolution } = useSolutionReveal()
+  //
+  // `impliedBy: mySolved` is the exception: you can only finish a stackdown by
+  // playing all six words, so a solver has already SEEN every one of them —
+  // the info-column list just gathers them in one place, click-to-define. MY
+  // solve, not the game's verdict: compete's loser cleared nothing.
+  const {
+    revealed: solutionShown,
+    toggle: toggleSolution,
+    reset: resetSolution,
+    impliedBySolve,
+  } = useSolutionReveal({ impliedBy: mySolved })
 
   // ─── End / Concede / Replay — the shared trio ─────────────────
   // The byte-identical shared handlers (useStandardGameActions). End is coop's
@@ -328,11 +338,12 @@ export function PlayArea({
   const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
-    // The same stack, the same six words — so put them away. Nothing on the
-    // server remembers this any more (the reveal is local state), which is
-    // exactly why it's spelled out here.
-    hideSolution()
-  }, [exitViewing, clearLocalFeedback, hideSolution])
+    // The same stack and the same six words — so forget my choice about them.
+    // `reset`, not `hide`: hiding would record an explicit "no" that outranks
+    // the solve-implied default, so clearing the replayed stack wouldn't show
+    // the list.
+    resetSolution()
+  }, [exitViewing, clearLocalFeedback, resetSolution])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
@@ -489,8 +500,12 @@ export function PlayArea({
               {
                 id: 'reveal',
                 icon: solutionShown ? IconHideSolution : IconReveal,
-                label: solutionShown ? 'Hide solution' : 'Reveal solution',
-                disabled: !isTerminal,
+                label: impliedBySolve
+                  ? 'Solution already shown'
+                  : solutionShown
+                    ? 'Hide solution'
+                    : 'Reveal solution',
+                disabled: !isTerminal || impliedBySolve,
                 onClick: toggleSolution,
               },
             ],
@@ -504,7 +519,7 @@ export function PlayArea({
     return () => menu.setGameSections([])
   }, [
     menu, menuMode, isTerminal, myConceded, endGame, concede, restart, handleNewGame,
-    toggleSolution, solutionShown, canAskHelp, revealHint, spoilNext,
+    toggleSolution, solutionShown, impliedBySolve, canAskHelp, revealHint, spoilNext,
     // The print model's inputs. It's rebuilt whenever the printable state moves,
     // which is what makes the snapshot current at click time.
     brand, title, game, currentWord, submissions, players, session.user.id, foundCount, setup,
@@ -660,6 +675,7 @@ export function PlayArea({
         solution={solutionShown ? game.solution : null}
         onReveal={toggleSolution}
         solutionShown={solutionShown}
+        solutionAlreadyShown={impliedBySolve}
         submissions={logWords}
         viewingIndex={viewingIndex}
         onSelectTurn={setViewingIndex}

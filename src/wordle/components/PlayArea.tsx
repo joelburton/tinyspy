@@ -117,21 +117,31 @@ export function PlayArea({
   // very first render (the waffle loading-race lesson).
   const celebration = useCelebration(playState === 'won')
 
-  // ─── The word shows only when I ask for it ─────────────
-  // Never automatically — not even on a win, where the answer is the last row
-  // of my own board anyway. The ask is LOCAL and reversible (useSolutionReveal):
-  // my looking doesn't open the word on my opponent's screen while they're
-  // still turning it over, and hiding it again costs a click, not a Restart.
-  // The target itself is on every client once the game is terminal
-  // (wordle._target_for gates on is_terminal), so this is purely what's drawn.
-  const { revealed: answerShown, toggle: toggleAnswer, hide: hideAnswer } = useSolutionReveal()
-
   // ─── Derived (null-safe; real values after the loading guard) ──
   const self = playerStates.find((p) => p.user_id === session.user.id)
   const isCompete = game?.mode === 'compete'
   const maxGuesses = game?.max_guesses ?? 6
   const guessesUsed = self?.guesses_used ?? 0
   const mySolved = self?.solved ?? false
+
+  // ─── The word shows only when I ask for it — unless I solved it ────
+  // The ask is LOCAL and reversible (useSolutionReveal): my looking doesn't open
+  // the word on my opponent's screen while they're still turning it over, and
+  // hiding it again costs a click, not a Restart. The target itself is on every
+  // client once the game is terminal (wordle._target_for gates on is_terminal),
+  // so this is purely what's drawn.
+  //
+  // `impliedBy: mySolved` is the exception: you can only finish a wordle by
+  // typing the answer, so a solver is already looking at it and the info-column
+  // line is just the same word made click-to-define. MY solve, not the game's
+  // verdict — compete writes `won_compete` when SOMEONE wins, and the racer who
+  // was three guesses off never produced the word.
+  const {
+    revealed: answerShown,
+    toggle: toggleAnswer,
+    reset: resetAnswer,
+    impliedBySolve,
+  } = useSolutionReveal({ impliedBy: mySolved })
   // Concede lives on the common roster (ctx `members`), not wordle.players.
   const myConceded = members.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(members.filter((m) => m.conceded).map((m) => m.user_id))
@@ -209,11 +219,11 @@ export function PlayArea({
   const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
-    // The same word, hunted again — so put the answer away. Nothing on the
-    // server remembers this for us any more (the reveal is local state), which
-    // is exactly why it's spelled out here.
-    hideAnswer()
-  }, [exitViewing, clearLocalFeedback, hideAnswer])
+    // The same word, hunted again — so forget my choice about the answer.
+    // `reset`, not `hide`: hiding would record an explicit "no" that outranks
+    // the win-implied default, so solving the replayed word wouldn't show it.
+    resetAnswer()
+  }, [exitViewing, clearLocalFeedback, resetAnswer])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
@@ -355,11 +365,16 @@ export function PlayArea({
                 // The menu item wears the same two faces as the terminal
                 // button, since it fires the same toggle.
                 icon: answerShown ? IconHideSolution : IconReveal,
-                label: answerShown ? 'Hide answer' : 'Reveal answer',
+                label: impliedBySolve
+                  ? 'Solution already shown'
+                  : answerShown
+                    ? 'Hide answer'
+                    : 'Reveal answer',
                 // Terminal-only: the target doesn't reach the client until the
                 // game is over for everyone (wordle._target_for), so a player
-                // who dropped out early can't peek at a live race.
-                disabled: !isTerminal,
+                // who dropped out early can't peek at a live race. Inert too
+                // once solving has already put the word on screen.
+                disabled: !isTerminal || impliedBySolve,
                 onClick: () => actionsRef.current.reveal(),
               },
             ],
@@ -372,7 +387,7 @@ export function PlayArea({
     )
     return () => menu.setGameSections([])
   }, [
-    menu, mode, isTerminal, myConceded, answerShown,
+    menu, mode, isTerminal, myConceded, answerShown, impliedBySolve,
     // The print model's inputs — rebuilt whenever the printable state moves, so
     // the snapshot is current at click time.
     brand, title, game, guesses, members, session.user.id, maxGuesses, solvedIds,
@@ -537,6 +552,7 @@ export function PlayArea({
         onRestart={restart}
         onRevealAnswer={toggleAnswer}
         answerShown={answerShown}
+        answerAlreadyShown={impliedBySolve}
         onNewGame={handleNewGame}
         startingNewGame={startingNewGame}
         onBackToClub={goToClub}

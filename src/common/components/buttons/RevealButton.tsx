@@ -22,23 +22,49 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * Games that want a noun ("Reveal answer") pass `label`; pass `revealedLabel`
  * with it so the other face reads the same way ("Hide answer"). Both default,
  * so the plain `<RevealButton revealed={…} onClick={toggle} />` is the norm.
+ *
+ * **`alreadyShown`** is the third state, for the six games with a CLEAR WIN
+ * (see `useSolutionReveal`'s `impliedBy`): you can only finish strands,
+ * psychicnum, stackdown, waffle, connections or wordle by producing the answer,
+ * so a solver is already looking at it. The control goes inert and says why
+ * rather than offering to uncover what's on screen — or to hide what the win
+ * itself put there. It reverts to a live Reveal/Hide the moment the player
+ * makes their own choice.
  */
 export function RevealButton({
   revealed = false,
+  alreadyShown = false,
   label = 'Reveal',
   revealedLabel = 'Hide',
+  disabled,
+  tooltip,
   ...rest
 }: PurposeButtonProps & {
   /** Is the solution on screen right now? Swaps glyph + label to the hide face. */
   revealed?: boolean
+  /** Is it on screen because this player SOLVED it, rather than by their own
+   *  press? Renders the inert "Solution already shown" face. */
+  alreadyShown?: boolean
   /** The label for the hide face; `label` names the reveal face. */
   revealedLabel?: string
 }) {
+  // One string for both faces of "inert": it's the icon-only button's
+  // accessible name AND its hover bubble, so they can't say different things.
+  const shownLabel = alreadyShown
+    ? 'Solution already shown'
+    : revealed
+      ? revealedLabel
+      : label
   return (
     <ActionButton
       icon={revealed ? IconHideSolution : IconReveal}
-      label={revealed ? revealedLabel : label}
+      label={shownLabel}
       tone="error"
+      // Present but inert, never absent — the row must not change shape between
+      // a solved game and a lost one (docs/ui.md → Layout stability), and "there
+      // is nothing to do here" beats a control that vanished.
+      disabled={disabled ?? alreadyShown}
+      tooltip={tooltip}
       {...rest}
     />
   )

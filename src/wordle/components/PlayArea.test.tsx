@@ -175,9 +175,26 @@ describe('wordle PlayArea — icon-only action rows', () => {
     expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeEnabled()
   })
 
-  it('a win does not autoreveal — the button is offered, not spent', () => {
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+  it('SOLVING shows the answer unasked, and the control says it has nothing to do', () => {
+    // You can only finish a wordle by typing the answer, so a solver is already
+    // looking at it — the info-column line just makes it click-to-define.
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' }, [], [
+      { ...me, solved: true },
+    ])
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
+    const reveal = screen.getByRole('button', { name: 'Solution already shown' })
+    expect(reveal).toBeDisabled()
+  })
+
+  it('a terminal I did NOT solve still waits to be asked', () => {
+    // The predicate is "did I solve it", never "was the game won" — which is the
+    // whole difference in compete, where `won_compete` means SOMEONE won and the
+    // racer three guesses off never produced the word.
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: 'crane' }, [], [
+      { ...me, solved: false },
+    ])
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won_compete' })} />)
     expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeEnabled()
   })

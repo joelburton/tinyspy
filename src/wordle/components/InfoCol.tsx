@@ -52,6 +52,7 @@ export function InfoCol({
   onRestart,
   onRevealAnswer,
   answerShown,
+  answerAlreadyShown,
   onNewGame,
   startingNewGame,
   onBackToClub,
@@ -109,6 +110,9 @@ export function InfoCol({
   /** Is the word on screen right now? Swaps the button to its Hide face, and
    *  the menu item with it. */
   answerShown: boolean
+  /** Is it on screen because this player SOLVED it? Then the control has
+   *  nothing to do — it goes inert and says so. */
+  answerAlreadyShown: boolean
   /** Start a fresh follow-up game — same setup, new target + id. */
   onNewGame: () => void
   /** New game is mid-flight — disables the button so a slow network reads as
@@ -216,6 +220,7 @@ export function InfoCol({
               label="Reveal answer"
               revealedLabel="Hide answer"
               revealed={answerShown}
+              alreadyShown={answerAlreadyShown}
               onClick={onRevealAnswer}
             />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />

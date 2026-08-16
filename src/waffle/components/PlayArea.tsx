@@ -218,8 +218,20 @@ export function PlayArea({
   // studying where they got stuck, and hiding brings THEIR board back rather
   // than needing a Restart. The solution itself is on every client at terminal
   // (waffle._solution_for), so this is purely which grid gets drawn.
-  const { revealed: answerShown, toggle: toggleAnswer, hide: hideAnswer } =
-    useSolutionReveal()
+  //
+  // `impliedBy` is the exception: a waffle win IS the solved grid, so a solver
+  // is already looking at the answer and the swap would put back an identical
+  // board. MY solve, not the game's verdict — a compete racer who ran out of
+  // swaps never got there. (`playerStates` is [] on the first render, which is
+  // exactly why the reveal derives this rather than initialising from it.)
+  const iSolved =
+    playerStates.find((p) => p.user_id === session.user.id)?.solved === true
+  const {
+    revealed: answerShown,
+    toggle: toggleAnswer,
+    reset: resetAnswer,
+    impliedBySolve,
+  } = useSolutionReveal({ impliedBy: iSolved })
 
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); waffle's own
@@ -232,10 +244,11 @@ export function PlayArea({
   const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
-    // The same board, scrambled back — so put the answer away. Nothing on the
-    // server remembers the reveal any more, which is why this is explicit.
-    hideAnswer()
-  }, [exitViewing, clearLocalFeedback, hideAnswer])
+    // The same board, scrambled back — so forget my choice about the answer.
+    // `reset`, not `hide`: hiding would record an explicit "no" that outranks
+    // the solve-implied default, so solving the replayed board wouldn't show it.
+    resetAnswer()
+  }, [exitViewing, clearLocalFeedback, resetAnswer])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
@@ -381,8 +394,12 @@ export function PlayArea({
                 id: 'reveal',
                 // The same two faces as the terminal row's button — one toggle.
                 icon: answerShown ? IconHideSolution : IconReveal,
-                label: answerShown ? 'Hide answer' : 'Reveal answer',
-                disabled: !isTerminal,
+                label: impliedBySolve
+                  ? 'Solution already shown'
+                  : answerShown
+                    ? 'Hide answer'
+                    : 'Reveal answer',
+                disabled: !isTerminal || impliedBySolve,
                 onClick: toggleAnswer,
               },
             ],
@@ -403,6 +420,7 @@ export function PlayArea({
     restart,
     handleNewGame,
     toggleAnswer,
+    impliedBySolve,
     isTerminal,
     answerShown,
     // The print model's inputs — rebuilt whenever the printable state moves, so
@@ -570,6 +588,7 @@ export function PlayArea({
         onRestart={restart}
         onRevealAnswer={toggleAnswer}
         answerShown={answerShown}
+        answerAlreadyShown={impliedBySolve}
         onNewGame={handleNewGame}
         startingNewGame={startingNewGame}
         onBackToClub={goToClub}

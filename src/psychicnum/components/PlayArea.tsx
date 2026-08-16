@@ -130,6 +130,12 @@ export function PlayArea({
   const selfBudget =
     playerBudgets.find((p) => p.user_id === session.user.id)
       ?.guesses_remaining ?? 0
+  // Did I find all three? (Same row, read up here because the reveal below
+  // needs it — `playerBudgets` is [] until the fetch lands, which is exactly
+  // why the reveal derives rather than initialises from it.)
+  const iFoundThemAll =
+    (playerBudgets.find((p) => p.user_id === session.user.id)?.found_secrets_count ?? 0)
+    >= SECRET_COUNT
   // Am I a live PARTICIPANT (not out of budget, not conceded, game not over)?
   // This drives the terminal-vs-play LOOK in both columns. It deliberately does
   // NOT fold in turn-order: a player who's merely waiting their turn isn't
@@ -168,8 +174,17 @@ export function PlayArea({
   // teammate can go on eyeing the board for the three while I look, and the
   // same control un-rings them. The secrets themselves are on every client once
   // the game is terminal, so this is purely which tiles get rung.
-  const { revealed: secretsShown, toggle: toggleSecrets, hide: hideSecrets } =
-    useSolutionReveal()
+  //
+  // `impliedBy: iFoundThemAll` is the exception: finding all three IS the win
+  // here, and a found secret's tile is already green — so a solver is looking
+  // at the answer key and the rings add nothing to it. MY three, not the
+  // game's verdict: compete's loser found fewer.
+  const {
+    revealed: secretsShown,
+    toggle: toggleSecrets,
+    reset: resetSecrets,
+    impliedBySolve,
+  } = useSolutionReveal({ impliedBy: iFoundThemAll })
   // The FULL psychicnum game menu (Help + Print + End/Concede + Back to club).
   // `buildGameMenu` supplies the framing; `extra` is our one Print item. Print
   // builds its model from the live state (RLS already scoped `guesses`/`results`
@@ -227,8 +242,12 @@ export function PlayArea({
                 id: 'reveal',
                 // The same two faces as the terminal row's button — one toggle.
                 icon: secretsShown ? IconHideSolution : IconReveal,
-                label: secretsShown ? 'Hide secrets' : 'Reveal secrets',
-                disabled: !isTerminal,
+                label: impliedBySolve
+                  ? 'Solution already shown'
+                  : secretsShown
+                    ? 'Hide secrets'
+                    : 'Reveal secrets',
+                disabled: !isTerminal || impliedBySolve,
                 onClick: () => actionsRef.current?.reveal(),
               },
             ],
@@ -237,7 +256,7 @@ export function PlayArea({
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, mode, isTerminal, myConceded, secretsShown, canGuess, hinting, spoiling, game, guesses, players, brand, title, setup, summaryRows, session.user.id])
+  }, [menu, mode, isTerminal, myConceded, secretsShown, impliedBySolve, canGuess, hinting, spoiling, game, guesses, players, brand, title, setup, summaryRows, session.user.id])
 
   // Per-opponent secrets-found count we've already announced (compete tension).
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
@@ -380,8 +399,8 @@ export function PlayArea({
     // The same board and the same three secrets, hunted again — so un-ring
     // them. Nothing on the server remembers the reveal any more, which is
     // exactly why this is spelled out.
-    hideSecrets()
-  }, [exitViewing, clearLocalFeedback, hideSecrets])
+    resetSecrets()
+  }, [exitViewing, clearLocalFeedback, resetSecrets])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
@@ -579,6 +598,7 @@ export function PlayArea({
         spoiling={spoiling}
         onReveal={toggleSecrets}
         secretsShown={secretsShown}
+        secretsAlreadyShown={impliedBySolve}
         onEndGame={endGame}
         onConcede={concede}
         onRestart={restart}

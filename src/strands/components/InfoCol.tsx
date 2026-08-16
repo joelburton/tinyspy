@@ -33,6 +33,9 @@ type Props = {
   /** Are the unfound words drawn on the board right now? Swaps the button to
    *  its Hide face. */
   solutionShown: boolean
+  /** Is the answer up because this player SOLVED it (which consumes the board,
+   *  so there's nothing left to uncover)? The control goes inert and says so. */
+  solutionAlreadyShown: boolean
   /** The theme words, SPANGRAM FIRST — non-null only while the solution is
    *  showing, since this is the same secret the board's grey lines are. The
    *  board draws paths and never spells anything out, so without this the
@@ -86,6 +89,7 @@ export function InfoCol({
   isTerminal,
   over,
   solutionShown,
+  solutionAlreadyShown,
   solutionWords,
   currentTurnUserId,
   clue,
@@ -182,6 +186,7 @@ export function InfoCol({
               label="Reveal answer"
               revealedLabel="Hide answer"
               revealed={solutionShown}
+              alreadyShown={solutionAlreadyShown}
               onClick={onReveal}
             />
             <RestartButton iconOnly onClick={onRestart} />
