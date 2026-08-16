@@ -7,21 +7,21 @@ import {
 import { signIn } from './helpers/session'
 
 /**
- * The terminal solution gate (docs/ui.md → Terminal results) and the one common
- * flag behind it, `common.games.solution_revealed`.
+ * The terminal solution reveal (docs/ui.md → Terminal results): **local to each
+ * player, reversible, and never automatic**.
  *
- * A game that ends WITHOUT a clean win keeps its answer covered: `replay_board`
- * re-runs the very same board, so a force-reveal would make Restart theater.
- * The solution opens on an explicit Reveal — offered twice, in the terminal
- * action row and in the game menu — and both controls disable themselves once
- * it's showing.
+ * A finished game keeps its answer covered until someone asks — a win included,
+ * and here especially, since `replay_board` re-runs the very same board and an
+ * answer left on screen would make Restart theater. Reveal is offered twice (the
+ * terminal action row and the game menu), both wearing the same two faces, and
+ * pressing Hide puts it away again.
  *
  * stackdown stands in for the family (psychicnum's tile-ring half is covered by
  * psychicnum-terminal.e2e.ts): its six words are a text region, so "is the
  * solution on screen?" is directly assertable.
  *
- * Browser-only: the pieces are a server flag, a realtime refetch, and what a
- * component chooses to draw — no one layer can show this on its own.
+ * Browser-only, and more so than before: the claim is now about what TWO
+ * clients draw, which no unit test can reach.
  */
 test('stackdown: a lost game hides its words until Reveal — row and menu', async ({
   browser,
@@ -35,7 +35,7 @@ test('stackdown: a lost game hides its words until Reveal — row and menu', asy
   await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
 
   const words = page.getByText(/^The words were/)
-  const revealRow = page.getByRole('button', { name: /^reveal/i })
+  const revealRow = page.getByRole('button', { name: /^reveal$/i })
 
   // Mid-game: no solution, and no reveal control in the action row (the amber
   // Spoiler button beside it is a different thing — one word, and it stays).
@@ -43,8 +43,9 @@ test('stackdown: a lost game hides its words until Reveal — row and menu', asy
   await expect(revealRow).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Spoiler' })).toBeVisible()
 
-  // The menu item exists all along but is inert until terminal — matching the
-  // server, where common.reveal_solution rejects a game that isn't over.
+  // The menu item exists all along but is inert until terminal — the words
+  // don't even reach this client before then (stackdown._solution_for gates on
+  // is_terminal), so there is nothing it could show.
   const openMenu = () => page.getByRole('button', { name: /menu/i }).first().click()
   await openMenu()
   const revealItem = page.getByRole('menuitem', { name: 'Reveal solution' })
@@ -60,16 +61,26 @@ test('stackdown: a lost game hides its words until Reveal — row and menu', asy
   // Terminal, but the words are still covered.
   await expect(words).toHaveCount(0)
 
-  // Asking opens them, and both controls go inert.
+  // Asking opens them, and both controls turn into their other face rather than
+  // going inert — the way back has to be as reachable as the way in.
   await revealRow.click()
   await expect(words).toBeVisible()
-  await expect(revealRow).toBeDisabled()
+  const hideRow = page.getByRole('button', { name: /^hide$/i })
+  await expect(hideRow).toBeVisible()
   await openMenu()
-  await expect(page.getByRole('menuitem', { name: 'Reveal solution' })).toBeDisabled()
+  await expect(page.getByRole('menuitem', { name: 'Hide solution' })).toBeEnabled()
   await page.keyboard.press('Escape')
 
-  // Restart re-hides it — `common.reset_game` clears the flag, which is the
-  // whole reason it's a common column instead of per-game FE state.
+  // Hide puts them away again — the info column as the game ended.
+  await hideRow.click()
+  await expect(words).toHaveCount(0)
+  await expect(revealRow).toBeVisible()
+
+  // Restart re-hides too. Nothing on the server remembers the reveal any more,
+  // so this is the game's own onRestarted doing it — the one thing every game
+  // had to be given explicitly when the shared flag went away.
+  await revealRow.click()
+  await expect(words).toBeVisible()
   await page.getByRole('button', { name: 'Restart' }).click()
   await expect(words).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Spoiler' })).toBeVisible() // playing again
@@ -78,12 +89,21 @@ test('stackdown: a lost game hides its words until Reveal — row and menu', asy
 })
 
 /**
- * The flag is SHARED, which is the point of putting it on the row: a
- * post-mortem is something the friends do together, so one player's Reveal
- * opens the solution on everyone's screen through the same realtime refetch
- * that carries the rest of `common.games`.
+ * The reveal is PERSONAL, and this is the test that says so.
+ *
+ * It used to be shared — one player pressed Reveal and every board opened,
+ * carried on `common.games.solution_revealed` through the same realtime refetch
+ * as the rest of the row — on the reasoning that a post-mortem is something the
+ * friends do together. That reads generous and plays badly: a post-mortem is
+ * people thinking out loud, and one impatient click ended everyone else's
+ * thinking. Each player looks when they're ready now.
+ *
+ * Two real clients, because "my screen changed and yours didn't" is precisely
+ * the claim no single-page test can make.
  */
-test('stackdown: one player revealing opens the words for the other', async ({ browser }) => {
+test('stackdown: one player revealing does NOT open the words for the other', async ({
+  browser,
+}) => {
   const club = await createClubWithMembers(['trva', 'trvb'])
   const game = await createStackdownGame(club, 'coop')
 
@@ -106,14 +126,21 @@ test('stackdown: one player revealing opens the words for the other', async ({ b
   // A ends it for the table; neither sees the words yet.
   await a.getByRole('button', { name: 'End game' }).first().click()
   await a.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
-  await expect(a.getByRole('button', { name: /^reveal/i })).toBeVisible({ timeout: 8000 })
+  await expect(a.getByRole('button', { name: /^reveal$/i })).toBeVisible({ timeout: 8000 })
   await expect(wordsA).toHaveCount(0)
   await expect(wordsB).toHaveCount(0)
 
-  // B asks — and A's screen opens too, without A touching anything.
-  await b.getByRole('button', { name: /^reveal/i }).click()
+  // B asks. B's screen opens…
+  await b.getByRole('button', { name: /^reveal$/i }).click()
   await expect(wordsB).toBeVisible()
-  await expect(wordsA).toBeVisible({ timeout: 10000 })
+
+  // …and A's does not. Give the realtime channel a real chance to carry a
+  // change that mustn't exist — a bare assertion would pass on timing alone,
+  // which is how a "nothing happened" test quietly stops testing anything.
+  await a.waitForTimeout(2000)
+  await expect(wordsA).toHaveCount(0)
+  // A's own control still offers the way in, untouched by B.
+  await expect(a.getByRole('button', { name: /^reveal$/i })).toBeVisible()
 
   await ctxA.close()
   await ctxB.close()
@@ -126,9 +153,10 @@ test('stackdown: one player revealing opens the words for the other', async ({ b
  * racer finishes (docs/ui.md → Layout stability), and "you can't do this yet"
  * is a better answer than a control that silently vanished.
  *
- * The FE gate mirrors the server's: `common.reveal_solution` requires
- * `is_terminal` — ended for EVERYONE — so a conceder can't spoil a live race
- * even by calling the RPC directly.
+ * The FE gate mirrors the shield: `stackdown._solution_for` hands the words over
+ * only at `is_terminal` — ended for EVERYONE — so a conceder has nothing to
+ * show even if the control were live. That is the one piece of this the server
+ * still owns, and the reason it can't key on any per-player doneness.
  */
 test('stackdown: a conceded player sees Reveal, disabled, while the others race', async ({
   browser,
@@ -155,7 +183,7 @@ test('stackdown: a conceded player sees Reveal, disabled, while the others race'
   await expect(a.getByText('You conceded')).toBeVisible({ timeout: 15000 })
 
   // Alice is locally done, the game is NOT over — Reveal is there and inert.
-  const reveal = a.getByRole('button', { name: /^reveal/i })
+  const reveal = a.getByRole('button', { name: /^reveal$/i })
   await expect(reveal).toBeVisible()
   await expect(reveal).toBeDisabled()
   await expect(reveal).toHaveAttribute('data-tooltip', "Can't reveal until all end")
