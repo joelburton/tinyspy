@@ -68,7 +68,6 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     players: [],
     playState: 'playing',
     isTerminal: false,
-    solutionRevealed: false,
     timer: { displaySeconds: 0, expired: false },
     isMyTurn: true,
     currentTurnUserId: null,

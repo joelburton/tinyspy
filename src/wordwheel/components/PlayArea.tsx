@@ -59,7 +59,7 @@ import '../theme.css'
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, playState, solutionRevealed, players, session, status,
+    gameId, isTerminal, playState, players, session, status,
     setup, goToClub, clubHandle, goToGame, menu, brand, title,
     // The COMMON header slot (peer/opponent events, via useGlobalFeedback + the compete rank effect) — as
     // opposed to the local in-body `localFeedback` state below, which carries
@@ -180,11 +180,14 @@ export function PlayArea(ctx: GamePageCtx) {
     // list IS the post-game artifact, so a printout that quietly dropped the bonus
     // half would be a different document from the one on screen. Look up each found
     // word's points (the shared row type carries finder/bonus/pangram, not score).
-    // Gated on the COMMON flag, not `isTerminal`: this game doesn't hide its
-    // solution (gametypes.hides_solution = false), so end_game sets
-    // solution_revealed at every ending — and if that ever changes, it changes
-    // in one place instead of in each of these expressions.
-    const reveal = solutionRevealed
+    // Gated on `isTerminal`, which is the whole rule for these three word-finding
+    // games: at game over the list shows what nobody found, and the KIND filter
+    // (found / missed) is the only control anyone needs over it. They carry no
+    // Reveal button on purpose — it would be a second, confusing way to switch
+    // between the same two lists (docs/ui.md → Terminal results). If we ever
+    // wanted the answer withheld at the end, the change is the filter's DEFAULT,
+    // not a new control.
+    const reveal = isTerminal
       ? buildRevealWords(game.requiredWords, hasBonus ? game.bonusWords : [], foundWords)
       : null
     const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
@@ -244,7 +247,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, wordwheelSetup, hasBonus, isTerminal, solutionRevealed, myConceded, foundWordsScore, foundWordsCount, summaryRows, session.user.id])
+  }, [menu, game, foundWords, players, brand, title, wordwheelSetup, hasBonus, isTerminal, myConceded, foundWordsScore, foundWordsCount, summaryRows, session.user.id])
 
   // ─── Wheel tile counts (drive the illegal-letter dim + tile spending) ────
   // The wheel is a MULTISET — the same letter may sit on two tiles — so the
@@ -539,7 +542,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // required half comes from.
   const wordRows = buildDisplayRows(
     foundWords,
-    solutionRevealed ? buildRevealWords(game.requiredWords, hasBonus ? game.bonusWords : [], foundWords) : null,
+    isTerminal ? buildRevealWords(game.requiredWords, hasBonus ? game.bonusWords : [], foundWords) : null,
   )
 
   return (
@@ -615,7 +618,7 @@ export function PlayArea(ctx: GamePageCtx) {
         setupRows={summaryRows}
         // ── Found-words list ──
         wordRows={wordRows}
-        reveal={solutionRevealed}
+        reveal={isTerminal}
         hasBonus={hasBonus}
         />
       </InfoSheet>

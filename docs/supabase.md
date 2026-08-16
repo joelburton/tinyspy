@@ -596,7 +596,7 @@ All of these are commented at the site; this table is the index.
 | One-shot on-demand fetch | crosswords Reveal (`games_state.solution`) | solution is gated; fetched only when the button is pressed |
 | Stable-name temp channel | ClubPage delete-current-game broadcast | borrows `useCommonGame`'s room name to reach peers, send-only, ~1s lifetime |
 | FE-side owner filter on CDC | crosswords `useCells` | compete privacy: CDC payload carries other owners' cells; dropped before apply |
-| `common.games` subscribed in a game's own channel | strands `useGame` | the shield's terminal-reveal wake: both writers of `solution_revealed` touch only `common.games`, and the refetch must re-read the now-unshielded views |
+| `common.games` subscribed in a game's own channel | strands `useGame` | the shield's terminal wake: `_solution_for` gates on `is_terminal`, and the ending that flips it writes only `common.games` — so without this the refetch never re-reads the now-unshielded views and Reveal has nothing to draw |
 | Own `games` table subscribed though nothing writes it mid-play | letterboxed `useGame` | a deliberately quiet binding, kept so any future `games` write wakes clients rather than silently not; its publication membership is pinned by the central registry test |
 
 ## Bounds & realtime work — where it's tracked

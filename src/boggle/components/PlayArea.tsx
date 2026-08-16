@@ -57,7 +57,7 @@ import '../theme.css'
  * `<EntryBox>` display), the same as spellingbee — boggle's structural twin.
  */
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, playState, solutionRevealed, setup, goToClub, clubHandle, goToGame, session, status, globalFeedback, menu, brand, title } = ctx
+  const { gameId, players, isTerminal, playState, setup, goToClub, clubHandle, goToGame, session, status, globalFeedback, menu, brand, title } = ctx
   const { game, foundWords, loading, rowsLoaded } = useGame(gameId)
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
@@ -231,11 +231,14 @@ export function PlayArea(ctx: GamePageCtx) {
     // reveal, so only found words show. The print follows the screen deliberately:
     // the missed-word list IS the post-game artifact. Look up each found word's
     // points (the shared row type carries the finder/bonus but not the score).
-    // Gated on the COMMON flag, not `isTerminal`: this game doesn't hide its
-    // solution (gametypes.hides_solution = false), so end_game sets
-    // solution_revealed at every ending — and if that ever changes, it changes
-    // in one place instead of in each of these expressions.
-    const revealWords = solutionRevealed
+    // Gated on `isTerminal`, which is the whole rule for these three word-finding
+    // games: at game over the list shows what nobody found, and the KIND filter
+    // (found / missed) is the only control anyone needs over it. They carry no
+    // Reveal button on purpose — it would be a second, confusing way to switch
+    // between the same two lists (docs/ui.md → Terminal results). If we ever
+    // wanted the answer withheld at the end, the change is the filter's DEFAULT,
+    // not a new control.
+    const revealWords = isTerminal
       ? buildRevealWords(game.required_words, hasBonusDifficulty ? game.bonus_words : [], foundWords)
       : null
     const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
@@ -292,7 +295,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, foundWords, players, brand, title, boggleSetup, hasBonusDifficulty, ladder, isTerminal, solutionRevealed, myConceded, myCount, myScore, summaryRows, myId])
+  }, [menu, game, foundWords, players, brand, title, boggleSetup, hasBonusDifficulty, ladder, isTerminal, myConceded, myCount, myScore, summaryRows, myId])
 
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); only the
@@ -414,11 +417,11 @@ export function PlayArea(ctx: GamePageCtx) {
   // others. boggle has no elimination, so conceding is the only path to it.
   const isLocallyDone = isCompete && myConceded && !isTerminal
 
-  // The reveal: every word nobody found. Gated on the COMMON flag
-  // (`common.games.solution_revealed`), not `isTerminal` — boggle doesn't hide
-  // its solution (gametypes.hides_solution = false), so end_game sets the flag
-  // at every ending and this reads the same today. If that ever changes, it
-  // changes in the registry, not in this expression.
+  // The reveal: every word nobody found, at game over. No button gates it —
+  // the word list's KIND filter (found / missed) already IS that control, and a
+  // Reveal button would be a second, confusing way to switch the same two lists
+  // (docs/ui.md → Terminal results). boggle, spellingbee and wordwheel are the
+  // three games that work this way.
   //
   // The missed BONUS words fold in too — but only when the board actually has a
   // wider legal band. With the bands equal, "bonus" means nothing but the words
@@ -426,7 +429,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // those as a list of things you might have played is not the post-game read
   // anyone wants. Same `hasBonusDifficulty` flag that suppresses the Bonus stat
   // cells, so the two can't disagree about whether this board has bonus words.
-  const revealWords = solutionRevealed
+  const revealWords = isTerminal
     ? buildRevealWords(
       game.required_words,
       hasBonusDifficulty ? game.bonus_words : [],

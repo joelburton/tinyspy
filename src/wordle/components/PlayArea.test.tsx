@@ -42,9 +42,9 @@ type GameHook = {
 const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
 vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
-// The reveal is a COMMON RPC now (common.reveal_solution writes the one shared
-// `solution_revealed` flag), so it needs its own mock — a wordle-schema spy
-// would never see it.
+// The common client is mocked so the reveal tests can assert that NOTHING is
+// written when the answer is shown — a wordle-schema spy alone couldn't tell a
+// common RPC from no RPC at all.
 vi.mock('../../common/db', () => ({ db: { rpc: vi.fn() } }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
@@ -74,7 +74,6 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     players: [gp('u1', 'me', 'red')],
     playState: 'playing',
     isTerminal: false,
-    solutionRevealed: false,
     timer: { displaySeconds: 0, expired: false },
     isMyTurn: true,
     currentTurnUserId: null,
@@ -95,8 +94,6 @@ beforeEach(() => {
   h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null })
-  // The reveal handler destructures `{ error }` off the awaited call, so the
-  // common spy has to resolve to a PostgREST-shaped result, not `undefined`.
   commonRpc.mockReset()
   commonRpc.mockResolvedValue({ error: null })
 })

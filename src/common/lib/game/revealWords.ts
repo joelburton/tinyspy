@@ -19,9 +19,10 @@ export type RevealWord<W> = W & { is_bonus: boolean }
  *
  * **Both** lists ship to the client at game start (the FE validates and scores
  * guesses against them locally), so this is a pure client-side fold — nothing new
- * crosses the wire at game end. The gate on *whether* to reveal is the caller's
- * `solution_revealed` check; this function has no opinion and will happily build
- * the set mid-game if asked.
+ * crosses the wire at game end. WHEN to reveal is the caller's business — for
+ * the three games that use this it's simply `isTerminal`, since their word
+ * list's found/missed filter is the only control anyone needs over it. This
+ * function has no opinion and will happily build the set mid-game if asked.
  *
  * Pass `[]` for `bonusWords` to reveal only the required half — boggle does that
  * when its legal band equals its required band, where "bonus" degenerates to

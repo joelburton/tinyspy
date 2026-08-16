@@ -491,7 +491,7 @@ interesting vocabulary lives (`ACRITARCH`, `CACCIATORA`, `ARRACACHA`), and seein
 it is a real part of the post-game read. Both lists are already on the client from
 game start (the FE validates and scores guesses against them locally), so
 `buildRevealWords` is a pure client-side fold — nothing new crosses the wire at
-game end, and the gate stays the common `solution_revealed` flag.
+game end, and the gate is the viewer's own reveal toggle.
 
 Sizing, measured against the local dictionary at the default bands (required 3 /
 legal 5): the bonus set is roughly the **same size** as the required set, not the

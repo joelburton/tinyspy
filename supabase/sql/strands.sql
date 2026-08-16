@@ -1193,9 +1193,9 @@ grant execute on function strands.spend_hint(uuid) to authenticated;
 -- the friends agreed to stop, so nobody won and nobody lost
 -- (status.outcome = 'manual', matching the shared endedCopy on the FE).
 --
--- hides_solution = true for this gametype, so common.end_game deliberately
--- does NOT reveal the answer here; the players ask for it with the shared
--- RevealButton (common.reveal_solution) if they want it.
+-- Ending unshields the solution (the is_terminal gate on _solution_for) but
+-- puts it on nobody's screen: each player asks for it with their own
+-- RevealButton, a local display toggle (docs/ui.md → Terminal results).
 create or replace function strands.end_game(target_game uuid)
 returns void
 language plpgsql

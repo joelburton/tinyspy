@@ -95,7 +95,7 @@ terminal-gated `games_state` view / helper reveals it:  PN (`secrets`)
 SD  SS (`_solution_for`)  WN (`_target_for`)  CP  PP (`_solution_for`)
 Everything readable; the FE just doesn't render it mid-game:  TS (both key
 cards)  WK (`board.categories`)  WW (scores + the best word)  SB (the seeded
-pair + playable list; the shared `solution_revealed` flag gates display)
+pair + playable list; the FE's local reveal toggle gates display)
 Nothing hidden by design (lists ship for local validation / no fixed
 solution):  MC FB MW RA MG
 (Orthogonal: compete games also hide *opponents'* mid-game moves via RLS on

@@ -1100,19 +1100,6 @@ begin
      set ended_at = coalesce(games.ended_at, now()),
          play_state = end_game.play_state,
          is_terminal = true,
-         -- May they see the solution now? A WIN always reveals: you can only
-         -- win these games by producing the solution, so it's already in front
-         -- of you (compete included — the race is over for everyone).
-         -- Otherwise it's the gametype's standing disposition
-         -- (gametypes.hides_solution), so every ending path gets this right
-         -- without passing anything — including common.concede's all-conceded
-         -- terminal. `or`, never overwrite: a second ending can't un-reveal
-         -- what's already on screen.
-         solution_revealed = games.solution_revealed
-           or end_game.play_state in ('won', 'won_compete')
-           or not (select gt.hides_solution
-                     from common.gametypes gt
-                    where gt.gametype = games.gametype),
          status = coalesce(games.status, '{}'::jsonb) || end_game.status
    where games.id = target_game;
 
@@ -1137,51 +1124,24 @@ $$;
 -- No grant to authenticated; internal helper.
 revoke execute on function common.end_game(uuid, text, jsonb, jsonb) from public;
 
--- ─── common.reveal_solution ────────────────────────────────
--- The explicit "show us the answer" control: the boxed-eye RevealButton in a
--- game's terminal action row, and its game-menu twin. Flips the one common
--- flag; the FE reads `common.games.solution_revealed` and draws the solution
--- it already holds (each gametype's `_x_for()` unshields at terminal — see
--- docs/ui.md → Terminal results).
+-- ─── common.reveal_solution — REMOVED 2026-08-15 ───────────
+-- Seeing the solution is a LOCAL, per-player display choice now, made in the FE
+-- (docs/ui.md → Terminal results): a Reveal/Hide toggle each player works for
+-- themselves, so one player looking doesn't open the answer on a partner who is
+-- still thinking, and the board they actually finished with is always one click
+-- away. Nothing is written, so there is no RPC and no flag — the whole
+-- mechanism was a shared boolean this function set one way.
 --
--- TERMINAL-ONLY, and that's the whole simplification: "ended for everyone" is
--- `is_terminal`, so a compete player who conceded or ran out while the others
--- race on CANNOT reveal — there's no per-game "am I locally done?" reasoning
--- anywhere in this path. Every game therefore has the same two-step order:
--- End the game (which ends it for everyone), then Reveal.
+-- What the server still owes is the SHIELD, and every gametype that has one now
+-- gates it on `is_terminal` (over for EVERYONE) — see waffle._solution_for et
+-- al. That's the part that stops a conceded or already-finished player reading
+-- the answer out to a race still running; who is LOOKING never was.
 --
--- SHARED on purpose: one player reveals and the group's boards open together,
--- because the post-mortem is something the friends do on the call. Any game
--- player may fire it; idempotent, so a second click (or a peer's) is a no-op.
-create or replace function common.reveal_solution(target_game uuid)
-returns void
-language plpgsql
-security definer
-set search_path = common, public, extensions
-as $$
-declare
-  terminal boolean;
-begin
-  perform common.require_game_player(target_game);
-
-  select is_terminal into terminal from common.games where id = target_game;
-  if terminal is null then
-    raise exception 'game-not-found|' using errcode = 'P0002',
-      detail = 'no common.games row for target_game';
-  end if;
-  if not terminal then
-    raise exception 'game-not-over|' using errcode = 'P0001',
-      detail = 'play_state is still active; the solution stays shielded';
-  end if;
-
-  update common.games
-     set solution_revealed = true
-   where id = target_game and not solution_revealed;
-end;
-$$;
-
-revoke execute on function common.reveal_solution(uuid) from public;
-grant execute on function common.reveal_solution(uuid) to authenticated;
+-- The drop is explicit because supabase/sql is re-applied, not diffed: deleting
+-- the definition alone would leave the function sitting in every database that
+-- ever ran it, prod included. The two COLUMNS it wrote are shape, so they go in
+-- a forward migration (20260815000000_drop_solution_revealed.sql).
+drop function if exists common.reveal_solution(uuid);
 
 -- ─── common.reset_game ─────────────────────────────────────
 -- The INVERSE of end_game: return a game to fresh, in-progress
@@ -1222,11 +1182,6 @@ begin
      set play_state = 'playing',
          is_terminal = false,
          ended_at = null,
-         -- The same board, hunted blind again — a replay whose answer is still
-         -- on screen isn't a second try. This one line is why the flag is a
-         -- common column instead of per-game FE state: every game gets the
-         -- re-hide for free, and none of them can forget it.
-         solution_revealed = false,
          status = reset_game.status
    where id = target_game;
 

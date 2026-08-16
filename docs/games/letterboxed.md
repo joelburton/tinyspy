@@ -96,7 +96,7 @@ Three different trust postures coexist here, each for its own reason:
   and it buys a lot: the help search is ~40 lines of unit-testable TypeScript
   instead of the most complex plpgsql in the repo (§6), and the FE can refuse a
   bad word instantly. The solution is **display-gated, not shielded**: the
-  gametype sets `hides_solution`, so the seeded pair stays covered until the
+  nothing autoreveals, so the seeded pair stays covered until the
   terminal Reveal — a local, reversible display toggle in the FE (docs/ui.md →
   Terminal results), which is **never automatic, a win included**. Winning is
   covering the twelve with *any* chain inside the cap, so unlike waffle (the

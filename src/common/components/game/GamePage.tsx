@@ -580,7 +580,6 @@ export function GamePage({
           players,
           playState: commonGame.play_state,
           isTerminal: commonGame.is_terminal,
-          solutionRevealed: commonGame.solution_revealed,
           timer,
           isMyTurn,
           currentTurnUserId: commonGame.current_turn_user_id,

@@ -57,7 +57,6 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   // the game, took the turn, or conceded while your call was in flight.
   'not-your-turn': { text: () => 'Not your turn' },
   'game-not-in-play': { text: () => 'Game over', tone: 'info' },
-  'game-not-over': { text: () => 'Not over yet', tone: 'info' },
   'you-conceded': { text: () => 'Already conceded', tone: 'info' },
   'not-a-player': { text: () => "You're not in this game" },
   'not-club-member': { text: () => "You're not in this club" },

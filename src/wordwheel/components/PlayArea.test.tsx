@@ -84,7 +84,6 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     players: [gp('u1', 'me', 'red')],
     playState: 'playing',
     isTerminal: false,
-    solutionRevealed: false,
     timer: { displaySeconds: 0, expired: false },
     isMyTurn: true,
     currentTurnUserId: null,
@@ -127,7 +126,7 @@ describe('wordwheel PlayArea — render smoke', () => {
     // so end_game sets solution_revealed at every ending; the WordList reads
     // that common flag rather than isTerminal.
     render(
-      <PlayArea {...makeCtx({ isTerminal: true, playState: 'ended', solutionRevealed: true })} />,
+      <PlayArea {...makeCtx({ isTerminal: true, playState: 'ended' })} />,
     )
     // At terminal the WordList reveals required words nobody found — 'bead' was
     // never submitted, so it appears in the list.

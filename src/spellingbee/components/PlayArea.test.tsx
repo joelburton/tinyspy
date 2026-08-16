@@ -84,7 +84,6 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     players: [gp('u1', 'me', 'red')],
     playState: 'playing',
     isTerminal: false,
-    solutionRevealed: false,
     timer: { displaySeconds: 0, expired: false },
     isMyTurn: true,
     currentTurnUserId: null,
@@ -131,7 +130,7 @@ describe('spellingbee PlayArea — render smoke', () => {
     // so end_game sets solution_revealed at every ending — the ctx arrives with
     // both flags, and the WordList reads the common one.
     render(
-      <PlayArea {...makeCtx({ isTerminal: true, playState: 'ended', solutionRevealed: true })} />,
+      <PlayArea {...makeCtx({ isTerminal: true, playState: 'ended' })} />,
     )
     // The WordList reveals required words nobody found — 'bead' was never
     // submitted, so it appears in the list.

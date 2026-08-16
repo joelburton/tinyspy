@@ -1086,8 +1086,9 @@ grant execute on function waffle.end_game(uuid) to authenticated;
 -- Was: overwrite every waffle.players.board with the solution, then end
 -- the game as a neutral give-up. Gone so waffle matches every other
 -- game: End the game (which ends it for everyone), THEN Reveal — where
--- Reveal is `common.reveal_solution`, terminal-only by construction (see
--- common.md → Revealing the solution). The FE's display swap covers what
+-- Reveal is a local FE display toggle (docs/ui.md → Terminal results),
+-- terminal-only because the solution doesn't reach a compete client before
+-- then. The FE's display swap covers what
 -- the board rewrite did, without destroying the boards the players
 -- actually built — which also makes the turn-history viewer honest after
 -- a reveal.

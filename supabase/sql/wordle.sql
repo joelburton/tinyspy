@@ -124,8 +124,8 @@ as $$
            -- The title NEVER spells the answer out of its own accord. It used
            -- to, whenever the game was revealed — first keyed on is_terminal
            -- (which spoiled every lost game, fixed 2026-08-02), then on the
-           -- shared solution_revealed flag. That flag is on its way out and
-           -- nothing here reads it any more: revealing is now
+           -- shared solution_revealed flag. That flag is gone: revealing is
+           -- now
            -- a LOCAL, per-player display toggle (docs/ui.md → Terminal
            -- results), and a club-wide title can't follow a decision one player
            -- made on their own screen — it would tell Moth the word because
@@ -828,10 +828,10 @@ grant execute on function wordle.end_game(uuid) to authenticated;
 -- ============================================================
 -- Was: end the game AND reveal the word in one click, tagging
 -- status.outcome='revealed'. Gone so wordle matches every other game:
--- End the game (which ends it for everyone), THEN Reveal. The reveal is
--- now `common.reveal_solution`, which is terminal-only by construction —
--- see common.md → Revealing the solution. Nothing gametype-specific was
--- lost: the target unshields at terminal either way.
+-- End the game (which ends it for everyone), THEN Reveal — where Reveal
+-- is a local FE display toggle (docs/ui.md → Terminal results), not an RPC
+-- at all. Nothing gametype-specific was lost: the target unshields at
+-- terminal either way.
 
 
 -- ============================================================

@@ -6,9 +6,8 @@
 --   chains + hints_used + solved  → back to zero,
 --   the events log                → deleted (the fold has nothing to replay),
 --   the turn pointer              → rewound to seat 0 (the original opener),
---   common.games                  → playing / not terminal (reset_game),
---   solution_revealed             → cleared, so a replayed board is a genuine
---                                   second try, not one with the answer shown.
+--   common.games                  → playing / not terminal (reset_game), which
+--                                   is also what re-shields the seeded pair.
 -- Plus the roster-wide access rule: a club member who is NOT a player of this
 -- game cannot restart it (42501 — the nine-game replay convention).
 
@@ -16,7 +15,7 @@ begin;
 
 set search_path = letterboxed, common, public, extensions;
 
-select plan(11);
+select plan(9);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -50,18 +49,6 @@ select is(
   'won',
   'sanity: the board is covered and the game won'
 );
--- Winning does NOT open the seeded pair here — a letterboxed win is any
--- covering chain, not the seeded two (see reveal_test.sql). So press Reveal
--- for real, otherwise "replay clears the flag" would pass against a flag that
--- was never set.
-select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select common.reveal_solution((select id from g));
-reset role;
-select ok(
-  (select solution_revealed from common.games where id = (select id from g)),
-  'sanity: Reveal opens the seeded solution at terminal'
-);
-
 -- ── The access rule ─────────────────────────────────────────
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select throws_ok(
@@ -105,10 +92,6 @@ select is(
 select ok(
   (select not is_terminal from common.games where id = (select id from g)),
   '…and clears the terminal flag (reset_game''s job)'
-);
-select ok(
-  (select not solution_revealed from common.games where id = (select id from g)),
-  'replay re-hides the solution — a second try, not an open-book one'
 );
 -- reset_game ASSIGNS status (no merge), so the fresh blob must state its own
 -- zeroes rather than inherit the finished game's readouts.
