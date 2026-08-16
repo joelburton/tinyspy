@@ -10,10 +10,9 @@
 --
 -- Terminal vocabulary follows the shared roster (docs/states.md): a coop win is
 -- `won`, and the manual stop is `ended` and NEUTRAL — the friends agreed to
--- stop, so nobody won and nobody lost. strands registers hides_solution = true,
--- so end_game deliberately does NOT reveal the answer on a manual stop; the
--- players ask for it with the shared reveal control. Test (7) pins that
--- asymmetry, which is easy to get backwards.
+-- stop, so nobody won and nobody lost. Either way the SOLUTION becomes readable
+-- (the shield gates on is_terminal); whether a player is looking at it is their
+-- own display choice in the FE, so there is nothing here to assert about that.
 
 begin;
 
@@ -83,13 +82,13 @@ select is(
 );
 
 -- ============================================================
--- (6)–(7) A win reveals; per-player results are recorded
+-- (6)–(7) A win unshields the answer; per-player results are recorded
 -- ============================================================
 
-select is(
-  (select solution_revealed from common.games where id = (select id from game)),
-  true,
-  'a win reveals the solution — you produced it to get here'
+select isnt(
+  (select solution from strands.games_state where id = (select id from game)),
+  null,
+  'a win unshields the solution — the board is over for everyone'
 );
 
 select is(
@@ -132,12 +131,13 @@ select is(
   'nobody won a game that was simply stopped'
 );
 
--- hides_solution = true, so stopping does NOT hand over the answer. The
--- players ask for it explicitly (common.reveal_solution) if they want it.
-select is(
-  (select solution_revealed from common.games where id = (select id from game2)),
-  false,
-  'a manual stop does NOT reveal — strands hides its solution (hides_solution)'
+-- A manual stop unshields it too — it's over for everyone, which is the whole
+-- rule. What a stop does NOT do is put it on anybody's screen: that's the FE's
+-- local reveal toggle, tested in the PlayArea suite.
+select isnt(
+  (select solution from strands.games_state where id = (select id from game2)),
+  null,
+  'a manual stop unshields the solution as well — same is_terminal gate'
 );
 
 select throws_ok(
@@ -160,10 +160,10 @@ select is(
 );
 
 select is(
-  (select play_state || ':' || is_terminal::text || ':' || solution_revealed::text
+  (select play_state || ':' || is_terminal::text
      from common.games where id = (select id from game)),
-  'playing:false:false',
-  'replay un-terminals the game AND re-hides the solution'
+  'playing:false',
+  'replay un-terminals the game — which re-hides the solution by itself'
 );
 
 select is(

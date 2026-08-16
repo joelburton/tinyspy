@@ -14,8 +14,10 @@ import { signIn } from './helpers/session'
  *      and the fact that a found word's tiles LOCK;
  *   2. **the shield holding in a real client** — the answer must not be sitting
  *      in the page while the game is live;
- *   3. **the reveal**, which needs the FE to notice a flag written on a table
- *      it doesn't otherwise read (a bug this spec would have caught).
+ *   3. **the reveal**, which since 2026-08-15 is a purely LOCAL display toggle:
+ *      the server hands the answer over at terminal, and the board still draws
+ *      nothing until this viewer asks. Only a browser can tell "on the client"
+ *      apart from "on the screen".
  *
  * Solo club so a single viewer doesn't presence-pause the game.
  */
@@ -107,7 +109,7 @@ test.describe('strands play loop', () => {
     await ctx.close()
   })
 
-  test('the solution never reaches the client until the reveal', async ({ browser }) => {
+  test('the solution is shielded live, then held back on screen until asked', async ({ browser }) => {
     const club = await createSoloClub('pp3')
     const game = await createStrandsGame(club)
     const unfound = game.words.filter((w) => !w.isSpangram)[1]!
@@ -142,28 +144,44 @@ test.describe('strands play loop', () => {
     // THE SHIELD: every games_state row delivered so far carried a null
     // solution. The column grant is pinned server-side by rls_test; this is the
     // client-side half, and it catches a `_solution_for` that stopped honouring
-    // the reveal flag — which no SQL-shape test would notice.
+    // the is_terminal gate — which no SQL-shape test would notice.
     expect(solutionsSeen.length).toBeGreaterThan(0)
     expect(solutionsSeen.every((s) => s === null)).toBe(true)
 
     // And nothing on the board is wearing the missed-word styling yet.
     await expect(page.locator('[class*="tileMissed"]')).toHaveCount(0)
 
-    // End the game — a manual stop is neutral and does NOT reveal, since
-    // strands registers hides_solution.
+    // End the game — a manual stop is neutral. It IS over for everyone, so the
+    // shield lifts and the answer now legitimately reaches this client…
     await page.getByRole('button', { name: /end game/i }).first().click()
     const confirmEnd = page.getByRole('button', { name: /^End game$/ }).last()
     if (await confirmEnd.isVisible().catch(() => false)) await confirmEnd.click()
     await expect(page.getByText(/Game ended/)).toBeVisible({ timeout: 10000 })
-    expect(solutionsSeen.every((s) => s === null)).toBe(true)
+    await expect
+      .poll(() => solutionsSeen.some((s) => s !== null), { timeout: 10000 })
+      .toBe(true)
 
-    // Now ask for it.
-    await page.getByRole('button', { name: /reveal/i }).first().click()
+    // …and NOTHING is drawn with it. This is the whole point of the local
+    // toggle, and the one claim only a browser can check: "on the client" and
+    // "on the screen" are different things now.
+    await expect(page.locator('[class*="tileMissed"]')).toHaveCount(0)
 
-    // The missed words draw on the board — greyed, and only now. This is the
-    // case that needs a browser at all: reveal_solution writes to common.games,
-    // which the strands hook sees only because it subscribes there too.
+    // Now ask for it: the missed words draw on the board, greyed…
+    await page.getByRole('button', { name: /^Reveal/i }).first().click()
     await expect(cell(page, unfound.coords[0])).toHaveClass(/tileMissed/, { timeout: 10000 })
+
+    // …and the info column names them, spangram first. The board draws PATHS
+    // and never spells a word out, so without this line the reveal makes you
+    // read the answer off the grid letter by letter.
+    const words = page.getByText('Words:').locator('..')
+    await expect(words).toContainText(game.words.find((w) => w.isSpangram)!.word.toUpperCase())
+    await expect(words).toContainText(unfound.word.toUpperCase())
+
+    // And the same button, wearing its other face, takes BOTH back off — the
+    // board and the column as the players actually left them.
+    await page.getByRole('button', { name: /^Hide/i }).first().click()
+    await expect(page.locator('[class*="tileMissed"]')).toHaveCount(0)
+    await expect(page.getByText('Words:')).toHaveCount(0)
 
     await ctx.close()
   })

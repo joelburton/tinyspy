@@ -66,10 +66,19 @@ tracing is deliberate and infrequent.
 
 **The shield** is waffle's / crosswords' pattern — a column grant omitting
 `solution`, plus a `SECURITY DEFINER` `_solution_for` surfaced through the
-`security_invoker` `games_state` view, gated on `common.games.solution_revealed`.
-Reading that shared flag (rather than re-deriving "is it over?") is what keeps
-strands consistent with the other thirteen games; `gametypes.hides_solution = true`
-earns the shared `RevealButton` + `reveal_solution` for free.
+`security_invoker` `games_state` view, gated on **`common.games.is_terminal`**.
+Over for *everyone* is the only thing worth protecting server-side, and compete
+is where that bites: a racer who has solved or conceded is sitting there
+locally-done while the rest are still tracing, and could read the answer out —
+so the gate can't key on any per-player doneness (`compete_test.sql` pins both
+halves). Whether a player is *looking* at the answer is their own display choice
+in the FE ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
+a local, reversible `RevealButton`, nothing autorevealed, nothing shared. The
+reveal has **two halves, one toggle**: the unfound words draw as grey lines on
+the board, and the info column names them as text (`Words: <spangram> …`,
+spangram first, each click-to-define). The column half is not decoration — the
+board draws *paths* and never spells anything out, so without it a reveal makes
+you read the answer off the grid letter by letter.
 
 > **Recorded as provisional.** If the verdict ever feels laggy, the fallback is
 > trusting-commit: ship the solution + legal words and let the RPC record the
@@ -463,11 +472,12 @@ board's turn 3, so the handle degrades to a plain number.
 
 `useGame` subscribes to `strands.events`, `strands.players`, `strands.games`
 **and `common.games`**. That last one is unusual for a per-game hook and is the
-shield's fault: `games_state.solution` is gated on
-`common.games.solution_revealed`, and both writers of that flag touch only that
-row — so without it the flag flips, the shell re-renders, and the hook keeps
-serving the stale `solution: null` it fetched before the reveal. (Found by
-clicking Reveal and watching nothing happen.)
+shield's fault: `games_state.solution` is gated on `common.games.is_terminal`,
+and the ending that flips it writes only that row — so without this subscription
+the game ends, the shell re-renders, and the hook keeps serving the stale
+`solution: null` it fetched during play, leaving Reveal with nothing to draw.
+(Found the same way, back when the gate was a reveal flag: clicking Reveal and
+watching nothing happen.)
 
 Reads go through the two `security_invoker` views: `games_state` (the solution
 gate) and `players_state`, which is the mid-race privacy mechanism — it nulls a

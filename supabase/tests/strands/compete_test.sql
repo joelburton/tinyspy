@@ -20,7 +20,7 @@ begin;
 
 set search_path = strands, common, public, extensions;
 
-select plan(18);
+select plan(21);
 
 \ir ../_shared/setup.psql
 \ir setup.psql
@@ -162,6 +162,23 @@ select throws_ok(
   'a solved player can''t keep spending hints (their number is final)'
 );
 
+-- The privacy line, at its sharpest: ada is DONE and bea is still tracing, so
+-- the answer must not be readable by anyone yet. This is why the shield gates
+-- on is_terminal (over for EVERYONE) and not on any per-player doneness — a
+-- finished racer with the solution on screen could just read it out.
+select is(
+  (select solution from strands.games_state where id = (select id from game)),
+  null,
+  'a SOLVED racer still cannot read the answer while a rival is tracing'
+);
+
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select is(
+  (select solution from strands.games_state where id = (select id from game)),
+  null,
+  'and neither can the rival who is still going'
+);
+
 -- ── bea solves with FEWER hints, and takes it ──
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select strands.submit_path((select id from game), pg_temp.strands_row_path(r))
@@ -171,6 +188,12 @@ select is(
   (select play_state from common.games where id = (select id from game)),
   'won_compete',
   'the last racer finishing ends the game'
+);
+
+select isnt(
+  (select solution from strands.games_state where id = (select id from game)),
+  null,
+  'and NOW the answer unshields — nobody is left to spoil'
 );
 
 -- ============================================================

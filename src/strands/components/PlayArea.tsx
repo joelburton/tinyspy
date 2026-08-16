@@ -1,6 +1,6 @@
 import { failureMessage, faultMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
+import { IconHideSolution, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import { setupRows } from '../lib/setupSummary'
 import type { GamePageCtx, GamePlayer } from '../../common/lib/games'
@@ -15,6 +15,7 @@ import { memberById } from '../../common/lib/game/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { NEW_GAME_CONFIRM, useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
+import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { buildGameMenu, NEW_GAME_ID } from '../../common/lib/game/gameMenu'
 import { buildPrintModel } from '../pdf/model'
@@ -28,7 +29,6 @@ import { snapshotAt } from '../lib/history'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useGame } from '../hooks/useGame'
 import { db } from '../db'
-import { db as commonDb } from '../../common/db'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import type { StrandsSetup } from '../lib/setup'
@@ -155,7 +155,7 @@ function buildOver(
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, playState, solutionRevealed, players, session,
+    gameId, isTerminal, playState, players, session,
     setup, goToClub, clubHandle, goToGame, menu, brand, title,
     isMyTurn, currentTurnUserId,
   } = ctx
@@ -414,6 +414,15 @@ export function PlayArea(ctx: GamePageCtx) {
     if (error) showLocalFeedback(failureMessage(error, 'hint'))
   }, [gameId, showLocalFeedback, game?.hint_cost, me?.hint_points])
 
+  // ─── The answer shows only when I ask for it ──────────
+  // Never automatically, a win included (where the board you just consumed IS
+  // the answer). LOCAL and reversible (useSolutionReveal): a rival who is still
+  // tracing keeps their board untouched while I look, and Hide takes the
+  // unfound words back off mine. The solution reaches this client once the game
+  // is terminal (strands._solution_for), so this is purely what's drawn.
+  const { revealed: solutionShown, toggle: toggleSolution, hide: hideSolution } =
+    useSolutionReveal()
+
   // End / Concede / Replay from the shared hook, so their confirm copy and
   // error handling match the other games'.
   const { endGame: handleEndGame, concede: handleConcede, restart: handleRestart } =
@@ -424,12 +433,10 @@ export function PlayArea(ctx: GamePageCtx) {
     myConceded: players.find((p) => p.user_id === session.user.id)?.conceded ?? false,
     confirm: confirmAction,
     showError: showLocalFeedback,
+    // The same board, traced again — so put the answer away. Nothing on the
+    // server remembers the reveal now, which is why this is explicit.
+    onRestarted: hideSolution,
   })
-
-  const handleReveal = useCallback(async () => {
-    const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
-    if (error) showLocalFeedback(failureMessage(error, 'reveal'))
-  }, [gameId, showLocalFeedback])
 
   /**
    * New game = **the NEXT DAY'S puzzle**, not another run at this one.
@@ -535,7 +542,7 @@ export function PlayArea(ctx: GamePageCtx) {
     concede: handleConcede,
     restart: handleRestart,
     newGame: startNewGame,
-    reveal: handleReveal,
+    reveal: toggleSolution,
   })
   const modeRef = useRef<'coop' | 'compete'>('coop')
   const concededRef = useRef(false)
@@ -545,7 +552,7 @@ export function PlayArea(ctx: GamePageCtx) {
       concede: handleConcede,
       restart: handleRestart,
       newGame: startNewGame,
-      reveal: handleReveal,
+      reveal: toggleSolution,
     }
     modeRef.current = isCompete ? 'compete' : 'coop'
     concededRef.current = players.find((p) => p.user_id === selfId)?.conceded ?? false
@@ -605,11 +612,13 @@ export function PlayArea(ctx: GamePageCtx) {
               },
               {
                 id: 'reveal',
-            icon: IconReveal,
-            label: 'Reveal answer',
-                // Terminal-only, matching common.reveal_solution's own gate,
-                // and gone once it's already shown.
-                disabled: !isTerminal || solutionRevealed,
+                // The same two faces as the terminal row's button — one toggle.
+                icon: solutionShown ? IconHideSolution : IconReveal,
+                label: solutionShown ? 'Hide answer' : 'Reveal answer',
+                // Terminal-only: _solution_for withholds the words until the
+                // game is over for everyone, so a rival who solved early or
+                // conceded can't pull them while the others are still tracing.
+                disabled: !isTerminal,
                 onClick: () => actionsRef.current.reveal(),
               },
             ],
@@ -621,7 +630,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
   }, [
-    menu, isTerminal, solutionRevealed, startingNewGame,
+    menu, isTerminal, solutionShown, startingNewGame,
     // The print model's inputs — rebuilt whenever the printable state moves, so
     // the snapshot is current at click time.
     brand, title, game, events, players, playerStates, selfId, strandsSetup, found.length,
@@ -681,9 +690,6 @@ export function PlayArea(ctx: GamePageCtx) {
           ? { tone: 'neutral' as const, text: `“${game.clue}”`, variant: 'outline' as const, mode: { kind: 'sticky' as const } }
           : null)
 
-  // At the reveal, the words nobody found. `game.solution` is null until then,
-  // so this is empty for the whole game by construction rather than by a flag
-  // we have to remember to check.
   const foundPaths = found.map((f) => ({
     path: f.path,
     isSpangram: f.result === 'spangram',
@@ -692,12 +698,25 @@ export function PlayArea(ctx: GamePageCtx) {
   // The replayed board, or null when live. A one-liner because strands' board
   // only accumulates — see lib/history.
   const snap = viewer.viewingId !== null ? snapshotAt(historyRows, viewer.viewingId) : null
+  // The words nobody found, drawn as grey lines — ONLY while this viewer is
+  // asking for them. `game.solution` arrives at terminal (is_terminal lifts the
+  // shield), so mid-game this is empty by construction; after that it's empty
+  // because the reveal is off, which is what makes Hide return the board to
+  // exactly how the players left it.
+  // The theme words as TEXT, spangram first — the info column's half of the
+  // reveal. Same gate as the board's grey lines: one toggle, one secret.
+  const solutionWords =
+    solutionShown && game.solution
+      ? [game.solution.spangram.word, ...game.solution.themeWords.map((w) => w.word)]
+      : null
+
   const foundWords = new Set(found.map((f) => f.word))
-  const missed = game.solution
-    ? [game.solution.spangram, ...game.solution.themeWords]
-      .filter((w) => !foundWords.has(w.word))
-      .map((w) => w.coords)
-    : []
+  const missed =
+    solutionShown && game.solution
+      ? [game.solution.spangram, ...game.solution.themeWords]
+        .filter((w) => !foundWords.has(w.word))
+        .map((w) => w.coords)
+      : []
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -756,7 +775,8 @@ export function PlayArea(ctx: GamePageCtx) {
           solvedIds={new Set(playerStates.filter((p) => p.solved).map((p) => p.user_id))}
           isTerminal={isTerminal}
           over={over}
-          solutionRevealed={solutionRevealed}
+          solutionShown={solutionShown}
+          solutionWords={solutionWords}
           currentTurnUserId={ctx.currentTurnUserId ?? null}
           clue={game.clue}
           wordsFound={found.length}
@@ -771,7 +791,7 @@ export function PlayArea(ctx: GamePageCtx) {
           onRestart={handleRestart}
           onNewGame={startNewGame}
           startingNewGame={startingNewGame}
-          onReveal={handleReveal}
+          onReveal={toggleSolution}
           onBackToClub={goToClub}
           viewingIndex={viewer.viewingId}
           onSelectTurn={viewer.select}

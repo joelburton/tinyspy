@@ -1,3 +1,4 @@
+import type React from 'react'
 import { outcomeVerb, type GamePlayer } from '../../common/lib/games'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
 import { ConcedeGameButton } from '../../common/components/buttons/ConcedeGameButton'
@@ -15,6 +16,8 @@ import { TurnStatusLine } from '../../common/components/game/TurnStatusLine'
 import type { StrandsSetup } from '../lib/setup'
 import type { EventRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
+import { useDefinePopover } from '../../common/hooks/definitions/useDefinePopover'
+import { cls } from '../../common/lib/util/cls'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
@@ -27,7 +30,14 @@ type Props = {
   iSolved: boolean
   isTerminal: boolean
   over: TerminalCopy | null
-  solutionRevealed: boolean
+  /** Are the unfound words drawn on the board right now? Swaps the button to
+   *  its Hide face. */
+  solutionShown: boolean
+  /** The theme words, SPANGRAM FIRST — non-null only while the solution is
+   *  showing, since this is the same secret the board's grey lines are. The
+   *  board draws paths and never spells anything out, so without this the
+   *  reveal makes you read the words off the grid letter by letter. */
+  solutionWords: string[] | null
   currentTurnUserId: string | null
   // ── State ──
   clue: string
@@ -75,7 +85,8 @@ export function InfoCol({
   iSolved,
   isTerminal,
   over,
-  solutionRevealed,
+  solutionShown,
+  solutionWords,
   currentTurnUserId,
   clue,
   wordsFound,
@@ -96,6 +107,16 @@ export function InfoCol({
   viewingIndex,
   onSelectTurn,
 }: Props) {
+  // Click-to-define, the shared popover the turn log and word lists use.
+  const { define, popover } = useDefinePopover()
+  // Pointer-only, deliberately: NOT focusable, no role="button". See
+  // common/theme.css → `.definable` for why every definable word is like this.
+  const defineProps = (word: string) => ({
+    className: 'definable',
+    title: 'Click to define',
+    onClick: (e: React.MouseEvent<HTMLSpanElement>) => define(word, e.currentTarget),
+  })
+
   return (
     <div className={shared.infoCol}>
       <div className={shared.actionSlot}>
@@ -149,13 +170,20 @@ export function InfoCol({
           />
         )}
 
-        {/* ── Action row ── TERMINAL: the outcome line + Restart / New game /
-            back-to-club, plus Reveal while the answer is still hidden (strands
-            registers hides_solution, so a game that ended without a win keeps
-            its secret until the players ask). PLAYING: End + back-to-club. */}
+        {/* ── Action row ── TERMINAL: the outcome line + Reveal / Restart /
+            New game / back-to-club. Reveal is always PRESENT (it toggles rather
+            than spends itself, so the row can't change shape under a click) and
+            nothing autoreveals — a finished board keeps its unfound words until
+            the players ask. PLAYING: End + back-to-club. */}
         {over ? (
           <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
-            {!solutionRevealed && <RevealButton iconOnly onClick={onReveal} />}
+            <RevealButton
+              iconOnly
+              label="Reveal answer"
+              revealedLabel="Hide answer"
+              revealed={solutionShown}
+              onClick={onReveal}
+            />
             <RestartButton iconOnly onClick={onRestart} />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
@@ -183,6 +211,24 @@ export function InfoCol({
             Click letters in order — they may touch diagonally. After the first,
             you can type the rest. Click the last one again (or press{' '}
             <kbd>Enter</kbd>) to submit; <kbd>⌫</kbd> undoes one.
+          </p>
+        )}
+
+        {/* ── The words themselves ── the other half of the reveal, and the
+            half the board can't give you: a path shows you WHERE a word is,
+            never what it says. Spangram first (it's the one that names the
+            theme), each click-to-define. Comes and goes with the board's grey
+            lines — one toggle, one secret — which is why it grows and shrinks
+            here (a blessed exception to docs/ui.md → Layout stability). */}
+        {solutionWords && (
+          <p className={cls(shared.terminalExtra, styles.solutionWords)}>
+            <span className="muted">Words:</span>{' '}
+            {solutionWords.map((w) => (
+              <span key={w} {...defineProps(w)}>
+                {w.toUpperCase()}
+              </span>
+            ))}
+            {popover}
           </p>
         )}
 

@@ -246,12 +246,15 @@ create policy events_select on strands.events
 -- security_invoker view below calls it as the CALLER, so auth.uid() is real and
 -- base-table RLS still decides which rows are visible.
 --
--- Gated on `common.games.solution_revealed` — the one common answer to "may the
--- players see the answer?" — rather than on is_terminal directly. end_game sets
--- it on a win (you produced the solution to get there), and the shared
--- reveal_solution RPC sets it when players ask at a terminal loss. Reading the
--- flag instead of re-deriving the rule keeps strands consistent with the other
--- twelve games for free.
+-- Gated on **is_terminal** — over for EVERYONE, which is the only thing worth
+-- protecting here. It used to read `common.games.solution_revealed`, a shared
+-- flag an RPC flipped; that flag is gone, because whether a player is LOOKING at
+-- the answer is a display decision each of them makes for themselves (docs/ui.md
+-- → Terminal results). What the server still owes is the guarantee that a
+-- compete racer who has already solved or conceded can't pull the answer while
+-- the others are still tracing — and that is exactly is_terminal.
+--
+-- Same gate waffle and stackdown use.
 create or replace function strands._solution_for(g_id uuid)
 returns jsonb
 language sql
@@ -259,7 +262,7 @@ stable
 security definer
 set search_path = strands, common, public, extensions
 as $$
-  select case when cg.solution_revealed then sg.solution else null end
+  select case when cg.is_terminal then sg.solution else null end
     from strands.games sg
     join common.games cg on cg.id = sg.id
    where sg.id = g_id;
@@ -1294,8 +1297,8 @@ grant execute on function strands.concede(uuid) to authenticated;
 -- showing hint. Callable mid-game or from a finished one — it's a restart, not
 -- a terminal action.
 --
--- The solution re-hides itself: _solution_for reads
--- common.games.solution_revealed, which common.reset_game clears.
+-- The solution re-hides itself: _solution_for reads is_terminal, which
+-- common.reset_game puts back to false.
 create or replace function strands.replay_board(target_game uuid)
 returns void
 language plpgsql

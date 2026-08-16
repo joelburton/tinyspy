@@ -9,7 +9,7 @@
 --
 -- The mechanism is a COLUMN GRANT that omits `solution`, plus the SECURITY
 -- DEFINER `_solution_for` helper surfaced through the `games_state` view and
--- gated on `common.games.solution_revealed`. Both halves are pinned here: a
+-- gated on `common.games.is_terminal`. Both halves are pinned here: a
 -- future migration that re-grants the column, or a view edit that selects it
 -- directly, has to fail a test rather than quietly ship.
 --
@@ -116,21 +116,22 @@ select is(
 );
 
 -- ============================================================
--- (8)–(9) The shield LIFTS on the common flag, not on a guess
+-- (8)–(9) The shield LIFTS at is_terminal, not on a guess
 -- ============================================================
--- solution_revealed is the one shared answer to "may they see it?", written by
--- common.end_game on a win and by common.reveal_solution when players ask.
--- Reading the flag rather than re-deriving the rule is what keeps strands
--- consistent with the other twelve games.
+-- Over for EVERYONE is the only thing worth protecting: whether a player is
+-- LOOKING at the answer is a display choice each makes for themselves in the FE
+-- (docs/ui.md → Terminal results). What the server owes is that a compete racer
+-- who solved early or conceded can't pull the answer while the rest are still
+-- tracing — and that is exactly this gate.
 
 reset role;
-update common.games set solution_revealed = true where id = (select id from game);
+update common.games set is_terminal = true where id = (select id from game);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select isnt(
   (select solution from strands.games_state where id = (select id from game)),
   null,
-  'once solution_revealed, games_state hands the answer over'
+  'once the game is terminal, games_state hands the answer over'
 );
 
 select is(
@@ -140,7 +141,7 @@ select is(
 );
 
 reset role;
-update common.games set solution_revealed = false where id = (select id from game);
+update common.games set is_terminal = false where id = (select id from game);
 
 -- ============================================================
 -- (10)–(12) Club gating

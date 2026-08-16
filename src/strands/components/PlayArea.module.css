@@ -101,3 +101,14 @@
 .hintsUsed {
   color: var(--color-muted);
 }
+
+/* The revealed theme words (info column). A wrapping row rather than a
+   sentence: they're a LIST — spangram first, then the rest — and a phone's
+   column is narrow enough that eight of them need somewhere to break. The gap
+   is what separates them, so no punctuation has to. */
+.solutionWords {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.5rem;
+}
