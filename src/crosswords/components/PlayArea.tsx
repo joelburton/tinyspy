@@ -1,7 +1,7 @@
 import { failureMessage, formFailureText } from '../../common/lib/game/serverError'
 import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { IconNewGame, IconPrint, IconRestart, IconReveal, IconScratchpad } from '../../common/components/icons'
+import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal, IconScratchpad } from '../../common/components/icons'
 import type { GamePageCtx, Member } from '../../common/lib/games'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
@@ -14,6 +14,7 @@ import { RestartButton } from '../../common/components/buttons/RestartButton'
 import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
+import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, END_GAME_CONFIRM, NEW_GAME_CONFIRM, RESTART_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
@@ -57,7 +58,6 @@ import { ClueText } from './ClueText'
 import { stripClueEmphasis } from '../lib/clueRuns'
 import { Controls } from './Controls'
 import { db } from '../db'
-import { db as commonDb } from '../../common/db'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 
@@ -85,7 +85,7 @@ function fileStem(id: string | undefined): string {
  * when set_cell ends the game), so this component just reacts to `isTerminal`.
  */
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, playState, solutionRevealed, goToClub, session, status, menu, clubHandle } =
+  const { gameId, players, isTerminal, playState, goToClub, session, status, menu, clubHandle } =
     ctx
   const myId = session.user.id
 
@@ -158,17 +158,19 @@ export function PlayArea(ctx: GamePageCtx) {
   // players' grid can legitimately differ from the author's, so their fill
   // stays on screen until they ask to see his.
   //
-  // "Asked" is the common flag (`common.games.solution_revealed`), so the ask
-  // is SHARED — one solver reveals and everyone's grid fills. The click writes
-  // the flag; the effect below does the fetching, for the caller and for peers
-  // alike. (Errors are tolerated silently, like the old auto-fetch was:
-  // solution stays null and the control stays enabled for a retry.)
+  // The ask is MINE (useSolutionReveal): my looking doesn't fill a partner's
+  // grid while they're still working out what they got wrong, and the same
+  // control puts the author's answers away again — back to exactly the fill the
+  // players left, which is the whole point for a game whose grid can
+  // legitimately differ from his (rebuses, quantum clues). The fetch below
+  // hangs off the toggle rather than a flag. (Errors are tolerated silently,
+  // like the old auto-fetch was: solution stays null and the control stays
+  // live for a retry.)
+  const { revealed: solutionShown, toggle: toggleSolution, hide: hideSolution } =
+    useSolutionReveal()
   const [solution, setSolution] = useState<(string[] | null)[][] | null>(null)
-  const handleRevealBoard = useCallback(async () => {
-    await commonDb.rpc('reveal_solution', { target_game: gameId })
-  }, [gameId])
   useEffect(() => {
-    if (!solutionRevealed || solution) return
+    if (!solutionShown || solution) return
     let alive = true
     void db
       .from('games_state')
@@ -183,14 +185,14 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => {
       alive = false
     }
-  }, [solutionRevealed, solution, gameId])
+  }, [solutionShown, solution, gameId])
 
   /**
    * The solution as the GRID may draw it — the fetched answers, but only while
    * the server still says they're revealed.
    *
    * `solution` above is a one-way cache: the effect only ever sets it, so it
-   * outlived `solutionRevealed` going back to false. Nothing noticed until
+   * outlived the reveal going back off. Nothing noticed until
    * Restart, which is the one action that clears every fill at once — and since
    * <Grid> paints an answer into any EMPTY cell that has one, a restart wiped
    * the player's letters and immediately painted the whole solution in their
@@ -199,11 +201,12 @@ export function PlayArea(ctx: GamePageCtx) {
    *
    * Derived rather than cleared, for two reasons: a sync setState in an effect
    * is a lint error here (docs/code-conventions.md), and deriving fixes EVERY
-   * path that lowers the flag rather than the one that happened to be reported.
-   * The cache itself stays — a restart replays the SAME puzzle, so a later
-   * re-reveal needs no refetch.
+   * path that turns the reveal off — including Hide, which is now an ordinary
+   * thing to do — rather than the one that happened to be reported. The cache
+   * itself stays: a hide-then-show, or a restart replaying the SAME puzzle,
+   * needs no refetch.
    */
-  const shownSolution = solutionRevealed ? solution : null
+  const shownSolution = solutionShown ? solution : null
 
   const grid = game?.meta.cells ?? null
   const [cursor, setCursor] = useState<Cursor | null>(null)
@@ -499,9 +502,14 @@ export function PlayArea(ctx: GamePageCtx) {
   const handleRestart = useCallback(async () => {
     if (!isTerminal && !(await confirmAction(RESTART_CONFIRM))) return
     clearLocalFeedback()
+    // The same puzzle, solved again — so put the author's answers away. Nothing
+    // on the server remembers the reveal now, which is why this is explicit.
+    // (`shownSolution` deriving from the toggle is what stops a stale cache
+    // painting the whole grid the instant Restart clears the fills.)
+    hideSolution()
     const bad = await callRpc(db, 'replay_board', { target_game: gameId })
     if (bad) showLocalFeedback(bad)
-  }, [isTerminal, gameId, confirmAction, showLocalFeedback, clearLocalFeedback])
+  }, [isTerminal, gameId, confirmAction, showLocalFeedback, clearLocalFeedback, hideSolution])
 
   // Show note — open the setter's note locally AND (in coop) broadcast so
   // teammates open it too ("read it together", crossplay's showNotes). A no-op
@@ -702,12 +710,13 @@ export function PlayArea(ctx: GamePageCtx) {
               { id: 'restart', icon: IconRestart, label: 'Restart', onClick: () => void handleRestart() },
               {
                 // Post-game answer key — disabled until terminal (the server
-                // only unshields the solution then); disables itself once shown.
+                // only unshields the solution then). Wears the same two faces as
+                // the strip's button, because it's the same toggle.
                 id: 'reveal-board',
-                icon: IconReveal,
-                label: 'Reveal board',
-                disabled: !isTerminal || solutionRevealed,
-                onClick: () => void handleRevealBoard(),
+                icon: solutionShown ? IconHideSolution : IconReveal,
+                label: solutionShown ? 'Hide board' : 'Reveal board',
+                disabled: !isTerminal,
+                onClick: toggleSolution,
               },
               {
                 // Every game carries New game in the menu; crosswords' opens the
@@ -726,7 +735,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, hasNote, pencil, collapseRebus, mode, myConceded, handleShowNote, handleExplain, handleRevealBoard, handleRestart, handleDownloadIpuz, handlePrintSolution, isPlayable, isTerminal, solutionRevealed])
+  }, [menu, game, hasNote, pencil, collapseRebus, mode, myConceded, handleShowNote, handleExplain, toggleSolution, handleRestart, handleDownloadIpuz, handlePrintSolution, isPlayable, isTerminal, solutionShown])
 
   const over: (TerminalCopy & { verdictNode?: ReactNode }) | null = isTerminal
     ? buildOver(playState, status, mode, myId, players)
@@ -976,10 +985,13 @@ export function PlayArea(ctx: GamePageCtx) {
                 <div className={styles.actions}>
                   <RevealButton
                     label="Reveal solution"
+                    revealedLabel="Hide solution"
+                    revealed={solutionShown}
                     iconOnly
-                    // Self-disables once shown, like its game-menu twin.
-                    disabled={solutionRevealed}
-                    onClick={() => void handleRevealBoard()}
+                    // Icon-only, so both faces occupy the same fixed box: the
+                    // strip cannot change width under a click, and this layout
+                    // is precise.
+                    onClick={toggleSolution}
                   />
                   <RestartButton iconOnly onClick={() => void handleRestart()} />
                   <NewGameButton iconOnly onClick={handleNewGame} disabled={startingNewGame} />
@@ -987,11 +999,11 @@ export function PlayArea(ctx: GamePageCtx) {
                 </div>
               ) : myConceded ? (
                 <LocalTerminalRow label="You conceded">
-                  {/* Inert, but present: the solution opens only when the game
-                      is over for EVERYONE (common.reveal_solution enforces it
-                      server-side too), so a player who dropped out can't spoil
-                      a live race — and the row keeps its shape for when the
-                      last solver finishes. */}
+                  {/* Inert, but present: the solution isn't even on this client
+                      until the game is over for EVERYONE (_solution_for gates on
+                      is_terminal), so a player who dropped out can't spoil a
+                      live race — and the row keeps its shape for when the last
+                      solver finishes. */}
                   <RevealButton iconOnly disabled tooltip="Can't reveal until all end" />
                   <ConcedeGameButton iconOnly disabled />
                 </LocalTerminalRow>

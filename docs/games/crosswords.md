@@ -371,17 +371,30 @@ sizing).
   `<CelebrationDialog>` via `useCelebration(playState === 'won')` — coop-only by
   the states vocabulary (compete writes `won_compete`), at the moment of the
   flip, never on opening an already-solved game. The board is **not**
-  auto-revealed at game end: the blanks stay blank until someone picks the
+  auto-revealed at game end: the blanks stay blank until THIS viewer picks the
   **"Reveal board"** game-menu item, which fetches `games_state.solution` and
-  fills the blank cells with the greyed answers. The item is disabled mid-game
-  (the server only unshields the solution at terminal) and disables itself once
-  revealed.
+  fills the blank cells with the greyed answers. It's a **local, reversible**
+  reveal (`useSolutionReveal` — [ui.md → Terminal
+  results](../ui.md#terminal-results--the-moment-vs-the-record)): my looking
+  doesn't fill a partner's grid while they're still working out what they got
+  wrong, and **"Hide board"** puts the answers away again, leaving exactly the
+  fill the solvers left. That reversibility matters more here than in any other
+  game — a crossword grid can legitimately differ from the author's (rebuses,
+  quantum clues), so a permanent overwrite would destroy the only record of what
+  the solvers actually wrote. The item is disabled mid-game (the server only
+  unshields the solution at terminal, `_solution_for`).
+
+  **Layout is unaffected, and measured**: revealing and hiding move nothing.
+  Both faces of the control are the same icon-only fixed box, and the answers
+  paint into cells that already exist — grid box, active-clue bar and button box
+  are byte-identical across playing / hidden / revealed / hidden-again at both
+  desktop (1400×950) and tablet (1024×768) widths.
 
   **The chrome strip has three states**, swapping in place: the control bar
   while playing; a `<LocalTerminalRow>` "You conceded" + inert Concede for a
   conceded compete player (no Reveal — the solution is still shielded while the
-  others race); and at terminal an action row of **Reveal solution** (the same
-  `handleRevealBoard` as the menu item, self-disabling) · **New game** ·
+  others race); and at terminal an action row of **Reveal solution / Hide
+  solution** (the same toggle as the menu item) · **New game** ·
   **Back to club** (primary), with the fill / check / reveal controls gone —
   pencilling a finished grid is meaningless.
 

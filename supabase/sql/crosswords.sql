@@ -877,8 +877,9 @@ grant execute on function crosswords.reveal_cells(uuid, jsonb) to authenticated;
 -- everyone.
 --
 -- The solution re-shields on its own: `_solution_for` gates on `is_terminal`,
--- which the reset clears — and `reset_game` puts `solution_revealed` back to
--- false, so a replayed puzzle starts covered.
+-- which the reset clears, so a replayed puzzle starts covered. (The FE puts its
+-- own local reveal away too — see handleRestart — because the answers it
+-- already fetched are cached client-side.)
 --
 -- Any game player may call it, from a finished game OR mid-game (no play_state
 -- guard — it's a restart; the FE confirms mid-game).
