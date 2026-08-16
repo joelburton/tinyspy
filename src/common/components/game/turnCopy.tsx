@@ -12,13 +12,21 @@ import type { GenericFeedbackMsg, Member } from '../../lib/games'
  */
 
 /**
+ * Just the two fields the copy reads. A `Member` satisfies it, so every existing
+ * caller keeps passing one — but a caller holding only the name and color
+ * (setgame derives them as primitives on purpose, so a feedback effect can't
+ * depend on a member object's identity) needn't fabricate a `user_id` to call.
+ */
+type TurnHolder = Pick<Member, 'username' | 'color'>
+
+/**
  * "Waiting for ● Name…" — the wording, as a bare node.
  *
  * `current` is defensively optional: the turn pointer should always name a
  * player, but a departed member falls back to a neutral disc + "someone". Never
  * the possessive "name's turn" — we don't apostrophize usernames.
  */
-export function waitingFor(current: Member | undefined) {
+export function waitingFor(current: TurnHolder | undefined) {
   return (
     <>
       Waiting for <Dot color={current?.color} /> {current?.username ?? 'someone'}…
@@ -55,10 +63,35 @@ export function waitingFor(current: Member | undefined) {
  * mid-game — no reflow from it appearing (the same argument `<TurnStatusLine>`
  * makes for itself).
  */
-export function waitingTurnPill(current: Member | undefined): GenericFeedbackMsg {
+export function waitingTurnPill(current: TurnHolder | undefined): GenericFeedbackMsg {
   return {
     tone: 'neutral',
     text: waitingFor(current),
     mode: { kind: 'sticky' },
   }
+}
+
+/**
+ * "Waiting for your move" — the other half of the pair, for a game that puts the
+ * waiting-for-a-teammate half somewhere else.
+ *
+ * **Read the note on `waitingTurnPill` first**, which argues there should be no
+ * such thing: a permanent "your turn" pill in the below-board slot would evict
+ * the own-move results ("Not in word list", "Not a set") that arrive precisely
+ * when it IS your turn. That argument holds — and this is not a counter to it
+ * but a different arrangement, currently **setgame's alone**:
+ *
+ *   - the waiting-for-a-teammate half moves UP to the header (the global slot),
+ *     where it is sticky for as long as the wait lasts;
+ *   - this prompt takes the below-board slot, but as the **fallback** — an
+ *     own-move result outranks it and simply replaces it, which is the eviction
+ *     `waitingTurnPill` warns about, avoided by ordering rather than by absence.
+ *
+ * A game that keeps the standard arrangement (`waitingTurnPill` below the board,
+ * nothing on your turn) should not reach for this.
+ */
+export const yourTurnPill: GenericFeedbackMsg = {
+  tone: 'neutral',
+  text: 'Waiting for your move',
+  mode: { kind: 'sticky' },
 }

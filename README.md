@@ -10,6 +10,7 @@ Fifteen games are live today (the parenthetical is each game's in-app brand):
 - **connections** (WordKnit) — Connections-style: sort sixteen words into four hidden groups.
 - **crosswords** (CrossPlay) — a collaborative/competitive crossword.
 - **letterboxed** (SnakeBox) — Letter-Boxed-style: chain words around a square of twelve letters, each word starting where the last one ended.
+- **setgame** (HareTrigger) — Set-style: eighty-one cards over four attributes, and a *set* is three of them that are all-same or all-different in every one. The one game on the roster with no words in it.
 - **psychicnum** (PsychicNum) — a deliberately tiny toy that keeps the multi-game wiring honest, with the smallest possible game-logic surface.
 - **scrabble** (RackAttack) — Scrabble-style on the standard 15×15 premium board, with an AI opponent.
 - **spellingbee** (FreeBee) — Spelling-Bee-style: make words from seven letters around a required centre.
@@ -164,6 +165,6 @@ The detail behind everything above lives in `docs/`. **[CLAUDE.md](CLAUDE.md) ca
 
 ## Status
 
-Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). Fifteen games are live — bananagrams, boggle, codenamesduet, connections, crosswords, letterboxed, psychicnum, scrabble, spellingbee, stackdown, strands, waffle, wordiply, wordle, wordwheel — most multiplayer ones a coop + compete sibling pair (codenamesduet is coop-only, bananagrams a single competitive race); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest. Further games slot into the same shape — one new folder under `src/`, one new line in `src/games.ts`, one new Postgres schema.
+Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). Sixteen games are live — bananagrams, boggle, codenamesduet, connections, crosswords, letterboxed, psychicnum, scrabble, setgame, spellingbee, stackdown, strands, waffle, wordiply, wordle, wordwheel — most multiplayer ones a coop + compete sibling pair (codenamesduet is coop-only, bananagrams a single competitive race); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest. Further games slot into the same shape — one new folder under `src/`, one new line in `src/games.ts`, one new Postgres schema.
 
 Known cosmetic gaps and deferred work are in [`docs/deferred.md`](docs/deferred.md).

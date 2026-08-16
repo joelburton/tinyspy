@@ -276,6 +276,55 @@ const CASES: Record<string, Family> = {
   // twelve inside the cap"), so a win names the winner. A TIMEOUT instead
   // resolves on the most letters covered, which is a different sentence — hence
   // two won_compete rows. A manual stop is 'ended' in both modes.
+  // setgame's status is public in BOTH modes — every claim happened face-up on
+  // a shared table — so unlike wordle's or stackdown's compete blobs there is
+  // nothing withheld mid-game. The interesting labels are the two endings the
+  // rest of the roster doesn't have: a coop win that STRANDS cards (the normal
+  // ending; a full clear is ~2% of games and says so), and a compete tie, which
+  // is a real outcome here because the ranking has no speed tiebreak.
+  setgame: {
+    // The deck is a SETUP fact, and the label needs it: "perfect clear" is
+    // `sets * 3 === deck size`, derived rather than stored.
+    setup: { deck: 'full' },
+    playing: { sets_found: 6, deck_left: 45 },
+    coop: [
+      ['won', { outcome: 'cleared', sets_found: 24 }, 'deck cleared'],
+      ['won', { outcome: 'cleared', sets_found: 27 }, 'perfect clear'],
+      ['lost', { outcome: 'timeout', sets_found: 9 }, 'timeout'],
+      ['ended', { outcome: 'manual', sets_found: 9 }, 'manual end'],
+    ],
+    compete: [
+      [
+        'won_compete',
+        {
+          outcome: 'cleared',
+          sets_found: 24,
+          winner_username: 'alice',
+          leaderboard: [
+            { user_id: 'a', username: 'alice', sets_found: 14, won: true },
+            { user_id: 'b', username: 'bob', sets_found: 10, won: false },
+          ],
+        },
+        'most sets',
+      ],
+      [
+        'won_compete',
+        {
+          outcome: 'timeout',
+          sets_found: 24,
+          winner_user_id: null,
+          leaderboard: [
+            { user_id: 'a', username: 'alice', sets_found: 12, won: true },
+            { user_id: 'b', username: 'bob', sets_found: 12, won: true },
+          ],
+        },
+        'tied — co-winners',
+      ],
+      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { outcome: 'timeout' }, 'nobody scored'],
+      ['ended', { outcome: 'manual', sets_found: 9 }, 'manual end'],
+    ],
+  },
   letterboxed: {
     playing: {
       max_words: 5,

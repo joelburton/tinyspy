@@ -1303,3 +1303,40 @@ export async function createStrandsGame(
     ],
   }
 }
+
+/**
+ * Start a setgame (HareTrigger) game. Returns id + gametype for the URL.
+ *
+ * No board argument and no synthetic fixture: a setgame board is a shuffle the
+ * RPC deals itself, and the deal-three rule guarantees the opening table holds
+ * a set — so any board is a playable one, and a spec finds its move by reading
+ * the board rather than by knowing it in advance.
+ */
+export async function createSetgameGame(
+  club: E2EClub,
+  mode: 'coop' | 'compete' = 'coop',
+  playerUserIds: string[] = club.members.map((m) => m.userId),
+  deck: 'full' | 'junior' = 'full',
+  /** Turn-by-turn coop: whose turn it is first. Omit for free-for-all. */
+  firstTurnUserId?: string,
+): Promise<{ id: string; gametype: string }> {
+  const creator = club.members[0]
+  const res = await asUser(creator.session.access_token)
+    .schema('setgame')
+    .rpc('create_game', {
+      target_club: club.handle,
+      setup: {
+        timer: { kind: 'none' },
+        deck,
+        palette: 'traditional',
+        ...(firstTurnUserId
+          ? { coop_style: 'turns', first_turn_user_id: firstTurnUserId }
+          : {}),
+      },
+      player_user_ids: playerUserIds,
+      mode,
+    })
+  if (res.error) throw new Error(`setgame.create_game: ${res.error.message}`)
+  const row = Array.isArray(res.data) ? res.data[0] : res.data
+  return { id: (row as { id: string }).id, gametype: `setgame_${mode}` }
+}

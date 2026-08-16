@@ -29,6 +29,7 @@ import {
   letterboxedCoopGame,
   letterboxedCompeteGame,
 } from './letterboxed/manifest'
+import { setgameCoopGame, setgameCompeteGame } from './setgame/manifest'
 
 /**
  * The single source of truth for which games this monorepo includes.
@@ -92,4 +93,6 @@ export const games: GameManifest[] = [
   strandsCompeteGame,
   letterboxedCoopGame,
   letterboxedCompeteGame,
+  setgameCoopGame,
+  setgameCompeteGame,
 ]

@@ -147,11 +147,15 @@ query that named it.
 ### Read views, subscribe to base tables
 
 Games with hidden state (psychicnum, spellingbee, waffle, wordle,
-stackdown, scrabble, crosswords, wordwheel, wordiply, strands, letterboxed)
+stackdown, scrabble, crosswords, wordwheel, wordiply, strands, letterboxed,
+setgame)
 read from a
 `games_state` / `players_state` **view** that gates the shielded column
 (solution / target / opponent board) on row state — the
 [definer-helper + invoker-view shape](code-conventions.md#security-definer-helper--security_invoker-view).
+(setgame is in that list for the read pattern only: it has nothing to reveal,
+so its view gates nothing and has no definer helper behind it — see the
+divergence register.)
 But Realtime CDC watches **tables**, not views, so their subscriptions
 target the base tables (`games`, `players`, …) while `load()` refetches
 the views. waffle's `useGame` is the canonical commented example.
@@ -300,6 +304,7 @@ the short version, with every current member:
    counter so a slow superseded load can't clobber a newer one. Members: codenamesduet
    (×3 hooks), psychicnum, wordle, stackdown, scrabble (data side),
    waffle, bananagrams (×2 hooks), boggle, wordiply, strands, letterboxed,
+   setgame,
    the spellingbee/wordwheel factory, HomePage.
 2. **Pattern B — broadcast/presence-coupled, hand-rolled, stable name.**
    `useCommonGame`, connections `useGame`, `useScratchpad`,
@@ -598,6 +603,7 @@ All of these are commented at the site; this table is the index.
 | FE-side owner filter on CDC | crosswords `useCells` | compete privacy: CDC payload carries other owners' cells; dropped before apply |
 | `common.games` subscribed in a game's own channel | strands `useGame` | the shield's terminal wake: `_solution_for` gates on `is_terminal`, and the ending that flips it writes only `common.games` — so without this the refetch never re-reads the now-unshielded views and Reveal has nothing to draw |
 | Own `games` table subscribed though nothing writes it mid-play | letterboxed `useGame` | a deliberately quiet binding, kept so any future `games` write wakes clients rather than silently not; its publication membership is pinned by the central registry test |
+| `games_state` view with NO definer helper behind it | setgame | the roster's simplest shield: nothing is ever revealed, so there is no row-state gate to write. The view just never selects `deck`, and derives `deck_left` from two public columns. The one catch is that a `security_invoker` view runs its body as the READER, so the helper it calls (`_deck_size`) has to be granted to `authenticated` — unlike every other `_`-prefixed function in that file, which stay revoked |
 
 ## Bounds & realtime work — where it's tracked
 

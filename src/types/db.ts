@@ -669,7 +669,6 @@ export type Database = {
           paused: boolean
           play_state: string
           setup: Json
-          solution_revealed: boolean
           started_at: string
           status: Json | null
           title: string
@@ -687,7 +686,6 @@ export type Database = {
           paused?: boolean
           play_state?: string
           setup: Json
-          solution_revealed?: boolean
           started_at?: string
           status?: Json | null
           title: string
@@ -705,7 +703,6 @@ export type Database = {
           paused?: boolean
           play_state?: string
           setup?: Json
-          solution_revealed?: boolean
           started_at?: string
           status?: Json | null
           title?: string
@@ -745,19 +742,16 @@ export type Database = {
         Row: {
           default_enroll: boolean
           gametype: string
-          hides_solution: boolean
           min_players: number
         }
         Insert: {
           default_enroll?: boolean
           gametype: string
-          hides_solution?: boolean
           min_players?: number
         }
         Update: {
           default_enroll?: boolean
           gametype?: string
-          hides_solution?: boolean
           min_players?: number
         }
         Relationships: []
@@ -1044,7 +1038,6 @@ export type Database = {
         Args: { status: Json; target_game: string }
         Returns: undefined
       }
-      reveal_solution: { Args: { target_game: string }; Returns: undefined }
       send_message: {
         Args: { content: string; target_club: string }
         Returns: undefined
@@ -1383,13 +1376,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "games_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "club_nyt_status"
-            referencedColumns: ["game_id"]
-          },
-          {
             foreignKeyName: "games_puzzle_id_fkey"
             columns: ["puzzle_id"]
             isOneToOne: false
@@ -1427,17 +1413,6 @@ export type Database = {
       }
     }
     Views: {
-      club_nyt_status: {
-        Row: {
-          club_handle: string | null
-          game_id: string | null
-          is_terminal: boolean | null
-          mode: string | null
-          play_state: string | null
-          puzzle_date: string | null
-        }
-        Relationships: []
-      }
       games_state: {
         Row: {
           club_handle: string | null
@@ -1467,13 +1442,6 @@ export type Database = {
           solution?: never
         }
         Relationships: [
-          {
-            foreignKeyName: "games_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "club_nyt_status"
-            referencedColumns: ["game_id"]
-          },
           {
             foreignKeyName: "games_puzzle_id_fkey"
             columns: ["puzzle_id"]
@@ -1854,15 +1822,6 @@ export type Database = {
       _chain_for: { Args: { g_id: string; u_id: string }; Returns: string[] }
       _covered: { Args: { chain: string[] }; Returns: number }
       _covered_for: { Args: { g_id: string; u_id: string }; Returns: number }
-      _end_game: {
-        Args: {
-          play_state: string
-          player_results: Json
-          status: Json
-          target_game: string
-        }
-        Returns: undefined
-      }
       _leaderboard: { Args: { g_id: string }; Returns: Json }
       _sync_status: { Args: { g_id: string }; Returns: undefined }
       _word_count_for: { Args: { g_id: string; u_id: string }; Returns: number }
@@ -2463,6 +2422,209 @@ export type Database = {
         Returns: Json
       }
       replay_board: { Args: { target_game: string }; Returns: undefined }
+      submit_timeout: { Args: { target_game: string }; Returns: undefined }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  setgame: {
+    Tables: {
+      events: {
+        Row: {
+          board_after: number[]
+          cards: number[]
+          created_at: string
+          game_id: string
+          id: number
+          kind: string
+          user_id: string
+        }
+        Insert: {
+          board_after: number[]
+          cards: number[]
+          created_at?: string
+          game_id: string
+          id?: never
+          kind: string
+          user_id: string
+        }
+        Update: {
+          board_after?: number[]
+          cards?: number[]
+          created_at?: string
+          game_id?: string
+          id?: never
+          kind?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          board: number[]
+          club_handle: string
+          created_at: string
+          deck: number[]
+          deck_kind: string
+          deck_pos: number
+          id: string
+          mode: string
+        }
+        Insert: {
+          board: number[]
+          club_handle: string
+          created_at?: string
+          deck: number[]
+          deck_kind: string
+          deck_pos?: number
+          id: string
+          mode: string
+        }
+        Update: {
+          board?: number[]
+          club_handle?: string
+          created_at?: string
+          deck?: number[]
+          deck_kind?: string
+          deck_pos?: number
+          id?: string
+          mode?: string
+        }
+        Relationships: []
+      }
+      players: {
+        Row: {
+          game_id: string
+          hints_used: number
+          sets_found: number
+          user_id: string
+        }
+        Insert: {
+          game_id: string
+          hints_used?: number
+          sets_found?: number
+          user_id: string
+        }
+        Update: {
+          game_id?: string
+          hints_used?: number
+          sets_found?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      games_state: {
+        Row: {
+          board: number[] | null
+          club_handle: string | null
+          created_at: string | null
+          deck_kind: string | null
+          deck_left: number | null
+          id: string | null
+          mode: string | null
+        }
+        Insert: {
+          board?: number[] | null
+          club_handle?: string | null
+          created_at?: string | null
+          deck_kind?: string | null
+          deck_left?: never
+          id?: string | null
+          mode?: string | null
+        }
+        Update: {
+          board?: number[] | null
+          club_handle?: string | null
+          created_at?: string | null
+          deck_kind?: string | null
+          deck_left?: never
+          id?: string | null
+          mode?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      _board_min: { Args: { deck_kind: string }; Returns: number }
+      _deal_to_playable: {
+        Args: {
+          board: number[]
+          deck: number[]
+          deck_kind: string
+          deck_pos: number
+        }
+        Returns: Record<string, unknown>
+      }
+      _deck_size: { Args: { deck_kind: string }; Returns: number }
+      _find_set: { Args: { cards: number[] }; Returns: number[] }
+      _find_set_with: {
+        Args: { card: number; cards: number[] }
+        Returns: number[]
+      }
+      _finish: {
+        Args: { outcome: string; target_game: string }
+        Returns: undefined
+      }
+      _is_set: { Args: { a: number; b: number; c: number }; Returns: boolean }
+      _third: { Args: { a: number; b: number }; Returns: number }
+      concede: { Args: { target_game: string }; Returns: undefined }
+      create_game: {
+        Args: {
+          mode: string
+          player_user_ids: string[]
+          setup: Json
+          target_club: string
+        }
+        Returns: {
+          id: string
+        }[]
+      }
+      end_game: { Args: { target_game: string }; Returns: undefined }
+      record_hint: {
+        Args: { cards: number[]; target_game: string }
+        Returns: undefined
+      }
+      replay_board: { Args: { target_game: string }; Returns: undefined }
+      submit_set: {
+        Args: { cards: number[]; target_game: string }
+        Returns: Json
+      }
       submit_timeout: { Args: { target_game: string }; Returns: undefined }
     }
     Enums: {
@@ -4262,6 +4424,9 @@ export const Constants = {
     Enums: {},
   },
   scrabble: {
+    Enums: {},
+  },
+  setgame: {
     Enums: {},
   },
   spellingbee: {

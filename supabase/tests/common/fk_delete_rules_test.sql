@@ -55,7 +55,7 @@ select set_eq(
          'common', 'codenamesduet', 'psychicnum', 'connections',
          'spellingbee', 'bananagrams', 'waffle', 'wordle', 'stackdown',
          'scrabble', 'boggle', 'crosswords', 'wordwheel', 'wordiply',
-         'strands'])
+         'strands', 'letterboxed', 'setgame'])
   $$,
   $$
     values
@@ -94,6 +94,7 @@ select set_eq(
       ('letterboxed.games'),
       ('psychicnum.games'),
       ('scrabble.games'),
+      ('setgame.games'),
       ('spellingbee.games'),
       ('stackdown.games'),
       ('strands.games'),

@@ -1,0 +1,142 @@
+/* One card face.
+ *
+ * The card is a <button> so a click is a click and a disabled board is
+ * genuinely inert, but it carries none of the shared `.tile` styling: a tile is
+ * a warm game piece with a letter on it, and a playing card is a white card.
+ * The one thing borrowed is the SELECTED vocabulary — the dark ring — so
+ * "I picked this" reads the same as it does everywhere else. */
+
+.card {
+  /* Sized entirely by the board's --card-w. The ratio matches CARD_BOX in
+   * lib/shapes.ts — that is the SVG's viewBox, so at this ratio the face maps
+   * onto the card exactly, with no crop and no letterbox. */
+  width: var(--card-w);
+  aspect-ratio: var(--setgame-card-ratio, 100 / 94);
+  /* Load-bearing whenever the ratio above is SHORTER than the face's viewBox
+   * (i.e. on mobile). A card is a flex item, so it gets `min-height: auto` —
+   * an automatic minimum equal to its content's size — and its content is an
+   * <svg> whose viewBox gives it an intrinsic 100:94. That floor silently beat
+   * `aspect-ratio` and the card stayed 94 tall while every calc around it had
+   * moved to 86. Zeroing the floor lets the declared ratio win. */
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--setgame-card-border);
+  border-radius: var(--radius-md);
+  background: var(--setgame-card-bg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
+  cursor: pointer;
+  display: block;
+  /* Only the fill, the ring and the lift animate. Nothing here may animate SIZE
+   * or POSITION: cards must not move under a player mid-scan. */
+  transition: background 0.08s ease, box-shadow 0.08s ease, transform 0.08s ease;
+}
+
+.face {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Scoped to the <button> form: a readOnly card is a div and must not react to
+ * the pointer at all. */
+button.card:hover:not(:disabled) {
+  background: var(--setgame-card-hover-bg);
+}
+
+.card:disabled {
+  cursor: default;
+  /* Override the global `button:disabled { opacity: 0.5 }`. A card's COLORS
+   * are one of its four attributes, so dimming them doesn't read as "you can't
+   * press this", it reads as a different card. The board is disabled at every
+   * terminal, which is exactly when people are studying it. */
+  opacity: 1;
+}
+
+/* A readout card: same face, no interaction at all. */
+.readOnly {
+  cursor: default;
+}
+
+/* Selected: a ring around the card, never a fill. A fill would bury the
+ * symbols, and the symbols are the entire content of the card. The small lift
+ * is inside the card's own box (transform, not layout), so it cannot nudge a
+ * neighbor. */
+.selected {
+  box-shadow: 0 0 0 3px var(--setgame-card-selected), 0 2px 6px rgb(0 0 0 / 18%);
+  transform: translateY(-2px);
+}
+
+/* A selected card keeps its ring under the pointer; only the fill moves. */
+button.selected:hover:not(:disabled) {
+  box-shadow: 0 0 0 3px var(--setgame-card-selected), 0 2px 6px rgb(0 0 0 / 18%);
+}
+
+/* A live coop hint. Dashed and neutral so it reads as "look here", not as an
+ * outcome — the hint never says which set, only that one runs through this
+ * card. Drawn as an outline rather than a box-shadow ring so it is visibly a
+ * DIFFERENT kind of mark from selection. */
+.hinted {
+  outline: 4px dashed var(--setgame-hint-ring);
+  outline-offset: 3px;
+}
+
+/* ── The two transient marks ────────────────────────────────────────────────
+ * Both run once and stop. They exist because the refill is IN PLACE: three
+ * cards leave and three arrive in the same slots, so without a mark the board
+ * would just silently differ — worst of all in compete, where the change was
+ * someone else's doing and you were mid-scan. */
+
+.claimed {
+  box-shadow: 0 0 0 3px var(--setgame-claimed), 0 2px 6px rgb(0 0 0 / 18%);
+}
+
+.dealt {
+  animation: dealt-in 0.45s ease-out;
+}
+
+@keyframes dealt-in {
+  from {
+    box-shadow: 0 0 0 3px var(--setgame-dealt), 0 1px 2px rgb(0 0 0 / 10%);
+  }
+  to {
+    box-shadow: 0 0 0 3px transparent, 0 1px 2px rgb(0 0 0 / 10%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+
+  .dealt {
+    animation: none;
+  }
+}
+
+/* The shared <pattern> host: present in the DOM, occupying nothing. */
+.defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+/* ── Phones and portrait tablets ──────────────────────────────────────────
+ * A SHORTER card: 100/86 rather than 100/94.
+ *
+ * The board is height-bound on a phone, so a shorter card is a WIDER one — and
+ * the mobile status bar above the board (BoardCol) had just taken 9px of card
+ * width to pay for itself. This buys it back out of the card's own top/bottom
+ * whitespace, which is the cheapest place on the page to find it: the symbols
+ * are 0.63 of the card's height, so trimming the margin from ~18 units to ~14
+ * touches no art at all. The face is drawn with `preserveAspectRatio="slice"`
+ * (Card.tsx), so what the shorter box does is CROP that margin rather than
+ * shrink the symbols.
+ *
+ * Kept as a variable rather than a second `aspect-ratio` declaration so the
+ * empty-slot placeholder (Board.module.css) and the board's height-bound
+ * card-size term read the same number instead of restating it. */
+@media (--mobile) {
+  .card {
+    --setgame-card-ratio: 100 / 86;
+  }
+}

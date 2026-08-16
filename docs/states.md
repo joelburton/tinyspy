@@ -80,7 +80,7 @@ can lose to the clock.
 Note this is narrower than the rule the pre-freeze audit proposed ("the clock
 only loses when there was a target to miss"), which couldn't explain scrabble:
 scrabble coop has no target and still loses. "Reachable end" covers all
-fifteen with no exceptions.
+sixteen with no exceptions.
 
 #### Compete is different: the clock resolves a race
 

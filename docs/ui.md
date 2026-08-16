@@ -193,7 +193,7 @@ Neither replaces the page: it stays in *review mode* (the final board, connectio
 
 **Gate it only on values that are correct on the FIRST render** — the `common.games` row (`playState`, `status.*`) plus the roster, all of which `<GamePage>` awaits before rendering a PlayArea. Anything fetched by the game's own hook is null while it loads, so the fetch landing fakes a false→true flip and pops confetti at someone merely reviewing a finished game. (Caught live by an e2e; unit tests with synchronous mocks miss it.)
 
-**Which win counts is per-game.** Most games celebrate the coop win (`playState === 'won'`; coop-only by the states vocabulary, since compete writes `won_compete`). Scrabble and bananagrams celebrate the **compete** win instead — they can afford the self-vs-other test on first render, and bananagrams' coop has no win at all. letterboxed celebrates **both**: the coop cover and compete's first-past-the-bar (including a timed-out race's co-winners, read off the leaderboard's per-row `won` flags). Fourteen of fifteen games celebrate; wordiply has no win state to celebrate (its verdict leads with `Ended:`).
+**Which win counts is per-game.** Most games celebrate the coop win (`playState === 'won'`; coop-only by the states vocabulary, since compete writes `won_compete`). Scrabble and bananagrams celebrate the **compete** win instead — they can afford the self-vs-other test on first render, and bananagrams' coop has no win at all. letterboxed celebrates **both**: the coop cover and compete's first-past-the-bar (including a timed-out race's co-winners, read off the leaderboard's per-row `won` flags). Fifteen of sixteen games celebrate; wordiply has no win state to celebrate (its verdict leads with `Ended:`).
 
 **Losses stay quiet, deliberately.** Celebrate wins loudly; let losses land through the red pill. The asymmetry is the point — a consolation modal is a modal you have to dismiss on your way to feeling bad.
 
@@ -232,7 +232,7 @@ The four games without a clear win keep asking: **letterboxed** (a win is any co
 
 **Restart** (`RestartButton` + the per-game `<gametype>.replay_board` RPC on top of `common.reset_game`) serves three different players: the do-over (we lost, let us finish), the line-explorer (same puzzle, different tree), and the optimizer (I won, but I want to beat my swap count) — so it shows at *any* terminal, not just losses. Two accepted costs: replay wipes the win (the game sits "unwon" until re-solved) and wipes the previous attempt's turn log.
 
-**All fifteen games have it.** The three that once didn't (restored 2026-08-03) were each opted out for a good local reason, and each reason lost to the same argument — a player who can't find Restart where every other game puts it concludes the app is broken, not that this game is special:
+**All sixteen games have it.** The three that once didn't (restored 2026-08-03) were each opted out for a good local reason, and each reason lost to the same argument — a player who can't find Restart where every other game puts it concludes the app is broken, not that this game is special:
 
 - **codenamesduet** — its board *is* the secret, so a replay keeps the key cards and you know where the assassin is. Kept anyway, as an explicit **mulligan**: a first-guess assassin ends a game nobody got to play, and "let's just run it back" is what the friends actually say. Someone wanting a blind board has New game, one item down.
 - **bananagrams** — no shared puzzle, so a restart deals what New game would. Kept anyway because of the missing-affordance problem above, and built as a *real* reset (same row, same hands re-dealt from the immutable `bunch_seed`) rather than an alias, so the club list doesn't grow an entry.
@@ -465,7 +465,7 @@ A token (or class) earns promotion to global when **both**:
 
 Players should be able to **switch between games without relearning the frame**. The chrome reads the same; only the play surface changes. This is the consistency goal that justifies extracting shared components even when only two games use them today.
 
-**The tool for checking it is [the screenshot gallery](testing.md#the-screenshot-gallery)** — `gmake gallery` puts every game into every state and photographs it into one scrollable contact sheet, so "do these fifteen games look like one app?" becomes a question you can actually answer by looking. Drift is invisible one game at a time and obvious in a column: reach for it before and after any visual pass, and when a change touches shared chrome. It's not a test and asserts nothing (bar one guard) — the reading is yours.
+**The tool for checking it is [the screenshot gallery](testing.md#the-screenshot-gallery)** — `gmake gallery` puts every game into every state and photographs it into one scrollable contact sheet, so "do these sixteen games look like one app?" becomes a question you can actually answer by looking. Drift is invisible one game at a time and obvious in a column: reach for it before and after any visual pass, and when a change touches shared chrome. It's not a test and asserts nothing (bar one guard) — the reading is yours.
 
 ### What every game has
 
@@ -606,7 +606,7 @@ The body Members list and the `/c/<handle>` URL line are gone — the header's `
 **Filtering the two lists.** Each column's heading is a row: the `h3` on the left, that list's filter on the right ([`ModeFilter`](../src/common/components/club/ModeFilter.tsx) / [`GametypeFilter`](../src/common/components/club/GametypeFilter.tsx), sharing `clubFilters.module.css` so the paired controls can't drift). Both are pure FE state over data already in hand — nothing refetches — but they **persist differently**, because they mean different things. The mode filter is a standing taste ("I'm here to play compete games") that narrows a *menu of things you could start*, hiding nothing that exists, so re-picking it every visit is friction: it sticks, via [`useStickyChoice`](../src/common/hooks/ui/useStickyChoice.ts) in localStorage, keyed by user (across clubs — the taste is yours, not the club's). The gametype filter is **not** persisted: it narrows a list of the club's *real games*, so a remembered one hides games that are still there, and a club page that opened already filtered from last week would read as "where did our games go?"
 
 - **Start a new game → by mode.** Three `aria-pressed` toggle buttons, `All | Co-op | Compete`, mirroring the mobile tab bar's shape one size down. They decline focus on mousedown, exactly like the start buttons below them, so narrowing the list doesn't blank the keyboard cursor you were about to arrow with. **A solo club gets no mode filter at all** — mode is noise with one player, the same call [`<ModePill>`](#mode-pills) makes when it drops the "Co-op" badge there, and a filter for a distinction the page isn't drawing is worse than the space it frees. (ClubPage still pins the effective mode to `all` there, so nothing can be left filtered by a control that isn't on screen; on mobile the filter row itself is skipped, since an empty one would still claim the frame's gap.)
-- **Your games → by gametype family.** A compact `<select>`, one choice per `baseGametype` **present in the list** (so a choice can never empty it), labelled with the brand and sorted by it. **Siblings collapse:** one "WordNerd" covers `wordle_coop` *and* `wordle_compete` — the friends think in games, not manifest entries, and the mode axis already has its own filter on the other column. A native select rather than more buttons because this is a list of up to fifteen, not a switch. It can't decline focus the way the mode buttons do (a select needs the press to open its popup), so it borrows the games list's focus — and ClubPage hands it straight back on `change`, which makes the detour a round trip: narrow the list, keep arrowing it.
+- **Your games → by gametype family.** A compact `<select>`, one choice per `baseGametype` **present in the list** (so a choice can never empty it), labelled with the brand and sorted by it. **Siblings collapse:** one "WordNerd" covers `wordle_coop` *and* `wordle_compete` — the friends think in games, not manifest entries, and the mode axis already has its own filter on the other column. A native select rather than more buttons because this is a list of up to sixteen, not a switch. It can't decline focus the way the mode buttons do (a select needs the press to open its popup), so it borrows the games list's focus — and ClubPage hands it straight back on `change`, which makes the detour a round trip: narrow the list, keep arrowing it.
 
 The heading's count and the keyboard cursors both read the **visible** list, so a filtered-out game is unreachable by arrow keys too. Guarded by [`club-filters.e2e.ts`](../e2e/club-filters.e2e.ts).
 
@@ -844,7 +844,7 @@ chrome, modals/dialogs/toasts, mode pills, and iconography.
 identity discs + metric labels, the terminal look for locally-terminal states,
 sticky local feedback, natural-width action buttons). v1 was the original per-game
 layout; v2 the intermediate shared-layout scaffold. **The sweep is complete — all
-fifteen games are v3**, with bananagrams and crosswords the two documented layout
+sixteen games are v3**, with bananagrams and crosswords the two documented layout
 exceptions (their own board layouts; see their game docs). There is no v4. A game
 doc calling a game "v3" means "conforms to this standard."
 
@@ -913,7 +913,7 @@ A greyed row still teaches, so a row is disabled rather than dropped when the
 action isn't available — the exception being an action the mode never offers at
 all (letterboxed's help ladder in compete, crosswords' Reveal submenu), where
 naming a glyph the surface never shows would teach a lie. The pairing is taught
-once, at the point of need, and reads in all fifteen games afterwards — for no
+once, at the point of need, and reads in all sixteen games afterwards — for no
 board space and no per-tap cost, which is what rules out a tap-to-reveal on the
 buttons themselves (it would tax every future tap to answer a first-encounter
 question) and a Help-page legend (nobody opens it at the moment of doubt).
@@ -1051,7 +1051,7 @@ the same exchange glyph as scrabble's tile swap, in both the dump zone and the
 dump feedback pill (`FeedbackMsg.text` is a `ReactNode`, so a pill can lead with
 an inline icon).
 
-**Rollout.** Complete — **all fifteen games are v3**, so every game-move / end /
+**Rollout.** Complete — **all sixteen games are v3**, so every game-move / end /
 hint / reveal / concede is now a semantic component from
 `common/components/buttons/`, and **End (or Concede)** is an info-column
 action-row *button*, never a GamePage-menu item. The roster of semantic buttons:

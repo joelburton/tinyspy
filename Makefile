@@ -455,7 +455,7 @@ db-psql: ## psql on ENV's database — SQL="select 1" to run one statement
 # -n per name: a brand-new project has no game schemas yet, and pg_dump
 # ERRORS on a -n that matches nothing — auth always exists, so the
 # alternation always matches at least once.
-BACKUP_SCHEMAS := auth|common|codenamesduet|psychicnum|connections|spellingbee|wordwheel|bananagrams|waffle|wordle|stackdown|scrabble|boggle|crosswords|wordiply|strands|letterboxed
+BACKUP_SCHEMAS := auth|common|codenamesduet|psychicnum|connections|spellingbee|wordwheel|bananagrams|waffle|wordle|stackdown|scrabble|boggle|crosswords|wordiply|strands|letterboxed|setgame
 # Excluded because something else already provides the rows, with the SAME
 # KEYS (that caveat has teeth — see the boards/puzzles note below):
 #   migrations reseed:  common.gametypes, codenamesduet.word_pool (static

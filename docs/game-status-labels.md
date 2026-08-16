@@ -221,6 +221,17 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | | won_compete — timeout, most letters | `Won by alice · 9/12 letters` |
 | | lost_compete — all conceded | `Lost (all conceded) · nobody finished` |
 | | ended — manual end | `Ended · no winner` |
+| **setgame_coop** | playing | `Playing · 6 sets · 45 in the deck` |
+| | won — deck cleared | `Won · 24 sets` |
+| | won — perfect clear | `Won · 27 sets · perfect clear` |
+| | lost — timeout | `Lost (out of time) · 9 sets` |
+| | ended — manual end | `Ended · 9 sets` |
+| **setgame_compete** | playing | `Playing · 6 sets · 45 in the deck` |
+| | won_compete — most sets | `Won by alice · 14 sets` |
+| | won_compete — tied — co-winners | `Won (tied) · alice & bob · 12 sets` |
+| | lost_compete — all conceded | `Lost (all conceded) · nobody scored` |
+| | lost_compete — nobody scored | `Lost · nobody scored` |
+| | ended — manual end | `Ended · 9 sets` |
 
 <!-- END GENERATED status-lines -->
 

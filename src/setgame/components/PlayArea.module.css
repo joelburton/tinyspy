@@ -1,0 +1,170 @@
+/* setgame's play-surface specifics. The two-column shell itself is the shared
+ * common/components/game/PlayArea.module.css.
+ *
+ * Card sizing lives in Board.module.css, next to the grid it sizes — it needs
+ * the column count, which is a render-time value, so it can't be resolved here.
+ */
+
+.layout {
+  /* A FIXED info column, like strands / wordle / connections. setgame does NOT
+   * compose the shared `.responsiveInfoCol` — that one is for the word-list
+   * games, whose multi-column list genuinely wants 22–53rem; this column holds
+   * three counts, a three-card panel and the actions.
+   *
+   * DECLARING THIS IS MANDATORY. The scaffold has no default on purpose, and
+   * leaving it out makes `--avail-w` invalid at computed-value time, which
+   * silently invalidates the whole `min()` in Board.module.css — the cards then
+   * fall back to their intrinsic size, come out enormous, and the page scrolls
+   * in both directions. (Which is exactly what the first render did.)
+   *
+   * 22rem rather than 20: the counts row is one line by design, and at 20rem
+   * "Hints" wrapped onto a second. The board gives up 32px it was not using —
+   * at four columns it is capped well short of the width available. */
+  --info-col-width: 22rem;
+}
+
+.loading,
+.empty {
+  padding: 2rem;
+  color: var(--color-muted);
+}
+
+/* The board column FILLS the row and holds its board at the left, instead of
+ * the shared column's hug-and-center. Both halves matter: a centered board slides
+ * left when a deal adds a column (the whole table moving under a scan), and a
+ * hugging column changes width as it grows, which moves the column itself. Wide
+ * and left-aligned, the extra column arrives in space that was already reserved
+ * and nothing that was on screen moves at all. */
+.boardCol {
+  flex: 1 1 auto;
+  margin-left: 0;
+  margin-right: 0;
+  align-items: flex-start;
+}
+
+/* The one row beneath the board. Fixed height whether or not a pill is in it:
+ * the pill appears on every claim and every rejection, and a collapsing row
+ * would bounce the whole board each time. */
+.pillSlot {
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+  /* Stretch back across the (now full-width) column so the pill sits under the
+   * middle of the board rather than jammed against its left edge. */
+  align-self: stretch;
+  justify-content: center;
+}
+
+/* ── Info column readouts ─────────────────────────────────────────────────── */
+
+/* One row — "Found: 5 • Deck remaining: 50 • Hints: 5". Wraps rather than
+ * ellipsizing: every number here is worth reading. */
+/* ── The mobile status bar's row ──────────────────────────────────────────
+ * Counts on the left of a hint button, both centered as one group. The bar
+ * itself is the shared <MobileStatusBar> (display:none on desktop); this is
+ * only the arrangement of what goes in it.
+ *
+ * The button is why `--mobile-status-height` is raised on the layout: a tap
+ * target is taller than the one line of text the bar defaults to. It has to be
+ * a real tap target — this button exists precisely so that asking for a hint
+ * doesn't mean opening a sheet. */
+.mobileStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.counts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.4rem;
+}
+
+/* Full-strength text throughout, label included: these are real values, and the
+ * counts are the only progress this game reports. */
+.count {
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+
+/* The separator between counts. A bullet, not a rule: this is a sentence of
+ * three readouts, and a vertical bar makes it look like a table that lost its
+ * grid. */
+.dot {
+  color: var(--color-text);
+}
+
+.count strong {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.1rem;
+}
+
+/* ── The coop terminal breakdown ──────────────────────────────────────────── */
+/* Only ever rendered at the terminal, so it cannot reflow anything during play
+ * — it appears exactly once, in the same beat the whole column switches to its
+ * terminal state. */
+
+.breakdown {
+  margin-top: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--color-divider);
+}
+
+.breakdownLabel {
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  margin-bottom: 0.3rem;
+}
+
+.breakdownList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.breakdownList li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.breakdownCount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* ── Portrait, on a phone or a portrait tablet ────────────────────────────
+ * The board turns (Board.module.css), so the alignment turns with it. On
+ * desktop it grows to the RIGHT, so it is pinned left and a new column arrives
+ * in reserved space. In portrait it grows DOWNWARDS, so the same argument
+ * points the other way: pin it to the TOP, and center it horizontally, where
+ * its width is now fixed at three cards. */
+/* Taller than the shared bar's one-line default because it carries a BUTTON,
+ * and a tap target is taller than a line of text. The board pays for it in its
+ * height budget (Board.module.css → --avail-h). */
+@media (--mobile) {
+  .layout {
+    --mobile-status-height: 2.5rem;
+  }
+}
+
+@media (--mobile) and (orientation: portrait) {
+  /* The doubled class is deliberate, not a typo. The shared `.boardCol` sets
+   * `justify-content: center` and both classes land on the same element, so
+   * plain `.boardCol` here ties on specificity and loses on source order — this
+   * rule was silently doing nothing, and the board sat vertically centered
+   * against the intent written right above. Doubling wins without `!important`.
+   *
+   * It went unnoticed while the board was the column's only tall child (the
+   * slack read as ordinary padding); the mobile status bar made it obvious, by
+   * floating a status line down in the middle of the screen. */
+  .boardCol.boardCol {
+    align-items: center;
+    justify-content: flex-start;
+  }
+}

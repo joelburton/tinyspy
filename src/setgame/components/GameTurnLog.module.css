@@ -1,0 +1,30 @@
+/* The log's own cells. The shared <TurnLog> owns the panel, the heading row and
+ * the scroll box; these are the two columns setgame puts in them. */
+
+.cards {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0;
+}
+
+/* The mini cards. Smaller than the last-set panel's, which is a glance-target
+ * beside the board — here they are a list you scan, and a row has to stay one
+ * line tall. Small enough that three plus a "Hint:" tag fit the column, big
+ * enough that the four attributes are still readable, which is the only reason
+ * to draw them at all. */
+.mini {
+  display: flex;
+  gap: 0.2rem;
+  --card-w: 1.9rem;
+}
+
+/* A hint row says so twice over: this tag, and the shared amber bar the row
+ * carries. The cards alone would read as a find, which is exactly backwards —
+ * a hint is help taken, not a set spotted. */
+.hintTag {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  white-space: nowrap;
+}

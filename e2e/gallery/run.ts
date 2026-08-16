@@ -66,6 +66,7 @@ import { waffleGallery } from './games/waffle'
 import { wordiplyGallery } from './games/wordiply'
 import { wordwheelGallery } from './games/wordwheel'
 import { letterboxedGallery } from './games/letterboxed'
+import { setgameGallery } from './games/setgame'
 import { wordleGallery } from './games/wordle'
 
 const ALL: GameGallery[] = [
@@ -75,6 +76,7 @@ const ALL: GameGallery[] = [
   connectionsGallery,
   crosswordsGallery,
   letterboxedGallery,
+  setgameGallery,
   psychicnumGallery,
   scrabbleGallery,
   spellingbeeGallery,

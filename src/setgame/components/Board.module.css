@@ -1,0 +1,261 @@
+/* The table: three rows of cards, columns growing rightwards.
+ *
+ * ─── Card sizing — TINKER HERE ───────────────────────────────────────────────
+ * `--card-w` is the smallest of three limits: a per-card cap, the height three
+ * rows may occupy, and the width `--cols` of them may occupy — where `--cols`
+ * is the WIDEST the board has been, not its current width (Board.tsx).
+ *
+ * The first draft sized to seven columns always, so the twenty-one-card ceiling
+ * would fit without ever resizing. Measured against the real layout that was
+ * the wrong trade: beside the info column the WIDTH term binds, so an ordinary
+ * twelve-card board paid a permanent 20% of card size for a board almost nobody
+ * will ever see. With a per-card cap instead (`--max-card-w` below), a deal
+ * resizes nothing at all on a normal window, and the high-water mark means that
+ * even on a narrow one it can only happen once.
+ *
+ * Growing past twelve is NOT the rare event it looks like from the per-deal
+ * odds (~3% of deals come out set-free). A game makes about two dozen of those
+ * checks, so measured over 20k simulated games: 67% of games reach fifteen
+ * cards at some point, and 1.4% reach eighteen. Planning for a wider board is
+ * the common case, not the corner case.
+ *
+ * The height budget: three rows of card, plus each row's letter label, plus the
+ * two row gaps, inside the space the shell leaves below the game chrome. */
+
+.board {
+  --cols: 4; /* overridden per render; the fallback is the opening board */
+  /* The per-card cap. Raised from 10rem when the card lost its dead space:
+   * a shorter card frees vertical budget, and without a matching raise the
+   * board just sat in the top two-thirds of the column. 12rem is chosen against
+   * the WIDTH term rather than by eye — it is under what five columns can
+   * afford, so dealing to fifteen (which happens in two games out of three)
+   * resizes nothing at all. Only an eighteen-card board shrinks the cards, and
+   * that is 1.4% of games. */
+  --max-card-w: 12rem;
+  --card-gap: 0.7rem;
+  /* The strip under each row of cards: the letter itself, plus the breathing
+   * room between that letter and the next row's cards. Both live in this ONE
+   * number on purpose — the card-size calc below subtracts it three times, so
+   * spacing added as a margin on `.letter` instead would be height nothing
+   * accounted for, and a tall window's board would run off the bottom.
+   *
+   * Mobile zeroes it (there are no letters there), so this is desktop-only
+   * spacing without a second media query. */
+  --letter-row: 2.05rem;
+  /* The height left for the board: the viewport, less the app chrome, less the
+   * pill row beneath the board and a little breathing room. */
+  --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
+  --card-w: min(
+    var(--max-card-w),
+    /* height-bound: three rows, each a card plus its letter, plus two gaps */
+    calc((var(--avail-h) - 2 * var(--card-gap) - 3 * var(--letter-row)) / 3 * 100 / 94),
+    /* width-bound at the widest the board has BEEN (see Board.tsx) */
+    calc((var(--avail-w) - (var(--cols) - 1) * var(--card-gap)) / var(--cols))
+  );
+
+  display: grid;
+  /* Column-major: the board array is in slot order and slots run DOWN each
+   * column, which is also the order a deal appends in. */
+  grid-auto-flow: column;
+  grid-template-rows: repeat(3, auto);
+  gap: var(--card-gap);
+  /* Left-aligned, NOT centered: a deal must only ever add cards on the right.
+   * See the Board.tsx header. */
+  justify-content: start;
+  justify-items: start;
+
+  /* NO frame and NO fill: the cards ARE the board. A bordered panel would be
+   * drawing a box around a box, and — since a card face is white — a white
+   * panel behind white cards leaves nothing but the hairline card borders to
+   * separate them. On the page's warm ground the cards read as cards on a
+   * table, which is the whole picture this game needs.
+   *
+   * Still hugs its cards rather than filling the column, so the left edge is
+   * where the first card is. */
+  width: max-content;
+}
+
+/* Turn-by-turn coop, someone else's turn: the whole table fades.
+ *
+ * This is the one place setgame dims cards, and it is a deliberate exception to
+ * the rule two comments away (a disabled card keeps its colors, because color is
+ * one of its four attributes and a dimmed red reads as a different card). Two
+ * things make it safe here where it isn't at a terminal: the fade is on the
+ * BOARD, so every card moves together and no card can be misread against an
+ * undimmed neighbor — and it is a state you are meant to be waiting through,
+ * not one you are meant to be reading. Off-turn the board is inert anyway
+ * (Board.tsx's `disabled`), so nothing is lost by making that visible; without
+ * it a waiting player just clicks and gets silence.
+ *
+ * 0.5 rather than something subtler: at 0.7 the board still looked live. A
+ * transition so the hand-off reads as an event rather than a repaint. */
+.waiting {
+  opacity: 0.5;
+  transition: opacity 160ms ease-out;
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+/* A slot whose card has gone and whose replacement is still on its way. Holds
+ * the slot's exact footprint — the point of dealing one card at a time is that
+ * you SEE the gaps, and a gap that resized the board would defeat it. Quiet:
+ * an empty place is not a control and not a result, just a place. */
+.empty {
+  width: var(--card-w);
+  aspect-ratio: var(--setgame-card-ratio, 100 / 94);
+  border: 1px dashed var(--color-divider);
+  border-radius: var(--radius-md);
+  background: transparent;
+}
+
+/* The card's keyboard address. It is how you play this game with the keyboard,
+ * so it is a real value rather than chrome — and it gets TRUE BLACK rather than
+ * `--color-text`. The body ink is #1a1a1a, which is right for paragraphs and
+ * reads soft at 15px beside a board of saturated symbols; these have to be
+ * unambiguous at a glance while your eye is somewhere else entirely.
+ *
+ * Deliberately NOT dimmed when the board is disabled either. The board is
+ * disabled at every terminal, which is exactly when people sit and study it —
+ * the same reason a disabled card keeps its colors (see Card.module.css). */
+/* The glyph sits near the TOP of its strip, not centered in it: `line-height` is
+ * the glyph's own line box and the rest of `--letter-row` falls below, which is
+ * what puts the air between one row's letters and the next row's cards.
+ *
+ * That line box is 4px taller than the glyph needs, which drops the glyph 2px
+ * (a line box pads evenly above and below). The 2px is for the HINT RING, which
+ * is drawn outside the card's edge and was landing on the letter's ascender.
+ * Done this way rather than with a margin or a taller `.cell` gap because the
+ * strip's height must stay exactly `--letter-row` — that is the number the
+ * card-size calc subtracts, and anything outside it is height unaccounted for. */
+.letter {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.5rem;
+  height: var(--letter-row);
+  color: #000;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Phones and portrait tablets ──────────────────────────────────────────
+ * The keyboard addresses come off. There is no keyboard to address them from,
+ * and the row they sit in is height the board badly needs: zeroing
+ * `--letter-row` hands three rows' worth of it straight back to the cards,
+ * which is the difference between a readable card and a stamp.
+ *
+ * `--letter-row` goes to 0 as well as hiding the label, because the card-size
+ * calc above subtracts it three times — hiding the element alone would leave
+ * the space reserved and change nothing. */
+@media (--mobile) {
+  .board {
+    --letter-row: 0rem;
+    /* The shorter mobile card — see Card.module.css for why. Declared on the
+     * BOARD so the placeholder and the height-bound term below inherit the one
+     * number; the cards themselves set it too (they also live in the info
+     * sheet, outside this element). */
+    --setgame-card-ratio: 100 / 86;
+
+    /* The status bar above the board (BoardCol) is real height the board no
+     * longer has. Subtract it plus the flex gap under it — the shared
+     * convention every game with that bar follows (docs/mobile.md). Left out,
+     * the cards would size to a column taller than they get and the last row
+     * would fall off a phone. */
+    --avail-h: calc(
+      100svh - var(--game-chrome-height) - 5rem - var(--mobile-status-height) - 0.75rem
+    );
+  }
+
+  .letter {
+    display: none;
+  }
+
+  .cell {
+    gap: 0;
+  }
+}
+
+/* ── Portrait, on a phone or a portrait tablet ────────────────────────────
+ * The board TRANSPOSES: three columns, and it grows DOWNWARDS instead of to
+ * the right.
+ *
+ * Not a cosmetic preference. Growing sideways on a portrait screen divides a
+ * ~366px content width by up to seven, so the deal that follows a set-free
+ * board — which two games in three reach — would shrink the cards to about
+ * 50px. Turned, the same board divides the width by three and grows into the
+ * height a portrait screen has going spare.
+ *
+ * Measured at 390x844: 111px wide, and the SAME 111 whether twelve cards are
+ * out or eighteen, because the height for eighteen is reserved from the start
+ * (`--rows-reserved` below) — that is the whole point of reserving it. It was
+ * 93px until the symbols were reshaped from 2.5:1 to 2.1:1, which shortened the
+ * card and handed the difference straight to this term.
+ *
+ * The slot array is column-major, so `grid-auto-flow: row` over three columns
+ * lays out exactly the same cards in the same reading order, rotated — nothing
+ * else has to know. `--cols` (the widest the board has been) is still the count
+ * of three-card groups; it just measures the growing axis, which is now height,
+ * so the two terms of the card-size calc swap roles.
+ *
+ * Landscape is deliberately excluded: a phone on its side is short and wide,
+ * which is what the untransposed board is already right for. */
+@media (--mobile) and (orientation: portrait) {
+  .board {
+    grid-auto-flow: row;
+    grid-template-rows: none;
+    grid-template-columns: repeat(3, auto);
+
+    /* Rows to size for. SIX — an eighteen-card board — however few are dealt
+     * right now, so the space a deal will need is reserved from the start and
+     * growing to fifteen or eighteen resizes nothing. Two games in three grow
+     * at least once, so this is the common path, not the exception.
+     *
+     * Twenty-one cards (seven rows) is NOT reserved: at ~1 in a million it
+     * would cost every ordinary game a seventh of its card size to sit there
+     * unused. That board shrinks its cards to fit instead — one reflow, in a
+     * game nobody will ever see, which is the cheaper of the two ways to be
+     * wrong. (The alternative, letting it overflow, would break the page's
+     * no-scroll invariant.) */
+    --rows-reserved: max(var(--cols), 6);
+
+    --card-w: min(
+      var(--max-card-w),
+      /* width-bound: three columns and their two gaps */
+      calc((var(--avail-w) - 2 * var(--card-gap)) / 3),
+      /* height-bound: the reserved rows and their gaps */
+      calc(
+        (var(--avail-h) - (var(--rows-reserved) - 1) * var(--card-gap))
+          / var(--rows-reserved) * 100 / 86
+      )
+    );
+
+    /* HOLD the reserved rows, don't just size for them.
+     *
+     * `--rows-reserved` above only made the cards small enough that six rows
+     * WOULD fit; the board element still hugged the rows actually dealt, so
+     * everything below it — the pill, and the verdict at the end — sat under
+     * the last row and got pushed down the moment a deal added one. That is
+     * the reflow the reservation exists to prevent, and half a reservation
+     * doesn't prevent it.
+     *
+     * With a floor, the grid's rows keep their natural height and the unused
+     * rows are empty space at the bottom of a box that never changes size, so
+     * a deal moves nothing at all. The 21-card board is the documented
+     * exception: seven rows exceed this floor, the cards shrink to fit, and
+     * the layout reflows once — see `--rows-reserved`. */
+    min-height: calc(
+      var(--rows-reserved) * var(--card-w) * 86 / 100
+        + (var(--rows-reserved) - 1) * var(--card-gap)
+    );
+    /* The slack goes at the BOTTOM, in one piece. A grid's default
+     * `align-content` is `stretch`, which hands the reserved-but-unused height
+     * to the auto-sized rows instead — four rows of cards then float apart with
+     * ~70px between them, and the gap between rows changes every time a row is
+     * dealt. `start` keeps the rows packed at their real gap. */
+    align-content: start;
+  }
+}

@@ -34,7 +34,7 @@ Two consequences worth knowing:
   only while the game actually owns the keyboard
   ([`useGameHasKeyboard`](../src/common/hooks/input/useGameHasKeyboard.ts)) — it
   stops the moment chat takes focus.
-- **Tab is not a navigation key on a board.** Thirteen of the fifteen games
+- **Tab is not a navigation key on a board.** Fourteen of the sixteen games
   swallow it (see the per-game table); crosswords uses it for clue navigation
   and codenamesduet traps it inside the clue form.
 
@@ -210,6 +210,44 @@ first letter** (the previous word's tail), which isn't yours to delete.
 No `↑`/`↓` recall — a submitted word goes into the chain, not away, so there is
 nothing to re-edit. Taking a word back is the × on the chain strip (a click
 control).
+
+## setgame
+
+**No text entry at all.** A claim is three cards, so there is nothing to type
+INTO — the letters are addresses, not characters. `useGlobalKeyHandler` directly
+rather than the shared `useCaptureKeys`, which accumulates a value.
+
+Every card carries a letter, laid out on a **fixed 3 × 7 grid** of which only
+the dealt columns show:
+
+```
+A  B  C  D | E  F  G
+H  I  J  K | L  M  N
+O  P  Q  R | S  T  U
+```
+
+Reading is left-to-right, and a letter **never changes which card it means** —
+that is what the fixed grid buys. Numbering across the CURRENT width would
+re-letter eight of twelve cards the moment a deal added a column (which happens
+in two games out of three), and a player typing from muscle memory would
+silently claim a card they never looked at. The cost is non-contiguous rows —
+row two starts at H — which nobody has to know, since a letter is an address to
+read off a card rather than a sequence to recite.
+
+| key | what it does |
+|---|---|
+| `A`–`U` | Toggle that card's selection. The third selected card submits the claim; a third that doesn't complete a set is refused on the spot, with no round trip. |
+| `⌫` | Clear the whole selection. |
+| `Tab` | **Swallowed.** Nothing on this surface takes focus — the cards are clickable but never focusable — so a Tab that did anything would only move a focus ring somewhere unusable. |
+
+The letters are **hidden on mobile**: no keyboard to use them with, and the row
+they occupy is height the board needs.
+
+Two states where a letter does nothing else: **while a past turn is open in the
+history viewer**, the next key returns to the live board and is CONSUMED (the
+same press must not also toggle a card on a board you have only just got back),
+and **when it isn't your turn** in turn-by-turn coop, where the board is inert
+and visibly faded.
 
 ## psychicnum
 

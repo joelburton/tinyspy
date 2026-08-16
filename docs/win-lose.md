@@ -85,6 +85,8 @@ repeated fourteen times.
 | strands-compete | fewest hints among solvers, earliest solve breaking ties | time up with zero solvers |
 | wordiply-compete | best comparator once everyone's done (length% → letters → earlier → co-winners) | nobody scores a valid word — guesses spent or time up |
 | scrabble-compete | highest score at the natural end (bag out) | out of time — all lose, standings ignored |
+| setgame-coop | clear the deck — no sets left to find | out of time (only) |
+| setgame-compete | the most sets when the deck runs dry; a tie is a tie (co-winners) | out of time with nobody having scored |
 
 ## Coop
 
@@ -107,12 +109,13 @@ comes from.
 | boggle | **target** (%) or open-ended | clock only; same rule |
 | scrabble | **none** — bag-out is a neutral session end | clock only (loss-able but never win-able) |
 | wordiply | **none** — guesses spent is a neutral session end | clock only (same shape as scrabble) |
+| setgame | built-in — clear the deck (no sets left to find) | clock only (nothing to exhaust; the deal rule means play can't dead-end) |
 
 Defeat-source vocabulary, in full: **move budget** (every move spends it),
 **mistake budget** (only errors spend it), **sudden death** (one fatal act),
 **clock only**, and letterboxed's **refundable budget** (a cap that can't
 kill). codenamesduet is the roster's only triple-threat, and connections'
-mistake budget and the assassin are the only two exotic loss shapes fifteen
+mistake budget and the assassin are the only two exotic loss shapes sixteen
 games have ever needed.
 
 The `none` row is also the migration path: "invent a goal for wordiply" isn't
@@ -142,6 +145,7 @@ Two axes again — the **style** and the **finish** — with the clock behavior
 | wordiply | best — the comparator (length score → letters → earlier-if-timed → co-winners) | none (a bounded per-player session) | rank the standings |
 | boggle (no target) | best — highest score | none | rank the standings (the clock *is* the finish line) |
 | scrabble | best — highest score at the natural end | built-in but **collective** (the bag, not a per-player solve) | all lose — with no per-player finish there are no finishers to rank |
+| setgame | best — most sets, **no speed tiebreak** (ties → co-winners) | built-in but **collective** (the deck, not a per-player solve) | ⚠ **rank the standings** — the second deviation, see below |
 | *(any)* | **survival** | — | **EMPTY — see the invariant below** |
 
 Why race games' clocks all-lose isn't a choice per game — it's forced: in
@@ -150,6 +154,17 @@ definition has zero finishers, and the reachable-end rule does the rest.
 Race games also never need tiebreakers (first past the post can't tie);
 the "quality metric as tiebreak" idea only enters a race when the clock cuts
 it short, which is exactly letterboxed's deviation.
+
+**setgame's timeout is the roster's second deviation**, and it sits in the same
+row as scrabble's while ruling the opposite way. Both have a collective finish
+(the bag; the deck), so neither has finishers to rank — but scrabble voids the
+game and setgame crowns the leader. The difference is whether a partial result
+means anything: scrabble's board mid-game is a position, not a score anyone
+would accept as an outcome, whereas setgame's count of sets taken IS the
+complete result at every instant. The clock there is simply how the session
+stops, which is boggle-without-a-target's reasoning applied to a game that
+happens to have a natural end as well. A race nobody scored in is still a
+collective loss.
 
 **The no-survival invariant.** No game awards a win for outliving. All-conceded
 and all-eliminated are **collective losses** everywhere (`Lost (all conceded)`
@@ -206,6 +221,7 @@ roster's compete stances, verified against the SQL and game docs:
 | strands | the earned hint bar | yes — it's core | **scored**: fewest hints IS the ranking |
 | crosswords | check / reveal | check yes; reveal **banned** ("reveal-all would trivially win the compete race") | check deliberately free: "wrong is self-informative, not answer-leaking" |
 | letterboxed | hint / spoiler | **banned** (`hints_used` is a coop-only tally) | — |
+| setgame | the hint ladder | **banned** (`record_hint` raises `hint-in-compete`; the button still renders, disabled, saying why) | — |
 | psychicnum | hint / reveal | **yes, both, free** (`_unfound_secret` scopes to the compete caller) | ⚠ **un-priced** |
 
 The principle the deliberate rows share: **help in compete must be priced** —
@@ -297,7 +313,7 @@ keys; retire ad-hoc synonyms on contact.
 | **move budget** / **mistake budget** / **sudden death** / **clock only** | the coop defeat sources |
 | **refundable budget** | a cap that blocks play but can't kill it (letterboxed's chain) |
 | **quality-then-speed** | best's universal tiebreak ordering (`<metric> asc, solved_at asc`) |
-| **co-winners** | a comparator exhausted with players still level — a shared win (wordiply) |
+| **co-winners** | a comparator exhausted with players still level — a shared win (wordiply); or a ranking with NO tiebreak at all, where a tie is simply a tie (setgame) |
 | **shared clock** | the game-level countdown every game has today — fair only under simultaneous play |
 | **player clock** | a per-player time budget spent on your own turns (chess clock) — the turn-based-compete answer; proposed, not built |
 | **flag fall** | a player clock running out — ruled an automatic **concede**, never a crowning (see no survival wins) |

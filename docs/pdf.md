@@ -8,7 +8,7 @@ like it belongs to the same system (the on-screen consistency goal — see
 
 ## Which games print
 
-**All fifteen games print.** (waffle and wordle were a documented permanent
+**All sixteen games print.** (waffle and wordle were a documented permanent
 exclusion until 2026-08-02 — see the note under the table for what changed.)
 
 | game | prints? | notes |
@@ -18,6 +18,7 @@ exclusion until 2026-08-02 — see the note under the table for what changed.)
 | codenamesduet | ✅ | turn-log family — three facts per tile, all carried by drawn marks (see below) |
 | connections | ✅ | **both families, by mode**: coop = turn-log (shared board + newspaper flow); compete = track family — per player: their earned bands, their unsolved tiles as the plain grid, their score, their log (the full answer prints once, on the viewer's track). Bands everywhere are coloured **borders** + an A–D letter (see below) |
 | crosswords | ✅ | its own third body family (a whole-cloth ported printer); the only game with **two** print items — the puzzle and a separate answer key |
+| setgame | ✅ | **the log, and only the log** — per-player totals, then every claim and hint in one sequence, each row a PICTURE of its three cards. There is no print-and-play here: a setgame board is a shuffle that turns over every few seconds, so a printed one is a photograph of a moment nobody can return to; what survives the game is what happened. Writing the sets out instead ("2 red striped diamonds · …") is three lines of prose per turn and unreadable down a column, so this printer draws its own two-column flow rather than composing `drawTurnLog` — the column *geometry* is still shared (`twoColGeom`). Cards print in the palette the game was played with; the colorblind one's L\* 46 / 61 / 70 is close enough to this doc's three-shade ramp to survive a mono printer. See **Shading on paper** below |
 | letterboxed | ✅ | **track family** — one track per board (coop one, compete one per player); a covered letter is a heavy black ring + bold glyph, an untouched one a thin grey ring; the chain as a numbered list |
 | psychicnum | ✅ | **both families, by mode**: coop = turn-log (one shared board + the newspaper flow); compete = track family (a board with the player's OWN ✓/✗, their score line and their guess list per track — a merged board is a lie when every player races their own copy) |
 | scrabble | ✅ | turn-log family |
@@ -141,6 +142,47 @@ carve-out scrabble's premium squares use — deliberate, and narrow.
 (scrabble's board is the agreed exception: its premium-square colors + tan tiles are
 *meaningful* board features, not decoration — and they live in scrabble's own board
 renderer, not the shared frame, so the exception can't leak to other games.)
+
+## Shading on paper — setgame's hatch, and why the shortcuts failed
+
+setgame is the one printer that has to reproduce a **texture**. On screen a
+striped card is an SVG `<pattern>` of horizontal lines inside the symbol; on
+paper it has to be the same third thing, distinct from solid and from open,
+because shading is one of the game's four attributes and losing it collapses
+three of its nine looks into one.
+
+Two cheaper approximations were tried first and both failed **when looked at** —
+which is the point of this section:
+
+1. **A light tint** instead of stripes. Legible in a diff, wrong on paper: at
+   62% toward white it reads as a *muted solid*, so the striped card looks like
+   a faded version of the solid one rather than a different thing.
+2. **Real lines, but too fine.** At the first card size (15 × 17pt) a symbol
+   fits two or three hatch lines, which is once again a muted solid.
+
+What ships is **real hatching, clipped to the symbol** — jsPDF does have
+`clip()` / `discardPath()`: build the path with a `null` style, clip, rule
+horizontal lines across the bounding box, restore, then stroke the outline back
+on so the edge stays crisp. The card size and the hatch pitch were then chosen
+**together** by rendering the full 3 shapes × 3 shadings × {1, 3} pips grid at
+several sizes and looking at it: a symbol about 16pt tall with a 3pt pitch. The
+bar is arm's length — a printout is looked at, not zoomed. Only the card's WIDTH
+is set in the printer; its height and its symbols' height are derived from
+`lib/shapes.ts`, so the later 2.5 → 2.1 symbol reshape reached paper without
+anyone having to remember it.
+
+Two geometry lessons that generalize to any shape a printer has to draw:
+
+- **Convert the screen's path; don't redraw it.** The squiggle was first
+  approximated with a couple of print-only cubics and came out a thin ribbon
+  with *no interior*, so solid, hatched and open were indistinguishable on it.
+  The fix was a mechanical rewrite of the board's own path (`SHAPE_PATHS` lives
+  in a 40 × 100 box; jsPDF's `lines()` wants relative deltas), which also means
+  the two renderings can't drift apart again.
+- **Equal slots aren't equal weight.** Given the same width, a diamond tapers
+  and a squiggle is a ribbon, but an oval is at full width the whole way down —
+  so at three pips the ovals crowded while the others looked airy. The oval is
+  drawn at 78% of its slot to even them out.
 
 ## Layout conventions (the shared shape)
 

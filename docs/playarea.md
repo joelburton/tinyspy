@@ -8,7 +8,7 @@ modals, mode pills, iconography), see [ui.md](ui.md).
 
 ## PlayArea layout
 
-The shape every game's play surface takes — **all fifteen games** are on it. The
+The shape every game's play surface takes — **all sixteen games** are on it. The
 scaffold + readout classes live in
 [`common/components/game/PlayArea.module.css`](../src/common/components/game/PlayArea.module.css)
 (a CSS-only module imported the way `setupForm.module.css` is, composed with a thin
@@ -299,7 +299,7 @@ The pill is driven by the shared **`useLocalFeedback`** hook (holds one
 `GenericFeedbackMsg`, auto-clears on the next move / any key via
 `useDismissLocalFeedbackOnKey`, and is permanent at terminal — see [Terminal local
 feedback is permanent](#text-entry--capture-not-input) above). The slot reserves its
-height so swapping the pill in for the move controls never reflows the board. All fifteen
+height so swapping the pill in for the move controls never reflows the board. All sixteen
 games share this (eleven drive `useLocalFeedback` directly, the four word-list games via
 `useWordSubmit`); the earlier per-game full-width `<ResultFlash>` bar has been
 removed. In the eight turn-order coop games the same slot also carries the sticky
@@ -757,11 +757,11 @@ A-game letter) with the tile via `cqmin`/`cqi`; multi-char content auto-fits via
 
 Every standard game is decomposed into `BoardCol` / `InfoCol` (bananagrams via its
 own engine-hook + views shape — see below). The shared turn-history viewer
-(`useHistoryViewer` + a per-game replay helper) ships in the **eight** games whose
+(`useHistoryViewer` + a per-game replay helper) ships in the **ten** games whose
 board can replay a past turn — stackdown, connections, psychicnum, codenamesduet,
-wordle, waffle, strands (each via its own `lib/history.ts`) and scrabble (via
-`boardUpToSeq` in `lib/play.ts`); spellingbee + boggle are decomposed but have
-**no** viewer (a `WordList` isn't chronological).
+wordle, waffle, strands, letterboxed, setgame (each via its own `lib/history.ts`)
+and scrabble (via `boardUpToSeq` in `lib/play.ts`); spellingbee + boggle are
+decomposed but have **no** viewer (a `WordList` isn't chronological).
 
 **Read [What building it taught us](#what-building-it-taught-us) before extracting
 `InfoCol` / `BoardCol` for a new game** — it records where the "target architecture"
@@ -858,6 +858,12 @@ adding a viewer to a new game:
   rings that turn's own cells. A two-input game — its `BoardCol` owns the **guess** RPC
   (the guess is a board click; `CluePanel` keeps the clue RPCs).
 - **waffle** — keyed by **log position**; `highlight` = a viewed swap's neutral cell ring.
+- **setgame** — keyed by **log position**, and the one viewer that is a pure
+  **lookup**: the event row carries `board_after`, so `lib/history.ts` reads the
+  board out rather than replaying anything. Deliberate — replaying setgame's
+  deal rule on the FE would be a second implementation of the subtlest logic in
+  that game, with nothing testing that the two agree. `highlight` = the viewed
+  event's own cards, which for a hint row is one, two or three of them.
 - **letterboxed** — keyed by **log position**; **inclusive** fold over the event
   stream (`chainAt` in `lib/history.ts`: played pushes, undone pops, cleared
   empties, help rows change nothing) — the log records retreats precisely so this

@@ -1,0 +1,82 @@
+/* setgame (HareTrigger) — per-game theme tokens.
+ *
+ * ─── Two palettes, chosen at setup ───────────────────────────────────────────
+ * The three color tokens are named for Set's own vocabulary — red, green,
+ * purple — but they name SLOTS, not pigments. `--setgame-red` means "whatever
+ * the first color value is painted with in this game", and which hue that is
+ * depends on `setup.palette`. Nothing outside this file needs to know: the card
+ * renders `var(--setgame-red)` either way.
+ *
+ * TRADITIONAL (the default) is Set's own red / green / purple.
+ *
+ * COLORBLIND-SAFE is Okabe-Ito's blue / orange / magenta. The traditional trio
+ * is close to the worst possible one for red-green color vision deficiency
+ * (~8% of men): a deutan reads red as olive and green as khaki, and purple as
+ * blue. That matters more here than in almost any other game, because TWO CARDS
+ * CAN DIFFER ONLY BY COLOR — the other three attributes are identical on them,
+ * so shape and shading cannot rescue a pair you can't separate.
+ *
+ * Magenta rather than purple is the load-bearing choice in that trio: purple is
+ * the obvious "stay close to the original" third and is exactly the one that
+ * collides, since a deutan sees it as blue.
+ *
+ * A happy second property of the safe trio: its greyscale lightnesses are
+ * roughly evenly spaced (L* 46 / 61 / 70), close to the three-shade ramp
+ * docs/pdf.md already uses — so a mono print of that board stays readable.
+ * Color is MEANING here and cannot be moved onto shape or line weight the way
+ * strands' and letterboxed's could, because those channels are already
+ * attributes. */
+
+:root {
+  /* Traditional — Set's own. */
+  --setgame-red: #d42a2a;
+  --setgame-green: #12922f;
+  --setgame-purple: #7b2d8e;
+
+  /* The card face. Plain white on the warm page, like a real card on a table —
+   * NOT the warm tile ramp the letter games use, whose whole job is to make a
+   * tile read as a game piece. A playing card reads as one already. */
+  --setgame-card-bg: #ffffff;
+  /* Hover: the card GREYS, rather than growing a ring. A ring on hover competes
+   * with the ring that means "selected" — the one mark on this board that has
+   * to be unmistakable — and a border that thickens under the pointer also
+   * nudges the eye toward the edges of a card whose content is its middle. */
+  --setgame-card-hover-bg: #ededed;
+  /* A plain mid-grey, dark enough to actually draw the card's edge. Two
+   * earlier values were too light to see: the page's divider grey, and then a
+   * warm tone that still disappeared once the board lost its frame. A white
+   * card on a warm ground needs a real edge or it reads as a floating symbol
+   * rather than as a card. */
+  --setgame-card-border: rgb(128 128 128);
+
+  /* Selection: a dark ring, the same "I picked this" vocabulary as the shared
+   * tile's selected state, but drawn AROUND the card rather than filling it —
+   * a fill would bury the symbols, which are the entire point of the card. */
+  --setgame-card-selected: var(--color-text);
+
+  /* A live hint's ring: saturated green, and thick. It started neutral grey on
+   * the theory that a hint is not an outcome — but a hint you have to hunt for
+   * is not a hint, and a thin grey dash on a white card next to eleven other
+   * white cards was genuinely easy to miss. It stays DASHED, which is what
+   * keeps it distinct from the solid ring of a selected card. */
+  --setgame-hint-ring: #16a34a;
+
+  /* The two transient marks on a card, both ~250ms:
+   *   claimed — a set that was just taken, on its way off the board
+   *   dealt   — a card that has just arrived
+   * Green for the claim because it IS an outcome (someone scored); neutral
+   * warm for the deal because arriving is not an achievement. The dealt flash
+   * is what buys the in-place refill its legibility: cards land in the holes
+   * rather than in one place, so the flash is how you find them. */
+  --setgame-claimed: #2e7d32;
+  --setgame-dealt: #c9a227;
+}
+
+/* Colorblind-safe: the same three slots, repainted. Set on the play surface's
+ * root by PlayArea when `setup.palette` says so, so it reaches the board, the
+ * last-set panel and anything else drawing a card. */
+.setgamePaletteColorblind {
+  --setgame-red: #0072b2;      /* blue */
+  --setgame-green: #e69f00;    /* orange */
+  --setgame-purple: #cc79a7;   /* magenta */
+}

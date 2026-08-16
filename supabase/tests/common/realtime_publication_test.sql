@@ -60,7 +60,7 @@ select set_eq(
          'common', 'codenamesduet', 'psychicnum', 'connections',
          'spellingbee', 'bananagrams', 'waffle', 'wordle', 'stackdown',
          'scrabble', 'boggle', 'crosswords', 'wordwheel', 'wordiply',
-         'strands', 'letterboxed'])
+         'strands', 'letterboxed', 'setgame'])
   $$,
   -- EXPECTED: the FE postgres_changes subscription registry.
   $$
@@ -124,7 +124,11 @@ select set_eq(
       -- letterboxed (useGame refetch: games + players + events)
       ('letterboxed', 'games'),
       ('letterboxed', 'players'),
-      ('letterboxed', 'events')
+      ('letterboxed', 'events'),
+      -- setgame (useGame refetch: games + players + events)
+      ('setgame', 'games'),
+      ('setgame', 'players'),
+      ('setgame', 'events')
   $$,
   'supabase_realtime membership == the FE postgres_changes subscription registry (missing ⇒ live updates die; extra ⇒ replication overhead)'
 );

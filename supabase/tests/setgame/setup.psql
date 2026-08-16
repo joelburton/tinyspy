@@ -1,0 +1,125 @@
+-- ============================================================
+-- Per-test-file setgame fixtures
+-- ============================================================
+-- Loaded by every setgame/*_test.sql via `\ir setup.psql` (after the shared
+-- persona setup).
+--
+-- There is no fixture BOARD here, unlike stackdown's or connections' setups,
+-- because setgame has no puzzle library — a board is a shuffle, so every test
+-- gets a different one. The helpers below are what make that fine: they read
+-- whatever board came out and derive a legal (or deliberately illegal) move
+-- from it, so a test asserts on RULES rather than on one lucky deal.
+--
+-- Helpers:
+--   pg_temp.sg_live(gid)     — three cards that ARE a set on the board now
+--   pg_temp.sg_not_a_set(gid) — three board cards that are NOT a set
+--   pg_temp.sg_board(gid)     — the board, read past the column grant
+--   pg_temp.sg_play_out(gid, actors) — claim sets until the game ends
+--
+-- Every helper reads as postgres and restores the caller's identity
+-- afterwards, because the `_`-prefixed algebra functions are revoked from
+-- public (the repo's convention for internal helpers) and the tests run as
+-- `authenticated` most of the time.
+
+reset role;
+
+-- Each helper below runs its body as postgres and then puts the session back
+-- on whatever ROLE it found — captured as `current_user`, not read out of
+-- request.jwt.claims. The claims GUC is the wrong thing to restore from: a
+-- test that has done `reset role` to assert across RLS still has ada's claims
+-- set, so restoring from them would silently drop the test back into
+-- `authenticated` and the next read would fail on a permission it never asked
+-- to give up.
+
+-- The board as stored. `board` is granted to authenticated anyway, but tests
+-- assert on it while acting as all sorts of people, so this keeps the reads
+-- uniform.
+create function pg_temp.sg_board(gid uuid) returns smallint[]
+language plpgsql as $$
+declare
+  prev text := current_user;
+  result smallint[];
+begin
+  perform set_config('role', 'postgres', true);
+  select board into result from setgame.games where id = gid;
+  perform set_config('role', prev, true);
+  return result;
+end;
+$$;
+
+-- Three cards that form a set on the board RIGHT NOW. The deal-three rule
+-- guarantees one exists while a game is playing, so a null return is itself a
+-- bug worth failing on.
+create function pg_temp.sg_live(gid uuid) returns smallint[]
+language plpgsql as $$
+declare
+  prev text := current_user;
+  result smallint[];
+begin
+  perform set_config('role', 'postgres', true);
+  select setgame._find_set(board) into result from setgame.games where id = gid;
+  perform set_config('role', prev, true);
+  return result;
+end;
+$$;
+
+-- Three cards on the board that are NOT a set: two arbitrary cards plus any
+-- third that isn't their completer. Only fails to exist on a board of three
+-- cards that happen to be a set, which a playing game never has.
+create function pg_temp.sg_not_a_set(gid uuid) returns smallint[]
+language plpgsql as $$
+declare
+  prev text := current_user;
+  b      smallint[];
+  result smallint[];
+  i      int;
+begin
+  perform set_config('role', 'postgres', true);
+  select board into b from setgame.games where id = gid;
+  for i in 3 .. cardinality(b) loop
+    if b[i] <> setgame._third(b[1], b[2]) then
+      result := array[b[1], b[2], b[i]]::smallint[];
+      exit;
+    end if;
+  end loop;
+  perform set_config('role', prev, true);
+  return result;
+end;
+$$;
+
+-- Play the game to its natural end, always claiming the first set the board
+-- offers. `actors` rotates who claims (pass a single uid for a solo run, two
+-- for an alternating compete race). Returns how many sets were taken.
+--
+-- This is the workhorse for the terminal tests: nothing but the real RPC
+-- drives it, so a refill that fails to terminate, a board that dead-ends
+-- early, or a terminal that never fires all show up as a hang or a wrong
+-- count rather than as a passing test.
+create function pg_temp.sg_play_out(gid uuid, actors uuid[]) returns int
+language plpgsql as $$
+declare
+  taken int := 0;
+  live  smallint[];
+  state text;
+begin
+  loop
+    perform set_config('role', 'postgres', true);
+    select play_state into state from common.games where id = gid;
+    exit when state <> 'playing';
+    select setgame._find_set(board) into live from setgame.games where id = gid;
+    exit when live is null;
+
+    perform pg_temp.as_user(actors[1 + taken % cardinality(actors)]);
+    perform setgame.submit_set(gid, live);
+    taken := taken + 1;
+
+    -- A full deck is 27 sets; anything past that is a runaway loop, and
+    -- failing loudly beats hanging the suite.
+    if taken > 40 then
+      raise exception 'sg_play_out ran away: % claims', taken;
+    end if;
+  end loop;
+  perform set_config('role', 'postgres', true);
+  return taken;
+end;
+$$;

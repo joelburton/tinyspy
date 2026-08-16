@@ -196,7 +196,7 @@ below flipped from red to green on exactly this change.
 
 Every Realtime channel in the app is instrumented centrally — `supabase.ts`
 wraps the `supabase.channel()` factory with
-`common/lib/supabase/realtimeDiag.ts`, so all fifteen games' data channels,
+`common/lib/supabase/realtimeDiag.ts`, so all sixteen games' data channels,
 the game/club rooms, chat, presence, and scratchpad are covered without
 per-hook wiring. Always-on console lines (low-frequency by design):
 

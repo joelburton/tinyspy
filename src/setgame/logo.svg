@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- setgame (brand HareTrigger) logo: a card carrying two symbols that differ
+     in every way a card can. A solid green diamond and a striped red oval:
+     different shape, different color, different shading.
+
+     The two paths are copied from src/setgame/lib/shapes.ts and the colors
+     from theme.css, because an SVG file cannot read CSS custom properties.
+     Keep them in step by hand: green #12922F, red #D42A2A.
+
+     Those are the TRADITIONAL palette — Set's own colors, and the default a
+     game is created with. The colorblind-safe palette is a per-game setup
+     choice, so a logo painted in it would advertise a setting most games are
+     not using.
+
+     The card fills the square exactly. The rect is inset by HALF the stroke
+     width (22 of 44) because SVG centers a stroke on the path, so a rect at 0,0
+     would have half its border painted outside the viewBox and clipped.
+
+     Symbols come from the shapes.ts symbol box (40 wide by 84 tall), scaled by
+     16, so each is 640 by 1344 here. They fill far more of the card than a real
+     card's do and their strokes are heavier, both for the same reason: this is
+     read at 40px in a club list beside some very bold neighbors, and at that
+     size a faithfully proportioned card is a white square with slivers in it. -->
+<svg
+   role="img"
+   aria-label="HareTrigger"
+   viewBox="0 0 2000 2000"
+   version="1.1"
+   xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Coarser than the board's stripes (pitch 10 rather than 8, and thicker):
+         about ten bands over the symbol, which is as fine as survives at 24px. -->
+    <pattern id="hare_stripe" patternUnits="userSpaceOnUse" width="10" height="10">
+      <path d="M 0 2.5 H 10" stroke="#d42a2a" stroke-width="5" />
+    </pattern>
+  </defs>
+
+  <!-- The card, edge to edge. -->
+  <rect x="22" y="22" width="1956" height="1956" rx="240"
+        fill="#ffffff" stroke="#000000" stroke-width="44" />
+
+  <!-- Two symbols, 640 wide with 160 between them: 1440 total, centered. -->
+  <g transform="translate(280 328) scale(16)" stroke-width="5">
+    <path d="M 20 2 L 38 42 L 20 82 L 2 42 Z"
+          fill="#12922f" stroke="#12922f" />
+  </g>
+  <g transform="translate(1080 328) scale(16)" stroke-width="5">
+    <path d="M 20 2 A 18 18 0 0 1 38 20 L 38 64 A 18 18 0 0 1 20 82 A 18 18 0 0 1 2 64 L 2 20 A 18 18 0 0 1 20 2 Z"
+          fill="url(#hare_stripe)" stroke="#d42a2a" />
+  </g>
+</svg>

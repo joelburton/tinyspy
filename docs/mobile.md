@@ -816,6 +816,14 @@ Two rules for a game adopting it:
   itself from a height budget, subtract the bar there too**: spellingbee's hive
   derives from `--avail-h`, so its mobile block is deducted from that number or
   the board would be sized for space it no longer has and the page would scroll.
+- **A game may put a CONTROL in it, not only a readout.** setgame's bar carries
+  its counts *and* a copy of the hint button (the info column keeps its own),
+  because asking for a hint there is a routine move rather than a rescue, and a
+  routine move should not cost a sheet-open mid-game. That is what raises its
+  `--mobile-status-height` to `2.5rem`: a tap target is taller than a line of
+  text. The duplicate is safe only because both copies are the same component
+  fed the same label — two hand-written buttons would drift in wording and in
+  their disabled reason.
 - **The inner wrapper is load-bearing.** `.bar` is a flex container, and flex
   turns each run of text into its own anonymous item, *dropping the whitespace
   between them* — a status line renders "1/3found·0/7guesses used", visibly
@@ -908,11 +916,24 @@ Safari's gesture heuristics (recorded in [deferred.md](deferred.md)).
 > unless something that can actually carry `touch-action` does. **A new game
 > with a tapped board goes in that list.**
 
-**The pass now covers every game except one.** Fourteen games follow the
+**The pass now covers every game except one.** Fifteen games follow the
 info-sheet recipe, and since the sheet went full-bleed they all follow the
 *same* one — there is no longer a wide/plain split: **spellingbee / boggle /
 crosswords / psychicnum / wordle / codenamesduet / stackdown / waffle /
-connections / wordwheel / wordiply / scrabble / strands / letterboxed**.
+connections / wordwheel / wordiply / scrabble / strands / letterboxed /
+setgame**.
+
+- **setgame** is the only one that **transposes** in portrait: three columns
+  growing downwards instead of three rows growing right. Not a preference —
+  its board GROWS by a column when the table holds no set, which two games in
+  three reach, and dividing a ~366px width by up to seven leaves ~50px cards.
+  Turned, the same board divides by three and grows into the height a portrait
+  screen has going spare. Space for eighteen cards is reserved from the start so
+  a deal resizes nothing; twenty-one (a ~1-in-a-million board) shrinks to fit
+  rather than overflowing. Landscape keeps the desktop orientation — a phone on
+  its side is short and wide, which is what that layout already suits. Its
+  keyboard letters come off below the breakpoint, and `--letter-row` goes to 0
+  so the board actually gets the height back.
 
 - **scrabble** is **keyboard-required, NOT desktop-only** — like crosswords, its
   conversion is a layout for keyboard-attached devices, not a touch-entry mode

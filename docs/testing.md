@@ -249,7 +249,7 @@ the tests because it uses Playwright and the same fixtures — but it is **not a
 test**, and keeping it out of the suites is what keeps it cheap.
 
 **Why it exists.** Fifteen games × coop/compete × fresh/mid/won/lost/ended ×
-desktop/mobile/PDF is 450 states — more than anyone opens by hand, so cross-game
+desktop/mobile/PDF is 480 states — more than anyone opens by hand, so cross-game
 *drift* goes unnoticed: a heading styled differently here, a verdict phrased
 another way there, a mobile layout nobody has looked at since it shipped. The
 barrier was always setup: a compete game needs several real accounts, several
@@ -257,7 +257,7 @@ browser sessions, and someone to play both sides. The harness does that.
 
 **Why not `toHaveScreenshot`.** Baseline snapshots answer "did anything change?",
 which in a UI that changes daily means constant baseline churn for changes you
-meant. The question here is "do these fifteen games look like one app?", and only
+meant. The question here is "do these sixteen games look like one app?", and only
 a person answers that. No CI gate, no baselines, no approval workflow.
 
 ### Running it
@@ -297,7 +297,7 @@ flakiness — the browser never plays, so there are no realtime waits.
   game captures nothing but the pause.
 - **The index** — `e2e/gallery/index.ts`. A game per section, its five phases
   across, so cross-game comparison is vertical scrolling rather than a horizontal
-  drag past fifteen tiles.
+  drag past sixteen tiles.
 
 **Builders drive the game's own RPCs, never row inserts.** A gallery whose job is
 "does this look right?" must never show a state the game can't produce — it would
@@ -315,8 +315,8 @@ already take these parameters.
 
 **One `lost` per mode, and prefer the game's OWN losing condition** — out of
 guesses, out of time, stack not cleared. A concede or a manual stop is *shell*
-behaviour that renders near-identically in all fifteen games, so spending the slot
-on it shows you the shared chrome fifteen times and the game's real defeat screen
+behaviour that renders near-identically in all sixteen games, so spending the slot
+on it shows you the shared chrome sixteen times and the game's real defeat screen
 never. Fall back to concede only where a game has no natural loss, and note it on
 the cell so the sheet says why.
 
@@ -366,7 +366,7 @@ it.
 
 ### Coverage
 
-**411 of 450 tiles as of 2026-08-06 — everything reachable is photographed.**
+**441 of 480 tiles as of 2026-08-16 — everything reachable is photographed.**
 The 39 remaining tiles are exactly 13 cells that CANNOT have an asset:
 
 - **10 cells: the mode doesn't exist.** bananagrams is single-mode (no coop
