@@ -150,7 +150,9 @@ window-level board keys.
 | key | what it does |
 |---|---|
 | `Enter` | Submit the selected four **from anywhere on the board** — not just when a tile holds focus (macOS doesn't focus a button on click, which used to kill the whole click-four-then-Return flow). Harmless no-op with an incomplete selection. |
-| `Space` on a focused tile | Toggle it (native button activation). A focused tile's `Enter` is suppressed so it can't toggle *and* submit. |
+| `Space` | **Shuffle the tiles** — a fresh visual scan of the same sixteen, never a move (the selection survives it). The same board key spellingbee, wordwheel and psychicnum have; it matches the floating Shuffle button, which is live whenever there are tiles, a finished board included. |
+
+It used to say "`Space` on a focused tile toggles it (native button activation)". That's gone: board tiles are no longer focus targets in any game (see [ui.md → Terminal results](ui.md) and the note on `Board.tsx`), which is what freed `Space` to mean the same thing here as everywhere else.
 
 ## crosswords
 
@@ -216,9 +218,14 @@ control).
 | `A`–`Z` | Type a guess word (clicking a board tile fills the same entry). |
 | `⌫` / `Enter` | Delete / submit. |
 | `↑` `↓` | Recall your last guess / clear the entry. |
+| `Space` | **Shuffle the words** — a fresh visual scan of the same board, never a move. |
 
 The entry is inert while viewing history (so the keystroke goes to the viewer
-instead) and when it isn't your turn.
+instead) and when it isn't your turn. `Space` is the exception on purpose: it's a
+BOARD key, not an entry key, so it lives on its own window handler rather than
+the entry's — psychicnum unmounts the entry when you can't guess, and the Shuffle
+button stays live in every one of those states (terminal included). A key that
+disagreed with its own button is the bug this fixed.
 
 ## scrabble
 

@@ -157,6 +157,10 @@ export function BoardCol({
     ? reconcileLocalOrder(localOrder, remainingTiles)
     : remainingTiles
 
+  // One shuffle, two triggers (the floating button + the Space key), so they
+  // can't drift into rearranging different things.
+  const handleShuffle = () => setLocalOrder(shuffleTiles(displayedTiles))
+
   const canSubmit = unionTiles.length === 4 && !submitting && showInput && isMyTurn
 
   async function handleSubmit() {
@@ -206,8 +210,22 @@ export function BoardCol({
   // incomplete selection is a harmless no-op. The shared hook already ignores keys
   // aimed at a focused text field (chat, etc.). (Hints is now an inline info-column
   // list, not a board modal, so it no longer needs to suppress Enter.)
+  //
+  // SPACE shuffles, the same board key spellingbee and wordwheel have: a fresh
+  // visual scan of the SAME sixteen tiles, never a move. Deliberately NOT gated
+  // on `showInput` the way Enter is — the Shuffle BUTTON is live whenever there
+  // are tiles to rearrange, including on a finished board, and a key that
+  // disagreed with its own button is the bug this pairs with (see
+  // useCaptureKeys' extra-key note). Only `viewing` stops it, since a keystroke
+  // in the history viewer means "back to live".
   useGlobalKeyHandler((e) => {
-    if (e.key !== 'Enter' || viewing || !showInput || !isMyTurn) return
+    if (viewing) return
+    if (e.key === ' ') {
+      e.preventDefault()
+      handleShuffle()
+      return
+    }
+    if (e.key !== 'Enter' || !showInput || !isMyTurn) return
     e.preventDefault()
     void handleSubmit()
   })
@@ -269,7 +287,7 @@ export function BoardCol({
           showInput &&
           !viewing && (
             <ShuffleButton
-              onShuffle={() => setLocalOrder(shuffleTiles(displayedTiles))}
+              onShuffle={handleShuffle}
               disabled={displayedTiles.length === 0}
               label="Shuffle tiles"
               className={shared.floatingShuffle}

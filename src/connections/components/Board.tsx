@@ -159,15 +159,22 @@ export function Board({
                   : undefined
               }
               onClick={() => onToggle(tile)}
-              onKeyDown={(e) => {
-                // Enter submits the selection — but that's handled by the
-                // window-level Enter handler in BoardCol (so Return works even
-                // when no tile has focus, e.g. after a mouse click on macOS,
-                // where buttons don't take focus). Here we only suppress the
-                // button's native Enter-activation, which would otherwise toggle
-                // the focused tile. Space still toggles (it activates on keyup).
-                if (e.key === 'Enter') e.preventDefault()
-              }}
+              // NOT a focus target, by two means. `tabIndex={-1}` takes the
+              // button out of the tab order (16 tiles would bury every real
+              // control), and `preventDefault` on mousedown stops a CLICK
+              // parking focus on it — the trap the rank squares fell into: the
+              // click focuses silently, the next keystroke promotes it to
+              // `:focus-visible`, and a stray ring sits on the tile until you
+              // click elsewhere. Nothing here needs focus: tiles are clicked,
+              // Enter submits from anywhere (the window handler in BoardCol),
+              // and Space shuffles.
+              //
+              // This also retired a per-tile `onKeyDown` that preventDefault'd
+              // Enter so a focused tile wouldn't self-activate. Its own comment
+              // noted "Space still toggles" — which would now fight the shuffle
+              // key. With no focus to land, neither is reachable.
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
             >
               {/* --len drives the shared .tileWord auto-fit. */}
               <span className={shared.tileWord} style={{ ['--len' as string]: tile.length }}>

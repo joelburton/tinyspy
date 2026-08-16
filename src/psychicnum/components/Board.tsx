@@ -112,6 +112,14 @@ export function Board({
               disabled={guessed || !onPick}
               aria-pressed={selected === word || undefined}
               onClick={onPick ? () => onPick(word) : undefined}
+              // NOT a focus target: out of the tab order (25 tiles would bury
+              // every real control) and `preventDefault` on mousedown so a
+              // CLICK can't park focus either. Otherwise the next keystroke
+              // promotes the clicked tile to `:focus-visible` and leaves a ring
+              // on it — see connections' Board for the same note. A tile is
+              // clicked or typed; it is never a keyboard target.
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
             >
               {/* --len drives the shared .tileWord auto-fit font heuristic. */}
               <span className={shared.tileWord} style={{ ['--len' as string]: word.length }}>

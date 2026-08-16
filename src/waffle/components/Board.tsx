@@ -145,7 +145,23 @@ export function Board({ board, colors, disabled, viewing = false, highlight, onS
               aria-pressed={selected === pos}
               disabled={disabled}
               draggable={!disabled && !coarse}
-              onClick={() => activate(pos)}
+              // NOT a focus target — but by BLUR rather than by the mousedown
+              // guard the other boards use, because these tiles DRAG. Native
+              // HTML5 drag needs the mousedown default: `preventDefault` there
+              // stops `dragstart` firing at all (measured — with the guard
+              // installed, dragging a tile onto another does nothing). So the
+              // click hands focus straight back instead.
+              //
+              // Why bother: a clicked-and-still-focused tile is promoted to
+              // `:focus-visible` by the very next keystroke, and the browser
+              // ring then sits on it until you click elsewhere — the rank-square
+              // trap. `tabIndex={-1}` covers the other door (25 tiles would bury
+              // every real control in the tab order).
+              tabIndex={-1}
+              onClick={(e) => {
+                e.currentTarget.blur()
+                activate(pos)
+              }}
               onDragStart={(e) => {
                 dragFrom.current = pos
                 e.dataTransfer.effectAllowed = 'move'
@@ -155,7 +171,10 @@ export function Board({ board, colors, disabled, viewing = false, highlight, onS
                 e.preventDefault()
                 drop(pos)
               }}
-              onDragEnd={() => {
+              onDragEnd={(e) => {
+                // A completed drag fires no click, so blur here too — otherwise
+                // the dragged tile keeps focus and the next keystroke rings it.
+                e.currentTarget.blur()
                 dragFrom.current = null
               }}
             >
