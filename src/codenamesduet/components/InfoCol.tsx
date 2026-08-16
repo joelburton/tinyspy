@@ -41,7 +41,7 @@ export function InfoCol({
   onEndGame,
   onRestart,
   onReveal,
-  revealDisabled,
+  peerKeyShown,
   onNewGame,
   startingNewGame,
   onBackToClub,
@@ -78,15 +78,15 @@ export function InfoCol({
 
   // ── Action row (End during play; back-to-club at terminal) ──
   onEndGame: () => void
-  /** Open the partner's key card at game-over (the red boxed-eye RevealButton +
-   *  its menu twin). Local display toggle — nothing is written, and the partner
-   *  sees nothing. */
   /** Run this board back — same words, same key cards (a mulligan). */
   onRestart: () => void
+  /** Open the partner's key card at game-over — or cover it up again (the red
+   *  boxed-eye RevealButton + its menu twin). A local display toggle: nothing is
+   *  written, and the partner's own card stays covered until THEY ask. */
   onReveal: () => void
-  /** The partner's card is already open (a win, or a prior reveal), so the
-   *  control self-disables. */
-  revealDisabled: boolean
+  /** Is the partner's card open on my screen? Swaps the button to its Hide
+   *  face, and the menu item with it. */
+  peerKeyShown: boolean
   /** Start a fresh follow-up game — same setup + roster, a newly sampled board. */
   onNewGame: () => void
   /** New game is mid-flight — disables the button so a slow network reads as
@@ -169,8 +169,9 @@ export function InfoCol({
             <RevealButton
               iconOnly
               label="Reveal partner's key"
+              revealedLabel="Hide partner's key"
+              revealed={peerKeyShown}
               onClick={onReveal}
-              disabled={revealDisabled}
             />
             <RestartButton iconOnly onClick={onRestart} />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />

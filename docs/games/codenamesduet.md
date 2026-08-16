@@ -477,7 +477,9 @@ Components consume the phase as a single value and render accordingly. Centraliz
 
 During active play, each player's own `key_card` is what tints the board ([`useBoard.ts`](../../src/codenamesduet/hooks/useBoard.ts) → `myKey`). The partner's `key_card` is **not** fetched — even though RLS would technically allow it (see [Row-level security](#row-level-security) on the trust-model framing), the convention is "don't ask, don't see."
 
-Once the game is over, the partner's card becomes available — but **it is not opened automatically** (2026-08-03). A clean win opens it (contacting all 15 agents leaves every agent tile face-up, so there's nothing left to protect); any other ending waits for **Reveal**, offered both as the red boxed-eye button in the terminal action row and as a game-menu item. The gate is the common `common.games.solution_revealed` flag ([common.md → Revealing the solution](../common.md#revealing-the-solution)), so revealing opens the card for **both** players at once — which is the right shape here, the partner being the person you're doing the post-mortem with.
+Once the game is over, the partner's card becomes available — but **it is not opened automatically** (2026-08-03), and since 2026-08-15 that holds for a clean win too. Every ending waits for **Reveal**, offered both as the red boxed-eye button in the terminal action row and as a game-menu item, and **Hide** covers it up again.
+
+The reveal is **local to each player** (`useSolutionReveal` — [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)). It used to open the card on both screens at once via the shared `solution_revealed` flag, on the reasoning that the partner is the person you're doing the post-mortem *with*. That cuts the other way, which is why it changed: a Duet post-mortem is two people thinking out loud — *"wait, I was about to pick APPLE"* — and that conversation only happens while the card is still covered, so one player opening it ended the other's thinking mid-sentence. Now each of you looks when you're ready. Nothing is written either way; both key columns are club-readable under the friends trust model.
 
 That gate is not about protecting a replay — Duet deliberately has none, its board *being* the secret. It protects the **seconds right after an assassin**: "wait, I was about to pick APPLE next" is the best part of a Duet post-mortem, and that conversation only happens while the card is still covered. Reveal opens it and the post-mortem continues with everything on the table.
 
@@ -575,8 +577,9 @@ partner's above). They're not decoration: a word your partner burned is still
 yours to guess, while one you burned is locked to you, and that asymmetry is
 exactly what clue-planning turns on.
 
-The partner's key is **terminal-only**, twice over: `useBoard` only fetches it
-post-game (`revealPeer`), and the print model refuses it before terminal
+The partner's key is **terminal-only**, twice over: `useBoard` only surfaces it
+when this viewer has asked at terminal (`revealPeer`), and the print model
+refuses it before terminal
 regardless — so a refactor there can't put the other half of the answer on paper
 mid-game. That's the main thing `model.test.ts` pins.
 

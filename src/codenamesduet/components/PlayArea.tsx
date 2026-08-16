@@ -1,12 +1,12 @@
 import { faultMessage } from '../../common/lib/game/serverError'
 import { callRpc } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useRef, useState, type ReactNode, useMemo } from 'react'
-import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
+import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
+import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import type { GenericFeedbackApi, GenericFeedbackMsg, GenericFeedbackTone, GamePageCtx } from '../../common/lib/games'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { cls } from '../../common/lib/util/cls'
 import { db } from '../db'
-import { db as commonDb } from '../../common/db'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
@@ -237,7 +237,6 @@ export function PlayArea({
   gameId,
   playState,
   isTerminal,
-  solutionRevealed,
   setup,
   globalFeedback,
   goToClub,
@@ -291,14 +290,18 @@ export function PlayArea({
   // Not about protecting a replay: Duet deliberately has none (its board IS the
   // secret — docs/ui.md → Restart).
   //
-  // The answer lives on the row — `common.games.solution_revealed`, the one
-  // common "may they see it?" flag — so a win opens it automatically
-  // (`end_game`), Reveal opens it for BOTH players at once (the partner is the
-  // person you're doing the post-mortem with, so a one-sided reveal would be
-  // the wrong shape), and there's no per-game state to keep in sync. Not a
-  // shield: both key columns are readable by every club member under the
-  // friends trust model.
-  const peerKeyShown = solutionRevealed
+  // Not on a win either, where the pair contacted all fifteen and the card has
+  // nothing left to say.
+  //
+  // The ask is LOCAL and reversible (useSolutionReveal). It used to be shared,
+  // on the reasoning that the partner is the person you're doing the post-mortem
+  // WITH — but that cuts the other way: a Duet post-mortem is two people
+  // thinking out loud, and one of them opening the card ended the other's
+  // thinking mid-sentence. Now each of you looks when you're ready, and Hide
+  // covers it up again. Not a shield either way: both key columns are readable
+  // by every club member under the friends trust model.
+  const { revealed: peerKeyShown, toggle: togglePeerKey, hide: hidePeerKey } =
+    useSolutionReveal()
 
   const { words, guesses, myKey, peerKey, myAgentsDone, peerAgentsDone, loading } =
     useBoard(gameId, session.user.id, peerKeyShown)
@@ -365,14 +368,6 @@ export function PlayArea({
   // modal (ending is harmful for the whole group, even coop/solo); it's
   // irreversible. An error is an own-action error → the same local flash as a
   // rejected guess.
-  /** Open the partner's key for BOTH players — the terminal RevealButton and
-   *  its menu twin. Common RPC, because the flag is common
-   *  (`common.games.solution_revealed`); terminal-only server-side. */
-  const revealPeerKey = useCallback(async () => {
-    const bad = await callRpc(commonDb, 'reveal_solution', { target_game: gameId })
-    if (bad) showLocalFeedback(bad)
-  }, [gameId, showLocalFeedback])
-
   /** Restart — run this board back with the same key cards (2026-08-03).
    *  A MULLIGAN, not a fresh puzzle: you keep the cards, so the second run is
    *  played knowing where the assassin sits. That's the deliberate trade — a
@@ -381,9 +376,13 @@ export function PlayArea({
    *  has New game, the next item down. Confirmed mid-game like everywhere. */
   const handleRestart = useCallback(async () => {
     if (!isTerminal && !(await confirmAction(RESTART_CONFIRM))) return
+    // The same board and the same two key cards, run back — so cover the
+    // partner's again. Nothing on the server remembers the reveal now, which is
+    // why this is explicit.
+    hidePeerKey()
     const bad = await callRpc(db, 'replay_board', { target_game: gameId })
     if (bad) showLocalFeedback(bad)
-  }, [gameId, isTerminal, confirmAction, showLocalFeedback])
+  }, [gameId, isTerminal, confirmAction, showLocalFeedback, hidePeerKey])
 
   const handleEndGame = useCallback(async () => {
     if (isTerminal) return
@@ -504,10 +503,11 @@ export function PlayArea({
               // whole point of the game.
               {
                 id: 'reveal',
-            icon: IconReveal,
-            label: "Reveal partner's key",
-                disabled: !isTerminal || peerKeyShown,
-                onClick: () => void revealPeerKey(),
+                // The same two faces as the terminal row's button — one toggle.
+                icon: peerKeyShown ? IconHideSolution : IconReveal,
+                label: peerKeyShown ? "Hide partner's key" : "Reveal partner's key",
+                disabled: !isTerminal,
+                onClick: togglePeerKey,
               },
             ],
           },
@@ -519,7 +519,7 @@ export function PlayArea({
     )
     return () => menu.setGameSections([])
   }, [
-    menu, isTerminal, handleEndGame, handleNewGame, handleRestart, revealPeerKey, peerKeyShown,
+    menu, isTerminal, handleEndGame, handleNewGame, handleRestart, togglePeerKey, peerKeyShown,
     // The print model's inputs — rebuilt whenever the printable state moves,
     // which is what keeps the snapshot current at click time.
     brand, title, game, words, myKey, peerKey, mySeat, clues, guesses, players,
@@ -657,8 +657,8 @@ export function PlayArea({
         // ── Action row ──
         onEndGame={() => void handleEndGame()}
         onRestart={() => void handleRestart()}
-        onReveal={() => void revealPeerKey()}
-        revealDisabled={peerKeyShown}
+        onReveal={togglePeerKey}
+        peerKeyShown={peerKeyShown}
         onNewGame={handleNewGame}
         startingNewGame={startingNewGame}
         onBackToClub={goToClub}
