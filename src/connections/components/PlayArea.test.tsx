@@ -169,3 +169,82 @@ describe('connections PlayArea — concede', () => {
     expect(screen.getByText('You conceded')).toBeInTheDocument()
   })
 })
+
+/**
+ * The ended board, and the terminal reveal.
+ *
+ * connections used to be one of the two games that opened its answer unasked —
+ * and the way it did it was destructive: the board swaps loose tiles for
+ * full-width category bands, so revealing DELETED the tiles the players were
+ * still staring at. A lost game showed four bands and nothing else, with no
+ * record of how far anyone had got.
+ *
+ * Now the ended board is what they actually left (their bands plus the tiles
+ * they never cracked, frozen), Reveal swaps in the unsolved categories, and
+ * Hide swaps back.
+ */
+describe('connections PlayArea — the ended board + the terminal reveal', () => {
+  /** The loose tiles currently on the board (bands are divs; the floating
+   *  Shuffle control is a button inside the board root, hence `[data-tile]`). */
+  const tileNames = () => [...document.querySelectorAll('[data-tile]')].map((b) => b.textContent)
+
+  it('keeps the unsolved tiles on a lost board — the record of how far you got', () => {
+    h.result = loaded({
+      game: game('coop'),
+      matchedCategories: [{ rank: 0, name: 'RED', tiles: ['a', 'b', 'c', 'd'], matched_at: '2026-06-15T00:00:00Z' }],
+      mistakeCount: 4,
+    })
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+
+    // The one they solved is a band; the other twelve tiles are still there.
+    expect(screen.getByText('RED')).toBeInTheDocument()
+    expect(tileNames()).toHaveLength(12)
+    // And the answer is NOT on screen until asked for.
+    expect(screen.queryByText('PURPLE')).not.toBeInTheDocument()
+  })
+
+  it('Reveal swaps the tiles for the unsolved categories; Hide swaps back', async () => {
+    const user = userEvent.setup()
+    h.result = loaded({
+      game: game('coop'),
+      matchedCategories: [{ rank: 0, name: 'RED', tiles: ['a', 'b', 'c', 'd'], matched_at: '2026-06-15T00:00:00Z' }],
+      mistakeCount: 4,
+    })
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+
+    await user.click(screen.getByRole('button', { name: 'Reveal categories' }))
+    expect(screen.getByText('GREEN')).toBeInTheDocument()
+    expect(screen.getByText('PURPLE')).toBeInTheDocument()
+    expect(tileNames()).toHaveLength(0)
+    // Local state — no peer's board changed.
+    expect(rpc).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Hide categories' }))
+    expect(screen.queryByText('PURPLE')).not.toBeInTheDocument()
+    expect(tileNames()).toHaveLength(12)
+  })
+
+  it('an eliminated compete player sees no answer while the others race', () => {
+    h.result = loaded({ game: game('compete'), isEliminated: true, mistakeCount: 4 })
+    render(<PlayArea {...makeCtx({ isTerminal: false, playState: 'playing' })} />)
+
+    // Their board freezes and says so, but the puzzle stays unspoiled — sitting
+    // out with something left to think about beats being handed the answer.
+    expect(screen.getByText('You’re out')).toBeInTheDocument()
+    expect(screen.queryByText('PURPLE')).not.toBeInTheDocument()
+    expect(tileNames()).toHaveLength(16)
+    // No Reveal either: it waits for the game to end for everyone.
+    expect(screen.queryByRole('button', { name: 'Reveal categories' })).not.toBeInTheDocument()
+  })
+
+  it('a frozen board ignores tile clicks', async () => {
+    const user = userEvent.setup()
+    const toggleTile = vi.fn()
+    h.result = loaded({ game: game('coop'), mistakeCount: 4, toggleTile })
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+
+    await user.click(document.querySelector('[data-tile="a"]') as HTMLElement)
+    // The tiles are a RECORD now, not an input surface.
+    expect(toggleTile).not.toHaveBeenCalled()
+  })
+})

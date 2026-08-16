@@ -83,3 +83,49 @@ test.describe('connections replay + new game', () => {
   // PlayAreas. What IS still reachable, and covered above, is the thing that
   // actually happens every time: New game lands on a DIFFERENT puzzle.
 })
+
+/**
+ * The ended board, and the terminal reveal — the browser half of what the unit
+ * tests pin. connections used to hand its answer over unasked at game over, and
+ * because the board swaps loose tiles for full-width bands, doing so DELETED
+ * the tiles the players were still staring at: a lost game showed four bands
+ * and no record of how far anyone got.
+ */
+test('ending keeps the tiles; Reveal swaps in the categories, Hide swaps back', async ({
+  browser,
+}) => {
+  const club = await createSoloClub('cnrev')
+  const game = await createConnectionsGame(club, 'coop')
+  const ctx = await browser.newContext()
+  await signIn(ctx, club.members[0].session)
+  const page = await ctx.newPage()
+  await page.goto(`/g/${game.gametype}/${game.id}`)
+  await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+
+  const tiles = page.locator('[data-tile]')
+  await expect(tiles).toHaveCount(16)
+
+  // End it for the table (the neutral stop).
+  await page.getByRole('button', { name: 'End game' }).first().click()
+  await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
+  await expect(page.getByText('Game ended').first()).toBeVisible({ timeout: 10000 })
+
+  // The board is the record: all sixteen still there, and no answer on screen.
+  await expect(tiles).toHaveCount(16)
+  await expect(page.getByText('Words starting with A')).toHaveCount(0)
+  // …and frozen: the tiles are marked disabled, so they don't wear the pointer
+  // cursor or the hover lift that would advertise them as an input.
+  await expect(tiles.first()).toBeDisabled()
+
+  // Reveal swaps them for the four category bands…
+  await page.getByRole('button', { name: 'Reveal categories' }).click()
+  await expect(page.getByText('Words starting with A')).toBeVisible({ timeout: 8000 })
+  await expect(tiles).toHaveCount(0)
+
+  // …and Hide brings the board back exactly as they left it.
+  await page.getByRole('button', { name: 'Hide categories' }).click()
+  await expect(tiles).toHaveCount(16)
+  await expect(page.getByText('Words starting with A')).toHaveCount(0)
+
+  await ctx.close()
+})

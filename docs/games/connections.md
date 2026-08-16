@@ -35,9 +35,9 @@ A 4×4 board of 16 tiles split into 4 hidden **categories** of 4 by theme. Playe
 - **oneAway** — exactly 3 of 4 in a single category: NYT's hint that you're close; counts as a mistake.
 - **wrong** — otherwise: also counts as a mistake.
 
-**Coop mode.** Everyone shares one set of matched categories + one mistake counter. You lose at 4 mistakes; you win by matching all 4 categories. On a loss, the unmatched categories are revealed.
+**Coop mode.** Everyone shares one set of matched categories + one mistake counter. You lose at 4 mistakes; you win by matching all 4 categories. On a loss the board keeps the tiles you never cracked; the unmatched categories wait behind **Reveal**.
 
-**Compete mode.** Each player races independently on their own copy of the puzzle. Per-player mistake counter, per-player matched-categories. **First to all 4 wins** — the race ends instantly for everyone, with the winner getting `{won: true}` and the rest `{won: false}`. **4 mistakes eliminates that player** but the game continues; once every player is eliminated (or the timer expires) it's a collective loss. Opponents see each other's mistake counts (so the race has tension) but **not** their guesses or which categories they've matched (RLS enforces). On individual elimination, the eliminated player gets their unmatched categories revealed and sits in a spectator state while the rest race on.
+**Compete mode.** Each player races independently on their own copy of the puzzle. Per-player mistake counter, per-player matched-categories. **First to all 4 wins** — the race ends instantly for everyone, with the winner getting `{won: true}` and the rest `{won: false}`. **4 mistakes eliminates that player** but the game continues; once every player is eliminated (or the timer expires) it's a collective loss. Opponents see each other's mistake counts (so the race has tension) but **not** their guesses or which categories they've matched (RLS enforces). On individual elimination, that player's board freezes and they sit out while the rest race on — with the puzzle **unspoiled**: Reveal waits until the game is over for everyone, so sitting out still leaves something to think about (and nobody done early can read the answer out).
 
 Each category has a **rank** 0..3, mapped to NYT's yellow / green / blue / purple band colors — increasing difficulty in the original puzzle. Tokens in [`theme.css`](../../src/connections/theme.css) (`--connections-rank-N`).
 
@@ -63,7 +63,7 @@ In scope today:
 - **No puzzle choice** (2026-08-13). The setup dialog shows one read-only line naming what Start will play — the earliest puzzle none of the *selected players* has played, in **any club**, from `connections.next_puzzle_for_club`. See [The puzzle you get](#the-puzzle-you-get)
 - Same rule drives **New game** in the PlayArea, because it is literally the same function
 - 4-mistake-lose, oneAway feedback, dup-guess-doesn't-hurt
-- Reveal-on-loss (the FE reads `board.categories` directly — no separate RPC, see "FE-knows" below). In compete, individual-elimination triggers a personal reveal while the game keeps going for survivors
+- Reveal-on-demand at terminal (the FE reads `board.categories` directly — no separate RPC, see "FE-knows" below). Local + reversible, like every game's ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)); nothing autoreveals
 - Compete OpponentStrip showing per-player mistake counts. **During play** that's the entire "what opponents know about you" surface — guesses + matched-categories stay private. **At terminal** (2026-08-02) everyone's guesses open up, and the turn log's "whose guesses?" picker is how you compare lines afterwards — see [Turn log](#turn-log--whose-guesses)
 - Shared selection across connected players via Broadcast in coop; private per-player selection in compete (broadcast send suppressed)
 - Per-player local-shuffle button
@@ -454,8 +454,10 @@ src/connections/
                           PlayArea owns the RPCs.
     Board.tsx             The board as ONE grid: solved/revealed categories as full-width
                           colored band rows (grid-column: 1 / -1, sorted by rank — the
-                          unmatched ones revealed on game-over loss OR compete elimination)
-                          plus the remaining tiles, which carry per-tile isMine/isPeer
+                          unmatched ones only while the viewer holds the reveal open)
+                          plus the remaining tiles, which SURVIVE the end of the game
+                          (`disabled`, so they read as a record rather than an input) and
+                          step aside only for the reveal's bands. They carry per-tile isMine/isPeer
                           attribution (degenerate to "all mine" in compete, where useGame
                           suppresses the broadcast send). Grows to fill the column, each row
                           capped at MAX_TILE (psychicnum's Board layout). Pulls RANK_TOKEN

@@ -25,9 +25,14 @@ type Props = {
   matched: MatchedCategory[]
   /** Categories revealed at game-end (loss / elimination); `[]` during play. */
   unmatched: Category[]
-  /** Remaining tiles, in display order; `[]` when input is frozen (terminal /
-   *  eliminated), so only bands show. */
+  /** Remaining tiles, in display order. They stay on a FROZEN board (that's the
+   *  record of how far the players got) and step aside only for the reveal,
+   *  whose bands take their grid rows. */
   tiles: string[]
+  /** May these tiles be clicked? False on a frozen board, which marks them
+   *  `disabled` — the shared `.tile` chrome then drops the pointer cursor and
+   *  the hover lift, so a record doesn't advertise itself as an input. */
+  interactive: boolean
   /** tile → user_id (the inverted selections map). Drives the per-tile
    *  mine/peer treatment. */
   ownerByTile: ReadonlyMap<string, string>
@@ -72,6 +77,7 @@ export function Board({
   matched,
   unmatched,
   tiles,
+  interactive,
   ownerByTile,
   selfId,
   onToggle,
@@ -131,6 +137,11 @@ export function Board({
             <button
               key={tile}
               type="button"
+              // A stable e2e hook (the class names are hashed, and the floating
+              // Shuffle control lives inside the board root, so "a button in
+              // the board" isn't specific enough to mean "a tile").
+              data-tile={tile}
+              disabled={!interactive}
               className={cls(
                 shared.tile,
                 isMine && shared.selected,

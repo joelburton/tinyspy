@@ -1,6 +1,7 @@
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { TerminalActionRow } from '../../common/components/game/terminal/TerminalActionRow'
 import { RestartButton } from '../../common/components/buttons/RestartButton'
+import { RevealButton } from '../../common/components/buttons/RevealButton'
 import { NewGameButton } from '../../common/components/buttons/NewGameButton'
 import { LocalTerminalRow } from '../../common/components/game/terminal/LocalTerminalRow'
 import { OpponentStrip } from '../../common/components/game/OpponentStrip'
@@ -53,6 +54,8 @@ export function InfoCol({
   onEndGame,
   onConcede,
   onRestart,
+  onReveal,
+  solutionShown,
   onNewGame,
   startingNewGame,
   onBackToClub,
@@ -103,6 +106,12 @@ export function InfoCol({
   /** Solve THIS puzzle again from scratch — same sixteen tiles, same shuffle
    *  (the menu's replay-board; unconfirmed at terminal, nothing left to lose). */
   onRestart: () => void
+  /** Show the categories nobody solved — or put them away, bringing back the
+   *  board as the game ended. A local display toggle; nothing is written. */
+  onReveal: () => void
+  /** Are the unsolved categories on the board right now? Swaps the button to
+   *  its Hide face. */
+  solutionShown: boolean
   /** Start the NEXT unplayed daily puzzle — connections' archive is dated, so
    *  this walks forward rather than re-rolling a board. */
   onNewGame: () => void
@@ -190,8 +199,16 @@ export function InfoCol({
             line + a compact back-to-club button. */}
         {over ? (
           <TerminalActionRow over={over} onBackToClub={onBackToClub} iconOnly>
-            {/* Stay-here options left of the leave option (Club): run this
-                puzzle back, or move on to the next unplayed date. */}
+            {/* Stay-here options left of the leave option (Club): see the
+                categories you didn't get, run this puzzle back, or move on to
+                the next unplayed date. */}
+            <RevealButton
+              iconOnly
+              label="Reveal categories"
+              revealedLabel="Hide categories"
+              revealed={solutionShown}
+              onClick={onReveal}
+            />
             <RestartButton iconOnly onClick={onRestart} />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>

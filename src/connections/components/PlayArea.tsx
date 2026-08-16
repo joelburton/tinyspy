@@ -22,6 +22,7 @@ import { printConnectionsPdf } from '../pdf/printConnectionsPdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
+import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { db } from '../db'
 import type { CategoryRank } from '../lib/board'
 import { useGame } from '../hooks/useGame'
@@ -259,6 +260,18 @@ export function PlayArea({
   // loss; the others keep racing). Replay restarts THIS puzzle — the same
   // sixteen tiles in the same shuffle, everyone's guesses + mistakes wiped —
   // and `onRestarted` leaves the turn-history view + clears the pill.
+  // ─── The categories show only when I ask for them ─────
+  // Never automatically. connections used to be one of the two games registered
+  // hides_solution = false, so a loss (or, in compete, being eliminated) put the
+  // answer on screen unasked — and, because the board swaps loose tiles for
+  // full-width bands, it did that by DELETING the tiles the players were still
+  // looking at. Now the ended board is what they actually left: their solved
+  // bands plus the tiles they never cracked, frozen. Reveal swaps in the four
+  // bands; Hide swaps back. Local, so one impatient player can't end everyone's
+  // thinking.
+  const { revealed: solutionShown, toggle: toggleSolution, hide: hideSolution } =
+    useSolutionReveal()
+
   const { endGame: handleEndGame, concede: handleConcede, restart: handleRestart } =
     useStandardGameActions({
       db,
@@ -275,6 +288,9 @@ export function PlayArea({
         // clicked Restart — the same limitation every onRestarted cleanup in
         // the roster has; a peer's restart leaves their own list alone.)
         setRevealedHints(new Set())
+        // The same four categories to find again — so put them away. Nothing on
+        // the server remembers the reveal now, which is why this is explicit.
+        hideSolution()
       },
     })
 
@@ -402,20 +418,23 @@ export function PlayArea({
   const boardView = useMemo(() => {
     if (!game) return null
     const locallyDone = isEliminated || myConceded
-    const showReveal = isTerminal || locallyDone
     const matchedTiles = new Set<string>()
     for (const mc of matchedCategories) for (const t of mc.tiles) matchedTiles.add(t)
     const matchedRanks = new Set(matchedCategories.map((m) => m.rank))
     return {
       locallyDone,
-      showReveal,
       matchedTiles,
       remainingTiles: game.board.tileOrder.filter((t) => !matchedTiles.has(t)),
-      unmatched: showReveal
+      // The categories nobody got — ONLY while this viewer is asking for them.
+      // They used to appear the moment the game ended (or the moment a compete
+      // player was eliminated), which both handed over the answer unasked and,
+      // because the board swaps tiles for bands, erased the sixteen-minus-solved
+      // tiles the players were still staring at.
+      unmatched: solutionShown
         ? game.board.categories.filter((c) => !matchedRanks.has(c.rank))
         : [],
     }
-  }, [game, isEliminated, myConceded, isTerminal, matchedCategories])
+  }, [game, isEliminated, myConceded, solutionShown, matchedCategories])
 
   useEffect(() => {
     // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). The bands,
@@ -511,14 +530,15 @@ export function PlayArea({
 
   // Locally terminal (compete, not game-over): caller is out of the race but
   // the game continues for the survivors — either eliminated (hit 4 mistakes)
-  // OR they conceded (dropped out). Both freeze this player's input + reveal
-  // the unmatched bands, a personal game-over while the rest play on.
+  // OR they conceded (dropped out). It freezes this player's input; it does NOT
+  // open the answer, which waits for the game to be over for everyone (see the
+  // reveal below). Sitting out with the puzzle unspoiled is the better version
+  // of spectating, and it's the same rule every other game follows.
   const locallyDone = isEliminated || myConceded
-  const showReveal = isTerminal || locallyDone
   const showInput = !isTerminal && !locallyDone
 
   const matchedRanks = new Set(matchedCategories.map((m) => m.rank))
-  const unmatched = showReveal
+  const unmatched = solutionShown
     ? game.board.categories.filter((c) => !matchedRanks.has(c.rank))
     : []
 
@@ -556,6 +576,7 @@ export function PlayArea({
         matchedCategories={matchedCategories}
         remainingTiles={remainingTiles}
         unmatched={unmatched}
+        solutionShown={solutionShown}
         snap={snap}
         viewing={viewing}
         showInput={showInput}
@@ -609,6 +630,8 @@ export function PlayArea({
         onEndGame={handleEndGame}
         onConcede={handleConcede}
         onRestart={handleRestart}
+        onReveal={toggleSolution}
+        solutionShown={solutionShown}
         onNewGame={handleNewGame}
         startingNewGame={startingNewGame}
         onBackToClub={goToClub}

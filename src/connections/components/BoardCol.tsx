@@ -49,6 +49,7 @@ export function BoardCol({
   matchedCategories,
   remainingTiles,
   unmatched,
+  solutionShown,
   snap,
   viewing,
   showInput,
@@ -82,6 +83,10 @@ export function BoardCol({
   remainingTiles: string[]
   /** Categories revealed at game-end (loss / elimination); `[]` during play. */
   unmatched: Category[]
+  /** Is the ANSWER on the board right now (the terminal reveal)? The four
+   *  unsolved categories take the loose tiles' place while it's on, and the
+   *  tiles come back when it's off — see the `tiles` prop below. */
+  solutionShown: boolean
   /** The viewed turn's snapshot, or null when live — PlayArea reconstructs it. */
   snap: TurnSnapshot | null
   viewing: boolean
@@ -214,7 +219,10 @@ export function BoardCol({
     // Turn-order: a waiting player can't build (or broadcast) a selection — the
     // tile toggle is shared over Broadcast in coop, so freezing it here keeps a
     // non-current player from nudging teammates' boards.
-    if (!isMyTurn) return
+    // A frozen board still DRAWS its tiles now (they're the record of where the
+    // players got to), so the guard that used to be implicit — no tiles, no
+    // clicks — has to be explicit.
+    if (!showInput || !isMyTurn) return
     clearLocalFeedback()
     toggleTile(tile)
   }
@@ -239,7 +247,13 @@ export function BoardCol({
       <Board
         matched={snap ? snap.matched : matchedCategories}
         unmatched={snap ? [] : unmatched}
-        tiles={snap ? snap.tiles : showInput ? displayedTiles : []}
+        // The tiles survive the end of the game — a finished board is your
+        // bands PLUS the ones you never cracked, frozen, which is the only
+        // record of how far you got. They step aside only for the reveal, whose
+        // bands need the rows (bands + ceil(tiles/4) is a fixed row count).
+        tiles={snap ? snap.tiles : solutionShown ? [] : displayedTiles}
+        // A historical snapshot is a record too — never clickable.
+        interactive={showInput && !viewing}
         ownerByTile={viewing ? NO_OWNERS : ownerByTile}
         selfId={selfId}
         onToggle={handleToggle}
