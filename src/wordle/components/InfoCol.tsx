@@ -51,7 +51,7 @@ export function InfoCol({
   onConcede,
   onRestart,
   onRevealAnswer,
-  revealDisabled,
+  answerShown,
   onNewGame,
   startingNewGame,
   onBackToClub,
@@ -103,12 +103,12 @@ export function InfoCol({
   /** Restart THIS game — same word — from scratch (the menu's Restart item,
    *  unconfirmed at terminal since there's no progress left to lose). */
   onRestart: () => void
-  /** Show the word (the terminal-local reveal — no RPC; see PlayArea's
-   *  handleReveal). Rendered only in the terminal row. */
+  /** Show the word — or put it away again. A local display toggle, no RPC (see
+   *  PlayArea's useSolutionReveal). Rendered only in the terminal row. */
   onRevealAnswer: () => void
-  /** The word is already showing (won / explicit reveal / clicked) — disables
-   *  the terminal RevealButton, matching the menu item. */
-  revealDisabled: boolean
+  /** Is the word on screen right now? Swaps the button to its Hide face, and
+   *  the menu item with it. */
+  answerShown: boolean
   /** Start a fresh follow-up game — same setup, new target + id. */
   onNewGame: () => void
   /** New game is mid-flight — disables the button so a slow network reads as
@@ -128,10 +128,10 @@ export function InfoCol({
   setupRows: SetupRow[]
 
   // ── Terminal answer reveal ──
-  /** The answer to DISPLAY at terminal, or null while it stays hidden — which
-   *  now includes a loss / manual end (PlayArea gates on win-or-explicit-reveal;
-   *  the losers' path to the word is the "Reveal answer" menu item). Prop is
-   *  `solution` (the glossary term for the terminal-reveal slot, matching
+  /** The answer to DISPLAY, or null while it stays hidden — which is the
+   *  default at every terminal, win included: nothing shows until this viewer
+   *  presses Reveal, and pressing Hide takes it away again. Prop is `solution`
+   *  (the glossary term for the terminal-reveal slot, matching
    *  waffle/stackdown); the value comes from the DB-blessed `game.target`. */
   solution: string | null
 
@@ -214,7 +214,8 @@ export function InfoCol({
             <RevealButton
               iconOnly
               label="Reveal answer"
-              disabled={revealDisabled}
+              revealedLabel="Hide answer"
+              revealed={answerShown}
               onClick={onRevealAnswer}
             />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
@@ -222,11 +223,12 @@ export function InfoCol({
         ) : isLocallyDone ? (
           <LocalTerminalRow label={myConceded ? 'You conceded' : 'Waiting for others'}>
             {/* Reveal keeps its slot while the others race, but inert: the
-                solution opens only when the game is over for EVERYONE
-                (common.reveal_solution enforces the same rule server-side), so
-                a player who dropped out can't spoil a live race. Present
-                rather than absent so the row doesn't change shape when the
-                last racer finishes — the button is simply enabled then. */}
+                answer opens only when the game is over for EVERYONE — the
+                target doesn't even reach this client before then
+                (wordle._target_for gates on is_terminal) — so a player who
+                dropped out can't spoil a live race. Present rather than absent
+                so the row doesn't change shape when the last racer finishes;
+                the button is simply enabled then. */}
             <RevealButton iconOnly disabled tooltip="Can't reveal until all end" />
             {endButton}
           </LocalTerminalRow>
@@ -243,9 +245,12 @@ export function InfoCol({
           <p className={shared.infoHelp}>Type a 5-letter word, then Enter.</p>
         )}
 
-        {/* Terminal-only answer reveal — the one info-column region allowed to grow at
-            game over (docs/ui.md → Layout stability), ABOVE the setup disclosure per
-            the canonical order (the reveal is the payoff; the recap is bookkeeping).
+        {/* Terminal-only answer reveal — an info-column region allowed to grow when
+            the viewer opens it and to give the space back when they close it again
+            (a blessed exception to docs/ui.md → Layout stability: the reflow IS the
+            reveal, and it only ever happens at the viewer's own click). ABOVE the
+            setup disclosure per the canonical order (the reveal is the payoff; the
+            recap is bookkeeping).
             The ONLY place the word shows: the below-board terminal pill carries the
             verdict alone (a one-line, ellipsising row), so the answer lives here
             where it has room to be a sentence and a click-to-define target. */}

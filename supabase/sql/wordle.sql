@@ -97,7 +97,7 @@ grant execute on function wordle._target_for(uuid) to authenticated;
 -- ============================================================
 -- The title is a READOUT, not a fixed name (the scrabble/stackdown pattern):
 --
---   won / revealed    → the answer            "SLATE"
+--   won              → the winning guess, i.e. the answer "SLATE"
 --   coop, mid-game    → the most recent guess "CRANE"
 --   coop, no guesses  → "New game"
 --   compete, mid-race → "New compete"
@@ -121,21 +121,22 @@ set search_path = wordle, common, public, extensions
 as $$
   update common.games cg
      set title = case
-           -- The answer, but ONLY once it's legitimately on screen — the same
-           -- common flag the board reads (common.md → Revealing the solution).
-           -- Terminal alone is NOT enough: wordle hides the answer on a loss so
-           -- a Restart is a genuine second try (docs/ui.md → Terminal results),
-           -- and a club-list title spelling it out would undo that from the
-           -- outside. (2026-08-02: it used to key on is_terminal and spoiled
-           -- every lost game.)
+           -- The title NEVER spells the answer out of its own accord. It used
+           -- to, whenever the game was revealed — first keyed on is_terminal
+           -- (which spoiled every lost game, fixed 2026-08-02), then on the
+           -- shared solution_revealed flag. That flag is on its way out and
+           -- nothing here reads it any more: revealing is now
+           -- a LOCAL, per-player display toggle (docs/ui.md → Terminal
+           -- results), and a club-wide title can't follow a decision one player
+           -- made on their own screen — it would tell Moth the word because
+           -- Joel looked.
            --
-           -- A post-game reveal doesn't re-title on its own: common.reveal_solution
-           -- can't call a gametype's function (the removability invariant), and
-           -- this only runs from wordle's own RPCs. The failure is the SAFE
-           -- direction — the club list keeps showing the last guess rather than
-           -- the answer — so it stays a known gap, not a bug.
-           when cg.solution_revealed then upper(wg.target::text)
-           -- Otherwise the most recent guess — a readout of what's been DONE,
+           -- Nothing is lost on a win: the winning guess IS the answer, so the
+           -- branches below already title it "SLATE". What goes away is exactly
+           -- the case that shouldn't have shown it — a game the players are
+           -- still entitled to replay blind.
+           --
+           -- The most recent guess — a readout of what's been DONE,
            -- which is already on the board in front of the players.
            when wg.mode = 'coop' then coalesce(
              (select upper(gx.guess::text)

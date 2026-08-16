@@ -120,12 +120,13 @@ describe('wordle PlayArea — render smoke', () => {
 
   it('renders the terminal state without crashing', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won', solutionRevealed: true })} />)
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
-    // The info-column outcome line + the answer reveal (the terminalExtra region —
-    // the only place the word shows; the below-board pill carries the verdict alone).
+    // The info-column outcome line. The word itself is NOT here: nothing
+    // autoreveals, a win included (the answer is the last row of your own
+    // board anyway) — see the terminal-flow tests for the toggle.
     expect(screen.getByText('Solved it!')).toBeInTheDocument()
-    expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
   })
 })
 
@@ -148,7 +149,7 @@ describe('wordle PlayArea — icon-only action rows', () => {
     expect(ctx.goToClub).not.toHaveBeenCalled() // mid-game never direct-navigates
   })
 
-  it('terminal "Reveal answer" button opens it for the table, unconfirmed', async () => {
+  it('terminal "Reveal answer" shows the word for ME, with no RPC and no confirm', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
     commonRpc.mockClear()
     const user = userEvent.setup()
@@ -157,17 +158,31 @@ describe('wordle PlayArea — icon-only action rows', () => {
 
     expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Reveal answer' }))
-    // The common flag, not a wordle RPC, and no confirm — the word lands when
-    // the flag comes back (see the terminal-flow test for that half).
-    expect(commonRpc).toHaveBeenCalledWith('reveal_solution', { target_game: 'g1' })
-    expect(confirm).not.toHaveBeenCalled()
+    // Local state, full stop: the word is on screen immediately, nothing was
+    // written, and no peer's board opened. The absent RPCs are the assertion.
+    expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
+    expect(commonRpc).not.toHaveBeenCalled()
     expect(rpc).not.toHaveBeenCalled()
+    expect(confirm).not.toHaveBeenCalled()
   })
 
-  it('terminal Reveal button is disabled once the word is showing (a win)', () => {
+  it('the same button hides it again, restoring the column as the game ended', async () => {
+    const user = userEvent.setup()
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won', solutionRevealed: true })} />)
-    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeDisabled()
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+
+    await user.click(screen.getByRole('button', { name: 'Reveal answer' }))
+    // It wears its other face now — same button, EyeOff glyph, Hide label.
+    await user.click(screen.getByRole('button', { name: 'Hide answer' }))
+    expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeEnabled()
+  })
+
+  it('a win does not autoreveal — the button is offered, not spent', () => {
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeEnabled()
   })
 
   it('terminal "New game" button starts a fresh game with this setup/roster/mode', async () => {
@@ -200,9 +215,9 @@ describe('wordle PlayArea — icon-only action rows', () => {
  * Terminal flow (the waffle treatment — docs/ui.md → Terminal results). No
  * modal carries the verdict; a coop solve pops the CelebrationDialog at
  * the MOMENT of the win (the playState flip), never on mounting an
- * already-won game. And the word stays HIDDEN on a loss — displayed only on
- * a win or an explicit reveal (the menu item, which at terminal is a local
- * "show me" with no RPC).
+ * already-won game. And the word stays HIDDEN at every terminal, win
+ * included, until THIS viewer asks for it — a local, reversible display
+ * toggle (useSolutionReveal), no RPC and no peer affected.
  */
 describe('wordle PlayArea — terminal flow', () => {
   /** The game sections most recently pushed to the menu, flattened to items. */
@@ -222,7 +237,7 @@ describe('wordle PlayArea — terminal flow', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('"Reveal answer" at a lost terminal opens it for the table, unconfirmed', async () => {
+  it('the menu item is the same toggle, and flips its label with the button', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
     commonRpc.mockClear()
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
@@ -230,31 +245,45 @@ describe('wordle PlayArea — terminal flow', () => {
     render(<PlayArea {...ctx} />)
 
     const reveal = menuItems(ctx).find((i) => i.id === 'reveal')!
-    expect(reveal.disabled).toBeFalsy() // word hidden → reveal is offered
+    expect(reveal.disabled).toBeFalsy() // terminal → offered
+    expect(reveal.label).toBe('Reveal answer')
     act(() => reveal.onClick())
-    // A common RPC, not a wordle one, and no confirm: post-terminal the target
-    // is already on every client, so this only flips the shared display flag.
+    expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
+    // The menu is rebuilt on the state flip, so the item now offers the way back.
     await waitFor(() =>
-      expect(commonRpc).toHaveBeenCalledWith('reveal_solution', { target_game: 'g1' }),
+      expect(menuItems(ctx).find((i) => i.id === 'reveal')!.label).toBe('Hide answer'),
     )
+    // No RPC and no confirm: this is local display state, not a game move.
+    expect(commonRpc).not.toHaveBeenCalled()
     expect(confirm).not.toHaveBeenCalled()
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('shows the word once the shared flag comes back', () => {
-    // What the RPC above causes, arriving via the common realtime refetch —
-    // on the revealer's client and every peer's alike.
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost', solutionRevealed: true })} />)
-    expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
+  it('the menu item is disabled before the game is over for everyone', () => {
+    const ctx = makeCtx({ isTerminal: false, playState: 'playing' })
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null })
+    render(<PlayArea {...ctx} />)
+    // Nothing to show yet: wordle._target_for withholds the target until the
+    // race is over for everyone, so a player who's done can't peek at a live one.
+    expect(menuItems(ctx).find((i) => i.id === 'reveal')!.disabled).toBe(true)
   })
 
-  it('"Reveal answer" is disabled once the word is showing (a win)', () => {
-    // end_game sets solution_revealed on any win, so the ctx arrives with both.
-    const ctx = makeCtx({ isTerminal: true, playState: 'won', solutionRevealed: true })
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
-    render(<PlayArea {...ctx} />)
-    expect(menuItems(ctx).find((i) => i.id === 'reveal')!.disabled).toBe(true)
+  it('a Restart puts the answer away again', async () => {
+    const user = userEvent.setup()
+    const game = { id: 'g1', mode: 'coop' as const, max_guesses: 6, target: 'crane' }
+    h.result = loaded(game)
+    const { rerender } = render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+
+    await user.click(screen.getByRole('button', { name: 'Reveal answer' }))
+    expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
+
+    await user.click(screen.getByRole('button', { name: 'Restart' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    // The same word, hunted again. Nothing on the server remembers the reveal
+    // for us any more, so the re-hide is local and explicit (onRestarted).
+    h.result = loaded({ ...game, target: null })
+    rerender(<PlayArea {...makeCtx()} />)
+    expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
   })
 
   it('"Restart" at terminal calls replay_board WITHOUT confirming', async () => {

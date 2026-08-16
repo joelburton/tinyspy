@@ -1,6 +1,6 @@
-import { failureMessage, faultMessage } from '../../common/lib/game/serverError'
+import { faultMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
+import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { buildWordlePrintModel } from '../pdf/model'
 import { printWordlePdf } from '../pdf/printWordlePdf'
@@ -15,12 +15,12 @@ import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandle
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
+import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { db } from '../db'
-import { db as commonDb } from '../../common/db'
 import { useGame } from '../hooks/useGame'
 import { turnSnapshot } from '../lib/history'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
@@ -61,7 +61,6 @@ export function PlayArea({
   players: members,
   playState,
   isTerminal,
-  solutionRevealed,
   timer,
   isMyTurn,
   currentTurnUserId,
@@ -118,20 +117,14 @@ export function PlayArea({
   // very first render (the waffle loading-race lesson).
   const celebration = useCelebration(playState === 'won')
 
-  // ─── The hidden word stays hidden on a loss ────────────
-  // The word is DISPLAYED at terminal only when it was earned or asked for:
-  // a win (either mode — coop guessed it; compete's winner row shows in the
-  // opened-up turn log anyway), the mid-game give-up, or someone's post-game
-  // "Reveal answer". A plain loss / manual end keeps it hidden so "Restart"
-  // stays a genuine second try (docs/ui.md → Terminal results). The reveal is
-  // SHARED: the target is already on every client post-terminal, so this is a
-  // display decision under the friends trust model — and one the group makes
-  // together, since the post-mortem is a group activity.
-  // `common.games.solution_revealed` is the whole answer (docs/ui.md → Terminal
-  // results): end_game sets it on a win, common.reveal_solution on the ask —
-  // and reset_game clears it, so a Restart re-hides on every client with no
-  // local flag to remember.
-  const answerShown = solutionRevealed
+  // ─── The word shows only when I ask for it ─────────────
+  // Never automatically — not even on a win, where the answer is the last row
+  // of my own board anyway. The ask is LOCAL and reversible (useSolutionReveal):
+  // my looking doesn't open the word on my opponent's screen while they're
+  // still turning it over, and hiding it again costs a click, not a Restart.
+  // The target itself is on every client once the game is terminal
+  // (wordle._target_for gates on is_terminal), so this is purely what's drawn.
+  const { revealed: answerShown, toggle: toggleAnswer, hide: hideAnswer } = useSolutionReveal()
 
   // ─── Derived (null-safe; real values after the loading guard) ──
   const self = playerStates.find((p) => p.user_id === session.user.id)
@@ -209,16 +202,18 @@ export function PlayArea({
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); wordle's own
   // bits are the replay sentence and the post-replay cleanup (leave the
-  // history view, clear the pill, re-hide a locally-revealed answer so the new
-  // run starts blind). Failures arrive fully classified — tone and fault
-  // styling intact. New game + Reveal answer stay below — their paths diverge
-  // (new game is a direct create_game).
-  // (No local re-hide: `common.reset_game` clears solution_revealed, so the
-  //  replayed word is hidden again on every client.)
+  // history view, clear the pill, re-hide the answer so the new run starts
+  // blind). Failures arrive fully classified — tone and fault styling intact.
+  // New game + Reveal answer stay below — their paths diverge (new game is a
+  // direct create_game).
   const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
-  }, [exitViewing, clearLocalFeedback])
+    // The same word, hunted again — so put the answer away. Nothing on the
+    // server remembers this for us any more (the reveal is local state), which
+    // is exactly why it's spelled out here.
+    hideAnswer()
+  }, [exitViewing, clearLocalFeedback, hideAnswer])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
@@ -287,12 +282,9 @@ export function PlayArea({
   // that reads like a display toggle, and one less path that could reveal
   // while somebody was still playing.
   //
-  // No confirm here: post-terminal the target is already on every client, so
-  // this only flips the shared display flag.
-  const handleReveal = useCallback(async () => {
-    const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
-    if (error) showLocalFeedback(failureMessage(error, 'reveal'))
-  }, [gameId, showLocalFeedback])
+  // No handler of its own any more: showing the word is `toggleAnswer`, a
+  // local state flip. No RPC, so no failure to classify, and no `async` — the
+  // button and the menu item both call it directly.
 
   // ─── Header menu (each game owns its whole menu) ───────────────
   // The shared frame (Help / End-or-Concede / Back to club) plus wordle's two
@@ -360,10 +352,14 @@ export function PlayArea({
               { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => actionsRef.current.newGame() },
               {
                 id: 'reveal',
-            icon: IconReveal,
-            label: 'Reveal answer',
-                // Terminal-only, matching common.reveal_solution's own gate.
-                disabled: !isTerminal || answerShown,
+                // The menu item wears the same two faces as the terminal
+                // button, since it fires the same toggle.
+                icon: answerShown ? IconHideSolution : IconReveal,
+                label: answerShown ? 'Hide answer' : 'Reveal answer',
+                // Terminal-only: the target doesn't reach the client until the
+                // game is over for everyone (wordle._target_for), so a player
+                // who dropped out early can't peek at a live race.
+                disabled: !isTerminal,
                 onClick: () => actionsRef.current.reveal(),
               },
             ],
@@ -390,10 +386,10 @@ export function PlayArea({
       endGame,
       concede,
       restart,
-      reveal: () => void handleReveal(),
+      reveal: toggleAnswer,
       newGame: () => void handleNewGame(),
     }
-  }, [endGame, concede, restart, handleReveal, handleNewGame])
+  }, [endGame, concede, restart, toggleAnswer, handleNewGame])
 
   if (loading) return <p>Loading game…</p>
   if (!game) return <p>Game not found.</p>
@@ -539,8 +535,8 @@ export function PlayArea({
         onEndGame={endGame}
         onConcede={concede}
         onRestart={restart}
-        onRevealAnswer={() => void handleReveal()}
-        revealDisabled={answerShown}
+        onRevealAnswer={toggleAnswer}
+        answerShown={answerShown}
         onNewGame={handleNewGame}
         startingNewGame={startingNewGame}
         onBackToClub={goToClub}
