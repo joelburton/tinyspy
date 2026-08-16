@@ -119,11 +119,10 @@ describe('wordle PlayArea — render smoke', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
-    // The info-column outcome line. The word itself is NOT here: nothing
-    // autoreveals, a win included (the answer is the last row of your own
-    // board anyway) — see the terminal-flow tests for the toggle.
+    // The info-column outcome line, and — since this is a coop WIN — the answer
+    // line with it: solving is the one thing that shows the word unasked.
     expect(screen.getByText('Solved it!')).toBeInTheDocument()
-    expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
+    expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
   })
 })
 

@@ -22,7 +22,7 @@ import { printConnectionsPdf } from '../pdf/printConnectionsPdf'
 import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
-import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
+import { solvedByMe, useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { db } from '../db'
 import type { CategoryRank } from '../lib/board'
 import { useGame } from '../hooks/useGame'
@@ -281,7 +281,13 @@ export function PlayArea({
     toggle: toggleSolution,
     reset: resetSolution,
     impliedBySolve,
-  } = useSolutionReveal({ impliedBy: iMatchedThemAll })
+  } = useSolutionReveal({
+    impliedBy: solvedByMe({
+      isCompete: game?.mode === 'compete',
+      playState,
+      mine: iMatchedThemAll,
+    }),
+  })
 
   const { endGame: handleEndGame, concede: handleConcede, restart: handleRestart } =
     useStandardGameActions({

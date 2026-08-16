@@ -20,6 +20,44 @@ export interface SolutionReveal {
 }
 
 /**
+ * "Did I produce the solution?" — the predicate for `impliedBy`, in the one
+ * shape all six clear-win games should use.
+ *
+ * **Compete** asks the caller's own per-player bit: solving is personal there,
+ * and the game's verdict is not a proxy for it (wordle writes `won_compete`
+ * when SOMEONE wins, and the racer three guesses off never produced the word).
+ *
+ * **Coop asks the GAME**, because there is one board and one outcome: if the
+ * table solved it, every player is looking at the solution. That is not just a
+ * simplification — the per-player bit is unreliable in coop, differently in
+ * each game, which is exactly how three of these shipped broken on 2026-08-16:
+ *
+ *   - stackdown writes `players.solved` only `when mode = 'compete'`;
+ *   - strands' coop branch ends the game directly and never touches it;
+ *   - psychicnum counts `found_secrets_count` per CALLER, so two teammates
+ *     finding 2 and 1 leaves neither at three.
+ *
+ * (wordle and waffle DO mirror it lock-step across coop rows, and connections
+ * reads the shared matched set — but a rule that only works in half the games
+ * isn't a rule.)
+ *
+ * `playState === 'won'` is the coop win in the shared vocabulary (docs/states.md);
+ * 'ended' and 'lost' are terminals nobody solved.
+ */
+export function solvedByMe({
+  isCompete,
+  playState,
+  mine,
+}: {
+  isCompete: boolean
+  playState: string
+  /** The caller's own per-player solved bit — compete's answer. */
+  mine: boolean
+}): boolean {
+  return isCompete ? mine : playState === 'won'
+}
+
+/**
  * The terminal solution reveal — "am I looking at the answer?" — as LOCAL,
  * per-player, unpersisted state.
  *

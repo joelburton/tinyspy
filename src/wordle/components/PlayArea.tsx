@@ -15,7 +15,7 @@ import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandle
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
-import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
+import { solvedByMe, useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { ActorDot } from '../../common/components/game/lists/ActorMention'
@@ -141,7 +141,9 @@ export function PlayArea({
     toggle: toggleAnswer,
     reset: resetAnswer,
     impliedBySolve,
-  } = useSolutionReveal({ impliedBy: mySolved })
+  } = useSolutionReveal({
+    impliedBy: solvedByMe({ isCompete, playState, mine: mySolved }),
+  })
   // Concede lives on the common roster (ctx `members`), not wordle.players.
   const myConceded = members.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(members.filter((m) => m.conceded).map((m) => m.user_id))

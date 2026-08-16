@@ -15,7 +15,7 @@ import { memberById } from '../../common/lib/game/peers'
 import { endedCopy, type TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { NEW_GAME_CONFIRM, useConfirmDialog } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
-import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
+import { solvedByMe, useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { buildGameMenu, NEW_GAME_ID } from '../../common/lib/game/gameMenu'
 import { buildPrintModel } from '../pdf/model'
@@ -433,7 +433,13 @@ export function PlayArea(ctx: GamePageCtx) {
     toggle: toggleSolution,
     reset: resetSolution,
     impliedBySolve,
-  } = useSolutionReveal({ impliedBy: me?.solved ?? false })
+  } = useSolutionReveal({
+    impliedBy: solvedByMe({
+      isCompete: game?.mode === 'compete',
+      playState,
+      mine: me?.solved ?? false,
+    }),
+  })
 
   // End / Concede / Replay from the shared hook, so their confirm copy and
   // error handling match the other games'.

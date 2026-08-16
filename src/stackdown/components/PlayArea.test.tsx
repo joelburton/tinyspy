@@ -336,11 +336,22 @@ describe('stackdown PlayArea — the terminal solution reveal', () => {
       playerRow('u1'),
     ])
 
-  it('hides the words at a terminal until this viewer asks — a win included', () => {
+  it('hides the words at a terminal NOBODY solved', () => {
     h.result = solved()
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
     expect(screen.queryByText(/CLAMP/)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reveal' })).toBeEnabled()
+  })
+
+  it('a coop WIN shows them unasked — the stack was cleared, so you saw all six', () => {
+    // The coop half of `solvedByMe`, and the case this shipped broken:
+    // stackdown writes `players.solved` only in COMPETE, so a per-player bit
+    // would read false here and leave the solver pressing Reveal for words
+    // they'd just played.
+    h.result = solved()
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    expect(screen.getByText(/CLAMP/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Solution already shown' })).toBeDisabled()
   })
 
   it('Reveal shows them for me alone — no RPC, nothing written', async () => {

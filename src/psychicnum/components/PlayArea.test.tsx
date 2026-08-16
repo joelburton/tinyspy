@@ -313,6 +313,17 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     return makeCtx({ isTerminal: true, playState: 'lost' })
   }
 
+  it('a coop WIN rings them unasked — the team found all three', () => {
+    // The coop half of `solvedByMe`, and a case this shipped broken:
+    // psychicnum bumps `found_secrets_count` per CALLER, so in a coop game
+    // where teammates found 2 and 1 NEITHER row reads three, and a per-player
+    // bit would leave the winners pressing Reveal.
+    h.result = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    expect(ringed()).toBe(3)
+    expect(screen.getByRole('button', { name: 'Solution already shown' })).toBeDisabled()
+  })
+
   it('leaves the board un-ringed until this viewer asks', () => {
     render(<PlayArea {...ended()} />)
     expect(ringed()).toBe(0)

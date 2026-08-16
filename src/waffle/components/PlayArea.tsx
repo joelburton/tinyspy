@@ -21,7 +21,7 @@ import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
-import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
+import { solvedByMe, useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
@@ -231,7 +231,9 @@ export function PlayArea({
     toggle: toggleAnswer,
     reset: resetAnswer,
     impliedBySolve,
-  } = useSolutionReveal({ impliedBy: iSolved })
+  } = useSolutionReveal({
+    impliedBy: solvedByMe({ isCompete: game?.mode === 'compete', playState, mine: iSolved }),
+  })
 
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); waffle's own

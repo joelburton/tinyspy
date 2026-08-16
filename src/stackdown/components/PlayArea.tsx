@@ -18,7 +18,7 @@ import { setupRows } from '../lib/setupSummary'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
-import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
+import { solvedByMe, useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
@@ -326,7 +326,9 @@ export function PlayArea({
     toggle: toggleSolution,
     reset: resetSolution,
     impliedBySolve,
-  } = useSolutionReveal({ impliedBy: mySolved })
+  } = useSolutionReveal({
+    impliedBy: solvedByMe({ isCompete, playState, mine: mySolved }),
+  })
 
   // ─── End / Concede / Replay — the shared trio ─────────────────
   // The byte-identical shared handlers (useStandardGameActions). End is coop's

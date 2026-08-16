@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { execFileSync } from 'node:child_process'
-import { createSoloClub, createWordleGame } from './helpers/fixtures'
+import { createSoloClub, createStrandsGame, createWordleGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
@@ -77,6 +77,55 @@ test('wordle: solving shows the answer unasked, and the control says so', async 
   // which is how it got caught.)
   const glyph = await reveal.locator('svg').innerHTML()
   expect(glyph).toContain('<circle')
+
+  await ctx.close()
+})
+
+/**
+ * The COOP half, on the game where it can only be checked in a browser.
+ *
+ * `solvedByMe` asks the GAME in coop rather than the caller's own row, and
+ * strands is one of the three where that is the only thing that works: its coop
+ * branch ends the game directly and never writes `strands.players.solved`, so a
+ * per-player predicate reads false for the very players who just solved it.
+ * (stackdown and psychicnum have their own versions of that, covered by unit
+ * tests; strands has no PlayArea suite, so it gets a real win instead.)
+ */
+test('strands: a coop win names the words unasked', async ({ browser }) => {
+  const club = await createSoloClub('slvst')
+  const game = await createStrandsGame(club)
+  const ctx = await browser.newContext()
+  await signIn(ctx, club.members[0].session)
+  const page = await ctx.newPage()
+  await page.goto(`/g/${game.gametype}/${game.id}`)
+  await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
+
+  // Nothing named yet.
+  await expect(page.getByText('Words:')).toHaveCount(0)
+
+  // Trace every hidden word — the theme words and the spangram tile the board
+  // exactly, so finding them all IS the win.
+  for (const w of game.words) {
+    for (const [r, c] of w.coords) await page.locator(`[data-cell="${r},${c}"]`).click()
+    await page.keyboard.press('Enter')
+    await page.waitForTimeout(120)
+  }
+
+  await expect(page.getByText('Won: every word found').first()).toBeVisible({ timeout: 10000 })
+
+  // The words are named without anyone asking — the payoff the reveal adds
+  // over a consumed board, since a board draws paths and never spellings.
+  await expect(page.getByText('Words:')).toBeVisible({ timeout: 8000 })
+  // `.first()`: the spangram appears in the Words line AND in the turn log,
+  // which is itself a small proof the line isn't just echoing the log.
+  const spangram = game.words.find((w) => w.isSpangram)!
+  await expect(
+    page.locator('p', { hasText: 'Words:' }).getByText(spangram.word.toUpperCase()),
+  ).toBeVisible()
+
+  const reveal = page.getByRole('button', { name: 'Solution already shown' })
+  await expect(reveal).toBeVisible()
+  await expect(reveal).toBeDisabled()
 
   await ctx.close()
 })

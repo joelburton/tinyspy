@@ -1,6 +1,34 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { useSolutionReveal } from './useSolutionReveal'
+import { solvedByMe, useSolutionReveal } from './useSolutionReveal'
+
+/**
+ * `solvedByMe` — "did I produce the solution?", the input to `impliedBy`.
+ *
+ * The coop half is not a convenience. Three of the six games don't write a
+ * usable per-player solved bit in coop at all, each in its own way, which is how
+ * this shipped broken: stackdown sets `players.solved` only in compete, strands'
+ * coop branch ends the game without touching it, and psychicnum counts per
+ * CALLER so two teammates finding 2 and 1 leaves neither at three.
+ */
+describe('solvedByMe', () => {
+  it('coop asks the GAME — one board, one outcome', () => {
+    expect(solvedByMe({ isCompete: false, playState: 'won', mine: false })).toBe(true)
+    // …and only a WIN counts: a manual stop or a loss solved nothing.
+    expect(solvedByMe({ isCompete: false, playState: 'ended', mine: false })).toBe(false)
+    expect(solvedByMe({ isCompete: false, playState: 'lost', mine: false })).toBe(false)
+  })
+
+  it('compete asks ME — the verdict is not a proxy for my own board', () => {
+    // The whole reason this isn't `playState`-driven: `won_compete` means
+    // SOMEONE won, and handing the loser the answer is what we're avoiding.
+    expect(solvedByMe({ isCompete: true, playState: 'won_compete', mine: false })).toBe(false)
+    expect(solvedByMe({ isCompete: true, playState: 'won_compete', mine: true })).toBe(true)
+    // strands compete deliberately doesn't end on first solve: a player who
+    // solved but lost on hint count still consumed their board.
+    expect(solvedByMe({ isCompete: true, playState: 'lost_compete', mine: true })).toBe(true)
+  })
+})
 
 /**
  * The reveal's two halves: the player's own choice, and the default a CLEAR WIN

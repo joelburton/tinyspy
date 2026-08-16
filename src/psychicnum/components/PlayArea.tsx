@@ -14,7 +14,7 @@ import { useGlobalKeyHandler } from '../../common/hooks/input/useGlobalKeyHandle
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
-import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
+import { solvedByMe, useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { setupRows } from '../lib/setupSummary'
@@ -184,7 +184,13 @@ export function PlayArea({
     toggle: toggleSecrets,
     reset: resetSecrets,
     impliedBySolve,
-  } = useSolutionReveal({ impliedBy: iFoundThemAll })
+  } = useSolutionReveal({
+    impliedBy: solvedByMe({
+      isCompete: mode === 'compete',
+      playState,
+      mine: iFoundThemAll,
+    }),
+  })
   // The FULL psychicnum game menu (Help + Print + End/Concede + Back to club).
   // `buildGameMenu` supplies the framing; `extra` is our one Print item. Print
   // builds its model from the live state (RLS already scoped `guesses`/`results`
