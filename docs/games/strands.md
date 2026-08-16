@@ -638,7 +638,20 @@ carries the three strands rows.
 **FE Vitest** (`src/strands/`): `lib/board.test.ts` + `lib/trace.test.ts` (the
 geometry and the reducer), `lib/board.oracle.test.ts` (the ~2500-word NYT parity
 oracle — see [The oracle](#the-oracle)), `lib/history.test.ts` (the snapshot
-filter), `pdf/model.test.ts` (the print model, incl. the shield).
+filter), `pdf/model.test.ts` (the print model, incl. the shield), and
+`components/PlayArea.test.tsx` — **the mounted tree**.
+
+That last one is the newest and exists for a reason worth keeping: everything
+above it is a pure function, and eleven pgTAP files own the rules, so the layer
+nothing watched was the **wiring** — which control renders in which state and
+what each is handed. A reveal bug shipped through that gap on 2026-08-16
+(strands' coop branch ends the game directly and never writes
+`strands.players.solved`, so keying the auto-reveal on that bit left a table
+that had just solved the puzzle pressing Reveal to see words they'd traced
+themselves). The suite is deliberately about STATE → CONTROLS rather than game
+logic: playing vs locally-done vs terminal, and the reveal's three faces —
+including compete's two halves, where the RACE being won isn't my solve but
+solving-and-losing-on-hints is.
 
 **pgTAP** also owns the puzzle choice: `next_puzzle_test.sql` pins
 `next_puzzle_for_club` — ascending, per-PLAYER rather than per-club, spanning
