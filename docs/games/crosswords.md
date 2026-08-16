@@ -326,7 +326,13 @@ sizing).
     matching crossplay. Two more shortcuts are shell-global (any game): **⌥⌫**
     End/Concede, **⇧<** Back to club — see [ui.md → GamePage menu](../ui.md#gamepage-menu).
 - **Controls** — pen/pencil toggle + Check and (coop-only) Reveal at
-  letter/word/grid scope (scope resolved client-side via `cursor.ts`). The
+  letter/word/grid scope (scope resolved client-side via `cursor.ts`).
+  **Reveal at GRID scope is confirmed through the styled modal**; letter and
+  word go straight through. It's the one scope that ends the puzzle rather than
+  helping with it, `reveal_cells` writes the answers onto *everyone's* board and
+  stamps them `revealed` (so the terminal Reveal/Hide toggle can't take it back
+  — those letters are the players' fill now), and the row sits one mis-click
+  below "Word". The
   **same actions are ALSO listed in the game menu** with their ⌥-shortcut hints
   (`MenuItem.shortcut`) — crossplay advertised them there, and the menu is where
   a mouse user discovers the shortcut. Both surfaces dispatch through the shared

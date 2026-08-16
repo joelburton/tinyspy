@@ -856,6 +856,23 @@ export function PlayArea(ctx: GamePageCtx) {
     async (scope: Scope) => {
       const target = scopeCells(scope)
       if (target.length === 0) return
+      // Revealing the whole GRID is the one scope that ends the puzzle rather
+      // than helping with it, and it's a server write on everyone's board at
+      // once: `reveal_cells` fills the cells and stamps them `revealed`, which
+      // the terminal Reveal/Hide toggle can't take back — the letters ARE the
+      // players' fill now. It also sits one menu row below "Word" and one
+      // mis-click away from it. Letter and Word stay unconfirmed: they're the
+      // ordinary help ladder, and confirming a hint you asked for is noise.
+      if (
+        scope === 'puzzle'
+        && !(await confirmAction({
+          title: 'Reveal the whole grid?',
+          message:
+            "This fills in every answer, for everyone — the puzzle is over, and you can't undo it.",
+          confirmLabel: 'Reveal grid',
+          cancelLabel: 'Keep playing',
+        }))
+      ) return
       // See handleCheck: close the covering sheet so the revealed cells (and any
       // error pill) are visible. No-op on desktop / when already closed.
       closeInfoSheet()
@@ -869,7 +886,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // CDC arrives colorless (like a typed fill), so it needs its own signal.
       broadcastFills(target)
     },
-    [scopeCells, gameId, showLocalFeedback, clearLocalFeedback, broadcastFills, closeInfoSheet],
+    [scopeCells, gameId, showLocalFeedback, clearLocalFeedback, broadcastFills, closeInfoSheet, confirmAction],
   )
 
   // Keep the ⌥-shortcut action handlers current (read by the keyboard's kbRef

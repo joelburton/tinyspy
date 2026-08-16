@@ -9,7 +9,8 @@
  * are mocked so no client/network is needed; the Grid, ClueLists, Controls,
  * keyboard, and menu wiring all render for real.
  */
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
 import { gp } from '../../common/test/gamePlayers'
@@ -314,6 +315,8 @@ describe('crosswords PlayArea — keyboard hook wiring (isNonGameField)', () => 
 })
 
 describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)', () => {
+  /** The ctx of the CURRENT render, for the tests that reach into its menu. */
+  let lastCtx: GamePageCtx | null = null
   it('⌥C checks the letter; ⌥⇧C checks the word', () => {
     render(<PlayArea {...makeCtx()} />)
     fireEvent.keyDown(document.body, { code: 'KeyC', key: 'ç', altKey: true })
@@ -331,6 +334,52 @@ describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)
   it('⌥R reveals in coop', () => {
     render(<PlayArea {...makeCtx()} />)
     fireEvent.keyDown(document.body, { code: 'KeyR', key: '®', altKey: true })
+    expect(rpcNames()).toContain('reveal_cells')
+  })
+
+  /** Fire the whole-grid reveal from the game menu's Reveal ▸ Grid row. */
+  type MenuRow = { id: string; onClick: () => void; items?: MenuRow[] }
+  const revealGrid = async () => {
+    const menuCalls = (lastCtx!.menu.setGameSections as unknown as ReturnType<typeof vi.fn>).mock.calls
+    const sections = menuCalls.at(-1)![0] as { items: MenuRow[] }[]
+    const row = sections
+      .flatMap((sec) => sec.items)
+      .find((i) => i.id === 'reveal')!
+      .items!.find((i) => i.id === 'reveal-puzzle')!
+    await act(async () => { row.onClick() })
+  }
+
+  it('revealing the whole GRID asks first — and cancelling writes nothing', async () => {
+    lastCtx = makeCtx()
+    render(<PlayArea {...lastCtx} />)
+    h.rpc.mockClear()
+
+    await revealGrid()
+
+    // The modal, not the RPC: filling every answer ends the puzzle for the
+    // whole table, and the row sits one mis-click below "Word".
+    expect(await screen.findByText('Reveal the whole grid?')).toBeInTheDocument()
+    expect(rpcNames()).not.toContain('reveal_cells')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Keep playing' }))
+    expect(rpcNames()).not.toContain('reveal_cells')
+  })
+
+  it('…and confirming it goes through', async () => {
+    lastCtx = makeCtx()
+    render(<PlayArea {...lastCtx} />)
+    h.rpc.mockClear()
+    await revealGrid()
+    await screen.findByText('Reveal the whole grid?')
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal grid' }))
+    await waitFor(() => expect(rpcNames()).toContain('reveal_cells'))
+  })
+
+  it('a single-letter reveal is NOT confirmed — it is the ordinary help ladder', () => {
+    render(<PlayArea {...makeCtx()} />)
+    h.rpc.mockClear()
+    fireEvent.keyDown(document.body, { code: 'KeyR', key: '®', altKey: true })
+    expect(screen.queryByText('Reveal the whole grid?')).not.toBeInTheDocument()
     expect(rpcNames()).toContain('reveal_cells')
   })
 
