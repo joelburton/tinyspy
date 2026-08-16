@@ -54,7 +54,7 @@ export function InfoCol({
   setupRows,
   solution,
   onReveal,
-  revealDisabled,
+  solutionShown,
   submissions,
   viewingIndex,
   onSelectTurn,
@@ -113,15 +113,15 @@ export function InfoCol({
   setup: StackdownSetup
   /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
   setupRows: SetupRow[]
-  /** The six solution words — non-null ONLY when they should be on screen: a
-   *  clean win, or after someone asked. A plain loss keeps them hidden so
-   *  Restart (same stack, same solution) stays a genuine second try. */
+  /** The six solution words — non-null ONLY while THIS viewer is looking at
+   *  them. Hidden by default at every terminal, a win included, so Restart
+   *  (same stack, same solution) stays a genuine second try. */
   solution: string[] | null
-  /** Open the solution at game-over (the red boxed-eye RevealButton + its menu
-   *  twin). Local display toggle — nothing is written. */
+  /** Show the words — or put them away again. A local display toggle shared
+   *  with the menu twin; nothing is written and no peer is affected. */
   onReveal: () => void
-  /** The solution is already showing, so the reveal control self-disables. */
-  revealDisabled: boolean
+  /** Are the words on screen right now? Swaps the button to its Hide face. */
+  solutionShown: boolean
 
   // ── Turn-history log (GameTurnLog) ──
   /** The submission log the log renders + the viewer indexes (by position). */
@@ -181,7 +181,7 @@ export function InfoCol({
                 back, or claim the next one. */}
             {/* Reveal first: it's the one that acts on THIS finished game.
                 Restart / New game are both "move on", and they leave. */}
-            <RevealButton iconOnly onClick={onReveal} disabled={revealDisabled} />
+            <RevealButton iconOnly revealed={solutionShown} onClick={onReveal} />
             <RestartButton iconOnly onClick={onRestart} />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />
           </TerminalActionRow>
@@ -190,11 +190,11 @@ export function InfoCol({
           // now-disabled Concede) so the drop-out reads loudly.
           <LocalTerminalRow label="You conceded">
             {/* Reveal keeps its slot while the others race, but inert: the
-                solution opens only when the game is over for EVERYONE
-                (common.reveal_solution enforces the same rule server-side), so
-                a player who dropped out can't spoil a live race. Present
-                rather than absent so the row doesn't change shape when the
-                last racer finishes — the button is simply enabled then. */}
+                words don't even reach this client until the game is over for
+                EVERYONE (stackdown._solution_for gates on is_terminal), so a
+                player who dropped out can't spoil a live race. Present rather
+                than absent so the row doesn't change shape when the last racer
+                finishes — the button is simply enabled then. */}
             <RevealButton iconOnly disabled tooltip="Can't reveal until all end" />
             <ConcedeGameButton iconOnly className={shared.helperButton} disabled />
           </LocalTerminalRow>
@@ -245,11 +245,12 @@ export function InfoCol({
             as advice. Matches waffle. */}
         {!over && !isPlayer && <LocalTerminalRow label="Watching — not in this game" />}
 
-        {/* The six solution words — the one info-column region allowed to grow at
-            game-over (docs/ui.md → Layout stability), ABOVE the setup disclosure
-            per the canonical order (the reveal is the payoff; the recap is
-            bookkeeping). Shown only once `solution` is non-null, which PlayArea
-            gates on won-or-revealed. */}
+        {/* The six solution words — an info-column region allowed to grow when
+            the viewer opens it and to give the space back when they close it
+            again (a blessed exception to docs/ui.md → Layout stability: the
+            reflow IS the reveal, and only ever fires on the viewer's own
+            click). ABOVE the setup disclosure per the canonical order (the
+            reveal is the payoff; the recap is bookkeeping). */}
         {over && solution && (
           <div className={cls(shared.terminalExtra, styles.reveal)}>
             <span className="muted">The words were</span>{' '}

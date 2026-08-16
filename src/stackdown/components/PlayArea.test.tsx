@@ -13,7 +13,7 @@
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; the board, entry row, opponent strip, and log all render real.
  */
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
@@ -309,5 +309,95 @@ describe('stackdown PlayArea — the game menu names the cheat glyphs', () => {
     const items = menuItems(ctx)
     expect(items.get('hint')?.disabled).toBe(true)
     expect(items.get('spoiler')?.disabled).toBe(true)
+  })
+})
+
+/**
+ * The terminal solution reveal — the six words, and the fact that seeing them
+ * is a LOCAL, reversible choice (useSolutionReveal). Nothing autoreveals, a win
+ * included: `replay_board` runs this very stack back with the same solution, so
+ * an answer left on screen would make Restart theater.
+ */
+describe('stackdown PlayArea — the terminal solution reveal', () => {
+  /** Flatten what PlayArea handed `menu.setGameSections` into id → item. */
+  function menuItems(ctx: GamePageCtx) {
+    const setSections = ctx.menu.setGameSections as unknown as ReturnType<typeof vi.fn>
+    const sections = setSections.mock.calls.at(-1)?.[0] ?? []
+    return new Map(
+      (sections as { items: { id: string; label: string; disabled?: boolean; onClick: () => void }[] }[])
+        .flatMap((s) => s.items)
+        .map((i) => [i.id, i]),
+    )
+  }
+
+  /** A finished game whose six words have reached this client (the server
+   *  unshields `solution` at is_terminal — stackdown._solution_for). */
+  const solved = () =>
+    loaded(loadedGame({ solution: ['clamp', 'trick', 'shove', 'plaid', 'gruff', 'wince'] }), [
+      playerRow('u1'),
+    ])
+
+  it('hides the words at a terminal until this viewer asks — a win included', () => {
+    h.result = solved()
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    expect(screen.queryByText(/CLAMP/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reveal' })).toBeEnabled()
+  })
+
+  it('Reveal shows them for me alone — no RPC, nothing written', async () => {
+    const user = userEvent.setup()
+    h.result = solved()
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+
+    await user.click(screen.getByRole('button', { name: 'Reveal' }))
+    expect(screen.getByText(/CLAMP/)).toBeInTheDocument()
+    // The absent RPC is the assertion: no peer's board opened.
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('the same button hides them again, restoring the column as the game ended', async () => {
+    const user = userEvent.setup()
+    h.result = solved()
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+
+    await user.click(screen.getByRole('button', { name: 'Reveal' }))
+    await user.click(screen.getByRole('button', { name: 'Hide' }))
+    expect(screen.queryByText(/CLAMP/)).not.toBeInTheDocument()
+  })
+
+  it('the menu twin is the same toggle and flips its label along with it', async () => {
+    const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
+    h.result = solved()
+    render(<PlayArea {...ctx} />)
+
+    expect(menuItems(ctx).get('reveal')?.label).toBe('Reveal solution')
+    act(() => menuItems(ctx).get('reveal')!.onClick())
+    expect(screen.getByText(/CLAMP/)).toBeInTheDocument()
+    await waitFor(() => expect(menuItems(ctx).get('reveal')?.label).toBe('Hide solution'))
+  })
+
+  it('the menu twin is inert before the game is over for everyone', () => {
+    const ctx = makeCtx({ isTerminal: false, playState: 'playing' })
+    render(<PlayArea {...ctx} />)
+    // Nothing to show: the words don't reach this client until is_terminal, so
+    // a player who dropped out can't spoil a race still running.
+    expect(menuItems(ctx).get('reveal')?.disabled).toBe(true)
+  })
+
+  it('a Restart puts the words away again', async () => {
+    const user = userEvent.setup()
+    h.result = solved()
+    const { rerender } = render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+
+    await user.click(screen.getByRole('button', { name: 'Reveal' }))
+    expect(screen.getByText(/CLAMP/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Restart' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+    // The same stack and the same six words — and nothing on the server
+    // remembers the reveal now, so the re-hide is local and explicit.
+    h.result = loaded(loadedGame(), [playerRow('u1')])
+    rerender(<PlayArea {...makeCtx()} />)
+    expect(screen.queryByText(/CLAMP/)).not.toBeInTheDocument()
   })
 })

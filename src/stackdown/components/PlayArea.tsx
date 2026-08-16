@@ -1,7 +1,7 @@
 import { failureText, faultMessage } from '../../common/lib/game/serverError'
 import { actionName } from '../../common/lib/game/callRpc'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
+import { IconHideSolution, IconHint, IconNewGame, IconPrint, IconRestart, IconReveal, IconSpoiler } from '../../common/components/icons'
 import { cls } from '../../common/lib/util/cls'
 import type {
   GenericFeedbackMsg,
@@ -18,12 +18,12 @@ import { setupRows } from '../lib/setupSummary'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
+import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
 import { db } from '../db'
-import { db as commonDb } from '../../common/db'
 import { turnSnapshot } from '../lib/history'
 import { offBoardIds } from '../lib/board'
 import type { StackdownSetup } from '../lib/setup'
@@ -80,7 +80,6 @@ export function PlayArea({
   players,
   playState,
   isTerminal,
-  solutionRevealed,
   timer,
   setup,
   status,
@@ -307,22 +306,17 @@ export function PlayArea({
   }, [gameId, showLocalFeedback])
 
   // ─── Terminal solution reveal ────────────────────────────────────
-  // The six words are NOT shown just because the game ended: `replay_board`
-  // re-runs this very stack with the same solution (see its RPC comment), so
-  // auto-revealing on a loss would make Restart theater — you'd be shuffling
-  // tiles you already know the answer to.
+  // The six words are NOT shown just because the game ended — not even on a
+  // win: `replay_board` re-runs this very stack with the same solution (see its
+  // RPC comment), so an answer left on screen would make Restart theater,
+  // shuffling tiles you already know.
   //
-  // `solutionShown` is `common.games.solution_revealed`, straight off the row —
-  // the ONE common answer to "may they see it?" (docs/ui.md → Terminal
-  // results). end_game sets it on a win, reveal_solution on the ask, and
-  // reset_game clears it, so Restart re-hides with nothing to remember here.
-  // Being on the row also makes it SHARED: a peer's Reveal arrives on the same
-  // realtime refetch and opens this client's board too.
-  const solutionShown = solutionRevealed
-  const revealSolution = useCallback(async () => {
-    const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
-    if (error) showLocalFeedback(failureText(error, actionName('reveal_solution')), 'error')
-  }, [gameId, showLocalFeedback])
+  // The ask is LOCAL and reversible (useSolutionReveal): mine alone, so a
+  // teammate can keep working the stack out in their head while I look, and the
+  // same control puts it away again. The words themselves are on every client
+  // once the game is terminal (stackdown._solution_for), so this is purely
+  // what's drawn.
+  const { revealed: solutionShown, toggle: toggleSolution, hide: hideSolution } = useSolutionReveal()
 
   // ─── End / Concede / Replay — the shared trio ─────────────────
   // The byte-identical shared handlers (useStandardGameActions). End is coop's
@@ -331,12 +325,14 @@ export function PlayArea({
   // solution, everything the players did wiped. stackdown's own bits are the
   // failure-pill format, the replay sentence, and the post-replay cleanup
   // (leave the turn-history view, clear the pill, re-hide a revealed solution).
-  // (No reveal-flag reset here: `common.reset_game` clears solution_revealed
-  //  server-side, so the new run starts blind on every client at once.)
   const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
-  }, [exitViewing, clearLocalFeedback])
+    // The same stack, the same six words — so put them away. Nothing on the
+    // server remembers this any more (the reveal is local state), which is
+    // exactly why it's spelled out here.
+    hideSolution()
+  }, [exitViewing, clearLocalFeedback, hideSolution])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
@@ -435,8 +431,9 @@ export function PlayArea({
   useEffect(() => {
     // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). RLS already
     // scopes the submissions to what the viewer may see, the SERVER withholds
-    // `solution` until terminal, and `solutionShown` withholds it on a loss —
-    // so a printout can't spoil a stack you're about to run back either.
+    // `solution` until terminal, and `solutionShown` withholds it until this
+    // viewer asks — so a printout carries the answer only if the page in front
+    // of them does, and can't spoil a stack they're about to run back.
     const printModel = game
       ? buildStackdownPrintModel({
           brand,
@@ -484,16 +481,17 @@ export function PlayArea({
               { id: 'restart', icon: IconRestart, label: 'Restart', onClick: restart },
               // Same setup + roster, a freshly claimed board, a NEW game id.
               { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
-              // The menu twin of the terminal row's boxed-eye button — same
-              // local toggle, reachable from the menu the whole time so a
-              // player who dismissed the row can still get to it. Mid-game it's
-              // inert: there's nothing to reveal until the server unshields.
+              // The menu twin of the terminal row's boxed-eye button — the same
+              // toggle, wearing the same two faces, reachable from the menu the
+              // whole time so a player who dismissed the row can still get to
+              // it. Mid-game it's inert: there's nothing to reveal until the
+              // server unshields.
               {
                 id: 'reveal',
-            icon: IconReveal,
-            label: 'Reveal solution',
-                disabled: !isTerminal || solutionShown,
-                onClick: () => void revealSolution(),
+                icon: solutionShown ? IconHideSolution : IconReveal,
+                label: solutionShown ? 'Hide solution' : 'Reveal solution',
+                disabled: !isTerminal,
+                onClick: toggleSolution,
               },
             ],
           },
@@ -506,7 +504,7 @@ export function PlayArea({
     return () => menu.setGameSections([])
   }, [
     menu, menuMode, isTerminal, myConceded, endGame, concede, restart, handleNewGame,
-    revealSolution, solutionShown, canAskHelp, revealHint, spoilNext,
+    toggleSolution, solutionShown, canAskHelp, revealHint, spoilNext,
     // The print model's inputs. It's rebuilt whenever the printable state moves,
     // which is what makes the snapshot current at click time.
     brand, title, game, currentWord, submissions, players, session.user.id, foundCount, setup,
@@ -660,8 +658,8 @@ export function PlayArea({
         onBackToClub={goToClub}
         setup={setup as unknown as StackdownSetup}
         solution={solutionShown ? game.solution : null}
-        onReveal={() => void revealSolution()}
-        revealDisabled={solutionShown}
+        onReveal={toggleSolution}
+        solutionShown={solutionShown}
         submissions={logWords}
         viewingIndex={viewingIndex}
         onSelectTurn={setViewingIndex}
