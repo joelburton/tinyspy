@@ -53,8 +53,8 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | game | format | example |
 |---|---|---|
 | bananagrams | `#` + the first 6 hex digits of the game's uuid | `#3F9A2C` |
-| wordle **coop** | `'New game'` → **the most recent guess** → **the answer**, but only once WON or explicitly revealed. A lost game keeps the last guess: wordle hides the answer on a loss so Restart is a real second try, and a title would undo that from outside | `CRANE` → `SLATE` |
-| wordle **compete** | `'New compete'` while racing (guesses are private) → **the answer** if someone won or revealed it, else the **last guess** | `SLATE` |
+| wordle **coop** | `'New game'` → **the most recent guess**, always. On a win that guess IS the answer, so a solved game titles `SLATE` without the title ever spelling out something the players didn't earn — which is the rule: a lost game keeps its last guess, since a title naming the answer would undo the hidden solution from outside, and it can't follow a reveal either (that's one player's private click, and the title is club-wide) | `CRANE` → `SLATE` |
+| wordle **compete** | `'New compete'` while racing (guesses are private) → the **last guess** once the race is over (the winner's, so again the answer on a win) | `SLATE` |
 | scrabble | `'New game'`, then **the first 3 words played** | `CRANE-BOXY-JET` |
 | stackdown **coop** | `'New game'`, then **the first 3 words found** (`…` past 3) | `CAT-DOGS-BIRD…` |
 | stackdown **compete** | `'New game'` (found words are private) | `New game` |

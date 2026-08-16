@@ -128,7 +128,7 @@ play_states in its CASES matrix). The whole roster's vocabulary today:
 | `cleared` | the stack was cleared (stackdown) |
 | `complete` | the tiles ran out with someone going out (scrabble, bananagrams) |
 | `blocked` | every active seat passed in a row (scrabble compete) |
-| `revealed` | a player asked to see the answer (waffle, wordle) |
+| ~~`revealed`~~ | *dead since 2026-08-03.* Was "this game ended because a player asked to see the answer" — waffle's and wordle's combined mid-game give-ups, both removed. Revealing ends nothing now; it's a local display toggle |
 
 Converged 2026-08-01. Before that, connections / psychicnum / codenamesduet
 echoed their play_state into the outcome (`lost_timeout`,

@@ -461,7 +461,7 @@ Tests for the helpers live in [`supabase/tests/common/helpers_test.sql`](../supa
 
 **Removed 2026-08-15**, with no readers left: `common.games.solution_revealed` (the shared flag), `common.gametypes.hides_solution` (the registry fact that drove `end_game`'s write), `common.reveal_solution(target_game)` (the RPC behind the old shared button), and `end_game`'s reveal branch. Columns went in a forward migration (`20260815000000_drop_solution_revealed.sql`) because the baselines are applied on prod; the function is dropped in `supabase/sql/common.sql`, which is re-applied every deploy.
 
-`status.outcome = 'revealed'` is a *different* thing and stays: it's the terminal **outcome label** for a mid-game give-up ("this game ended *because* someone asked"), sitting beside `'manual'` and `'ended'`.
+`status.outcome = 'revealed'` was a *different* thing — the terminal **outcome label** for a mid-game give-up, "this game ended *because* someone asked". Nothing writes it: waffle's and wordle's combined give-ups were removed 2026-08-03 and no other game had one, so the label has been dead since then. `gameStatusLabels` still accepts it (the roster list is exhaustive on purpose) but no manifest branches on it.
 
 ## Row-level security
 
