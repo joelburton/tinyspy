@@ -58,7 +58,12 @@ test.describe('waffle mobile', () => {
       // out on the ✕.
       const wrap = page.locator('[data-info-sheet]')
       const xClosed = (await wrap.boundingBox())!.x
-      await page.getByRole('button', { name: 'Game menu' }).click()
+      // Straight to the header's page-switch button — no game-menu detour.
+      // "Game info" used to be a MENU ITEM and was folded into this one header
+      // control (GamePage: "consolidating the old Game info menu item and the
+      // sheet's ✕ into one control"), so opening the menu first only laid its
+      // popover BACKDROP over the button this line wants. A race that bit under
+      // full-suite load — waffle-mobile lost it on 2026-08-16.
       await page.getByRole('button', { name: 'Game info' }).click()
       await page.waitForTimeout(300)
       const xOpen = (await wrap.boundingBox())!.x
@@ -94,7 +99,13 @@ test.describe('waffle mobile', () => {
 
     // The swap committed: open the info sheet and confirm the swap log is no
     // longer empty (the readout lives in the off-canvas sheet on mobile).
-    await page.getByRole('button', { name: 'Game menu' }).click()
+    //
+    // Straight to the header's page-switch button. This used to open the GAME
+    // MENU first, from when "Game info" was a menu item — it was folded into
+    // this one header control (GamePage: "consolidating the old Game info menu
+    // item and the sheet's ✕ into one control"), so the menu click only ever
+    // laid the popover's BACKDROP over the button the next line wants. It won
+    // that race about one run in three under full-suite load.
     await page.getByRole('button', { name: 'Game info' }).click()
     await expect(page.getByText('No swaps yet.')).toBeHidden({ timeout: 10000 })
 
@@ -135,7 +146,12 @@ test('a long turn log scrolls inside its box, not the sheet', async ({ browser }
   await page.goto(`/g/${game.gametype}/${game.id}`)
   await expect(page.locator('[role="grid"]')).toBeVisible({ timeout: 20000 })
 
-  await page.getByRole('button', { name: 'Game menu' }).click()
+  // Straight to the header's page-switch button — no game-menu detour.
+  // "Game info" used to be a MENU ITEM and was folded into this one header
+  // control (GamePage: "consolidating the old Game info menu item and the
+  // sheet's ✕ into one control"), so opening the menu first only laid its
+  // popover BACKDROP over the button this line wants. A race that bit under
+  // full-suite load — waffle-mobile lost it on 2026-08-16.
   await page.getByRole('button', { name: 'Game info' }).click()
   await page.waitForTimeout(300)
 

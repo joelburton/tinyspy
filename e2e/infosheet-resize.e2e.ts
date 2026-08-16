@@ -26,7 +26,12 @@ test('info sheet closes when the viewport crosses to desktop and back', async ({
   const xClosed = (await wrap.boundingBox())!.x
 
   // Open the sheet on mobile — slides in from the right (x drops toward 0).
-  await page.getByRole('button', { name: 'Game menu' }).click()
+  // Straight to the header's page-switch button — no game-menu detour.
+  // "Game info" used to be a MENU ITEM and was folded into this one header
+  // control (GamePage: "consolidating the old Game info menu item and the
+  // sheet's ✕ into one control"), so opening the menu first only laid its
+  // popover BACKDROP over the button this line wants. A race that bit under
+  // full-suite load — waffle-mobile lost it on 2026-08-16.
   await page.getByRole('button', { name: 'Game info' }).click()
   await page.waitForTimeout(300)
   const xOpen = (await wrap.boundingBox())!.x

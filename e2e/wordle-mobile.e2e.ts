@@ -55,7 +55,12 @@ test.describe('wordle mobile', () => {
       // in; the X slides it back off.
       const wrap = page.locator('[data-info-sheet]')
       const xClosed = (await wrap.boundingBox())!.x
-      await page.getByRole('button', { name: 'Game menu' }).click()
+      // Straight to the header's page-switch button — no game-menu detour.
+      // "Game info" used to be a MENU ITEM and was folded into this one header
+      // control (GamePage: "consolidating the old Game info menu item and the
+      // sheet's ✕ into one control"), so opening the menu first only laid its
+      // popover BACKDROP over the button this line wants. A race that bit under
+      // full-suite load — waffle-mobile lost it on 2026-08-16.
       await page.getByRole('button', { name: 'Game info' }).click()
       await page.waitForTimeout(300) // the 160ms slide-in
       const xOpen = (await wrap.boundingBox())!.x
