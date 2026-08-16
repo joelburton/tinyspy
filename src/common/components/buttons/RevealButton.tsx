@@ -57,7 +57,14 @@ export function RevealButton({
       : label
   return (
     <ActionButton
-      icon={revealed ? IconHideSolution : IconReveal}
+      // The inert face keeps the VIEW glyph, not EyeOff. Both readings are
+      // technically true — you can't hide what the win put there, and you can't
+      // show what's already shown — but a player who never pressed Reveal has
+      // no "on" state for EyeOff to be the "off" of, so the struck-through eye
+      // reads as a state they don't recognise. The plain eye, greyed, says the
+      // thing they'd expect: showing the solution isn't available, because it's
+      // already here.
+      icon={revealed && !alreadyShown ? IconHideSolution : IconReveal}
       label={shownLabel}
       tone="error"
       // Present but inert, never absent — the row must not change shape between

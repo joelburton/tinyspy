@@ -64,5 +64,19 @@ test('wordle: solving shows the answer unasked, and the control says so', async 
   await expect(reveal).toBeVisible()
   await expect(reveal).toBeDisabled()
 
+  // …wearing the plain VIEW eye, not EyeOff. Both readings are technically true
+  // (you can't hide what the win put there, and you can't show what's already
+  // shown), but this player never pressed Reveal, so there is no "on" state for
+  // a struck-through eye to be the "off" of — it reads as a state they don't
+  // recognise.
+  //
+  // The discriminator is the PUPIL: lucide's View draws `<circle cx=12 cy=12
+  // r=1>` inside its box, and EyeOff — struck through — has no circle at all,
+  // being paths end to end. (An earlier version of this checked for `<line>`,
+  // which neither glyph has; it passed against a deliberately broken build,
+  // which is how it got caught.)
+  const glyph = await reveal.locator('svg').innerHTML()
+  expect(glyph).toContain('<circle')
+
   await ctx.close()
 })

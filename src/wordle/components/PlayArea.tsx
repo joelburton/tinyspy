@@ -364,7 +364,9 @@ export function PlayArea({
                 id: 'reveal',
                 // The menu item wears the same two faces as the terminal
                 // button, since it fires the same toggle.
-                icon: answerShown ? IconHideSolution : IconReveal,
+                // The View glyph, not EyeOff, once solving put it there — see
+                // RevealButton for why the inert face keeps the plain eye.
+                icon: answerShown && !impliedBySolve ? IconHideSolution : IconReveal,
                 label: impliedBySolve
                   ? 'Solution already shown'
                   : answerShown

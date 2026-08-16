@@ -241,7 +241,9 @@ export function PlayArea({
               {
                 id: 'reveal',
                 // The same two faces as the terminal row's button — one toggle.
-                icon: secretsShown ? IconHideSolution : IconReveal,
+                // The View glyph, not EyeOff, once solving put it there — see
+                // RevealButton for why the inert face keeps the plain eye.
+                icon: secretsShown && !impliedBySolve ? IconHideSolution : IconReveal,
                 label: impliedBySolve
                   ? 'Solution already shown'
                   : secretsShown

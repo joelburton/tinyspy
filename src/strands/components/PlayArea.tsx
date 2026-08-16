@@ -627,7 +627,9 @@ export function PlayArea(ctx: GamePageCtx) {
               {
                 id: 'reveal',
                 // The same two faces as the terminal row's button — one toggle.
-                icon: solutionShown ? IconHideSolution : IconReveal,
+                // The View glyph, not EyeOff, once solving put it there — see
+                // RevealButton for why the inert face keeps the plain eye.
+                icon: solutionShown && !impliedBySolve ? IconHideSolution : IconReveal,
                 label: impliedBySolve
                   ? 'Solution already shown'
                   : solutionShown

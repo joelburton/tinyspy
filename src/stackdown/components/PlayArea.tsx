@@ -499,7 +499,9 @@ export function PlayArea({
               // server unshields.
               {
                 id: 'reveal',
-                icon: solutionShown ? IconHideSolution : IconReveal,
+                // The View glyph, not EyeOff, once solving put it there — see
+                // RevealButton for why the inert face keeps the plain eye.
+                icon: solutionShown && !impliedBySolve ? IconHideSolution : IconReveal,
                 label: impliedBySolve
                   ? 'Solution already shown'
                   : solutionShown
