@@ -621,7 +621,6 @@ export function PlayArea(ctx: GamePageCtx) {
           maxWords={maxWords}
           lettersCovered={lettersCovered}
           solution={game.solution}
-          solutionRevealed={solutionShown}
           events={events}
           players={players}
           selfId={session.user.id}

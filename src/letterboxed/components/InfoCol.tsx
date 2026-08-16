@@ -49,7 +49,6 @@ export function InfoCol({
   maxWords,
   lettersCovered,
   solution,
-  solutionRevealed,
   events,
   // ── Players & opponent strip (compete) ──
   players,
@@ -89,7 +88,6 @@ export function InfoCol({
   maxWords: number
   lettersCovered: number
   solution: string[]
-  solutionRevealed: boolean
   events: EventRow[]
   // ── Players & opponent strip (compete) ──
   players: GamePlayer[]
@@ -240,7 +238,7 @@ export function InfoCol({
             close it (a blessed exception to docs/ui.md → Layout stability),
             ABOVE the setup disclosure per the canonical order (the reveal is
             the payoff; the recap is bookkeeping). */}
-        {solutionRevealed && solution.length > 0 && (
+        {solutionShown && solution.length > 0 && (
           <div className={cls(shared.terminalExtra, styles.chainBlock)}>
             <div className={styles.blockTitle}>Solvable in two</div>
             <div className={styles.solution}>
