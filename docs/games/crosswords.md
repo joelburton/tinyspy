@@ -373,12 +373,21 @@ sizing).
   flip, never on opening an already-solved game. The board is **not**
   auto-revealed at game end: the blanks stay blank until THIS viewer picks the
   **"Reveal board"** game-menu item, which fetches `games_state.solution` and
-  fills the blank cells with the greyed answers. It's a **local, reversible**
+  draws the author's grid **exactly as shipped** — blanks fill in, and a wrong
+  letter is *corrected* rather than left standing beside them (a half-corrected
+  grid isn't the solution, and what the answer was is the whole reason to look).
+  The player's own verdict marks go with it: a cell showing the author's letter
+  drops its red wrong-triangle, since that verdict was about a letter no longer
+  on screen. Grey means "this letter is the author's, not yours", so it marks
+  the blanks AND the corrections and leaves anything they had right looking like
+  theirs — the answer key doubles as a diff, for free. It's a **local,
+  reversible**
   reveal (`useSolutionReveal` — [ui.md → Terminal
   results](../ui.md#terminal-results--the-moment-vs-the-record)): my looking
   doesn't fill a partner's grid while they're still working out what they got
   wrong, and **"Hide board"** puts the answers away again, leaving exactly the
-  fill the solvers left. That reversibility matters more here than in any other
+  fill the solvers left — wrong letters and their marks included. Overwriting
+  what's on screen is only safe *because* that comes back. That reversibility matters more here than in any other
   game — a crossword grid can legitimately differ from the author's (rebuses,
   quantum clues), so a permanent overwrite would destroy the only record of what
   the solvers actually wrote. The item is disabled mid-game (the server only

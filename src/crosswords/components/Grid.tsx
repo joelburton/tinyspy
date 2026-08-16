@@ -121,8 +121,14 @@ export function Grid({
           const given = t.given === true
           const live = given ? undefined : cells.get(cellKey(r, c))
           const liveFill = given ? (t.fill ?? null) : (live?.fill ?? null)
-          // Post-game "Reveal board": fill a blank cell with the answer (greyed).
-          const answer = solution && liveFill == null && !given ? (solution[r]?.[c]?.[0] ?? null) : null
+          // Post-game "Reveal board": the author's grid, exactly as shipped.
+          // It REPLACES the player's fill rather than filling only the blanks —
+          // a wrong letter left standing next to corrected blanks isn't the
+          // solution, it's a half-truth, and the whole reason to look is to see
+          // what the answer actually was. Safe to overwrite because the reveal
+          // is a temporary view now: Hide puts every one of their letters back
+          // (PlayArea's useSolutionReveal), so nothing is lost by showing it.
+          const answer = solution && !given ? (solution[r]?.[c]?.[0] ?? null) : null
           return (
             <Cell
               key={key}
@@ -130,12 +136,20 @@ export function Grid({
               col={c}
               mask={masks[r]![c]!}
               number={t.number}
-              fill={liveFill ?? answer}
+              fill={answer ?? liveFill}
               given={given}
-              answerReveal={liveFill == null && answer != null}
+              // Grey means "this letter is the author's, not yours" — so it
+              // marks the cells they left blank AND the ones they got wrong,
+              // and leaves a letter they had right looking like theirs. That
+              // makes the answer key double as a diff, for free.
+              answerReveal={answer != null && answer !== liveFill}
               pencil={live?.pencil ?? false}
               revealed={live?.revealed ?? false}
-              wrong={live?.wrong ?? false}
+              // The player's own verdict marks describe the player's letter. A
+              // cell now showing the author's corrected answer must not still
+              // wear the red wrong-triangle — that verdict is about a letter
+              // no longer on screen. Hide brings both back together.
+              wrong={(live?.wrong ?? false) && answer == null}
               circled={t.circled === true}
               shaded={t.shaded === true}
               isCursor={r === cursorRow && c === cursorCol}

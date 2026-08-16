@@ -76,6 +76,15 @@ test.describe('crosswords play loop', () => {
     await expect(cell00).toHaveAttribute('data-fill', 'C', { timeout: 8000 })
     await expect(cell00).toHaveAttribute('data-revealed', '')
 
+    // Leave a WRONG letter standing in another cell (answer is T), flagged by
+    // Check, so the board reveal below has something to correct.
+    const cell10 = page.locator('[data-xw-cell][data-row="1"][data-col="0"]')
+    await cell10.click()
+    await page.keyboard.type('q')
+    await cell10.click()
+    await page.getByRole('button', { name: 'Check letter' }).click()
+    await expect(cell10).toHaveAttribute('data-wrong', '', { timeout: 8000 })
+
     // Mid-game "Reveal board" is disabled (the solution is still shielded).
     await page.getByRole('button', { name: 'Game menu' }).click()
     await expect(page.getByRole('menuitem', { name: 'Reveal board' })).toBeDisabled()
@@ -92,10 +101,16 @@ test.describe('crosswords play loop', () => {
     await expect(page.getByText('Game ended').first()).toBeVisible({ timeout: 8000 })
     await expect(cell11).toHaveAttribute('data-fill', '')
 
-    // "Reveal board" fills the blanks with the greyed answers (A / T / S).
+    // "Reveal board" shows the author's grid EXACTLY as shipped: blanks fill in
+    // (S here), and a wrong letter is CORRECTED rather than left standing — a
+    // half-corrected grid isn't the solution, and seeing what the answer was is
+    // the entire reason to look. The wrong-mark goes with it: that verdict was
+    // about a letter no longer on screen.
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'Reveal board' }).click()
     await expect(cell11).toHaveAttribute('data-fill', 'S', { timeout: 8000 })
+    await expect(cell10).toHaveAttribute('data-fill', 'T')
+    await expect(cell10).not.toHaveAttribute('data-wrong', '')
 
     // …and "Hide board" takes them straight back off, leaving the fill the
     // players actually left. That matters more here than anywhere else: a
@@ -105,6 +120,10 @@ test.describe('crosswords play loop', () => {
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'Hide board' }).click()
     await expect(cell11).toHaveAttribute('data-fill', '', { timeout: 8000 })
+    // …including the wrong letter and its mark — overwriting the fill on screen
+    // is only safe BECAUSE this comes back.
+    await expect(cell10).toHaveAttribute('data-fill', 'Q')
+    await expect(cell10).toHaveAttribute('data-wrong', '')
     // Show it again — from the cache this time, no refetch.
     await page.getByRole('button', { name: 'Game menu' }).click()
     await page.getByRole('menuitem', { name: 'Reveal board' }).click()
