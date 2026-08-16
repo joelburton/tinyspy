@@ -60,7 +60,7 @@ test.describe('waffle replay board', () => {
     await expect(page.getByText('No swaps yet.')).toBeVisible()
   })
 
-  test('coop: end the game, THEN reveal — the answer fills the info list', async ({
+  test('coop: end, reveal, hide — the answer comes and goes on one button', async ({
     browser,
   }) => {
     const club = await createSoloClub('wfrv')
@@ -74,10 +74,10 @@ test.describe('waffle replay board', () => {
     // "B (…)"), and the across word a0 reads as an em dash in the info list.
     await expect(page.getByRole('button', { name: /^B \(/ })).toBeVisible({ timeout: 15000 })
 
-    // Reveal is TERMINAL-ONLY now — waffle's mid-game give-up was removed
+    // Reveal is TERMINAL-ONLY — waffle's mid-game give-up was removed
     // 2026-08-03 so every game has the same order: End, then Reveal. The menu
-    // item is present mid-game but inert, matching common.reveal_solution's own
-    // server-side gate.
+    // item is present mid-game but inert: there is nothing to show, since the
+    // solution reaches a compete client only once the game is over for all.
     await page.getByRole('button', { name: 'Game menu' }).click()
     await expect(page.getByRole('menuitem', { name: 'Reveal answer' })).toBeDisabled()
     await page.keyboard.press('Escape')
@@ -87,10 +87,17 @@ test.describe('waffle replay board', () => {
     await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
     await expect(page.getByText('Game ended', { exact: true }).first()).toBeVisible({ timeout: 8000 })
 
-    // A manual end is not a win, so the answer stays covered until asked for…
+    // Nothing autoreveals, so the answer stays covered until asked for…
     await expect(page.getByText('ABCDE', { exact: true })).toHaveCount(0)
     await page.getByRole('button', { name: 'Reveal answer' }).click()
-    // …and then the across word a0 (ABCDE) fills the info-column answer list.
+    // …then the across word a0 (ABCDE) fills the info-column answer list…
     await expect(page.getByText('ABCDE', { exact: true })).toBeVisible({ timeout: 8000 })
+
+    // …and the SAME button, now wearing its Hide face, puts it away again and
+    // brings back the board they finished with. This is the half a permanent
+    // reveal could never do.
+    await page.getByRole('button', { name: 'Hide answer' }).click()
+    await expect(page.getByText('ABCDE', { exact: true })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Reveal answer' })).toBeVisible()
   })
 })

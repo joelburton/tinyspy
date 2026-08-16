@@ -290,8 +290,9 @@ describe('waffle PlayArea — icon-only action rows', () => {
     expect(ctx.goToClub).not.toHaveBeenCalled() // mid-game never direct-navigates
   })
 
-  it('terminal "Reveal answer" opens it for the table — common RPC, no confirm', async () => {
+  it('terminal "Reveal answer" swaps in the solution for me alone — no RPC', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockClear().mockReturnValue(false)
+    commonRpc.mockClear()
     const user = userEvent.setup()
     h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION })
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
@@ -299,27 +300,32 @@ describe('waffle PlayArea — icon-only action rows', () => {
     // The loss keeps the answer hidden (em dashes)…
     expect(screen.queryByText('ABCDE')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Reveal answer' }))
-    // …and the click flips the shared flag rather than a waffle-side thing.
-    expect(commonRpc).toHaveBeenCalledWith('reveal_solution', { target_game: 'g1' })
+    // …and the click draws it here and nowhere else: local state, no RPC, so
+    // no partner's grid is swapped out from under them.
+    expect(screen.getByText('ABCDE')).toBeInTheDocument()
+    expect(screen.getByText('QRSTU')).toBeInTheDocument()
+    expect(commonRpc).not.toHaveBeenCalled()
     expect(confirm).not.toHaveBeenCalled()
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('shows the solution once the shared flag comes back', () => {
-    // What the RPC above causes, arriving via the common realtime refetch.
+  it('Hide brings back the board the players actually finished with', async () => {
+    const user = userEvent.setup()
     h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION })
-    render(
-      <PlayArea {...makeCtx({ isTerminal: true, playState: 'lost', solutionRevealed: true })} />,
-    )
-    expect(screen.getByText('ABCDE')).toBeInTheDocument()
-    expect(screen.getByText('QRSTU')).toBeInTheDocument()
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+
+    await user.click(screen.getByRole('button', { name: 'Reveal answer' }))
+    await user.click(screen.getByRole('button', { name: 'Hide answer' }))
+    // The solution is gone from the grid AND from the info column's word list —
+    // waffle.players was never touched, so this is the board as they left it.
+    expect(screen.queryByText('ABCDE')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeEnabled()
   })
 
-  it('terminal Reveal is disabled once the answer is showing (a win)', () => {
-    // end_game sets solution_revealed on any win, so the ctx arrives with both.
+  it('a win does not autoreveal — the button is offered, not spent', () => {
     h.result = loaded({ ...coopGame, solution: FIXTURE_SOLUTION }, [{ ...me, solved: true }])
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won', solutionRevealed: true })} />)
-    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeDisabled()
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeEnabled()
   })
 
   it('terminal "New game" button starts the follow-up game', async () => {

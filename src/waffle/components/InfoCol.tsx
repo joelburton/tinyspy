@@ -52,7 +52,7 @@ export function InfoCol({
   onConcede,
   onRestart,
   onRevealAnswer,
-  revealDisabled,
+  answerShown,
   onNewGame,
   startingNewGame,
   onBackToClub,
@@ -103,12 +103,13 @@ export function InfoCol({
   /** Restart THIS board from scratch (the menu's Restart item, unconfirmed at
    *  terminal since there's no progress left to lose). */
   onRestart: () => void
-  /** Show the answer (the terminal-local reveal — no RPC; see PlayArea's
-   *  handleRevealAnswer). Rendered only in the terminal row. */
+  /** Show the answer — or put it away again, bringing back the board the
+   *  players finished with. A local display toggle, no RPC (see PlayArea's
+   *  useSolutionReveal). Rendered only in the terminal row. */
   onRevealAnswer: () => void
-  /** The answer is already showing (won / give-up reveal / clicked) —
-   *  disables the terminal RevealButton + the matching menu item. */
-  revealDisabled: boolean
+  /** Is the solution the grid currently shows? Swaps this button and the
+   *  matching menu item to their Hide face. */
+  answerShown: boolean
   /** Start a fresh follow-up game — same setup, new board + id. */
   onNewGame: () => void
   /** New game is mid-flight — disables the button so a slow network reads as
@@ -231,7 +232,8 @@ export function InfoCol({
             <RevealButton
               iconOnly
               label="Reveal answer"
-              disabled={revealDisabled}
+              revealedLabel="Hide answer"
+              revealed={answerShown}
               onClick={onRevealAnswer}
             />
             <NewGameButton iconOnly onClick={onNewGame} disabled={startingNewGame} />

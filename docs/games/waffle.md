@@ -269,14 +269,17 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
 - ~~**`reveal_answer(game)`**~~ — **removed 2026-08-03.** It was a mid-game
   give-up that overwrote every `waffle.players.board` with the solution and then
   ended the game. Waffle now matches every other game: **End the game, then
-  Reveal**, where Reveal is the common `common.reveal_solution`
-  ([common.md → Revealing the solution](../common.md#revealing-the-solution)),
-  terminal-only by construction and shared across the table. The FE swaps what
-  it DRAWS (the solution board, colored all-green by the `lib/colors` port),
-  which is strictly better than the rewrite: the players' own boards survive, so
-  the turn-history viewer still replays real swaps against the board they
-  actually played. Offered from the game menu AND the terminal action row's
-  `RevealButton`. pgTAP: `reveal_test.sql`.
+  Reveal**, and since 2026-08-15 Reveal is not an RPC at all — it's a local,
+  per-player display toggle ([ui.md → Terminal
+  results](../ui.md#terminal-results--the-moment-vs-the-record)), terminal-only
+  because the solution doesn't reach a compete client before then. The FE swaps
+  what it DRAWS (the solution board, colored all-green by the `lib/colors`
+  port), which is strictly better than the rewrite twice over: the players' own
+  boards survive — so the turn-history viewer still replays real swaps against
+  the board they actually played — and **Hide brings that board straight back**,
+  which a rewrite could never do. Nothing autoreveals, a win included. Offered
+  from the game menu AND the terminal action row's `RevealButton`, both wearing
+  the same two faces. pgTAP: `boards_untouched_test.sql`.
 
 ### Terminal logic
 
@@ -556,8 +559,9 @@ The **six answer words are terminal-only**, twice over: the server gates
   drop-out keeps the race going but forfeits any win; everyone conceding is a
   collective loss; coop rejected), `replay_test` (replay_board resets both modes
   to the scramble on the same game row, any state, non-player rejected),
-  `reveal_test` (end-then-reveal: the players' boards are UNTOUCHED and the
-  common `solution_revealed` flag carries the display decision),
+  `boards_untouched_test` (ending a game never rewrites `waffle.players.board`
+  — the invariant the old give-up broke, and what makes Hide able to bring the
+  finished board back — plus the solution unshielding at terminal),
   `solution_hide_test` (the answer key's per-mode visibility:
   column-grant excluded everywhere; coop exposed during play, compete only once
   terminal), `turn_order_test` (the opt-in turn-by-turn coop wiring: seating,

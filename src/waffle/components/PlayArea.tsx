@@ -1,6 +1,6 @@
 import { failureMessage, faultMessage } from '../../common/lib/game/serverError'
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
-import { IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
+import { IconHideSolution, IconNewGame, IconPrint, IconRestart, IconReveal } from '../../common/components/icons'
 import type { GamePageCtx, GenericFeedbackMsg } from '../../common/lib/games'
 import { cls } from '../../common/lib/util/cls'
 import { terminalPill, outOfRacePill } from '../../common/lib/game/localPills'
@@ -21,9 +21,9 @@ import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
+import { useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { db } from '../db'
-import { db as commonDb } from '../../common/db'
 import { useGame } from '../hooks/useGame'
 import { turnSnapshot } from '../lib/history'
 import { computeColors } from '../lib/colors'
@@ -69,7 +69,6 @@ export function PlayArea({
   players,
   playState,
   isTerminal,
-  solutionRevealed,
   timer,
   isMyTurn,
   currentTurnUserId,
@@ -212,9 +211,15 @@ export function PlayArea({
   // conceded" copy, and the conceded-opponent 'out' marker below.
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
 
-  // Post-game local answer reveal — set by the TERMINAL branch of
-  // handleRevealAnswer (below), cleared by replay. Swaps the DISPLAYED board
-  // for the solution; see the derivation past the loading guard.
+  // ─── The answer shows only when I ask for it ──────────
+  // Never automatically — not even on a win, where the board in front of you
+  // already IS the solution. LOCAL and reversible (useSolutionReveal): my
+  // looking doesn't swap the board out from under a partner who's still
+  // studying where they got stuck, and hiding brings THEIR board back rather
+  // than needing a Restart. The solution itself is on every client at terminal
+  // (waffle._solution_for), so this is purely which grid gets drawn.
+  const { revealed: answerShown, toggle: toggleAnswer, hide: hideAnswer } =
+    useSolutionReveal()
 
   // ─── End / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); waffle's own
@@ -224,12 +229,13 @@ export function PlayArea({
   // stamped these TIMED so they auto-faded — ruled drift 2026-08-13; a race's
   // "Game over" now sticks like every other game's, and a fault is manual.)
   // New game + Reveal answer stay below.
-  // (The new run starts blind on every client: `common.reset_game` clears
-  //  solution_revealed, so there's no local flag to re-hide here.)
   const onRestarted = useCallback(() => {
     exitViewing()
     clearLocalFeedback()
-  }, [exitViewing, clearLocalFeedback])
+    // The same board, scrambled back — so put the answer away. Nothing on the
+    // server remembers the reveal any more, which is why this is explicit.
+    hideAnswer()
+  }, [exitViewing, clearLocalFeedback, hideAnswer])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
     gameId,
@@ -311,13 +317,8 @@ export function PlayArea({
   // the FE display swap below covers what the board rewrite used to do,
   // without destroying the boards the players actually built.
   //
-  // No confirm: post-terminal the solution is already on every client (coop
-  // always, compete unshields), so this writes no game state — it flips the
-  // shared display flag and each client swaps its DISPLAYED board.
-  const handleRevealAnswer = useCallback(async () => {
-    const { error } = await commonDb.rpc('reveal_solution', { target_game: gameId })
-    if (error) showLocalFeedback(failureMessage(error, 'reveal'))
-  }, [gameId, showLocalFeedback])
+  // No handler of its own: showing the answer is `toggleAnswer`, a local state
+  // flip that swaps the DISPLAYED board. No RPC, so no failure to classify.
 
   // Game menu: waffle now owns its FULL menu (Help + its own items + End/Concede +
   // Back to club) via `buildGameMenu`. Its own items are "Restart" (both
@@ -331,11 +332,8 @@ export function PlayArea({
   // useCallback (or a one-shot transition value like `isTerminal`), so this
   // effect only re-runs on real menu-affecting changes — never every render —
   // keeping the setState loop-free. (`myConceded` is derived at the top.)
-  // `common.games.solution_revealed` is the whole answer: end_game sets it on a
-  // win, common.reveal_solution on the ask — no local state, no status string.
-  const answerShown = solutionRevealed
-  // Terminal-only, matching common.reveal_solution's own gate.
-  const revealDisabled = !isTerminal || answerShown
+  // Terminal-only: the solution doesn't reach a compete client before then, so
+  // a player who conceded can't peek at a race still running.
   const menuMode: 'coop' | 'compete' = game?.mode === 'compete' ? 'compete' : 'coop'
   useEffect(() => {
     // "Print board (PDF)" — a snapshot at click time (docs/pdf.md). The server
@@ -381,10 +379,11 @@ export function PlayArea({
               { id: 'new-game', icon: IconNewGame, label: 'New game', shortcut: '+', onClick: () => void handleNewGame() },
               {
                 id: 'reveal',
-            icon: IconReveal,
-            label: 'Reveal answer',
-                disabled: revealDisabled,
-                onClick: () => void handleRevealAnswer(),
+                // The same two faces as the terminal row's button — one toggle.
+                icon: answerShown ? IconHideSolution : IconReveal,
+                label: answerShown ? 'Hide answer' : 'Reveal answer',
+                disabled: !isTerminal,
+                onClick: toggleAnswer,
               },
             ],
           },
@@ -403,9 +402,8 @@ export function PlayArea({
     concede,
     restart,
     handleNewGame,
-    handleRevealAnswer,
+    toggleAnswer,
     isTerminal,
-    revealDisabled,
     answerShown,
     // The print model's inputs — rebuilt whenever the printable state moves, so
     // the snapshot is current at click time.
@@ -452,11 +450,12 @@ export function PlayArea({
   // The grid shows the caller's own board + live colors (including at game-over) — OR,
   // while viewing, the historical snapshot. After the MID-GAME "Reveal answer" the
   // caller's own board IS the solution (the RPC overwrote it), so that needs no
-  // special case. The TERMINAL reveal is display-only: the common
-  // `solution_revealed` flag swaps the shown board for the (post-terminal,
-  // unshielded) solution, colored all-green by the same FE colorizer the history
-  // viewer uses — waffle.players is untouched.
-  const revealSolution = solutionRevealed && isTerminal ? game.solution : null
+  // special case. The TERMINAL reveal is display-only: this viewer's own toggle
+  // swaps the shown board for the (post-terminal, unshielded) solution, colored
+  // all-green by the same FE colorizer the history viewer uses — waffle.players
+  // is untouched, which is exactly why hiding again brings back the board the
+  // players actually finished with.
+  const revealSolution = answerShown && isTerminal ? game.solution : null
   const board = snap ? snap.board : (revealSolution ?? self?.board ?? game.scramble)
   const colors = snap
     ? snap.colors
@@ -569,8 +568,8 @@ export function PlayArea({
         onEndGame={endGame}
         onConcede={concede}
         onRestart={restart}
-        onRevealAnswer={() => void handleRevealAnswer()}
-        revealDisabled={revealDisabled}
+        onRevealAnswer={toggleAnswer}
+        answerShown={answerShown}
         onNewGame={handleNewGame}
         startingNewGame={startingNewGame}
         onBackToClub={goToClub}
