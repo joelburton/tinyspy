@@ -1074,7 +1074,34 @@ export async function createStackdownGame(
     })
   if (res.error) throw new Error(`stackdown.create_game: ${res.error.message}`)
   const row = Array.isArray(res.data) ? res.data[0] : res.data
-  return { id: (row as { id: string }).id, gametype: `stackdown_${mode}` }
+  const id = (row as { id: string }).id
+
+  // PIN the board to the fixture one. `create_game` claims a RANDOM board from
+  // stackdown.boards, and the seed above only fires when that table is EMPTY —
+  // so on any machine with the library imported (i.e. after `gmake db`) every
+  // spec got a different puzzle. Mostly harmless for the layout harnesses, which
+  // only measure the 9×9 arena, but the ENTRY spec picks "the first pickable
+  // tile" five times and asserts the result isn't a word: on some boards those
+  // five picks land differently and the assertion is simply false. It failed
+  // 1-in-8 under `--repeat-each`, which is exactly the kind of test that erodes
+  // trust in a whole suite.
+  //
+  // Non-destructive: this overwrites THIS GAME's row, never the shared library
+  // (the same move seedStackdownFirstWord makes, for the same reason).
+  execFileSync(
+    'psql',
+    [
+      'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-c',
+      `update stackdown.games set tiles = '${JSON.stringify(tiles)}'::jsonb, ` +
+        `solution = array['eagle','table','plans','apple','juice','lemon']::text[], ` +
+        `band = 1, board_id = null where id = '${id}';`,
+    ],
+    { stdio: 'pipe' },
+  )
+  return { id, gametype: `stackdown_${mode}` }
 }
 
 /**
