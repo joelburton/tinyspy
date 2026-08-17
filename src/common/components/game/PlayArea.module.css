@@ -452,6 +452,70 @@
   pointer-events: none;
 }
 
+/* VERDICT — what you just tried was refused.
+ *
+ * A ring, plus a shake. Worn by whatever the refused thing WAS: a guess row, a
+ * tile, a rack. The pill says what was wrong; this says WHERE, because your eyes
+ * are on the board and not on the pill.
+ *
+ * The TONE IS THE PILL'S — a tone class here, matching the pill's, rather than a
+ * color of its own. The two are one message arriving in two places, and a red
+ * pill beside an amber ring reads as two different verdicts. Whatever tone this
+ * level of invalid takes in a pill is the tone it takes here (docs/ui.md →
+ * Feedback pill): "not a word" is an error, "already guessed" is a warning.
+ *
+ * An `outline` rather than a border, so it layers outside the thing it marks
+ * without resizing it — a row of tiles must not move because it was refused.
+ *
+ * The shake is why the ring can stay this quiet: motion is the one channel a
+ * player cannot mistake for state. It never carries the message alone, though —
+ * under `prefers-reduced-motion` the movement goes and the ring stays.
+ *
+ * Replaying it needs a REMOUNT, because a CSS animation only restarts when the
+ * element is new: refusing the same word twice must shake twice, so the caller
+ * keys the element on a nonce (see wordle's BoardCol). */
+.verdictRing {
+  outline: 3px solid var(--verdict-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+  animation: verdict-shake 0.4s ease-in-out;
+}
+
+.verdictError {
+  --verdict-ring: var(--color-outcome-lost-strong);
+}
+
+.verdictWarning {
+  --verdict-ring: var(--color-outcome-near-strong);
+}
+
+@keyframes verdict-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-5px); }
+  40%      { transform: translateX(5px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
+}
+
+/* The ring survives; the movement doesn't. */
+@media (prefers-reduced-motion: reduce) {
+  .verdictRing {
+    animation: none;
+  }
+}
+
+/* Reduced motion: the lift and the press-scale go, the shadows stay. Nothing is
+ * lost, because neither movement was carrying a message on its own — hover's is
+ * the deepened shadow, and a press announces itself by what the click DOES (a
+ * selection border appears, a move goes out). Motion here is confirmation of
+ * something that is about to be said anyway. */
+@media (prefers-reduced-motion: reduce) {
+  .tile:hover:not(:disabled),
+  .tile:active:not(:disabled) {
+    transform: none;
+  }
+}
+
 /* GAME OVER — this board is finished.
  *
  * Worn by the board AND by any input surface that belongs to it (a keyboard, a
@@ -579,12 +643,29 @@
 }
 
 /* ─── Shared tile ────────────────────────────────────────────────────────
- * The board tile every game's clickable word/letter tiles use. Resting look
- * comes ENTIRELY from the --tile-* tokens (common/theme.css), so a state class
- * (a result fill, the selected state) overrides by re-setting a token on the
- * same element — robust against stylesheet insertion order, unlike trying to
- * out-cascade another module. See docs/ui.md → "Interactive tile states". */
-.tile {
+ * The board tile every game's word/letter tiles use, in two halves:
+ *
+ *   `.tileFace`  what a tile LOOKS like — box, radius, and the --tile-* token
+ *                plumbing. Nothing you can do to it.
+ *   `.tile`      the face PLUS interaction chrome (pointer, press, hover), for a
+ *                tile you can actually act on.
+ *
+ * The split exists because some boards' tiles are INERT: wordle's display a
+ * finished guess and can never be clicked, so hover-lift, press-shrink and a
+ * pointer cursor are all promises it can't keep — and a blank tile that hovers
+ * and shrinks is worse still, since there is nothing there at all.
+ *
+ * A game applies BOTH — `cls(shared.tileFace, shared.tile)` — for a tile you can
+ * act on, and the face ALONE for one you can't. Spelled out at each call site,
+ * because which of the two a board wants is a real decision about that board and
+ * belongs where the board is written.
+ *
+ * The resting look comes ENTIRELY from the --tile-* tokens (common/theme.css), so
+ * a state class (a result fill, the selected state) overrides by re-setting a
+ * token on the same element — robust against stylesheet insertion order, unlike
+ * trying to out-cascade another module. See docs/ui.md → "Interactive tile
+ * states" and docs/tile-feedback.md. */
+.tileFace {
   width: 100%;
   height: 100%;
   display: flex;
@@ -604,23 +685,31 @@
   border: var(--tile-border-width) solid var(--tile-border);
   border-radius: var(--radius-md);
   box-shadow: var(--tile-shadow);
-  cursor: pointer;
   /* A query container (width axis) so the label can auto-fit the tile — see
    * .tileWord. Font-fitting infrastructure; layout-safe (doesn't resize the
    * tile). */
   container-type: inline-size;
-  /* Touch behavior, canonical for every shared-tile game (psychicnum,
+}
+
+/* The interaction half. Always applied ALONGSIDE `.tileFace` — it deliberately
+ * carries no box of its own, so this class is exactly "and you can act on it". */
+.tile {
+  cursor: pointer;
+  /* Touch behaviour, canonical for every interactive-tile game (psychicnum,
    * connections, waffle, codenamesduet — docs/mobile.md → tap-press feedback):
-   *   - kill the browser's default gray tap-flash, which paints a rectangle
-   *     that fights the tile fill (previously only boggle/spellingbee did this,
-   *     on their bespoke tiles — this makes it uniform);
+   *   - kill the browser's default grey tap-flash, which paints a rectangle
+   *     that fights the tile fill;
    *   - `touch-action: manipulation` opts out of double-tap-to-zoom and its
    *     ~300ms tap delay, so rapid repeated taps stay crisp;
    *   - the `:active` press-scale below replaces the removed flash with the same
-   *     designed feedback boggle/spellingbee already give. */
+   *     designed feedback boggle/spellingbee already give.
+   * None of it belongs on an inert tile, which is why it is here and not on the
+   * face. */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  transition: transform 80ms ease;
+  /* The shadow travels WITH the lift — a transform that animates while its shadow
+   * snaps is the slide look again, in miniature. */
+  transition: transform 80ms ease, box-shadow 80ms ease;
 }
 
 /* The tile's label. Auto-fit to the tile WIDTH via one shared clamp formula;
@@ -648,14 +737,51 @@
  * to say the surface is alive. That frees the background for state and attention,
  * which have nowhere else to go. See docs/tile-feedback.md. */
 .tile:hover:not(:disabled) {
-  box-shadow: 0 3px 8px rgb(0 0 0 / 22%);
+  box-shadow: var(--hover-shadow);
+  /* …and the piece RISES while its shadow falls away. The two are one gesture: the
+   * tile goes up 2px, the shadow's drop goes 2px → 6px and its blur 6px → 12px, so
+   * the gap between them opens by about 6px and softens. That gap IS elevation —
+   * moving the tile alone reads as a slide (the shadow stays glued under it), and
+   * deepening the shadow alone reads as a claim the tile isn't making.
+   *
+   * `transform` and nothing else, deliberately: it is paint-only, so no board
+   * re-measures — not waffle's viewport `--side`, not wordle's aspect-ratio cap,
+   * not a hex grid's clip-path, not connections' collapsing bands. A hover that
+   * moved `margin`, `top`, `height` or a border would put every one of those at
+   * risk for the same visual pixel.
+   *
+   * Two pixels: enough to see against a shadow that moved four, and still nothing
+   * a packed grid can notice. See docs/tile-feedback.md. */
+  transform: translateY(-2px);
 }
 
-/* Press feedback — a brief scale-down on tap/click, matching boggle's tiles and
+/* Press feedback — a scale-down on tap/click, matching boggle's tiles and
  * spellingbee's hive so a tap reads the same everywhere. Scoped to interactive
- * tiles (a decided/locked tile is :disabled and shouldn't react). */
+ * tiles (a decided/locked tile is :disabled and shouldn't react).
+ *
+ * It completes the three-state gesture: resting on the page, lifted under the
+ * pointer, and pushed back down under a finger. So it cancels the lift AND takes
+ * the shadow back to the contact one — a pressed tile with a floating shadow is
+ * the same contradiction as a lifted tile with a glued one, in reverse.
+ *
+ * `transform` being a single property is what makes cancelling automatic, and also
+ * the trap: a press rule that forgot to restate the translate would leave a
+ * hovered tile dropping and shrinking at once, reading as a lurch.
+ *
+ * The DARKEN is what carries the press when the movement can't. Two cases have no
+ * other cue: a touch device has no hover state for the shadow to fall back from,
+ * and `prefers-reduced-motion` drops the shrink — together that is "a tap on a
+ * phone with reduced motion", which without this gets no feedback from the tile
+ * at all. So the shrink is the enhancement and this is the message, the same shape
+ * as hover.
+ *
+ * It bends "background = state" for a moment, and that is fine here: nobody reads
+ * a tile's exact shade during the instant their finger is on it, and the darken is
+ * gone before they lift it. The rule protects what a RESTING tile says. */
 .tile:active:not(:disabled) {
-  transform: scale(0.96);
+  transform: translateY(0) scale(0.96);
+  box-shadow: var(--tile-shadow);
+  filter: brightness(0.92);
 }
 
 .tile:disabled {

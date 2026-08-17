@@ -12,6 +12,30 @@
   margin: 0 auto;
 }
 
+/* GAME OVER — the keyboard is WITHDRAWN, not merely disabled. Disabled keys say
+ * "not right now"; there is no right-now left, and a finished game that still
+ * shows its input surface reads as one you could type into. The board's own
+ * game-over frame is the positive statement (docs/tile-feedback.md); this is the
+ * matching absence.
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ DO NOT change this to `display: none`. It is `visibility: hidden` on      │
+ * │ purpose, and the difference is the entire point of the rule.              │
+ * │                                                                          │
+ * │ `visibility: hidden` KEEPS THE BOX. The space the keyboard occupied stays │
+ * │ reserved, so the page height and the board's position are pixel-identical │
+ * │ to the frame before the game ended. `display: none` removes it from the   │
+ * │ flow, which yanks the whole column downward at the exact moment a player  │
+ * │ is reading their verdict — and layout must never move on a state change   │
+ * │ (docs/ui.md → Layout stability; docs/tile-feedback.md → game over).       │
+ * │                                                                          │
+ * │ It costs nothing else: a `visibility: hidden` subtree is already out of   │
+ * │ reach of the pointer, out of the tab order, and out of the a11y tree.     │
+ * └──────────────────────────────────────────────────────────────────────────┘ */
+.gameOver {
+  visibility: hidden;
+}
+
 .row {
   display: flex;
   justify-content: center;
@@ -47,8 +71,11 @@
    * treatment below was invisible. A game may override `--kbd-key-bg`. */
   background: var(--kbd-key-bg, #eeeeee);
   border: 1px solid var(--kbd-key-border);
-  /* Override the global button hover/accent treatment. */
-  transition: filter 0.1s ease;
+  /* A keycap sits on the page the same way a board tile does, so it takes the
+   * same resting depth and the same three-state gesture below. Overrides the
+   * global button hover/accent treatment. */
+  box-shadow: var(--tile-shadow);
+  transition: transform 80ms ease, box-shadow 80ms ease;
   /* Touch (docs/mobile.md → tap-press feedback): the keyboard is the tap-heaviest
    * surface in wordle/wordiply, so kill the gray tap-flash and opt out of
    * double-tap-zoom + its tap delay (rapid typing must stay crisp). The designed
@@ -57,25 +84,34 @@
   touch-action: manipulation;
 }
 
-/* Hover is elevation, matching the shared `.tile` — see docs/tile-feedback.md.
- * The keys sit gap-tight, so the shadow is kept tight too; it reads in the gap
- * without spilling onto the neighbour. */
+/* Hover and press are the SHARED TILE GESTURE, value for value: rise 2px while
+ * the shadow falls away and softens, then come back down and shrink under a
+ * finger. A keycap and a board tile are the app's two pressable squares, and if
+ * they feel different under the same pointer one of them is wrong — so this is
+ * deliberately a copy of `.tile` (common/components/game/PlayArea.module.css)
+ * rather than a keyboard-flavoured cousin of it. See docs/tile-feedback.md.
+ *
+ * A key is much smaller than a tile, so if the gesture proves too big here it
+ * gets toned DOWN for this surface — but only after we have looked at the same
+ * one on both. */
 .key:hover:not(:disabled) {
-  box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
+  box-shadow: var(--hover-shadow);
+  transform: translateY(-2px);
 }
 
-/* Press feedback — the key SHIFTS DOWN and loses its shadow, like a physical
- * keycap being depressed. Motion rather than the tiles' scale-down, because keys
- * sit gap-tight and scaling one would crowd its neighbours — a translate moves
- * it without changing its footprint, so nothing around it stirs. The darken
- * rides along so the message survives `prefers-reduced-motion`. */
 .key:active:not(:disabled) {
-  transform: translateY(2px);
-  box-shadow: none;
+  transform: translateY(0) scale(0.96);
+  box-shadow: var(--tile-shadow);
+  /* The darken is the press's real message — see the tile's `:active`. It matters
+   * most here: the keyboard is the tap-heaviest surface in the app, and a tap has
+   * no hover state to fall back from. */
   filter: brightness(0.92);
 }
 
+/* Reduced motion: the movement goes, the shadows stay — the same trade the tiles
+ * make. */
 @media (prefers-reduced-motion: reduce) {
+  .key:hover:not(:disabled),
   .key:active:not(:disabled) {
     transform: none;
   }

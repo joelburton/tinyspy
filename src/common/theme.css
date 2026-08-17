@@ -380,7 +380,61 @@
   --tile-bg:                  var(--tile-3);  /* the shared resting fill = shade 3 */
   --tile-border:              var(--tile-3-border);
   --tile-text:                #1a1a1a;  /* near-black ink on the warm fill */
-  --tile-shadow:              0 1px 2px rgba(0, 0, 0, 0.18);
+  /* GAME SURFACES ONLY — board tiles and the on-screen keyboard's keys. Ordinary
+     buttons (info column, menus, dialogs, setup forms) take NONE of this family:
+     they are controls you activate, not objects you manipulate, and they say what
+     they need to with fill, border and text. See docs/tile-feedback.md → "Depth
+     belongs to game pieces".
+
+     The RESTING elevation of a tile — a real, soft shadow, because a tile is
+     supposed to look like a tile. Depth is what makes a piece read as pickable
+     without saying anything (the same reason a button looks pressable), and some
+     boards will lean on it harder than others: stackdown's tiles are literally
+     stacked. A token so a board can flatten itself if its own look needs that.
+
+     Read the three lengths as: x-offset, y-offset, BLUR. MOSTLY TOP-LIT: the drop
+     is downward with a single pixel of sideways, so the light reads as overhead
+     and slightly to the left. The three options and why this is the middle one:
+     x: 0 gives the light no position at all, which is flat and characterless;
+     x == y throws a fully diagonal shadow, which reads as paper lit from the side
+     rather than as a piece raised toward you (and is the look that dates fastest);
+     one pixel keeps "raised" as the message and lets the light have a place.
+     Every shadow in this family shares the angle, so a new one that doesn't will
+     look broken beside the rest.
+
+     Blur wider than the drop (6 against 2) keeps it ambient: a soft shadow reads
+     as "this object has thickness" where a tight one reads as "this object is
+     floating". The final percent is the shadow black's ALPHA: raise it and the
+     tile looks held further off the page; lower it and the depth fades out, which
+     is where 18% left it — technically present, invisible in practice. */
+  --tile-shadow:              1px 2px 6px rgb(0 0 0 / 30%);
+
+  /* HOVER, for every pressable game surface: board tiles and the on-screen
+     keyboard's keycaps both read this, so a tile and a key can't feel different
+     under the same pointer.
+
+     FARTHER AND SOFTER than the resting shadow, which is what elevation actually
+     is. A raised object doesn't get a crisper shadow — it gets one that falls
+     further behind it and blurs out, and the growing GAP between object and shadow
+     is the whole cue. (The opposite was tried first: tighter and much darker read
+     as the tile being pressed toward the page, and paired with a lift it read as
+     sliding rather than rising, because the shadow stayed glued underneath.)
+
+     So against the resting `1px 2px 6px / 30%`: the drop trebles, the blur
+     doubles, the alpha barely moves. It stays legible on a saturated tile not by
+     being darker but by covering more ground.
+
+     The LIFT is the other half of this and lives with the hover rule
+     (common/components/game/PlayArea.module.css): the tile rises 2px while the
+     shadow falls 4px, so the gap opens by about 6px. Change one without the other
+     and the gesture stops making sense.
+
+     OPEN: one value may not fit both scopes. A waffle tile is several times a
+     keycap's area and usually saturated, where a keycap is small and pale, so the
+     big one may want more offset than the small one — probably as a multiplier
+     rather than a second literal. Left as one value until we can see both wanting
+     different things. */
+  --hover-shadow:             2px 6px 12px rgb(0 0 0 / 32%);
   /* Border WIDTH is the "selected" channel — the tile's edge thickens to say
      "this piece is part of the move I'm building", leaving the background free
      for state and attention, which have nowhere else to go. Two widths, one
@@ -388,7 +442,7 @@
      each other in one place. A selected class re-sets `--tile-border-width` to
      the selected value rather than re-declaring the border shorthand.
      See docs/tile-feedback.md. */
-  --tile-border-width:          1px;
+  --tile-border-width:          2px;
   --tile-border-width-selected: 4px;
   /* BLACK, not a darker shade of whatever the tile already is. Selection has to
      be unmistakable at a glance across a board of colored tiles, and a

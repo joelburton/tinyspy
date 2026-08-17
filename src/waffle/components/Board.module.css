@@ -5,9 +5,9 @@
  * FILL the column with `1fr` tracks and so go rectangular — waffle stays a
  * SQUARE (it's a waffle, with holes): the grid sizes to the largest square that
  * fits, and sits TOP-aligned in the column. The tile CHROME (box, radius,
- * shadow, hover shadow, centering, the un-faded disabled look) is the SHARED
- * `.tile` from common (imported as `shared` in Board.tsx); only the
- * per-color fills, the letter, and the holes are waffle's.
+ * centering, the un-faded disabled look) is the SHARED `.tile` from common
+ * (imported as `shared` in Board.tsx); waffle's own are the per-color fills, the
+ * letter, the holes, and — for now, as an experiment — its two shadow tokens.
  *
  * The vocabulary's own marks are all shared (common PlayArea.module.css):
  * `.selected`, `.dimInFlight`, `.attentionFlash` on a tile, and

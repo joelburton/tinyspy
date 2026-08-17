@@ -24,10 +24,32 @@
  * (a keyboard shares this column below the board, so the board hugs its height
  * rather than filling the column). Each row is its own 5-col grid (`.row`). */
 .grid {
-  /* WIDTH: the shared rectangular hug (`shared.hugRectWidth`, composed on this
+  /* The TILE TOKENS for this board. wordle's tiles are the shared `.tile` (box,
+   * radius, token plumbing — see common PlayArea.module.css), and these are the
+   * four places wordle's piece differs from the warm default:
+   *
+   *   - an empty tile is EMPTY — transparent with a light edge — where the shared
+   *     resting fill is the warm cream a clickable tile wants;
+   *   - the ink is WHITE, because the three feedback fills are saturated (a typed
+   *     but unscored tile flips it back to dark, see `.filled`);
+   *   - no shadow: these tiles are flat, and they are inert — a lift would imply
+   *     something to press.
+   *
+   * The EDGE WIDTH is not here — it's the shared `--tile-border-width`, because
+   * width is the selected channel and the resting/selected pair has to be tuned
+   * together for every board at once.
+   *
+   * Set on the GRID, not on `.tile`, so they cascade into the shared rule without
+   * two same-specificity declarations racing across modules.
+   *
+   * WIDTH: the shared rectangular hug (`shared.hugRectWidth`, composed on this
    * element in Board.tsx). `aspect-ratio` then derives the HEIGHT from that
    * width so the tiles stay SQUARE (wordle's look) instead of flex-filling — a
    * keyboard shares this column below the board, so the board hugs its height. */
+  --tile-bg: transparent;
+  --tile-border: var(--wordle-tile-border);
+  --tile-text: #fff;
+  --tile-shadow: none;
   display: grid;
   grid-auto-rows: 1fr;
   gap: var(--grid-gap);
@@ -78,94 +100,81 @@
   border-radius: 4px;
 }
 
+/* The box comes from the SHARED `.tile` (composed in Board.tsx); this is what is
+ * left over. wordle's tiles are inert `<div>`s, so they get none of the shared
+ * interaction chrome — that lives on `button.tile`. */
 .tile {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /* The grid already squares its cells (1fr rows under the grid's own
+   * aspect-ratio); this holds the shape if either ever changes. */
   aspect-ratio: 1;
+  user-select: none;
+}
+
+/* The letter. Typography lives on a CHILD, the way every other board does it
+ * (waffle's `.letter`, the shared `.tileWord`) — and not on `.tile`, where a
+ * `font-size` would be racing the shared rule's `font: inherit` at equal
+ * specificity, decided by whichever stylesheet the bundler happened to put
+ * second. The color is inherited from the tile, which is what lets the reveal
+ * keyframes swap dark ink for white mid-flip. */
+.letter {
   font-size: 1.6rem;
   font-weight: 700;
-  text-transform: uppercase;
-  color: #fff;
-  border: 2px solid var(--wordle-tile-border);
-  background: transparent;
-  border-radius: 4px;
-  user-select: none;
+  line-height: 1;
 }
 
 /* A typed-but-not-submitted tile: dark border, no fill, dark text. */
 .filled {
-  border-color: var(--wordle-tile-border-filled);
-  color: var(--color-text);
+  --tile-border: var(--wordle-tile-border-filled);
+  --tile-text: var(--color-text);
 }
 
-/* Server feedback colors. The border is a slightly DARKER shade of the fill
- * rather than the fill itself — the quiet definition every other surface in this
- * app has, instead of a flat block of color. */
+/* Server feedback colors, applied by RE-SETTING the shared `.tile`'s `--tile-*`
+ * tokens, so a fill wins regardless of stylesheet order (the same pattern waffle
+ * and codenamesduet use). The border is a slightly DARKER shade of the fill rather
+ * than the fill itself — the quiet definition every other surface in this app has,
+ * instead of a flat block of color. */
 .green {
-  background: var(--wordle-green);
-  border-color: var(--wordle-green-border);
+  --tile-bg: var(--wordle-green);
+  --tile-border: var(--wordle-green-border);
 }
 .yellow {
-  background: var(--wordle-yellow);
-  border-color: var(--wordle-yellow-border);
+  --tile-bg: var(--wordle-yellow);
+  --tile-border: var(--wordle-yellow-border);
 }
 .gray {
-  background: var(--wordle-gray);
-  border-color: var(--wordle-gray-border);
+  --tile-bg: var(--wordle-gray);
+  --tile-border: var(--wordle-gray-border);
 }
 .blank {
-  /* empty tile — keep the light border, transparent fill */
-  background: transparent;
+  /* An empty tile is the board's default — stated anyway, because a color class
+   * is looked up by name (`styles[color]`) and a missing one would be a silent
+   * hole rather than a visible mistake. */
+  --tile-bg: transparent;
 }
 
-/* In flight — the row you just submitted, while the server works out its
- * colors — is the SHARED `.dimInFlight` mark (common PlayArea.module.css),
- * applied per TILE rather than to the row so the gaps between tiles stay light:
- * a bar across the whole row would read as a new element rather than as the
- * letters being sent.
+/* In flight — the row you just submitted, while the server works out its colors.
+ * The SHARED `.dimInFlight` dim (common PlayArea.module.css), applied per TILE
+ * rather than to the row so the gaps between tiles stay light: a bar across the
+ * whole row would read as a new element rather than as the letters being sent.
+ *
+ * Plus the middle gray beneath it, the same fill waffle's two cells take: the
+ * in-flight signal is "these are darker than the board around them", and a dim
+ * over the pale typed look barely moves. Declared after `.filled` because a
+ * pending tile is also a filled one, and same-file order settles which fill wins.
  *
  * It must clear before the reveal flip starts, or the flip plays under a dim —
  * which it does, because the row stops being pending the moment its colored row
  * lands. See docs/tile-feedback.md. */
 
-/* ── Rejected ───────────────────────────────────────────────────────────────
- * A soft reject — not in the word list, already guessed, too short. The pill
- * says what happened; this says WHERE, because your eyes are on the board and
- * not on the pill.
- *
- * AMBER, not red: none of these is an error, they are "you can't submit that
- * yet", and red is spoken for by outcomes. Paired with a shake, which is the
- * one channel a player cannot mistake for state — and which is why the border
- * can stay this quiet. Motion never carries it alone: the border survives
- * `prefers-reduced-motion`, below. */
-.rejected {
-  outline: 3px solid var(--reject-ring);
-  outline-offset: 2px;
-  border-radius: 4px;
-  animation: wordle-reject-shake 0.4s ease-in-out;
+.inFlight {
+  --tile-bg: var(--wordle-gray);
+  --tile-border: var(--wordle-gray-border);
+  --tile-text: #fff;
 }
 
-/* The ring's color MATCHES ITS PILL, tone for tone — the two are one message
- * arriving in two places, and a red pill beside an amber row would read as two
- * different verdicts. "Not in word list" is an error (that word does not
- * exist); "already guessed" is a warning (it exists, you just can't use it
- * again). Amber alone was wrong for both: amber means partial credit. */
-.rejectError {
-  --reject-ring: var(--color-outcome-lost-strong);
-}
-
-.rejectWarning {
-  --reject-ring: var(--color-outcome-near-strong);
-}
-
-@keyframes wordle-reject-shake {
-  0%, 100% { transform: translateX(0); }
-  20%      { transform: translateX(-5px); }
-  40%      { transform: translateX(5px); }
-  60%      { transform: translateX(-3px); }
-  80%      { transform: translateX(3px); }
-}
+/* A refused guess wears the SHARED verdict ring + shake (common
+ * PlayArea.module.css → `.verdictRing`), applied to the active row — the word is
+ * still sitting there, since it was never accepted. */
 
 /*
  * Reveal flip — applied to the tiles of a freshly-submitted row. The
@@ -213,14 +222,6 @@
     background: var(--reveal-bg);
     border-color: var(--reveal-border);
     color: #fff;
-  }
-}
-
-/* Reduced motion: the shake goes, the amber outline stays — the message must
- * survive without the movement. */
-@media (prefers-reduced-motion: reduce) {
-  .rejected {
-    animation: none;
   }
 }
 

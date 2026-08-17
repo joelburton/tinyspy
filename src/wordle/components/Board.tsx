@@ -46,6 +46,14 @@ type Props = {
   /** Which tone that rejection carries — the SAME tone as its pill, so the two
    *  halves of one message agree. */
   rejectTone?: 'error' | 'warning'
+  /** The game is finished, and how it ended — the board takes a band in that
+   *  outcome's gray (neutral for a game merely ended), null while it's live. The
+   *  same mark waffle wears; see docs/tile-feedback.md. */
+  gameOver?: 'won' | 'lost' | 'neutral' | null
+  /** A teammate holds the move (turn-order coop): dim the whole board. */
+  notMyTurn?: boolean
+  /** True for a beat at the moment the turn becomes mine — flash the frame. */
+  myTurnJustStarted?: boolean
 }
 
 /**
@@ -76,17 +84,44 @@ export function Board({
   highlightRow = -1,
   rejectNonce = 0,
   rejectTone = 'error',
+  gameOver = null,
+  notMyTurn = false,
+  myTurnJustStarted = false,
 }: Props) {
   const activeIndex = active ? rows.length : -1
-  // Rows present at first render — these don't flip (only fresh guesses do).
-  // A lazy useState initializer captures the count once at mount and is
-  // safe to read in render; we never call the setter, so it's a constant.
-  const [firstRows] = useState(rows.length)
+  // Rows that were ALREADY THERE don't flip — only guesses that land while you
+  // are watching. The baseline is the row count we consider "already there", and
+  // it starts at whatever was on the board when this mounted (a mid-game refresh,
+  // or an opponent's revealed history, shouldn't re-play six flips at you).
+  //
+  // It has to MOVE BACK when the board is re-dealt, which is the whole reason
+  // this isn't a mount-time constant: a restart deletes the guesses, so a
+  // replayed game's first guesses would sit below a stale baseline and land with
+  // no flip at all. The cause is right there in the data — the log SHRANK, which
+  // nothing but a re-deal does — so the baseline follows it down, adjusted during
+  // render (React's adjust-state-when-input-changes shape).
+  //
+  // `!viewing` is load-bearing: while a past turn is open, `rows` is that
+  // snapshot and is often shorter than the live board. Letting the baseline drop
+  // to a snapshot's length would flip half the board on the way back to live.
+  const [flipBaseline, setFlipBaseline] = useState(rows.length)
+  if (!viewing && rows.length < flipBaseline) setFlipBaseline(rows.length)
 
   return (
     <div className={styles.board} style={{ ['--rows' as string]: maxGuesses }}>
       <div
-        className={cls(shared.hugRectWidth, styles.grid, viewing && history.frame)}
+        className={cls(
+          shared.hugRectWidth,
+          styles.grid,
+          viewing && history.frame,
+          notMyTurn && shared.dimNotYourTurn,
+          myTurnJustStarted && shared.yourTurnFlash,
+          // Both frames are outlines, so they take turns rather than nest: the
+          // viewer owns it while open, being the state you chose and can leave.
+          gameOver !== null && !viewing && shared.gameOverFrame,
+          gameOver === 'won' && !viewing && shared.gameOverWon,
+          gameOver === 'lost' && !viewing && shared.gameOverLost,
+        )}
         role="grid"
         aria-label={`${brand} board`}
         data-board
@@ -97,7 +132,7 @@ export function Board({
           // The pending (in-flight) word sits in the first empty slot.
           const isPending = !submitted && !!pending && r === rows.length
           // Historical rows never flip — they're already-final, not fresh guesses.
-          const flipping = !viewing && !!submitted && r >= firstRows
+          const flipping = !viewing && !!submitted && r >= flipBaseline
           return (
             <div
               // The nonce rides in the KEY of the active row: a CSS animation
@@ -109,10 +144,10 @@ export function Board({
                 r === highlightRow && styles.viewedRow,
                 // The rejected word is still sitting in the active typing row —
                 // it was never accepted, so it never became a submitted one.
-                rejectNonce > 0 && isActive && styles.rejected,
+                rejectNonce > 0 && isActive && shared.verdictRing,
                 rejectNonce > 0 &&
                   isActive &&
-                  (rejectTone === 'warning' ? styles.rejectWarning : styles.rejectError),
+                  (rejectTone === 'warning' ? shared.verdictWarning : shared.verdictError),
               )}
               role="row"
             >
@@ -131,12 +166,18 @@ export function Board({
                   <div
                     key={c}
                     className={cls(
+                      // The FACE only — wordle's tiles are inert (a rendered
+                      // guess, never a control), so they take the shared box and
+                      // none of the shared interaction chrome.
+                      shared.tileFace,
                       styles.tile,
                       // Flipping tiles take their color from the keyframes
                       // (via --reveal-bg), not the static color class.
                       flipping ? styles.reveal : styles[color],
                       letter && color === 'blank' && styles.filled,
-                      // Sent, waiting on the server — the shared in-flight dim.
+                      // Sent, waiting on the server — the middle gray under the
+                      // shared in-flight dim, matching waffle's two cells.
+                      isPending && styles.inFlight,
                       isPending && shared.dimInFlight,
                     )}
                     style={
@@ -150,7 +191,7 @@ export function Board({
                     }
                     role="gridcell"
                   >
-                    {letter.toUpperCase()}
+                    <span className={styles.letter}>{letter.toUpperCase()}</span>
                   </div>
                 )
               })}

@@ -143,6 +143,7 @@ export function Board({
               data-tile={tile}
               disabled={!interactive}
               className={cls(
+                shared.tileFace,
                 shared.tile,
                 isMine && shared.selected,
                 isShaking && styles.tileShaking,

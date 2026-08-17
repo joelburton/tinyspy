@@ -16,6 +16,10 @@ type Props = {
   onEnter: () => void
   onBackspace: () => void
   disabled?: boolean
+  /** The game is finished. The keyboard is WITHDRAWN rather than disabled — see
+   *  `.gameOver` in the stylesheet — while keeping the space it occupied, so the
+   *  board above it doesn't move on the frame the game ends. */
+  gameOver?: boolean
   /** Best tone seen for each (lowercase) letter, or absent for neutral. */
   keyStates?: ReadonlyMap<string, KeyTone>
 }
@@ -36,9 +40,16 @@ type Props = {
  * palette. No game-specific imports — so it composes with either game's
  * theme and stays removable.
  */
-export function GuessKeyboard({ onKey, onEnter, onBackspace, disabled = false, keyStates }: Props) {
+export function GuessKeyboard({
+  onKey,
+  onEnter,
+  onBackspace,
+  disabled = false,
+  gameOver = false,
+  keyStates,
+}: Props) {
   return (
-    <div className={styles.keyboard} aria-label="Keyboard">
+    <div className={cls(styles.keyboard, gameOver && styles.gameOver)} aria-label="Keyboard">
       {ROWS.map((row, i) => (
         <div key={i} className={styles.row}>
           {i === 2 && (

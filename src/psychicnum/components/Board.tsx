@@ -101,6 +101,7 @@ export function Board({
               key={word}
               type="button"
               className={cls(
+                shared.tileFace,
                 shared.tile,
                 guessed && (correct ? styles.correct : styles.incorrect),
                 // Terminal answer key — ring every secret, found or not.

@@ -40,7 +40,7 @@ ordering rule.
 | **background**, over the state | **attention** — this changed, look here | ~0.7s |
 | **border width** | **selected** — part of the move I am building (see the ruling in the audit: this replaces the current background fill) | until submitted or cleared |
 | **border color**, player | a PEER's selection — whose it is; mine stays neutral | while they hold it |
-| **border color** | **verdict** on my action (invalid → amber) | transient; see below |
+| **border color** | **verdict** on my action — its PILL's tone | transient; see below |
 | **outline, dashed** | **hint** | until used or cleared |
 | **box-shadow** | **hover** — mouse only, subtle | while hovered |
 | **position** | where I am in the input I'm building | until the input moves or ends |
@@ -66,6 +66,30 @@ because a decided tile's color IS its message and must show at full strength.
 A game piece may be dimmed only for **transient** inactivity — in flight, or not
 your turn — never for being permanently spent.
 
+### Depth belongs to game pieces — not to chrome
+
+Everything in this doc — the resting shadow, the hover lift, the press shrink and
+darken — applies to **board tiles and the on-screen keyboard's keys, and nothing
+else.** A button in the info column, in the game menu, in a dialog, or in a setup
+form gets none of it, and that is not an oversight to be tidied up later.
+
+The distinction is what the thing IS. A tile is an **object you manipulate**: you
+pick it up, you push it, it has thickness, and elevation is how a flat screen says
+so. A button is a **control you activate** — it has no physical claim to make, and
+giving it one makes the page feel upholstered rather than crisp. The keyboard is
+the one surface that sits on both sides of the line (it is chrome that stands in
+for a physical keyboard, and its keys are pressed like pieces), which is exactly
+why its keys are in and the rest of the chrome is out.
+
+So chrome says what it needs to say with fill, border and text: the accent fill
+every primary button wears, the bordered `secondary` variant, and `opacity: 0.5`
+when disabled (common/theme.css → element resets). No shadow, no lift, no darken.
+
+Which is the mirror of the rule below — chrome fades where a game piece never
+does, and a game piece has depth where chrome never does. One consequence worth
+stating plainly: **a control that looks like a tile is a bug**, because a player
+who reads it as a game piece will try to play it.
+
 ### Dim means inactive; the scope says what is inactive
 
 `dim-down` on a **tile** means *this tile is busy*. On the **board** it means
@@ -84,6 +108,16 @@ spent distinction left on it to protect. It is worn by the board and by whatever
 inputs belong to it (a keyboard, a rack), because a game that ends leaving its
 keyboard looking live is the inconsistency this exists to fix. It stays weak:
 a finished board is exactly what people sit and read afterwards.
+
+**Hide a keyboard when the game is over — don't just dim or disable it.** Its keys
+are not temporarily useless, they are permanently useless (barring a restart, of
+course), and removing them expresses that more clearly than any amount of
+disabling or dimming can. The space it occupied stays reserved, because layout
+must not move on a state change; the shared `<GuessKeyboard>` takes a `gameOver`
+prop and goes `visibility: hidden`, which keeps the box and takes the keys out of
+reach of the pointer and the tab order at once.
+
+The same reasoning extends to any input surface a finished game leaves behind.
 
 A **frame** is the other way to say it, and it is the one in use. Both are named
 (`.dimGameOver` / `.gameOverFrame`, `--dim-game-over` / `--color-game-over`) so
@@ -115,6 +149,12 @@ gray instead, the dim can only take it darker than anything the palette says,
 which is the one thing no state can be confused with. So when a mark replaces a
 fill *and* dims it, pick the fill for where the dim lands, not for where it
 starts.
+
+**The middle gray under the dim is the PREFERRED DEFAULT for a piece in flight**,
+and the next game with the same shape should reach for it rather than re-deciding.
+It holds in both directions: waffle's cells had a color that the move invalidated,
+wordle's submitted row never had one at all, and both read correctly as "sent"
+once they go there. A board that departs from it should say why.
 
 ### The words for changing a color
 
@@ -363,9 +403,17 @@ added.
 | **red** | a bad outcome | game state only — never a verdict on a keystroke |
 | **gray** | you are viewing history | board frame |
 
-**Amber, not red, for an invalid move.** Typing a letter that matches two tiles
-is not an error, it is a "pick one" — and red is spoken for by outcomes. Amber
-is already the app's warning tone (`--color-outcome-partial`).
+**A verdict wears the tone its PILL wears** — the two are one message arriving in
+two places, and a red pill beside an amber ring reads as two different verdicts.
+So the color question is already answered elsewhere: whatever tone this level of
+invalid takes in the feedback pill (docs/ui.md → Feedback pill) is the tone the
+mark on the board takes. "Not in the word list" is an error, and it is red in both
+places; "already guessed" is a warning, and it is amber in both.
+
+An earlier version of this doc said *invalid → amber, because red is spoken for by
+outcomes*. That was wrong twice: it invented a second rule for a question the pill
+had already settled, and it would have made the two halves of one message
+disagree.
 
 **Yellow reads the same at both scopes**, which is what makes it learnable: a
 tile flashing yellow says *this changed*, and a board frame flashing yellow says
@@ -382,15 +430,58 @@ not the audit itself.
 |---|---|
 | setgame | draws **selection as a `box-shadow`** ring, which would collide with hover. Needs to become a real border. |
 | waffle | in-flight swap is a **blinking blue outline**, not a dim. Its tiles also carry live-changing state color, so it is the hardest case for attention-as-background. |
-| stackdown | the ambiguous-letter mark is a **red** border *and* a red `box-shadow` ring — wrong hue (should be amber) and occupies the hover channel. |
-| strands | same red ambiguous-letter treatment. |
+| stackdown | the ambiguous-letter mark is a red border *and* a red `box-shadow` ring — it occupies the hover channel, and it should wear its pill's tone via the shared verdict ring. |
+| strands | same ambiguous-letter treatment. |
 | history viewer | the shared frame is **yellow** (`historyViewer.module.css`); should be gray, so yellow means only "attention". Scope stays as it is — board, and sometimes another region such as a rack. |
 | most games | **no in-flight mark at all.** This is the biggest gap and the most additive. |
+| wordiply | at terminal the verdict pill takes over the KEYBOARD's space, where wordle leaves that space empty and keeps the verdict in its own slot above. We will probably follow wordle; decide it on wordiply's turn. |
 
-**wordle: CONVERTED** (2026-08-16) — in-flight veil, rejection ring matching its
-pill's tone, elevation hover, gray-blue history, and the keyboard rebuilt as a
-control surface. It went first because it needed the fewest decisions: no
-selection, no hint, and no cursor, so it did not force the position channel.
+**wordle: CONVERTED** (2026-08-16, board-scope marks 2026-08-17) — in-flight dim,
+verdict ring in its pill's tone, hover shadow, blue history, the keyboard rebuilt
+as a control surface, and then the four board-scope marks (game-over frame,
+not-your-turn dim, your-turn flash, and the keyboard withdrawn at terminal). It
+went first because it needed the fewest decisions: no selection, no hint, and no
+cursor, so it did not force the position channel.
+
+**waffle: CONVERTED** (2026-08-17) — the second game, and the one that moved the
+framework into shared code: selection as a black border, the shared in-flight dim,
+the move shown optimistically with its verdict withheld, the attention flash
+gated on the swap log, the two turn marks, and the game-over frame. It has no
+verdict mark and needs none: the only swap the server refuses is one a teammate
+beat you to, and what you want to see then is their swap arriving, which the
+subscription delivers.
+
+## Per-game check: is this board's tile the SHARED tile?
+
+Ask it on every conversion, because the answer is usually no. The shared pair —
+`.tileFace` for the box and `.tile` for "and you can act on it" (common
+PlayArea.module.css) — is worn by **five** boards today: waffle, connections,
+psychicnum, codenamesduet, and wordle (the face alone; its tiles are inert). Nine
+others roll their own:
+
+| board | its own tile lives in |
+|---|---|
+| boggle | `PlayArea.module.css` |
+| spellingbee | `Letters.module.css` (hexes) |
+| wordwheel | `Wheel.module.css` (hexes) |
+| stackdown | `Board.module.css` |
+| strands | `Board.module.css` |
+| setgame | `Card.module.css` |
+| scrabble | `Board.module.css` + `Rack.module.css` |
+| bananagrams | `PlayerBoard.module.css` |
+| crosswords | `Grid.module.css` (cells) |
+
+Some of those are genuinely different objects — a hex is not a square, a crossword
+cell carries printed notation, a scrabble square carries a premium — and they will
+keep their own geometry. But **the look-and-feel underneath is the same thing in
+all of them**, and a board that defines its own radius, border, shadow and ink is
+a board that drifts: it is how we ended up with five hover treatments and two
+selection idioms in the first place.
+
+So on each conversion, separate the two questions. *Does this piece need its own
+shape?* Often yes. *Does it need its own box, edge, shadow, and token names?*
+Almost never — and where it does, that is worth a sentence in the game's own
+stylesheet saying which shared value it is departing from and why.
 
 ## The audit — what doesn't fit
 

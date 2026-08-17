@@ -139,6 +139,7 @@ export function Board({
               key={w.position}
               type="button"
               className={cls(
+                shared.tileFace,
                 shared.tile,
                 styles.overlayTile,
                 bgCls,

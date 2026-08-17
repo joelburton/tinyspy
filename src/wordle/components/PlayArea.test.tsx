@@ -616,3 +616,99 @@ describe('wordle PlayArea — click-to-define (turn log)', () => {
     expect(define).not.toHaveAttribute('tabindex')
   })
 })
+
+describe('wordle PlayArea — the board-scope marks', () => {
+  const board = () => screen.getByRole('grid', { name: /board/i })
+  const keyboard = () => screen.getByLabelText('Keyboard')
+
+  // What these pin is the vocabulary in docs/tile-feedback.md, at BOARD scope.
+  // None of it is game logic, and all of it is invisible to a type check: a mark
+  // that stops being applied looks exactly like a mark that was never asked for.
+  it('bands the finished board in its outcome and withdraws the keyboard', () => {
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' }, [
+      { user_id: 'u1', seq: 0, guess: 'crane', colors: 'ggggg', is_correct: true },
+    ])
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+
+    expect(board().className).toMatch(/gameOverFrame/)
+    expect(board().className).toMatch(/gameOverWon/)
+
+    // The keyboard is HIDDEN, not unmounted: its space stays reserved so the
+    // board doesn't drop as the game ends. If someone swaps the CSS for
+    // `display: none` this assertion still passes — which is why the stylesheet
+    // carries the loud comment; what this catches is the class going missing, or
+    // the keyboard being conditionally rendered away.
+    expect(keyboard()).toBeInTheDocument()
+    expect(keyboard().className).toMatch(/gameOver/)
+  })
+
+  it('bands a lost board in the losing tone', () => {
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 1, target: 'crane' }, [
+      { user_id: 'u1', seq: 0, guess: 'slate', colors: 'xxgyx', is_correct: false },
+    ])
+    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+
+    expect(board().className).toMatch(/gameOverLost/)
+    expect(board().className).not.toMatch(/gameOverWon/)
+  })
+
+  it('leaves a live board unmarked, with a usable keyboard', () => {
+    render(<PlayArea {...makeCtx()} />)
+
+    expect(board().className).not.toMatch(/gameOver/)
+    expect(keyboard().className).not.toMatch(/gameOver/)
+  })
+
+  it('dims the board while a teammate holds the move', () => {
+    render(<PlayArea {...makeCtx({ currentTurnUserId: 'u2', isMyTurn: false, players: twoMembers })} />)
+
+    expect(board().className).toMatch(/dimNotYourTurn/)
+    // The turn arriving is an EVENT, so it must not fire on mount — a player
+    // opening a game on their own turn hasn't just been handed it.
+    expect(board().className).not.toMatch(/yourTurnFlash/)
+  })
+
+  it('flashes the frame at the moment the turn becomes mine', async () => {
+    const ctx = makeCtx({ currentTurnUserId: 'u2', isMyTurn: false, players: twoMembers })
+    const { rerender } = render(<PlayArea {...ctx} />)
+    expect(board().className).not.toMatch(/yourTurnFlash/)
+
+    rerender(<PlayArea {...makeCtx({ currentTurnUserId: 'u1', isMyTurn: true, players: twoMembers })} />)
+
+    expect(board().className).toMatch(/yourTurnFlash/)
+    expect(board().className).not.toMatch(/dimNotYourTurn/)
+  })
+})
+
+describe('wordle Board — the reveal flip is keyed to the CAUSE', () => {
+  const tiles = () => screen.getAllByRole('gridcell')
+
+  // The bug this pins: "which rows are new?" used to be answered by a row count
+  // captured at mount, and a restart DELETES the guesses — so a replayed game's
+  // first guesses sat below a stale baseline and landed with no flip at all,
+  // silently, for as many rows as the finished game had. The baseline now follows
+  // the log down, which is the same read-the-cause rule the attention flash uses.
+  it('still flips the first guess of a replayed board', () => {
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+      { user_id: 'u1', seq: 0, guess: 'slate', colors: 'xxgyx', is_correct: false },
+      { user_id: 'u1', seq: 1, guess: 'crane', colors: 'ggggg', is_correct: true },
+    ])
+    const { rerender } = render(<PlayArea {...makeCtx()} />)
+    // Rows already on the board at mount don't flip — they arrived before anyone
+    // was watching.
+    expect(tiles()[0].className).not.toMatch(/reveal/)
+
+    // Restart: the guesses are gone.
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [])
+    rerender(<PlayArea {...makeCtx()} />)
+
+    // A guess on the replayed board flips, exactly as the first guess of any
+    // other game does.
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+      { user_id: 'u1', seq: 0, guess: 'moths', colors: 'xxyxg', is_correct: false },
+    ])
+    rerender(<PlayArea {...makeCtx()} />)
+
+    expect(tiles()[0].className).toMatch(/reveal/)
+  })
+})

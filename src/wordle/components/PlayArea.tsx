@@ -8,6 +8,7 @@ import { buildGameMenu } from '../../common/lib/game/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
+import { useTurnStartFlash } from '../../common/hooks/game/useTurnStartFlash'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
@@ -116,6 +117,14 @@ export function PlayArea({
   // 'won_compete') and, unlike anything read from useGame, correct from the
   // very first render (the waffle loading-race lesson).
   const celebration = useCelebration(playState === 'won')
+
+  // ─── The turn arriving (turn-order coop) ───────────────
+  // The board frame flashes yellow the moment the move becomes mine. The board
+  // dimming says "not yours"; its lifting is a removal, and a removal is a poor
+  // signal — you have been waiting, so you are looking somewhere else when it
+  // happens. Never fires in a free-for-all game (`isMyTurn` is permanently true
+  // there), so it needs no mode gate.
+  const turnFlash = useTurnStartFlash(isMyTurn)
 
   // ─── Derived (null-safe; real values after the loading guard) ──
   const self = playerStates.find((p) => p.user_id === session.user.id)
@@ -530,6 +539,13 @@ export function PlayArea({
         clearLocalFeedback={clearLocalFeedback}
         // ── Below-board pill ──
         localPill={localPill}
+        // ── Board-scope marks ──
+        // The finished board wears its verdict, and the keyboard goes with it:
+        // `over` is the same TerminalCopy the below-board pill reads, so the two
+        // can't disagree about how this game went.
+        gameOver={over ? over.tone : null}
+        notMyTurn={waiting}
+        myTurnJustStarted={turnFlash}
       />
       {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>

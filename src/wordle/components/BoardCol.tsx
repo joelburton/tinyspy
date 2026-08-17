@@ -51,6 +51,10 @@ export function BoardCol({
   clearLocalFeedback,
   // ── Below-board pill (resolved by PlayArea) ──
   localPill,
+  // ── Board-scope marks (see <Board>) ──
+  gameOver,
+  notMyTurn,
+  myTurnJustStarted,
 }: {
   // ── Board to render ──
   /** The LIVE board rows (the viewer's own / the coop team board) — drives the
@@ -85,6 +89,15 @@ export function BoardCol({
   /** The one pill to render in the fixed-height slot (terminal verdict / "you're out"
    *  / own-move soft-reject — resolved by PlayArea), or null. */
   localPill: GenericFeedbackMsg | null
+
+  // ── Board-scope marks ──
+  /** The game is finished, and how — bands the board, and withdraws the keyboard
+   *  (there is no move left to make). Null while live. */
+  gameOver: 'won' | 'lost' | 'neutral' | null
+  /** Turn-order coop: a teammate holds the move, so the board dims. */
+  notMyTurn: boolean
+  /** True for a beat as the turn becomes mine — the frame flashes yellow. */
+  myTurnJustStarted: boolean
 }) {
   const [current, setCurrent] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -266,6 +279,9 @@ export function BoardCol({
         highlightRow={snap ? snap.highlightRow : -1}
         rejectNonce={rejectNonce}
         rejectTone={rejectTone}
+        gameOver={gameOver}
+        notMyTurn={notMyTurn}
+        myTurnJustStarted={myTurnJustStarted}
       />
       {/* The below-board region (universal). wordle is NON-SWAP: the feedback and the
           keyboard are separate and both always present, so the local feedback area sits
@@ -300,12 +316,16 @@ export function BoardCol({
           {localPill && <GenericFeedbackPill msg={localPill} onClose={clearLocalFeedback} />}
         </div>
         <div className={styles.moveArea}>
+          {/* Withdrawn at terminal, and its space kept — see `.gameOver` in
+              GuessKeyboard.module.css. The verdict pill sits in the slot above,
+              so nothing needs to move into the vacated area. */}
           <GuessKeyboard
             keyStates={keyTones}
             onKey={typeLetter}
             onEnter={() => void doSubmit(current)}
             onBackspace={deleteLetter}
             disabled={!canGuess}
+            gameOver={gameOver !== null}
           />
         </div>
       </div>

@@ -220,6 +220,7 @@ export function Board({
               key={pos}
               type="button"
               className={cls(
+                shared.tileFace,
                 shared.tile,
                 styles[color],
                 selected === pos && shared.selected,
