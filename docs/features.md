@@ -72,7 +72,11 @@ Grows — you add tiles to it:  RA MG
 Replaced — cards leave and new ones arrive IN THEIR PLACE:  HT (its own value,
   not a mix of the two above: the board keeps its size across a claim, and the
   slot a card left is the slot its replacement lands in. It also grows by a
-  column when it holds no set, and shrinks once the deck is spent)
+  column when it holds no set, and shrinks once the deck is spent. Substituting
+  in place is invisible over a real connection, so every claim is MARKED — the
+  departing set held briefly and lit, the arrivals lit as they land, and the
+  claimer's own three dimmed instead, since they already know. See
+  docs/games/setgame.md → The claim flash)
 
 ## Primary input
 Type a word (keyboard grab):  FB MC MW  SB (board letters only; the previous

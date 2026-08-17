@@ -21,7 +21,7 @@ import { nextHint, ringFromLog } from '../lib/hint'
 import { turnSnapshot } from '../lib/history'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { CLAIM_SIZE, liveSelection, toggleCard } from '../lib/selection'
-import { DEAL_STAGGER_MS, nextPendingSlot, stageBoard, type Slot } from '../lib/staging'
+import { ARRIVE_MS, claimTransition, DEPART_MS, type FlashKind } from '../lib/flash'
 import { slotForKey } from '../lib/letters'
 import { setupRows } from '../lib/setupSummary'
 import { paletteOf, type SetgameSetup } from '../lib/setup'
@@ -63,7 +63,8 @@ type LeaderRow = {
  * selection. Two defences: selection is keyed by CARD rather than by slot, so a
  * card that leaves the board simply drops out of the selection; and the server
  * takes a row lock, so of two overlapping claims exactly one wins and the other
- * comes back `cards-gone`.
+ * comes back `cards-gone` — a normal pill, not a fault: nobody did anything
+ * wrong, and the cards visibly leaving is most of the explanation.
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
@@ -103,58 +104,100 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const board = useMemo(() => game?.board ?? [], [game?.board])
 
-  // ─── The staged deal ───────────────────────────────────
-  // The refill happens IN PLACE, which keeps the rest of the table still but
-  // makes the change itself easy to miss — three cards are quietly substituted
-  // where they sat, and in coop the claim was somebody else's. So the board is
-  // displayed with the claimed slots EMPTY, and their replacements land one a
-  // second: you see the gap, then watch it fill.
+  // ─── The claim flash ───────────────────────────────────
+  // See lib/flash.ts for the whole design. In short: a claim is marked LOUDLY
+  // and dealt INSTANTLY — the departing set is held on screen for a beat so it
+  // can be seen leaving, then the replacements appear at once and light up.
   //
-  // `shown` is what the board renders; `board` stays the server's truth and is
-  // what the rules run against. The two differ only for the few seconds a deal
-  // is arriving.
+  // `shown` is what the board renders; `board` is the server's truth and is what
+  // the rules run against. They differ only during that hold.
   //
   // The diff is taken DURING RENDER via the adjust-state-when-input-changes
   // pattern (the same one useCelebration uses), keyed on the board's CONTENT:
-  // every refetch mints a fresh array, so an identity check would re-stage the
-  // board on realtime traffic that changed nothing.
+  // every refetch mints a fresh array, so an identity check would re-fire on
+  // realtime traffic that changed nothing.
   const boardKey = board.join(',')
-  // `seen` holds the last SERVER board, which is what the change count is taken
-  // from — `shown` can hold empties from a deal still arriving, and counting
-  // those as changes would read as a wholesale replacement.
-  const [seen, setSeen] = useState<{ key: string; cards: CardCode[] }>({
+  // `claimId` rides along because it is what says a claim CAUSED this board.
+  const [seen, setSeen] = useState<{ key: string; claimId: number | null }>({
     key: boardKey,
-    cards: [...board],
+    claimId: lastClaim?.id ?? null,
   })
-  const [shown, setShown] = useState<Slot[]>(() => [...board])
-  const [dealt, setDealt] = useState<CardCode[]>([])
+  const [shown, setShown] = useState<CardCode[]>(() => [...board])
+  /** The departing set, held on screen; `mine` picks dim over lit. */
+  const [depart, setDepart] = useState<{ leaving: CardCode[]; mine: boolean } | null>(null)
+  /** Cards lit as freshly arrived. */
+  const [arriving, setArriving] = useState<CardCode[]>([])
+  /** My own three, dim from the click — before any server answer. */
+  const [submitted, setSubmitted] = useState<CardCode[]>([])
+
   if (seen.key !== boardKey) {
-    setShown(stageBoard(shown, seen.cards, board))
-    // The opening board is not "newly dealt" — every card would flash at once.
-    setDealt(seen.cards.length ? board.filter((c) => !seen.cards.includes(c)) : [])
-    setSeen({ key: boardKey, cards: [...board] })
+    // WHY did this board change? There are only two answers, and the log gives
+    // it away rather than us inferring it: a claim writes an event, and the only
+    // other thing that moves this board — a fresh deal, whether a new game or a
+    // restart — has no claim behind it (`replay_board` deletes the events).
+    //
+    // So a claim gets the flash and everything else is simply SHOWN. Nothing
+    // here depends on how many slots differ, on the board growing or shrinking,
+    // or on the deck — every one of those proxies had a case that broke it, and
+    // two of them shipped.
+    //
+    // Safe because the board and the events arrive in ONE fetch (useGame's
+    // single `Promise.all`), so they cannot disagree within a render.
+    //
+    // `shown.length` is the third condition and it is not a detail: on the FIRST
+    // load there is no previous board to have claimed FROM, and an ended game's
+    // history is full of claims — so without it, opening a finished game read
+    // the last claim as one that had just happened and lit the whole table up.
+    // You cannot claim from nothing.
+    const claimId = lastClaim?.id ?? null
+    const byClaim = shown.length > 0 && claimId !== null && claimId !== seen.claimId
+    if (byClaim) {
+      // `shown` deliberately stays put: the old cards are what we are holding.
+      setDepart({
+        leaving: claimTransition(shown, board).leaving,
+        mine: lastClaim?.user_id === selfId,
+      })
+    } else {
+      setShown([...board])
+      setDepart(null)
+      setArriving([])
+      setSubmitted([])
+    }
+    setSeen({ key: boardKey, claimId })
   }
 
-  // One timer at a time: filling a slot re-renders, which schedules the next.
-  // A setState inside the timeout, never synchronously in the effect.
-  const pending = nextPendingSlot(shown)
+  // The hold, then the swap. One timer for the whole board — the replacements
+  // all land together, because it was never the SPEED of their arrival that made
+  // them noticeable, only the mark.
   useEffect(() => {
-    if (pending < 0) return
+    if (!depart) return
     const timer = setTimeout(() => {
-      setShown((prev) => {
-        const next = [...prev]
-        next[pending] = board[pending]
-        return next
-      })
-    }, DEAL_STAGGER_MS)
+      setArriving(claimTransition(shown, board).arriving)
+      setShown([...board])
+      setDepart(null)
+      setSubmitted([]) // the claimer's dim ends exactly when everyone's mark does
+    }, DEPART_MS)
     return () => clearTimeout(timer)
-  }, [pending, board])
+  }, [depart, shown, board])
+
+  // Arrivals stay lit a while longer, then the board goes quiet again.
+  useEffect(() => {
+    if (arriving.length === 0) return
+    const timer = setTimeout(() => setArriving([]), ARRIVE_MS)
+    return () => clearTimeout(timer)
+  }, [arriving])
 
   const flashes = useMemo(() => {
-    const marks = new Map<CardCode, 'claimed' | 'dealt'>()
-    for (const card of dealt) marks.set(card, 'dealt')
+    const marks = new Map<CardCode, FlashKind>()
+    for (const card of arriving) marks.set(card, 'arriving')
+    // Departures outrank arrivals: during a hold the old cards are what is on
+    // screen, and a card can be both (claimed here, dealt back there) only in
+    // the moment the two overlap.
+    if (depart) for (const card of depart.leaving) marks.set(card, depart.mine ? 'held' : 'leaving')
+    // My own claim, still in flight — no board change has happened yet.
+    for (const card of submitted) marks.set(card, 'held')
     return marks
-  }, [dealt])
+  }, [arriving, depart, submitted])
 
   // ─── Selection ─────────────────────────────────────────
   // Stored as card codes and FILTERED against the live board every render, so a
@@ -162,44 +205,38 @@ export function PlayArea(ctx: GamePageCtx) {
   // fired at a card that isn't there. Derived rather than repaired in an effect,
   // which is what keeps the two in step without a synchronising write.
   const [picked, setPicked] = useState<CardCode[]>([])
-  // Against `shown`, not `board`: a card that has been claimed is not selectable
-  // even for the second it takes its replacement to arrive.
-  const visible = useMemo(
-    () => shown.filter((c): c is CardCode => c !== null),
-    [shown],
-  )
-  const selected = useMemo(() => liveSelection(picked, visible), [picked, visible])
-
-  // Claim in flight: the three cards keep a green ring while the RPC is out, so
-  // a slow network reads as "sent" rather than "nothing happened".
-  const [claiming, setClaiming] = useState(false)
-
-  const flashesWithClaim = useMemo(() => {
-    if (!claiming) return flashes
-    const marks = new Map(flashes)
-    for (const card of selected) marks.set(card, 'claimed')
-    return marks
-  }, [flashes, claiming, selected])
+  // Filtered against the SERVER board, not against what is on screen: during a
+  // departure hold the screen still shows cards that are already gone, and a
+  // selection that included one would submit a claim doomed to `cards-gone`.
+  // Held cards are unclickable (see `Board`), so nothing can be added to it
+  // either — this only heals a selection made before the claim landed.
+  const selected = useMemo(() => liveSelection(picked, board), [picked, board])
 
   // ─── Claiming ──────────────────────────────────────────
   const submitClaim = useCallback(
     async (cards: CardCode[]) => {
-      setClaiming(true)
-      const { error } = await db.rpc('submit_set', { target_game: gameId, cards })
-      setClaiming(false)
+      // Dim them NOW, before the round trip. This is the only feedback that
+      // cannot be late, and on a slow link it is the whole answer to "did it
+      // hear me?" — its length IS the lag.
+      setSubmitted(cards)
       setPicked([])
+      const { error } = await db.rpc('submit_set', { target_game: gameId, cards })
       if (error) {
-        // `cards-gone` is the ONLY rejection a player realistically meets, and
-        // it isn't their mistake — someone was faster. failureMessage turns the
-        // server's key into that sentence; anything else falls through to its
-        // generic copy rather than inventing a second dialect here.
+        // Release the dim: nothing is coming. `cards-gone` is the one rejection
+        // a player realistically meets, and it isn't their mistake — someone
+        // was faster. Those cards are already gone, so this player falls
+        // through to the same mark everyone else gets for them.
+        setSubmitted([])
         showLocalFeedback(failureMessage(error, 'claim'))
       }
     },
     [gameId, showLocalFeedback],
   )
 
-  const active = !isTerminal && !myConceded && !claiming && isMyTurn
+  // NOT gated on a claim being in flight: the rest of the board stays live so a
+  // fast player can start their next set while this one is still travelling.
+  // The three cards being claimed are made unclickable individually.
+  const active = !isTerminal && !myConceded && isMyTurn
 
   const onCardClick = useCallback(
     (card: CardCode) => {
@@ -511,7 +548,7 @@ export function PlayArea(ctx: GamePageCtx) {
         board={viewing ? viewing.board : shown}
         selected={viewing ? [] : selected}
         hinted={viewing ? viewing.highlight : ring}
-        flashes={flashesWithClaim}
+        flashes={flashes}
         disabled={!active || viewing !== null}
         waiting={waiting}
         isCompete={isCompete}

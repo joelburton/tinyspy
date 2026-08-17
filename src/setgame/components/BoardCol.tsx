@@ -4,7 +4,7 @@ import { HintButton } from '../../common/components/buttons/HintButton'
 import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import type { Card as CardCode } from '../lib/cards'
-import type { Slot } from '../lib/staging'
+import type { FlashKind } from '../lib/flash'
 import { Board } from './Board'
 import { Counts } from './Counts'
 import { countsFor, hintLabel } from '../lib/readouts'
@@ -12,10 +12,10 @@ import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 type Props = {
-  board: readonly Slot[]
+  board: readonly CardCode[]
   selected: readonly CardCode[]
   hinted: readonly CardCode[]
-  flashes: ReadonlyMap<CardCode, 'claimed' | 'dealt'>
+  flashes: ReadonlyMap<CardCode, FlashKind>
   disabled: boolean
   /** Turn-by-turn coop, someone else's turn — fades the table. See `Board`. */
   waiting: boolean

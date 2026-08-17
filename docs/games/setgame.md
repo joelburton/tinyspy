@@ -57,7 +57,7 @@ Two of those rows are load-bearing and easy to get backwards:
 - **Growing is the common case.** The per-DEAL odds of a set-free board are
   ~3%, but a game makes about two dozen of those checks. Two games in three
   reach fifteen cards. Anything that treats a wider board as an exception —
-  layout, card sizing, the staged deal — is wrong.
+  layout, card sizing, the claim flash — is wrong.
 - **A full clear is rare**, which kills "win = use every card" as a coop goal.
   See §4.
 
@@ -270,21 +270,56 @@ The alternative (close up, deal three at the end) was rejected: it reflows the
 table on every claim, which in compete happens *to* you several times a minute
 while you are mid-thought, and it re-letters every card after the hole.
 
-### The staged deal
+### The claim flash
 
-Cards do not appear the instant the server sends them. The claimed slots go
-**visibly empty**, then fill one at a time (`DEAL_STAGGER_MS`, currently 300ms).
-The in-place refill is what makes this necessary: three cards are substituted
-where they sat, so without it the table would just silently differ — worst of
-all in coop, where the claim was someone else's.
+A claim substitutes cards **in place**: three leave and three arrive in the same
+slots. Locally that lands in one beat and reads fine — over a real connection the
+board simply *differs* a moment later, and if your eye was in another corner of
+it, nothing said so. Worst in coop, where the claim was someone else's and you
+had no reason to be watching those three at all.
 
-`lib/staging.ts` decides what to stage, and two cases deliberately skip it:
-the **first board** (staging the opening twelve would be a wait before anyone
-can play) and a **wholesale replacement** (a restart re-deals every card).
-Telling those apart counts only the slots **replaced in place**, never the ones
-appended — a claim replaces at most three however much the board grows. Counting
-appends too was a real bug: a claim that grew the board changed six slots, read
-as a restart, and snapped the new column in with no stagger.
+So every claim is marked, and `lib/flash.ts` owns the whole design:
+
+| who | mark | why |
+|---|---|---|
+| the claimer | their three cards take a **black veil**, from the click | they know what they did; colour would drag their eye back to a decision already made. Its LENGTH is the only thing they can't know — the lag |
+| everyone else | those same cards fill **light green** | a set was found: that's the outcome |
+| everyone | the replacements fill **light yellow** | arriving is news, not an achievement |
+
+Three properties are load-bearing:
+
+- **Fills, not rings.** The first version drew a ring, and a ring is the one mark
+  that can't do this job: thin, at the edge of a card, invisible to peripheral
+  vision — exactly where the board is when someone else claims.
+- **Light tints of a saturated hue.** The symbols are drawn *on* these, and two
+  of the three traditional symbol colours are red and green. Dark saturated
+  symbols on a light saturated ground stay perfectly legible. (Red was the first
+  suggestion for the departing set and would have been the wrong word: red means
+  *rejected* everywhere else, so a successful claim flashing red reads as a
+  refusal — worst of all to the claimer.)
+- **Both clear at the same instant**, and that symmetry is fairness, not tidiness:
+  if the claimer's board updated while everyone else still held ghosts, they'd
+  see their replacements early — a real edge in compete.
+
+**There is no slow deal.** An earlier version emptied the claimed slots and
+landed the replacements one at a time (300ms apart), on the theory that motion
+draws the eye. It doesn't, if the moving thing is a thin ring — and it made the
+board partly unplayable for the length of the deal, since a card that hasn't
+arrived can't be clicked. A player who can think fast should be able to act fast.
+The only time anything now costs is the 600ms hold, and that one is deliberate.
+
+**Keyed to a CLAIM, and nothing else.** A new game and a restart just appear,
+unmarked. Working out which had happened took three wrong answers, all of them
+inferring the cause from the board's shape — how many slots differed, whether the
+deck moved, whether the score dropped. Each had a case that broke it and two of
+them shipped: a restart one claim in leaves a board differing in only three
+slots, so it flashed them as freshly dealt; and a claim on a fifteen-card table
+compacts to twelve without drawing from the deck at all. The answer is that the
+cause is already *recorded* — a claim writes an event, and `replay_board` deletes
+every event — so `PlayArea` reads the log instead of measuring the wreckage. Safe
+because the board and the events arrive in one fetch. The third condition is
+"there was a previous board at all": on first load an ended game's history is
+full of claims, and without it, opening a finished game lit the whole table up.
 
 
 ## 6. Contention — the one genuinely new mechanic
@@ -294,13 +329,25 @@ Every other compete game gives racers private boards or private progress. Here
 Two defences, and they are independent:
 
 - **Server:** `submit_set` takes the games-row lock before checking membership
-  on the board, so overlapping claims serialize. The loser gets `cards-gone`,
-  which the FE renders as a pill ("someone got there first"), not a fault modal.
+  on the board, so overlapping claims serialize. The loser gets `cards-gone`.
 - **Client:** the selection holds **card codes, not slot indices**, and is
-  filtered against the live board every render. A card that leaves is simply not
-  selected any more, and its letter is free again. Keyed by slot, the selection
-  would silently re-point at whatever refilled the hole — and the next keystroke
-  would claim a card the player never looked at.
+  filtered against the **server's** board every render. A card that leaves is
+  simply not selected any more, and its letter is free again. Keyed by slot, the
+  selection would silently re-point at whatever refilled the hole — and the next
+  keystroke would claim a card the player never looked at. Filtered against the
+  server board rather than against what's on screen, because during a departure
+  hold the screen still shows cards that are already gone.
+
+**Losing a race is not an error**, and until 2026-08-16 it looked like one.
+`cards-gone` had no entry in `common/lib/game/errorCopy.ts`, and a key with no
+copy is by definition unanticipated — so the one rejection a setgame player
+actually meets rendered as a **fault**, the treatment reserved for "visibly
+broken while we work". (The code comment and this doc both claimed it was a
+pill. Neither had been checked; the game shipped that way.) It is registered
+now, `info`-toned: "Someone got there first". `not-a-set` and `hint-in-compete`
+are registered too, as belt-and-braces — the FE prevents both — while
+`bad-deck` / `bad-claim` / `bad-first-turn` / `game-not-found` / `bad-hint` stay
+faults, because reaching one means a broken client.
 
 
 ## 7. Frontend
@@ -579,7 +626,10 @@ only the deal size differs (9, ceiling 12).
 - **`lib/letters.test.ts`** — the letters never move when the board grows, plus
   the rejected scheme spelled out concretely so the assertion has something to
   discriminate against.
-- **`lib/staging.test.ts`** — including the claim-that-also-grows regression.
+- **`lib/flash.test.ts`** — the slot-by-slot diff behind the claim flash: a
+  claim that grows the board, one that shrinks it, and the tail-compaction case
+  where a card MOVES into a hole (a set-difference finds nothing new there, and
+  those three used to land unmarked).
 - **`lib/hint.test.ts`** — the ladder grows one card of the SAME set per press,
   and returns `null` once the ring is complete (the rapid-press regression).
 - **`lib/selection.test.ts`** — the toggle, the fourth-card refusal, and the
@@ -596,6 +646,14 @@ only the deal size differs (9, ceiling 12).
 - **e2e** — both input routes, the local rejection, contention across two
   sessions, the portrait transposition, the planted 21-card board, print, and
   the two-client turn hand-off (board fade + both pills, on both screens).
+- **`e2e/setgame-flash.e2e.ts`** — the claim flash, on the two cases only a real
+  board can produce: a **fifteen-card** table, where claiming compacts to twelve
+  and the cards that MOVE must still be marked; and a restart after exactly
+  **one** claim, which is the discriminating case (two claims move six slots,
+  enough that the old guess called it a re-deal by luck). Plus opening a
+  finished game, which must not deal itself out. Its positive assertions poll
+  rather than sleep — the marks live 600ms and 1200ms, and a fixed wait would be
+  racing their own lifetime.
 
 Two of those are planted on purpose. A 15-card board arises in ~3% of deals and
 a 21-card one in ~1 in a million; a test that waited for either would test

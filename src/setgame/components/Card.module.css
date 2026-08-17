@@ -80,27 +80,53 @@ button.selected:hover:not(:disabled) {
   outline-offset: 3px;
 }
 
-/* ── The two transient marks ────────────────────────────────────────────────
- * Both run once and stop. They exist because the refill is IN PLACE: three
- * cards leave and three arrive in the same slots, so without a mark the board
- * would just silently differ — worst of all in compete, where the change was
- * someone else's doing and you were mid-scan. */
+/* ── The claim flash ────────────────────────────────────────────────────────
+ * Three marks, all keyed to a claim — see lib/flash.ts for who sees which and
+ * why. Nothing else on this board is ever marked: a new game and a restart just
+ * appear.
+ *
+ * These are FILLS. The earlier version drew rings, and a ring is the one mark
+ * that cannot do this job: it lives at the edge of a card, it is thin, and it
+ * is invisible to the corner of your eye — which is exactly where the board is
+ * when someone else claims. */
 
-.claimed {
-  box-shadow: 0 0 0 3px var(--setgame-claimed), 0 2px 6px rgb(0 0 0 / 18%);
+/* The claimer's own three: a black veil, from the click until the hold ends.
+ * Quiet on purpose. They know what they did, and colour would drag their eye
+ * back to a decision they have already made and moved on from — while its
+ * LENGTH says the one thing they cannot know, which is how long the network is
+ * taking. Drawn as an overlay so it darkens the symbols with the card, rather
+ * than as an opacity that would fade them against the page. */
+.held {
+  position: relative;
 }
 
-.dealt {
-  animation: dealt-in 0.45s ease-out;
+.held::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--setgame-held-veil);
 }
 
-@keyframes dealt-in {
-  from {
-    box-shadow: 0 0 0 3px var(--setgame-dealt), 0 1px 2px rgb(0 0 0 / 10%);
-  }
-  to {
-    box-shadow: 0 0 0 3px transparent, 0 1px 2px rgb(0 0 0 / 10%);
-  }
+/* Everyone else's view of those same cards. */
+.leaving {
+  background: var(--setgame-leaving-bg);
+}
+
+/* The replacements, for everyone including the claimer — they did not choose
+ * these, so they are news to them too. */
+.arriving {
+  background: var(--setgame-arriving-bg);
+}
+
+/* A lit card still answers the pointer. Scoped to <button> and to :not(:disabled)
+ * exactly as the plain hover rule is, and placed after it so the two tie on
+ * specificity and this one wins on order.
+ *
+ * Only `arriving` needs this: held and leaving cards are spent, so `Board`
+ * disables them and they cannot be hovered at all. */
+button.card.arriving:hover:not(:disabled) {
+  background: var(--setgame-arriving-hover-bg);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -108,9 +134,7 @@ button.selected:hover:not(:disabled) {
     transition: none;
   }
 
-  .dealt {
-    animation: none;
-  }
+  /* The flash is a colour, not a motion — there is nothing here to still. */
 }
 
 /* The shared <pattern> host: present in the DOM, occupying nothing. */

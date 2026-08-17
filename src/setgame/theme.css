@@ -61,15 +61,36 @@
    * keeps it distinct from the solid ring of a selected card. */
   --setgame-hint-ring: #16a34a;
 
-  /* The two transient marks on a card, both ~250ms:
-   *   claimed — a set that was just taken, on its way off the board
-   *   dealt   — a card that has just arrived
-   * Green for the claim because it IS an outcome (someone scored); neutral
-   * warm for the deal because arriving is not an achievement. The dealt flash
-   * is what buys the in-place refill its legibility: cards land in the holes
-   * rather than in one place, so the flash is how you find them. */
-  --setgame-claimed: #2e7d32;
-  --setgame-dealt: #c9a227;
+  /* ── The claim flash (lib/flash.ts) ─────────────────────────────────────
+   * FILLS, not rings. A border change is the worst possible mark for something
+   * you are not looking at: these exist precisely for the player whose eye is
+   * in another corner of the board when it changes under them.
+   *
+   * Both are LIGHT tints of a saturated hue rather than the hue itself, because
+   * a card's symbols are drawn ON them — and two of the three symbol colours in
+   * the traditional palette are red and green. The symbols are dark and
+   * saturated, so a light saturated ground keeps them perfectly legible while
+   * still reading as loud from across the table.
+   *
+   * Green for the departing set because it IS the outcome — a set was found.
+   * (Red was the first suggestion and would have been the wrong word: red means
+   * "rejected" everywhere else in this app, and a successful claim flashing red
+   * reads as a refusal, worst of all to the claimer.) Yellow for arrivals, which
+   * are news rather than an achievement — and yellow is the one hue that is not
+   * a symbol colour in EITHER palette.
+   *
+   * The hovered variants exist so the pointer still says "this one" on a lit
+   * card; they are the same tints greyed slightly, in the same direction the
+   * ordinary hover greys a white card. */
+  --setgame-leaving-bg: #c6f0ce;
+  --setgame-leaving-hover-bg: #b4debc;
+  --setgame-arriving-bg: #ffefac;
+  --setgame-arriving-hover-bg: #eddd9a;
+  /* The claimer's own three, from the click until the hold ends. A BLACK veil,
+   * where the not-your-turn dim is a white one — held vs disabled are different
+   * states and must not be confusable. */
+  --setgame-held-veil: rgb(0 0 0 / 26%);
+
 }
 
 /* Colorblind-safe: the same three slots, repainted. Set on the play surface's

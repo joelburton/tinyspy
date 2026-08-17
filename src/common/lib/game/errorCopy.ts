@@ -257,6 +257,25 @@ export const ERROR_COPY: Record<string, ErrorCopyEntry> = {
   'base-too-common': { text: (d) => `${d[0]?.toUpperCase()} matches too many words` },
   'base-too-narrow': { text: (d) => `No long enough word contains ${d[0]?.toUpperCase()}` },
 
+  // ── setgame ──
+  // Its board is CONTENDED — one table, everyone claiming off it — so this is
+  // the only game where losing a race is ordinary rather than exotic. A rival's
+  // claim landed while yours was in flight and took a card out from under it.
+  //
+  // Registered because an unregistered key renders as a FAULT, and this is not
+  // one: it is the expected outcome of two people being fast at the same
+  // moment, and the player did nothing wrong. `info`, not `error`, for the same
+  // reason — the cards visibly leaving (they light up as they go) is most of
+  // the explanation, and this only names it.
+  'cards-gone': { text: () => 'Someone got there first', tone: 'info' },
+  // Both of these mean a broken or stale client rather than a player action:
+  // the FE checks a set locally before it submits (the whole board is face-up),
+  // and it disables the hint button outright in compete. Registered anyway,
+  // because a fault is a poor way to learn that a guard slipped — and phrased
+  // as statements of the rule, since that is all a player could do about it.
+  'not-a-set': { text: () => 'Not a set' },
+  'hint-in-compete': { text: () => 'No hints when competing', tone: 'info' },
+
   // ── letterboxed ──
   // Its coop chain is SHARED and free-for-all, so a teammate's word can land
   // between your local check and your submit. These four are that race — you

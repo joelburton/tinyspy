@@ -101,18 +101,6 @@
   gap: 0.15rem;
 }
 
-/* A slot whose card has gone and whose replacement is still on its way. Holds
- * the slot's exact footprint — the point of dealing one card at a time is that
- * you SEE the gaps, and a gap that resized the board would defeat it. Quiet:
- * an empty place is not a control and not a result, just a place. */
-.empty {
-  width: var(--card-w);
-  aspect-ratio: var(--setgame-card-ratio, 100 / 94);
-  border: 1px dashed var(--color-divider);
-  border-radius: var(--radius-md);
-  background: transparent;
-}
-
 /* The card's keyboard address. It is how you play this game with the keyboard,
  * so it is a real value rather than chrome — and it gets TRUE BLACK rather than
  * `--color-text`. The body ink is #1a1a1a, which is right for paragraphs and

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Card as CardCode } from '../lib/cards'
-import type { Slot } from '../lib/staging'
+import type { FlashKind } from '../lib/flash'
 import { letterForSlot } from '../lib/letters'
 import { cls } from '../../common/lib/util/cls'
 import { Card, CardDefs } from './Card'
@@ -13,13 +13,13 @@ type Props = {
    * card a second, so an empty place is a normal, visible state here rather
    * than an error.
    */
-  board: readonly Slot[]
+  board: readonly CardCode[]
   /** Cards the player has picked, by card code (not by slot — see below). */
   selected: readonly CardCode[]
   /** Cards a coop hint is ringing. */
   hinted: readonly CardCode[]
   /** Transient marks, keyed by card code. */
-  flashes: ReadonlyMap<CardCode, 'claimed' | 'dealt'>
+  flashes: ReadonlyMap<CardCode, FlashKind>
   disabled: boolean
   /** Turn-by-turn coop, and it is someone else's turn — the board fades.
    *  A STRICT SUBSET of `disabled`, and deliberately its own flag: the board is
@@ -79,20 +79,21 @@ export function Board({
       style={{ '--cols': widest } as React.CSSProperties}
     >
       <CardDefs />
-      {board.map((card, slot) => (
+      {board.map((card, slot) => {
+        const flash = flashes.get(card) ?? null
+        return (
         <div key={slot} className={styles.cell}>
-          {card === null ? (
-            <div className={styles.empty} />
-          ) : (
-            <Card
-              card={card}
-              selected={selected.includes(card)}
-              hinted={hinted.includes(card)}
-              flash={flashes.get(card) ?? null}
-              disabled={disabled}
-              onClick={() => onCardClick(card)}
-            />
-          )}
+          <Card
+            card={card}
+            selected={selected.includes(card)}
+            hinted={hinted.includes(card)}
+            flash={flash}
+            // A card being held on its way off the table is spent — it is on
+            // screen only so you can watch it go. Clicking one could only ever
+            // build a claim the server has already refused.
+            disabled={disabled || flash === 'held' || flash === 'leaving'}
+            onClick={() => onCardClick(card)}
+          />
           {/* The letter is the card's keyboard address, and it is bound to the
               SLOT rather than to the card — so `B` stays in the same place all
               game even as the card sitting there changes. That stability is
@@ -100,7 +101,8 @@ export function Board({
               worse than no letters. */}
           <span className={styles.letter}>{letterForSlot(slot)}</span>
         </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

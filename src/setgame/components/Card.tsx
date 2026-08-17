@@ -1,5 +1,6 @@
 import { decode, type Card as CardCode, COLORS } from '../lib/cards'
 import { CARD_BOX, SHAPE_PATHS, STRIPE, SYMBOL_BOX, SYMBOL_LAYOUT, SYMBOL_STROKE } from '../lib/shapes'
+import type { FlashKind } from '../lib/flash'
 import { cls } from '../../common/lib/util/cls'
 import styles from './Card.module.css'
 
@@ -30,7 +31,8 @@ export function Card({
   /** Ringed by a coop hint: "there is a set through this card". */
   hinted?: boolean
   /** A transient mark — a set just claimed, or a card just dealt. */
-  flash?: 'claimed' | 'dealt' | null
+  /** Which transient mark this card is wearing — see `lib/flash.ts`. */
+  flash?: FlashKind | null
   disabled?: boolean
   /**
    * Draw the card as a READOUT rather than a control — a plain box, not a
@@ -63,8 +65,9 @@ export function Card({
     readOnly && styles.readOnly,
     selected && styles.selected,
     hinted && styles.hinted,
-    flash === 'claimed' && styles.claimed,
-    flash === 'dealt' && styles.dealt,
+    flash === 'held' && styles.held,
+    flash === 'leaving' && styles.leaving,
+    flash === 'arriving' && styles.arriving,
   )
 
   const face = (
