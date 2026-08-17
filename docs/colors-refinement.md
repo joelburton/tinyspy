@@ -58,13 +58,57 @@ band.
 
 ## The naming scheme
 
-Every color token is `--<bucket>-<family>[-<variant>]`, and **the bucket prefix is
-load-bearing, not decoration**: it makes a cross-bucket borrow look wrong at the
-call site. `--chrome-destructive` in a button reads as correct; `--outcome-lost-fill`
-in a button reads as a mistake — which is exactly the error the audit found, over
-and over. (The general page furniture — `--color-text`, `--color-surface`,
-`--color-divider`, `--color-accent` — keeps its `--color-` prefix. Those aren't a
-family; they're the page.)
+### The grammar
+
+```
+--<bucket>-<thing>-<modifier>-<quality>
+   outcome     lost      fill      color
+   member      purple    dot       color
+   tile        selected  border    width
+```
+
+**The bucket comes first, and it is load-bearing**: it makes a cross-bucket borrow
+look wrong at the call site. `--chrome-destructive-color` in a button reads as
+correct; `--outcome-lost-fill-color` in a button reads as a mistake — exactly the
+error the audit found over and over. A leading `--color-` would bury the bucket in
+the middle, where the eye skips it, and would sort every token under one useless
+heading. Thing-first sorts and autocompletes the way you edit: everything about one
+piece in one block.
+
+**The quality always comes last, even for colors.** A closed set —
+`-color`, `-width`, `-radius`, `-gap`, `-duration`, `-shadow` — so we don't grow
+`-size` / `-thickness` / `-time` as synonyms. `-shadow` is in the set because a
+shadow is a composite that *contains* a color rather than being one.
+
+Stating the quality even when it's a color buys two things: nothing has an implicit
+default you have to know, and `grep -- '-color:'` enumerates the whole palette,
+which is what makes the census and the guard simple. It costs repeating the least
+informative word about sixty times, which is a fair trade. The evidence that it
+matters is already in the file: `--tile-border-width` sits beside
+`--tile-selected-border`, which is a *color*, and only knowing tells you which is
+which.
+
+**Scales are the exception and stay quality-first.** `--radius-sm / -md / -lg` is
+not a thing with qualities; the quality *is* the thing, and a future `--space-1/2/3`
+would be the same. Stated so nobody "fixes" `--radius-md` into `--md-radius`.
+
+### A fill that carries ink names its ink beside it
+
+Not one global "white ink" token that assumes every fill can carry it — each fill
+declares the ink that sits on it, one line apart in the same file. connections'
+four rank bands become four fills and four inks (three of them dark, because the
+pastels are light).
+
+Two shared inks exist for the common cases — `--ink-on-dark-color` (white) and
+`--ink-on-light-color` — and a fill points at one of them or names its own. What
+this buys: the contrast audit becomes a loop over declared pairs instead of a hunt,
+and it can be done by eye while playing, because the pair is always adjacent.
+
+The rule it enables, which nothing enforces today: **a fill may carry white ink
+only if it clears 3:1; otherwise it takes dark ink, and any exception is documented
+in the token.** Only wordle's palette records its floors today — and it also
+records a deliberate exception (its yellow sits at 2.57, because the gold that
+reaches 3.0 stops reading as Wordle's yellow). Everything else is assumed.
 
 ### The five variants, named for their ROLE
 
@@ -89,10 +133,17 @@ of a race while others play on.
 
 ### The buckets
 
-**`outcome-*` — how a move or a game went.** Five families, all five variants
-reserved on each even where a cell has no consumer yet; a complete grid is what
-tells the next contributor "there is already a color for this" instead of minting
-one (the `--tile-*` ramp's policy).
+**`outcome-*` — how a move or a game went.** Five families, **all five variants on
+each**, even where a cell has no consumer yet.
+
+That reservation is only for outcomes — gamelist, chrome, view, member and gamemode
+are single values, which is what makes the grid affordable. And the reason to pick
+an unused value *now* rather than when something needs it is not tidiness: a family
+picked all at once is picked by one formula, where a `warning-terminal-frame`
+chosen alone in two years would be reasoned about differently from the three we
+pick together this week. Unused cells are marked **reserved — do not delete**, and
+one policy line in `src/cssTokens.test.ts` covers them all rather than an entry per
+token.
 
 | family | means |
 |---|---|
@@ -137,10 +188,34 @@ button with a lighter version of its own color.
 | `--chrome-destructive` | Reveal, End game, Concede, Delete — irreversible |
 | `--chrome-fault` | fault messages: the system failed |
 
-**`view-*` — what you are looking at.** `--view-history` (blue) and
-`--view-share-preview` (yellow). They wear the *same frame* as a finished board, so
-a frame's color comes from either an outcome's `-terminal-frame` or from these —
-one mark, two sources, no conflict.
+**`view-*` — what you are looking at.** `--view-history-color` (blue) and
+`--view-share-preview-color` (yellow). They wear the *same frame* as a finished
+board, so a frame's color comes from either an outcome's `-terminal-frame` or from
+these — one mark, two sources, no conflict.
+
+**`member-*` — player identity.** Eight hues, each with the uses it is put to:
+`--member-purple-dot-color`, `--member-purple-border-color`, and (when chat text
+needs it) `--member-purple-ink-color`. The hue sits in the *thing* slot and the use
+in the *modifier* slot, so the grammar stays one grammar and the tokens sort by
+member — which is the unit you tune, since the question is "does purple work as a
+dot, as a border, as text?". That splitting is not hypothetical: the eight
+`-border` values are hand-tuned per hue today precisely because a formula couldn't
+do it, and chat ink may well need a darker purple than the dot does.
+
+**`gamemode-*` — coop vs compete.** `--gamemode-coop-ink-color` /
+`--gamemode-compete-ink-color`, deliberately outside the outcome palette so a mode
+pill never reads as a result. Named `gamemode`, not `mode`, because "mode" already
+means three things here (dark mode, colorblind mode, coop/compete).
+
+**`mark-*` — the board feedback vocabulary.** The dims, the attention wash, the
+flash durations, the peer ring's geometry, the grid cursor: everything
+[tile-feedback.md](tile-feedback.md) defines. It is a bucket for the same reason
+the others are — these get borrowed otherwise.
+
+**`page-*`, `control-*`, `tile-*`, `kbd-*`, `rank-*`** carry the rest: page
+furniture, form-control chrome, the warm tile ramp, the on-screen keyboard, the
+word-rank ladder. They are already effectively buckets; this only regularizes their
+spelling.
 
 **Per-game brand colors** stay in that game's `theme.css`: wordle's letter colors,
 codenamesduet's agent/neutral/assassin, connections' four ranks, setgame's card
@@ -321,19 +396,28 @@ afterwards is attributable to the second commit rather than to 25 files of churn
    `scripts/color-census.py`, kept because re-running it after the sweep is the
    "did we get them all" check — the per-game lists should come back as brand
    colors and nothing else.
-2. **Rename the tiers**: `-strong` → `-ink`, `-border` → `-fill`, `-bg` → `-wash`.
-3. **Bucket-prefix everything**: `--color-outcome-*` → `--outcome-*`, and the rest
-   into `gamelist-*` / `chrome-*` / `view-*`.
-4. **Split `active` / `current` into `gamelist-open` / `gamelist-live`**, and drop
-   their tiers that never had a consumer.
-5. **Name the chrome colors** and move every button off the outcome tokens. Delete
-   the two dead button tones.
-6. **Rename the turn log's outcome vocabulary** (`good | bad | partial | neutral`)
+2. **Execute [the mapping](#the-mapping--every-token-in-commonthemecss)** once it
+   is approved — tiers, buckets and the quality suffix in one pass, since they
+   touch the same lines.
+3. **Add the `var()` takes ONE argument rule** to the guard alongside the
+   magic-number one. The main rule catches `background: var(--x, #hex)` (the
+   property isn't a `--` definition) but would miss a fallback hiding *inside* a
+   token definition, and neither defensible use of a fallback survives contact with
+   a better form: a hex fallback drifts silently from the token it shadows, and an
+   optional-override fallback is a default declaration written in the wrong place.
+4. **Move every button off the outcome tokens** onto `chrome-*`, and delete the two
+   dead button tones. Splitting `active` / `current` into `gamelist-open` /
+   `gamelist-live` happens with the mapping above.
+5. **Rename the turn log's outcome vocabulary** (`good | bad | partial | neutral`)
    to the family names, so the TypeScript and the CSS stop needing translation.
-7. **Name the 95 unnamed colors**, each in the nearest right place: a common token
+6. **Name the 95 unnamed colors**, each in the nearest right place: a common token
    if it is one, the game's `theme.css` if it is brand, and an allow-listed
-   exception with a comment if the call belongs to that game's conversion. Kill the
-   `var(--x, #hex)` fallbacks while here — they already violate a documented rule.
+   exception with a comment if the call belongs to that game's conversion. Where a
+   fill is being named, **name its ink beside it**. Kill the `var(--x, #hex)`
+   fallbacks while here — they already violate a documented rule.
+7. **Normalize `rgba(0, 0, 0, 0.3)` to `rgb(0 0 0 / 30%)`** — two spellings for one
+   thing, currently about half and half. Cosmetic, but it makes the guard's regex
+   and every future diff simpler, and this is the one sweep where it is free.
 8. **Add the guard** (below), with a planted violation to prove it fails.
 
 ### Commit 2 — the values that actually change
@@ -458,6 +542,116 @@ cross-cutting `#fff` ink and `#000` borders. wordle's two theme colors
 person should confirm, since a keyboard key's resting fill and a hovered surface
 being the same colour today may well be a coincidence.
 
+## The mapping — every token in `common/theme.css`
+
+**Approve this before anything is renamed.** A rename is cheap to run and expensive
+to redo, and the decisions only become visible with the whole list in front of you.
+107 tokens today; the target adds the reserved outcome cells and the two shared
+inks.
+
+`NEW` = no value yet, picked during the sweep. `alias` = defined as `var(--other)`
+because the two must move together. `copy` = same value today, deliberately
+independent.
+
+### outcome — 5 families × 5 variants
+
+| new | from |
+|---|---|
+| `--outcome-won-ink-color` | `--color-outcome-won-strong` |
+| `--outcome-won-fill-color` | `--color-outcome-won-border` |
+| `--outcome-won-wash-color` | `--color-outcome-won-bg` |
+| `--outcome-won-edge-color` | NEW (psychicnum's local `color-mix(fill 84%, black)`) |
+| `--outcome-won-terminal-frame-color` | `--color-game-over-won`, taken a bit greener |
+| `--outcome-lost-*` | same five, from `-lost-strong` / `-border` / `-bg`, NEW edge, `--color-game-over-lost` taken a bit redder |
+| `--outcome-near-ink-color` | `--color-outcome-near-strong` |
+| `--outcome-near-fill-color` | `--color-outcome-near-border` |
+| `--outcome-near-wash-color` · `-edge-color` · `-terminal-frame-color` | NEW |
+| `--outcome-warning-ink-color` | `--color-warning-strong` |
+| `--outcome-warning-fill-color` | `--color-warning-border` |
+| `--outcome-warning-wash-color` · `-edge-color` · `-terminal-frame-color` | NEW |
+| `--outcome-neutral-ink-color` | `--color-outcome-neutral-strong` |
+| `--outcome-neutral-fill-color` | `--color-outcome-neutral-border` |
+| `--outcome-neutral-wash-color` | `--color-outcome-neutral-bg` |
+| `--outcome-neutral-edge-color` | NEW |
+| `--outcome-neutral-terminal-frame-color` | `--color-game-over` |
+
+### gamelist — six values, no variants
+
+| new | from |
+|---|---|
+| `--gamelist-won-color` | alias → `--outcome-won-fill-color` |
+| `--gamelist-lost-color` | alias → `--outcome-lost-fill-color` |
+| `--gamelist-neutral-color` | alias → `--outcome-neutral-fill-color` |
+| `--gamelist-unplayed-color` | copy of `--color-outcome-neutral-bg` — a 4px stripe wants its own lightness |
+| `--gamelist-open-color` | `--color-outcome-active-border` |
+| `--gamelist-live-color` | `--color-outcome-current-border` |
+
+**Deleted** (no consumer, and the concepts they named are gone):
+`--color-outcome-active-bg`, `--color-outcome-active-strong`,
+`--color-outcome-current-bg`, `--color-outcome-current-strong`.
+
+### chrome — controls
+
+| new | from |
+|---|---|
+| `--chrome-accent-color` · `--chrome-accent-hover-color` | `--color-accent` · `--color-accent-hover` |
+| `--chrome-caution-color` | copy of `--color-warning-strong` — Hint / Spoiler / AI / Pass; free to darken for icon-and-border use without moving the outcome |
+| `--chrome-destructive-color` | copy of `--color-sys-error-red` — Reveal / End / Concede / Delete |
+| `--chrome-fault-color` | `--color-sys-error-red` — the system failed. Same value as destructive, its own name |
+
+### view · mark · ink
+
+| new | from |
+|---|---|
+| `--view-history-color` | `--color-history-viewer` |
+| `--view-share-preview-color` | `--color-share-preview` (copy of attention's value, deliberately independent) |
+| `--mark-attention-color` | `--color-attention` |
+| `--mark-attention-wash-color` | `--tile-attention` |
+| `--mark-in-flight-dim-color` · `--mark-not-your-turn-dim-color` · `--mark-game-over-dim-color` | `--dim-*` |
+| `--mark-attention-flash-duration` · `--mark-your-turn-flash-duration` | `--*-flash-duration` |
+| `--mark-peer-ring-width` · `--mark-peer-ring-gap` | `--peer-ring-*` |
+| `--mark-grid-cursor-color` | `--grid-cursor` |
+| `--ink-on-dark-color` · `--ink-on-light-color` | `--verdict-ink-on-dark` / `-on-light`, widened past verdicts (nine games write raw `#fff` today) |
+
+### page · control
+
+| new | from |
+|---|---|
+| `--page-bg-color` · `--page-surface-color` · `--page-surface-border-color` · `--page-surface-hover-color` | `--color-bg` · `--color-surface` · `--color-surface-border` · `--color-surface-hover` |
+| `--page-text-color` · `--page-text-muted-color` · `--page-divider-color` | `--color-text` · `--color-muted` · `--color-divider` |
+| `--control-bg-color` · `--control-border-color` · `--control-border-strong-color` · `--control-text-muted-color` | `--color-control-bg` · `-border` · `-border-2` · `-text-2` |
+
+`-2` suffixes go: they say "the second one", which is a fact about the order they
+were written in.
+
+### member · gamemode
+
+| new | from |
+|---|---|
+| `--member-<hue>-dot-color` (×8) | `--color-member-<hue>` |
+| `--member-<hue>-border-color` (×8) | `--color-member-<hue>-border` |
+| `--gamemode-coop-ink-color` · `--gamemode-compete-ink-color` | `--color-mode-*-text` |
+
+### tile · kbd · rank · wordle
+
+| new | from |
+|---|---|
+| `--tile-1-color` … `--tile-5-color`, `--tile-1-edge-color` … `-5-edge-color` | `--tile-N` / `--tile-N-border` |
+| `--tile-disabled-color` · `--tile-disabled-edge-color` | `--tile-disabled` / `-border` |
+| `--tile-bg-color` · `--tile-border-color` · `--tile-ink-color` | `--tile-bg` · `--tile-border` · `--tile-text` |
+| `--tile-selected-border-color` · `--tile-border-width` · `--tile-selected-border-width` | `--tile-selected-border` · `--tile-border-width` · `--tile-border-width-selected` |
+| `--tile-shadow` · `--tile-hover-shadow` | `--tile-shadow` · `--hover-shadow` |
+| `--kbd-key-border-color` · `--kbd-control-border-color` | `--kbd-*-border` |
+| `--rank-fill-color` · `--rank-edge-color` | `--rank-fill` · `--rank-edge` |
+| `--wordle-green-color` · `--wordle-yellow-color` · `--wordle-gray-color` · `--wordle-blank-color` | `--wordle-*` |
+| `--wordle-green-edge-color` · `--wordle-yellow-edge-color` · `--wordle-gray-edge-color` | `--wordle-*-border` |
+
+### unchanged
+
+`--radius-sm/md/lg` (a scale — quality-first by the exception above),
+`--icon-button-size`, `--entrybox-font-size`, `--page-padding-x/y`,
+`--game-chrome-height`, `--game-header-bottom`. All already state their quality.
+
 ## The guard
 
 A test that fails when a **color literal or color expression appears outside a
@@ -471,6 +665,10 @@ defines.
   and `color-mix()`.
 - Don't trip on `transparent`, `currentColor`, `inherit`, or `%23` inside SVG
   data-URIs.
+- **Two rules, not one.** (a) no color literal or expression outside a `--`
+  definition; (b) **`var()` takes exactly one argument** — no fallbacks, anywhere,
+  including inside a token definition where rule (a) can't see them. ui.md already
+  forbids fallbacks; this is what makes it true.
 - **Plant a violation first** and watch it fail: a guard nobody has seen fail is a
   guard that might be matching nothing.
 - **Its allow-list is the deferred list, and it is executable** — an entry reads
@@ -488,6 +686,6 @@ in a `theme.css`, and one sitting in a component module wants a reason.
   already-used letter, and it is the only piece wearing one. Decided when
   letterboxed converts; the likely answer is yes — a way to tint a tile with a very
   subtle outcome color.
-- **Which cells genuinely need filling?** Some reserved variants may never have a
-  consumer. Reserve them anyway, and let the vocabulary-completeness exception list
-  in `src/cssTokens.test.ts` carry the ones with no reader.
+- **`-terminal-frame` for `near` and `warning`** — reserved by policy (below), and
+  nothing will read them for a while. Pick them anyway, at the same sitting as won
+  and lost.
