@@ -22,7 +22,9 @@ type Props = {
 
 /**
  * The shared on-screen QWERTY keyboard — a Wordle-style key grid with an
- * Enter and a Backspace flanking the bottom row. Tapping a key calls back
+ * Backspace (left) and Enter (right) flanking the bottom row — the same hands
+ * as the shared word-entry row, where Delete sits left of the field and Submit
+ * right of it, rather than NYT's opposite arrangement. Tapping a key calls back
  * into the game's input path (the same path a physical key drives via
  * `useCaptureKeys`), so a game works on touch WITHOUT a physical keyboard.
  *
@@ -42,11 +44,12 @@ export function GuessKeyboard({ onKey, onEnter, onBackspace, disabled = false, k
           {i === 2 && (
             <button
               type="button"
-              className={cls(styles.key, styles.wide)}
-              onClick={onEnter}
+              className={cls(styles.key, styles.wide, styles.backspace)}
+              onClick={onBackspace}
               disabled={disabled}
+              aria-label="Backspace"
             >
-              Enter
+              ⌫
             </button>
           )}
           {[...row].map((ch) => {
@@ -67,12 +70,11 @@ export function GuessKeyboard({ onKey, onEnter, onBackspace, disabled = false, k
           {i === 2 && (
             <button
               type="button"
-              className={cls(styles.key, styles.wide)}
-              onClick={onBackspace}
+              className={cls(styles.key, styles.wide, styles.wideText, styles.enter)}
+              onClick={onEnter}
               disabled={disabled}
-              aria-label="Backspace"
             >
-              ⌫
+              Enter
             </button>
           )}
         </div>

@@ -220,13 +220,13 @@
   50% {
     transform: rotateX(-90deg);
     background: var(--reveal-bg);
-    border-color: var(--reveal-bg);
+    border-color: var(--reveal-border);
     color: #fff;
   }
   100% {
     transform: rotateX(0deg);
     background: var(--reveal-bg);
-    border-color: var(--reveal-bg);
+    border-color: var(--reveal-border);
     color: #fff;
   }
 }

@@ -13,7 +13,7 @@
      also has to be light enough for the hover drop-shadow to read against — at
      the old `--wordle-blank` (#d3d6da) a grey shadow on a grey cap was invisible.
      The cap's edge comes from `--kbd-key-border` (GuessKeyboard.module.css). */
-  --wordle-key-bg: #f2f2f3;
+  --wordle-key-bg: #eeeeee;
   --wordle-tile-border: var(--wordle-blank);
   --wordle-tile-border-filled: #878a8c;
 }

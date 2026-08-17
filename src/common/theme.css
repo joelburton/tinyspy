@@ -279,17 +279,41 @@
      because the recognizable green/yellow/gray is one palette across games —
      a player reads the same colors in waffle and wordle. Game-specific chrome
      (wordle's filled-tile border, waffle's pickup ring) stays in that game. */
-  --wordle-green:             #6aaa64;  /* right letter, right spot */
-  --wordle-yellow:            #c9b458;  /* in the word, wrong spot */
-  --wordle-gray:              #787c7e;  /* not in the word */
+  /* Darker and more saturated than NYT's, and only just: these carry WHITE
+     letters, and at NYT's values white sits at 2.78 (green) and 2.07 (yellow) —
+     under the 3:1 floor for large bold text, with yellow the least legible thing
+     on the board. Dark ink would have fixed the number and broken something more
+     valuable: black-on-light vs white-on-colour is what separates an untried
+     letter from a tried one at a glance, on the keyboard especially.
+     So the fills move instead — hue held (114° / 47°), saturation up, lightness
+     down, and no further than it takes. GREEN lands on the floor at 2.98.
+     YELLOW deliberately stops SHORT of it, at 2.57: getting it to 3.0 meant a
+     gold dark enough to stop reading as Wordle's yellow, and familiarity is
+     worth real money here — everyone arrives already knowing what these two
+     colours mean. Both are large bold glyphs on a big field of colour, which is
+     the case the 3:1 guideline is most forgiving about, and the second signal
+     (white ink = a letter you have tried) does not depend on reading the letter
+     at all. */
+  --wordle-green:             #66a45f;  /* right letter, right spot */
+  --wordle-yellow:            #bd9f35;  /* in the word, wrong spot */
+  /* Lightened from #787c7e so a spent letter RECEDES. Against the light key cap
+     the old value was the most prominent thing on the keyboard, which is
+     backwards: "not in the word" is what you want to stop looking at, and the
+     letters still in play are what you are hunting through. Changed here rather
+     than special-cased on the keyboard, because the same colour also carries the
+     board tile, the turn log and waffle — where it is small, and where a
+     too-heavy grey was never the problem.
+     Floor: it holds WHITE letters, so it cannot go lighter than about #959595
+     without dropping under 3:1 for large bold text. This sits at 3.26. */
+  --wordle-gray:              #8b8f91;  /* not in the word */
   --wordle-blank:             #d3d6da;  /* un-evaluated / neutral surface */
   /* Matching EDGES, each ~16% darker than its fill — the same step the warm tile
      ramp takes between a shade and its border. A coloured tile with a border of
      its own fill reads as a flat block; a slightly darker edge gives it the same
      quiet definition every other surface in the app has. */
-  --wordle-green-border:      #598f54;
-  --wordle-yellow-border:     #a9974a;
-  --wordle-gray-border:       #65686a;
+  --wordle-green-border:      #568a50;
+  --wordle-yellow-border:     #9f862d;
+  --wordle-gray-border:       #75787a;
 
   /* Radii. */
   --radius-sm:                4px;   /* small chips, tiles, hint pills */

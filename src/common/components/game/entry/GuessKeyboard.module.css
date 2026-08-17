@@ -25,11 +25,19 @@
   flex: 0 0 calc((100% - 9 * var(--kb-gap)) / 10);
   height: 3.2rem;
   padding: 0;
-  font-size: 0.95rem;
+  /* Bigger than it looks like it needs to be. A keycap has plenty of dead space
+   * inside it, and the letter is the whole content — worth reading at a glance,
+   * and it also rescues the ⌫ glyph, which was too small to recognise as one.
+   * Enter opts back down (`.wideText`), being a word rather than a character. */
+  font-size: 1.2rem;
   font-weight: 700;
   text-transform: uppercase;
-  border: none;
   border-radius: 4px;
+  /* Centre the content in the cap rather than relying on the button default, so
+   * keys with different font sizes still line up across a row. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   color: var(--color-text);
   /* Resting key: a LIGHT cap with a real dark-grey edge, rather than NYT's flat
@@ -80,9 +88,45 @@
 
 /* Wide Enter / Backspace keys: the only keys allowed to grow, splitting the
  * bottom row's leftover EQUALLY (basis 0, not auto — "Enter" is wider than
- * "⌫" but they stay the same size). */
+ * "⌫" but they stay the same size). WIDTH only — the two differ in what they
+ * hold, so they size their text separately. */
 .wide {
   flex: 1 1 0;
+}
+
+/* BACKSPACE is a plain control, so it wears the app's plain-control look: a
+ * WHITE cap rather than the letter keys' grey. That grey means something on this
+ * keyboard — "no result yet" — and ⌫ can never acquire a result, so wearing it
+ * would say something untrue. White also groups it with Enter as the row's two
+ * controls, one filled and one outlined, exactly as a Submit/Cancel pair reads
+ * elsewhere in the app. */
+.backspace {
+  background: var(--color-surface);
+  /* A DARKER edge than the letter caps. The white-vs-near-white fill alone was
+   * carrying the whole "this is a control, not a letter" distinction on a few
+   * percent of lightness; the border is the lever that makes it read. */
+  border-color: var(--kbd-control-border, #5f6368);
+}
+
+/* ENTER is a submit button, so it looks like one: the app's accent blue with
+ * white ink, the same treatment every Submit in the app wears (the global
+ * `button` rule). It is the one key that COMMITS rather than edits, and the
+ * shared word-entry row already makes that distinction visible — this brings the
+ * keyboard into line with it rather than with NYT's uniform grey.
+ *
+ * Placed after the state tints below would be wrong: Enter never carries a
+ * letter result, so nothing can overwrite it, and keeping it here puts it beside
+ * the other structural key rules. */
+.enter {
+  background: var(--color-accent);
+  border-color: var(--color-accent-hover);
+  color: #fff;
+}
+
+/* A wide key holding a WORD rather than a character. "Enter" has to fit across
+ * a cap barely wider than a letter's, so it alone stays small; ⌫ keeps the
+ * larger size, which is what makes it legible as a glyph. */
+.wideText {
   font-size: 0.85rem;
 }
 

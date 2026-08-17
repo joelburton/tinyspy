@@ -26,6 +26,32 @@ export function revealVar(c: TileColor): string | undefined {
   }
 }
 
+/**
+ * The matching EDGE for a feedback color — the darker shade a settled tile
+ * wears (see `--wordle-*-border`).
+ *
+ * It needs its own variable because the flip's keyframes paint the tile
+ * themselves, and `animation-fill-mode: both` makes the final frame stick. A
+ * freshly-flipped tile therefore keeps whatever the keyframes left it with — so
+ * when they painted `border-color` with the FILL, every new row ended up without
+ * the darker edge, while rows already on screen at mount (which take the static
+ * `.green` / `.yellow` class instead) had one. Two identical-looking tiles,
+ * different borders, depending only on whether you were watching when they
+ * landed.
+ */
+export function revealBorderVar(c: TileColor): string | undefined {
+  switch (c) {
+    case 'green':
+      return 'var(--wordle-green-border)'
+    case 'yellow':
+      return 'var(--wordle-yellow-border)'
+    case 'gray':
+      return 'var(--wordle-gray-border)'
+    default:
+      return undefined
+  }
+}
+
 /** Strength order so the on-screen keyboard can keep the BEST color
  *  seen for a letter across all guesses (green beats yellow beats
  *  gray). Higher = stronger. */
