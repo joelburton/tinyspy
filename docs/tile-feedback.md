@@ -4,7 +4,7 @@
 `docs/` describes what is; this one describes what we agreed the play surfaces
 *should* say, so that an audit has something to check each game against.
 
-**Where we are: 3 of 16 games converted** (wordle, waffle, psychicnum) — see
+**Where we are: 4 of 16 games converted** (wordle, waffle, psychicnum, connections) — see
 [Roster](#roster--which-games-are-converted), which is the place to start a
 session and the place to record finishing one. The channels and rules below are
 settled and live in shared code; what remains is applying them game by game.
@@ -42,8 +42,9 @@ ordering rule.
 | **background** | the game state this tile is in | permanent |
 | **background**, over the state | **attention** — this changed, look here | ~0.7s |
 | **border width** | **selected** — part of the move I am building (see the ruling in the audit: this replaces the current background fill) | until submitted or cleared |
-| **inset ring**, player color | a PEER is holding this piece — whose it is; mine stays neutral | while they hold it |
-| **border color** | **verdict** on my action — its PILL's tone | transient; see below |
+| **inset ring**, player color | WHOSE pick this is — everyone's on a shared board, mine included; nobody's otherwise | while they hold it |
+| **background**, the answer's own color | **verdict** on my action, where the background is free — its PILL's tone, at full strength | until my next action, or until the board moves |
+| **border color** | **verdict** on my action, where it isn't — its PILL's tone | until my next action |
 | **outline, dashed** | **hint** | until used or cleared |
 | **box-shadow** | **hover** — mouse only, subtle | while hovered |
 | **border color** | the CURSOR — where the keyboard is pointing | until it moves; hidden until an arrow |
@@ -337,6 +338,144 @@ One consequence: **a verdict must outlive the selection it is about.** Where a
 rejected selection clears, the invalid border has to persist a moment longer, or
 it vanishes together with the thing it was marking.
 
+### Check what a RESTART does to a mark — FIRST, every time
+
+The lifetimes above all describe a game in progress, and every one of them is
+silent about the two moments that end one. Both have bitten us repeatedly, in
+several games, and both are cheap to check while a mark is being written and
+expensive to find afterwards:
+
+- **Restart.** The board goes back to the beginning and the log is deleted, so
+  any mark still on screen is now about a move that no longer exists. Ask it of
+  every piece of mark state a conversion adds — the flash, the verdict, the
+  in-flight set, the selection.
+- **Game over.** A finished board is a record. A mark that means "I am building
+  this" or "the server is thinking about this" is a claim it cannot make, and
+  nothing will come along to take it off.
+
+Two things make the check pass reliably:
+
+- **Read the shrinking LOG, not the local "I clicked restart" callback.** A
+  restart handler fires only on the client that clicked it; a teammate's restart
+  has to clear your board too, and the log arrives for everyone. It is the same
+  signal the attention rule uses, read the same way.
+- **Selections need clearing at BOTH ends.** They are ephemeral broadcast state
+  that no server row will contradict, so they survive a restart and a game-over
+  unless something says otherwise: connections broadcasts a clear on restart, and
+  simply doesn't draw a selection on a board this player can no longer act on.
+
+### A TEMPORARY verdict may take the background, where nothing else wants it
+
+The channel table's first line gives the background to state, and state is
+**permanent**. A verdict is not: it answers one action and goes when you take the
+next one. Where a piece carries no state on its background, those two never
+contend for it, and the verdict may fill the piece — which is much the strongest
+way to say *these ones, together*, and the only way to say it at all when the
+pieces judged don't form a shape (see the next rule).
+
+Three conditions, all of them load-bearing:
+
+- **The background must be genuinely free on that piece, at that moment.**
+  Per-tile and per-moment, as the audit below says: connections' tiles carry no
+  state (a decided one stops being a tile and becomes part of a band), so it
+  qualifies; a waffle tile, coloured by its last swap, does not, and its verdict
+  would take the border colour instead.
+- **Attention must not land on the same piece.** Attention is also a background
+  mark, and one channel cannot say "look here" and "that was wrong" at once.
+  connections is safe by construction: attention lands on the arriving BAND,
+  verdicts on tiles.
+- **It is the colour that answer already wears elsewhere — specifically, its
+  TURN-LOG BAR's.** Not a separately chosen shade, and not a lighter cousin of
+  one: a wrong guess is one red, whether you meet it on the board now or in the
+  log a minute later. That is the outcome family's 400-level `-border` tier (the
+  800 `-strong` tier is for thin lines on white — a pill's border, a ring — and
+  as a fill it lands much darker than the bar, which is how this was caught).
+  Against a board of warm beige tiles the mark has to be unmistakably red /
+  orange / gold to read as an answer at all; the 100-level pastels, tried first,
+  read as "a slightly different beige". **The ink then follows the fill**: white
+  on the red, dark on the orange and the gold, which is where each stays legible.
+
+**A temporary verdict and a permanent one are the SAME colour**, and the
+temptation to separate them by tier has to be resisted for two reasons. Colour
+matching is doing real work — a player learns one red — and, more sharply, **the
+outcome palette is a gradient**: red for errors, orange for warnings, gold for a
+near miss, sitting close together by hue. Lightening any of them walks it toward
+its neighbour, so a "faded red" starts reading as an orange, which is not a
+weaker version of the message but a different one. What separates temporary from
+permanent is its LIFETIME, not its shade.
+
+### A board mark dies when the board moves; the pill doesn't
+
+Both halves of a verdict answer the same action, but they are attached to
+different things, and that decides how they end:
+
+- **The mark is attached to pieces**, and it is only true while those pieces are
+  where you left them. A teammate's successful guess can take four of them off the
+  board entirely, so a mark still sitting there is describing a position that no
+  longer exists. It goes the moment anyone else acts.
+- **The pill is attached to what you did**, and that stays true. A fast teammate
+  guessing a half-second after you submitted must not rob you of your own answer —
+  you asked a question and you are owed its reply, however quickly the board moved
+  on.
+
+So the two lifetimes are deliberately different, and the earlier "one message, one
+lifetime" framing was too tidy. connections reads the guess LOG for this: a row
+arriving that isn't mine (or the log shrinking, which is a restart) clears the
+mark, while my own row landing — the tail of the very action being answered,
+arriving a beat later over realtime — does not.
+
+Every path also has to leave the board in the same state afterwards: connections
+clears its selection on all three verdicts, including the one it refused locally,
+so "what happens after an answer" is one rule rather than three.
+
+### A UI PROBLEM is not a verdict, and must not wear outcome colors
+
+**Not designed yet — captured so it isn't solved by accident.** Some boards need
+to point at pieces for a reason that has nothing to do with how anyone is playing:
+stackdown and strands both ring duplicate tiles to say *you can't just type this
+letter, because there are two of them — you'll have to click*. Nothing has been
+judged. Nobody did anything wrong. It is a statement about the INPUT, and it is
+true before you act and stays true after.
+
+Both games draw it today as a red border, which is wrong twice over: red is an
+outcome colour and this is not an outcome, and if anything the message is closer
+to a caution than to a failure. The rules it will have to follow, when those games
+convert:
+
+- **Not an outcome colour.** It needs a colour of its own, outside the won / lost /
+  near / warning families, precisely so it can never be read as a judgement of a
+  move (see [colors-refinement.md](colors-refinement.md), which reserves the
+  question).
+- **Never a fill.** A filled tile reads as a verdict, and that is the one thing
+  this must not say. An edge or a ring, leaving the piece itself untouched.
+- **Its lifetime is the CONDITION, not an action.** It lasts exactly as long as
+  the ambiguity does — unlike every verdict, which ends at your next move.
+
+Expect more cases than these two: any board that has to say "this input won't work
+here" wants the same mark.
+
+### A verdict may be drawn on a GEOGRAPHIC unit — and geography is the test
+
+The channel table gives the verdict to **border color**, on the pieces judged.
+wordle appears to break that: a refused word wears an outline (`.verdictRing`)
+rather than five marked tiles. It doesn't, because what it marks is a **row** —
+the five tiles are contiguous, aligned, and already read as one shape, so there is
+a real unit on the board to draw around, and an outline can sit clear of the tiles
+instead of crowding them.
+
+The test is **geography, not count.** Judging several pieces at once does not
+license a group mark; the pieces forming a shape does. connections judges four
+tiles too, and they are scattered across the grid with unrelated tiles between
+them — there is no unit there to outline, only four separate pieces, so the
+verdict goes on each of them (as a fill, per the rule above). That is not an
+exception, it is the rule with the answer geography gives.
+
+So: **where the judged pieces don't form a geographic unit, the verdict is always
+on the distinct pieces, and never an outline** (on a tile, an outline is a hint or
+the history viewer). Where they do, drawing the unit is available — but it stays a
+decision about that board's geometry, made by the game that has it, not inherited
+from wordle. Either way the tone is still the pill's.
+
 ### A verdict can be about what you're ABOUT to do
 
 Drag-and-drop feedback (bananagrams, scrabble `.dropOk` / `.dropNo`) is a verdict
@@ -467,17 +606,27 @@ added.
 | color | means | where |
 |---|---|---|
 | **yellow** | attention: new, or changed | tile background flash; the your-turn board flash |
-| **amber** | warning: you cannot do that *yet* | invalid-move border |
+| **orange** | warning: you cannot do that *yet* | invalid-move border |
+| **gold** | a near miss: you were close | the turn log's one-away bar; a one-away verdict |
 | **green** | a good outcome | game state only |
 | **red** | a bad outcome | game state only — never a verdict on a keystroke |
 | **gray** | you are viewing history | board frame |
 
+**Orange and gold are different messages and must stay different colors.** "You
+can't do that" is a caution about an action; "you were one away" is a result. They
+shared one value until 2026-08-17 (`--color-outcome-near-strong` was orange, and
+the pill's `warning` and `near` tones both drew from it), which made connections'
+"You already tried that" and "One away!" indistinguishable in every place either
+appeared. Gold is the color the turn log's one-away bar already wore; the strong
+tier now matches it, and warning has its own `--color-warning-*` family.
+
 **A verdict wears the tone its PILL wears** — the two are one message arriving in
-two places, and a red pill beside an amber ring reads as two different verdicts.
+two places, and a red pill beside an orange edge reads as two different verdicts.
 So the color question is already answered elsewhere: whatever tone this level of
-invalid takes in the feedback pill (docs/ui.md → Feedback pill) is the tone the
+answer takes in the feedback pill (docs/ui.md → Feedback pill) is the tone the
 mark on the board takes. "Not in the word list" is an error, and it is red in both
-places; "already guessed" is a warning, and it is amber in both.
+places; "already guessed" is a warning, and it is orange in both; "one away" is a
+near miss, and it is gold in both.
 
 An earlier version of this doc said *invalid → amber, because red is spoken for by
 outcomes*. That was wrong twice: it invented a second rule for a question the pill
@@ -492,20 +641,21 @@ frame.
 
 ## Roster — which games are converted
 
-**3 of 16 done.** The order is chosen by which decisions a game forces, not by
+**4 of 16 done.** The order is chosen by which decisions a game forces, not by
 size: wordle needed the fewest, waffle moved the framework into shared code,
-psychicnum brought identity. Pick the next one up from the "forces" column.
+psychicnum brought identity, connections made identity a rule and put a verdict on
+the background. Pick the next one up from the "forces" column.
 
 | game | status | what it forced / what it will force |
 |---|---|---|
 | **wordle** | ✅ 2026-08-16, board marks 08-17 | first through: the in-flight dim, the verdict ring in its pill's tone, hover-as-shadow, blue history, the keyboard as a control surface. Then the four board-scope marks + the keyboard withdrawn at terminal. It went first because it needed the fewest decisions — no selection, no hint, no cursor |
 | **waffle** | ✅ 2026-08-17 | the framework INTO common: selection as a black border, the shared in-flight dim, the move shown optimistically with its verdict withheld, attention gated on the swap log, both turn marks, the game-over frame. No verdict mark and none needed — the only refused swap is one a teammate beat you to, and their swap arriving is what you want to see |
 | **psychicnum** | ✅ 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). Self-attention deliberately off: one tile changes and the in-flight dim already pointed at it |
-| connections | — | the **peer inset ring** as a named channel, a grid that COLLAPSES under the marks (bands), and identity for a transient state rather than a permanent one |
+| **connections** | ✅ 2026-08-17 | the **identity ring** as a named shared channel (`.peerRing`) — and, on the way, the rule that identity is drawn for EVERYONE on a shared board or for nobody, which the permanent dot already said and the ring contradicted. Also: the first verdict on the BACKGROUND (its tiles carry no state, so it was free), the first mark whose lifetime ends because someone ELSE acted, and the split that came out of it — a board mark dies when the board moves, its pill does not. Its bands are inert pieces wearing the shared tile face, and they flash for a teammate's solve |
 | codenamesduet | — | the keycard's `.triPeer` / `.triMine` triangles (which are the game, not attribution), and a board where only one seat can act |
 | setgame | — | its own in-flight + arriving/leaving marks predate all of this and are the richest set anywhere; `--setgame-*` tokens want folding into the shared ones. Selection is a `box-shadow` ring and must become a border |
-| stackdown | — | the ambiguous-letter mark (a red border *and* a red ring — should be the shared verdict ring in its pill's tone), plus a board whose pieces OVERLAP |
-| strands | — | the same ambiguous-letter treatment, the earned hint economy (the **hint** channel's first real user), and the move-end state mark |
+| stackdown | — | the ambiguous-letter mark — a red border *and* a red ring today, and the first user of the **UI-problem** channel above: it is not a verdict, so it loses the outcome red and never becomes a fill. Plus a board whose pieces OVERLAP |
+| strands | — | the same ambiguous-letter treatment (see stackdown), the earned hint economy (the **hint** channel's first real user), the move-end state mark, and a history-viewer ring still drawn in gold from when the viewer was yellow — it takes the shared blue like every other game's |
 | letterboxed | — | a board whose primary mark is a LINE between cells, not a tile fill |
 | scrabble | — | premium squares (puzzle notation vs progress), the drag-and-drop prospective verdict (`.dropOk` / `.dropNo`), and the share-preview frame |
 | bananagrams | — | drag-and-drop, its own grid cursor, and the one documented desktop-only layout |
@@ -515,12 +665,42 @@ psychicnum brought identity. Pick the next one up from the "forces" column.
 | wordwheel | — | same hexes, same questions |
 | wordiply | — | OPEN: at terminal its verdict pill takes over the KEYBOARD's space, where wordle leaves that space empty and keeps the verdict above. Not worth categorising until its turn |
 
+### The sanity check: a converted game should have LESS CSS
+
+Not an invariant, but the smell test for whether a conversion actually converted
+anything. The whole point is that marks move to common and a game stops carrying
+special cases, so its own stylesheet should get *smaller* — and if it doesn't,
+either the game kept a private version of something shared, or it invented a mark
+instead of using one.
+
+One qualifier: **growth is fine when it is traceable to a mark the game never
+had** — the board-scope marks, an identity dot, an in-flight dim — and a warning
+when it is a special case. Measure rules and declarations rather than lines; this
+repo's comment density would drown the signal.
+
+Where the first three landed (against `788193d0`, the branch point):
+
+| game | rules | declarations | |
+|---|---|---|---|
+| waffle | 24 → **12** | 50 → **41** | plus its `theme.css` deleted outright |
+| wordle | 19 → 21 | 59 → 59 | a wash: lost `.busy` + the reject ring, gained `.letter` + `.inFlight` |
+| psychicnum | 6 → 7 | 26 → 31 | grew, and legitimately: it GAINED the identity dot. Its `theme.css` went too |
+| connections | 23 → **17** | 67 → **56** | the first conversion that only SUBTRACTED: out went the wrong-guess shake + its keyframes + its reduced-motion block, and the band stopped re-declaring the tile box it now composes |
+
+And the aggregate, stated honestly so nobody quotes the check as already proven:
+common grew a lot on the way here (`PlayArea.module.css` 34 → 66 rules), because
+the whole shared framework was built while only three games were converted. The
+check is **per game, after its conversion**; the repo-wide total only turns
+positive as the remaining thirteen amortise what is already there. Each further
+game should add roughly nothing to common and take something out of itself.
+
 Cross-cutting, not owned by any one game:
 
 | | departure |
 |---|---|
 | history viewer | DONE — the shared frame was yellow; it is now the blue `--color-history-viewer`, so yellow means only "attention" |
-| in-flight marks | was "missing in all but three games"; now shared (`.dimInFlight`) and worn by the three converted ones. Still absent everywhere else |
+| in-flight marks | was "missing in all but three games"; now shared (`.dimInFlight`) and worn by the four converted ones. Still absent everywhere else |
+| identity, transient | DONE — the inset ring is shared (`.peerRing`, `--peer-color` inline, `--peer-ring-gap` holding it clear of the selection border). connections wears it; crosswords' `.peerFrame` folds in when it converts |
 | the shared tile | see the next section — nine boards still roll their own |
 
 ## Per-game check: is this board's tile the SHARED tile?
@@ -528,8 +708,10 @@ Cross-cutting, not owned by any one game:
 Ask it on every conversion, because the answer is usually no. The shared pair —
 `.tileFace` for the box and `.tile` for "and you can act on it" (common
 PlayArea.module.css) — is worn by **five** boards today: waffle, connections,
-psychicnum, codenamesduet, and wordle (the face alone; its tiles are inert). Nine
-others roll their own:
+psychicnum, codenamesduet, and wordle (the face alone; its tiles are inert).
+connections wears it twice over, since its solved-category BANDS are "one long
+tile" and now compose the face rather than re-declaring the same box. Nine others
+roll their own:
 
 | board | its own tile lives in |
 |---|---|
@@ -660,18 +842,34 @@ says about a tile versus what my partner's does. That asymmetry is the game
 itself, not attribution, and it is deliberately not a circle precisely so it
 cannot be mistaken for a player dot.
 
-**How identity resolves:** my own selection is neutral, a peer's carries their
-color — I don't need telling which tiles are mine, I just clicked them. And a
-peer's mark is an **INSET RING**, not the border: connections draws
-`inset 0 0 0 4px <member color>` and crosswords' `.peerFrame` does the same thing,
-arrived at independently, so the convention already existed and only needed a name.
+**How identity resolves:** the mark is an **INSET RING** in the picker's color,
+not the border — connections draws one and crosswords' `.peerFrame` does the same
+thing, arrived at independently, so the convention already existed and only needed
+a name.
 
-Inset is what makes it compose. One piece can be mine-and-selected (thick border),
-under my cursor (border color) and held by a peer (inset ring) at the same moment,
+**On a shared board, EVERY pick is ringed, mine included; on any other board, none
+are.** This started life as "mine stays neutral, a peer's carries their color" —
+I don't need telling which tiles I just clicked — and that was wrong for the same
+reason it is wrong for the permanent dot: a board where only *some* picks carry a
+color reads as missing data rather than as "the unmarked ones are yours". So the
+transient ring and the permanent dot follow one rule, which is easier to hold than
+two. What "shared" means is coop with somebody else in the game: solo, every pick
+is mine and a color is decoration on top of the selection border; in compete the
+selection never leaves the client that made it.
+
+Inset is what makes it compose. One piece can be selected (thick border), under my
+cursor (border color) and ringed as someone's (inset ring) at the same moment,
 each at its own radius, with nothing overriding anything. It rides on `box-shadow`,
 which this doc's table gives to hover — not a collision, since hover is an *outer*
 shadow and a shadow list carries both, but worth knowing before a third shadow is
 added.
+
+**The ring sits a couple of pixels INSIDE the edge**, not flush against it
+(`--peer-ring-gap`). A picked tile is usually selected too, so the color and the
+thick black selection border would otherwise meet as one band and read as a
+single two-tone edge; the gap shows the tile's own fill between them, which is
+what keeps them two marks saying two things. It matters most when a player's
+color is dark enough to be mistaken for the selection black.
 
 That is the TRANSIENT half of identity: someone is doing something here, now. The
 PERMANENT half — "moth called this one", forever — is the **player-color dot**

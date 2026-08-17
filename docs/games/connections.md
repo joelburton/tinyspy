@@ -362,9 +362,46 @@ the terminal/eliminated message are the shared `<FeedbackPill>` (sticky, dismiss
 the next tile click); action buttons are the semantic components (`HintButton` /
 `ClearButton` / `SubmitButton` / `EndGameButton` / `ConcedeGameButton`); mistakes
 render as `<StrikeMarks>` (red square-X filling left-to-right, "Mistakes (lose at 4)");
-compete shows a **Found** opponent strip in the info column; a wrong/one-away guess
-clears the selection. The setup dialog surfaces a rich roster-mismatch error
-(`<RichMessage>`) when a puzzle already has a game with a different roster.
+compete shows a **Found** opponent strip in the info column. The setup dialog
+surfaces a rich roster-mismatch error (`<RichMessage>`) when a puzzle already has a
+game with a different roster.
+
+### Board feedback: the shared vocabulary
+
+Converted 2026-08-17 ([tile-feedback.md](../tile-feedback.md)). Every mark on the
+board is shared code; what is left to connections is the bands and the history
+tints. What each one says, and when it ends:
+
+| mark | means | ends |
+|---|---|---|
+| `.selected` — thick black border | this tile is in the guess being built, **whoever picked it** (coop's four tiles are one shared move) | on submit, or Clear |
+| `.peerRing` — inset ring in a player's color | whose pick it was. On a SHARED board (coop, 2+ players) every pick is ringed, mine included; solo and compete, none are | with the selection |
+| `.dimInFlight` | the guess is with the server | when the answer lands |
+| `.verdictFill` + `.verdictError` / `.verdictNear` / `.verdictWarning` | the answer, filling the four tiles in its PILL's tone: red "Incorrect", gold "One away!", orange "You already tried that". A correct guess has no mark — those tiles become a band on the same render | my next action, a teammate's guess, or a restart |
+| `.attentionFlash` on a BAND | a category resolved under someone else's hands | ~0.7s |
+| board: `.dimNotYourTurn` / `.yourTurnFlash` / `.gameOverFrame` | turn-order and terminal state | with the state |
+
+Four rules that took work to get right, and that a future change here should not
+undo:
+
+- **Every answer leaves the board the same way** — all three verdicts clear the
+  selection, including "You already tried that", which never reaches the server.
+  One rule for "what happens after an answer" rather than three.
+- **The verdict mark and the verdict PILL have different lifetimes.** The mark is
+  attached to *pieces* and dies when anyone else acts (their correct guess can take
+  those tiles off the board entirely); the pill is attached to *what you did* and
+  stays, because a fast teammate must not rob you of your own answer. `BoardCol`
+  reads the guess log for this: a row that isn't mine, or a shrinking log (a
+  restart), clears the mark — while my own row landing a beat later does not.
+- **Attention is gated on the log, never on a board diff.** A restart re-deals and
+  the reveal swaps four bands in at once; both differ wildly from the previous
+  render and neither is news (`useMoveCausedChange`). It also never fires for the
+  player who guessed — they picked those tiles and the commit slot already answered
+  them.
+- **Nothing is drawn on a board that can't be acted on.** A frozen board (terminal,
+  eliminated, conceded) and the history viewer both drop the selection entirely,
+  and the tiles are `disabled` when it isn't your turn rather than silently
+  swallowing clicks.
 
 ### Mobile: no status bar (deliberate)
 
@@ -413,9 +450,10 @@ src/connections/
                           needs, instead of silently loading it.
   db.ts                   export const db = supabase.schema('connections')
   theme.css               JUST the NYT rank palette (yellow/green/blue/purple =
-                          --connections-rank-0..3). The tile chrome (beige resting, dark hover
-                          ring, dark selected fill) is the SHARED --tile-* system in
-                          common/theme.css. Imported by PlayArea.tsx so it loads with the chunk.
+                          --connections-rank-0..3). The tile chrome (beige resting, the hover
+                          lift, the black selection border) and EVERY feedback mark are the
+                          SHARED --tile-* / .peerRing / .dimInFlight / .verdictFill system in
+                          common/. Imported by PlayArea.tsx so it loads with the chunk.
   logo.svg                connections's game-tile / launcher icon, referenced from the manifest.
 
   components/
@@ -634,7 +672,7 @@ Promoted out of inline test fixtures because every connections test needs them a
 | `src/connections/lib/localOrder.test.ts` | The per-player local-shuffle ordering helpers (shuffle + reset). |
 | `src/connections/lib/history.test.ts` | The turn-history snapshot boundary (bands strictly-before, THIS turn's tiles still on the grid) + outcome tinting. |
 | `src/connections/hooks/useGame.test.ts` | The realtime-channel lifecycle: the stable `connections:<gameId>` room and the effect's load-bearing dependency array (resubscribes on gameId, not on unread values). |
-| `src/connections/components/PlayArea.test.tsx` | Render + concede wiring (useGame/db mocked): the tree mounts; compete → `connections.concede`, coop → End. |
+| `src/connections/components/PlayArea.test.tsx` | Render + concede wiring (useGame/db mocked): the tree mounts; compete → `connections.concede`, coop → End. Plus the board FEEDBACK wiring — which mark lands on which element, for whom, and when it ends: the identity ring (everyone's on a shared board, nobody's solo or in compete), the in-flight dim and the verdict fill in its pill's tone, the band attention flash (a teammate's guess only; silent on the reveal), the four board-scope marks, and the mark's three deaths (my next action, a teammate's guess, a restart). |
 | `src/connections/manifest.test.ts` | `startGameInClub`: creates via `create_game`, sends NO `puzzleId` when the setup carries none (how the server is told to choose) and passes an explicit one through when given. The find-or-create + roster-mismatch paths it used to guard are gone with the picker. |
 | `supabase/tests/strands/next_puzzle_test.sql` | `next_puzzle_for_club` (strands' copy; connections' is its twin): ascending, per-PLAYER not per-club, across clubs, and the exhausted case raising `no-unplayed-puzzle|`. |
 
@@ -642,7 +680,7 @@ The broadcast / presence *behavior* itself (selection events merging across peer
 
 ## Deferred
 
-- **Per-tile rise-and-fade animations** on category match. The wrong-guess shake exists; the match-resolved animation doesn't.
+- **Per-tile rise-and-fade animations** on category match. A rejected guess shakes (the shared verdict mark); the match-resolved animation doesn't exist — the arriving band's attention flash is the nearest thing, and it is deliberately for the OTHER players.
 
 ## Printing the board (PDF)
 
@@ -704,7 +742,7 @@ otherwise every opponent row would read a bare "Correct".
 | Where the FE-knows rationale lives | this file (above) + the same migration's header comment |
 | How are puzzles imported | [`supabase/scripts/import-connections-puzzles.ts`](../../supabase/scripts/import-connections-puzzles.ts) — run via `gmake g-connections-puzzles` |
 | What does the play surface look like | [`src/connections/components/PlayArea.tsx`](../../src/connections/components/PlayArea.tsx) (mounted as the render-prop child of `<GamePage>` from App.tsx) |
-| What does the tile grid + category-band render look like | [`src/connections/components/Board.tsx`](../../src/connections/components/Board.tsx) (ONE grid: full-width colored bands + remaining tiles with per-tile self/peer attribution — peer-frame degenerate-unused in compete; pulls `RANK_TOKEN` from `lib/rankColors`. Replaced the old separate `TileGrid` + `CategoryBands`.) |
+| What does the tile grid + category-band render look like | [`src/connections/components/Board.tsx`](../../src/connections/components/Board.tsx) (ONE grid: full-width colored bands + remaining tiles, both wearing the shared `.tileFace`; carries the identity ring, the in-flight dim, the verdict fill, the band attention flash and the three board-scope marks — see [Board feedback](#board-feedback-the-shared-vocabulary). Pulls `RANK_TOKEN` from `lib/rankColors`. Replaced the old separate `TileGrid` + `CategoryBands`.) |
 | How shared selection works | [`src/connections/hooks/useGame.ts`](../../src/connections/hooks/useGame.ts) (the `apply` callbacks + `toggleTile` + selection-events broadcast; `broadcast()` short-circuits to local-only in compete) |
 | How `matchedCategories` is projected | [`src/connections/hooks/useGame.ts`](../../src/connections/hooks/useGame.ts) (the projection at the bottom of the hook) |
 | The pause-on-disconnect pattern | [`src/common/lib/game/pause.ts`](../../src/common/lib/game/pause.ts) + [`src/common/components/game/PauseOverlay.tsx`](../../src/common/components/game/PauseOverlay.tsx) + [`src/common/components/game/PauseBoundary.tsx`](../../src/common/components/game/PauseBoundary.tsx) |

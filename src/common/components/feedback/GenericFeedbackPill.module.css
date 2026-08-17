@@ -70,10 +70,12 @@
 /* Tone variants. Each colors the WHOLE border (all four sides; the left is just
  * thicker — the accent bar) + the fill background (a tone tint used by permanent
  * pills; the `.outline` modifier below drops it back to white for transient
- * pills). success/error/warning use the OUTCOME palette (won-green / lost-red /
- * near-amber) — the same colors as the board and the turn-log bars — so "won"
- * reads green everywhere, not blue. Uses the saturated `-strong` (800) tones so
- * it stays legible.
+ * pills). success/error/near use the OUTCOME palette (won-green / lost-red /
+ * near-gold) — the same colors as the board and the turn-log bars — so "won"
+ * reads green everywhere, not blue, and "one away" reads as the gold its log bar
+ * already wears. warning is the one tone that ISN'T an outcome, and takes the
+ * orange of its own family. All use the saturated `-strong` (800) tier so they
+ * stay legible.
  */
 
 .success {
@@ -86,16 +88,18 @@
   background: color-mix(in oklab, var(--color-outcome-lost-border) 18%, var(--color-surface));
 }
 
-/* Amber — the "important, but not good/bad" tone (a hint was asked for, an
- * opponent made progress). Distinct from success/error so it never reads as
- * a result. */
+/* ORANGE — the "important, but not good/bad" tone (a hint was asked for, an
+ * opponent made progress, you can't do that yet). Distinct from success/error so
+ * it never reads as a result — and, since 2026-08-17, distinct from `near`
+ * below, which IS one. */
 .warning {
-  border-color: var(--color-outcome-near-strong);
-  background: color-mix(in oklab, var(--color-outcome-near-border) 18%, var(--color-surface));
+  border-color: var(--color-warning-strong);
+  background: color-mix(in oklab, var(--color-warning-border) 18%, var(--color-surface));
 }
 
-/* near — a near-miss (connections' "one away"). Shares warning's amber for now
- * (a distinct tone name, same color — docs/ui.md → Feedback pill). */
+/* near — a near miss (connections' "one away"), in the GOLD its turn-log bar
+ * wears. It is a result, not a caution: "you were close" and "you can't do that"
+ * are different messages and no longer the same color. */
 .near {
   border-color: var(--color-outcome-near-strong);
   background: color-mix(in oklab, var(--color-outcome-near-border) 18%, var(--color-surface));

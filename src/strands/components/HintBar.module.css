@@ -49,15 +49,15 @@
 }
 
 /* ── The Hint button's two states ─────────────────────────────
- * The shared HintButton is an outline+amber `secondary`, which is right for a
+ * The shared HintButton is an outline+orange `secondary`, which is right for a
  * button you MIGHT press. Here the whole hint economy exists to reach one
  * moment — the bar filling — and an outline button changing from 50% to 100%
  * opacity is far too quiet an announcement for it.
  *
  * So the two states are made to differ in KIND, not just in strength: unusable
  * stays an outline, and ready flips to a filled orange with white text. The
- * colour is the same `--color-outcome-near-strong` the button already used for
- * its border, so this is the existing amber turned up, not a new hue.
+ * colour is the same `--color-warning-strong` the button already used for
+ * its border, so this is the existing orange turned up, not a new hue.
  */
 
 /* Less faint than the global `button:disabled` 0.5, which made an unusable
@@ -70,8 +70,8 @@
  * this is (0,2,0) and beats theme.css's `button.secondary` (0,1,1) without an
  * !important. */
 .hintReady:not(:disabled) {
-  background: var(--color-outcome-near-strong);
-  border-color: var(--color-outcome-near-strong);
+  background: var(--color-warning-strong);
+  border-color: var(--color-warning-strong);
   /* The Lucide glyph strokes with currentColor, so this whitens the icon too. */
   color: var(--color-surface);
 }
@@ -79,5 +79,5 @@
 .hintReady:not(:disabled):hover {
   /* Darker on hover — a filled button can't use the outline's
    * fill-on-hover, since it is already filled. */
-  background: color-mix(in oklab, var(--color-outcome-near-strong) 85%, black);
+  background: color-mix(in oklab, var(--color-warning-strong) 85%, black);
 }

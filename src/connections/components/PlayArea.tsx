@@ -10,6 +10,7 @@ import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useDismissLocalFeedbackOnKey } from '../../common/hooks/feedback/useDismissLocalFeedbackOnKey'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
+import { useTurnStartFlash } from '../../common/hooks/game/useTurnStartFlash'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
@@ -172,6 +173,12 @@ export function PlayArea({
   // made (they celebrate coop only).
   const celebration = useCelebration(playState === 'won')
 
+  // ─── Your turn just started (coop turn-order) ──────────
+  // The board looks identical the instant it becomes yours, and by definition
+  // you were looking somewhere else — you had been waiting. Never fires in a
+  // free-for-all game, where `isMyTurn` is permanently true.
+  const turnFlash = useTurnStartFlash(isMyTurn)
+
   // ─── Commit-slot flash (own-action feedback, local) ─────
   // A transient message shown *in place of the commit buttons* for the
   // player's own guess: "Correct!" (green) / "One away!" (amber) /
@@ -300,6 +307,12 @@ export function PlayArea({
       onRestarted: () => {
         exitViewing()
         clearLocalFeedback()
+        // The same sixteen tiles again, so whatever was picked for the guess
+        // that is now gone must go with it — and this one BROADCASTS, so every
+        // teammate's board drops it too rather than starting the replay with a
+        // half-built move on it. (The verdict marks clear themselves off the
+        // shrinking guess log, which reaches peers the same way.)
+        sendClear()
         // The same sixteen tiles again, so a hint spent on the first attempt
         // must not carry into the second. (Fires only on the client that
         // clicked Restart — the same limitation every onRestarted cleanup in
@@ -600,6 +613,14 @@ export function PlayArea({
         viewing={viewing}
         showInput={showInput}
         isMyTurn={isMyTurn}
+        notMyTurn={waiting}
+        myTurnJustStarted={turnFlash}
+        // The frame says "this board is not a live position", which is true in
+        // two situations, not one: the game is over for everybody (its tone is
+        // the verdict's), or this player is out of a compete race while the
+        // others play on. The second has no verdict yet, so it takes the neutral
+        // gray — their board is inert, which is all the frame claims.
+        gameOver={over ? over.tone : locallyDone ? 'neutral' : null}
         onExitViewing={exitViewing}
         // ── Tile selection (state in useGame; rendered + committed here) ──
         ownerByTile={ownerByTile}
@@ -608,6 +629,11 @@ export function PlayArea({
         unionTiles={unionTiles}
         selfId={session.user.id}
         colorByUserId={colorByUserId}
+        // Identity is only information on a genuinely shared board: coop, with
+        // somebody else here. Solo, every pick is mine and a colored ring would
+        // be decoration on top of the selection border; in compete the selection
+        // never leaves this client, so the same holds however many are racing.
+        sharedBoard={game.mode === 'coop' && players.length > 1}
         // ── Own-guess feedback (channel owned by PlayArea) ──
         localPill={boardPill}
         showLocalFeedback={showLocalFeedback}

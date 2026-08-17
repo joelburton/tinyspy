@@ -11,15 +11,21 @@
  *                   the solved-category bands (see Board.tsx + docs/ui.md →
  *                   "Board sizing").
  *   - .band*      — a solved/revealed category as a FULL-WIDTH grid row, the
- *                   same height as a tile row and sharing the one grid gap.
- *   - .tileShaking — the wrong-guess shake.
+ *                   same height as a tile row and sharing the one grid gap. It
+ *                   wears the shared `.tileFace`; only the span + the two lines
+ *                   are here.
+ *   - .viewedTile* — the turn-history highlight (outcome tint + the viewer ring).
  *   - .moveArea / .inputButton / .mistakesInline — the commit controls below the
  *     board (the mistakes readout + Clear/Submit, right-justified; they live in
  *     the shared `.moveAreaOrLocalFeedback` swap box). See docs/code-conventions.md
  *     → below-board structure.
  *
- * The shared dark hover-ring + dark selected fill (a player's own pick) come
- * from `.tile` / `.selected`; a peer's pick is an inline color frame (Board).
+ * Every FEEDBACK mark is shared and none of it is here: hover and press, the
+ * `.selected` border on a tile in the guess being built, `.peerRing` for whose
+ * pick it was, `.dimInFlight` while the guess is with the server,
+ * `.verdictFill` when the answer lands, `.attentionFlash` on a band that landed
+ * under a teammate's hands, and the three board-scope marks (the not-your-turn
+ * dim, the your-turn flash, the game-over frame). See docs/tile-feedback.md.
  */
 
 /* The info column's width — game-specific (the shared scaffold has no default, so
@@ -88,23 +94,20 @@
   --tile-font-max: 1.95rem;
 }
 
-/* A solved/revealed category is "one long tile": a full-width grid row (spans
- * all four columns) with the SAME box as a .tile — same height (the grid's 1fr
- * row), same padding, radius, and drop shadow — just colored by the category
- * (fill set inline to the rank color) and holding two lines (name + members).
- * No border, so the rank color reads clean. The name auto-fits the band width
- * via a container query. */
+/* A solved/revealed category is "one long tile", and it says so by WEARING the
+ * shared `.tileFace` (composed in Board.tsx): the box, radius, padding, edge and
+ * drop shadow all come from there, and Board sets the face's `--tile-*` tokens
+ * inline to color it by rank — the same "a state class re-sets a token" move the
+ * tiles use. What's left here is only what makes a band long rather than square:
+ * the full-width span and the two stacked lines. The name auto-fits the band
+ * width via a container query (the face is already an inline-size container). */
 .band {
   grid-column: 1 / -1;
   min-height: 0;
-  padding: 0.4rem 0.5rem;
-  border-radius: var(--radius-md);
-  box-shadow: var(--tile-shadow);
-  container-type: inline-size;
-  display: flex;
+  /* Dark ink: the rank palette is four pastels, which is where dark ink belongs
+   * (the white-on-color half of the ramp is for saturated fills). */
+  --tile-text: var(--color-text);
   flex-direction: column;
-  justify-content: center;
-  text-align: center;
 }
 
 .band strong {
@@ -120,40 +123,35 @@
   letter-spacing: 0.02em;
 }
 
-/* Wrong-guess shake: a brief horizontal jiggle on the tiles of a rejected
- * guess. Set by PlayArea for ~500ms after the server returns 'wrong', then
- * cleared. The ±4px over 0.4s reads as "no" without being disruptive. */
-.tileShaking {
-  animation: tile-shake 0.4s ease-in-out;
-}
-
-@keyframes tile-shake {
-  0%, 100% { transform: translateX(0); }
-  20%      { transform: translateX(-4px); }
-  40%      { transform: translateX(4px); }
-  60%      { transform: translateX(-4px); }
-  80%      { transform: translateX(4px); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  /* Strip the animation; the wrong-guess feedback still lands via the
-   * commit-slot "Incorrect" flash + the mistake-dot fill. */
-  .tileShaking {
-    animation: none;
-  }
+/* Both lines sit ABOVE the attention wash, the same lift the shared `.tileWord`
+ * takes: that wash is an absolutely-positioned overlay, and one of those paints
+ * over in-flow text by default — so without this the flash hides the band it is
+ * pointing at. */
+.band strong,
+.bandMembers {
+  position: relative;
+  z-index: 1;
 }
 
 /* Turn-history: the four tiles the VIEWED past turn guessed. Two parts, composed:
- *   - a TINT by the turn's outcome (green correct / amber one-away / red wrong) —
+ *   - a TINT by the turn's outcome (green correct / gold one-away / red wrong) —
  *     the same saturated outcome tones the turn-log bars use, set on the shared
- *     tile's --tile-* tokens so the fill wins (like psychicnum's decided tiles);
- *   - a history-yellow ring (`.viewedTile`, the shared viewer color), inset so it
- *     rings just inside the tile edge over the tint.
+ *     tile's --tile-* tokens so the fill wins (like psychicnum's decided tiles).
+ *     A live verdict fills the tile too, and these deliberately sit in the same
+ *     family: both are "what that guess turned out to be". They can't be confused
+ *     because they can't co-occur — the viewer is read-only and holds no live
+ *     answer — and in here the tile isn't being judged, it's being described:
+ *     that turn's outcome IS the state of this snapshot;
+ *   - a ring in the shared viewer blue, drawn OUTSIDE the tile so it reads as the
+ *     same mark as the board frame at tile scale — an outline, outside, in the
+ *     history color. Offset 0 is forced by the grid: 3px of ring on each of two
+ *     neighbours takes 6px of the 0.5rem gap, and any positive offset would have
+ *     two ringed tiles collide.
  * A guessed tile stays on the grid in the strictly-before snapshot even for a
  * correct guess (it hasn't collapsed into its band yet) — that's what we ring. */
 .viewedTile {
   outline: 3px solid var(--color-history-viewer);
-  outline-offset: -3px;
+  outline-offset: 0;
 }
 .viewedTile_correct {
   --tile-bg: var(--color-outcome-won-border);

@@ -174,7 +174,17 @@
 
 /* A refused guess wears the SHARED verdict ring + shake (common
  * PlayArea.module.css → `.verdictRing`), applied to the active row — the word is
- * still sitting there, since it was never accepted. */
+ * still sitting there, since it was never accepted.
+ *
+ * A ROW, not a tile, which is what licenses the outline: the five tiles are
+ * contiguous and aligned, so they are a GEOGRAPHIC unit — a real shape on the
+ * board to draw around, with room to sit clear of the tiles rather than crowd
+ * them. That is the test, and it is geography rather than count
+ * (docs/tile-feedback.md → "A verdict may be drawn on a GEOGRAPHIC unit").
+ * Judging several pieces at once doesn't earn a group mark by itself:
+ * connections judges four tiles scattered across its grid, so it has no unit to
+ * outline and colors each tile's border instead — which is the vocabulary's
+ * default. On a tile, an outline is a hint or the history viewer. */
 
 /*
  * Reveal flip — applied to the tiles of a freshly-submitted row. The

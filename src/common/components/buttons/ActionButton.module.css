@@ -24,10 +24,10 @@
   --color-control-text-2: var(--color-sys-error-red);
 }
 
-/* The "dark amber" — important, not good or bad (Hint / Reveal). */
+/* ORANGE — important, not good or bad (Hint / Reveal). */
 .warning {
-  --color-control-border-2: var(--color-outcome-near-strong);
-  --color-control-text-2: var(--color-outcome-near-strong);
+  --color-control-border-2: var(--color-warning-strong);
+  --color-control-text-2: var(--color-warning-strong);
 }
 
 .info {
@@ -35,8 +35,9 @@
   --color-control-text-2: var(--color-accent);
 }
 
-/* near (one-away) shares warning's amber for now — a distinct name, same color
- * (docs/ui.md → Feedback pill). */
+/* near (one-away) — the GOLD of the turn log's one-away bar, not warning's
+ * orange: a near miss is a kind of result, not a caution (docs/ui.md → Feedback
+ * pill). */
 .near {
   --color-control-border-2: var(--color-outcome-near-strong);
   --color-control-text-2: var(--color-outcome-near-strong);

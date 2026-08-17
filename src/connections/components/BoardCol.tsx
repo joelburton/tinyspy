@@ -1,5 +1,5 @@
 import { failureMessage } from '../../common/lib/game/serverError'
-import { useEffect, useState } from 'react'
+import { useRef, useState } from 'react'
 import { cls } from '../../common/lib/util/cls'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
@@ -17,7 +17,7 @@ import { stickyPill, terminalPill, outOfRacePill } from '../../common/lib/game/l
 import type { ConnectionsGame, GuessRow, MatchedCategory } from '../hooks/useGame'
 import type { Category } from '../lib/board'
 import type { TurnSnapshot } from '../lib/history'
-import { Board } from './Board'
+import { Board, type BoardVerdict } from './Board'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './PlayArea.module.css'
@@ -25,13 +25,17 @@ import styles from './PlayArea.module.css'
 /** Empty selection map — the board draws no selection while viewing a past turn. */
 const NO_OWNERS: ReadonlyMap<string, string> = new Map()
 
+/** Empty tile set — the resting value of the in-flight mark. */
+const NO_TILES: ReadonlySet<string> = new Set()
+
 /**
  * connections's board column — the `<Board>` (one grid of bands + tiles) with the
  * floating Shuffle, plus the fixed-height below-board slot (the
  * turn-viewer banner, the Clear/Submit commit row + inline mistakes, or a local
  * `<GenericFeedbackPill>` for an own-guess result / the terminal / eliminated verdict).
  *
- * This is the **input engine**: the local board shuffle, the wrong-guess shake, and —
+ * This is the **input engine**: the local board shuffle, the in-flight + verdict
+ * marks on the guessed tiles, and —
  * because the guess is a board gesture with its result via realtime (no deep
  * entangled state) — the `submit_guess` RPC, kept beside the commit row it fires.
  * The tile SELECTION itself lives in `useGame` (it's broadcast-coupled to the coop
@@ -54,6 +58,9 @@ export function BoardCol({
   viewing,
   showInput,
   isMyTurn,
+  notMyTurn,
+  myTurnJustStarted,
+  gameOver,
   onExitViewing,
   // ── Tile selection (state owned by useGame; this renders + commits it) ──
   ownerByTile,
@@ -62,6 +69,7 @@ export function BoardCol({
   unionTiles,
   selfId,
   colorByUserId,
+  sharedBoard,
   // ── Own-guess feedback (channel owned by PlayArea) ──
   localPill,
   showLocalFeedback,
@@ -98,6 +106,14 @@ export function BoardCol({
    *  why). Kept apart from `showInput` so a non-turn doesn't read as terminal /
    *  eliminated (which would flip to the reveal view). */
   isMyTurn: boolean
+  /** Turn-order: a teammate holds the move, so the board wears the shared dim.
+   *  Narrower than `!isMyTurn` — a terminal board is inactive for a different
+   *  reason and says so with the frame instead. */
+  notMyTurn: boolean
+  /** True for a beat as the turn arrives (the shared your-turn flash). */
+  myTurnJustStarted: boolean
+  /** The tone of the game-over frame, or null while the board is live. */
+  gameOver: 'won' | 'lost' | 'neutral' | null
   /** Return to the live board (the banner click / ✕). */
   onExitViewing: () => void
 
@@ -110,6 +126,9 @@ export function BoardCol({
   unionTiles: string[]
   selfId: string
   colorByUserId: ReadonlyMap<string, string>
+  /** Coop, with somebody else in the game — the only case where "whose pick is
+   *  this?" is a question the board can usefully answer. */
+  sharedBoard: boolean
 
   // ── Own-guess feedback ──
   /** The own-guess pill to render in the commit slot, or null. */
@@ -140,18 +159,55 @@ export function BoardCol({
   // shuffle, same for every player). A permutation gives this client its own view;
   // doesn't broadcast.
   const [localOrder, setLocalOrder] = useState<string[] | null>(null)
-  // Tiles currently playing the wrong-guess shake (set for ~500ms after a 'wrong').
-  const [shakingTiles, setShakingTiles] = useState<ReadonlySet<string>>(() => new Set())
+  // The four tiles of a guess that is OUT — they wear the shared in-flight dim
+  // until the server answers. It is what earns the right not to guess the answer
+  // locally: "sent, waiting" is honest, where colouring them now would be
+  // inventing a verdict we'd have to take back.
+  const [inFlightTiles, setInFlightTiles] = useState<ReadonlySet<string>>(NO_TILES)
+  // The verdict ring on the tiles of my last guess, in the tone its PILL wears —
+  // the two are one message arriving in two places, so they share a lifetime as
+  // well as a color: both last until my next action (a tile click, or dismissing
+  // the pill). See docs/tile-feedback.md → Every mark has a lifetime.
+  const [verdict, setVerdict] = useState<BoardVerdict | null>(null)
+  // Bumped per verdict so the ring's shake replays on a repeat (Board keys the
+  // ringed tiles on it). A ref, not state: it is read while setting state and
+  // never rendered on its own.
+  const verdictSeq = useRef(0)
 
-  // Auto-clear the shake set ~500ms after we set it (just past the 400ms animation).
-  useEffect(
-    function autoClearShakeAfterAnimation() {
-      if (shakingTiles.size === 0) return
-      const t = setTimeout(() => setShakingTiles(new Set()), 500)
-      return () => clearTimeout(t)
-    },
-    [shakingTiles],
-  )
+  /** Mark these tiles with the verdict in the given tone, replaying the shake. */
+  function markVerdict(tiles: string[], tone: BoardVerdict['tone']) {
+    verdictSeq.current += 1
+    setVerdict({ tiles: new Set(tiles), tone, nonce: verdictSeq.current })
+  }
+
+  // THE LOG IS THE VERDICT'S CLOCK. My answer is about a position, and two things
+  // end that position without me touching anything:
+  //
+  //   - a RESTART deletes every guess, so the log SHRINKS — the one thing only a
+  //     restart does (the same signal the attention flash reads);
+  //   - a TEAMMATE GUESSES, so the log grows with a row that isn't mine. The board
+  //     has moved on, and a stale mark on it claims to be about the move that just
+  //     happened.
+  //
+  // My OWN row landing is neither: it is the tail of the very action that set the
+  // mark, arriving a beat later over realtime, so the newest-row check is by
+  // AUTHOR rather than by count. (A refused duplicate writes no row at all, which
+  // is why this can't just watch for "my row arrived".)
+  //
+  // Read during render, so the mark and the board it is about land in one commit —
+  // and read off the LOG rather than `onRestarted`, which fires only on the client
+  // that clicked it. See docs/tile-feedback.md → "Check what a RESTART does".
+  const newestGuess = guesses.length > 0 ? guesses[guesses.length - 1] : null
+  const [seenGuess, setSeenGuess] = useState({
+    count: guesses.length,
+    id: newestGuess?.id ?? null,
+  })
+  if (guesses.length !== seenGuess.count || (newestGuess?.id ?? null) !== seenGuess.id) {
+    const shrank = guesses.length < seenGuess.count
+    const foreign = newestGuess !== null && newestGuess.user_id !== selfId
+    setSeenGuess({ count: guesses.length, id: newestGuess?.id ?? null })
+    if (shrank || foreign) setVerdict(null)
+  }
 
   const displayedTiles = localOrder
     ? reconcileLocalOrder(localOrder, remainingTiles)
@@ -165,38 +221,62 @@ export function BoardCol({
 
   async function handleSubmit() {
     if (submitting || unionTiles.length !== 4) return
+    // The tiles as they were at SEND. The selection is cleared on the way out
+    // (and a teammate can move it in coop), so every mark about this guess has
+    // to carry its own copy rather than re-reading `unionTiles` afterwards.
+    const sent = [...unionTiles]
 
     // Dup detection (FE-side per the FE-knows model). My own action, so it flashes
-    // locally (the selection stays put; clicking a tile dismisses it).
+    // locally (the selection stays put; clicking a tile dismisses it) — and the
+    // ring goes on the four tiles it is about, in the pill's amber. A refusal is
+    // the one verdict whose pill I might not be looking at: my eyes are on the
+    // board, having just clicked four tiles there.
     if (guesses.some((g) => sameTileSet(g.tiles, unionTiles))) {
       showLocalFeedback(stickyPill('warning', 'You already tried that'))
+      markVerdict(sent, 'warning')
+      // Cleared like any other answered guess. The refusal never reached the
+      // server, so this one could have kept its selection for tweaking — but
+      // then one of the three answers would leave the board in a different state
+      // from the other two, and "what happens after a verdict" is worth more as
+      // one rule than as a small convenience.
+      sendClear()
       return
     }
 
-    const verdict = evaluateGuess(unionTiles, game.board.categories)
+    const outcome = evaluateGuess(unionTiles, game.board.categories)
     setSubmitting(true)
+    setInFlightTiles(new Set(sent))
     const { error } = await db.rpc('submit_guess', {
       target_game: gameId,
       tiles: unionTiles,
-      result: verdict.kind,
-      ...(verdict.kind === 'correct' ? { matched_category_rank: verdict.rank } : {}),
+      result: outcome.kind,
+      ...(outcome.kind === 'correct' ? { matched_category_rank: outcome.rank } : {}),
     })
     setSubmitting(false)
+    setInFlightTiles(NO_TILES)
     if (error) {
       showLocalFeedback(failureMessage(error, 'guess'))
+      // The server refused the move outright, so the four tiles are still sitting
+      // there un-played — ring them in the error tone the pill took.
+      markVerdict(sent, 'error')
       return
     }
     // Own-result flash in the commit slot, then clear the selection in EVERY case:
     // correct (those four become a band and leave the grid) and wrong / one-away
     // (start fresh). The sticky flash shows over the cleared board; clicking a tile
     // dismisses it (handleToggle) and starts the next guess.
-    if (verdict.kind === 'correct') {
+    //
+    // The ring follows the pill's tone, and only where there is something left to
+    // ring: a correct guess's four tiles collapse into a band on this very render,
+    // so a mark on them would have nothing to land on.
+    if (outcome.kind === 'correct') {
       showLocalFeedback(stickyPill('success', 'Correct'))
-    } else if (verdict.kind === 'oneAway') {
+    } else if (outcome.kind === 'oneAway') {
       showLocalFeedback(stickyPill('near', 'One away!'))
+      markVerdict(sent, 'near')
     } else {
       showLocalFeedback(stickyPill('error', 'Incorrect'))
-      setShakingTiles(new Set(unionTiles))
+      markVerdict(sent, 'error')
     }
     sendClear()
   }
@@ -242,6 +322,8 @@ export function BoardCol({
     // clicks — has to be explicit.
     if (!showInput || !isMyTurn) return
     clearLocalFeedback()
+    // The ring goes with the pill it belongs to — one message, one dismissal.
+    setVerdict(null)
     toggleTile(tile)
   }
 
@@ -270,13 +352,30 @@ export function BoardCol({
         // record of how far you got. They step aside only for the reveal, whose
         // bands need the rows (bands + ceil(tiles/4) is a fixed row count).
         tiles={snap ? snap.tiles : solutionShown ? [] : displayedTiles}
-        // A historical snapshot is a record too — never clickable.
-        interactive={showInput && !viewing}
-        ownerByTile={viewing ? NO_OWNERS : ownerByTile}
-        selfId={selfId}
+        // A historical snapshot is a record too — never clickable. `isMyTurn` is
+        // in here as well as on the click guard: a tile that hovers, lifts and
+        // shows a pointer while silently swallowing the click is a promise the
+        // board can't keep, and the dim beside it would be saying the opposite.
+        interactive={showInput && isMyTurn && !viewing}
+        // Nobody is building a move on a board that can't take one, so the
+        // selection is not drawn on one: not in the history viewer (a past turn
+        // is a record), and not once this player is finished — the game over,
+        // eliminated, or conceded. The selection state itself is ephemeral
+        // broadcast chatter that outlives all three, and a frozen board wearing
+        // black selection borders reads as a move still in progress.
+        ownerByTile={viewing || !showInput ? NO_OWNERS : ownerByTile}
         onToggle={handleToggle}
-        shakingTiles={shakingTiles}
+        inFlightTiles={inFlightTiles}
+        verdict={verdict}
         colorByUserId={colorByUserId}
+        sharedBoard={sharedBoard}
+        notMyTurn={notMyTurn}
+        myTurnJustStarted={myTurnJustStarted}
+        gameOver={gameOver}
+        // ATTENTION's cause, read off the log rather than off the board: how many
+        // guesses the server has recorded, and whether the newest was mine.
+        moveCount={guesses.length}
+        lastMoveMine={guesses.length > 0 && guesses[guesses.length - 1].user_id === selfId}
         viewing={viewing}
         highlightTiles={snap?.highlightTiles}
         highlightOutcome={snap?.outcome}
@@ -323,7 +422,15 @@ export function BoardCol({
               there's a single render and a single dismiss handler. */}
           {slotPill ? (
             <div className={shared.localFeedback}>
-              <GenericFeedbackPill msg={slotPill} onClose={clearLocalFeedback} />
+              {/* Dismissing the pill takes its ring off the board with it — the
+                  two are one message, so they end together. */}
+              <GenericFeedbackPill
+                msg={slotPill}
+                onClose={() => {
+                  clearLocalFeedback()
+                  setVerdict(null)
+                }}
+              />
             </div>
           ) : (
               <div className={styles.moveArea}>

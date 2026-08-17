@@ -455,41 +455,92 @@
   pointer-events: none;
 }
 
-/* VERDICT — what you just tried was refused.
+/* VERDICT — the answer to what you just tried.
  *
- * A ring, plus a shake. Worn by whatever the refused thing WAS: a guess row, a
- * tile, a rack. The pill says what was wrong; this says WHERE, because your eyes
- * are on the board and not on the pill.
+ * The pill says WHAT; this says WHERE, because your eyes are on the board and
+ * not on the pill. The two are one message, so they share a color and a
+ * lifetime.
  *
  * The TONE IS THE PILL'S — a tone class here, matching the pill's, rather than a
- * color of its own. The two are one message arriving in two places, and a red
- * pill beside an amber ring reads as two different verdicts. Whatever tone this
- * level of invalid takes in a pill is the tone it takes here (docs/ui.md →
- * Feedback pill): "not a word" is an error, "already guessed" is a warning.
+ * color of its own. A red pill beside a gold mark reads as two different
+ * verdicts. Whatever tone this level of answer takes in a pill is the tone it
+ * takes here (docs/ui.md → Feedback pill): "not a word" is an error, "already
+ * guessed" is a warning, "one away" is a near miss.
  *
- * An `outline` rather than a border, so it layers outside the thing it marks
- * without resizing it — a row of tiles must not move because it was refused.
+ * ── The forms, and when each is available ───────────────────────────────────
+ * On a PIECE WHOSE BACKGROUND IS FREE — no state colour on it — the verdict
+ * fills it (`.verdictFill` below) with the colour that answer wears everywhere
+ * else, at full strength. That is the strongest way to say "these, together"
+ * about several pieces at once, and against a board of warm beige tiles it has to
+ * be unmistakably red / orange / gold to be read as an answer at all: the
+ * 100-level pastels tried first read as a slightly different beige.
  *
- * The shake is why the ring can stay this quiet: motion is the one channel a
+ * What keeps it from reading as PERMANENT is its lifetime rather than its shade —
+ * it is gone on the next click, and the pill beside it is saying the same thing
+ * for the same length of time.
+ * Where the background is NOT free, the verdict takes the border colour instead —
+ * see docs/tile-feedback.md, which owns the choice.
+ *
+ * `.verdictRing` is the other form, and it is available only where the judged
+ * pieces form a GEOGRAPHIC unit — wordle's refused word is a contiguous row, a
+ * real shape to draw around. The test is geography, not count: judging four
+ * scattered tiles (connections) is still four separate verdicts on four borders,
+ * because there is no shape there to mark. Even where a unit exists, drawing it
+ * is a decision about that board's geometry rather than something inherited.
+ * Outlines on a TILE are spoken for anyway: hints and the history viewer.
+ *
+ * The shake is why either form can stay this quiet: motion is the one channel a
  * player cannot mistake for state. It never carries the message alone, though —
- * under `prefers-reduced-motion` the movement goes and the ring stays.
+ * under `prefers-reduced-motion` the movement goes and the color stays.
  *
  * Replaying it needs a REMOUNT, because a CSS animation only restarts when the
  * element is new: refusing the same word twice must shake twice, so the caller
- * keys the element on a nonce (see wordle's BoardCol). */
+ * keys the element on a nonce (see wordle's BoardCol, connections' Board). */
 .verdictRing {
-  outline: 3px solid var(--verdict-ring);
+  outline: 3px solid var(--verdict-tone);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
   animation: verdict-shake 0.4s ease-in-out;
 }
 
-.verdictError {
-  --verdict-ring: var(--color-outcome-lost-strong);
+/* The verdict ON A PIECE: the background takes the answer's tone, and the ink
+ * takes whatever is legible on it.
+ *
+ * Qualified with `.tileFace` so it beats a game's own state class (which sets
+ * `--tile-bg` from another stylesheet at the same specificity — order between
+ * modules is the bundler's business and this must not be a coin flip). */
+.tileFace.verdictFill {
+  --tile-bg: var(--verdict-fill);
+  --tile-text: var(--verdict-ink);
+  animation: verdict-shake 0.4s ease-in-out;
 }
 
+/* Each tone carries both forms: `--verdict-tone` for a ring around a group (the
+ * legible-on-white 800 tier, since a ring is a thin line on the page), and
+ * `--verdict-fill` for a piece — the 400 tier, WHICH IS THE COLOUR THAT ANSWER'S
+ * TURN-LOG BAR ALREADY WEARS. That is the point of it: a wrong guess is one red,
+ * whether you meet it on the board now or in the log a minute later, and neither
+ * place is free to pick its own shade. Same family, two tiers, one meaning. */
+.verdictError {
+  --verdict-tone: var(--color-outcome-lost-strong);
+  --verdict-fill: var(--color-outcome-lost-border);
+  --verdict-ink: var(--verdict-ink-on-dark);
+}
+
+/* A caution — "you can't do that", "you already tried that". Orange, and dark
+ * ink: white on this one measures about 2:1. */
 .verdictWarning {
-  --verdict-ring: var(--color-outcome-near-strong);
+  --verdict-tone: var(--color-warning-strong);
+  --verdict-fill: var(--color-warning-border);
+  --verdict-ink: var(--verdict-ink-on-light);
+}
+
+/* A near miss — "one away". Gold, and dark ink for the same reason wordle's
+ * yellow keeps it: a gold dark enough to carry white text isn't gold any more. */
+.verdictNear {
+  --verdict-tone: var(--color-outcome-near-strong);
+  --verdict-fill: var(--color-outcome-near-border);
+  --verdict-ink: var(--verdict-ink-on-light);
 }
 
 @keyframes verdict-shake {
@@ -500,9 +551,10 @@
   80%      { transform: translateX(3px); }
 }
 
-/* The ring survives; the movement doesn't. */
+/* The color survives; the movement doesn't. */
 @media (prefers-reduced-motion: reduce) {
-  .verdictRing {
+  .verdictRing,
+  .tileFace.verdictFill {
     animation: none;
   }
 }
@@ -836,4 +888,62 @@
 .tile.selected {
   border-width: var(--tile-border-width-selected);
   border-color: var(--tile-selected-border);
+}
+
+
+/* PEER — a teammate is holding this piece, and this is WHOSE it is.
+ *
+ * An INSET ring in that player's color, which is the convention connections and
+ * crosswords arrived at independently before it had a name. Inset is what makes
+ * identity compose: one piece can be part of the move (thick border), under my
+ * keyboard cursor (border COLOR) and held by a peer (this) at the same moment,
+ * each at its own radius with nothing overriding anything.
+ *
+ * The color comes in as `--peer-color`, set inline from the member palette —
+ * a token per player is not a thing a stylesheet can know.
+ *
+ * ON A SHARED BOARD EVERY PICK IS RINGED, mine included; on any other board none
+ * are. "I don't need telling which tiles I clicked" sounds right and isn't: a
+ * board where only SOME picks carry a color reads as missing data rather than as
+ * "the unmarked ones are yours". Same rule as the permanent identity dot, which
+ * is one rule to hold instead of two. Whether a board counts as shared is the
+ * game's call (coop, with somebody else in it) — this class just draws whatever
+ * `--peer-color` it is handed.
+ *
+ * ── Why three rules ──────────────────────────────────────────────────────────
+ * `box-shadow` is a LIST, and the tile's depth already occupies it (resting, and
+ * the deeper one under the pointer). Setting a bare inset ring would silently
+ * drop that depth — a peer's tile would go flat and stop lifting on hover, which
+ * is how this arrived here in the first place (connections set the ring inline
+ * and lost both). So the ring is composed WITH each shadow rather than instead of
+ * it, and the hover/press pair below restate their own shadow beside it.
+ *
+ * They sit after `.tile:hover` / `.tile:active` deliberately: same specificity
+ * (0,3,0), so same-file order is what settles it, and it must not be a coin
+ * flip.
+ *
+ * ── Why the ring is TWO inset layers ─────────────────────────────────────────
+ * The first one is a spacer. An inset `box-shadow` always starts at the piece's
+ * inner edge, so a ring cannot simply be moved inward — it is drawn by painting a
+ * wider band in the ring colour and then covering the outer part of it with the
+ * tile's own fill. The first layer (topmost) is that cover, at `--peer-ring-gap`;
+ * the second is the colour, at gap + width; what survives is a ring of
+ * `--peer-ring-width` sitting `--peer-ring-gap` inside the edge — so it reads as a
+ * separate mark beside the selection border rather than as a two-tone edge.
+ *
+ * The spacer takes `--tile-bg` rather than a fixed colour so it stays the tile's
+ * own fill through every state — including a verdict, which re-sets that token. */
+.peerRing {
+  --peer-ring:
+    inset 0 0 0 var(--peer-ring-gap) var(--tile-bg),
+    inset 0 0 0 calc(var(--peer-ring-gap) + var(--peer-ring-width)) var(--peer-color);
+  box-shadow: var(--peer-ring), var(--tile-shadow);
+}
+
+.peerRing:hover:not(:disabled) {
+  box-shadow: var(--peer-ring), var(--hover-shadow);
+}
+
+.peerRing:active:not(:disabled) {
+  box-shadow: var(--peer-ring), var(--tile-shadow);
 }

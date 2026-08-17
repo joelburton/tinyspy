@@ -123,21 +123,36 @@
      ModePill 800-level chip tones below). */
   --color-outcome-won-strong: #2e7d32;   /* green 800 */
   --color-outcome-lost-strong:#c62828;   /* red 800 */
-  --color-outcome-near-strong:#ef6c00;   /* orange 800 — the "dark amber"
-                                            companion to near-border; the
-                                            important-but-not-good/bad signal
-                                            (hint asked for, opponent progress)
-                                            as a legible border/text on white */
+  --color-outcome-near-strong:#f9a825;   /* yellow 800 — GOLD, the legible-on-
+                                            white companion to near-border's
+                                            gold. "Near" is a near MISS, which is
+                                            its own kind of result and not a
+                                            warning: it earns the turn log's gold
+                                            everywhere it appears, and orange
+                                            (below) is what warnings get. The two
+                                            shared one value until 2026-08-17,
+                                            which made "one away" and "you
+                                            already tried that" the same color in
+                                            every place either of them showed. */
   --color-outcome-active-bg:  #fff9c4;   /* yellow 100 */
   --color-outcome-active-border: #fdd835; /* yellow 600 */
   /* "Near miss" — a partial-credit signal distinct from active-
      yellow. For any "you were close" row state in a guess
-     history; amber/orange to read as warning-flavored rather
-     than wait-flavored. `-border` is the outcome-bar amber.
+     history: the turn log's one-away bar is this, and it is the
+     gold the rest of the near family is tuned to.
      (There was a `-bg` here too, documented as backing
      connections's one-away commit flash — which actually uses
      `-border` + `-strong`. Nothing read it; it's gone.) */
-  --color-outcome-near-border: #ffb74d;  /* amber 300 */
+  --color-outcome-near-border: #ffb74d;  /* amber 300 — gold */
+  /* WARNING — orange, and NOT an outcome: "you cannot do that",
+     "that costs you something", "a hint was asked for". It sat
+     inside the near family until 2026-08-17 and pulled one-away
+     orange with it; it has its own name now because the two
+     answer different questions. `-strong` is the legible-on-white
+     tier (a pill border, a button's text + edge); `-border` is
+     the 400-level companion for a fill or a tint. */
+  --color-warning-strong:      #ef6c00;  /* orange 800 */
+  --color-warning-border:      #ffa726;  /* orange 400 */
   /* "Current" — the now-playing / join-this-one signal. Used by
      ClubGameCard's active-game corner flag (a saturated orange,
      deliberately more forceful than the suspended-yellow flag
@@ -452,6 +467,30 @@
      mark. Black belongs to nothing else on a board, which is what makes it
      legible on all of them. */
   --tile-selected-border:       #000000;
+  /* Ink for a filled verdict. The fill itself is not a token of its own: a
+     verdict fills the piece with the SAME colour its turn-log bar takes (the
+     outcome family's 400-level `-border` tier), so one guess going wrong is the
+     one red wherever it is drawn. Only the ink has to be decided, and the tones
+     don't agree: white on the red, dark on the orange and the gold, which is
+     where each stays legible. Ink follows the background it sits on. */
+  --verdict-ink-on-dark:        #ffffff;
+  --verdict-ink-on-light:       var(--color-text);
+  /* The PEER ring's weight — "a teammate is holding this piece", drawn as an
+     INSET ring in that player's color (the `.peerRing` class in
+     common/components/game/PlayArea.module.css). Inset is what makes it compose:
+     the selection border owns the edge, the cursor owns the border color, and
+     this sits inside all of it at its own radius. Matches the selected border's
+     4px so a piece a peer picked reads at the same weight as one I picked — the
+     two marks say the same thing about the move, and only the color says whose.
+     See docs/tile-feedback.md → Identity. */
+  --peer-ring-width:            4px;
+  /* …and how far inside the piece's edge it sits. A peer's pick is usually ALSO
+     selected (in a shared move, a teammate's tile is part of the guess I am about
+     to submit), so the colored ring and the thick black selection border would
+     otherwise meet as one 8px band and read as a single two-tone edge. The gap
+     shows the tile's own fill between them, which is what makes them two marks
+     saying two things — "in the move" and "moth is holding it". */
+  --peer-ring-gap:              2px;
 
   /* The "Wordle colors" — the per-letter feedback palette shared by the
      letter-coloring games (waffle today, wordle as it converges). The server
