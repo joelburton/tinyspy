@@ -2,10 +2,17 @@
      colors (common/theme.css): "W" on yellow, "N" on green — the WordNerd
      initials. The tiles are taller than wide so the pair fills a square
      (no letterboxing in the app's square logo slots). Hand-authored; no
-     external source. -->
+     external source.
+
+     The two fills are COPIES of --wordle-yellow / --wordle-green, because an
+     SVG file cannot read CSS custom properties. Keep them in step by hand:
+     yellow #BD9F35, green #66A45F. (They were NYT's #c9b458 / #6aaa64 until
+     both were darkened so white letters clear the contrast floor — see the
+     token comment in common/theme.css. A logo left behind would have been the
+     only place in the app still showing the old palette.) -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="wordle">
-  <rect x="2" y="2" width="60" height="124" rx="6" fill="#c9b458"/>
-  <rect x="66" y="2" width="60" height="124" rx="6" fill="#6aaa64"/>
+  <rect x="2" y="2" width="60" height="124" rx="6" fill="#bd9f35"/>
+  <rect x="66" y="2" width="60" height="124" rx="6" fill="#66a45f"/>
   <g fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="44" text-anchor="middle">
     <text x="32" y="80">W</text>
     <text x="96" y="80">N</text>

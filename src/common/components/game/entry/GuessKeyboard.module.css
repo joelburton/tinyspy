@@ -45,7 +45,7 @@
    * a border, not just a background — see the setgame card, the tile ramp), and a
    * grey drop shadow simply does not read against a grey cap, so the hover
    * treatment below was invisible. A game may override `--kbd-key-bg`. */
-  background: var(--kbd-key-bg, #f2f2f3);
+  background: var(--kbd-key-bg, #eeeeee);
   border: 1px solid var(--kbd-key-border, #8b8f94);
   /* Override the global button hover/accent treatment. */
   transition: filter 0.1s ease;
@@ -134,21 +134,27 @@
  * variables so a game can theme them; the defaults are the standard Wordle
  * palette.
  *
+ * The hex defaults here are only reachable by a consumer that passes key states
+ * WITHOUT theming them — nobody does today (wordle sets every variable, wordiply
+ * passes no states at all). They are kept in step with `--wordle-*` anyway: a
+ * stale default is invisible until the day someone reaches it, and then it
+ * quietly disagrees with the game beside it.
+ *
  * Each carries a slightly DARKER edge of its own colour, matching the board
  * tiles — the quiet definition the rest of the app gives a coloured surface,
  * rather than a flat block. A game supplies the edges as `--kbd-*-border`. */
 .correct {
-  background: var(--kbd-correct, #6aaa64);
-  border-color: var(--kbd-correct-border, #598f54);
+  background: var(--kbd-correct, #66a45f);
+  border-color: var(--kbd-correct-border, #568a50);
   color: #fff;
 }
 .present {
-  background: var(--kbd-present, #c9b458);
-  border-color: var(--kbd-present-border, #a9974a);
+  background: var(--kbd-present, #bd9f35);
+  border-color: var(--kbd-present-border, #9f862d);
   color: #fff;
 }
 .absent {
-  background: var(--kbd-absent, #787c7e);
-  border-color: var(--kbd-absent-border, #65686a);
+  background: var(--kbd-absent, #8b8f91);
+  border-color: var(--kbd-absent-border, #75787a);
   color: #fff;
 }
