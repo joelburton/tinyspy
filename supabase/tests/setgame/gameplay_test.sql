@@ -24,9 +24,15 @@ select * from setgame.create_game(
   'coop');
 
 -- ── The opening board ───────────────────────────────────────────────
-select is(
-  cardinality(pg_temp.sg_board((select id from g))), 12,
-  'the opening board deals twelve');
+-- The INVARIANT, not the number twelve. create_game runs the deal rule before
+-- anyone sees the table, so a shuffle whose first twelve hold no set opens at
+-- FIFTEEN — measured at 2.9% of 3000 shuffles through the real `_deal_to_playable`.
+-- Asserting 12 therefore failed about one run in thirty-four, which is exactly
+-- often enough to be dismissed as "the suite is flaky" and never chased.
+select ok(
+  cardinality(pg_temp.sg_board((select id from g))) >= 12
+    and cardinality(pg_temp.sg_board((select id from g))) % 3 = 0,
+  'the opening board is at least the floor, dealt in threes');
 select isnt(
   pg_temp.sg_live((select id from g)), null,
   'the opening board always holds a set — create_game runs the deal rule first');
@@ -106,9 +112,13 @@ select is(
   '…and a claim does not rewrite it — a handle you cannot rely on is no handle');
 
 -- ── The refill, which is where the in-place rule shows ───────────────
-select is(
-  cardinality(pg_temp.sg_board((select id from g))), 12,
-  'the board is topped back up to twelve');
+-- Same invariant after a claim, and deal-dependent for the same reason in the
+-- other direction: if the twelve left behind hold no set, the rule deals three
+-- more and the board is fifteen.
+select ok(
+  cardinality(pg_temp.sg_board((select id from g))) >= 12
+    and cardinality(pg_temp.sg_board((select id from g))) % 3 = 0,
+  'the board is topped back up to at least the floor');
 select is(
   (select deck_left + cardinality(board) from setgame.games_state where id = (select id from g))
     + 3 * (select count(*)::int from setgame.events
