@@ -60,10 +60,12 @@
   /* History-view marker — the yellow "you're viewing a past turn, not the live
      board" signal shared by every turn-history-capable game (drives the board
      frame, the open log row, and the overlay banner; see
-     common/components/game/lists/historyViewer.module.css). A neutral amber, NOT an outcome
-     color: reviewing a pass or a rejected word is no success, so green would
-     mislead. */
-  --color-history-viewer:     #ffd21a;
+     common/components/game/lists/historyViewer.module.css). A cool GREY-BLUE, not
+     an outcome colour: reviewing a pass or a rejected word is no success, so green
+     would mislead — and not the amber it used to be, because amber now means
+     "attention" and history is the one mark you asked for yourself. Grey-blue
+     rather than a flat grey so it doesn't read as disabled/inactive. */
+  --color-history-viewer:     #708090;
 
   /* Share-preview marker — the frame + banner color when a coop teammate is
      "showing a move" (scrabble). Deliberately its OWN token (initialized to the
@@ -236,6 +238,14 @@
      Used for a placed-but-not-committed scrabble tile (its history-turn tiles too). */
   --tile-attention:           rgba(255, 234, 110, 0.62);
 
+  /* BUSY — the dim-down veil for a game piece that has been SENT and is waiting
+     on the server. A translucent BLACK layer, drawn over the piece rather than
+     as an opacity, so it darkens the piece with its contents instead of fading
+     both toward the page. Black, deliberately: the not-your-turn dim is the
+     white one, and "held / working" must not look like "inert / unavailable".
+     See docs/tile-feedback.md. */
+  --tile-busy-veil:           rgb(0 0 0 / 18%);
+
   /* RANK LADDER (the shared <RankBar>, used by spellingbee + wordwheel).
      ONE palette for both games, not each game's accent: a rank ladder means the
      same thing wherever it appears, so a differing hue would imply a difference
@@ -273,6 +283,13 @@
   --wordle-yellow:            #c9b458;  /* in the word, wrong spot */
   --wordle-gray:              #787c7e;  /* not in the word */
   --wordle-blank:             #d3d6da;  /* un-evaluated / neutral surface */
+  /* Matching EDGES, each ~16% darker than its fill — the same step the warm tile
+     ramp takes between a shade and its border. A coloured tile with a border of
+     its own fill reads as a flat block; a slightly darker edge gives it the same
+     quiet definition every other surface in the app has. */
+  --wordle-green-border:      #598f54;
+  --wordle-yellow-border:     #a9974a;
+  --wordle-gray-border:       #65686a;
 
   /* Radii. */
   --radius-sm:                4px;   /* small chips, tiles, hint pills */

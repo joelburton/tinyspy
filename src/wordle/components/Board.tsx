@@ -39,6 +39,13 @@ type Props = {
   /** Turn-history: ring this row (the guess the viewed turn added), or -1 = none.
    *  The row keeps its g/y/x tile colors; the ring just marks which one. */
   highlightRow?: number
+  /** Bumped by `<BoardCol>` on every soft reject — the active row shakes and
+   *  rings amber. The pill says WHAT was wrong; this says WHERE. Keyed into the
+   *  row so a repeat rejection replays the shake rather than doing nothing. */
+  rejectNonce?: number
+  /** Which tone that rejection carries — the SAME tone as its pill, so the two
+   *  halves of one message agree. */
+  rejectTone?: 'error' | 'warning'
 }
 
 /**
@@ -67,6 +74,8 @@ export function Board({
   brand,
   viewing = false,
   highlightRow = -1,
+  rejectNonce = 0,
+  rejectTone = 'error',
 }: Props) {
   const activeIndex = active ? rows.length : -1
   // Rows present at first render — these don't flip (only fresh guesses do).
@@ -91,8 +100,20 @@ export function Board({
           const flipping = !viewing && !!submitted && r >= firstRows
           return (
             <div
-              key={r}
-              className={cls(styles.row, r === highlightRow && styles.viewedRow)}
+              // The nonce rides in the KEY of the active row: a CSS animation
+              // only replays if the element is remounted, and rejecting the
+              // same word twice must shake twice.
+              key={isActive ? `${r}-${rejectNonce}` : r}
+              className={cls(
+                styles.row,
+                r === highlightRow && styles.viewedRow,
+                // The rejected word is still sitting in the active typing row —
+                // it was never accepted, so it never became a submitted one.
+                rejectNonce > 0 && isActive && styles.rejected,
+                rejectNonce > 0 &&
+                  isActive &&
+                  (rejectTone === 'warning' ? styles.rejectWarning : styles.rejectError),
+              )}
               role="row"
             >
               {Array.from({ length: 5 }, (_, c) => {
@@ -115,6 +136,8 @@ export function Board({
                       // (via --reveal-bg), not the static color class.
                       flipping ? styles.reveal : styles[color],
                       letter && color === 'blank' && styles.filled,
+                      // Sent, waiting on the server — see `.busy`.
+                      isPending && styles.busy,
                     )}
                     style={
                       flipping

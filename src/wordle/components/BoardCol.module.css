@@ -27,6 +27,9 @@
    * look the local Keyboard had before the extraction. */
   --kbd-key-bg: var(--wordle-key-bg);
   --kbd-correct: var(--wordle-green);
+  --kbd-correct-border: var(--wordle-green-border);
+  --kbd-present-border: var(--wordle-yellow-border);
+  --kbd-absent-border: var(--wordle-gray-border);
   --kbd-present: var(--wordle-yellow);
   --kbd-absent: var(--wordle-gray);
 }

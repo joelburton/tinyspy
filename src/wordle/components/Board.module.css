@@ -99,22 +99,87 @@
   color: var(--color-text);
 }
 
-/* Server feedback colors — border matches fill so the tile reads solid. */
+/* Server feedback colors. The border is a slightly DARKER shade of the fill
+ * rather than the fill itself — the quiet definition every other surface in this
+ * app has, instead of a flat block of colour. */
 .green {
   background: var(--wordle-green);
-  border-color: var(--wordle-green);
+  border-color: var(--wordle-green-border);
 }
 .yellow {
   background: var(--wordle-yellow);
-  border-color: var(--wordle-yellow);
+  border-color: var(--wordle-yellow-border);
 }
 .gray {
   background: var(--wordle-gray);
-  border-color: var(--wordle-gray);
+  border-color: var(--wordle-gray-border);
 }
 .blank {
   /* empty tile — keep the light border, transparent fill */
   background: transparent;
+}
+
+/* ── In flight ──────────────────────────────────────────────────────────────
+ * The row you just submitted, while the server works out its colours. Until now
+ * it was drawn identically to a row you are still typing, so a slow connection
+ * looked exactly like nothing having happened.
+ *
+ * A dim-down VEIL over each tile rather than over the row, so the gaps between
+ * tiles stay light — a bar across the whole row would read as a new element
+ * rather than as the letters being busy. Black, per the shared vocabulary:
+ * "held / working", as against the white dim that means "inert".
+ *
+ * It must clear before the reveal flip starts, or the flip plays under a veil —
+ * which it does, because the row stops being pending the moment its coloured
+ * row lands. See docs/tile-feedback.md. */
+.busy {
+  position: relative;
+}
+
+.busy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--tile-busy-veil);
+}
+
+/* ── Rejected ───────────────────────────────────────────────────────────────
+ * A soft reject — not in the word list, already guessed, too short. The pill
+ * says what happened; this says WHERE, because your eyes are on the board and
+ * not on the pill.
+ *
+ * AMBER, not red: none of these is an error, they are "you can't submit that
+ * yet", and red is spoken for by outcomes. Paired with a shake, which is the
+ * one channel a player cannot mistake for state — and which is why the border
+ * can stay this quiet. Motion never carries it alone: the border survives
+ * `prefers-reduced-motion`, below. */
+.rejected {
+  outline: 3px solid var(--reject-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+  animation: wordle-reject-shake 0.4s ease-in-out;
+}
+
+/* The ring's colour MATCHES ITS PILL, tone for tone — the two are one message
+ * arriving in two places, and a red pill beside an amber row would read as two
+ * different verdicts. "Not in word list" is an error (that word does not
+ * exist); "already guessed" is a warning (it exists, you just can't use it
+ * again). Amber alone was wrong for both: amber means partial credit. */
+.rejectError {
+  --reject-ring: var(--color-outcome-lost-strong);
+}
+
+.rejectWarning {
+  --reject-ring: var(--color-outcome-near-strong);
+}
+
+@keyframes wordle-reject-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-5px); }
+  40%      { transform: translateX(5px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
 }
 
 /*
@@ -163,6 +228,14 @@
     background: var(--reveal-bg);
     border-color: var(--reveal-bg);
     color: #fff;
+  }
+}
+
+/* Reduced motion: the shake goes, the amber outline stays — the message must
+ * survive without the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .rejected {
+    animation: none;
   }
 }
 

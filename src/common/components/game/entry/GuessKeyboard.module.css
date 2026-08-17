@@ -32,9 +32,13 @@
   border-radius: 4px;
   cursor: pointer;
   color: var(--color-text);
-  /* Resting key background — the standard Wordle keyboard grey by default
-   * (so every consumer looks like wordle); a game may override `--kbd-key-bg`. */
-  background: var(--kbd-key-bg, #d3d6da);
+  /* Resting key: a LIGHT cap with a real dark-grey edge, rather than NYT's flat
+   * mid-grey fill. Two reasons, both practical: it is the house style (things get
+   * a border, not just a background — see the setgame card, the tile ramp), and a
+   * grey drop shadow simply does not read against a grey cap, so the hover
+   * treatment below was invisible. A game may override `--kbd-key-bg`. */
+  background: var(--kbd-key-bg, #f2f2f3);
+  border: 1px solid var(--kbd-key-border, #8b8f94);
   /* Override the global button hover/accent treatment. */
   transition: filter 0.1s ease;
   /* Touch (docs/mobile.md → tap-press feedback): the keyboard is the tap-heaviest
@@ -45,15 +49,28 @@
   touch-action: manipulation;
 }
 
+/* Hover is elevation, matching the shared `.tile` — see docs/tile-feedback.md.
+ * The keys sit gap-tight, so the shadow is kept tight too; it reads in the gap
+ * without spilling onto the neighbour. */
 .key:hover:not(:disabled) {
-  filter: brightness(0.95);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
 }
 
-/* Press feedback — darken the key on tap/click (the Wordle-keyboard idiom;
- * reuses the existing filter transition). A darken rather than the tiles'
- * scale-down, because keys sit gap-tight and a scale would look jittery. */
+/* Press feedback — the key SHIFTS DOWN and loses its shadow, like a physical
+ * keycap being depressed. Motion rather than the tiles' scale-down, because keys
+ * sit gap-tight and scaling one would crowd its neighbours — a translate moves
+ * it without changing its footprint, so nothing around it stirs. The darken
+ * rides along so the message survives `prefers-reduced-motion`. */
 .key:active:not(:disabled) {
-  filter: brightness(0.85);
+  transform: translateY(2px);
+  box-shadow: none;
+  filter: brightness(0.92);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .key:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 .key:disabled {
@@ -71,16 +88,23 @@
 
 /* Per-letter feedback tints (white text on colour). Colours are CSS
  * variables so a game can theme them; the defaults are the standard Wordle
- * palette. */
+ * palette.
+ *
+ * Each carries a slightly DARKER edge of its own colour, matching the board
+ * tiles — the quiet definition the rest of the app gives a coloured surface,
+ * rather than a flat block. A game supplies the edges as `--kbd-*-border`. */
 .correct {
   background: var(--kbd-correct, #6aaa64);
+  border-color: var(--kbd-correct-border, #598f54);
   color: #fff;
 }
 .present {
   background: var(--kbd-present, #c9b458);
+  border-color: var(--kbd-present-border, #a9974a);
   color: #fff;
 }
 .absent {
   background: var(--kbd-absent, #787c7e);
+  border-color: var(--kbd-absent-border, #65686a);
   color: #fff;
 }

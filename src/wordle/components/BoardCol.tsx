@@ -1,5 +1,5 @@
 import { failureMessage } from '../../common/lib/game/serverError'
-import { useCallback, useState } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import type { GenericFeedbackMsg } from '../../common/lib/games'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { useCaptureKeys, asciiLetters } from '../../common/hooks/input/useCaptureKeys'
@@ -31,6 +31,10 @@ import styles from './BoardCol.module.css'
  * fully-resolved below-board pill comes down as `localPill`. See
  * docs/playarea-decomposition-plan.md.
  */
+/** How long the rejected row keeps its amber ring — a touch past the shake, so
+ *  the mark is still there when the movement stops. */
+const REJECT_MARK_MS = 900
+
 export function BoardCol({
   // ── Board to render (live rows + the history snapshot — PlayArea picks the log,
   //    this column picks live-vs-snapshot) ──
@@ -84,6 +88,15 @@ export function BoardCol({
 }) {
   const [current, setCurrent] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  /** Bumped on every soft reject — the active row shakes and rings amber for a
+   *  beat. A NONCE rather than a boolean, because rejecting the same word twice
+   *  must replay the shake: a boolean already `true` changes nothing, and the
+   *  second attempt would look ignored. `<Board>` keys the row on it so the
+   *  animation restarts. */
+  const [rejectNonce, setRejectNonce] = useState(0)
+  /** The tone of the last rejection — mirrors the pill's, so the ring and the
+   *  pill never disagree about how bad it was. */
+  const [rejectTone, setRejectTone] = useState<'error' | 'warning'>('error')
   // The accepted-but-not-yet-rendered guess: kept on the board (uncolored) from the
   // moment we submit until its colored server row arrives via realtime, so the letters
   // don't blink out during the round-trip. The row then flips in place. Cleared on
@@ -110,6 +123,15 @@ export function BoardCol({
       if (current !== '') setCurrent('')
     }
   }
+
+  // The mark is transient: clear it once the shake has played. Dropping back to
+  // zero is also what lets the next rejection replay — the row is keyed on this
+  // value, so 0 → 1 remounts it even if the same word is rejected twice.
+  useEffect(() => {
+    if (rejectNonce === 0) return
+    const timer = setTimeout(() => setRejectNonce(0), REJECT_MARK_MS)
+    return () => clearTimeout(timer)
+  }, [rejectNonce])
 
   // The pending word, shown until its colored server row actually lands. Once it's in
   // the live `rows` we stop showing it (the real row flips in its place) — `pending`
@@ -175,6 +197,7 @@ export function BoardCol({
       setSubmitting(false)
       if (error) {
         setPending(null)
+        setRejectNonce((n) => n + 1)
         // A real failure (not a soft reject) → error-toned, still sticky.
         showLocalFeedback(failureMessage(error, 'guess'))
         return
@@ -184,11 +207,15 @@ export function BoardCol({
       // (`notAWord`) reads as an error; the rest are non-error nudges (warning).
       if (res.result === 'notAWord') {
         setPending(null)
+        setRejectTone('error')
+        setRejectNonce((n) => n + 1)
         showLocalFeedback(stickyPill('error', 'Not in word list'))
         return
       }
       if (res.result === 'duplicate') {
         setPending(null)
+        setRejectTone('warning')
+        setRejectNonce((n) => n + 1)
         showLocalFeedback(stickyPill('warning', 'Already guessed'))
         return
       }
@@ -237,6 +264,8 @@ export function BoardCol({
         brand={brand}
         viewing={viewing}
         highlightRow={snap ? snap.highlightRow : -1}
+        rejectNonce={rejectNonce}
+        rejectTone={rejectTone}
       />
       {/* The below-board region (universal). wordle is NON-SWAP: the feedback and the
           keyboard are separate and both always present, so the local feedback area sits

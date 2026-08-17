@@ -8,7 +8,12 @@
 :root {
   /* The neutral key / empty-tile surface is the shared blank; a filled but
      un-submitted tile gets a darker border. */
-  --wordle-key-bg: var(--wordle-blank);
+  /* The key cap is LIGHTER than the blank tile surface, and deliberately not the
+     same token: a key is a control you press, a blank tile is empty space. It
+     also has to be light enough for the hover drop-shadow to read against — at
+     the old `--wordle-blank` (#d3d6da) a grey shadow on a grey cap was invisible.
+     The cap's edge comes from `--kbd-key-border` (GuessKeyboard.module.css). */
+  --wordle-key-bg: #f2f2f3;
   --wordle-tile-border: var(--wordle-blank);
   --wordle-tile-border-filled: #878a8c;
 }

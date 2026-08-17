@@ -466,8 +466,16 @@
  * the NYT "I picked this" idiom, now canonical everywhere. Selected re-sets the
  * tokens the resting `.tile` reads, so the dark fill wins regardless of module
  * order. */
+/* Hover is ELEVATION, and nothing else — a deepened drop shadow over the tile's
+ * resting one. It used to ring the tile in `--tile-selected-bg`, which spent the
+ * selection colour on a state that isn't selection and put hover on the same
+ * channel as the mark it can sit next to.
+ *
+ * Subtle on purpose: you know where your own pointer is, so hover's whole job is
+ * to say the surface is alive. That frees the background for state and attention,
+ * which have nowhere else to go. See docs/tile-feedback.md. */
 .tile:hover:not(:disabled) {
-  box-shadow: 0 0 0 2px var(--tile-selected-bg), var(--tile-shadow);
+  box-shadow: 0 3px 8px rgb(0 0 0 / 22%);
 }
 
 /* Press feedback — a brief scale-down on tap/click, matching boggle's tiles and
