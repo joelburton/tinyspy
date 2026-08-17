@@ -48,6 +48,7 @@ ordering rule.
 | **dim-down, board** | **not your turn** | until it is |
 | **board frame, flash** | your turn just started | brief |
 | **board frame, steady grey** | you are viewing history | while viewing |
+| **ink colour** | dark on light = untouched · white on colour = decided | permanent |
 | **motion** | never alone — pairs with attention or invalid | brief |
 
 **Width and colour are separate channels on the same border**, which is what
@@ -296,7 +297,12 @@ not the audit itself.
 | stackdown | the ambiguous-letter mark is a **red** border *and* a red `box-shadow` ring — wrong hue (should be amber) and occupies the hover channel. |
 | strands | same red ambiguous-letter treatment. |
 | history viewer | the shared frame is **yellow** (`historyViewer.module.css`); should be grey, so yellow means only "attention". Scope stays as it is — board, and sometimes another region such as a rack. |
-| most games | **no in-flight mark at all.** This is the biggest gap and the most additive: wordle, for one, leaves a submitted row indistinguishable from an untouched one while the server answers. |
+| most games | **no in-flight mark at all.** This is the biggest gap and the most additive. |
+
+**wordle: CONVERTED** (2026-08-16) — in-flight veil, rejection ring matching its
+pill's tone, elevation hover, grey-blue history, and the keyboard rebuilt as a
+control surface. It went first because it needed the fewest decisions: no
+selection, no hint, and no cursor, so it did not force the position channel.
 
 ## The audit — what doesn't fit
 
@@ -431,6 +437,68 @@ needs that today.
   and mouse-only, and for never carrying meaning in it.
 - **In-flight marks exist in exactly three games** — setgame, waffle,
   codenamesduet (`.tilePending`). Confirms it as the biggest gap.
+
+## What wordle's conversion taught
+
+The first game through. Five things generalise.
+
+### Ink colour is a channel, and it is easy to spend by accident
+
+On wordle's keyboard, **black letters mean untried and white letters mean
+tried** — you read the state of the whole alphabet without reading a single
+letter. Nobody designed that; it fell out of "white text on a coloured fill".
+
+It nearly got spent: three of the key states carried white ink below the 3:1
+contrast floor, and the obvious fix — dark ink on the light ones — would have
+raised every number and destroyed the signal. **Before changing a colour for
+contrast, ask what the ink is already carrying.**
+
+### A state colour that carries white ink has a floor, and it constrains the palette
+
+`--wordle-gray` could not be lightened past about `#959595` without dropping
+white text under 3:1. That is a hard boundary on a purely aesthetic decision, and
+it is invisible until measured — so measure before choosing, not after.
+
+Where the floor and the design genuinely conflict, **say which won and why, in
+the token**: wordle's yellow deliberately sits at 2.57 rather than 3.0, because
+the gold that reaches 3.0 stops reading as *Wordle's* yellow, and that
+recognition is worth more than the last half point. A deliberate exception with
+its reasoning attached is fine; an undocumented one is indistinguishable from an
+oversight.
+
+### The keyboard is chrome that carries game state
+
+Its keys are **chrome first**. That is why ENTER can take a background for an
+*affordance* (the accent blue every Submit wears) without breaking
+"background = state", and why the same blue on a board tile would be wrong.
+
+The general form: when a surface is both, decide which it is *first*, and the
+rest follows. A control that happens to display state is still a control.
+
+### An animation that paints a property must paint ALL of that state's properties
+
+wordle's reveal flip set `background` and `border-color`, but painted the border
+with the FILL rather than the darker edge — and `animation-fill-mode: both`
+freezes the final frame, so that stuck. The result: a tile that flipped in front
+of you kept `border == fill` forever, while the same tile rendered on a page
+reload took the static class and got its proper edge. **Two identical tiles with
+different borders, decided by whether you were watching when they landed.**
+
+Any keyframe that overrides a state's styling owns *all* of it, or the styling
+becomes history-dependent.
+
+### Verify the rendered value, not the source
+
+Two changes in this conversion looked correct in the CSS and did nothing at all:
+
+- `outline: 3px solid var(--color-outcome-partial)` — that token does not exist,
+  and an undefined custom property makes the **whole declaration** invalid, so
+  the outline silently never drew.
+- `background: var(--kbd-key-bg, #f2f2f3)` — the fallback is unreachable because
+  wordle *sets* `--kbd-key-bg`. The real value lived three aliases away.
+
+Neither is visible to `tsc` or eslint, and both survived review of the diff.
+On this kind of work the diff is not evidence; the computed value is.
 
 ## Not yet in scope
 
