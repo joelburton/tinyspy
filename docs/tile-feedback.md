@@ -2,9 +2,12 @@
 
 **This is a DESIGN TARGET, not a description of the code.** Every other doc in
 `docs/` describes what is; this one describes what we agreed the play surfaces
-*should* say, so that an audit has something to check each game against. Nothing
-below is implemented uniformly yet, and several games contradict it today (see
-[Known departures](#known-departures)).
+*should* say, so that an audit has something to check each game against.
+
+**Where we are: 3 of 16 games converted** (wordle, waffle, psychicnum) — see
+[Roster](#roster--which-games-are-converted), which is the place to start a
+session and the place to record finishing one. The channels and rules below are
+settled and live in shared code; what remains is applying them game by game.
 
 It lives on its own for now. Once the audit is done and the games have been
 brought into line, this folds into [ui.md](ui.md) as part of the visual language
@@ -39,11 +42,12 @@ ordering rule.
 | **background** | the game state this tile is in | permanent |
 | **background**, over the state | **attention** — this changed, look here | ~0.7s |
 | **border width** | **selected** — part of the move I am building (see the ruling in the audit: this replaces the current background fill) | until submitted or cleared |
-| **border color**, player | a PEER's selection — whose it is; mine stays neutral | while they hold it |
+| **inset ring**, player color | a PEER is holding this piece — whose it is; mine stays neutral | while they hold it |
 | **border color** | **verdict** on my action — its PILL's tone | transient; see below |
 | **outline, dashed** | **hint** | until used or cleared |
 | **box-shadow** | **hover** — mouse only, subtle | while hovered |
-| **position** | where I am in the input I'm building | until the input moves or ends |
+| **border color** | the CURSOR — where the keyboard is pointing | until it moves; hidden until an arrow |
+| **background**, a shade of the state | where my move currently ENDS (strands' tail, letterboxed's chain) | until the move grows or ends |
 | **dim-down, tile** | **in flight** — sent, waiting on the server | until the answer arrives |
 | **dim-down, board** | **not your turn** | until it is |
 | **dim-down, board + its inputs** | **the game is over** | permanent |
@@ -393,31 +397,30 @@ precisely because it is *not* saying inactive: it is momentary, it tracks the
 pointer, and hover carries no meaning anyway. Case by case, only where the
 shadow demonstrably doesn't read.
 
-### The position channel — where I am in the input I'm building
+### Position splits in two: the cursor, and where my move ends
 
-Distinct from selection (*which pieces are in my move*) and from hover (*where
-my pointer happens to be*). Position is **persistent, singular, and must be
-findable after you look away** — you glance up, and you need to resume from
-exactly one place.
+The doc left "position" unassigned for a long time because its three claimants
+looked like one thing. They are two, and separating them answers all three:
 
-Three games need it, reached by three different inputs:
+- **The CURSOR is where my INPUT is pointing.** It moves as I look around, commits
+  nothing, and belongs to the keyboard: crosswords' cell cursor, and the arrow
+  cursor the five board games are getting (docs/keyboard-nav-plan.md). It takes
+  **border color**, which is free because the two other claimants on that channel
+  can't co-occur with it — a verdict lands on a submitted action, and a peer's
+  presence is an inset ring.
+- **The MOVE'S END is where the thing I am building currently stops.** strands'
+  most-recently-taken letter, letterboxed's chain end. That is **state**, drawn as
+  a shade of the state color, and the test that proves it: arrowing over a
+  different letter must NOT change the tail — only taking that letter does. A
+  cursor follows my attention; this follows my move.
 
-- **crosswords** — the keyboard cursor, plus the whole active word travelling
-  with it (`.cursor` + `.inWord`, cursor wins).
-- **strands** — the most recently tapped letter, so you can add the next one to
-  the trace after looking away.
-- **letterboxed** — the end of the chain, which is the letter the next word must
-  start from.
+Both are persistent, singular, and must be findable after you look away. They
+differ in what changes them, which is why one is chrome and one is state.
 
-**Its rendering may vary by game even though its meaning doesn't.** Where the
-tile already carries a state color, the marker should be a *shade of that
-color* — strands' last-tapped letter as a darker purple on its purple — so it
-reads as "this one, most recently" without inventing a hue. Where the background
-is free, it can take the background outright, as crosswords does.
-
-Deliberately **unassigned for now**: it needs a channel, but which one is best
-decided after a few simpler games have been converted and we can see what is
-actually still free.
+**Rendering may vary by game even though the meaning doesn't.** Where a tile
+already carries a state color, the move-end marker should be a *shade of that
+color* — strands' last letter as a darker purple on its purple — so it reads as
+"this one, most recently" without inventing a hue.
 
 ### The phone caveat: your finger covers the tile
 
@@ -487,41 +490,38 @@ tile flashing yellow says *this changed*, and a board frame flashing yellow says
 *state* color, which does not collide — that is a fill, this is a flash and a
 frame.
 
-## Known departures
+## Roster — which games are converted
 
-Where the code contradicts the above today. This is the audit's starting list,
-not the audit itself.
+**3 of 16 done.** The order is chosen by which decisions a game forces, not by
+size: wordle needed the fewest, waffle moved the framework into shared code,
+psychicnum brought identity. Pick the next one up from the "forces" column.
 
-| game | departure |
+| game | status | what it forced / what it will force |
+|---|---|---|
+| **wordle** | ✅ 2026-08-16, board marks 08-17 | first through: the in-flight dim, the verdict ring in its pill's tone, hover-as-shadow, blue history, the keyboard as a control surface. Then the four board-scope marks + the keyboard withdrawn at terminal. It went first because it needed the fewest decisions — no selection, no hint, no cursor |
+| **waffle** | ✅ 2026-08-17 | the framework INTO common: selection as a black border, the shared in-flight dim, the move shown optimistically with its verdict withheld, attention gated on the swap log, both turn marks, the game-over frame. No verdict mark and none needed — the only refused swap is one a teammate beat you to, and their swap arriving is what you want to see |
+| **psychicnum** | ✅ 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). Self-attention deliberately off: one tile changes and the in-flight dim already pointed at it |
+| connections | — | the **peer inset ring** as a named channel, a grid that COLLAPSES under the marks (bands), and identity for a transient state rather than a permanent one |
+| codenamesduet | — | the keycard's `.triPeer` / `.triMine` triangles (which are the game, not attribution), and a board where only one seat can act |
+| setgame | — | its own in-flight + arriving/leaving marks predate all of this and are the richest set anywhere; `--setgame-*` tokens want folding into the shared ones. Selection is a `box-shadow` ring and must become a border |
+| stackdown | — | the ambiguous-letter mark (a red border *and* a red ring — should be the shared verdict ring in its pill's tone), plus a board whose pieces OVERLAP |
+| strands | — | the same ambiguous-letter treatment, the earned hint economy (the **hint** channel's first real user), and the move-end state mark |
+| letterboxed | — | a board whose primary mark is a LINE between cells, not a tile fill |
+| scrabble | — | premium squares (puzzle notation vs progress), the drag-and-drop prospective verdict (`.dropOk` / `.dropNo`), and the share-preview frame |
+| bananagrams | — | drag-and-drop, its own grid cursor, and the one documented desktop-only layout |
+| crosswords | — | printed notation on the cell (circles, shades, break marks), `.peerFrame`, and the position channel's other half |
+| boggle | — | packed tiles where a hover shadow may not read; its own tile |
+| spellingbee | — | hexes: not squares, packed edge to edge, and `.hexFlash`'s replay-on-repeat lifetime |
+| wordwheel | — | same hexes, same questions |
+| wordiply | — | OPEN: at terminal its verdict pill takes over the KEYBOARD's space, where wordle leaves that space empty and keeps the verdict above. Not worth categorising until its turn |
+
+Cross-cutting, not owned by any one game:
+
+| | departure |
 |---|---|
-| setgame | draws **selection as a `box-shadow`** ring, which would collide with hover. Needs to become a real border. |
-| waffle | in-flight swap is a **blinking blue outline**, not a dim. Its tiles also carry live-changing state color, so it is the hardest case for attention-as-background. |
-| stackdown | the ambiguous-letter mark is a red border *and* a red `box-shadow` ring — it occupies the hover channel, and it should wear its pill's tone via the shared verdict ring. |
-| strands | same ambiguous-letter treatment. |
-| history viewer | the shared frame is **yellow** (`historyViewer.module.css`); should be gray, so yellow means only "attention". Scope stays as it is — board, and sometimes another region such as a rack. |
-| most games | **no in-flight mark at all.** This is the biggest gap and the most additive. |
-| wordiply | OPEN: at terminal the verdict pill takes over the KEYBOARD's space, where wordle leaves that space empty and keeps the verdict above. Not worth categorising until wordiply's turn. |
-
-**wordle: CONVERTED** (2026-08-16, board-scope marks 2026-08-17) — in-flight dim,
-verdict ring in its pill's tone, hover shadow, blue history, the keyboard rebuilt
-as a control surface, and then the four board-scope marks (game-over frame,
-not-your-turn dim, your-turn flash, and the keyboard withdrawn at terminal). It
-went first because it needed the fewest decisions: no selection, no hint, and no
-cursor, so it did not force the position channel.
-
-**psychicnum: CONVERTED** (2026-08-17) — the four board-scope marks, the in-flight
-dim on the tile with the server, the attention flash gated on the guess log, and
-the first **identity dot**. Two subtractions: the answer-key ring (revealing is a
-state change now) and a `font-weight` on decided tiles that had never applied,
-since the label carries its own weight.
-
-**waffle: CONVERTED** (2026-08-17) — the second game, and the one that moved the
-framework into shared code: selection as a black border, the shared in-flight dim,
-the move shown optimistically with its verdict withheld, the attention flash
-gated on the swap log, the two turn marks, and the game-over frame. It has no
-verdict mark and needs none: the only swap the server refuses is one a teammate
-beat you to, and what you want to see then is their swap arriving, which the
-subscription delivers.
+| history viewer | DONE — the shared frame was yellow; it is now the blue `--color-history-viewer`, so yellow means only "attention" |
+| in-flight marks | was "missing in all but three games"; now shared (`.dimInFlight`) and worn by the three converted ones. Still absent everywhere else |
+| the shared tile | see the next section — nine boards still roll their own |
 
 ## Per-game check: is this board's tile the SHARED tile?
 
@@ -660,14 +660,24 @@ says about a tile versus what my partner's does. That asymmetry is the game
 itself, not attribution, and it is deliberately not a circle precisely so it
 cannot be mistaken for a player dot.
 
-**How identity resolves without a new channel:** apply the audience rule to
-selection. **My own selection is neutral; a peer's carries their color.** I
-don't need telling which tiles are mine — I just clicked them. That makes the
-two uses of border-color disjoint in practice, since a verdict only ever lands
-on my own action. A *permanent* attribution ("moth called this one") is a
-different need and would be a **player-color dot**, reusing the `<Dot>` /
-`ActorDot` vocabulary the turn log and opponent strip already share. Nothing
-needs that today.
+**How identity resolves:** my own selection is neutral, a peer's carries their
+color — I don't need telling which tiles are mine, I just clicked them. And a
+peer's mark is an **INSET RING**, not the border: connections draws
+`inset 0 0 0 4px <member color>` and crosswords' `.peerFrame` does the same thing,
+arrived at independently, so the convention already existed and only needed a name.
+
+Inset is what makes it compose. One piece can be mine-and-selected (thick border),
+under my cursor (border color) and held by a peer (inset ring) at the same moment,
+each at its own radius, with nothing overriding anything. It rides on `box-shadow`,
+which this doc's table gives to hover — not a collision, since hover is an *outer*
+shadow and a shadow list carries both, but worth knowing before a third shadow is
+added.
+
+That is the TRANSIENT half of identity: someone is doing something here, now. The
+PERMANENT half — "moth called this one", forever — is the **player-color dot**
+(`<Dot>`, shared with the turn log and opponent strip), and psychicnum ships it.
+Keeping the two apart is deliberate: one visual for both lifetimes would mean discs
+blinking in and out as a teammate changed their mind.
 
 ### Smaller notes
 
@@ -753,13 +763,12 @@ On this kind of work the diff is not evidence; the computed value is.
 
 ## Not yet in scope
 
-**Keyboard navigation.** Grid-ish games may gain keyboard movement as an
-alternative to clicking (a real accessibility need — repeated mouse clicking
-hurts). The expected shape, when we get there: a **thin** border as the cursor,
-clearly lighter than selection, becoming the **thick** selection border when the
-player actually commits to that tile. That is the position channel above,
-reached by a third input, and it is a good reason not to spend the border's
-thin/thick range on anything else.
+**Keyboard navigation** is now planned in detail —
+[keyboard-nav-plan.md](keyboard-nav-plan.md) — for the five games where clicking
+pieces IS the move (waffle, psychicnum, connections, codenamesduet, strands). The
+marks it uses are all above; the plan holds the grammar (`Space` toggles, `Enter`
+alone commits), the movement model, and the rollout. It folds in here as each game
+lands.
 
 ## Open questions
 
