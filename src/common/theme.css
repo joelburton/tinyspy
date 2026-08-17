@@ -57,15 +57,33 @@
   --color-accent:             #1976d2;
   --color-accent-hover:       #1565c0;
 
-  /* History-view marker — the yellow "you're viewing a past turn, not the live
-     board" signal shared by every turn-history-capable game (drives the board
-     frame, the open log row, and the overlay banner; see
-     common/components/game/lists/historyViewer.module.css). A cool GREY-BLUE, not
-     an outcome colour: reviewing a pass or a rejected word is no success, so green
-     would mislead — and not the amber it used to be, because amber now means
-     "attention" and history is the one mark you asked for yourself. Grey-blue
-     rather than a flat grey so it doesn't read as disabled/inactive. */
-  --color-history-viewer:     #708090;
+  /* History-view marker — the "you're viewing a past turn, not the live board"
+     signal shared by every turn-history-capable game (drives the board frame, the
+     open log row, and the overlay banner; see
+     common/components/game/lists/historyViewer.module.css).
+
+     BLUE, and it has to stay clearly blue: it wears the same frame as game-over
+     (docs/tile-feedback.md — one mark, two colors), whose faces are a dead gray
+     and two dark outcome tints, and the color is the ONLY thing telling a player
+     "you can leave this" from "this game is finished". A gray-blue read as a
+     paler cousin of the gray one.
+
+     Not an outcome color either: reviewing a pass or a rejected word is no
+     success, so green would mislead — and not the amber it used to be, because
+     amber now means "attention" and history is the one mark you asked for
+     yourself. Muted rather than the accent blue, which belongs to controls. */
+  --color-history-viewer:     #4a7bab;
+
+  /* ATTENTION, at BOARD scope — the solid yellow a board frame flashes with when
+     something you need to see happens to the whole surface (today: your turn just
+     started). Yellow reads the same at both scopes, which is what makes it
+     learnable: a tile flashing yellow says "this changed", a board frame flashing
+     yellow says "your turn started" — both are news. The tile-scope companion is
+     `--tile-attention` below, which is TRANSLUCENT because it washes over a tile
+     that already carries a state color; a board frame has nothing to preserve, so
+     this one is solid. Same hex as `--color-share-preview` today and deliberately
+     its own name: either can move without the other. See docs/tile-feedback.md. */
+  --color-attention:          #ffd21a;
 
   /* Share-preview marker — the frame + banner color when a coop teammate is
      "showing a move" (scrabble). Deliberately its OWN token (initialized to the
@@ -231,20 +249,114 @@
      dark it looks broken. */
   --tile-disabled:            #cbb476;  --tile-disabled-border: #ac8f4c;
 
-  /* ATTENTION — a translucent warm-yellow OVERLAY, stacked over a tile's own
-     shade so it reads as "itself, but lighter + more yellow" (works on any of the
-     shades above). Compose it as the first layer of `background`:
-       background: linear-gradient(var(--tile-attention), var(--tile-attention)), <fill>;
-     Used for a placed-but-not-committed scrabble tile (its history-turn tiles too). */
-  --tile-attention:           rgba(255, 234, 110, 0.62);
+  /* ATTENTION at TILE scope — what a piece wears to say "this changed, look
+     here". OPAQUE: for the beat it lasts, the tile simply IS yellow.
 
-  /* BUSY — the dim-down veil for a game piece that has been SENT and is waiting
-     on the server. A translucent BLACK layer, drawn over the piece rather than
-     as an opacity, so it darkens the piece with its contents instead of fading
-     both toward the page. Black, deliberately: the not-your-turn dim is the
-     white one, and "held / working" must not look like "inert / unavailable".
-     See docs/tile-feedback.md. */
-  --tile-busy-veil:           rgb(0 0 0 / 18%);
+     Letting any state color through was a mistake worth recording. The mark is
+     short and it has one job — say WHERE to look — and a blend serves neither
+     side of itself: a little bit green is not the state and not the signal, and
+     on a green tile it comes out sickly rather than urgent. The state is not lost
+     by covering it for a second, because the fade hands it straight back.
+
+     The same yellow as the board-scope `--color-attention`, so the two scopes are
+     one color learned once. Its own name because it is its own decision — either
+     scope can move without dragging the other.
+
+     Worn via the shared `.attentionFlash` class, which fades it out (an overlay,
+     so it can); scrabble composes it by hand as a background layer instead:
+       background: linear-gradient(var(--tile-attention), var(--tile-attention)), <fill>; */
+  --tile-attention:           var(--color-attention);
+
+  /* ── The two dims ────────────────────────────────────────────────────────
+     One value per MEANING, not per scope: a mark that means "in flight" is the
+     same strength whether it covers one tile or a whole board, and so is one
+     that means "not your turn". The element it lands on says what is inactive;
+     the value says what kind of inactive it is. Both are worn via the shared
+     `.dimInFlight` / `.dimNotYourTurn` classes in
+     common/components/game/PlayArea.module.css.
+
+     Both are translucent BLACK, drawn over the surface rather than applied as an
+     opacity, so what is underneath darkens with its contents instead of fading
+     toward the page. Black deliberately: a white wash on a light page is
+     indistinguishable from fading toward the background, which is the
+     chrome-disabled look a game piece must never have. See
+     docs/tile-feedback.md. */
+
+  /* SENT, waiting on the server. */
+  --dim-in-flight:            rgb(0 0 0 / 18%);
+
+  /* You cannot act at all — today, a turn-order game where a teammate holds the
+     move. Weaker than the in-flight dim, because waiting is *thinking* time: you
+     are planning your next move, so the board has to stay fully readable. But not
+     as weak as it wants to be on paper — a whole-surface change is noticeable at
+     a strength a single tile would not be, which argued for 8%, and at 8% it
+     simply did not register as a message at all. The floor is recognition.
+
+     The two can compound — your move can still be in flight when the turn passes
+     — so the values are a PAIR: 18% over 12% reads as ~28% black, still short of
+     looking broken. */
+  --dim-not-your-turn:        rgb(0 0 0 / 12%);
+
+  /* The game is over. The one dim that is PERMANENT rather than transient, which
+     is why it gets its own name even where the value matches a neighbor's: a
+     finished board is the thing players sit and study afterwards ("where did we
+     go wrong"), so it has to stay fully readable, and it must be free to move
+     without dragging the not-your-turn dim with it.
+
+     It cannot co-occur with that one — a finished game has no turns to wait for —
+     so sharing a value costs no ambiguity today. */
+  --dim-game-over:            rgb(0 0 0 / 12%);
+
+  /* The FRAME saying the same thing: a band around a finished board, the same
+     shape as the history viewer's frame but plainly not it. Its own token so the
+     two can never be "tidied" into one — history is a mark you asked for and can
+     leave, game-over is a fact.
+
+     DARK, and that took a try to learn: the frame is drawn hard against the
+     board's edge with no whitespace around it (and whitespace is not available —
+     adding it here would reopen every board-sizing decision in the app), so it
+     has to carry against the tiles on one side AND the near-white page on the
+     other. A light gray had neither. Darker and deader than the history
+     gray-blue: no hue at all, so it reads as a rule drawn round a finished thing
+     rather than as a state anyone chose. */
+  --color-game-over:          #4d4d4d;
+
+  /* …and the same gray carrying the OUTCOME, for trying out: a finished game
+     always has a verdict, and the frame is already the biggest thing on screen
+     saying "finished". Barely-tinted on purpose — the same darkness and the same
+     deadness as the neutral above, pushed just far enough toward a hue to be
+     recognizable beside it. They must not become the outcome palette: green and
+     red at strength mean a TILE's state, and a board-sized bar of either would
+     shout an outcome the pill has already stated quietly.
+
+     Neutral stays the third face, for a game that was ENDED rather than won or
+     lost — nobody beat anybody, so a hue would be a claim. */
+  --color-game-over-won:      #3c6b46;
+  --color-game-over-lost:     #6b3c3c;
+
+  /* ── Feedback timings ────────────────────────────────────────────────────
+     How long the two transient marks last. Shared, because "how long news stays
+     on screen" is a property of the vocabulary rather than of a game — and
+     because a player who learns the beat in one game should read it in the next.
+     The JS that adds and removes the classes reads the same numbers from
+     common/lib/game/feedbackTiming.ts; keep the two in step. */
+
+  /* A piece wearing the attention wash: solid for most of it, then a short tail
+     fading out, so the eye is caught and then handed back the true state color.
+     Short — the mark only has to be SEEN, and a board that sits colored is a
+     board where loud has stopped meaning anything. */
+  --attention-flash-duration: 0.7s;
+
+  /* The board frame at the moment the turn becomes yours. A fade-out rather than
+     a blink: the message is "it just became yours", not "something is wrong". */
+  --your-turn-flash-duration: 1.1s;
+
+  /* ON-SCREEN KEYBOARD edges (the shared <GuessKeyboard>: wordle + wordiply).
+     The letter cap's edge, and the darker one the ⌫ control wears so it reads as
+     a control rather than a letter. A game may override either alongside the
+     `--kbd-*` fills it already sets. */
+  --kbd-key-border:           #8b8f94;
+  --kbd-control-border:       #5f6368;
 
   /* RANK LADDER (the shared <RankBar>, used by spellingbee + wordwheel).
      ONE palette for both games, not each game's accent: a rank ladder means the
@@ -269,8 +381,22 @@
   --tile-border:              var(--tile-3-border);
   --tile-text:                #1a1a1a;  /* near-black ink on the warm fill */
   --tile-shadow:              0 1px 2px rgba(0, 0, 0, 0.18);
-  --tile-selected-bg:         #5a594e;  /* dark warm-gray — selected fill + hover ring */
-  --tile-selected-text:       #ffffff;  /* light ink on the dark selected fill */
+  /* Border WIDTH is the "selected" channel — the tile's edge thickens to say
+     "this piece is part of the move I'm building", leaving the background free
+     for state and attention, which have nowhere else to go. Two widths, one
+     token each, so the resting edge and the selected edge can be tuned against
+     each other in one place. A selected class re-sets `--tile-border-width` to
+     the selected value rather than re-declaring the border shorthand.
+     See docs/tile-feedback.md. */
+  --tile-border-width:          1px;
+  --tile-border-width-selected: 4px;
+  /* BLACK, not a darker shade of whatever the tile already is. Selection has to
+     be unmistakable at a glance across a board of colored tiles, and a
+     tile-derived edge is a different color on every tile — so it reads as "this
+     tile has a slightly heavier version of its own border" rather than as a
+     mark. Black belongs to nothing else on a board, which is what makes it
+     legible on all of them. */
+  --tile-selected-border:       #000000;
 
   /* The "Wordle colors" — the per-letter feedback palette shared by the
      letter-coloring games (waffle today, wordle as it converges). The server
@@ -283,14 +409,14 @@
      letters, and at NYT's values white sits at 2.78 (green) and 2.07 (yellow) —
      under the 3:1 floor for large bold text, with yellow the least legible thing
      on the board. Dark ink would have fixed the number and broken something more
-     valuable: black-on-light vs white-on-colour is what separates an untried
+     valuable: black-on-light vs white-on-color is what separates an untried
      letter from a tried one at a glance, on the keyboard especially.
      So the fills move instead — hue held (114° / 47°), saturation up, lightness
      down, and no further than it takes. GREEN lands on the floor at 2.98.
      YELLOW deliberately stops SHORT of it, at 2.57: getting it to 3.0 meant a
      gold dark enough to stop reading as Wordle's yellow, and familiarity is
      worth real money here — everyone arrives already knowing what these two
-     colours mean. Both are large bold glyphs on a big field of colour, which is
+     colors mean. Both are large bold glyphs on a big field of color, which is
      the case the 3:1 guideline is most forgiving about, and the second signal
      (white ink = a letter you have tried) does not depend on reading the letter
      at all. */
@@ -300,15 +426,15 @@
      the old value was the most prominent thing on the keyboard, which is
      backwards: "not in the word" is what you want to stop looking at, and the
      letters still in play are what you are hunting through. Changed here rather
-     than special-cased on the keyboard, because the same colour also carries the
+     than special-cased on the keyboard, because the same color also carries the
      board tile, the turn log and waffle — where it is small, and where a
-     too-heavy grey was never the problem.
+     too-heavy gray was never the problem.
      Floor: it holds WHITE letters, so it cannot go lighter than about #959595
      without dropping under 3:1 for large bold text. This sits at 3.26. */
   --wordle-gray:              #8b8f91;  /* not in the word */
   --wordle-blank:             #d3d6da;  /* un-evaluated / neutral surface */
   /* Matching EDGES, each ~16% darker than its fill — the same step the warm tile
-     ramp takes between a shade and its border. A coloured tile with a border of
+     ramp takes between a shade and its border. A colored tile with a border of
      its own fill reads as a flat block; a slightly darker edge gives it the same
      quiet definition every other surface in the app has. */
   --wordle-green-border:      #568a50;

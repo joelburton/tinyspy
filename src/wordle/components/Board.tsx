@@ -136,8 +136,8 @@ export function Board({
                       // (via --reveal-bg), not the static color class.
                       flipping ? styles.reveal : styles[color],
                       letter && color === 'blank' && styles.filled,
-                      // Sent, waiting on the server — see `.busy`.
-                      isPending && styles.busy,
+                      // Sent, waiting on the server — the shared in-flight dim.
+                      isPending && shared.dimInFlight,
                     )}
                     style={
                       flipping

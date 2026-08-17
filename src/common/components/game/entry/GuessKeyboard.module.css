@@ -40,17 +40,17 @@
   justify-content: center;
   cursor: pointer;
   color: var(--color-text);
-  /* Resting key: a LIGHT cap with a real dark-grey edge, rather than NYT's flat
-   * mid-grey fill. Two reasons, both practical: it is the house style (things get
+  /* Resting key: a LIGHT cap with a real dark-gray edge, rather than NYT's flat
+   * mid-gray fill. Two reasons, both practical: it is the house style (things get
    * a border, not just a background — see the setgame card, the tile ramp), and a
-   * grey drop shadow simply does not read against a grey cap, so the hover
+   * gray drop shadow simply does not read against a gray cap, so the hover
    * treatment below was invisible. A game may override `--kbd-key-bg`. */
   background: var(--kbd-key-bg, #eeeeee);
-  border: 1px solid var(--kbd-key-border, #8b8f94);
+  border: 1px solid var(--kbd-key-border);
   /* Override the global button hover/accent treatment. */
   transition: filter 0.1s ease;
   /* Touch (docs/mobile.md → tap-press feedback): the keyboard is the tap-heaviest
-   * surface in wordle/wordiply, so kill the grey tap-flash and opt out of
+   * surface in wordle/wordiply, so kill the gray tap-flash and opt out of
    * double-tap-zoom + its tap delay (rapid typing must stay crisp). The designed
    * press below darkens the key instead. */
   -webkit-tap-highlight-color: transparent;
@@ -95,7 +95,7 @@
 }
 
 /* BACKSPACE is a plain control, so it wears the app's plain-control look: a
- * WHITE cap rather than the letter keys' grey. That grey means something on this
+ * WHITE cap rather than the letter keys' gray. That gray means something on this
  * keyboard — "no result yet" — and ⌫ can never acquire a result, so wearing it
  * would say something untrue. White also groups it with Enter as the row's two
  * controls, one filled and one outlined, exactly as a Submit/Cancel pair reads
@@ -105,14 +105,14 @@
   /* A DARKER edge than the letter caps. The white-vs-near-white fill alone was
    * carrying the whole "this is a control, not a letter" distinction on a few
    * percent of lightness; the border is the lever that makes it read. */
-  border-color: var(--kbd-control-border, #5f6368);
+  border-color: var(--kbd-control-border);
 }
 
 /* ENTER is a submit button, so it looks like one: the app's accent blue with
  * white ink, the same treatment every Submit in the app wears (the global
  * `button` rule). It is the one key that COMMITS rather than edits, and the
  * shared word-entry row already makes that distinction visible — this brings the
- * keyboard into line with it rather than with NYT's uniform grey.
+ * keyboard into line with it rather than with NYT's uniform gray.
  *
  * Placed after the state tints below would be wrong: Enter never carries a
  * letter result, so nothing can overwrite it, and keeping it here puts it beside
@@ -130,7 +130,7 @@
   font-size: 0.85rem;
 }
 
-/* Per-letter feedback tints (white text on colour). Colours are CSS
+/* Per-letter feedback tints (white text on color). Colours are CSS
  * variables so a game can theme them; the defaults are the standard Wordle
  * palette.
  *
@@ -140,8 +140,8 @@
  * stale default is invisible until the day someone reaches it, and then it
  * quietly disagrees with the game beside it.
  *
- * Each carries a slightly DARKER edge of its own colour, matching the board
- * tiles — the quiet definition the rest of the app gives a coloured surface,
+ * Each carries a slightly DARKER edge of its own color, matching the board
+ * tiles — the quiet definition the rest of the app gives a colored surface,
  * rather than a flat block. A game supplies the edges as `--kbd-*-border`. */
 .correct {
   background: var(--kbd-correct, #66a45f);

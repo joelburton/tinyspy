@@ -40,6 +40,41 @@ export function isHole(pos: number): boolean {
   return HOLES.includes(pos)
 }
 
+/**
+ * The board with the letters at `a` and `b` exchanged — the move itself, which
+ * a swap always is: a pure transposition of two cells.
+ *
+ * The client can compute this exactly, which is why the play surface shows a
+ * swap the moment you make it rather than waiting for the server to say so (a
+ * board that doesn't move reads as a swap that didn't happen). What it cannot
+ * compute is what the swap SCORED — that needs the solution — so the two cells
+ * show no color until the server answers. See docs/tile-feedback.md.
+ */
+export function swapCells(board: string, a: number, b: number): string {
+  const cells = board.split('')
+  ;[cells[a], cells[b]] = [cells[b], cells[a]]
+  return cells.join('')
+}
+
+/**
+ * The color string with `cells` marked UNJUDGED (`tileColor` maps anything
+ * outside g/y/x to `blank`).
+ *
+ * For the two tiles of a swap in flight. Keeping their old colors would assert a
+ * verdict that is no longer true — those letters have moved — and guessing new
+ * ones would assert a verdict we don't have. This says the only honest thing:
+ * not judged yet.
+ *
+ * What such a cell LOOKS like is the board's business, not this string's: it
+ * takes `.inFlight` (the middle gray, under the in-flight dim) rather than the
+ * pale blank a `.` would otherwise draw. See Board.module.css.
+ */
+export function unjudgeCells(colors: string, cells: Iterable<number>): string {
+  const out = colors.split('')
+  for (const c of cells) out[c] = HOLE
+  return out.join('')
+}
+
 /** True if `pos` is a filled, letter-bearing cell. */
 export function isFilled(pos: number): boolean {
   return pos >= 0 && pos < CELLS && !isHole(pos)

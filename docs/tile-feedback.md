@@ -37,21 +37,22 @@ ordering rule.
 | channel | meaning | lifetime |
 |---|---|---|
 | **background** | the game state this tile is in | permanent |
-| **background**, over the state | **attention** — this changed, look here | ~1s |
+| **background**, over the state | **attention** — this changed, look here | ~0.7s |
 | **border width** | **selected** — part of the move I am building (see the ruling in the audit: this replaces the current background fill) | until submitted or cleared |
-| **border colour**, player | a PEER's selection — whose it is; mine stays neutral | while they hold it |
-| **border colour** | **verdict** on my action (invalid → amber) | transient; see below |
+| **border color**, player | a PEER's selection — whose it is; mine stays neutral | while they hold it |
+| **border color** | **verdict** on my action (invalid → amber) | transient; see below |
 | **outline, dashed** | **hint** | until used or cleared |
 | **box-shadow** | **hover** — mouse only, subtle | while hovered |
 | **position** | where I am in the input I'm building | until the input moves or ends |
 | **dim-down, tile** | **in flight** — sent, waiting on the server | until the answer arrives |
 | **dim-down, board** | **not your turn** | until it is |
+| **dim-down, board + its inputs** | **the game is over** | permanent |
 | **board frame, flash** | your turn just started | brief |
-| **board frame, steady grey** | you are viewing history | while viewing |
-| **ink colour** | dark on light = untouched · white on colour = decided | permanent |
+| **board frame, steady gray** | you are viewing history | while viewing |
+| **ink color** | dark on light = untouched · white on color = decided | permanent |
 | **motion** | never alone — pairs with attention or invalid | brief |
 
-**Width and colour are separate channels on the same border**, which is what
+**Width and color are separate channels on the same border**, which is what
 lets "selected *and* just rejected" render without deciding which wins.
 
 ## The rules that make it work
@@ -60,7 +61,7 @@ lets "selected *and* just rejected" render without deciding which wins.
 
 A disabled button gets the global `button:disabled { opacity: 0.5 }`. A game
 piece never does — the shared `.tile:disabled` explicitly sets `opacity: 1`,
-because a decided tile's colour IS its message and must show at full strength.
+because a decided tile's color IS its message and must show at full strength.
 
 A game piece may be dimmed only for **transient** inactivity — in flight, or not
 your turn — never for being permanently spent.
@@ -75,42 +76,129 @@ learn.
 passes to someone else, so both apply — and two 50% black overlays give 75%
 black, not 50%. If both can co-occur, their values must be chosen as a pair.
 
-### The words for changing a colour
+**The finished board is the one permanent dim.** Every other dim is transient by
+rule — in flight, not your turn — because a *piece* that is permanently spent
+must keep its color at full strength. A finished GAME is a different claim: the
+whole surface is a record rather than a position, and there is no active-versus-
+spent distinction left on it to protect. It is worn by the board and by whatever
+inputs belong to it (a keyboard, a rack), because a game that ends leaving its
+keyboard looking live is the inconsistency this exists to fix. It stays weak:
+a finished board is exactly what people sit and read afterwards.
+
+A **frame** is the other way to say it, and it is the one in use. Both are named
+(`.dimGameOver` / `.gameOverFrame`, `--dim-game-over` / `--color-game-over`) so
+the choice is one class either way, and each gets its own token even where a value
+matches a neighbor's, so game-over can move without dragging the history frame or
+the not-your-turn dim with it.
+
+**The game-over frame and the history-viewer frame are ONE MARK IN TWO COLORS.**
+Same property, same width, same offset; only the color differs. Both say *what
+you are looking at is not a live position*, and the color says which kind — a
+gray-blue you chose to enter and can leave, or a dead gray you cannot. Drawing
+either one differently from the other is a bug and not a variant: two frames that
+differ in shape are two things to learn, and the difference would carry no
+meaning. The frame's color takes the game's **outcome** — dark red for a loss,
+dark green for a win, dead neutral for a game merely ended — dark enough that it
+never reads as the outcome palette, which at strength means a tile's state.
+
+They can co-occur, since a finished game can be put into the viewer, and an
+element has only one outline: the board drops the game-over frame while the viewer
+is open, because the viewer is the state you chose.
+
+**A dimmed piece has to start dark enough that the dim reads as darker.** Dimming
+is relative, and the eye judges it against the board around it, not against what
+the tile used to be. waffle showed the trap: a swap in flight has to drop the
+color it just invalidated, and the obvious replacement — the pale un-evaluated
+fill — landed, once dimmed, exactly where a *state* color lives (the
+not-in-the-word gray), so "held" read as "changed to gray". Starting from that
+gray instead, the dim can only take it darker than anything the palette says,
+which is the one thing no state can be confused with. So when a mark replaces a
+fill *and* dims it, pick the fill for where the dim lands, not for where it
+starts.
+
+### The words for changing a color
 
 Four distinct operations, and the difference decides which is even available:
 
 | term | what it does |
 |---|---|
-| **lighten** | shift an actual colour lighter (red → pink) |
-| **darken** | shift an actual colour darker (yellow → gold) |
+| **lighten** | shift an actual color lighter (red → pink) |
+| **darken** | shift an actual color darker (yellow → gold) |
 | **dim-up** | a translucent **white** layer over everything |
 | **dim-down** | a translucent **black** layer over everything |
 
-Lighten and darken are surgical but need to know which single colour they are
+Lighten and darken are surgical but need to know which single color they are
 operating on. **Dim-up/dim-down are overlays, so they work on composites** — a
-card with coloured symbols on it, a tile with a letter — in one move. Most of
+card with colored symbols on it, a tile with a letter — in one move. Most of
 our tiles are composites, so the overlays do most of the work.
 
 **Do not use dim-up on game pieces.** On a light page a white wash is nearly
 indistinguishable from fading toward the background, which is exactly the
 chrome-disabled look that game pieces must not have.
 
-### Attention is owed for what someone ELSE did
+### Attention is a judgement about what the viewer already knows
 
-**Self-caused changes need no attention; peer-caused ones do.** You opened the
-history viewer, so it is quiet. A teammate pushed a proposed move onto your
-board, so that shouts. The same machinery gets opposite marks depending only on
-who caused it.
+Not "who acted". Two questions, asked of each viewer, and a mark is owed only
+when both answers are no:
 
-Which means marks have an **audience**: the player who acted and everyone else
-may see different things for the same event. setgame is the worked example — the
-claimer's cards dim, while everyone else's light up, because the claimer already
-knows what they did and colour would only drag their eye back to it.
+- **Will this change announce itself to them?**
+- **Do they already know what it is going to say?**
+
+Which means marks have an **audience** — the player who acted and everyone else
+may see different things for the same event — and that working out that audience
+is a judgement call per mark, not a rule that can be run mechanically.
+
+Three worked cases:
+
+- **setgame.** A claim takes three cards away and deals three more into the same
+  slots. The claimer picked those cards, so the *leaving* mark is for everyone
+  else. Nobody knows what the *replacements* will be, so the *arriving* mark is
+  for everyone, the claimer included.
+- **wordle.** A guess lands as a whole new row in blank space. It announces
+  itself to everyone, actor or not, so nobody gets a mark at all.
+- **waffle.** You know exactly which two letters you moved and have no idea what
+  they will score — and the answer arrives in the two tiles you are already
+  looking at. So the acting player is marked too: not for the move, for the
+  color.
+
+### Read the cause; never infer it from the diff
+
+Attention is driven by diffing — the cells that differ from a moment ago are the
+cells that changed under the player. But **a board changes for reasons that are
+not moves**: a restart deals a fresh one, a terminal reveal swaps the solution
+in, opening a finished game arrives at a board built long ago. A diff cannot tell
+those from a move. It sees only that things differ, so it lights the whole board
+up at precisely the moments when nothing has happened.
+
+Every proxy for "was this a move?" that can be measured off the board — how many
+cells differ, whether the count grew, whether a score moved — has a case that
+breaks it. setgame spent three bugs learning that, two of which shipped. And the
+answer was recorded on the server all along: **a move writes a row, and the
+things that are not moves don't.**
+
+So the gate on any attention mark is the move log, not the board:
+
+- **setgame** keys on the last claim's id; `replay_board` deletes the events, so
+  a re-deal has no claim behind it.
+- **waffle** keys on the swap log's length; `restart` deletes the swaps.
+
+Two requirements make it work, and both are worth checking in a new game:
+
+- **The re-deal must clear the log**, so the marker drops rather than advancing.
+- **The board and the log must arrive together** — both games read them in one
+  `Promise.all`, so within a render a board that has moved always comes with the
+  row that moved it.
+
+The shared piece is `common/hooks/game/useMoveCausedChange`: hand it the content,
+a key for "changed", and the server's move marker, and it hands back the previous
+content only when a move caused the change. setgame implements the same rule by
+hand (it has its own hold-then-arrive choreography around it) and folds in when
+it converts.
 
 ### Attention is only needed for change IN PLACE
 
 A change **appended into empty space announces itself**; a change **substituted
-in place does not**. That is a mechanical test, not a judgement call:
+in place does not**. That is the mechanical half of the first question above:
 
 - setgame substitutes cards where they sat → needs the mark badly.
 - waffle recolours tiles that were already there → needs it.
@@ -124,14 +212,14 @@ conflict is **per tile and per moment**, not per game:
 - **Free**: setgame's cards, connections' tiles *before* they are banded.
 - **Spoken for**: wordle, waffle, psychicnum — and connections' tiles *after*.
 
-Two things stop this being a real problem. Attention lasts about a second, so
+Two things stop this being a real problem. Attention is under a second, so
 the state is obscured only briefly and can be a translucent wash rather than an
 opaque fill. And **a decided tile is inert** — once a connections tile joins a
 band it can never change again, so it leaves the attention channel entirely.
 
 ### Every mark has a lifetime, and it is part of the specification
 
-Permanent (state) · ~1s (attention) · until the server answers (in flight) ·
+Permanent (state) · ~0.7s (attention) · until the server answers (in flight) ·
 until the next action (verdict) · while hovered. Most of the confusion in
 setgame came from marks whose lifetime nobody had written down.
 
@@ -169,7 +257,7 @@ Where you find no motion, assume it was forgotten rather than rejected — it is
 fiddlier CSS than the alternatives and easy to skip. Propose it. Two places it is
 almost always right:
 
-- **press** — things depress when pushed; it needs no colour and no learning;
+- **press** — things depress when pushed; it needs no color and no learning;
 - **rejection** — a shake says "no" in a way no border can, and it is the only
   channel a player cannot mistake for state.
 
@@ -179,8 +267,8 @@ message behind, so motion never carries a meaning alone.
 ### Motion is never the only carrier
 
 `prefers-reduced-motion` must always leave a message behind, so motion always
-pairs with a colour or a border. It is worth using, though: peripheral vision
-detects motion better than colour, which is exactly the attention problem.
+pairs with a color or a border. It is worth using, though: peripheral vision
+detects motion better than color, which is exactly the attention problem.
 
 **Untested on phones.** Frame rate on low-end devices, and whether a shake reads
 as feedback or as a layout glitch on a screen the board fills, both need
@@ -216,8 +304,8 @@ Three games need it, reached by three different inputs:
   start from.
 
 **Its rendering may vary by game even though its meaning doesn't.** Where the
-tile already carries a state colour, the marker should be a *shade of that
-colour* — strands' last-tapped letter as a darker purple on its purple — so it
+tile already carries a state color, the marker should be a *shade of that
+color* — strands' last-tapped letter as a darker purple on its purple — so it
 reads as "this one, most recently" without inventing a hue. Where the background
 is free, it can take the background outright, as crosswords does.
 
@@ -234,11 +322,11 @@ which is raised by what someone else did and is nowhere near your finger.
 ## Naming: semantic tokens, and their reach
 
 The house style is already right — **tokens are named for meaning, never for
-colour**, and both channels we have already exist:
+color**, and both channels we have already exist:
 
 | token | in the shared theme |
 |---|---|
-| `--color-history-viewer` | documented as *"a neutral amber, NOT an outcome colour"* |
+| `--color-history-viewer` | documented as *"a neutral amber, NOT an outcome color"* |
 | `--tile-attention` | a **translucent** warm-yellow overlay, composed as the first layer of `background` so it reads as *"itself, but lighter"* over any tile shade |
 
 `--tile-attention` deserves note: it is exactly the translucent wash this doc
@@ -252,14 +340,14 @@ that are universal — attention, history, busy, verdict, hint — move into the
 shared `--color-*` / `--tile-*` families, and only genuinely game-specific values
 stay game-scoped.
 
-**Two names for one colour is correct**, even where the values match. History and
+**Two names for one color is correct**, even where the values match. History and
 attention must be separately named so either can move without the other. (They
-won't match: history is going grey or blue, attention stays yellow.)
+won't match: history is going gray or blue, attention stays yellow.)
 
 ### How marks compose, mechanically
 
 The shared theme already documents this and the framework should build on it
-rather than replace it: the shared `.tile` reads **only tokens** for its colours,
+rather than replace it: the shared `.tile` reads **only tokens** for its colors,
 so a state class overrides by **re-setting a token**, not by out-cascading
 another stylesheet. That is what lets a game layer its own result fills over the
 shared tile without specificity fights, and it is how any new mark should be
@@ -267,13 +355,13 @@ added.
 
 ## Colours
 
-| colour | means | where |
+| color | means | where |
 |---|---|---|
 | **yellow** | attention: new, or changed | tile background flash; the your-turn board flash |
 | **amber** | warning: you cannot do that *yet* | invalid-move border |
 | **green** | a good outcome | game state only |
 | **red** | a bad outcome | game state only — never a verdict on a keystroke |
-| **grey** | you are viewing history | board frame |
+| **gray** | you are viewing history | board frame |
 
 **Amber, not red, for an invalid move.** Typing a letter that matches two tiles
 is not an error, it is a "pick one" — and red is spoken for by outcomes. Amber
@@ -282,7 +370,7 @@ is already the app's warning tone (`--color-outcome-partial`).
 **Yellow reads the same at both scopes**, which is what makes it learnable: a
 tile flashing yellow says *this changed*, and a board frame flashing yellow says
 *your turn started*. Both are news. wordle and waffle also use yellow as a tile
-*state* colour, which does not collide — that is a fill, this is a flash and a
+*state* color, which does not collide — that is a fill, this is a flash and a
 frame.
 
 ## Known departures
@@ -293,14 +381,14 @@ not the audit itself.
 | game | departure |
 |---|---|
 | setgame | draws **selection as a `box-shadow`** ring, which would collide with hover. Needs to become a real border. |
-| waffle | in-flight swap is a **blinking blue outline**, not a dim. Its tiles also carry live-changing state colour, so it is the hardest case for attention-as-background. |
+| waffle | in-flight swap is a **blinking blue outline**, not a dim. Its tiles also carry live-changing state color, so it is the hardest case for attention-as-background. |
 | stackdown | the ambiguous-letter mark is a **red** border *and* a red `box-shadow` ring — wrong hue (should be amber) and occupies the hover channel. |
 | strands | same red ambiguous-letter treatment. |
-| history viewer | the shared frame is **yellow** (`historyViewer.module.css`); should be grey, so yellow means only "attention". Scope stays as it is — board, and sometimes another region such as a rack. |
+| history viewer | the shared frame is **yellow** (`historyViewer.module.css`); should be gray, so yellow means only "attention". Scope stays as it is — board, and sometimes another region such as a rack. |
 | most games | **no in-flight mark at all.** This is the biggest gap and the most additive. |
 
 **wordle: CONVERTED** (2026-08-16) — in-flight veil, rejection ring matching its
-pill's tone, elevation hover, grey-blue history, and the keyboard rebuilt as a
+pill's tone, elevation hover, gray-blue history, and the keyboard rebuilt as a
 control surface. It went first because it needed the fewest decisions: no
 selection, no hint, and no cursor, so it did not force the position channel.
 
@@ -332,18 +420,18 @@ several places that use it. It unpicks a unification made on purpose, and the
 players have learned it — but they know this is beta, and the background is
 needed for state and attention, which have nowhere else to go. Selection does.
 
-### 2. Hover is five different things, and one of them borrows selection's colour
+### 2. Hover is five different things, and one of them borrows selection's color
 
 | | hover treatment |
 |---|---|
-| shared `.tile` | `box-shadow` ring **in the selected colour** |
+| shared `.tile` | `box-shadow` ring **in the selected color** |
 | stackdown | `border-color` → accent |
 | spellingbee / wordwheel | `filter: brightness(0.96)` |
 | strands | `opacity: 0.75` |
-| setgame | background grey |
+| setgame | background gray |
 
 The shared one is the problem: it rings the tile in `--tile-selected-bg`, so
-hover and selected speak the same colour. And strands' hover is `opacity`, which
+hover and selected speak the same color. And strands' hover is `opacity`, which
 in our vocabulary is a *dim* — i.e. hover currently says "inactive" there.
 
 `filter` is also a channel the framework doesn't name at all.
@@ -396,9 +484,9 @@ cover prospective actions or gets its own row (see above).
 
 ### 6. Identity is a real channel, and three games already use it
 
-- **connections** colours a selected tile by **who selected it**.
+- **connections** colors a selected tile by **who selected it**.
 - **crosswords** draws `.peerFrame` — a teammate's cursor, a thin inset border
-  in that peer's colour, set inline.
+  in that peer's color, set inline.
 
 Two games, two mechanisms, one meaning: *a peer is doing something HERE*. That
 confirms identity as a channel.
@@ -410,11 +498,11 @@ itself, not attribution, and it is deliberately not a circle precisely so it
 cannot be mistaken for a player dot.
 
 **How identity resolves without a new channel:** apply the audience rule to
-selection. **My own selection is neutral; a peer's carries their colour.** I
+selection. **My own selection is neutral; a peer's carries their color.** I
 don't need telling which tiles are mine — I just clicked them. That makes the
-two uses of border-colour disjoint in practice, since a verdict only ever lands
+two uses of border-color disjoint in practice, since a verdict only ever lands
 on my own action. A *permanent* attribution ("moth called this one") is a
-different need and would be a **player-colour dot**, reusing the `<Dot>` /
+different need and would be a **player-color dot**, reusing the `<Dot>` /
 `ActorDot` vocabulary the turn log and opponent strip already share. Nothing
 needs that today.
 
@@ -442,18 +530,18 @@ needs that today.
 
 The first game through. Five things generalise.
 
-### Ink colour is a channel, and it is easy to spend by accident
+### Ink color is a channel, and it is easy to spend by accident
 
 On wordle's keyboard, **black letters mean untried and white letters mean
 tried** — you read the state of the whole alphabet without reading a single
-letter. Nobody designed that; it fell out of "white text on a coloured fill".
+letter. Nobody designed that; it fell out of "white text on a colored fill".
 
 It nearly got spent: three of the key states carried white ink below the 3:1
 contrast floor, and the obvious fix — dark ink on the light ones — would have
-raised every number and destroyed the signal. **Before changing a colour for
+raised every number and destroyed the signal. **Before changing a color for
 contrast, ask what the ink is already carrying.**
 
-### A state colour that carries white ink has a floor, and it constrains the palette
+### A state color that carries white ink has a floor, and it constrains the palette
 
 `--wordle-gray` could not be lightened past about `#959595` without dropping
 white text under 3:1. That is a hard boundary on a purely aesthetic decision, and
@@ -526,6 +614,28 @@ thin/thick range on anything else.
 
 It is the one channel almost nothing implements, so it is additive rather than a
 migration — and it buys something concrete: **it is what earns you the right not
-to do optimistic updates.** Colouring a wordle row locally before the server
-answers means reconciling it when the answer disagrees. Dimming it instead says
-"sent, waiting" honestly, costs one class, and never has to be undone.
+to guess the answer.** Colouring a wordle row locally before the server replies
+means inventing a verdict and reconciling it when the real one disagrees. Dimming
+it instead says "sent, waiting" honestly, costs one class, and never has to be
+undone.
+
+### What the dim does NOT excuse: showing the move itself
+
+The move is a different thing from its answer. A client can render the
+arrangement it just asked for — it computed that arrangement, and it validated
+the move before sending it — and refusing to is worse than useless: a waffle
+player who drags two tiles and sees them sitting exactly where they were reads
+it as "my swap didn't take", and the dim that follows looks like the app
+struggling rather than the server thinking.
+
+So a piece in flight shows **the move, without its verdict**. waffle's two tiles
+take their new letters the moment you drop them, and go to the neutral
+un-evaluated fill rather than keeping their old colors (which would assert a
+verdict that is no longer true) or guessing new ones (which would assert one we
+don't have).
+
+The optimism is therefore about **acceptance, not computation** — and that is the
+residual risk it carries. A move can still be refused after the fact: a teammate
+spent the last swap first, the turn moved, the game ended. Anything drawn
+optimistically must be able to snap back, and that revert is the whole price of
+doing it.

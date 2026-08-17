@@ -101,7 +101,7 @@
 
 /* Server feedback colors. The border is a slightly DARKER shade of the fill
  * rather than the fill itself — the quiet definition every other surface in this
- * app has, instead of a flat block of colour. */
+ * app has, instead of a flat block of color. */
 .green {
   background: var(--wordle-green);
   border-color: var(--wordle-green-border);
@@ -119,30 +119,15 @@
   background: transparent;
 }
 
-/* ── In flight ──────────────────────────────────────────────────────────────
- * The row you just submitted, while the server works out its colours. Until now
- * it was drawn identically to a row you are still typing, so a slow connection
- * looked exactly like nothing having happened.
+/* In flight — the row you just submitted, while the server works out its
+ * colors — is the SHARED `.dimInFlight` mark (common PlayArea.module.css),
+ * applied per TILE rather than to the row so the gaps between tiles stay light:
+ * a bar across the whole row would read as a new element rather than as the
+ * letters being sent.
  *
- * A dim-down VEIL over each tile rather than over the row, so the gaps between
- * tiles stay light — a bar across the whole row would read as a new element
- * rather than as the letters being busy. Black, per the shared vocabulary:
- * "held / working", as against the white dim that means "inert".
- *
- * It must clear before the reveal flip starts, or the flip plays under a veil —
- * which it does, because the row stops being pending the moment its coloured
- * row lands. See docs/tile-feedback.md. */
-.busy {
-  position: relative;
-}
-
-.busy::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--tile-busy-veil);
-}
+ * It must clear before the reveal flip starts, or the flip plays under a dim —
+ * which it does, because the row stops being pending the moment its colored row
+ * lands. See docs/tile-feedback.md. */
 
 /* ── Rejected ───────────────────────────────────────────────────────────────
  * A soft reject — not in the word list, already guessed, too short. The pill
@@ -161,7 +146,7 @@
   animation: wordle-reject-shake 0.4s ease-in-out;
 }
 
-/* The ring's colour MATCHES ITS PILL, tone for tone — the two are one message
+/* The ring's color MATCHES ITS PILL, tone for tone — the two are one message
  * arriving in two places, and a red pill beside an amber row would read as two
  * different verdicts. "Not in word list" is an error (that word does not
  * exist); "already guessed" is a warning (it exists, you just can't use it

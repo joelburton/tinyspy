@@ -4,7 +4,7 @@
      (no letterboxing in the app's square logo slots). Hand-authored; no
      external source.
 
-     The two fills are COPIES of --wordle-yellow / --wordle-green, because an
+     The two fills are COPIES of the `wordle-yellow` / `wordle-green` tokens, because an
      SVG file cannot read CSS custom properties. Keep them in step by hand:
      yellow #BD9F35, green #66A45F. (They were NYT's #c9b458 / #6aaa64 until
      both were darkened so white letters clear the contrast floor — see the

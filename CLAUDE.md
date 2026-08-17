@@ -1,5 +1,10 @@
 # Project priors
 
+**Spelling is American.** `color`, not `colour`; `gray`, not `grey`;
+`behavior`, `center`, `canceled`. This is an American app written by an
+American, and it holds everywhere — identifiers, CSS tokens, comments, docs,
+commit messages, and UI copy alike.
+
 Context for AI assistants and contributors working on this repo. These are project-level priors that should shape every decision; the specific docs build on top:
 
 | file | what's there |

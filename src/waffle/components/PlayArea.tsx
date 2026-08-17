@@ -21,20 +21,20 @@ import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
 import { useInfoSheet } from '../../common/hooks/game/useInfoSheet'
 import { useConfirmDialog, NEW_GAME_CONFIRM } from '../../common/hooks/ui/useConfirmDialog'
 import { useStandardGameActions } from '../../common/hooks/game/useStandardGameActions'
+import { useTurnStartFlash } from '../../common/hooks/game/useTurnStartFlash'
 import { solvedByMe, useSolutionReveal } from '../../common/hooks/game/useSolutionReveal'
 import { InfoSheet } from '../../common/components/game/InfoSheet'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { turnSnapshot } from '../lib/history'
 import { computeColors } from '../lib/colors'
-import { solvedWords } from '../lib/waffle'
+import { solvedWords, swapCells, unjudgeCells } from '../lib/waffle'
 import type { WaffleSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { StateLine } from './StateLine'
 import shared from '../../common/components/game/PlayArea.module.css'
 import styles from './PlayArea.module.css'
-import '../theme.css'
 import { useSwallowTab } from '../../common/hooks/input/useSwallowTab'
 import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
 
@@ -104,7 +104,7 @@ export function PlayArea({
   // ─── Turn-history viewer (coop only) ───────────────────
   // The shared coordination state: which swap-log row (by POSITION in the coop log)
   // is open on the board, or null = live. When set, PlayArea feeds BoardCol that
-  // swap's historical snapshot + readOnly; BoardCol shows the yellow frame + banner
+  // swap's historical snapshot + readOnly; BoardCol shows the gray-blue frame + banner
   // and freezes input. Only coop can reach it (compete renders no swap log). waffle
   // has no keyboard play, so `exitOnKey` is its ONLY key handler — a bare key exits.
   const { viewingId: viewingIndex, viewing, select: setViewingIndex, exitViewing, exitOnKey } =
@@ -131,6 +131,14 @@ export function PlayArea({
   // async fetch lands and would fake a mid-session flip on every mount of a
   // won game — correct from the very first render.
   const celebration = useCelebration(playState === 'won')
+
+  // ─── The turn arriving (turn-order coop) ───────────────
+  // The board frame flashes yellow at the moment the move becomes mine. The
+  // board dimming is what says "not yours"; its lifting is a removal, and a
+  // removal is a poor signal — you have been waiting, so you are looking
+  // somewhere else when it happens. Never fires in a free-for-all game
+  // (`isMyTurn` is permanently true there), so it needs no mode gate.
+  const turnFlash = useTurnStartFlash(isMyTurn)
 
   // ─── Compete peer news (header pill) ───────────────────
   // When an opponent's public state ticks — they solved the puzzle, or they ran out
@@ -178,28 +186,52 @@ export function PlayArea({
     [playerStates, game, players, session.user.id, globalFeedback],
   )
 
-  // The swap in flight, or null. A production round-trip can take a second or
-  // two, and with NO feedback in that gap players assume the click missed and
-  // tap the same two tiles again — which queues the REVERSE swap and undoes
-  // the first. So a submitted swap (a) marks both tiles with the pulsing
-  // in-flight ring (Board's `.swapping`), and (b) single-flights: further
-  // swap input is dropped until the RPC settles (useSingleFlight is the
-  // gate; this state is the render).
-  // (An optimistic local swap was considered and rejected: in coop a peer's
-  // swap can land first, so a preview could show an exchange that never
-  // happens that way.)
-  const [pendingSwap, setPendingSwap] = useState<readonly [number, number] | null>(null)
+  // ─── A swap in flight ──────────────────────────────────
+  // The move is shown at once; its verdict is not (docs/tile-feedback.md → "What
+  // the dim does NOT excuse"). The moment you drop a tile, the two letters trade
+  // places on your board, the two cells go UNJUDGED — their old color was
+  // invalidated by the move and the new one is the server's to give, so they show
+  // the middle gray under the in-flight dim (see `.inFlight` in Board.module.css
+  // for why that gray and not the light blank). A board that didn't move would
+  // read as a swap that didn't happen, which is the single worst thing this
+  // surface can say; the dim on top of stale colors would read as the app
+  // struggling.
+  //
+  // The colors then arrive for EVERYONE together, over the realtime refetch,
+  // with the attention flash. In coop the FE actually holds the solution (it
+  // colors the history viewer's replayed boards), so the swapper *could* color
+  // their own tiles a round-trip early — and deliberately doesn't: they'd be
+  // acting on a board their teammates can't see yet, in a game where the next
+  // move follows fast. Which is also why `submit_swap`'s reply — it returns the
+  // new colors — is ignored here. Don't wire it up.
+  //
+  // `atBoard` / `atSwaps` are the server state this swap was made against; the
+  // optimistic overlay lasts exactly until either moves (below), so it needs no
+  // timer and can't outlive its answer. The RPC resolving is NOT the end of it:
+  // the reply beats the refetch, and un-dimming there would leave two colorless
+  // tiles sitting undimmed until the board caught up.
+  const [optimisticSwap, setOptimisticSwap] = useState<{
+    cells: readonly [number, number]
+    atBoard: string
+    atSwaps: number
+  } | null>(null)
+  // The server state as of THIS render, read at click time so the handler's
+  // identity (and the menu effect that depends on it) doesn't churn.
+  const serverStateRef = useRef({ board: '', swaps: 0 })
   const doSwap = useCallback(
     async (a: number, b: number) => {
-      setPendingSwap([a, b])
-      try {
-        const { error } = await db.rpc('submit_swap', { target_game: gameId, pos_a: a, pos_b: b })
-        // Own-action error → the local below-board flash. Success: the swap mutated
-        // waffle.players → realtime refetch re-renders the board + colors.
-        if (error) showLocalFeedback(failureMessage(error, 'swap'))
-      } finally {
-        setPendingSwap(null)
+      const { board: atBoard, swaps: atSwaps } = serverStateRef.current
+      setOptimisticSwap({ cells: [a, b], atBoard, atSwaps })
+      const { error } = await db.rpc('submit_swap', { target_game: gameId, pos_a: a, pos_b: b })
+      if (error) {
+        // Refused (a teammate spent the last swap, the turn moved, the game
+        // ended). Optimism is about ACCEPTANCE, so this is the price: take the
+        // letters back, then say why in the below-board flash.
+        setOptimisticSwap(null)
+        showLocalFeedback(failureMessage(error, 'swap'))
       }
+      // Accepted: leave the overlay standing. It clears when the server's own
+      // board lands, which is the same moment the colors do.
     },
     [gameId, showLocalFeedback],
   )
@@ -250,6 +282,11 @@ export function PlayArea({
     // `reset`, not `hide`: hiding would record an explicit "no" that outranks
     // the solve-implied default, so solving the replayed board wouldn't show it.
     resetAnswer()
+    // Forget any optimistic swap too. It expires by comparing itself against the
+    // server's board + swap count, and a restart puts BOTH back to where a
+    // first-move swap was made — which would make a long-answered swap look
+    // live again on the fresh board.
+    setOptimisticSwap(null)
   }, [exitViewing, clearLocalFeedback, resetAnswer])
   const { endGame, concede, restart } = useStandardGameActions({
     db,
@@ -280,6 +317,17 @@ export function PlayArea({
   })
   useEffect(() => {
     newGameArgsRef.current = { setup, playerIds: players.map((p) => p.user_id) }
+  })
+
+  // The server state a swap is made AGAINST, captured at click time — see
+  // `optimisticSwap`. A ref rather than a dep, so `doSwap` keeps its identity
+  // across the realtime refetches that arrive between moves.
+  useEffect(() => {
+    const mine = playerStates.find((p) => p.user_id === session.user.id)
+    serverStateRef.current = {
+      board: mine?.board ?? game?.scramble ?? '',
+      swaps: mine?.swaps_used ?? 0,
+    }
   })
   const createNewGame = useCallback(async () => {
     // Starting a new game mid-play SHELVES this one (create_game clears the
@@ -447,6 +495,8 @@ export function PlayArea({
   const self = playerStates.find((p) => p.user_id === session.user.id)
   const isPlayer = self !== undefined
   const isCompete = game.mode === 'compete'
+  const swapsUsed = self?.swaps_used ?? 0
+  const remaining = Math.max(0, game.max_swaps - swapsUsed)
 
   // `concededIds` marks a conceded opponent 'out' in the strip mid-game.
   // (`myConceded` — my own drop-out flag — is derived at the top.)
@@ -478,12 +528,38 @@ export function PlayArea({
   // is untouched, which is exactly why hiding again brings back the board the
   // players actually finished with.
   const revealSolution = answerShown && isTerminal ? game.solution : null
-  const board = snap ? snap.board : (revealSolution ?? self?.board ?? game.scramble)
+  const serverBoard = self?.board ?? game.scramble
+
+  // The optimistic swap, still standing or already answered. It lasts exactly
+  // as long as the server state it was made against: the instant either the
+  // board or the swap count moves, the server has spoken (or a teammate has) and
+  // the real board takes over. Derived rather than cleared, so there is no timer
+  // to tune and no window where the overlay outlives its answer.
+  //
+  // BOTH tests are needed. Swapping two IDENTICAL letters leaves the board
+  // string untouched, so only the count shows it landed; a teammate's swap in
+  // coop moves the board without moving my count, and that board is newer than
+  // my overlay either way. (That is also the one race here: a teammate landing
+  // first drops my letters back for the rest of my round-trip. Coop-only — a
+  // compete racer's board is nobody else's to touch — and it resolves itself.)
+  const pendingSwap =
+    optimisticSwap &&
+    optimisticSwap.atBoard === serverBoard &&
+    optimisticSwap.atSwaps === swapsUsed
+      ? optimisticSwap.cells
+      : null
+
+  const board = snap
+    ? snap.board
+    : (revealSolution ??
+      (pendingSwap ? swapCells(serverBoard, pendingSwap[0], pendingSwap[1]) : serverBoard))
   const colors = snap
     ? snap.colors
     : revealSolution
       ? computeColors(revealSolution, revealSolution)
-      : (self?.colors ?? null)
+      : pendingSwap && self?.colors
+        ? unjudgeCells(self.colors, pendingSwap)
+        : (self?.colors ?? null)
 
   // The answer reveal (info column) reads the caller's OWN live board + colors —
   // never the history snapshot, and mid-game never the shielded solution. A word all
@@ -495,9 +571,6 @@ export function PlayArea({
     revealSolution ?? self?.board ?? game.scramble,
     revealSolution ? computeColors(revealSolution, revealSolution) : (self?.colors ?? null),
   )
-
-  const swapsUsed = self?.swaps_used ?? 0
-  const remaining = Math.max(0, game.max_swaps - swapsUsed)
 
   const selfWon = (status?.winner_user_id as string | undefined) === session.user.id
   // Coop swaps for the win-vs-par verdict: coop rows are kept in lock-step, so
@@ -535,7 +608,7 @@ export function PlayArea({
   // sticky locally-terminal "waiting" pill → the whose-turn pill (the ONLY
   // whose-turn indicator on mobile, where the InfoCol's TurnStatusLine is
   // off-canvas) → the transient own-move error. (While
-  // viewing, BoardCol's yellow banner covers this region with the swap description.)
+  // viewing, BoardCol's history banner covers this region with the swap description.)
   const localPill: GenericFeedbackMsg | null = over
     ? terminalPill(over.tone, over.verdict)
     : selfDone
@@ -566,6 +639,17 @@ export function PlayArea({
         onExitViewing={exitViewing}
         onSwap={handleSwap}
         pendingSwap={pendingSwap}
+        notMyTurn={waiting}
+        myTurnJustStarted={turnFlash}
+        // The finished board wears its verdict: `over` is the same TerminalCopy
+        // the below-board pill and the info-column line read, so the three can't
+        // disagree about how this game went.
+        gameOver={over ? over.tone : null}
+        // The swaps behind the board on show — coop's shared log, or my own in
+        // compete (`replaySwaps`, the same filtered list the history viewer
+        // replays). A restart deletes these rows, which is exactly what tells
+        // the flash that a re-dealt board was not played into existence.
+        moveCount={replaySwaps.length}
         onDismissPill={clearLocalFeedback}
         localPill={localPill}
       />

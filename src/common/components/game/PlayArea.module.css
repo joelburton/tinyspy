@@ -174,9 +174,9 @@
  * fills --avail-w — "fill" is the no-cap case of hug.
  *
  * Composed onto each game's own `.grid` (via `cls(shared.hugRectWidth,
- * styles.grid)`), which keeps its per-game fill behaviour — psychicnum/
+ * styles.grid)`), which keeps its per-game fill behavior — psychicnum/
  * connections/codenamesduet flex-fill height (`flex: 1`), wordle derives a
- * square height from `aspect-ratio`. That behaviour lives in flex/grid-rows,
+ * square height from `aspect-ratio`. That behavior lives in flex/grid-rows,
  * NOT this width arithmetic, which was byte-identical across all four before
  * this extraction. Each game supplies --cols / --max-tile-width / --grid-gap.
  * See docs/ui.md → "Board sizing". (Square boards compute --side instead — see
@@ -400,6 +400,184 @@
   flex-shrink: 0;
 }
 
+/* ─── The feedback marks ─────────────────────────────────────────────────
+ * The vocabulary's transient marks, defined ONCE here and worn by any game that
+ * needs them — see docs/tile-feedback.md. Each says one thing, and the ELEMENT
+ * it lands on says what that thing applies to: `.dimInFlight` on a tile means
+ * that piece was sent, on a board means the whole move was; `.dimNotYourTurn` on
+ * a board means you cannot act at all. Same mark, same strength, different noun.
+ *
+ * All four are overlays or animations that add nothing to layout, so they
+ * compose with a game's own state classes rather than fighting them. */
+
+/* IN FLIGHT — sent, waiting on the server.
+ *
+ * Drawn as an overlay rather than as `opacity`, so the surface darkens with its
+ * contents instead of fading toward the page. It covers the whole element,
+ * content included: this mark means "hands off, this is with the server", and a
+ * legible letter sitting brightly on top of it would undercut that. */
+.dimInFlight {
+  position: relative;
+}
+
+.dimInFlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--dim-in-flight);
+  pointer-events: none;
+  /* Above content a game has lifted for the attention wash below (which sits at
+   * 1), because the two can overlap: a realtime update can land a hair before
+   * the caller's own request resolves. */
+  z-index: 2;
+}
+
+/* NOT YOUR TURN — a teammate holds the move.
+ *
+ * `pointer-events: none` on the overlay, not on the element: a waiting player's
+ * tiles are already disabled by each game's own read-only gate, and swallowing
+ * clicks here would also swallow the click-anywhere-to-exit that the history
+ * viewer relies on. */
+.dimNotYourTurn {
+  position: relative;
+}
+
+.dimNotYourTurn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--dim-not-your-turn);
+  pointer-events: none;
+}
+
+/* GAME OVER — this board is finished.
+ *
+ * Worn by the board AND by any input surface that belongs to it (a keyboard, a
+ * rack), because the message is about the whole play surface rather than about
+ * one part of it. Most games change nothing at all when they end, so the board
+ * you are studying looks exactly like one you could still play.
+ *
+ * Two ways to say it. `.gameOverFrame` below is the one in use; this is the
+ * alternative, kept because it may yet be the better answer on a board whose
+ * edges are busy.
+ *
+ * It would be the one PERMANENT dim, a deliberate exception to "a game piece may
+ * be dimmed only for transient inactivity". That rule protects a spent PIECE,
+ * whose color is its message and must read at full strength; this is the whole
+ * SURFACE, where there is no longer any distinction between active and spent to
+ * preserve. It stays weak because a finished board is exactly what people sit
+ * and read afterwards. */
+.dimGameOver {
+  position: relative;
+}
+
+.dimGameOver::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--dim-game-over);
+  pointer-events: none;
+}
+
+/* GAME OVER, the frame — what a finished board wears today: a band around the
+ * outside, leaving everything inside it untouched at full strength.
+ *
+ * Deliberately the history viewer's SHAPE (same width, same gap) in a different
+ * color, because the two are the same kind of statement — "what you are looking
+ * at is not a live position" — arrived at two ways. The color is what separates
+ * them: history is a cool gray-blue you chose to enter and can leave, this is a
+ * flat dead gray, lighter and with no hue to mistake for a verdict. Nothing about
+ * a finished game is an outcome; the outcome is the pill's to say.
+ *
+ * THIS AND THE HISTORY-VIEWER FRAME ARE ONE MARK IN TWO COLORS. Same property,
+ * same width, same offset — see `historyViewer.module.css`, and keep them in
+ * step. Both say "what you are looking at is not a live position"; only the color
+ * says which kind. Drawing this one any other way is a bug, not a variant: two
+ * frames that differ in shape are two things to learn, and the difference carries
+ * no meaning.
+ *
+ * They can co-occur (a finished game can be put into the viewer) and an element
+ * has only one outline, so the board drops this while the viewer is open — the
+ * viewer is the state you chose and the one you can leave. */
+.gameOverFrame {
+  /* Neutral unless a tone class below re-sets it — an ENDED game (nobody beat
+   * anybody) keeps the plain gray. */
+  --game-over-frame: var(--color-game-over);
+  outline: 4px solid var(--game-over-frame);
+  outline-offset: 3px;
+}
+
+/* The outcome faces of the same frame. A finished game always has a verdict, and
+ * this band is already the biggest thing on screen saying "finished", so it may
+ * as well say WHICH. Declared after `.gameOverFrame` — they land on the same
+ * element, so same-file order settles it. */
+.gameOverWon {
+  --game-over-frame: var(--color-game-over-won);
+}
+
+.gameOverLost {
+  --game-over-frame: var(--color-game-over-lost);
+}
+
+/* ATTENTION — this changed, look here.
+ *
+ * Solid yellow for most of its life, then a short tail fading out to hand the
+ * piece back its true state color. Solid on purpose: the mark's one job is to say
+ * WHERE to look, and a blend of yellow and the state underneath is neither — see
+ * `--tile-attention`. It is an OVERLAY rather than a background layer because a
+ * background cannot be faded (CSS cannot interpolate between a layered
+ * background and a flat one), and the fade is what makes the mark hand the
+ * surface back rather than blink off it.
+ *
+ * A game whose tile has CONTENT must lift that content to `z-index: 1` (as
+ * waffle's letter does), or the wash tints it instead of lightening the tile
+ * under it. The wash itself deliberately stays below.
+ *
+ * Reduced motion keeps this: the carrier is the color, and the movement is only
+ * how it leaves. */
+.attentionFlash {
+  position: relative;
+}
+
+.attentionFlash::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--tile-attention);
+  pointer-events: none;
+  z-index: 0;
+  animation: attention-flash var(--attention-flash-duration) ease-out forwards;
+}
+
+@keyframes attention-flash {
+  0%, 70% { opacity: 1; }
+  100%    { opacity: 0; }
+}
+
+/* YOUR TURN JUST STARTED — the one board event that is genuinely news, and it
+ * arrives while you are looking somewhere else (that is the whole problem with
+ * turn order: the board looks identical the moment it becomes yours).
+ *
+ * A `box-shadow` ring rather than an outline, because `outline` on a board box is
+ * already the history viewer's frame and the two can co-occur — your turn can
+ * start while you are reading a past turn. */
+.yourTurnFlash {
+  animation: your-turn-flash var(--your-turn-flash-duration) ease-out;
+}
+
+@keyframes your-turn-flash {
+  0% {
+    box-shadow: 0 0 0 5px var(--color-attention);
+  }
+  100% {
+    box-shadow: 0 0 0 5px transparent;
+  }
+}
+
 /* ─── Shared tile ────────────────────────────────────────────────────────
  * The board tile every game's clickable word/letter tiles use. Resting look
  * comes ENTIRELY from the --tile-* tokens (common/theme.css), so a state class
@@ -417,7 +595,13 @@
   font: inherit;
   color: var(--tile-text);
   background: var(--tile-bg);
-  border: 1px solid var(--tile-border);
+  /* Width is a TOKEN because it is a channel: the vocabulary puts "selected —
+   * part of the move I'm building" on border WIDTH, and a state class must be
+   * able to thicken the edge by re-setting a property on the same element rather
+   * than by out-cascading this shorthand from another module (which would depend
+   * on stylesheet order). Every tile is `box-sizing: border-box`, so a thicker
+   * border eats inward and nothing reflows. See docs/tile-feedback.md. */
+  border: var(--tile-border-width) solid var(--tile-border);
   border-radius: var(--radius-md);
   box-shadow: var(--tile-shadow);
   cursor: pointer;
@@ -425,9 +609,9 @@
    * .tileWord. Font-fitting infrastructure; layout-safe (doesn't resize the
    * tile). */
   container-type: inline-size;
-  /* Touch behaviour, canonical for every shared-tile game (psychicnum,
+  /* Touch behavior, canonical for every shared-tile game (psychicnum,
    * connections, waffle, codenamesduet — docs/mobile.md → tap-press feedback):
-   *   - kill the browser's default grey tap-flash, which paints a rectangle
+   *   - kill the browser's default gray tap-flash, which paints a rectangle
    *     that fights the tile fill (previously only boggle/spellingbee did this,
    *     on their bespoke tiles — this makes it uniform);
    *   - `touch-action: manipulation` opts out of double-tap-to-zoom and its
@@ -459,19 +643,8 @@
   );
 }
 
-/* Hover + selected are DARK and shared across games (replacing psychicnum's
- * old accent-blue ring and connections' bg-darken). Hover rings the tile in
- * the selected tone via box-shadow (so layout doesn't shift, and it composes
- * with the resting drop shadow). Selected fills the tile dark with light ink —
- * the NYT "I picked this" idiom, now canonical everywhere. Selected re-sets the
- * tokens the resting `.tile` reads, so the dark fill wins regardless of module
- * order. */
-/* Hover is ELEVATION, and nothing else — a deepened drop shadow over the tile's
- * resting one. It used to ring the tile in `--tile-selected-bg`, which spent the
- * selection colour on a state that isn't selection and put hover on the same
- * channel as the mark it can sit next to.
- *
- * Subtle on purpose: you know where your own pointer is, so hover's whole job is
+/* Hover is a DROP SHADOW, and nothing else — a deepened shadow over the tile's
+ * resting one; the tile's own geometry does not move. Subtle on purpose: you know where your own pointer is, so hover's whole job is
  * to say the surface is alive. That frees the background for state and attention,
  * which have nowhere else to go. See docs/tile-feedback.md. */
 .tile:hover:not(:disabled) {
@@ -494,12 +667,19 @@
   opacity: 1;
 }
 
-.selected {
-  --tile-bg: var(--tile-selected-bg);
-  --tile-text: var(--tile-selected-text);
-}
-
-.selected:hover:not(:disabled) {
-  /* Keep the dark fill; the ring still reads on top of it. */
-  box-shadow: 0 0 0 2px var(--tile-selected-bg), var(--tile-shadow);
+/* SELECTED — this piece is part of the move I am building.
+ *
+ * The edge goes thick and BLACK, and that is the whole mark. The background stays
+ * whatever state put there, because on most boards it is already spoken for and
+ * state has nowhere else to go; the border does. `box-sizing: border-box` means
+ * the thicker edge eats inward — the tile does not grow and the grid does not
+ * move. See docs/tile-feedback.md.
+ *
+ * Selected qualifies `.tile` rather than standing alone, so it beats the game
+ * class that set the resting edge on specificity instead of on stylesheet order:
+ * a game's color class sets `--tile-border` from its own module, and a
+ * single-class rule here would be a coin flip between the two. */
+.tile.selected {
+  border-width: var(--tile-border-width-selected);
+  border-color: var(--tile-selected-border);
 }

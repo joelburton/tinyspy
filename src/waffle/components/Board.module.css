@@ -5,9 +5,14 @@
  * FILL the column with `1fr` tracks and so go rectangular — waffle stays a
  * SQUARE (it's a waffle, with holes): the grid sizes to the largest square that
  * fits, and sits TOP-aligned in the column. The tile CHROME (box, radius,
- * shadow, hover ring, centering, the un-faded disabled look) is the SHARED
+ * shadow, hover shadow, centering, the un-faded disabled look) is the SHARED
  * `.tile` from common (imported as `shared` in Board.tsx); only the
- * per-color fills, the letter, the pickup selection, and the holes are waffle's.
+ * per-color fills, the letter, and the holes are waffle's.
+ *
+ * The vocabulary's own marks are all shared (common PlayArea.module.css):
+ * `.selected`, `.dimInFlight`, `.attentionFlash` on a tile, and
+ * `.dimNotYourTurn` / `.yourTurnFlash` on the grid. What is left in this file is
+ * what only waffle can say. See docs/tile-feedback.md.
  */
 
 /* Board wrapper: hugs the square grid (the grid carries the definite `--side`
@@ -89,101 +94,80 @@
   font-size: var(--letter-size);
   font-weight: 700;
   line-height: 1;
+  /* Lifted into the tile's own stacking context, which the shared
+   * `.attentionFlash` requires: its wash is an absolutely-positioned overlay,
+   * and one of those sits above in-flow text by default — so without this the
+   * wash would tint the letter instead of lightening the tile under it. The
+   * in-flight dim deliberately paints above this, covering the letter too. */
+  position: relative;
+  z-index: 1;
 }
 
 /* Per-tile feedback fill = the shared "Wordle colors" (common/theme.css),
  * applied by RE-SETTING the shared `.tile`'s `--tile-*` tokens (so the fill wins
- * regardless of stylesheet order — the codenamesduet pattern). Border matches the
- * fill so each reads as one solid color chip; white ink on the saturated three,
- * dark ink on the neutral blank. */
+ * regardless of stylesheet order — the codenamesduet pattern). White ink on the
+ * saturated three, dark ink on the neutral blank.
+ *
+ * The border is a slightly DARKER shade of the fill (~16%, the step the warm tile
+ * ramp takes between a shade and its border) rather than the fill itself — the
+ * same edge wordle took when it converted, and the same palette, so the two games
+ * that share these colors share their definition too. It is also what makes
+ * SELECTION legible below: a picked-up tile thickens this edge, which needs the
+ * edge to be a different color from the fill in the first place. */
 .green {
   --tile-bg: var(--wordle-green);
-  --tile-border: var(--wordle-green);
+  --tile-border: var(--wordle-green-border);
   --tile-text: #fff;
 }
 .yellow {
   --tile-bg: var(--wordle-yellow);
-  --tile-border: var(--wordle-yellow);
+  --tile-border: var(--wordle-yellow-border);
   --tile-text: #fff;
 }
 .gray {
   --tile-bg: var(--wordle-gray);
-  --tile-border: var(--wordle-gray);
+  --tile-border: var(--wordle-gray-border);
   --tile-text: #fff;
 }
+/* Not a played state: a waffle tile always has a color once the board loads,
+ * and a hole is a `.hole` span rather than a tile. `.blank` is only what a tile
+ * wears before `colors` arrives (and for a watcher who is sent none), so it
+ * keeps its flat edge — the darker border above is for the three colors that
+ * carry meaning. */
 .blank {
   --tile-bg: var(--wordle-blank);
   --tile-border: var(--wordle-blank);
   --tile-text: var(--color-text);
 }
 
-/* Picked-up tile, waiting for its swap partner. NOT the shared dark `.selected`
- * fill (that would bury the tile's Wordle color) — instead a bold attention-yellow
- * ring + a small lift. Drawn with `outline` (which the shared `.tile` never sets)
- * so it's order-independent, unlike a box-shadow override (a box-shadow would also
- * clobber the shared `.tile`'s own drop shadow). The `outline-offset` gap shows the
- * board background between tile and ring, so the yellow reads even on a yellow
- * feedback tile. Thicker than the old faint-brown ring (4px) so the pickup is
- * unmistakable at a glance. */
-.selected {
-  outline: 4px solid var(--waffle-select-ring);
-  outline-offset: 2px;
-  transform: translateY(-2px);
+/* The two cells of a swap IN FLIGHT. Their old color was invalidated the moment
+ * the letters moved and the new one is the server's to give, so they show
+ * neither — this is the middle gray, worn under the shared in-flight dim.
+ *
+ * The GRAY and not the light blank, which was the first attempt: the in-flight
+ * signal is "these are darker than the board around them", and dimming a light
+ * fill lands on a middle gray that reads as a STATE — the not-in-the-word gray —
+ * rather than as a tile being held. Starting from the gray, the dim can only make
+ * it darker than any color on the board, which is the one thing no state says.
+ *
+ * Declared after `.blank` on purpose: an in-flight cell is unjudged, so it wears
+ * both classes, and same-file order settles which fill wins. */
+.inFlight {
+  --tile-bg: var(--wordle-gray);
+  --tile-border: var(--wordle-gray-border);
+  --tile-text: #fff;
 }
 
-/* Turn-history: the two cells the viewed swap moved. A high-contrast DARK ring
- * (not green/yellow — those are tile feedback colors) so it reads on any tile, the
- * "here's what this swap did" marker paired with the yellow viewing frame. Drawn
- * with `outline` (order-independent, like `.selected`); `position: relative` + a
- * z-index lift it so the ring paints over neighbouring tiles rather than under. */
+/* Turn-history: the two cells the viewed swap moved. Ringed in the shared
+ * history color — the same gray-blue as the board frame around them and the #N
+ * handle in the log, so all three parts of "you are looking at this past turn"
+ * are one mark rather than three. Drawn with `outline` (order-independent, and
+ * the channel is free while viewing: you cannot select, and nothing can be in
+ * flight); `position: relative` + a z-index lift it so the ring paints over
+ * neighbouring tiles rather than under. */
 .viewedTile {
-  outline: 3px solid var(--color-text);
+  outline: 3px solid var(--color-history-viewer);
   outline-offset: 2px;
   position: relative;
   z-index: 1;
-}
-
-/* The two tiles of a swap IN FLIGHT — submitted, server round-trip running.
- * A production round-trip can take a second or two, and with no feedback in
- * that gap players re-tap the same two tiles ("did I misclick?"), which would
- * queue the reverse swap; the blinking ring says "it's happening" while input
- * is gated (Board.tsx). Same outline vocabulary as `.selected` but in accent
- * blue, not the pick yellow: the color change is what says "sent" rather than
- * "picked up". Fast blink so it reads as activity even on a short round-trip,
- * and it animates `outline-color` only: no transform, no layout shift. */
-.swapping {
-  outline: 4px solid var(--waffle-pending-ring);
-  outline-offset: 2px;
-  animation: waffle-swap-pending 0.35s ease-in-out infinite;
-}
-
-@keyframes waffle-swap-pending {
-  0%, 100% { outline-color: var(--waffle-pending-ring); }
-  50%      { outline-color: transparent; }
-}
-
-/* Recently-swapped tiles briefly pop, so the eye tracks the two that moved (the
- * only other change-signal is the recolor). Set for ~480ms after the board
- * updates, by diffing prev vs. next board (see Board.tsx). A swapped tile is
- * never `selected` (the pick clears on swap), so the pop's transform doesn't
- * fight the selection lift. */
-.justSwapped {
-  animation: waffle-swap-pop 0.45s ease;
-}
-
-@keyframes waffle-swap-pop {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(1.09); }
-  100% { transform: scale(1); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  /* Drop the motion; the recolor still signals the swap landed. */
-  .justSwapped {
-    animation: none;
-  }
-  /* The in-flight ring holds steady instead of pulsing — still marks the pair. */
-  .swapping {
-    animation: none;
-  }
 }

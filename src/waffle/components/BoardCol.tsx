@@ -26,6 +26,10 @@ export function BoardCol({
   onExitViewing,
   onSwap,
   pendingSwap,
+  notMyTurn,
+  myTurnJustStarted,
+  gameOver,
+  moveCount,
   localPill,
   onDismissPill,
 }: {
@@ -48,7 +52,7 @@ export function BoardCol({
 
   // ── History viewer (its overlay lives in the below-board region) ──
   /** The viewed swap's description while inspecting history (drives the banner + the
-   *  yellow frame), or null when live. */
+   *  gray-blue frame), or null when live. */
   viewingDescription: string | null
   /** Return to the live board (a board/banner click, or the ✕). */
   onExitViewing: () => void
@@ -56,9 +60,20 @@ export function BoardCol({
   // ── Move ──
   /** Swap the letters of two filled cells — the one committed action up. */
   onSwap: (a: number, b: number) => void
-  /** The swap currently in flight (its two cells pulse; input is gated), or
-   *  null. See PlayArea's `pendingSwap`. */
+  /** The swap currently in flight (its two cells take the in-flight dim; input is
+   *  gated), or null. See PlayArea's `pendingSwap`. */
   pendingSwap: readonly [number, number] | null
+  /** Turn-order coop: a teammate holds the move, so the whole board dims. */
+  notMyTurn: boolean
+  /** True for a beat at the moment the turn becomes mine — the board frame
+   *  flashes yellow. Always false in a free-for-all game. */
+  myTurnJustStarted: boolean
+  /** The game is finished, and how it ended — the board's permanent band takes
+   *  that outcome's gray. Null while it's live. */
+  gameOver: 'won' | 'lost' | 'neutral' | null
+  /** Swaps recorded for the board on show — the CAUSE the attention flash reads,
+   *  so a re-dealt or revealed board doesn't light up. See `<Board>`. */
+  moveCount: number
 
   // ── Below-board own-move feedback (PlayArea computes the pill) ──
   /** The below-board pill to show (terminal verdict / waiting / own-move error), or null. */
@@ -88,11 +103,15 @@ export function BoardCol({
         highlight={highlight}
         onSwap={onSwap}
         pendingSwap={pendingSwap}
+        notMyTurn={notMyTurn}
+        myTurnJustStarted={myTurnJustStarted}
+        gameOver={gameOver}
+        moveCount={moveCount}
       />
 
       <div className={styles.belowBoard}>
         {/* Turn-viewer banner — while inspecting a past swap it overlays the
-            below-board region with the swap's description. Opaque surface + yellow
+            below-board region with the swap's description. Opaque surface + gray-blue
             border = the shared "viewing history" marker (matching the board frame +
             viewed-row outline). Click anywhere / the ✕ returns to live. */}
         {viewing && (

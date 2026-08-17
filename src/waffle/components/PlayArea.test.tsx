@@ -61,6 +61,33 @@ const moth: WafflePlayerState = {
   user_id: 'u2', board: BOARD, colors: null, swaps_used: 0, solved: false, solved_at: null,
 }
 
+/** All-green colors (holes stay '.'), so an in-flight tile dropping to the
+ *  unjudged fill is visible in a test rather than inferred. */
+const ALL_GREEN = Array.from({ length: 25 }, (_, i) =>
+  [6, 8, 16, 18].includes(i) ? '.' : 'g',
+).join('')
+
+/** The board with two cells' letters exchanged — what the server sends back
+ *  after it accepts a swap. */
+function swapped(board: string, a: number, b: number): string {
+  const cells = board.split('')
+  ;[cells[a], cells[b]] = [cells[b], cells[a]]
+  return cells.join('')
+}
+
+/** A logged swap — what the server records for every accepted move, and the
+ *  CAUSE the attention flash reads (a re-deal deletes these). */
+function swapRow(posA: number, posB: number, seq = 1, userId = 'u1'): SwapRow {
+  return {
+    user_id: userId,
+    seq,
+    pos_a: posA,
+    pos_b: posB,
+    letter_a: BOARD[posA],
+    letter_b: BOARD[posB],
+  }
+}
+
 /** Two club members, for the compete strip / concede tests. */
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 
@@ -473,12 +500,14 @@ describe('waffle PlayArea — turn-history viewer (coop)', () => {
   })
 })
 
-describe('waffle PlayArea — swap in flight', () => {
-  // The production complaint this pins: a slow submit_swap (1–2s) with no
-  // feedback invites re-tapping the same two tiles, which queues the REVERSE
-  // swap. A submitted swap must (a) mark both tiles with the in-flight ring
-  // and (b) single-flight — further swap input is dropped until it settles.
-  it('marks both tiles, gates further swaps until the RPC settles', async () => {
+describe('waffle PlayArea — a swap in flight', () => {
+  // The production complaint this started from: a slow submit_swap (1–2s) with
+  // no feedback invites re-tapping the same two tiles, which queues the REVERSE
+  // swap. What it pins now is the whole sequence in docs/tile-feedback.md — the
+  // MOVE shows at once, its VERDICT does not, and the marks last until the
+  // server's board arrives rather than until the RPC promise resolves (the reply
+  // beats the refetch, so clearing on it would un-dim two colorless tiles).
+  it('shows the move at once, unjudged and dimmed, until the server board lands', async () => {
     const user = userEvent.setup()
     let settle!: (v: { error: null }) => void
     rpc.mockImplementation((fn: string) =>
@@ -488,28 +517,92 @@ describe('waffle PlayArea — swap in flight', () => {
           })
         : Promise.resolve({ error: null }),
     )
+    h.result = loaded(coopGame, [{ ...me, colors: ALL_GREEN }])
+    const { rerender } = render(<PlayArea {...makeCtx()} />)
+
+    const tiles = within(screen.getByRole('grid')).getAllByRole('button')
+    await user.click(tiles[0])
+    await user.click(tiles[1])
+    expect(rpc).toHaveBeenCalledWith('submit_swap', expect.objectContaining({ pos_a: 0, pos_b: 1 }))
+
+    // The MOVE, immediately: the two letters have traded places. A board that
+    // didn't move reads as a swap that didn't happen.
+    expect(tiles[0]).toHaveTextContent(BOARD[1])
+    expect(tiles[1]).toHaveTextContent(BOARD[0])
+    // …but NOT its verdict: both cells drop their (now-stale) green for the
+    // unjudged fill, and dim to say they're with the server.
+    expect(tiles[0].className).toMatch(/inFlight/)
+    expect(tiles[0].className).toMatch(/dimInFlight/)
+    expect(tiles[1].className).toMatch(/dimInFlight/)
+    // A tile nobody touched keeps its color.
+    expect(tiles[2].className).toMatch(/green/)
+
+    // The did-I-misclick re-tap (same two tiles — the reverse swap) is dropped.
+    await user.click(tiles[0])
+    await user.click(tiles[1])
+    expect(rpc).toHaveBeenCalledTimes(1)
+
+    // The RPC resolving is NOT the end of it — the colors haven't arrived yet.
+    await act(async () => settle({ error: null }))
+    expect(tiles[0].className).toMatch(/dimInFlight/)
+
+    // The server's board is what ends it: the dim lifts, the letters stay put
+    // (they were right all along), and the answered cells take the attention
+    // wash — the news is the verdict, which is the part I couldn't know.
+    h.result = loaded(
+      coopGame,
+      [{ ...me, board: swapped(BOARD, 0, 1), colors: ALL_GREEN, swaps_used: 1 }],
+      [swapRow(0, 1)],
+    )
+    rerender(<PlayArea {...makeCtx()} />)
+    expect(tiles[0].className).not.toMatch(/dimInFlight/)
+    expect(tiles[0]).toHaveTextContent(BOARD[1])
+    expect(tiles[0].className).toMatch(/attentionFlash/)
+    expect(tiles[2].className).not.toMatch(/attentionFlash/)
+
+    // …and input is open again.
+    await user.click(tiles[0])
+    await user.click(tiles[2])
+    expect(rpc).toHaveBeenCalledTimes(2)
+  })
+
+  // The bug this pins: a restart re-deals every cell, so a board DIFF sees
+  // twenty changes and lights the whole grid up at the one moment nothing has
+  // happened. The flash reads the CAUSE instead — the swap log, which `restart`
+  // deletes — so a re-dealt board says nothing. Same rule setgame learned the
+  // hard way; see common/hooks/game/useMoveCausedChange.
+  it('says nothing when the board is re-dealt rather than played', async () => {
+    rpc.mockResolvedValue({ error: null })
+    h.result = loaded(
+      coopGame,
+      [{ ...me, board: swapped(BOARD, 0, 1), colors: ALL_GREEN, swaps_used: 1 }],
+      [swapRow(0, 1)],
+    )
+    const { rerender } = render(<PlayArea {...makeCtx()} />)
+    const tiles = within(screen.getByRole('grid')).getAllByRole('button')
+
+    // A restart: a different board, and the log gone with it.
+    const fresh = 'SLATE.O.RCRANEB.I.ROUNDS'.padEnd(25, 'X')
+    h.result = loaded(coopGame, [{ ...me, board: fresh, colors: ALL_GREEN, swaps_used: 0 }], [])
+    rerender(<PlayArea {...makeCtx()} />)
+
+    expect(tiles.some((t) => /attentionFlash/.test(t.className))).toBe(false)
+  })
+
+  it('takes the letters back when the swap is refused', async () => {
+    const user = userEvent.setup()
+    rpc.mockResolvedValue({ error: { message: 'no swaps left|' } })
+    h.result = loaded(coopGame, [{ ...me, colors: ALL_GREEN }])
     render(<PlayArea {...makeCtx()} />)
 
     const tiles = within(screen.getByRole('grid')).getAllByRole('button')
     await user.click(tiles[0])
     await user.click(tiles[1])
-    expect(rpc).toHaveBeenCalledTimes(1)
-    expect(rpc).toHaveBeenCalledWith('submit_swap', expect.objectContaining({ pos_a: 0, pos_b: 1 }))
 
-    // Both tiles wear the in-flight marker…
-    expect(tiles[0].className).toMatch(/swapping/)
-    expect(tiles[1].className).toMatch(/swapping/)
-
-    // …and the did-I-misclick re-tap (same two tiles — the reverse swap) is dropped.
-    await user.click(tiles[0])
-    await user.click(tiles[1])
-    expect(rpc).toHaveBeenCalledTimes(1)
-
-    // Settling clears the marker and reopens input.
-    await act(async () => settle({ error: null }))
-    await waitFor(() => expect(tiles[0].className).not.toMatch(/swapping/))
-    await user.click(tiles[0])
-    await user.click(tiles[2])
-    expect(rpc).toHaveBeenCalledTimes(2)
+    // Optimism is about ACCEPTANCE, so a refusal is the price: the letters go
+    // back where they were, and the pill says why.
+    await waitFor(() => expect(tiles[0]).toHaveTextContent(BOARD[0]))
+    expect(tiles[1]).toHaveTextContent(BOARD[1])
+    expect(tiles[0].className).not.toMatch(/dimInFlight/)
   })
 })
