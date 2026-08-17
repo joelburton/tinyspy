@@ -238,6 +238,28 @@ deliberate, commented exception. A color that would still be the same if the gam
 brand changed — letterboxed's gray connector line, strands' missed-letter gray — is
 a UI color that belongs in common under a shared name.
 
+### Collapsing a lookalike onto a shared token needs CERTAINTY, not a hex match
+
+The sweep will keep finding colors that are the same as — or within a hair of — an
+existing token, used in the same place and the same way: a gray in a turn log, a
+tile background on a verdict. Collapsing those onto the shared token is the whole
+point of the exercise, **and it is also how you silently change a game nobody is
+looking at yet.**
+
+So the bar is certainty, not similarity:
+
+- **Collapse only when you are 100% sure** — the value matches, *and* the role
+  matches, *and* the game's own docs or comments don't claim a reason for it being
+  its own thing.
+- **Otherwise do not "fix" it.** Log it in the per-game register below, leave the
+  color exactly as it is (named, per the magic-number rule, but unmoved), and let
+  the decision happen when that game is converted and on screen. A wrong collapse
+  is worse than a delayed one: it is invisible until someone plays that game and
+  notices a color they can no longer explain.
+
+The register is the deliverable of the census, and it is deliberately per game
+rather than one long list, because that is the unit the decisions get made in.
+
 ### Geometry is out of scope
 
 No sides, margins, paddings, radii, sizes or flow changes in this sweep. We are
@@ -293,9 +315,12 @@ afterwards is attributable to the second commit rather than to 25 files of churn
 
 ### Commit 1 — renames and moves, no pixels
 
-1. **The census.** Every raw color in every stylesheet, bucketed into *brand* /
-   *should be common* / *decide at that game's conversion*. It makes the rest
-   mechanical and gives "done" a definition.
+1. **The census — DONE 2026-08-17**, and its output is [the register](#the-register--what-the-census-found-per-game)
+   above: 284 color declarations measured against the nearest shared token, with
+   the five cross-cutting patterns pulled out of the per-game noise. The script is
+   `scripts/color-census.py`, kept because re-running it after the sweep is the
+   "did we get them all" check — the per-game lists should come back as brand
+   colors and nothing else.
 2. **Rename the tiers**: `-strong` → `-ink`, `-border` → `-fill`, `-bg` → `-wash`.
 3. **Bucket-prefix everything**: `--color-outcome-*` → `--outcome-*`, and the rest
    into `gamelist-*` / `chrome-*` / `view-*`.
@@ -338,6 +363,100 @@ bespoke game color whose fate needs that game's context. The sweep *names* them 
 marks them — in the guard's allow-list and in a code comment — so the decision is
 in the way of the next person to touch that game, rather than in a doc they won't
 read.
+
+## The register — what the census found, per game
+
+Run 2026-08-17 over every stylesheet: **284 color declarations**, each measured
+against the nearest common token in oklab (`SAME` ≈ indistinguishable, `near` ≈
+close enough to ask the question). This is the input to the collapse rule above:
+**nothing here is a to-do**. It is a list of questions, most of which get answered
+when that game is converted and on screen.
+
+### Cross-cutting first — five patterns, not sixteen decisions
+
+These account for well over half of the unnamed colors, and each is one shared
+token rather than a per-game call:
+
+1. **`#fff` as ink on a colored fill** — ~15 sites across nine games (codenamesduet,
+   connections, waffle, wordle, psychicnum, spellingbee, wordwheel, boggle,
+   scrabble). One name; connections' verdict work already minted
+   `--verdict-ink-on-dark` for exactly this and it should widen.
+2. **Raw `rgba(0,0,0,…)` shadows** — ~20 sites. The tile ramp already has
+   `--tile-shadow` / `--hover-shadow`; dialogs, panels, toasts, chat bubbles and
+   floating menus each roll their own. A small shared elevation set covers them.
+3. **Dialog scrims** — `rgba(0,0,0, .25–.45)` in CelebrationDialog, BlankPicker,
+   NumberJumpDialog, FloatingPanel. One `--scrim`, and the variation between them
+   is almost certainly accidental.
+4. **`var(--x, #hex)` fallbacks** — GuessKeyboard's eight, plus Menu and
+   InfoSwitchButton. Already forbidden by ui.md, and the keyboard's fallbacks are
+   *byte-identical* to the tokens they shadow, so deleting them changes nothing.
+5. **`#000` / `#333` / `#111` as structure** — crosswords' grid rules and blocks,
+   psychicnum's and connections' tile borders. Black is a decision here (the
+   selection border owns `--tile-selected-border`), so these need names before
+   anyone can ask whether they're the same black.
+
+### Per game
+
+**codenamesduet** — the clearest "do not collapse". `--codenamesduet-agent` is
+byte-identical to `outcome-won-ink`, and `-agent-key` to `outcome-won-fill`. They
+are the *keycard vocabulary*, not outcomes ([ui.md → Two
+vocabularies](ui.md#two-vocabularies)), and the identical hex is what makes this
+tempting and wrong. Leave, and say so in the token's comment. Its `-neutral`,
+`-assassin`, and the three `-text` variants are the same story.
+
+**crosswords** — the biggest register (30), and mostly a self-contained design
+system: `--crosswords-header-bg` / `-row-hover` / `-row-rule` land on top of
+neutral-`wash`-ish grays, `-cursor` sits a hair off the old `active-border`,
+`-clue-num` and `-pencil` are control grays (one is byte-identical to
+`--color-control-text-2`). Plus `--crosswords-wrong` `#d33`, which means "you got
+this wrong" and is not `outcome-lost` — the stray red we already knew about. All
+of it waits for crosswords' conversion; the sweep only names the raw `#fff` /
+`#000` / `#333` in `Grid.module.css`.
+
+**scrabble** — the premium-square palette (`-tw` / `-dw` / `-tl` / `-dl`) is brand
+and stays. Its `Board.module.css` carries five *unnamed* premium-square text colors
+(`#6b8378`, `#7a3b34`, `#2c4f6b`) which need names in its `theme.css` at minimum.
+`--scrabble-tile-selected` `#ffd24d` sits near `--color-attention`, which is worth
+a question: is a selected rack tile *attention*, or its own thing?
+
+**setgame** — three symbol colors plus a colorblind trio (the same names
+redefined), `-leaving-bg` / `-arriving-bg` / `-held-veil` from its own in-flight
+choreography. The arriving/leaving pair are the pre-vocabulary ancestors of
+attention and the in-flight dim; they fold in **at setgame's conversion**, not
+here.
+
+**strands** — `--strands-missed` `#9e9aa7` and `--strands-hint-ring` `#8a8a94` are
+UI grays wearing brand names (they would not change if strands' purple changed);
+candidates for common, decided at its conversion. Its `--strands-active` /
+`-active-ring` purples are genuinely brand.
+
+**bananagrams** — its whole tile palette (`-tile-face` / `-tile-edge` / `-tile-ink`)
+sits *near* the shared warm ramp without being it, and `--bananagrams-error`
+`#d84a4a` is the second stray red. Its board also uses two raw greens
+(`rgba(120,200,130,…)`) for drop targets — which the tile-feedback vocabulary will
+want as the prospective-verdict colors, so leave them until then.
+
+**wordwheel / spellingbee** — near-twins by design. `--spellingbee-accent` is
+byte-identical to a shared rank fill, `--wordwheel-accent` is a red near
+`--color-member-red`, and both have `-used` and `-edge` variants that look like the
+`-edge` tier by another name. One decision covering both, at the first one's
+conversion.
+
+**boggle · letterboxed · wordiply** — one brand color each (`-board-bg`, `-accent`,
+`-accent`), nothing to decide. letterboxed's connector gray, called out earlier as
+"a UI color wearing a brand name", turns out not to be a token at all yet — it
+comes from `--color-control-text-2` via `--letterboxed-ghost`, so it is already
+shared and only wants a better name.
+
+**stackdown** — no colors of its own at all: everything is shared tokens plus raw
+shadows and one `rgba(0,0,0,.2)` border. Purely cross-cutting.
+
+**connections · psychicnum · waffle · wordle** — converted, and clean apart from the
+cross-cutting `#fff` ink and `#000` borders. wordle's two theme colors
+(`--wordle-key-bg`, `--wordle-tile-border-filled`) are byte-identical to
+`--color-surface-hover` and `--color-divider`; those are collapse candidates a
+person should confirm, since a keyboard key's resting fill and a hovered surface
+being the same colour today may well be a coincidence.
 
 ## The guard
 
