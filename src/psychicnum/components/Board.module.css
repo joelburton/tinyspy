@@ -71,34 +71,88 @@
  * of found vs ruled out. The tile is also `disabled` once guessed, so it never
  * shows the hover ring. (In compete RLS scopes the viewer's board to their own
  * guesses, so this never leaks what opponents tried.) */
+/* WHITE ink on a decided tile, borrowed from wordle: dark text on a fill this
+ * saturated reads muddy, and white separates cleanly from both the green and the
+ * red. Not a house rule — an undecided tile keeps its dark ink on the pale beige,
+ * which is where dark ink belongs.
+ *
+ * The EDGE is the fill stepped ~16% darker — the same quiet definition waffle and
+ * wordle give their coloured tiles, derived from the fill with `color-mix` so the
+ * two can't drift apart. Deliberately NOT the outcome family's `-strong` tone,
+ * which is four steps down (400 → 800) and reads as a harsh ring rather than as an
+ * edge. And note the fill here is `-border`, the 400 tone: the family's `-border`
+ * name is about its role beside the pastel `-bg`, not about being an edge.
+ *
+ * Which channel is this borrowing? Border colour is spoken for by verdicts and by
+ * peer selection, but neither can land on a DECIDED tile: it is inert, so nobody
+ * can select it and nothing can be refused on it. The edge is free here precisely
+ * because the tile is finished. And the marks that DO cover a decided tile —
+ * attention, the in-flight dim — extend over the border box, so the edge never
+ * peeks through them; a second of a hidden edge costs nothing, since it will be
+ * back. See docs/tile-feedback.md. */
 .correct {
   --tile-bg: var(--color-outcome-won-border);
-  --tile-border: var(--color-outcome-won-strong);
-  font-weight: 700;
+  --tile-border: color-mix(in srgb, var(--color-outcome-won-border) 84%, #000);
+  --tile-text: #fff;
 }
 
 .incorrect {
   --tile-bg: var(--color-outcome-lost-border);
-  --tile-border: var(--color-outcome-lost-strong);
-  font-weight: 700;
+  --tile-border: color-mix(in srgb, var(--color-outcome-lost-border) 84%, #000);
+  --tile-text: #fff;
 }
 
-/* TERMINAL secret reveal: at game over every secret word is ringed bright green
- * — including the ones nobody guessed, which is the point (the board becomes the
- * answer key). An OUTLINE, not a fill: a found secret keeps its green result
- * background and a never-guessed one keeps the plain tile, so the ring adds "this
- * was an answer" without erasing "did we find it?". Inset (`outline-offset`) so
- * it hugs just inside the tile edge, clear of the grid gap and its neighbours.
- * Declared BEFORE `.viewed` so the history-yellow ring wins while inspecting a
- * past turn — that's the active context then. */
-.secret {
-  outline: 3px solid var(--psychicnum-secret-ring);
-  outline-offset: -3px;
+/* Positioning context for the identity dot below. (The shared in-flight dim and
+ * attention wash bring their own; this is for the dot, which is always available
+ * on a decided tile.) */
+.tile {
+  position: relative;
+}
+
+/* WHO decided this tile — the shared `<Dot>`, tucked into the BOTTOM-RIGHT corner.
+ *
+ * Bottom-right because the top-right is taken: the Shuffle control floats there,
+ * and two small round things in one corner would read as a pair rather than as two
+ * unrelated marks.
+ *
+ * Inside the tile rather than straddling its edge, so it can never collide with
+ * the selection border, the history ring, or a neighbour — and small, because it
+ * answers a question you ask deliberately ("who got that one?") rather than one
+ * the board should be shouting. */
+.actorDot {
+  position: absolute;
+  /* Sized and inset in `cqi` — a percentage of the TILE's own width, which the
+   * shared `.tileFace` already makes available by being an inline-size container
+   * (the label's auto-fit font uses the same units). A fixed rem can't work here:
+   * this board's tiles run from a phone's small squares to 200px on a desktop, and
+   * one number is either invisible at the bottom or a bauble at the top.
+   *
+   * The FLOOR does most of the work, and it is doing it deliberately. `cqi` is the
+   * inline axis only, so this tracks tile WIDTH — and a phone's tiles are portrait
+   * (~84px wide, ~150 tall) where a desktop's are landscape (~200 × ~100), so the
+   * proportional term alone gives the phone a third of the disc for a tile with
+   * more area. Sizing on the larger axis would need `container-type: size` on the
+   * shared face, which trades a cosmetic gain for tiles that collapse to nothing
+   * if a board's height is ever indefinite. Legible beats proportional: the floor
+   * holds the phone at a readable ~18px and desktop still scales. */
+  --dot-size: clamp(1.15rem, 13cqi, 1.5rem);
+  /* The ring scales with the disc, or it reads as a hairline on a big tile and as
+   * most of the disc on a small one. */
+  --dot-border-width: max(1.5px, 1.2cqi);
+  right: 7cqi;
+  bottom: 7cqi;
+  /* Above the attention wash (which sits at 0 so it can lighten the tile under
+   * its label) — a flashing tile shouldn't swallow the dot. */
+  z-index: 1;
 }
 
 /* Turn-history: the tile the VIEWED past turn guessed — the shared history-yellow
  * (`--color-history-viewer`), the same signal the board frame + viewed log #N wear.
- * An inset outline so it rings just inside the tile edge, over its green/red fill. */
+ * An inset outline so it rings just inside the tile edge, over its green/red fill.
+ *
+ * (This is the board's only tile-level ring now. The terminal answer key used to
+ * add a second one in a neon green of its own; revealing a secret simply turns it
+ * green today — the reveal is a state change, not a mark. See PlayArea.) */
 .viewed {
   outline: 3px solid var(--color-history-viewer);
   outline-offset: -3px;

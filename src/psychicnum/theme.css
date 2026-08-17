@@ -7,8 +7,9 @@
  * piggybacks entirely on common/theme.css: the guess-outcome
  * left-border strip uses `--color-outcome-{won,lost,near}-
  * border`, the placeholder text uses `--color-muted`, the
- * surface tokens come from the global palette. Nothing here
- * yet — but the file exists for structural parity with
+ * surface tokens come from the global palette, and the board's
+ * marks are the shared ones (docs/tile-feedback.md). Nothing
+ * here — the file exists for structural parity with
  * codenamesduet/theme.css and connections/theme.css so a reader
  * scanning the per-game folders sees the same shape across
  * all three.
@@ -18,13 +19,3 @@
  * psychicnum is being played.
  * ============================================================ */
 
-:root {
-  /* The terminal secret-reveal ring (Board.module.css `.secret`). A BRIGHT
-   * green — deliberately not one of the `--color-outcome-won-*` family, which
-   * this ring has to read against: an un-guessed secret sits on the pale beige
-   * tile, but a FOUND one already wears the mid-green `--color-outcome-won-
-   * border` (#66bb6a) fill, so a same-family ring would vanish into it. Green
-   * A400 is bright enough to separate from both while still reading as "this
-   * is a right answer". */
-  --psychicnum-secret-ring: #00e676;
-}

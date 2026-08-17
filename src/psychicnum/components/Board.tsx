@@ -1,8 +1,15 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
+import type { Member } from '../../common/lib/games'
+import { Dot } from '../../common/components/text/Dot'
+import { ATTENTION_FLASH_MS } from '../../common/lib/game/feedbackTiming'
+import { useMoveCausedChange } from '../../common/hooks/game/useMoveCausedChange'
 import shared from '../../common/components/game/PlayArea.module.css'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './Board.module.css'
+
+/** A stable empty set, so "nothing is flashing" is one object per render. */
+const NO_WORDS: ReadonlySet<string> = new Set()
 
 type Props = {
   /** The board words (5..20), shown as clickable tiles. Lowercase; displayed
@@ -25,11 +32,27 @@ type Props = {
   /** Turn-history: the word the viewed turn's guess decided — ring its tile
    *  history-yellow (over its green/red outcome color). Null / omitted when live. */
   highlightWord?: string | null
-  /** The secret words, non-null ONLY at terminal (the server reveals them then).
-   *  Every secret's tile gets a bright-green ring — the board becomes the answer
-   *  key, including the secrets nobody guessed. Backgrounds are untouched, so
-   *  found-vs-missed still reads. */
-  secretWords?: readonly string[] | null
+  /** WHO decided each tile — its guesser's identity dot, in the bottom-right
+   *  corner. Null outside coop: in compete you only ever see your own guesses, so
+   *  a dot would be decoration.
+   *
+   *  A REVEALED secret is deliberately absent from this map (nobody guessed it),
+   *  which is what keeps found-vs-peeked readable without toggling the reveal off:
+   *  a green tile with a dot was found, a green tile without one was shown. */
+  decidedBy?: ReadonlyMap<string, Pick<Member, 'username' | 'color'> | undefined> | null
+  /** The word currently with the server — its tile takes the in-flight dim. */
+  inFlightWord?: string | null
+  /** The game is finished, and how it ended — the board takes a band in that
+   *  outcome's gray (neutral for a game merely ended). Null while it's live. */
+  gameOver?: 'won' | 'lost' | 'neutral' | null
+  /** A teammate holds the move (turn-order coop): dim the whole board. */
+  notMyTurn?: boolean
+  /** True for a beat at the moment the turn becomes mine — flash the frame. */
+  myTurnJustStarted?: boolean
+  /** Guesses the server has recorded. The CAUSE the attention flash reads: a
+   *  board that changed while this stood still was revealed or re-dealt, not
+   *  played into. */
+  moveCount?: number
   /** A control floated over the board's top-right (the Shuffle button). Rendered
    *  INSIDE the board root — the root is the `position: relative` anchor — so it
    *  hugs the VISUAL board. Anchoring to the column instead would strand it at the
@@ -64,12 +87,36 @@ export function Board({
   onPick,
   viewing = false,
   highlightWord = null,
-  secretWords = null,
+  decidedBy = null,
+  inFlightWord = null,
+  gameOver = null,
+  notMyTurn = false,
+  myTurnJustStarted = false,
+  moveCount = 0,
   floatingControl,
 }: Props) {
-  // A Set for the per-tile lookup below; empty (so no ring) while the game runs,
-  // since `secretWords` only arrives at terminal.
-  const secrets = new Set(secretWords ?? [])
+  // ATTENTION — the tiles that just got decided. psychicnum's coop board is
+  // SHARED, so a teammate's guess colours a tile anywhere on it while you are
+  // reading somewhere else: change in place, announcing nothing.
+  //
+  // Gated on the CAUSE (the guess log) rather than on the board differing, because
+  // the board also changes when nothing was played — asking to see the answer
+  // turns every unfound secret green at once, and a restart clears the lot. Both
+  // would light up the board at the moment nothing happened. See
+  // `useMoveCausedChange`, and the same rule in waffle.
+  const decided = [...results.keys()].sort().join(',')
+  const [flashing, setFlashing] = useState<ReadonlySet<string>>(NO_WORDS)
+  const before = useMoveCausedChange(results, decided, moveCount)
+  if (before && !viewing) {
+    const fresh = new Set([...results.keys()].filter((w) => !before.has(w)))
+    if (fresh.size > 0) setFlashing(fresh)
+  }
+  useEffect(() => {
+    if (flashing.size === 0) return
+    const timer = setTimeout(() => setFlashing(NO_WORDS), ATTENTION_FLASH_MS)
+    return () => clearTimeout(timer)
+  }, [flashing])
+
   const cols = Math.ceil(Math.sqrt(words.length))
   const rows = Math.ceil(words.length / cols)
   return (
@@ -87,7 +134,18 @@ export function Board({
           makes it click-through (pointer-events: none) so a click anywhere returns
           to the live board (useHistoryViewer's document listener). */}
       <div
-        className={cls(shared.hugRectWidth, styles.grid, viewing && history.frame)}
+        className={cls(
+          shared.hugRectWidth,
+          styles.grid,
+          viewing && history.frame,
+          notMyTurn && shared.dimNotYourTurn,
+          myTurnJustStarted && shared.yourTurnFlash,
+          // Both frames are outlines, so they take turns: the viewer owns it while
+          // open, being the state you chose and the one you can leave.
+          gameOver !== null && !viewing && shared.gameOverFrame,
+          gameOver === 'won' && !viewing && shared.gameOverWon,
+          gameOver === 'lost' && !viewing && shared.gameOverLost,
+        )}
         style={{
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gridTemplateRows: `repeat(${rows}, 1fr)`,
@@ -96,6 +154,10 @@ export function Board({
         {words.map((word) => {
           const guessed = results.has(word)
           const correct = results.get(word)
+          // `undefined` = draw no dot: either this game shows none (compete), or
+          // nobody decided this tile (unguessed, or a revealed secret). A dot
+          // whose member has left resolves to the neutral disc, not to nothing.
+          const actor = decidedBy?.has(word) ? decidedBy.get(word) : undefined
           return (
             <button
               key={word}
@@ -103,10 +165,11 @@ export function Board({
               className={cls(
                 shared.tileFace,
                 shared.tile,
+                styles.tile,
                 guessed && (correct ? styles.correct : styles.incorrect),
-                // Terminal answer key — ring every secret, found or not.
-                secrets.has(word) && styles.secret,
                 selected === word && shared.selected,
+                word === inFlightWord && shared.dimInFlight,
+                flashing.has(word) && shared.attentionFlash,
                 // Turn-history: this tile is the guess the viewed turn decided.
                 highlightWord === word && styles.viewed,
               )}
@@ -126,6 +189,16 @@ export function Board({
               <span className={shared.tileWord} style={{ ['--len' as string]: word.length }}>
                 {word}
               </span>
+              {/* WHO decided this tile. The shared identity disc, so a player's
+                  colour means the same thing here as in the turn log and the
+                  opponent strip — and it brings its paired border shade with it,
+                  which is what lets a light colour read on a green fill. */}
+              {actor !== undefined && (
+                // `onColor`: a decided tile is always a saturated green or red, so
+                // the ring goes white — the member's own darker shade vanishes into
+                // a fill of the same hue (three reds in a row, in the worst case).
+                <Dot color={actor?.color} onColor className={styles.actorDot} />
+              )}
             </button>
           )
         })}

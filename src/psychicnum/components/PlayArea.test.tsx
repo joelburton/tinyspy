@@ -14,7 +14,7 @@
  * needed; everything else — the board, entry, strip, action row — renders for
  * real. Mirrors wordle's concede tests (the elimination template, commit c1b5df8).
  */
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '../../common/lib/games'
@@ -282,13 +282,20 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
 })
 
 /**
- * The terminal secrets reveal — rings the three secret tiles on the board, and
- * the fact that it's a LOCAL, reversible choice (useSolutionReveal). Nothing
- * rings them automatically: `replay_board` hunts this same board and these same
- * three secrets again, so a ringed board would leave Restart nothing to find.
+ * The terminal secrets reveal — the three secret tiles simply go GREEN, the same
+ * green a found one wears, and the fact that it's a LOCAL, reversible choice
+ * (useSolutionReveal). Nothing reveals them automatically: `replay_board` hunts
+ * this same board and these same three secrets again, so a pre-revealed board
+ * would leave Restart nothing to find.
  *
- * Asserted through the tile's `secret` class — vitest runs with `css: false`,
- * so CSS-module keys come through unscoped (see vitest.config.ts).
+ * Green rather than a ring of its own (which is what this used to be) because
+ * revealing is a STATE change, not a mark: green means "this word is a secret",
+ * and asking to see is what makes me know it. Found-vs-peeked stays readable two
+ * ways — toggle the reveal off, or look for the guesser's identity dot, which a
+ * revealed tile has no reason to carry.
+ *
+ * Asserted through the tile's `correct` class — vitest runs with `css: false`, so
+ * CSS-module keys come through unscoped (see vitest.config.ts).
  */
 describe('psychicnum PlayArea — the terminal secrets reveal', () => {
   /** Flatten what PlayArea handed `menu.setGameSections` into id → item. */
@@ -302,9 +309,10 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     )
   }
 
-  /** How many board tiles are currently ringed as secrets. */
+  /** How many board tiles currently read as secrets (green). With no guesses in
+   *  these fixtures, that is exactly the revealed ones. */
   const ringed = () =>
-    screen.getAllByRole('button').filter((b) => b.className.includes('secret')).length
+    screen.getAllByRole('button').filter((b) => b.className.includes('correct')).length
 
   /** A finished game whose secrets have reached this client (the server sends
    *  them once the game is terminal). */
@@ -313,7 +321,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     return makeCtx({ isTerminal: true, playState: 'lost' })
   }
 
-  it('a coop WIN rings them unasked — the team found all three', () => {
+  it('a coop WIN shows them unasked — the team found all three', () => {
     // The coop half of `solvedByMe`, and a case this shipped broken:
     // psychicnum bumps `found_secrets_count` per CALLER, so in a coop game
     // where teammates found 2 and 1 NEITHER row reads three, and a per-player
@@ -324,13 +332,13 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     expect(screen.getByRole('button', { name: 'Solution already shown' })).toBeDisabled()
   })
 
-  it('leaves the board un-ringed until this viewer asks', () => {
+  it('leaves the secrets hidden until this viewer asks', () => {
     render(<PlayArea {...ended()} />)
     expect(ringed()).toBe(0)
     expect(screen.getByRole('button', { name: 'Reveal secrets' })).toBeEnabled()
   })
 
-  it('Reveal rings the three for me alone — no RPC', async () => {
+  it('Reveal greens the three for me alone — no RPC', async () => {
     const user = userEvent.setup()
     render(<PlayArea {...ended()} />)
     await user.click(screen.getByRole('button', { name: 'Reveal secrets' }))
@@ -339,7 +347,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('the same button un-rings them, restoring the board as it ended', async () => {
+  it('the same button hides them again, restoring the board as it ended', async () => {
     const user = userEvent.setup()
     render(<PlayArea {...ended()} />)
     await user.click(screen.getByRole('button', { name: 'Reveal secrets' }))
@@ -361,5 +369,70 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     render(<PlayArea {...ctx} />)
     // Nothing to ring: the secrets don't reach this client until terminal.
     expect(menuItems(ctx).get('reveal')?.disabled).toBe(true)
+  })
+})
+
+/**
+ * The board-scope marks (docs/tile-feedback.md). None of this is game logic, and
+ * none of it is visible to a type check: a mark that stops being applied looks
+ * exactly like a mark nobody asked for. The identity dot is deliberately NOT
+ * pinned yet — its audience rule is still being decided (coop-only today, 2+
+ * players eventually).
+ *
+ * The board is reached through `[data-board]` rather than a role: psychicnum's grid
+ * carries no ARIA role, and adding one to make testing easier would be extending
+ * the app's ARIA surface (CLAUDE.md — screen readers are out of scope).
+ */
+describe('psychicnum PlayArea — the board-scope marks', () => {
+  /** The grid element the marks ride on: the board root's only child. */
+  const gridIn = (container: HTMLElement) =>
+    container.querySelector('[data-board] > div') as HTMLElement
+
+  it('bands the finished board in its outcome', () => {
+    h.result = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
+    const { container } = render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+
+    expect(gridIn(container).className).toMatch(/gameOverFrame/)
+    expect(gridIn(container).className).toMatch(/gameOverWon/)
+    expect(gridIn(container).className).not.toMatch(/gameOverLost/)
+  })
+
+  it('leaves a live board unmarked', () => {
+    const { container } = render(<PlayArea {...makeCtx()} />)
+    expect(gridIn(container).className).not.toMatch(/gameOver/)
+    expect(gridIn(container).className).not.toMatch(/dimNotYourTurn/)
+  })
+
+  it('dims the board while a teammate holds the move, and flashes when it arrives', () => {
+    const two = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
+    const { container, rerender } = render(
+      <PlayArea {...makeCtx({ currentTurnUserId: 'u2', isMyTurn: false, players: two })} />,
+    )
+    expect(gridIn(container).className).toMatch(/dimNotYourTurn/)
+    // An EVENT, so never on mount: opening a game on your own turn is not being
+    // handed it.
+    expect(gridIn(container).className).not.toMatch(/yourTurnFlash/)
+
+    rerender(<PlayArea {...makeCtx({ currentTurnUserId: 'u1', isMyTurn: true, players: two })} />)
+
+    expect(gridIn(container).className).toMatch(/yourTurnFlash/)
+    expect(gridIn(container).className).not.toMatch(/dimNotYourTurn/)
+  })
+
+  // The attention flash reads the guess log, not the board — so the one board
+  // change nobody played into stays silent. Revealing turns three tiles green at
+  // once, which a diff would call three simultaneous moves.
+  it('says nothing when the answer is revealed', async () => {
+    const user = userEvent.setup()
+    h.result = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
+    const { container } = render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+
+    await user.click(screen.getByRole('button', { name: 'Reveal secrets' }))
+
+    const tiles = within(gridIn(container)).getAllByRole('button')
+    // The three secrets went green…
+    expect(tiles.filter((t) => t.className.includes('correct'))).toHaveLength(3)
+    // …and not one of them flashed.
+    expect(tiles.some((t) => /attentionFlash/.test(t.className))).toBe(false)
   })
 })

@@ -55,6 +55,19 @@ ordering rule.
 **Width and color are separate channels on the same border**, which is what
 lets "selected *and* just rejected" render without deciding which wins.
 
+**On an INERT piece the border is free, and state may take it.** A decided tile —
+psychicnum's guessed word, waffle's finished board — cannot be selected and cannot
+have an action refused on it, so neither claimant on border colour can ever appear
+there. That is what lets a decided tile wear a darker edge of its own fill as
+quiet definition without competing with anything.
+
+**A mark on a piece covers the piece, border included.** Attention and the
+in-flight dim extend over the border box rather than stopping at the face, or an
+edge carrying state shows straight through the mark that is meant to be speaking
+(a tile mid-attention kept a green ring announcing the verdict its flash had not
+finished pointing at). Losing the edge for the length of a flash costs nothing:
+the mark is brief, and the edge comes back.
+
 ## The rules that make it work
 
 ### Chrome fades, game pieces don't
@@ -65,6 +78,33 @@ because a decided tile's color IS its message and must show at full strength.
 
 A game piece may be dimmed only for **transient** inactivity — in flight, or not
 your turn — never for being permanently spent.
+
+### Identity: who did this to this tile
+
+A shared board raises a question no state colour can answer — **which of us
+decided this?** — and it is answered by the app's existing identity mark: a
+player-coloured `<Dot>`, the same disc the turn log and the opponent strip use, so
+a colour means one person everywhere it appears.
+
+It is a **permanent attribution**, which is what separates it from the
+peer-selection border (someone is doing something here, now) and from attention
+(this just changed). It lives on the piece, in a corner, small: it answers a
+question you ask deliberately — "who got that one?" — rather than one the board
+should be announcing.
+
+psychicnum is the first user, and its rules generalise:
+
+- **Shared boards only.** In compete you see nobody's moves but your own, so a dot
+  would be decoration. Draw it where the board is genuinely shared.
+- **Everyone gets one, including you.** The audience rule says you don't need
+  telling what you did — but a board where only *some* decided tiles carry a dot
+  reads as missing data, not as "the unmarked ones were mine".
+- **Only what a person actually did.** A tile decided by the game rather than by a
+  player — a revealed secret, a server-dealt refill — carries no dot, and that
+  absence is information (see the reveal rule above).
+- **Inside the piece, clear of every edge**, so it can never be confused with the
+  selection border, a verdict ring, or the history ring — and out of whichever
+  corner that board's floating control occupies.
 
 ### Depth belongs to game pieces — not to chrome
 
@@ -89,6 +129,13 @@ Which is the mirror of the rule below — chrome fades where a game piece never
 does, and a game piece has depth where chrome never does. One consequence worth
 stating plainly: **a control that looks like a tile is a bug**, because a player
 who reads it as a game piece will try to play it.
+
+**The one exception, and it proves the rule: a control that floats OVER a game
+surface keeps a shadow** — psychicnum's Shuffle button sits on the board itself
+(`.floatingShuffle`). There the shadow is not decoration but separation: without
+it the button reads as part of the board it is lying on top of. Depth is doing the
+same job it does for a tile — saying what is a physical layer — which is exactly
+why it is allowed here and nowhere else in the chrome.
 
 ### Dim means inactive; the scope says what is inactive
 
@@ -234,6 +281,25 @@ a key for "changed", and the server's move marker, and it hands back the previou
 content only when a move caused the change. setgame implements the same rule by
 hand (it has its own hold-then-arrive choreography around it) and folds in when
 it converts.
+
+### Revealing the answer is a STATE CHANGE, not a mark
+
+A game's state colours say what is TRUE about a piece, and asking to see the
+answer changes what you know rather than what the board is. So a revealed secret
+takes the state it has always had — psychicnum's unfound secrets simply go green,
+the same green a found one wears — instead of acquiring a ring, a badge, or a hue
+of its own.
+
+This is what stops every solution-game inventing an answer-key channel. psychicnum
+had one (a neon green outline, in a token of its own, outside every palette), and
+it existed only because the reveal used to be permanent and shared: if the board
+could never go back, the board had to distinguish found from shown forever.
+
+**Reveal being personal and reversible is what pays for this.** One toggle
+separates "we found it" from "I am peeking", so the board doesn't have to. And
+where a game shows WHO decided a tile, the distinction survives even with the
+answer showing: a found tile carries its guesser's dot, a revealed one has nobody
+to name.
 
 ### Attention is only needed for change IN PLACE
 
@@ -434,7 +500,7 @@ not the audit itself.
 | strands | same ambiguous-letter treatment. |
 | history viewer | the shared frame is **yellow** (`historyViewer.module.css`); should be gray, so yellow means only "attention". Scope stays as it is — board, and sometimes another region such as a rack. |
 | most games | **no in-flight mark at all.** This is the biggest gap and the most additive. |
-| wordiply | at terminal the verdict pill takes over the KEYBOARD's space, where wordle leaves that space empty and keeps the verdict in its own slot above. We will probably follow wordle; decide it on wordiply's turn. |
+| wordiply | OPEN: at terminal the verdict pill takes over the KEYBOARD's space, where wordle leaves that space empty and keeps the verdict above. Not worth categorising until wordiply's turn. |
 
 **wordle: CONVERTED** (2026-08-16, board-scope marks 2026-08-17) — in-flight dim,
 verdict ring in its pill's tone, hover shadow, blue history, the keyboard rebuilt
@@ -442,6 +508,12 @@ as a control surface, and then the four board-scope marks (game-over frame,
 not-your-turn dim, your-turn flash, and the keyboard withdrawn at terminal). It
 went first because it needed the fewest decisions: no selection, no hint, and no
 cursor, so it did not force the position channel.
+
+**psychicnum: CONVERTED** (2026-08-17) — the four board-scope marks, the in-flight
+dim on the tile with the server, the attention flash gated on the guess log, and
+the first **identity dot**. Two subtractions: the answer-key ring (revealing is a
+state change now) and a `font-weight` on decided tiles that had never applied,
+since the label carries its own weight.
 
 **waffle: CONVERTED** (2026-08-17) — the second game, and the one that moved the
 framework into shared code: selection as a black border, the shared in-flight dim,

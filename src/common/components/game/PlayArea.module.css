@@ -423,7 +423,10 @@
 .dimInFlight::after {
   content: '';
   position: absolute;
-  inset: 0;
+  /* Out over the BORDER, not just the face. `inset: 0` lands on the padding box,
+   * which leaves the tile's edge undimmed — and an edge that carries any colour
+   * then shows straight through the mark. A mark on a piece covers the piece. */
+  inset: calc(-1 * var(--tile-border-width));
   border-radius: inherit;
   background: var(--dim-in-flight);
   pointer-events: none;
@@ -606,10 +609,28 @@
   position: relative;
 }
 
+/* INK FOLLOWS THE BACKGROUND IT SITS ON. While the wash is up the tile is yellow,
+ * so its label takes the dark ink — a decided tile's white letters on this yellow
+ * measure about 1.5:1, which is a word you cannot read on the one occasion the
+ * board is pointing at it. Ink returns to the state's own colour when the class
+ * comes off, which is the same moment the wash finishes fading.
+ *
+ * Not a violation of "ink = tried vs untried": ink's job is to be legible against
+ * whatever is behind it, and for this second that is the wash rather than the
+ * state. Qualified with `.tileFace` so it outranks the game's own state class,
+ * which sets `--tile-text` from another stylesheet at equal specificity — order
+ * between modules is the bundler's business, and this must not be a coin flip. */
+.tileFace.attentionFlash {
+  --tile-text: var(--color-text);
+}
+
 .attentionFlash::before {
   content: '';
   position: absolute;
-  inset: 0;
+  /* Over the border too — see `.dimInFlight::after`. This is the one that made it
+   * obvious: a decided tile whose edge carried its verdict kept that ring while its
+   * face went yellow. */
+  inset: calc(-1 * var(--tile-border-width));
   border-radius: inherit;
   background: var(--tile-attention);
   pointer-events: none;
@@ -719,6 +740,13 @@
  * the tile's inner width, the factor ≈ width-per-char in em for bold
  * uppercase. See docs/ui.md → "Tile content: letter vs word". */
 .tileWord {
+  /* Above the attention wash. `.attentionFlash` draws its yellow as an
+   * absolutely-positioned overlay, and one of those paints over in-flow text by
+   * default — so without this the flash HIDES the word it is pointing at. (The
+   * in-flight dim deliberately still covers this, at a higher layer: that mark
+   * means "hands off", and a bright label on a held tile would undercut it.) */
+  position: relative;
+  z-index: 1;
   font-weight: 600;
   line-height: 1.1;
   text-align: center;

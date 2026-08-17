@@ -11,6 +11,15 @@ type Props = {
    *  member on the club strip, an unfound word in a reveal list. Ring color
    *  defaults to body text; override with `--dot-ring` on a className. */
   hollow?: boolean
+  /** The disc sits on a SATURATED surface — a decided game tile — rather than on
+   *  the page. Its ring goes white instead of the member's darker shade.
+   *
+   *  The ring's job is separating the disc from what is behind it, and which color
+   *  does that depends on the background, not on the player: a darker shade
+   *  separates a light disc from a white page, and white separates any disc from a
+   *  strong fill. Red is the case that forces it — a red member's dark-red ring on
+   *  a red tile is three reds in a row, and the disc disappears. */
+  onColor?: boolean
   /** Merged onto the root — for per-site sizing (`--dot-size`,
    *  `--dot-border-width`, `--dot-ring`) and margins. */
   className?: string
@@ -26,17 +35,21 @@ type Props = {
  * drift by font).
  *
  * Presentational and self-resolving: callers pass the color NAME off a
- * `Member` and the component resolves both CSS vars. Size rides `--dot-size`
+ * `Member` and the component resolves both CSS vars — except on a coloured
+ * surface, where the ring turns white (`onColor`). Size rides `--dot-size`
  * (em-relative default, so an inline dot tracks its text).
  */
-export function Dot({ color, hollow = false, className }: Props) {
+export function Dot({ color, hollow = false, onColor = false, className }: Props) {
   return (
     <span
       className={cls(styles.dot, hollow && styles.hollow, className)}
       style={
         hollow
           ? undefined
-          : { background: colorVarFor(color), borderColor: borderVarFor(color) }
+          : {
+              background: colorVarFor(color),
+              borderColor: onColor ? '#fff' : borderVarFor(color),
+            }
       }
       aria-hidden="true"
     />

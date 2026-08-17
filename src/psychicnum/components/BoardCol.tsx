@@ -1,7 +1,7 @@
 import { failureMessage } from '../../common/lib/game/serverError'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { cls } from '../../common/lib/util/cls'
-import type { GenericFeedbackMsg } from '../../common/lib/games'
+import type { GenericFeedbackMsg, Member } from '../../common/lib/games'
 import type { TerminalCopy } from '../../common/lib/game/terminalCopy'
 import { GenericFeedbackPill } from '../../common/components/feedback/GenericFeedbackPill'
 import { MobileStatusBar } from '../../common/components/game/MobileStatusBar'
@@ -61,7 +61,11 @@ export function BoardCol({
   localPill,
   // ── Below-board slot content ──
   over,
-  secrets,
+  decidedBy,
+  gameOver,
+  notMyTurn,
+  myTurnJustStarted,
+  moveCount,
   myConceded,
 }: {
   // ── Mobile-only status strip ──
@@ -111,17 +115,38 @@ export function BoardCol({
    *  secret reveal moved to the board's rings. */
   over: TerminalCopy | null
   /** The three secret words, revealed at game-over (terminal only), else null.
-   *  Handed to `<Board>`, which rings their tiles — the reveal is the BOARD's job
-   *  now, not a word list in the pill (no room for it on a phone). */
-  secrets: string[] | null
   /** I conceded a compete race — picks the "waiting" pill's wording. */
   myConceded: boolean
+
+  // ── Board-scope marks (see `<Board>`) ──
+  /** Who decided each tile, for the identity dot — null outside coop. */
+  decidedBy: ReadonlyMap<string, Pick<Member, 'username' | 'color'> | undefined> | null
+  /** The game is finished, and how — bands the board in that outcome's gray. */
+  gameOver: 'won' | 'lost' | 'neutral' | null
+  /** Turn-order coop: a teammate holds the move, so the board dims. */
+  notMyTurn: boolean
+  /** True for a beat as the turn becomes mine — the frame flashes. */
+  myTurnJustStarted: boolean
+  /** Guesses the server has recorded — the CAUSE the attention flash reads. */
+  moveCount: number
 }) {
   // The pending guess, shared by the board tiles and the entry below the board.
   const [pending, setPending] = useState('')
   // The last submitted guess, kept so ArrowUp can recall it into the entry.
   const [lastGuess, setLastGuess] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  /** The word currently with the server. Its tile takes the shared in-flight dim
+   *  — clicking a tile used to leave the board saying nothing at all until the
+   *  answer arrived. Held until the RESULT lands rather than until the RPC
+   *  resolves: the reply and the coloured row are two separate events, and
+   *  un-dimming at the first would flash an undecided tile back to normal. */
+  const [submittedWord, setSubmittedWord] = useState<string | null>(null)
+  /** …and the SERVER'S answer is what ends it: once the word is in `results` it is
+   *  decided, so it stops being in flight whatever this component still remembers.
+   *  Derived rather than cleared, so there is no path that can leave a dim stuck on
+   *  a tile forever (which is exactly what the first version did — the error branch
+   *  cleared it and the success branch never did). */
+  const inFlightWord = submittedWord !== null && !results.has(submittedWord) ? submittedWord : null
 
   // ─── Board shuffle (a fresh visual scan, local only) ────
   // A counter the Shuffle button bumps; the display order is derived from it. Keyed
@@ -188,6 +213,7 @@ export function BoardCol({
       return
     }
     setSubmitting(true)
+    setSubmittedWord(guess)
     // submit_guess returns 'won' | 'correct' | 'wrong' — the caller's own verdict
     // and nothing else. 'won'/'correct' both mean the guess hit a secret; every
     // terminal transition (including the guess that empties the budget, which
@@ -195,6 +221,7 @@ export function BoardCol({
     const { data, error } = await db.rpc('submit_guess', { target_game: gameId, guess })
     setSubmitting(false)
     if (error) {
+      setSubmittedWord(null)
       // The server's answer is a KEY; the words come from ERROR_COPY, and the
       // LOOK comes with them (a rule we anticipated is a pill, anything else a
       // fault). `capitalize` went with the prose it used to tidy.
@@ -235,9 +262,13 @@ export function BoardCol({
         words={shuffledWords}
         results={results}
         selected={viewing ? null : selected}
-        // Terminal answer key: ring every secret bright green (found or not).
-        // Null until the game ends, so nothing leaks mid-play.
-        secretWords={secrets}
+        decidedBy={decidedBy}
+        gameOver={gameOver}
+        notMyTurn={notMyTurn}
+        myTurnJustStarted={myTurnJustStarted}
+        moveCount={moveCount}
+        // The word with the server, if any: its tile dims until the answer lands.
+        inFlightWord={inFlightWord}
         onPick={canGuess && isMyTurn && !viewing ? handleEntryChange : undefined}
         viewing={viewing}
         highlightWord={highlightWord}

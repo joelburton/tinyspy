@@ -7,6 +7,7 @@ import type { GamePageCtx } from '../../common/lib/games'
 import type { PsychicnumSetup } from '../lib/setup'
 import { CelebrationDialog } from '../../common/components/game/CelebrationDialog'
 import { useCelebration } from '../../common/hooks/game/useCelebration'
+import { useTurnStartFlash } from '../../common/hooks/game/useTurnStartFlash'
 import { useLocalFeedback } from '../../common/hooks/feedback/useLocalFeedback'
 import { useGlobalFeedback } from '../../common/hooks/feedback/useGlobalFeedback'
 import { useHistoryViewer } from '../../common/hooks/game/useHistoryViewer'
@@ -103,6 +104,12 @@ export function PlayArea({
   // per-player data from useGame that's empty until the fetch lands, so an
   // already-won race would flip false→true after load and pop confetti at
   // someone merely reviewing it. Same call connections + wordle + waffle made.
+  // ─── The turn arriving (turn-order coop) ───────────────
+  // The board frame flashes yellow the moment the move becomes mine. The dim is
+  // what says "not yours"; its lifting is a removal, and you are by definition
+  // looking elsewhere when it happens. Never fires in a free-for-all game.
+  const turnFlash = useTurnStartFlash(isMyTurn)
+
   const celebration = useCelebration(playState === 'won')
 
   // The setup recap, built ONCE and handed to both consumers — the info column
@@ -504,9 +511,28 @@ export function PlayArea({
   // Guessed words → was-it-a-secret, for the board's permanent green/red.
   // Hint rows are excluded (a hint reveals but doesn't mark a tile). In compete
   // RLS scopes `guesses` to the caller, so this is the viewer's own board.
-  const results = new Map(
-    guesses.filter((g) => g.kind === 'guess').map((g) => [g.word, g.is_correct]),
+  const guessed = guesses.filter((g) => g.kind === 'guess')
+  const results = new Map(guessed.map((g) => [g.word, g.is_correct]))
+
+  // WHO decided each tile — the identity dot the board draws on a decided tile
+  // (coop only; see `<Board>`). Built from the guess rows rather than from
+  // `results`, which is what keeps a REVEALED secret dot-less: nobody guessed it.
+  const decidedBy = new Map(
+    guessed.map((g) => [g.word, players.find((m) => m.user_id === g.user_id)]),
   )
+
+  // Revealing the answer is a STATE CHANGE, not a mark: a secret I've asked to
+  // see simply goes green, exactly as a found one is green, because green means
+  // "this word is a secret" and the reveal is what makes me know it. It used to be
+  // a bright ring around every secret — a channel of its own, a hue outside the
+  // palette, and a thing every solution-game would have had to invent separately.
+  //
+  // Nothing is lost by dropping it. The reveal is personal and reversible now
+  // (useSolutionReveal), so "did we find this or am I peeking?" is one toggle
+  // away — and in coop it doesn't even need the toggle: a found secret carries its
+  // guesser's dot and a revealed one has none.
+  const shown = new Map(results)
+  if (secretsShown) for (const w of game.secrets ?? []) if (!shown.has(w)) shown.set(w, true)
 
   // Turn-history: when a past turn is open, `snap` is that turn's board (else null =
   // live) — the tiles decided up to that turn + the tile it decided (ringed). Stable:
@@ -557,7 +583,13 @@ export function PlayArea({
         }
         // ── Board to render (live OR the historical snapshot — picked here) ──
         words={game.words}
-        results={snap ? snap.results : results}
+        results={snap ? snap.results : shown}
+        // Who decided each tile — only where the answer can differ: a SHARED
+        // board (compete shows you nobody's guesses but your own) with more than
+        // one player on it (in a solo game every tile has the same one possible
+        // author, so a dot per tile is a label that says "you" nine times). A
+        // history snapshot carries the same rows, so it keeps its dots.
+        decidedBy={game.mode === 'coop' && players.length > 1 ? decidedBy : null}
         highlightWord={snap?.highlightWord ?? null}
         // ── History viewer ──
         viewing={viewing}
@@ -576,8 +608,17 @@ export function PlayArea({
         localPill={boardPill}
         // ── Below-board slot content ──
         over={over}
-        secrets={secretsShown ? game.secrets : null}
         myConceded={myConceded}
+        // ── Board-scope marks ──
+        // The finished board wears its verdict; `over` is the same TerminalCopy
+        // the below-board pill reads, so the two can't disagree.
+        gameOver={over ? over.tone : null}
+        notMyTurn={waiting}
+        myTurnJustStarted={turnFlash}
+        // The CAUSE the attention flash reads: a board that changed while this
+        // stood still was revealed or re-dealt, not played into. Restart deletes
+        // the guess rows, so it moves back down.
+        moveCount={guessed.length}
       />
       {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
