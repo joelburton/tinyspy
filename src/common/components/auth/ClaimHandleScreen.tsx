@@ -199,7 +199,7 @@ export function ClaimHandleScreen({ onClaimed, email }: Props) {
           >
             Not you? Sign out
           </button>
-          <button type="submit" className="button" disabled={busy || !HANDLE_REGEX.test(desired)}>
+          <button type="submit" className="button primary" disabled={busy || !HANDLE_REGEX.test(desired)}>
             {busy ? 'Setting up…' : 'Accept'}
           </button>
         </div>

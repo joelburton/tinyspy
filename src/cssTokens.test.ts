@@ -188,6 +188,88 @@ describe('CSS custom-property tokens', () => {
  * and the `.primary` class were one idea spelled two ways. It is banned by name
  * here, because that is the rename that keeps coming back.
  */
+/**
+ * Guard: `.button` is the SHAPE, the treatment is the PAINT, and every button
+ * says which treatment it wants.
+ *
+ * This is the class-layer twin of the token rule right below — both treatments
+ * marked, no unmarked default — and it is a test because the first attempt got
+ * it wrong in exactly the way the tokens had been wrong. `.button` carried the
+ * shape AND the filled paint, so a button that said nothing silently meant
+ * "primary": one name doing two jobs, which is what `-fill-color` was.
+ *
+ * Keeping the paint out of `.button` also removes a cascade dependency. When
+ * both painted, `.secondary` only won because it came later in the file at equal
+ * weight. Split, exactly one treatment rule matches and nothing overrides
+ * anything.
+ */
+describe('button shape and treatment are separate', () => {
+  const THEME = join(SRC, 'common/theme.css')
+
+  /** The declarations of a top-level rule in theme.css, by exact selector. */
+  const ruleBody = (selector: string) => {
+    const css = stripComments(readFileSync(THEME, 'utf8'))
+    const m = new RegExp(`(^|\\})\\s*${selector.replace(/[.]/g, '\\.')}\\s*\\{([^}]*)\\}`, 'm').exec(css)
+    expect(m, `theme.css has no \`${selector}\` rule`).not.toBeNull()
+    return m![2]
+  }
+
+  const PAINT = /(^|;)\s*(background|color|border-color)\s*:/
+
+  it('.button paints nothing — no background, colour or border-colour', () => {
+    const body = ruleBody('.button')
+    const paints = body
+      .split(';')
+      .map((d) => d.trim())
+      .filter((d) => PAINT.test(`;${d}`))
+    expect(
+      paints,
+      `\`.button\` is the SHAPE only. Colour belongs to \`.primary\` / \`.secondary\`, ` +
+        `or an unmarked \`.button\` silently means one of them:\n${paints.join('\n')}`,
+    ).toEqual([])
+  })
+
+  it('.primary and .secondary each paint background, border and label', () => {
+    for (const treatment of ['.primary', '.secondary']) {
+      const body = ruleBody(treatment)
+      for (const prop of ['background', 'border-color', 'color']) {
+        expect(
+          new RegExp(`(^|;)\\s*${prop}\\s*:`).test(body),
+          `\`${treatment}\` must declare ${prop} — a treatment paints the whole button, ` +
+            `so neither one leaks into the other.`,
+        ).toBe(true)
+      }
+    }
+  })
+
+  /**
+   * The markup half. `ActionButton` composes the class from its typed `weight`
+   * (`'primary' | 'secondary'`), so the treatment is named by a variable rather
+   * than a literal — accepted here, and better than a literal: add a third
+   * weight and it arrives needing a class rather than defaulting into one.
+   */
+  it('every button carrying `.button` also names its treatment', () => {
+    const offenders: string[] = []
+    for (const f of walk(SRC, ['.tsx']).filter((f) => !f.endsWith('.test.tsx'))) {
+      const src = stripComments(readFileSync(f, 'utf8'))
+      for (const m of src.matchAll(/className=(\{(?:[^{}]|\{[^{}]*\})*\}|"[^"]*")/g)) {
+        const expr = m[1]
+        // the `button` CLASS — a bare token in a string, not `type="button"`
+        // and not a `styles.button` module class.
+        if (!/['"`](?:[\w- ]*\s)?button(?:\s[\w- ]*)?['"`]/.test(expr)) continue
+        if (/\bprimary\b|\bsecondary\b|\bweight\b/.test(expr)) continue
+        const line = src.slice(0, m.index).split('\n').length
+        offenders.push(`${rel(f)}:${line}  ${expr.replace(/\s+/g, ' ').slice(0, 80)}`)
+      }
+    }
+    expect(
+      offenders,
+      `A \`.button\` with no treatment is a shape with no colour. Add \`primary\` ` +
+        `(filled) or \`secondary\` (outline):\n${offenders.join('\n')}`,
+    ).toEqual([])
+  })
+})
+
 describe('the chrome tones are complete', () => {
   const TONES = ['action', 'caution', 'destructive', 'quiet']
   const VALUES = [

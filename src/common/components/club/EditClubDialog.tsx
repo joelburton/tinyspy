@@ -128,7 +128,7 @@ export function EditClubDialog({
         >
           Cancel
         </button>
-        <button type="button" className="button" onClick={handleSave} disabled={busy} autoFocus>
+        <button type="button" className="button primary" onClick={handleSave} disabled={busy} autoFocus>
           {busy ? 'Saving…' : 'Save'}
         </button>
       </div>

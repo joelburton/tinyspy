@@ -35,7 +35,7 @@ export function ModeFilter({ value, onChange, soloClub }: Props) {
         <button
           key={o.value}
           type="button"
-          className={cls('button', styles.modeOption)}
+          className={cls('button', 'primary', styles.modeOption)}
           aria-pressed={value === o.value}
           // Don't let the press MOVE FOCUS off the start list. That list is a
           // keyboard tab stop holding the Up/Down cursor (ClubPage's

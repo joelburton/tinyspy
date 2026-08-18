@@ -242,7 +242,7 @@ export function CreateClubPage({ session: _session }: Props) {
           >
             Cancel
           </button>
-          <button type="submit" className="button" disabled={busy}>
+          <button type="submit" className="button primary" disabled={busy}>
             {busy ? 'Creating…' : 'Create club'}
           </button>
         </div>

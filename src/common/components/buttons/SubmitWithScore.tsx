@@ -31,7 +31,7 @@ export function SubmitWithScore({ score, className, ...rest }: Props) {
     <button
       type="button"
       aria-label="Submit"
-      className={cls('button', styles.button, className)}
+      className={cls('button', 'primary', styles.button, className)}
       onMouseDown={(e) => e.preventDefault()}
       {...rest}
     >

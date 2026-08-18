@@ -301,12 +301,32 @@ as more.
 | `action` | an action you can take — Submit (primary), Restart / New game (secondary) |
 | `caution` | Hint, Spoiler, AI suggest, Pass — consequential, not destructive |
 | `destructive` | Reveal, End game, Concede, Delete — irreversible |
-| `cancel` | the way out of a dialog: Cancel, dismiss |
+| `cancel` | the way out of a dialog: Cancel, dismiss — **renamed `quiet`**; see below |
 
-**`cancel` gets only two tokens** — the colour and its secondary hover — because it
-is outline-only *by nature*: a filled Cancel would out-shout the confirm it sits
-beside, which is the entire reason it is quiet. That asymmetry is a decision, not a
-gap.
+> ❌ **RETIRED, and this paragraph is why the rest of this file is now guarded.**
+> It read: *"`cancel` gets only two tokens — the colour and its secondary hover —
+> because it is outline-only by nature: a filled Cancel would out-shout the confirm
+> it sits beside, which is the entire reason it is quiet. That asymmetry is a
+> decision, not a gap."*
+>
+> The claim is true of **Cancel**, the button, and false of **quiet**, the tone.
+> Cancel wants the outline because *secondary is the right treatment for a way out
+> of a dialog* — which says nothing about whether a quiet button may be filled. It
+> may, and one day something will.
+>
+> The error was made possible by the tone being named after one of its uses. While
+> it wore the name `cancel`, a property of that use got written down as a property
+> of the colour family. The tone was then renamed to `quiet` **precisely because
+> naming it after a use was wrong** — theme.css → QUIET: *"named for its VOLUME
+> rather than its purpose, because 'cancel' made every non-cancel that wanted this
+> look like a misuse"* — but the two-token asymmetry, which existed only because of
+> the use-name, rode through the rename unexamined. The rename fixed the name and
+> left the consequence of the name in place.
+>
+> It was not harmless. `ActionButton` skipped the tone class for quiet, so the
+> primary slots kept action's defaults and `tone="quiet" weight="primary"` painted
+> itself blue. Quiet now carries all five values like every other tone, and
+> `src/cssTokens.test.ts` fails if any tone is short one.
 
 It also has to be a tone rather than what it is today. Every bare `.secondary`
 button in the app is a Cancel — CreateClubPage, EditClubDialog, ConfirmDialog,
@@ -869,8 +889,8 @@ about differently.
 | `--chrome-caution-secondary-hover-color` | copy of `--color-surface-hover` |
 | `--chrome-destructive-color` | copy of `--color-sys-error-red` — Reveal / End / Concede / Delete |
 | `--chrome-destructive-primary-hover-color` · `-primary-ink-color` · `-secondary-hover-color` | NEW darker red · white (8.95) · the gray wash |
-| `--chrome-cancel-color` | `--color-control-border-2` / `-text-2`, which every bare `.secondary` Cancel reaches into today |
-| `--chrome-cancel-secondary-hover-color` | copy of `--color-surface-hover`. No primary pair — a filled Cancel would out-shout its confirm |
+| ~~`--chrome-cancel-color`~~ → `--chrome-quiet-secondary-color` | `--color-control-border-2` / `-text-2`, which every bare `.secondary` Cancel reached into then |
+| ~~`--chrome-cancel-secondary-hover-color`~~ → `--chrome-quiet-secondary-hover-color` | copy of `--color-surface-hover`. Its "no primary pair" note is the retired claim above; quiet ships all five |
 | `--chrome-fault-color` | `--color-sys-error-red` — the system failed. Same value as destructive, its own name |
 | `--chrome-cursor-color` | copy of `--color-accent` — the list/focus outlines, about half of that token's 54 uses |
 | `--chrome-disabled-opacity` | the global `button:disabled { opacity: 0.5 }`, named |

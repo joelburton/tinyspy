@@ -1,10 +1,11 @@
 /* Semantic TONE colors for an action button, in BOTH treatments.
  *
- * A toned button re-sets the slot tokens `.button` and `.secondary` read on its
- * own element, so the fill (primary) or the border + text (secondary) — and the
- * icon, via `currentColor` — take the tone. We re-set tokens rather than
- * out-cascade those rules, so this wins regardless of stylesheet load order —
- * the same discipline the tiles use (docs/ui.md → Interactive tile states).
+ * A toned button re-sets the slot tokens `.primary` and `.secondary` read on its
+ * own element, so the filled background (primary) or the border + label
+ * (secondary) — and the icon, via `currentColor` — take the tone. We re-set
+ * tokens rather than out-cascade those rules, so this wins regardless of
+ * stylesheet load order — the same discipline the tiles use (docs/ui.md →
+ * Interactive tile states).
  *
  * `-secondary-color` is NOT `-primary-color`. They are different values on
  * purpose: the primary is what a filled button is painted with, the secondary is

@@ -868,12 +868,25 @@ buttons in the sense a designer means. **So the bare element is NEUTRAL**: font,
 colour, cursor and a radius, and nothing else. Chrome is opt-in:
 
 ```
-button        neutral — font: inherit · color: inherit · cursor: pointer · border-radius
-.button       a general button (theme.css) — flat, colour-only hover
-              alone = primary (filled) · + `secondary` = outline · × the four tones
-.tile         a game piece (each board's module)
-.key          a keycap (module-local)
+button                    neutral — font: inherit · color: inherit · cursor: pointer · border-radius
+.button                   a general button's SHAPE (theme.css) — padding, border width, radius. Paints nothing.
+  .primary                the filled treatment    ┐ exactly one of these, always
+  .secondary              the outline treatment   ┘ × the four tones
+.tile                     a game piece (each board's module)
+.key                      a keycap (module-local)
 ```
+
+So every general button is `button primary` or `button secondary` — **never
+`button` alone**, which is a shape with no colour and looks it. That split is the
+class-layer twin of the token rule: *both treatments marked, no unmarked
+default.* `.button` first carried the shape **and** the filled paint, which made
+"unmarked" silently mean "primary" — one name doing two jobs, exactly the fault
+`-fill-color` had one layer down. It also cost a cascade dependency, since
+`.secondary` only won by being declared after `.button` at equal weight; now
+exactly one treatment rule matches and nothing overrides anything.
+[`cssTokens.test.ts`](../src/cssTokens.test.ts) holds all three parts: `.button`
+declares no colour, each treatment declares all of background + border + label,
+and no markup carries `.button` without naming a treatment.
 
 It used to be the other way round: the bare element was the filled accent
 button, so every `<button>` that isn't one opened by cancelling the fill, the

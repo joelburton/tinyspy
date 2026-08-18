@@ -50,7 +50,7 @@ export function FaultDialog() {
         <p className={styles.message}>{fault.text}</p>
         {fault.diagnostics && <p className={styles.diagnostics}>{fault.diagnostics}</p>}
         <div className={actionRow.modalActions}>
-          <button type="button" className="button" onClick={dismissFault} autoFocus>
+          <button type="button" className="button primary" onClick={dismissFault} autoFocus>
             Close
           </button>
         </div>

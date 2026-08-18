@@ -93,10 +93,13 @@ export function ActionButton({
       type="button"
       className={cls(
         // Every purpose button is a GENERAL button (docs/ui.md) — flat, tone-
-        // coloured, hover on colour alone. `.button` on its own is the filled
-        // primary; adding `secondary` switches it to the outline.
+        // coloured, hover on colour alone. `.button` is the SHAPE and paints
+        // nothing; the treatment paints everything, and there is no unmarked
+        // default — which is why `weight` can be the class name directly. Add a
+        // third weight one day and it cannot be forgotten here: it arrives
+        // needing a class of its own.
         'button',
-        weight === 'secondary' && 'secondary',
+        weight,
         'icon-button',
         // Semantic tone recolors the filled background (primary) or the
         // outline + label (secondary) — it re-sets the slot tokens both read

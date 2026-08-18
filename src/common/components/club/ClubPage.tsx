@@ -969,7 +969,7 @@ export function ClubPage({ handle, session }: Props) {
         <button
           type="button"
           aria-pressed={mobileTab === 'new'}
-          className={cls('button', styles.tab)}
+          className={cls('button', 'primary', styles.tab)}
           onClick={() => setMobileTab('new')}
         >
           New game
@@ -977,7 +977,7 @@ export function ClubPage({ handle, session }: Props) {
         <button
           type="button"
           aria-pressed={mobileTab === 'completed'}
-          className={cls('button', styles.tab)}
+          className={cls('button', 'primary', styles.tab)}
           onClick={() => setMobileTab('completed')}
         >
           Your games

@@ -93,7 +93,7 @@ export function EditProfileDialog({ session, onSaved, onCancel }: Props) {
           </button>
           <button
             type="button"
-            className="button"
+            className="button primary"
             onClick={handleSave}
             disabled={busy || !selected}
             autoFocus

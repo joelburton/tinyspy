@@ -304,7 +304,7 @@ export function SetupGameDialog({
           </button>
           <button
             type="button"
-            className="button"
+            className="button primary"
             onClick={handleStartGame}
             disabled={busy || !countOk || setupError !== null}
             autoFocus

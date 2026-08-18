@@ -53,10 +53,11 @@
      use — while the tone says what kind of action it is. The two axes are
      ORTHOGONAL: any tone can be either treatment, which is why the token names
      say the TREATMENT that asks for a value and never the paint it happens to
-     be. The word "fill" appears nowhere: it named the property (a background)
-     while pretending to name the axis, so `-fill-color` and a `.primary` class
-     were the same idea spelled two ways, and every rename argument had to be had
-     twice. Both treatments are marked, with no unmarked default — a bare
+     be. The word "fill" appears in no token NAME — it named the property (a
+     background) while pretending to name the axis, so `-fill-color` and a
+     `.primary` class were the same idea spelled two ways, and every rename
+     argument had to be had twice. ("Filled" still describes what a primary
+     button LOOKS like; that is prose, not a name.) Both treatments are marked, with no unmarked default — a bare
      "-hover-color" would silently mean the primary's.
 
      Hover changes the BACKGROUND and nothing else — no lift, no shadow, because
@@ -1079,11 +1080,21 @@ button:disabled {
    (a list row, a text link, a chat bubble, a menu trigger) take none of the
    three: they want the neutral element and their own surface feedback.
 
-   Two axes, and they are the two the tokens are named for. WEIGHT: `.button`
-   alone is PRIMARY, the filled one; adding `secondary` makes it the outline.
-   TONE: action / caution / destructive / quiet, which each treatment reads off
-   its own pair of slot tokens (defaulted on :root, re-set per tone by
-   ActionButton.module.css) rather than out of hard-coded colours here.
+   THREE CLASSES, TWO JOBS. `.button` is the SHAPE and paints nothing at all;
+   `.primary` and `.secondary` are the two TREATMENTS and paint everything. So a
+   button is always `button primary` or `button secondary` — never `button`
+   alone, which is a shape with no colour and looks it.
+
+   That split is the same rule the TOKENS follow, applied one layer up: both
+   treatments marked, no unmarked default. `.button` used to carry the shape AND
+   the filled paint, which made "unmarked" silently mean "primary" — one name
+   doing two jobs, exactly the fault `-fill-color` had. It also cost a cascade
+   dependency: `.secondary` only won because it was declared after `.button` at
+   equal weight. Now neither overrides the other, because exactly one applies.
+
+   TONE is the other axis: action / caution / destructive / quiet, which each
+   treatment reads off its own slot tokens (defaulted on :root, re-set per tone
+   by ActionButton.module.css) rather than out of hard-coded colours here.
 
    FLAT — colour only, no motion, no shadow. Not conservatism: it is the
    load-bearing half of "depth belongs to game pieces, not chrome"
@@ -1098,31 +1109,38 @@ button:disabled {
      unaffected — they're sized by explicit pixel props, not padding.
      (--icon-button-size tracks the height this produces.) */
   padding: 0.4rem 0.65rem;
+  /* Width and style only — the COLOUR is the treatment's, below. Split into
+     longhands rather than `border: 1px solid transparent` so this rule really
+     does declare no colour, which is what src/cssTokens.test.ts checks. */
+  border-width: 1px;
+  border-style: solid;
+}
+
+/* PRIMARY — the filled treatment. */
+.primary {
   background: var(--primary-color);
-  border: 1px solid var(--primary-color);
+  border-color: var(--primary-color);
   color: var(--primary-ink-color);
 }
 
 /* The hover the standing comment here used to promise a `.button` class would
    bring. Safe now precisely because it is opt-in: only something that asked to
    be a button can get it. */
-.button:hover:not(:disabled) {
+.primary:hover:not(:disabled) {
   background: var(--primary-hover-color);
   border-color: var(--primary-hover-color);
 }
 
-/* `<button className="button secondary">` — the OUTLINE treatment, against the
-   filled default above. Its tone defaults to `quiet` (the way out of a dialog),
-   which is what every bare `.secondary` in the app is; a toned button re-sets
-   these tokens on its own element instead (see ActionButton.module.css).
+/* SECONDARY — the outline treatment. Its tone defaults to `quiet` (the way out
+   of a dialog), which is what every bare `.secondary` in the app is; a toned
+   button re-sets the slots on its own element instead (ActionButton.module.css).
 
    Tokens rather than hard-coded colours so the tone can be swapped without
    out-cascading this rule — the same re-set-the-token discipline the tiles use.
 
    ONE token paints both the border and the label, deliberately.
 
-   A PLAIN class selector, deliberately, so it sits at the same weight as
-   `.button` and wins on source order alone. It used to be `button.secondary`
+   PLAIN class selectors, deliberately. `.secondary` used to be `button.secondary`
    (0,1,1), which a module class could not out-rank without a `:not()` trick —
    strands' hint bar carries a comment about exactly that arithmetic. At (0,1,0)
    a game's own class beats it the ordinary way. */
@@ -1137,15 +1155,14 @@ button:disabled {
    is the wrong direction for a hover. 8% over white is enough: what the eye
    catches is white becoming a colour at all, not how much colour.
 
-   The border is re-stated, and it has to be: this pairs with `.button:hover`
-   exactly as `.secondary` pairs with `.button` — one rule per treatment, the
-   outline's landing second. Without it the filled hover's border-color leaks
-   through onto an outline button and its hairline jumps from the tone's INK to
-   the tone's fill-hover, which is a second thing changing and a visibly
-   different colour (measured: #ae4000 → #c45400 on Hint). */
+   No border re-statement needed, and that is the split paying for itself. While
+   `.button` carried the filled paint, its hover's border-color reached every
+   outline button too and the hairline jumped from the tone's secondary to its
+   primary-hover under the pointer (measured: #ae4000 → #c45400 on Hint), so this
+   rule had to say the border again to hold it still. `.primary:hover` cannot
+   match a secondary button at all, so there is nothing left to undo. */
 .secondary:hover:not(:disabled) {
   background: var(--secondary-hover-color);
-  border-color: var(--secondary-color);
 }
 
 a {
