@@ -546,8 +546,11 @@ afterwards is attributable to the second commit rather than to 25 files of churn
     onto it.
 12. **Fix strands' history ring** to `--view-history`.
 13. **De-special-case the delete-confirm button**: text and border in
-    `--chrome-destructive` like every other destructive control, no filled
+    `--chrome-destructive-color` like every other destructive control, no filled
     background.
+14. **`BackToClubButton`'s secondary variant takes the `action` tone** instead of
+    the bare gray. It is already action-blue at terminal, so this is the same
+    control agreeing with itself across phases rather than a new look.
 
 ### Then
 
@@ -709,13 +712,18 @@ independent.
 
 | new | from |
 |---|---|
-| `--chrome-action-color` · `-hover-color` | `--color-accent` · `--color-accent-hover` |
-| `--chrome-action-ink-color` | NEW — white (4.60 on the fill) |
+| `--chrome-action-color` | `--color-accent` |
+| `--chrome-action-primary-hover-color` | `--color-accent-hover` |
+| `--chrome-action-primary-ink-color` | NEW — white (4.60 on the fill) |
+| `--chrome-action-secondary-hover-color` | copy of `--color-surface-hover` (today's gray wash) |
 | `--chrome-caution-color` | copy of `--color-warning-strong` — free to move without the outcome |
-| `--chrome-caution-hover-color` | NEW — today strands computes it as `color-mix(… 85%, black)` |
-| `--chrome-caution-ink-color` | NEW — white for now, at 3.08; the open question is a deeper orange, not darker ink |
+| `--chrome-caution-primary-hover-color` | NEW — strands computes it today as `color-mix(… 85%, black)` |
+| `--chrome-caution-primary-ink-color` | NEW — white for now, at 3.08; the open question is a deeper orange, not darker ink |
+| `--chrome-caution-secondary-hover-color` | copy of `--color-surface-hover` |
 | `--chrome-destructive-color` | copy of `--color-sys-error-red` — Reveal / End / Concede / Delete |
-| `--chrome-destructive-hover-color` · `-ink-color` | NEW — darker red; white (8.95) |
+| `--chrome-destructive-primary-hover-color` · `-primary-ink-color` · `-secondary-hover-color` | NEW darker red · white (8.95) · the gray wash |
+| `--chrome-cancel-color` | `--color-control-border-2` / `-text-2`, which every bare `.secondary` Cancel reaches into today |
+| `--chrome-cancel-secondary-hover-color` | copy of `--color-surface-hover`. No primary pair — a filled Cancel would out-shout its confirm |
 | `--chrome-fault-color` | `--color-sys-error-red` — the system failed. Same value as destructive, its own name |
 | `--chrome-cursor-color` | copy of `--color-accent` — the list/focus outlines, about half of that token's 54 uses |
 | `--chrome-disabled-opacity` | the global `button:disabled { opacity: 0.5 }`, named |
