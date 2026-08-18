@@ -924,14 +924,26 @@ What each kind is: `piece` a game object you press (tiles, cards, hexes, cells) 
 `key` an on-screen keyboard cap · `action` a purpose button (Submit, Hint,
 Reveal, End game, Peel) · `form` a dialog's commit + cancel pair · `trigger`
 opens a floating thing (the Menu button, FilterSelect's trigger) · `choice` one
-of a mutually-exclusive set (ModeFilter, colour swatches, crosswords' source
-picker) · `toggle` a two-state switch drawn as a button (crosswords' pencil/pen)
-· `tab` switches which view you're looking at (ClubPage's mobile tabs) · `row` a
-whole list row that IS the control (StartGameButtons, a Menu item, a game card) ·
-`handle` a small inline control inside content (the turn log's `#N`) · `dismiss`
-an icon-only ✕ or delete · `textlink` text that reads as prose or a link
-(`.link-button`, DefinitionView's cross-reference) · `surface` an entire content
-block that is a button (ChatBubble, ScratchpadBubble).
+of a mutually-exclusive set (ModeFilter, crosswords' source picker) · `toggle` a
+two-state switch drawn as a button (crosswords' pencil/pen) · `tab` switches
+which view you're looking at (ClubPage's mobile tabs) · `row` a whole list row
+that IS the control (StartGameButtons, a Menu item, a game card, FilterSelect's
+options, the account colour swatches) · `handle` a small inline control inside
+content (the turn log's `#N`) · `dismiss` an icon-only ✕ or delete · `textlink`
+text that reads as prose or a link (`.link-button`, DefinitionView's
+cross-reference) · `surface` an entire content block that is a button
+(ChatBubble, ScratchpadBubble).
+
+**A kind is what a control IS, not what element it's built from.** `handle` is
+the case that shows it: the turn log's `#N` is conceptually a button — you press
+it and the board jumps to that turn — but it ships as a clickable `<span>`, on
+purpose. A focused `<button>` re-fires its click on Space, so the shared
+"any key exits the history viewer" would instead re-select the turn you were
+trying to leave; a span with an `onClick` takes no keystroke and lets Space fall
+through. (Elsewhere the same problem is solved with `tabIndex={-1}` on a real
+button — setgame's cards, whose board takes no focus at all.) It stays in the
+taxonomy because the taxonomy sorts by **what feedback a control should give**,
+and that question has the same answer either way.
 
 `surface` belongs with the accidental kinds rather than the general ones: **a
 chat bubble is a message that happens to be clickable**, and if it grows button
@@ -978,6 +990,29 @@ matching weights, the outline's landing second).
 A **disabled** button is the deliberate exception to "everything gets a hover":
 it has none, and that missing answer is what tells you it's dead — see
 [A disabled button still gets a tooltip](#a-disabled-button-still-gets-a-tooltip--usually-a-better-one).
+
+**Two general buttons deliberately don't use `.button`**, and they're recorded
+here so a future sweep doesn't "helpfully" convert them. The rule above is about
+*feedback* — colour only, no motion, no shadow — and both obey it; `.button` is
+one implementation of that rule, not the rule itself.
+
+| control | why it styles itself |
+|---|---|
+| crosswords' source picker (`.segBtn`) | a **segmented control**: one border on the wrapper, `overflow: hidden` for the rounded ends, `border-left` dividers between segments, no per-button border or radius. `.button` gives every element its own border and radius, which doesn't restyle a segmented control — it dismantles it |
+| crosswords' pencil/pen + scope buttons (`.btn`) | a game-surface control bar whose ON state is `--crosswords-cursor`, a **game** colour. Its selected state can't come from a chrome tone without lying about what the colour means |
+
+The distinction that keeps this honest: what made the button sweep worth doing was
+that buttons were being handed chrome they never asked for. Neither of these has
+that problem — each asks for exactly what it wants. Converting them would change
+how two controls look in order to make the stylesheet tidier, which is backwards.
+The cost of the exemption, since it isn't zero: their hover colours are hand-picked
+rather than derived from a tone, so a future theme has two extra places to visit.
+
+**One case is genuinely unsettled**: `GameScratchpad`'s "take over" — a small
+inline text button, currently a white fill with a grey border, which could
+reasonably be `button secondary` in the quiet tone (transparent, `#535353`
+border and label). It's a close call either way and not worth deciding in
+isolation; settle it next time the scratchpad is open.
 
 ## Button iconography
 
