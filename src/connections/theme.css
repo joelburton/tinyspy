@@ -16,4 +16,21 @@
   --connections-rank-1:    #a0c35a;  /* green */
   --connections-rank-2:    #b0c4ef;  /* blue */
   --connections-rank-3:    #ba81c5;  /* purple — hardest */
+
+  /* The IDENTITY mark on a tile someone has picked: a border drawn INSIDE the
+   * tile's own border, in that player's colour (`.peerPick` in
+   * components/PlayArea.module.css).
+   *
+   * `-inset` is what keeps it a separate mark. A picked tile is usually selected
+   * too, so without the gap the colour and the thick black selection border meet
+   * as one band and read as a single two-tone edge; the gap shows the tile's own
+   * fill between them. It matters most when a player's colour is dark enough to
+   * be mistaken for the selection black.
+   *
+   * These live HERE rather than in common because connections is the only user
+   * and crosswords' peer cursor will legitimately differ (not inset, its own
+   * thickness) — promote on evidence, and demoting later is the hard direction.
+   * The CONCEPT is shared and documented in docs/tile-feedback.md → Identity. */
+  --connections-peer-inner-border-width: 4px;
+  --connections-peer-inner-border-inset: 2px;
 }

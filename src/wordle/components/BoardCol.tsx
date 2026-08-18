@@ -168,14 +168,11 @@ export function BoardCol({
       if (!prev || colorRank(col) > colorRank(prev)) keyStates.set(ch, col)
     }
   }
-  // Map wordle's TileColor → the shared keyboard's generic tone vocabulary
-  // (the `.boardCol` CSS sets --kbd-* to wordle's palette, so the tint is
-  // unchanged). 'blank' has no tone.
+  // The keyboard speaks the same vocabulary the board does, so there is nothing
+  // to translate — only 'blank' to drop, which is the absence of a tone.
   const keyTones = new Map<string, KeyTone>()
   for (const [ch, col] of keyStates) {
-    const tone: KeyTone | undefined =
-      col === 'green' ? 'correct' : col === 'yellow' ? 'present' : col === 'gray' ? 'absent' : undefined
-    if (tone) keyTones.set(ch, tone)
+    if (col !== 'blank') keyTones.set(ch, col)
   }
 
   // ─── Edit the active row (dismisses any sticky local pill) ─────

@@ -428,12 +428,27 @@
      a blink: the message is "it just became yours", not "something is wrong". */
   --mark-your-turn-flash-duration: 1.1s;
 
-  /* ON-SCREEN KEYBOARD edges (the shared <GuessKeyboard>: wordle + wordiply).
-     The letter cap's edge, and the darker one the ⌫ control wears so it reads as
-     a control rather than a letter. A game may override either alongside the
-     `--kbd-*` fills it already sets. */
+  /* ── ON-SCREEN KEYBOARD (the shared <GuessKeyboard>: wordle + wordiply) ───
+     The keycap's own chrome. The JUDGED keys are not here — they wear the
+     `--wordle-*` palette below, by name, because that is whose judgement they are
+     showing (docs/colors-refinement.md).
+
+     `specialkey`, not `control`: ⌫ wears a darker edge so it reads as a control
+     rather than a letter, but `--control-*` is the form-chrome bucket, so the old
+     name was a bucket collision rather than merely a vague one. ENTER needs
+     nothing here — it is a Submit, so it takes the chrome action tone.
+
+     The cap fill is LIGHTER than an empty tile, deliberately and not the same
+     token: a key is a control you press, a blank tile is empty space. It also has
+     to be light enough for the hover drop-shadow to read against — at wordle's
+     blank (#d3d6da) a grey shadow on a grey cap was invisible. It lived in
+     wordle/theme.css, which left the shared component reading a token no shared
+     file defined: wordle painted its keyboard by override, and wordiply's was
+     painted by a fallback. */
+  --kbd-key-fill-color:           #eeeeee;
+  --kbd-key-ink-color:            var(--page-text-color);
   --kbd-key-edge-color:           #8b8f94;
-  --kbd-specialkey-edge-color:       #5f6368;
+  --kbd-specialkey-edge-color:    #5f6368;
 
   /* RANK LADDER (the shared <RankBar>, used by spellingbee + wordwheel).
      ONE palette for both games, not each game's accent: a rank ladder means the
@@ -536,23 +551,7 @@
      where each stays legible. Ink follows the background it sits on. */
   --ink-on-dark-color:        #ffffff;
   --ink-on-light-color:       var(--page-text-color);
-  /* The PEER ring's weight — "a teammate is holding this piece", drawn as an
-     INSET ring in that player's color (the `.peerRing` class in
-     common/components/game/PlayArea.module.css). Inset is what makes it compose:
-     the selection border owns the edge, the cursor owns the border color, and
-     this sits inside all of it at its own radius. Matches the selected border's
-     4px so a piece a peer picked reads at the same weight as one I picked — the
-     two marks say the same thing about the move, and only the color says whose.
-     See docs/tile-feedback.md → Identity. */
-  --peer-ring-width:            4px;
-  /* …and how far inside the piece's edge it sits. A peer's pick is usually ALSO
-     selected (in a shared move, a teammate's tile is part of the guess I am about
-     to submit), so the colored ring and the thick black selection border would
-     otherwise meet as one 8px band and read as a single two-tone edge. The gap
-     shows the tile's own fill between them, which is what makes them two marks
-     saying two things — "in the move" and "moth is holding it". */
-  --peer-ring-gap:              2px;
-
+  
   /* The "Wordle colors" — the per-letter feedback palette shared by the
      letter-coloring games (waffle today, wordle as it converges). The server
      computes the feedback (it holds the secret); the FE only paints it, mapping
@@ -595,6 +594,15 @@
   --wordle-green-edge-color:      #568a50;
   --wordle-yellow-edge-color:     #9f862d;
   --wordle-gray-edge-color:       #75787a;
+  /* The ink each judged surface carries — a board tile and a keycap both, so the
+     decision sits beside the fill it depends on rather than as an anonymous #fff
+     in two component files. White on all three, which is what the fills above were
+     tuned for: the contrast note on this palette (yellow deliberately at 2.57,
+     because the gold that reaches 3.0 stops reading as Wordle's yellow) is about
+     THIS pairing. */
+  --wordle-green-ink-color:       #ffffff;
+  --wordle-yellow-ink-color:      #ffffff;
+  --wordle-gray-ink-color:        #ffffff;
 
   /* Radii. */
   --radius-sm:                4px;   /* small chips, tiles, hint pills */

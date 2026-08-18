@@ -21,7 +21,7 @@
  *     → below-board structure.
  *
  * Every FEEDBACK mark is shared and none of it is here: hover and press, the
- * `.selected` border on a tile in the guess being built, `.peerRing` for whose
+ * `.selected` border on a tile in the guess being built, `.peerPick` for whose
  * pick it was, `.dimInFlight` while the guess is with the server,
  * `.verdictFill` when the answer lands, `.attentionFlash` on a band that landed
  * under a teammate's hands, and the three board-scope marks (the not-your-turn
@@ -233,4 +233,48 @@
   .grid {
     --tile-font-min: 0.7rem;
   }
+}
+
+/* WHOSE pick this is — a border drawn INSIDE the tile's own border, in that
+ * player's colour, which arrives as an inline `--peer-color`. Drawn for every
+ * pick on a shared board including my own; solo and in compete, for none (see
+ * Board.tsx, and docs/tile-feedback.md → Identity).
+ *
+ * It lived in common until the palette sweep, on the theory that identity is a
+ * shared channel. The channel is; this GEOMETRY isn't — connections is the only
+ * user and crosswords' peer cursor will differ in both inset and thickness, so
+ * our own promotion rule (two users, and it would be wrong for them to differ)
+ * says keep it local. "Ring" went with it: this is a square mark.
+ *
+ * ── Why two inset layers ─────────────────────────────────────────────────────
+ * The first is a SPACER. An inset `box-shadow` always starts at the piece's inner
+ * edge, so a border can't simply be moved inward — it is drawn by painting a
+ * wider band in the player's colour and then covering the outer part of it with
+ * the tile's own fill. What survives is a band of `-width` sitting `-inset`
+ * inside the edge, which is what keeps it a separate mark from the thick black
+ * selection border rather than a two-tone edge. The spacer takes `--tile-bg-color`
+ * so it stays the tile's own fill through every state — including a verdict,
+ * which re-sets that token.
+ *
+ * ── Why three rules ──────────────────────────────────────────────────────────
+ * `box-shadow` is a LIST, and the tile's depth already occupies it. Setting a
+ * bare inset border would silently drop that depth — a picked tile would go flat
+ * and stop lifting on hover, which is how this arrived here in the first place
+ * (the colour was set inline and lost both). So it composes WITH each shadow, and
+ * the hover/press pair restate their own beside it. */
+.peerPick {
+  --peer-band:
+    inset 0 0 0 var(--connections-peer-inner-border-inset) var(--tile-bg-color),
+    inset 0 0 0 calc(
+      var(--connections-peer-inner-border-inset) + var(--connections-peer-inner-border-width)
+    ) var(--peer-color);
+  box-shadow: var(--peer-band), var(--tile-shadow);
+}
+
+.peerPick:hover:not(:disabled) {
+  box-shadow: var(--peer-band), var(--tile-hover-shadow);
+}
+
+.peerPick:active:not(:disabled) {
+  box-shadow: var(--peer-band), var(--tile-shadow);
 }

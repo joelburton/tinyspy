@@ -344,9 +344,9 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
     // …and the ring says who picked which. Everyone gets one, including me: a
     // board where only SOME picks carry a color reads as missing data rather
     // than as "the unmarked ones are yours".
-    expect(tile('a').className).toMatch(/peerRing/)
+    expect(tile('a').className).toMatch(/peerPick/)
     expect(tile('a').style.getPropertyValue('--peer-color')).toBe('var(--member-red-dot-color)')
-    expect(tile('b').className).toMatch(/peerRing/)
+    expect(tile('b').className).toMatch(/peerPick/)
     expect(tile('b').style.getPropertyValue('--peer-color')).toBe('var(--member-blue-dot-color)')
   })
 
@@ -366,7 +366,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       })
       const { unmount } = render(<PlayArea {...makeCtx({ players })} />)
       expect(tile('a').className).toMatch(/selected/)
-      expect(tile('a').className).not.toMatch(/peerRing/)
+      expect(tile('a').className).not.toMatch(/peerPick/)
       unmount()
     }
   })
@@ -566,7 +566,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
     )
 
     expect(tile('a').className).not.toMatch(/selected/)
-    expect(tile('b').className).not.toMatch(/peerRing/)
+    expect(tile('b').className).not.toMatch(/peerPick/)
   })
 })
 

@@ -128,7 +128,7 @@ type Props = {
  * Every mark on it is the SHARED vocabulary (docs/tile-feedback.md), and the
  * element each one lands on is what says how far it reaches. On a TILE: the
  * `.selected` border for a tile in the guess being built — worn whoever picked
- * it, because in coop the four tiles are one shared move — with `.peerRing`
+ * it, because in coop the four tiles are one shared move — with `.peerPick`
  * naming the picker where that is worth saying; `.dimInFlight` while the guess
  * is with the server; `.verdictFill` in its pill's tone when the answer lands.
  * On a BAND: `.attentionFlash`, for a category that resolved under a teammate's
@@ -300,7 +300,7 @@ export function Board({
                 // about to submit, not a note about where they are standing — so
                 // the border says "in the move" and the ring below says whose.
                 ownerId !== undefined && shared.selected,
-                ownerColor && shared.peerRing,
+                ownerColor && styles.peerPick,
                 inFlight && shared.dimInFlight,
                 // The answer fills the tile, in a PALE tier of its pill's tone.
                 // The background is free to take it: a connections tile carries

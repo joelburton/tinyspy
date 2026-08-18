@@ -63,13 +63,13 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--page-text-color);
+  color: var(--kbd-key-ink-color);
   /* Resting key: a LIGHT cap with a real dark-gray edge, rather than NYT's flat
    * mid-gray fill. Two reasons, both practical: it is the house style (things get
    * a border, not just a background — see the setgame card, the tile ramp), and a
    * gray drop shadow simply does not read against a gray cap, so the hover
-   * treatment below was invisible. A game may override `--kbd-key-bg`. */
-  background: var(--kbd-key-bg, #eeeeee);
+   * treatment below was invisible. */
+  background: var(--kbd-key-fill-color);
   border: 1px solid var(--kbd-key-edge-color);
   /* A keycap sits on the page the same way a board tile does, so it takes the
    * same resting depth and the same three-state gesture below. Overrides the
@@ -166,31 +166,32 @@
   font-size: 0.85rem;
 }
 
-/* Per-letter feedback tints (white text on color). Colours are CSS
- * variables so a game can theme them; the defaults are the standard Wordle
- * palette.
+/* The judged keys. They wear the WORDLE PALETTE directly and say so in their
+ * names — this component used to read seven `--kbd-*` colour tokens with
+ * fallbacks, which wordle then overrode with seven declarations that set each one
+ * to exactly the value its fallback already had. Three layers, one palette, and a
+ * "game-agnostic default" that was the wordle palette in a disguise (wordiply,
+ * the only other user, tints no keys at all).
  *
- * The hex defaults here are only reachable by a consumer that passes key states
- * WITHOUT theming them — nobody does today (wordle sets every variable, wordiply
- * passes no states at all). They are kept in step with `--wordle-*` anyway: a
- * stale default is invisible until the day someone reaches it, and then it
- * quietly disagrees with the game beside it.
+ * If a non-wordle game ever tints keys, it adds its own classes: "this key has
+ * been used" would need its own generic colour, never wordle-gray, which means
+ * "not in the word" — a claim only a wordle-family game can make.
  *
- * Each carries a slightly DARKER edge of its own color, matching the board
- * tiles — the quiet definition the rest of the app gives a colored surface,
- * rather than a flat block. A game supplies the edges as `--kbd-*-border`. */
-.correct {
-  background: var(--kbd-correct, #66a45f);
-  border-color: var(--kbd-correct-border, #568a50);
-  color: #fff;
+ * Each carries a slightly DARKER edge of its own colour, matching the board
+ * tiles: the quiet definition the rest of the app gives a coloured surface,
+ * rather than a flat block. */
+.wordleGreen {
+  background: var(--wordle-green-fill-color);
+  border-color: var(--wordle-green-edge-color);
+  color: var(--wordle-green-ink-color);
 }
-.present {
-  background: var(--kbd-present, #bd9f35);
-  border-color: var(--kbd-present-border, #9f862d);
-  color: #fff;
+.wordleYellow {
+  background: var(--wordle-yellow-fill-color);
+  border-color: var(--wordle-yellow-edge-color);
+  color: var(--wordle-yellow-ink-color);
 }
-.absent {
-  background: var(--kbd-absent, #8b8f91);
-  border-color: var(--kbd-absent-border, #75787a);
-  color: #fff;
+.wordleGray {
+  background: var(--wordle-gray-fill-color);
+  border-color: var(--wordle-gray-edge-color);
+  color: var(--wordle-gray-ink-color);
 }

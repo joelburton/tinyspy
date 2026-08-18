@@ -669,7 +669,7 @@ the background. Pick the next one up from the "forces" column.
 | **wordle** | ✅ 2026-08-16, board marks 08-17 | first through: the in-flight dim, the verdict ring in its pill's tone, hover-as-shadow, blue history, the keyboard as a control surface. Then the four board-scope marks + the keyboard withdrawn at terminal. It went first because it needed the fewest decisions — no selection, no hint, no cursor |
 | **waffle** | ✅ 2026-08-17 | the framework INTO common: selection as a black border, the shared in-flight dim, the move shown optimistically with its verdict withheld, attention gated on the swap log, both turn marks, the game-over frame. No verdict mark and none needed — the only refused swap is one a teammate beat you to, and their swap arriving is what you want to see |
 | **psychicnum** | ✅ 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). Self-attention deliberately off: one tile changes and the in-flight dim already pointed at it |
-| **connections** | ✅ 2026-08-17 | the **identity ring** as a named shared channel (`.peerRing`) — and, on the way, the rule that identity is drawn for EVERYONE on a shared board or for nobody, which the permanent dot already said and the ring contradicted. Also: the first verdict on the BACKGROUND (its tiles carry no state, so it was free), the first mark whose lifetime ends because someone ELSE acted, and the split that came out of it — a board mark dies when the board moves, its pill does not. Its bands are inert pieces wearing the shared tile face, and they flash for a teammate's solve |
+| **connections** | ✅ 2026-08-17 | the **identity mark** as a named shared channel (`.peerRing`) — and, on the way, the rule that identity is drawn for EVERYONE on a shared board or for nobody, which the permanent dot already said and the ring contradicted. Also: the first verdict on the BACKGROUND (its tiles carry no state, so it was free), the first mark whose lifetime ends because someone ELSE acted, and the split that came out of it — a board mark dies when the board moves, its pill does not. Its bands are inert pieces wearing the shared tile face, and they flash for a teammate's solve |
 | codenamesduet | — | the keycard's `.triPeer` / `.triMine` triangles (which are the game, not attribution), and a board where only one seat can act |
 | setgame | — | its own in-flight + arriving/leaving marks predate all of this and are the richest set anywhere; `--setgame-*` tokens want folding into the shared ones. Selection is a `box-shadow` ring and must become a border |
 | stackdown | — | the ambiguous-letter mark — a red border *and* a red ring today, and the first user of the **UI-problem** channel above: it is not a verdict, so it loses the outcome red and never becomes a fill. Plus a board whose pieces OVERLAP |
@@ -718,7 +718,7 @@ Cross-cutting, not owned by any one game:
 |---|---|
 | history viewer | DONE — the shared frame was yellow; it is now the blue `--view-history-color`, so yellow means only "attention" |
 | in-flight marks | was "missing in all but three games"; now shared (`.dimInFlight`) and worn by the four converted ones. Still absent everywhere else |
-| identity, transient | DONE — the inset ring is shared (`.peerRing`, `--peer-color` inline, `--peer-ring-gap` holding it clear of the selection border). connections wears it; crosswords' `.peerFrame` folds in when it converts |
+| identity, transient | DONE as a CHANNEL, local as an implementation — connections draws `.peerPick`, an inset border in the picker's colour held clear of the selection edge. It lived in common until the palette sweep and moved into connections: one user, and crosswords' peer cursor will differ in inset and thickness, so promote on evidence |
 | the shared tile | see the next section — nine boards still roll their own |
 
 ## Per-game check: is this board's tile the SHARED tile?
@@ -883,7 +883,7 @@ shadow and a shadow list carries both, but worth knowing before a third shadow i
 added.
 
 **The ring sits a couple of pixels INSIDE the edge**, not flush against it
-(`--peer-ring-gap`). A picked tile is usually selected too, so the color and the
+(connections' `--connections-peer-inner-border-inset`). A picked tile is usually selected too, so the color and the
 thick black selection border would otherwise meet as one band and read as a
 single two-tone edge; the gap shows the tile's own fill between them, which is
 what keeps them two marks saying two things. It matters most when a player's

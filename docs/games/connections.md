@@ -375,7 +375,7 @@ tints. What each one says, and when it ends:
 | mark | means | ends |
 |---|---|---|
 | `.selected` — thick black border | this tile is in the guess being built, **whoever picked it** (coop's four tiles are one shared move) | on submit, or Clear |
-| `.peerRing` — inset ring in a player's color | whose pick it was. On a SHARED board (coop, 2+ players) every pick is ringed, mine included; solo and compete, none are | with the selection |
+| `.peerPick` — an inset border in a player's color | whose pick it was. On a SHARED board (coop, 2+ players) every pick is ringed, mine included; solo and compete, none are | with the selection |
 | `.dimInFlight` | the guess is with the server | when the answer lands |
 | `.verdictFill` + `.verdictError` / `.verdictNear` / `.verdictWarning` | the answer, filling the four tiles in its PILL's tone: red "Incorrect", gold "One away!", orange "You already tried that". A correct guess has no mark — those tiles become a band on the same render | my next action, a teammate's guess, or a restart |
 | `.attentionFlash` on a BAND | a category resolved under someone else's hands | ~0.7s |
@@ -452,7 +452,7 @@ src/connections/
   theme.css               JUST the NYT rank palette (yellow/green/blue/purple =
                           --connections-rank-0..3). The tile chrome (beige resting, the hover
                           lift, the black selection border) and EVERY feedback mark are the
-                          SHARED --tile-* / .peerRing / .dimInFlight / .verdictFill system in
+                          SHARED --tile-* / .dimInFlight / .verdictFill system in
                           common/. Imported by PlayArea.tsx so it loads with the chunk.
   logo.svg                connections's game-tile / launcher icon, referenced from the manifest.
 

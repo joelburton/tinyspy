@@ -5,11 +5,20 @@ const ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'] as const
 
 /**
  * Per-letter feedback tint for a key — a generic three-strength vocabulary
- * (Wordle's green/yellow/gray map to correct/present/absent). A game that
+ * (wordle's green / yellow / gray, which is the palette these keys wear). A game that
  * has no per-letter feedback (e.g. wordiply) simply passes no `keyStates`
  * and every key stays neutral.
  */
-export type KeyTone = 'correct' | 'present' | 'absent'
+export type KeyTone = 'green' | 'yellow' | 'gray'
+
+/** Tone → the class that paints it. The keyboard wears the WORDLE palette, and
+ *  says so: a non-wordle game tinting keys would add its own classes rather than
+ *  borrow these (docs/colors-refinement.md). */
+const TONE_CLASS: Record<KeyTone, string> = {
+  green: styles.wordleGreen,
+  yellow: styles.wordleYellow,
+  gray: styles.wordleGray,
+}
 
 type Props = {
   onKey: (letter: string) => void
@@ -34,11 +43,12 @@ type Props = {
  *
  * Shared by **wordle** (which tints keys with per-letter feedback via
  * `keyStates`) and **wordiply** (no tint). It is deliberately game-agnostic:
- * the tone colours + the resting key background are CSS variables
- * (`--kbd-correct` / `--kbd-present` / `--kbd-absent` / `--kbd-key-bg`) a
- * game may override on any ancestor; the defaults are the standard Wordle
- * palette. No game-specific imports — so it composes with either game's
- * theme and stays removable.
+ * the keycap's own chrome is `--kbd-*` and the judged keys wear the shared
+ * `--wordle-*` palette by name. It used to take those colours through a
+ * `--kbd-correct`/`-present`/`-absent` seam a game could override — but the only
+ * game that ever did set each one to the value its fallback already had, so the
+ * seam's "game-agnostic default" was the wordle palette wearing a disguise. No
+ * game-specific imports either way, so it stays removable.
  */
 export function GuessKeyboard({
   onKey,
@@ -69,7 +79,7 @@ export function GuessKeyboard({
               <button
                 key={ch}
                 type="button"
-                className={cls(styles.key, tone && styles[tone])}
+                className={cls(styles.key, tone && TONE_CLASS[tone])}
                 onClick={() => onKey(ch)}
                 disabled={disabled}
                 aria-label={ch}

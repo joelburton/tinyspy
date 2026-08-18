@@ -48,8 +48,9 @@
 }
 .blank {
   /* A guess's colors are always g/y/x, so this is defensive — keep it readable
-   * (dark text on the neutral surface) if a blank ever slips through. */
-  background: var(--wordle-key-bg);
+   * (dark text on the neutral surface) if a blank ever slips through. Borrows the
+   * keycap's light fill, which is the palest surface in wordle's vocabulary. */
+  background: var(--kbd-key-fill-color);
   color: var(--page-text-color);
 }
 
