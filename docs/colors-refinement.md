@@ -110,6 +110,45 @@ in the token.** Only wordle's palette records its floors today — and it also
 records a deliberate exception (its yellow sits at 2.57, because the gold that
 reaches 3.0 stops reading as Wordle's yellow). Everything else is assumed.
 
+### The keyboard, and the wordle palette
+
+Two buckets and a join, worth spelling out because the keyboard is where the
+palette is most tangled today.
+
+**`wordle-*` is the letter-judgement palette** — family vocabulary, shared by
+wordle and waffle, in common because two games read it:
+
+```
+--wordle-green-fill-color   --wordle-green-edge-color   --wordle-green-ink-color
+--wordle-yellow-*           --wordle-gray-*             --wordle-blank-fill-color
+```
+
+**Colour words here, deliberately**, against the semantic-names rule and with the
+reason recorded: "wordle green" is a phrase people say, so the name is read at
+speed where `-correct-` would have to be translated. The `wordle-` prefix is what
+keeps it honest in a theme swap — a pink-mode wordle still has a *wordle green*,
+even if the hex moves. (`gray`, not `grey` — CLAUDE.md.)
+
+**`kbd-*` is the keycap surface**, and carries no palette of its own:
+`--kbd-key-fill-color`, `-ink-color`, `-edge-color`, and
+`--kbd-specialkey-edge-color` for ⌫'s darker edge. Not `control`: with
+`--control-*` now a bucket for form chrome, "control" is a reserved word, so the
+old `--kbd-control-border` was a bucket collision rather than merely a vague name.
+ENTER needs nothing — it is a Submit, so it takes `--chrome-action-*`.
+
+**The join: the keycap wears the palette directly.** The keyboard's state classes
+become `.wordleGreen` / `.wordleYellow` / `.wordleGray` and read the `--wordle-*`
+tokens, so the *class* says wordle too. That deletes a layer that does nothing:
+`GuessKeyboard` reads seven `--kbd-*` colour tokens with fallbacks, wordle's
+BoardCol overrides all seven, and **every override sets the token to exactly the
+value its fallback already had.** Three layers, one palette. wordiply — the only
+other user — passes no key states at all, so the seam's "game-agnostic default"
+was the wordle palette wearing a disguise.
+
+If a non-wordle game ever tints keys, "this key has been used" gets **its own
+generic token** (`--kbd-key-used-color` or similar), never wordle-gray: gray means
+*not in the word*, which is a claim only a wordle-family game can make.
+
 ### The five variants, named for their ROLE
 
 | variant | what it is for |
@@ -530,33 +569,51 @@ afterwards is attributable to the second commit rather than to 25 files of churn
    exception with a comment if the call belongs to that game's conversion. Where a
    fill is being named, **name its ink beside it**. Kill the `var(--x, #hex)`
    fallbacks while here — they already violate a documented rule.
-7. **Normalize `rgba(0, 0, 0, 0.3)` to `rgb(0 0 0 / 30%)`** — two spellings for one
+7. **Collapse the keyboard's three layers into one.** Give `--kbd-*` real values
+   (there is no `--kbd-key-bg` token at all today — wordiply's keyboard runs on a
+   fallback), point the state classes at the `--wordle-*` palette directly, and
+   delete wordle's seven identity overrides along with the seven fallbacks.
+8. **Move the peer geometry to connections** — `--connections-peer-inner-border-width`
+   / `-inset`, and `.peerRing` → `.peerPick` in its own module.
+9. **Normalize `rgba(0, 0, 0, 0.3)` to `rgb(0 0 0 / 30%)`** — two spellings for one
    thing, currently about half and half. Cosmetic, but it makes the guard's regex
    and every future diff simpler, and this is the one sweep where it is free.
-8. **Add the guard** (below), with a planted violation to prove it fails.
+10. **Add the guard** (below), with a planted violation to prove it fails.
 
 ### Commit 2 — the values that actually change
 
-9. **Add `-terminal-frame` to every outcome family.** Move the three frames onto
+1. **Add `-terminal-frame` to every outcome family.** Move the three frames onto
    won / lost / neutral, taking the won and lost values **a bit more green and red**
    than today's `#3c6b46` / `#6b3c3c`, which sit close to gray.
-10. **Add `-edge` to every outcome family**, and move psychicnum's decided tiles
+2. **Add `-edge` to every outcome family**, and move psychicnum's decided tiles
     onto it.
-11. **Add `gamelist-unplayed`** and move the crossword picker's never-played stripe
+3. **Add `gamelist-unplayed`** and move the crossword picker's never-played stripe
     onto it.
-12. **Fix strands' history ring** to `--view-history`.
-13. **De-special-case the delete-confirm button**: text and border in
+4. **Fix strands' history ring** to `--view-history`.
+5. **De-special-case the delete-confirm button**: text and border in
     `--chrome-destructive-color` like every other destructive control, no filled
     background.
-14. **`BackToClubButton`'s secondary variant takes the `action` tone** instead of
+6. **`BackToClubButton`'s secondary variant takes the `action` tone** instead of
     the bare gray. It is already action-blue at terminal, so this is the same
     control agreeing with itself across phases rather than a new look.
 
+### After the sweep, on its own
+
+**The board's class vocabulary.** `tileColor()` returns `'green' | 'yellow' |
+'gray' | 'blank'` and four games define `.green` / `.yellow` / `.gray` / `.blank`.
+Keeping colour words in the tokens makes this a *prefixing* job rather than a
+rename — the mapping and its values stay put, and the classes become
+`.wordleGreen` and friends so board and keycap share one vocabulary over one token
+set. Its own commit, because it is a TypeScript + class change across four games
+and verifies separately from a token sweep. The same commit should fix the
+collision it exposes: **psychicnum defines its own `.correct`** for something
+unrelated — a guessed word that *was* a secret.
+
 ### Then
 
-14. **Eyeball**, starting with the four converted games (which is where the visual
+1. **Eyeball**, starting with the four converted games (which is where the visual
     changes are), then each remaining game as its conversion comes up.
-15. **Write the ui.md section** — the buckets, the five variants, and the rules
+2. **Write the ui.md section** — the buckets, the five variants, and the rules
     above — moving the rule currently buried in ui.md's tile-ramp paragraph into it
     and leaving a pointer. Then delete this file.
 
@@ -660,6 +717,13 @@ cross-cutting `#fff` ink and `#000` borders. wordle's two theme colors
 person should confirm, since a keyboard key's resting fill and a hovered surface
 being the same colour today may well be a coincidence.
 
+Two more turned up while mapping the keyboard, both worth a look rather than a
+fix: **`--wordle-blank` is used only by waffle** (wordle stopped reading it), so a
+token named for one game exists solely for another — and it sits between the
+resting keycap `#eeeeee` and the absent-letter `#8b8f91`, which is a gap that
+matters, since it is the untried-versus-tried signal the whole keyboard readout
+depends on.
+
 ## The mapping — every token in `common/theme.css`
 
 **Approve this before anything is renamed.** A rename is cheap to run and expensive
@@ -679,19 +743,29 @@ independent.
 | `--outcome-won-fill-color` | `--color-outcome-won-border` |
 | `--outcome-won-wash-color` | `--color-outcome-won-bg` |
 | `--outcome-won-edge-color` | NEW (psychicnum's local `color-mix(fill 84%, black)`) |
-| `--outcome-won-terminal-frame-color` | `--color-game-over-won`, taken a bit greener |
-| `--outcome-lost-*` | same five, from `-lost-strong` / `-border` / `-bg`, NEW edge, `--color-game-over-lost` taken a bit redder |
+| `--outcome-won-terminal-frame-color` | `#28642a` — `--color-game-over-won` `#3c6b46`, taken greener |
+| `--outcome-lost-*` | same five, from `-lost-strong` / `-border` / `-bg`, NEW edge; frame `#873933`, from `--color-game-over-lost` `#6b3c3c` taken redder |
 | `--outcome-near-ink-color` | `--color-outcome-near-strong` |
 | `--outcome-near-fill-color` | `--color-outcome-near-border` |
-| `--outcome-near-wash-color` · `-edge-color` · `-terminal-frame-color` | NEW |
+| `--outcome-near-wash-color` · `-edge-color` | NEW |
+| `--outcome-near-terminal-frame-color` | `#794900` — reserved, no consumer yet |
 | `--outcome-warning-ink-color` | `--color-warning-strong` |
 | `--outcome-warning-fill-color` | `--color-warning-border` |
-| `--outcome-warning-wash-color` · `-edge-color` · `-terminal-frame-color` | NEW |
+| `--outcome-warning-wash-color` · `-edge-color` | NEW |
+| `--outcome-warning-terminal-frame-color` | `#843f14` — reserved, no consumer yet |
 | `--outcome-neutral-ink-color` | `--color-outcome-neutral-strong` |
 | `--outcome-neutral-fill-color` | `--color-outcome-neutral-border` |
 | `--outcome-neutral-wash-color` | `--color-outcome-neutral-bg` |
 | `--outcome-neutral-edge-color` | NEW |
-| `--outcome-neutral-terminal-frame-color` | `--color-game-over` |
+| `--outcome-neutral-terminal-frame-color` | `#555555` — `--color-game-over` `#4d4d4d`, moved to the family's lightness |
+
+**The five frames are one family, picked together**: same lightness, same chroma,
+four hues plus an achromatic neutral — today's won/lost are duller than the rest of
+the palette, and this raises the chroma by half while keeping them dark enough to
+read as a band rather than as an outcome at strength. Picking near and warning now,
+with no consumer, is the reservation policy doing its job: one formula governs all
+five, where a `warning-terminal-frame` chosen alone in two years would be reasoned
+about differently.
 
 ### gamelist — six values, no variants
 
@@ -734,13 +808,29 @@ independent.
 |---|---|
 | `--view-history-color` | `--color-history-viewer` |
 | `--view-share-preview-color` | `--color-share-preview` (copy of attention's value, deliberately independent) |
-| `--mark-attention-color` | `--color-attention` |
-| `--mark-attention-wash-color` | `--tile-attention` |
+| `--mark-attention-board-color` | `--color-attention` — the your-turn frame flash |
+| `--mark-attention-tile-color` | `--tile-attention` — the wash over a tile that just changed |
 | `--mark-in-flight-dim-color` · `--mark-not-your-turn-dim-color` · `--mark-game-over-dim-color` | `--dim-*` |
 | `--mark-attention-flash-duration` · `--mark-your-turn-flash-duration` | `--*-flash-duration` |
-| `--mark-peer-ring-width` · `--mark-peer-ring-gap` | `--peer-ring-*` |
-| `--mark-grid-cursor-color` | `--grid-cursor` |
+| `--mark-grid-cursor-color` | `--grid-cursor` — the shared keyboard cursor (bananagrams, scrabble) |
 | `--ink-on-dark-color` · `--ink-on-light-color` | `--verdict-ink-on-dark` / `-on-light`, widened past verdicts (nine games write raw `#fff` today) |
+
+**Both attention scopes are marked**, with no unmarked default — same principle as
+primary/secondary. They are the same value today via an alias, and the theme's
+comment describes the tile one as *translucent* "because it washes over a tile that
+already carries a state color", which it isn't: it is fully opaque. They become
+**copies**, since the comment's own argument (either scope can move without the
+other) is a coincidence argument rather than a dependency one.
+
+**`--peer-ring-width` / `-gap` LEAVE common** and become
+`--connections-peer-inner-border-width` / `-inset`, with the `.peerRing` class
+moving to connections as `.peerPick`. Our own promotion rule says so: promote when
+two or more games use it *and* it would be wrong for them to differ. connections is
+the only user, and crosswords' peer cursor will legitimately differ (not inset, its
+own thickness). "Ring" was also the wrong word for a square mark — it is a border
+drawn inside the tile's own border. The *concept* stays documented in
+[tile-feedback.md](tile-feedback.md); promotion later is easy, demotion is the hard
+direction.
 
 ### page · control
 
@@ -770,10 +860,14 @@ were written in.
 | `--tile-bg-color` · `--tile-border-color` · `--tile-ink-color` | `--tile-bg` · `--tile-border` · `--tile-text` |
 | `--tile-selected-border-color` · `--tile-border-width` · `--tile-selected-border-width` | `--tile-selected-border` · `--tile-border-width` · `--tile-border-width-selected` |
 | `--tile-shadow` · `--tile-hover-shadow` | `--tile-shadow` · `--hover-shadow` |
-| `--kbd-key-border-color` · `--kbd-control-border-color` | `--kbd-*-border` |
-| `--rank-fill-color` · `--rank-edge-color` | `--rank-fill` · `--rank-edge` |
-| `--wordle-green-color` · `--wordle-yellow-color` · `--wordle-gray-color` · `--wordle-blank-color` | `--wordle-*` |
+| `--kbd-key-fill-color` | NEW as a real token — `--kbd-key-bg` is referenced but **never defined**, so wordiply's keyboard runs on the fallback |
+| `--kbd-key-ink-color` | NEW — the resting label, today a bare `--color-text` |
+| `--kbd-key-edge-color` | `--kbd-key-border` |
+| `--kbd-specialkey-edge-color` | `--kbd-control-border` |
+| `--rank-bar-fill-color` · `--rank-bar-edge-color` | `--rank-fill` · `--rank-edge` |
+| `--wordle-green-fill-color` · `--wordle-yellow-fill-color` · `--wordle-gray-fill-color` · `--wordle-blank-fill-color` | `--wordle-*` |
 | `--wordle-green-edge-color` · `--wordle-yellow-edge-color` · `--wordle-gray-edge-color` | `--wordle-*-border` |
+| `--wordle-green-ink-color` · `--wordle-yellow-ink-color` · `--wordle-gray-ink-color` | NEW — today an anonymous `#fff` in two files, while the contrast reasoning lives in a comment beside the fill |
 
 ### unchanged
 
@@ -815,8 +909,9 @@ in a `theme.css`, and one sitting in a component module wants a reason.
   already-used letter, and it is the only piece wearing one. Decided when
   letterboxed converts; the likely answer is yes — a way to tint a tile with a very
   subtle outcome color.
-- **`-terminal-frame` for `near` and `warning`** — reserved by policy, and nothing
-  will read them for a while. Pick them anyway, at the same sitting as won and lost.
+- **The frame values, once they are on screen.** Picked as a family (above) rather
+  than deferred; what is open is whether the raised chroma reads right at 4px around
+  a real board, which is a look-at-it question, not a pick-a-number one.
 - **An orange that can carry white ink.** Filled caution is at 3.08 today. The fix
   we want is a deeper orange that clears the floor while still reading as orange and
   not as destructive's maroon — not dark ink on the current one. Try it during the
