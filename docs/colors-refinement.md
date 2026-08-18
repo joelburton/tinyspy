@@ -196,34 +196,80 @@ coincidentally equal, not kept in lockstep** — `--chrome-caution-color` may we
 darkened for use as an icon and a border without `outcome-warning` moving at all.
 
 **Colour and treatment are separate axes, and only colour is a token.** A button is
-*filled* or *outline* — that is a class — and the tone says what kind of action it
-is. They compose 3 × 2, and the grid isn't hypothetical: strands already ships a
-filled caution (its ready-to-use Hint), and a filled destructive is easy to imagine
-("the thing you should do here is delete"). Which is why there is no
-`--chrome-primary-color`: "primary" describes the *treatment*, and calling Restart
-or New game "primary" would be wrong in exactly the way this sweep exists to fix.
+**primary** (filled) or **secondary** (outline) — that is a class, and those are
+already the class names in our CSS — while the tone says what kind of action it is.
+They compose, and the grid isn't hypothetical: strands ships a filled caution (its
+ready-to-use Hint), and a filled destructive is easy to imagine ("the thing you
+should do here is delete"). Which is why there is no `--chrome-primary-color`:
+primary describes the *treatment*, and calling Restart "primary" would be wrong in
+exactly the way this sweep exists to fix.
+
+Each tone carries four tokens:
+
+| token | what it colours |
+|---|---|
+| `--chrome-<tone>-color` | the tone: border + text when secondary, background when primary |
+| `--chrome-<tone>-primary-ink-color` | the label on a primary (filled) button |
+| `--chrome-<tone>-primary-hover-color` | a primary button's background on hover — the tone, deeper |
+| `--chrome-<tone>-secondary-hover-color` | a secondary button's background on hover — light gray today, a pale tint of the tone later |
+
+**Hover changes the background and nothing else** — no lift, no shadow, because
+depth belongs to game pieces. That is why neither hover token says `-bg-`: it would
+repeat a constant. It also retires the fill/filled ambiguity, since "fill" stops
+appearing at all — the treatment word is primary/secondary and the property is
+always background.
+
+**Both treatments are marked, with no unmarked default**, because the default would
+be actively misleading: in our stylesheet the *bare* `button` is the FILLED one and
+`.secondary` is the outline, so an unmarked `--chrome-action-hover-color` would read
+as the primary's, which is the opposite of what it would mean.
+
+The three `-secondary-hover-color` values are the same light gray today, and that
+is a **copy, not an alias** — diverging into pale tints is the point of separating
+them. It is also the fix for a real problem: adding gray alone reads as the button
+getting *duller* rather than more engaged, where a pale tint of its own tone reads
+as more.
+
+**The tones:**
+
+| tone | for |
+|---|---|
+| `action` | an action you can take — Submit (primary), Restart / New game (secondary) |
+| `caution` | Hint, Spoiler, AI suggest, Pass — consequential, not destructive |
+| `destructive` | Reveal, End game, Concede, Delete — irreversible |
+| `cancel` | the way out of a dialog: Cancel, dismiss |
+
+**`cancel` gets only two tokens** — the colour and its secondary hover — because it
+is outline-only *by nature*: a filled Cancel would out-shout the confirm it sits
+beside, which is the entire reason it is quiet. That asymmetry is a decision, not a
+gap.
+
+It also has to be a tone rather than what it is today. Every bare `.secondary`
+button in the app is a Cancel — CreateClubPage, EditClubDialog, ConfirmDialog,
+ClaimHandleScreen, SetupGameDialog, EditProfileDialog, BlankPicker — reaching into
+`--color-control-border-2` / `-text-2` for its gray. A tone borrowing another
+bucket's tokens is the cross-bucket leak this sweep exists to remove.
+
+**`BackToClubButton` is the one wrong user of that gray, and it becomes `action`.**
+It is already action-blue at terminal (where `<TerminalActionRow>` renders it
+`variant="primary"`), so today the same control is blue in one phase and gray in
+another. Mid-game it sits in the action row beside blue buttons looking dimmer for
+no reason. It isn't a cancel; it's where you go.
+
+**And three standalone tokens:**
 
 | token | for |
 |---|---|
-| `--chrome-action-color` | an action you can take — Submit (filled), Restart / New game (outline) |
-| `--chrome-caution-color` | Hint, Spoiler, AI suggest, Pass — consequential, not destructive |
-| `--chrome-destructive-color` | Reveal, End game, Concede, Delete — irreversible |
-| `--chrome-fault-color` | fault messages: the system failed. Same value as destructive, own name |
-| `--chrome-cursor-color` | where the keyboard is pointing in a list or a button set |
+| `--chrome-fault-color` | fault messages: the system failed. Same value as destructive, its own name |
+| `--chrome-cursor-color` | where the keyboard is pointing in a list or a button set. No hover — a cursor is moved, not hovered |
 | `--chrome-disabled-opacity` | how far a disabled control fades |
 
-Each of the three tones also carries **`-hover-color`** and **`-ink-color`**:
-
-- **`-hover-color` is "this tone, one step more committed"**, and the treatment
-  decides where it lands: the background on a filled button, the border + text (and
-  the icon, via `currentColor`) on an outline one. Two tokens per tone would need a
-  reason to differ and there isn't one — if a darker blue is right as a fill, it is
-  right as an edge. An outline button takes the shared `--page-surface-hover-color`
-  wash *as well*, and needs both: the gray alone reads as the button getting duller
-  rather than more engaged, which is exactly what it does today.
-- **`-ink-color` is read only by the filled treatment** (an outline button's text is
-  the tone itself, on the page). It exists because "filled buttons have white text"
-  was an assumption nobody had checked.
+**Disabled stays an effect rather than more colours**: the primary and secondary
+forms degrade identically under opacity (2.04 vs 2.00 at today's 0.5), so per-tone
+disabled values would solve one problem twice and rot the day a base is tuned. It
+gets a *name* because it is currently a magic number in three places with one
+undocumented departure — strands uses 0.8, having judged 0.5 as reading "switched
+off" rather than "not yet", which may well be a global problem it noticed first.
 
 `--chrome-cursor-color` takes no hover — a cursor is moved, not hovered. And
 **disabled stays an effect rather than three more colours**: the filled and outline
