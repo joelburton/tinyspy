@@ -75,7 +75,12 @@ export function Board({
 
   return (
     <div
-      className={cls(styles.board, disabled && styles.disabled, waiting && styles.waiting)}
+      // `disabled` deliberately paints NOTHING — see the prop's comment: a board
+      // is also disabled at every terminal and while replaying a past turn, and
+      // neither should fade, because both are states people sit and study. Only
+      // `waiting` fades. (It carried `styles.disabled` for a while, a class that
+      // never existed; the intent and the effect happened to agree.)
+      className={cls(styles.board, waiting && styles.waiting)}
       style={{ '--cols': widest } as React.CSSProperties}
     >
       <CardDefs />

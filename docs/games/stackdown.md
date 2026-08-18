@@ -588,3 +588,24 @@ away), and the print model refuses to emit it before then regardless — so neit
 schema change can quietly put the answer on paper. The log prints all three submission kinds, with the
 valid/invalid/cheat distinction carried in **text** rather than colour, since a
 mono printer flattens the outcome bar's green and red to one grey.
+
+## 7. Deferred
+
+- **The word flash only fires for half the players.** A teammate's rejected word
+  flashes their letters red (`onPeerWord` → the `lost` tone); your OWN invalid
+  word gets the "Not a word" pill and nothing on the board. Spotted 2026-08-18
+  while eyeballing the palette sweep, and long-standing rather than new.
+
+  It may well be right as it stands: your tiles bounce straight back to the
+  board, which is its own answer, where a teammate's rejection needs explaining
+  because you didn't see them type it. But it means the mark's audience is
+  "everyone except the person who acted", which is the opposite of how every
+  other verdict in the vocabulary works — decide it when stackdown converts
+  ([tile-feedback.md](../tile-feedback.md) → Roster).
+
+- **A disabled board paints nothing, on purpose.** `<Board>` takes both
+  `disabled` and `waiting`, and only `waiting` fades: a board is also disabled at
+  every terminal and while replaying a past turn, and neither should fade,
+  because both are states people sit and study. Worth re-reading against the
+  vocabulary's board-scope marks at conversion — the game-over frame says the
+  same thing without dimming anything.

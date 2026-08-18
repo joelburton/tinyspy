@@ -418,7 +418,12 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
         ) : (
           !isBack && item?.dot && <Dot color={item.dot} className={styles.itemDot} />
         )}
-        <span className={styles.itemLabel}>
+        {/* A plain wrapper: the row is a flex line and `.itemShortcut` pushes
+            itself right with `margin-left: auto`, so the label needs no class of
+            its own. (It carried `styles.itemLabel` for a while, which never
+            existed in the stylesheet — CSS Modules resolve a missing class to
+            `undefined`, so it silently applied nothing.) */}
+        <span>
           {isBack ? `‹ ${submenu?.parent.label ?? 'Back'}` : item?.label}
         </span>
         {item?.shortcut && <span className={styles.itemShortcut}>{item.shortcut}</span>}

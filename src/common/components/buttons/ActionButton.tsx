@@ -17,6 +17,15 @@ export type ButtonWeight = 'primary' | 'secondary'
 export type ButtonTone = 'cancel' | 'action' | 'caution' | 'destructive'
 
 /**
+ * The DEFAULT is `action`, not `cancel`: everything that goes through a purpose
+ * button is something you do — Clear, Delete, Help, Zoom-fit — and the audit
+ * found no consumer that wanted the quiet grey. The cancels don't come through
+ * here at all; they are dialog buttons wearing the raw `secondary` class, which
+ * defaults to the cancel tone in theme.css. A caller CAN pass `tone="cancel"`,
+ * and should only do so for something that means "never mind".
+ */
+
+/**
  * Props every PURPOSE button (SubmitButton, EndGameButton, DeleteButton, …)
  * accepts: the native <button> attributes (onClick, disabled, type, …), plus an
  * optional `label` override and the `iconOnly` toggle. The glyph, tone, and
@@ -71,7 +80,7 @@ export function ActionButton({
   iconOnly,
   iconSize = 18,
   weight = 'secondary',
-  tone = 'cancel',
+  tone = 'action',
   tooltip,
   className,
   ...rest
