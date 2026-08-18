@@ -1098,6 +1098,31 @@ alone doesn't say end what. It also stopped substring-matching the pause
 overlay's "Susp**end** and return to club", which an e2e had been working around
 with `exact: true`.
 
+### A disabled button still gets a tooltip — usually a *better* one
+
+**`disabled` means "you can't press this". It does not mean "inert".** A
+disabled button keeps its tooltip, and there is nothing inconsistent about that.
+
+The reason it matters is that a disabled control raises a question the enabled
+one never does: *why not?* A button that goes quiet and explains nothing leaves
+the player to work it out, which is the worst version of the interaction. So
+where a button is disabled for a **specific, nameable reason**, its tooltip
+should say the reason rather than repeat the action:
+
+> "No hints when competing" — not "Use a hint"
+
+Where there's no interesting reason, the ordinary tooltip is fine and the button
+just reads as not-yet-available. Either way, say something.
+
+This pairs with how `disabled` is drawn at all
+([theme.css → `--chrome-disabled-opacity`](../src/common/theme.css)). The fade is
+only 0.75 — deliberately small — because what actually tells you a control is
+dead is that **it doesn't answer the pointer**. The missing hover carries the
+message; the colour only has to be different enough to spot the odd one out in a
+row of buttons; and the tooltip finishes the job by saying why. Fading harder
+was solving a problem it created, since the thing it cost was reading the label
+well enough to know what the button would have done.
+
 ## Explicitly deferred
 
 - **Responsive mobile layouts** beyond graceful degradation.

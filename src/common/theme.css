@@ -178,7 +178,11 @@
      it. So the colour only has to be different enough to spot the odd one out in
      a row of buttons, which 0.75 does. Fading harder solved nothing and cost the
      one thing you need from a disabled button: reading its label well enough to
-     know what it would have done. */
+     know what it would have done.
+
+     The tooltip half of that is a rule, not an aside — a disabled button keeps
+     its tooltip and should use it to say WHY it is disabled. See docs/ui.md →
+     "A disabled button still gets a tooltip". */
   --chrome-disabled-opacity:                0.75;
 
   /* History-view marker — the "you're viewing a past turn, not the live board"
