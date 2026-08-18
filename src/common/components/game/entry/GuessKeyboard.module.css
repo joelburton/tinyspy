@@ -133,8 +133,15 @@
   }
 }
 
+/* The keyboard is the one surface that sits on both sides of the chrome/piece
+   line (docs/tile-feedback.md → Depth belongs to game pieces), so which cursor it
+   takes needs deciding rather than inheriting. It takes the CONTROL's:
+   a key is only ever disabled while the whole keyboard is — a guess in flight,
+   or not your turn — which is a refusal, not the key ceasing to be a key. (At
+   game over the keyboard is WITHDRAWN, not disabled, so that case never lands
+   here.) A spent tile is the other story and keeps `default`. */
 .key:disabled {
-  cursor: default;
+  cursor: not-allowed;
   opacity: 0.6;
 }
 

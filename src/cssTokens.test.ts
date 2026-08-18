@@ -252,4 +252,62 @@ describe('no unnamed colors', () => {
         `only mask one of our own bugs:\n${offenders.join('\n')}`,
     ).toEqual([])
   })
+
+  /**
+   * Guard: nothing may hand a DISABLED control a `cursor: pointer`.
+   *
+   * theme.css says `button:disabled { cursor: not-allowed }`, and that cursor is
+   * load-bearing rather than cosmetic — the pointer changing is a large part of
+   * how a disabled control announces itself, which is precisely why the fade is
+   * allowed to be as gentle as 0.75 (docs/ui.md → "A disabled button still gets
+   * a tooltip"). A `cursor: pointer` that out-ranks it takes that away, and the
+   * button then looks pressable, does nothing, and explains nothing.
+   *
+   * The failure is pure specificity, so it is invisible in review: the global is
+   * `button:disabled` at (0,1,1), and a bare module class at (0,1,0) loses to it
+   * safely — but add an attribute or a second class and the rule quietly wins.
+   * boggle's `.tile[role='button']` was exactly that at (0,2,1), a trap that
+   * never fired only because boggle happens to guard its handler instead of
+   * disabling the tile.
+   *
+   * So: any `cursor: pointer` rule at (0,1,1) or above must say `:not(:disabled)`
+   * — cheap to write, and it makes the intent explicit at the site.
+   */
+  it('no `cursor: pointer` can out-rank the disabled cursor', () => {
+    /** Approximate CSS specificity — enough to rank against (0,1,1). */
+    const spec = (sel: string): [number, number, number] => {
+      const s = sel.replace(/::[a-z-]+/g, '')
+      const ids = (s.match(/(?<![\w-])#[\w-]+/g) ?? []).length
+      let cls = (s.match(/\.[\w-]+/g) ?? []).length
+      cls += (s.match(/\[[^\]]+\]/g) ?? []).length
+      cls += (s.match(/:(?!not\b)(?!:)[a-z-]+/g) ?? []).length
+      // `:not()` contributes the weight of its argument.
+      for (const arg of s.match(/:not\(([^)]*)\)/g) ?? [])
+        cls += (arg.match(/[.[:]/g) ?? []).length
+      const els = (s.match(/(?<![\w.#\-[:])\b(button|a|div|span|input|td|tr|li|label|select|textarea)\b/g) ?? [])
+        .length
+      return [ids, cls, els]
+    }
+    const beatsGlobal = ([i, c, e]: [number, number, number]) =>
+      i > 0 || c > 1 || (c === 1 && e >= 1)
+
+    const offenders: string[] = []
+    for (const f of walk(SRC, ['.css'])) {
+      const src = stripComments(readFileSync(f, 'utf8'))
+      for (const m of src.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+        if (!/cursor:\s*pointer/.test(m[2])) continue
+        for (const one of m[1].split(',').map((x) => x.trim())) {
+          if (!one || one.startsWith('@')) continue
+          if (one.includes(':disabled')) continue
+          if (beatsGlobal(spec(one))) offenders.push(`${rel(f)}  ${one}`)
+        }
+      }
+    }
+    expect(
+      offenders,
+      `\`cursor: pointer\` at a specificity that beats theme.css's ` +
+        `\`button:disabled { cursor: not-allowed }\`. Add \`:not(:disabled)\` — a ` +
+        `disabled control must not keep the clickable cursor:\n${offenders.join('\n')}`,
+    ).toEqual([])
+  })
 })

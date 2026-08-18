@@ -147,8 +147,14 @@
 }
 
 /* A clickable tile presses on tap — immediate "you hit it" feedback (a blank
- * isn't interactive, so scope to the button role). */
-.tile[role='button'] {
+ * isn't interactive, so scope to the button role).
+ *
+ * `:not(:disabled)` is not decoration: `[role='button']` makes this (0,2,1),
+ * which OUT-RANKS theme.css's `button:disabled { cursor: not-allowed }` at
+ * (0,1,1). boggle never disables a tile today (it guards the handler instead),
+ * so this is a trap rather than a bug — but a tile that ever did get `disabled`
+ * would silently keep the pointer and claim to be clickable. */
+.tile[role='button']:not(:disabled) {
   cursor: pointer;
 }
 .tile[role='button']:active {

@@ -59,7 +59,10 @@
 
 .button:disabled {
   opacity: 0.6;
-  cursor: default;
+  /* not-allowed, not default: this is still a control, it just won't take the
+     press right now. `default` says "this isn't a button", which is the message
+     a spent GAME PIECE sends — see common/.../PlayArea.module.css `.tile`. */
+  cursor: not-allowed;
 }
 
 /* The syntax line — instructional chrome, not content, so muted. */

@@ -53,7 +53,8 @@
 }
 .btn:disabled {
   opacity: 0.5;
-  cursor: default;
+  /* A refused control, not an inert one — so `not-allowed`. */
+  cursor: not-allowed;
 }
 
 /* The Fill toggle's selected side, in the game's established "active" yellow

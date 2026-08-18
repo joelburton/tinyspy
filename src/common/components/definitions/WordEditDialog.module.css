@@ -90,7 +90,9 @@
 .saveButton:disabled,
 .deleteButton:disabled {
   opacity: 0.6;
-  cursor: default;
+  /* See AnagramDialog: a refused control is `not-allowed`; only a piece that has
+     stopped being a control at all takes `default`. */
+  cursor: not-allowed;
 }
 
 /* Destructive, so it wears the system-error red — as an OUTLINE, not a fill:
