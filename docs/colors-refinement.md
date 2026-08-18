@@ -456,12 +456,30 @@ deliberate exception and an oversight.
 
 ### Alias when it's a dependency, copy when it's a coincidence
 
-`--gamelist-won: var(--outcome-won-fill)` is right when *the two differing would be
-a bug*. It is wrong when they merely match today — a 4px list stripe might well want
-a lighter green than a tile fill, and then someone tunes the outcome and silently
-moves the club page. Same test ui.md already applies to promoting a token, pointed
-downward, and the comment says which was intended. There is a difference between a
-dependency and a coincidence, and the code should enforce which one this is.
+An alias is right when *the two differing would be a bug*. It is wrong when they
+merely match today, because then someone tunes one and silently moves the other.
+Same test ui.md already applies to promoting a token, pointed downward, and the
+comment says which was intended. There is a difference between a dependency and a
+coincidence, and the code should enforce which one this is.
+
+**The test is about MEANING, not about rendering.** `--gamelist-won-color:
+var(--outcome-won-fill-color)` is the canonical *dependency*: a game shown as won
+on the club page and a game won on the board are saying the identical thing, and
+this project has a fixed vocabulary for "the colour of winning". Them diverging
+would be the bug.
+
+That holds even though the two are drawn completely differently — a 4px list
+stripe against a whole tile face. **A rendering difference does not make a
+coincidence.** If a thin stripe genuinely needed a lighter green to read at 4px,
+that is a *variant within the won family* (the `-ink` / `-fill` / `-edge` /
+`-wash` axis this document already defines), not a licence to decouple the club
+page from the outcome vocabulary. Decoupling would let "won" drift into meaning
+two greens, which is the failure the buckets exist to prevent.
+
+So: **same message → alias. Different messages that happen to agree → copy.**
+`--chrome-fault-color` and `--chrome-destructive-color` are the mirror case:
+identical red, but "this will delete something" and "something broke" are
+different messages, and either is free to move without the other.
 
 **A COPY KEEPS THE SAME HEX.** Copying decouples the *name*; it never means
 inventing another shade. This is the half the rule above leaves unsaid, and
@@ -486,13 +504,12 @@ symmetric, which is what makes the default the safe one:
 A detectable mistake beats an invisible one, so where the call is genuinely
 uncertain, copy.
 
-**The first thing this catches is the example above.** `--gamelist-won-color` /
-`-lost-color` ship as *aliases* to the outcome fills (`theme.css`) — the exact
-construction this section opens by warning about, with the reasoning for why a
-list stripe is a coincidence written directly underneath it. Under the rule they
-are copies. **Unresolved**: the mapping table below still says alias for those
-rows, and it was approved that way. Changing them moves no pixels (a copy keeps
-the hex), so it is a decision about coupling only.
+**"Uncertain" means uncertain about the MESSAGE**, not about the value. If you
+can say what each of the two is telling the player and the answers are the same
+sentence, that is a dependency however differently they are drawn. If you find
+yourself reaching for an alias because a hex already exists, that is the
+coincidence case and the tell is that you are thinking about the colour rather
+than about what it says.
 
 ### No cross-bucket borrowing
 
