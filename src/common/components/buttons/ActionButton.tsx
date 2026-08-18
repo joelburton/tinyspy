@@ -1,5 +1,4 @@
-import type { ButtonHTMLAttributes } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import type { ButtonHTMLAttributes, ComponentType } from 'react'
 import { cls } from '../../lib/util/cls'
 import styles from './ActionButton.module.css'
 
@@ -14,14 +13,14 @@ export type ButtonWeight = 'primary' | 'secondary'
  *  outline; `caution` = orange (Hint / Reveal), `destructive` = dark red (End),
  *  etc. Tone is meaningful only for secondary weight — a `primary` button is the
  *  filled accent and ignores it. */
-export type ButtonTone = 'cancel' | 'action' | 'caution' | 'destructive'
+export type ButtonTone = 'quiet' | 'action' | 'caution' | 'destructive'
 
 /**
  * The DEFAULT is `action`, not `cancel`: everything that goes through a purpose
  * button is something you do — Clear, Delete, Help, Zoom-fit — and the audit
  * found no consumer that wanted the quiet grey. The cancels don't come through
  * here at all; they are dialog buttons wearing the raw `secondary` class, which
- * defaults to the cancel tone in theme.css. A caller CAN pass `tone="cancel"`,
+ * defaults to the cancel tone in theme.css. A caller CAN pass `tone="quiet"`,
  * and should only do so for something that means "never mind".
  */
 
@@ -48,8 +47,12 @@ export type PurposeButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 }
 
 type ActionButtonProps = PurposeButtonProps & {
-  /** The Lucide glyph (from the semantic icons registry). */
-  icon: LucideIcon
+  /** The glyph. Usually a Lucide icon from the semantic registry — the type is
+   *  widened to "a component that takes a size" so a button can supply its own
+   *  when the registry's answer is wrong: the pause bars are drawn inline,
+   *  because lucide's `Pause` is two OUTLINED rounded rects and doesn't read as
+   *  the familiar media mark. */
+  icon: ComponentType<{ size?: number | string; 'aria-hidden'?: boolean }>
   /** Resolved label (the purpose button has already applied its default). */
   label: string
   /** Per-glyph display size. Lives here, not in the icons registry: the same
@@ -93,7 +96,7 @@ export function ActionButton({
         weight === 'secondary' && 'secondary',
         'icon-button',
         // Semantic tone recolors a secondary button's outline (see the module).
-        tone !== 'cancel' && styles[tone],
+        tone !== 'quiet' && styles[tone],
         iconOnly && 'icon-only',
         className,
       )}

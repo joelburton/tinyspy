@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Button tones — swatch</title>
+<style>
+  /* ── The proposed chrome tones ──────────────────────────────────────────
+     Only the four FILLS are chosen. Everything else — the filled button's hover,
+     the unfilled button's ink, the unfilled button's hover wash — is derived
+     from the fill by the three sliders at the top, in oklab, so the family stays
+     a family whatever the numbers become.
+
+     THREE separate steps, not two. The earlier draft made a filled button's
+     hover the same value as an unfilled button's ink, and that was wrong twice
+     over: an ink has to be dark enough to read as small text, while a hover only
+     has to say "the page is alive" — and in orange the gap between those two
+     jobs is nearly a change of colour.
+
+     The fills are NOT the outcome palette. Trying that is what showed why the
+     bespoke chrome reds and oranges were picked in the first place:
+
+       RED — outcome-lost #ef5350 is L 0.654 at hue 25.1°, which is both light
+       for a red and slightly COOL of the danger reds (26–29°). Light + cool of
+       red is salmon, and every lightening of it — wash, disabled — walks further
+       toward pink. Darkening and warming it a couple of degrees moves it from
+       cupcake to blood, and the wash goes warm-neutral instead of pink.
+
+       ORANGE — outcome-warning #ffa726 sits at hue 69.6°, a true bright orange;
+       the chrome orange is at 48.1°, a third of the way to red. That 21.5°
+       rotation is the ENTIRE difference between the two, and it's the one that
+       reads as caution rather than as a highlighter. #d56417 then takes the
+       chrome orange's LIGHTNESS and CHROMA down (0.68 → 0.63, ×0.88) while
+       leaving the hue alone: browner, without the pop. Deliberately not redder —
+       destructive already owns hue 27, and two tones that differ only in
+       lightness would be a poor pair of warnings.
+
+     Each fill has a picker on its card — nudge and everything rederives. */
+  :root {
+    --action-fill: #1976d2;
+    --caution-fill: #d56417;
+    --destructive-fill: #b71c1c;
+    --quiet-fill: #737373;
+
+    --disabled-opacity: 0.75;
+
+    --page-bg: #fafafa;
+    --surface: #ffffff;
+    --text: #1a1a1a;
+    --muted: #6b6b6b;
+    --radius: 6px;
+  }
+
+  body {
+    margin: 0;
+    padding: 1.5rem 2rem 4rem;
+    background: var(--page-bg);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, sans-serif;
+  }
+  h1 { font-size: 1.35rem; margin: 0 0 0.35rem; }
+  .lede { color: var(--muted); margin: 0 0 1.5rem; max-width: 46rem; }
+  .lede code { background: #fff; padding: 0.05rem 0.3rem; border-radius: 4px; }
+
+  /* ── The knobs ─────────────────────────────────────────────────────────── */
+  .knobs {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--surface); border: 1px solid #e2e2e2; border-radius: 8px;
+    padding: 0.9rem 1.2rem; margin-bottom: 1.5rem; max-width: 62rem;
+    display: flex; gap: 2.5rem; flex-wrap: wrap;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
+  }
+  .knobs label { display: flex; flex-direction: column; gap: 0.15rem; font-size: 12px; color: var(--muted); }
+  .knobs strong { color: var(--text); font-size: 13px; }
+  .knobs input { width: 16rem; margin: 0.2rem 0 0; }
+  .knobs output { font: 12px ui-monospace, Menlo, monospace; color: var(--text); }
+
+  /* The base picker. Only the FILL is chosen; nudge it and the hover, ink and
+     wash all rederive, so a tone can never fall out of family with itself. */
+  .pick {
+    width: 26px; height: 26px; padding: 0; vertical-align: -6px;
+    border: 1px solid #d4d4d4; border-radius: 5px; background: none; cursor: pointer;
+  }
+  .pick::-webkit-color-swatch-wrapper { padding: 2px; }
+  .pick::-webkit-color-swatch { border: none; border-radius: 3px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid #e2e2e2;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem 1.5rem;
+    margin-bottom: 1.25rem;
+    max-width: 62rem;
+  }
+  .tone-name { font-weight: 600; font-size: 1.05rem; margin: 0 0 0.15rem; }
+  .hexes { color: var(--muted); font: 12px ui-monospace, Menlo, monospace; margin: 0 0 1rem; }
+  .row { display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-start; }
+  .cell { display: flex; flex-direction: column; gap: 0.4rem; }
+  .cap { color: var(--muted); font-size: 12px; }
+
+  /* ── The buttons themselves ────────────────────────────────────────────
+     A PRIMARY is filled with -fill, inked white, and darkens a SMALL step to
+     -hover under the pointer. A SECONDARY is transparent with its border and
+     text both in -ink (a big step down, because it has to read as text), and
+     takes the faint -wash on hover. Nothing moves, nothing lifts: chrome says
+     what it needs with colour. */
+  button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    border-radius: var(--radius);
+    padding: 0.4rem 0.75rem;
+    border: 1px solid transparent;
+    background: transparent;
+    transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
+  }
+  /* Disabled is deliberately a SMALL move. What actually tells you a control is
+     dead is that it doesn't answer the pointer — the missing hover carries the
+     message, so the colour only has to be slightly off, and staying close keeps
+     the label readable. (`:hover:not(:disabled)` below is what withholds it.) */
+  button:disabled { opacity: var(--disabled-opacity); cursor: not-allowed; }
+
+  .primary { background: var(--fill); border-color: var(--fill); color: #fff; }
+  .primary:hover:not(:disabled) { background: var(--hover); border-color: var(--hover); }
+
+  /* `--edge` falls back to `--ink`: the proposal is that a secondary's border and
+     text are ONE value, so the four cards never set it. Today's card does — its
+     quiet button really is a #b0b0b0 border around #555555 text, and the point of
+     a comparison card is to show that rather than tidy it away. */
+  .secondary { color: var(--ink); border-color: var(--edge, var(--ink)); }
+  .secondary:hover:not(:disabled) { background: var(--wash); }
+
+  .action      { --fill: var(--action-fill);      --hover: var(--action-hover);      --ink: var(--action-ink);      --wash: var(--action-wash); }
+  .caution     { --fill: var(--caution-fill);     --hover: var(--caution-hover);     --ink: var(--caution-ink);     --wash: var(--caution-wash); }
+  .destructive { --fill: var(--destructive-fill); --hover: var(--destructive-hover); --ink: var(--destructive-ink); --wash: var(--destructive-wash); }
+  .quiet       { --fill: var(--quiet-fill);       --hover: var(--quiet-hover);       --ink: var(--quiet-ink);       --wash: var(--quiet-wash); }
+
+  /* A strip of the four values, so the family is legible as a family and the
+     hover step is visibly smaller than the ink step. */
+  .tiers { display: flex; gap: 0; margin-top: 1.1rem; border-radius: 6px; overflow: hidden; width: max-content; }
+  .tier { width: 104px; height: 38px; display: flex; align-items: flex-end; justify-content: center;
+          font: 11px ui-monospace, Menlo, monospace; padding-bottom: 3px; }
+  .tier.t-wash  { background: var(--wash); }
+  .tier.t-fill  { background: var(--fill);  color: #fff; }
+  .tier.t-hover { background: var(--hover); color: #fff; }
+  .tier.t-ink   { background: var(--ink);   color: #fff; }
+
+  /* Today's values, for the before/after. */
+  .today .action      { --fill: #1976d2; --hover: #1565c0; --ink: #1976d2; --wash: #f0f0f0; }
+  .today .caution     { --fill: #ef6c00; --hover: #c05600; --ink: #ef6c00; --wash: #f0f0f0; }
+  .today .destructive { --fill: #8e1b2e; --hover: #741624; --ink: #8e1b2e; --wash: #f0f0f0; }
+  /* The odd one out, and deliberately shown that way: quiet is the only tone
+     whose border and text disagree (#b0b0b0 vs #555555) — the mismatch you
+     spotted on the pause button. */
+  .today .quiet       { --fill: #b0b0b0; --hover: #b0b0b0; --edge: #b0b0b0; --ink: #555555; --wash: #f0f0f0; }
+</style>
+</head>
+<body>
+
+<div class="knobs">
+  <label>
+    <strong>filled hover</strong> — how far the fill darkens
+    <input id="hover" type="range" min="0" max="0.14" step="0.005" value="0.05">
+    <output id="hoverOut"></output>
+  </label>
+  <label>
+    <strong>unfilled ink</strong> — the border + text darkness
+    <input id="ink" type="range" step="0.005">
+    <output id="inkOut"></output>
+    <span style="font-size:11px"><label style="display:inline;flex-direction:row">
+      <input id="inkTarget" type="checkbox"> aim for a darkness, not a step
+    </label></span>
+  </label>
+  <label>
+    <strong>ink punch</strong> — chroma as the ink darkens
+    <input id="punch" type="range" min="0.8" max="1.4" step="0.02" value="1">
+    <output id="punchOut"></output>
+  </label>
+  <label>
+    <strong>unfilled hover</strong> — how much tone in the wash
+    <input id="wash" type="range" min="0.02" max="0.30" step="0.01" value="0.08">
+    <output id="washOut"></output>
+  </label>
+  <label>
+    <strong>disabled</strong> — how far it fades
+    <input id="dim" type="range" min="0.4" max="1" step="0.01" value="0.75">
+    <output id="dimOut"></output>
+  </label>
+</div>
+
+<h1>Button tones</h1>
+<p class="lede">
+  Hover everything. A <strong>primary</strong> is filled and darkens a small step;
+  a <strong>secondary</strong> is transparent with its border and text in a much darker
+  ink, and takes a faint wash of its own tone on hover. Drag the sliders — every
+  card recomputes, and the hexes under each name are what I'd write into
+  <code>theme.css</code>.
+</p>
+
+<div class="card action" data-tone="action">
+  <p class="tone-name"><input class="pick" type="color" data-pick="action"> action</p>
+  <p class="hexes"></p>
+  <div class="row">
+    <div class="cell"><span class="cap">primary</span><button class="primary action">Submit</button></div>
+    <div class="cell"><span class="cap">secondary</span><button class="secondary action">Restart</button></div>
+    <div class="cell"><span class="cap">primary, disabled</span><button class="primary action" disabled>Submit</button></div>
+    <div class="cell"><span class="cap">secondary, disabled</span><button class="secondary action" disabled>Restart</button></div>
+  </div>
+  <div class="tiers">
+    <div class="tier t-wash">wash</div>
+    <div class="tier t-fill">fill</div>
+    <div class="tier t-hover">hover</div>
+    <div class="tier t-ink">ink</div>
+  </div>
+</div>
+
+<div class="card caution" data-tone="caution">
+  <p class="tone-name"><input class="pick" type="color" data-pick="caution"> caution <span style="font-weight:400;color:#6b6b6b">— outcome-warning's fill</span></p>
+  <p class="hexes"></p>
+  <div class="row">
+    <div class="cell"><span class="cap">primary</span><button class="primary caution">Use hint</button></div>
+    <div class="cell"><span class="cap">secondary</span><button class="secondary caution">Hint</button></div>
+    <div class="cell"><span class="cap">primary, disabled</span><button class="primary caution" disabled>Use hint</button></div>
+    <div class="cell"><span class="cap">secondary, disabled</span><button class="secondary caution" disabled>Hint</button></div>
+  </div>
+  <div class="tiers">
+    <div class="tier t-wash">wash</div>
+    <div class="tier t-fill">fill</div>
+    <div class="tier t-hover">hover</div>
+    <div class="tier t-ink">ink</div>
+  </div>
+</div>
+
+<div class="card destructive" data-tone="destructive">
+  <p class="tone-name"><input class="pick" type="color" data-pick="destructive"> destructive <span style="font-weight:400;color:#6b6b6b">— outcome-lost's fill</span></p>
+  <p class="hexes"></p>
+  <div class="row">
+    <div class="cell"><span class="cap">primary</span><button class="primary destructive">Delete club</button></div>
+    <div class="cell"><span class="cap">secondary</span><button class="secondary destructive">End game</button></div>
+    <div class="cell"><span class="cap">primary, disabled</span><button class="primary destructive" disabled>Delete club</button></div>
+    <div class="cell"><span class="cap">secondary, disabled</span><button class="secondary destructive" disabled>End game</button></div>
+  </div>
+  <div class="tiers">
+    <div class="tier t-wash">wash</div>
+    <div class="tier t-fill">fill</div>
+    <div class="tier t-hover">hover</div>
+    <div class="tier t-ink">ink</div>
+  </div>
+</div>
+
+<div class="card quiet" data-tone="quiet">
+  <p class="tone-name"><input class="pick" type="color" data-pick="quiet"> quiet</p>
+  <p class="hexes"></p>
+  <div class="row">
+    <div class="cell"><span class="cap">primary <em style="color:#6b6b6b">(reserved — nothing uses it)</em></span><button class="primary quiet">Quiet</button></div>
+    <div class="cell"><span class="cap">secondary</span><button class="secondary quiet">Cancel</button></div>
+    <div class="cell"><span class="cap">primary, disabled</span><button class="primary quiet" disabled>Quiet</button></div>
+    <div class="cell"><span class="cap">secondary, disabled</span><button class="secondary quiet" disabled>Cancel</button></div>
+  </div>
+  <div class="tiers">
+    <div class="tier t-wash">wash</div>
+    <div class="tier t-fill">fill</div>
+    <div class="tier t-hover">hover</div>
+    <div class="tier t-ink">ink</div>
+  </div>
+</div>
+
+<div class="card today">
+  <p class="tone-name">today, for comparison</p>
+  <p class="hexes">the same buttons as they look in the app right now — one grey hover for every tone</p>
+  <div class="row">
+    <div class="cell"><span class="cap">action</span><button class="primary action">Submit</button></div>
+    <div class="cell"><span class="cap">action</span><button class="secondary action">Restart</button></div>
+    <div class="cell"><span class="cap">caution</span><button class="primary caution">Use hint</button></div>
+    <div class="cell"><span class="cap">caution</span><button class="secondary caution">Hint</button></div>
+    <div class="cell"><span class="cap">destructive</span><button class="primary destructive">Delete club</button></div>
+    <div class="cell"><span class="cap">destructive</span><button class="secondary destructive">End game</button></div>
+    <div class="cell"><span class="cap">quiet</span><button class="secondary quiet">Cancel</button></div>
+  </div>
+</div>
+
+<p class="lede" style="margin-top:2rem">
+  Temporary — delete <code>public/buttons.html</code> when the tones are settled.
+</p>
+
+<script type="module">
+/* ── oklab, just enough of it ────────────────────────────────────────────────
+   The same math the palette audit used: darken by moving LIGHTNESS only, so a
+   tone's hue and chroma survive the step (sRGB darkening drifts both, which is
+   how orange ends up looking like a different colour when it goes dark). */
+
+const srgbToLinear = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
+const linearToSrgb = (c) => (c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055)
+
+function hexToOklab(hex) {
+  const n = parseInt(hex.slice(1), 16)
+  const r = srgbToLinear(((n >> 16) & 255) / 255)
+  const g = srgbToLinear(((n >> 8) & 255) / 255)
+  const b = srgbToLinear((n & 255) / 255)
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b)
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b)
+  return [
+    0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+  ]
+}
+
+function oklabToHex([L, a, bb]) {
+  const l = (L + 0.3963377774 * a + 0.2158037573 * bb) ** 3
+  const m = (L - 0.1055613458 * a - 0.0638541728 * bb) ** 3
+  const s = (L - 0.0894841775 * a - 1.291485548 * bb) ** 3
+  const rgb = [
+    4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+    -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+  ]
+  return (
+    '#' +
+    rgb
+      .map((c) => {
+        const v = Math.round(Math.min(1, Math.max(0, linearToSrgb(c))) * 255)
+        return v.toString(16).padStart(2, '0')
+      })
+      .join('')
+  )
+}
+
+/**
+ * The fill, `d` lower in oklab lightness, with chroma scaled by `punch`. HUE is
+ * never touched, which is the whole point.
+ *
+ * Measuring the two outcome families explains the "orange goes almost a
+ * different colour" complaint exactly. Both inks sit ~0.116 below their fill in
+ * lightness — but red gets there honestly (chroma ×1.006, hue +1.6°) while
+ * ORANGE ROTATES 21.5° TOWARD RED and gains 13% chroma on the way down. That
+ * rotation is what the eye reads as a change of colour rather than a darkening,
+ * and Material's 400→800 pairs bake it in. Deriving hue-true takes it back out;
+ * `punch` is there if the honest orange reads too muddy without the chroma.
+ */
+const darken = (hex, d, punch = 1) => {
+  const [L, a, b] = hexToOklab(hex)
+  return oklabToHex([Math.max(0, L - d), a * punch, b * punch])
+}
+
+/** The fill at `t` strength over white — the wash. Mixed in oklab, so a faint
+ *  orange stays orange rather than sliding pink the way an sRGB mix does. */
+const overWhite = (hex, t) => {
+  const c = hexToOklab(hex)
+  const w = hexToOklab('#ffffff')
+  return oklabToHex(c.map((v, i) => w[i] + (v - w[i]) * t))
+}
+
+const TONES = ['action', 'caution', 'destructive', 'quiet']
+const root = document.documentElement
+const knobs = {
+  hover: document.getElementById('hover'),
+  ink: document.getElementById('ink'),
+  inkTarget: document.getElementById('inkTarget'),
+  punch: document.getElementById('punch'),
+  wash: document.getElementById('wash'),
+  dim: document.getElementById('dim'),
+}
+
+/* Each picker writes its tone's FILL and nothing else. */
+for (const el of document.querySelectorAll('.pick'))
+  el.addEventListener('input', () => {
+    root.style.setProperty(`--${el.dataset.pick}-fill`, el.value)
+    apply()
+  })
+
+function apply() {
+  const dHover = Number(knobs.hover.value)
+  const dInk = Number(knobs.ink.value)
+  const punch = Number(knobs.punch.value)
+  const tWash = Number(knobs.wash.value)
+  const dim = Number(knobs.dim.value)
+  root.style.setProperty('--disabled-opacity', dim)
+
+  document.getElementById('hoverOut').textContent = `−${dHover.toFixed(3)} L`
+  document.getElementById('inkOut').textContent = knobs.inkTarget.checked
+    ? `L ${dInk.toFixed(3)}`
+    : `−${dInk.toFixed(3)} L`
+  document.getElementById('punchOut').textContent = `×${punch.toFixed(2)} chroma`
+  document.getElementById('washOut').textContent = `${Math.round(tWash * 100)}% over white`
+  document.getElementById('dimOut').textContent = `${Math.round(dim * 100)}% opacity`
+
+  for (const tone of TONES) {
+    const fill = getComputedStyle(root).getPropertyValue(`--${tone}-fill`).trim()
+    const v = {
+      hover: darken(fill, dHover),
+      // In target mode the STEP is whatever it takes to land there — and never
+      // negative, so a fill already darker than the target is left alone.
+      ink: darken(
+        fill,
+        knobs.inkTarget.checked ? Math.max(0, hexToOklab(fill)[0] - dInk) : dInk,
+        punch,
+      ),
+      wash: overWhite(fill, tWash),
+    }
+    for (const [k, hex] of Object.entries(v)) root.style.setProperty(`--${tone}-${k}`, hex)
+
+    const swatch = document.querySelector(`.pick[data-pick="${tone}"]`)
+    if (swatch) swatch.value = fill
+
+    const card = document.querySelector(`.card[data-tone="${tone}"] .hexes`)
+    if (card)
+      card.textContent =
+        `fill ${fill} · hover ${v.hover} · ink ${v.ink} · wash ${v.wash}`
+  }
+}
+
+/**
+ * The two ways to get an ink, and why there's a choice.
+ *
+ * A FIXED STEP (fill − 0.116 L, which is what the outcome palette does) only
+ * works while every fill starts from about the same lightness. It doesn't here:
+ * a dark destructive fill has nothing left below it, and the step drives the ink
+ * to near-black with its chroma clipped off — #b71c1c became #8e0000.
+ *
+ * A TARGET DARKNESS asks the real question instead: an unfilled button's ink is
+ * TEXT, so it needs a lightness that reads on white, no matter where its fill
+ * happened to start. Light fills then move a long way (orange 0.680 → 0.50) and
+ * dark ones barely move at all (#b71c1c → #b61b1b, already dark enough), which
+ * is exactly right and self-correcting as fills get nudged.
+ */
+function setInkRange() {
+  const target = knobs.inkTarget.checked
+  knobs.ink.min = target ? 0.35 : 0.05
+  knobs.ink.max = target ? 0.62 : 0.32
+  knobs.ink.value = target ? 0.5 : 0.115
+}
+knobs.inkTarget.addEventListener('change', () => {
+  setInkRange()
+  apply()
+})
+
+for (const el of Object.values(knobs)) el.addEventListener('input', apply)
+setInkRange()
+apply()
+</script>
+
+</body>
+</html>

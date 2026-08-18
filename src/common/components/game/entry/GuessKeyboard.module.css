@@ -4,6 +4,21 @@
  * grid's hugged width. ~30rem, capped by `--avail-w` (the scaffold token =
  * width beside the info column) so it shrinks on a narrow screen. */
 .keyboard {
+  /* A KEY'S OWN DEPTH — deliberately not the tile shadows, and deliberately local
+   * to this module so nothing outside the keyboard can reach for them.
+   *
+   * A tile is an object with thickness you pick up; a key is a cap you press, and
+   * it should sit closer to the page. So against the tile's `1px 2px 6px / 30%`
+   * this is tighter and a touch sharper — a shorter drop, half the blur — and the
+   * hover deepens more than a tile's does, though — a keycap is small and packed
+   * against its neighbours, so a shadow alone has little surface to read against.
+   * The lift matches the tile's 2px and the drop goes 1px → 4px, with the cap
+   * going white underneath (see --kbd-key-hover-fill-color). Same light angle as everything else
+   * (the 1px x-offset), because a shadow that disagrees about where the light is
+   * looks broken beside the rest. */
+  --key-shadow: 1px 1px 3px rgb(0 0 0 / 26%);
+  --key-hover-shadow: 1px 4px 9px rgb(0 0 0 / 30%);
+
   --kb-gap: 0.3rem;
   display: flex;
   flex-direction: column;
@@ -74,7 +89,7 @@
   /* A keycap sits on the page the same way a board tile does, so it takes the
    * same resting depth and the same three-state gesture below. Overrides the
    * global button hover/accent treatment. */
-  box-shadow: var(--tile-shadow);
+  box-shadow: var(--key-shadow);
   transition: transform 80ms ease, box-shadow 80ms ease;
   /* Touch (docs/mobile.md → tap-press feedback): the keyboard is the tap-heaviest
    * surface in wordle/wordiply, so kill the gray tap-flash and opt out of
@@ -95,13 +110,14 @@
  * gets toned DOWN for this surface — but only after we have looked at the same
  * one on both. */
 .key:hover:not(:disabled) {
-  box-shadow: var(--tile-hover-shadow);
+  background: var(--kbd-key-hover-fill-color);
+  box-shadow: var(--key-hover-shadow);
   transform: translateY(-2px);
 }
 
 .key:active:not(:disabled) {
   transform: translateY(0) scale(0.96);
-  box-shadow: var(--tile-shadow);
+  box-shadow: var(--key-shadow);
   /* The darken is the press's real message — see the tile's `:active`. It matters
    * most here: the keyboard is the tap-heaviest surface in the app, and a tap has
    * no hover state to fall back from. */
@@ -136,14 +152,6 @@
  * would say something untrue. White also groups it with Enter as the row's two
  * controls, one filled and one outlined, exactly as a Submit/Cancel pair reads
  * elsewhere in the app. */
-.backspace {
-  background: var(--page-surface-color);
-  /* A DARKER edge than the letter caps. The white-vs-near-white fill alone was
-   * carrying the whole "this is a control, not a letter" distinction on a few
-   * percent of lightness; the border is the lever that makes it read. */
-  border-color: var(--kbd-specialkey-edge-color);
-}
-
 /* ENTER is a submit button, so it looks like one: the app's accent blue with
  * white ink, the same treatment every Submit in the app wears (the global
  * `button` rule). It is the one key that COMMITS rather than edits, and the
@@ -154,9 +162,14 @@
  * letter result, so nothing can overwrite it, and keeping it here puts it beside
  * the other structural key rules. */
 .enter {
-  background: var(--chrome-action-color);
-  border-color: var(--chrome-action-primary-hover-color);
-  color: var(--chrome-action-primary-ink-color);
+  background: var(--chrome-action-fill-color);
+  /* Under the pointer it DARKENS, like every other filled action button — rather
+   * than taking the untried cap's white, which the hover rule would otherwise
+   * hand it (same trap the judged keys hit: the rule reads this token off the
+   * element, so anything with its own fill has to say what its hover fill is). */
+  --kbd-key-hover-fill-color: var(--chrome-action-fill-hover-color);
+  border-color: var(--chrome-action-fill-hover-color);
+  color: var(--chrome-action-fill-ink-color);
 }
 
 /* A wide key holding a WORD rather than a character. "Enter" has to fit across
@@ -165,6 +178,17 @@
 .wideText {
   font-size: 0.85rem;
 }
+
+/* Each judged key declares what it looks like UNDER THE POINTER, which is simply
+ * itself: the hover rule reads `--kbd-key-hover-fill-color` off the element, so a
+ * tone re-setting that token wins without any specificity contest. Without it the
+ * hover rule — `.key:hover` at (0,3,0) against a tone class at (0,1,0) — turned a
+ * green key white while its ink stayed white, which is unreadable.
+ *
+ * Only the UNTRIED cap lightens on hover, and that is the honest answer rather
+ * than a workaround: the lightening exists because a near-white cap gives a drop
+ * shadow almost nothing to read against, and a coloured key doesn't have that
+ * problem. It gets the lift and the deepened shadow like everything else. */
 
 /* The judged keys. They wear the WORDLE PALETTE directly and say so in their
  * names — this component used to read seven `--kbd-*` colour tokens with
@@ -182,16 +206,19 @@
  * rather than a flat block. */
 .wordleGreen {
   background: var(--wordle-green-fill-color);
+  --kbd-key-hover-fill-color: var(--wordle-green-fill-color);
   border-color: var(--wordle-green-edge-color);
   color: var(--wordle-green-ink-color);
 }
 .wordleYellow {
   background: var(--wordle-yellow-fill-color);
+  --kbd-key-hover-fill-color: var(--wordle-yellow-fill-color);
   border-color: var(--wordle-yellow-edge-color);
   color: var(--wordle-yellow-ink-color);
 }
 .wordleGray {
   background: var(--wordle-gray-fill-color);
+  --kbd-key-hover-fill-color: var(--wordle-gray-fill-color);
   border-color: var(--wordle-gray-edge-color);
   color: var(--wordle-gray-ink-color);
 }

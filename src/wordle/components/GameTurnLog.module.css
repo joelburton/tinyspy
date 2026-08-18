@@ -20,7 +20,7 @@
   border-radius: 4px;
 }
 .definable:hover {
-  outline: 2px solid var(--chrome-action-color);
+  outline: 2px solid var(--chrome-action-fill-color);
   outline-offset: 2px;
 }
 
@@ -49,8 +49,9 @@
 .blank {
   /* A guess's colors are always g/y/x, so this is defensive — keep it readable
    * (dark text on the neutral surface) if a blank ever slips through. Borrows the
-   * keycap's light fill, which is the palest surface in wordle's vocabulary. */
-  background: var(--kbd-key-fill-color);
+   * page's own surface rather than the keycap's fill, which it borrowed until the
+   * keyboard's untried key went white and made that a coincidence. */
+  background: var(--page-surface-color);
   color: var(--page-text-color);
 }
 

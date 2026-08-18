@@ -50,70 +50,116 @@
 
      COLOUR and TREATMENT are separate axes. A button is `primary` (filled) or
      `secondary` (outline) — that is a class, and those are the class names in
-     use — while the tone says what kind of action it is. So each tone carries:
-
-       -color                    the tone: border + text when secondary,
-                                 background when primary
-       -primary-ink-color        the label on a filled button
-       -primary-hover-color      a filled button's background on hover
-       -secondary-hover-color    an outline button's background on hover
+     use — while the tone says what kind of action it is. The two axes are
+     ORTHOGONAL: any tone can be either treatment, so the token names describe
+     the PAINT (a fill, an ink, a wash) rather than the class that asks for it.
 
      Hover changes the BACKGROUND and nothing else — no lift, no shadow, because
-     depth belongs to game pieces. Both treatments are marked, with no unmarked
-     default: the bare `button` element is the FILLED one, so an unmarked
-     "-hover-color" would read as the primary's, which is the opposite of what it
-     would mean. See docs/colors-refinement.md. */
+     depth belongs to game pieces. Nothing here is left unmarked: the bare
+     `button` element is the FILLED one, so a bare "-hover-color" would read as
+     the filled button's, which is the opposite of what it would mean.
+     See docs/colors-refinement.md. */
 
-  /* ACTION — an action you can take: Submit (primary), Restart / New game
-     (secondary). Material Blue 700; white-on-this passes AA for a button label
-     (4.60), and the hover darkens, which is the safe direction for white ink. */
-  --chrome-action-color:                    #1976d2;
-  --chrome-action-primary-hover-color:      #1565c0;
-  --chrome-action-primary-ink-color:        #ffffff;
-  --chrome-action-secondary-hover-color:    var(--page-surface-hover-color);
+  /* FOUR VALUES PER TONE, and every one of them derived from the fill in oklab
+     so a tone can never fall out of family with itself:
+
+       -fill-color        the filled button's background — the only CHOSEN value
+       -fill-hover-color  the fill, lightness −0.05 — a small step
+       -ink-color         the fill, lightness −0.115 — border AND text, one value
+       -wash-color        the fill at 8% over white — the outline button's hover
+
+     The hover and the ink are SEPARATE steps, and that is the correction that
+     produced this set. They used to be one value, which made a filled button's
+     hover as dark as an unfilled button's text — a jump big enough in orange to
+     read as a change of colour rather than a response. They have different jobs:
+     an ink has to be dark enough to read as small text, a hover only has to say
+     "the page is alive". Small step, big step.
+
+     The washes are 8%, which looks impossibly faint written down and is not:
+     going from white to ANY colour is a movement, and movement is the whole
+     message. Strength past that only costs legibility of the label on top. */
+
+  /* ACTION — an action you can take: Submit (filled), Restart / New game
+     (outline). Material Blue 700. */
+  --chrome-action-fill-color:               #1976d2;
+  --chrome-action-fill-hover-color:         #0067c1;
+  --chrome-action-fill-ink-color:           #ffffff;
+  --chrome-action-ink-color:                #0053ac;
+  --chrome-action-wash-color:               #eef4fc;
 
   /* CAUTION — Hint, Spoiler, AI suggest, Pass: consequential, not destructive.
-     WHITE INK HERE IS AT 3.08, under the 4.5 floor for a label — kept for now
-     because the fix we want is a deeper ORANGE that clears it while still reading
-     as orange rather than as destructive's maroon, not dark ink on this one (dark
-     ink on a bright warm fill is the trade connections rejected for gold). The
-     question lives here so it is in the way of whoever next touches this. */
-  --chrome-caution-color:                   #ef6c00;
-  --chrome-caution-primary-hover-color:     #c05600;
-  --chrome-caution-primary-ink-color:       #ffffff;
-  --chrome-caution-secondary-hover-color:   var(--page-surface-hover-color);
+     NOT the outcome orange. outcome-warning sits at oklab hue 69.6°, a true
+     bright orange; this is at 48.1°, a third of the way to red, and that
+     rotation is the entire difference between "caution" and "highlighter". It is
+     then taken browner still — lightness 0.68 → 0.63, chroma ×0.88 — because at
+     full chroma it popped harder than a Hint button deserves.
 
-  /* DESTRUCTIVE — Reveal, End game, Concede, Delete: irreversible. Deliberately
-     DARKER + COOLER than --outcome-lost-ink-color so a destructive action never
-     reads as a game loss. Same hex as fault below, its own name. */
-  --chrome-destructive-color:               #8e1b2e;
-  --chrome-destructive-primary-hover-color: #741624;
-  --chrome-destructive-primary-ink-color:   #ffffff;
-  --chrome-destructive-secondary-hover-color: var(--page-surface-hover-color);
+     Deliberately not taken any REDDER: destructive owns hue 27.5, and two
+     warnings separated only by lightness would be a poor pair. */
+  --chrome-caution-fill-color:              #d56417;
+  --chrome-caution-fill-hover-color:        #c45400;
+  --chrome-caution-fill-ink-color:          #ffffff;
+  --chrome-caution-ink-color:               #ae4000;
+  --chrome-caution-wash-color:              #fdf3ee;
 
-  /* CANCEL — the way out of a dialog. Two tokens rather than four, and that is a
-     decision: cancel is outline-only BY NATURE, because a filled Cancel would
-     out-shout the confirm it sits beside. It is also the one tone whose border
-     and text differ — the border stays quiet while the label stays readable,
-     where a toned button uses one colour for both. */
-  --chrome-cancel-color:                    #b0b0b0;
+  /* DESTRUCTIVE — Reveal, End game, Concede, Delete: irreversible.
+     This DELIBERATELY collides with the game-loss red: it sits 0.037 from
+     --outcome-lost-ink-color in oklab, where the old maroon kept a considered
+     0.124 of distance so that a destructive action could never read as a loss.
+     The distance was retired knowingly — a terminal frame and a Delete button
+     are never in the same sightline, so the confusion it prevented cannot occur.
+
+     Tried and rejected: outcome-lost's own #ef5350. At lightness 0.654 and hue
+     25.1° it is both light for a red and slightly COOL of where the danger reds
+     live (26–29°), and light + cool of red is salmon — so every lightening of it
+     walked toward pink (its wash came out #ffcfca). Darker and a couple of
+     degrees warmer is the difference between a warning and a cupcake. */
+  --chrome-destructive-fill-color:          #b71c1c;
+  --chrome-destructive-fill-hover-color:    #a50007;
+  --chrome-destructive-fill-ink-color:      #ffffff;
+  --chrome-destructive-ink-color:           #8f0000;
+  --chrome-destructive-wash-color:          #fceeec;
+
+  /* QUIET — active, but not the thing we are pointing you at: a dialog's Cancel,
+     the header's Pause. Named for its VOLUME rather than its purpose, because
+     "cancel" made every non-cancel that wanted this look like a misuse — and two
+     names for one look is how `active`/`current` happened.
+
+     TWO tokens rather than five, and that is a decision that survived the
+     redesign: quiet is outline-only BY NATURE, because a filled quiet button
+     would out-shout the thing beside it that isn't quiet. Its notional fill
+     (#737373) is what the ink and wash are derived FROM but is never painted, so
+     it isn't named — a token nothing may use is a token something eventually
+     misuses. */
+  --chrome-quiet-ink-color:                 #535353;
+  --chrome-quiet-wash-color:                #f3f3f3;
+
   /* The outline treatment's tone, DEFAULTED here rather than on
      `button.secondary`, and that placement is load-bearing: `button.secondary` is
      an element.class selector (0,1,1) where a tone class is (0,1,0), so setting
      these in that rule beat every tone and painted Hint, Reveal, End and
      Back-to-club all cancel-grey. Defaults belong where anything can outrank
-     them. */
-  --secondary-edge-color:                   var(--chrome-cancel-color);
-  --secondary-ink-color:                    var(--chrome-cancel-ink-color);
-  --secondary-hover-color:                  var(--chrome-cancel-secondary-hover-color);
-  --chrome-cancel-ink-color:                #555555;
-  --chrome-cancel-secondary-hover-color:    var(--page-surface-hover-color);
+     them.
+
+     TWO slots, not three: border and text used to be separate because quiet
+     alone wanted a soft border around readable text, and that split is now gone
+     — an outline button is ONE colour drawn twice. */
+  --secondary-ink-color:                    var(--chrome-quiet-ink-color);
+  --secondary-wash-color:                   var(--chrome-quiet-wash-color);
 
   /* FAULT — the system failed: validation failures, RPC/API errors. The same red
-     as destructive under its own name, because "this will delete something" and
-     "something broke" are different messages that happen to agree today. Error UI
-     is canonically-and-permanently red. */
-  --chrome-fault-color:                     #8e1b2e;
+     as destructive, written out rather than aliased, because "this will delete
+     something" and "something broke" are different messages that happen to agree
+     today. Error UI is canonically-and-permanently red.
+
+     The COPY is the point, and it's the house rule for this whole file: two
+     names on one hex keeps a future theme at 100 colours instead of 200, while
+     an alias claims the two must move together. Copy where they merely agree,
+     alias only where one genuinely echoes the other. The cost is that changing
+     one and not the other quietly mints a new hex — which a grep for the value
+     finds, where an unwanted alias silently drags something you weren't
+     looking at. */
+  --chrome-fault-color:                     #b71c1c;
 
   /* CURSOR — where the keyboard is pointing in a list or a button set. A COPY of
      the action blue, not an alias: a focus ring wanting to differ from a button
@@ -124,10 +170,16 @@
   /* How far a disabled control fades. An EFFECT rather than a per-tone colour:
      filled and outline degrade identically under opacity (2.04 vs 2.00 at 0.5),
      so per-tone values would solve one problem twice and rot the day a base
-     moves. Named because it was a magic number in three places — and 0.5 puts a
-     disabled label at 2.0:1, which strands already judged as reading "switched
-     off" rather than "not yet" (it uses 0.8). Worth trying at 0.65. */
-  --chrome-disabled-opacity:                0.5;
+     moves. Named because it was a magic number in three places.
+
+     0.75, raised from 0.5, and the reasoning inverts what a disabled style is
+     for. What actually tells you a control is dead is that it does not answer
+     the pointer — the MISSING HOVER carries the message, and a tooltip finishes
+     it. So the colour only has to be different enough to spot the odd one out in
+     a row of buttons, which 0.75 does. Fading harder solved nothing and cost the
+     one thing you need from a disabled button: reading its label well enough to
+     know what it would have done. */
+  --chrome-disabled-opacity:                0.75;
 
   /* History-view marker — the "you're viewing a past turn, not the live board"
      signal shared by every turn-history-capable game (drives the board frame, the
@@ -217,7 +269,7 @@
   /* WARNING — "you cannot do that", "you already tried that", "that costs you
      something". The one family named for a tone of voice rather than a result,
      which is exactly why chrome kept borrowing it; chrome has its own orange now
-     (--chrome-caution-color) and the two are free to move apart. */
+     (--chrome-caution-fill-color) and the two are free to move apart. */
   --outcome-warning-ink-color:        #ef6c00;  /* orange 800 */
   --outcome-warning-fill-color:       #ffa726;  /* orange 400 */
   --outcome-warning-edge-color:       #d68c20;  /* the fill, 16% toward black */
@@ -464,22 +516,37 @@
      `--wordle-*` palette below, by name, because that is whose judgement they are
      showing (docs/colors-refinement.md).
 
-     `specialkey`, not `control`: ⌫ wears a darker edge so it reads as a control
-     rather than a letter, but `--control-*` is the form-chrome bucket, so the old
-     name was a bucket collision rather than merely a vague one. ENTER needs
-     nothing here — it is a Submit, so it takes the chrome action tone.
+     ⌫ is JUST A KEY: it used to wear a darker edge to read as a control rather
+     than a letter, and that distinction turned out not to be worth making — it is
+     a key without a letter on it. (ENTER is different because it COMMITS: it is a
+     Submit, so it takes the chrome action tone.)
 
-     The cap fill is LIGHTER than an empty tile, deliberately and not the same
-     token: a key is a control you press, a blank tile is empty space. It also has
-     to be light enough for the hover drop-shadow to read against — at wordle's
-     blank (#d3d6da) a grey shadow on a grey cap was invisible. It lived in
-     wordle/theme.css, which left the shared component reading a token no shared
-     file defined: wordle painted its keyboard by override, and wordiply's was
-     painted by a fallback. */
-  --kbd-key-fill-color:           #eeeeee;
+     An UNTRIED key is a very faint WARM white — think of it as the step above
+     `--tile-1-color`, in the same direction the tile ramp runs. It is warm rather
+     than grey on purpose: a light grey either reads as DISABLED (which is the one
+     thing a key isn't) or is so faint it doesn't separate from the page at all,
+     where a hint of warmth says "an object, not the page" without claiming the
+     key can take a colour.
+
+     It spent a while at a light-mid grey, on the worry that the gap between an
+     untried key and wordle's dark not-in-the-word grey would draw the eye to the
+     less useful of the two. What actually separates those is the INK — black on
+     untried, white on anything tried — which reads instantly and at any distance,
+     and in wordiply (where keys never take a judgement at all) the grey was saying
+     nothing while looking switched off.
+
+     Light also keeps the hover shadow legible, which is why the cap was lightened
+     off NYT's mid-grey in the first place: a grey drop shadow on a grey cap is
+     invisible. */
+  --kbd-key-fill-color:           #fdfbf6;
+  /* …and pure white under the pointer. The lift and the shadow do most of the
+     hover, but a keycap is small and packed against its neighbours, so the shadow
+     has little room to read — the same argument the hex boards make for adding a
+     wash. Going white (rather than tinting) keeps it a lightness change, so it
+     can't be read as a state. */
+  --kbd-key-hover-fill-color:     #ffffff;
   --kbd-key-ink-color:            var(--page-text-color);
-  --kbd-key-edge-color:           #8b8f94;
-  --kbd-specialkey-edge-color:    #5f6368;
+  --kbd-key-edge-color:           #767a7f;
 
   /* RANK LADDER (the shared <RankBar>, used by spellingbee + wordwheel).
      ONE palette for both games, not each game's accent: a rank ladder means the
@@ -567,7 +634,7 @@
   --pill-lost-tint-color:     color-mix(in oklab, var(--outcome-lost-fill-color) 18%, var(--page-surface-color));
   --pill-warning-tint-color:  color-mix(in oklab, var(--outcome-warning-fill-color) 18%, var(--page-surface-color));
   --pill-near-tint-color:     color-mix(in oklab, var(--outcome-near-fill-color) 18%, var(--page-surface-color));
-  --pill-info-tint-color:     color-mix(in oklab, var(--chrome-action-color) 8%, var(--page-surface-color));
+  --pill-info-tint-color:     color-mix(in oklab, var(--chrome-action-fill-color) 8%, var(--page-surface-color));
 
   /* ── ELEVATION (chrome) ───────────────────────────────────────────────────
      Shadows for things that FLOAT above the page — menus, popovers, dialogs.
@@ -883,9 +950,9 @@ textarea:focus {
 }
 
 button {
-  background: var(--chrome-action-color);
-  border-color: var(--chrome-action-color);
-  color: var(--chrome-action-primary-ink-color);
+  background: var(--chrome-action-fill-color);
+  border-color: var(--chrome-action-fill-color);
+  color: var(--chrome-action-fill-ink-color);
   cursor: pointer;
   /* Tighter than the inputs/textareas sharing the base rule above: buttons are
      click targets, not typing surfaces, and don't need the same breathing room.
@@ -907,27 +974,30 @@ button:disabled {
 }
 
 /* `<button className="secondary">` — the OUTLINE treatment, against the filled
-   default above. Its tone defaults to `cancel` (the quiet way out of a dialog),
-   which is what every bare `.secondary` in the app is; a toned button re-sets
-   these three tokens on its own element instead (see ActionButton.module.css).
+   default above. Its tone defaults to `quiet` (the way out of a dialog), which
+   is what every bare `.secondary` in the app is; a toned button re-sets these
+   tokens on its own element instead (see ActionButton.module.css).
 
-   Three tokens rather than hard-coded colours so the tone can be swapped without
-   out-cascading this rule — the same re-set-the-token discipline the tiles use. */
+   Tokens rather than hard-coded colours so the tone can be swapped without
+   out-cascading this rule — the same re-set-the-token discipline the tiles use.
+
+   ONE token paints both the border and the label, deliberately. */
 button.secondary {
   background: transparent;
-  border-color: var(--secondary-edge-color);
+  border-color: var(--secondary-ink-color);
   color: var(--secondary-ink-color);
 }
-/* Hover changes the BACKGROUND and nothing else. Today every tone lands on the
-   same faint grey; the per-tone token is what lets one become a pale tint of
-   itself later, which reads as the button getting MORE engaged where grey alone
-   reads as duller. */
+/* Hover changes the BACKGROUND and nothing else, to a faint wash of the button's
+   OWN tone — where this used to be one grey for every tone. A tint of itself
+   reads as the button getting more engaged; grey reads as it going duller, which
+   is the wrong direction for a hover. 8% over white is enough: what the eye
+   catches is white becoming a colour at all, not how much colour. */
 button.secondary:hover:not(:disabled) {
-  background: var(--secondary-hover-color);
+  background: var(--secondary-wash-color);
 }
 
 a {
-  color: var(--chrome-action-color);
+  color: var(--chrome-action-fill-color);
 }
 
 /* ---------- Universal utility classes ---------- */
@@ -1075,7 +1145,7 @@ a {
 .link-button {
   background: none;
   border: none;
-  color: var(--chrome-action-color);
+  color: var(--chrome-action-fill-color);
   cursor: pointer;
   padding: 0;
   text-decoration: underline;

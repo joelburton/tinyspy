@@ -65,10 +65,19 @@ export function GuessKeyboard({
           {i === 2 && (
             <button
               type="button"
-              className={cls(styles.key, styles.wide, styles.backspace)}
+              className={cls(styles.key, styles.wide)}
               onClick={onBackspace}
               disabled={disabled}
               aria-label="Backspace"
+              // NOT a focus target, by two means — the same pair the board tiles
+              // use. `tabIndex={-1}` keeps 28 keys out of the tab order (they
+              // would bury every real control), and `preventDefault` on mousedown
+              // stops a CLICK parking focus on a key: the trap is that the click
+              // focuses silently, the next keystroke promotes it to
+              // `:focus-visible`, and a blue ring then sits on whichever key you
+              // last tapped until you click elsewhere. Nothing here needs focus —
+              // this keyboard exists so a player without a physical one can type,
+              // and a player WITH one just types.
             >
               ⌫
             </button>
@@ -83,6 +92,8 @@ export function GuessKeyboard({
                 onClick={() => onKey(ch)}
                 disabled={disabled}
                 aria-label={ch}
+                tabIndex={-1}
+                onMouseDown={(e) => e.preventDefault()}
               >
                 {ch}
               </button>
@@ -94,6 +105,8 @@ export function GuessKeyboard({
               className={cls(styles.key, styles.wide, styles.wideText, styles.enter)}
               onClick={onEnter}
               disabled={disabled}
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
             >
               Enter
             </button>

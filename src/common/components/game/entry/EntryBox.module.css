@@ -57,7 +57,7 @@
   display: inline-block;
   width: 2px;
   height: 1.15em;
-  background: var(--chrome-action-color);
+  background: var(--chrome-action-fill-color);
   margin: 0 1px;
   animation: caretBlink 1.1s steps(1) infinite;
 }

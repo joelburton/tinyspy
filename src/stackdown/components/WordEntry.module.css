@@ -28,7 +28,7 @@
 
 .filled {
   border-style: solid;
-  border-color: var(--chrome-action-color);
+  border-color: var(--chrome-action-fill-color);
   background: var(--page-surface-color);
   cursor: pointer;
 }

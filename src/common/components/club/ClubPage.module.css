@@ -177,7 +177,7 @@
 .startList:focus,
 .gamesList:focus {
   outline: none;
-  border-color: var(--chrome-action-color);
+  border-color: var(--chrome-action-fill-color);
 }
 
 .gamesList {

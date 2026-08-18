@@ -20,10 +20,10 @@
   text-align: left;
 }
 .swatch:hover:not(:disabled) {
-  border-color: var(--chrome-action-color);
+  border-color: var(--chrome-action-fill-color);
 }
 .swatchActive {
-  border-color: var(--chrome-action-color);
+  border-color: var(--chrome-action-fill-color);
   outline: 2px solid var(--chrome-cursor-color);
   outline-offset: -1px;
 }

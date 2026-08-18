@@ -55,32 +55,31 @@
  * opacity is far too quiet an announcement for it.
  *
  * So the two states are made to differ in KIND, not just in strength: unusable
- * stays an outline, and ready flips to a filled orange with white text. The
- * colour is the same `--chrome-caution-color` the button already used for
- * its border, so this is the existing orange turned up, not a new hue.
+ * stays an outline, and ready flips to a filled orange with white text — the
+ * same caution orange the button already wears, turned up rather than a new hue.
+ *
+ * This is one of the few places a non-button DEPENDS on a chrome tone rather
+ * than copying it (the house rule is copy-on-coincidence — see theme.css →
+ * FAULT). The alias is right here: the bar sits directly beside the Hint button
+ * and is deliberately echoing it, so if that orange ever moves, this must move
+ * with it or the pair stops reading as one control.
  */
-
-/* Less faint than the global `button:disabled` 0.5, which made an unusable
- * Hint look switched off rather than "not yet". */
-.hint:disabled {
-  opacity: 0.8;
-}
 
 /* Specificity note: `:not(:disabled)` contributes its argument's weight, so
  * this is (0,2,0) and beats theme.css's `button.secondary` (0,1,1) without an
  * !important. */
 .hintReady:not(:disabled) {
-  background: var(--chrome-caution-color);
-  border-color: var(--chrome-caution-color);
-  /* The Lucide glyph strokes with currentColor, so this inks the icon too. NOTE
-   * this is the 3.08 case: white on the caution orange is under the 4.5 floor for
-   * a label, kept while we look for a deeper orange that clears it (see
-   * common/theme.css → --chrome-caution-primary-ink-color). */
-  color: var(--chrome-caution-primary-ink-color);
+  background: var(--chrome-caution-fill-color);
+  border-color: var(--chrome-caution-fill-color);
+  /* The Lucide glyph strokes with currentColor, so this inks the icon too.
+   * White on the caution orange is a settled choice, not an open question: it
+   * measures 3.71 against the 4.5 label floor, and dark ink on a bright warm
+   * fill is the trade connections rejected for gold. It reads. */
+  color: var(--chrome-caution-fill-ink-color);
 }
 
 .hintReady:not(:disabled):hover {
   /* Darker on hover — a filled button can't use the outline's
    * fill-on-hover, since it is already filled. */
-  background: var(--chrome-caution-primary-hover-color);
+  background: var(--chrome-caution-fill-hover-color);
 }

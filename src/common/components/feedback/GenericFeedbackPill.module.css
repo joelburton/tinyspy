@@ -114,7 +114,7 @@
 }
 
 .info {
-  border-color: var(--chrome-action-color);
+  border-color: var(--chrome-action-fill-color);
   background: var(--pill-info-tint-color);
 }
 

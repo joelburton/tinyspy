@@ -1,82 +1,52 @@
 import { IconBack } from '../icons'
-import { cls } from '../../lib/util/cls'
-import styles from './ActionButton.module.css'
+import { ActionButton, type PurposeButtonProps } from './ActionButton'
 
-type Props = {
+type Props = PurposeButtonProps & {
   onClick: () => void
-  /**
-   * Filled accent (a modal's primary CTA) vs outline (the in-page
-   * terminal indicator each PlayArea shows after the modal closes).
-   * Defaults to `'secondary'` — the common case.
-   */
+  /** Filled (`primary`) at terminal, where going back IS the next thing you do;
+   *  the outline everywhere else. */
   variant?: 'primary' | 'secondary'
-  /** Short form — renders "Club" instead of "Back to club" (the chevron makes
-   *  the meaning clear). For tight spots like an in-column terminal row. */
+  /** Shorten the visible label to "Club" — the chevron carries the rest. The
+   *  accessible label stays "Back to club" either way. */
   compact?: boolean
-  /** Icon-only square (the shared `icon-only` box) — just the chevron; the
-   *  label moves to the aria-label + the styled tooltip. For the icon-only
-   *  action rows (waffle's experiment). Wins over `compact`. */
-  iconOnly?: boolean
-  autoFocus?: boolean
-  /** Override the visible text — e.g. "Suspend and return to club" on the pause
-   *  overlay, where leaving *shelves* the game. Defaults to "Back to club"
-   *  ("Club" when compact). */
-  label?: string
 }
 
 /**
  * The app-wide "‹ Back to club" button.
  *
  * Every exit-to-club affordance (each game's playing action row, and its
- * terminal row via `<TerminalActionRow>`) routes through here so the icon
- * (`IconBack`, the
- * chevron-left glyph), its spacing, and the accessible label are identical
- * everywhere. The chevron is `aria-hidden` so a screen reader just
- * announces "Back to club", not the icon.
+ * terminal row via `<TerminalActionRow>`) routes through here so the glyph, the
+ * spacing and the accessible label are identical everywhere. The chevron is
+ * `aria-hidden` inside `ActionButton`, so a screen reader just announces "Back
+ * to club".
  *
- * `variant` swaps the treatment (the global `secondary` outline vs the filled
- * default); `compact` swaps the visible label to just "Club" (the chevron
- * carries the rest). The accessible label stays "Back to club" either way. Both
- * treatments wear the ACTION tone — going back to the club is a thing you do,
- * not a cancel.
- *
- * The icon+label look is the global `.icon-button` class (docs/ui.md → Button
- * iconography) — the same shape psychicnum's / connections' input-row buttons
- * use, composed via cls() the way `secondary` is.
+ * It wears the ACTION tone in both weights. Going back to the club is a thing
+ * you do — it is not a cancel — and it is already the filled action blue at
+ * terminal, so anything else would make one control two colours depending on the
+ * phase. It rendered a raw `<button className="secondary">` until 2026-08-18,
+ * which is how it ended up quiet-grey mid-game while sitting in an action row
+ * beside blue buttons.
  */
 export function BackToClubButton({
-  onClick,
   variant = 'secondary',
   compact,
-  iconOnly,
-  autoFocus,
   label,
+  ...rest
 }: Props) {
-  const text = label ?? (compact ? 'Club' : 'Back to club')
   return (
-    <button
-      type="button"
-      className={cls(
-        'icon-button',
-        // The outline variant is an ACTION, not a cancel: it sits in a game's
-        // action row beside Restart and New game, and it is already action-blue
-        // at terminal (where it renders `variant="primary"`). Without the tone it
-        // fell through to the plain grey every dialog Cancel wears — the same
-        // control in two colours depending on the phase.
-        variant === 'secondary' && cls('secondary', styles.action),
-        iconOnly && 'icon-only',
-      )}
-      onClick={onClick}
-      // Compact/icon-only hide some or all of the words behind the chevron, so
-      // keep an accessible label — unless a full custom label spells it out.
-      aria-label={(iconOnly || compact) && !label ? 'Back to club' : undefined}
-      // The styled hover bubble (theme.css) — same default-to-the-label
-      // behavior as ActionButton.
-      data-tooltip={label ?? 'Back to club'}
-      autoFocus={autoFocus}
-    >
-      <IconBack size={iconOnly ? 20 : 16} aria-hidden />
-      {!iconOnly && text}
-    </button>
+    <ActionButton
+      icon={IconBack}
+      iconSize={16}
+      label={label ?? (compact ? 'Club' : 'Back to club')}
+      tooltip={label ?? 'Back to club'}
+      weight={variant}
+      tone="action"
+      // The VISIBLE text may be "Club" (compact) or nothing at all (iconOnly),
+      // but the control is always announced in full. ActionButton only sets an
+      // aria-label for the icon-only case, so `compact` needs this said here —
+      // spread after ActionButton's own, so this wins.
+      aria-label={label ?? 'Back to club'}
+      {...rest}
+    />
   )
 }

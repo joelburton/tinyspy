@@ -1,33 +1,37 @@
 /* Semantic TONE colors for the OUTLINE (secondary) action buttons.
  *
- * A toned button re-sets the three tokens `button.secondary` reads
- * (--secondary-edge-color / --secondary-ink-color / --secondary-hover-color) on
- * its own element, so the border + text — and the icon, via `currentColor` —
- * take the tone. We re-set tokens rather than out-cascade `button.secondary`
- * (an `element.class` selector, higher specificity than a bare module class),
- * so this wins regardless of stylesheet load order — the same discipline the
- * tiles use (docs/ui.md → Interactive tile states).
+ * A toned button re-sets the two tokens `button.secondary` reads
+ * (--secondary-ink-color / --secondary-wash-color) on its own element, so the
+ * border + text — and the icon, via `currentColor` — take the tone. We re-set
+ * tokens rather than out-cascade `button.secondary` (an `element.class`
+ * selector, higher specificity than a bare module class), so this wins
+ * regardless of stylesheet load order — the same discipline the tiles use
+ * (docs/ui.md → Interactive tile states).
+ *
+ * Each tone reads its `-ink-color`, NOT its `-fill-color`. They are different
+ * values now: the fill is what a filled button is painted with, while the ink is
+ * that colour taken down far enough to read as small text on white. An outline
+ * button is text and a hairline border, so it wants the ink — and it uses the
+ * one value for both, because a border in one shade around a label in another
+ * is a distinction nothing was making on purpose.
  *
  * The tones are CHROME's, not the outcome palette's: a control saying "this is
  * irreversible" is a different question from a game saying "you lost", even
- * where the two hexes agree today (docs/colors-refinement.md). `cancel` needs no
+ * where the two hexes agree today (docs/colors-refinement.md). `quiet` needs no
  * class — it is the plain secondary outline, and the default in theme.css.
  */
 
 .caution {
-  --secondary-edge-color: var(--chrome-caution-color);
-  --secondary-ink-color: var(--chrome-caution-color);
-  --secondary-hover-color: var(--chrome-caution-secondary-hover-color);
+  --secondary-ink-color: var(--chrome-caution-ink-color);
+  --secondary-wash-color: var(--chrome-caution-wash-color);
 }
 
 .destructive {
-  --secondary-edge-color: var(--chrome-destructive-color);
-  --secondary-ink-color: var(--chrome-destructive-color);
-  --secondary-hover-color: var(--chrome-destructive-secondary-hover-color);
+  --secondary-ink-color: var(--chrome-destructive-ink-color);
+  --secondary-wash-color: var(--chrome-destructive-wash-color);
 }
 
 .action {
-  --secondary-edge-color: var(--chrome-action-color);
-  --secondary-ink-color: var(--chrome-action-color);
-  --secondary-hover-color: var(--chrome-action-secondary-hover-color);
+  --secondary-ink-color: var(--chrome-action-ink-color);
+  --secondary-wash-color: var(--chrome-action-wash-color);
 }

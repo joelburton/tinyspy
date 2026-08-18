@@ -82,5 +82,5 @@
 }
 
 .tile:not(:disabled):hover {
-  border-color: var(--chrome-action-color);
+  border-color: var(--chrome-action-fill-color);
 }

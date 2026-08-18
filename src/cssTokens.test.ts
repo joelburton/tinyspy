@@ -57,8 +57,8 @@ const VOCABULARY_COMPLETENESS = new Set([
   // treatments need, so the set is picked together rather than one colour at a
   // time. Nothing is filled-destructive today; when something is, its hover and
   // ink are already chosen and already agree with the rest of the family.
-  '--chrome-destructive-primary-hover-color',
-  '--chrome-destructive-primary-ink-color',
+  '--chrome-destructive-fill-hover-color',
+  '--chrome-destructive-fill-ink-color',
   '--tile-4-edge-color',
 ])
 

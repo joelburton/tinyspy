@@ -4,7 +4,7 @@
  * Semantic names tied to boggle's vocabulary (`tile`) rather than literal
  * colors — see docs/ui.md "two vocabularies".
  *
- * The selected-path highlight is the SHARED `--chrome-action-color`, not a boggle hue
+ * The selected-path highlight is the SHARED `--chrome-action-fill-color`, not a boggle hue
  * (PlayArea.module.css) — there was a `--boggle-accent` here claiming that job,
  * but nothing ever read it.
  */
