@@ -8,16 +8,23 @@ import { signIn } from './helpers/session'
  * `psychicnum.games_view` terminal gate), and the FE holds them back until this
  * viewer presses Reveal — never on its own, a win included, because
  * `replay_board` hunts the SAME three secrets again (docs/ui.md → Terminal
- * results). Pressing Reveal rings every secret's tile bright green — over
- * whatever background it already had, so "was it found?" still reads — and
- * pressing Hide un-rings them.
+ * results). Pressing Reveal turns every secret's tile GREEN — the same green a
+ * found one wears — and pressing Hide turns them back.
  *
- * The ring replaced a text list in the below-board pill ("The words were APPLE,
- * RIVER, STONE"), which had no room on a phone and made the player map words back
- * to tiles by eye; the pill now carries the terse verdict like every other game.
+ * REVEALING IS A STATE CHANGE, NOT A MARK (docs/tile-feedback.md). This spec used
+ * to look for a neon-green ring in a token of its own, which is what psychicnum
+ * drew until its tile-feedback conversion (2026-08-17) retired the whole
+ * answer-key channel: a game's state colours say what is TRUE about a piece, and
+ * asking to see the answer changes what you know rather than what the board is.
+ * Reveal being personal and reversible is what pays for it — one toggle separates
+ * "we found it" from "I am peeking", so the board doesn't have to. And where a
+ * board shows WHO decided a tile, the distinction survives anyway: a found tile
+ * carries its guesser's dot, a revealed one has nobody to name.
  *
- * Browser-only: the ring is CSS (`outline` on a tile), which jsdom can't see, and
- * the "background unchanged" half is only checkable by reading computed styles.
+ * (The spec went red at that conversion and stayed red until the palette sweep
+ * ran the e2e suite — nothing else had.)
+ *
+ * Browser-only: the fills are CSS, which jsdom can't see.
  */
 test('terminal: secrets stay hidden until Reveal, ring the tiles, then un-ring', async ({
   browser,
@@ -30,13 +37,15 @@ test('terminal: secrets stay hidden until Reveal, ring the tiles, then un-ring',
   await page.goto(`/g/${game.gametype}/${game.id}`)
   await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
 
-  // Mid-game: nothing is ringed (the secrets aren't even on the client yet).
+  // Mid-game: nothing is green (the secrets aren't even on the client yet).
+  // `--outcome-won-fill-color`, the green a decided-and-correct tile wears.
+  const GREEN = 'rgb(102, 187, 106)'
   const ringed = () =>
-    page.evaluate(() =>
-      [...document.querySelectorAll('[data-board] button')]
-        .filter((b) => getComputedStyle(b).outlineColor === 'rgb(0, 230, 118)')
+    page.evaluate((green) =>
+      [...document.querySelectorAll('[data-board] [data-tile]')]
+        .filter((b) => getComputedStyle(b).backgroundColor === green)
         .map((b) => b.textContent),
-    )
+    GREEN)
   expect(await ringed()).toHaveLength(0)
 
   // End the game (the neutral 'ended' terminal) — that flips is_terminal, and the
@@ -44,34 +53,29 @@ test('terminal: secrets stay hidden until Reveal, ring the tiles, then un-ring',
   await page.getByRole('button', { name: 'End game' }).first().click()
   await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
 
-  // The terminal row is up, and the secrets are STILL not ringed: a manual end
+  // The terminal row is up, and the secrets are STILL not shown: a manual end
   // isn't a win, and Restart re-hunts this very board.
   const reveal = page.getByRole('button', { name: /^reveal/i })
   await expect(reveal).toBeVisible({ timeout: 8000 })
   expect(await ringed()).toHaveLength(0)
 
-  // Asking for them rings exactly the three secrets…
+  // Asking for them turns exactly the three secrets green…
   await reveal.click()
   await expect.poll(async () => (await ringed()).length, { timeout: 8000 }).toBe(3)
-  // …their BACKGROUNDS are untouched by the ring: this game was ended without
-  // a single guess, so every tile — secrets included — still wears the plain tile
-  // fill, not a result color.
-  const bgs = await page.evaluate(() =>
-    [...document.querySelectorAll('[data-board] button')]
-      .filter((b) => getComputedStyle(b).outlineColor === 'rgb(0, 230, 118)')
-      .map((b) => getComputedStyle(b).backgroundColor),
+  // …and nothing else moved: the other tiles keep the plain resting fill, since
+  // this game was ended without a single guess.
+  const others = await page.evaluate(
+    (green) =>
+      new Set(
+        [...document.querySelectorAll('[data-board] [data-tile]')]
+          .map((b) => getComputedStyle(b).backgroundColor)
+          .filter((bg) => bg !== green),
+      ).size,
+    GREEN,
   )
-  const plain = await page.evaluate(
-    () =>
-      getComputedStyle(
-        [...document.querySelectorAll('[data-board] button')].find(
-          (b) => getComputedStyle(b).outlineColor !== 'rgb(0, 230, 118)',
-        )!,
-      ).backgroundColor,
-  )
-  expect(new Set(bgs)).toEqual(new Set([plain]))
+  expect(others).toBe(1)
 
-  // The same button, now wearing its Hide face, takes the rings back off — the
+  // The same button, now wearing its Hide face, takes the green back off — the
   // board as the players actually left it.
   await page.getByRole('button', { name: /^hide/i }).click()
   await expect.poll(async () => (await ringed()).length, { timeout: 8000 }).toBe(0)

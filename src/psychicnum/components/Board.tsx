@@ -162,6 +162,11 @@ export function Board({
             <button
               key={word}
               type="button"
+              // A stable e2e hook: class names are hashed, and the floating
+              // Shuffle control lives inside the board root, so "a button in the
+              // board" would also match it (connections has the same hook, for
+              // the same reason).
+              data-tile={word}
               className={cls(
                 shared.tileFace,
                 shared.tile,
