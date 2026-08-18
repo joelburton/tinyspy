@@ -61,11 +61,11 @@
  * turn-highlight below does with the green token. (bananagrams needs neither
  * trick — its occupied cell is plain text, not an opaque overlay tile.) */
 .dropOk {
-  outline: 3px solid var(--color-outcome-won-strong);
+  outline: 3px solid var(--outcome-won-ink-color);
   outline-offset: -3px;
 }
 .dropNo .tile {
-  outline: 3px solid var(--color-outcome-lost-strong);
+  outline: 3px solid var(--outcome-lost-ink-color);
   outline-offset: -3px;
   z-index: 2;
 }
@@ -121,7 +121,7 @@
    once; the ramp lives in common/theme.css so a palette change reaches every
    good/bad cue at once.) */
 .tile.flashAccept {
-  outline: 3px solid var(--color-outcome-won-strong);
+  outline: 3px solid var(--outcome-won-ink-color);
   outline-offset: -3px;
   z-index: 2;
 }
@@ -130,14 +130,14 @@
    success-green outline (the good words of this turn). */
 .tile.viewedTile {
   background: var(--scrabble-tile-attention);
-  outline: 3px solid var(--color-outcome-won-strong);
+  outline: 3px solid var(--outcome-won-ink-color);
   outline-offset: -3px;
   z-index: 2;
 }
 /* New tiles in a rejected (not-in-dictionary) word: red outline for ~1s — the
    app-wide failure red, the counterpart to `.flashAccept`'s green above. */
 .tile.flashReject {
-  outline: 3px solid var(--color-outcome-lost-strong);
+  outline: 3px solid var(--outcome-lost-ink-color);
   outline-offset: -3px;
   z-index: 2;
 }

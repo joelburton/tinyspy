@@ -46,9 +46,9 @@
    * element in Board.tsx). `aspect-ratio` then derives the HEIGHT from that
    * width so the tiles stay SQUARE (wordle's look) instead of flex-filling — a
    * keyboard shares this column below the board, so the board hugs its height. */
-  --tile-bg: transparent;
-  --tile-border: var(--wordle-tile-border);
-  --tile-text: #fff;
+  --tile-bg-color: transparent;
+  --tile-border-color: var(--wordle-tile-border);
+  --tile-ink-color: #fff;
   --tile-shadow: none;
   display: grid;
   grid-auto-rows: 1fr;
@@ -95,7 +95,7 @@
  * tiles keep their g/y/x colors; this just marks WHICH row this turn played. An
  * outline (not a border) so it layers outside the tiles without resizing them. */
 .viewedRow {
-  outline: 3px solid var(--color-history-viewer);
+  outline: 3px solid var(--view-history-color);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -124,8 +124,8 @@
 
 /* A typed-but-not-submitted tile: dark border, no fill, dark text. */
 .filled {
-  --tile-border: var(--wordle-tile-border-filled);
-  --tile-text: var(--color-text);
+  --tile-border-color: var(--wordle-tile-border-filled);
+  --tile-ink-color: var(--page-text-color);
 }
 
 /* Server feedback colors, applied by RE-SETTING the shared `.tile`'s `--tile-*`
@@ -134,22 +134,22 @@
  * than the fill itself — the quiet definition every other surface in this app has,
  * instead of a flat block of color. */
 .green {
-  --tile-bg: var(--wordle-green);
-  --tile-border: var(--wordle-green-border);
+  --tile-bg-color: var(--wordle-green-fill-color);
+  --tile-border-color: var(--wordle-green-edge-color);
 }
 .yellow {
-  --tile-bg: var(--wordle-yellow);
-  --tile-border: var(--wordle-yellow-border);
+  --tile-bg-color: var(--wordle-yellow-fill-color);
+  --tile-border-color: var(--wordle-yellow-edge-color);
 }
 .gray {
-  --tile-bg: var(--wordle-gray);
-  --tile-border: var(--wordle-gray-border);
+  --tile-bg-color: var(--wordle-gray-fill-color);
+  --tile-border-color: var(--wordle-gray-edge-color);
 }
 .blank {
   /* An empty tile is the board's default — stated anyway, because a color class
    * is looked up by name (`styles[color]`) and a missing one would be a silent
    * hole rather than a visible mistake. */
-  --tile-bg: transparent;
+  --tile-bg-color: transparent;
 }
 
 /* In flight — the row you just submitted, while the server works out its colors.
@@ -167,9 +167,9 @@
  * lands. See docs/tile-feedback.md. */
 
 .inFlight {
-  --tile-bg: var(--wordle-gray);
-  --tile-border: var(--wordle-gray-border);
-  --tile-text: #fff;
+  --tile-bg-color: var(--wordle-gray-fill-color);
+  --tile-border-color: var(--wordle-gray-edge-color);
+  --tile-ink-color: #fff;
 }
 
 /* A refused guess wears the SHARED verdict ring + shake (common
@@ -212,13 +212,13 @@
     transform: rotateX(0deg);
     background: transparent;
     border-color: var(--wordle-tile-border-filled);
-    color: var(--color-text);
+    color: var(--page-text-color);
   }
   49.9% {
     transform: rotateX(-90deg);
     background: transparent;
     border-color: var(--wordle-tile-border-filled);
-    color: var(--color-text);
+    color: var(--page-text-color);
   }
   /* Past edge-on: paint the feedback color, flip back into view. */
   50% {

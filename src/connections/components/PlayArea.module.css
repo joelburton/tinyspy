@@ -106,7 +106,7 @@
   min-height: 0;
   /* Dark ink: the rank palette is four pastels, which is where dark ink belongs
    * (the white-on-color half of the ramp is for saturated fills). */
-  --tile-text: var(--color-text);
+  --tile-ink-color: var(--page-text-color);
   flex-direction: column;
 }
 
@@ -150,23 +150,23 @@
  * A guessed tile stays on the grid in the strictly-before snapshot even for a
  * correct guess (it hasn't collapsed into its band yet) — that's what we ring. */
 .viewedTile {
-  outline: 3px solid var(--color-history-viewer);
+  outline: 3px solid var(--view-history-color);
   outline-offset: 0;
 }
 .viewedTile_correct {
-  --tile-bg: var(--color-outcome-won-border);
-  --tile-border: var(--color-outcome-won-strong);
-  --tile-text: #fff;
+  --tile-bg-color: var(--outcome-won-fill-color);
+  --tile-border-color: var(--outcome-won-ink-color);
+  --tile-ink-color: #fff;
 }
 .viewedTile_oneAway {
-  --tile-bg: var(--color-outcome-near-border);
-  --tile-border: var(--color-outcome-near-strong);
-  --tile-text: #fff;
+  --tile-bg-color: var(--outcome-near-fill-color);
+  --tile-border-color: var(--outcome-near-ink-color);
+  --tile-ink-color: #fff;
 }
 .viewedTile_wrong {
-  --tile-bg: var(--color-outcome-lost-border);
-  --tile-border: var(--color-outcome-lost-strong);
-  --tile-text: #fff;
+  --tile-bg-color: var(--outcome-lost-fill-color);
+  --tile-border-color: var(--outcome-lost-ink-color);
+  --tile-ink-color: #fff;
 }
 
 /* Coop "Mistakes remaining ●●●○" — left-justified on the input row below the
@@ -181,7 +181,7 @@
   gap: 0.5rem;
   /* Normal body text — this is real game state (how many mistakes are left),
    * not incidental help, so it reads at full color and size. */
-  color: var(--color-text);
+  color: var(--page-text-color);
   font-size: 1rem;
 }
 

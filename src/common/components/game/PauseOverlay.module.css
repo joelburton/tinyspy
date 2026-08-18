@@ -14,8 +14,8 @@
   align-items: center;
   justify-content: center;
   padding: 2rem 1rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  background: var(--page-surface-color);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-lg);
 }
 
@@ -64,11 +64,11 @@
 .rosterDot {
   --dot-size: 0.85rem;
   --dot-border-width: 2px;
-  --dot-ring: var(--color-muted);
+  --dot-ring: var(--page-text-muted-color);
 }
 
 .rosterName {
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 .actions {

@@ -46,7 +46,7 @@
   flex-shrink: 0;
   /* Thin rule under the header, matching the GamePage header's — the same
    * divider the play surface uses between its columns. */
-  border-bottom: 1px solid var(--color-divider);
+  border-bottom: 1px solid var(--page-divider-color);
   padding-bottom: 0.5rem;
 }
 
@@ -146,13 +146,13 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  background: var(--color-surface);
-  /* A step darker than the usual --color-surface-border: these two frames are
+  background: var(--page-surface-color);
+  /* A step darker than the usual --page-surface-border-color: these two frames are
    * the page's main structure (they're what makes the body read as two
    * columns), and the pale card border let them fade into the background.
    * Same token as the row rules inside the start list, so the frame and its
    * contents' lines agree. */
-  border: 1px solid var(--color-control-border);
+  border: 1px solid var(--control-border-color);
   border-radius: var(--radius-lg);
   /* NEITHER frame owns padding: the rows inside carry their own, so the space
    * above the first item equals the space between any two (a frame padding on
@@ -177,7 +177,7 @@
 .startList:focus,
 .gamesList:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--chrome-action-color);
 }
 
 .gamesList {
@@ -253,9 +253,9 @@
   }
 
   .tab[aria-pressed='false'] {
-    background: var(--color-surface);
-    border-color: var(--color-surface-border);
-    color: var(--color-text);
+    background: var(--page-surface-color);
+    border-color: var(--page-surface-border-color);
+    color: var(--page-text-color);
   }
 
   /* The body becomes a single stacked column; the selected section

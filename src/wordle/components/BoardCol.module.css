@@ -26,10 +26,10 @@
    * properties cascade through display:contents). Preserves the tinted-key
    * look the local Keyboard had before the extraction. */
   --kbd-key-bg: var(--wordle-key-bg);
-  --kbd-correct: var(--wordle-green);
-  --kbd-correct-border: var(--wordle-green-border);
-  --kbd-present-border: var(--wordle-yellow-border);
-  --kbd-absent-border: var(--wordle-gray-border);
-  --kbd-present: var(--wordle-yellow);
-  --kbd-absent: var(--wordle-gray);
+  --kbd-correct: var(--wordle-green-fill-color);
+  --kbd-correct-border: var(--wordle-green-edge-color);
+  --kbd-present-border: var(--wordle-yellow-edge-color);
+  --kbd-absent-border: var(--wordle-gray-edge-color);
+  --kbd-present: var(--wordle-yellow-fill-color);
+  --kbd-absent: var(--wordle-gray-fill-color);
 }

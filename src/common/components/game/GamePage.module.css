@@ -28,7 +28,7 @@
   /* Thin rule under the header — the same divider the play surface uses
    * between its board / info columns, so the chrome strip reads as bounded
    * without a card around it. (Its height is part of --game-chrome-height.) */
-  border-bottom: 1px solid var(--color-divider);
+  border-bottom: 1px solid var(--page-divider-color);
   padding-bottom: 0.5rem;
 }
 
@@ -77,6 +77,6 @@
 .timer {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--page-text-color);
   padding: 0.25rem 0.5rem;
 }

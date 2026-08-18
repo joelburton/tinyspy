@@ -26,7 +26,7 @@
 .loading,
 .empty {
   padding: 2rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* The board column FILLS the row and holds its board at the left, instead of
@@ -84,7 +84,7 @@
 /* Full-strength text throughout, label included: these are real values, and the
  * counts are the only progress this game reports. */
 .count {
-  color: var(--color-text);
+  color: var(--page-text-color);
   font-size: 0.95rem;
 }
 
@@ -92,7 +92,7 @@
  * three readouts, and a vertical bar makes it look like a table that lost its
  * grid. */
 .dot {
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 .count strong {
@@ -108,12 +108,12 @@
 .breakdown {
   margin-top: 0.75rem;
   padding-top: 0.6rem;
-  border-top: 1px solid var(--color-divider);
+  border-top: 1px solid var(--page-divider-color);
 }
 
 .breakdownLabel {
   font-size: 0.82rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   margin-bottom: 0.3rem;
 }
 

@@ -23,7 +23,7 @@
   padding: 0.25rem;
   margin: 0;
   cursor: pointer;
-  color: var(--color-text);
+  color: var(--page-text-color);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -33,11 +33,11 @@
 
 .trigger:hover,
 .trigger[aria-expanded='true'] {
-  background: var(--color-surface-border);
+  background: var(--page-surface-border-color);
 }
 
 .trigger:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--chrome-action-color);
   outline-offset: 2px;
 }
 
@@ -68,8 +68,8 @@
   width: max-content;
   min-width: 12rem;
   max-width: calc(100vw - 2 * var(--page-padding-x));
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  background: var(--page-surface-color);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   padding: 0.3rem 0;
@@ -100,7 +100,7 @@
   margin: 0;
   padding: 0.5rem 0.85rem;
   cursor: pointer;
-  color: var(--color-text);
+  color: var(--page-text-color);
   font-size: 0.95rem;
   font-weight: 500;
   text-align: left;
@@ -118,7 +118,7 @@
    (it's an annotation, not the action). */
 .itemShortcut {
   margin-left: auto;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   font-size: 0.82rem;
   font-weight: 500;
   white-space: nowrap;
@@ -126,7 +126,7 @@
 
 .item:hover:not(:disabled),
 .item:focus {
-  background: var(--color-surface-hover);
+  background: var(--page-surface-hover-color);
 }
 
 /* Keyboard focus also paints a clear ring on top of the
@@ -138,7 +138,7 @@
  * :focus) so a mouse click on an item doesn't double-paint a
  * ring on top of the activation flash. */
 .item:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--chrome-action-color);
   outline-offset: -2px;
 }
 
@@ -153,7 +153,7 @@
 .divider {
   height: 0;
   margin: 0.3rem 0;
-  border-top: 1px solid var(--color-surface-border);
+  border-top: 1px solid var(--page-surface-border-color);
 }
 
 /* Non-clickable info header at the top of a section — the crosswords puzzle
@@ -164,12 +164,12 @@
   padding: 0.35rem 0.85rem 0.45rem;
 }
 .headerTitle {
-  color: var(--color-text);
+  color: var(--page-text-color);
   font-size: 0.95rem;
   font-weight: 600;
 }
 .headerLine {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   font-size: 0.82rem;
   margin-top: 0.1rem;
 }
@@ -187,7 +187,7 @@
 .itemChevron {
   margin-left: auto;
   padding-left: 0.5rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   font-size: 1rem;
   line-height: 1;
 }
@@ -196,13 +196,13 @@
  * floating panel belongs to — without it, a panel hanging in space beside a
  * list of identical rows makes you count pixels to find its owner. */
 .itemOpen {
-  background: var(--color-surface-hover, rgba(127, 127, 127, 0.12));
+  background: var(--page-surface-hover-color, rgba(127, 127, 127, 0.12));
 }
 
 /* The drill-down's "‹ Back" row. Muted like a breadcrumb rather than styled as
  * a command: it undoes a navigation step, it doesn't do anything to the game. */
 .itemBack {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   font-weight: 600;
 }
 
@@ -218,8 +218,8 @@
   width: max-content;
   min-width: 10rem;
   max-width: calc(100vw - 2 * var(--page-padding-x));
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  background: var(--page-surface-color);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   padding: 0.3rem 0;
@@ -274,7 +274,7 @@
   justify-content: center;
   /* The glyph is a quiet index, not a second label: it sits at the muted weight
    * so the words stay the thing you read. */
-  color: var(--color-control-text-2);
+  color: var(--control-text-muted-color);
   /* The row is `align-items: baseline` for the label/shortcut; an icon has no
    * baseline worth aligning, so nudge it onto the text's optical line. */
   align-self: center;

@@ -16,11 +16,11 @@ import type { TileColor } from '../../common/lib/color/tileColor'
 export function revealVar(c: TileColor): string | undefined {
   switch (c) {
     case 'green':
-      return 'var(--wordle-green)'
+      return 'var(--wordle-green-fill-color)'
     case 'yellow':
-      return 'var(--wordle-yellow)'
+      return 'var(--wordle-yellow-fill-color)'
     case 'gray':
-      return 'var(--wordle-gray)'
+      return 'var(--wordle-gray-fill-color)'
     default:
       return undefined
   }
@@ -42,11 +42,11 @@ export function revealVar(c: TileColor): string | undefined {
 export function revealBorderVar(c: TileColor): string | undefined {
   switch (c) {
     case 'green':
-      return 'var(--wordle-green-border)'
+      return 'var(--wordle-green-edge-color)'
     case 'yellow':
-      return 'var(--wordle-yellow-border)'
+      return 'var(--wordle-yellow-edge-color)'
     case 'gray':
-      return 'var(--wordle-gray-border)'
+      return 'var(--wordle-gray-edge-color)'
     default:
       return undefined
   }

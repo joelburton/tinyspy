@@ -1,7 +1,7 @@
 /* Semantic TONE colors for outline (secondary-weight) action buttons.
  *
  * A toned button re-sets the SAME control tokens that `button.secondary` reads
- * (--color-control-border-2 / --color-control-text-2) on its own element, so the
+ * (--control-border-strong-color / --control-text-muted-color) on its own element, so the
  * border + text — and the icon, via `currentColor` — take the tone color. We
  * re-set the tokens rather than out-cascade `button.secondary` (which is an
  * `element.class` selector, higher specificity than a bare module class), so
@@ -15,30 +15,30 @@
  */
 
 .success {
-  --color-control-border-2: var(--color-outcome-won-strong);
-  --color-control-text-2: var(--color-outcome-won-strong);
+  --control-border-strong-color: var(--outcome-won-ink-color);
+  --control-text-muted-color: var(--outcome-won-ink-color);
 }
 
 .error {
-  --color-control-border-2: var(--color-sys-error-red);
-  --color-control-text-2: var(--color-sys-error-red);
+  --control-border-strong-color: var(--chrome-fault-color);
+  --control-text-muted-color: var(--chrome-fault-color);
 }
 
 /* ORANGE — important, not good or bad (Hint / Reveal). */
 .warning {
-  --color-control-border-2: var(--color-warning-strong);
-  --color-control-text-2: var(--color-warning-strong);
+  --control-border-strong-color: var(--outcome-warning-ink-color);
+  --control-text-muted-color: var(--outcome-warning-ink-color);
 }
 
 .info {
-  --color-control-border-2: var(--color-accent);
-  --color-control-text-2: var(--color-accent);
+  --control-border-strong-color: var(--chrome-action-color);
+  --control-text-muted-color: var(--chrome-action-color);
 }
 
 /* near (one-away) — the GOLD of the turn log's one-away bar, not warning's
  * orange: a near miss is a kind of result, not a caution (docs/ui.md → Feedback
  * pill). */
 .near {
-  --color-control-border-2: var(--color-outcome-near-strong);
-  --color-control-text-2: var(--color-outcome-near-strong);
+  --control-border-strong-color: var(--outcome-near-ink-color);
+  --control-text-muted-color: var(--outcome-near-ink-color);
 }

@@ -190,7 +190,7 @@ for six turns is a record, and a record is the one thing a finished game should
 keep showing.
 
 A **frame** is the other way to say it, and it is the one in use. Both are named
-(`.dimGameOver` / `.gameOverFrame`, `--dim-game-over` / `--color-game-over`) so
+(`.dimGameOver` / `.gameOverFrame`, `--mark-game-over-dim-color` / `--outcome-neutral-terminal-frame-color`) so
 the choice is one class either way, and each gets its own token even where a value
 matches a neighbor's, so game-over can move without dragging the history frame or
 the not-your-turn dim with it.
@@ -592,10 +592,10 @@ color**, and both channels we have already exist:
 
 | token | in the shared theme |
 |---|---|
-| `--color-history-viewer` | documented as *"a neutral amber, NOT an outcome color"* |
-| `--tile-attention` | a **translucent** warm-yellow overlay, composed as the first layer of `background` so it reads as *"itself, but lighter"* over any tile shade |
+| `--view-history-color` | documented as *"a neutral amber, NOT an outcome color"* |
+| `--mark-attention-tile-color` | a **translucent** warm-yellow overlay, composed as the first layer of `background` so it reads as *"itself, but lighter"* over any tile shade |
 
-`--tile-attention` deserves note: it is exactly the translucent wash this doc
+`--mark-attention-tile-color` deserves note: it is exactly the translucent wash this doc
 proposes as the answer to attention-versus-state, and it has been in the theme
 since scrabble needed it. The mechanism was solved before the vocabulary was.
 
@@ -632,7 +632,7 @@ added.
 
 **Orange and gold are different messages and must stay different colors.** "You
 can't do that" is a caution about an action; "you were one away" is a result. They
-shared one value until 2026-08-17 (`--color-outcome-near-strong` was orange, and
+shared one value until 2026-08-17 (`--outcome-near-ink-color` was orange, and
 the pill's `warning` and `near` tones both drew from it), which made connections'
 "You already tried that" and "One away!" indistinguishable in every place either
 appeared. Gold is the color the turn log's one-away bar already wore; the strong
@@ -716,7 +716,7 @@ Cross-cutting, not owned by any one game:
 
 | | departure |
 |---|---|
-| history viewer | DONE — the shared frame was yellow; it is now the blue `--color-history-viewer`, so yellow means only "attention" |
+| history viewer | DONE — the shared frame was yellow; it is now the blue `--view-history-color`, so yellow means only "attention" |
 | in-flight marks | was "missing in all but three games"; now shared (`.dimInFlight`) and worn by the four converted ones. Still absent everywhere else |
 | identity, transient | DONE — the inset ring is shared (`.peerRing`, `--peer-color` inline, `--peer-ring-gap` holding it clear of the selection border). connections wears it; crosswords' `.peerFrame` folds in when it converts |
 | the shared tile | see the next section — nine boards still roll their own |
@@ -768,7 +768,7 @@ The framework says border-width. The shared `.tile` says otherwise, in as many
 words:
 
 ```css
-.selected { --tile-bg: var(--tile-selected-bg); }   /* dark fill, light ink */
+.selected { --tile-bg-color: var(--tile-selected-bg); }   /* dark fill, light ink */
 ```
 
 with the comment: *"Selected fills the tile dark with light ink — the NYT 'I
@@ -932,7 +932,7 @@ contrast, ask what the ink is already carrying.**
 
 ### A state color that carries white ink has a floor, and it constrains the palette
 
-`--wordle-gray` could not be lightened past about `#959595` without dropping
+`--wordle-gray-fill-color` could not be lightened past about `#959595` without dropping
 white text under 3:1. That is a hard boundary on a purely aesthetic decision, and
 it is invisible until measured — so measure before choosing, not after.
 

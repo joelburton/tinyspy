@@ -19,10 +19,10 @@
 /* A USED mark — a red square-X. Lucide icons stroke with currentColor, so
  * `color` sets the glyph color. */
 .used {
-  color: var(--color-outcome-lost-strong);
+  color: var(--outcome-lost-ink-color);
 }
 
 /* An OPEN slot — a dashed square in black. */
 .open {
-  color: var(--color-text);
+  color: var(--page-text-color);
 }

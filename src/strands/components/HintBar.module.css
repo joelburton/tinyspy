@@ -18,14 +18,14 @@
    * a disabled smear. Without it the zero state is a pale rectangle on a pale
    * page, which looks switched off exactly when it most needs to say "keep
    * finding words". */
-  border: 1px solid var(--color-divider);
+  border: 1px solid var(--page-divider-color);
   box-sizing: border-box;
-  /* Deliberately lighter than --color-divider: at zero points the track IS the
+  /* Deliberately lighter than --page-divider-color: at zero points the track IS the
    * whole bar, and a dark empty track reads as a FULL one — exactly backwards
-   * for the signal this control exists to give. `--color-surface-hover` is the
+   * for the signal this control exists to give. `--page-surface-hover-color` is the
    * palette's existing light-grey fill; a `var(--x, #fallback)` would be a
    * phantom token (src/cssTokens.test.ts flags those). */
-  background: var(--color-surface-hover);
+  background: var(--page-surface-hover-color);
   overflow: hidden;
 }
 
@@ -36,7 +36,7 @@
  * point on this bar, so the pill and the bar now agree. */
 .fill {
   height: 100%;
-  background: var(--color-outcome-won-border);
+  background: var(--outcome-won-fill-color);
   transition: width 180ms ease-out;
 }
 
@@ -45,7 +45,7 @@
  * visually distinct rather than merely 100% wide — a deeper green, still within
  * the same "this is going well" vocabulary. */
 .fillFull {
-  background: var(--color-outcome-won-strong);
+  background: var(--outcome-won-ink-color);
 }
 
 /* ── The Hint button's two states ─────────────────────────────
@@ -56,7 +56,7 @@
  *
  * So the two states are made to differ in KIND, not just in strength: unusable
  * stays an outline, and ready flips to a filled orange with white text. The
- * colour is the same `--color-warning-strong` the button already used for
+ * colour is the same `--outcome-warning-ink-color` the button already used for
  * its border, so this is the existing orange turned up, not a new hue.
  */
 
@@ -70,14 +70,14 @@
  * this is (0,2,0) and beats theme.css's `button.secondary` (0,1,1) without an
  * !important. */
 .hintReady:not(:disabled) {
-  background: var(--color-warning-strong);
-  border-color: var(--color-warning-strong);
+  background: var(--outcome-warning-ink-color);
+  border-color: var(--outcome-warning-ink-color);
   /* The Lucide glyph strokes with currentColor, so this whitens the icon too. */
-  color: var(--color-surface);
+  color: var(--page-surface-color);
 }
 
 .hintReady:not(:disabled):hover {
   /* Darker on hover — a filled button can't use the outline's
    * fill-on-hover, since it is already filled. */
-  background: color-mix(in oklab, var(--color-warning-strong) 85%, black);
+  background: color-mix(in oklab, var(--outcome-warning-ink-color) 85%, black);
 }

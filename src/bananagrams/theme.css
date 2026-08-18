@@ -3,7 +3,7 @@
  *
  * Mirrors the other games' per-game theme files. bananagrams's bespoke
  * surface is the cream letter tile; the rest piggybacks on common/theme.css
- * (the keyboard cursor now uses the shared --grid-cursor).
+ * (the keyboard cursor now uses the shared --mark-grid-cursor-color).
  */
 
 :root {
@@ -11,7 +11,7 @@
   --bananagrams-tile-edge: #cdb887;
   --bananagrams-tile-ink: #4a3b22;
   /* The game's blue ACCENT — zoom slider, icons, dump-armed state, done button.
-     (The keyboard-entry cursor moved to the shared --grid-cursor.) */
+     (The keyboard-entry cursor moved to the shared --mark-grid-cursor-color.) */
   --bananagrams-cursor: #4aa3ff;
   --bananagrams-error: #d84a4a; /* the in-game error red (hand-miss flash) */
   --bananagrams-grid-edge: #8893a3; /* thick outer border = the real edge of the arena */

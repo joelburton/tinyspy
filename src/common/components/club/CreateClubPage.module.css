@@ -34,7 +34,7 @@
 .handleHint {
   font-size: 0.8rem;
   font-weight: 400;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* Multi-line members input — vertical resize only (horizontal resize

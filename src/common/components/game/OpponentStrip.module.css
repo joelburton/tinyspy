@@ -9,7 +9,7 @@
   flex-direction: column;
   gap: 0.25rem;
   margin: 0.25rem 0;
-  color: var(--color-text);
+  color: var(--page-text-color);
   font-size: 0.85rem;
 }
 
@@ -39,7 +39,7 @@
 /* The metric label — names what the per-player numbers mean ("Found", "Score").
  * Full text color + bold so it reads as the category the entries fall under. */
 .metricLabel {
-  color: var(--color-text);
+  color: var(--page-text-color);
   font-weight: 700;
 }
 
@@ -52,7 +52,7 @@
  * so it's full text color AND bold, the prominent value each entry leads to. The
  * `·`-gap before it (the entry's flex gap) is the space after the name's colon. */
 .metric {
-  color: var(--color-text);
+  color: var(--page-text-color);
   font-weight: 700;
 }
 

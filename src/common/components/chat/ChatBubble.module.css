@@ -12,7 +12,7 @@
   padding: 0.3rem;
   margin: 0;
   cursor: pointer;
-  color: var(--color-text);
+  color: var(--page-text-color);
 
   /* Anchor for the unread count pill. */
   position: relative;
@@ -26,7 +26,7 @@
 }
 
 .bubble:hover {
-  background: var(--color-surface-border);
+  background: var(--page-surface-border-color);
 }
 
 /* Unread count, top-left. Black (NOT red — red is a valid player
@@ -43,7 +43,7 @@
   padding: 0 0.25rem;
   box-sizing: border-box;
   border-radius: 999px;
-  background: var(--color-text);
+  background: var(--page-text-color);
   color: #fff;
   font-size: 0.7rem;
   font-weight: 700;

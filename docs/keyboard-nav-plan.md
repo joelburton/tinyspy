@@ -81,11 +81,11 @@ channels applied to a fourth question ("where am I?").
 Four consequences of that table:
 
 - **The look already exists.** `HomePage.module.css` draws the list cursor as
-  `outline: 2px solid var(--color-accent)` inset — so the app already teaches
+  `outline: 2px solid var(--chrome-action-color)` inset — so the app already teaches
   "thin blue ring = where the keyboard is pointing", and the boards should adopt it
   rather than invent one. It gets **its own token** initialised to the accent, so
   the meaning has one value app-wide and can move away from
-  `--color-member-blue` (currently the same hex) without touching a call site.
+  `--member-blue-dot-color` (currently the same hex) without touching a call site.
 - **Cursor and selection compose** — width says "in my move", colour says "I am
   here", and neither needs to know about the other. A selected-and-cursored tile
   is a thick blue edge, which is what we want and not a special case.

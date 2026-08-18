@@ -74,7 +74,7 @@
 
 .guessCount {
   font-size: 1.1rem;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 .guessCount strong {
@@ -83,12 +83,12 @@
 }
 
 .guessCountOf {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 .letterStat {
   font-size: 0.95rem;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 /* Terminal reveal — the longest possible word. NO card: it's critical
@@ -103,14 +103,14 @@
 .revealLabel {
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 .revealWord {
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.04em;
-  color: var(--color-text);
+  color: var(--page-text-color);
   overflow-wrap: anywhere;
   /* A click-to-define button styled as the bare word (button reset), aligned
    * left under the label; the hover underline is the clickability affordance,
@@ -133,5 +133,5 @@
 .empty {
   padding: 2rem;
   text-align: center;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }

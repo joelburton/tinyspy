@@ -85,7 +85,7 @@
 .loading,
 .empty {
   padding: 2rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* The reserved height lives on the shared `.moveAreaOrLocalFeedback` this
@@ -127,7 +127,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 .statValue {
   font-size: 1.5rem;
@@ -138,7 +138,7 @@
 .statOf {
   font-size: 0.9rem;
   font-weight: 500;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* A titled block in the info column — today only the revealed solution wears
@@ -156,7 +156,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 /* The chain strip, ABOVE the board.
@@ -232,14 +232,14 @@
   min-height: 2.1rem;
   margin: -0.35rem 0;
   border-radius: 999px;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 .chainRemove:hover,
 .chainRemove:focus-visible {
-  background: var(--color-control-bg);
+  background: var(--control-bg-color);
 }
 .chainEmpty {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   align-self: center;
 }
 
@@ -261,7 +261,7 @@
 /* ── Turn log ──────────────────────────────────────────────
  * Rows compose the shared <TurnLog> table; only the move text is ours.
  *
- * BOTH kinds render at full --color-text. An earlier version muted the
+ * BOTH kinds render at full --page-text-color. An earlier version muted the
  * retreats, which broke the standing rule that real values keep full text
  * colour — a taken-back word is a real move (in turn-by-turn co-op it costs
  * the undoer their go), and the log's whole job is to be readable. Italics

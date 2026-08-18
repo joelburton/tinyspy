@@ -45,7 +45,7 @@ const PREMIUM_STYLE: Record<PremiumType, { label: string; fill: [number, number,
   none: { label: '', fill: [243, 239, 230] }, // plain (unused — 'none' cells stay white)
 }
 
-// The placed-tile fill = common theme's `--tile-1` (#faf7ef), the lightest resting tile.
+// The placed-tile fill = common theme's `--tile-1-color` (#faf7ef), the lightest resting tile.
 const TILE_FILL: [number, number, number] = [250, 247, 239]
 // Tile glyph proportions matched to the on-screen board (Board.module.css:
 // .letter = 58cqmin, .value = 36cqmin), so the value reads small next to the letter.

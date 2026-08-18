@@ -6,7 +6,7 @@
  * on the chopping block post-beta), and its palette currently
  * piggybacks entirely on common/theme.css: the guess-outcome
  * left-border strip uses `--color-outcome-{won,lost,near}-
- * border`, the placeholder text uses `--color-muted`, the
+ * border`, the placeholder text uses `--page-text-muted-color`, the
  * surface tokens come from the global palette, and the board's
  * marks are the shared ones (docs/tile-feedback.md). Nothing
  * here — the file exists for structural parity with

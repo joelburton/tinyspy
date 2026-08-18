@@ -16,7 +16,7 @@
   /* No fill — the tiles (each with its own shade + shadow) sit on the page; an
      evident border defines the board area (same 2px frame as the turn-log / word-
      list boxes). */
-  border: 2px solid var(--color-divider);
+  border: 2px solid var(--page-divider-color);
   border-radius: var(--radius-lg);
 }
 
@@ -56,9 +56,9 @@
  * the candidates. The red ring (box-shadow) is the always-visible signal;
  * the red border is a bonus (hover may recolor it, but the ring stays). */
 .flash {
-  border-color: var(--color-outcome-lost-strong);
+  border-color: var(--outcome-lost-ink-color);
   box-shadow:
-    0 0 0 0.5cqi var(--color-outcome-lost-strong),
+    0 0 0 0.5cqi var(--outcome-lost-ink-color),
     0 0.4cqi 0.8cqi rgba(0, 0, 0, 0.28);
 }
 
@@ -69,9 +69,9 @@
  * tiles stay ON the board in the snapshot (the strictly-before boundary), so
  * the ring is always visible. */
 .viewed {
-  border-color: var(--color-outcome-won-strong);
+  border-color: var(--outcome-won-ink-color);
   box-shadow:
-    0 0 0 0.5cqi var(--color-outcome-won-strong),
+    0 0 0 0.5cqi var(--outcome-won-ink-color),
     0 0.4cqi 0.8cqi rgba(0, 0, 0, 0.28);
 }
 
@@ -82,5 +82,5 @@
 }
 
 .tile:not(:disabled):hover {
-  border-color: var(--color-accent);
+  border-color: var(--chrome-action-color);
 }

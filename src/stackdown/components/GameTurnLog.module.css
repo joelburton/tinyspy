@@ -12,13 +12,13 @@
  * "rejected" signal). */
 .invalidWord {
   text-decoration: line-through;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* The "not a word" tag on an invalid attempt. */
 .tag {
   font-size: 0.75rem;
-  color: var(--color-outcome-lost-strong);
+  color: var(--outcome-lost-ink-color);
 }
 
 /* A logged cheat request row ("Hint: <clue>" / "Spoiler: <WORD>"). Normal
@@ -26,5 +26,5 @@
  * error, so it reads plainly (the amber outcome bar already marks it as a cheat
  * request). */
 .request {
-  color: var(--color-text);
+  color: var(--page-text-color);
 }

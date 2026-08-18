@@ -159,9 +159,9 @@
  * route reads at a glance and lifts off the neighbouring tiles. Overrides the
  * resting `.tile` fill/text (placed after it, equal specificity). */
 .selected {
-  background: var(--color-accent);
+  background: var(--chrome-action-color);
   color: #fff;
-  box-shadow: 0 0 0 2px var(--color-accent);
+  box-shadow: 0 0 0 2px var(--chrome-action-color);
 }
 
 /* The below-board REGION (universal). Board-matched width (a long typed word
@@ -184,5 +184,5 @@
 
 .loading {
   padding: 2rem;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }

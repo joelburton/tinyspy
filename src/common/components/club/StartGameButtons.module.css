@@ -31,9 +31,9 @@
 .button {
   background: transparent;
   border: none;
-  border-bottom: 1px solid var(--color-control-border);
+  border-bottom: 1px solid var(--control-border-color);
   border-radius: 0;
-  color: var(--color-text);
+  color: var(--page-text-color);
   /* The row owns ALL the list's padding — its frame (ClubPage's .startList)
    * has none, so this is what holds the first row off the top border by
    * exactly the half-gap every other row is held off its neighbour by.
@@ -73,11 +73,11 @@
 /* Hover: the row tints. The old card lit its BORDER to the accent, which a
  * row with only a bottom rule can't do (lighting just the underline reads as
  * highlighting the row below). A background tint is the list idiom, and it's
- * the same `--color-surface-hover` the club's other hoverable surfaces use.
+ * the same `--page-surface-hover-color` the club's other hoverable surfaces use.
  * Still no accent FILL — the global button:hover would paint this blue, and
  * these stay quiet until pressed. */
 .button:hover:not(:disabled) {
-  background: var(--color-surface-hover);
+  background: var(--page-surface-hover-color);
 }
 
 /* NO focus style here, deliberately. These buttons are not a keyboard
@@ -111,7 +111,7 @@
 .title {
   font-weight: 600;
   font-size: 1rem;
-  color: var(--color-text);
+  color: var(--page-text-color);
   line-height: 1.2;
 }
 
@@ -119,7 +119,7 @@
  * Muted color so the prominent first line stays the visual
  * anchor of each row. */
 .meta {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   font-size: 0.85rem;
   line-height: 1.25;
 }
@@ -128,6 +128,6 @@
  * Enter would press (the LIST container holds the actual focus). Accent
  * ring inset so it doesn't clip against the scrolled frame's edges. */
 .kbCursor {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--chrome-action-color);
   outline-offset: -2px;
 }

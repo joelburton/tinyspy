@@ -32,9 +32,9 @@
    * saying where the board began or ended — the other grid games get that for
    * free from their tile boxes, and strands, having none, has to say it once
    * at the edge. */
-  border: 2px solid var(--color-divider);
+  border: 2px solid var(--page-divider-color);
   border-radius: var(--radius-lg);
-  background: var(--color-surface);
+  background: var(--page-surface-color);
   box-sizing: content-box;
   /* Letters scale off the BOARD, not the page (Board.module.css .tile). */
   container-type: inline-size;
@@ -120,7 +120,7 @@
  * the past", distinct from every gameplay colour. */
 .discViewed {
   fill: none;
-  stroke: var(--color-outcome-active-strong);
+  stroke: var(--strands-viewed-ring-color);
   stroke-width: 0.1;
 }
 
@@ -131,7 +131,7 @@
  * the column's flash timer (~1s). */
 .discAmbiguous {
   fill: none;
-  stroke: var(--color-sys-error-red);
+  stroke: var(--chrome-fault-color);
   stroke-width: 0.1;
 }
 
@@ -172,7 +172,7 @@
    * width puts a letter at roughly half a cell — the cell is 1/6 of the width,
    * so this reads as a full-size letter rather than a label. */
   font-size: clamp(1rem, 9cqw, 2.75rem);
-  color: var(--color-text);
+  color: var(--page-text-color);
   cursor: pointer;
   user-select: none;
   line-height: 1;
@@ -214,7 +214,7 @@
 /* A hinted-but-unfound letter keeps normal text colour — the ring around it is
  * the signal, and recolouring the letter would imply it was already found. */
 .tileHinted {
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 .tileLast {

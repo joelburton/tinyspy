@@ -19,7 +19,7 @@
 .label {
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 /* The dark vertical rule between groups. Sized off the button box so it spans
@@ -27,7 +27,7 @@
 .rule {
   width: 1px;
   height: var(--icon-button-size);
-  background: var(--color-text);
+  background: var(--page-text-color);
   /* Its own breathing room, so the rule doesn't crowd the squares. */
   margin: 0 0.35rem;
 }
@@ -42,14 +42,14 @@
   font: inherit;
   font-size: 0.9rem;
   line-height: 1;
-  background: var(--color-control-bg);
-  color: var(--color-text);
-  border: 1px solid var(--color-control-border);
+  background: var(--control-bg-color);
+  color: var(--page-text-color);
+  border: 1px solid var(--control-border-color);
   border-radius: 6px;
   cursor: pointer;
 }
 .btn:hover:not(:disabled) {
-  background: var(--color-surface-hover);
+  background: var(--page-surface-hover-color);
 }
 .btn:disabled {
   opacity: 0.5;

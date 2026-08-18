@@ -25,7 +25,7 @@
  * walk every consumer.
  */
 :root {
-  --wordwheel-tile:          var(--tile-2); /* the shared warm ramp */
+  --wordwheel-tile:          var(--tile-2-color); /* the shared warm ramp */
   --wordwheel-tile-text:     #1a1a1a;
 
   /* Moderately-saturated red — the centre tile. */
@@ -39,8 +39,8 @@
 
   /* Shared-component token: the common <RankBar> / <Stats> read this generic
    * name so one copy serves both hive-family games. Only the TEXT color is
-   * per-game now — the ladder's own fill + edge are shared (`--rank-fill` /
-   * `--rank-edge` in common/theme.css). wordwheel's red stays the WHEEL's
+   * per-game now — the ladder's own fill + edge are shared (`--rank-bar-fill-color` /
+   * `--rank-bar-edge-color` in common/theme.css). wordwheel's red stays the WHEEL's
    * accent; the ladder is yellow in both games on purpose. */
   --rank-text:               var(--wordwheel-tile-text);
 }

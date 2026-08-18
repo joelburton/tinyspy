@@ -4,9 +4,9 @@
  * is just the card. */
 .toast {
   position: relative;
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
-  border-left: 4px solid var(--stripe, var(--color-accent));
+  background: var(--page-surface-color);
+  border: 1px solid var(--page-surface-border-color);
+  border-left: 4px solid var(--stripe, var(--chrome-action-color));
   border-radius: var(--radius-md);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   padding: 0.9rem 1rem;
@@ -18,19 +18,19 @@
 /* Tone drives ONLY the left stripe color (cosmetic — the message text carries
    the meaning). */
 .info {
-  --stripe: var(--color-accent);
+  --stripe: var(--chrome-action-color);
 }
 .success {
-  --stripe: var(--color-outcome-won-strong);
+  --stripe: var(--outcome-won-ink-color);
 }
 .error {
-  --stripe: var(--color-sys-error-red);
+  --stripe: var(--chrome-fault-color);
 }
 
 .message {
   margin: 0;
   padding-right: 1.25rem; /* clear the close button */
-  color: var(--color-text);
+  color: var(--page-text-color);
   line-height: 1.35;
 }
 
@@ -44,12 +44,12 @@
   right: 0.4rem;
   background: transparent;
   border: none;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   font-size: 1.2rem;
   line-height: 1;
   padding: 0.15rem 0.35rem;
   cursor: pointer;
 }
 .close:hover {
-  color: var(--color-text);
+  color: var(--page-text-color);
 }

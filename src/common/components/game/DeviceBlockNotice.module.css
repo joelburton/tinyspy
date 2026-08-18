@@ -20,8 +20,8 @@
   gap: 1rem;
   text-align: center;
   padding: 2rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  background: var(--page-surface-color);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-lg);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
@@ -35,5 +35,5 @@
 .body {
   margin: 0;
   line-height: 1.5;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }

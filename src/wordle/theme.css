@@ -1,7 +1,7 @@
 /*
  * wordle (codename `wordle`) theme tokens. The per-letter feedback palette
  * (the classic Wordle green/yellow/gray + the neutral blank) is now the shared
- * "Wordle colors" in common/theme.css (`--wordle-green/yellow/gray/blank`) —
+ * "Wordle colors" in common/theme.css (`--wordle-green-fill-color/yellow/gray/blank`) —
  * waffle uses the same palette. Only wordle's own board/keyboard CHROME stays
  * here. Imported by the PlayArea.
  */
@@ -11,9 +11,9 @@
   /* The key cap is LIGHTER than the blank tile surface, and deliberately not the
      same token: a key is a control you press, a blank tile is empty space. It
      also has to be light enough for the hover drop-shadow to read against — at
-     the old `--wordle-blank` (#d3d6da) a grey shadow on a grey cap was invisible.
-     The cap's edge comes from `--kbd-key-border` (GuessKeyboard.module.css). */
+     the old `--wordle-blank-fill-color` (#d3d6da) a grey shadow on a grey cap was invisible.
+     The cap's edge comes from `--kbd-key-edge-color` (GuessKeyboard.module.css). */
   --wordle-key-bg: #eeeeee;
-  --wordle-tile-border: var(--wordle-blank);
+  --wordle-tile-border: var(--wordle-blank-fill-color);
   --wordle-tile-border-filled: #878a8c;
 }

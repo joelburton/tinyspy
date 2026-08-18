@@ -5,13 +5,13 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   line-height: 1.55;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 .status {
   margin: 0;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 .error {
   margin: 0;
-  color: var(--color-sys-error-red);
+  color: var(--chrome-fault-color);
 }

@@ -65,7 +65,7 @@ describe('computeUnread', () => {
   it('falls back to muted when the sender is no longer in the roster', () => {
     const messages = [msg('ghost', '2026-01-01T00:00:01Z')]
     expect(computeUnread(messages, null, 'alice', members).color).toBe(
-      'var(--color-muted)',
+      'var(--page-text-muted-color)',
     )
   })
 })

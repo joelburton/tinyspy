@@ -25,37 +25,37 @@
   /* Surface palette — light theme. The page is off-white so pure-
      white cards have a subtle ground; borders are a pale gray
      just visible against the bg. */
-  --color-bg:                 #fafafa;
-  --color-surface:            #ffffff;
-  --color-surface-border:     #e2e2e2;
-  --color-surface-hover:      #f0f0f0;
+  --page-bg-color:                 #fafafa;
+  --page-surface-color:            #ffffff;
+  --page-surface-border-color:     #e2e2e2;
+  --page-surface-hover-color:      #f0f0f0;
 
   /* Form control palette. Inputs sit on white with a soft gray
      border; secondary buttons use a slightly stronger border so
      they read as bordered rather than ghost-y. */
-  --color-control-bg:         #ffffff;
-  --color-control-border:     #cfcfcf;
-  --color-control-border-2:   #b0b0b0;
-  --color-control-text-2:     #555;
+  --control-bg-color:         #ffffff;
+  --control-border-color:     #cfcfcf;
+  --control-border-strong-color:   #b0b0b0;
+  --control-text-muted-color:     #555;
 
   /* Text palette. Near-black for body, medium gray for muted,
      darker gray for dividers (which sit on the bg, not on cards). */
-  --color-text:               #1a1a1a;
-  --color-muted:              #6b6b6b;
-  --color-divider:            #8a8a8a;
+  --page-text-color:               #1a1a1a;
+  --page-text-muted-color:              #6b6b6b;
+  --page-divider-color:            #8a8a8a;
   /* System-error red — validation failures, RPC/API errors, and destructive
      actions (delete buttons). Deliberately DARKER + COOLER (a deep crimson) than
-     --color-outcome-lost-strong (#c62828) so a *system failure* or a *destructive
+     --outcome-lost-ink-color (#c62828) so a *system failure* or a *destructive
      action* never reads the same as a *game loss*. The two reds are intentionally
      distinct — do NOT "de-dup" them. The literal "red" is in the name on purpose:
      we colloquially call bad game moves "errors" too, so `sys-error` disambiguates,
      and error UI is canonically-and-permanently red. */
-  --color-sys-error-red:      #8e1b2e;
+  --chrome-fault-color:      #8e1b2e;
 
   /* Accent — links, primary buttons, focus outlines. Material
      Blue 700; white-on-this passes AA contrast for button labels. */
-  --color-accent:             #1976d2;
-  --color-accent-hover:       #1565c0;
+  --chrome-action-color:             #1976d2;
+  --chrome-action-primary-hover-color:       #1565c0;
 
   /* History-view marker — the "you're viewing a past turn, not the live board"
      signal shared by every turn-history-capable game (drives the board frame, the
@@ -72,18 +72,18 @@
      success, so green would mislead — and not the amber it used to be, because
      amber now means "attention" and history is the one mark you asked for
      yourself. Muted rather than the accent blue, which belongs to controls. */
-  --color-history-viewer:     #4a7bab;
+  --view-history-color:     #4a7bab;
 
   /* ATTENTION, at BOARD scope — the solid yellow a board frame flashes with when
      something you need to see happens to the whole surface (today: your turn just
      started). Yellow reads the same at both scopes, which is what makes it
      learnable: a tile flashing yellow says "this changed", a board frame flashing
      yellow says "your turn started" — both are news. The tile-scope companion is
-     `--tile-attention` below, which is TRANSLUCENT because it washes over a tile
+     `--mark-attention-tile-color` below, which is TRANSLUCENT because it washes over a tile
      that already carries a state color; a board frame has nothing to preserve, so
-     this one is solid. Same hex as `--color-share-preview` today and deliberately
+     this one is solid. Same hex as `--view-share-preview-color` today and deliberately
      its own name: either can move without the other. See docs/tile-feedback.md. */
-  --color-attention:          #ffd21a;
+  --mark-attention-board-color:          #ffd21a;
 
   /* Share-preview marker — the frame + banner color when a coop teammate is
      "showing a move" (scrabble). Deliberately its OWN token (initialized to the
@@ -92,90 +92,88 @@
      move" apart from "I'm reviewing a past turn". Feeds the same shared
      historyViewer `.frame` / `.banner`, via the `--viewer-accent` override on
      scrabble's `.sharePreview` wrapper. */
-  --color-share-preview:      #ffd21a;
+  --view-share-preview-color:      #ffd21a;
 
   /* Outcome palette — used wherever a game's outcome state needs
-     to be summarized visually (calendar date squares, future
-     ClubPage outcome chips, stats badges, etc.). Soft pastel
-     fills so dark text reads against them; `*-border` is a
-     darker companion for focused / hovered states. The mapping
-     from per-gametype play_state to outcome bucket is each
-     game's own responsibility.
+  /* ── OUTCOME ──────────────────────────────────────────────────────────────
+     How a move or a game went. Five families — won · lost · near · warning ·
+     neutral — and each carries the same variants, so a game never has to invent
+     one:
 
-     Five matched `-bg` / `-border` pairs form a deliberate
-     vocabulary (won / lost / active / near / current). A few of
-     the `-bg` tokens are unused today — the current chrome leans
-     on the `-border` left-strip pattern (see TurnLog) and
-     the corner-flag triangle (see ClubGameCard) rather than full
-     pastel fills. Kept anyway so the vocabulary stays complete:
-     a reader who sees `-border` should reasonably expect its
-     `-bg` companion to exist. We'll re-audit once all the
-     planned games have landed; see docs/deferred.md. */
-  --color-outcome-won-bg:     #c8e6c9;   /* green 100 */
-  --color-outcome-won-border: #66bb6a;   /* green 400 */
-  --color-outcome-lost-bg:    #ffcdd2;   /* red 100 */
-  --color-outcome-lost-border:#ef5350;   /* red 400 */
-  /* "Strong" companions — saturated 800-level green/red for when the outcome
-     color carries a border/text on the white surface with NO pastel fill
-     behind it (the outline GenericFeedbackPill). The 400-level `-border` tones above
-     read fine as a strip ON a pastel `-bg`, but look pale as a bare 2px
-     outline; these are the legible-on-surface tier (same reasoning as the
-     ModePill 800-level chip tones below). */
-  --color-outcome-won-strong: #2e7d32;   /* green 800 */
-  --color-outcome-lost-strong:#c62828;   /* red 800 */
-  --color-outcome-near-strong:#f9a825;   /* yellow 800 — GOLD, the legible-on-
-                                            white companion to near-border's
-                                            gold. "Near" is a near MISS, which is
-                                            its own kind of result and not a
-                                            warning: it earns the turn log's gold
-                                            everywhere it appears, and orange
-                                            (below) is what warnings get. The two
-                                            shared one value until 2026-08-17,
-                                            which made "one away" and "you
-                                            already tried that" the same color in
-                                            every place either of them showed. */
-  --color-outcome-active-bg:  #fff9c4;   /* yellow 100 */
-  --color-outcome-active-border: #fdd835; /* yellow 600 */
-  /* "Near miss" — a partial-credit signal distinct from active-
-     yellow. For any "you were close" row state in a guess
-     history: the turn log's one-away bar is this, and it is the
-     gold the rest of the near family is tuned to.
-     (There was a `-bg` here too, documented as backing
-     connections's one-away commit flash — which actually uses
-     `-border` + `-strong`. Nothing read it; it's gone.) */
-  --color-outcome-near-border: #ffb74d;  /* amber 300 — gold */
-  /* WARNING — orange, and NOT an outcome: "you cannot do that",
-     "that costs you something", "a hint was asked for". It sat
-     inside the near family until 2026-08-17 and pulled one-away
-     orange with it; it has its own name now because the two
-     answer different questions. `-strong` is the legible-on-white
-     tier (a pill border, a button's text + edge); `-border` is
-     the 400-level companion for a fill or a tint. */
-  --color-warning-strong:      #ef6c00;  /* orange 800 */
-  --color-warning-border:      #ffa726;  /* orange 400 */
-  /* "Current" — the now-playing / join-this-one signal. Used by
-     ClubGameCard's active-game corner flag (a saturated orange,
-     deliberately more forceful than the suspended-yellow flag
-     so a glance reads "the current game" before "still open
-     ones"). */
-  --color-outcome-current-border: #fb8c00;  /* orange 600 */
+       -ink    text, and thin lines on a light ground: a pill's border, a verdict
+               word, an outline ring. Must stay recognisably ITS colour when thin.
+       -fill   filling a piece: a verdict tile, a turn-log outcome bar. The tier a
+               player meets most often.
+       -edge   the border on a piece wearing -fill. Quiet definition, not a ring.
+       -wash   a pill's background, and anywhere wanting a much lighter version.
+       -terminal-frame   the band around a board that is no longer a live
+               position. A big area, so it must read as a band without shouting
+               the outcome at full saturation.
 
-  /* ── Vocabulary completeness ──────────────────────────────────────────────
-     Every outcome carries the full bg / border / strong trio, even where a tier
-     has no consumer YET. This is deliberate (like the --tile-* ramp): a complete,
-     predictable grid tells the next contributor "there's already a color for
-     active / current / neutral — use it" instead of minting a new one. Do NOT
-     treat these as dead CSS in a sweep. */
-  --color-outcome-active-strong:  #f9a825;  /* gold 800 — the legible-on-white active tone */
-  --color-outcome-current-bg:     #ffcc80;  /* orange 200 */
-  --color-outcome-current-strong: #e65100;  /* orange 900 */
-  /* Neutral = a non-result (a turn that was neither good nor bad). Its OWN gray
-     ramp — NOT an alias of --color-surface-border: an outcome color must not ride
-     on a chrome token (a surface tweak shouldn't recolor outcomes). Same value is
-     fine, but the token stands on its own. */
-  --color-outcome-neutral-bg:     #f5f5f5;  /* gray 100 */
-  --color-outcome-neutral-border: #bdbdbd;  /* gray 400 */
-  --color-outcome-neutral-strong: #616161;  /* gray 700 */
+     Role names rather than lightness names, because a dark theme would make
+     "pale" the darkest thing on screen. Every cell is filled even where nothing
+     reads it yet: a family picked all at once is picked by one formula, where a
+     colour chosen alone in two years would be reasoned about differently. Unused
+     cells are RESERVED — do not delete them as dead CSS.
+
+     The mapping from a per-gametype play_state to an outcome family is each
+     game's own responsibility. See docs/colors-refinement.md. */
+  --outcome-won-ink-color:            #2e7d32;  /* green 800 */
+  --outcome-won-fill-color:           #66bb6a;  /* green 400 */
+  --outcome-won-wash-color:           #c8e6c9;  /* green 100 */
+
+  --outcome-lost-ink-color:           #c62828;  /* red 800 */
+  --outcome-lost-fill-color:          #ef5350;  /* red 400 */
+  --outcome-lost-wash-color:          #ffcdd2;  /* red 100 */
+
+  /* NEAR — a near miss: "you were close". GOLD, and deliberately not warning's
+     orange below: a near miss is a kind of RESULT where a warning is a caution
+     about an action. The two shared one value until 2026-08-17, which made
+     connections' "one away" and "you already tried that" the same colour in every
+     place either of them showed. The fill is the gold the turn log's one-away bar
+     already wears, and the family is tuned to it. */
+  --outcome-near-ink-color:           #f9a825;  /* yellow 800 — gold */
+  --outcome-near-fill-color:          #ffb74d;  /* amber 300 — gold */
+
+  /* WARNING — "you cannot do that", "you already tried that", "that costs you
+     something". The one family named for a tone of voice rather than a result,
+     which is exactly why chrome kept borrowing it; chrome has its own orange now
+     (--chrome-caution-color) and the two are free to move apart. */
+  --outcome-warning-ink-color:        #ef6c00;  /* orange 800 */
+  --outcome-warning-fill-color:       #ffa726;  /* orange 400 */
+
+  /* NEUTRAL — a non-result: a move nobody can adjudicate, a game the friends
+     agreed to stop. Its OWN gray ramp, NOT an alias of a chrome token — a surface
+     tweak must not recolour outcomes. The same value would be fine; the token
+     standing on its own is the point. */
+  --outcome-neutral-ink-color:        #616161;  /* gray 700 */
+  --outcome-neutral-fill-color:       #bdbdbd;  /* gray 400 */
+  --outcome-neutral-wash-color:       #f5f5f5;  /* gray 100 */
+
+  /* ── GAMELIST ─────────────────────────────────────────────────────────────
+     The state of a game as an object in a LIST — the club page's cards and the
+     crossword picker's stripes, which are the same vocabulary and should say so.
+     Single values, no variants: these are 4px stripes and corner triangles.
+
+     `suspended` and `current` are states.md's words, not ours. It defines current
+     ("at least one club member is viewing its GamePage right now", at most one per
+     club, backed by is_current_view) and suspended ("a non-current, non-terminal
+     game"), and it explicitly forbids 'active' for the view-state/play-state
+     overload these tokens used to commit. */
+  --gamelist-won-color:               var(--outcome-won-fill-color);
+  --gamelist-lost-color:              var(--outcome-lost-fill-color);
+  /* No `--gamelist-neutral-color` yet, deliberately: the reserve-every-cell policy
+     is for OUTCOMES, and nothing lists a manually-ended game as its own state —
+     the crossword picker currently folds "ended manually" into the suspended
+     stripe. It gets minted when crosswords converts and that fold is unpicked. */
+  --gamelist-suspended-color:         #fdd835;  /* yellow 600 */
+  --gamelist-current-color:           #fb8c00;  /* orange 600 */
+  /* Nobody here has played this puzzle. A COPY of the neutral wash rather than an
+     alias: a 4px stripe on a long list wants its own lightness, and "no outcome"
+     is a different statement from "a neutral outcome" — they agree today by
+     coincidence. Near-white on purpose, since most of a library is unplayed and a
+     mid-gray stripe on every row would be noise competing with the real colours. */
+  --gamelist-unplayed-color:          #f5f5f5;  /* gray 100 */
 
   /* Game-mode pills — "Co-op" vs "Compete", shown next to a
      gametype's name in start buttons / the games list / the club
@@ -185,15 +183,15 @@
      orange) so a mode pill never reads as a result: co-op = teal
      (collaborative), compete = purple (rivalry). Dark 800-level tones
      so they stay legible as text + border on the surface. */
-  --color-mode-coop-text:    #00695c;   /* teal 800 */
-  --color-mode-compete-text: #6a1b9a;   /* purple 800 */
+  --gamemode-coop-ink-color:    #00695c;   /* teal 800 */
+  --gamemode-compete-ink-color: #6a1b9a;   /* purple 800 */
 
   /* Per-member identity palette — one token per name in
      common.profiles.color. The DB stores a NAME (not a hex),
      and the FE resolves it via the colorVarFor helper to one of
      these tokens. Why a name? It lets a future dark theme map
      the same "blue" to a different shade without rewriting any
-     consumer (the FE references `var(--color-member-${name})`,
+     consumer (the FE references `var(--member-${name}-dot-color)`,
      and the theme owns the value).
 
      Values are mid-tones — saturated enough to read as small
@@ -212,22 +210,22 @@
      of drifting olive the way HSL darkening does. Seeded
      algorithmically (scripted, one-off); hand-tune freely, and when a
      dark theme lands the borders flip LIGHTER than the fills. */
-  --color-member-red:            #d32f2f;
-  --color-member-red-border:     #b30115;
-  --color-member-orange:         #ff9800;
-  --color-member-orange-border:  #a25f01;
-  --color-member-yellow: #ffe05a;
-  --color-member-yellow-border:  #867004;
-  --color-member-green:          #388e3c;
-  --color-member-green-border:   #1b5e20;
-  --color-member-brown: #735349;
-  --color-member-brown-border:   #593a2f;
-  --color-member-blue:           #1976d2;
-  --color-member-blue-border:    #035dad;
-  --color-member-purple: #9b3ec3;
-  --color-member-purple-border:  #650189;
-  --color-member-pink: #f86194;
-  --color-member-pink-border:    #c9135e;
+  --member-red-dot-color:            #d32f2f;
+  --member-red-border-color:     #b30115;
+  --member-orange-dot-color:         #ff9800;
+  --member-orange-border-color:  #a25f01;
+  --member-yellow-dot-color: #ffe05a;
+  --member-yellow-border-color:  #867004;
+  --member-green-dot-color:          #388e3c;
+  --member-green-border-color:   #1b5e20;
+  --member-brown-dot-color: #735349;
+  --member-brown-border-color:   #593a2f;
+  --member-blue-dot-color:           #1976d2;
+  --member-blue-border-color:    #035dad;
+  --member-purple-dot-color: #9b3ec3;
+  --member-purple-border-color:  #650189;
+  --member-pink-dot-color: #f86194;
+  --member-pink-border-color:    #c9135e;
 
   /* Board-tile palette — the canonical look every game's word / letter tiles
      converge on (psychicnum + connections today; other games adopt it as we
@@ -252,18 +250,18 @@
        1  attention  — a placed-but-not-committed / highlighted tile (scrabble)
        2..5          — stackdown depth 0..3 (top → deepest); it reads depth off
                        the SAME family the other games use for their resting fill
-       3  NORMAL     — the everyday tile most games use (= --tile-bg below)
+       3  NORMAL     — the everyday tile most games use (= --tile-bg-color below)
      A future theme (dark mode …) supplies a new ramp against its background. */
-  --tile-1:                   #faf7ef;  --tile-1-border: #ead8ae;
-  --tile-2:                   #f6efdf;  --tile-2-border: #e5d09e;
-  --tile-3:                   #f2e8ce;  --tile-3-border: #e1c88e;  /* NORMAL tile */
-  --tile-4:                   #eadbb8;  --tile-4-border: #dabc77;
-  --tile-5:                   #e3cfa1;  --tile-5-border: #d2b060;
+  --tile-1-color:                   #faf7ef;  --tile-1-edge-color: #ead8ae;
+  --tile-2-color:                   #f6efdf;  --tile-2-edge-color: #e5d09e;
+  --tile-3-color:                   #f2e8ce;  --tile-3-edge-color: #e1c88e;  /* NORMAL tile */
+  --tile-4-color:                   #eadbb8;  --tile-4-edge-color: #dabc77;
+  --tile-5-color:                   #e3cfa1;  --tile-5-edge-color: #d2b060;
   /* A DARKER warm shade beyond the depth ramp — for "disabled / missing / spent"
      tile states (a scrabble rack tile that's already on the board). Same hue
      family, clearly dimmer than shade 5 so it reads as "not in play", but not so
      dark it looks broken. */
-  --tile-disabled:            #cbb476;  --tile-disabled-border: #ac8f4c;
+  --tile-disabled-color:            #cbb476;  --tile-disabled-edge-color: #ac8f4c;
 
   /* ATTENTION at TILE scope — what a piece wears to say "this changed, look
      here". OPAQUE: for the beat it lasts, the tile simply IS yellow.
@@ -274,14 +272,14 @@
      on a green tile it comes out sickly rather than urgent. The state is not lost
      by covering it for a second, because the fade hands it straight back.
 
-     The same yellow as the board-scope `--color-attention`, so the two scopes are
+     The same yellow as the board-scope `--mark-attention-board-color`, so the two scopes are
      one color learned once. Its own name because it is its own decision — either
      scope can move without dragging the other.
 
      Worn via the shared `.attentionFlash` class, which fades it out (an overlay,
      so it can); scrabble composes it by hand as a background layer instead:
-       background: linear-gradient(var(--tile-attention), var(--tile-attention)), <fill>; */
-  --tile-attention:           var(--color-attention);
+       background: linear-gradient(var(--mark-attention-tile-color), var(--mark-attention-tile-color)), <fill>; */
+  --mark-attention-tile-color:           var(--mark-attention-board-color);
 
   /* ── The two dims ────────────────────────────────────────────────────────
      One value per MEANING, not per scope: a mark that means "in flight" is the
@@ -299,7 +297,7 @@
      docs/tile-feedback.md. */
 
   /* SENT, waiting on the server. */
-  --dim-in-flight:            rgb(0 0 0 / 18%);
+  --mark-in-flight-dim-color:            rgb(0 0 0 / 18%);
 
   /* You cannot act at all — today, a turn-order game where a teammate holds the
      move. Weaker than the in-flight dim, because waiting is *thinking* time: you
@@ -311,7 +309,7 @@
      The two can compound — your move can still be in flight when the turn passes
      — so the values are a PAIR: 18% over 12% reads as ~28% black, still short of
      looking broken. */
-  --dim-not-your-turn:        rgb(0 0 0 / 12%);
+  --mark-not-your-turn-dim-color:        rgb(0 0 0 / 12%);
 
   /* The game is over. The one dim that is PERMANENT rather than transient, which
      is why it gets its own name even where the value matches a neighbor's: a
@@ -321,7 +319,7 @@
 
      It cannot co-occur with that one — a finished game has no turns to wait for —
      so sharing a value costs no ambiguity today. */
-  --dim-game-over:            rgb(0 0 0 / 12%);
+  --mark-game-over-dim-color:            rgb(0 0 0 / 12%);
 
   /* The FRAME saying the same thing: a band around a finished board, the same
      shape as the history viewer's frame but plainly not it. Its own token so the
@@ -335,7 +333,7 @@
      other. A light gray had neither. Darker and deader than the history
      gray-blue: no hue at all, so it reads as a rule drawn round a finished thing
      rather than as a state anyone chose. */
-  --color-game-over:          #4d4d4d;
+  --outcome-neutral-terminal-frame-color:          #4d4d4d;
 
   /* …and the same gray carrying the OUTCOME, for trying out: a finished game
      always has a verdict, and the frame is already the biggest thing on screen
@@ -347,8 +345,8 @@
 
      Neutral stays the third face, for a game that was ENDED rather than won or
      lost — nobody beat anybody, so a hue would be a claim. */
-  --color-game-over-won:      #3c6b46;
-  --color-game-over-lost:     #6b3c3c;
+  --outcome-won-terminal-frame-color:      #3c6b46;
+  --outcome-lost-terminal-frame-color:     #6b3c3c;
 
   /* ── Feedback timings ────────────────────────────────────────────────────
      How long the two transient marks last. Shared, because "how long news stays
@@ -361,18 +359,18 @@
      fading out, so the eye is caught and then handed back the true state color.
      Short — the mark only has to be SEEN, and a board that sits colored is a
      board where loud has stopped meaning anything. */
-  --attention-flash-duration: 0.7s;
+  --mark-attention-flash-duration: 0.7s;
 
   /* The board frame at the moment the turn becomes yours. A fade-out rather than
      a blink: the message is "it just became yours", not "something is wrong". */
-  --your-turn-flash-duration: 1.1s;
+  --mark-your-turn-flash-duration: 1.1s;
 
   /* ON-SCREEN KEYBOARD edges (the shared <GuessKeyboard>: wordle + wordiply).
      The letter cap's edge, and the darker one the ⌫ control wears so it reads as
      a control rather than a letter. A game may override either alongside the
      `--kbd-*` fills it already sets. */
-  --kbd-key-border:           #8b8f94;
-  --kbd-control-border:       #5f6368;
+  --kbd-key-edge-color:           #8b8f94;
+  --kbd-specialkey-edge-color:       #5f6368;
 
   /* RANK LADDER (the shared <RankBar>, used by spellingbee + wordwheel).
      ONE palette for both games, not each game's accent: a rank ladder means the
@@ -381,21 +379,21 @@
      same value as spellingbee's `--spellingbee-accent`, kept as its own token
      here because it's now the LADDER's color rather than that game's.
      The goal-square marker is deliberately not in this family; it's
-     `--color-text`, so it reads as a mark ON the ladder rather than another
+     `--page-text-color`, so it reads as a mark ON the ladder rather than another
      rung state. */
-  --rank-fill:                #f7da21;
-  --rank-edge:                #ddab35;
+  --rank-bar-fill-color:                #f7da21;
+  --rank-bar-edge-color:                #ddab35;
 
   /* The keyboard / crossword ENTRY cursor ring on a tile grid (scrabble,
      bananagrams, future grid games). A slightly-orange-brown — deliberately NOT
      red or blue, since scrabble's premium squares already use those (a red/blue
      cursor wouldn't stand out on them). Shared so the cursor reads the same across
      grid-entry games. */
-  --grid-cursor:              #c9881f;
+  --mark-grid-cursor-color:              #c9881f;
 
-  --tile-bg:                  var(--tile-3);  /* the shared resting fill = shade 3 */
-  --tile-border:              var(--tile-3-border);
-  --tile-text:                #1a1a1a;  /* near-black ink on the warm fill */
+  --tile-bg-color:                  var(--tile-3-color);  /* the shared resting fill = shade 3 */
+  --tile-border-color:              var(--tile-3-edge-color);
+  --tile-ink-color:                #1a1a1a;  /* near-black ink on the warm fill */
   /* GAME SURFACES ONLY — board tiles and the on-screen keyboard's keys. Ordinary
      buttons (info column, menus, dialogs, setup forms) take NONE of this family:
      they are controls you activate, not objects you manipulate, and they say what
@@ -450,7 +448,7 @@
      big one may want more offset than the small one — probably as a multiplier
      rather than a second literal. Left as one value until we can see both wanting
      different things. */
-  --hover-shadow:             2px 6px 12px rgb(0 0 0 / 32%);
+  --tile-hover-shadow:             2px 6px 12px rgb(0 0 0 / 32%);
   /* Border WIDTH is the "selected" channel — the tile's edge thickens to say
      "this piece is part of the move I'm building", leaving the background free
      for state and attention, which have nowhere else to go. Two widths, one
@@ -459,22 +457,22 @@
      the selected value rather than re-declaring the border shorthand.
      See docs/tile-feedback.md. */
   --tile-border-width:          2px;
-  --tile-border-width-selected: 4px;
+  --tile-selected-border-width: 4px;
   /* BLACK, not a darker shade of whatever the tile already is. Selection has to
      be unmistakable at a glance across a board of colored tiles, and a
      tile-derived edge is a different color on every tile — so it reads as "this
      tile has a slightly heavier version of its own border" rather than as a
      mark. Black belongs to nothing else on a board, which is what makes it
      legible on all of them. */
-  --tile-selected-border:       #000000;
+  --tile-selected-border-color:       #000000;
   /* Ink for a filled verdict. The fill itself is not a token of its own: a
      verdict fills the piece with the SAME colour its turn-log bar takes (the
      outcome family's 400-level `-border` tier), so one guess going wrong is the
      one red wherever it is drawn. Only the ink has to be decided, and the tones
      don't agree: white on the red, dark on the orange and the gold, which is
      where each stays legible. Ink follows the background it sits on. */
-  --verdict-ink-on-dark:        #ffffff;
-  --verdict-ink-on-light:       var(--color-text);
+  --ink-on-dark-color:        #ffffff;
+  --ink-on-light-color:       var(--page-text-color);
   /* The PEER ring's weight — "a teammate is holding this piece", drawn as an
      INSET ring in that player's color (the `.peerRing` class in
      common/components/game/PlayArea.module.css). Inset is what makes it compose:
@@ -514,8 +512,8 @@
      the case the 3:1 guideline is most forgiving about, and the second signal
      (white ink = a letter you have tried) does not depend on reading the letter
      at all. */
-  --wordle-green:             #66a45f;  /* right letter, right spot */
-  --wordle-yellow:            #bd9f35;  /* in the word, wrong spot */
+  --wordle-green-fill-color:             #66a45f;  /* right letter, right spot */
+  --wordle-yellow-fill-color:            #bd9f35;  /* in the word, wrong spot */
   /* Lightened from #787c7e so a spent letter RECEDES. Against the light key cap
      the old value was the most prominent thing on the keyboard, which is
      backwards: "not in the word" is what you want to stop looking at, and the
@@ -525,15 +523,15 @@
      too-heavy gray was never the problem.
      Floor: it holds WHITE letters, so it cannot go lighter than about #959595
      without dropping under 3:1 for large bold text. This sits at 3.26. */
-  --wordle-gray:              #8b8f91;  /* not in the word */
-  --wordle-blank:             #d3d6da;  /* un-evaluated / neutral surface */
+  --wordle-gray-fill-color:              #8b8f91;  /* not in the word */
+  --wordle-blank-fill-color:             #d3d6da;  /* un-evaluated / neutral surface */
   /* Matching EDGES, each ~16% darker than its fill — the same step the warm tile
      ramp takes between a shade and its border. A colored tile with a border of
      its own fill reads as a flat block; a slightly darker edge gives it the same
      quiet definition every other surface in the app has. */
-  --wordle-green-border:      #568a50;
-  --wordle-yellow-border:     #9f862d;
-  --wordle-gray-border:       #75787a;
+  --wordle-green-edge-color:      #568a50;
+  --wordle-yellow-edge-color:     #9f862d;
+  --wordle-gray-edge-color:       #75787a;
 
   /* Radii. */
   --radius-sm:                4px;   /* small chips, tiles, hint pills */
@@ -599,7 +597,7 @@
   /* Type. */
   font-family: system-ui, -apple-system, sans-serif;
 
-  color: var(--color-text);
+  color: var(--page-text-color);
   /* `only` — not a bare `light` — is what opts us out of Chrome Android's /
      Samsung Internet's forced dark mode; see the matching <meta name=
      "color-scheme"> in index.html for the why. This declaration is the
@@ -691,14 +689,14 @@ button {
   font: inherit;
   padding: 0.6rem 0.9rem;
   border-radius: var(--radius-md);
-  border: 1px solid var(--color-control-border);
-  background: var(--color-control-bg);
+  border: 1px solid var(--control-border-color);
+  background: var(--control-bg-color);
   color: inherit;
 }
 
 input:focus,
 textarea:focus {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--chrome-action-color);
   outline-offset: -1px;
 }
 
@@ -720,8 +718,8 @@ textarea:focus {
 }
 
 button {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
+  background: var(--chrome-action-color);
+  border-color: var(--chrome-action-color);
   color: white;
   cursor: pointer;
   /* Tighter than the inputs/textareas sharing the base rule above: buttons are
@@ -747,15 +745,15 @@ button:disabled {
    the filled accent default. Used for cancel / back actions. */
 button.secondary {
   background: transparent;
-  border-color: var(--color-control-border-2);
-  color: var(--color-control-text-2);
+  border-color: var(--control-border-strong-color);
+  color: var(--control-text-muted-color);
 }
 button.secondary:hover:not(:disabled) {
-  background: var(--color-surface-hover);
+  background: var(--page-surface-hover-color);
 }
 
 a {
-  color: var(--color-accent);
+  color: var(--chrome-action-color);
 }
 
 /* ---------- Universal utility classes ---------- */
@@ -764,8 +762,8 @@ a {
    CreateClubPage. Cross-cutting enough to live globally rather
    than be duplicated in each component's module. */
 .card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  background: var(--page-surface-color);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-lg);
   padding: 2rem;
   max-width: 480px;
@@ -847,12 +845,12 @@ a {
 }
 
 .muted {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   font-size: 0.9rem;
 }
 
 .error {
-  color: var(--color-sys-error-red);
+  color: var(--chrome-fault-color);
   margin-top: 1rem;
 }
 
@@ -894,7 +892,7 @@ a {
 
 .divider {
   text-align: center;
-  color: var(--color-divider);
+  color: var(--page-divider-color);
   font-size: 0.85rem;
 }
 
@@ -903,7 +901,7 @@ a {
 .link-button {
   background: none;
   border: none;
-  color: var(--color-accent);
+  color: var(--chrome-action-color);
   cursor: pointer;
   padding: 0;
   text-decoration: underline;

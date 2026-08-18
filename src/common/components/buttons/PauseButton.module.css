@@ -9,11 +9,11 @@
 
 .button {
   background: transparent;
-  border: 1px solid var(--color-surface-border);
+  border: 1px solid var(--page-surface-border-color);
   padding: 0.3rem;
   margin: 0;
   cursor: pointer;
-  color: var(--color-text);
+  color: var(--page-text-color);
 
   display: inline-flex;
   align-items: center;
@@ -24,7 +24,7 @@
 }
 
 .button:hover:not(:disabled) {
-  background: var(--color-surface-border);
+  background: var(--page-surface-border-color);
 }
 
 .button:disabled {

@@ -46,7 +46,7 @@
 
 .loading {
   padding: 2rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* The echo/verdict slot. ONE fixed-height row shared by the word-in-progress
@@ -93,13 +93,13 @@
   margin: 0 0 0.5rem;
   font-size: 1.05rem;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 /* Hints-used, appended to the progress line. Muted because it's a footnote on
  * the count, not a second stat competing with it. */
 .hintsUsed {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* The revealed theme words (info column). A wrapping row rather than a

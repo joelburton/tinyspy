@@ -40,8 +40,8 @@
 /* A hand tile that's currently placed on the board — shown in the darker
    "disabled" warm shade so it reads as "in use / on the board", not faded out. */
 .tile.used {
-  background: var(--tile-disabled);
-  border-color: var(--tile-disabled-border);
+  background: var(--tile-disabled-color);
+  border-color: var(--tile-disabled-edge-color);
   cursor: default;
 }
 .tile.selected {

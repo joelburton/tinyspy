@@ -345,9 +345,9 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
     // board where only SOME picks carry a color reads as missing data rather
     // than as "the unmarked ones are yours".
     expect(tile('a').className).toMatch(/peerRing/)
-    expect(tile('a').style.getPropertyValue('--peer-color')).toBe('var(--color-member-red)')
+    expect(tile('a').style.getPropertyValue('--peer-color')).toBe('var(--member-red-dot-color)')
     expect(tile('b').className).toMatch(/peerRing/)
-    expect(tile('b').style.getPropertyValue('--peer-color')).toBe('var(--color-member-blue)')
+    expect(tile('b').style.getPropertyValue('--peer-color')).toBe('var(--member-blue-dot-color)')
   })
 
   it('rings nothing when the board isn’t shared', () => {

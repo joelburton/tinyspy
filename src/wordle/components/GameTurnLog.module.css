@@ -20,7 +20,7 @@
   border-radius: 4px;
 }
 .definable:hover {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--chrome-action-color);
   outline-offset: 2px;
 }
 
@@ -34,22 +34,22 @@
   font-weight: 700;
   color: #fff;
   border-radius: 3px;
-  background: var(--wordle-gray);
+  background: var(--wordle-gray-fill-color);
 }
 
 .green {
-  background: var(--wordle-green);
+  background: var(--wordle-green-fill-color);
 }
 .yellow {
-  background: var(--wordle-yellow);
+  background: var(--wordle-yellow-fill-color);
 }
 .gray {
-  background: var(--wordle-gray);
+  background: var(--wordle-gray-fill-color);
 }
 .blank {
   /* A guess's colors are always g/y/x, so this is defensive — keep it readable
    * (dark text on the neutral surface) if a blank ever slips through. */
   background: var(--wordle-key-bg);
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 

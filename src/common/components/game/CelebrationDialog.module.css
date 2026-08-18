@@ -17,8 +17,8 @@
 
 .card {
   position: relative;
-  background: var(--color-surface);
-  color: var(--color-text);
+  background: var(--page-surface-color);
+  color: var(--page-text-color);
   border-radius: var(--radius-lg);
   padding: 2rem 2rem 1.5rem;
   min-width: 280px;
@@ -75,12 +75,12 @@
 .title {
   margin: 0.2rem 0 0.3rem;
   font-size: 1.5rem;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 .body {
   margin: 0 0 1.4rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 .actions {
@@ -93,28 +93,28 @@
   font: inherit;
   padding: 0.55rem 1rem;
   border-radius: var(--radius-md);
-  border: 1px solid var(--color-surface-border);
-  background: var(--color-surface);
-  color: var(--color-text);
+  border: 1px solid var(--page-surface-border-color);
+  background: var(--page-surface-color);
+  color: var(--page-text-color);
   cursor: pointer;
 }
 
 .button:hover {
-  background: var(--color-surface-hover);
+  background: var(--page-surface-hover-color);
 }
 
 .button:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--chrome-action-color);
   outline-offset: 2px;
 }
 
 .button.primary {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
+  background: var(--chrome-action-color);
+  border-color: var(--chrome-action-color);
   color: #fff;
   font-weight: 600;
 }
 
 .button.primary:hover {
-  background: var(--color-accent-hover);
+  background: var(--chrome-action-primary-hover-color);
 }

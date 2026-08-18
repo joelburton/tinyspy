@@ -115,6 +115,6 @@
 .empty {
   padding: 48px 16px;
   text-align: center;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   grid-column: 1 / -1;
 }

@@ -9,11 +9,11 @@
  * (common/components/game/lists/historyViewer.module.css → .viewedNumber). */
 
 .score {
-  color: var(--color-outcome-won-strong);
+  color: var(--outcome-won-ink-color);
   font-weight: 600;
 }
 .scoreNeg {
-  color: var(--color-outcome-lost-strong);
+  color: var(--outcome-lost-ink-color);
   font-weight: 600;
 }
 .word {

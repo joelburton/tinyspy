@@ -68,7 +68,7 @@
   font-size: 17px;
   line-height: var(--wl-row-height);
   letter-spacing: 0.02em;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 /* The leading attribution marker: the shared <Dot> in the finder's color.
@@ -83,7 +83,7 @@
  * not the text color, is the "missed" signal. Lighter (divider grey) than the
  * muted word text so the ring reads as a faint marker, not a second emphasis. */
 .dotUnfound {
-  --dot-ring: var(--color-divider);
+  --dot-ring: var(--page-divider-color);
 }
 
 /* The word text itself — and the ONLY click-to-define target (not the whole
@@ -111,7 +111,7 @@
  * so it reads as a marker, not part of the word; it's a normal inline character,
  * so it centers with the word with no size/vertical-align tricks. */
 .bonusDot {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* Recently-found underline on the word. Thickness + offset here; the underline
@@ -132,7 +132,7 @@
 
 .empty {
   font-style: italic;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   text-align: center;
   padding: 16px 8px;
 }
@@ -141,7 +141,7 @@
  * missed). The hollow ○ ring (.dotUnfound) is the primary signal; the word also
  * goes medium grey to stay de-emphasized next to the black found words. */
 .unfound {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* The heading's third tally ("· Longest: 10"). Desktop only: below the

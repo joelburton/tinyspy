@@ -116,5 +116,5 @@
 
 .loading {
   padding: 2rem;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }

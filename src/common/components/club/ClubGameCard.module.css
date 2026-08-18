@@ -37,7 +37,7 @@
    * row a bottom rule, the standalone a full border). Padding matches the
    * start rows exactly, so the two panels' rhythms line up. */
   padding: 0.4rem 0.9rem;
-  background: var(--color-surface);
+  background: var(--page-surface-color);
   display: flex;
   flex-direction: column;
   /* Position + overflow so the corner-flag triangle (rendered
@@ -61,7 +61,7 @@
  * no border to light, and lighting just the underline would read as
  * highlighting the item BELOW. */
 .link:hover .card {
-  background: var(--color-surface-hover);
+  background: var(--page-surface-hover-color);
 }
 
 /* Logo + content row — mirrors the StartGameButtons cards so the
@@ -113,7 +113,7 @@
   gap: 0.5rem;
   flex-wrap: wrap;
   font-size: 0.85rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   line-height: 1.25;
 }
 
@@ -131,7 +131,7 @@
  * bottom off the standalone card's four-sided border, since that one is the
  * only child of its own block. */
 .row {
-  border-bottom: 1px solid var(--color-control-border);
+  border-bottom: 1px solid var(--control-border-color);
 }
 
 .wrapper:last-child .row {
@@ -144,7 +144,7 @@
  * this callout isn't in either list. A dark neutral border keeps the
  * prominence without lying about that. */
 .standalone {
-  border: 2px solid var(--color-text);
+  border: 2px solid var(--page-text-color);
   border-radius: var(--radius-md);
   /* Even on all four sides, at the rows' horizontal inset — so its logo +
    * text start on the same vertical line as every row in the two lists below
@@ -200,18 +200,18 @@
 }
 
 /* Suspended flag: yellow. "Still open for play, we'll come back
- * to this." Color from --color-outcome-active-border — the
+ * to this." Color from --gamelist-suspended-color — the
  * semantic "in flight, not done" token. */
 .openFlagSuspended {
-  background: var(--color-outcome-active-border);
+  background: var(--gamelist-suspended-color);
 }
 
 /* Active flag: saturated orange. "This is THE one to join right
  * now" — deliberately more forceful than the suspended yellow
  * so a glance at a list reads "current game" before "the other
- * still-open ones." Color from --color-outcome-current-border. */
+ * still-open ones." Color from --gamelist-current-color. */
 .openFlagActive {
-  background: var(--color-outcome-current-border);
+  background: var(--gamelist-current-color);
 }
 
 /* ─── Delete affordance ──────────────────────────────────────
@@ -240,9 +240,9 @@
   top: 0.4rem;
   right: 0.4rem;
   /* Override global button styles for the corner-icon look. */
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
-  color: var(--color-muted);
+  background: var(--page-surface-color);
+  border: 1px solid var(--page-surface-border-color);
+  color: var(--page-text-muted-color);
   padding: 0;
   width: 1.6rem;
   height: 1.6rem;
@@ -266,9 +266,9 @@
 }
 
 .deleteButton:hover:not(:disabled) {
-  background: var(--color-surface-hover);
-  color: var(--color-text);
-  border-color: var(--color-control-border-2);
+  background: var(--page-surface-hover-color);
+  color: var(--page-text-color);
+  border-color: var(--control-border-strong-color);
 }
 
 /* Active (confirming or deleting): full-width pill with warning
@@ -277,17 +277,17 @@
   opacity: 1;
   width: auto;
   padding: 0.3rem 0.7rem;
-  background: var(--color-outcome-lost-bg);
-  color: var(--color-sys-error-red);
-  border-color: var(--color-outcome-lost-border);
+  background: var(--outcome-lost-wash-color);
+  color: var(--chrome-fault-color);
+  border-color: var(--outcome-lost-fill-color);
   font-size: 0.85rem;
   font-weight: 600;
 }
 
 .deleteButtonActive:hover:not(:disabled) {
-  background: var(--color-outcome-lost-bg);
-  color: var(--color-sys-error-red);
-  border-color: var(--color-sys-error-red);
+  background: var(--outcome-lost-wash-color);
+  color: var(--chrome-fault-color);
+  border-color: var(--chrome-fault-color);
   /* Slight darken on hover so the user sees the confirm tap
      register. */
   filter: brightness(0.96);
@@ -303,6 +303,6 @@
  * INSIDE it: the card is positioned + opaque, so it paints over an inset
  * outline on its parent and the ring simply never appeared. */
 .kbCursor .card {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--chrome-action-color);
   outline-offset: -2px;
 }

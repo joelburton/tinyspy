@@ -24,7 +24,7 @@ type Props = {
  * current rank's name renders as a label above the track so the player has a
  * vocabulary anchor ("you're at Solid; Genius is 35 points").
  *
- * The ladder's own colors (`--rank-fill` / `--rank-edge`) are shared by both
+ * The ladder's own colors (`--rank-bar-fill-color` / `--rank-bar-edge-color`) are shared by both
  * games — see the CSS module; only the type color `--rank-text` is aliased per
  * game in its `theme.css`. Pure derivation from
  * `score` + `total` via `currentRankIndex`; the FE never disagrees with the SQL

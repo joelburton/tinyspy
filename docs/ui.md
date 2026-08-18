@@ -386,7 +386,7 @@ Future targets:
 
 ## Theme: one global theme today
 
-The current theme is light (`color-scheme: light`, `--color-bg: #fafafa` / `--color-surface: #ffffff`), with tokens at `:root` in [`common/theme.css`](../src/common/theme.css). Most games add a per-game theme file ([`codenamesduet/theme.css`](../src/codenamesduet/theme.css), [`wordle/theme.css`](../src/wordle/theme.css) the letter-feedback palette, [`stackdown/theme.css`](../src/stackdown/theme.css) the felt + tile ink, …) declaring additional tokens scoped to that game's gameplay surface.
+The current theme is light (`color-scheme: light`, `--page-bg-color: #fafafa` / `--page-surface-color: #ffffff`), with tokens at `:root` in [`common/theme.css`](../src/common/theme.css). Most games add a per-game theme file ([`codenamesduet/theme.css`](../src/codenamesduet/theme.css), [`wordle/theme.css`](../src/wordle/theme.css) the letter-feedback palette, [`stackdown/theme.css`](../src/stackdown/theme.css) the felt + tile ink, …) declaring additional tokens scoped to that game's gameplay surface.
 
 ### Tokens are semantic, not literal
 
@@ -394,8 +394,8 @@ Within each file, token names describe the *role* of the value, not the value it
 
 | good (semantic) | bad (literal) |
 |---|---|
-| `--color-bg`, `--color-surface`, `--color-text` | `--color-near-black`, `--color-light-gray` |
-| `--color-accent`, `--color-error` | `--color-blue`, `--color-red` |
+| `--page-bg-color`, `--page-surface-color`, `--page-text-color` | `--color-near-black`, `--color-light-gray` |
+| `--chrome-action-color`, `--color-error` | `--color-blue`, `--color-red` |
 | `--codenamesduet-agent`, `--codenamesduet-assassin` | `--codenamesduet-green`, `--codenamesduet-red` |
 
 The reason: when (not if) we add a second theme, every literal name becomes a lie — "the green is actually pink in pink mode" reads wrong. Semantic names cascade cleanly through theme swaps.
@@ -404,7 +404,7 @@ This rule applies *within each namespace separately*. `--codenamesduet-agent` is
 
 ### No `var()` fallbacks
 
-Reference tokens as `var(--color-surface)`, never `var(--color-surface, #fff)`. We own the entire custom-property namespace, so a fallback can't guard against a third-party theme not setting the token — it can only *mask* one of our own bugs: a typo, or a rename that didn't land everywhere. Worse, the fallback silently drifts (we found `var(--color-text, #1a1a1b)` against a real token of `#1a1a1a`), so the day the token *does* fail to resolve you get a subtly-wrong colour, not a visible failure.
+Reference tokens as `var(--page-surface-color)`, never `var(--page-surface-color, #fff)`. We own the entire custom-property namespace, so a fallback can't guard against a third-party theme not setting the token — it can only *mask* one of our own bugs: a typo, or a rename that didn't land everywhere. Worse, the fallback silently drifts (we found `var(--page-text-color, #1a1a1b)` against a real token of `#1a1a1a`), so the day the token *does* fail to resolve you get a subtly-wrong colour, not a visible failure.
 
 The safety net is build-time, not a fallback: [`src/cssTokens.test.ts`](../src/cssTokens.test.ts) fails if any `var(--x)` references a token that isn't defined in a stylesheet or set inline from a component. That's the "make missing tokens obnoxious-pink" instinct done one better — it screams in CI before the bug can ship, instead of hoping someone looks at the affected pixel. A missing token is always a bug here; treat the test going red as a real failure, not noise.
 
@@ -701,10 +701,10 @@ and the shared `.tile` / `.tileWord` classes in
 [`common/components/game/PlayArea.module.css`](../src/common/components/game/PlayArea.module.css).
 A player who learns the board in one game reads it in the next.
 
-- **Resting** — a warm fill from the shared **tile ramp** (`--tile-bg`, which
-  aliases `--tile-3`, the normal shade — see [The warm tile ramp](#the-warm-tile-ramp)),
-  a matching border a step darker (`--tile-border` = `--tile-3-border`), near-black
-  ink (`--tile-text`), and a small drop shadow (`--tile-shadow`) so a tile reads as
+- **Resting** — a warm fill from the shared **tile ramp** (`--tile-bg-color`, which
+  aliases `--tile-3-color`, the normal shade — see [The warm tile ramp](#the-warm-tile-ramp)),
+  a matching border a step darker (`--tile-border-color` = `--tile-3-edge-color`), near-black
+  ink (`--tile-ink-color`), and a small drop shadow (`--tile-shadow`) so a tile reads as
   a physical tile.
 - **Hover** — a **dark** ring (`box-shadow: 0 0 0 2px var(--tile-selected-bg)`,
   composed with the resting shadow). Not accent-blue, not a fill change.
@@ -743,19 +743,19 @@ reason (below).
 
 | token | role |
 |---|---|
-| `--tile-1` … `--tile-5` (+ `-border`) | the ramp, lightest → darkest |
-| `--tile-3` = `--tile-bg` | **the normal tile** — what most games use at rest |
-| `--tile-disabled` (+ `-border`) | a darker shade **past** the ramp, for "disabled / missing / spent" (e.g. a scrabble rack tile already on the board) |
-| `--tile-attention` | a **translucent warm-yellow OVERLAY** — stack it over any shade (`background: linear-gradient(var(--tile-attention), var(--tile-attention)), <fill>`) to mark a tile "lighter + more yellow" without leaving the family (scrabble's just-placed / turn-viewer tiles) |
-| `--grid-cursor` | the shared keyboard/crossword **entry-cursor** ring (orange-brown, deliberately not red/blue since scrabble's premium squares use those) — scrabble, bananagrams |
+| `--tile-1-color` … `--tile-5-color` (+ `-border`) | the ramp, lightest → darkest |
+| `--tile-3-color` = `--tile-bg-color` | **the normal tile** — what most games use at rest |
+| `--tile-disabled-color` (+ `-border`) | a darker shade **past** the ramp, for "disabled / missing / spent" (e.g. a scrabble rack tile already on the board) |
+| `--mark-attention-tile-color` | a **translucent warm-yellow OVERLAY** — stack it over any shade (`background: linear-gradient(var(--mark-attention-tile-color), var(--mark-attention-tile-color)), <fill>`) to mark a tile "lighter + more yellow" without leaving the family (scrabble's just-placed / turn-viewer tiles) |
+| `--mark-grid-cursor-color` | the shared keyboard/crossword **entry-cursor** ring (orange-brown, deliberately not red/blue since scrabble's premium squares use those) — scrabble, bananagrams |
 
-**Who uses what:** most games take `--tile-3` via the shared `.tile`'s `--tile-bg`
+**Who uses what:** most games take `--tile-3-color` via the shared `.tile`'s `--tile-bg-color`
 (psychicnum, connections, boggle, scrabble — decided/result states then override by
 re-setting the tokens). **stackdown** shades its stack by depth off shades **1–4**
 (top = 1, deepest = 4). Legitimate divergences: **wordle** and **waffle** always
 colour tiles by the wordle result palette (green/yellow/gray), so they never show a
 ramp shade; **codenamesduet** uses its role colors (agent green / neutral tan /
-assassin red) with the ramp only for unpicked cards; **spellingbee** uses `--tile-2`
+assassin red) with the ramp only for unpicked cards; **spellingbee** uses `--tile-2-color`
 for its hexes + an accent-yellow center. If a game's tiles are always meaning-coded
 (wordle), that's the reason to skip the ramp — otherwise reach for it.
 
@@ -768,7 +768,7 @@ inverts cleanly); the semantic token names make it a one-file swap.
 outcome is known and fixed (psychicnum: a submitted guess — green = a secret, red
 = a miss; connections: a tile placed into a solved category — it becomes part of
 that category's colored band). A decided tile colors **permanently** by re-setting
-`--tile-bg` / `--tile-border`, dropping any spent/dim/grey treatment — the color
+`--tile-bg-color` / `--tile-border-color`, dropping any spent/dim/grey treatment — the color
 *is* the "already decided" signal and a record of what's found vs ruled out. It's
 mutually exclusive with the selected dark-fill (a decided tile is `disabled`, so
 it's never both).

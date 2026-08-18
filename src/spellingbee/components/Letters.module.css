@@ -110,12 +110,12 @@
 }
 
 /* The hex shape — the real fill + border. Outer hexes: warm tile-2 with its OWN
- * matching tile-family border (--tile-2-border), so the border tracks the fill if
+ * matching tile-family border (--tile-2-edge-color), so the border tracks the fill if
  * the shade changes; the center is the mandatory-letter yellow with a darker amber
  * edge. */
 .hexShape {
   fill: var(--spellingbee-hex);
-  stroke: var(--tile-2-border);
+  stroke: var(--tile-2-edge-color);
   stroke-width: 1.5;
   stroke-linejoin: round;
   transition: fill 80ms ease;

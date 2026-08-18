@@ -19,5 +19,5 @@
 /* The "nobody" ring — transparent center, neutral outline. */
 .hollow {
   background: transparent;
-  border-color: var(--dot-ring, var(--color-text));
+  border-color: var(--dot-ring, var(--page-text-color));
 }

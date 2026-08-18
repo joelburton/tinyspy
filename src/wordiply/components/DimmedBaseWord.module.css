@@ -3,7 +3,7 @@
 .word {
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 .base {

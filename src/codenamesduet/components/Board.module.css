@@ -97,7 +97,7 @@
  * pattern psychicnum's .correct/.incorrect use). The keycard squares (below)
  * carry the "what does a key SAY" signal; the fill carries "what happened":
  *   white  — no one has guessed it (explicit #fff so it doesn't inherit the
- *            shared beige --tile-bg)
+ *            shared beige --tile-bg-color)
  *   tan    — someone guessed it as a neutral (which player → triangles)
  *   green  — we contacted an agent (global)
  *   red    — the assassin was hit (global)
@@ -108,40 +108,40 @@
   /* Never-guessed tile: the shared "attention" shade 1 (the lightest of the warm
      tile family) — lighter than the normal tile (shade 3), so it doesn't read like
      the darker revealed-neutral. */
-  --tile-bg: var(--tile-1);
-  --tile-border: var(--tile-1-border);
+  --tile-bg-color: var(--tile-1-color);
+  --tile-border-color: var(--tile-1-edge-color);
 }
 .bgNeutral {
-  --tile-bg: var(--codenamesduet-neutral);
-  --tile-border: var(--codenamesduet-neutral);
-  --tile-text: #fff;
+  --tile-bg-color: var(--codenamesduet-neutral);
+  --tile-border-color: var(--codenamesduet-neutral);
+  --tile-ink-color: #fff;
 }
 .bgAgent {
-  --tile-bg: var(--codenamesduet-agent);
-  --tile-border: var(--codenamesduet-agent);
-  --tile-text: #fff;
+  --tile-bg-color: var(--codenamesduet-agent);
+  --tile-border-color: var(--codenamesduet-agent);
+  --tile-ink-color: #fff;
 }
 .bgAssassin {
   /* Real Duet uses black for the assassin; we use red because "red = wrong
    * pick" reads more obviously on screen than "black = ominous." */
-  --tile-bg: var(--codenamesduet-assassin);
-  --tile-border: var(--codenamesduet-assassin);
-  --tile-text: #fff;
+  --tile-bg-color: var(--codenamesduet-assassin);
+  --tile-border-color: var(--codenamesduet-assassin);
+  --tile-ink-color: #fff;
 }
 
 /* Pending (the guess RPC is in flight): an accent ring, distinct from the shared
  * dark hover ring. Per-game state, composed on top of the shared `.tile`. */
 .tilePending {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--chrome-action-color);
   outline-offset: -2px;
 }
 
 /* Turn-history: a cell the VIEWED past turn decided — the shared history-yellow
- * (`--color-history-viewer`), the same signal the board frame + viewed log row
+ * (`--view-history-color`), the same signal the board frame + viewed log row
  * wear. An inset outline so it hugs just inside the tile edge (over the fill,
  * clear of the grid gap and neighbours). Pairs with the board-level `.frame`. */
 .viewedCell {
-  outline: 3px solid var(--color-history-viewer);
+  outline: 3px solid var(--view-history-color);
   outline-offset: -3px;
 }
 

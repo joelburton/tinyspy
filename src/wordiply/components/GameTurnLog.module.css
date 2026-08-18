@@ -14,7 +14,7 @@
   text-decoration: line-through;
   /* The strike itself is the signal, so keep it light — a full-weight rule
    * through every rejected row turns the log into noise. */
-  text-decoration-color: var(--color-divider);
+  text-decoration-color: var(--page-divider-color);
   text-decoration-thickness: 1px;
 }
 

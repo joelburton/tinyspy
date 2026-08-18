@@ -24,16 +24,16 @@
   font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: 0.03em;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 /* Coordinates recede — smaller and lighter so the letters lead. */
 .coord {
   font-size: 0.75rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 .arrow {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   margin: 0 0.15rem;
 }

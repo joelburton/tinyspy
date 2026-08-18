@@ -12,7 +12,7 @@
   margin: 0;
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 .opponents {
@@ -38,7 +38,7 @@
 
 .none {
   font-size: 0.85rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* Each opponent's words: compact rows echoing the board (dimmed base + a teal

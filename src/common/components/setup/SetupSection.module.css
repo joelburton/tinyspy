@@ -3,7 +3,7 @@
  * current value, and whose body holds the editable controls when expanded. */
 
 .section {
-  border: 1px solid var(--color-surface-border);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
 }
 
@@ -19,7 +19,7 @@
 }
 
 .summary:hover {
-  background: var(--color-surface-hover);
+  background: var(--page-surface-hover-color);
 }
 
 /* Square off the summary's bottom corners once open so it meets the body. */

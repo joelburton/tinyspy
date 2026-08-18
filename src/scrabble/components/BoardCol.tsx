@@ -775,7 +775,7 @@ export function BoardCol({
     <>
       {/* `.sharePreview` on the column recolors the frame + banner via the
           cascading `--viewer-accent` var, so a teammate's shared move reads
-          distinctly from a history replay (theme.css → --color-share-preview). */}
+          distinctly from a history replay (theme.css → --view-share-preview-color). */}
       <div className={cls(shared.boardCol, styles.boardCol, viewShared && history.sharePreview)}>
         {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
             the live turn/score + bag readout, above the board. It's a fixed-height

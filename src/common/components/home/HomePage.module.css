@@ -42,19 +42,19 @@
   font-size: 0.8rem;
   font-weight: 500;
   padding: 0.25rem 0.6rem;
-  border: 1px solid var(--color-control-border-2);
+  border: 1px solid var(--control-border-strong-color);
   border-radius: var(--radius-md);
   background: transparent;
-  color: var(--color-control-text-2);
+  color: var(--control-text-muted-color);
   text-decoration: none;
   white-space: nowrap;
   transition: background 100ms ease, color 100ms ease,
               border-color 100ms ease;
 }
 .newClubButton:hover {
-  background: var(--color-surface-hover);
-  color: var(--color-text);
-  border-color: var(--color-text);
+  background: var(--page-surface-hover-color);
+  color: var(--page-text-color);
+  border-color: var(--page-text-color);
   text-decoration: none;
 }
 
@@ -90,10 +90,10 @@
   flex-direction: column;
   /* No gap: the rows abut and the rule between them is the separation. */
 
-  /* The frame. A step darker than --color-surface-border, matching ClubPage's
+  /* The frame. A step darker than --page-surface-border-color, matching ClubPage's
    * panels, so the two pages' lists carry the same weight of line. */
-  background: var(--color-surface);
-  border: 1px solid var(--color-control-border);
+  background: var(--page-surface-color);
+  border: 1px solid var(--control-border-color);
   border-radius: var(--radius-lg);
   /* NO padding: the rows carry their own, so the space above the first row
    * equals the space between any two, and each row's rule and hover tint run
@@ -127,9 +127,9 @@
    * ClubPage's rows so a club row and a game row have the same inset. */
   padding: 0.5rem 0.9rem;
   background: transparent;
-  border-bottom: 1px solid var(--color-control-border);
+  border-bottom: 1px solid var(--control-border-color);
   text-decoration: none;
-  color: var(--color-text);
+  color: var(--page-text-color);
   transition: background-color 100ms ease;
 }
 
@@ -140,7 +140,7 @@
 }
 
 .clubItem:hover {
-  background: var(--color-surface-hover);
+  background: var(--page-surface-hover-color);
   text-decoration: none;
 }
 
@@ -160,8 +160,8 @@
   text-transform: uppercase;
   font-weight: 600;
   background: transparent;
-  color: var(--color-accent);
-  border: 1px solid var(--color-accent);
+  color: var(--chrome-action-color);
+  border: 1px solid var(--chrome-action-color);
   padding: 0.1rem 0.45rem;
   border-radius: 999px;
   line-height: 1.2;
@@ -176,7 +176,7 @@
  * offset: the rows abut now, so a ring drawn outside the row would overlap its
  * neighbour and get clipped by the frame's overflow at the first and last row. */
 .kbCursor {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--chrome-action-color);
   outline-offset: -2px;
 }
 
@@ -186,7 +186,7 @@
 .clubsList:focus,
 .clubsList:focus-visible {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--chrome-action-color);
 }
 
 /* The page frame — chrome strip on top, the content card below. Home is the
@@ -249,6 +249,6 @@
   align-items: center;
   gap: 0.375rem;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--color-divider);
+  border-bottom: 1px solid var(--page-divider-color);
   padding-bottom: 0.5rem;
 }

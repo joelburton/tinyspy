@@ -14,8 +14,8 @@
 
 .card {
   width: min(280px, calc(100% - 2rem));
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  background: var(--page-surface-color);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-lg);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
   padding: 0.75rem 1rem 0.85rem;
@@ -23,7 +23,7 @@
 
 .label {
   font-size: 0.85rem;
-  color: var(--color-text);
+  color: var(--page-text-color);
   margin-bottom: 0.4rem;
 }
 
@@ -33,18 +33,18 @@
   font: inherit;
   font-size: 1.2rem;
   padding: 0.35rem 0.5rem;
-  border: 1px solid var(--color-surface-border);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-sm);
   outline: none;
 }
 
 .input:focus {
-  border-color: var(--color-text);
+  border-color: var(--page-text-color);
 }
 
 .error {
   margin-top: 0.4rem;
   font-size: 0.85rem;
-  color: var(--color-sys-error-red);
+  color: var(--chrome-fault-color);
   min-height: 1.1em;
 }

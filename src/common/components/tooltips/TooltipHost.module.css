@@ -5,8 +5,8 @@
 .bubble {
   position: fixed;
   z-index: 12000;
-  background: var(--color-text);
-  color: var(--color-surface);
+  background: var(--page-text-color);
+  color: var(--page-surface-color);
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.2;

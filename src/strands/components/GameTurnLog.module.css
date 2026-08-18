@@ -15,7 +15,7 @@
   vertical-align: -0.15em;
   /* Inherits the row's colour by default; the outcome classes below tint it
    * along with the word, so the glyph and the word always agree. */
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 .word {

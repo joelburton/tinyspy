@@ -17,7 +17,7 @@ import { describe, expect, it } from 'vitest'
  * A token counts as DEFINED if it's declared in any stylesheet (`--x:`)
  * or set inline from a component (a quoted `'--x'` style key in a .tsx —
  * e.g. the wordle reveal animation's `--reveal-bg`). Tokens whose names
- * are built dynamically (`var(--color-member-${name})`) are matched by
+ * are built dynamically (`var(--member-${name}-dot-color)`) are matched by
  * prefix.
  */
 
@@ -40,18 +40,14 @@ import { describe, expect, it } from 'vitest'
  * "the vocabulary is incomplete without this," not "the test is annoying."
  */
 const VOCABULARY_COMPLETENESS = new Set([
-  // Lost its last reader when the setup calendar went (2026-08-13): it filled
-  // an in-progress day's square. Kept for the reason theme.css states about
-  // this whole family — a reader who sees `-active-border` (still live, on the
-  // club card and the library picker's stripe) should find its `-bg`
-  // companion beside it.
-  '--color-outcome-active-bg',
-  '--color-outcome-active-strong',
-  '--color-outcome-current-bg',
-  '--color-outcome-current-strong',
-  '--color-outcome-neutral-bg',
-  '--color-outcome-neutral-strong',
-  '--tile-4-border',
+  // ONE policy, not a list of excuses: every OUTCOME family carries all five
+  // variants (ink / fill / edge / wash / terminal-frame), because a family picked
+  // all at once is picked by one formula — where a colour chosen alone in two
+  // years would be reasoned about differently. So an outcome cell with no reader
+  // is reserved by design; nothing else in the palette gets that licence.
+  '--outcome-neutral-wash-color',
+  '--outcome-neutral-ink-color',
+  '--tile-4-edge-color',
 ])
 
 const SRC = join(process.cwd(), 'src')
@@ -112,7 +108,7 @@ describe('CSS custom-property tokens', () => {
 
     const isDefined = (name: string) =>
       defined.has(name) ||
-      // dynamic name like `var(--color-member-${x})` → captured as the
+      // dynamic name like `var(--member-${x}-dot-color)` → captured as the
       // trailing-dash prefix; OK if any defined token extends it.
       (name.endsWith('-') && [...defined.keys()].some((d) => d.startsWith(name)))
 
@@ -139,7 +135,7 @@ describe('CSS custom-property tokens', () => {
   it('every defined token is referenced (no dead tokens)', () => {
     const { defined, refs } = scanTokens()
 
-    // A ref whose name was built dynamically (`var(--color-member-${x})`) is
+    // A ref whose name was built dynamically (`var(--member-${x}-dot-color)`) is
     // captured as its trailing-dash prefix, so it vouches for every token that
     // extends it — the same rule the forward guard uses, read the other way.
     const dynamicPrefixes = [...refs.keys()].filter((r) => r.endsWith('-'))

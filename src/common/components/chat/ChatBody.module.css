@@ -31,7 +31,7 @@
      "this is the scrollable conversation," especially when
      there are 0–1 messages and the input would otherwise float
      awkwardly mid-panel. */
-  border: 1px solid var(--color-surface-border);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
   padding: 0.5rem 0.6rem;
 }

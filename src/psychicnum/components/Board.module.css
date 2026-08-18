@@ -91,15 +91,15 @@
  * peeks through them; a second of a hidden edge costs nothing, since it will be
  * back. See docs/tile-feedback.md. */
 .correct {
-  --tile-bg: var(--color-outcome-won-border);
-  --tile-border: color-mix(in srgb, var(--color-outcome-won-border) 84%, #000);
-  --tile-text: #fff;
+  --tile-bg-color: var(--outcome-won-fill-color);
+  --tile-border-color: color-mix(in srgb, var(--outcome-won-fill-color) 84%, #000);
+  --tile-ink-color: #fff;
 }
 
 .incorrect {
-  --tile-bg: var(--color-outcome-lost-border);
-  --tile-border: color-mix(in srgb, var(--color-outcome-lost-border) 84%, #000);
-  --tile-text: #fff;
+  --tile-bg-color: var(--outcome-lost-fill-color);
+  --tile-border-color: color-mix(in srgb, var(--outcome-lost-fill-color) 84%, #000);
+  --tile-ink-color: #fff;
 }
 
 /* Positioning context for the identity dot below. (The shared in-flight dim and
@@ -147,13 +147,13 @@
 }
 
 /* Turn-history: the tile the VIEWED past turn guessed — the shared history-yellow
- * (`--color-history-viewer`), the same signal the board frame + viewed log #N wear.
+ * (`--view-history-color`), the same signal the board frame + viewed log #N wear.
  * An inset outline so it rings just inside the tile edge, over its green/red fill.
  *
  * (This is the board's only tile-level ring now. The terminal answer key used to
  * add a second one in a neon green of its own; revealing a secret simply turns it
  * green today — the reveal is a state change, not a mark. See PlayArea.) */
 .viewed {
-  outline: 3px solid var(--color-history-viewer);
+  outline: 3px solid var(--view-history-color);
   outline-offset: -3px;
 }

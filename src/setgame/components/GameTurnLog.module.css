@@ -25,6 +25,6 @@
 .hintTag {
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   white-space: nowrap;
 }

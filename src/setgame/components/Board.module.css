@@ -103,7 +103,7 @@
 
 /* The card's keyboard address. It is how you play this game with the keyboard,
  * so it is a real value rather than chrome — and it gets TRUE BLACK rather than
- * `--color-text`. The body ink is #1a1a1a, which is right for paragraphs and
+ * `--page-text-color`. The body ink is #1a1a1a, which is right for paragraphs and
  * reads soft at 15px beside a board of saturated symbols; these have to be
  * unambiguous at a glance while your eye is somewhere else entirely.
  *

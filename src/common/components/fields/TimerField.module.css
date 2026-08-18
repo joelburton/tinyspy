@@ -48,6 +48,6 @@
 }
 
 .timerInput[aria-invalid='true'] {
-  outline: 2px solid var(--color-sys-error-red);
+  outline: 2px solid var(--chrome-fault-color);
   outline-offset: -1px;
 }

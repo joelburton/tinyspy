@@ -73,7 +73,7 @@
   fill: var(--letterboxed-accent);
 }
 .last text {
-  fill: var(--color-surface);
+  fill: var(--page-surface-color);
 }
 
 .disabled {

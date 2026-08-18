@@ -27,7 +27,7 @@ similar games happened to share"; the rest of the roster followed.
 - **Two columns, no chrome around them.** A **board column** (`.boardCol`, left)
   and an **info column** (`.infoCol`, right). No border / margin / padding around
   the play area or around either column — the *only* thing between them is a
-  single thin **divider**: a `border-left` (`--color-divider`) on the info
+  single thin **divider**: a `border-left` (`--page-divider-color`) on the info
   column's inner edge, with symmetric breathing room (the layout `gap` on the
   board side, the info column's `padding-left` on the other).
 - **Info column = fixed width, never grows during play** (the *one* fixed column;

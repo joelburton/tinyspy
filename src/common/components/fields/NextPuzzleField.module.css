@@ -1,7 +1,7 @@
 /*
  * The one line connections + strands show where a date picker used to be.
  *
- * Full-strength `--color-text`, not the `muted` of the helper line above it:
+ * Full-strength `--page-text-color`, not the `muted` of the helper line above it:
  * this is the actual value you're about to play, the only concrete fact in
  * the fieldset, and the thing a player's eye should land on.
  *
@@ -13,7 +13,7 @@
  * with room to spare, and the exhausted sentence is shorter still.
  */
 .next {
-  color: var(--color-text);
+  color: var(--page-text-color);
   line-height: 1.4;
   min-height: 1.4em;
   margin: 0;

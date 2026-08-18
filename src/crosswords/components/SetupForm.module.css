@@ -14,7 +14,7 @@
 .seg {
   display: inline-flex;
   align-self: flex-start;
-  border: 1px solid var(--color-control-border);
+  border: 1px solid var(--control-border-color);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -22,13 +22,13 @@
   padding: 0.3rem 0.7rem;
   font: inherit;
   font-size: 0.9rem;
-  background: var(--color-control-bg);
-  color: var(--color-text);
+  background: var(--control-bg-color);
+  color: var(--page-text-color);
   border: none;
   cursor: pointer;
 }
 .segBtn + .segBtn {
-  border-left: 1px solid var(--color-control-border);
+  border-left: 1px solid var(--control-border-color);
 }
 .segOn {
   background: var(--crosswords-cursor);
@@ -61,13 +61,13 @@
 
 .search {
   padding: 0.4rem 0.6rem;
-  border: 1px solid var(--color-surface-border);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: 6px;
   font-size: 0.95rem;
 }
 
 /* The Guardian tab's instructional lead + the per-series character hint are
- * REAL help text, so they stay full --color-text (never muted): the
+ * REAL help text, so they stay full --page-text-color (never muted): the
  * understatement comes from size / italic / placement, not dimming. */
 .lead {
   margin: 0 0 0.75rem;
@@ -86,7 +86,7 @@
   --row-h: 2.4rem;
   height: calc(8 * var(--row-h) + 2px);
   overflow-y: auto;
-  border: 1px solid var(--color-surface-border);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: 6px;
   display: flex;
   flex-direction: column;
@@ -105,14 +105,14 @@
   /* The base <button> rule paints text white (for accent-filled buttons); this
      is a plain list row on a light surface, so restore the body text color —
      otherwise the title would be white-on-white. */
-  color: var(--color-text);
+  color: var(--page-text-color);
   text-align: left;
   border-bottom: 1px solid var(--crosswords-row-rule);
   /* The club-history stripe (see .status* below). Declared on the BASE row so
    * all four states — including "never played" — occupy the same 4px: the bar
    * can never change a row's metrics, and nothing shifts when the statuses
    * land with the list. */
-  border-left: 4px solid var(--color-outcome-neutral-bg);
+  border-left: 4px solid var(--gamelist-unplayed-color);
   font: inherit;
 }
 .item:last-child { border-bottom: none; }
@@ -131,17 +131,17 @@
  *
  * Only the COLOR varies, never the width — that's what keeps the stripe
  * from reflowing the list. */
-.statusSolved  { border-left-color: var(--color-outcome-won-border); }
+.statusSolved  { border-left-color: var(--gamelist-won-color); }
 /* Yellow covers both "a game is live" and "a game was ended manually" — the
  * RPC folds them into one bucket. Same tone the club page uses for "still
  * open, we'll come back to it". */
-.statusPlaying { border-left-color: var(--color-outcome-active-border); }
-.statusLost    { border-left-color: var(--color-outcome-lost-border); }
+.statusPlaying { border-left-color: var(--gamelist-suspended-color); }
+.statusLost    { border-left-color: var(--gamelist-lost-color); }
 /* Neither transparent nor the strong neutral: near-white keeps the stripe
  * honest about its width while leaving all the signal to the three played
  * states. Most of a library is unplayed, and a mid-grey stripe on every one
  * of those rows would read as noise competing with the real colors. */
-.statusUnplayed { border-left-color: var(--color-outcome-neutral-bg); }
+.statusUnplayed { border-left-color: var(--gamelist-unplayed-color); }
 
 /* One line per row (rows are fixed-height): a long title ellipsizes instead
  * of wrapping. */
@@ -159,7 +159,7 @@
 .empty {
   padding: 1rem;
   text-align: center;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* Upload tab: a hidden native file input + a dropzone that is also a button
@@ -180,29 +180,29 @@
   padding: 1rem;
   font: inherit;
   text-align: center;
-  color: var(--color-text);
-  background: var(--color-control-bg);
-  border: 2px dashed var(--color-control-border);
+  color: var(--page-text-color);
+  background: var(--control-bg-color);
+  border: 2px dashed var(--control-border-color);
   border-radius: 8px;
   cursor: pointer;
 }
 .dropzone:hover {
-  border-color: var(--color-text);
+  border-color: var(--page-text-color);
 }
 /* Active drag-over state — highlight the target. */
 .dropOver {
-  border-color: var(--color-text);
+  border-color: var(--page-text-color);
   background: var(--crosswords-in-word);
 }
 .dropTitle {
   font-weight: 600;
 }
 .dropMeta {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   font-size: 0.85rem;
 }
 .uploadError {
-  color: var(--color-sys-error-red);
+  color: var(--chrome-fault-color);
   font-size: 0.9rem;
   margin: 0;
 }
@@ -216,7 +216,7 @@
  * the line is empty until then.
  */
 .nextDate {
-  color: var(--color-text);
+  color: var(--page-text-color);
   line-height: 1.4;
   min-height: 1.4em;
   margin: 0.5rem 0;

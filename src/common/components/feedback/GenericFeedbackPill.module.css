@@ -22,9 +22,9 @@
   /* Uniform 2px top/right/bottom + a thicker LEFT BAR (~the 7px turn-log outcome
    * bar). The COLOR (all four sides) is set per tone below; here it just defaults
    * to the pale surface border (every tone overrides it). */
-  border: 2px solid var(--color-surface-border);
+  border: 2px solid var(--page-surface-border-color);
   border-left-width: 0.4rem;
-  background: var(--color-surface);
+  background: var(--page-surface-color);
   font-weight: 500;
   /* Cap the text width at a reasonable inline length; long
    * messages truncate with ellipsis. The host slot also bounds
@@ -79,13 +79,13 @@
  */
 
 .success {
-  border-color: var(--color-outcome-won-strong);
-  background: color-mix(in oklab, var(--color-outcome-won-border) 18%, var(--color-surface));
+  border-color: var(--outcome-won-ink-color);
+  background: color-mix(in oklab, var(--outcome-won-fill-color) 18%, var(--page-surface-color));
 }
 
 .error {
-  border-color: var(--color-outcome-lost-strong);
-  background: color-mix(in oklab, var(--color-outcome-lost-border) 18%, var(--color-surface));
+  border-color: var(--outcome-lost-ink-color);
+  background: color-mix(in oklab, var(--outcome-lost-fill-color) 18%, var(--page-surface-color));
 }
 
 /* ORANGE — the "important, but not good/bad" tone (a hint was asked for, an
@@ -93,29 +93,29 @@
  * it never reads as a result — and, since 2026-08-17, distinct from `near`
  * below, which IS one. */
 .warning {
-  border-color: var(--color-warning-strong);
-  background: color-mix(in oklab, var(--color-warning-border) 18%, var(--color-surface));
+  border-color: var(--outcome-warning-ink-color);
+  background: color-mix(in oklab, var(--outcome-warning-fill-color) 18%, var(--page-surface-color));
 }
 
 /* near — a near miss (connections' "one away"), in the GOLD its turn-log bar
  * wears. It is a result, not a caution: "you were close" and "you can't do that"
  * are different messages and no longer the same color. */
 .near {
-  border-color: var(--color-outcome-near-strong);
-  background: color-mix(in oklab, var(--color-outcome-near-border) 18%, var(--color-surface));
+  border-color: var(--outcome-near-ink-color);
+  background: color-mix(in oklab, var(--outcome-near-fill-color) 18%, var(--page-surface-color));
 }
 
 .neutral {
   /* No tone color to carry recognition, so the BORDER itself must read as "this
    * is a feedback pill" — a dark grey (not the pale surface border) on all sides
    * incl. the left bar. */
-  border-color: var(--color-muted);
-  background: var(--color-surface);
+  border-color: var(--page-text-muted-color);
+  background: var(--page-surface-color);
 }
 
 .info {
-  border-color: var(--color-accent);
-  background: color-mix(in oklab, var(--color-accent) 8%, var(--color-surface));
+  border-color: var(--chrome-action-color);
+  background: color-mix(in oklab, var(--chrome-action-color) 8%, var(--page-surface-color));
 }
 
 /* Outline = the TRANSIENT look: drop the fill tint back to a plain white surface,
@@ -125,7 +125,7 @@
  * the tone rules so this background wins over the tone tint for `.outline.<tone>`;
  * it deliberately does NOT touch the border, so the tone border color stays. */
 .outline {
-  background: var(--color-surface);
+  background: var(--page-surface-color);
 }
 
 /* Tap/click anywhere on the pill to dismiss it — the `sticky` and `timed`
@@ -148,6 +148,6 @@
  * height and shift the board (docs/ui.md → Layout stability). Only the chrome
  * and the color differ.
  *
- * `--color-sys-error-red` is the system red used by `.error` text elsewhere,
+ * `--chrome-fault-color` is the system red used by `.error` text elsewhere,
  * not the pill's tone palette: this is deliberately outside the feedback
  * vocabulary, because it isn't feedback. */

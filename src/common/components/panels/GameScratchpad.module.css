@@ -17,20 +17,20 @@
   gap: 0.5rem;
   flex-shrink: 0;
   font-size: 0.85rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 .takeOver {
   padding: 0.15rem 0.5rem;
   font: inherit;
   font-size: 0.8rem;
-  border: 1px solid var(--color-control-border);
+  border: 1px solid var(--control-border-color);
   border-radius: 6px;
-  background: var(--color-control-bg);
-  color: var(--color-text);
+  background: var(--control-bg-color);
+  color: var(--page-text-color);
   cursor: pointer;
 }
 .takeOver:hover {
-  background: var(--color-surface-hover);
+  background: var(--page-surface-hover-color);
 }
 
 .textarea {
@@ -40,13 +40,13 @@
   width: 100%;
   box-sizing: border-box;
   padding: 0.5rem;
-  border: 1px solid var(--color-surface-border);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: 6px;
   font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
   font-size: 0.9rem;
   line-height: 1.5;
-  color: var(--color-text);
-  background: var(--color-bg);
+  color: var(--page-text-color);
+  background: var(--page-bg-color);
 }
 
 /* iOS focus-zoom floor (docs/mobile.md → Decisions #3): 0.9rem = 14.4px, under
@@ -60,6 +60,6 @@
   }
 }
 .textarea:read-only {
-  background: var(--color-surface);
-  color: var(--color-muted);
+  background: var(--page-surface-color);
+  color: var(--page-text-muted-color);
 }

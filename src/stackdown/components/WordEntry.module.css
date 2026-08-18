@@ -20,21 +20,21 @@
   font-weight: 700;
   /* A clearly-visible dark-grey dashed outline — earlier shades read as
    * empty whitespace and were easy to miss. */
-  border: 2px dashed var(--color-muted);
+  border: 2px dashed var(--page-text-muted-color);
   border-radius: var(--radius-md);
   background: transparent;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 .filled {
   border-style: solid;
-  border-color: var(--color-accent);
-  background: var(--color-surface);
+  border-color: var(--chrome-action-color);
+  background: var(--page-surface-color);
   cursor: pointer;
 }
 
 .filled:hover:not(:disabled) {
-  background: var(--color-surface-hover);
+  background: var(--page-surface-hover-color);
 }
 
 /* A flashed word — a thick colored ring for a beat (the PlayArea clears
@@ -45,13 +45,13 @@
  *   - good: an accepted word (the player's own, or a teammate's valid find)
  *   - bad:  a teammate's rejected word (their tiles bounced back) */
 .good {
-  border-color: var(--color-outcome-won-strong);
-  box-shadow: 0 0 0 3px var(--color-outcome-won-strong);
+  border-color: var(--outcome-won-ink-color);
+  box-shadow: 0 0 0 3px var(--outcome-won-ink-color);
 }
 
 .bad {
-  border-color: var(--color-outcome-lost-strong);
-  box-shadow: 0 0 0 3px var(--color-outcome-lost-strong);
+  border-color: var(--outcome-lost-ink-color);
+  box-shadow: 0 0 0 3px var(--outcome-lost-ink-color);
 }
 
 /* A flashed slot is `disabled` (not interactive during the flash), which the

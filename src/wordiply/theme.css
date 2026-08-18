@@ -18,7 +18,7 @@
  */
 :root {
   --wordiply-accent:      #2f9e8f;
-  --wordiply-base-dim:    var(--color-muted);
-  --wordiply-row:         var(--color-surface);
-  --wordiply-row-empty:   var(--color-control-bg);
+  --wordiply-base-dim:    var(--page-text-muted-color);
+  --wordiply-row:         var(--page-surface-color);
+  --wordiply-row-empty:   var(--control-bg-color);
 }

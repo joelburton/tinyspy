@@ -19,9 +19,9 @@
   min-width: 0;
   padding: 0.4rem 0.55rem;
   font-size: 0.95rem;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  color: var(--page-text-color);
+  background: var(--page-surface-color);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
 }
 
@@ -36,7 +36,7 @@
 }
 
 .input:focus {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--chrome-action-color);
   outline-offset: -1px;
 }
 
@@ -45,12 +45,12 @@
   padding: 0.4rem 0.8rem;
   font-size: 0.9rem;
   color: #fff;
-  background: var(--color-accent);
-  border: 1px solid var(--color-accent);
+  background: var(--chrome-action-color);
+  border: 1px solid var(--chrome-action-color);
   border-radius: var(--radius-md);
   cursor: pointer;
 }
 
 .button:hover {
-  background: var(--color-accent-hover);
+  background: var(--chrome-action-primary-hover-color);
 }

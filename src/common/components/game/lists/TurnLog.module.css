@@ -66,7 +66,7 @@
  * suppressed by :first-child, so a game can apply it to every turn-start row
  * unconditionally. Full width, reaching the left edge (over the bar column too). */
 .turnLogDivider td {
-  border-top: 1px solid var(--color-divider);
+  border-top: 1px solid var(--page-divider-color);
 }
 .turnLogDivider:first-child td {
   border-top: none;
@@ -122,20 +122,20 @@
   left: 0.4rem;
   width: 7px;
   border-radius: 3px;
-  background: var(--color-outcome-neutral-border); /* neutral default */
+  background: var(--outcome-neutral-fill-color); /* neutral default */
 }
 
 .barInner_good {
-  background: var(--color-outcome-won-border);
+  background: var(--outcome-won-fill-color);
 }
 .barInner_bad {
-  background: var(--color-outcome-lost-border);
+  background: var(--outcome-lost-fill-color);
 }
 .barInner_partial {
-  background: var(--color-outcome-near-border);
+  background: var(--outcome-near-fill-color);
 }
 .barInner_neutral {
-  background: var(--color-outcome-neutral-border);
+  background: var(--outcome-neutral-fill-color);
 }
 
 /* ─── Content library ────────────────────────────────────────────────────
@@ -178,7 +178,7 @@
 /* Minor / de-emphasized info — a turn number, a small note. Muted; sizes to its
  * content (typically space-free, so it never wraps). */
 .meta {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* The clickable "#N" turn handle (see <TurnLogNumber>) — the turn-history control
@@ -199,7 +199,7 @@
 /* Hover = a background tint + the number darkens to full-strength (a span can't take
  * focus, so there's no focus state to style). */
 .turnNumber:hover {
-  background: var(--color-surface-hover);
+  background: var(--page-surface-hover-color);
   color: black;
 }
 

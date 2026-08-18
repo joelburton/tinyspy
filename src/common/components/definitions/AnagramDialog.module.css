@@ -23,9 +23,9 @@
   min-width: 0;
   padding: 0.4rem 0.55rem;
   font-size: 0.95rem;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  color: var(--page-text-color);
+  background: var(--page-surface-color);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
 }
 
@@ -38,7 +38,7 @@
 }
 
 .input:focus {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--chrome-action-color);
   outline-offset: -1px;
 }
 
@@ -47,14 +47,14 @@
   padding: 0.4rem 0.8rem;
   font-size: 0.9rem;
   color: #fff;
-  background: var(--color-accent);
-  border: 1px solid var(--color-accent);
+  background: var(--chrome-action-color);
+  border: 1px solid var(--chrome-action-color);
   border-radius: var(--radius-md);
   cursor: pointer;
 }
 
 .button:hover {
-  background: var(--color-accent-hover);
+  background: var(--chrome-action-primary-hover-color);
 }
 
 .button:disabled {
@@ -66,19 +66,19 @@
 .hint {
   margin: 0;
   font-size: 0.75rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 .error {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--color-sys-error-red);
+  color: var(--chrome-fault-color);
 }
 
 .count {
   margin: 0;
   font-size: 0.8rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* The result list: the one flexible child, scrolling INSIDE the panel —
@@ -91,7 +91,7 @@
   margin: 0;
   padding: 0.15rem 0 0;
   list-style: none;
-  border-top: 1px solid var(--color-surface-border);
+  border-top: 1px solid var(--page-surface-border-color);
 }
 
 .row {
@@ -104,7 +104,7 @@
 
 .word {
   font-size: 0.95rem;
-  color: var(--color-text);
+  color: var(--page-text-color);
   cursor: pointer;
 }
 
@@ -112,6 +112,6 @@
  * asked for it muted; not the don't-default-to-muted case). */
 .band {
   font-size: 0.8rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   font-variant-numeric: tabular-nums;
 }

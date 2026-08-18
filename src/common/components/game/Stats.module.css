@@ -28,8 +28,8 @@
   column-gap: var(--stats-col-gap, 0);
   /* The rules band the state unit off from the opponent strip / action row
    * below it, so the figures read as their own readout. */
-  border-top: 1px solid var(--color-surface-border);
-  border-bottom: 1px solid var(--color-surface-border);
+  border-top: 1px solid var(--page-surface-border-color);
+  border-bottom: 1px solid var(--page-surface-border-color);
   padding: 10px 0;
   margin: 8px 0 12px;
   text-align: center;
@@ -53,7 +53,7 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   line-height: 1.2;
 }
 
@@ -67,7 +67,7 @@
 .muted {
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* An OPTIONAL third line under the value — the found-share as a percent. Only
@@ -76,7 +76,7 @@
   font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   line-height: 1.2;
 }
 

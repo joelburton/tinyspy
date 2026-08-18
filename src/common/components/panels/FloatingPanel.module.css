@@ -48,11 +48,11 @@
 .shell {
   width: 100%;
   height: 100%;
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  background: var(--page-surface-color);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-lg);
   /* Elevation shadow so the panel reads as "above the page"
-     against the off-white --color-bg. */
+     against the off-white --page-bg-color. */
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
@@ -67,8 +67,8 @@
   /* Compact padding so the header doesn't claim much of the
      panel's vertical budget. */
   padding: 0.3rem 0.7rem;
-  border-bottom: 1px solid var(--color-surface-border);
-  background: var(--color-surface-hover);
+  border-bottom: 1px solid var(--page-surface-border-color);
+  background: var(--page-surface-hover-color);
   user-select: none;
   flex-shrink: 0;
 }
@@ -96,7 +96,7 @@
 .closeButton {
   background: transparent;
   border: 1px solid transparent;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   padding: 0;
   width: 1.4rem;
   height: 1.4rem;
@@ -110,9 +110,9 @@
   flex-shrink: 0;
 }
 .closeButton:hover:not(:disabled) {
-  background: var(--color-surface-hover);
-  color: var(--color-text);
-  border-color: var(--color-control-border);
+  background: var(--page-surface-hover-color);
+  color: var(--page-text-color);
+  border-color: var(--control-border-color);
 }
 
 .body {

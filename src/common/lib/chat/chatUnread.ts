@@ -102,6 +102,6 @@ export function computeUnread(
   const member = members.find((mm) => mm.user_id === latest.user_id)
   return {
     count: unread.length,
-    color: member ? colorVarFor(member.color) : 'var(--color-muted)',
+    color: member ? colorVarFor(member.color) : 'var(--page-text-muted-color)',
   }
 }

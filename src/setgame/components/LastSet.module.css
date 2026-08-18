@@ -12,7 +12,7 @@
   /* Full-strength ink at readout size. This names what the panel is showing and
    * who found it — real information, so it does not get the muted treatment. */
   font-size: 1rem;
-  color: var(--color-text);
+  color: var(--page-text-color);
   display: flex;
   align-items: center;
   gap: 0.35rem;

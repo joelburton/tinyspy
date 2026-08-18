@@ -31,7 +31,7 @@
 
 /* "Your clue:" lead-in, muted so the WORD beside it carries the emphasis. */
 .clueLabel {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* The active clue, inline — prominent but sized to sit on the control line. */
@@ -114,7 +114,7 @@
 .suggestionReasoning {
   margin: 0;
   line-height: 1.5;
-  color: var(--color-text);
+  color: var(--page-text-color);
   /* The edge function appends an "Agents: X, Y" paragraph to the reasoning after
    * a blank line; pre-line preserves that newline so it renders as its own line
    * (default `normal` would collapse it into a space). */
@@ -124,12 +124,12 @@
 /* "Asking Claude…" while the edge function runs. */
 .suggestionLoading {
   margin: 0;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 /* The API error message, shown in the dialog (not the local flash bar). */
 .suggestionError {
   margin: 0;
   line-height: 1.5;
-  color: var(--color-sys-error-red);
+  color: var(--chrome-fault-color);
 }

@@ -32,7 +32,7 @@
   margin: 0;
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--page-text-color);
   flex-shrink: 0;
 }
 
@@ -71,6 +71,6 @@
 .box {
   flex: 1;
   min-height: 0;
-  border: 2px solid var(--color-divider);
+  border: 2px solid var(--page-divider-color);
   border-radius: var(--radius-md);
 }

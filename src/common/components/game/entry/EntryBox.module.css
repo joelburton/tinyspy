@@ -43,7 +43,7 @@
    as a quiet placeholder (normal weight, its own casing, no letter-spacing), not
    as bold all-caps typed text. */
 .placeholder {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   font-weight: 400;
   text-transform: none;
   letter-spacing: normal;
@@ -57,7 +57,7 @@
   display: inline-block;
   width: 2px;
   height: 1.15em;
-  background: var(--color-accent);
+  background: var(--chrome-action-color);
   margin: 0 1px;
   animation: caretBlink 1.1s steps(1) infinite;
 }

@@ -6,7 +6,7 @@
   padding: 0.3rem;
   margin: 0;
   cursor: pointer;
-  color: var(--color-text);
+  color: var(--page-text-color);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -14,8 +14,8 @@
   transition: background 100ms ease, color 100ms ease;
 }
 .bubble:hover {
-  background: var(--color-surface-border);
+  background: var(--page-surface-border-color);
 }
 .bubble[aria-pressed='true'] {
-  background: var(--color-surface-border);
+  background: var(--page-surface-border-color);
 }

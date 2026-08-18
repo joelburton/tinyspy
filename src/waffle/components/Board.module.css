@@ -115,19 +115,19 @@
  * SELECTION legible below: a picked-up tile thickens this edge, which needs the
  * edge to be a different color from the fill in the first place. */
 .green {
-  --tile-bg: var(--wordle-green);
-  --tile-border: var(--wordle-green-border);
-  --tile-text: #fff;
+  --tile-bg-color: var(--wordle-green-fill-color);
+  --tile-border-color: var(--wordle-green-edge-color);
+  --tile-ink-color: #fff;
 }
 .yellow {
-  --tile-bg: var(--wordle-yellow);
-  --tile-border: var(--wordle-yellow-border);
-  --tile-text: #fff;
+  --tile-bg-color: var(--wordle-yellow-fill-color);
+  --tile-border-color: var(--wordle-yellow-edge-color);
+  --tile-ink-color: #fff;
 }
 .gray {
-  --tile-bg: var(--wordle-gray);
-  --tile-border: var(--wordle-gray-border);
-  --tile-text: #fff;
+  --tile-bg-color: var(--wordle-gray-fill-color);
+  --tile-border-color: var(--wordle-gray-edge-color);
+  --tile-ink-color: #fff;
 }
 /* Not a played state: a waffle tile always has a color once the board loads,
  * and a hole is a `.hole` span rather than a tile. `.blank` is only what a tile
@@ -135,9 +135,9 @@
  * keeps its flat edge — the darker border above is for the three colors that
  * carry meaning. */
 .blank {
-  --tile-bg: var(--wordle-blank);
-  --tile-border: var(--wordle-blank);
-  --tile-text: var(--color-text);
+  --tile-bg-color: var(--wordle-blank-fill-color);
+  --tile-border-color: var(--wordle-blank-fill-color);
+  --tile-ink-color: var(--page-text-color);
 }
 
 /* The two cells of a swap IN FLIGHT. Their old color was invalidated the moment
@@ -153,9 +153,9 @@
  * Declared after `.blank` on purpose: an in-flight cell is unjudged, so it wears
  * both classes, and same-file order settles which fill wins. */
 .inFlight {
-  --tile-bg: var(--wordle-gray);
-  --tile-border: var(--wordle-gray-border);
-  --tile-text: #fff;
+  --tile-bg-color: var(--wordle-gray-fill-color);
+  --tile-border-color: var(--wordle-gray-edge-color);
+  --tile-ink-color: #fff;
 }
 
 /* Turn-history: the two cells the viewed swap moved. Ringed in the shared
@@ -166,7 +166,7 @@
  * flight); `position: relative` + a z-index lift it so the ring paints over
  * neighbouring tiles rather than under. */
 .viewedTile {
-  outline: 3px solid var(--color-history-viewer);
+  outline: 3px solid var(--view-history-color);
   outline-offset: 2px;
   position: relative;
   z-index: 1;

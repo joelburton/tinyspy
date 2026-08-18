@@ -52,7 +52,7 @@
   /* Selection: a dark ring, the same "I picked this" vocabulary as the shared
    * tile's selected state, but drawn AROUND the card rather than filling it —
    * a fill would bury the symbols, which are the entire point of the card. */
-  --setgame-card-selected: var(--color-text);
+  --setgame-card-selected: var(--page-text-color);
 
   /* A live hint's ring: saturated green, and thick. It started neutral grey on
    * the theory that a hint is not an outcome — but a hint you have to hunt for

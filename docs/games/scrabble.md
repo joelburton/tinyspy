@@ -712,7 +712,7 @@ just the placements (+ `sharerId` / `words` / `score` for the banner) overlaid o
 receiver's live board; a **stale** broadcast — its `baseVersion` no longer matches the
 receiver's board, i.e. a real move landed in between — is dropped, so it never renders
 a move that no longer fits. The preview wears its **own** color token
-(`--color-share-preview`, initialized to the history yellow but tinkerable
+(`--view-share-preview-color`, initialized to the history yellow but tinkerable
 independently, via a `--viewer-accent` override on the `.sharePreview` column). Coop
 only — compete has private racks and no shared board, so the button and channel are
 absent. Verified cross-client in `e2e/scrabble-show-move.e2e.ts` (two contexts:

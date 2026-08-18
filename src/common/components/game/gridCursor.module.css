@@ -30,14 +30,14 @@
 
 /* Horizontal: heavy top + bottom, so the eye runs along the row. */
 .cursorH {
-  border: 1px solid var(--grid-cursor);
+  border: 1px solid var(--mark-grid-cursor-color);
   border-top-width: 5px;
   border-bottom-width: 5px;
 }
 
 /* Vertical: heavy left + right, so the eye runs down the column. */
 .cursorV {
-  border: 1px solid var(--grid-cursor);
+  border: 1px solid var(--mark-grid-cursor-color);
   border-left-width: 5px;
   border-right-width: 5px;
 }

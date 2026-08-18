@@ -218,12 +218,12 @@ export function Board({
         flashingRanks.has(c.rank) && shared.attentionFlash,
       )}
       style={{
-        ['--tile-bg' as string]: RANK_TOKEN[c.rank],
+        ['--tile-bg-color' as string]: RANK_TOKEN[c.rank],
         // The rank color stepped ~16% darker, as quiet definition — the same
         // derived edge psychicnum's decided tiles wear. A band is INERT (it can
         // never be selected and nothing can be refused on it), which is what
         // frees the border here: neither claimant on that channel can appear.
-        ['--tile-border' as string]: `color-mix(in srgb, ${RANK_TOKEN[c.rank]} 84%, #000)`,
+        ['--tile-border-color' as string]: `color-mix(in srgb, ${RANK_TOKEN[c.rank]} 84%, #000)`,
         // --len drives the same auto-fit the tiles use (here for the band name).
         ['--len' as string]: c.name.length,
       }}

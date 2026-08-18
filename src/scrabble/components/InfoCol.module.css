@@ -35,7 +35,7 @@
   padding: 0;
   font: inherit;
   font-size: 0.9rem;
-  color: var(--color-text);
+  color: var(--page-text-color);
   cursor: pointer;
   text-align: left;
 }
@@ -58,9 +58,9 @@
  * Muted BY JOEL'S SPEC (an exception to the don't-default-to-muted rule): the
  * score is the headline number, the rating is the aside. */
 .suggestRating {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 .suggestError {
-  color: var(--color-sys-error-red);
+  color: var(--chrome-fault-color);
 }

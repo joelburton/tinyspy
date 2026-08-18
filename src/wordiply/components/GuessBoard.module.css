@@ -25,14 +25,14 @@
  * SOLID (not dashed) — the only change on submit is the dashes filling in. */
 .done {
   background: var(--wordiply-row);
-  border: 2px solid var(--color-control-border-2);
+  border: 2px solid var(--control-border-strong-color);
 }
 
 /* The active (being-typed) row is still an empty row — same dashed grey
  * outline; the live word inside is what marks it as active. */
 .active {
   background: var(--wordiply-row-empty);
-  border: 2px dashed var(--color-control-border-2);
+  border: 2px dashed var(--control-border-strong-color);
 }
 
 .rowWord {
@@ -55,6 +55,6 @@
 /* A future, unfilled row — a clearly-visible dashed outline (medium-dark, not
  * a faint hairline). */
 .empty {
-  border: 2px dashed var(--color-control-border-2);
+  border: 2px dashed var(--control-border-strong-color);
   background: var(--wordiply-row-empty);
 }

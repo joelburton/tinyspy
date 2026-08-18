@@ -63,14 +63,14 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--color-text);
+  color: var(--page-text-color);
   /* Resting key: a LIGHT cap with a real dark-gray edge, rather than NYT's flat
    * mid-gray fill. Two reasons, both practical: it is the house style (things get
    * a border, not just a background — see the setgame card, the tile ramp), and a
    * gray drop shadow simply does not read against a gray cap, so the hover
    * treatment below was invisible. A game may override `--kbd-key-bg`. */
   background: var(--kbd-key-bg, #eeeeee);
-  border: 1px solid var(--kbd-key-border);
+  border: 1px solid var(--kbd-key-edge-color);
   /* A keycap sits on the page the same way a board tile does, so it takes the
    * same resting depth and the same three-state gesture below. Overrides the
    * global button hover/accent treatment. */
@@ -95,7 +95,7 @@
  * gets toned DOWN for this surface — but only after we have looked at the same
  * one on both. */
 .key:hover:not(:disabled) {
-  box-shadow: var(--hover-shadow);
+  box-shadow: var(--tile-hover-shadow);
   transform: translateY(-2px);
 }
 
@@ -137,11 +137,11 @@
  * controls, one filled and one outlined, exactly as a Submit/Cancel pair reads
  * elsewhere in the app. */
 .backspace {
-  background: var(--color-surface);
+  background: var(--page-surface-color);
   /* A DARKER edge than the letter caps. The white-vs-near-white fill alone was
    * carrying the whole "this is a control, not a letter" distinction on a few
    * percent of lightness; the border is the lever that makes it read. */
-  border-color: var(--kbd-control-border);
+  border-color: var(--kbd-specialkey-edge-color);
 }
 
 /* ENTER is a submit button, so it looks like one: the app's accent blue with
@@ -154,8 +154,8 @@
  * letter result, so nothing can overwrite it, and keeping it here puts it beside
  * the other structural key rules. */
 .enter {
-  background: var(--color-accent);
-  border-color: var(--color-accent-hover);
+  background: var(--chrome-action-color);
+  border-color: var(--chrome-action-primary-hover-color);
   color: #fff;
 }
 

@@ -16,9 +16,9 @@
 }
 
 .coop {
-  color: var(--color-mode-coop-text);
+  color: var(--gamemode-coop-ink-color);
 }
 
 .compete {
-  color: var(--color-mode-compete-text);
+  color: var(--gamemode-compete-ink-color);
 }

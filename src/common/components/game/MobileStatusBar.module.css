@@ -20,7 +20,7 @@
    * board column. Either way the height is fixed, never content-driven. The board
    * shrinking by this row is the intended cost.
    *
-   * Full `--color-text` (not muted): this is a real value the player reads, not
+   * Full `--page-text-color` (not muted): this is a real value the player reads, not
    * background chrome (docs/ui.md → the two vocabularies). */
   .bar {
     display: flex;
@@ -28,7 +28,7 @@
     justify-content: center;
     flex-shrink: 0;
     height: var(--mobile-status-height, 1.75rem);
-    color: var(--color-text);
+    color: var(--page-text-color);
     font-size: 0.95rem;
     /* Never wrap: the height is fixed, so a wrapped line would be clipped rather
      * than push the board — and a status that needs two lines should raise

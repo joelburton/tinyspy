@@ -5,5 +5,5 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   line-height: 1.5;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }

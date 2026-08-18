@@ -1,7 +1,7 @@
 /*
  * History-view appearance — the shared "you're looking at a past turn, not the
  * live board" marker, worn identically by every game that supports turn-history
- * replay (scrabble, stackdown, …). One yellow token (`--color-history-viewer`,
+ * replay (scrabble, stackdown, …). One yellow token (`--view-history-color`,
  * overridable per-overlay via `--viewer-accent` — see `.sharePreview`) drives
  * three coordinated signifiers so the viewer reads the same everywhere:
  *
@@ -35,21 +35,21 @@
 .frame {
   /* `--viewer-accent` defaults to the history token, so every history game is
    *  unchanged; a wrapper can override it (scrabble's `.sharePreview` sets it to
-   *  `--color-share-preview`) to recolor the frame + banner for a different kind
+   *  `--view-share-preview-color`) to recolor the frame + banner for a different kind
    *  of read-only overlay. Custom properties cascade, so setting it on the board
    *  column reaches both the board `.frame` and the below-board `.banner`. */
-  outline: 4px solid var(--viewer-accent, var(--color-history-viewer));
+  outline: 4px solid var(--viewer-accent, var(--view-history-color));
   outline-offset: 3px;
   pointer-events: none;
 }
 
 /* Recolor the frame + banner for scrabble's coop "showing a move" preview — the
  * SAME overlay chrome as history, but with its own tinkerable accent (theme.css →
- * --color-share-preview). Applied to the board column so the var cascades to both
+ * --view-share-preview-color). Applied to the board column so the var cascades to both
  * the board frame and the banner. The `.viewedNumber` #N ring stays history-only
  * (a shared move has no log handle). */
 .sharePreview {
-  --viewer-accent: var(--color-share-preview);
+  --viewer-accent: var(--view-share-preview-color);
 }
 
 /* The "#N" turn handle whose turn is currently open in the viewer — a yellow ring
@@ -58,7 +58,7 @@
  * chip. Replaces an earlier whole-row outline: many games render a turn as several
  * <tr>s, where a row outline draws a broken box — a single #N handle stays crisp. */
 .viewedNumber {
-  outline: 2px solid var(--color-history-viewer);
+  outline: 2px solid var(--view-history-color);
   outline-offset: 1px;
   border-radius: var(--radius-sm);
 }
@@ -92,10 +92,10 @@
   gap: 0.6rem;
   padding: 0 0.5rem 0 0.75rem;
   cursor: pointer;
-  border: 2px solid var(--viewer-accent, var(--color-history-viewer));
+  border: 2px solid var(--viewer-accent, var(--view-history-color));
   border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text);
+  background: var(--page-surface-color);
+  color: var(--page-text-color);
   font-weight: 600;
 }
 
@@ -116,12 +116,12 @@
   background: transparent;
   border: none;
   padding: 0.15rem 0.35rem;
-  color: var(--color-text);
+  color: var(--page-text-color);
   font-size: 1rem;
   line-height: 1;
   cursor: pointer;
   border-radius: var(--radius-sm);
 }
 .bannerExit:hover {
-  background: color-mix(in oklab, var(--color-text) 10%, var(--color-surface));
+  background: color-mix(in oklab, var(--page-text-color) 10%, var(--page-surface-color));
 }

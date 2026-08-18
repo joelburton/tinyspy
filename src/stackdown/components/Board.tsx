@@ -15,7 +15,7 @@ const PAD = 26
 
 /**
  * Shade by covering-depth below the clickable frontier, off the SHARED warm tile
- * ramp (common/theme.css `--tile-1..4`): depth 0 (exposed now) = shade 1, deeper
+ * ramp (common/theme.css `--tile-1-color..4`): depth 0 (exposed now) = shade 1, deeper
  * layers = 2, 3, 4 (deepest). The direct depth→shade map means a given depth
  * always reads the same shade, and a tile lightens a step each time a cover clears
  * (its depth drops). Clamped at 4 — the fixed 30-tile geometry is 4 layers deep.

@@ -22,9 +22,9 @@
   font-size: 0.8rem;
   /* Normal text color, matching .select — the current filter is a real value,
    * understated by size and border rather than by muting it. */
-  color: var(--color-text);
+  color: var(--page-text-color);
   background: transparent;
-  border: 1px solid var(--color-divider);
+  border: 1px solid var(--page-divider-color);
   border-radius: 4px;
   padding: 0.05rem 0.3rem;
   max-width: 9rem;
@@ -99,8 +99,8 @@
   max-width: 14rem;
   display: flex;
   flex-direction: column;
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  background: var(--page-surface-color);
+  border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
   box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
   padding: 0.15rem;
@@ -114,7 +114,7 @@
   font: inherit;
   font-size: 0.8rem;
   text-align: left;
-  color: var(--color-text);
+  color: var(--page-text-color);
   background: transparent;
   border: none;
   border-radius: 4px;
@@ -129,7 +129,7 @@
   outline: none;
 }
 .option:hover {
-  background: var(--color-surface-hover);
+  background: var(--page-surface-hover-color);
 }
 
 /* The current value. Weight rather than color, so it reads as "this one" in

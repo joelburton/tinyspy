@@ -13,8 +13,8 @@
  * A rank ladder means the same thing wherever it appears, and when the two
  * games' bars sat side by side in the docs the differing hues read as a
  * distinction that wasn't there. It's defined once, here:
- *   --rank-fill  the achieved-tier fill
- *   --rank-edge  every rule + border on the track
+ *   --rank-bar-fill-color  the achieved-tier fill
+ *   --rank-bar-edge-color  every rule + border on the track
  * (`--rank-text`, the label + tooltip color, is still aliased per game — it's
  * near-black in both, and it belongs to the game's type color, not the ladder.)
  *
@@ -74,7 +74,7 @@
   right: 0;
   top: 50%;
   height: 2px;
-  background: var(--rank-edge);
+  background: var(--rank-bar-edge-color);
   transform: translateY(-50%);
   z-index: 0;
 }
@@ -88,8 +88,8 @@
    * (see the header note). A small radius keeps the corners from reading as
    * a harsh pixel box. */
   border-radius: 2px;
-  background: var(--color-surface);
-  border: 2px solid var(--rank-edge);
+  background: var(--page-surface-color);
+  border: 2px solid var(--rank-bar-edge-color);
   cursor: default;
 }
 
@@ -97,7 +97,7 @@
  * the bright square stands out against the white track without the heaviness of
  * a near-black outline (which is reserved for the goal marker below). */
 .achieved {
-  background: var(--rank-fill);
+  background: var(--rank-bar-fill-color);
 }
 
 /* The GOAL square — the rank this game is played to (`setup.target_rank`).
@@ -113,7 +113,7 @@
  * Declared after `.achieved` so it wins the border-color cascade. */
 .target {
   border-width: 3px;
-  border-color: var(--color-text);
+  border-color: var(--page-text-color);
 }
 
 /* Tooltip — hover only. On a phone that covers the tap too: touch devices apply
@@ -130,7 +130,7 @@
   z-index: 2;
   transform: translateX(-50%);
   background: var(--rank-text);
-  color: var(--color-surface);
+  color: var(--page-surface-color);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;

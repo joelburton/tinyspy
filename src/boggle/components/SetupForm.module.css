@@ -39,7 +39,7 @@
  * to the browser: their hints are prose ("Search…") that could never be read as
  * data. If placeholders ever get a global treatment, this rule folds into it. */
 .boardInput::placeholder {
-  color: color-mix(in oklab, var(--color-muted) 50%, var(--color-control-bg));
+  color: color-mix(in oklab, var(--page-text-muted-color) 50%, var(--control-bg-color));
   font-style: italic;
   letter-spacing: normal;
 }
@@ -56,14 +56,14 @@
 
 .colHead {
   font-size: 0.75rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-align: center;
 }
 
 .rowLabel {
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 .numInput {

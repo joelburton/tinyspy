@@ -263,7 +263,7 @@
   gap: 1rem;
   min-width: 0;
   min-height: 0;
-  border-left: 1px solid var(--color-divider);
+  border-left: 1px solid var(--page-divider-color);
   padding-left: 1.5rem;
 }
 
@@ -311,7 +311,7 @@
  * doesn't claim space; opening it grows the slot — an allowed exception to the
  * no-growth rule precisely because it's closable and reclaims the space. */
 .infoSetup {
-  color: var(--color-text);
+  color: var(--page-text-color);
   font-size: 0.85rem;
 }
 
@@ -326,12 +326,12 @@
 }
 
 .infoState {
-  color: var(--color-text);
+  color: var(--page-text-color);
   font-size: 0.95rem;
 }
 
 .infoHelp {
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   font-size: 0.9rem;
 }
 
@@ -373,15 +373,15 @@
 }
 
 .outcome_won {
-  color: var(--color-outcome-won-strong);
+  color: var(--outcome-won-ink-color);
 }
 
 .outcome_lost {
-  color: var(--color-outcome-lost-strong);
+  color: var(--outcome-lost-ink-color);
 }
 
 .outcome_neutral {
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 /* Terminal-only EXTRA info in the info column — content shown ONLY at game over
@@ -428,7 +428,7 @@
    * then shows straight through the mark. A mark on a piece covers the piece. */
   inset: calc(-1 * var(--tile-border-width));
   border-radius: inherit;
-  background: var(--dim-in-flight);
+  background: var(--mark-in-flight-dim-color);
   pointer-events: none;
   /* Above content a game has lifted for the attention wash below (which sits at
    * 1), because the two can overlap: a realtime update can land a hair before
@@ -451,7 +451,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--dim-not-your-turn);
+  background: var(--mark-not-your-turn-dim-color);
   pointer-events: none;
 }
 
@@ -507,11 +507,11 @@
  * takes whatever is legible on it.
  *
  * Qualified with `.tileFace` so it beats a game's own state class (which sets
- * `--tile-bg` from another stylesheet at the same specificity — order between
+ * `--tile-bg-color` from another stylesheet at the same specificity — order between
  * modules is the bundler's business and this must not be a coin flip). */
 .tileFace.verdictFill {
-  --tile-bg: var(--verdict-fill);
-  --tile-text: var(--verdict-ink);
+  --tile-bg-color: var(--verdict-fill);
+  --tile-ink-color: var(--verdict-ink);
   animation: verdict-shake 0.4s ease-in-out;
 }
 
@@ -522,25 +522,25 @@
  * whether you meet it on the board now or in the log a minute later, and neither
  * place is free to pick its own shade. Same family, two tiers, one meaning. */
 .verdictError {
-  --verdict-tone: var(--color-outcome-lost-strong);
-  --verdict-fill: var(--color-outcome-lost-border);
-  --verdict-ink: var(--verdict-ink-on-dark);
+  --verdict-tone: var(--outcome-lost-ink-color);
+  --verdict-fill: var(--outcome-lost-fill-color);
+  --verdict-ink: var(--ink-on-dark-color);
 }
 
 /* A caution — "you can't do that", "you already tried that". Orange, and dark
  * ink: white on this one measures about 2:1. */
 .verdictWarning {
-  --verdict-tone: var(--color-warning-strong);
-  --verdict-fill: var(--color-warning-border);
-  --verdict-ink: var(--verdict-ink-on-light);
+  --verdict-tone: var(--outcome-warning-ink-color);
+  --verdict-fill: var(--outcome-warning-fill-color);
+  --verdict-ink: var(--ink-on-light-color);
 }
 
 /* A near miss — "one away". Gold, and dark ink for the same reason wordle's
  * yellow keeps it: a gold dark enough to carry white text isn't gold any more. */
 .verdictNear {
-  --verdict-tone: var(--color-outcome-near-strong);
-  --verdict-fill: var(--color-outcome-near-border);
-  --verdict-ink: var(--verdict-ink-on-light);
+  --verdict-tone: var(--outcome-near-ink-color);
+  --verdict-fill: var(--outcome-near-fill-color);
+  --verdict-ink: var(--ink-on-light-color);
 }
 
 @keyframes verdict-shake {
@@ -597,7 +597,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--dim-game-over);
+  background: var(--mark-game-over-dim-color);
   pointer-events: none;
 }
 
@@ -624,7 +624,7 @@
 .gameOverFrame {
   /* Neutral unless a tone class below re-sets it — an ENDED game (nobody beat
    * anybody) keeps the plain gray. */
-  --game-over-frame: var(--color-game-over);
+  --game-over-frame: var(--outcome-neutral-terminal-frame-color);
   outline: 4px solid var(--game-over-frame);
   outline-offset: 3px;
 }
@@ -634,11 +634,11 @@
  * as well say WHICH. Declared after `.gameOverFrame` — they land on the same
  * element, so same-file order settles it. */
 .gameOverWon {
-  --game-over-frame: var(--color-game-over-won);
+  --game-over-frame: var(--outcome-won-terminal-frame-color);
 }
 
 .gameOverLost {
-  --game-over-frame: var(--color-game-over-lost);
+  --game-over-frame: var(--outcome-lost-terminal-frame-color);
 }
 
 /* ATTENTION — this changed, look here.
@@ -646,7 +646,7 @@
  * Solid yellow for most of its life, then a short tail fading out to hand the
  * piece back its true state color. Solid on purpose: the mark's one job is to say
  * WHERE to look, and a blend of yellow and the state underneath is neither — see
- * `--tile-attention`. It is an OVERLAY rather than a background layer because a
+ * `--mark-attention-tile-color`. It is an OVERLAY rather than a background layer because a
  * background cannot be faded (CSS cannot interpolate between a layered
  * background and a flat one), and the fade is what makes the mark hand the
  * surface back rather than blink off it.
@@ -670,10 +670,10 @@
  * Not a violation of "ink = tried vs untried": ink's job is to be legible against
  * whatever is behind it, and for this second that is the wash rather than the
  * state. Qualified with `.tileFace` so it outranks the game's own state class,
- * which sets `--tile-text` from another stylesheet at equal specificity — order
+ * which sets `--tile-ink-color` from another stylesheet at equal specificity — order
  * between modules is the bundler's business, and this must not be a coin flip. */
 .tileFace.attentionFlash {
-  --tile-text: var(--color-text);
+  --tile-ink-color: var(--page-text-color);
 }
 
 .attentionFlash::before {
@@ -684,10 +684,10 @@
    * face went yellow. */
   inset: calc(-1 * var(--tile-border-width));
   border-radius: inherit;
-  background: var(--tile-attention);
+  background: var(--mark-attention-tile-color);
   pointer-events: none;
   z-index: 0;
-  animation: attention-flash var(--attention-flash-duration) ease-out forwards;
+  animation: attention-flash var(--mark-attention-flash-duration) ease-out forwards;
 }
 
 @keyframes attention-flash {
@@ -703,12 +703,12 @@
  * already the history viewer's frame and the two can co-occur — your turn can
  * start while you are reading a past turn. */
 .yourTurnFlash {
-  animation: your-turn-flash var(--your-turn-flash-duration) ease-out;
+  animation: your-turn-flash var(--mark-your-turn-flash-duration) ease-out;
 }
 
 @keyframes your-turn-flash {
   0% {
-    box-shadow: 0 0 0 5px var(--color-attention);
+    box-shadow: 0 0 0 5px var(--mark-attention-board-color);
   }
   100% {
     box-shadow: 0 0 0 5px transparent;
@@ -747,15 +747,15 @@
   text-align: center;
   padding: 0.4rem 0.5rem;
   font: inherit;
-  color: var(--tile-text);
-  background: var(--tile-bg);
+  color: var(--tile-ink-color);
+  background: var(--tile-bg-color);
   /* Width is a TOKEN because it is a channel: the vocabulary puts "selected —
    * part of the move I'm building" on border WIDTH, and a state class must be
    * able to thicken the edge by re-setting a property on the same element rather
    * than by out-cascading this shorthand from another module (which would depend
    * on stylesheet order). Every tile is `box-sizing: border-box`, so a thicker
    * border eats inward and nothing reflows. See docs/tile-feedback.md. */
-  border: var(--tile-border-width) solid var(--tile-border);
+  border: var(--tile-border-width) solid var(--tile-border-color);
   border-radius: var(--radius-md);
   box-shadow: var(--tile-shadow);
   /* A query container (width axis) so the label can auto-fit the tile — see
@@ -817,7 +817,7 @@
  * to say the surface is alive. That frees the background for state and attention,
  * which have nowhere else to go. See docs/tile-feedback.md. */
 .tile:hover:not(:disabled) {
-  box-shadow: var(--hover-shadow);
+  box-shadow: var(--tile-hover-shadow);
   /* …and the piece RISES while its shadow falls away. The two are one gesture: the
    * tile goes up 2px, the shadow's drop goes 2px → 6px and its blur 6px → 12px, so
    * the gap between them opens by about 6px and softens. That gap IS elevation —
@@ -883,11 +883,11 @@
  *
  * Selected qualifies `.tile` rather than standing alone, so it beats the game
  * class that set the resting edge on specificity instead of on stylesheet order:
- * a game's color class sets `--tile-border` from its own module, and a
+ * a game's color class sets `--tile-border-color` from its own module, and a
  * single-class rule here would be a coin flip between the two. */
 .tile.selected {
-  border-width: var(--tile-border-width-selected);
-  border-color: var(--tile-selected-border);
+  border-width: var(--tile-selected-border-width);
+  border-color: var(--tile-selected-border-color);
 }
 
 
@@ -931,17 +931,17 @@
  * `--peer-ring-width` sitting `--peer-ring-gap` inside the edge — so it reads as a
  * separate mark beside the selection border rather than as a two-tone edge.
  *
- * The spacer takes `--tile-bg` rather than a fixed colour so it stays the tile's
+ * The spacer takes `--tile-bg-color` rather than a fixed colour so it stays the tile's
  * own fill through every state — including a verdict, which re-sets that token. */
 .peerRing {
   --peer-ring:
-    inset 0 0 0 var(--peer-ring-gap) var(--tile-bg),
+    inset 0 0 0 var(--peer-ring-gap) var(--tile-bg-color),
     inset 0 0 0 calc(var(--peer-ring-gap) + var(--peer-ring-width)) var(--peer-color);
   box-shadow: var(--peer-ring), var(--tile-shadow);
 }
 
 .peerRing:hover:not(:disabled) {
-  box-shadow: var(--peer-ring), var(--hover-shadow);
+  box-shadow: var(--peer-ring), var(--tile-hover-shadow);
 }
 
 .peerRing:active:not(:disabled) {

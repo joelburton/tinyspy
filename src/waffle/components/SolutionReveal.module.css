@@ -21,7 +21,7 @@
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }
 
 .word {
@@ -34,11 +34,11 @@
   padding: 0.15rem 0.25rem;
   border-radius: 4px;
   cursor: pointer;
-  color: var(--color-text);
+  color: var(--page-text-color);
 }
 
 .word:hover {
-  background: var(--color-surface-hover);
+  background: var(--page-surface-hover-color);
   text-decoration: underline;
 }
 
@@ -49,5 +49,5 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   padding: 0.15rem 0.25rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
 }

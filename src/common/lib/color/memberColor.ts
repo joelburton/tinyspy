@@ -5,7 +5,7 @@
  * 8-entry palette (see the column's check constraint and
  * common.color_for_username in the baseline migration). The FE
  * never hard-codes the hex — it asks `colorVarFor(name)` for a
- * `var(--color-member-NAME)` reference, and theme.css owns the
+ * `var(--member-NAME-dot-color)` reference, and theme.css owns the
  * actual shade. That indirection means a future dark theme can
  * remap each palette entry without rewriting every consumer.
  *
@@ -20,7 +20,7 @@
 //
 // `MEMBER_COLORS` is the ordered palette, exported so the "Edit
 // profile" color picker can map over it (each rendered as its
-// `--color-member-NAME` swatch). Keep in sync with the DB CHECK and
+// `--member-NAME-dot-color` swatch). Keep in sync with the DB CHECK and
 // the `common.update_profile_color` RPC allow-list.
 export const MEMBER_COLORS = [
   'red',
@@ -36,7 +36,7 @@ export const MEMBER_COLORS = [
 // Mirrored as a Set so the FE can defend against an unknown value (a
 // future palette extension that updated the DB but not the FE; in the
 // meantime the unknown name falls through to the body-text color,
-// which beats a broken `var(--color-member-undefined)` reference).
+// which beats a broken `var(--member-undefined-dot-color)` reference).
 const VALID = new Set<string>(MEMBER_COLORS)
 
 /**
@@ -50,21 +50,21 @@ const VALID = new Set<string>(MEMBER_COLORS)
  */
 export function colorVarFor(name: string | null | undefined): string {
   return name && VALID.has(name)
-    ? `var(--color-member-${name})`
-    : 'var(--color-text)'
+    ? `var(--member-${name}-dot-color)`
+    : 'var(--page-text-color)'
 }
 
 /**
  * The paired BORDER shade for a profile color — the ring the shared `<Dot>`
- * draws around the fill (theme.css defines a `--color-member-NAME-border`
+ * draws around the fill (theme.css defines a `--member-NAME-border-color`
  * companion for every fill, OKLCH-darkened so a light fill like yellow stays
  * visible against the page background). Same fallback contract as
  * `colorVarFor`: a missing/unknown name gets the body-text color.
  */
 export function borderVarFor(name: string | null | undefined): string {
   return name && VALID.has(name)
-    ? `var(--color-member-${name}-border)`
-    : 'var(--color-text)'
+    ? `var(--member-${name}-border-color)`
+    : 'var(--page-text-color)'
 }
 
 /**
@@ -89,7 +89,7 @@ export function defaultColorFor(username: string): string {
  * Build a `user_id → color CSS var` lookup map from a member
  * roster. Convenient for components that need to color N items
  * by their owner without doing the lookup themselves N times.
- * Values are pre-resolved to `var(--color-member-NAME)` strings —
+ * Values are pre-resolved to `var(--member-NAME-dot-color)` strings —
  * ready to drop into a `style={{ ... }}` prop.
  */
 export function colorByUserIdMap<

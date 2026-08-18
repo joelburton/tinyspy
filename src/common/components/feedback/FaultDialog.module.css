@@ -9,7 +9,7 @@
 
 /* Line 1: the shape test. Red, unmissable, no softening. */
 .heading {
-  color: var(--color-sys-error-red);
+  color: var(--chrome-fault-color);
   font-weight: 700;
   font-size: 1.1rem;
   margin: 0;
@@ -29,6 +29,6 @@
 .diagnostics {
   margin: 0;
   font-size: 0.78rem;
-  color: var(--color-muted);
+  color: var(--page-text-muted-color);
   overflow-wrap: anywhere;
 }
