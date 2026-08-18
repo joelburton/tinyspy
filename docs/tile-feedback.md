@@ -161,15 +161,33 @@ inputs belong to it (a keyboard, a rack), because a game that ends leaving its
 keyboard looking live is the inconsistency this exists to fix. It stays weak:
 a finished board is exactly what people sit and read afterwards.
 
-**Hide a keyboard when the game is over — don't just dim or disable it.** Its keys
-are not temporarily useless, they are permanently useless (barring a restart, of
-course), and removing them expresses that more clearly than any amount of
-disabling or dimming can. The space it occupied stays reserved, because layout
-must not move on a state change; the shared `<GuessKeyboard>` takes a `gameOver`
-prop and goes `visibility: hidden`, which keeps the box and takes the keys out of
-reach of the pointer and the tab order at once.
+**An input surface that is also a READOUT stays visible when the game ends.**
+Reversed 2026-08-17, at a table, after losing a wordle to FAVOR: the first
+version of this rule said to hide the keyboard outright, on the grounds that its
+keys are permanently useless rather than temporarily so, and that removing them
+says it better than any amount of dimming. Which is true of the keys *as
+buttons* — and the keyboard is not only buttons.
 
-The same reasoning extends to any input surface a finished game leaves behind.
+wordle's keyboard is where the alphabet's state lives: black letters are untried,
+white ones tried, and each tried one carries its color. You read what you know
+about the whole alphabet without reading a single letter — this doc's own
+Ink-is-a-channel finding, from wordle's conversion. Hiding it at the final buzzer
+takes away the summary of the game you just played at the exact moment you want
+to study it, which is also what the paragraph above already says about the
+finished board: *it stays weak, because a finished board is exactly what people
+sit and read afterwards.* The keyboard is part of that board.
+
+So: **dim or fade it to say the keys are spent, but leave it readable.** Exact
+treatment still to pick — it has to read as inactive without dulling the letter
+colors it exists to show, which is the tension worth looking at rather than
+guessing. `<GuessKeyboard>` keeps its `gameOver` prop; only what the prop does
+changes, so wordle and wordiply move together (see wordle.md → Deferred).
+
+The general form, and the part that survives the reversal: **ask whether an input
+surface is only an input.** A rack of tiles you can no longer play says nothing
+once the game is over and can go; a keyboard that has been recording your guesses
+for six turns is a record, and a record is the one thing a finished game should
+keep showing.
 
 A **frame** is the other way to say it, and it is the one in use. Both are named
 (`.dimGameOver` / `.gameOverFrame`, `--dim-game-over` / `--color-game-over`) so

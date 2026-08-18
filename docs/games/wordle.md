@@ -144,3 +144,23 @@ and the model refuses to emit it before terminal regardless.
 
 - **pgTAP** (`tests/wordle/`): `colors` (the algorithm incl. duplicates), `create_game` (validation incl. answer_source/legal_guess bands + the target-source routing + hidden-target grant), `legal_guess` (the same band-3 word is notAWord at legal_guess 2, legal at 6), `banded_answer` (a target whose band is raised ABOVE `legal_guess` mid-game still returns `correct` — the solution-before-dictionary rule), `gameplay` (coop soft-rejects don't burn, shared board, win + reveal), `compete` (independent boards, mid-game opponent-hidden RLS, fewest-guesses winner, post-terminal reveal), `end_game` (timeout → lost / manual → ended, idempotency, non-player rejected), `replay` (full reset incl. the target re-shielding + same-word survival, mid-game replay, non-player rejected), `reveal` (the target unshields at terminal whatever the outcome; `_sync_title` never spells the answer of a game still replayable blind, not even on a re-sync; a win titles with the answer only because the winning guess IS the answer), `loss` (the natural loss boundary: coop's last wrong guess flips the board to `lost` + reveals the target; a compete player exhausting their own budget doesn't end the race, and their next guess hits the compete-only 'no guesses remaining' guard), `concede` (elimination-game concede: a drop-out keeps the race going but forfeits any win — recorded a loss even when the game had a winner; everyone conceding is a collective loss; coop rejected), `turn_order` (the opt-in turn-by-turn coop wiring: seating, out-of-turn reject, advance only on an accepted non-terminal guess). Tests read the random target back as the superuser to craft a winning guess.
 - **Vitest:** the colors render mapping + `manifest` label (the coloring algorithm itself is server-side, tested in pgTAP); **`PlayArea.test.tsx`** — render smoke tests (coop / compete / terminal mount without throwing — the guard we lacked when a removed prop shipped a blank page), peer narration (teammate-guess announced, own guess not, opponent-solve announced green), and the turn-log player picker (a solo game names the player by handle, never "You"; a multi-player coop game offers "Team" **plus** each player; opponent → "Hidden until game ends").
+
+## Deferred
+
+- **Stop HIDING the keyboard at terminal; dim it instead.** Reversed 2026-08-17
+  after losing a real game (to FAVOR): `<GuessKeyboard>`'s `gameOver` prop
+  currently sets `visibility: hidden`, which reserves the space but takes the
+  keyboard away — and the keyboard is where the alphabet's state lives. Black
+  letters are untried, white ones tried, each tried one carrying its color, so
+  it is a summary of the game you just played, and hiding it removes that
+  summary at exactly the moment you want to study it.
+
+  Only what the prop *does* changes, so wordiply moves with wordle (it shares
+  the component). The treatment is the open part: it has to read as inactive
+  without dulling the very letter colors it exists to show — the same tension
+  the board's own game-over mark had, and the reason that one ended up a frame
+  rather than a dim. See [tile-feedback.md](../tile-feedback.md) → "An input
+  surface that is also a READOUT stays visible when the game ends", where the
+  general rule now lives: ask whether an input surface is *only* an input. A
+  rack you can no longer play says nothing once the game is over; a keyboard
+  that has been recording your guesses for six turns is a record.
