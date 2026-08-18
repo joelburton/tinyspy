@@ -27,7 +27,7 @@
    * than floating. (Was incidentally reusing the old
    * feedback-warning amber; now its own token, since that feedback palette is
    * gone — the submission pill is the shared <GenericFeedbackPill> off the common
-   * --color-outcome-* tones.) */
+   * --outcome-* tones.) */
   --spellingbee-accent-edge:   #a86b00;
 
   /* Shared-component token: the common <RankBar> / <Stats> read this generic

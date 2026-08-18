@@ -636,7 +636,7 @@ shared one value until 2026-08-17 (`--outcome-near-ink-color` was orange, and
 the pill's `warning` and `near` tones both drew from it), which made connections'
 "You already tried that" and "One away!" indistinguishable in every place either
 appeared. Gold is the color the turn log's one-away bar already wore; the strong
-tier now matches it, and warning has its own `--color-warning-*` family.
+tier now matches it, and warning has its own `--chrome-caution-*` / `--outcome-warning-*` families.
 
 **A verdict wears the tone its PILL wears** — the two are one message arriving in
 two places, and a red pill beside an orange edge reads as two different verdicts.
@@ -968,10 +968,10 @@ becomes history-dependent.
 
 Two changes in this conversion looked correct in the CSS and did nothing at all:
 
-- `outline: 3px solid var(--color-outcome-partial)` — that token does not exist,
+- `outline: 3px solid var(--color-outcome-partial)` — that token never existed,
   and an undefined custom property makes the **whole declaration** invalid, so
   the outline silently never drew.
-- `background: var(--kbd-key-bg, #f2f2f3)` — the fallback is unreachable because
+- `background: var(--kbd-key-bg, #f2f2f3)` — the fallback was unreachable because
   wordle *sets* `--kbd-key-bg`. The real value lived three aliases away.
 
 Neither is visible to `tsc` or eslint, and both survived review of the diff.

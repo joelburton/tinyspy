@@ -156,7 +156,7 @@ Wherever code needs to discriminate "is this me or someone else in this game?" �
 
 **Where peer does NOT belong:**
 
-- Identity-color helpers (`src/common/lib/color/memberColor.ts`, `--color-member-*` CSS tokens) — those resolve a color for ANY person (including the viewer, e.g. coloring your own chat-message label). That's member-level, not peer-level. The visual concept *applied* to a peer's tile is still "peer-colored," but the helper that resolves the color is `memberColor` because the helper is identity-keyed, not perspective-keyed.
+- Identity-color helpers (`src/common/lib/color/memberColor.ts`, `--member-*-dot-color` CSS tokens) — those resolve a color for ANY person (including the viewer, e.g. coloring your own chat-message label). That's member-level, not peer-level. The visual concept *applied* to a peer's tile is still "peer-colored," but the helper that resolves the color is `memberColor` because the helper is identity-keyed, not perspective-keyed.
 - Cross-game lobby / roster contexts — `members` and `players` are still the right words there. "Peer" only makes sense from a viewer's POV inside an active play surface.
 
 ### start (startSetup vs startGame)

@@ -64,7 +64,7 @@
 /* A guessed tile is "decided": it colors PERMANENTLY by result — green if the
  * word was a secret, red if not — by re-setting the shared tile's --tile-*
  * tokens (so the fill wins regardless of stylesheet order). It uses the
- * SATURATED outcome tones (`--color-outcome-*-border`, the same green/red the
+ * SATURATED outcome tones (`--outcome-*-fill-color`, the same green/red the
  * TurnLog outcome bars use), NOT the washed-out pastel `-bg` — so a decided
  * tile obviously carries the same green=good / red=bad message as a guess
  * outcome. No dimming/grey: the color IS the "already tried" signal and a record

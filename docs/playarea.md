@@ -161,7 +161,7 @@ placement is the rule, not redundancy to trim.
   aid → on the board.
 - **Terminal swap.** Setup + state stay; help hides; the action row replaces the
   play buttons with a **bold, outcome-colored result line** (won = green / lost =
-  red / manual-end = neutral, via the `--color-outcome-*-strong` tones), any
+  red / manual-end = neutral, via the `--outcome-*-ink-color` tones), any
   per-game terminal actions (Restart / Reveal / New game), and a **compact**
   back-to-club button — the shared `<TerminalActionRow>`, icon-only in most games
   so four items survive a ~22rem column (see
@@ -370,7 +370,7 @@ consistent without imposing structure:
   row piece common to most logs. It's *optional* (a game's row needn't include
   it) and self-contained (its CSS doesn't depend on the `<tr>` carrying any
   class), so a game drops it into whatever row it builds. `outcome` is `good` /
-  `bad` / `partial` / `neutral` → the shared `--color-outcome-*` palette, so a
+  `bad` / `partial` / `neutral` → the shared `--outcome-*` palette, so a
   "bad" turn reads the same everywhere; `rowSpan` lets a multi-row turn have the
   bar cover the whole turn (codenamesduet). The bar is a real `<span>`, not a
   styled empty cell (**an empty table cell collapses — its `width` is ignored —

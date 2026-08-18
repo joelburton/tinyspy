@@ -585,9 +585,10 @@ src/connections/
 `buildMonthGrid` helper were written here first, then briefly inherited by
 crosswords' NYT tab, and are now deleted: connections and strands have no
 picker at all, and crosswords picks a *weekday* rather than a date off a grid.
-`--color-outcome-active-bg` lost its last reader with it and is recorded in
-`cssTokens.test.ts`'s completeness set rather than deleted, since its
-`-border` companion is still live.
+The pale-yellow token that filled an in-progress day's square lost its last
+reader with it, and the 2026-08-18 palette sweep deleted it outright — the
+"active" family it belonged to turned out not to be an outcome at all, and its
+one live value is now `--gamelist-suspended-color`.
 
 What connections shows instead is `common/components/fields/NextPuzzleField.tsx`,
 shared with strands: the read-only "next up" line, the date override, and a

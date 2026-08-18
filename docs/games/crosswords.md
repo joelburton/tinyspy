@@ -141,7 +141,7 @@ Guardian / Upload):
   The picker reads the library through **`library_for_club`** (§4), not a plain
   table select, so every row arrives tagged with whether *this club* has already
   solved / started / lost that puzzle — a 4px color bar down the row's leading
-  edge, in the shared `--color-outcome-*` vocabulary the club page uses. The bar
+  edge, in the shared `--gamelist-*` vocabulary the club page uses. The bar
   is painted on every row (unplayed gets the near-white neutral) so it can never
   reflow the list. One round trip, so the list is never drawn and then recolored.
   The parsers themselves live in **`src/crosswords/lib/parse/`** (see §6).

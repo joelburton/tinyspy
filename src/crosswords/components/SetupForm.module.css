@@ -125,9 +125,9 @@
 /* ─── Club-history stripe ─────────────────────────────────────
  *
  * "Has THIS club played this puzzle?", from crosswords.library_for_club.
- * The colors are the shared --color-outcome-* tokens, so green / yellow /
- * red mean here exactly what they mean on the club page's game cards
- * instead of a private palette the picker invents.
+ * The colors are the shared --gamelist-* tokens — the same vocabulary the club
+ * page's cards use, since a puzzle row and a game card are answering the same
+ * question, rather than a private palette the picker invents.
  *
  * Only the COLOR varies, never the width — that's what keeps the stripe
  * from reflowing the list. */

@@ -1,7 +1,7 @@
 /* Small mode chip — see ModePill.tsx. An outlined pill: transparent
  * background, with the border + text both in the mode color (via
  * currentColor), so it reads as a subtle tag beside the gametype name
- * rather than a filled chip. Colors from theme.css (--color-mode-*-text);
+ * rather than a filled chip. Colors from theme.css (--gamemode-*-ink-color);
  * .coop / .compete set `color`, and the border inherits it. */
 .pill {
   display: inline-block;
