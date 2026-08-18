@@ -20,7 +20,7 @@
   border-radius: 4px;
 }
 .definable:hover {
-  outline: 2px solid var(--chrome-action-fill-color);
+  outline: 2px solid var(--chrome-definable-ring-color);
   outline-offset: 2px;
 }
 

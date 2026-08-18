@@ -229,7 +229,19 @@ This folds in what was previously a separate "flags" bucket plus a documented
 exception for the crossword picker. There is no exception now: the picker is a
 game list.
 
-**`chrome-*` — controls.** Their own names even where a hex matches an outcome's,
+**`chrome-*` — controls.**
+
+> ⚠️ **This whole `chrome-*` section is SUPERSEDED and kept only as the record of
+> how the tones were reasoned about before they were redesigned.** It describes a
+> four-token model (`-color` / `-primary-ink-color` / `-primary-hover-color` /
+> `-secondary-hover-color`), a `cancel` tone, `#ef6c00` / `#8e1b2e`, and
+> `opacity: 0.5` — none of which are current. The shipped model is five tokens
+> per tone (`-fill` / `-fill-hover` / `-fill-ink` / `-ink` / `-wash`), the tone is
+> `quiet`, and the values and reasoning live at the tokens in
+> `src/common/theme.css`. The contrast table and the hover-direction rule below
+> are likewise measured against retired fills.
+
+Their own names even where a hex matches an outcome's,
 because the two answer different questions and must move independently. **They are
 coincidentally equal, not kept in lockstep** — `--chrome-caution-color` may well be
 darkened for use as an icon and a border without `outcome-warning` moving at all.

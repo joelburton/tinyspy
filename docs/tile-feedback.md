@@ -77,7 +77,7 @@ the mark is brief, and the edge comes back.
 
 ### Chrome fades, game pieces don't
 
-A disabled button gets the global `button:disabled { opacity: 0.5 }`. A game
+A disabled button gets the global `button:disabled { opacity: 0.75 }`. A game
 piece never does — the shared `.tile:disabled` explicitly sets `opacity: 1`,
 because a decided tile's color IS its message and must show at full strength.
 
@@ -127,7 +127,7 @@ for a physical keyboard, and its keys are pressed like pieces), which is exactly
 why its keys are in and the rest of the chrome is out.
 
 So chrome says what it needs to say with fill, border and text: the accent fill
-every primary button wears, the bordered `secondary` variant, and `opacity: 0.5`
+every primary button wears, the bordered `secondary` variant, and `opacity: 0.75`
 when disabled (common/theme.css → element resets). No shadow, no lift, no darken.
 
 Which is the mirror of the rule below — chrome fades where a game piece never
@@ -670,13 +670,13 @@ the background. Pick the next one up from the "forces" column.
 | **waffle** | ✅ 2026-08-17 | the framework INTO common: selection as a black border, the shared in-flight dim, the move shown optimistically with its verdict withheld, attention gated on the swap log, both turn marks, the game-over frame. No verdict mark and none needed — the only refused swap is one a teammate beat you to, and their swap arriving is what you want to see |
 | **psychicnum** | ✅ 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). Self-attention deliberately off: one tile changes and the in-flight dim already pointed at it |
 | **connections** | ✅ 2026-08-17 | the **identity mark** as a named shared channel (`.peerRing`) — and, on the way, the rule that identity is drawn for EVERYONE on a shared board or for nobody, which the permanent dot already said and the ring contradicted. Also: the first verdict on the BACKGROUND (its tiles carry no state, so it was free), the first mark whose lifetime ends because someone ELSE acted, and the split that came out of it — a board mark dies when the board moves, its pill does not. Its bands are inert pieces wearing the shared tile face, and they flash for a teammate's solve |
-| codenamesduet | — | the keycard's `.triPeer` / `.triMine` triangles (which are the game, not attribution), and a board where only one seat can act |
+| codenamesduet | — | the keycard's `.triPeer` / `.triMine` triangles (which are the game, not attribution), and a board where only one seat can act. **Chrome borrow to settle:** its tile outline is painted with the action BUTTON's blue (`Board.module.css:135`) |
 | setgame | — | its own in-flight + arriving/leaving marks predate all of this and are the richest set anywhere; `--setgame-*` tokens want folding into the shared ones. Selection is a `box-shadow` ring and must become a border |
-| stackdown | — | the ambiguous-letter mark — a red border *and* a red ring today, and the first user of the **UI-problem** channel above: it is not a verdict, so it loses the outcome red and never becomes a fill. Plus a board whose pieces OVERLAP — and **the verdict flash only fires for half the players**: a teammate's rejected word flashes their letters red, your OWN invalid word gets the pill alone. Decide whether that is right (the tiles do come straight back, which is its own answer) when the game converts |
+| stackdown | — | the ambiguous-letter mark — a red border *and* a red ring today, and the first user of the **UI-problem** channel above: it is not a verdict, so it loses the outcome red and never becomes a fill. Plus a board whose pieces OVERLAP — and **the verdict flash only fires for half the players**: a teammate's rejected word flashes their letters red, your OWN invalid word gets the pill alone. Decide whether that is right (the tiles do come straight back, which is its own answer) when the game converts. **Chrome borrows to settle:** both its tile border and its filled entry slot are painted with the action BUTTON's blue (`Board.module.css:85`, `WordEntry.module.css:31`) |
 | strands | — | the same ambiguous-letter treatment (see stackdown), the earned hint economy (the **hint** channel's first real user), the move-end state mark, and a history-viewer ring still drawn in gold from when the viewer was yellow — it takes the shared blue like every other game's. Plus: **the hint button should almost certainly become filled always.** It is outline-when-unusable and filled-when-ready today, which was a real decision made when `disabled` meant a 0.5 fade — too faint to tell apart without changing the treatment as well, so the two states were made to differ in KIND. Disabled is 0.75 now and reads on its own, so the special case has outlived its reason; trust the ordinary disabled look and let the button be one thing |
 | letterboxed | — | a board whose primary mark is a LINE between cells, not a tile fill |
 | scrabble | — | premium squares (puzzle notation vs progress), the drag-and-drop prospective verdict (`.dropOk` / `.dropNo`), and the share-preview frame |
-| bananagrams | — | drag-and-drop, its own grid cursor, and the one documented desktop-only layout |
+| bananagrams | — | drag-and-drop, its own grid cursor, and the one documented desktop-only layout. **Chrome borrow to settle:** the dashed dump zone takes the action BUTTON's blue for both text and border (`PlayerBoard.module.css:281-282`) — and a dashed outline is the HINT channel, so the treatment wants a look too |
 | crosswords | — | printed notation on the cell (circles, shades, break marks), `.peerFrame`, and the position channel's other half |
 | boggle | — | packed tiles where a hover shadow may not read; its own tile |
 | spellingbee | — | hexes: not squares, packed edge to edge, and `.hexFlash`'s replay-on-repeat lifetime |

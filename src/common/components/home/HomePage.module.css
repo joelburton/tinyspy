@@ -160,8 +160,8 @@
   text-transform: uppercase;
   font-weight: 600;
   background: transparent;
-  color: var(--chrome-action-fill-color);
-  border: 1px solid var(--chrome-action-fill-color);
+  color: var(--chrome-badge-color);
+  border: 1px solid var(--chrome-badge-color);
   padding: 0.1rem 0.45rem;
   border-radius: 999px;
   line-height: 1.2;
@@ -186,7 +186,7 @@
 .clubsList:focus,
 .clubsList:focus-visible {
   outline: none;
-  border-color: var(--chrome-action-fill-color);
+  border-color: var(--chrome-cursor-color);
 }
 
 /* The page frame — chrome strip on top, the content card below. Home is the

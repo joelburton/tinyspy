@@ -167,6 +167,41 @@
      these outlines rather than actions. */
   --chrome-cursor-color:                    #1976d2;
 
+  /* ── THE OTHER BLUES ──────────────────────────────────────────────────────
+     Everything below was reaching into the ACTION BUTTON's colour, because that
+     token was the only blue with a name. A caret is not a button; neither is a
+     link, a badge, a toast stripe or a pill border. Each gets its own name and
+     its own copy of the hex.
+
+     COPIES, all of them, and that is the house rule rather than laziness: two
+     names on one hex keep a future theme at 100 colours instead of 200, while an
+     alias asserts the two MUST move together. Aliasing is for a real dependency
+     — strands' hint bar echoing the hint button beside it — not for "we already
+     had a blue we liked". The cost is that changing one and not the other mints
+     a new hex by accident, which a grep for the value finds; the cost of a wrong
+     alias is something moving that you were not looking at. */
+
+  /* CARET — the simulated text cursor the capture-input games draw, standing in
+     for the blinking caret a real <input> would give. */
+  --chrome-caret-color:                     #1976d2;
+
+  /* LINK — an anchor, and `.link-button` (a <button> that looks like one). */
+  --chrome-link-color:                      #1976d2;
+  --chrome-link-hover-color:                #0067c1;
+
+  /* BADGE — a small outlined label on a list row (Home's SOLO). Filed under
+     chrome as app furniture rather than under `gamelist-*`, which is about a
+     GAME's state in a list; this marks a club. */
+  --chrome-badge-color:                     #1976d2;
+
+  /* DEFINABLE — the hover cue on a click-to-define word. The shared `.definable`
+     rule underlines, and only wordle's log needs a colour at all: its words are
+     rendered as letter SQUARES, which can't take an underline, so it rings them
+     instead. Worth asking whether that ring should simply be `currentColor` —
+     which is what the underline effectively is, and would need no token — but
+     that changes how it looks, so it is a question rather than a change. */
+  --chrome-definable-ring-color:            #1976d2;
+
   /* How far a disabled control fades. An EFFECT rather than a per-tone colour:
      filled and outline degrade identically under opacity (2.04 vs 2.00 at 0.5),
      so per-tone values would solve one problem twice and rot the day a base
@@ -638,7 +673,19 @@
   --pill-lost-tint-color:     color-mix(in oklab, var(--outcome-lost-fill-color) 18%, var(--page-surface-color));
   --pill-warning-tint-color:  color-mix(in oklab, var(--outcome-warning-fill-color) 18%, var(--page-surface-color));
   --pill-near-tint-color:     color-mix(in oklab, var(--outcome-near-fill-color) 18%, var(--page-surface-color));
-  --pill-info-tint-color:     color-mix(in oklab, var(--chrome-action-fill-color) 8%, var(--page-surface-color));
+  /* `info` has no outcome family behind it — it is the pill saying something
+     rather than adjudicating something — so it carries its own tone, a copy of
+     the action blue. The tint is mixed FROM that tone, which is an alias and the
+     right kind: a tint of a colour must follow the colour it is a tint of. */
+  --pill-info-color:          #1976d2;
+  --pill-info-tint-color:     color-mix(in oklab, var(--pill-info-color) 8%, var(--page-surface-color));
+
+  /* A toast's left stripe. Cosmetic — the message text carries the meaning — and
+     three copies rather than reaching into the button and outcome palettes for
+     values a toast has no relationship to. */
+  --toast-info-stripe-color:      #1976d2;
+  --toast-success-stripe-color:   #2e7d32;
+  --toast-error-stripe-color:     #b71c1c;
 
   /* ── ELEVATION (chrome) ───────────────────────────────────────────────────
      Shadows for things that FLOAT above the page — menus, popovers, dialogs.
@@ -1001,7 +1048,7 @@ button.secondary:hover:not(:disabled) {
 }
 
 a {
-  color: var(--chrome-action-fill-color);
+  color: var(--chrome-link-color);
 }
 
 /* ---------- Universal utility classes ---------- */
@@ -1145,11 +1192,13 @@ a {
 }
 
 /* Renders an anchor-or-button as plain text-link styling — used
-   for inline navigation / cancel affordances inside cards. */
+   for inline navigation / cancel affordances inside cards. Takes the LINK
+   colour rather than the action button's: it looks like a link, so it should
+   move with links if the two ever part company. */
 .link-button {
   background: none;
   border: none;
-  color: var(--chrome-action-fill-color);
+  color: var(--chrome-link-color);
   cursor: pointer;
   padding: 0;
   text-decoration: underline;

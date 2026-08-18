@@ -6,7 +6,7 @@
   position: relative;
   background: var(--page-surface-color);
   border: 1px solid var(--page-surface-border-color);
-  border-left: 4px solid var(--stripe, var(--chrome-action-fill-color));
+  border-left: 4px solid var(--stripe, var(--toast-info-stripe-color));
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-toast);
   padding: 0.9rem 1rem;
@@ -18,13 +18,13 @@
 /* Tone drives ONLY the left stripe color (cosmetic — the message text carries
    the meaning). */
 .info {
-  --stripe: var(--chrome-action-fill-color);
+  --stripe: var(--toast-info-stripe-color);
 }
 .success {
-  --stripe: var(--outcome-won-ink-color);
+  --stripe: var(--toast-success-stripe-color);
 }
 .error {
-  --stripe: var(--chrome-fault-color);
+  --stripe: var(--toast-error-stripe-color);
 }
 
 .message {

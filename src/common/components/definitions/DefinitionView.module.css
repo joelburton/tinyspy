@@ -50,14 +50,14 @@
   padding: 0;
   margin: 0;
   font: inherit;
-  color: var(--chrome-action-fill-color);
+  color: var(--chrome-link-color);
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
 }
 
 .ref:hover {
-  color: var(--chrome-action-fill-hover-color);
+  color: var(--chrome-link-hover-color);
 }
 
 .attribution {
@@ -81,7 +81,7 @@
   margin-top: 0.3rem;
   padding: 0;
   font-size: 0.8rem;
-  color: var(--chrome-action-fill-color);
+  color: var(--chrome-link-color);
   background: none;
   border: none;
   cursor: pointer;
