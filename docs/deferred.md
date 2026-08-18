@@ -59,6 +59,25 @@ See [`common.md → Deferred / open`](common.md#deferred--open) for more detail 
 - **Below-board `--avail-h` chrome-subtraction isn't tokenized** (carried over from the 2026-07-01 review §3.1). The below-board slot *structure* + reserved height were shared/tokenized, but each game still hand-subtracts its own chrome height in the board/`.wrap` `--avail-h` (`- 5rem` / `- 4.4rem` / `- 8.5rem` / `- 3.5rem`) rather than deriving it from the slot token — hand-synced and drift-prone. Derive it from the slot token when convenient. *(A broader CSS pass may re-examine this — flagged so it isn't lost.)*
 - **Literal radii → tokenize by *semantic intent*** (2026-07-01 review §3.3 — deferred to Joel). `4px` / `6px` / `8px` recur across ~16 sites equal to `--radius-sm` / `-md` / `-lg`. This is explicitly **NOT a mechanical `4px→-sm` swap** — each site should be tokenized by what it *is* (a card → `lg`, a panel → `md`, a tile → `sm`), a human judgment; leave the sub-grain `2px` / `3px` micro-radii and boggle's tuned `12px` tray. Two related low-priority leftovers noted in the same review: bananagrams `.dumpHot` green is still a literal (a distinct dump-zone-arming affordance), and `--shadow-popover` was minted by the palette sweep, with the `0.12` and `0.08` variants named beside it rather than folded in.
 
+- **Eight controls override the disabled fade with their own number.** `--chrome-disabled-opacity` moved 0.5 → 0.75 on 2026-08-18 (the reasoning is at the token: the missing hover and the tooltip carry "disabled", so the fade only has to make the dead one findable in a row — fading harder cost reading the label). Eight components predate that and still hard-code their own, every one of them someone finding 0.5 too harsh and picking a number in isolation — which is the problem the global just solved centrally:
+
+  | value | rule | file |
+  |---|---|---|
+  | `0.45` | `.shuffle:disabled` | `common/components/buttons/ShuffleButton.module.css` |
+  | `0.5` | `.button:disabled` | `common/components/club/StartGameButtons.module.css` |
+  | `0.5` | `.timerInput:disabled` | `common/components/fields/TimerField.module.css` |
+  | `0.5` | `.btn:disabled` | `crosswords/components/Controls.module.css` |
+  | `0.55` | `.select:disabled` | `common/components/fields/SelectField.module.css` |
+  | `0.6` | `.button:disabled` | `common/components/definitions/AnagramDialog.module.css` |
+  | `0.6` | `.saveButton:disabled, .deleteButton:disabled` | `common/components/definitions/WordEditDialog.module.css` |
+  | `0.6` | `.key:disabled` | `common/components/game/entry/GuessKeyboard.module.css` |
+
+  Collapsing all eight onto the token makes eight controls visibly lighter, so it is a **look change, not a cleanup** — worth doing deliberately and eyeballing, not folding into an unrelated commit.
+
+  **The GAME PIECES in the same scan are not part of this** and must not be swept up: `PlayArea .tile`, `setgame .card` and `strands .tile` at `opacity: 1`, and `stackdown .tile` at `0.92`, are the *chrome fades, game pieces don't* rule ([tile-feedback.md](tile-feedback.md)) — a decided tile's colour IS its message and has to show at full strength. Those overrides are the rule working, not drift.
+
+  Four comments also still quote the retired `button:disabled { opacity: 0.5 }` when explaining why they override it — `common/components/game/PlayArea.module.css:874`, `setgame/components/Card.module.css:48`, `stackdown/components/WordEntry.module.css:58`, `strands/components/Board.module.css:184`. Those are wrong today whatever is decided about the values, since the number they cite no longer exists.
+
 ## Terminal results (whole-app)
 
 The shipped treatment is [`ui.md → Terminal results`](ui.md#terminal-results--the-moment-vs-the-record); these are the pieces of it deliberately left undone.
