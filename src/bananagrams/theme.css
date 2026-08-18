@@ -24,4 +24,18 @@
 body.mg-dragging {
   user-select: none;
   cursor: grabbing;
+
+  /* ── Board chrome, named during the palette sweep ─────────────────────────
+   * Values unchanged and deliberately NOT collapsed onto the shared elevation
+   * set: this board is a physical-tile metaphor with its own depth, and whether
+   * it should share the app's shadows is its conversion's question. */
+  --bananagrams-board-veil-color:    color-mix(in srgb, var(--page-surface-color) 55%, transparent);
+  --bananagrams-tile-shadow:         0 2px 8px rgb(0 0 0 / 30%);
+  --bananagrams-tile-resting-shadow: 0 1px 2px rgb(0 0 0 / 20%);
+  --bananagrams-hand-shadow:         0 2px 6px rgb(0 0 0 / 18%);
+  --bananagrams-drag-shadow:         0 6px 14px rgb(0 0 0 / 35%);
+  /* The drop-target green — a PROSPECTIVE verdict (docs/tile-feedback.md), which
+   * the vocabulary will want to own once this game converts. */
+  --bananagrams-drop-ok-fill-color:  rgb(120 200 130 / 22%);
+  --bananagrams-drop-ok-edge-color:  rgb(120 200 130 / 80%);
 }

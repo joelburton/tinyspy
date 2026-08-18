@@ -42,4 +42,15 @@
   --crosswords-pen: #1a4fd6;
   --crosswords-wrong: #d33;
   --crosswords-revealed: #00a3d9;
+
+  /* ── Grid chrome, named during the palette sweep ──────────────────────────
+   * The printed puzzle's own markings rather than anyone's progress — a black
+   * block is a fact about the grid. Values unchanged; whether the greys should
+   * be the shared page tokens is crosswords' conversion to decide. */
+  --crosswords-rule-color:       #333333;
+  --crosswords-block-fill-color: #000000;
+  --crosswords-shade-color:      rgb(0 0 0 / 18%);
+  --crosswords-cell-ink-color:   #111111;
+  --crosswords-dialog-scrim-color: rgb(0 0 0 / 25%);
+  --crosswords-dialog-shadow:    0 12px 32px rgb(0 0 0 / 30%);
 }

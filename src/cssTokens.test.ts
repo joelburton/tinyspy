@@ -160,3 +160,91 @@ describe('CSS custom-property tokens', () => {
     ).toEqual([])
   })
 })
+
+/**
+ * Guard: a colour may only appear in a custom-property DEFINITION.
+ *
+ * "No magic numbers, make a named constant", applied to colour. A literal at a
+ * use site can't be discussed, reused, or themed — and the exception set is much
+ * smaller here than it is in code: `#fff` and `#000` look like primitives and
+ * aren't (white is a decision; crosswords' grid used raw `#fff` / `#000` / `#333`
+ * for three separate ones). Nor does "used once, so inline is fine" apply: a
+ * second theme needs a PLACE to intervene, and a colour with no name is a colour
+ * no theme can reach.
+ *
+ * It catches expressions too — a `color-mix()` at a use site is the same problem
+ * wearing a function.
+ *
+ * It is necessary and not sufficient. `--crosswords-wrong: #d33` passes cleanly
+ * and is exactly the drift the 2026-08-17 audit found: a machine can catch a
+ * magic number, but only a person catches a bad name. The human half — brand, or
+ * a UI colour that belongs in common? — is asked per game as each converts
+ * (docs/colors-refinement.md).
+ */
+describe('no unnamed colors', () => {
+  // Values that carry no design decision, so naming them would be noise.
+  const NO_DECISION = /^(transparent|currentColor|inherit|initial|unset|none)$/
+
+  const COLOR = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|\boklch\(|\bcolor-mix\(/
+
+  it('every color literal or expression sits in a `--token:` definition', () => {
+    const offenders: string[] = []
+    for (const f of walk(SRC, ['.css'])) {
+      const css = stripComments(readFileSync(f, 'utf8'))
+        // An SVG data-URI carries %23rrggbb, which is a colour inside a URL
+        // rather than a declaration of one.
+        .replace(/url\([^)]*\)/g, 'url()')
+      // Declarations, not lines: a value legitimately wraps (connections' peer
+      // border spans two).
+      for (const chunk of css.split(/[;{}]/)) {
+        const i = chunk.indexOf(':')
+        if (i < 0) continue
+        const prop = chunk.slice(0, i).trim()
+        const value = chunk.slice(i + 1).trim()
+        if (prop.startsWith('--')) continue
+        if (NO_DECISION.test(value)) continue
+        if (COLOR.test(value)) {
+          offenders.push(`${rel(f)}  ${prop}: ${value.replace(/\s+/g, ' ').slice(0, 60)}`)
+        }
+      }
+    }
+    expect(
+      offenders,
+      `A color outside a custom-property definition. Name it — in the game's ` +
+        `theme.css if it is a brand color, in common/theme.css if it isn't:\n${offenders.join('\n')}`,
+    ).toEqual([])
+  })
+
+  /**
+   * And no `var()` may fall back to a COLOR.
+   *
+   * ui.md already forbids colour fallbacks; this is what makes that true, and it
+   * catches what the guard above structurally cannot: a fallback hiding INSIDE a
+   * token definition, where the property starts with `--` and the rule above
+   * looks away. A hex fallback drifts silently from the token it shadows (we
+   * shipped `var(--color-text, #1a1a1b)` against a real `#1a1a1a`) and hides
+   * where the value actually lives (wordle's keyboard had an unreachable one
+   * masking three aliases, and the same missing token painted wordiply's keyboard
+   * entirely from fallbacks).
+   *
+   * Deliberately COLOUR-only. A size fallback can be legitimate — `--client-width`
+   * is measured by JS and genuinely does not exist before the first paint, so
+   * `var(--client-width, 100vw)` is the honest thing to write. The per-game knobs
+   * with rem defaults are a different question (a default declaration and the
+   * cascade would usually be better), and not this sweep's.
+   */
+  it('no var() falls back to a color', () => {
+    const offenders: string[] = []
+    for (const f of [...walk(SRC, ['.css']), ...walk(SRC, ['.tsx', '.ts'])]) {
+      const src = stripComments(readFileSync(f, 'utf8'))
+      for (const m of src.matchAll(/var\(\s*--[a-z0-9-]+\s*,([^)]*)\)/g)) {
+        if (COLOR.test(m[1])) offenders.push(`${rel(f)}  ${m[0].slice(0, 70)}`)
+      }
+    }
+    expect(
+      offenders,
+      `var() falling back to a color. Define the token instead — a fallback can ` +
+        `only mask one of our own bugs:\n${offenders.join('\n')}`,
+    ).toEqual([])
+  })
+})

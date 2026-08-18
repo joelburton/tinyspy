@@ -4,7 +4,7 @@
   justify-content: flex-start;
   gap: 6px;
   padding: 8px;
-  background: #6b4a2a;
+  background: var(--scrabble-rack-bg-color);
   border-radius: 8px;
   /* Always a full 7-tile-wide tray; with fewer tiles they stay left-aligned
      (the gap math: 7 tiles + 6 gaps + the L/R padding). Tile size is responsive
@@ -29,7 +29,7 @@
   background: var(--scrabble-tile-bg);
   color: var(--scrabble-tile-ink);
   cursor: grab;
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: var(--scrabble-rack-shadow);
   touch-action: none;
 }
 /* An unplaced blank shows a faint "?" where its letter will go (it has no
@@ -50,7 +50,7 @@
 }
 /* A freshly-drawn tile: yellow outline for ~1s. */
 .tile.flashNew {
-  outline: 3px solid #e6b324;
+  outline: 3px solid var(--scrabble-rack-selected-outline-color);
   outline-offset: 1px;
 }
 

@@ -8,7 +8,7 @@
   border: 1px solid var(--crosswords-header-border);
   border-radius: 6px;
   overflow: hidden;
-  background: #fff;
+  background: var(--page-surface-color);
 }
 .section.left {
   border-top-right-radius: 0;

@@ -23,7 +23,7 @@
   border: 1px solid var(--setgame-card-border);
   border-radius: var(--radius-md);
   background: var(--setgame-card-bg);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
+  box-shadow: var(--setgame-card-shadow);
   cursor: pointer;
   display: block;
   /* Only the fill, the ring and the lift animate. Nothing here may animate SIZE
@@ -62,13 +62,13 @@ button.card:hover:not(:disabled) {
  * is inside the card's own box (transform, not layout), so it cannot nudge a
  * neighbor. */
 .selected {
-  box-shadow: 0 0 0 3px var(--setgame-card-selected), 0 2px 6px rgb(0 0 0 / 18%);
+  box-shadow: 0 0 0 3px var(--setgame-card-selected), var(--setgame-card-lift-shadow);
   transform: translateY(-2px);
 }
 
 /* A selected card keeps its ring under the pointer; only the fill moves. */
 button.selected:hover:not(:disabled) {
-  box-shadow: 0 0 0 3px var(--setgame-card-selected), 0 2px 6px rgb(0 0 0 / 18%);
+  box-shadow: 0 0 0 3px var(--setgame-card-selected), var(--setgame-card-lift-shadow);
 }
 
 /* A live coop hint. Dashed and neutral so it reads as "look here", not as an

@@ -25,18 +25,18 @@
   /* Agent — the "good" target color. Deep forest green; reads as
      saturated on white without screaming. */
   --codenamesduet-agent:               #2e7d32;
-  --codenamesduet-agent-soft-banner:   rgba(46, 125, 50, 0.18);
+  --codenamesduet-agent-soft-banner:   rgb(46 125 50 / 18%);
   --codenamesduet-agent-text:          #1b5e20;  /* dark green; readable on soft-bright bg */
 
   /* Neutral bystander — warm tan, low-key on the board. */
   --codenamesduet-neutral:             #b4986e;
-  --codenamesduet-neutral-soft-bright: rgba(180, 152, 110, 0.30);
+  --codenamesduet-neutral-soft-bright: rgb(180 152 110 / 30%);
   --codenamesduet-neutral-text:        #6b5832;  /* dark tan; readable on soft-bright bg */
 
   /* Assassin — the "you lose" red. Also drives the sudden-death
      wrapper border and the in-board error banner. */
   --codenamesduet-assassin:            #be3c3c;
-  --codenamesduet-assassin-soft:       rgba(190, 60, 60, 0.16);
+  --codenamesduet-assassin-soft:       rgb(190 60 60 / 16%);
   --codenamesduet-assassin-text:       #8b1a1a;  /* dark red; readable on soft-bright bg */
 
   /* Keycard-square fills — the small corner chips showing what a key card says
@@ -47,4 +47,8 @@
   --codenamesduet-agent-key:           #66bb6a;
   --codenamesduet-neutral-key:         #d4b483;
   --codenamesduet-assassin-key:        #e06666;
+
+  /* Named during the palette sweep: the hairline between a tile's two halves on
+   * the keycard. Value unchanged. */
+  --codenamesduet-tile-rule-color: rgb(0 0 0 / 28%);
 }

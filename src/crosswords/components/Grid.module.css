@@ -25,7 +25,7 @@
   width: 1em;
   height: 1em;
   box-sizing: border-box;
-  background: #fff;
+  background: var(--page-surface-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -54,14 +54,14 @@
 .circle {
   position: absolute;
   inset: 0.13em 0.05em 0.05em 0.13em;
-  border: 0.025em solid #333;
+  border: 0.025em solid var(--crosswords-rule-color);
   border-radius: 50%;
   pointer-events: none;
 }
 .shade {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.18);
+  background: var(--crosswords-shade-color);
   pointer-events: none;
 }
 
@@ -74,7 +74,7 @@
   font-size: 0.3em;
   font-weight: 700;
   line-height: 1;
-  color: #111;
+  color: var(--crosswords-cell-ink-color);
   z-index: 1;
   pointer-events: none;
 }
@@ -148,7 +148,7 @@
   text-transform: uppercase;
   font-size: 0.5em;
   font-weight: 600;
-  border: 0.05em solid #333;
+  border: 0.05em solid var(--crosswords-rule-color);
   background: var(--crosswords-rebus-bg);
   padding: 0;
 }
@@ -176,7 +176,7 @@
   bottom: 0;
   right: -0.07em;
   width: 0.14em;
-  background: #000;
+  background: var(--crosswords-block-fill-color);
   pointer-events: none;
 }
 .markBottomBreak {
@@ -185,7 +185,7 @@
   right: 0;
   bottom: -0.07em;
   height: 0.14em;
-  background: #000;
+  background: var(--crosswords-block-fill-color);
   pointer-events: none;
 }
 
@@ -197,7 +197,7 @@
   right: -0.18em;
   width: 0.36em;
   height: 0.08em;
-  background: #000;
+  background: var(--crosswords-block-fill-color);
   transform: translateY(-50%);
   pointer-events: none;
 }
@@ -207,7 +207,7 @@
   bottom: -0.18em;
   width: 0.08em;
   height: 0.36em;
-  background: #000;
+  background: var(--crosswords-block-fill-color);
   transform: translateX(-50%);
   pointer-events: none;
 }

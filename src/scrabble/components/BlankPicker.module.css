@@ -1,7 +1,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--scrim-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -11,7 +11,7 @@
   background: var(--page-surface-color);
   padding: 20px;
   border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--scrabble-dialog-shadow);
   /* Bounded (and `min-width: 0` so the flex centering in `.overlay` can't let
      the grid's content min-width force the panel wider than this — that was the
      bug where the 7th letter column spilled out the side). Caps to the viewport

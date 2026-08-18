@@ -8,7 +8,7 @@
   border: 1px solid var(--page-surface-border-color);
   border-left: 4px solid var(--stripe, var(--chrome-action-color));
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-toast);
   padding: 0.9rem 1rem;
   display: flex;
   flex-direction: column;

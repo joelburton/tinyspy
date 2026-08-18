@@ -5,7 +5,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--scrim-color);
   /* Above the standard modal layer (setup/help ~500) and the chat panel
      (10000) so the celebration is never occluded. Hard-coded — there's no
      z-index token scale in theme.css. */
@@ -23,7 +23,7 @@
   padding: 2rem 2rem 1.5rem;
   min-width: 280px;
   max-width: min(90vw, 420px);
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-dialog);
   text-align: center;
   /* Subtle scale-up on mount so the box doesn't just appear; pairs with
      the confetti pieces dropping in. */
@@ -111,7 +111,7 @@
 .button.primary {
   background: var(--chrome-action-color);
   border-color: var(--chrome-action-color);
-  color: #fff;
+  color: var(--ink-on-dark-color);
   font-weight: 600;
 }
 

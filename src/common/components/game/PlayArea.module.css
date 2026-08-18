@@ -162,9 +162,11 @@
   gap: 0.75rem;
   position: relative;
   /* Debug tint so the board column's bounds (and the gaps between tiles) are
-   * visible during layout work. Deliberately kept — do NOT remove until Joel
-   * asks. */
-  background: rgba(40, 120, 255, 0.0);
+   * visible during layout work: raise the alpha to see the column. Deliberately
+   * kept — do NOT remove until Joel asks. Named because every colour is named,
+   * which also means the knob is now findable instead of buried in a rule. */
+  --board-col-debug-tint-color: rgb(40 120 255 / 0%);
+  background: var(--board-col-debug-tint-color);
 }
 
 /* The rectangular HUG width, shared by every non-square grid board. The board
@@ -242,7 +244,7 @@
   top: 0.5rem;
   right: 0.5rem;
   z-index: 2;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-board-float);
 }
 
 /* Info column: a fixed column — `flex: 0 0` means it never grows or shrinks (the

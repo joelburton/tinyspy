@@ -31,7 +31,7 @@
 
   /* Elevation shadow so the button reads as "floating above the
    * page," not embedded into it. */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-floating);
 
   cursor: pointer;
   transition: background 100ms ease, transform 100ms ease;

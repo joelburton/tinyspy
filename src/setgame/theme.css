@@ -100,4 +100,11 @@
   --setgame-red: #0072b2;      /* blue */
   --setgame-green: #e69f00;    /* orange */
   --setgame-purple: #cc79a7;   /* magenta */
+
+  /* ── Card chrome, named during the palette sweep ──────────────────────────
+   * Values unchanged; setgame's in-flight + arriving/leaving marks predate the
+   * feedback vocabulary and fold in at its conversion. */
+  --setgame-card-shadow:          0 1px 2px rgb(0 0 0 / 10%);
+  --setgame-card-lift-shadow:     0 2px 6px rgb(0 0 0 / 18%);
+  --setgame-symbol-outline-color: #000000;
 }

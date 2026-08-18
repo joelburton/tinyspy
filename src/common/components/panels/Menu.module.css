@@ -71,7 +71,7 @@
   background: var(--page-surface-color);
   border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-popover);
   padding: 0.3rem 0;
   display: flex;
   flex-direction: column;
@@ -196,7 +196,7 @@
  * floating panel belongs to — without it, a panel hanging in space beside a
  * list of identical rows makes you count pixels to find its owner. */
 .itemOpen {
-  background: var(--page-surface-hover-color, rgba(127, 127, 127, 0.12));
+  background: var(--page-surface-hover-color);
 }
 
 /* The drill-down's "‹ Back" row. Muted like a breadcrumb rather than styled as
@@ -221,7 +221,7 @@
   background: var(--page-surface-color);
   border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-popover);
   padding: 0.3rem 0;
   display: flex;
   flex-direction: column;

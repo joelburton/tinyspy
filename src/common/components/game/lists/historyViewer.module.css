@@ -123,5 +123,5 @@
   border-radius: var(--radius-sm);
 }
 .bannerExit:hover {
-  background: color-mix(in oklab, var(--page-text-color) 10%, var(--page-surface-color));
+  background: var(--view-history-banner-color);
 }

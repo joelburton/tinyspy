@@ -44,7 +44,7 @@
   box-sizing: border-box;
   border-radius: 999px;
   background: var(--page-text-color);
-  color: #fff;
+  color: var(--ink-on-dark-color);
   font-size: 0.7rem;
   font-weight: 700;
   line-height: 1.1rem;

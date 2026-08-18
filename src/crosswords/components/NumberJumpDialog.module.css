@@ -4,7 +4,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--crosswords-dialog-scrim-color);
   z-index: 1500;
   display: flex;
   align-items: flex-start;
@@ -17,7 +17,7 @@
   background: var(--page-surface-color);
   border: 1px solid var(--page-surface-border-color);
   border-radius: var(--radius-lg);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--crosswords-dialog-shadow);
   padding: 0.75rem 1rem 0.85rem;
 }
 

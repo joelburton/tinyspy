@@ -20,7 +20,7 @@
   /* Slightly translucent: the button floats over the board, so letting a little
    * of the tiles behind it show through keeps it from reading as an opaque patch
    * stuck on top. */
-  background: color-mix(in oklab, var(--page-surface-color) 65%, transparent);
+  background: var(--floating-control-bg-color);
   color: var(--page-text-color);
   cursor: pointer;
   transition: transform 120ms ease, background 120ms ease;

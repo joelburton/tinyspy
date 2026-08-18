@@ -27,7 +27,7 @@
 }
 
 .button:hover {
-  background: var(--page-surface-hover-color, rgba(127, 127, 127, 0.12));
+  background: var(--page-surface-hover-color);
 }
 
 /* Mobile only: on desktop the info column is always visible, so there is

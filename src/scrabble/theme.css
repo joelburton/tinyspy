@@ -29,4 +29,23 @@
 body.scrabble-dragging {
   user-select: none;
   cursor: grabbing;
+
+  /* ── Premium-square ink + board chrome, named during the palette sweep ────
+   * The premium letters are the board's printed notation, one colour per premium
+   * type; the shadows are this board's own depth. Values unchanged. */
+  /* The DOUBLE squares carry dark ink of their own hue; the TRIPLE squares are
+     saturated enough to carry white, which they take from the shared ink token.
+     The centre star is a double-word, so it inks like one. */
+  --scrabble-dw-ink-color:   #7a3b34;
+  --scrabble-dl-ink-color:   #2c4f6b;
+  /* A plain square's ink — the muted green-grey the premium labels are read
+     against. */
+  --scrabble-cell-ink-color: #6b8378;
+  --scrabble-cell-inner-shadow: inset 0 -2px 0 rgb(0 0 0 / 12%);
+  --scrabble-tile-shadow:    0 2px 6px rgb(0 0 0 / 25%);
+  --scrabble-tile-lift-shadow: 0 4px 10px rgb(0 0 0 / 30%);
+  --scrabble-rack-bg-color:  #6b4a2a;
+  --scrabble-rack-shadow:    0 2px 0 rgb(0 0 0 / 20%);
+  --scrabble-rack-selected-outline-color: #e6b324;
+  --scrabble-dialog-shadow:  0 8px 32px rgb(0 0 0 / 30%);
 }

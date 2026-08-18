@@ -527,6 +527,69 @@
      rather than a second literal. Left as one value until we can see both wanting
      different things. */
   --tile-hover-shadow:             2px 6px 12px rgb(0 0 0 / 32%);
+  /* The feedback pill's TINTS — its tone at 18% over the surface, worn by a
+     PERMANENT pill (a transient one stays white). Named rather than computed at
+     the use site, and worth a look later: the outcome families already have a
+     `-wash` tier for exactly this job, at a different value, so one of the two is
+     redundant. Deciding which is a pixel change, so it is not this sweep's. */
+  --pill-won-tint-color:      color-mix(in oklab, var(--outcome-won-fill-color) 18%, var(--page-surface-color));
+  --pill-lost-tint-color:     color-mix(in oklab, var(--outcome-lost-fill-color) 18%, var(--page-surface-color));
+  --pill-warning-tint-color:  color-mix(in oklab, var(--outcome-warning-fill-color) 18%, var(--page-surface-color));
+  --pill-near-tint-color:     color-mix(in oklab, var(--outcome-near-fill-color) 18%, var(--page-surface-color));
+  --pill-info-tint-color:     color-mix(in oklab, var(--chrome-action-color) 8%, var(--page-surface-color));
+
+  /* ── ELEVATION (chrome) ───────────────────────────────────────────────────
+     Shadows for things that FLOAT above the page — menus, popovers, dialogs.
+     Distinct from the tile shadows above, which say a game piece has thickness;
+     these say a surface is in front of another surface.
+
+     Only the values four or more places already agreed on are shared here. Where
+     a component's shadow is close-but-not-equal it keeps its own local token and
+     a note, because collapsing on similarity is how you silently restyle a
+     surface nobody was looking at (docs/colors-refinement.md). */
+  --shadow-popover:           0 8px 24px rgb(0 0 0 / 18%);
+  /* A dialog sits further off the page than a menu does. */
+  --shadow-dialog:            0 12px 48px rgb(0 0 0 / 35%);
+  /* Something that floats over the play surface: the chat bubble, a toast. */
+  --shadow-floating:          0 4px 12px rgb(0 0 0 / 18%);
+  /* Three near-misses of --shadow-popover, kept apart rather than collapsed on
+     similarity: the notice is deliberately fainter (8%), the floating panel
+     lighter than a menu (12%), and a toast heavier and tighter (0 4px 16px/30%).
+     Each is one edit away from joining the family if someone decides they should.
+     See docs/colors-refinement.md → collapsing needs certainty, not similarity. */
+  --shadow-notice:            0 8px 24px rgb(0 0 0 / 8%);
+  --shadow-panel:             0 8px 24px rgb(0 0 0 / 12%);
+  --shadow-toast:             0 4px 16px rgb(0 0 0 / 30%);
+  /* The floating control that sits ON a board (psychicnum's / connections'
+     Shuffle). Separation, not decoration — see docs/tile-feedback.md → depth. */
+  --shadow-board-float:       0 2px 6px rgb(0 0 0 / 18%);
+  /* A lighter scrim, for an overlay you can see through more of. */
+  --scrim-light-color:        rgb(0 0 0 / 40%);
+  /* Ink for the PRINT stylesheet at the foot of this file. Its own name because
+     print is its own medium — near-black on paper rather than the screen's
+     --page-text-color, which is tuned against a near-white page. */
+  --print-ink-color:          #111111;
+  /* The translucent surface a control floating OVER a board takes, so a little of
+     the tiles shows through and it doesn't read as an opaque patch stuck on top
+     (the Shuffle button). */
+  --floating-control-bg-color: color-mix(in oklab, var(--page-surface-color) 65%, transparent);
+  /* The history viewer's banner: the page's own ink at 10%, which is a wash
+     rather than a colour of its own. */
+  --view-history-banner-color: color-mix(in oklab, var(--page-text-color) 10%, var(--page-surface-color));
+  /* A PLACEHOLDER's ink — the muted text taken half-way to the field's own
+     background, so a hint is visibly not data. Two setup forms (boggle's and
+     letterboxed's board inputs) arrived at the identical recipe independently,
+     which is what promoted it here; the comment at each call site explains why
+     those two fields treat placeholders specially at all. */
+  --placeholder-ink-color:    color-mix(in oklab, var(--page-text-muted-color) 50%, var(--control-bg-color));
+
+  /* A character the entry row will reject — greyed past `--page-text-muted-color`,
+     which is still readable body text. */
+  --entry-illegal-ink-color:  #aaaaaa;
+  /* The dark layer behind a modal: it dims the page so the dialog reads as being
+     on top of it, and swallows clicks aimed past it. */
+  --scrim-color:              rgb(0 0 0 / 45%);
+
   /* Border WIDTH is the "selected" channel — the tile's edge thickens to say
      "this piece is part of the move I'm building", leaving the background free
      for state and attention, which have nowhere else to go. Two widths, one
@@ -1011,7 +1074,7 @@ a {
     padding: 12% 14%;
     text-align: center;
     font: 600 18pt/1.6 system-ui, -apple-system, sans-serif;
-    color: #111;
-    background: #fff;
+    color: var(--print-ink-color);
+    background: var(--page-surface-color);
   }
 }

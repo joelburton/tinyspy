@@ -161,7 +161,7 @@
   width: clamp(12px, 13cqi, 28px);
   height: clamp(12px, 13cqi, 28px);
   border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--codenamesduet-tile-rule-color);
 }
 .keyMine {
   bottom: 5px;
@@ -197,9 +197,9 @@
 }
 .triPeer {
   top: 4px;
-  border-bottom: clamp(8px, 8cqi, 13px) solid #fff; /* points up */
+  border-bottom: clamp(8px, 8cqi, 13px) solid var(--page-surface-color); /* points up */
 }
 .triMine {
   bottom: 4px;
-  border-top: clamp(8px, 8cqi, 13px) solid #fff; /* points down */
+  border-top: clamp(8px, 8cqi, 13px) solid var(--page-surface-color); /* points down */
 }

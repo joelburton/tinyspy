@@ -31,9 +31,9 @@
   font-size: clamp(0.7rem, 6cqi, 1.8rem);
   font-weight: 700;
   color: var(--stackdown-tile-ink);
-  border: max(1.5px, 0.4cqi) solid rgba(0, 0, 0, 0.2);
+  border: max(1.5px, 0.4cqi) solid var(--stackdown-tile-edge-color);
   border-radius: 2.2cqi;
-  box-shadow: 0 0.4cqi 0.8cqi rgba(0, 0, 0, 0.28);
+  box-shadow: var(--stackdown-tile-shadow);
   padding: 1.4cqi;
   line-height: 1;
   /* Touch (docs/mobile.md → tap-press feedback): stackdown's mahjong tiles are a
@@ -59,7 +59,7 @@
   border-color: var(--outcome-lost-ink-color);
   box-shadow:
     0 0 0 0.5cqi var(--outcome-lost-ink-color),
-    0 0.4cqi 0.8cqi rgba(0, 0, 0, 0.28);
+    var(--stackdown-tile-shadow);
 }
 
 /* Green ring on the word a viewed turn played — the turn-history highlight
@@ -72,7 +72,7 @@
   border-color: var(--outcome-won-ink-color);
   box-shadow:
     0 0 0 0.5cqi var(--outcome-won-ink-color),
-    0 0.4cqi 0.8cqi rgba(0, 0, 0, 0.28);
+    var(--stackdown-tile-shadow);
 }
 
 /* Covered (disabled) tiles fade back so the clickable frontier reads as

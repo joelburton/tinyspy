@@ -126,7 +126,7 @@
   letter-spacing: 0.06em;
   line-height: 1.5rem;
   height: var(--letter-row);
-  color: #000;
+  color: var(--setgame-symbol-outline-color);
   font-variant-numeric: tabular-nums;
 }
 

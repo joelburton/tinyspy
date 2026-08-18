@@ -36,16 +36,16 @@
   /* Plain (non-premium) empty squares are white; only the premium squares below
      carry a color. */
   background: var(--scrabble-cell-bg);
-  color: #6b8378;
+  color: var(--scrabble-cell-ink-color);
   font-size: 2.4cqi;
   font-weight: 600;
   cursor: pointer;
 }
-.cell.DW { background: var(--scrabble-dw); color: #7a3b34; }
-.cell.TW { background: var(--scrabble-tw); color: #fff; }
-.cell.DL { background: var(--scrabble-dl); color: #2c4f6b; }
-.cell.TL { background: var(--scrabble-tl); color: #fff; }
-.cell.center { font-size: 4.6cqi; color: #7a3b34; }
+.cell.DW { background: var(--scrabble-dw); color: var(--scrabble-dw-ink-color); }
+.cell.TW { background: var(--scrabble-tw); color: var(--ink-on-dark-color); }
+.cell.DL { background: var(--scrabble-dl); color: var(--scrabble-dl-ink-color); }
+.cell.TL { background: var(--scrabble-tl); color: var(--ink-on-dark-color); }
+.cell.center { font-size: 4.6cqi; color: var(--scrabble-dw-ink-color); }
 
 /* Drag-drop feedback on the hovered target cell: a thick, saturated RING in the
  * app's standard success/error colors (the outcome-strong pair — same green=good
@@ -84,7 +84,7 @@
   background: var(--scrabble-tile-bg);
   color: var(--scrabble-tile-ink);
   border: 1px solid var(--scrabble-tile-edge);
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: var(--scrabble-cell-inner-shadow);
   cursor: grab;
 }
 .tile.committed {

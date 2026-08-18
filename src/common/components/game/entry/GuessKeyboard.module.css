@@ -156,7 +156,7 @@
 .enter {
   background: var(--chrome-action-color);
   border-color: var(--chrome-action-primary-hover-color);
-  color: #fff;
+  color: var(--chrome-action-primary-ink-color);
 }
 
 /* A wide key holding a WORD rather than a character. "Enter" has to fit across

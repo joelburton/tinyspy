@@ -100,7 +100,7 @@
  * animation fades from bright to that 0 (no `forwards` needed, since it ends at
  * the base). */
 .tileFlash {
-  fill: #fff;
+  fill: var(--ink-on-dark-color);
   opacity: 0;
   pointer-events: none;
   animation: tileFlash 260ms ease-out;

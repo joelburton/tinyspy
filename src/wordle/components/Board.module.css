@@ -48,7 +48,7 @@
    * keyboard shares this column below the board, so the board hugs its height. */
   --tile-bg-color: transparent;
   --tile-border-color: var(--wordle-tile-border);
-  --tile-ink-color: #fff;
+  --tile-ink-color: var(--ink-on-dark-color);
   --tile-shadow: none;
   display: grid;
   grid-auto-rows: 1fr;
@@ -169,7 +169,7 @@
 .inFlight {
   --tile-bg-color: var(--wordle-gray-fill-color);
   --tile-border-color: var(--wordle-gray-edge-color);
-  --tile-ink-color: #fff;
+  --tile-ink-color: var(--ink-on-dark-color);
 }
 
 /* A refused guess wears the SHARED verdict ring + shake (common
@@ -225,13 +225,13 @@
     transform: rotateX(-90deg);
     background: var(--reveal-bg);
     border-color: var(--reveal-border);
-    color: #fff;
+    color: var(--ink-on-dark-color);
   }
   100% {
     transform: rotateX(0deg);
     background: var(--reveal-bg);
     border-color: var(--reveal-border);
-    color: #fff;
+    color: var(--ink-on-dark-color);
   }
 }
 
@@ -241,6 +241,6 @@
     animation: none;
     background: var(--reveal-bg);
     border-color: var(--reveal-bg);
-    color: #fff;
+    color: var(--ink-on-dark-color);
   }
 }

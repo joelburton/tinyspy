@@ -8,4 +8,11 @@
      scrabble/boggle: stackdown's tiles use the same warm --tile-1-color..4 fill ramp, so
      they take the same near-black ink. A game-named alias keeps the override seam. */
   --stackdown-tile-ink: var(--tile-ink-color);
+
+  /* ── Board chrome, named during the palette sweep ─────────────────────────
+   * A stack of tiles that OVERLAP, so the edge and the drop shadow are doing
+   * real work: they separate a tile from the one beneath it. Sized in `cqi` so
+   * they scale with the board. Values unchanged. */
+  --stackdown-tile-edge-color: rgb(0 0 0 / 20%);
+  --stackdown-tile-shadow:     0 0.4cqi 0.8cqi rgb(0 0 0 / 28%);
 }

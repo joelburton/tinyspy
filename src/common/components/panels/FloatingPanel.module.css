@@ -53,7 +53,7 @@
   border-radius: var(--radius-lg);
   /* Elevation shadow so the panel reads as "above the page"
      against the off-white --page-bg-color. */
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-panel);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -187,5 +187,5 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--scrim-light-color);
 }

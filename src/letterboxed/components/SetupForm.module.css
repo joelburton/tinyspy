@@ -30,7 +30,7 @@
    mix toward the control background), italic, and untracked. Lifted wholesale
    from boggle's `.boardInput::placeholder`, which met the same problem first. */
 .sidesInput::placeholder {
-  color: color-mix(in oklab, var(--page-text-muted-color) 50%, var(--control-bg-color));
+  color: var(--placeholder-ink-color);
   font-style: italic;
   letter-spacing: normal;
 }
