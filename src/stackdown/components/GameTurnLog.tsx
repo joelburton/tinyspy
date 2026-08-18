@@ -99,10 +99,10 @@ export function GameTurnLog({
         {shown.map((s, i) => {
           const isRequest = s.kind === 'hint' || s.kind === 'reveal'
           const outcome: TurnOutcome = isRequest
-            ? 'partial' // amber bar — a logged cheat request
+            ? 'near' // amber bar — a logged cheat request
             : s.valid
-              ? 'good'
-              : 'bad'
+              ? 'won'
+              : 'lost'
           return (
             // Every submission is its own one-row "turn"; the divider draws the
             // between-rows line (:first-child suppresses it on the first row). The

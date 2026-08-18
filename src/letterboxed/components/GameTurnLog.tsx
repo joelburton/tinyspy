@@ -143,8 +143,8 @@ export function GameTurnLog({
  * usually made for the next player, so red would misdescribe it.
  */
 function barFor(e: EventRow): TurnOutcome {
-  if (e.kind === 'played') return 'good'
-  if (e.kind === 'hint' || e.kind === 'spoiler') return 'partial'
+  if (e.kind === 'played') return 'won'
+  if (e.kind === 'hint' || e.kind === 'spoiler') return 'near'
   return 'neutral'
 }
 

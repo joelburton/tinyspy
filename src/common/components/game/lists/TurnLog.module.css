@@ -125,13 +125,13 @@
   background: var(--outcome-neutral-fill-color); /* neutral default */
 }
 
-.barInner_good {
+.barInner_won {
   background: var(--outcome-won-fill-color);
 }
-.barInner_bad {
+.barInner_lost {
   background: var(--outcome-lost-fill-color);
 }
-.barInner_partial {
+.barInner_near {
   background: var(--outcome-near-fill-color);
 }
 .barInner_neutral {

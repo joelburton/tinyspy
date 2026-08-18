@@ -44,12 +44,12 @@
  * so an accepted/rejected word reads emphatically at a glance.
  *   - good: an accepted word (the player's own, or a teammate's valid find)
  *   - bad:  a teammate's rejected word (their tiles bounced back) */
-.good {
+.won {
   border-color: var(--outcome-won-ink-color);
   box-shadow: 0 0 0 3px var(--outcome-won-ink-color);
 }
 
-.bad {
+.lost {
   border-color: var(--outcome-lost-ink-color);
   box-shadow: 0 0 0 3px var(--outcome-lost-ink-color);
 }

@@ -42,12 +42,12 @@ type Props = {
  * being generous about it in the log would misreport the hint economy.
  */
 const OUTCOME: Record<GuessResult, TurnOutcome> = {
-  spangram: 'good',
-  theme: 'good',
-  hint_word: 'partial',
-  duplicate: 'bad',
-  too_short: 'bad',
-  invalid: 'bad',
+  spangram: 'won',
+  theme: 'won',
+  hint_word: 'near',
+  duplicate: 'lost',
+  too_short: 'lost',
+  invalid: 'lost',
 }
 
 /**

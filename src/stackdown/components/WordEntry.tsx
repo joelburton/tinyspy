@@ -4,12 +4,12 @@ import styles from './WordEntry.module.css'
 
 /** A word to flash in the entry row when nothing is being spelled — the
  *  player's own just-accepted word, or a teammate's played word. `tone`
- *  colors the slots: 'good' (green) for an accepted/valid word, 'bad'
+ *  colors the slots: 'won' (green) for an accepted/valid word, 'bad'
  *  (red) for a teammate's rejected word. The letters are passed directly
  *  (not tile ids) because a flashed word may be a teammate's, whose tiles
  *  this client never picked up — and a valid word's tiles have already
  *  left the board. */
-export type WordFlash = { letters: string[]; tone: 'good' | 'bad' }
+export type WordFlash = { letters: string[]; tone: 'won' | 'lost' }
 
 /**
  * The word being built, shown as five slots below the board. Each filled
@@ -63,7 +63,7 @@ export function WordEntry({
             className={cls(
               styles.slot,
               filled && styles.filled,
-              showFlash && filled && (flash.tone === 'good' ? styles.good : styles.bad),
+              showFlash && filled && (flash.tone === 'won' ? styles.won : styles.lost),
             )}
             // Flashed slots aren't interactive — only an in-progress word's
             // tiles can be returned.

@@ -111,7 +111,7 @@ export function GameTurnLog({
     >
       {shown.map((g, i) => (
         <tr key={`${g.user_id}-${g.seq}`} className={turnLog.turnLogDivider}>
-          <TurnLogBar outcome={g.is_correct ? 'good' : 'neutral'} />
+          <TurnLogBar outcome={g.is_correct ? 'won' : 'neutral'} />
           {boardIsShown ? (
             <TurnLogNumber n={i + 1} viewing={viewingIndex === i} onSelect={() => onSelectTurn(i)} />
           ) : (

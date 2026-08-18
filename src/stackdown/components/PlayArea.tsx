@@ -168,7 +168,7 @@ export function PlayArea({
   // passed down to BoardCol (which renders it via WordEntry).
   const [flash, setFlash] = useState<WordFlash | null>(null)
   const flashWordTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const showFlash = useCallback((letters: string[], tone: 'good' | 'bad') => {
+  const showFlash = useCallback((letters: string[], tone: 'won' | 'lost') => {
     setFlash({ letters, tone })
     if (flashWordTimer.current) clearTimeout(flashWordTimer.current)
     flashWordTimer.current = setTimeout(() => {
@@ -189,7 +189,7 @@ export function PlayArea({
   )
   // Coop: a teammate's played word → flash it green (valid) / red (invalid).
   const onPeerWord = useCallback(
-    (letters: string[], valid: boolean) => showFlash(letters, valid ? 'good' : 'bad'),
+    (letters: string[], valid: boolean) => showFlash(letters, valid ? 'won' : 'lost'),
     [showFlash],
   )
 
@@ -249,7 +249,7 @@ export function PlayArea({
         // Flash the just-spelled word green in the entry row (the ring is the
         // own-accepted signal; no pill needed).
         clearLocalFeedback()
-        showFlash([...res.word.toUpperCase()], 'good')
+        showFlash([...res.word.toUpperCase()], 'won')
       } else {
         clearWord() // invalid → the tiles return to the board
         showLocalFeedback(`Not a word: ${res.word.toUpperCase()}`, 'error')

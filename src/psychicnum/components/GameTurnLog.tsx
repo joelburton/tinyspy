@@ -118,7 +118,7 @@ export function GameTurnLog({
         if (g.kind === 'hint') {
           return (
             <tr key={g.id} className={turnLog.turnLogDivider}>
-              <TurnLogBar outcome="partial" />
+              <TurnLogBar outcome="near" />
               {turnNumber(i)}
               {/* The hint sentence spans the word+result columns; it's the row's
                   main column (absorbs the slack so `who` stays snug). */}
@@ -133,7 +133,7 @@ export function GameTurnLog({
         const isReveal = g.kind === 'reveal'
         return (
           <tr key={g.id} className={turnLog.turnLogDivider}>
-            <TurnLogBar outcome={isReveal ? 'partial' : g.is_correct ? 'good' : 'bad'} />
+            <TurnLogBar outcome={isReveal ? 'near' : g.is_correct ? 'won' : 'lost'} />
             {turnNumber(i)}
             {/* word = sized-to-fit (`.other`) + the bold lead look (`.primary`);
                 result = the main column, absorbing the slack so the word + result

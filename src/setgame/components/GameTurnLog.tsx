@@ -90,7 +90,7 @@ export function GameTurnLog({
                 already flags a logged help request with — a hint is neither a
                 find nor a failure, but it is not NOTHING either, which is what
                 the neutral grey said. */}
-            <TurnLogBar outcome={event.kind === 'claim' ? 'good' : 'partial'} />
+            <TurnLogBar outcome={event.kind === 'claim' ? 'won' : 'near'} />
             <TurnLogNumber
               n={index + 1}
               viewing={viewingIndex === index}

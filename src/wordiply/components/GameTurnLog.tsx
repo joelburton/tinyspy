@@ -89,7 +89,7 @@ export function GameTurnLog({ guesses, players, selfId, mode, isTerminal }: Prop
         {shown.map((g) => (
           <tr key={g.id} className={turnLog.turnLogDivider}>
             <TurnLogBar
-              outcome={g.valid ? 'good' : g.reason === 'not_a_word' ? 'partial' : 'bad'}
+              outcome={g.valid ? 'won' : g.reason === 'not_a_word' ? 'near' : 'lost'}
             />
             <td className={turnLog.main}>
               {g.valid ? (

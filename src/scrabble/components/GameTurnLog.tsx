@@ -102,7 +102,7 @@ export function GameTurnLog({
   })
 
   const outcomeFor = (kind: PlayRow['kind']): TurnOutcome =>
-    kind === 'word' ? 'good' : kind === 'forfeit' ? 'bad' : 'neutral'
+    kind === 'word' ? 'won' : kind === 'forfeit' ? 'lost' : 'neutral'
 
   return (
     <>

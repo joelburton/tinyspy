@@ -6,7 +6,7 @@ import history from './historyViewer.module.css'
 
 /** The outcome a row's left bar paints. Shared across games:
  *  good (won/correct), bad (lost/wrong), partial (near/one-away), neutral. */
-export type TurnOutcome = 'good' | 'bad' | 'partial' | 'neutral'
+export type TurnOutcome = 'won' | 'lost' | 'near' | 'neutral'
 
 /**
  * The shared **turn log**: a game's per-turn history (one entry per turn — which

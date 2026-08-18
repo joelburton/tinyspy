@@ -22,19 +22,19 @@ describe('turnOutcome', () => {
     expect(turnOutcome([])).toBe('neutral')
   })
 
-  it('is good when every guess hit an agent', () => {
-    expect(turnOutcome([g('G'), g('G')])).toBe('good')
+  it('is a WIN when every guess hit an agent', () => {
+    expect(turnOutcome([g('G'), g('G')])).toBe('won')
   })
 
-  it('is partial when agents are mixed with a neutral', () => {
-    expect(turnOutcome([g('G'), g('N')])).toBe('partial')
+  it('is NEAR when agents are mixed with a neutral', () => {
+    expect(turnOutcome([g('G'), g('N')])).toBe('near')
   })
 
-  it('is bad when the turn made no progress (only neutrals)', () => {
-    expect(turnOutcome([g('N')])).toBe('bad')
+  it('is a LOSS when the turn made no progress (only neutrals)', () => {
+    expect(turnOutcome([g('N')])).toBe('lost')
   })
 
-  it('is bad when the assassin was hit, even alongside agents', () => {
-    expect(turnOutcome([g('G'), g('A')])).toBe('bad')
+  it('is a LOSS when the assassin was hit, even alongside agents', () => {
+    expect(turnOutcome([g('G'), g('A')])).toBe('lost')
   })
 })

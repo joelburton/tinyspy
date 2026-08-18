@@ -33,9 +33,9 @@ type Props = {
 
 /** connections's three guess verdicts → the shared turn-log outcome bar. */
 const OUTCOME: Record<GuessRow['result'], TurnOutcome> = {
-  correct: 'good',
-  oneAway: 'partial',
-  wrong: 'bad',
+  correct: 'won',
+  oneAway: 'near',
+  wrong: 'lost',
 }
 
 /**
