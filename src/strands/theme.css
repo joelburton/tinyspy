@@ -43,12 +43,6 @@
   /* Words nobody found, drawn at the reveal. Deliberately grey rather than a
    * fourth hue: a miss is the ABSENCE of an outcome, so it must not borrow the
    * purple/gold vocabulary that means "you got this". */
-  /* The history-viewer ring on a viewed turn's cells. GOLD — and wrong: every
-   * other game's viewer ring is the shared blue `--view-history-color`, and this
-   * is left over from when the viewer was yellow. It moved out of common (where
-   * it was hiding as an "outcome" token with exactly one reader) so the bug is
-   * visible where the fix belongs. See docs/colors-refinement.md. */
-  --strands-viewed-ring-color: #f9a825;
 
   --strands-missed: #9e9aa7;
   /* Letters sitting on a saturated disc. */

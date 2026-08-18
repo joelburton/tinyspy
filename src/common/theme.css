@@ -167,7 +167,11 @@
                word, an outline ring. Must stay recognisably ITS colour when thin.
        -fill   filling a piece: a verdict tile, a turn-log outcome bar. The tier a
                player meets most often.
-       -edge   the border on a piece wearing -fill. Quiet definition, not a ring.
+       -edge   the border on a piece wearing -fill. Quiet definition, not a
+               ring: each is its fill taken 16% toward black, which is the step
+               psychicnum arrived at by eye and computed locally before this tier
+               existed. Deliberately NOT the -ink tone, which is four steps down
+               and reads as a harsh ring rather than as an edge.
        -wash   a pill's background, and anywhere wanting a much lighter version.
        -terminal-frame   the band around a board that is no longer a live
                position. A big area, so it must read as a band without shouting
@@ -183,10 +187,12 @@
      game's own responsibility. See docs/colors-refinement.md. */
   --outcome-won-ink-color:            #2e7d32;  /* green 800 */
   --outcome-won-fill-color:           #66bb6a;  /* green 400 */
+  --outcome-won-edge-color:           #569d59;  /* the fill, 16% toward black */
   --outcome-won-wash-color:           #c8e6c9;  /* green 100 */
 
   --outcome-lost-ink-color:           #c62828;  /* red 800 */
   --outcome-lost-fill-color:          #ef5350;  /* red 400 */
+  --outcome-lost-edge-color:          #c94643;  /* the fill, 16% toward black */
   --outcome-lost-wash-color:          #ffcdd2;  /* red 100 */
 
   /* NEAR — a near miss: "you were close". GOLD, and deliberately not warning's
@@ -197,6 +203,7 @@
      already wears, and the family is tuned to it. */
   --outcome-near-ink-color:           #f9a825;  /* yellow 800 — gold */
   --outcome-near-fill-color:          #ffb74d;  /* amber 300 — gold */
+  --outcome-near-edge-color:          #d69a41;  /* the fill, 16% toward black */
 
   /* WARNING — "you cannot do that", "you already tried that", "that costs you
      something". The one family named for a tone of voice rather than a result,
@@ -204,6 +211,7 @@
      (--chrome-caution-color) and the two are free to move apart. */
   --outcome-warning-ink-color:        #ef6c00;  /* orange 800 */
   --outcome-warning-fill-color:       #ffa726;  /* orange 400 */
+  --outcome-warning-edge-color:       #d68c20;  /* the fill, 16% toward black */
 
   /* NEUTRAL — a non-result: a move nobody can adjudicate, a game the friends
      agreed to stop. Its OWN gray ramp, NOT an alias of a chrome token — a surface
@@ -211,6 +219,7 @@
      standing on its own is the point. */
   --outcome-neutral-ink-color:        #616161;  /* gray 700 */
   --outcome-neutral-fill-color:       #bdbdbd;  /* gray 400 */
+  --outcome-neutral-edge-color:       #9f9f9f;  /* the fill, 16% toward black */
   --outcome-neutral-wash-color:       #f5f5f5;  /* gray 100 */
 
   /* ── GAMELIST ─────────────────────────────────────────────────────────────
@@ -396,20 +405,25 @@
      other. A light gray had neither. Darker and deader than the history
      gray-blue: no hue at all, so it reads as a rule drawn round a finished thing
      rather than as a state anyone chose. */
-  --outcome-neutral-terminal-frame-color:          #4d4d4d;
+  --outcome-neutral-terminal-frame-color:  #555555;
 
-  /* …and the same gray carrying the OUTCOME, for trying out: a finished game
-     always has a verdict, and the frame is already the biggest thing on screen
-     saying "finished". Barely-tinted on purpose — the same darkness and the same
-     deadness as the neutral above, pushed just far enough toward a hue to be
-     recognizable beside it. They must not become the outcome palette: green and
-     red at strength mean a TILE's state, and a board-sized bar of either would
-     shout an outcome the pill has already stated quietly.
+  /* …and the same band carrying the OUTCOME. A finished game always has a verdict,
+     and the frame is already the biggest thing on screen saying "finished", so it
+     may as well say WHICH.
 
-     Neutral stays the third face, for a game that was ENDED rather than won or
-     lost — nobody beat anybody, so a hue would be a claim. */
-  --outcome-won-terminal-frame-color:      #3c6b46;
-  --outcome-lost-terminal-frame-color:     #6b3c3c;
+     The five are ONE FAMILY, picked together: the same lightness, the same chroma,
+     four hues plus the achromatic neutral above. That is the reservation policy
+     doing its job — near and warning have no consumer and are picked anyway,
+     because a family chosen all at once is chosen by one formula, where a colour
+     chosen alone in two years would be reasoned about differently.
+
+     They must not become the outcome palette: green and red at strength mean a
+     TILE's state, and a board-sized bar of either would shout an outcome the pill
+     has already stated quietly. These sit dark, at half the chroma of the fills. */
+  --outcome-won-terminal-frame-color:      #28642a;
+  --outcome-lost-terminal-frame-color:     #873933;
+  --outcome-near-terminal-frame-color:     #794900;
+  --outcome-warning-terminal-frame-color:  #843f14;
 
   /* ── Feedback timings ────────────────────────────────────────────────────
      How long the two transient marks last. Shared, because "how long news stays

@@ -1,5 +1,6 @@
 import { IconBack } from '../icons'
 import { cls } from '../../lib/util/cls'
+import styles from './ActionButton.module.css'
 
 type Props = {
   onClick: () => void
@@ -33,9 +34,11 @@ type Props = {
  * everywhere. The chevron is `aria-hidden` so a screen reader just
  * announces "Back to club", not the icon.
  *
- * `variant` swaps the fill (the global `secondary` class vs the default accent
- * button); `compact` swaps the visible label to just "Club" (the chevron
- * carries the rest). The accessible label stays "Back to club" either way.
+ * `variant` swaps the treatment (the global `secondary` outline vs the filled
+ * default); `compact` swaps the visible label to just "Club" (the chevron
+ * carries the rest). The accessible label stays "Back to club" either way. Both
+ * treatments wear the ACTION tone — going back to the club is a thing you do,
+ * not a cancel.
  *
  * The icon+label look is the global `.icon-button` class (docs/ui.md → Button
  * iconography) — the same shape psychicnum's / connections' input-row buttons
@@ -53,7 +56,16 @@ export function BackToClubButton({
   return (
     <button
       type="button"
-      className={cls('icon-button', variant === 'secondary' && 'secondary', iconOnly && 'icon-only')}
+      className={cls(
+        'icon-button',
+        // The outline variant is an ACTION, not a cancel: it sits in a game's
+        // action row beside Restart and New game, and it is already action-blue
+        // at terminal (where it renders `variant="primary"`). Without the tone it
+        // fell through to the plain grey every dialog Cancel wears — the same
+        // control in two colours depending on the phase.
+        variant === 'secondary' && cls('secondary', styles.action),
+        iconOnly && 'icon-only',
+      )}
       onClick={onClick}
       // Compact/icon-only hide some or all of the words behind the chevron, so
       // keep an accessible label — unless a full custom label spells it out.

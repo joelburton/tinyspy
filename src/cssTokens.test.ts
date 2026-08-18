@@ -48,6 +48,11 @@ const VOCABULARY_COMPLETENESS = new Set([
   '--outcome-neutral-wash-color',
   '--outcome-neutral-ink-color',
   '--outcome-lost-wash-color',
+  '--outcome-near-edge-color',
+  '--outcome-warning-edge-color',
+  '--outcome-neutral-edge-color',
+  '--outcome-near-terminal-frame-color',
+  '--outcome-warning-terminal-frame-color',
   // Same policy, applied to a CHROME tone: each tone carries the tokens its two
   // treatments need, so the set is picked together rather than one colour at a
   // time. Nothing is filled-destructive today; when something is, its hover and

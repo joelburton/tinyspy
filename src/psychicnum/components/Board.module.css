@@ -76,9 +76,10 @@
  * red. Not a house rule — an undecided tile keeps its dark ink on the pale beige,
  * which is where dark ink belongs.
  *
- * The EDGE is the fill stepped ~16% darker — the same quiet definition waffle and
- * wordle give their coloured tiles, derived from the fill with `color-mix` so the
- * two can't drift apart. Deliberately NOT the outcome family's `-strong` tone,
+ * The EDGE is the shared `-edge` tier: the fill stepped 16% darker, the same quiet
+ * definition waffle and wordle give their coloured tiles. It was computed here
+ * with `color-mix` until the palette sweep promoted the step to a named tier every
+ * outcome family carries. Deliberately NOT the outcome family's `-strong` tone,
  * which is four steps down (400 → 800) and reads as a harsh ring rather than as an
  * edge. And note the fill here is `-border`, the 400 tone: the family's `-border`
  * name is about its role beside the pastel `-bg`, not about being an edge.
@@ -92,13 +93,13 @@
  * back. See docs/tile-feedback.md. */
 .correct {
   --tile-bg-color: var(--outcome-won-fill-color);
-  --tile-border-color: color-mix(in srgb, var(--outcome-won-fill-color) 84%, #000);
+  --tile-border-color: var(--outcome-won-edge-color);
   --tile-ink-color: #fff;
 }
 
 .incorrect {
   --tile-bg-color: var(--outcome-lost-fill-color);
-  --tile-border-color: color-mix(in srgb, var(--outcome-lost-fill-color) 84%, #000);
+  --tile-border-color: var(--outcome-lost-edge-color);
   --tile-ink-color: #fff;
 }
 

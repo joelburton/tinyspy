@@ -271,26 +271,28 @@
   border-color: var(--control-border-strong-color);
 }
 
-/* Active (confirming or deleting): full-width pill with warning
- * red, always visible regardless of wrapper-hover. */
+/* Active (confirming or deleting): a full-width destructive pill, always visible
+ * regardless of wrapper-hover.
+ *
+ * It used to fill itself with the LOST outcome's wash and edge — an outcome
+ * palette on a control, for a button where nobody has lost anything. It is now
+ * the plain destructive treatment every other irreversible control wears: the
+ * tone on the text and the border, no fill (docs/colors-refinement.md). */
 .deleteButtonActive {
   opacity: 1;
   width: auto;
   padding: 0.3rem 0.7rem;
-  background: var(--outcome-lost-wash-color);
-  color: var(--chrome-fault-color);
-  border-color: var(--outcome-lost-fill-color);
+  background: transparent;
+  color: var(--chrome-destructive-color);
+  border-color: var(--chrome-destructive-color);
   font-size: 0.85rem;
   font-weight: 600;
 }
 
 .deleteButtonActive:hover:not(:disabled) {
-  background: var(--outcome-lost-wash-color);
-  color: var(--chrome-fault-color);
-  border-color: var(--chrome-fault-color);
-  /* Slight darken on hover so the user sees the confirm tap
-     register. */
-  filter: brightness(0.96);
+  background: var(--chrome-destructive-secondary-hover-color);
+  color: var(--chrome-destructive-color);
+  border-color: var(--chrome-destructive-color);
 }
 
 /* ClubPage's keyboard list-nav cursor — the ring marking which game Enter
@@ -303,6 +305,6 @@
  * INSIDE it: the card is positioned + opaque, so it paints over an inset
  * outline on its parent and the ring simply never appeared. */
 .kbCursor .card {
-  outline: 2px solid var(--chrome-action-color);
+  outline: 2px solid var(--chrome-cursor-color);
   outline-offset: -2px;
 }

@@ -115,12 +115,13 @@
 /* A spent hint: a ring per cell, and no line between them. That gap is the
  * whole mechanic — the reveal says WHERE the word is, never what order it
  * runs in. */
-/* The viewed turn's cells, while replaying history. Yellow, matching the board
- * frame and the log's viewed-row outline — one colour for "you are looking at
- * the past", distinct from every gameplay colour. */
+/* The viewed turn's cells, while replaying history — the shared
+ * `--view-history-color`, the same blue the board frame and the log's viewed-row
+ * outline take. It was gold until 2026-08-18, left over from when the viewer was
+ * yellow: strands was the last game whose ring disagreed with its own frame. */
 .discViewed {
   fill: none;
-  stroke: var(--strands-viewed-ring-color);
+  stroke: var(--view-history-color);
   stroke-width: 0.1;
 }
 
