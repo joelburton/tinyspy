@@ -1169,8 +1169,20 @@ palette's: a control saying "this is irreversible" is a different question from 
 game saying "you lost"). Each tone re-sets the slot tokens both treatments read,
 so a tone works in either weight. Today: Hint / Reveal = `caution`, End /
 Concede = `destructive`, Submit / Peel / Back-at-terminal = `primary`+`action`,
-Clear / Delete = `action`; `quiet` is outline-only by nature (it has no fill) and
-is what a bare dialog Cancel wears. Action-row
+Clear / Delete = `action`, and a bare dialog Cancel is `quiet`+`secondary`.
+
+**The grid is complete, and that is load-bearing.** All four tones carry all five
+values — `-primary-color` / `-primary-hover-color` / `-primary-ink-color` /
+`-secondary-color` / `-secondary-hover-color` — whether or not anything reads them
+yet, because a family picked at one sitting is picked by one formula. `quiet` is
+the cautionary tale: it spent a redesign as an outline-only tone on the argument
+that a filled quiet button would out-shout its neighbour, which is a claim about
+one USE promoted into a fact about the TONE — and it made `tone="quiet"` +
+`weight="primary"` silently paint action-blue. Cancel wants the outline because
+**secondary is the right treatment there**, which says nothing about the tone. Two
+guards in [`cssTokens.test.ts`](../src/cssTokens.test.ts) hold the grid and the
+naming: every tone carries all five, and no tone token may say "fill" — the axis
+is primary/secondary, and the property is always a background. Action-row
 buttons size to their **own icon + label** (`flex: 0 0 auto`), left-aligned — they do
 **not** stretch to equal widths or the column's right edge: equalizing widths clipped
 a longer label's icon, and unequal widths actually *aid* recognition ("Hint is the

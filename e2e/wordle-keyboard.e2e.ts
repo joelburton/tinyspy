@@ -180,7 +180,7 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
   // ENTER is a Submit, so it is the action blue with white ink, and DARKENS on
   // hover like every other filled action button.
   const enter = await look('Enter')
-  expect(enter.resting).toEqual({ fill: await token('--chrome-action-color'), ink: white })
+  expect(enter.resting).toEqual({ fill: await token('--chrome-action-primary-color'), ink: white })
   expect(enter.hovered).toEqual({
     fill: await token('--chrome-action-primary-hover-color'),
     ink: white,

@@ -53,12 +53,10 @@ const VOCABULARY_COMPLETENESS = new Set([
   '--outcome-neutral-edge-color',
   '--outcome-near-terminal-frame-color',
   '--outcome-warning-terminal-frame-color',
-  // Same policy, applied to a CHROME tone: each tone carries the tokens its two
-  // treatments need, so the set is picked together rather than one colour at a
-  // time. Nothing is filled-destructive today; when something is, its hover and
-  // ink are already chosen and already agree with the rest of the family.
-  '--chrome-destructive-fill-hover-color',
-  '--chrome-destructive-fill-ink-color',
+  // The CHROME tones used to need two entries here. They no longer do: every
+  // tone now wires BOTH treatments through ActionButton.module.css, so all
+  // twenty values have a reader. The policy they were claiming is enforced
+  // directly instead — see "the chrome tones are complete" below.
   '--tile-4-edge-color',
 ])
 
@@ -162,6 +160,66 @@ describe('CSS custom-property tokens', () => {
       dead,
       `Defined but never read via var() — delete them, or add to VOCABULARY_COMPLETENESS if the ` +
         `slot is deliberate:\n${dead.join('\n')}`,
+    ).toEqual([])
+  })
+})
+
+/**
+ * Guard: the four chrome tones are a COMPLETE GRID, named for their treatment.
+ *
+ * Two decisions live here because prose couldn't hold them. Both were made, both
+ * were written down in docs/colors-refinement.md, and both were then quietly
+ * undone by a later pass that renamed its way past them — after which the doc got
+ * a "superseded" banner to match the code rather than the code being brought back
+ * to the decision. A test is the version of a decision that argues back.
+ *
+ * ONE — every tone carries all five values, whether or not anything reads them
+ * yet. A family picked at one sitting is picked by one formula; a value derived
+ * alone in two years, next to the button that happened to need it, is reasoned
+ * about differently and drifts out of family. `quiet` is the case that proves it:
+ * it went two years as an outline-only tone on the argument that "a filled quiet
+ * button would out-shout its neighbour" — a claim about one USE, promoted into a
+ * fact about the TONE, which then made `tone="quiet" weight="primary"` paint
+ * itself action-blue. Nothing reads quiet's primary trio today. It is still
+ * written today.
+ *
+ * TWO — the names say the TREATMENT (`primary` / `secondary`), never the paint.
+ * "fill" named the property while pretending to name the axis, so `-fill-color`
+ * and the `.primary` class were one idea spelled two ways. It is banned by name
+ * here, because that is the rename that keeps coming back.
+ */
+describe('the chrome tones are complete', () => {
+  const TONES = ['action', 'caution', 'destructive', 'quiet']
+  const VALUES = [
+    'primary-color',
+    'primary-hover-color',
+    'primary-ink-color',
+    'secondary-color',
+    'secondary-hover-color',
+  ]
+
+  it('every tone carries all five treatment values', () => {
+    const { defined } = scanTokens()
+    const missing = TONES.flatMap((tone) =>
+      VALUES.map((v) => `--chrome-${tone}-${v}`).filter((t) => !defined.has(t)),
+    )
+    expect(
+      missing,
+      `A chrome tone is missing part of its family. Every tone carries all five ` +
+        `values even with no reader — derive it now, from the primary, with the ` +
+        `formula at theme.css → FIVE VALUES PER TONE:\n${missing.join('\n')}`,
+    ).toEqual([])
+  })
+
+  it('no chrome tone token says "fill" — the axis is primary/secondary', () => {
+    const { defined } = scanTokens()
+    const named = [...defined.keys()].filter((t) =>
+      TONES.some((tone) => t.startsWith(`--chrome-${tone}-`) && t.includes('fill')),
+    )
+    expect(
+      named,
+      `"fill" names the property, not the axis — a button is primary or secondary ` +
+        `and the property is always a background. Rename these:\n${named.join('\n')}`,
     ).toEqual([])
   })
 })

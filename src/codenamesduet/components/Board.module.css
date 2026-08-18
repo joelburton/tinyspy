@@ -132,7 +132,7 @@
 /* Pending (the guess RPC is in flight): an accent ring, distinct from the shared
  * dark hover ring. Per-game state, composed on top of the shared `.tile`. */
 .tilePending {
-  outline: 2px solid var(--chrome-action-fill-color);
+  outline: 2px solid var(--chrome-action-primary-color);
   outline-offset: -2px;
 }
 

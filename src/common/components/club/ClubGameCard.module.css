@@ -282,16 +282,16 @@
   width: auto;
   padding: 0.3rem 0.7rem;
   background: transparent;
-  color: var(--chrome-destructive-fill-color);
-  border-color: var(--chrome-destructive-fill-color);
+  color: var(--chrome-destructive-primary-color);
+  border-color: var(--chrome-destructive-primary-color);
   font-size: 0.85rem;
   font-weight: 600;
 }
 
 .deleteButtonActive:hover:not(:disabled) {
-  background: var(--chrome-destructive-wash-color);
-  color: var(--chrome-destructive-fill-color);
-  border-color: var(--chrome-destructive-fill-color);
+  background: var(--chrome-destructive-secondary-hover-color);
+  color: var(--chrome-destructive-primary-color);
+  border-color: var(--chrome-destructive-primary-color);
 }
 
 /* ClubPage's keyboard list-nav cursor — the ring marking which game Enter

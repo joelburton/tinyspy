@@ -3,25 +3,25 @@ import { cls } from '../../lib/util/cls'
 import styles from './ActionButton.module.css'
 
 /** A button's visual WEIGHT — its emphasis, independent of semantic tone.
- *  `primary` is the filled-accent main action (SubmitButton); `secondary` is the
- *  neutral outline everything else builds on. */
+ *  `primary` is the filled main action (SubmitButton); `secondary` is the
+ *  outline everything else builds on. Both take any tone. */
 export type ButtonWeight = 'primary' | 'secondary'
 
-/** A button's semantic TONE — the SAME vocabulary + palette as the feedback
- *  pills (docs/ui.md → Button iconography), coloring a
- *  secondary (outline) button's border + text + icon. `neutral` is the plain
- *  outline; `caution` = orange (Hint / Reveal), `destructive` = dark red (End),
- *  etc. Tone is meaningful only for secondary weight — a `primary` button is the
- *  filled accent and ignores it. */
+/** A button's semantic TONE — CHROME's own vocabulary (theme.css → CHROME), not
+ *  the outcome palette's. It colors a secondary button's border + text + icon,
+ *  or a primary button's background: `action` = blue, `caution` = orange (Hint /
+ *  Reveal), `destructive` = dark red (End / Concede), `quiet` = grey (a dialog's
+ *  Cancel). Tone and weight are ORTHOGONAL — all four tones work in both
+ *  treatments, and each tone carries the five values that takes. */
 export type ButtonTone = 'quiet' | 'action' | 'caution' | 'destructive'
 
 /**
- * The DEFAULT is `action`, not `cancel`: everything that goes through a purpose
- * button is something you do — Clear, Delete, Help, Zoom-fit — and the audit
- * found no consumer that wanted the quiet grey. The cancels don't come through
- * here at all; they are dialog buttons wearing the raw `secondary` class, which
- * defaults to the cancel tone in theme.css. A caller CAN pass `tone="quiet"`,
- * and should only do so for something that means "never mind".
+ * The DEFAULT tone is `action`: everything that goes through a purpose button is
+ * something you do — Clear, Delete, Help, Zoom-fit — and the audit found no
+ * consumer that wanted the quiet grey. The cancels don't come through here at
+ * all; they are dialog buttons wearing the bare `secondary` class, whose slots
+ * default to quiet in theme.css. A caller CAN pass `tone="quiet"`, and should
+ * only do so for something that means "never mind".
  */
 
 /**
@@ -59,9 +59,9 @@ type ActionButtonProps = PurposeButtonProps & {
    *  glyph appears at different sizes in different buttons, and `.icon-only`'s
    *  fixed box means a bigger glyph doesn't change the button's footprint. */
   iconSize?: number
-  /** Filled-accent (`primary`) vs the default outline (`secondary`). */
+  /** Filled (`primary`) vs the default outline (`secondary`). */
   weight?: ButtonWeight
-  /** Semantic color for a secondary button's outline (default `neutral`). */
+  /** Semantic color, in either treatment (default `action`). */
   tone?: ButtonTone
 }
 
@@ -98,9 +98,12 @@ export function ActionButton({
         'button',
         weight === 'secondary' && 'secondary',
         'icon-button',
-        // Semantic tone recolors the fill (primary) or the outline + label
-        // (secondary) — it re-sets the slot tokens both read (see the module).
-        tone !== 'quiet' && styles[tone],
+        // Semantic tone recolors the filled background (primary) or the
+        // outline + label (secondary) — it re-sets the slot tokens both read
+        // (see the module). Every tone gets its class, quiet included: quiet is
+        // the SECONDARY default in theme.css but not the primary one, so
+        // skipping it here painted a quiet primary action-blue.
+        styles[tone],
         iconOnly && 'icon-only',
         className,
       )}

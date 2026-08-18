@@ -51,29 +51,42 @@
      COLOUR and TREATMENT are separate axes. A button is `primary` (filled) or
      `secondary` (outline) — that is a class, and those are the class names in
      use — while the tone says what kind of action it is. The two axes are
-     ORTHOGONAL: any tone can be either treatment, so the token names describe
-     the PAINT (a fill, an ink, a wash) rather than the class that asks for it.
+     ORTHOGONAL: any tone can be either treatment, which is why the token names
+     say the TREATMENT that asks for a value and never the paint it happens to
+     be. The word "fill" appears nowhere: it named the property (a background)
+     while pretending to name the axis, so `-fill-color` and a `.primary` class
+     were the same idea spelled two ways, and every rename argument had to be had
+     twice. Both treatments are marked, with no unmarked default — a bare
+     "-hover-color" would silently mean the primary's.
 
      Hover changes the BACKGROUND and nothing else — no lift, no shadow, because
-     depth belongs to game pieces. Nothing here is left unmarked: `.button` on
-     its own is the FILLED one, so a bare "-hover-color" would read as the filled
-     button's, which is the opposite of what it would mean.
-     See docs/colors-refinement.md. */
+     depth belongs to game pieces. That is also why neither hover token says
+     "-bg-": it would repeat a constant. See docs/colors-refinement.md. */
 
-  /* FOUR VALUES PER TONE, and every one of them derived from the fill in oklab
-     so a tone can never fall out of family with itself:
+  /* FIVE VALUES PER TONE — all four tones, always, whether or not anything reads
+     them yet. Every one is derived from the primary in oklab, so a tone can never
+     fall out of family with itself:
 
-       -fill-color        the filled button's background — the only CHOSEN value
-       -fill-hover-color  the fill, lightness −0.05 — a small step
-       -ink-color         the fill, lightness −0.115 — border AND text, one value
-       -wash-color        the fill at 8% over white — the outline button's hover
+       -primary-color         the filled button's background — the only CHOSEN value
+       -primary-hover-color   the primary, lightness −0.05 — a small step
+       -primary-ink-color     the label on the filled button
+       -secondary-color       the primary, lightness −0.115 — the outline's border
+                              AND text, one value
+       -secondary-hover-color the primary at 8% over white — the outline's hover
 
-     The hover and the ink are SEPARATE steps, and that is the correction that
-     produced this set. They used to be one value, which made a filled button's
-     hover as dark as an unfilled button's text — a jump big enough in orange to
-     read as a change of colour rather than a response. They have different jobs:
-     an ink has to be dark enough to read as small text, a hover only has to say
-     "the page is alive". Small step, big step.
+     ALL FIVE, ALWAYS, and that is a rule rather than a habit: a family picked at
+     one sitting is picked by one formula, where a value chosen alone in two years
+     would be reasoned about differently and quietly break the set. So a cell with
+     no reader today is still written today. (The same rule the outcome families
+     get — src/cssTokens.test.ts guards both.)
+
+     THE CENTRAL CORRECTION, and the one worth not losing: -primary-hover and
+     -secondary are SEPARATE steps down from the primary. They were one value
+     once, and orange is the case that proves they can't be. A background orange
+     is too light to read as text; darken it far enough to read and it is far too
+     strong to fill a button with. The two have different jobs — an ink has to
+     carry small type, a hover only has to say "the page is alive" — so they get
+     different steps. Small step, big step.
 
      The washes are 8%, which looks impossibly faint written down and is not:
      going from white to ANY colour is a movement, and movement is the whole
@@ -81,11 +94,11 @@
 
   /* ACTION — an action you can take: Submit (filled), Restart / New game
      (outline). Material Blue 700. */
-  --chrome-action-fill-color:               #1976d2;
-  --chrome-action-fill-hover-color:         #0067c1;
-  --chrome-action-fill-ink-color:           #ffffff;
-  --chrome-action-ink-color:                #0053ac;
-  --chrome-action-wash-color:               #eef4fc;
+  --chrome-action-primary-color:              #1976d2;
+  --chrome-action-primary-hover-color:        #0067c1;
+  --chrome-action-primary-ink-color:          #ffffff;
+  --chrome-action-secondary-color:            #0053ac;
+  --chrome-action-secondary-hover-color:      #eef4fc;
 
   /* CAUTION — Hint, Spoiler, AI suggest, Pass: consequential, not destructive.
      NOT the outcome orange. outcome-warning sits at oklab hue 69.6°, a true
@@ -96,11 +109,11 @@
 
      Deliberately not taken any REDDER: destructive owns hue 27.5, and two
      warnings separated only by lightness would be a poor pair. */
-  --chrome-caution-fill-color:              #d56417;
-  --chrome-caution-fill-hover-color:        #c45400;
-  --chrome-caution-fill-ink-color:          #ffffff;
-  --chrome-caution-ink-color:               #ae4000;
-  --chrome-caution-wash-color:              #fdf3ee;
+  --chrome-caution-primary-color:             #d56417;
+  --chrome-caution-primary-hover-color:       #c45400;
+  --chrome-caution-primary-ink-color:         #ffffff;
+  --chrome-caution-secondary-color:           #ae4000;
+  --chrome-caution-secondary-hover-color:     #fdf3ee;
 
   /* DESTRUCTIVE — Reveal, End game, Concede, Delete: irreversible.
      This DELIBERATELY collides with the game-loss red: it sits 0.037 from
@@ -114,25 +127,30 @@
      live (26–29°), and light + cool of red is salmon — so every lightening of it
      walked toward pink (its wash came out #ffcfca). Darker and a couple of
      degrees warmer is the difference between a warning and a cupcake. */
-  --chrome-destructive-fill-color:          #b71c1c;
-  --chrome-destructive-fill-hover-color:    #a50007;
-  --chrome-destructive-fill-ink-color:      #ffffff;
-  --chrome-destructive-ink-color:           #8f0000;
-  --chrome-destructive-wash-color:          #fceeec;
+  --chrome-destructive-primary-color:         #b71c1c;
+  --chrome-destructive-primary-hover-color:   #a50007;
+  --chrome-destructive-primary-ink-color:     #ffffff;
+  --chrome-destructive-secondary-color:       #8f0000;
+  --chrome-destructive-secondary-hover-color: #fceeec;
 
   /* QUIET — active, but not the thing we are pointing you at: a dialog's Cancel,
      the header's Pause. Named for its VOLUME rather than its purpose, because
      "cancel" made every non-cancel that wanted this look like a misuse — and two
      names for one look is how `active`/`current` happened.
 
-     TWO tokens rather than five, and that is a decision that survived the
-     redesign: quiet is outline-only BY NATURE, because a filled quiet button
-     would out-shout the thing beside it that isn't quiet. Its notional fill
-     (#737373) is what the ink and wash are derived FROM but is never painted, so
-     it isn't named — a token nothing may use is a token something eventually
-     misuses. */
-  --chrome-quiet-ink-color:                 #535353;
-  --chrome-quiet-wash-color:                #f3f3f3;
+     A FULL FAMILY, exactly like the other three. Nothing reads the primary trio
+     today, and that is not a fact about the tone — the dialog Cancel that made
+     quiet famous wants the outline because SECONDARY is the right treatment
+     there, which says nothing about whether a quiet button can be filled. It
+     can, and the grid is the point: any tone × either treatment. Writing the
+     values now is the completeness rule above doing its job; deriving them in a
+     year, by hand, next to a button that needed one, is how a family drifts.
+     (White on #737373 measures 4.74:1 — better than action's own 4.60.) */
+  --chrome-quiet-primary-color:               #737373;
+  --chrome-quiet-primary-hover-color:         #656565;
+  --chrome-quiet-primary-ink-color:           #ffffff;
+  --chrome-quiet-secondary-color:             #535353;
+  --chrome-quiet-secondary-hover-color:       #f3f3f3;
 
   /* Each TREATMENT's tone, as slot tokens DEFAULTED here rather than in the
      `.button` / `.secondary` rules, and that placement is load-bearing: a rule
@@ -141,18 +159,19 @@
      anything can outrank them — a toned button re-sets the slots on its own
      element (ActionButton.module.css).
 
-     The FILLED slots default to action, because the filled button is the one you
-     are being pointed at. `quiet` has no fill (see above), so a filled quiet
-     button isn't expressible — by design.
+     The PRIMARY slots default to action, because the filled button is usually the
+     one you are being pointed at; the SECONDARY slots default to quiet, which is
+     what a bare `.secondary` (a dialog's Cancel) should be. Defaults, not limits
+     — every tone can fill either pair.
 
-     TWO outline slots, not three: border and text used to be separate because
+     ONE secondary colour, not two: border and text used to be separate because
      quiet alone wanted a soft border around readable text, and that split is now
      gone — an outline button is ONE colour drawn twice. */
-  --primary-fill-color:                     var(--chrome-action-fill-color);
-  --primary-fill-hover-color:               var(--chrome-action-fill-hover-color);
-  --primary-fill-ink-color:                 var(--chrome-action-fill-ink-color);
-  --secondary-ink-color:                    var(--chrome-quiet-ink-color);
-  --secondary-wash-color:                   var(--chrome-quiet-wash-color);
+  --primary-color:                            var(--chrome-action-primary-color);
+  --primary-hover-color:                      var(--chrome-action-primary-hover-color);
+  --primary-ink-color:                        var(--chrome-action-primary-ink-color);
+  --secondary-color:                          var(--chrome-quiet-secondary-color);
+  --secondary-hover-color:                    var(--chrome-quiet-secondary-hover-color);
 
   /* FAULT — the system failed: validation failures, RPC/API errors. The same red
      as destructive, written out rather than aliased, because "this will delete
@@ -315,7 +334,7 @@
   /* WARNING — "you cannot do that", "you already tried that", "that costs you
      something". The one family named for a tone of voice rather than a result,
      which is exactly why chrome kept borrowing it; chrome has its own orange now
-     (--chrome-caution-fill-color) and the two are free to move apart. */
+     (--chrome-caution-primary-color) and the two are free to move apart. */
   --outcome-warning-ink-color:        #ef6c00;  /* orange 800 */
   --outcome-warning-fill-color:       #ffa726;  /* orange 400 */
   --outcome-warning-edge-color:       #d68c20;  /* the fill, 16% toward black */
@@ -1079,17 +1098,17 @@ button:disabled {
      unaffected — they're sized by explicit pixel props, not padding.
      (--icon-button-size tracks the height this produces.) */
   padding: 0.4rem 0.65rem;
-  background: var(--primary-fill-color);
-  border: 1px solid var(--primary-fill-color);
-  color: var(--primary-fill-ink-color);
+  background: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  color: var(--primary-ink-color);
 }
 
 /* The hover the standing comment here used to promise a `.button` class would
    bring. Safe now precisely because it is opt-in: only something that asked to
    be a button can get it. */
 .button:hover:not(:disabled) {
-  background: var(--primary-fill-hover-color);
-  border-color: var(--primary-fill-hover-color);
+  background: var(--primary-hover-color);
+  border-color: var(--primary-hover-color);
 }
 
 /* `<button className="button secondary">` — the OUTLINE treatment, against the
@@ -1109,8 +1128,8 @@ button:disabled {
    a game's own class beats it the ordinary way. */
 .secondary {
   background: transparent;
-  border-color: var(--secondary-ink-color);
-  color: var(--secondary-ink-color);
+  border-color: var(--secondary-color);
+  color: var(--secondary-color);
 }
 /* Hover changes the BACKGROUND and nothing else, to a faint wash of the button's
    OWN tone — where this used to be one grey for every tone. A tint of itself
@@ -1125,8 +1144,8 @@ button:disabled {
    the tone's fill-hover, which is a second thing changing and a visibly
    different colour (measured: #ae4000 → #c45400 on Hint). */
 .secondary:hover:not(:disabled) {
-  background: var(--secondary-wash-color);
-  border-color: var(--secondary-ink-color);
+  background: var(--secondary-hover-color);
+  border-color: var(--secondary-color);
 }
 
 a {

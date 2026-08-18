@@ -169,14 +169,14 @@
  * letter result, so nothing can overwrite it, and keeping it here puts it beside
  * the other structural key rules. */
 .enter {
-  background: var(--chrome-action-fill-color);
+  background: var(--chrome-action-primary-color);
   /* Under the pointer it DARKENS, like every other filled action button — rather
    * than taking the untried cap's white, which the hover rule would otherwise
    * hand it (same trap the judged keys hit: the rule reads this token off the
    * element, so anything with its own fill has to say what its hover fill is). */
-  --kbd-key-hover-fill-color: var(--chrome-action-fill-hover-color);
-  border-color: var(--chrome-action-fill-hover-color);
-  color: var(--chrome-action-fill-ink-color);
+  --kbd-key-hover-fill-color: var(--chrome-action-primary-hover-color);
+  border-color: var(--chrome-action-primary-hover-color);
+  color: var(--chrome-action-primary-ink-color);
 }
 
 /* A wide key holding a WORD rather than a character. "Enter" has to fit across

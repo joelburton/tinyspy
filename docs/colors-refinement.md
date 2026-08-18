@@ -231,15 +231,28 @@ game list.
 
 **`chrome-*` — controls.**
 
-> ⚠️ **This whole `chrome-*` section is SUPERSEDED and kept only as the record of
-> how the tones were reasoned about before they were redesigned.** It describes a
-> four-token model (`-color` / `-primary-ink-color` / `-primary-hover-color` /
-> `-secondary-hover-color`), a `cancel` tone, `#ef6c00` / `#8e1b2e`, and
-> `opacity: 0.5` — none of which are current. The shipped model is five tokens
-> per tone (`-fill` / `-fill-hover` / `-fill-ink` / `-ink` / `-wash`), the tone is
-> `quiet`, and the values and reasoning live at the tokens in
-> `src/common/theme.css`. The contrast table and the hover-direction rule below
-> are likewise measured against retired fills.
+> ⚠️ **Partly superseded — read the banner, not just the section.** What survived
+> intact is the NAMING and its reasoning, which is what the rest of this section
+> argues for and what ships today: the axis is `primary` / `secondary`, both
+> treatments are marked, and the word "fill" appears nowhere. What changed is the
+> COUNT. This section describes four tokens per tone, with `--chrome-<tone>-color`
+> serving as both the primary's background and the secondary's text; the redesign
+> split those, because they cannot be one value — a background orange is too light
+> to read as type, and an orange dark enough to read is far too strong to fill a
+> button with. So the shipped model is five per tone
+> (`-primary-color` / `-primary-hover-color` / `-primary-ink-color` /
+> `-secondary-color` / `-secondary-hover-color`), the tone once called `cancel` is
+> `quiet`, and the values live at the tokens in `src/common/theme.css`. The
+> contrast table and the hover-direction rule below are measured against retired
+> fills (`#ef6c00` / `#8e1b2e`) and an `opacity: 0.5` that is now 0.75.
+>
+> **This banner is why the rest of the file is worth keeping.** Between 2026-08-17
+> and 2026-08-18 the naming here was implemented as `-fill-*`, the section was
+> stamped "superseded" to match the code, and the decision was lost until the only
+> artifact still holding the agreed names — a wordle e2e assertion — was traced
+> back to it. The naming and the completeness rule are now guarded in
+> `src/cssTokens.test.ts`, so the record and the code can't drift apart silently
+> again.
 
 Their own names even where a hex matches an outcome's,
 because the two answer different questions and must move independently. **They are
@@ -975,7 +988,7 @@ in a `theme.css`, and one sitting in a component module wants a reason.
 - **An orange that can carry white ink.** Filled caution is at 3.08 today. The fix
   we want is a deeper orange that clears the floor while still reading as orange and
   not as destructive's maroon — not dark ink on the current one. Try it during the
-  eyeball pass, with `--chrome-caution-ink-color` as the fallback if no orange works.
+  eyeball pass, with `--chrome-caution-secondary-color` as the fallback if no orange works.
 - **Is `--chrome-disabled-opacity` right at 0.5?** It puts every disabled label at
   2.0:1. Conventionally exempt, but strands already moved to 0.8 in one place. One
   number, worth trying at 0.65 and 0.8 against real screens.

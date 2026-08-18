@@ -278,8 +278,8 @@ button.floatingRotate {
   min-height: 34px;
   padding: 0.3rem 0.4rem;
   font-size: 0.9rem;
-  color: var(--chrome-action-fill-color);
-  border: 2px dashed var(--chrome-action-fill-color);
+  color: var(--chrome-action-primary-color);
+  border: 2px dashed var(--chrome-action-primary-color);
   border-radius: var(--radius-md);
   transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
 }

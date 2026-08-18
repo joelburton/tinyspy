@@ -20,8 +20,8 @@
   padding: 0;
   /* Accent fill with white icon — matches primary-action
    * affordances elsewhere on the page. */
-  background: var(--chrome-action-fill-color);
-  border: 1px solid var(--chrome-action-fill-color);
+  background: var(--chrome-action-primary-color);
+  border: 1px solid var(--chrome-action-primary-color);
   color: white;
 
   display: flex;
@@ -36,7 +36,7 @@
   transition: background 100ms ease, transform 100ms ease;
 }
 .openButton:hover {
-  background: var(--chrome-action-fill-hover-color);
+  background: var(--chrome-action-primary-hover-color);
   /* Slight lift on hover for tactile feedback. */
   transform: translateY(-1px);
 }
