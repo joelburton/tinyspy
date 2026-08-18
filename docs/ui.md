@@ -861,6 +861,105 @@ Rules:
 
 Because the pill carries the mode, the per-game `labelFor` status strings (shown on the same card) **do not** repeat it: they're bare (`solved`, `ada won the race`, `racing…`), never `coop · …` / `compete · …`. When adding a game, keep mode out of `labelFor`.
 
+## What a `<button>` is: the fourteen kinds
+
+`<button>` is the app's most-overloaded element — 102 of them, and most are not
+buttons in the sense a designer means. **So the bare element is NEUTRAL**: font,
+colour, cursor and a radius, and nothing else. Chrome is opt-in:
+
+```
+button        neutral — font: inherit · color: inherit · cursor: pointer · border-radius
+.button       a general button (theme.css) — flat, colour-only hover
+              alone = primary (filled) · + `secondary` = outline · × the four tones
+.tile         a game piece (each board's module)
+.key          a keycap (module-local)
+```
+
+It used to be the other way round: the bare element was the filled accent
+button, so every `<button>` that isn't one opened by cancelling the fill, the
+border and the padding it had just been handed — twenty-nine rules whose first
+three lines were an apology. Worse, it made a blanket hover impossible (a hover
+right for Submit is a lie on a codenamesduet tile), so the most-clicked control
+in the app was inert under the pointer while a dialog's button was not. Inverting
+the default deletes the apologies and lets `.button:hover` exist.
+
+Two of the four base declarations look like chrome and aren't — they overrule
+browser defaults: a `<button>` does **not** inherit the page font (the UA hands it
+~13.33px system UI, invisible on a chunky filled button and glaring on a text
+link), and its default cursor is an arrow, not a hand. `border-radius` stays in
+the base by measurement, not tidiness: 19 rules cancel the fill without declaring
+a radius, and on a transparent element a radius is inert *until* something paints
+a background — which is exactly what a row or a menu item does on hover.
+
+**The fourteen kinds**, sorted into four families by *what feedback each should
+give* — which is the useful cut, not what they do:
+
+| family | kinds | feedback |
+|---|---|---|
+| **Accidental** — don't look like buttons and shouldn't act like them | `trigger` · `row` · `textlink` · `surface` | *Surface* feedback, not button feedback: rows tint with `--page-surface-hover-color`, textlinks underline, surfaces do whatever their content wants |
+| **Game pieces** — don't look like buttons, have depth | `piece` | Depth on hover, darkening on press (below) |
+| **Keyboard** — look a bit like buttons, have some depth | `key` | Deliberately flatter than a piece, but it sits on a game surface, so not chrome-flat either |
+| **General buttons** — flat, but they get a hover so they don't look dead | `action` · `form` · `choice` · `toggle` · `tab` · `handle` · `dismiss` | Colour only (below) |
+
+What each kind is: `piece` a game object you press (tiles, cards, hexes, cells) ·
+`key` an on-screen keyboard cap · `action` a purpose button (Submit, Hint,
+Reveal, End game, Peel) · `form` a dialog's commit + cancel pair · `trigger`
+opens a floating thing (the Menu button, FilterSelect's trigger) · `choice` one
+of a mutually-exclusive set (ModeFilter, colour swatches, crosswords' source
+picker) · `toggle` a two-state switch drawn as a button (crosswords' pencil/pen)
+· `tab` switches which view you're looking at (ClubPage's mobile tabs) · `row` a
+whole list row that IS the control (StartGameButtons, a Menu item, a game card) ·
+`handle` a small inline control inside content (the turn log's `#N`) · `dismiss`
+an icon-only ✕ or delete · `textlink` text that reads as prose or a link
+(`.link-button`, DefinitionView's cross-reference) · `surface` an entire content
+block that is a button (ChatBubble, ScratchpadBubble).
+
+`surface` belongs with the accidental kinds rather than the general ones: **a
+chat bubble is a message that happens to be clickable**, and if it grows button
+chrome it stops being a message. (They were tried with a
+`1px solid var(--control-border-color)` border and are deliberately borderless.)
+
+**`float` is not a kind** — it's a *placement modifier* on an `action` or a
+`trigger` (the chat FAB, Shuffle, Pause, InfoSwitch). It earns a name only
+because [tile-feedback.md](tile-feedback.md) gives it a rule of its own: a
+control floating over a **board** keeps its shadow, where chrome otherwise gets
+none — it has a board to cast onto.
+
+### Pieces use DEPTH for hover and DARKENING for press
+
+A piece must not darken on hover, because **the darken is already spent on
+press**. The shared tile does three things in sequence: resting on the page,
+lifted under the pointer (shadow 2px→6px, tile rises 2px), pushed down under a
+finger (`scale(0.96)` + `brightness(0.92)` + shadow back to contact). If hover
+darkened too, press would have nothing left to say.
+
+The load-bearing reason the press owns the darken: **`prefers-reduced-motion`
+drops the shrink, and touch has no hover at all.** On a phone with reduced motion
+the darken is the *only* feedback a tap gets. It cannot be moved to hover.
+
+**One documented escape**, already hit twice: where depth demonstrably can't read
+— spellingbee's and wordwheel's packed hexes, the keyboard's near-white cap — a
+fill change is allowed *in addition*. Both are cases where the shadow has no
+surface to cast onto.
+
+### General buttons use COLOUR only — no motion, no shadow
+
+Not conservatism: it's the load-bearing half of *depth belongs to game pieces,
+not chrome*. If a control could lift, nothing would separate it from a piece, and
+"a control that looks like a tile is a bug" would stop being a rule anyone can
+enforce.
+
+It needs no new colours — the chrome tone sweep already minted all of them:
+filled hovers to `--chrome-<tone>-fill-hover-color`, outline hovers to
+`--chrome-<tone>-wash-color`. Both treatments change the **background and
+nothing else**; each re-states its own border so a hover can never shift the
+hairline as a side effect (the two rules pair `.button` / `.secondary` at
+matching weights, the outline's landing second).
+
+A **disabled** button is the deliberate exception to "everything gets a hover":
+it has none, and that missing answer is what tells you it's dead — see
+[A disabled button still gets a tooltip](#a-disabled-button-still-gets-a-tooltip--usually-a-better-one).
+
 ## Button iconography
 
 Recurring action buttons share an **icon language** so a player learns a glyph
@@ -1026,10 +1125,10 @@ Club" / "< Home") over swapping the glyph, so the mnemonic survives.
 - **The icon-and-label shape is the global `.icon-button` class** (`theme.css`):
   `display: inline-flex; align-items: center; justify-content: center; gap:
   0.4em` — defined once, composed via `cls()` the way `secondary` is, so a button
-  is `cls('icon-button', styles.someModifier)` (or `cls('secondary',
-  'icon-button', …)`). It's pure shape — fill/border come from the base `<button>`
-  or `secondary`, width from a per-button modifier (`.inputButton`'s `min-width`,
-  `.helperButton`'s flex-grow). **Not** for icon-only pills (`ShuffleButton`,
+  is `cls('button', 'icon-button', styles.someModifier)` (or `cls('button',
+  'secondary', 'icon-button', …)`). It's pure shape — fill/border come from
+  `.button` (and `secondary` if it's the outline), width from a per-button
+  modifier (`.inputButton`'s `min-width`, `.helperButton`'s flex-grow). **Not** for icon-only pills (`ShuffleButton`,
   `PauseButton`) — those are a separate round, fixed-size, label-less shape that
   styles itself.
 - **Decided picks worth noting:** **Submit-a-move = `Triangle`, pointing UP.**
@@ -1063,11 +1162,15 @@ action-row *button*, never a GamePage-menu item. The roster of semantic buttons:
 chat bubble, the `×` close, and the `✓`/`✗` marks.
 
 **Two axes + natural width.** A semantic button composes from `ActionButton`'s two
-axes: **weight** (`primary` = the filled-accent main action like Submit; `secondary`
-= the outline everything else builds on) and **tone** (the same `neutral | success |
-error | warning | info | near` vocabulary + palette as the feedback pills — a
-`warning` button is the exact amber of a `warning` pill). Today: Hint / Reveal =
-`warning`, End = `error`, Submit = `primary`, Clear / Delete = `neutral`. Action-row
+axes: **weight** (`primary` = the filled-accent main action like Submit;
+`secondary` = the outline everything else builds on) and **tone** (`quiet |
+action | caution | destructive` — CHROME's own vocabulary, not the outcome
+palette's: a control saying "this is irreversible" is a different question from a
+game saying "you lost"). Each tone re-sets the slot tokens both treatments read,
+so a tone works in either weight. Today: Hint / Reveal = `caution`, End /
+Concede = `destructive`, Submit / Peel / Back-at-terminal = `primary`+`action`,
+Clear / Delete = `action`; `quiet` is outline-only by nature (it has no fill) and
+is what a bare dialog Cancel wears. Action-row
 buttons size to their **own icon + label** (`flex: 0 0 auto`), left-aligned — they do
 **not** stretch to equal widths or the column's right edge: equalizing widths clipped
 a longer label's icon, and unequal widths actually *aid* recognition ("Hint is the

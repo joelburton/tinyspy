@@ -1,4 +1,5 @@
 import { MODE_FILTER_OPTIONS, type ModeFilterValue } from './modeFilterOptions'
+import { cls } from '../../lib/util/cls'
 import styles from './clubFilters.module.css'
 
 type Props = {
@@ -34,7 +35,7 @@ export function ModeFilter({ value, onChange, soloClub }: Props) {
         <button
           key={o.value}
           type="button"
-          className={styles.modeOption}
+          className={cls('button', styles.modeOption)}
           aria-pressed={value === o.value}
           // Don't let the press MOVE FOCUS off the start list. That list is a
           // keyboard tab stop holding the Up/Down cursor (ClubPage's

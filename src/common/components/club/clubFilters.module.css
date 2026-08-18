@@ -31,9 +31,10 @@
   cursor: pointer;
 }
 
-/* The theme's base <button> rule already paints accent + white — that IS the
- * selected look, so (exactly like the mobile tab bar) only the UNselected
- * option is overridden back to the surface treatment. */
+/* The option carries `.button`, whose filled accent + white IS the selected
+ * look — so (exactly like the mobile tab bar) only the UNselected option is
+ * overridden back to the surface treatment. The attribute selector puts it at
+ * (0,2,0), comfortably over `.button`'s (0,1,0). */
 .modeOption[aria-pressed='false'] {
   background: var(--page-surface-color);
   border-color: var(--page-surface-border-color);

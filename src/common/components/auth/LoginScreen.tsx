@@ -139,6 +139,7 @@ export function LoginScreen() {
         )}
         <button
           type="submit"
+          className="button"
           disabled={
             busy || !email || (action === 'verify-code' && !code.trim())
           }

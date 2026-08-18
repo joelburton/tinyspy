@@ -1,6 +1,7 @@
 /* SubmitWithScore — icon pinned left, score pinned right, fixed footprint. The
- * base `<button>` provides the primary accent fill / padding / radius (it's the
- * main action); this only arranges the two children and locks the width.
+ * `.button` class provides the primary accent fill / padding / radius (it's the
+ * main action, so it takes the filled treatment); this only arranges the two
+ * children and locks the width.
  *
  * `justify-content: space-between` pins the triangle to the left edge and the
  * score's box to the right edge, so the score stays right-justified at a constant

@@ -64,11 +64,11 @@ export function ConfirmDialog({
         <p>{message}</p>
         <div className={actionRow.modalActions}>
           {cancelLabel !== null && (
-            <button type="button" className="secondary" onClick={onCancel}>
+            <button type="button" className="button secondary" onClick={onCancel}>
               {cancelLabel}
             </button>
           )}
-          <button type="button" onClick={onConfirm} autoFocus>
+          <button type="button" className="button" onClick={onConfirm} autoFocus>
             {confirmLabel}
           </button>
         </div>

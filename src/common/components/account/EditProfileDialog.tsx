@@ -85,7 +85,7 @@ export function EditProfileDialog({ session, onSaved, onCancel }: Props) {
         <div className={actionRow.modalActions}>
           <button
             type="button"
-            className="secondary"
+            className="button secondary"
             onClick={onCancel}
             disabled={busy}
           >
@@ -93,6 +93,7 @@ export function EditProfileDialog({ session, onSaved, onCancel }: Props) {
           </button>
           <button
             type="button"
+            className="button"
             onClick={handleSave}
             disabled={busy || !selected}
             autoFocus

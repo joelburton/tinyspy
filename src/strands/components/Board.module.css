@@ -151,11 +151,8 @@
 }
 
 .tile {
-  /* Chrome-less: no border, no background, no radius. The disc under it is
-   * the mark. */
-  border: none;
-  background: none;
-  padding: 0;
+  /* Chrome-less: no border, no background, no radius — which is what the bare
+   * <button> already is. The disc under it is the mark. */
   /* Finding a word here is a rapid run of taps across adjacent letters, so opt
    * out of double-tap-to-zoom and its tap delay — the same treatment the shared
    * `.tile` gives every other tapped board (common/PlayArea.module.css), which

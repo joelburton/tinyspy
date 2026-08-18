@@ -229,17 +229,16 @@
  *     the auto-revert in the component keeps the loud state
  *     from sticking around if the user doesn't follow through.
  *
- * The button intentionally overrides several global button rules
- * from theme.css (the filled-accent default, hover background)
- * so the corner affordance reads as a quiet × until the user
- * commits to it.
+ * It is a `dismiss` (docs/ui.md → the fourteen kinds), so it takes the neutral
+ * <button> and NOT `.button` — the corner affordance reads as a quiet × on its
+ * own surface until the user commits to it.
  */
 
 .deleteButton {
   position: absolute;
   top: 0.4rem;
   right: 0.4rem;
-  /* Override global button styles for the corner-icon look. */
+  /* The corner-icon look: its own quiet surface, not a `.button`. */
   background: var(--page-surface-color);
   border: 1px solid var(--page-surface-border-color);
   color: var(--page-text-muted-color);

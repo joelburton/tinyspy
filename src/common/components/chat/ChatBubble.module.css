@@ -5,10 +5,8 @@
  */
 
 .bubble {
-  /* Reset the global button defaults — we want a square icon
-   * button, not a pill. */
-  background: transparent;
-  border: none;
+  /* A square icon button, not a pill. The bare <button> is neutral, so this
+   * only has to say what it IS. */
   padding: 0.3rem;
   margin: 0;
   cursor: pointer;

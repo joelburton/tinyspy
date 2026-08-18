@@ -236,13 +236,13 @@ export function CreateClubPage({ session: _session }: Props) {
         <div className={styles.buttonRow}>
           <button
             type="button"
-            className="secondary"
+            className="button secondary"
             onClick={() => navigate('/')}
             disabled={busy}
           >
             Cancel
           </button>
-          <button type="submit" disabled={busy}>
+          <button type="submit" className="button" disabled={busy}>
             {busy ? 'Creating…' : 'Create club'}
           </button>
         </div>

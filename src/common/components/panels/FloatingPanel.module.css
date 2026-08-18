@@ -90,14 +90,12 @@
   white-space: nowrap;
 }
 
-/* The close X. Reset the global filled-accent button look to a
- * quiet square-icon; the hover treatment matches the
- * ClubGameCard delete button's idle state. */
+/* The close X — a quiet square icon. The transparent border is deliberate:
+ * it reserves the hover border's 1px so nothing shifts when it lights up. The
+ * hover treatment matches the ClubGameCard delete button's idle state. */
 .closeButton {
-  background: transparent;
   border: 1px solid transparent;
   color: var(--page-text-muted-color);
-  padding: 0;
   width: 1.4rem;
   height: 1.4rem;
   border-radius: var(--radius-md);

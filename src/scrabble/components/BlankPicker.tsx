@@ -32,7 +32,7 @@ export function BlankPicker({
             </button>
           ))}
         </div>
-        <button type="button" className="secondary" onClick={onCancel}>
+        <button type="button" className="button secondary" onClick={onCancel}>
           Cancel
         </button>
       </div>

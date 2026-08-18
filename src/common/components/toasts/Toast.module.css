@@ -42,8 +42,6 @@
   position: absolute;
   top: 0.25rem;
   right: 0.4rem;
-  background: transparent;
-  border: none;
   color: var(--page-text-muted-color);
   font-size: 1.2rem;
   line-height: 1;

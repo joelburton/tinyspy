@@ -1,37 +1,46 @@
-/* Semantic TONE colors for the OUTLINE (secondary) action buttons.
+/* Semantic TONE colors for an action button, in BOTH treatments.
  *
- * A toned button re-sets the two tokens `button.secondary` reads
- * (--secondary-ink-color / --secondary-wash-color) on its own element, so the
- * border + text — and the icon, via `currentColor` — take the tone. We re-set
- * tokens rather than out-cascade `button.secondary` (an `element.class`
- * selector, higher specificity than a bare module class), so this wins
- * regardless of stylesheet load order — the same discipline the tiles use
- * (docs/ui.md → Interactive tile states).
+ * A toned button re-sets the slot tokens `.button` and `.secondary` read on its
+ * own element, so the fill (primary) or the border + text (secondary) — and the
+ * icon, via `currentColor` — take the tone. We re-set tokens rather than
+ * out-cascade those rules, so this wins regardless of stylesheet load order —
+ * the same discipline the tiles use (docs/ui.md → Interactive tile states).
  *
- * Each tone reads its `-ink-color`, NOT its `-fill-color`. They are different
- * values now: the fill is what a filled button is painted with, while the ink is
- * that colour taken down far enough to read as small text on white. An outline
- * button is text and a hairline border, so it wants the ink — and it uses the
- * one value for both, because a border in one shade around a label in another
- * is a distinction nothing was making on purpose.
+ * The OUTLINE slots read the tone's `-ink-color`, NOT its `-fill-color`. They
+ * are different values: the fill is what a filled button is painted with, while
+ * the ink is that colour taken down far enough to read as small text on white.
+ * An outline button is text and a hairline border, so it wants the ink — and it
+ * uses the one value for both, because a border in one shade around a label in
+ * another is a distinction nothing was making on purpose.
  *
  * The tones are CHROME's, not the outcome palette's: a control saying "this is
  * irreversible" is a different question from a game saying "you lost", even
  * where the two hexes agree today (docs/colors-refinement.md). `quiet` needs no
- * class — it is the plain secondary outline, and the default in theme.css.
+ * class — it is the plain secondary outline, and the default in theme.css. It is
+ * also outline-ONLY: quiet has no fill token, so `weight="primary" tone="quiet"`
+ * is deliberately not expressible and falls back to the action fill.
  */
 
 .caution {
+  --primary-fill-color: var(--chrome-caution-fill-color);
+  --primary-fill-hover-color: var(--chrome-caution-fill-hover-color);
+  --primary-fill-ink-color: var(--chrome-caution-fill-ink-color);
   --secondary-ink-color: var(--chrome-caution-ink-color);
   --secondary-wash-color: var(--chrome-caution-wash-color);
 }
 
 .destructive {
+  --primary-fill-color: var(--chrome-destructive-fill-color);
+  --primary-fill-hover-color: var(--chrome-destructive-fill-hover-color);
+  --primary-fill-ink-color: var(--chrome-destructive-fill-ink-color);
   --secondary-ink-color: var(--chrome-destructive-ink-color);
   --secondary-wash-color: var(--chrome-destructive-wash-color);
 }
 
 .action {
+  --primary-fill-color: var(--chrome-action-fill-color);
+  --primary-fill-hover-color: var(--chrome-action-fill-hover-color);
+  --primary-fill-ink-color: var(--chrome-action-fill-ink-color);
   --secondary-ink-color: var(--chrome-action-ink-color);
   --secondary-wash-color: var(--chrome-action-wash-color);
 }

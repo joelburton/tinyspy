@@ -122,7 +122,7 @@ export function PauseOverlay({
         {(onResume && manuallyPausedBy) || onReturnToClub || onEndGame ? (
           <div className={styles.actions}>
             {onResume && manuallyPausedBy && (
-              <button type="button" onClick={onResume}>
+              <button type="button" className="button" onClick={onResume}>
                 Resume
               </button>
             )}

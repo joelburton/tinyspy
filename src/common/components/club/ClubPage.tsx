@@ -4,6 +4,7 @@ import type { Session } from '@supabase/supabase-js'
 import { db as commonDb } from '../../db'
 import { supabase } from '../../lib/supabase/supabase'
 import { channelLeaving, releaseChannel } from '../../lib/supabase/channelTeardown'
+import { cls } from '../../lib/util/cls'
 import { Link } from '../../lib/routing/Link'
 import { navigate } from '../../lib/routing/router'
 import { channelDedupSuffix } from '../../lib/supabase/channelDedup'
@@ -968,7 +969,7 @@ export function ClubPage({ handle, session }: Props) {
         <button
           type="button"
           aria-pressed={mobileTab === 'new'}
-          className={styles.tab}
+          className={cls('button', styles.tab)}
           onClick={() => setMobileTab('new')}
         >
           New game
@@ -976,7 +977,7 @@ export function ClubPage({ handle, session }: Props) {
         <button
           type="button"
           aria-pressed={mobileTab === 'completed'}
-          className={styles.tab}
+          className={cls('button', styles.tab)}
           onClick={() => setMobileTab('completed')}
         >
           Your games

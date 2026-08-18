@@ -1,8 +1,6 @@
 /* Header-inline scratchpad toggle — the same square icon-button chrome as
  * the chat bubble, so the two read as a matched pair in the header. */
 .bubble {
-  background: transparent;
-  border: none;
   padding: 0.3rem;
   margin: 0;
   cursor: pointer;

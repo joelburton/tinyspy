@@ -92,10 +92,14 @@ export function ActionButton({
     <button
       type="button"
       className={cls(
-        // primary = the base accent <button>; secondary = the outline shape.
+        // Every purpose button is a GENERAL button (docs/ui.md) — flat, tone-
+        // coloured, hover on colour alone. `.button` on its own is the filled
+        // primary; adding `secondary` switches it to the outline.
+        'button',
         weight === 'secondary' && 'secondary',
         'icon-button',
-        // Semantic tone recolors a secondary button's outline (see the module).
+        // Semantic tone recolors the fill (primary) or the outline + label
+        // (secondary) — it re-sets the slot tokens both read (see the module).
         tone !== 'quiet' && styles[tone],
         iconOnly && 'icon-only',
         className,

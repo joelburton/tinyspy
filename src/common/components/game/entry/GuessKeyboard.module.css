@@ -87,8 +87,8 @@
   background: var(--kbd-key-fill-color);
   border: 1px solid var(--kbd-key-edge-color);
   /* A keycap sits on the page the same way a board tile does, so it takes the
-   * same resting depth and the same three-state gesture below. Overrides the
-   * global button hover/accent treatment. */
+   * same resting depth and the same three-state gesture below — the one family
+   * between a game piece and a flat `.button` (docs/ui.md). */
   box-shadow: var(--key-shadow);
   transition: transform 80ms ease, box-shadow 80ms ease;
   /* Touch (docs/mobile.md → tap-press feedback): the keyboard is the tap-heaviest

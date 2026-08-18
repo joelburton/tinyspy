@@ -12,7 +12,6 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.6rem;
-  background: transparent;
   border: 1px solid var(--control-border-color);
   border-radius: var(--radius-md);
   color: var(--page-text-color);

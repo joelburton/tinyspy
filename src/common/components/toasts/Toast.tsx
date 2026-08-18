@@ -35,7 +35,7 @@ export function Toast({ toast }: { toast: ToastModel }) {
       )}
       <div className={styles.message}>{message}</div>
       {action && (
-        <button type="button" className={styles.action} onClick={act}>
+        <button type="button" className={cls('button', styles.action)} onClick={act}>
           {action.label}
         </button>
       )}

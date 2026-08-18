@@ -44,7 +44,7 @@ export function HelpPanel({
     >
       {children}
       <div className={styles.gotItRow}>
-        <button type="button" autoFocus onClick={onClose}>
+        <button type="button" className="button" autoFocus onClick={onClose}>
           Got it
         </button>
       </div>

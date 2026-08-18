@@ -244,10 +244,9 @@
     margin-inline: auto;
   }
 
-  /* Each toggle shares the row evenly. The theme's base <button> rule
-   * already paints it accent + white — that IS the pressed (active-view)
-   * look, so we only override the UNpressed toggle back to the surface
-   * treatment. */
+  /* Each toggle shares the row evenly. Each carries `.button`, whose filled
+   * accent + white IS the pressed (active-view) look, so we only override the
+   * UNpressed toggle back to the surface treatment. */
   .tab {
     flex: 1;
   }

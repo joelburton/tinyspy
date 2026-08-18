@@ -23,7 +23,6 @@
   /* Normal text color, matching .select — the current filter is a real value,
    * understated by size and border rather than by muting it. */
   color: var(--page-text-color);
-  background: transparent;
   border: 1px solid var(--page-divider-color);
   border-radius: 4px;
   padding: 0.05rem 0.3rem;
@@ -115,8 +114,6 @@
   font-size: 0.8rem;
   text-align: left;
   color: var(--page-text-color);
-  background: transparent;
-  border: none;
   border-radius: 4px;
   padding: 0.25rem 0.45rem;
   cursor: pointer;

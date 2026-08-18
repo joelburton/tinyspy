@@ -66,7 +66,7 @@
  */
 
 /* Specificity note: `:not(:disabled)` contributes its argument's weight, so
- * this is (0,2,0) and beats theme.css's `button.secondary` (0,1,1) without an
+ * this is (0,2,0) and beats theme.css's `.secondary` (0,1,0) without an
  * !important. */
 .hintReady:not(:disabled) {
   background: var(--chrome-caution-fill-color);
@@ -78,8 +78,17 @@
   color: var(--chrome-caution-fill-ink-color);
 }
 
-.hintReady:not(:disabled):hover {
+/* The hover needs the extra `.row` term, and this is the one place the new
+ * button base costs a selector. theme.css's `.secondary:hover:not(:disabled)`
+ * is (0,3,0) — exactly what `.hintReady:not(:disabled):hover` weighs — so the
+ * two would TIE and the winner would be whichever stylesheet the bundler
+ * happened to emit last. Qualifying by the parent row takes this to (0,4,0) and
+ * settles it. (Before the base inverted, theme's rule was `button.secondary…` at
+ * (0,3,1) and won outright, which meant a ready bar washed pale under the
+ * pointer instead of darkening — this is the rule finally doing what it says.) */
+.row .hintReady:not(:disabled):hover {
   /* Darker on hover — a filled button can't use the outline's
    * fill-on-hover, since it is already filled. */
   background: var(--chrome-caution-fill-hover-color);
+  border-color: var(--chrome-caution-fill-hover-color);
 }

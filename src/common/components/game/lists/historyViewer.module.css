@@ -113,8 +113,6 @@
 /* The ✕ exit — pinned at the far right of the overlay (not beside the text). */
 .bannerExit {
   flex: 0 0 auto;
-  background: transparent;
-  border: none;
   padding: 0.15rem 0.35rem;
   color: var(--page-text-color);
   font-size: 1rem;

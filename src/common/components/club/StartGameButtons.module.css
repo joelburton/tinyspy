@@ -21,16 +21,16 @@
    * whose padding owns the breathing room on all four sides. */
 }
 
-/* One row. Resets the global filled-blue button styling down to a bare
- * surface with a hairline underneath.  Specificity wins over
- * `button { ... }` in theme.css thanks to the class selector.
+/* One row — an "accidental" button (docs/ui.md): it is a list row that happens
+ * to be clickable, so it takes the neutral <button> and adds only a hairline
+ * underneath. `border-radius: 0` is the one thing it does undo: the base keeps a
+ * radius so a row's HOVER tint has soft corners, and abutting rows want square
+ * ones.
  *
  * Flex row: [logo] + [content stack]. The logo is fixed-width (32px);
  * .content takes the rest. align-items: center so the 32px logo lines up
  * vertically against the two-line text stack to its right. */
 .button {
-  background: transparent;
-  border: none;
   border-bottom: 1px solid var(--control-border-color);
   border-radius: 0;
   color: var(--page-text-color);
@@ -74,8 +74,8 @@
  * row with only a bottom rule can't do (lighting just the underline reads as
  * highlighting the row below). A background tint is the list idiom, and it's
  * the same `--page-surface-hover-color` the club's other hoverable surfaces use.
- * Still no accent FILL — the global button:hover would paint this blue, and
- * these stay quiet until pressed. */
+ * Still no accent FILL — a row is not a `.button`, and these stay quiet
+ * until pressed. */
 .button:hover:not(:disabled) {
   background: var(--page-surface-hover-color);
 }
@@ -90,12 +90,10 @@
  * now declines focus on mousedown (StartGameButtons.tsx), so there is no focus
  * state left to style. */
 
-/* Disabled state. Hold the transparent background through the
- * global button:disabled override; opacity carries the "you
- * can't click this" cue without changing the layout shape. The
- * tooltip on the parent <button> explains why. */
+/* Disabled state. Opacity carries the "you can't click this" cue without
+ * changing the layout shape. The tooltip on the parent <button> explains
+ * why. */
 .button:disabled {
-  background: transparent;
   opacity: 0.5;
   cursor: not-allowed;
 }

@@ -296,7 +296,7 @@ export function SetupGameDialog({
         <div className={styles.footerActions}>
           <button
             type="button"
-            className="secondary"
+            className="button secondary"
             onClick={onCancel}
             disabled={busy}
           >
@@ -304,6 +304,7 @@ export function SetupGameDialog({
           </button>
           <button
             type="button"
+            className="button"
             onClick={handleStartGame}
             disabled={busy || !countOk || setupError !== null}
             autoFocus

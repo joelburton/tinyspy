@@ -20,7 +20,7 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
  * left-icon / right-number split is the whole point, so it's its own component
  * rather than a `SubmitButton` variant. Built for scrabble's rack/commit row, but
  * general — any game with a live "what would this move score" preview can use it
- * (a future Boggle/word game commit). Primary weight (the base accent `<button>`),
+ * (a future Boggle/word game commit). Primary weight (the filled `.button`),
  * since it's the main action.
  *
  * `onMouseDown` is suppressed so a click doesn't steal focus from a game's
@@ -31,7 +31,7 @@ export function SubmitWithScore({ score, className, ...rest }: Props) {
     <button
       type="button"
       aria-label="Submit"
-      className={cls(styles.button, className)}
+      className={cls('button', styles.button, className)}
       onMouseDown={(e) => e.preventDefault()}
       {...rest}
     >

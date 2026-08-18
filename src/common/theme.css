@@ -11,7 +11,7 @@
  * sparingly: tokens, element-level defaults, and a handful of
  * truly cross-cutting utility classes (.card, .muted, .error,
  * .link-button, .actions, .divider, .definable,
- * button.secondary). Component-specific styles live in
+ * .button/.secondary). Component-specific styles live in
  * co-located `*.module.css` files and are scoped automatically.
  *
  * Game-specific color tokens (e.g. the codenamesduet green/neutral/
@@ -55,9 +55,9 @@
      the PAINT (a fill, an ink, a wash) rather than the class that asks for it.
 
      Hover changes the BACKGROUND and nothing else — no lift, no shadow, because
-     depth belongs to game pieces. Nothing here is left unmarked: the bare
-     `button` element is the FILLED one, so a bare "-hover-color" would read as
-     the filled button's, which is the opposite of what it would mean.
+     depth belongs to game pieces. Nothing here is left unmarked: `.button` on
+     its own is the FILLED one, so a bare "-hover-color" would read as the filled
+     button's, which is the opposite of what it would mean.
      See docs/colors-refinement.md. */
 
   /* FOUR VALUES PER TONE, and every one of them derived from the fill in oklab
@@ -134,16 +134,23 @@
   --chrome-quiet-ink-color:                 #535353;
   --chrome-quiet-wash-color:                #f3f3f3;
 
-  /* The outline treatment's tone, DEFAULTED here rather than on
-     `button.secondary`, and that placement is load-bearing: `button.secondary` is
-     an element.class selector (0,1,1) where a tone class is (0,1,0), so setting
-     these in that rule beat every tone and painted Hint, Reveal, End and
-     Back-to-club all cancel-grey. Defaults belong where anything can outrank
-     them.
+  /* Each TREATMENT's tone, as slot tokens DEFAULTED here rather than in the
+     `.button` / `.secondary` rules, and that placement is load-bearing: a rule
+     that set these itself would beat every tone class on the element and paint
+     Hint, Reveal, End and Back-to-club all one colour. Defaults belong where
+     anything can outrank them — a toned button re-sets the slots on its own
+     element (ActionButton.module.css).
 
-     TWO slots, not three: border and text used to be separate because quiet
-     alone wanted a soft border around readable text, and that split is now gone
-     — an outline button is ONE colour drawn twice. */
+     The FILLED slots default to action, because the filled button is the one you
+     are being pointed at. `quiet` has no fill (see above), so a filled quiet
+     button isn't expressible — by design.
+
+     TWO outline slots, not three: border and text used to be separate because
+     quiet alone wanted a soft border around readable text, and that split is now
+     gone — an outline button is ONE colour drawn twice. */
+  --primary-fill-color:                     var(--chrome-action-fill-color);
+  --primary-fill-hover-color:               var(--chrome-action-fill-hover-color);
+  --primary-fill-ink-color:                 var(--chrome-action-fill-ink-color);
   --secondary-ink-color:                    var(--chrome-quiet-ink-color);
   --secondary-wash-color:                   var(--chrome-quiet-wash-color);
 
@@ -967,8 +974,7 @@ form {
 }
 
 input,
-textarea,
-button {
+textarea {
   font: inherit;
   padding: 0.6rem 0.9rem;
   border-radius: var(--radius-md);
@@ -1000,40 +1006,108 @@ textarea:focus {
   }
 }
 
+/* The bare <button> element is NEUTRAL — it carries no chrome at all.
+ *
+ * This INVERTS what it used to be. The bare element was the filled accent
+ * button, which meant every <button> that isn't one — a board tile, a list row,
+ * a chat bubble, a text link, a menu item — opened by cancelling the fill, the
+ * border and the padding it had just been handed; twenty-nine rules began with
+ * that apology. It also made a blanket hover impossible: a hover that is right
+ * for Submit is a lie on a codenamesduet tile, where the old accent-blue read as
+ * a real reveal. So the app's most-clicked control was inert under the pointer
+ * while a dialog's button was not. Chrome is opt-in now (`.button` below, plus
+ * `.tile` / `.key` for the game pieces), and the hover lands with it.
+ *
+ * Two of these declarations look like chrome and aren't — they overrule browser
+ * defaults that any reset has to overrule:
+ *
+ *   font: inherit    a <button> does NOT inherit the page's font; the UA hands
+ *                    it its own (~13.33px system UI on macOS/Chrome). Invisible
+ *                    on a chunky filled button, glaring on a text link, a list
+ *                    row or a chat bubble — places where the button's text is
+ *                    supposed to BE the surrounding prose.
+ *   cursor: pointer  the UA default for a button is `default`, an arrow, not a
+ *                    hand. Links get the hand for free; buttons never have.
+ *
+ * `border-radius` stays in the base, and that is measured rather than tidy: 19
+ * rules cancel the old fill without ever declaring a radius, living on this one.
+ * On a transparent element a radius is inert — until something paints a
+ * background, which is exactly what a row or a menu item does on hover. Drop it
+ * and up to 19 hover states get square corners; it costs nothing to leave. */
 button {
-  background: var(--chrome-action-fill-color);
-  border-color: var(--chrome-action-fill-color);
-  color: var(--chrome-action-fill-ink-color);
+  font: inherit;
+  color: inherit;
   cursor: pointer;
-  /* Tighter than the inputs/textareas sharing the base rule above: buttons are
-     click targets, not typing surfaces, and don't need the same breathing room.
-     Icon glyphs are unaffected — they're sized by explicit pixel props, not
-     padding. (--icon-button-size tracks the height this produces.) */
-  padding: 0.4rem 0.65rem;
+  background: none;
+  border: none;
+  padding: 0;
+  border-radius: var(--radius-md);
 }
 
-/* No hover effect on the raw <button> element. Too many <button>s are
- * "non-button-buttons" (board tiles, icon hit-targets) for a blanket
- * background-changing hover to be safe — on a codenamesduet tile the old accent-blue
- * hover read as a real reveal. Components that want a hover style their own
- * (e.g. codenamesduet's tile gets a black outline); a future `.button` class can
- * reintroduce a hover for genuine buttons. */
-
+/* Stays on the ELEMENT, not on `.button`: a disabled game piece, keycap or list
+   row should fade and refuse the pointer exactly as a disabled button does. */
 button:disabled {
   opacity: var(--chrome-disabled-opacity);
   cursor: not-allowed;
 }
 
-/* `<button className="secondary">` — the OUTLINE treatment, against the filled
-   default above. Its tone defaults to `quiet` (the way out of a dialog), which
-   is what every bare `.secondary` in the app is; a toned button re-sets these
-   tokens on its own element instead (see ActionButton.module.css).
+/* ---------- The general button ---------- */
+
+/* `.button` — a GENERAL button: an action (Submit, Hint, End game), a form's
+   commit/cancel pair, a choice, a tab, a toggle, a dismiss. It is what the bare
+   element used to hand out unasked. Its siblings are `.tile` (a game piece) and
+   `.key` (a keycap), which live with their boards — and the "accidental" kinds
+   (a list row, a text link, a chat bubble, a menu trigger) take none of the
+   three: they want the neutral element and their own surface feedback.
+
+   Two axes, and they are the two the tokens are named for. WEIGHT: `.button`
+   alone is PRIMARY, the filled one; adding `secondary` makes it the outline.
+   TONE: action / caution / destructive / quiet, which each treatment reads off
+   its own pair of slot tokens (defaulted on :root, re-set per tone by
+   ActionButton.module.css) rather than out of hard-coded colours here.
+
+   FLAT — colour only, no motion, no shadow. Not conservatism: it is the
+   load-bearing half of "depth belongs to game pieces, not chrome"
+   (docs/tile-feedback.md). If a control could lift, nothing would separate it
+   from a piece, and "a control that looks like a tile is a bug" would stop being
+   a rule anyone could enforce. The one exception is placement, not kind: a
+   control FLOATING over a board keeps its shadow, because it has a board to cast
+   onto. */
+.button {
+  /* Tighter than the inputs/textareas above: buttons are click targets, not
+     typing surfaces, and don't need the same breathing room. Icon glyphs are
+     unaffected — they're sized by explicit pixel props, not padding.
+     (--icon-button-size tracks the height this produces.) */
+  padding: 0.4rem 0.65rem;
+  background: var(--primary-fill-color);
+  border: 1px solid var(--primary-fill-color);
+  color: var(--primary-fill-ink-color);
+}
+
+/* The hover the standing comment here used to promise a `.button` class would
+   bring. Safe now precisely because it is opt-in: only something that asked to
+   be a button can get it. */
+.button:hover:not(:disabled) {
+  background: var(--primary-fill-hover-color);
+  border-color: var(--primary-fill-hover-color);
+}
+
+/* `<button className="button secondary">` — the OUTLINE treatment, against the
+   filled default above. Its tone defaults to `quiet` (the way out of a dialog),
+   which is what every bare `.secondary` in the app is; a toned button re-sets
+   these tokens on its own element instead (see ActionButton.module.css).
 
    Tokens rather than hard-coded colours so the tone can be swapped without
    out-cascading this rule — the same re-set-the-token discipline the tiles use.
 
-   ONE token paints both the border and the label, deliberately. */
-button.secondary {
+   ONE token paints both the border and the label, deliberately.
+
+   A PLAIN class selector, deliberately, so it sits at the same weight as
+   `.button` and wins on source order alone. It used to be `button.secondary`
+   (0,1,1), which a module class could not out-rank without a `:not()` trick —
+   strands' hint bar carries a comment about exactly that arithmetic. At (0,1,0)
+   a game's own class beats it the ordinary way. */
+.secondary {
   background: transparent;
   border-color: var(--secondary-ink-color);
   color: var(--secondary-ink-color);
@@ -1042,9 +1116,17 @@ button.secondary {
    OWN tone — where this used to be one grey for every tone. A tint of itself
    reads as the button getting more engaged; grey reads as it going duller, which
    is the wrong direction for a hover. 8% over white is enough: what the eye
-   catches is white becoming a colour at all, not how much colour. */
-button.secondary:hover:not(:disabled) {
+   catches is white becoming a colour at all, not how much colour.
+
+   The border is re-stated, and it has to be: this pairs with `.button:hover`
+   exactly as `.secondary` pairs with `.button` — one rule per treatment, the
+   outline's landing second. Without it the filled hover's border-color leaks
+   through onto an outline button and its hairline jumps from the tone's INK to
+   the tone's fill-hover, which is a second thing changing and a visibly
+   different colour (measured: #ae4000 → #c45400 on Hint). */
+.secondary:hover:not(:disabled) {
   background: var(--secondary-wash-color);
+  border-color: var(--secondary-ink-color);
 }
 
 a {
@@ -1085,10 +1167,11 @@ a {
    line. The ONE place the "icon beside a label" shape is defined (docs/ui.md →
    Button iconography) — every such button composes it via cls(), the same way
    they compose `secondary`, instead of re-declaring inline-flex/gap in their own
-   module. Pure shape: no fill/border/color (those come from the base <button>,
-   or from `secondary`), and no width (a per-button modifier adds min-width or
-   flex-grow). So a play button is `cls('icon-button', styles.inputButton)`; a
-   secondary one is `cls('secondary', 'icon-button', …)`.
+   module. Pure shape: no fill/border/color (those come from `.button`, and from
+   `secondary` if it's the outline), and no width (a per-button modifier adds
+   min-width or flex-grow). So a play button is
+   `cls('button', 'icon-button', styles.inputButton)`; a secondary one is
+   `cls('button', 'secondary', 'icon-button', …)`.
 
    For a labelless rectangular button — same chrome as its labeled siblings, just
    square because there's no text — add the `icon-only` modifier below. Still NOT
@@ -1101,14 +1184,16 @@ a {
   gap: 0.4em;
 }
 
-/* Icon-ONLY rectangular button: keeps the base <button> (or `secondary`) fill +
-   border, but is a FIXED square box (not padding hugging the icon). This
+/* Icon-ONLY rectangular button: keeps `.button`'s (or `secondary`'s) fill +
+   border, but is a FIXED square box (not padding hugging the icon). Its
+   `padding: 0` beats `.button`'s on source order — same weight, later in the
+   file — which is why this block must stay BELOW the button rules. This
    DECOUPLES icon size from button size — the glyph can be scaled up/down for
    per-glyph visual-weight tuning (some Lucide icons read smaller/denser than
    others) WITHOUT moving the button's footprint; it just floats centered
    (`icon-button` does the centering). Compose with `icon-button` — a primary
-   submit is `cls('icon-button', 'icon-only')`, a secondary one
-   `cls('secondary', 'icon-button', 'icon-only')`. The shared counterpart of
+   submit is `cls('button', 'icon-button', 'icon-only')`, a secondary one
+   `cls('button', 'secondary', 'icon-button', 'icon-only')`. The shared counterpart of
    `icon-button` for the no-label case, so every game's icon-only action button
    matches. (`--icon-button-size` tunes the box once, globally.) */
 .icon-only {
@@ -1196,11 +1281,7 @@ a {
    colour rather than the action button's: it looks like a link, so it should
    move with links if the two ever part company. */
 .link-button {
-  background: none;
-  border: none;
   color: var(--chrome-link-color);
-  cursor: pointer;
-  padding: 0;
   text-decoration: underline;
 }
 

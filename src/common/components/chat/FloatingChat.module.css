@@ -13,8 +13,7 @@
   right: 1rem;
   z-index: 9999;
 
-  /* Reset the global button defaults — we want a circle, not a
-   * pill. */
+  /* A circle, not a pill. */
   width: 3.25rem;
   height: 3.25rem;
   border-radius: 50%;

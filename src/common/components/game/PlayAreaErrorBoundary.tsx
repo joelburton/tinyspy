@@ -40,7 +40,7 @@ export class PlayAreaErrorBoundary extends Component<
         <h1>Something went wrong</h1>
         <p className="error">{this.state.error.message}</p>
         <p>
-          <button type="button" onClick={() => window.location.reload()}>
+          <button type="button" className="button" onClick={() => window.location.reload()}>
             Reload
           </button>
         </p>
