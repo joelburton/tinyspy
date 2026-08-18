@@ -97,6 +97,15 @@
      and text differ — the border stays quiet while the label stays readable,
      where a toned button uses one colour for both. */
   --chrome-cancel-color:                    #b0b0b0;
+  /* The outline treatment's tone, DEFAULTED here rather than on
+     `button.secondary`, and that placement is load-bearing: `button.secondary` is
+     an element.class selector (0,1,1) where a tone class is (0,1,0), so setting
+     these in that rule beat every tone and painted Hint, Reveal, End and
+     Back-to-club all cancel-grey. Defaults belong where anything can outrank
+     them. */
+  --secondary-edge-color:                   var(--chrome-cancel-color);
+  --secondary-ink-color:                    var(--chrome-cancel-ink-color);
+  --secondary-hover-color:                  var(--chrome-cancel-secondary-hover-color);
   --chrome-cancel-ink-color:                #555555;
   --chrome-cancel-secondary-hover-color:    var(--page-surface-hover-color);
 
@@ -419,8 +428,16 @@
 
      They must not become the outcome palette: green and red at strength mean a
      TILE's state, and a board-sized bar of either would shout an outcome the pill
-     has already stated quietly. These sit dark, at half the chroma of the fills. */
-  --outcome-won-terminal-frame-color:      #28642a;
+     has already stated quietly. These sit dark, at half the chroma of the fills.
+
+     WON IS THE EXCEPTION TO "same lightness", and it is perception beating the
+     maths again: at the family's L (0.449, where lost reads correctly as a dark
+     red) the green reads as black at normal zoom — you have to lean in to see the
+     hue at all. It sits ~0.11 lighter, at the same chroma as its siblings, which
+     is the smallest change that makes it read green. It stays clear of
+     --outcome-won-ink-color (lighter AND duller) so the frame can't be mistaken
+     for the outcome tone itself. */
+  --outcome-won-terminal-frame-color:      #4b864b;
   --outcome-lost-terminal-frame-color:     #873933;
   --outcome-near-terminal-frame-color:     #794900;
   --outcome-warning-terminal-frame-color:  #843f14;
@@ -897,9 +914,6 @@ button:disabled {
    Three tokens rather than hard-coded colours so the tone can be swapped without
    out-cascading this rule — the same re-set-the-token discipline the tiles use. */
 button.secondary {
-  --secondary-edge-color: var(--chrome-cancel-color);
-  --secondary-ink-color: var(--chrome-cancel-ink-color);
-  --secondary-hover-color: var(--chrome-cancel-secondary-hover-color);
   background: transparent;
   border-color: var(--secondary-edge-color);
   color: var(--secondary-ink-color);
