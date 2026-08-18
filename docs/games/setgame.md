@@ -666,6 +666,37 @@ would file a bug report for.
 - **`target_sets` for coop** — an opt-in finish line, spellingbee's machinery.
   Only bites in a timed game. Nobody has asked for it.
 
+- **A claim on a 15-card board flashes more than three cards** (seen in play,
+  2026-08-17). Not a diffing accident — it is [`lib/flash.ts`](../../src/setgame/lib/flash.ts)'s
+  documented choice working as designed: the transition is compared **slot by
+  slot, never as a set difference**, because a claim on fifteen compacts back to
+  twelve and *moves* cards from the end into the holes. Those cards aren't new to
+  the game, so "which cards are new?" finds nothing for them and they would land
+  silently — which the comment argues is the one case you most need to be told
+  about.
+
+  What's now in question is whether that is the right trade at the table: five or
+  six cards lighting up for a three-card claim over-reports what happened, and the
+  mark is deliberately loud. Worth discussing rather than fixing blind — the
+  options are roughly (a) leave it, (b) mark a moved-but-not-new card differently
+  from a genuine arrival, or (c) don't compact, and let the holes stay until the
+  next deal. Each says something different about what a slot *means*.
+
+- **An 18-card board doesn't fit at full card size on desktop** (a 16" MacBook,
+  2026-08-17) — and the code agrees: `Board.module.css` says `--max-card-w: 12rem`
+  is "chosen against the WIDTH term… under what five columns can afford, so
+  dealing to fifteen resizes nothing at all. Only an eighteen-card board shrinks
+  the cards, and that is 1.4% of games."
+
+  So the implementation reserves *fifteen* without a resize, while the mental
+  model we've been carrying is that only the ~1-in-a-million twenty-one-card board
+  should ever cost a size change. The header records why the first draft's
+  always-fit-seven-columns approach was rejected — an ordinary twelve-card board
+  paid a permanent 20% of card size for a board almost nobody sees — so the real
+  question is whether six columns' worth of that cost is worth paying for the 1.4%
+  of games that reach eighteen. Measure before deciding: the width term binds
+  beside the info column, so the cost is a real number, not a guess.
+
 
 ## Won't do
 
