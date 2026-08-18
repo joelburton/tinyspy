@@ -15,5 +15,5 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * Default label "Concede".
  */
 export function ConcedeGameButton({ label = 'Concede', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconConcede} label={label} tone="error" {...rest} />
+  return <ActionButton icon={IconConcede} label={label} tone="destructive" {...rest} />
 }

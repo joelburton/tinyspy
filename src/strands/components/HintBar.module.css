@@ -56,7 +56,7 @@
  *
  * So the two states are made to differ in KIND, not just in strength: unusable
  * stays an outline, and ready flips to a filled orange with white text. The
- * colour is the same `--outcome-warning-ink-color` the button already used for
+ * colour is the same `--chrome-caution-color` the button already used for
  * its border, so this is the existing orange turned up, not a new hue.
  */
 
@@ -70,14 +70,17 @@
  * this is (0,2,0) and beats theme.css's `button.secondary` (0,1,1) without an
  * !important. */
 .hintReady:not(:disabled) {
-  background: var(--outcome-warning-ink-color);
-  border-color: var(--outcome-warning-ink-color);
-  /* The Lucide glyph strokes with currentColor, so this whitens the icon too. */
-  color: var(--page-surface-color);
+  background: var(--chrome-caution-color);
+  border-color: var(--chrome-caution-color);
+  /* The Lucide glyph strokes with currentColor, so this inks the icon too. NOTE
+   * this is the 3.08 case: white on the caution orange is under the 4.5 floor for
+   * a label, kept while we look for a deeper orange that clears it (see
+   * common/theme.css → --chrome-caution-primary-ink-color). */
+  color: var(--chrome-caution-primary-ink-color);
 }
 
 .hintReady:not(:disabled):hover {
   /* Darker on hover — a filled button can't use the outline's
    * fill-on-hover, since it is already filled. */
-  background: color-mix(in oklab, var(--outcome-warning-ink-color) 85%, black);
+  background: var(--chrome-caution-primary-hover-color);
 }

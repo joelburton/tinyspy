@@ -14,5 +14,5 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * the icon registry for the pair.
  */
 export function SpoilerButton({ label = 'Spoiler', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconSpoiler} label={label} tone="warning" {...rest} />
+  return <ActionButton icon={IconSpoiler} label={label} tone="caution" {...rest} />
 }

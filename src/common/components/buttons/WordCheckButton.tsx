@@ -18,5 +18,5 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * you may ask about your own board.
  */
 export function WordCheckButton({ label = 'Check words', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconWordCheck} label={label} tone="info" {...rest} />
+  return <ActionButton icon={IconWordCheck} label={label} tone="action" {...rest} />
 }

@@ -9,5 +9,5 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * terminal action row is the first user.
  */
 export function NewGameButton({ label = 'New game', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconNewGame} label={label} tone="info" {...rest} />
+  return <ActionButton icon={IconNewGame} label={label} tone="action" {...rest} />
 }

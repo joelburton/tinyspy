@@ -14,5 +14,5 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * label "Pass".
  */
 export function PassButton({ label = 'Pass', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconEndTurn} label={label} tone="warning" {...rest} />
+  return <ActionButton icon={IconEndTurn} label={label} tone="caution" {...rest} />
 }

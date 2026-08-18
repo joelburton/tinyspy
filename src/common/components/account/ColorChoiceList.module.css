@@ -24,7 +24,7 @@
 }
 .swatchActive {
   border-color: var(--chrome-action-color);
-  outline: 2px solid var(--chrome-action-color);
+  outline: 2px solid var(--chrome-cursor-color);
   outline-offset: -1px;
 }
 

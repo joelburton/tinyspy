@@ -10,5 +10,5 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * user.
  */
 export function RestartButton({ label = 'Restart', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconRestart} label={label} tone="info" {...rest} />
+  return <ActionButton icon={IconRestart} label={label} tone="action" {...rest} />
 }

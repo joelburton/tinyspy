@@ -14,5 +14,5 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * label "AI".
  */
 export function AIButton({ label = 'AI', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconAI} label={label} tone="warning" {...rest} />
+  return <ActionButton icon={IconAI} label={label} tone="caution" {...rest} />
 }

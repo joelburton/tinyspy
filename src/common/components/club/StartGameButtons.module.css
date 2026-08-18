@@ -128,6 +128,6 @@
  * Enter would press (the LIST container holds the actual focus). Accent
  * ring inset so it doesn't clip against the scrolled frame's edges. */
 .kbCursor {
-  outline: 2px solid var(--chrome-action-color);
+  outline: 2px solid var(--chrome-cursor-color);
   outline-offset: -2px;
 }

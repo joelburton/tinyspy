@@ -10,5 +10,5 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * own); `label` is the aria-label + tooltip. Default label "Show move".
  */
 export function SharePreviewButton({ label = 'Show move', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconShare} label={label} tone="info" iconOnly {...rest} />
+  return <ActionButton icon={IconShare} label={label} tone="action" iconOnly {...rest} />
 }

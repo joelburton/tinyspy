@@ -11,10 +11,10 @@ export type ButtonWeight = 'primary' | 'secondary'
 /** A button's semantic TONE — the SAME vocabulary + palette as the feedback
  *  pills (docs/ui.md → Button iconography), coloring a
  *  secondary (outline) button's border + text + icon. `neutral` is the plain
- *  outline; `warning` = dark amber (Hint / Reveal), `error` = dark red (End),
+ *  outline; `caution` = orange (Hint / Reveal), `destructive` = dark red (End),
  *  etc. Tone is meaningful only for secondary weight — a `primary` button is the
  *  filled accent and ignores it. */
-export type ButtonTone = 'neutral' | 'success' | 'error' | 'warning' | 'info' | 'near'
+export type ButtonTone = 'cancel' | 'action' | 'caution' | 'destructive'
 
 /**
  * Props every PURPOSE button (SubmitButton, EndGameButton, DeleteButton, …)
@@ -71,7 +71,7 @@ export function ActionButton({
   iconOnly,
   iconSize = 18,
   weight = 'secondary',
-  tone = 'neutral',
+  tone = 'cancel',
   tooltip,
   className,
   ...rest
@@ -84,7 +84,7 @@ export function ActionButton({
         weight === 'secondary' && 'secondary',
         'icon-button',
         // Semantic tone recolors a secondary button's outline (see the module).
-        tone !== 'neutral' && styles[tone],
+        tone !== 'cancel' && styles[tone],
         iconOnly && 'icon-only',
         className,
       )}

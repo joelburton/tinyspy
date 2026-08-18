@@ -66,7 +66,7 @@ export function RevealButton({
       // already here.
       icon={revealed && !alreadyShown ? IconHideSolution : IconReveal}
       label={shownLabel}
-      tone="error"
+      tone="destructive"
       // Present but inert, never absent — the row must not change shape between
       // a solved game and a lost one (docs/ui.md → Layout stability), and "there
       // is nothing to do here" beats a control that vanished.

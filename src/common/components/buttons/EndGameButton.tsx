@@ -20,5 +20,5 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * why it's its own file from the start.
  */
 export function EndGameButton({ label = 'End game', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconEnd} label={label} tone="error" {...rest} />
+  return <ActionButton icon={IconEnd} label={label} tone="destructive" {...rest} />
 }

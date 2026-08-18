@@ -43,19 +43,82 @@
   --page-text-color:               #1a1a1a;
   --page-text-muted-color:              #6b6b6b;
   --page-divider-color:            #8a8a8a;
-  /* System-error red — validation failures, RPC/API errors, and destructive
-     actions (delete buttons). Deliberately DARKER + COOLER (a deep crimson) than
-     --outcome-lost-ink-color (#c62828) so a *system failure* or a *destructive
-     action* never reads the same as a *game loss*. The two reds are intentionally
-     distinct — do NOT "de-dup" them. The literal "red" is in the name on purpose:
-     we colloquially call bad game moves "errors" too, so `sys-error` disambiguates,
-     and error UI is canonically-and-permanently red. */
-  --chrome-fault-color:      #8e1b2e;
+  /* ── CHROME ───────────────────────────────────────────────────────────────
+     Controls. Their own names even where a hex matches an outcome's, because the
+     two answer different questions and must be free to move apart — they are
+     coincidentally equal, not kept in lockstep.
 
-  /* Accent — links, primary buttons, focus outlines. Material
-     Blue 700; white-on-this passes AA contrast for button labels. */
-  --chrome-action-color:             #1976d2;
-  --chrome-action-primary-hover-color:       #1565c0;
+     COLOUR and TREATMENT are separate axes. A button is `primary` (filled) or
+     `secondary` (outline) — that is a class, and those are the class names in
+     use — while the tone says what kind of action it is. So each tone carries:
+
+       -color                    the tone: border + text when secondary,
+                                 background when primary
+       -primary-ink-color        the label on a filled button
+       -primary-hover-color      a filled button's background on hover
+       -secondary-hover-color    an outline button's background on hover
+
+     Hover changes the BACKGROUND and nothing else — no lift, no shadow, because
+     depth belongs to game pieces. Both treatments are marked, with no unmarked
+     default: the bare `button` element is the FILLED one, so an unmarked
+     "-hover-color" would read as the primary's, which is the opposite of what it
+     would mean. See docs/colors-refinement.md. */
+
+  /* ACTION — an action you can take: Submit (primary), Restart / New game
+     (secondary). Material Blue 700; white-on-this passes AA for a button label
+     (4.60), and the hover darkens, which is the safe direction for white ink. */
+  --chrome-action-color:                    #1976d2;
+  --chrome-action-primary-hover-color:      #1565c0;
+  --chrome-action-primary-ink-color:        #ffffff;
+  --chrome-action-secondary-hover-color:    var(--page-surface-hover-color);
+
+  /* CAUTION — Hint, Spoiler, AI suggest, Pass: consequential, not destructive.
+     WHITE INK HERE IS AT 3.08, under the 4.5 floor for a label — kept for now
+     because the fix we want is a deeper ORANGE that clears it while still reading
+     as orange rather than as destructive's maroon, not dark ink on this one (dark
+     ink on a bright warm fill is the trade connections rejected for gold). The
+     question lives here so it is in the way of whoever next touches this. */
+  --chrome-caution-color:                   #ef6c00;
+  --chrome-caution-primary-hover-color:     #c05600;
+  --chrome-caution-primary-ink-color:       #ffffff;
+  --chrome-caution-secondary-hover-color:   var(--page-surface-hover-color);
+
+  /* DESTRUCTIVE — Reveal, End game, Concede, Delete: irreversible. Deliberately
+     DARKER + COOLER than --outcome-lost-ink-color so a destructive action never
+     reads as a game loss. Same hex as fault below, its own name. */
+  --chrome-destructive-color:               #8e1b2e;
+  --chrome-destructive-primary-hover-color: #741624;
+  --chrome-destructive-primary-ink-color:   #ffffff;
+  --chrome-destructive-secondary-hover-color: var(--page-surface-hover-color);
+
+  /* CANCEL — the way out of a dialog. Two tokens rather than four, and that is a
+     decision: cancel is outline-only BY NATURE, because a filled Cancel would
+     out-shout the confirm it sits beside. It is also the one tone whose border
+     and text differ — the border stays quiet while the label stays readable,
+     where a toned button uses one colour for both. */
+  --chrome-cancel-color:                    #b0b0b0;
+  --chrome-cancel-ink-color:                #555555;
+  --chrome-cancel-secondary-hover-color:    var(--page-surface-hover-color);
+
+  /* FAULT — the system failed: validation failures, RPC/API errors. The same red
+     as destructive under its own name, because "this will delete something" and
+     "something broke" are different messages that happen to agree today. Error UI
+     is canonically-and-permanently red. */
+  --chrome-fault-color:                     #8e1b2e;
+
+  /* CURSOR — where the keyboard is pointing in a list or a button set. A COPY of
+     the action blue, not an alias: a focus ring wanting to differ from a button
+     is entirely plausible, and half of the old --color-accent's 54 uses were
+     these outlines rather than actions. */
+  --chrome-cursor-color:                    #1976d2;
+
+  /* How far a disabled control fades. An EFFECT rather than a per-tone colour:
+     filled and outline degrade identically under opacity (2.04 vs 2.00 at 0.5),
+     so per-tone values would solve one problem twice and rot the day a base
+     moves. Named because it was a magic number in three places — and 0.5 puts a
+     disabled label at 2.0:1, which strands already judged as reading "switched
+     off" rather than "not yet" (it uses 0.8). Worth trying at 0.65. */
+  --chrome-disabled-opacity:                0.5;
 
   /* History-view marker — the "you're viewing a past turn, not the live board"
      signal shared by every turn-history-capable game (drives the board frame, the
@@ -696,7 +759,7 @@ button {
 
 input:focus,
 textarea:focus {
-  outline: 2px solid var(--chrome-action-color);
+  outline: 2px solid var(--chrome-cursor-color);
   outline-offset: -1px;
 }
 
@@ -720,7 +783,7 @@ textarea:focus {
 button {
   background: var(--chrome-action-color);
   border-color: var(--chrome-action-color);
-  color: white;
+  color: var(--chrome-action-primary-ink-color);
   cursor: pointer;
   /* Tighter than the inputs/textareas sharing the base rule above: buttons are
      click targets, not typing surfaces, and don't need the same breathing room.
@@ -737,19 +800,31 @@ button {
  * reintroduce a hover for genuine buttons. */
 
 button:disabled {
-  opacity: 0.5;
+  opacity: var(--chrome-disabled-opacity);
   cursor: not-allowed;
 }
 
-/* `<button className="secondary">` — outline-style alternative to
-   the filled accent default. Used for cancel / back actions. */
+/* `<button className="secondary">` — the OUTLINE treatment, against the filled
+   default above. Its tone defaults to `cancel` (the quiet way out of a dialog),
+   which is what every bare `.secondary` in the app is; a toned button re-sets
+   these three tokens on its own element instead (see ActionButton.module.css).
+
+   Three tokens rather than hard-coded colours so the tone can be swapped without
+   out-cascading this rule — the same re-set-the-token discipline the tiles use. */
 button.secondary {
+  --secondary-edge-color: var(--chrome-cancel-color);
+  --secondary-ink-color: var(--chrome-cancel-ink-color);
+  --secondary-hover-color: var(--chrome-cancel-secondary-hover-color);
   background: transparent;
-  border-color: var(--control-border-strong-color);
-  color: var(--control-text-muted-color);
+  border-color: var(--secondary-edge-color);
+  color: var(--secondary-ink-color);
 }
+/* Hover changes the BACKGROUND and nothing else. Today every tone lands on the
+   same faint grey; the per-tone token is what lets one become a pale tint of
+   itself later, which reads as the button getting MORE engaged where grey alone
+   reads as duller. */
 button.secondary:hover:not(:disabled) {
-  background: var(--page-surface-hover-color);
+  background: var(--secondary-hover-color);
 }
 
 a {

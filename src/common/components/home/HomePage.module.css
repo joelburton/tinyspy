@@ -176,7 +176,7 @@
  * offset: the rows abut now, so a ring drawn outside the row would overlap its
  * neighbour and get clipped by the frame's overflow at the first and last row. */
 .kbCursor {
-  outline: 2px solid var(--chrome-action-color);
+  outline: 2px solid var(--chrome-cursor-color);
   outline-offset: -2px;
 }
 

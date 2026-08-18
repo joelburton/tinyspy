@@ -47,6 +47,13 @@ const VOCABULARY_COMPLETENESS = new Set([
   // is reserved by design; nothing else in the palette gets that licence.
   '--outcome-neutral-wash-color',
   '--outcome-neutral-ink-color',
+  '--outcome-lost-wash-color',
+  // Same policy, applied to a CHROME tone: each tone carries the tokens its two
+  // treatments need, so the set is picked together rather than one colour at a
+  // time. Nothing is filled-destructive today; when something is, its hover and
+  // ink are already chosen and already agree with the rest of the family.
+  '--chrome-destructive-primary-hover-color',
+  '--chrome-destructive-primary-ink-color',
   '--tile-4-edge-color',
 ])
 

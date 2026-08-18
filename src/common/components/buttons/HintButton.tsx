@@ -8,5 +8,5 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * "Hint".
  */
 export function HintButton({ label = 'Hint', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconHint} label={label} tone="warning" {...rest} />
+  return <ActionButton icon={IconHint} label={label} tone="caution" {...rest} />
 }

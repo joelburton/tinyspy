@@ -15,5 +15,5 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * the lighter outline+tone weight.
  */
 export function ExchangeButton({ label = 'Swap', ...rest }: PurposeButtonProps) {
-  return <ActionButton icon={IconExchange} label={label} tone="info" {...rest} />
+  return <ActionButton icon={IconExchange} label={label} tone="action" {...rest} />
 }
