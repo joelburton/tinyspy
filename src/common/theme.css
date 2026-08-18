@@ -91,7 +91,12 @@
 
      The washes are 8%, which looks impossibly faint written down and is not:
      going from white to ANY colour is a movement, and movement is the whole
-     message. Strength past that only costs legibility of the label on top. */
+     message. Strength past that only costs legibility of the label on top.
+
+     SEE IT: docs/buttons.html is the rendered grid — all four tones in both
+     treatments, at rest, hovered and disabled, with the sliders that derive
+     everything from the -primary. Open it off disk; it does not ship. If it and
+     this file ever disagree, this file wins and the page is the bug. */
 
   /* ACTION — an action you can take: Submit (filled), Restart / New game
      (outline). Material Blue 700. */

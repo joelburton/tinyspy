@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import { DefinitionView } from './DefinitionView'
 import { FloatingPanel } from '../panels/FloatingPanel'
 import styles from './WordLookupDialog.module.css'
+import { cls } from '../../lib/util/cls'
 
 type Props = {
   onClose: () => void
@@ -55,7 +56,7 @@ export function WordLookupDialog({ onClose }: Props) {
             placeholder="a word…"
             aria-label="Word to look up"
           />
-          <button type="submit" className={styles.button}>
+          <button type="submit" className={cls('button', 'primary', styles.button)}>
             Define
           </button>
         </form>

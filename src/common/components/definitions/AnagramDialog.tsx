@@ -5,6 +5,7 @@ import { db as commonDb } from '../../db'
 import { useDefinePopover } from '../../hooks/definitions/useDefinePopover'
 import { FloatingPanel } from '../panels/FloatingPanel'
 import styles from './AnagramDialog.module.css'
+import { cls } from '../../lib/util/cls'
 
 type Result = { word: string; difficulty: number }
 
@@ -71,7 +72,7 @@ export function AnagramDialog({ onClose }: { onClose: () => void }) {
             placeholder="letters…"
             aria-label="Letters to anagram"
           />
-          <button type="submit" className={styles.button} disabled={searching}>
+          <button type="submit" className={cls('button', 'primary', styles.button)} disabled={searching}>
             Find
           </button>
         </form>

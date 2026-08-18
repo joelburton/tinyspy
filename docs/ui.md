@@ -888,6 +888,12 @@ exactly one treatment rule matches and nothing overrides anything.
 declares no colour, each treatment declares all of background + border + label,
 and no markup carries `.button` without naming a treatment.
 
+**To see the grid, open [`buttons.html`](buttons.html)** — every tone in both
+treatments, at rest, hovered and disabled, with the sliders that derive the whole
+family from its `-primary`. It is the rendered twin of `theme.css` → CHROME, and
+the reason it is kept rather than deleted is that a picture of the palette cannot
+drift silently into prose the way a paragraph can.
+
 It used to be the other way round: the bare element was the filled accent
 button, so every `<button>` that isn't one opened by cancelling the fill, the
 border and the padding it had just been handed — twenty-nine rules whose first

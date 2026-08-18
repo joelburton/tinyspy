@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import styles from './CelebrationDialog.module.css'
+import { cls } from '../../lib/util/cls'
 
 // Festive glyphs the keyframes animate in. Mixed sizes/rotations (via the
 // per-piece stagger) keep the cluster feeling chaotic rather than tidy.
@@ -99,16 +100,22 @@ export function CelebrationDialog({
             <button
               type="button"
               ref={focusRef}
-              className={`${styles.button} ${styles.primary}`}
+              className={cls('button', 'primary', styles.button, styles.primary)}
               onClick={primary.onClick}
             >
               {primary.label}
             </button>
           )}
+          {/* "Nice!" is the DISMISS when there's an action beside it, and the
+              ACTION when it's alone — so the dialog always has exactly one
+              primary and never offers two. Same rule as every other dialog
+              (docs/ui.md → Dialog buttons): the thing you're being offered is
+              filled, the way out is the outline. A celebration with only a
+              grey outline button undersells itself. */}
           <button
             type="button"
             ref={primary ? undefined : focusRef}
-            className={styles.button}
+            className={cls('button', primary ? 'secondary' : 'primary', styles.button)}
             onClick={onClose}
           >
             Nice!

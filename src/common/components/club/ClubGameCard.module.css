@@ -282,8 +282,13 @@
   width: auto;
   padding: 0.3rem 0.7rem;
   background: transparent;
-  color: var(--chrome-destructive-primary-color);
-  border-color: var(--chrome-destructive-primary-color);
+  /* The SECONDARY value, not the primary: this is an outline — border and label
+     on a transparent ground — and `-secondary-color` is the one taken down far
+     enough to read as small text on white. Using the primary here was the fill
+     value doing an ink's job, which is the confusion the two names exist to
+     prevent. */
+  color: var(--chrome-destructive-secondary-color);
+  border-color: var(--chrome-destructive-secondary-color);
   font-size: 0.85rem;
   font-weight: 600;
 }

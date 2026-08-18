@@ -72,15 +72,9 @@
   margin-top: auto; /* pin the buttons to the panel's bottom edge */
 }
 
+/* Layout only — the chrome is the shared `button primary`. */
 .saveButton {
   margin-left: auto;
-  padding: 0.4rem 1rem;
-  font-size: 0.9rem;
-  color: var(--ink-on-dark-color);
-  background: var(--chrome-action-primary-color);
-  border: 1px solid var(--chrome-action-primary-color);
-  border-radius: var(--radius-md);
-  cursor: pointer;
 }
 
 .saveButton:hover {
@@ -95,14 +89,19 @@
   cursor: not-allowed;
 }
 
-/* Destructive, so it wears the system-error red — as an OUTLINE, not a fill:
- * it sits next to Save and must read as the dangerous option, not the loud one. */
+/* DESTRUCTIVE, not fault — the shared `button secondary` in the destructive tone.
+ * It wore `--chrome-fault-color` (the system-failed red), which is the same hex
+ * today and the wrong idea: deleting a word is an irreversible thing you CHOSE to
+ * do, not something that broke. The two are a copy, not an alias, precisely so
+ * they can part company.
+ *
+ * An OUTLINE, not a fill: it sits beside Save and must read as the dangerous
+ * option, not the loud one.
+ *
+ * The tone arrives by re-setting the slot tokens the shared `.secondary` reads,
+ * because the tone CLASSES are scoped to ActionButton.module.css and a raw
+ * <button> can't reach them — the same discipline, just spelled out locally. */
 .deleteButton {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.9rem;
-  color: var(--chrome-fault-color);
-  background: var(--page-surface-color);
-  border: 1px solid var(--chrome-fault-color);
-  border-radius: var(--radius-md);
-  cursor: pointer;
+  --secondary-color: var(--chrome-destructive-secondary-color);
+  --secondary-hover-color: var(--chrome-destructive-secondary-hover-color);
 }

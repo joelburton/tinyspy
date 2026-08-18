@@ -42,15 +42,11 @@
   outline-offset: -1px;
 }
 
+/* Layout only. The chrome is the shared `button primary` (theme.css) — this used
+   to re-declare the action fill, its border, the radius and its own hover, which
+   is the same duplication the button sweep removed everywhere else. */
 .button {
   flex: 0 0 auto;
-  padding: 0.4rem 0.8rem;
-  font-size: 0.9rem;
-  color: var(--ink-on-dark-color);
-  background: var(--chrome-action-primary-color);
-  border: 1px solid var(--chrome-action-primary-color);
-  border-radius: var(--radius-md);
-  cursor: pointer;
 }
 
 .button:hover {

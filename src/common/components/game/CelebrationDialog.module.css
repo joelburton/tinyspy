@@ -89,32 +89,21 @@
   gap: 0.5rem;
 }
 
+/* Both buttons are the shared `button primary` / `button secondary` (theme.css).
+   This module hand-rolled the pair — a white surface button plus its own blue
+   fill and hover — which is one dialog inventing a treatment the app already
+   has. The only thing left here is the roomier padding, because a celebration's
+   buttons are the whole content of a small dialog rather than one control in a
+   row, and a heavier label on the action you're being offered. */
 .button {
-  font: inherit;
   padding: 0.55rem 1rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--page-surface-border-color);
-  background: var(--page-surface-color);
-  color: var(--page-text-color);
-  cursor: pointer;
 }
 
-.button:hover {
-  background: var(--page-surface-hover-color);
+.primary {
+  font-weight: 600;
 }
 
 .button:focus-visible {
   outline: 2px solid var(--chrome-cursor-color);
   outline-offset: 2px;
-}
-
-.button.primary {
-  background: var(--chrome-action-primary-color);
-  border-color: var(--chrome-action-primary-color);
-  color: var(--ink-on-dark-color);
-  font-weight: 600;
-}
-
-.button.primary:hover {
-  background: var(--chrome-action-primary-hover-color);
 }

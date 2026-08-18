@@ -4,19 +4,28 @@
 <meta charset="utf-8">
 <title>Button tones — swatch</title>
 <style>
-  /* ── The proposed chrome tones ──────────────────────────────────────────
-     Only the four FILLS are chosen. Everything else — the filled button's hover,
-     the unfilled button's ink, the unfilled button's hover wash — is derived
-     from the fill by the three sliders at the top, in oklab, so the family stays
-     a family whatever the numbers become.
+  /* ── The chrome tones, as shipped ────────────────────────────────────────
+     THIS PAGE IS THE RENDERED REFERENCE for src/common/theme.css → CHROME. Its
+     numbers and its vocabulary match what ships; if they ever disagree, the
+     stylesheet wins and this page is the bug. Kept (rather than deleted when the
+     tones settled, as an earlier note here proposed) because it is the one form
+     of the palette that can't drift silently into prose — and because tracing a
+     stale token name back to it is what recovered the naming decision on
+     2026-08-18. It lives in docs/ and no longer ships: open it straight off disk.
 
-     THREE separate steps, not two. The earlier draft made a filled button's
-     hover the same value as an unfilled button's ink, and that was wrong twice
-     over: an ink has to be dark enough to read as small text, while a hover only
-     has to say "the page is alive" — and in orange the gap between those two
-     jobs is nearly a change of colour.
+     Only the four -primary values are CHOSEN. Everything else — the primary's
+     hover, the secondary's border-and-text, the secondary's hover wash — is
+     derived from the primary by the sliders at the top, in oklab, so the family
+     stays a family whatever the numbers become.
 
-     The fills are NOT the outcome palette. Trying that is what showed why the
+     THREE separate steps, not two, and this is the central one. An earlier
+     draft made -primary-hover and -secondary the same value, and that was wrong
+     twice over: a secondary has to be dark enough to read as small TEXT, while a
+     hover only has to say "the page is alive". Orange is the case that proves
+     they can't be one value — a background orange is too light to read as type,
+     and darkening it enough to read makes it far too strong to fill with.
+
+     These are NOT the outcome palette. Trying that is what showed why the
      bespoke chrome reds and oranges were picked in the first place:
 
        RED — outcome-lost #ef5350 is L 0.654 at hue 25.1°, which is both light
@@ -34,12 +43,12 @@
        destructive already owns hue 27, and two tones that differ only in
        lightness would be a poor pair of warnings.
 
-     Each fill has a picker on its card — nudge and everything rederives. */
+     Each tone has a picker on its card — nudge and everything rederives. */
   :root {
-    --action-fill: #1976d2;
-    --caution-fill: #d56417;
-    --destructive-fill: #b71c1c;
-    --quiet-fill: #737373;
+    --action-primary: #1976d2;
+    --caution-primary: #d56417;
+    --destructive-primary: #b71c1c;
+    --quiet-primary: #737373;
 
     --disabled-opacity: 0.75;
 
@@ -119,51 +128,51 @@
      the label readable. (`:hover:not(:disabled)` below is what withholds it.) */
   button:disabled { opacity: var(--disabled-opacity); cursor: not-allowed; }
 
-  .primary { background: var(--fill); border-color: var(--fill); color: #fff; }
-  .primary:hover:not(:disabled) { background: var(--hover); border-color: var(--hover); }
+  .primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .primary:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
 
   /* `--edge` falls back to `--ink`: the proposal is that a secondary's border and
      text are ONE value, so the four cards never set it. Today's card does — its
      quiet button really is a #b0b0b0 border around #555555 text, and the point of
      a comparison card is to show that rather than tidy it away. */
-  .secondary { color: var(--ink); border-color: var(--edge, var(--ink)); }
-  .secondary:hover:not(:disabled) { background: var(--wash); }
+  .secondary { color: var(--secondary); border-color: var(--edge, var(--secondary)); }
+  .secondary:hover:not(:disabled) { background: var(--secondary-hover); }
 
-  .action      { --fill: var(--action-fill);      --hover: var(--action-hover);      --ink: var(--action-ink);      --wash: var(--action-wash); }
-  .caution     { --fill: var(--caution-fill);     --hover: var(--caution-hover);     --ink: var(--caution-ink);     --wash: var(--caution-wash); }
-  .destructive { --fill: var(--destructive-fill); --hover: var(--destructive-hover); --ink: var(--destructive-ink); --wash: var(--destructive-wash); }
-  .quiet       { --fill: var(--quiet-fill);       --hover: var(--quiet-hover);       --ink: var(--quiet-ink);       --wash: var(--quiet-wash); }
+  .action     { --primary: var(--action-primary); --primary-hover: var(--action-primary-hover); --secondary: var(--action-secondary); --secondary-hover: var(--action-secondary-hover); }
+  .caution    { --primary: var(--caution-primary); --primary-hover: var(--caution-primary-hover); --secondary: var(--caution-secondary); --secondary-hover: var(--caution-secondary-hover); }
+  .destructive{ --primary: var(--destructive-primary); --primary-hover: var(--destructive-primary-hover); --secondary: var(--destructive-secondary); --secondary-hover: var(--destructive-secondary-hover); }
+  .quiet      { --primary: var(--quiet-primary); --primary-hover: var(--quiet-primary-hover); --secondary: var(--quiet-secondary); --secondary-hover: var(--quiet-secondary-hover); }
 
   /* A strip of the four values, so the family is legible as a family and the
      hover step is visibly smaller than the ink step. */
   .tiers { display: flex; gap: 0; margin-top: 1.1rem; border-radius: 6px; overflow: hidden; width: max-content; }
   .tier { width: 104px; height: 38px; display: flex; align-items: flex-end; justify-content: center;
           font: 11px ui-monospace, Menlo, monospace; padding-bottom: 3px; }
-  .tier.t-wash  { background: var(--wash); }
-  .tier.t-fill  { background: var(--fill);  color: #fff; }
-  .tier.t-hover { background: var(--hover); color: #fff; }
-  .tier.t-ink   { background: var(--ink);   color: #fff; }
+  .tier.t-secondary-hover { background: var(--secondary-hover); }
+  .tier.t-primary { background: var(--primary); color: #fff; }
+  .tier.t-primary-hover { background: var(--primary-hover); color: #fff; }
+  .tier.t-secondary { background: var(--secondary); color: #fff; }
 
   /* Today's values, for the before/after. */
-  .today .action      { --fill: #1976d2; --hover: #1565c0; --ink: #1976d2; --wash: #f0f0f0; }
-  .today .caution     { --fill: #ef6c00; --hover: #c05600; --ink: #ef6c00; --wash: #f0f0f0; }
-  .today .destructive { --fill: #8e1b2e; --hover: #741624; --ink: #8e1b2e; --wash: #f0f0f0; }
+  .today .action      { --primary: #1976d2; --primary-hover: #1565c0; --secondary: #1976d2; --secondary-hover: #f0f0f0; }
+  .today .caution     { --primary: #ef6c00; --primary-hover: #c05600; --secondary: #ef6c00; --secondary-hover: #f0f0f0; }
+  .today .destructive { --primary: #8e1b2e; --primary-hover: #741624; --secondary: #8e1b2e; --secondary-hover: #f0f0f0; }
   /* The odd one out, and deliberately shown that way: quiet is the only tone
      whose border and text disagree (#b0b0b0 vs #555555) — the mismatch you
      spotted on the pause button. */
-  .today .quiet       { --fill: #b0b0b0; --hover: #b0b0b0; --edge: #b0b0b0; --ink: #555555; --wash: #f0f0f0; }
+  .today .quiet       { --primary: #b0b0b0; --primary-hover: #b0b0b0; --edge: #b0b0b0; --secondary: #555555; --secondary-hover: #f0f0f0; }
 </style>
 </head>
 <body>
 
 <div class="knobs">
   <label>
-    <strong>filled hover</strong> — how far the fill darkens
+    <strong>-primary-hover</strong> — how far the primary darkens
     <input id="hover" type="range" min="0" max="0.14" step="0.005" value="0.05">
     <output id="hoverOut"></output>
   </label>
   <label>
-    <strong>unfilled ink</strong> — the border + text darkness
+    <strong>-secondary</strong> — the border + label darkness
     <input id="ink" type="range" step="0.005">
     <output id="inkOut"></output>
     <span style="font-size:11px"><label style="display:inline;flex-direction:row">
@@ -171,12 +180,12 @@
     </label></span>
   </label>
   <label>
-    <strong>ink punch</strong> — chroma as the ink darkens
+    <strong>chroma punch</strong> — chroma as the secondary darkens
     <input id="punch" type="range" min="0.8" max="1.4" step="0.02" value="1">
     <output id="punchOut"></output>
   </label>
   <label>
-    <strong>unfilled hover</strong> — how much tone in the wash
+    <strong>-secondary-hover</strong> — how much tone in the wash
     <input id="wash" type="range" min="0.02" max="0.30" step="0.01" value="0.08">
     <output id="washOut"></output>
   </label>
@@ -190,10 +199,11 @@
 <h1>Button tones</h1>
 <p class="lede">
   Hover everything. A <strong>primary</strong> is filled and darkens a small step;
-  a <strong>secondary</strong> is transparent with its border and text in a much darker
-  ink, and takes a faint wash of its own tone on hover. Drag the sliders — every
-  card recomputes, and the hexes under each name are what I'd write into
-  <code>theme.css</code>.
+  a <strong>secondary</strong> is transparent with its border and label in a much
+  darker shade of the same tone, and takes a faint wash of it on hover. Every tone
+  works in <em>both</em> treatments — the grid is the point. Drag the sliders and
+  every card recomputes; the hexes under each name are what is in
+  <code>theme.css</code> today.
 </p>
 
 <div class="card action" data-tone="action">
@@ -206,10 +216,10 @@
     <div class="cell"><span class="cap">secondary, disabled</span><button class="secondary action" disabled>Restart</button></div>
   </div>
   <div class="tiers">
-    <div class="tier t-wash">wash</div>
-    <div class="tier t-fill">fill</div>
-    <div class="tier t-hover">hover</div>
-    <div class="tier t-ink">ink</div>
+    <div class="tier t-secondary-hover">-secondary-hover</div>
+    <div class="tier t-primary">-primary</div>
+    <div class="tier t-primary-hover">-primary-hover</div>
+    <div class="tier t-secondary">-secondary</div>
   </div>
 </div>
 
@@ -223,10 +233,10 @@
     <div class="cell"><span class="cap">secondary, disabled</span><button class="secondary caution" disabled>Hint</button></div>
   </div>
   <div class="tiers">
-    <div class="tier t-wash">wash</div>
-    <div class="tier t-fill">fill</div>
-    <div class="tier t-hover">hover</div>
-    <div class="tier t-ink">ink</div>
+    <div class="tier t-secondary-hover">-secondary-hover</div>
+    <div class="tier t-primary">-primary</div>
+    <div class="tier t-primary-hover">-primary-hover</div>
+    <div class="tier t-secondary">-secondary</div>
   </div>
 </div>
 
@@ -240,10 +250,10 @@
     <div class="cell"><span class="cap">secondary, disabled</span><button class="secondary destructive" disabled>End game</button></div>
   </div>
   <div class="tiers">
-    <div class="tier t-wash">wash</div>
-    <div class="tier t-fill">fill</div>
-    <div class="tier t-hover">hover</div>
-    <div class="tier t-ink">ink</div>
+    <div class="tier t-secondary-hover">-secondary-hover</div>
+    <div class="tier t-primary">-primary</div>
+    <div class="tier t-primary-hover">-primary-hover</div>
+    <div class="tier t-secondary">-secondary</div>
   </div>
 </div>
 
@@ -251,22 +261,24 @@
   <p class="tone-name"><input class="pick" type="color" data-pick="quiet"> quiet</p>
   <p class="hexes"></p>
   <div class="row">
-    <div class="cell"><span class="cap">primary <em style="color:#6b6b6b">(reserved — nothing uses it)</em></span><button class="primary quiet">Quiet</button></div>
+    <div class="cell"><span class="cap">primary</span><button class="primary quiet">Quiet</button></div>
     <div class="cell"><span class="cap">secondary</span><button class="secondary quiet">Cancel</button></div>
     <div class="cell"><span class="cap">primary, disabled</span><button class="primary quiet" disabled>Quiet</button></div>
     <div class="cell"><span class="cap">secondary, disabled</span><button class="secondary quiet" disabled>Cancel</button></div>
   </div>
   <div class="tiers">
-    <div class="tier t-wash">wash</div>
-    <div class="tier t-fill">fill</div>
-    <div class="tier t-hover">hover</div>
-    <div class="tier t-ink">ink</div>
+    <div class="tier t-secondary-hover">-secondary-hover</div>
+    <div class="tier t-primary">-primary</div>
+    <div class="tier t-primary-hover">-primary-hover</div>
+    <div class="tier t-secondary">-secondary</div>
   </div>
 </div>
 
 <div class="card today">
-  <p class="tone-name">today, for comparison</p>
-  <p class="hexes">the same buttons as they look in the app right now — one grey hover for every tone</p>
+  <p class="tone-name">before the sweep, for the record</p>
+  <p class="hexes">how these buttons looked until 2026-08-17 — one grey hover for every tone, a
+  brighter orange, a maroon red, and quiet's border and label disagreeing. Kept because the
+  cards above are only legible as an improvement next to what they replaced; NOT current.</p>
   <div class="row">
     <div class="cell"><span class="cap">action</span><button class="primary action">Submit</button></div>
     <div class="cell"><span class="cap">action</span><button class="secondary action">Restart</button></div>
@@ -279,7 +291,9 @@
 </div>
 
 <p class="lede" style="margin-top:2rem">
-  Temporary — delete <code>public/buttons.html</code> when the tones are settled.
+  Keep this in step with <code>src/common/theme.css</code> → CHROME. The tones are
+  settled; the sliders are here so a future change is <em>derived</em> rather than
+  hand-picked, which is the whole reason a family stays a family.
 </p>
 
 <script type="module">
@@ -362,10 +376,10 @@ const knobs = {
   dim: document.getElementById('dim'),
 }
 
-/* Each picker writes its tone's FILL and nothing else. */
+/* Each picker writes its tone's -primary and nothing else. */
 for (const el of document.querySelectorAll('.pick'))
   el.addEventListener('input', () => {
-    root.style.setProperty(`--${el.dataset.pick}-fill`, el.value)
+    root.style.setProperty(`--${el.dataset.pick}-primary`, el.value)
     apply()
   })
 
@@ -386,27 +400,28 @@ function apply() {
   document.getElementById('dimOut').textContent = `${Math.round(dim * 100)}% opacity`
 
   for (const tone of TONES) {
-    const fill = getComputedStyle(root).getPropertyValue(`--${tone}-fill`).trim()
+    const primary = getComputedStyle(root).getPropertyValue(`--${tone}-primary`).trim()
     const v = {
-      hover: darken(fill, dHover),
+      'primary-hover': darken(primary, dHover),
       // In target mode the STEP is whatever it takes to land there — and never
-      // negative, so a fill already darker than the target is left alone.
-      ink: darken(
-        fill,
-        knobs.inkTarget.checked ? Math.max(0, hexToOklab(fill)[0] - dInk) : dInk,
+      // negative, so a primary already darker than the target is left alone.
+      secondary: darken(
+        primary,
+        knobs.inkTarget.checked ? Math.max(0, hexToOklab(primary)[0] - dInk) : dInk,
         punch,
       ),
-      wash: overWhite(fill, tWash),
+      'secondary-hover': overWhite(primary, tWash),
     }
     for (const [k, hex] of Object.entries(v)) root.style.setProperty(`--${tone}-${k}`, hex)
 
     const swatch = document.querySelector(`.pick[data-pick="${tone}"]`)
-    if (swatch) swatch.value = fill
+    if (swatch) swatch.value = primary
 
     const card = document.querySelector(`.card[data-tone="${tone}"] .hexes`)
     if (card)
       card.textContent =
-        `fill ${fill} · hover ${v.hover} · ink ${v.ink} · wash ${v.wash}`
+        `-primary ${primary} · -primary-hover ${v['primary-hover']} · `
+        + `-primary-ink #ffffff · -secondary ${v.secondary} · -secondary-hover ${v['secondary-hover']}`
   }
 }
 
