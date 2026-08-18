@@ -463,6 +463,37 @@ moves the club page. Same test ui.md already applies to promoting a token, point
 downward, and the comment says which was intended. There is a difference between a
 dependency and a coincidence, and the code should enforce which one this is.
 
+**A COPY KEEPS THE SAME HEX.** Copying decouples the *name*; it never means
+inventing another shade. This is the half the rule above leaves unsaid, and
+without it the rule reads backwards — "these only coincidentally match, so I
+should pick a slightly different blue to be honest about it" — which inflates
+the very palette the sweep exists to shrink. Two names on one value is usually
+the right answer, and a good one: it keeps a future theme at **100 colours to
+change, not 200**.
+
+**So the default is COPY, and an alias has to earn itself.** "We already had a
+blue we liked" is not a dependency; strands' hint bar sitting directly beside the
+Hint button and deliberately echoing it is. The two failure modes are not
+symmetric, which is what makes the default the safe one:
+
+- Change one copy and forget the other, and you have **minted a stray hex by
+  accident**. That is a real cost — but it is one grep for the value away, and
+  the question it raises ("another name uses this; do both move?") is easy to
+  answer at a glance.
+- Get an alias wrong, and tuning one token **silently moves something you were
+  not looking at**, in a part of the app you had no reason to open.
+
+A detectable mistake beats an invisible one, so where the call is genuinely
+uncertain, copy.
+
+**The first thing this catches is the example above.** `--gamelist-won-color` /
+`-lost-color` ship as *aliases* to the outcome fills (`theme.css`) — the exact
+construction this section opens by warning about, with the reasoning for why a
+list stripe is a coincidence written directly underneath it. Under the rule they
+are copies. **Unresolved**: the mapping table below still says alias for those
+rows, and it was approved that way. Changing them moves no pixels (a copy keeps
+the hex), so it is a decision about coupling only.
+
 ### No cross-bucket borrowing
 
 A control does not use an outcome color; a game list does not use a chrome color.
