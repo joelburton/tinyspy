@@ -166,10 +166,25 @@ say so. Six values, no variants (they are 4px stripes and corner triangles):
 
 | token | means |
 |---|---|
-| `--gamelist-won` / `-lost` / `-neutral` | how a finished game went |
-| `--gamelist-unplayed` | nobody here has played this puzzle |
-| `--gamelist-open` | still open, we'll come back to it (today's `active`) |
-| `--gamelist-live` | this is THE one to join right now (today's `current`) |
+| `--gamelist-won-color` / `-lost-color` / `-neutral-color` | how a finished game went |
+| `--gamelist-unplayed-color` | nobody here has played this puzzle |
+| `--gamelist-suspended-color` | non-current and non-terminal: we'll come back to it |
+| `--gamelist-current-color` | a club member is viewing this right now |
+
+**The two state words come from [states.md](states.md), not from us.** It defines
+*current* ("at least one club member is viewing its GamePage right now", at most one
+per club, backed by `is_current_view`) and *suspended* ("just a description for a
+non-current, non-terminal game" — already the CSS class name `.openFlagSuspended`).
+It also contains this: *"Convention: don't use `'active'` as a play_state value.
+'Active' overloads view-state and play-state — using it for play_state invites the
+confusion this whole vocabulary exists to prevent."* The token is called
+`--color-outcome-active-border`. So this rename doesn't just tidy a name, it fixes a
+violation of a rule we wrote down and then broke in the palette.
+
+*Shelved* is deliberately not used here even though it's in the codebase: it's the
+**verb** (`sendSuspend` "shelves the game"; connections' new-game confirm "says
+shelved, not ended") and *suspended* is the resulting state. You shelve a game and
+it becomes suspended — a distinction worth keeping rather than collapsing.
 
 This folds in what was previously a separate "flags" bucket plus a documented
 exception for the crossword picker. There is no exception now: the picker is a
@@ -177,16 +192,68 @@ game list.
 
 **`chrome-*` — controls.** Their own names even where a hex matches an outcome's,
 because the two answer different questions and must move independently. **They are
-coincidentally equal, not kept in lockstep** — `--chrome-caution` may well be
+coincidentally equal, not kept in lockstep** — `--chrome-caution-color` may well be
 darkened for use as an icon and a border without `outcome-warning` moving at all.
-No variants: chrome states itself with text, border and icon; we do not fill a
-button with a lighter version of its own color.
+
+**Colour and treatment are separate axes, and only colour is a token.** A button is
+*filled* or *outline* — that is a class — and the tone says what kind of action it
+is. They compose 3 × 2, and the grid isn't hypothetical: strands already ships a
+filled caution (its ready-to-use Hint), and a filled destructive is easy to imagine
+("the thing you should do here is delete"). Which is why there is no
+`--chrome-primary-color`: "primary" describes the *treatment*, and calling Restart
+or New game "primary" would be wrong in exactly the way this sweep exists to fix.
 
 | token | for |
 |---|---|
-| `--chrome-caution` | Hint, Spoiler, AI suggest, Pass — consequential, not destructive |
-| `--chrome-destructive` | Reveal, End game, Concede, Delete — irreversible |
-| `--chrome-fault` | fault messages: the system failed |
+| `--chrome-action-color` | an action you can take — Submit (filled), Restart / New game (outline) |
+| `--chrome-caution-color` | Hint, Spoiler, AI suggest, Pass — consequential, not destructive |
+| `--chrome-destructive-color` | Reveal, End game, Concede, Delete — irreversible |
+| `--chrome-fault-color` | fault messages: the system failed. Same value as destructive, own name |
+| `--chrome-cursor-color` | where the keyboard is pointing in a list or a button set |
+| `--chrome-disabled-opacity` | how far a disabled control fades |
+
+Each of the three tones also carries **`-hover-color`** and **`-ink-color`**:
+
+- **`-hover-color` is "this tone, one step more committed"**, and the treatment
+  decides where it lands: the background on a filled button, the border + text (and
+  the icon, via `currentColor`) on an outline one. Two tokens per tone would need a
+  reason to differ and there isn't one — if a darker blue is right as a fill, it is
+  right as an edge. An outline button takes the shared `--page-surface-hover-color`
+  wash *as well*, and needs both: the gray alone reads as the button getting duller
+  rather than more engaged, which is exactly what it does today.
+- **`-ink-color` is read only by the filled treatment** (an outline button's text is
+  the tone itself, on the page). It exists because "filled buttons have white text"
+  was an assumption nobody had checked.
+
+`--chrome-cursor-color` takes no hover — a cursor is moved, not hovered. And
+**disabled stays an effect rather than three more colours**: the filled and outline
+forms degrade identically under opacity (2.04 vs 2.00 at today's 0.5), so per-tone
+disabled values would solve one problem twice and rot the day a base is tuned. It
+gets a *name* because it is currently a magic number in three places with one
+undocumented departure — strands uses 0.8, having judged 0.5 as reading "switched
+off" rather than "not yet", which may well be a global problem it noticed first.
+
+**The ink measurements.** Label contrast on each filled tone:
+
+| filled tone | white ink | dark ink |
+|---|---|---|
+| action `#1976d2` | **4.60** ✓ | 3.78 |
+| action, hovered `#1565c0` | 5.75 | 3.03 |
+| caution `#ef6c00` | **3.08** ✗ | 5.65 |
+| caution, hovered `#c05600` | 4.59 | 3.79 |
+| destructive `#8e1b2e` | **8.95** ✓ | 1.94 |
+
+strands' filled Hint carries white at 3.08 — under the 4.5 floor for a label, and
+nobody chose it; it fell out of the assumption. **Decision: white stays for now**,
+and the thing to revisit is the orange itself — an orange that can carry white ink,
+rather than an orange with dark ink on it. The token is where that question now
+lives, in the way of whoever next touches it.
+
+**The hover-direction rule.** The ink is picked for the resting fill but has to hold
+on the hover fill too, so a filled tone's hover must move in the direction that is
+safe for its ink: darker for white, lighter for dark. All three darken today, which
+is correct while all three carry white. If caution ever takes dark ink, its hover
+has to flip with it — and if it can't, the resting fill was the wrong colour.
 
 **`view-*` — what you are looking at.** `--view-history-color` (blue) and
 `--view-share-preview-color` (yellow). They wear the *same frame* as a finished
@@ -406,8 +473,10 @@ afterwards is attributable to the second commit rather than to 25 files of churn
    a better form: a hex fallback drifts silently from the token it shadows, and an
    optional-override fallback is a default declaration written in the wrong place.
 4. **Move every button off the outcome tokens** onto `chrome-*`, and delete the two
-   dead button tones. Splitting `active` / `current` into `gamelist-open` /
-   `gamelist-live` happens with the mapping above.
+   dead button tones — and give the three tones their `-hover` and `-ink` pairs,
+   which is where the filled-caution contrast question gets its home. Splitting
+   `active` / `current` into `gamelist-suspended` / `gamelist-current` happens with
+   the mapping above.
 5. **Rename the turn log's outcome vocabulary** (`good | bad | partial | neutral`)
    to the family names, so the TypeScript and the CSS stop needing translation.
 6. **Name the 95 unnamed colors**, each in the nearest right place: a common token
@@ -583,8 +652,8 @@ independent.
 | `--gamelist-lost-color` | alias → `--outcome-lost-fill-color` |
 | `--gamelist-neutral-color` | alias → `--outcome-neutral-fill-color` |
 | `--gamelist-unplayed-color` | copy of `--color-outcome-neutral-bg` — a 4px stripe wants its own lightness |
-| `--gamelist-open-color` | `--color-outcome-active-border` |
-| `--gamelist-live-color` | `--color-outcome-current-border` |
+| `--gamelist-suspended-color` | `--color-outcome-active-border` |
+| `--gamelist-current-color` | `--color-outcome-current-border` |
 
 **Deleted** (no consumer, and the concepts they named are gone):
 `--color-outcome-active-bg`, `--color-outcome-active-strong`,
@@ -594,10 +663,16 @@ independent.
 
 | new | from |
 |---|---|
-| `--chrome-accent-color` · `--chrome-accent-hover-color` | `--color-accent` · `--color-accent-hover` |
-| `--chrome-caution-color` | copy of `--color-warning-strong` — Hint / Spoiler / AI / Pass; free to darken for icon-and-border use without moving the outcome |
+| `--chrome-action-color` · `-hover-color` | `--color-accent` · `--color-accent-hover` |
+| `--chrome-action-ink-color` | NEW — white (4.60 on the fill) |
+| `--chrome-caution-color` | copy of `--color-warning-strong` — free to move without the outcome |
+| `--chrome-caution-hover-color` | NEW — today strands computes it as `color-mix(… 85%, black)` |
+| `--chrome-caution-ink-color` | NEW — white for now, at 3.08; the open question is a deeper orange, not darker ink |
 | `--chrome-destructive-color` | copy of `--color-sys-error-red` — Reveal / End / Concede / Delete |
+| `--chrome-destructive-hover-color` · `-ink-color` | NEW — darker red; white (8.95) |
 | `--chrome-fault-color` | `--color-sys-error-red` — the system failed. Same value as destructive, its own name |
+| `--chrome-cursor-color` | copy of `--color-accent` — the list/focus outlines, about half of that token's 54 uses |
+| `--chrome-disabled-opacity` | the global `button:disabled { opacity: 0.5 }`, named |
 
 ### view · mark · ink
 
@@ -686,6 +761,12 @@ in a `theme.css`, and one sitting in a component module wants a reason.
   already-used letter, and it is the only piece wearing one. Decided when
   letterboxed converts; the likely answer is yes — a way to tint a tile with a very
   subtle outcome color.
-- **`-terminal-frame` for `near` and `warning`** — reserved by policy (below), and
-  nothing will read them for a while. Pick them anyway, at the same sitting as won
-  and lost.
+- **`-terminal-frame` for `near` and `warning`** — reserved by policy, and nothing
+  will read them for a while. Pick them anyway, at the same sitting as won and lost.
+- **An orange that can carry white ink.** Filled caution is at 3.08 today. The fix
+  we want is a deeper orange that clears the floor while still reading as orange and
+  not as destructive's maroon — not dark ink on the current one. Try it during the
+  eyeball pass, with `--chrome-caution-ink-color` as the fallback if no orange works.
+- **Is `--chrome-disabled-opacity` right at 0.5?** It puts every disabled label at
+  2.0:1. Conventionally exempt, but strands already moved to 0.8 in one place. One
+  number, worth trying at 0.65 and 0.8 against real screens.
