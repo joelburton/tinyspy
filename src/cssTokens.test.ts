@@ -21,45 +21,6 @@ import { describe, expect, it } from 'vitest'
  * prefix.
  */
 
-/**
- * The mirror guard below (`every defined token is referenced`) needs one
- * exception list, because a token can be deliberately defined ahead of its
- * first caller.
- *
- * **Vocabulary completeness.** `common/theme.css` lays the outcome colors out as
- * a GRID — each tier (won / lost / active / near / current / neutral) × each
- * role (`-bg` fill, `-border`, `-strong` legible-on-white) — and fills every
- * cell even where nothing consumes it yet. That's the point: a complete,
- * predictable grid tells the next contributor "there's already a color for
- * current / neutral — use it" instead of minting a new one. Same argument for
- * the `--tile-*` ramp's top border.
- *
- * This list IS that policy, made executable. A token here is a deliberate
- * vocabulary slot; a token that ISN'T here and has no `var()` reader is dead
- * code and this test says so. Adding a name here is a real decision — it means
- * "the vocabulary is incomplete without this," not "the test is annoying."
- */
-const VOCABULARY_COMPLETENESS = new Set([
-  // ONE policy, not a list of excuses: every OUTCOME family carries all five
-  // variants (ink / fill / edge / wash / terminal-frame), because a family picked
-  // all at once is picked by one formula — where a colour chosen alone in two
-  // years would be reasoned about differently. So an outcome cell with no reader
-  // is reserved by design; nothing else in the palette gets that licence.
-  '--outcome-neutral-wash-color',
-  '--outcome-neutral-ink-color',
-  '--outcome-lost-wash-color',
-  '--outcome-near-edge-color',
-  '--outcome-warning-edge-color',
-  '--outcome-neutral-edge-color',
-  '--outcome-near-terminal-frame-color',
-  '--outcome-warning-terminal-frame-color',
-  // The CHROME tones used to need two entries here. They no longer do: every
-  // tone now wires BOTH treatments through ActionButton.module.css, so all
-  // twenty values have a reader. The policy they were claiming is enforced
-  // directly instead — see "the chrome tones are complete" below.
-  '--tile-4-edge-color',
-])
-
 const SRC = join(process.cwd(), 'src')
 
 function walk(dir: string, exts: string[]): string[] {
@@ -138,9 +99,16 @@ describe('CSS custom-property tokens', () => {
    * silently — a 2026-07-13 CSS audit hand-found four, three of them carrying
    * comments that described them as in use.
    *
-   * Deliberate vocabulary slots go in VOCABULARY_COMPLETENESS above, and that
-   * list is short on purpose. Anything else with no reader is dead: delete the
-   * declaration AND whatever comment claims it's live.
+   * **A reserved cell in a color family is not dead**, and it no longer needs an
+   * exception here to prove it. A family is picked at one sitting by one formula,
+   * including the cells nothing consumes yet, and
+   * `common/components/palette/palette.ts` reads every one of them — so the
+   * palette page is the reader, and this guard keeps its teeth everywhere else.
+   * That replaced a hand-maintained allow-list, which had to argue its own case
+   * in a paragraph and got argued with anyway.
+   *
+   * Anything else with no reader is dead: delete the declaration AND whatever
+   * comment claims it's live.
    */
   it('every defined token is referenced (no dead tokens)', () => {
     const { defined, refs } = scanTokens()
@@ -153,13 +121,14 @@ describe('CSS custom-property tokens', () => {
       refs.has(name) || dynamicPrefixes.some((p) => name.startsWith(p))
 
     const dead = [...defined.entries()]
-      .filter(([name]) => !isReferenced(name) && !VOCABULARY_COMPLETENESS.has(name))
+      .filter(([name]) => !isReferenced(name))
       .map(([name, file]) => `${name}  (defined in ${file})`)
 
     expect(
       dead,
-      `Defined but never read via var() — delete them, or add to VOCABULARY_COMPLETENESS if the ` +
-        `slot is deliberate:\n${dead.join('\n')}`,
+      `Defined but never read via var() — delete them. If the token is a reserved cell in a ` +
+        `color family, it belongs on the palette page (common/components/palette/palette.ts), ` +
+        `which is what keeps it alive:\n${dead.join('\n')}`,
     ).toEqual([])
   })
 })

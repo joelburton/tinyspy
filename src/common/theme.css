@@ -336,6 +336,7 @@
   --outcome-near-ink-color:           #f9a825;  /* yellow 800 — gold */
   --outcome-near-fill-color:          #ffb74d;  /* amber 300 — gold */
   --outcome-near-edge-color:          #d69a41;  /* the fill, 16% toward black */
+  --outcome-near-wash-color:          #ffecb3;  /* amber 100 — the fill's own 100 */
 
   /* WARNING — "you cannot do that", "you already tried that", "that costs you
      something". The one family named for a tone of voice rather than a result,
@@ -344,6 +345,7 @@
   --outcome-warning-ink-color:        #ef6c00;  /* orange 800 */
   --outcome-warning-fill-color:       #ffa726;  /* orange 400 */
   --outcome-warning-edge-color:       #d68c20;  /* the fill, 16% toward black */
+  --outcome-warning-wash-color:       #ffe0b2;  /* orange 100 — the fill's own 100 */
 
   /* NEUTRAL — a non-result: a move nobody can adjudicate, a game the friends
      agreed to stop. Its OWN gray ramp, NOT an alias of a chrome token — a surface

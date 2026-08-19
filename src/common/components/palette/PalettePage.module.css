@@ -1,0 +1,93 @@
+/*
+ * The palette page. Deliberately plain: nothing here should compete with the
+ * swatches, which are the only thing on the page worth looking at.
+ *
+ * Every color below comes from a token — this page is not exempt from its own
+ * subject matter, and `cssTokens.test.ts` would fail it anyway.
+ */
+
+.page {
+  max-width: 72rem;
+}
+
+.intro {
+  color: var(--page-text-muted-color);
+  margin-bottom: 1rem;
+}
+
+/* Jump links — the page is long, and you usually arrive wanting one family. */
+.index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--page-divider-color);
+}
+
+.family {
+  margin-top: 2.5rem;
+}
+
+/* members × variants, stated next to the heading: the shape IS the claim this
+ * page makes, so it should be readable without counting rows. */
+.count {
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: var(--page-text-muted-color);
+}
+
+.note {
+  max-width: 46rem;
+  margin: 0.25rem 0 1rem;
+  color: var(--page-text-muted-color);
+}
+
+/* Columns come from the component (one per variant, plus the label column). */
+.grid {
+  display: grid;
+  gap: 0.5rem 1rem;
+  align-items: start;
+}
+
+.variantHead,
+.memberHead {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--page-text-muted-color);
+}
+
+/* The member label sits beside a swatch block, not above it. */
+.memberHead {
+  align-self: center;
+  text-transform: none;
+  font-size: 0.95rem;
+  color: var(--page-text-color);
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.7rem;
+}
+
+/* A wide, short block: wide enough to judge a color against its neighbour, short
+ * enough that a family fits on one screen. The border is the page's own divider,
+ * not a swatch color — a pale swatch still needs an edge to have a size. */
+.swatch {
+  height: 2.5rem;
+  border: 1px solid var(--page-divider-color);
+  border-radius: var(--radius-sm);
+}
+
+.value {
+  color: var(--page-text-muted-color);
+}
+
+/* A token from another bucket. Muted rather than alarming — some borrows are
+ * correct — but never invisible. */
+.borrowed {
+  color: var(--outcome-warning-ink-color);
+}

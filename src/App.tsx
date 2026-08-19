@@ -8,6 +8,7 @@ import { GamePage } from './common/components/game/GamePage'
 import { PlayAreaErrorBoundary } from './common/components/game/PlayAreaErrorBoundary'
 import { PlayAreaSlotLog, PlayAreaReadyLog } from './common/components/game/PlayAreaMountLog'
 import { HomePage } from './common/components/home/HomePage'
+import { PalettePage } from './common/components/palette/PalettePage'
 import { EditProfileDialog } from './common/components/account/EditProfileDialog'
 import { useEditProfileOpen, setEditProfileOpen } from './common/lib/account/editProfileStore'
 import { WordEditDialog } from './common/components/definitions/WordEditDialog'
@@ -84,6 +85,10 @@ export default function App() {
   const wordEdit = useWordEdit()
 
   if (loading) return <div className="card">Loading…</div>
+  // The palette page, ahead of the auth gates on purpose: it renders tokens, not
+  // data, so there is nothing to sign in for. Unlinked but not hidden — it ships,
+  // and anyone who types the path gets it. See PalettePage for what it is for.
+  if (path === '/palette') return <PalettePage />
   if (!session) return <LoginScreen />
   // Signed in but no profile row yet — block all app routes until
   // they pick a username. ClaimHandleScreen calls refresh() on
