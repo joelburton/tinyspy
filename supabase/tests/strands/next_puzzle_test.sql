@@ -180,7 +180,7 @@ select is(
 -- games is soft (on delete set null), so this is safe.
 --
 -- Back to the superuser first: `authenticated` has no DELETE on the archive
--- (correctly), and this is fixture surgery, not behaviour under test.
+-- (correctly), and this is fixture surgery, not behavior under test.
 reset role;
 select set_config('request.jwt.claims', '', true);
 

@@ -35,7 +35,7 @@ Why this matters here:
 - **Always-present feedback slot.** "Already tried that," "Correct!," "Out of guesses." A dedicated slot that's the same height whether populated or empty. Content fades in and out; the slot stays. (See "Feedback pill" below.)
 - **Scrollable regions for unbounded lists.** Guess history, clue history, chat. The outer container is fixed; the inner content scrolls. The game frame doesn't grow with the history.
 - **Modal for rare-and-rich.** The win *moment* → the `<CelebrationDialog>` overlaying the static layout; the *record* (the verdict, the replay/new-game actions) rotates into reserved in-page slots instead — see [Terminal results](#terminal-results--the-moment-vs-the-record). The play surface stays visible in review mode either way.
-- **Disabled in place, not removed.** The clue-input field is always rendered; greyed out when it's not your turn. Same shape, different state.
+- **Disabled in place, not removed.** The clue-input field is always rendered; grayed out when it's not your turn. Same shape, different state.
 
 > **⚠️ The #1 offender — conditionally removing a flow element on state change.** Writing `{showInput && <CommitRow/>}` / `{isTerminal ? … : <EntryRow/>}` so the input/commit/entry row is *removed* at terminal looks harmless, but the board above is usually `flex: 1` — so when the row vanishes, **the board grows into the freed space.** That's a reflow on a state change, the exact thing this section forbids.
 >
@@ -72,7 +72,7 @@ type FeedbackMsg = {
   tone: FeedbackTone
   text: string
   dot?: string                          // leading player-color disc (from colorVarFor) — identity anchor for peer messages
-  mode:                                 // what KIND of message — decides both behaviour AND look
+  mode:                                 // what KIND of message — decides both behavior AND look
     | { kind: 'sticky' }                // until replaced, or the player acts (key / tile / tap the pill)
     | { kind: 'timed'; ms?: number }    // self-dismisses after the delay; a tap kills it early
     | { kind: 'manual' }                // the × is the ONLY way out
@@ -92,13 +92,13 @@ feedback: {
 - **`manual`** for the rare message the player should actively acknowledge, where a stray keystroke mustn't wipe it — stackdown's revealed-word spoiler, which has to linger while they hunt for the tiles. The `×` is the only way out. (Named `manual`, not `closeable`: every mode but `permanent` can be closed, so `closeable` didn't distinguish it from anything.)
 - **`permanent`** for a standing CONDITION rather than a message: the terminal verdict, "Conceded — race continues", codenamesduet's sudden death. Nothing dismisses it — a later pill **replaces** it, which is how out-of-race gives way to the final verdict.
 
-**One field, because the alternative leaked.** This used to be two — a `variant` for appearance beside a `dismiss` for behaviour — whose product allowed six states for four real meanings. "Permanent" had no name; it was spelled `variant: 'fill'` + `sticky`, so *whether a pill could be dismissed* had to be read off a styling prop. Two bugs came straight out of that: the out-of-race pill was filed as `sticky` (so a keystroke wiped the only statement of the player's own status), and eight transient messages wore the permanent background by forgetting to say `outline`. Appearance now follows the mode, and neither mistake is expressible.
+**One field, because the alternative leaked.** This used to be two — a `variant` for appearance beside a `dismiss` for behavior — whose product allowed six states for four real meanings. "Permanent" had no name; it was spelled `variant: 'fill'` + `sticky`, so *whether a pill could be dismissed* had to be read off a styling prop. Two bugs came straight out of that: the out-of-race pill was filed as `sticky` (so a keystroke wiped the only statement of the player's own status), and eight transient messages wore the permanent background by forgetting to say `outline`. Appearance now follows the mode, and neither mistake is expressible.
 
 **Tapping the pill dismisses it** — the `sticky` and `timed` modes. This isn't a new interaction: the rule was always *"your next action clears the feedback"* (a keystroke via `useCaptureKeys`, a tile click via the game's own handler), and tapping the message **is** an action. On touch that rule had one fewer way to fire — there is no next keystroke — so a player who read "Not a word" and tapped it got nothing, and had to start the next word to clear it (found on a phone playing letterboxed). Both feedback areas behave the same way, local and global, because a rule the player has to learn twice isn't a rule.
 
 Two exclusions, both deliberate. **`manual` keeps its `×` as the only target** — its whole point is see-and-acknowledge, and a body that swallowed the gesture would make the `×` look decorative. **`permanent` isn't dismissable at all**: it's a condition, not a message you've finished reading, and nothing would bring it back. The pill is a plain click target, never a `role="button"`: a game can show a hundred of these and none of them should become tab stops; `cursor: pointer` tells a mouse user what the tap teaches by working. Pinned by [`GenericFeedbackPill.test.tsx`](../src/common/components/feedback/GenericFeedbackPill.test.tsx) (both exclusions, both directions) and [`letterboxed.e2e.ts`](../e2e/letterboxed.e2e.ts) at phone size.
 
-**Transient vs permanent (the look, which now follows `mode`).** Every pill's **whole border is the tone color** (saturated `--outcome-*-ink-color`) — a thick **left bar** (like the turn-log outcome bars) plus thin sides in the *same* color, uniform width on every pill. (A pale-grey side border read as no border, so the sides carry the tone too; `neutral` has no tone, so its border is a visible dark grey.) The mode only changes the **background**: `sticky` / `timed` / `manual` are *messages* and get a plain white background. `permanent` — the terminal verdict, out-of-race, an end-game mode like codenamesduet's sudden death — gets a **lightened-tone background**, so a permanent `error` (light-red fill) reads as *more* emphatically "error" than a transient one (white fill). The fill is the permanence signal. **Peer identity is independent of it:** a message about another player ("● leah found APPLE") carries a leading `dot` in their player color whatever its mode — the dot, never the fill, says *who* (the `dot`-carries-identity rule from [Player identity = a colored disc](#player-identity--a-colored-disc)).
+**Transient vs permanent (the look, which now follows `mode`).** Every pill's **whole border is the tone color** (saturated `--outcome-*-ink-color`) — a thick **left bar** (like the turn-log outcome bars) plus thin sides in the *same* color, uniform width on every pill. (A pale-gray side border read as no border, so the sides carry the tone too; `neutral` has no tone, so its border is a visible dark gray.) The mode only changes the **background**: `sticky` / `timed` / `manual` are *messages* and get a plain white background. `permanent` — the terminal verdict, out-of-race, an end-game mode like codenamesduet's sudden death — gets a **lightened-tone background**, so a permanent `error` (light-red fill) reads as *more* emphatically "error" than a transient one (white fill). The fill is the permanence signal. **Peer identity is independent of it:** a message about another player ("● leah found APPLE") carries a leading `dot` in their player color whatever its mode — the dot, never the fill, says *who* (the `dot`-carries-identity rule from [Player identity = a colored disc](#player-identity--a-colored-disc)).
 
 **Tone follows the event, not the viewer's stake.** One event reads as **one tone everywhere**, regardless of whether it helps or hurts the viewer. A *found word is green* in **both** modes: coop (a teammate found one) and compete (an opponent found one — adverse to me, but still "they found a word"). We do **not** recolor by competitive stake. Otherwise the player maintains two color-meanings for the same event — green-means-found in coop, something-else in compete — which is hard to learn and easy to misread; the identity `dot` already says *who*, so the tone is free to say only *what happened*.
 
@@ -205,7 +205,7 @@ Three properties, and each one is a decision (`common/hooks/game/useSolutionReve
 - **Temporary.** The same control puts it away: `RevealButton` takes `revealed` and swaps to `EyeOff` / *Hide*. This is the one that mattered most. For the games whose reveal **rewrites the board** — crosswords (fills the grid), strands (draws the unfound words), waffle (swaps in the solved grid), connections (bands replace the tiles) — a permanent reveal destroyed the only record of *how far the players actually got*. Now the board they finished with is always one click back.
 - **Unpersisted.** No RPC, no column, nothing on realtime, nothing to un-write on a replay, and a reload lands back on the board as it ended. What each game *does* still owe is dropping the local reveal in its `onRestarted` — a replay of the same board must start blind, and no server flag remembers that for it any more.
 
-**A game you SOLVED starts revealed.** Six of the ten have a **clear win** — you can only reach the end by producing the answer — so asking the solver to press Reveal is asking them to uncover what they're looking at: **strands** (the theme words tile the board exactly, so solving consumes every cell), **psychicnum** (finding all three IS the win, and a found secret is already green), **stackdown** (you played all six words), **waffle** (your solved grid IS the solution), **connections** (each match resolves into a band, so all four are up), **wordle** (you typed it). Their Reveal goes **inert with "Solution already shown"** — present, never absent, so the row keeps its shape against a game that ended some other way. It keeps the **plain View eye, not EyeOff**: both readings are technically true (you can't hide what the win put there, and you can't show what's already shown), but a solver never pressed Reveal, so there is no "on" state for a struck-through eye to be the "off" of — it reads as a state they don't recognise.
+**A game you SOLVED starts revealed.** Six of the ten have a **clear win** — you can only reach the end by producing the answer — so asking the solver to press Reveal is asking them to uncover what they're looking at: **strands** (the theme words tile the board exactly, so solving consumes every cell), **psychicnum** (finding all three IS the win, and a found secret is already green), **stackdown** (you played all six words), **waffle** (your solved grid IS the solution), **connections** (each match resolves into a band, so all four are up), **wordle** (you typed it). Their Reveal goes **inert with "Solution already shown"** — present, never absent, so the row keeps its shape against a game that ended some other way. It keeps the **plain View eye, not EyeOff**: both readings are technically true (you can't hide what the win put there, and you can't show what's already shown), but a solver never pressed Reveal, so there is no "on" state for a struck-through eye to be the "off" of — it reads as a state they don't recognize.
 
 For three of them it's a real convenience rather than a no-op: stackdown's six words, strands' `Words:` line and wordle's answer line are the same answer gathered as **click-to-define text**, which the board itself doesn't give you. For waffle, connections and psychicnum the only visible change is the control going quiet.
 
@@ -224,7 +224,7 @@ The four games without a clear win keep asking: **letterboxed** (a win is any co
 
 **Every gated game offers the reveal twice** — a `RevealButton` in the terminal action row *and* a game-menu item, both wearing the same two faces — so a player who's scrolled past the row, or who is on the mobile layout where the info column is off-canvas, can still get to it.
 
-**Showing the answer means the whole answer.** crosswords learned this one late: its reveal filled the blanks but left a wrong letter standing, which is a half-corrected grid rather than the solution. The author's letter now replaces the player's in every cell, greyed — grey meaning "this letter is the author's, not yours", so the key doubles as a diff — and Hide brings their fill, marks and all, straight back. Overwriting what's on screen is only safe *because* it comes back.
+**Showing the answer means the whole answer.** crosswords learned this one late: its reveal filled the blanks but left a wrong letter standing, which is a half-corrected grid rather than the solution. The author's letter now replaces the player's in every cell, grayed — gray meaning "this letter is the author's, not yours", so the key doubles as a diff — and Hide brings their fill, marks and all, straight back. Overwriting what's on screen is only safe *because* it comes back.
 
 **The club-list title follows the same rule**: a title that spells the answer spoils the game from the outside, which is exactly what wordle's `_sync_title` did until 2026-08-02. It can't key on the reveal either — that's one player's private click, and the title is club-wide — so every game's title-writer names only what the players actually earned (wordle: the last guess, which on a win *is* the answer; stackdown: the words they cleared; waffle: the best board's correct words; psychicnum + codenamesduet: board words, never the key).
 
@@ -404,7 +404,7 @@ This rule applies *within each namespace separately*. `--codenamesduet-agent` is
 
 ### No `var()` fallbacks
 
-Reference tokens as `var(--page-surface-color)`, never `var(--page-surface-color, #fff)`. We own the entire custom-property namespace, so a fallback can't guard against a third-party theme not setting the token — it can only *mask* one of our own bugs: a typo, or a rename that didn't land everywhere. Worse, the fallback silently drifts (we found `var(--page-text-color, #1a1a1b)` against a real token of `#1a1a1a`), so the day the token *does* fail to resolve you get a subtly-wrong colour, not a visible failure.
+Reference tokens as `var(--page-surface-color)`, never `var(--page-surface-color, #fff)`. We own the entire custom-property namespace, so a fallback can't guard against a third-party theme not setting the token — it can only *mask* one of our own bugs: a typo, or a rename that didn't land everywhere. Worse, the fallback silently drifts (we found `var(--page-text-color, #1a1a1b)` against a real token of `#1a1a1a`), so the day the token *does* fail to resolve you get a subtly-wrong color, not a visible failure.
 
 The safety net is build-time, not a fallback: [`src/cssTokens.test.ts`](../src/cssTokens.test.ts) fails if any `var(--x)` references a token that isn't defined in a stylesheet or set inline from a component. That's the "make missing tokens obnoxious-pink" instinct done one better — it screams in CI before the bug can ship, instead of hoping someone looks at the affected pixel. A missing token is always a bug here; treat the test going red as a real failure, not noise.
 
@@ -416,7 +416,7 @@ The theme is light: `common/theme.css` sets the surface tokens light and declare
 
 Dark / light / pink / etc. as a *user setting* is still deferred: there are no alternate themes, no picker on the profile form, and no switching mechanism (a `[data-theme]` selector, `prefers-color-scheme`). The foundation that does exist is the CSS side — vars at `:root`, semantic names — plus, since 2026-08-03, **`common.profiles.theme`**: a reserved free-form `text` column, nullable, unread by anything.
 
-Reserving a column while deferring the feature is deliberate and worth distinguishing from pre-engineering. It costs one line and no behaviour, and it means the *shape* of the setting ("a per-user string on the profile") isn't being invented later under whatever pressure prompts the theming work. NULL means "no preference — use the app default", which is what every row says today; don't seed a magic default name, and constrain the column (a CHECK or an enum) once real theme names exist.
+Reserving a column while deferring the feature is deliberate and worth distinguishing from pre-engineering. It costs one line and no behavior, and it means the *shape* of the setting ("a per-user string on the profile") isn't being invented later under whatever pressure prompts the theming work. NULL means "no preference — use the app default", which is what every row says today; don't seed a magic default name, and constrain the column (a CHECK or an enum) once real theme names exist.
 
 Everything else about the feature stays YAGNI. **Don't pre-engineer the mechanism.**
 
@@ -464,12 +464,12 @@ not a thing with qualities; the quality *is* the thing. Stated so nobody "fixes"
 | `pill-*` | the feedback pill's seven tones |
 | `toast-*` | a toast's left stripe |
 | `view-*` | what you are looking at — history, share-preview |
-| `mark-*` | the board-feedback vocabulary ([tile-feedback.md](tile-feedback.md)) — dims, attention, flash durations, the grid cursor |
+| `mark-*` | the board-feedback vocabulary ([tile-feedback.md](../plans/tile-feedback.md)) — dims, attention, flash durations, the grid cursor |
 | `member-*` | player identity, one per value of `common.profiles.color` |
 | `gamemode-*` | coop vs compete |
 | `page-*`, `control-*` | page furniture and form chrome |
 | `tile-*`, `kbd-*`, `rank-*` | the warm tile ramp, the on-screen keyboard, the word-rank ladder |
-| `wordle-*` | the letter-judgement palette, shared by wordle and waffle |
+| `wordle-*` | the letter-judgment palette, shared by wordle and waffle |
 | per-game | **brand** colors, in that game's own `theme.css` |
 
 `wordle-*` is the one family named for colors rather than meanings, deliberately:
@@ -555,7 +555,7 @@ An alias is right when *the two differing would be a bug*.
 game shown as won on the club page and a game won on the board say the identical
 thing. That holds even though one is a 4px stripe and the other a whole tile face
 — **a rendering difference does not make a coincidence.** If a thin stripe needed
-a lighter green to read, that is a variant within the won family, not a licence to
+a lighter green to read, that is a variant within the won family, not a license to
 decouple.
 
 A copy is right when two messages merely agree today. `--chrome-fault-color` and
@@ -683,7 +683,7 @@ A layout-static row that every game shares. Same shape, same affordances, same p
 
 **Right, right-justified:**
 
-- **`<PauseButton />`** — pause icon (two-bar style). Click fires `sendManualPause` from `useCommonGame`. Greyed-out (disabled) when the game is already paused; the resume affordance lives on `<PauseOverlay>`, not in the header. **Always present** — manual pause is universal, not timer-gated; even an untimed game wants the "moth is making tea" affordance.
+- **`<PauseButton />`** — pause icon (two-bar style). Click fires `sendManualPause` from `useCommonGame`. Grayed-out (disabled) when the game is already paused; the resume affordance lives on `<PauseOverlay>`, not in the header. **Always present** — manual pause is universal, not timer-gated; even an untimed game wants the "moth is making tea" affordance.
 - **Timer** — `{ displaySeconds, expired }` from `useCommonGame`. Rendered only when `commonGame.setup.timer.kind !== 'none'`. `font-variant-numeric: tabular-nums` so digits don't shift the right edge as values change.
 
 **What's gone:** the game title. Identifying the game is the logo's job; the per-instance title (e.g. connections's puzzle date) still lives in the club-page listing where it has room to breathe.
@@ -715,7 +715,7 @@ The logo is a menu trigger. Click opens a dropdown anchored below it; same trigg
 
 Dispatching through the *menu item* rather than a callback is what makes `+` work on **every** game that offers New game — including one whose only affordance is the menu, with no button on screen — and it inherits the item's `disabled` state for free. New game isn't built by `buildGameMenu` (the board each game deals is its own), so the shared id is the contract between the games and the shell.
 
-**⌥+ — "new game from setup"** is the one shortcut with **no menu item**: the power-user variant of `+`. Where `+` reuses this game's setup verbatim, `⌥+` stops at the setup dialog so you can change the options first. It asks the same `NEW_GAME_CONFIRM` mid-play, then hands off to `/c/<club>?new=<gametype>` — the setup dialog lives on ClubPage, and that's the same route crosswords' own New game uses. Cancelling the dialog simply leaves you on the club page. It matches on `e.code === 'Equal'`, not `e.key`, because Option changes the character a key emits (⌥= is `≠` on a Mac) — the same reason ⌥⌫ matches `code`; that also makes ⌥= and ⌥⇧= both work, so the shift is optional.
+**⌥+ — "new game from setup"** is the one shortcut with **no menu item**: the power-user variant of `+`. Where `+` reuses this game's setup verbatim, `⌥+` stops at the setup dialog so you can change the options first. It asks the same `NEW_GAME_CONFIRM` mid-play, then hands off to `/c/<club>?new=<gametype>` — the setup dialog lives on ClubPage, and that's the same route crosswords' own New game uses. Canceling the dialog simply leaves you on the club page. It matches on `e.code === 'Equal'`, not `e.key`, because Option changes the character a key emits (⌥= is `≠` on a Mac) — the same reason ⌥⌫ matches `code`; that also makes ⌥= and ⌥⇧= both work, so the shift is optional.
 
 **⇧< means "up a level", not "back to club" specifically** — the ClubPage menu's *Back to home* item carries the same shortcut, taking you from a club to the club list. One key, one meaning, wherever you are. (ClubPage's handler additionally bails inside an open dialog / menu / floating panel — navigating out from under an open setup dialog would be its own bug. GamePage's older twin bails only on editable fields; worth aligning next time that file is open.)
 
@@ -753,7 +753,7 @@ menu: {
 - **desktop — a flyout** beside the parent row, parent left lit so it's clear which panel belongs to it;
 - **mobile — a drill-down** that replaces the list, headed by a `‹ <parent>` row.
 
-The split is by viewport because a flyout has nowhere to go on a phone: the popover already runs to its `max-width` cap there, so a second panel beside it would only ever land on top of the first. Both shapes share **one** piece of state, because in both an open submenu takes over keyboard navigation entirely — so the flat-index model survives and Back is modelled as a nav row rather than special-cased. `ArrowRight`/Enter opens, `ArrowLeft`/Escape steps back out (focus returning to the parent row), and **Escape unwinds one level at a time** rather than dismissing the whole menu. Opening is by **click, not hover** — hover-open fires as you arrow past a row and means nothing on a touchscreen laptop.
+The split is by viewport because a flyout has nowhere to go on a phone: the popover already runs to its `max-width` cap there, so a second panel beside it would only ever land on top of the first. Both shapes share **one** piece of state, because in both an open submenu takes over keyboard navigation entirely — so the flat-index model survives and Back is modeled as a nav row rather than special-cased. `ArrowRight`/Enter opens, `ArrowLeft`/Escape steps back out (focus returning to the parent row), and **Escape unwinds one level at a time** rather than dismissing the whole menu. Opening is by **click, not hover** — hover-open fires as you arrow past a row and means nothing on a touchscreen laptop.
 
 Two consequences worth knowing. The flyout is `position: fixed`, not absolutely positioned inside the popover: `.popover` is `overflow-y: auto`, and the spec computes `overflow-x` to `auto` alongside it, so an absolutely-positioned child would be **clipped** at the popover's edge instead of overflowing. Scrolling the parent list therefore closes the flyout rather than letting it detach (crosswords' ~20-item menu really does scroll). And a submenu parent has no `onClick`, so the shell's `+` / `⌥⌫` shortcut dispatchers call `item.onClick?.()` — a real guard, not appeasement.
 
@@ -792,7 +792,7 @@ The body Members list and the `/c/<handle>` URL line are gone — the header's `
 **Filtering the two lists.** Each column's heading is a row: the `h3` on the left, that list's filter on the right ([`ModeFilter`](../src/common/components/club/ModeFilter.tsx) / [`GametypeFilter`](../src/common/components/club/GametypeFilter.tsx), sharing `clubFilters.module.css` so the paired controls can't drift). Both are pure FE state over data already in hand — nothing refetches — but they **persist differently**, because they mean different things. The mode filter is a standing taste ("I'm here to play compete games") that narrows a *menu of things you could start*, hiding nothing that exists, so re-picking it every visit is friction: it sticks, via [`useStickyChoice`](../src/common/hooks/ui/useStickyChoice.ts) in localStorage, keyed by user (across clubs — the taste is yours, not the club's). The gametype filter is **not** persisted: it narrows a list of the club's *real games*, so a remembered one hides games that are still there, and a club page that opened already filtered from last week would read as "where did our games go?"
 
 - **Start a new game → by mode.** Three `aria-pressed` toggle buttons, `All | Co-op | Compete`, mirroring the mobile tab bar's shape one size down. They decline focus on mousedown, exactly like the start buttons below them, so narrowing the list doesn't blank the keyboard cursor you were about to arrow with. **A solo club gets no mode filter at all** — mode is noise with one player, the same call [`<ModePill>`](#mode-pills) makes when it drops the "Co-op" badge there, and a filter for a distinction the page isn't drawing is worse than the space it frees. (ClubPage still pins the effective mode to `all` there, so nothing can be left filtered by a control that isn't on screen; on mobile the filter row itself is skipped, since an empty one would still claim the frame's gap.)
-- **Your games → by gametype family.** A compact `<select>`, one choice per `baseGametype` **present in the list** (so a choice can never empty it), labelled with the brand and sorted by it. **Siblings collapse:** one "WordNerd" covers `wordle_coop` *and* `wordle_compete` — the friends think in games, not manifest entries, and the mode axis already has its own filter on the other column. A native select rather than more buttons because this is a list of up to sixteen, not a switch. It can't decline focus the way the mode buttons do (a select needs the press to open its popup), so it borrows the games list's focus — and ClubPage hands it straight back on `change`, which makes the detour a round trip: narrow the list, keep arrowing it.
+- **Your games → by gametype family.** A compact `<select>`, one choice per `baseGametype` **present in the list** (so a choice can never empty it), labeled with the brand and sorted by it. **Siblings collapse:** one "WordNerd" covers `wordle_coop` *and* `wordle_compete` — the friends think in games, not manifest entries, and the mode axis already has its own filter on the other column. A native select rather than more buttons because this is a list of up to sixteen, not a switch. It can't decline focus the way the mode buttons do (a select needs the press to open its popup), so it borrows the games list's focus — and ClubPage hands it straight back on `change`, which makes the detour a round trip: narrow the list, keep arrowing it.
 
 The heading's count and the keyboard cursors both read the **visible** list, so a filtered-out game is unreachable by arrow keys too. Guarded by [`club-filters.e2e.ts`](../e2e/club-filters.e2e.ts).
 
@@ -850,10 +850,10 @@ Same principle, applied to components.
 
 - `FloatingChat`, `PauseBoundary`, `PauseOverlay`, `SuspendConfirmDialog`, `TimerField`, `ClubGameCard`, `StartGameButtons` are shared. The route-level `<GamePage>` mounts the cross-cutting ones (chat, pause, suspend confirm, timer in header) so every game inherits them.
 - `LoginScreen`, `HomePage`, `ClubPage`, `CreateClubPage` are shell-level, game-agnostic.
-- **The account submenu** ([`useAccountMenuSection`](../src/common/hooks/account/useAccountMenuSection.ts)) is the last section of every page's own menu — GamePage's, ClubPage's, and HomePage's. One row labelled with the **username**, opening **Profile** and **Log out**.
-  - **It used to be a `<UserMenu>`**: a fixed profile-colour dot pinned to the viewport's top-right on every authenticated screen. That chip forced the GamePage header to carry `margin-right: 2rem` of permanently reserved width for it to overlap — dead space at every viewport, and exactly the width the mobile game header needs for feedback. Folding the items into the menu that was already there reclaimed all of it and **removed** a control rather than adding one.
+- **The account submenu** ([`useAccountMenuSection`](../src/common/hooks/account/useAccountMenuSection.ts)) is the last section of every page's own menu — GamePage's, ClubPage's, and HomePage's. One row labeled with the **username**, opening **Profile** and **Log out**.
+  - **It used to be a `<UserMenu>`**: a fixed profile-color dot pinned to the viewport's top-right on every authenticated screen. That chip forced the GamePage header to carry `margin-right: 2rem` of permanently reserved width for it to overlap — dead space at every viewport, and exactly the width the mobile game header needs for feedback. Folding the items into the menu that was already there reclaimed all of it and **removed** a control rather than adding one.
   - **Still user-focused only.** It carries no club- or game-specific items; the two mental models stay separate, now by *nesting* rather than by a second menu. Correspondingly, a game menu never puts game actions inside it.
-  - **The label is the username, not "Account"** — the dot it replaced answered "who am I signed in as" at a glance, and a generic label would drop that fact. (The colour itself is still on screen wherever identity matters: the players strip, the club member list, a turn log's actor column.)
+  - **The label is the username, not "Account"** — the dot it replaced answered "who am I signed in as" at a glance, and a generic label would drop that fact. (The color itself is still on screen wherever identity matters: the players strip, the club member list, a turn log's actor column.)
   - **HomePage gained a header for this** — the square site logo hard against the page's top-left opening the page menu, thin rule beneath, the same strip ClubPage and GamePage carry (measured: the trigger lands at the same x/y as ClubPage's). It is PAGE chrome, outside home's centered `.card`: a first version put it inside, where it inherited the card's 2rem padding and border and so read as content, lining up with nothing else in the app. It had no menu at all before, which made home the one authenticated screen with no route to Profile or Log out once the fixed chip went away. A first attempt hung the menu off the **wordmark**; that reads badly (a hero image isn't a control, and the disclosure chevron had nowhere to sit on a 400px-wide PNG), so the wordmark went back to being artwork. The header is also where a future Help or other non-user item goes — home has nowhere else to put one.
 - **`useAppShortcuts` takes `{ chat: false }`** for a page with no chat panel mounted. Chat is club-scoped, so on HomePage `/` would flip the shared open flag and show nothing — a key that silently does nothing is worse than one that isn't bound, because the next person debugging it starts from "chat is broken" rather than "chat isn't here". Unbound, `/` is left to the browser's find-in-page. `?` and `~` are page-independent and stay on.
 - `<EditProfileDialog>` — the Edit-profile popup, a `<FloatingPanel>` (not a route) so the page underneath stays mounted and live. Mounted at App level and opened from the account submenu of whichever page menu is on screen — so the flag crosses subtrees and lives in a tiny store ([`editProfileStore`](../src/common/lib/account/editProfileStore.ts)) rather than in App's own state. It stays mounted high in the tree deliberately: react-rnd positions a `<FloatingPanel>` from its static flow position, so mounting it inside a page's flex column lands it far from where you expect (see the FloatingPanel gotcha below). Today it edits one field — **player color**, via `<ColorChoiceList>` (below), defaulting to the current color. Saves via `common.update_profile_color`, then `setProfileColor` updates the shared profile store so the menu dot repaints at once. Username is shown but immutable in v1. Dialog buttons follow the [Dialog buttons](#dialog-buttons) convention.
@@ -939,7 +939,7 @@ reason (below).
 (psychicnum, connections, boggle, scrabble — decided/result states then override by
 re-setting the tokens). **stackdown** shades its stack by depth off shades **1–4**
 (top = 1, deepest = 4). Legitimate divergences: **wordle** and **waffle** always
-colour tiles by the wordle result palette (green/yellow/gray), so they never show a
+color tiles by the wordle result palette (green/yellow/gray), so they never show a
 ramp shade; **codenamesduet** uses its role colors (agent green / neutral tan /
 assassin red) with the ramp only for unpicked cards; **spellingbee** uses `--tile-2-color`
 for its hexes + an accent-yellow center. If a game's tiles are always meaning-coded
@@ -954,7 +954,7 @@ inverts cleanly); the semantic token names make it a one-file swap.
 outcome is known and fixed (psychicnum: a submitted guess — green = a secret, red
 = a miss; connections: a tile placed into a solved category — it becomes part of
 that category's colored band). A decided tile colors **permanently** by re-setting
-`--tile-bg-color` / `--tile-border-color`, dropping any spent/dim/grey treatment — the color
+`--tile-bg-color` / `--tile-border-color`, dropping any spent/dim/gray treatment — the color
 *is* the "already decided" signal and a record of what's found vs ruled out. It's
 mutually exclusive with the selected dark-fill (a decided tile is `disabled`, so
 it's never both).
@@ -1049,7 +1049,7 @@ Because the pill carries the mode, the per-game `labelFor` status strings (shown
 
 `<button>` is the app's most-overloaded element — 102 of them, and most are not
 buttons in the sense a designer means. **So the bare element is NEUTRAL**: font,
-colour, cursor and a radius, and nothing else. Chrome is opt-in:
+color, cursor and a radius, and nothing else. Chrome is opt-in:
 
 ```
 button                    neutral — font: inherit · color: inherit · cursor: pointer · border-radius
@@ -1061,7 +1061,7 @@ button                    neutral — font: inherit · color: inherit · cursor:
 ```
 
 So every general button is `button primary` or `button secondary` — **never
-`button` alone**, which is a shape with no colour and looks it. That split is the
+`button` alone**, which is a shape with no color and looks it. That split is the
 class-layer twin of the token rule: *both treatments marked, no unmarked
 default.* `.button` first carried the shape **and** the filled paint, which made
 "unmarked" silently mean "primary" — one name doing two jobs, exactly the fault
@@ -1069,7 +1069,7 @@ default.* `.button` first carried the shape **and** the filled paint, which made
 `.secondary` only won by being declared after `.button` at equal weight; now
 exactly one treatment rule matches and nothing overrides anything.
 [`cssTokens.test.ts`](../src/cssTokens.test.ts) holds all three parts: `.button`
-declares no colour, each treatment declares all of background + border + label,
+declares no color, each treatment declares all of background + border + label,
 and no markup carries `.button` without naming a treatment.
 
 **To see the grid, open [`buttons.html`](buttons.html)** — every tone in both
@@ -1079,7 +1079,7 @@ the reason it is kept rather than deleted is that a picture of the palette canno
 drift silently into prose the way a paragraph can.
 
 It used to be the other way round: the bare element was the filled accent
-button, so every `<button>` that isn't one opened by cancelling the fill, the
+button, so every `<button>` that isn't one opened by canceling the fill, the
 border and the padding it had just been handed — twenty-nine rules whose first
 three lines were an apology. Worse, it made a blanket hover impossible (a hover
 right for Submit is a lie on a codenamesduet tile), so the most-clicked control
@@ -1102,7 +1102,7 @@ give* — which is the useful cut, not what they do:
 | **Accidental** — don't look like buttons and shouldn't act like them | `trigger` · `row` · `textlink` · `surface` | *Surface* feedback, not button feedback: rows tint with `--page-surface-hover-color`, textlinks underline, surfaces do whatever their content wants |
 | **Game pieces** — don't look like buttons, have depth | `piece` | Depth on hover, darkening on press (below) |
 | **Keyboard** — look a bit like buttons, have some depth | `key` | Deliberately flatter than a piece, but it sits on a game surface, so not chrome-flat either |
-| **General buttons** — flat, but they get a hover so they don't look dead | `action` · `form` · `choice` · `toggle` · `tab` · `handle` · `dismiss` | Colour only (below) |
+| **General buttons** — flat, but they get a hover so they don't look dead | `action` · `form` · `choice` · `toggle` · `tab` · `handle` · `dismiss` | Color only (below) |
 
 What each kind is: `piece` a game object you press (tiles, cards, hexes, cells) ·
 `key` an on-screen keyboard cap · `action` a purpose button (Submit, Hint,
@@ -1112,7 +1112,7 @@ of a mutually-exclusive set (ModeFilter, crosswords' source picker) · `toggle` 
 two-state switch drawn as a button (crosswords' pencil/pen) · `tab` switches
 which view you're looking at (ClubPage's mobile tabs) · `row` a whole list row
 that IS the control (StartGameButtons, a Menu item, a game card, FilterSelect's
-options, the account colour swatches) · `handle` a small inline control inside
+options, the account color swatches) · `handle` a small inline control inside
 content (the turn log's `#N`) · `dismiss` an icon-only ✕ or delete · `textlink`
 text that reads as prose or a link (`.link-button`, DefinitionView's
 cross-reference) · `surface` an entire content block that is a button
@@ -1136,7 +1136,7 @@ chrome it stops being a message. (They were tried with a
 
 **`float` is not a kind** — it's a *placement modifier* on an `action` or a
 `trigger` (the chat FAB, Shuffle, Pause, InfoSwitch). It earns a name only
-because [tile-feedback.md](tile-feedback.md) gives it a rule of its own: a
+because [tile-feedback.md](../plans/tile-feedback.md) gives it a rule of its own: a
 control floating over a **board** keeps its shadow, where chrome otherwise gets
 none — it has a board to cast onto.
 
@@ -1157,14 +1157,14 @@ the darken is the *only* feedback a tap gets. It cannot be moved to hover.
 fill change is allowed *in addition*. Both are cases where the shadow has no
 surface to cast onto.
 
-### General buttons use COLOUR only — no motion, no shadow
+### General buttons use COLOR only — no motion, no shadow
 
 Not conservatism: it's the load-bearing half of *depth belongs to game pieces,
 not chrome*. If a control could lift, nothing would separate it from a piece, and
 "a control that looks like a tile is a bug" would stop being a rule anyone can
 enforce.
 
-It needs no new colours — the chrome tone sweep already minted all of them:
+It needs no new colors — the chrome tone sweep already minted all of them:
 filled hovers to `--chrome-<tone>-fill-hover-color`, outline hovers to
 `--chrome-<tone>-wash-color`. Both treatments change the **background and
 nothing else**; each re-states its own border so a hover can never shift the
@@ -1177,23 +1177,23 @@ it has none, and that missing answer is what tells you it's dead — see
 
 **Two general buttons deliberately don't use `.button`**, and they're recorded
 here so a future sweep doesn't "helpfully" convert them. The rule above is about
-*feedback* — colour only, no motion, no shadow — and both obey it; `.button` is
+*feedback* — color only, no motion, no shadow — and both obey it; `.button` is
 one implementation of that rule, not the rule itself.
 
 | control | why it styles itself |
 |---|---|
 | crosswords' source picker (`.segBtn`) | a **segmented control**: one border on the wrapper, `overflow: hidden` for the rounded ends, `border-left` dividers between segments, no per-button border or radius. `.button` gives every element its own border and radius, which doesn't restyle a segmented control — it dismantles it |
-| crosswords' pencil/pen + scope buttons (`.btn`) | a game-surface control bar whose ON state is `--crosswords-cursor`, a **game** colour. Its selected state can't come from a chrome tone without lying about what the colour means |
+| crosswords' pencil/pen + scope buttons (`.btn`) | a game-surface control bar whose ON state is `--crosswords-cursor`, a **game** color. Its selected state can't come from a chrome tone without lying about what the color means |
 
 The distinction that keeps this honest: what made the button sweep worth doing was
 that buttons were being handed chrome they never asked for. Neither of these has
 that problem — each asks for exactly what it wants. Converting them would change
 how two controls look in order to make the stylesheet tidier, which is backwards.
-The cost of the exemption, since it isn't zero: their hover colours are hand-picked
+The cost of the exemption, since it isn't zero: their hover colors are hand-picked
 rather than derived from a tone, so a future theme has two extra places to visit.
 
 **One case is genuinely unsettled**: `GameScratchpad`'s "take over" — a small
-inline text button, currently a white fill with a grey border, which could
+inline text button, currently a white fill with a gray border, which could
 reasonably be `button secondary` in the quiet tone (transparent, `#535353`
 border and label). It's a close call either way and not worth deciding in
 isolation; settle it next time the scratchpad is open.
@@ -1246,7 +1246,7 @@ Concede, Back to club, Print), so each row shows its glyph beside its name.
 A button whose glyph isn't in the menu yet gets a row **added** — that's how
 hint + spoiler reached letterboxed, psychicnum and stackdown, and how
 letterboxed got the Reveal solution row its terminal button had been missing.
-A greyed row still teaches, so a row is disabled rather than dropped when the
+A grayed row still teaches, so a row is disabled rather than dropped when the
 action isn't available — the exception being an action the mode never offers at
 all (letterboxed's help ladder in compete, crosswords' Reveal submenu), where
 naming a glyph the surface never shows would teach a lie. The pairing is taught
@@ -1471,7 +1471,7 @@ This pairs with how `disabled` is drawn at all
 ([theme.css → `--chrome-disabled-opacity`](../src/common/theme.css)). The fade is
 only 0.75 — deliberately small — because what actually tells you a control is
 dead is that **it doesn't answer the pointer**. The missing hover carries the
-message; the colour only has to be different enough to spot the odd one out in a
+message; the color only has to be different enough to spot the odd one out in a
 row of buttons; and the tooltip finishes the job by saying why. Fading harder
 was solving a problem it created, since the thing it cost was reading the label
 well enough to know what the button would have done.

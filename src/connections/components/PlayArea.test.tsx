@@ -249,7 +249,7 @@ describe('connections PlayArea — the ended board + the terminal reveal', () =>
 })
 
 /**
- * The feedback vocabulary (docs/tile-feedback.md), as connections wears it.
+ * The feedback vocabulary (plans/tile-feedback.md), as connections wears it.
  *
  * All of it is shared code — these tests prove the WIRING: that each mark lands
  * on the right element, for the right person, at the right moment. The marks
@@ -458,7 +458,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
   /**
    * The mark's OTHER two endings, both read off the guess log rather than off
    * anything this client did — because both can happen on somebody else's
-   * machine. See docs/tile-feedback.md → "A board mark dies when the board
+   * machine. See plans/tile-feedback.md → "A board mark dies when the board
    * moves" and "Check what a RESTART does to a mark".
    */
   describe('the mark dies when the board moves under it', () => {

@@ -724,13 +724,13 @@ export function PlayArea(ctx: GamePageCtx) {
   // The replayed board, or null when live. A one-liner because strands' board
   // only accumulates — see lib/history.
   const snap = viewer.viewingId !== null ? snapshotAt(historyRows, viewer.viewingId) : null
-  // The words nobody found, drawn as grey lines — ONLY while this viewer is
+  // The words nobody found, drawn as gray lines — ONLY while this viewer is
   // asking for them. `game.solution` arrives at terminal (is_terminal lifts the
   // shield), so mid-game this is empty by construction; after that it's empty
   // because the reveal is off, which is what makes Hide return the board to
   // exactly how the players left it.
   // The theme words as TEXT, spangram first — the info column's half of the
-  // reveal. Same gate as the board's grey lines: one toggle, one secret.
+  // reveal. Same gate as the board's gray lines: one toggle, one secret.
   const solutionWords =
     solutionShown && game.solution
       ? [game.solution.spangram.word, ...game.solution.themeWords.map((w) => w.word)]
@@ -750,7 +750,7 @@ export function PlayArea(ctx: GamePageCtx) {
         board={game.board}
         found={snap?.found ?? foundPaths}
         // The missed-word reveal is a TERMINAL artifact — drawing it on a
-        // historic snapshot would mix the endgame's grey lines into a board
+        // historic snapshot would mix the endgame's gray lines into a board
         // that hadn't reached it.
         missed={viewer.viewing ? [] : missed}
         trace={viewer.viewing ? EMPTY_TRACE : trace}

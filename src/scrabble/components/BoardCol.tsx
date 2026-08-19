@@ -147,7 +147,7 @@ function nextRackOrder(
  * which the version-reset effect reads). So, unlike the other games' BoardCol which
  * emit one action up, scrabble's owns its RPCs; PlayArea hands it the game data +
  * gameId + the feedback channel + the history-view inputs, and renders it beside the
- * InfoCol. See docs/playarea-decomposition-plan.md.
+ * InfoCol. See docs/playarea.md.
  *
  * Two more deliberate divergences from the stackdown/waffle contract, for the same
  * reason (the raw play data already lives here):

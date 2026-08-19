@@ -649,7 +649,7 @@ describe('wordle PlayArea — the board-scope marks', () => {
   const board = () => screen.getByRole('grid', { name: /board/i })
   const keyboard = () => screen.getByLabelText('Keyboard')
 
-  // What these pin is the vocabulary in docs/tile-feedback.md, at BOARD scope.
+  // What these pin is the vocabulary in plans/tile-feedback.md, at BOARD scope.
   // None of it is game logic, and all of it is invisible to a type check: a mark
   // that stops being applied looks exactly like a mark that was never asked for.
   it('bands the finished board in its outcome and withdraws the keyboard', () => {

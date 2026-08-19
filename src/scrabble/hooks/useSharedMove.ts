@@ -59,12 +59,12 @@ export function useSharedMove({
   useEffect(() => {
     if (mode !== 'coop') return // compete / still-loading: no room, no sends
     const room = `scrabble:${gameId}`
-    let cancelled = false
+    let canceled = false
 
     function join() {
       // Guards the deferred path only — the effect can tear down again
       // while the previous channel is still leaving.
-      if (cancelled) return
+      if (canceled) return
       const ch = supabase.channel(room)
       ch.on('broadcast', { event: 'show-move' }, ({ payload }) =>
         onReceiveRef.current(payload as SharedMovePayload),
@@ -80,7 +80,7 @@ export function useSharedMove({
     if (pending) void pending.then(join)
     else join()
     return () => {
-      cancelled = true
+      canceled = true
       const ch = channelRef.current
       channelRef.current = null
       if (ch) void releaseChannel(ch) // null if we tore down before joining

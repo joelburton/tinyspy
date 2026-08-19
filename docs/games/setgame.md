@@ -282,7 +282,7 @@ So every claim is marked, and `lib/flash.ts` owns the whole design:
 
 | who | mark | why |
 |---|---|---|
-| the claimer | their three cards take a **black veil**, from the click | they know what they did; colour would drag their eye back to a decision already made. Its LENGTH is the only thing they can't know — the lag |
+| the claimer | their three cards take a **black veil**, from the click | they know what they did; color would drag their eye back to a decision already made. Its LENGTH is the only thing they can't know — the lag |
 | everyone else | those same cards fill **light green** | a set was found: that's the outcome |
 | everyone | the replacements fill **light yellow** | arriving is news, not an achievement |
 
@@ -292,7 +292,7 @@ Three properties are load-bearing:
   that can't do this job: thin, at the edge of a card, invisible to peripheral
   vision — exactly where the board is when someone else claims.
 - **Light tints of a saturated hue.** The symbols are drawn *on* these, and two
-  of the three traditional symbol colours are red and green. Dark saturated
+  of the three traditional symbol colors are red and green. Dark saturated
   symbols on a light saturated ground stay perfectly legible. (Red was the first
   suggestion for the departing set and would have been the wrong word: red means
   *rejected* everywhere else, so a successful claim flashing red reads as a
@@ -326,7 +326,7 @@ full of claims, and without it, opening a finished game lit the whole table up.
 
 Every other compete game gives racers private boards or private progress. Here
 **one board is shared**, and a claim removes cards from under other players.
-Two defences, and they are independent:
+Two defenses, and they are independent:
 
 - **Server:** `submit_set` takes the games-row lock before checking membership
   on the board, so overlapping claims serialize. The loser gets `cards-gone`.

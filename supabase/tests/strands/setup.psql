@@ -36,7 +36,7 @@
 -- ─── Why the letters are nonsense ───────────────────────────
 -- Unlike wordiply's fixtures, strands CANNOT avoid the dictionary: telling a
 -- hint word from an invalid one is a `common.words` lookup, and that is the
--- behaviour under test. So instead of pretending otherwise, the board is built
+-- behavior under test. So instead of pretending otherwise, the board is built
 -- from strings no real dictionary contains ('zzqa'…), and the test inserts
 -- exactly the ones it wants to count as words. A test that leaned on real
 -- entries would silently change meaning the next time the word list was

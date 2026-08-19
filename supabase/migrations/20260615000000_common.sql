@@ -444,7 +444,7 @@ create table common.games (
   ended_at timestamptz,
   -- Whose turn it is right now, for the opt-in turn-by-turn coop mode
   -- (setup coop_style='turns'). NULL ⇒ free-for-all — the default and the
-  -- behaviour of every game that doesn't opt in — so this column is inert
+  -- behavior of every game that doesn't opt in — so this column is inert
   -- for them. Set at create-time by common._assign_turn_order and rotated
   -- by common._advance_turn; gated on by common._require_turn. Directly
   -- comparable to auth.uid() server-side and session.user.id client-side.

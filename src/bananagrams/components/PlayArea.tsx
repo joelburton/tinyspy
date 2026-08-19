@@ -166,7 +166,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // the announcement below reads the next growth as a dump rather than a peel.
   // Best-effort, NOT race-free (a peer's peel in the echo window could trip the
   // flag first) — accepted as cosmetic under the friends-only trust model; the
-  // tile multiset is always correct, only a 2.5s toast can be mislabelled.
+  // tile multiset is always correct, only a 2.5s toast can be mislabeled.
   const dumpPending = useRef(false)
   const dump = useCallback(
     async (tile: string) => {
@@ -335,7 +335,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // NOT idempotent — every call shelves the club's current game and starts
   // another, orphaning the last in the club list and toasting every peer.
   // Guarding the HANDLER covers all three triggers at once, which a `disabled`
-  // button could never do. `startingNewGame` then greys the button so a slow
+  // button could never do. `startingNewGame` then grays the button so a slow
   // network reads as "working" rather than "nothing happened".
   //
   // The MENU ITEM deliberately takes no `disabled`: its effect is built above
@@ -348,7 +348,7 @@ export function PlayArea(ctx: GamePageCtx) {
   }, [handleNewGame])
 
   // My conceded flag off the shared roster (common.game_players), for the menu's
-  // greyed-out Concede item. The stronger `isConceded` (below the loading guard)
+  // grayed-out Concede item. The stronger `isConceded` (below the loading guard)
   // also ANDs `!isTerminal` for the frozen-board LOOK; the menu just needs the
   // raw flag, which `buildGameMenu` already disables at terminal itself.
   const myConceded = !!ctx.players.find((p) => p.user_id === ctx.session.user.id)?.conceded

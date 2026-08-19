@@ -125,7 +125,7 @@ test.describe('club page keyboard nav', () => {
     expect(await listFocused()).toBe(true)
     expect(await rings()).toEqual(['-2px'])
 
-    // ...and cancelling hands focus back, so Up/Down work immediately — no Tab
+    // ...and canceling hands focus back, so Up/Down work immediately — no Tab
     // needed to re-enter the list.
     await cancel.click()
     await expect(cancel).toBeHidden()
@@ -137,7 +137,7 @@ test.describe('club page keyboard nav', () => {
 
   /**
    * A CLICK selects, the same as an arrow key does. Without this the ring stayed
-   * wherever it had been, so cancelling a clicked game's setup dialog left the
+   * wherever it had been, so canceling a clicked game's setup dialog left the
    * mouse and the keyboard disagreeing about "the selected item" — and the next
    * arrow key jumped somewhere unrelated.
    */

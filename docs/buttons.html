@@ -111,7 +111,7 @@
      -hover under the pointer. A SECONDARY is transparent with its border and
      text both in -ink (a big step down, because it has to read as text), and
      takes the faint -wash on hover. Nothing moves, nothing lifts: chrome says
-     what it needs with colour. */
+     what it needs with color. */
   button {
     font: inherit;
     color: inherit;
@@ -124,7 +124,7 @@
   }
   /* Disabled is deliberately a SMALL move. What actually tells you a control is
      dead is that it doesn't answer the pointer — the missing hover carries the
-     message, so the colour only has to be slightly off, and staying close keeps
+     message, so the color only has to be slightly off, and staying close keeps
      the label readable. (`:hover:not(:disabled)` below is what withholds it.) */
   button:disabled { opacity: var(--disabled-opacity); cursor: not-allowed; }
 
@@ -276,7 +276,7 @@
 
 <div class="card today">
   <p class="tone-name">before the sweep, for the record</p>
-  <p class="hexes">how these buttons looked until 2026-08-17 — one grey hover for every tone, a
+  <p class="hexes">how these buttons looked until 2026-08-17 — one gray hover for every tone, a
   brighter orange, a maroon red, and quiet's border and label disagreeing. Kept because the
   cards above are only legible as an improvement next to what they replaced; NOT current.</p>
   <div class="row">
@@ -300,7 +300,7 @@
 /* ── oklab, just enough of it ────────────────────────────────────────────────
    The same math the palette audit used: darken by moving LIGHTNESS only, so a
    tone's hue and chroma survive the step (sRGB darkening drifts both, which is
-   how orange ends up looking like a different colour when it goes dark). */
+   how orange ends up looking like a different color when it goes dark). */
 
 const srgbToLinear = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
 const linearToSrgb = (c) => (c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055)
@@ -345,10 +345,10 @@ function oklabToHex([L, a, bb]) {
  * never touched, which is the whole point.
  *
  * Measuring the two outcome families explains the "orange goes almost a
- * different colour" complaint exactly. Both inks sit ~0.116 below their fill in
+ * different color" complaint exactly. Both inks sit ~0.116 below their fill in
  * lightness — but red gets there honestly (chroma ×1.006, hue +1.6°) while
  * ORANGE ROTATES 21.5° TOWARD RED and gains 13% chroma on the way down. That
- * rotation is what the eye reads as a change of colour rather than a darkening,
+ * rotation is what the eye reads as a change of color rather than a darkening,
  * and Material's 400→800 pairs bake it in. Deriving hue-true takes it back out;
  * `punch` is there if the honest orange reads too muddy without the chroma.
  */

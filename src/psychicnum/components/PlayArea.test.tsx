@@ -262,7 +262,7 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
     expect(items.get('spoiler')?.icon).toBeTruthy()
   })
 
-  it('the rows fire the same RPCs as the buttons, and grey once I have no guesses left', () => {
+  it('the rows fire the same RPCs as the buttons, and gray once I have no guesses left', () => {
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
     menuItems(ctx).get('hint')?.onClick()
@@ -270,7 +270,7 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
     menuItems(ctx).get('spoiler')?.onClick()
     expect(rpc).toHaveBeenCalledWith('request_reveal', { target_game: 'g1' })
 
-    // Out of budget: disabled, but STILL THERE — a greyed row still teaches its
+    // Out of budget: disabled, but STILL THERE — a grayed row still teaches its
     // glyph, which is why the pair is never dropped.
     h.result = loaded(coopGame, [{ ...me, guesses_remaining: 0 }])
     const spent = makeCtx()
@@ -373,7 +373,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
 })
 
 /**
- * The board-scope marks (docs/tile-feedback.md). None of this is game logic, and
+ * The board-scope marks (plans/tile-feedback.md). None of this is game logic, and
  * none of it is visible to a type check: a mark that stops being applied looks
  * exactly like a mark nobody asked for. The identity dot is deliberately NOT
  * pinned yet — its audience rule is still being decided (coop-only today, 2+

@@ -275,8 +275,8 @@ public puzzle archive, never anyone's history.
 
 Leaving the box empty sends no `puzzleId` at all (the key is deleted, not set
 to `''` — an empty string is *present-but-unparseable* and would raise
-`bad-puzzle-id|`). Filling it sends the id, which `create_game` honours. That
-same honouring is what lets every pgTAP and e2e fixture pin a specific puzzle
+`bad-puzzle-id|`). Filling it sends the id, which `create_game` honors. That
+same honoring is what lets every pgTAP and e2e fixture pin a specific puzzle
 to assert against.
 
 When the archive is used up for these players, `create_game` raises
@@ -368,7 +368,7 @@ game with a different roster.
 
 ### Board feedback: the shared vocabulary
 
-Converted 2026-08-17 ([tile-feedback.md](../tile-feedback.md)). Every mark on the
+Converted 2026-08-17 ([tile-feedback.md](../../plans/tile-feedback.md)). Every mark on the
 board is shared code; what is left to connections is the bands and the history
 tints. What each one says, and when it ends:
 
@@ -656,7 +656,7 @@ Standard — connections's `PlayArea` + `setupForm.Component` ship as their own 
 | `tests/connections/concede_test.sql` | The elimination-game concede: flips the shared conceded flag then re-runs `_maybe_finish_compete` (a conceder counts as not-alive); a concede keeps the game going while an opponent is still alive; both conceding ends it (nobody alive, nobody solved → `lost_compete`); coop is rejected. |
 | `tests/connections/replay_test.sql` | `replay_board` resets the working state on the SAME game row (the frozen board — categories AND tileOrder — stays; deleting the guess log is also what un-matches the categories); both modes reset ALL players; any game player, mid-game or finished; a non-player is rejected. |
 | `tests/connections/turn_order_test.sql` | Opt-in turn-by-turn coop: create_game seats the pointer on the chosen first player, an out-of-turn guess is rejected, and the turn advances on a fresh guess (correct or wrong — both consume the budget) but NOT on the duplicate-tile-set no-op. |
-| `tests/connections/club_game_status_test.sql` | The `club_game_status` view: the five-column shape (`game_id, club_handle, play_state, is_terminal, puzzle_date`) + RLS (a member sees their club's rows; a non-member sees none). **Nothing in the FE reads it since the picker went** — `next_puzzle_for_club` answers "which puzzle next" server-side now — but it is kept (and kept tested) as the club-history read any future surface would want, and crosswords' `club_nyt_status` is modelled on it. |
+| `tests/connections/club_game_status_test.sql` | The `club_game_status` view: the five-column shape (`game_id, club_handle, play_state, is_terminal, puzzle_date`) + RLS (a member sees their club's rows; a non-member sees none). **Nothing in the FE reads it since the picker went** — `next_puzzle_for_club` answers "which puzzle next" server-side now — but it is kept (and kept tested) as the club-history read any future surface would want, and crosswords' `club_nyt_status` is modeled on it. |
 
 ### Per-game `setup.psql` helpers
 
@@ -692,15 +692,15 @@ guess log beneath.
 Two deliberate changes from the screen, both required by
 [`pdf.md`](../pdf.md)'s existing rules rather than invented here:
 
-- **Bands are a thick coloured border, not a fill.** Four full-width fills is an
+- **Bands are a thick colored border, not a fill.** Four full-width fills is an
   enormous amount of ink, and "backgrounds are white" already says don't. The
   border uses re-darkened variants of the rank tokens — the screen values are
   tuned as pale *fills* and nearly vanish stroked as a 2.5pt line.
-- **Each band carries its letter A–D, top-left.** Colour can't be the only
-  signal, because a mono printer flattens all four ranks to the same grey. A–D
-  is faithful rather than arbitrary: rank 0–3 IS the difficulty order the colour
+- **Each band carries its letter A–D, top-left.** Color can't be the only
+  signal, because a mono printer flattens all four ranks to the same gray. A–D
+  is faithful rather than arbitrary: rank 0–3 IS the difficulty order the color
   encodes. The letter does double duty in the log, where a correct guess is
-  labelled by the band it solved (`C: CASTLE · CIRCLE · CLOUD · CROWN`).
+  labeled by the band it solved (`C: CASTLE · CIRCLE · CLOUD · CROWN`).
 
 Solved and end-of-game-revealed bands print identically, matching the screen.
 

@@ -47,7 +47,7 @@ export type StackdownPrintModel = PrintHeader & {
  * One submission as a printed line.
  *
  * The three kinds have to stay distinguishable in **black and white**, where the
- * on-screen outcome bar's green/red is one grey. So the text carries it: a valid
+ * on-screen outcome bar's green/red is one gray. So the text carries it: a valid
  * word stands alone, an invalid one is tagged, and a cheat request is named. No
  * drawn marks needed — same reasoning as wordiply's log.
  */

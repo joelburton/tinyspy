@@ -27,7 +27,7 @@ import styles from './InfoCol.module.css'
  * reveal → the turn log. Every mutation is a named callback up (`onEndGame` /
  * `onConcede` / `onBackToClub` / `onSelectTurn`); PlayArea owns the RPCs + the history
  * coordination. Prop names match the other games' columns for the same idea (docs/
- * playarea-decomposition-plan.md).
+ * playarea.md).
  */
 export function InfoCol({
   // ── Mode + phase ──

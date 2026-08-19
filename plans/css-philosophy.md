@@ -4,8 +4,8 @@
 > here has been applied, and no code or other doc has been changed on its basis.
 > It exists so the reasoning survives the session it happened in — which is
 > itself one of the things this conversation is about. When any part of it
-> settles, that part moves into [ui.md](ui.md) or
-> [code-conventions.md](code-conventions.md) and gets deleted from here.
+> settles, that part moves into [ui.md](../docs/ui.md) or
+> [code-conventions.md](../docs/code-conventions.md) and gets deleted from here.
 >
 > Started 2026-08-18, immediately after the button sweep.
 
@@ -26,7 +26,7 @@ codebase work this way, is it good, and should it change?**
 _patterns_.**
 
 `theme.css` holds hundreds of carefully-reasoned tokens. Almost every one of
-them is a *value* — a colour, a radius, an opacity. Meanwhile the *shapes* those
+them is a *value* — a color, a radius, an opacity. Meanwhile the *shapes* those
 values get assembled into — a dialog body, a compact panel field, a line of
 muted help text, a scrolling list inside a panel — have no names at all. Each is
 re-assembled from tokens, locally, wherever it's needed.
@@ -34,7 +34,7 @@ re-assembled from tokens, locally, wherever it's needed.
 Tokens can't see shape. `--radius-md` guarantees every dialog has identical
 corners; nothing whatsoever guarantees two conceptually-identical inputs have
 identical padding. And the one machine guard we built (`no unnamed colors`) only
-looks at colour, so the drift it can't see is exactly the drift that accumulated.
+looks at color, so the drift it can't see is exactly the drift that accumulated.
 
 ### What we actually measured
 
@@ -45,7 +45,7 @@ Enough to establish the pattern is real, not enough to plan from:
   spellings of the same idea.
 - The "compact panel field" (the small input in the ⌥\` finder, the word lookup,
   the number-jump dialog, the crosswords search…) is a real repeated pattern.
-  Every copy agrees on its colours and disagrees on its padding, several ways.
+  Every copy agrees on its colors and disagrees on its padding, several ways.
   It also uses *different tokens* from the global `input` rule — so there are two
   input families in the app and only one has a name.
 - The iOS focus-zoom floor is re-declared per-file. It has to be: `theme.css`
@@ -131,14 +131,14 @@ are "shared".
 **Which makes `theme.css`'s standing instruction — _"Anything in this file is
 GLOBAL — use sparingly"_ — correct for one and exactly inverted for the other.**
 For theme, sparing is real economy: every token is a promise to supply a value in
-every future variant, so a hundred colours becomes two hundred the day dark mode
+every future variant, so a hundred colors becomes two hundred the day dark mode
 ships. For standard look, sparing is an *instruction to duplicate*: the more of
 the standard look lives in one place, the more consistent the app actually is and
 the fewer copies exist. Told to be sparing there, the only remaining option is to
 write it locally — which we did, hundreds of times, while believing we were being
 disciplined.
 
-### In this app, theme is almost entirely colour
+### In this app, theme is almost entirely color
 
 Some apps re-theme structurally: buttons get rounder, boards resize, densities
 change. Ours won't — the layouts are dense and specific and deliberately tuned.
@@ -160,8 +160,8 @@ We have been minting tokens partly as a substitute for classes we weren't allowe
 to write. A hypothetical `--form-gap: 0.4rem` is the tell — once the pattern has
 a name, the number inside it doesn't need one.
 
-It also **bounds the magic-number rule properly.** Guarding unnamed *colour* is
-right: colour is theme-variable with many readers. Extending that instinct to
+It also **bounds the magic-number rule properly.** Guarding unnamed *color* is
+right: color is theme-variable with many readers. Extending that instinct to
 spacing would produce `--dialog-gap`, `--tight-dialog-gap`, `--form-gap` —
 duplication with extra ceremony. Numbers inside a named pattern are fine as
 numbers.
@@ -170,14 +170,14 @@ numbers.
 
 Cupcake's purple titlebar isn't a dialog decision; it's a panel or app decision.
 Its pink submit button isn't a dialog decision either. That's the tell that the
-two axes are independent: colour doesn't live at any level of the structure, it
+two axes are independent: color doesn't live at any level of the structure, it
 crosses all of them.
 
-**So the shape classes should hold no colour of their own.** They compose it from
+**So the shape classes should hold no color of their own.** They compose it from
 the palette.
 
 **Which is, accidentally, exactly what the button sweep just built.** `.button` is
-standard look — padding, border width, radius, no colour at all. `.primary` and
+standard look — padding, border width, radius, no color at all. `.primary` and
 `.secondary` are the paint, and they read slot tokens rather than hexes so a
 theme can move them without touching the shape. That is the standard-look /
 theme separation done correctly, for exactly one element, arrived at by fixing a
@@ -189,17 +189,17 @@ bug rather than by design. **It is the model for everything else.**
 > Yes → theme. Be sparing.
 > No → standard look. Be generous.
 
-### Colour is assumed-theme. Everything else waits to be asked for.
+### Color is assumed-theme. Everything else waits to be asked for.
 
 **Themes never change layout.** That is a rule, not an observation, and it is
 load-bearing for everything below.
 
-A theme might one day want a non-colour knob — a different opacity, a thicker
+A theme might one day want a non-color knob — a different opacity, a thicker
 border in a place where `box-sizing: border-box` means nothing moves (the
 declared width already includes the border, so thickening it eats inward instead
 of pushing outward). Probably ten such
 places will surface the first time a dark mode is actually built. **We add each
-one when the need is identified, not proactively.** Colour, and only colour, is
+one when the need is identified, not proactively.** Color, and only color, is
 assumed to be theme until something proves otherwise.
 
 **This looks like it contradicts the tone-family completeness rule** — *write all
@@ -225,7 +225,7 @@ value, name it, point one class at it — mechanical, local, verifiable. Proacti
 completeness earns its keep exactly when the retrofit is expensive.
 
 And the no-layout rule is what makes waiting safe: the worst case of guessing
-wrong is a colour or a weight slightly off until someone adds a knob — visible,
+wrong is a color or a weight slightly off until someone adds a knob — visible,
 cosmetic, fixed in one place. If themes could move things, a wrong guess could
 break a board's geometry and the knobs would need enumerating up front. **The
 constraint buys the permission.** (Same reason to add a border knob late rather
@@ -249,8 +249,8 @@ instead of naming a knob. Cheaper in the moment, invisible afterwards — the sa
 disease as everything else in this document.
 
 One encouraging sign that the line is drawn in the right place: **it is already
-machine-checked.** The `no unnamed colors` guard says every colour must be a
-named token, which is exactly "colour is theme, so name it." The philosophy and
+machine-checked.** The `no unnamed colors` guard says every color must be a
+named token, which is exactly "color is theme, so name it." The philosophy and
 the existing guard turn out to be the same statement.
 
 ### The one seam that remains
@@ -281,7 +281,7 @@ about styling, not about what it is. A thing with a **why** earns a name even
 when its why doesn't yet earn a distinct look. (This is the distinction between
 a **decided look** — `help-text`, which knows it is help and should look the same
 in the info column, the setup dialog and a tight dialog alike — and a **utility**
-— `muted`, which just means grey and knows nothing about why.)
+— `muted`, which just means gray and knows nothing about why.)
 
 Three reasons, in order of weight:
 
@@ -294,7 +294,7 @@ Three reasons, in order of weight:
    the screen. Intent is not recoverable at all.
 2. **The call site should record intent, not appearance** — intent survives a
    redesign, appearance is what the redesign changes.
-3. **Utilities mix the two axes we just separated.** `muted` is colour (theme);
+3. **Utilities mix the two axes we just separated.** `muted` is color (theme);
    `smaller` is size (standard look). Composing them in one attribute re-creates,
    at the call site, exactly the conflation we're pulling apart in `theme.css`.
 
@@ -354,7 +354,7 @@ made the mirror error, searching by class *name* and calling something bespoke
 that was everywhere under other names. And **this kind of repetition is
 machine-noticeable**, unlike "is this the same concept?" — so if it ever wants an
 instrument, that instrument should *notice* rather than *forbid*: a report a
-human judges, not a failing test. Forbidding fits colour, where the answer is
+human judges, not a failing test. Forbidding fits color, where the answer is
 always "name it".
 
 ## On coupling — a correction
@@ -408,13 +408,13 @@ up with twenty-nine rules whose first three lines are an apology.
 Stated as directly as we've got it so far:
 
 1. **Chrome is shared by default.** Games own board geometry (hexes vs circles vs
-   a 15×15 grid) and brand colour (spellingbee yellow, wordwheel rust) — and
+   a 15×15 grid) and brand color (spellingbee yellow, wordwheel rust) — and
    close to nothing else. Everything else is meant to look the same, and
    currently only *happens* to look the same, which is a much weaker property.
 2. **Name patterns, not just values.** The unit of sharing is the pattern.
-3. **Two shared layers, opposite rules.** Theme: thin, sparing, colour. Standard
+3. **Two shared layers, opposite rules.** Theme: thin, sparing, color. Standard
    look: fat, generous, everything else.
-4. **Shape classes carry no colour**; they compose it from the palette.
+4. **Shape classes carry no color**; they compose it from the palette.
 5. **Every variant is marked**; no silent defaults.
 6. **Modules keep the narrow band** — the genuinely per-game stuff — and stop
    being where chrome lives.
@@ -424,7 +424,7 @@ Stated as directly as we've got it so far:
 A shape-check done before shelving this, so step 3 doesn't start from scratch:
 
 - **Less CSS overall**, and *much* less in game modules. The acceptance test:
-  what should be LEFT in a game's module is board geometry and brand colour. A
+  what should be LEFT in a game's module is board geometry and brand color. A
   dialog rule or a button rule still sitting in a game module means we missed
   one.
 - **Shared files cut by PATTERN, not by container** — fields, help text, lists,
@@ -458,7 +458,7 @@ the number to watch is *how many places a given decision is expressed*.
   the `theme.css` name (a file called *theme* holding standard look is part of
   how the two got conflated in the first place).
 - Whether any of this warrants a guard, and what a guard for *shape* drift could
-  even look like. Colour was easy to guard; "this is the fourth copy of the same
+  even look like. Color was easy to guard; "this is the fourth copy of the same
   box" is not obviously machine-checkable.
 
 ## Loose ends this conversation turned up
@@ -468,8 +468,8 @@ the number to watch is *how many places a given decision is expressed*.
   shared rule now out-ranks. Harmless, invisible, and exactly the "I'll just add
   it locally" reflex under discussion.
 - **`AnagramDialog`'s `.hint` is misnamed** — it's help text, not a hint.
-- **`docs/playarea-decomposition-plan.md` doesn't exist** but is referenced from
-  many files; the plan was deleted when the work shipped and the references were
-  never repointed at [playarea.md](playarea.md). Unrelated to CSS, found while
-  auditing. The doc-link guard doesn't catch it because it only checks
-  markdown-to-markdown links, not paths named in code comments.
+- ~~Dangling `docs/playarea-decomposition-plan.md` references in code comments~~ —
+  repointed at [playarea.md](../docs/playarea.md) in the 2026-08-19 docs/plans
+  reorganization. The durable lesson stands: the doc-link guard only checks
+  markdown-to-markdown links, so a doc path named in a *code comment* can dangle
+  silently when its plan is deleted.

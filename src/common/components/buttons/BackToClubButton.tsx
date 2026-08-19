@@ -22,9 +22,9 @@ type Props = PurposeButtonProps & {
  *
  * It wears the ACTION tone in both weights. Going back to the club is a thing
  * you do — it is not a cancel — and it is already the filled action blue at
- * terminal, so anything else would make one control two colours depending on the
+ * terminal, so anything else would make one control two colors depending on the
  * phase. It rendered a raw `<button className="secondary">` until 2026-08-18,
- * which is how it ended up quiet-grey mid-game while sitting in an action row
+ * which is how it ended up quiet-gray mid-game while sitting in an action row
  * beside blue buttons.
  */
 export function BackToClubButton({

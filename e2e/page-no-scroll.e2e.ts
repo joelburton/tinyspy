@@ -31,7 +31,7 @@ async function expectNoPageScroll(page: Page, label: string): Promise<void> {
   expect(scrollH, `${label}: no vertical page scroll`).toBeLessThanOrEqual(vh)
 }
 
-/** Drag a panel by the CENTRE of its header to an absolute viewport point. */
+/** Drag a panel by the CENTER of its header to an absolute viewport point. */
 async function dragHeaderTo(page: Page, header: Locator, x: number, y: number): Promise<void> {
   const box = await header.boundingBox()
   if (!box) throw new Error('panel header has no bounding box')
@@ -55,7 +55,7 @@ test.describe('page never scrolls', () => {
     await expectNoPageScroll(page, 'club page baseline')
 
     // Reopen the (ephemeral) dialog before each corner so its header always
-    // starts centred and fully grabbable, then drag it hard past that corner.
+    // starts centered and fully grabbable, then drag it hard past that corner.
     const corners: Array<[number, number]> = [
       [vp.width - 15, vp.height - 15], // bottom-right (the original repro)
       [15, 15], // top-left

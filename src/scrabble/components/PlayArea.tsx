@@ -55,7 +55,7 @@ const AI_DISC_COLORS = ['brown', 'purple', 'pink']
  *
  * "Play word" evaluates the staged tiles with `lib/play.ts` (in BoardCol) and sends
  * words + score to `scrabble.play_word`, which trusts them and checks only the
- * dictionary. See docs/playarea-decomposition-plan.md.
+ * dictionary. See docs/playarea.md.
  */
 export function PlayArea({
   session,
@@ -474,7 +474,7 @@ export function PlayArea({
   // NOT idempotent — every call shelves the club's current game and starts
   // another, orphaning the last in the club list and toasting every peer.
   // Guarding the HANDLER covers all three triggers at once, which a `disabled`
-  // button could never do. `startingNewGame` then greys the button so a slow
+  // button could never do. `startingNewGame` then grays the button so a slow
   // network reads as "working" rather than "nothing happened".
   //
   // The MENU ITEM deliberately takes no `disabled`: its effect is built above

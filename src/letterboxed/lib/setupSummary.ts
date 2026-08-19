@@ -60,7 +60,7 @@ export function setupRows(
     { key: 'legal_band', label: 'Dictionary', value: difficultyValue(setup.legal_band) },
     // Directly above the timer, which is where the dialog's own "Board
     // (optional)" section sits — so the recap stays the form read back, in the
-    // form's order. Labelled "Board" rather than the letter games' "Letters":
+    // form's order. Labeled "Board" rather than the letter games' "Letters":
     // twelve letters in side order IS the puzzle here, not the pool a puzzle
     // was built from.
     { key: BOARD_KEY, label: 'Board', value: formatSides(sides) },

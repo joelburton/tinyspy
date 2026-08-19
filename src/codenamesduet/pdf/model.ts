@@ -10,8 +10,8 @@ import type { GuessRow, WordRow } from '../hooks/useBoard'
  * judgment is testable without a renderer.
  *
  * codenamesduet stacks THREE independent facts on one tile, and paper has to
- * keep them apart without leaning on colour (a mono printer flattens the whole
- * palette to one grey):
+ * keep them apart without leaning on color (a mono printer flattens the whole
+ * palette to one gray):
  *
  *   1. **what happened** — the word was contacted as an agent, hit the
  *      assassin, or someone burned it as a bystander. Global, public.
@@ -20,7 +20,7 @@ import type { GuessRow, WordRow } from '../hooks/useBoard'
  *      the story.
  *
  * Each becomes a `Mark` ('agent' | 'neutral' | 'assassin'), which the renderer
- * draws as ✓ / – / ✗ plus a colour. Shape carries it; colour is the bonus.
+ * draws as ✓ / – / ✗ plus a color. Shape carries it; color is the bonus.
  *
  * The bystander TRIANGLES survive too (who burned a word — me or my partner),
  * because a partner-burned word is still mine to guess while one I burned is

@@ -13,13 +13,13 @@ Fifteen games are live today (the parenthetical is each game's in-app brand):
 - **setgame** (HareTrigger) — Set-style: eighty-one cards over four attributes, and a *set* is three of them that are all-same or all-different in every one. The one game on the roster with no words in it.
 - **psychicnum** (PsychicNum) — a deliberately tiny toy that keeps the multi-game wiring honest, with the smallest possible game-logic surface.
 - **scrabble** (RackAttack) — Scrabble-style on the standard 15×15 premium board, with an AI opponent.
-- **spellingbee** (FreeBee) — Spelling-Bee-style: make words from seven letters around a required centre.
+- **spellingbee** (FreeBee) — Spelling-Bee-style: make words from seven letters around a required center.
 - **stackdown** (StackDown) — a mahjong-style word game: clear a stack of lettered tiles by spelling words off the exposed ones.
 - **strands** (PaulPath) — Strands-style word search: trace hidden theme words that tile the whole board.
 - **waffle** (SyrupSwap) — Waffle-style swap-to-solve grid puzzle.
 - **wordiply** (WordWire) — Wordiply-style: make the longest words that contain a short base.
 - **wordle** (WordNerd) — Wordle-style guess-the-word.
-- **wordwheel** (MooseWheel) — Word-Wheel-style: make words from nine wheel letters, each using the centre.
+- **wordwheel** (MooseWheel) — Word-Wheel-style: make words from nine wheel letters, each using the center.
 
 Most multiplayer games ship as a cooperative + competitive sibling pair; codenamesduet is cooperative-only, and bananagrams is a single competitive race. The planned roster is essentially complete; any further game slots into the same shape — most are ports of games already implemented in other stacks (so the rules / problem-space are well understood, and the porting work focuses on fitting them cleanly into the Supabase + React shell).
 

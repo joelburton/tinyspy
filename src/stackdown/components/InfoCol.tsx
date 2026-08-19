@@ -25,12 +25,12 @@ import styles from './InfoCol.module.css'
  * state readout → OpponentStrip → action row → help → setup disclosure → terminal
  * words reveal → GameTurnLog log. Every mutation is a named callback up
  * (`onHint`/`onSpoiler`/`onReveal`/`onEndGame`/`onConcede`/`onSelectTurn`); PlayArea owns the
- * RPCs and the coordination state. See docs/playarea-decomposition-plan.md.
+ * RPCs and the coordination state. See docs/playarea.md.
  */
 export function InfoCol({
   // Props are grouped by the region they drive (mirroring the render order below),
   // so "what is this prop for?" is answerable by eye. Names are shared verbatim with
-  // the other games' columns for the same idea — see docs/playarea-decomposition-plan.md.
+  // the other games' columns for the same idea — see docs/playarea.md.
   isCompete,
   isTerminal,
   over,

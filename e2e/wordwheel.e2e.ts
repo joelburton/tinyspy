@@ -43,7 +43,7 @@ test.describe('wordwheel live updates', () => {
     await expect(pill()).toContainText('BEAD — +1')
 
     // THE BUG: the word must now land in the found list via realtime — the found
-    // word renders as a button labelled with the uppercase word. If the realtime
+    // word renders as a button labeled with the uppercase word. If the realtime
     // refetch doesn't fire, this button never appears (until a manual refresh) and
     // the test fails, reproducing the report.
     await expect(page.locator('[data-word="bead"]')).toBeVisible({

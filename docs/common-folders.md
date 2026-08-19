@@ -27,7 +27,7 @@ to each other.
 Read the folder comment and match the file's **job**, not its shape. Some rules
 that fall out of the taxonomy and have bitten us before:
 
-- A **reusable form control** (a labelled input/select/radio) → `components/fields/`,
+- A **reusable form control** (a labeled input/select/radio) → `components/fields/`,
   even if today it's only used by the setup dialog. Fields are general; the setup
   dialog is one consumer.
 - The **in-game move-entry input** (the box you type a word into) is NOT a form

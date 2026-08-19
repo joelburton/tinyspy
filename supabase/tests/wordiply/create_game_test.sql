@@ -352,7 +352,7 @@ select throws_ok(
 -- ============================================================
 --
 -- The "try wordiply with MOTH" challenge. create_game owns two things here:
--- the SHAPE of the request, and the cross-check that the builder honoured it.
+-- the SHAPE of the request, and the cross-check that the builder honored it.
 -- Whether the letters yield a board is the edge function's call, so there is
 -- deliberately no dictionary assertion in this section.
 

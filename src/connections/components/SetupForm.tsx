@@ -21,7 +21,7 @@ import styles from '../../common/components/fields/setupForm.module.css'
  * Plus the shared coop-pacing field.
  *
  * What this replaced, and why none of it is missed: a `<input type="date">`
- * and a month-grid `<Calendar>` coloured from `connections.club_game_status`,
+ * and a month-grid `<Calendar>` colored from `connections.club_game_status`,
  * plus `resolveDefaultPuzzle` — a pure helper that seeded the dialog with the
  * club's saved default and stepped one day forward if they'd finished it.
  * The server's derivation subsumes all of it, and `setup.puzzleId` is no

@@ -1,4 +1,4 @@
-import { BLACK, DARK_GREY, MEDIUM_GREY, drawSetup, fit, type PrintDoc } from './frame'
+import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, fit, type PrintDoc } from './frame'
 import type { SetupRow } from '../lib/game/setupRows'
 
 /**
@@ -88,7 +88,7 @@ export function drawTurnLog(
       firstInColumn = true
     }
     const x = colX()
-    if (!firstInColumn) doc.setDrawColor(MEDIUM_GREY).setLineWidth(RULE_W).line(x, cy, x + colW, cy)
+    if (!firstInColumn) doc.setDrawColor(MEDIUM_GRAY).setLineWidth(RULE_W).line(x, cy, x + colW, cy)
     firstInColumn = false
     doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(BLACK)
     doc.text(row.seq, x + SEQ_X, cy + 10)
@@ -121,10 +121,10 @@ function drawTurnsHeader(
   whoLabel: string,
 ): number {
   const { doc } = pd
-  doc.setFont('helvetica', 'bold').setFontSize(8.5).setTextColor(DARK_GREY)
+  doc.setFont('helvetica', 'bold').setFontSize(8.5).setTextColor(DARK_GRAY)
   doc.text('#', x + SEQ_X, y + 9)
   doc.text(whoLabel, x + WHO_X, y + 9)
   doc.text(moveLabel, x + MOVE_X, y + 9)
-  doc.setDrawColor(MEDIUM_GREY).setLineWidth(0.5).line(x, y + 13, x + w, y + 13)
+  doc.setDrawColor(MEDIUM_GRAY).setLineWidth(0.5).line(x, y + 13, x + w, y + 13)
   return y + 16
 }

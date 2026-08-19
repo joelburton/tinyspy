@@ -9,7 +9,7 @@ lists should be brand colors and nothing else.
     python3 scripts/color-census.py
 
 Distance is oklab euclidean, which is roughly perceptual: < 0.012 reads as the
-same colour, < 0.05 as close enough to ask whether the difference was meant. It
+same color, < 0.05 as close enough to ask whether the difference was meant. It
 deliberately does NOT decide anything — see the doc's rule about collapsing a
 lookalike onto a shared token only when you are certain."""
 import re, glob, os, math

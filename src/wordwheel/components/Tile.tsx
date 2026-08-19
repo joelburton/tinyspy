@@ -4,7 +4,7 @@ import styles from './Wheel.module.css'
 type Props = {
   letter: string
   isCenter?: boolean
-  /** This tile's centre + radius, in the wheel's coordinate units. */
+  /** This tile's center + radius, in the wheel's coordinate units. */
   pos: { cx: number; cy: number; r: number }
   onClick: () => void
   /** A bumping counter that flashes this tile on click (0 = never clicked). Used
@@ -18,9 +18,9 @@ type Props = {
 
 /**
  * One tile in the wheel — an SVG `<circle>` (a REAL fill + stroke border) plus a
- * centred `<text>`. Drawn inside the parent `<Wheel>` svg, so it shares the wheel's
- * coordinate space. The centre tile is larger (its radius comes from the geometry)
- * and red (via the `.center` class); the eight outer tiles are the warm tile colour.
+ * centered `<text>`. Drawn inside the parent `<Wheel>` svg, so it shares the wheel's
+ * coordinate space. The center tile is larger (its radius comes from the geometry)
+ * and red (via the `.center` class); the eight outer tiles are the warm tile color.
  *
  * The group carries the click (you can't nest a real `<button>` in SVG); the
  * circle's fill is the hit area, so clicks only land on the tile shape, not its
@@ -31,7 +31,7 @@ type Props = {
  *
  * `data-tile` / `data-center` / `data-disabled` are the test hooks that replaced
  * `role="button"` + `aria-label` + `aria-disabled` — stable handles without the
- * behaviour an ARIA role implies.
+ * behavior an ARIA role implies.
  *
  * `onMouseDown` is still intercepted, now only to stop a click selecting the
  * letter text. SVG `<text>` ignores `text-transform`, so we uppercase here.

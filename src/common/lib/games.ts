@@ -157,7 +157,7 @@ export type GamePageCtx = {
  * The line between `lost`, `warning` and `error` is not yet drawn where it
  * should be — most server rejections currently take `error` by default, and
  * about twenty take `info`. Both are known wrong and deliberately not fixed
- * here; see docs/error-copy-sprint.md, which is where that work lives.
+ * here; see plans/error-copy-sprint.md, which is where that work lives.
  */
 export type GenericFeedbackTone =
   | 'won'
@@ -219,7 +219,7 @@ export type GenericFeedbackMsg = {
    *     Renders with the tinted background that says "this is the state now".
    *
    * This used to be two fields — a `variant` for appearance beside a `dismiss`
-   * for behaviour — whose product allowed six states for four real meanings.
+   * for behavior — whose product allowed six states for four real meanings.
    * "Permanent" had no name: it was spelled `variant: 'fill'` + sticky, so
    * whether a pill could be dismissed had to be read off a styling prop. The
    * out-of-race pill was filed as sticky for exactly that reason, and eight
@@ -245,7 +245,7 @@ type MenuItemBase = {
    *  wholesale on each `setGameSections` call. */
   id: string
   label: string
-  /** When true, the item renders greyed-out and skips keyboard
+  /** When true, the item renders grayed-out and skips keyboard
    *  navigation. Use for state-dependent actions ("Reveal cell"
    *  enabled only when a cell is selected). A disabled submenu
    *  parent can't be opened. */
@@ -255,9 +255,9 @@ type MenuItemBase = {
    * label — the app-wide "this color is this player" marker (docs/ui.md →
    * "Player identity = a colored disc").
    *
-   * Exists for the account row, which is labelled with your username: the fixed
+   * Exists for the account row, which is labeled with your username: the fixed
    * top-right chip it replaced WAS the dot, so without one the menu drops the
-   * only place you see your own colour. A colour name rather than a ReactNode
+   * only place you see your own color. A color name rather than a ReactNode
    * label, so `label` stays a plain string — the drill-down's "‹ {label}" row
    * and the button's accessible name both depend on that.
    */
@@ -303,7 +303,7 @@ export type MenuAction = MenuItemBase & {
  * deliberate — the flyout half of the desktop presentation would need
  * cascade positioning to go deeper, and no menu in the app wants it.
  *
- * Carries no `onClick` (opening is the whole behaviour) and no
+ * Carries no `onClick` (opening is the whole behavior) and no
  * `shortcut` (the row isn't a command, so there's nothing to bind).
  */
 export type MenuSubmenu = MenuItemBase & {

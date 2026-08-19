@@ -52,7 +52,7 @@ export function EntryBox({ value, placeholder, children, className }: Props) {
           (per-character rendering) gets the same element around them, so the
           box has one stable shape whichever path renders it. `.value` is only
           `color: inherit`, so wrapping costs those games nothing and a child's
-          own colour still wins. */}
+          own color still wins. */}
       {!empty && (
         <span className={styles.value} data-testid="entry-value">
           {children ?? value}

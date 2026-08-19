@@ -101,7 +101,7 @@
 /* The dragged tile's LOOK — sized to match the (responsive) rack tile so the drag
  * image is the same size as the tile it lifted. Reads --rack-tile-size + the tile
  * tokens from ancestors (.layout / :root). The pointer-following mechanics
- * (fixed + centre-translate + tilt) come from the shared
+ * (fixed + center-translate + tilt) come from the shared
  * common/components/game/dragGhost.module.css, composed alongside this. */
 .ghost {
   width: var(--rack-tile-size);

@@ -66,7 +66,7 @@ export function FilterSelect({
    * Merged onto the TRIGGER, for a caller whose surface has its own control
    * look — the club page's filters wear that page's surface + border treatment
    * so they match the mode buttons beside them, while the info-panel filters
-   * keep the understated heading-row look. Behaviour is identical either way;
+   * keep the understated heading-row look. Behavior is identical either way;
    * only the trigger's skin differs.
    */
   className?: string
@@ -110,7 +110,7 @@ export function FilterSelect({
       >
         {/* The trigger shows the SELECTED option's disc — one value at a time,
             so it needs no reserved slot, only the disc when there is one.
-            Without it, picking a player would drop the colour the list just
+            Without it, picking a player would drop the color the list just
             used to identify them. */}
         {current?.dot && <Dot color={current.dot} className={styles.dot} />}
         <span className={styles.label}>{current?.label ?? ''}</span>

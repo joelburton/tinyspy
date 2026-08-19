@@ -169,7 +169,7 @@ Two things that are NOT the cause, both checked and cleared:
 
 ## Why the app couldn't recover — and the fix
 
-`useCommonGame` refetches on every `SUBSCRIBED`, which is the right defence
+`useCommonGame` refetches on every `SUBSCRIBED`, which is the right defense
 against a *reconnect*: come back, re-read, catch up. It did not help here,
 because **`SUBSCRIBED` already fired** — before the channel could carry events.
 The refetch ran, saw a game still in progress, and that was the last time this

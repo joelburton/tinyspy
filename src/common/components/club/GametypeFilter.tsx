@@ -1,7 +1,7 @@
 import { FilterSelect } from '../game/FilterSelect'
 import styles from './clubFilters.module.css'
 
-/** One dropdown choice: a gametype FAMILY (`manifest.baseGametype`) labelled
+/** One dropdown choice: a gametype FAMILY (`manifest.baseGametype`) labeled
  *  with its brand (`manifest.name`). */
 export type GametypeOption = { value: string; label: string }
 

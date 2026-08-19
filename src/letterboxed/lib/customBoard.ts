@@ -26,7 +26,7 @@ import { BOARD_SIZE, SIDE_SIZE } from './board.ts'
 export type ParsedSides = { ok: true; sides: string } | { ok: false; error: string }
 
 /**
- * Normalise typed input the way the server will read it: lowercased, stripped
+ * Normalize typed input the way the server will read it: lowercased, stripped
  * of everything that isn't an ASCII letter, capped at twelve.
  *
  * The strip is what lets a player paste a board in whatever shape they found
@@ -55,7 +55,7 @@ export function cleanSides(raw: string): string {
  *
  * Used by the setup recap row (which the info column and the PDF both render
  * from one array) and by the setup dialog's section summary. NOT used on the
- * input itself: the field shows the normalised letters as typed, because
+ * input itself: the field shows the normalized letters as typed, because
  * reformatting under a moving cursor is worse than reading a plain string.
  *
  * Chunks whatever it is given rather than assuming twelve, so a half-typed

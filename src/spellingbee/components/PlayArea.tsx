@@ -129,7 +129,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // Concede state (from the common roster). A conceder can't submit and sees the
   // locally-terminal look while the others race; peers show as "out" in the strip.
-  // Declared up here (above the menu effect that greys the Concede item on it).
+  // Declared up here (above the menu effect that grays the Concede item on it).
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
@@ -222,7 +222,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // The FULL spellingbee menu: Help (top) + the Print item + the End/Concede +
     // Back-to-club tail, all from `buildGameMenu`. End/concede dispatch through the
     // stable `actionsRef` so this effect needn't depend on the later-declared
-    // handlers. `mode` picks coop's End vs compete's Concede; `myConceded` greys
+    // handlers. `mode` picks coop's End vs compete's Concede; `myConceded` grays
     // the compete item once I've dropped out.
     menu.setGameSections(
       buildGameMenu({
@@ -374,7 +374,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // NOT idempotent — every call shelves the club's current game and starts
   // another, orphaning the last in the club list and toasting every peer.
   // Guarding the HANDLER covers all three triggers at once, which a `disabled`
-  // button could never do. `startingNewGame` then greys the button so a slow
+  // button could never do. `startingNewGame` then grays the button so a slow
   // network reads as "working" rather than "nothing happened".
   //
   // The MENU ITEM deliberately takes no `disabled`: its effect is built above

@@ -33,7 +33,7 @@
 --
 -- So the side of a letter is its position in the alphabet div 3, and
 -- two letters may sit next to each other in a word iff those differ.
--- Every fixture word below honours that, even though the server would
+-- Every fixture word below honors that, even though the server would
 -- accept any string in the list — a fixture that taught the wrong rule
 -- would be worse than no fixture.
 --

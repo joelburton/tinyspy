@@ -426,7 +426,7 @@ describe('game status labels', () => {
   /**
    * A real invariant, not a snapshot: an unhandled play state must never render as the
    * game's IN-PROGRESS text. These four reach their in-progress string through a switch
-   * `default:`, so a state they don't recognise makes a *finished* game read as `solving…`
+   * `default:`, so a state they don't recognize makes a *finished* game read as `solving…`
    * (or `7 tiles left`) in the club list — quietly wrong, which is the worst kind.
    * Echoing the raw state (codenamesduet, bananagrams) is ugly but visibly wrong; a
    * distinct terminal-ish phrase (psychicnum's `lost`) at least doesn't lie about whether
@@ -441,7 +441,7 @@ describe('game status labels', () => {
     // EMPTY, and worth keeping that way. All eight offenders (waffle, wordle,
     // stackdown and scrabble, both modes) were fixed in the 2026-08-01 status-
     // line pass: each label is now an exhaustive `switch` whose `default`
-    // returns the raw play_state, so an unrecognised state renders visibly
+    // returns the raw play_state, so an unrecognized state renders visibly
     // wrong instead of quietly claiming the game is still live.
   ])
 

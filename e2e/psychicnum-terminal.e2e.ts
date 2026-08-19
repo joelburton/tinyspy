@@ -11,10 +11,10 @@ import { signIn } from './helpers/session'
  * results). Pressing Reveal turns every secret's tile GREEN — the same green a
  * found one wears — and pressing Hide turns them back.
  *
- * REVEALING IS A STATE CHANGE, NOT A MARK (docs/tile-feedback.md). This spec used
+ * REVEALING IS A STATE CHANGE, NOT A MARK (plans/tile-feedback.md). This spec used
  * to look for a neon-green ring in a token of its own, which is what psychicnum
  * drew until its tile-feedback conversion (2026-08-17) retired the whole
- * answer-key channel: a game's state colours say what is TRUE about a piece, and
+ * answer-key channel: a game's state colors say what is TRUE about a piece, and
  * asking to see the answer changes what you know rather than what the board is.
  * Reveal being personal and reversible is what pays for it — one toggle separates
  * "we found it" from "I am peeking", so the board doesn't have to. And where a

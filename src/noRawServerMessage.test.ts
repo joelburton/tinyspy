@@ -41,7 +41,7 @@ const ALLOWED = new Map<string, string>([
   ['src/common/lib/game/callRpc.ts', 'documents the rule in a comment'],
   // Reads the message to build a CallError for the classifier — the opposite of
   // rendering it.
-  ['src/common/hooks/game/useWordSubmit.ts', 'normalises a thrown rejection into a CallError'],
+  ['src/common/hooks/game/useWordSubmit.ts', 'normalizes a thrown rejection into a CallError'],
   ['src/common/lib/supabase/callEdgeFn.ts', 'builds the classifiable CallError off a functions-js failure'],
   // Not server errors at all.
   ['src/crosswords/components/SetupForm.tsx', 'a FileReader failure reading a local .ipuz'],

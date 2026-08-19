@@ -84,7 +84,7 @@ select lives_ok(
 
 -- The clue is READABLE from the archive (2026-08-13), and that is a decision,
 -- not an oversight — so it is pinned rather than left to the absence of a
--- failing test. The picker shows it under the date so you can recognise a
+-- failing test. The picker shows it under the date so you can recognize a
 -- puzzle you have already played; it is the game's own title and is on screen
 -- from the first second of play, so it reveals nothing the club page doesn't.
 -- The board and solution above stay shielded: those ARE the puzzle.

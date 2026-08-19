@@ -133,7 +133,7 @@
 .statusLost    { border-left-color: var(--gamelist-lost-color); }
 /* Neither transparent nor the strong neutral: near-white keeps the stripe
  * honest about its width while leaving all the signal to the three played
- * states. Most of a library is unplayed, and a mid-grey stripe on every one
+ * states. Most of a library is unplayed, and a mid-gray stripe on every one
  * of those rows would read as noise competing with the real colors. */
 .statusUnplayed { border-left-color: var(--gamelist-unplayed-color); }
 

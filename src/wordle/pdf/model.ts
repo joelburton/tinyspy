@@ -116,7 +116,7 @@ export function buildWordlePrintModel(o: {
         seq: i + 1,
         who,
         // Plain words, no tile treatment — the board above already carries the
-        // colours, and repeating them in the log would be noise.
+        // colors, and repeating them in the log would be noise.
         text: g.guess.toUpperCase(),
       })),
       result: solved

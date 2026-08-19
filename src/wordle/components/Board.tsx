@@ -48,7 +48,7 @@ type Props = {
   rejectTone?: 'lost' | 'warning'
   /** The game is finished, and how it ended — the board takes a band in that
    *  outcome's gray (neutral for a game merely ended), null while it's live. The
-   *  same mark waffle wears; see docs/tile-feedback.md. */
+   *  same mark waffle wears; see plans/tile-feedback.md. */
   gameOver?: 'won' | 'lost' | 'neutral' | null
   /** A teammate holds the move (turn-order coop): dim the whole board. */
   notMyTurn?: boolean

@@ -7,7 +7,7 @@ import styles from './CoopStyleField.module.css'
 
 /**
  * The two ways a coop game can be paced. `'free-for-all'` (the
- * default) is the historical behaviour — anyone acts whenever.
+ * default) is the historical behavior — anyone acts whenever.
  * `'turns'` opts into the common turn-order primitive (one player
  * at a time, in a rotation seeded at create-time). Stored on
  * `common.games.setup.coop_style`, so the value doubles as the
@@ -62,7 +62,7 @@ type Props = {
  * Follows TimerField's shape: a collapsed `<SetupSection>` whose
  * summary carries the live value ("Co-op: free-for-all",
  * "Co-op: turns (ada first)"), so the setting reads at a glance
- * without expanding. Inside, two labelled radio rows — "Co-op style"
+ * without expanding. Inside, two labeled radio rows — "Co-op style"
  * and (only when turns is chosen) "First player".
  *
  * First-player seeding mirrors codenamesduet's SetupForm: an effect

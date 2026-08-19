@@ -8,14 +8,14 @@
  * retuned the rotation in one game, nothing would point at the other:
  *
  *   position: fixed          the render sites set `left`/`top` from pointer coords
- *   translate(-50%, -50%)    so those coords are the tile's CENTRE, not its corner
+ *   translate(-50%, -50%)    so those coords are the tile's CENTER, not its corner
  *   rotate(-3deg)            the "lifted off the board" tilt
  *   pointer-events: none     the ghost must never eat the drop target's events
  *
  * WHAT'S DELIBERATELY NOT HERE is the look. Each game's ghost imitates the tile
  * it lifted, and those tiles genuinely differ: bananagrams's are large and round
  * (7px radius, a deep `0 6px 14px` shadow), scrabble's small and crisp (4px, a
- * shallower `0 4px 10px`), each on its own colour tokens, and scrabble sizes its
+ * shallower `0 4px 10px`), each on its own color tokens, and scrabble sizes its
  * ghost from `--rack-tile-size` where bananagrams's is sized by its content. A
  * ghost that stopped resembling the tile it came from would be a worse drag, not
  * a more consistent one. The z-indexes also differ (1000 vs 100) and are left

@@ -26,7 +26,7 @@ import type { GenericFeedbackTone } from '../games'
  * ─── Copy rules ──────────────────────────────────────────────
  * These land in the below-board pill: a one-line label that ellipsises at
  * phone width (docs/ui.md → Feedback pill), so **caption, not sentence** —
- * capitalised, no trailing period, and short enough to survive a phone. The
+ * capitalized, no trailing period, and short enough to survive a phone. The
  * frontend's own local rejections (`rejectReason` and friends) are the register
  * to match: "Too short", "Already played", "Must start with D".
  *

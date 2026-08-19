@@ -29,13 +29,13 @@ export function SetupForm({ mode, players, value, onChange }: SetupBodyProps) {
   // WHAT YOU TYPED, kept separately from what gets stored. The field shows your
   // text verbatim — dashes, dots, spaces and all — because you should be able
   // to paste "ABC-DEF-GHI-JKL" and still see a board rather than a run of
-  // twelve letters. `custom_sides` on the setup holds the NORMALISED twelve
+  // twelve letters. `custom_sides` on the setup holds the NORMALIZED twelve
   // (`cleanSides`), the shape the other games store and the shape the server
   // cross-checks against `board.sides`.
   //
   // Local state rather than deriving from `s.custom_sides`, because the two
-  // genuinely differ: normalising is lossy about separators, so the field could
-  // not be reconstructed from the stored value. It initialises from the setup
+  // genuinely differ: normalizing is lossy about separators, so the field could
+  // not be reconstructed from the stored value. It initializes from the setup
   // once, which is right — `custom_sides` is stripped from the club default
   // (create_game), so a reopened dialog starts blank by design.
   const [typedSides, setTypedSides] = useState(s.custom_sides ?? '')

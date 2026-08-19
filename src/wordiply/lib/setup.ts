@@ -48,7 +48,7 @@ export type WordiplySetup = CoopTurnSetup & {
 }
 
 /**
- * Normalise a typed starter the way the server will read it: trimmed,
+ * Normalize a typed starter the way the server will read it: trimmed,
  * lowercased, and stripped of anything that isn't an ASCII letter (so a
  * stray space or hyphen doesn't turn into a confusing rejection). Truncated
  * to 4 — the input's own `maxLength` does this too, but paste doesn't always

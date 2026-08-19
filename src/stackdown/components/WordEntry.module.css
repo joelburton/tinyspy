@@ -18,7 +18,7 @@
   justify-content: center;
   font-size: 1.4rem;
   font-weight: 700;
-  /* A clearly-visible dark-grey dashed outline — earlier shades read as
+  /* A clearly-visible dark-gray dashed outline — earlier shades read as
    * empty whitespace and were easy to miss. */
   border: 2px dashed var(--page-text-muted-color);
   border-radius: var(--radius-md);
@@ -55,7 +55,7 @@
 }
 
 /* A flashed slot is `disabled` (not interactive during the flash), which the
- * global `button:disabled { opacity: 0.5 }` would fade to grey — washing the
+ * global `button:disabled { opacity: 0.5 }` would fade to gray — washing the
  * letter out. Keep it at full opacity so the letters stay black under the
  * red/green ring; only the outline signals the result. (`.slot.good` /
  * `.slot.bad` out-specific `button:disabled`.) */

@@ -257,12 +257,12 @@ export function useGame(
     // codenamesduet/psychicnum's UUID-suffixed approach when broadcast
     // isn't in play.
     const room = `connections:${gameId}`
-    let cancelled = false
+    let canceled = false
 
     function join() {
       // Guards the deferred path only — the effect can tear down again
       // while the previous channel is still leaving.
-      if (cancelled) return
+      if (canceled) return
       const ch = supabase.channel(room)
 
       ch.on(
@@ -313,7 +313,7 @@ export function useGame(
 
     return () => {
       mounted = false
-      cancelled = true
+      canceled = true
       const ch = channelRef.current
       channelRef.current = null
       setChannel(null)

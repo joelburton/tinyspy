@@ -15,17 +15,17 @@ first, then this for the deltas.
 
 ### Rules
 
-- The board is **nine tiles — a MULTISET of letters**: one **centre** (drawn bigger,
+- The board is **nine tiles — a MULTISET of letters**: one **center** (drawn bigger,
   red) and **eight outer** tiles on a ring. The same letter may appear on two (or
-  more) tiles — a wheel with two `B` tiles is an ordinary board, and the centre may
+  more) tiles — a wheel with two `B` tiles is an ordinary board, and the center may
   duplicate an outer.
 - A word is legal when it:
   1. is **≥ 4 letters** long,
-  2. **uses the centre tile** (⇒ contains the centre letter at least once), and
+  2. **uses the center tile** (⇒ contains the center letter at least once), and
   3. **spends a tile per use** — a word may use a letter as many times as the wheel
-     has tiles carrying it, and no more. When the centre duplicates another tile,
-     the centre is considered **spent first** (that's what makes rule 2 and rule 3
-     compose — one occurrence of the letter satisfies the centre); this ordering is
+     has tiles carrying it, and no more. When the center duplicates another tile,
+     the center is considered **spent first** (that's what makes rule 2 and rule 3
+     compose — one occurrence of the letter satisfies the center); this ordering is
      a UI convention, not a separate legality rule.
 - **Scoring** (same shape as spellingbee): a 4-letter word is **1 point**; a word of
   5+ letters scores **1 point per letter**. A **pangram** — a word using **all nine
@@ -43,11 +43,11 @@ This tile-spending rule is the *entire* game-logic delta from spellingbee, and i
 lives in exactly one conceptual place — **which words ship on the board**:
 
 - spellingbee's legality is a **set** test: a word is legal iff its letter-*set* is a
-  subset of the board's letters (multiplicity ignored) and it contains the centre.
+  subset of the board's letters (multiplicity ignored) and it contains the center.
   That's why spellingbee lets you reuse letters without limit.
 - word wheel's is a **bounded multiset** test: a word is legal iff, for every letter,
   its occurrences in the word ≤ the wheel's tiles carrying that letter, **and** it
-  contains the centre. (A mask can't express this — masks collapse multiplicity — so
+  contains the center. (A mask can't express this — masks collapse multiplicity — so
   the fit check counts letters.)
 
 The board builder ships only multiset-fitting words in the required/bonus lists (see
@@ -71,7 +71,7 @@ Same sibling pattern as spellingbee (see spellingbee.md → *Coop vs compete* an
   reach the chosen **target rank** wins. Opponents see each other's **rank only**, not
   words or numeric score.
 
-`mode` is a positional arg on `create_game` and is **denormalised onto
+`mode` is a positional arg on `create_game` and is **denormalized onto
 `wordwheel.games.mode`** so RLS + RPC branching can read it without a join — identical
 to spellingbee.
 
@@ -79,8 +79,8 @@ to spellingbee.
 
 | term | meaning |
 |---|---|
-| **wheel** | the nine-tile board: one centre + eight outer tiles — a **multiset** (a letter may sit on two tiles) |
-| **centre tile** | the mandatory tile (bigger, red); every word must use it — and when its letter is duplicated, the centre is spent first |
+| **wheel** | the nine-tile board: one center + eight outer tiles — a **multiset** (a letter may sit on two tiles) |
+| **center tile** | the mandatory tile (bigger, red); every word must use it — and when its letter is duplicated, the center is spent first |
 | **outer tiles** | the eight ring tiles |
 | **pangram** | a word using all nine tiles (any 9-letter word fitting the wheel's multiset); +15 bonus |
 | **required / legal bands** | vocabulary difficulty bands (see spellingbee.md → *Vocabulary*): `required` (default 3) = the displayed goal words; `legal` (default 5) = the wider accepted set. Words above `required` but ≤ `legal` are **bonus** (accepted + scored, but not part of the goal). |
@@ -92,7 +92,7 @@ Migration: `supabase/migrations/20260712000000_wordwheel.sql`. The shape mirrors
 spellingbee; the deltas:
 
 - **`wordwheel.games`** — the board row. `outer_letters char(8)` (eight, vs
-  spellingbee's six; **duplicates allowed**, and the centre may repeat an outer) +
+  spellingbee's six; **duplicates allowed**, and the center may repeat an outer) +
   `center_letter char(1)`, plus `required_words_score` /
   `required_words_count` and the two shipped word lists. Immutable during play (the
   terminal flag lives on `common.games`).
@@ -125,7 +125,7 @@ can scale the pool to the game's required band:
 | `letters char(9)` (PK) | the wheel's nine letters, sorted (e.g. `aabcdeghi`) — the canonical multiset key |
 | `mask bigint` (generated) | the **distinct-letter** set of `letters`, via `common.word_letter_mask` — kept for the two set-semantics consumers (the overlap cap + the `candidate_words` subset pre-filter); generated so it can never drift |
 | `difficulty int` | the **min** difficulty band of any required-quality 9-letter word with this multiset (how hard the pangram itself is). The builder samples only seeds with `difficulty ≤ required_band`, so a higher-difficulty game draws from a *larger* pool. |
-| `word_counts jsonb` | `[n1..n6]`: the count of required-quality words whose letter-counts **fit** the multiset at each band (centre-agnostic — a richness proxy). |
+| `word_counts jsonb` | `[n1..n6]`: the count of required-quality words whose letter-counts **fit** the multiset at each band (center-agnostic — a richness proxy). |
 | `has_rare_letters boolean` | the diverse-builder weighting flag (`j q x z k v w y b f h`). |
 
 **~36,700 seeds** after the import gate (≥ 15 required words at the seed's own
@@ -137,7 +137,7 @@ of these are all-distinct wheels, so most real boards carry a duplicate letter.
 
 `wordwheel.candidate_words(puzzle_mask, center_bit, required_band, legal_band)` returns
 the **pure subset set** — every legal-band word whose letter-*set* ⊆ the wheel's
-distinct letters and that contains the centre. It deliberately does **not** filter out
+distinct letters and that contains the center. It deliberately does **not** filter out
 words demanding more of a letter than the wheel has tiles (e.g. `accede` on a wheel
 with one `c` and one `e`). That **multiset-fit post-filter (per-letter counts of the
 word ≤ the wheel's tile counts) lives in the edge function**, where counting letters
@@ -156,18 +156,18 @@ both a fitting word *and* an over-demanding word come back).
   vs spellingbee's ≥ 30 — tile-spending yields fewer words per board than unbounded
   reuse. (The import's distribution print shows kept seeds clear it comfortably —
   median ~107 at their own band.) A **custom** board relaxes to ≥ 1.
-- **Custom letters:** the player may supply their own **8 outer + 1 centre**
-  (**duplicates allowed** — the wheel is a multiset, and the centre may repeat an
+- **Custom letters:** the player may supply their own **8 outer + 1 center**
+  (**duplicates allowed** — the wheel is a multiset, and the center may repeat an
   outer; `s` allowed). Validated identically in `create_game`, the edge function,
   and `src/wordwheel/lib/setup.ts`. A custom board doesn't guarantee a pangram
   (nothing says the player's multiset spells a 9-letter word). The setup recap's
-  **`Letters` row** prints this wheel as `A-BCDEFGHI` (centre, dash, the eight
+  **`Letters` row** prints this wheel as `A-BCDEFGHI` (center, dash, the eight
   others alphabetized, so one wheel always reads one way — not the order a
   player's shuffle happens to be showing, and not the arbitrary stored order a
   hand-picked wheel arrives in) for **every** wheel, random or hand-picked, on
   screen and on the PDF alike: the same shape these fields take back, so "try
   this wheel" is a copy rather than a transcription. Sorting is lossless — the
-  wheel is a centre plus a multiset, so a duplicate just sorts beside its twin. Shared with freebee as `centerLettersRow`; the
+  wheel is a center plus a multiset, so a duplicate just sorts beside its twin. Shared with freebee as `centerLettersRow`; the
   board-identity exception is documented in
   [pdf.md → Setup rows](../pdf.md#setup-rows).
 - **Board constraint — "unique letters only"** (`setup.unique_letters`, a
@@ -179,14 +179,14 @@ both a fitting word *and* an over-demanding word come back).
   constraint or raise the difficulty). Stored in the `setup` jsonb; no migration
   (`create_game` doesn't whitelist setup keys).
 - **Play states, `status` jsonb, title formula** — identical to spellingbee (title is
-  `<CENTRE>·<OUTER-SORTED>`, e.g. `E·ABCDFGHI`), including the **opt-in coop win**:
+  `<CENTER>·<OUTER-SORTED>`, e.g. `E·ABCDFGHI`), including the **opt-in coop win**:
   `setup.target_rank` is required in compete and optional in coop, where reaching it
   writes `won` / missing it on the clock writes `lost` (see
   [spellingbee.md](spellingbee.md) → play states).
 
 ## RPCs
 
-Signatures and behaviour match spellingbee one-for-one (only the schema name + the
+Signatures and behavior match spellingbee one-for-one (only the schema name + the
 board shape differ). See spellingbee.md → *RPCs* for the full contracts.
 
 - `wordwheel.create_game(target_club text, setup jsonb, player_user_ids uuid[], mode text, board jsonb) → table(id uuid)`
@@ -194,7 +194,7 @@ board shape differ). See spellingbee.md → *RPCs* for the full contracts.
   — **trusting-commit**: the FE already validated the word against the shipped list and
   scored it, so this trusts `word`/`points`/`is_pangram`/`is_bonus`, dedups (per mode),
   inserts, and recomputes aggregates + the compete win. It does **not** re-validate
-  letters / centre / length / dictionary — and, in particular, it does not re-check
+  letters / center / length / dictionary — and, in particular, it does not re-check
   tile multiplicity (an over-demanding word simply isn't in the shipped list, so the
   FE never submits it).
 - `wordwheel.submit_timeout` / `end_game` / `replay_board` / `concede` — as spellingbee.
@@ -203,7 +203,7 @@ board shape differ). See spellingbee.md → *RPCs* for the full contracts.
 ## Edge function: `wordwheel-build-board`
 
 `supabase/functions/wordwheel-build-board/index.ts` — a near-twin of
-`spellingbee-build-board`. It samples a seed, picks a centre, enumerates words, scores
+`spellingbee-build-board`. It samples a seed, picks a center, enumerates words, scores
 them, and calls `create_game` in one round-trip. The wordwheel-specific bits:
 
 1. **Seed pool** — sample from `wordwheel.pangrams` **restricted to
@@ -212,12 +212,12 @@ them, and calls `create_game` in one round-trip. The wordwheel-specific bits:
    letters shared — set semantics on the generated `mask`, which is all its job needs)
    and **rare-letter weighting** (×3). No ING dampening — tile-spending removes the
    `-ing` explosion that motivated it in spellingbee.
-2. **Centre** — pick uniformly from the seed's **distinct** letters, trying centres
-   until one clears the ≥ 15 gate. (Two duplicate tiles as centre would make the
-   identical board — same centre letter, same outer multiset — so trying both is
-   wasted work, and tile-uniform sampling would bias centres toward duplicated
+2. **Center** — pick uniformly from the seed's **distinct** letters, trying centers
+   until one clears the ≥ 15 gate. (Two duplicate tiles as center would make the
+   identical board — same center letter, same outer multiset — so trying both is
+   wasted work, and tile-uniform sampling would bias centers toward duplicated
    letters for nothing.) The outer letters are `seed.letters` minus **one**
-   occurrence of the centre.
+   occurrence of the center.
 3. **Enumerate** — call `candidate_words`, then **post-filter to multiset fits**
    (per-letter counts of the word ≤ the wheel's tile counts) — the tile-spend rule.
    Partition required vs bonus exactly as spellingbee.
@@ -340,17 +340,17 @@ The genuinely wordwheel-only parts (no spellingbee counterpart):
 
 - **`lib/wheel.ts`** is the single geometry source, shared by the on-screen board and
   the PDF export (so they can't drift). The wheel is nine SVG **circles** in a
-  300×300 unit box: a bigger centre plus eight outer tiles on a ring. The radii are
+  300×300 unit box: a bigger center plus eight outer tiles on a ring. The radii are
   derived from two **tangency** conditions so the tiles **touch** — adjacent outer
-  tiles kiss each other (`OUTER_R = RING_R·sin(π/8)`) and each touches the centre
-  (`CENTER_R = RING_R − OUTER_R`), making the centre ≈1.6× an outer tile.
+  tiles kiss each other (`OUTER_R = RING_R·sin(π/8)`) and each touches the center
+  (`CENTER_R = RING_R − OUTER_R`), making the center ≈1.6× an outer tile.
 - **`Wheel.tsx`** draws the SVG (`viewBox 0 0 300 300`), scaled by `--u` so the whole
-  board sizes with the column. **`Tile.tsx`** is one `<circle>` + `<text>`; the centre
+  board sizes with the column. **`Tile.tsx`** is one `<circle>` + `<text>`; the center
   gets the red `--wordwheel-accent` fill + white glyph, the outer tiles the warm
   `--wordwheel-tile` ramp. Clicking a tile appends its letter (no validation — the
   shipped-list check happens on submit).
 - **Theme tokens** (`theme.css`): `--wordwheel-accent` (moderately-saturated red, the
-  centre tile + the achieved RankBar tier), `--wordwheel-accent-edge`,
+  center tile + the achieved RankBar tier), `--wordwheel-accent-edge`,
   `--wordwheel-center-text` (white), `--wordwheel-tile` / `--wordwheel-tile-text`.
 
 ### Tile-spend affordances
@@ -362,11 +362,11 @@ The tile-spend rule is surfaced in the UI two ways, both driven by per-letter
 - **Spent tiles** (`Wheel`/`Tile`): each occurrence of a letter in the current word
   spends **one** of its tiles — **inert + dimmed** (`pointer-events: none`,
   `opacity 0.4`, `aria-disabled`, `tabIndex -1`) — in the wheel's **spend order**:
-  the centre first when it carries the letter (the game rule: the mandatory use
-  consumes the centre), then outer duplicates in display order. `Wheel` computes
+  the center first when it carries the letter (the game rule: the mandatory use
+  consumes the center), then outer duplicates in display order. `Wheel` computes
   each tile's ordinal among same-letter tiles and dims tile *k* when the word holds
   more than *k* occurrences; a tile re-enables the moment an occurrence leaves the
-  word (in reverse spend order — the centre frees last). A shuffle can swap *which*
+  word (in reverse spend order — the center frees last). A shuffle can swap *which*
   visual twin is dimmed — accepted: twins are identical and the dimmed count is
   always right.
 - **Dimmed over-counts** (`TypedWord`): as the typed word renders
@@ -378,7 +378,7 @@ The tile-spend rule is surfaced in the UI two ways, both driven by per-letter
   twin of the edge fn's `fitsTiles`) leaves the Submit button + Enter inert
   (`EntryRow`'s `submitDisabled`) — editing stays live so you can fix it. So a
   word like `FOOD` on a wheel without F/O can't submit and read as "not a word"
-  (i.e. "not in the dictionary"), which was the misleading old behaviour.
+  (i.e. "not in the dictionary"), which was the misleading old behavior.
   Consequently `explainReject` only ever fires for a *fitting* word: it names the
   `missing center letter` or falls back to `not a word` — the earlier `bad
   letters` / `not enough tiles` reasons are now unreachable (the veto caught them
@@ -395,17 +395,17 @@ as its own chunk (help / PlayArea / SetupForm are `lazy`), and `theme.css` ships
 ### pgTAP (`supabase/tests/wordwheel/`)
 
 Twelve files, ported from the spellingbee suite against two fixtures in `setup.psql`:
-the all-distinct board (`outer='abcdfghi'`, centre `e`, 19 required words / score 62,
+the all-distinct board (`outer='abcdfghi'`, center `e`, 19 required words / score 62,
 with the rank thresholds recomputed from that total — a perfectly valid multiset that
 keeps all the ported coverage working) and **`wordwheel_dup_board()`**, the
-duplicate-letter fixture (wheel `{a,b,c,d,e,e,f,g,g}`, centre `e` duplicated on an
+duplicate-letter fixture (wheel `{a,b,c,d,e,e,f,g,g}`, center `e` duplicated on an
 outer tile, `g` on two tiles, the synthetic pangram `abcdeefgg`). Notable
 wordwheel-specific tests:
 
 - **`candidate_words_test.sql`** (no spellingbee analog) — asserts `candidate_words`
   returns both a fitting word *and* an over-demanding (letter-repeating) one, proving
   the multiset-fit filter is **not** in the SQL helper (it's in the edge function);
-  plus the centre + subset exclusions.
+  plus the center + subset exclusions.
 - **`schema_test.sql`** — the gametype registration, readable seeds (keyed by
   `letters`, with a guard that the generated `mask` matches
   `common.word_letter_mask`), and the unconditional word-list exposure on
@@ -413,7 +413,7 @@ wordwheel-specific tests:
   above now lives in the central
   `supabase/tests/common/realtime_publication_test.sql`, which `schema_test.sql`
   defers to.
-- **`create_game_test.sql`** — accepts duplicate outers + a centre repeating an outer
+- **`create_game_test.sql`** — accepts duplicate outers + a center repeating an outer
   (title `E·ABCDEFGG` — duplicates appear twice, sorted); `custom_letters_test.sql`
   accepts duplicate custom letters; `gameplay_test.sql` smokes a repeat-letter word
   (`egged`) through trusting-commit on the dup board.
@@ -442,9 +442,9 @@ entry's `is_pangram` was already the authority everywhere.)
   legal and a third `E` dims.
 - **`PlayArea.test.tsx`** — tile-spend tests: typing a letter dims its tile
   (`aria-disabled`), an untyped tile stays enabled, backspacing re-enables it; on a
-  wheel whose centre is duplicated, one occurrence spends the **centre first** (the
+  wheel whose center is duplicated, one occurrence spends the **center first** (the
   outer twin stays clickable), the second spends the twin, and backspace frees the
-  twin before the centre. Plus the `not enough tiles` reject reason.
+  twin before the center. Plus the `not enough tiles` reject reason.
 - **`src/logos.test.ts`** (repo-wide) — asserts every game's `logo.svg` parses as valid
   standalone XML. Added after the wordwheel logo shipped once with a `--` (double
   hyphen) in an XML comment, which is illegal and made the file fail to render as an
@@ -454,8 +454,8 @@ entry's `is_pangram` was already the authority everywhere.)
 
 `src/wordwheel/pdf/printWordwheelPdf.ts` composes the shared `common/pdf` helpers (frame
 + word-list columns) with a wordwheel-specific board callback that draws the nine-circle
-wheel from the same `lib/wheel.ts` geometry. On the greyscale printable page the centre
-tile is distinguished the two ways that survive greyscale: it's larger and has a thicker
+wheel from the same `lib/wheel.ts` geometry. On the grayscale printable page the center
+tile is distinguished the two ways that survive grayscale: it's larger and has a thicker
 border. See [docs/pdf.md](../pdf.md).
 
 ## File locations
@@ -490,8 +490,8 @@ border. See [docs/pdf.md](../pdf.md).
   the fork and this doc owns the pair's shared-vs-not ledger.)*
 - **`s`-heavy seeds**: an `s` tile lets each word pluralise once — the classic
   wheel's behavior, kept deliberately. If wheels with an `s` (especially an `s`
-  *centre*, which makes every word an s-word) feel too plural-y in play, a
-  seed-level filter (or centre exclusion) is a one-line follow-up in the import /
+  *center*, which makes every word an s-word) feel too plural-y in play, a
+  seed-level filter (or center exclusion) is a one-line follow-up in the import /
   edge fn.
 - The `SetupForm` custom-letters helper text is still `.muted`, kept for parity with
   spellingbee's form; revisit both together if muted setup copy is retired.

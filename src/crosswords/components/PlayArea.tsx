@@ -744,7 +744,7 @@ export function PlayArea(ctx: GamePageCtx) {
   /**
    * What the below-board pill slot shows. The terminal verdict wins, then an
    * active own-move pill, then the "you're out, the rest race on" indicator for
-   * a conceded compete player (so their greyed-out input has an explanation).
+   * a conceded compete player (so their grayed-out input has an explanation).
    *
    * DERIVED, like every other game (`over ? terminalPill(…) : …` in strands /
    * wordle / waffle / spellingbee). crosswords alone used to PUSH the verdict
@@ -798,7 +798,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // NOT idempotent — every call shelves the club's current game and starts
   // another, orphaning the last in the club list and toasting every peer.
   // Guarding the HANDLER covers all three triggers at once, which a `disabled`
-  // button could never do. `startingNewGame` then greys the button so a slow
+  // button could never do. `startingNewGame` then grays the button so a slow
   // network reads as "working" rather than "nothing happened".
   //
   // The MENU ITEM deliberately takes no `disabled`: its effect is built above

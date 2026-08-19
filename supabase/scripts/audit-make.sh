@@ -20,7 +20,7 @@
 #     BEFORE _require-prod's refusal landed — prerequisite order, which the
 #     guards rely on, only exists in serial make (.NOTPARALLEL fixes it)
 #
-# So the checks are behavioural, not textual. Two of the three run every
+# So the checks are behavioral, not textual. Two of the three run every
 # target rather than the one someone happened to think of.
 #
 # The trick throughout: PATH shims for every command that could touch a
@@ -35,7 +35,7 @@ MAKE_BIN="$(command -v gmake || command -v make)"
 TMP="$(mktemp -d)"
 
 # Check 2 uses `-B`, which forces the stamp recipes to run — and their final
-# `touch` would leave every stamp NEWER than words.tsv, silently cancelling a
+# `touch` would leave every stamp NEWER than words.tsv, silently canceling a
 # real pending import. So the stamps are snapshotted and put back. An audit
 # that changes the state it audits is worse than no audit.
 if [[ -d .make ]]; then cp -Rp .make "$TMP/make-backup"; fi
@@ -100,7 +100,7 @@ done
 
 # ────────────────────────────────────────────────────────────────
 echo "2. local-only targets ignore the caller's SUPABASE_DB_URL"
-# These build local artefacts from the local dictionary, or seed dev personas.
+# These build local artifacts from the local dictionary, or seed dev personas.
 # None may ever reach another database — not via ENV, and not via a stray
 # export in the caller's shell. ADD A TARGET HERE when you add one that must
 # stay local; check 1 covers new targets automatically, this one cannot.

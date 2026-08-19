@@ -105,7 +105,7 @@ export function InfoCol({
   return (
     <div className={shared.infoCol}>
       <div className={shared.actionSlot}>
-        {/* One row of labelled numbers — the same component the mobile status
+        {/* One row of labeled numbers — the same component the mobile status
             bar renders, so the two can't word a count differently. Which counts
             each surface shows is `countsFor`. */}
         <div className={shared.infoState}>

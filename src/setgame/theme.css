@@ -20,7 +20,7 @@
  * the obvious "stay close to the original" third and is exactly the one that
  * collides, since a deutan sees it as blue.
  *
- * A happy second property of the safe trio: its greyscale lightnesses are
+ * A happy second property of the safe trio: its grayscale lightnesses are
  * roughly evenly spaced (L* 46 / 61 / 70), close to the three-shade ramp
  * docs/pdf.md already uses — so a mono print of that board stays readable.
  * Color is MEANING here and cannot be moved onto shape or line weight the way
@@ -37,13 +37,13 @@
    * NOT the warm tile ramp the letter games use, whose whole job is to make a
    * tile read as a game piece. A playing card reads as one already. */
   --setgame-card-bg: #ffffff;
-  /* Hover: the card GREYS, rather than growing a ring. A ring on hover competes
+  /* Hover: the card GRAYS, rather than growing a ring. A ring on hover competes
    * with the ring that means "selected" — the one mark on this board that has
    * to be unmistakable — and a border that thickens under the pointer also
    * nudges the eye toward the edges of a card whose content is its middle. */
   --setgame-card-hover-bg: #ededed;
-  /* A plain mid-grey, dark enough to actually draw the card's edge. Two
-   * earlier values were too light to see: the page's divider grey, and then a
+  /* A plain mid-gray, dark enough to actually draw the card's edge. Two
+   * earlier values were too light to see: the page's divider gray, and then a
    * warm tone that still disappeared once the board lost its frame. A white
    * card on a warm ground needs a real edge or it reads as a floating symbol
    * rather than as a card. */
@@ -54,9 +54,9 @@
    * a fill would bury the symbols, which are the entire point of the card. */
   --setgame-card-selected: var(--page-text-color);
 
-  /* A live hint's ring: saturated green, and thick. It started neutral grey on
+  /* A live hint's ring: saturated green, and thick. It started neutral gray on
    * the theory that a hint is not an outcome — but a hint you have to hunt for
-   * is not a hint, and a thin grey dash on a white card next to eleven other
+   * is not a hint, and a thin gray dash on a white card next to eleven other
    * white cards was genuinely easy to miss. It stays DASHED, which is what
    * keeps it distinct from the solid ring of a selected card. */
   --setgame-hint-ring: #16a34a;
@@ -67,7 +67,7 @@
    * in another corner of the board when it changes under them.
    *
    * Both are LIGHT tints of a saturated hue rather than the hue itself, because
-   * a card's symbols are drawn ON them — and two of the three symbol colours in
+   * a card's symbols are drawn ON them — and two of the three symbol colors in
    * the traditional palette are red and green. The symbols are dark and
    * saturated, so a light saturated ground keeps them perfectly legible while
    * still reading as loud from across the table.
@@ -77,11 +77,11 @@
    * "rejected" everywhere else in this app, and a successful claim flashing red
    * reads as a refusal, worst of all to the claimer.) Yellow for arrivals, which
    * are news rather than an achievement — and yellow is the one hue that is not
-   * a symbol colour in EITHER palette.
+   * a symbol color in EITHER palette.
    *
    * The hovered variants exist so the pointer still says "this one" on a lit
-   * card; they are the same tints greyed slightly, in the same direction the
-   * ordinary hover greys a white card. */
+   * card; they are the same tints grayed slightly, in the same direction the
+   * ordinary hover grays a white card. */
   --setgame-leaving-bg: #c6f0ce;
   --setgame-leaving-hover-bg: #b4debc;
   --setgame-arriving-bg: #ffefac;

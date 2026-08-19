@@ -217,7 +217,7 @@ The **New game** button in the terminal action row + the matching menu item: a F
 
 **Restart** (added 2026-08-03) is its twin, and bananagrams is the game where it looks least necessary: with no shared puzzle, a restart deals what New game would. It's here because *every other game has one*, and a player who can't find Restart where they expect it concludes the app is broken rather than that this game is special. It is a **real reset**, not an alias — `replay_board` empties every board and re-deals the SAME hands from `bunch_seed` (the immutable record of this game's shuffled deal; its column comment reserved it for exactly this), on the SAME row. So the club list doesn't grow an entry, nobody re-navigates, and "we all misread the rules, start over" returns you to the game you just had.
 
-The locally-terminal row (conceded, the others still racing) is the shared `<LocalTerminalRow>` labelled "You conceded", and it keeps Club alone: the race is still going, so offering to start a different game there would be a distraction.
+The locally-terminal row (conceded, the others still racing) is the shared `<LocalTerminalRow>` labeled "You conceded", and it keeps Club alone: the race is still going, so offering to start a different game there would be a distraction.
 
 ### Title formula
 

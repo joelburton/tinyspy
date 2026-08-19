@@ -1,4 +1,4 @@
-import { BLACK, DARK_GREY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
+import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
 import type { WordSection } from '../../common/pdf/wordSections'
 import { drawWordListBody } from '../../common/pdf/wordListBody'
 import type { jsPDF } from 'jspdf'
@@ -48,10 +48,10 @@ function drawBoard(doc: jsPDF, grid: string[][], x0: number, y0: number): void {
       const face = grid[y][x]
       const px = x0 + x * TILE
       const py = y0 + y * TILE
-      doc.setLineWidth(TILE_BORDER_W).setDrawColor(DARK_GREY).rect(px, py, TILE, TILE, 'S')
+      doc.setLineWidth(TILE_BORDER_W).setDrawColor(DARK_GRAY).rect(px, py, TILE, TILE, 'S')
       if (face === '?') {
         // A blank die face — a faint "?" (like a scrabble blank).
-        doc.setFont('helvetica', 'bold').setFontSize(TILE * 0.5).setTextColor(DARK_GREY)
+        doc.setFont('helvetica', 'bold').setFontSize(TILE * 0.5).setTextColor(DARK_GRAY)
         doc.text('?', px + TILE / 2, py + TILE / 2 + TILE * 0.18, { align: 'center' })
       } else {
         // A single letter is big; a multiface ("Qu"/"An") is smaller to fit.

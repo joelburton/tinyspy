@@ -4,7 +4,7 @@ import { signIn } from './helpers/session'
 
 /**
  * Turn-history viewer for codenamesduet — the feature added on the monolithic
- * PlayArea ahead of the BoardCol/InfoCol decomposition (docs/playarea-decomposition-plan.md).
+ * PlayArea ahead of the BoardCol/InfoCol decomposition (docs/playarea.md).
  *
  * Clicking a turn-log row replays that turn's board: the reveal state after that
  * turn's guesses, the whole board wearing the yellow history frame, the turn's own

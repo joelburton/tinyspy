@@ -49,7 +49,7 @@ describe('buildWordlePrintModel — the target is a secret', () => {
 })
 
 describe('buildWordlePrintModel — the board', () => {
-  it('maps the server colour codes to tile states', () => {
+  it('maps the server color codes to tile states', () => {
     const m = buildWordlePrintModel({ ...base, guesses: [g({ guess: 'slate', colors: 'xgyxg' })] })
     expect(m.tracks[0].rows[0].states).toEqual(['wordleGray', 'wordleGreen', 'wordleYellow', 'wordleGray', 'wordleGreen'])
     expect(m.tracks[0].rows[0].letters).toEqual(['S', 'L', 'A', 'T', 'E'])
@@ -69,7 +69,7 @@ describe('buildWordlePrintModel — the keyboard', () => {
       ...base,
       guesses: [g({ guess: 'aaaaa', colors: 'xxxxx' }), g({ guess: 'aaaaa', colors: 'gxxxx' })],
     })
-    // Grey then green → green wins (colorRank), not "last one seen".
+    // Gray then green → green wins (colorRank), not "last one seen".
     expect(m.tracks[0].keys.get('A')).toBe('wordleGreen')
   })
 
@@ -120,7 +120,7 @@ describe('buildWordlePrintModel — tracks', () => {
     expect(m.tracks[1].result).toBe('Did not solve')
   })
 
-  it('prints guesses as PLAIN words — the grid already carries the colours', () => {
+  it('prints guesses as PLAIN words — the grid already carries the colors', () => {
     const m = buildWordlePrintModel({ ...base, guesses: [g({ guess: 'slate', colors: 'xgyxg' })] })
     expect(m.tracks[0].turns[0].text).toBe('SLATE')
   })

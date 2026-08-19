@@ -3,7 +3,7 @@
  * action (New game's guard; see the hook's docstring for why the guard sits on
  * the handler rather than on the button).
  *
- * The behaviours worth pinning are the ones a careless rewrite would break:
+ * The behaviors worth pinning are the ones a careless rewrite would break:
  * the drop while in flight, the clear on the FAILURE path (a guard that wedges
  * the control is worse than the bug it fixes), and that the gate closes
  * synchronously — before any await — since two clicks can land in one tick.

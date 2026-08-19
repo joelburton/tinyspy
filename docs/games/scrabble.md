@@ -196,7 +196,7 @@ Two natural end triggers, plus the universal manual / timeout paths:
   number is reported. **Coop has no win state at all** (ratified 2026-08-01):
   one shared rack and no opponent means there's nobody to beat, so playing the
   bag out (`complete`) and stopping early (`manual`) both write
-  `play_state='ended'` with every player `{won: false}`, labelled
+  `play_state='ended'` with every player `{won: false}`, labeled
   `Ended · 152 pts`. The score is the result; the verdict axis doesn't apply.
   **The clock is the one exception, and the one way a coop table loses**
   (`play_state='lost'`): failing to finish in time is a real failure to finish,
@@ -496,7 +496,7 @@ twice:
 
 The geometry + word-extraction + scoring — the genuinely intricate logic — runs
 **only in TS**, where the board already is. The FE evaluates a play instantly
-(live score, word highlighting, illegal-placement greying) and, on submit, hands
+(live score, word highlighting, illegal-placement graying) and, on submit, hands
 the server the `placements` it made, the `words` it read off, and the `score` it
 computed. **The server trusts those** (per the trust model — players are friends;
 we don't defend against cheating) and only does the things it alone can: check
@@ -650,7 +650,7 @@ board rotation) — never shared, never persisted, doesn't pause.
   blanks shown on a brighter golden face; the cursor overlay; drag drop-highlights
   + lifted-tile fade; green/red flashes on accept/reject), `Rack` (a fixed
   7-wide tray, left-aligned; drag-to-place, tap-to-exchange-select, the
-  just-drawn tiles flashed yellow, blanks greyed), `Controls` (the action half of
+  just-drawn tiles flashed yellow, blanks grayed), `Controls` (the action half of
   the below-board row: the icon-only Recall `ClearButton` on the left, then — coop,
   ≥2 players — the icon-only `SharePreviewButton` (see [Show a move](#show-a-move-coop)),
   then the **commit slot** pushed right [Swap `ExchangeButton` icon-only / Pass

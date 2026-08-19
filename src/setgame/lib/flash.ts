@@ -23,7 +23,7 @@ import type { Card } from './cards'
  *
  *   claimer   their three cards DIM from the moment they click the third —
  *             before any server answer — and stay dim through the hold. Dim,
- *             not lit: they know what they did, and colour would drag their eye
+ *             not lit: they know what they did, and color would drag their eye
  *             back to a decision they have already made. The dim doubles as
  *             network feedback: if it sits there for two seconds, that is
  *             exactly how long the round trip took, and saying "I heard you,
@@ -40,12 +40,12 @@ import type { Card } from './cards'
  * How long the departing cards are held, and how long arrivals stay lit.
  *
  * Settled by watching them, after a spell turned up to 3s/6s purely so the
- * colours could be judged. The ratio is deliberate — arrivals get twice the
+ * colors could be judged. The ratio is deliberate — arrivals get twice the
  * departure, because a departure only has to be NOTICED while an arrival has to
  * be read: three new cards are three new sets to look for.
  *
  * Short enough that a fast compete table doesn't sit under a permanently
- * coloured board, which is the state in which loud stops meaning anything. The
+ * colored board, which is the state in which loud stops meaning anything. The
  * hold is also the only thing here that costs time — it delays the replacements
  * by exactly this much for everyone, which is what keeps the claimer from
  * seeing their own new cards early.

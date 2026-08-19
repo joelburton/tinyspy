@@ -1,7 +1,7 @@
 /**
  * Tests for useHistoryViewer — the cross-column coordination state every
  * turn-log game shares (scrabble, stackdown, waffle, connections, …). The
- * subtle, intrinsic-to-the-hook behaviour is the document-level
+ * subtle, intrinsic-to-the-hook behavior is the document-level
  * click-anywhere-to-exit that EXCLUDES the turn-# handles (so you can switch
  * turns without leaving the viewer), plus the modifier-aware exitOnKey. Those
  * are wired once here, so a regression hits every consumer at once.

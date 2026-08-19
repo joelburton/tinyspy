@@ -57,7 +57,7 @@ const OUTCOME: Record<GuessResult, TurnOutcome> = {
  * It is not `bad` (nothing missed), not `partial` (that means "progress toward
  * the goal", and a hint is the opposite: you SPENT the progress you'd banked),
  * and certainly not `good`. `neutral` says "this happened and it isn't scored",
- * which is exactly right — and it keeps the four bar colours reading as one
+ * which is exactly right — and it keeps the four bar colors reading as one
  * scale, where an eye running the log still sorts finds from misses without a
  * fifth thing competing for attention.
  */
@@ -67,9 +67,9 @@ const HINT_OUTCOME: TurnOutcome = 'neutral'
  * The verdict as a GLYPH, before the word.
  *
  * Two jobs. It makes a row scannable — an eye running down the log sorts finds
- * from misses without reading a word — and it is the NON-COLOUR encoding of the
+ * from misses without reading a word — and it is the NON-COLOR encoding of the
  * same fact, which the PDF printer will need: docs/pdf.md prints in three
- * shades of grey, where purple and gold are the same ink.
+ * shades of gray, where purple and gold are the same ink.
  *
  * Ranked on purpose (trophy > star > check), so the accepted marks read as a
  * ladder rather than three unrelated symbols. All three rejects share the X:
@@ -85,7 +85,7 @@ const MARK: Record<GuessResult, typeof IconWordOk> = {
 }
 
 /**
- * The short body after the word — but ONLY where it says something the colour
+ * The short body after the word — but ONLY where it says something the color
  * doesn't.
  *
  * A find needs no label: green bar + purple word IS "theme", green bar + gold
@@ -94,7 +94,7 @@ const MARK: Record<GuessResult, typeof IconWordOk> = {
  * row already showed.
  *
  * A reject is the opposite case. All three paint the same red bar, so the
- * colour narrows it to "this missed" and the label is the only thing saying
+ * color narrows it to "this missed" and the label is the only thing saying
  * WHY — too short, already counted, or not a word at all.
  */
 const BODY: Partial<Record<GuessResult, string>> = {

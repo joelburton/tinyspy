@@ -78,7 +78,7 @@ describe('connectionsCoopGame.startGameInClub', () => {
   })
 
   it('passes an explicit puzzleId straight through when one IS given', async () => {
-    // Not a path the dialog takes, but create_game still honours it and the
+    // Not a path the dialog takes, but create_game still honors it and the
     // test fixtures depend on that staying true.
     await connectionsCoopGame.startGameInClub('pals', { puzzleId: 'p1', timer: { kind: 'none' } }, [
       'cade-id',

@@ -115,7 +115,7 @@ export function Board({
 
   // ATTENTION — the cells that just changed under the player, washed yellow for
   // a beat before settling into their true state color. waffle is the case
-  // docs/tile-feedback.md calls out as needing this: a swap substitutes letters
+  // plans/tile-feedback.md calls out as needing this: a swap substitutes letters
   // where they already sat and recolors them in place, so nothing about the
   // change announces itself, and in coop it lands in whatever corner a teammate
   // was working in.

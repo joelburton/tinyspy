@@ -119,7 +119,7 @@
   flex-direction: column;
   gap: 0.1rem;
 }
-/* Full text colour at 600, not muted at 400: these NAME the numbers beside
+/* Full text color at 600, not muted at 400: these NAME the numbers beside
  * them, so they are structure rather than decoration, and the repo's standing
  * rule is that light unbolded text is for things that don't matter. */
 .statLabel {
@@ -203,7 +203,7 @@
   gap: 0.1rem;
   /* 2px of the same green the CURRENT letter is filled with (Board's `.last`),
    * so a played word and the live one read as one vocabulary. At 1px the
-   * outline greyed out at a glance. */
+   * outline grayed out at a glance. */
   border: 2px solid var(--letterboxed-accent);
   border-radius: 999px;
   padding: 0.25rem 0.75rem;
@@ -252,7 +252,7 @@
  * Backspace won't remove, so it must not look like the ones it will.
  *
  * A DARKER green than the board's accent: the accent is the right idea, but a
- * filled circle carries a colour that a few thin glyph strokes don't, so at
+ * filled circle carries a color that a few thin glyph strokes don't, so at
  * text weight it read as a light green rather than as a deliberate mark. */
 .seedLetter {
   color: var(--letterboxed-seed);
@@ -263,7 +263,7 @@
  *
  * BOTH kinds render at full --page-text-color. An earlier version muted the
  * retreats, which broke the standing rule that real values keep full text
- * colour — a taken-back word is a real move (in turn-by-turn co-op it costs
+ * color — a taken-back word is a real move (in turn-by-turn co-op it costs
  * the undoer their go), and the log's whole job is to be readable. Italics
  * carry the distinction instead. */
 .logWord {

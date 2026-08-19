@@ -33,7 +33,7 @@ import { useCallback, useRef, useState } from 'react'
  * dialog resolves. That's deliberate: our confirm is the async styled modal
  * (`useConfirmDialog`), not a thread-blocking `window.confirm`, so a second
  * trigger can absolutely arrive while it's open — and stacking two "start a new
- * game?" modals is its own small bug. Cancelling still clears the gate.
+ * game?" modals is its own small bug. Canceling still clears the gate.
  *
  * NOT for idempotent, everyone-fires-it calls (`submit_timeout`) or for actions
  * a state flag already gates (End / Concede stop themselves once `isTerminal` /

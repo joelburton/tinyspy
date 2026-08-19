@@ -60,7 +60,7 @@ type LeaderRow = {
  *
  * **The one rejection that does happen is contention.** In compete (and in
  * free-for-all coop) a rival can claim a card out from under a half-made
- * selection. Two defences: selection is keyed by CARD rather than by slot, so a
+ * selection. Two defenses: selection is keyed by CARD rather than by slot, so a
  * card that leaves the board simply drops out of the selection; and the server
  * takes a row lock, so of two overlapping claims exactly one wins and the other
  * comes back `cards-gone` — a normal pill, not a fault: nobody did anything

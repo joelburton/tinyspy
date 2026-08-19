@@ -377,9 +377,9 @@ triples all mean the same board.
 **The field keeps your separators; the setup stores the twelve letters.** You
 paste `ABC-DEF-GHI-JKL` and the box still reads `ABC-DEF-GHI-JKL` — a board is
 easier to check as four groups than as a run of twelve — while
-`setup.custom_sides` holds the normalised `abcdefghijkl` that `create_game`
+`setup.custom_sides` holds the normalized `abcdefghijkl` that `create_game`
 cross-checks against `board.sides`. The two can't be derived from each other
-(normalising is lossy about separators), so `SetupForm` keeps the raw text in
+(normalizing is lossy about separators), so `SetupForm` keeps the raw text in
 local state alongside the stored value.
 
 That split is also why `cleanSides` does **not** truncate, unlike spellingbee's
@@ -530,7 +530,7 @@ validation lives in [`lib/board.ts`](../../src/letterboxed/lib/board.ts)
 with T" beats "Not a word") and the commit is a plain RPC.
 
 **Two paths are drawn on the board.** The word you're typing traces the accent
-green; the last SUBMITTED word stays behind it in grey (`--letterboxed-ghost`)
+green; the last SUBMITTED word stays behind it in gray (`--letterboxed-ghost`)
 — a **ghost** of where the chain just went. In coop that's whoever played it,
 since the chain is shared and arrives by realtime; in compete `chain` is your
 own, so it's your own last word and can't leak a rival's (their chains are
@@ -586,7 +586,7 @@ on the board.
 
 **Turn log** (`GameTurnLog`): one `<tr>` per event in the shared `<TurnLog>`
 atoms, with coverage as its own column (`7/12`) so the numbers line up. Bar
-colours: a **played word is green** (landing a legal word on this board is
+colors: a **played word is green** (landing a legal word on this board is
 unambiguously progress, unlike a wordle guess), **help is amber** (matching the
 Hint/Spoiler buttons), retreats are **neutral** (in turn-coop an undo is a
 sacrifice made for the next player — red would misdescribe it). Every word is
@@ -645,8 +645,8 @@ the square, the standing, the numbered chain, the full move log — retreats and
 help included, because "what did we try?" is most of what a finished game is
 worth keeping.
 
-A covered letter moves its encoding from colour to **weight**: a heavy black
-ring + bold glyph vs a thin grey ring — it survives a photocopier, which is the
+A covered letter moves its encoding from color to **weight**: a heavy black
+ring + bold glyph vs a thin gray ring — it survives a photocopier, which is the
 test [pdf.md](../pdf.md) sets. The solution prints **only if the players
 revealed it on screen** (`pdf/model.ts` pins this) — printing it regardless
 would route around the Reveal gate and hand the answer to someone still

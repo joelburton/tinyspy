@@ -29,7 +29,7 @@ type Props = {
  * stroke, so the tiles get a proper border. Only wordwheel uses this wheel, so it
  * stays local; the SVG geometry is also shared with the PDF export.
  *
- * Render order (matches `TILE_POSITIONS`): centre first, then the eight outer tiles
+ * Render order (matches `TILE_POSITIONS`): center first, then the eight outer tiles
  * clockwise from the top; the parent (BoardCol) controls the shuffle of
  * `outerLetters` so the visual order changes on Shuffle. The geometry lives in
  * `lib/wheel.ts`, shared with the PDF export.
@@ -38,8 +38,8 @@ type Props = {
  * word (server validates on submit).
  *
  * SPEND ORDER: the wheel is a multiset, so typing a letter spends ONE of its
- * tiles. Tiles are spent in render order — the CENTRE first when it carries the
- * letter (the game rule: a duplicated centre is always the tile the mandatory
+ * tiles. Tiles are spent in render order — the CENTER first when it carries the
+ * letter (the game rule: a duplicated center is always the tile the mandatory
  * use consumes), then outer duplicates in their current display order. Tile k
  * of a letter is spent (dimmed + inert) when the typed word holds more than k
  * earlier occurrences of it. A shuffle can swap WHICH visual twin is dimmed —
@@ -48,7 +48,7 @@ type Props = {
 
 export function Wheel({ outerLetters, centerLetter, onLetterClick, typedCounts, floatingControl }: Props) {
   const letters = [centerLetter, ...outerLetters]
-  // Each tile's ordinal among same-letter tiles, in render order (centre = 0
+  // Each tile's ordinal among same-letter tiles, in render order (center = 0
   // for its letter — spent first, by construction).
   const ordinals: number[] = []
   {

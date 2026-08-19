@@ -10,7 +10,7 @@ export type ButtonWeight = 'primary' | 'secondary'
 /** A button's semantic TONE — CHROME's own vocabulary (theme.css → CHROME), not
  *  the outcome palette's. It colors a secondary button's border + text + icon,
  *  or a primary button's background: `action` = blue, `caution` = orange (Hint /
- *  Reveal), `destructive` = dark red (End / Concede), `quiet` = grey (a dialog's
+ *  Reveal), `destructive` = dark red (End / Concede), `quiet` = gray (a dialog's
  *  Cancel). Tone and weight are ORTHOGONAL — all four tones work in both
  *  treatments, and each tone carries the five values that takes. */
 export type ButtonTone = 'quiet' | 'action' | 'caution' | 'destructive'
@@ -18,7 +18,7 @@ export type ButtonTone = 'quiet' | 'action' | 'caution' | 'destructive'
 /**
  * The DEFAULT tone is `action`: everything that goes through a purpose button is
  * something you do — Clear, Delete, Help, Zoom-fit — and the audit found no
- * consumer that wanted the quiet grey. The cancels don't come through here at
+ * consumer that wanted the quiet gray. The cancels don't come through here at
  * all; they are dialog buttons wearing the bare `secondary` class, whose slots
  * default to quiet in theme.css. A caller CAN pass `tone="quiet"`, and should
  * only do so for something that means "never mind".
@@ -73,7 +73,7 @@ type ActionButtonProps = PurposeButtonProps & {
  * have in common, so a new purpose button is a one-liner and they can't drift.
  *
  * This sits alongside ShuffleButton / PauseButton / BackToClubButton (which are
- * already purpose-buttons) and extends that pattern to the labelled action
+ * already purpose-buttons) and extends that pattern to the labeled action
  * buttons. The look comes from the shared global classes (`icon-button`,
  * `secondary`, `icon-only` — see theme.css), composed here once.
  */
@@ -93,7 +93,7 @@ export function ActionButton({
       type="button"
       className={cls(
         // Every purpose button is a GENERAL button (docs/ui.md) — flat, tone-
-        // coloured, hover on colour alone. `.button` is the SHAPE and paints
+        // colored, hover on color alone. `.button` is the SHAPE and paints
         // nothing; the treatment paints everything, and there is no unmarked
         // default — which is why `weight` can be the class name directly. Add a
         // third weight one day and it cannot be forgotten here: it arrives

@@ -68,14 +68,14 @@ export function useDefinition(word: string | null): State {
 
   useEffect(() => {
     if (!word) return
-    let cancelled = false
+    let canceled = false
 
     // callEdgeFn hands back a classifiable error (fe-error-key + the answered
     // marker), so the popover's red line shows the copy-table's words —
     // "Dictionary service couldn't be reached — try again later" — or a
     // fault's raw key, never functions-js's generic prose.
     void callEdgeFn('common-define', { word }).then((res) => {
-      if (cancelled) return
+      if (canceled) return
       const payload = res.data as (DefinitionResult & { error?: string }) | null
       if (res.error || !payload || payload.error) {
         setLoaded({
@@ -92,7 +92,7 @@ export function useDefinition(word: string | null): State {
     })
 
     return () => {
-      cancelled = true
+      canceled = true
     }
   }, [word])
 

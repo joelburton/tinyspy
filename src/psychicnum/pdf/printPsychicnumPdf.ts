@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf'
 import {
   BLACK,
-  DARK_GREY,
+  DARK_GRAY,
   drawHeader,
   drawSetup,
   fit,
@@ -30,7 +30,7 @@ import type { PrintTile, PrintTrack, PsychicnumPrintModel } from './model'
  *
  * **Success/fail must survive B&W.** psychicnum's tiles carry meaning only in
  * color (green = a secret found, red = a miss). Printed in black-and-white both
- * go grey, so every guessed tile also gets a drawn **shape mark** — a ✓ for a
+ * go gray, so every guessed tile also gets a drawn **shape mark** — a ✓ for a
  * found secret, a ✗ for a miss (Helvetica has no ✓/✗ glyphs, so they're drawn
  * from line segments). The shape distinguishes them without color; the fill is
  * a bonus on a color printer.
@@ -83,7 +83,7 @@ function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, cols: number): numbe
   y += drawBoard(doc, t.board, cols, track.x, y, track.width)
 
   y += 12
-  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
   doc.text(fit(doc, t.result, track.width), track.x, y)
   y += 14
 
@@ -116,11 +116,11 @@ function drawBoard(
     const py = y0 + Math.floor(i / cols) * cellH
     // Set the border weight on EVERY rect — the marks bump the line width, so a
     // stale value would otherwise thicken every cell after the first marked one.
-    doc.setLineWidth(BORDER_W).setDrawColor(DARK_GREY).rect(px, py, cellW, cellH, 'S')
+    doc.setLineWidth(BORDER_W).setDrawColor(DARK_GRAY).rect(px, py, cellW, cellH, 'S')
     // Word a hair below center so it clears the top-corner mark.
     doc.text(tile.word, px + cellW / 2, py + cellH / 2 + size * 0.35 + 2, { align: 'center' })
     // Top-right corner of the cell — psychicnum's own placement; the shared
-    // marks take a centre, so the corner math lives here now.
+    // marks take a center, so the corner math lives here now.
     const markSize = Math.min(cellW, cellH) * 0.22
     const mark = { cx: px + cellW - markSize, cy: py + markSize, size: markSize }
     if (tile.state === 'correct') drawCheck({ ...mark, color: MARK_CORRECT }, doc)
@@ -137,12 +137,12 @@ function drawGuessList(doc: jsPDF, t: PrintTrack, track: Track, y: number): numb
   doc.text('Guesses', track.x, y)
   let cy = y + 12
   if (!t.turns.length) {
-    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
     doc.text('None yet.', track.x, cy)
     return cy
   }
   t.turns.forEach((turn) => {
-    doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(DARK_GRAY)
     doc.text(String(turn.seq), track.x, cy)
     doc.setTextColor(BLACK)
     doc.text(fit(doc, turn.text, track.width - 14), track.x + 12, cy)

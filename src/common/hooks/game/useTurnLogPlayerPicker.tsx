@@ -61,7 +61,7 @@ export type TurnLogPlayerPicker<R extends ActorRow> = {
  * "what did Leah actually play?", or "just my own moves" in a game like scrabble
  * where the shared log interleaves everyone.
  *
- * **Players are named by handle, including you.** An earlier version labelled
+ * **Players are named by handle, including you.** An earlier version labeled
  * the viewer "You", which made your own row read as a different KIND of thing
  * from everyone else's; a list of handles is one list. You're still ordered
  * first, and still the default in compete.

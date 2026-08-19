@@ -85,7 +85,7 @@ export function legalError(setup: WordwheelSetup): string | null {
  * dialog fails fast before the round-trip: if EITHER field is filled, BOTH must
  * be, and together they must be exactly one center + eight other letters,
  * lowercase a–z. DUPLICATES ARE ALLOWED — the wheel is a multiset, so a repeated
- * letter just means two tiles carry it (and the centre may repeat an outer).
+ * letter just means two tiles carry it (and the center may repeat an outer).
  * Unlike spellingbee, 's' IS allowed — word wheel spends a tile per use, so 's'
  * can't pluralize explosively. Case/whitespace are normalized here the same way
  * the SetupForm cleans its inputs.

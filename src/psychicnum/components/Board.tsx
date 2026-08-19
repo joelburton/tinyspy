@@ -96,7 +96,7 @@ export function Board({
   floatingControl,
 }: Props) {
   // ATTENTION — the tiles that just got decided. psychicnum's coop board is
-  // SHARED, so a teammate's guess colours a tile anywhere on it while you are
+  // SHARED, so a teammate's guess colors a tile anywhere on it while you are
   // reading somewhere else: change in place, announcing nothing.
   //
   // Gated on the CAUSE (the guess log) rather than on the board differing, because
@@ -195,9 +195,9 @@ export function Board({
                 {word}
               </span>
               {/* WHO decided this tile. The shared identity disc, so a player's
-                  colour means the same thing here as in the turn log and the
+                  color means the same thing here as in the turn log and the
                   opponent strip — and it brings its paired border shade with it,
-                  which is what lets a light colour read on a green fill. */}
+                  which is what lets a light color read on a green fill. */}
               {actor !== undefined && (
                 // `onColor`: a decided tile is always a saturated green or red, so
                 // the ring goes white — the member's own darker shade vanishes into

@@ -1,5 +1,5 @@
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GREY, drawHeader, drawSetup, fit, newPrintDoc, savePrint, type PrintHeader, type SetupRow } from '../../common/pdf/frame'
+import { BLACK, DARK_GRAY, drawHeader, drawSetup, fit, newPrintDoc, savePrint, type PrintHeader, type SetupRow } from '../../common/pdf/frame'
 import { drawInTracks, type Track } from '../../common/pdf/columns'
 
 /**
@@ -68,7 +68,7 @@ function drawTrack(doc: jsPDF, t: BananagramsTrack, track: Track): number {
 
   let y = drawBoard(doc, t.board, track) + 10
 
-  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
   doc.text(fit(doc, t.result, track.width), track.x, y)
   y += 14
 
@@ -95,9 +95,9 @@ function drawBoard(doc: jsPDF, board: string[][], track: Track): number {
   if (!rows || !cols) {
     // An empty board is a real state (nobody has placed a tile yet). Say so
     // inside the same frame, so the column still reads as a board.
-    doc.setLineWidth(0.5).setDrawColor(DARK_GREY)
+    doc.setLineWidth(0.5).setDrawColor(DARK_GRAY)
     doc.rect(track.x, top, track.width, 40)
-    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
     doc.text('No tiles placed yet.', track.x + FRAME_PAD, top + 22)
     return top + 40
   }
@@ -106,11 +106,11 @@ function drawBoard(doc: jsPDF, board: string[][], track: Track): number {
   const tile = Math.min(inner / cols, (MAX_TILES_DOWN * inner) / cols / rows, 18)
   const gridW = cols * tile
   const gridH = rows * tile
-  // Centre a narrow board in its column so the frame doesn't sit lopsided.
+  // Center a narrow board in its column so the frame doesn't sit lopsided.
   const gx = track.x + (track.width - gridW) / 2
   const gy = top + FRAME_PAD
 
-  doc.setLineWidth(0.5).setDrawColor(DARK_GREY)
+  doc.setLineWidth(0.5).setDrawColor(DARK_GRAY)
   doc.rect(track.x, top, track.width, gridH + 2 * FRAME_PAD)
 
   doc.setLineWidth(TILE_BORDER_W)
@@ -135,7 +135,7 @@ function drawWords(doc: jsPDF, words: string[], track: Track, y: number): number
   doc.text('Words', track.x, y)
   let cy = y + 12
   if (!words.length) {
-    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
     doc.text('None yet.', track.x, cy)
     return cy
   }

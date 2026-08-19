@@ -1,5 +1,5 @@
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GREY, drawHeader, fit, newPrintDoc, savePrint } from '../../common/pdf/frame'
+import { BLACK, DARK_GRAY, drawHeader, fit, newPrintDoc, savePrint } from '../../common/pdf/frame'
 import { drawCheck, drawCross, drawDash } from '../../common/pdf/marks'
 import { drawTurnLog, twoColGeom } from '../../common/pdf/turnLog'
 import type { DuetPrintModel, Mark, PrintCell } from './model'
@@ -14,8 +14,8 @@ import type { DuetPrintModel, Mark, PrintCell } from './model'
  * the one place print shows more than the screen, and it's the whole reason the
  * page exists.
  *
- * Three facts share every tile, and none may depend on colour, because a mono
- * printer flattens the palette to one grey:
+ * Three facts share every tile, and none may depend on color, because a mono
+ * printer flattens the palette to one gray:
  *
  *   - **the tile's own border + corner mark** — what HAPPENED here (contacted,
  *     assassinated, burned as a bystander, or untouched).
@@ -23,14 +23,14 @@ import type { DuetPrintModel, Mark, PrintCell } from './model'
  *   - **the top-right inset** — my partner's key, once the game is over.
  *
  * Each mark is ✓ agent / – neutral / ✗ assassin from `common/pdf/marks`, so the
- * shape carries the meaning and the colour is a bonus on a colour printer.
+ * shape carries the meaning and the color is a bonus on a color printer.
  *
  * Plus the two **bystander triangles**, kept because they're not decoration: a
  * word my PARTNER burned is still mine to guess, while one I burned is locked to
  * me. Planning a clue on paper needs that asymmetry.
  */
 
-/** Print colours for the three meanings. Darker than the screen's fills — these
+/** Print colors for the three meanings. Darker than the screen's fills — these
  *  are strokes on white, and the screen values are tuned as backgrounds. */
 const MARK_RGB: Record<Mark, [number, number, number]> = {
   agent: [46, 106, 42], // green
@@ -81,7 +81,7 @@ export function printCodenamesduetPdf(m: DuetPrintModel): void {
   savePrint(pd, m, 'codenamesduet')
 }
 
-/** Draw one mark centred in a `size` box at (cx, cy). */
+/** Draw one mark centered in a `size` box at (cx, cy). */
 function mark(doc: jsPDF, kind: Mark, cx: number, cy: number, size: number): void {
   const o = { cx, cy, size, color: MARK_RGB[kind] }
   if (kind === 'agent') drawCheck(o, doc)
@@ -95,18 +95,18 @@ function mark(doc: jsPDF, kind: Mark, cx: number, cy: number, size: number): voi
  */
 function drawCell(doc: jsPDF, c: PrintCell, x: number, y: number, w: number, h: number): void {
   // The tile's own border says what HAPPENED. An untouched word gets the plain
-  // dark-grey box — no outcome, so no colour.
+  // dark-gray box — no outcome, so no color.
   const outline = c.outcome ? MARK_RGB[c.outcome] : null
   doc.setLineWidth(outline ? 1.6 : 0.6)
   if (outline) doc.setDrawColor(...outline)
-  else doc.setDrawColor(DARK_GREY)
+  else doc.setDrawColor(DARK_GRAY)
   doc.rect(x, y, w, h, 'S')
 
   // …and its mark repeats it in shape, top-LEFT — the corner the two keycard
   // insets leave free.
   if (c.outcome) mark(doc, c.outcome, x + 8, y + 8, OUTCOME_MARK)
 
-  // The word, centred, shrunk to fit the cell.
+  // The word, centered, shrunk to fit the cell.
   doc.setFont('helvetica', 'bold').setFontSize(8).setTextColor(BLACK)
   const size = Math.min(8, (8 * (w - 16)) / Math.max(doc.getTextWidth(c.word.toUpperCase()), 1))
   doc.setFontSize(size)
@@ -144,7 +144,7 @@ function triangle(doc: jsPDF, cx: number, cy: number, s: number, dir: 'up' | 'do
  * gets read away from the app where nothing else explains them.
  */
 function drawLegend(doc: jsPDF, m: DuetPrintModel, x: number, y: number, colW: number): number {
-  doc.setFont('helvetica', 'bold').setFontSize(8).setTextColor(DARK_GREY)
+  doc.setFont('helvetica', 'bold').setFontSize(8).setTextColor(DARK_GRAY)
   doc.text('KEY', x, y + 6)
 
   const items: [Mark, string][] = [
@@ -161,7 +161,7 @@ function drawLegend(doc: jsPDF, m: DuetPrintModel, x: number, y: number, colW: n
   })
 
   // Which corner is whose — the part a reader can't guess.
-  doc.setFontSize(7.5).setTextColor(DARK_GREY)
+  doc.setFontSize(7.5).setTextColor(DARK_GRAY)
   // Plain ASCII apostrophe, not a curly one: WinAnsi has U+2019, but nothing in
   // printed text gains from risking the encoding — see model.ts on the arrow,
   // which did print as mojibake.

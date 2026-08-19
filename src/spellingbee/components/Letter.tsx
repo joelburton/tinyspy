@@ -29,7 +29,7 @@ type Props = {
  * accepts. The letters are typed, or clicked; there is no third way.
  *
  * `data-hex` / `data-center` are the test hooks that replaced `role="button"` +
- * `aria-label` — a stable handle without the behaviour an ARIA role implies
+ * `aria-label` — a stable handle without the behavior an ARIA role implies
  * (the same reason boggle's tiles carry `data-boggle-tile`).
  *
  * `onMouseDown` is still intercepted, now only to stop a click selecting the

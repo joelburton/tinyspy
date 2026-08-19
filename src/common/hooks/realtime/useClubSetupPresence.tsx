@@ -64,12 +64,12 @@ export function useClubSetupPresence({
   useEffect(() => {
     if (!clubHandle) return
     const room = `club-setup:${clubHandle}`
-    let cancelled = false
+    let canceled = false
 
     function join() {
       // Guards the deferred path only: the effect can tear down again while
       // the previous channel is still leaving.
-      if (cancelled) return
+      if (canceled) return
       const ch = supabase.channel(room, {
         config: { presence: { key: selfId } },
       })
@@ -122,7 +122,7 @@ export function useClubSetupPresence({
     if (pending) void pending.then(join)
     else join()
     return () => {
-      cancelled = true
+      canceled = true
       subscribedRef.current = false
       for (const id of shownRef.current) dismissToast(id)
       shownRef.current = new Set()

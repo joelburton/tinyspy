@@ -39,7 +39,7 @@ function shuffled<T>(arr: readonly T[]): T[] {
  * (the live `results` OR a historical snapshot) + `viewing`, which is what makes the
  * turn-history viewer a drop-in. Own-move feedback lifts to PlayArea (its
  * `showLocalFeedback` / `clearLocalFeedback` write the shared below-board channel,
- * which InfoCol's Hint / Reveal / End also write). See docs/playarea-decomposition-plan.md.
+ * which InfoCol's Hint / Reveal / End also write). See docs/playarea.md.
  */
 export function BoardCol({
   // ── Mobile-only status strip (above the board) ──
@@ -138,7 +138,7 @@ export function BoardCol({
   /** The word currently with the server. Its tile takes the shared in-flight dim
    *  — clicking a tile used to leave the board saying nothing at all until the
    *  answer arrived. Held until the RESULT lands rather than until the RPC
-   *  resolves: the reply and the coloured row are two separate events, and
+   *  resolves: the reply and the colored row are two separate events, and
    *  un-dimming at the first would flash an undecided tile back to normal. */
   const [submittedWord, setSubmittedWord] = useState<string | null>(null)
   /** …and the SERVER'S answer is what ends it: once the word is in `results` it is

@@ -57,7 +57,7 @@ select is(
 -- couldn't tell "everyone spent their swaps" from "everyone walked away".
 select is(
   (select status->>'outcome' from common.games where id = (select id from g)),
-  'conceded', 'an all-conceded race is labelled conceded, not exhausted');
+  'conceded', 'an all-conceded race is labeled conceded, not exhausted');
 
 -- (3) coop concede rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

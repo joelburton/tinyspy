@@ -332,12 +332,12 @@ export function useCommonGame(
     // nothing pending is the fast path, so a first mount joins on the spot.
     // Full mechanism: lib/supabase/channelTeardown.ts.
     const room = `game:${gameId}`
-    let cancelled = false
+    let canceled = false
 
     function joinRoom() {
       // Guards the deferred path only — this effect can tear down again while
       // the previous channel is still leaving.
-      if (cancelled) return
+      if (canceled) return
       const ch = supabase.channel(room)
 
       // Postgres-changes on common.games for this gameId. Drives
@@ -469,7 +469,7 @@ export function useCommonGame(
 
     return () => {
       mounted = false
-      cancelled = true
+      canceled = true
 
       // Last-viewer-leave write. Fire unset_current_view IFF
       // the latest presence snapshot says I'm the only viewer

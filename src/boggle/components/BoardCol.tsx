@@ -51,7 +51,7 @@ function pathWord(path: Cell[], view: string[][]): string {
  * Concede — so PlayArea passes the entry primitives (`word` / `onChange` / `onSubmit`
  * / `localPill` / …) DOWN and this column renders them. Like the other games'
  * BoardCol it does NOT own the game state: PlayArea hands it the display `grid`, and
- * the below-board `over` pill / `localPill`. See docs/playarea-decomposition-plan.md.
+ * the below-board `over` pill / `localPill`. See docs/playarea.md.
  */
 export function BoardCol({
   // ── Mobile-only status block (above the board) ──

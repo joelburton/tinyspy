@@ -43,7 +43,7 @@ const STATUS_CLASS: Record<PuzzleStatus, string> = {
   unplayed: styles.statusUnplayed!,
 }
 
-/** The RPC types `status` as plain `text`. Anything the FE doesn't recognise
+/** The RPC types `status` as plain `text`. Anything the FE doesn't recognize
  *  (a status added server-side first) falls back to the neutral bar rather
  *  than rendering an unstyled row. */
 function statusClass(status: string): string {
@@ -129,10 +129,10 @@ export function SetupForm({ clubHandle, players, value, onChange }: SetupBodyPro
     }
   }
 
-  // One RPC rather than "list the puzzles, then colour them": the join to
+  // One RPC rather than "list the puzzles, then color them": the join to
   // play_state crosses schemas (crosswords.games → common.games), which
   // PostgREST embeds can't express, and doing it in two reads would paint
-  // the rows and then recolour them a beat later. It's also ~200× less over
+  // the rows and then recolor them a beat later. It's also ~200× less over
   // the wire than the `select id, meta` this replaced — `meta` is the whole
   // template (every cell, number, block, circle) and the row shows four
   // scalars off it. Ordering + the source='library' filter live in the RPC.

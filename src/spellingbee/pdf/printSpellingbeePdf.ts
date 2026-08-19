@@ -1,5 +1,5 @@
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GREY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
+import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
 import type { WordSection } from '../../common/pdf/wordSections'
 import { drawWordListBody } from '../../common/pdf/wordListBody'
 import { BOX_H, BOX_W, HEX_H, HEX_POSITIONS, HEX_SHRINK, HEX_VERTS, HEX_W } from '../lib/honeycomb'
@@ -46,7 +46,7 @@ export function printSpellingbeePdf(m: SpellingbeePrintModel): void {
 }
 
 /** Draw the 7-hex honeycomb at (x0, y0), `scale` mapping flower-units → points. Each hex
- *  is a white (paper-backed) flat-top polygon with a dark-grey border; the center hex
+ *  is a white (paper-backed) flat-top polygon with a dark-gray border; the center hex
  *  (index 0) gets a thicker border — its only distinction on the white page. */
 function drawHoneycomb(doc: jsPDF, outer: string[], center: string, x0: number, y0: number, scale: number): void {
   const letters = [center, ...outer]
@@ -56,16 +56,16 @@ function drawHoneycomb(doc: jsPDF, outer: string[], center: string, x0: number, 
     const pos = HEX_POSITIONS[i] ?? HEX_POSITIONS[0]
     const px = x0 + pos.left * scale
     const py = y0 + pos.top * scale
-    // Absolute vertices (inset toward the hex centre by HEX_SHRINK, matching on-screen).
+    // Absolute vertices (inset toward the hex center by HEX_SHRINK, matching on-screen).
     const verts = HEX_VERTS.map(([fx, fy]): [number, number] => [
       px + (0.5 + (fx - 0.5) * HEX_SHRINK) * sw,
       py + (0.5 + (fy - 0.5) * HEX_SHRINK) * sh,
     ])
     // jsPDF draws a polyline from a start point via relative deltas; `closed` shuts it.
     const deltas = verts.slice(1).map((v, k): [number, number] => [v[0] - verts[k][0], v[1] - verts[k][1]])
-    doc.setDrawColor(DARK_GREY).setLineWidth(i === 0 ? CENTER_BORDER_W : HEX_BORDER_W)
+    doc.setDrawColor(DARK_GRAY).setLineWidth(i === 0 ? CENTER_BORDER_W : HEX_BORDER_W)
     doc.lines(deltas, verts[0][0], verts[0][1], [1, 1], 'S', true)
-    // Letter centred in the hex.
+    // Letter centered in the hex.
     const fs = sh * 0.5
     doc.setFont('helvetica', 'bold').setFontSize(fs).setTextColor(BLACK)
     doc.text(letter.toUpperCase(), px + sw / 2, py + sh / 2 + fs * 0.35, { align: 'center' })

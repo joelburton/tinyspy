@@ -68,7 +68,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Shuffle / Delete / Enter actions** | shipped | Shuffle stays clickable when locked; hover rotates only the ⟲ glyph, not the button |
 | **Pangram detection + bonus + visual marker** | shipped | |
 | **Rank ladder + rank-bar UI with hover tooltips** | shipped | |
-| **Found-words list** (column-major grid, fixed height, horizontal scroll past 3 columns; found words in their finder's color, missed required words grey, pangram bold, bonus bullet, recently-found underline) | shipped | |
+| **Found-words list** (column-major grid, fixed height, horizontal scroll past 3 columns; found words in their finder's color, missed required words gray, pangram bold, bonus bullet, recently-found underline) | shipped | |
 | **Timer modes** (none / countup / countdown) + countdown-expiry termination | shipped | Via shared `<TimerField>` + `useGameTimer` |
 | **Manual end-game** (menu item; confirms then writes terminal) | shipped | Per-game menu item; outcome = `'manual'` |
 | **Pause-on-disconnect + manual pause** | shipped (via common) | Free from the common shell |
@@ -108,7 +108,7 @@ Both manifests share the same `PlayArea`, `SetupForm`, `Help`, and `useGame`. Th
 - **Timeout → the table lost**: the countdown firing before anyone hits target is `play_state='lost_compete'` (coop: `'lost'`) with `outcome='timeout'`, every player `{won: false}`. There WAS something to reach and nobody reached it.
 - **Manual end → no winner, no loss**: any player ending the game writes the neutral `play_state='ended'` with `outcome='manual'`. Friends-agreed-to-stop is a valid outcome, not a "you lose" punishment.
 - **Opponent visibility = rank only**: the `OpponentStrip` rendered between the RankBar and the Stats card shows each player's current rank (and the target). The exact score, words-found count, and guesses stay private. The strip reads from `common.games.status.leaderboard` (RLS-permissive — it's on the cross-cutting common row, not the per-game found_words).
-- **Post-terminal reveal**: at `isTerminal` the WordList interleaves the words nobody found — **required and bonus**, from the always-present `games_state` lists, computed FE-side by `buildRevealWords` as `(required ∪ bonus) − found` — into the alphabetical list, rendered **medium grey** (a missed bonus word keeps the trailing `•`). Found words keep their **finder's** color throughout — and a word more than one player found (compete, once the `found_words` RLS `is_terminal` branch exposes every player's rows) is colored by the **first finder** (earliest `found_at`); `buildDisplayRows` dedups it to one row while keeping every finder in `finderIds`, so the list's WHO filter still matches the later ones. The caller's own score/rank/stats stay caller-only across the terminal transition (`PlayArea` filters `found_words` to the caller in compete rather than leaning on the now-relaxed RLS).
+- **Post-terminal reveal**: at `isTerminal` the WordList interleaves the words nobody found — **required and bonus**, from the always-present `games_state` lists, computed FE-side by `buildRevealWords` as `(required ∪ bonus) − found` — into the alphabetical list, rendered **medium gray** (a missed bonus word keeps the trailing `•`). Found words keep their **finder's** color throughout — and a word more than one player found (compete, once the `found_words` RLS `is_terminal` branch exposes every player's rows) is colored by the **first finder** (earliest `found_at`); `buildDisplayRows` dedups it to one row while keeping every finder in `finderIds`, so the list's WHO filter still matches the later ones. The caller's own score/rank/stats stay caller-only across the terminal transition (`PlayArea` filters `found_words` to the caller in compete rather than leaning on the now-relaxed RLS).
 - **Word lists shipped, not hidden**: both `required_words` + `bonus_words` ship to the FE from game start (the FE validates locally); the compete reveal of *peers' finds* is still gated by the `found_words` RLS `is_terminal` branch.
 
 ### Mode is denormalized onto the game row
@@ -168,7 +168,7 @@ Two OPTIONAL setup fields let a player hand-pick the board instead of getting a 
 - **The ≥30 gate relaxes to ≥1.** The random builder targets ≥30 required words for a rich puzzle; a custom board is whatever the player's letters yield, so `create_game` requires only **≥1 required word** (else the rank ladder is degenerate — Genius at 0 points). If the letters yield zero required words *at the chosen `setup.required` band*, both the edge function (400) and `create_game` (P0001) reject with a "pick different letters or a lower required band" message. The random path keeps the full ≥30 gate — the relaxation keys off `setup.custom_letters` being present.
 - **One-off, not a new default.** `create_game` strips `custom_letters` + `custom_center` from the setup it saves as the club's `clubs_gametypes.default_setup`, so the NEXT game's dialog opens with the custom fields blank (a random board) rather than silently re-pinning the hand-picked letters.
 - **No overlap cap.** The previous-board overlap cap is a diversity heuristic for random boards; a custom board is an explicit choice, so it's skipped.
-- **The letters are always readable back.** The setup recap's `Letters` row prints this board's centre + others (alphabetized, so one board always reads one way — matching the game's own title) as `A-CHIORT` — the shape these two fields take back — **for every board, random or hand-picked**, on screen and on the PDF alike (`lib/setupSummary.ts`; the board-identity exception in [pdf.md → Setup rows](../pdf.md#setup-rows)). That's what makes "here, try these letters" a copy rather than a transcription, and it's the same row MooseWheel prints (shared `centerLettersRow`) and MothCubes prints for its grid.
+- **The letters are always readable back.** The setup recap's `Letters` row prints this board's center + others (alphabetized, so one board always reads one way — matching the game's own title) as `A-CHIORT` — the shape these two fields take back — **for every board, random or hand-picked**, on screen and on the PDF alike (`lib/setupSummary.ts`; the board-identity exception in [pdf.md → Setup rows](../pdf.md#setup-rows)). That's what makes "here, try these letters" a copy rather than a transcription, and it's the same row MooseWheel prints (shared `centerLettersRow`) and MothCubes prints for its grid.
 
 ### Play states
 
@@ -234,7 +234,7 @@ Server-side on the trusted commit: inserts `found_words` row, recomputes team/pl
 
 Countdown-expiry handler. Calls `common.end_game` with `{outcome:'timeout', ...}` and the clock-is-a-loss terminal per mode: coop → `'lost'` if a `target_rank` was set, else the neutral `'ended'`; compete → `'lost_compete'` (a compete race always has a target, so the clock beating everyone to it is a real loss for the table). Idempotent — second call raises `P0001 'game is not in progress'`, which the FE swallows.
 
-**Realtime touch at the tail**: a no-op self-write on `spellingbee.found_words` (`set user_id = user_id`) — load-bearing in compete, where opponents' finds are RLS-hidden until terminal and no `found_words` event would otherwise fire on a timeout, so peers would never refetch and every opponent find would render as a grey "missed" row. The uniform trick at [common.md → Manual end, step 6](../common.md#manual-end--every-gametypes-end_gametarget_game); the migration's "realtime touch" notes carry the bug history.
+**Realtime touch at the tail**: a no-op self-write on `spellingbee.found_words` (`set user_id = user_id`) — load-bearing in compete, where opponents' finds are RLS-hidden until terminal and no `found_words` event would otherwise fire on a timeout, so peers would never refetch and every opponent find would render as a gray "missed" row. The uniform trick at [common.md → Manual end, step 6](../common.md#manual-end--every-gametypes-end_gametarget_game); the migration's "realtime touch" notes carry the bug history.
 
 ### `spellingbee.end_game(target_game uuid) → void`
 
@@ -419,7 +419,7 @@ src/spellingbee/
                           (foundWords, buildRevealWords(required, bonus, found))
                           and passes `reveal` + `hasBonus`. Per-finder color, pangram bold,
                           bonus dot, 5s recently-found underline (the now-shared common/hooks/
-                          useRecentlyFound), the post-terminal grey reveal, and the two-axis
+                          useRecentlyFound), the post-terminal gray reveal, and the two-axis
                           KIND/WHO filter (common/hooks/game/useWordListFilter) all live in
                           the common component. In compete the foundWords input is already
                           caller-only (RLS hides peers' rows mid-game).

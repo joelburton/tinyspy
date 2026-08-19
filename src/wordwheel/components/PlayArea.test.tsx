@@ -109,7 +109,7 @@ describe('wordwheel PlayArea — render smoke', () => {
   it('renders the wheel + RankBar + Stats in coop play', () => {
     render(<PlayArea {...makeCtx()} />)
     expect(document.querySelector('[data-wheel]')).toBeInTheDocument()
-    // The centre tile, by its data hook — a tile is pointer-only (Tile.tsx), so
+    // The center tile, by its data hook — a tile is pointer-only (Tile.tsx), so
     // it wears no ARIA role for a test to hang off.
     expect(document.querySelector('[data-tile][data-center]')).toBeInTheDocument()
     // The WordList rendered (empty during play).
@@ -289,7 +289,7 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
     // `data-disabled` is the spent marker (it replaced aria-disabled — the tiles
     // carry no ARIA role, see Tile.tsx).
     const tile = (letter: string) => document.querySelector(`[data-tile="${letter}"]`)!
-    // Before typing: the 'B' tile + the centre 'E' tile are enabled.
+    // Before typing: the 'B' tile + the center 'E' tile are enabled.
     expect(tile('B')).not.toHaveAttribute('data-disabled')
     expect(tile('E')).not.toHaveAttribute('data-disabled')
     // Type 'be' → both spent → both tiles disabled; an untyped tile ('C') stays enabled.
@@ -302,21 +302,21 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
     expect(tile('E')).not.toHaveAttribute('data-disabled')
   })
 
-  it('spends duplicate tiles one per occurrence, the centre first', async () => {
+  it('spends duplicate tiles one per occurrence, the center first', async () => {
     const user = userEvent.setup()
     // A wheel where the CENTER letter 'e' is duplicated on an outer tile:
-    // typing one 'e' must spend the centre (the mandatory-use tile), leaving
+    // typing one 'e' must spend the center (the mandatory-use tile), leaving
     // its outer twin clickable; a second 'e' spends the twin too.
     h.result = loaded(loadedGame({ outer_letters: 'bacdfghe' }))
     render(<PlayArea {...makeCtx()} />)
-    // Two tiles share the letter, so the centre is told apart by `data-center`
+    // Two tiles share the letter, so the center is told apart by `data-center`
     // rather than by an accessible name — which is also the only reason those
     // names existed (Tile.tsx).
     const centerE = () => document.querySelector('[data-tile="E"][data-center]')!
     const outerE = () => document.querySelector('[data-tile="E"]:not([data-center])')!
     expect(centerE()).not.toHaveAttribute('data-disabled')
     expect(outerE()).not.toHaveAttribute('data-disabled')
-    // First 'e': centre spent FIRST, the outer twin still available.
+    // First 'e': center spent FIRST, the outer twin still available.
     await user.keyboard('e')
     expect(centerE()).toHaveAttribute('data-disabled', 'true')
     expect(outerE()).not.toHaveAttribute('data-disabled')
@@ -324,7 +324,7 @@ describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => 
     await user.keyboard('e')
     expect(centerE()).toHaveAttribute('data-disabled', 'true')
     expect(outerE()).toHaveAttribute('data-disabled', 'true')
-    // Backspace frees one occurrence → the outer twin re-enables, the centre
+    // Backspace frees one occurrence → the outer twin re-enables, the center
     // stays spent (it's first in the spend order).
     await user.keyboard('{Backspace}')
     expect(centerE()).toHaveAttribute('data-disabled', 'true')

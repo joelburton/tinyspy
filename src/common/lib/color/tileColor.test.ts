@@ -23,7 +23,7 @@ describe('tileColor', () => {
  *
  * `styles[tileColor(code)]` is a lookup with no compiler behind it. Rename a
  * class in one of these files and nothing errors — the key resolves to
- * `undefined`, `cls()` drops it, and the tile renders with no colour at all.
+ * `undefined`, `cls()` drops it, and the tile renders with no color at all.
  * Silent, and only visible to someone playing that game.
  *
  * IT HAS TO BE A STATIC CHECK. A rendering test cannot see this: `css: false`

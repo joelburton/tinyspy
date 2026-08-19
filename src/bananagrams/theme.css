@@ -15,9 +15,9 @@
   --bananagrams-cursor: #4aa3ff;
   /* The in-game error red (the hand-miss flash) — a second red beside
      `--outcome-lost-*`, saying much the same thing in a value nothing chose
-     deliberately. Brand, or a UI colour that belongs in common? UNDECIDED, and
+     deliberately. Brand, or a UI color that belongs in common? UNDECIDED, and
      it belongs to this game's tile-feedback conversion, where the flash itself
-     gets looked at. See docs/tile-feedback.md → the roster. */
+     gets looked at. See plans/tile-feedback.md → the roster. */
   --bananagrams-error: #d84a4a;
   --bananagrams-grid-edge: #8893a3; /* thick outer border = the real edge of the arena */
 }
@@ -39,7 +39,7 @@ body.mg-dragging {
   --bananagrams-tile-resting-shadow: 0 1px 2px rgb(0 0 0 / 20%);
   --bananagrams-hand-shadow:         0 2px 6px rgb(0 0 0 / 18%);
   --bananagrams-drag-shadow:         0 6px 14px rgb(0 0 0 / 35%);
-  /* The drop-target green — a PROSPECTIVE verdict (docs/tile-feedback.md), which
+  /* The drop-target green — a PROSPECTIVE verdict (plans/tile-feedback.md), which
    * the vocabulary will want to own once this game converts. */
   --bananagrams-drop-ok-fill-color:  rgb(120 200 130 / 22%);
   --bananagrams-drop-ok-edge-color:  rgb(120 200 130 / 80%);

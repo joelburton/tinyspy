@@ -16,11 +16,11 @@ export type { SetupRow }
  * each game stays in control of composition.
  */
 
-// ── The print shade system. 0 = black … 255 = white (jsPDF's single-arg grey).
+// ── The print shade system. 0 = black … 255 = white (jsPDF's single-arg gray).
 //    Everything not EXPLICITLY colored is one of these three. See docs/pdf.md. ──
 export const BLACK = 0 // all text / data / headings — the default
-export const DARK_GREY = 70 // real-but-secondary marks — board grids + column-header labels
-export const MEDIUM_GREY = 180 // minor lines only — turn-row dividers + a table's header rule
+export const DARK_GRAY = 70 // real-but-secondary marks — board grids + column-header labels
+export const MEDIUM_GRAY = 180 // minor lines only — turn-row dividers + a table's header rule
 
 /** The header/footer fields every print model carries (each game's model extends this). */
 export type PrintHeader = {
@@ -71,7 +71,7 @@ export function newPrintDoc(margin = 28): PrintDoc {
 
 /** Draw the shared header: `Brand: title` (bold, truncated to clear the date), the
  *  date top-right, and the summary line below. Small ≠ unimportant — the date is
- *  black, not grey (docs/pdf.md). */
+ *  black, not gray (docs/pdf.md). */
 export function drawHeader(pd: PrintDoc, m: PrintHeader): void {
   const { doc, pageW, margin } = pd
   doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(BLACK)
@@ -91,7 +91,7 @@ export function drawHeader(pd: PrintDoc, m: PrintHeader): void {
  * `maxW` (optional) is the width the block has to live in. Given one, a value
  * too long for the space WRAPS onto further lines, indented under the value so
  * the row still reads as one row. Without it, a long value runs on — which is
- * the historical behaviour, kept for `turnLog`'s caller, whose column layout
+ * the historical behavior, kept for `turnLog`'s caller, whose column layout
  * pre-computes the block's height as one line per row.
  *
  * Wrapping isn't hypothetical tidiness: MothCubes' `Letters` row prints the

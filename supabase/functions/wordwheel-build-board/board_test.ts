@@ -57,7 +57,7 @@ Deno.test('tileCounts: per-letter multiplicity, not a set', () => {
 })
 
 Deno.test('fitsTiles: a word may spend a letter only as many times as it has tiles', () => {
-  // Wheel 'abcdefgi' + centre 'e' → one 'e' tile (letters: a b c d e f g i, e).
+  // Wheel 'abcdefgi' + center 'e' → one 'e' tile (letters: a b c d e f g i, e).
   const wheel = tileCounts('abcdefgi' + 'e')
   eq(fitsTiles('bead', wheel), true, "'bead' fits (each letter once)")
   eq(fitsTiles('faced', wheel), true, "'faced' fits")
@@ -68,7 +68,7 @@ Deno.test('fitsTiles: a word may spend a letter only as many times as it has til
 })
 
 Deno.test('fitsTiles: two tiles of a letter allow two uses', () => {
-  // A multiset wheel with two 'e' tiles: 'abcdefge' outer + 'e' centre = three e's.
+  // A multiset wheel with two 'e' tiles: 'abcdefge' outer + 'e' center = three e's.
   const wheel = tileCounts('abcdefge' + 'e')
   eq(fitsTiles('feee', wheel), true, "three e's fit three e-tiles")
   eq(fitsTiles('feeee', wheel), false, "four e's exceed three e-tiles")
@@ -103,7 +103,7 @@ Deno.test('buildBoard: partitions required vs bonus, tallies required only', () 
   eq(board.required_words.length, 2, 'required list has 2')
   eq(board.bonus_words.length, 0, "'cabbie' dropped (two b's, one b-tile)")
   eq(board.outer_letters, 'abcdfgi', 'outer letters echoed')
-  eq(board.center_letter, 'e', 'centre echoed')
+  eq(board.center_letter, 'e', 'center echoed')
 })
 
 Deno.test('buildBoard: a 9-letter word that fits IS a pangram (+15)', () => {
@@ -161,17 +161,17 @@ Deno.test('buildWeightedPool: rare-letter seeds appear 3×', () => {
 
 // ── Custom-letter validation (wordwheel allows dupes + 's') ──────────
 
-Deno.test('validateCustomLetters: eight outer + one centre, dupes and s allowed', () => {
+Deno.test('validateCustomLetters: eight outer + one center, dupes and s allowed', () => {
   eq(validateCustomLetters('e', 'abcdfghi'), null, 'valid nine-letter wheel')
-  eq(validateCustomLetters('s', 'aabcdefg'), null, "'s' centre allowed + duplicate 'a' allowed")
+  eq(validateCustomLetters('s', 'aabcdefg'), null, "'s' center allowed + duplicate 'a' allowed")
   eq(validateCustomLetters('e', 'ssssssss'), null, 'all-s outer is legal (multiset)')
 })
 
-Deno.test('validateCustomLetters: rejects a bad centre or wrong outer length', () => {
+Deno.test('validateCustomLetters: rejects a bad center or wrong outer length', () => {
   eq(
     validateCustomLetters('ab', 'abcdefgh'),
     'bad-custom-center|',
-    'two-char centre rejected',
+    'two-char center rejected',
   )
   eq(
     validateCustomLetters('e', 'abcdefg'),
@@ -181,6 +181,6 @@ Deno.test('validateCustomLetters: rejects a bad centre or wrong outer length', (
   eq(
     validateCustomLetters('3', 'abcdefgh'),
     'bad-custom-center|',
-    'non-letter centre rejected',
+    'non-letter center rejected',
   )
 })

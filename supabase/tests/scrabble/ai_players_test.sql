@@ -135,7 +135,7 @@ select is((select status->>'winner_user_id' from common.games where id = (select
 select is((select status->>'winner_seat' from common.games where id = (select id from gwin)),
   '1', 'the winning seat is the AI seat');
 select is((select status->>'winner_username' from common.games where id = (select id from gwin)),
-  'AI 1', 'the AI winner is labelled "AI 1"');
+  'AI 1', 'the AI winner is labeled "AI 1"');
 select is((select result->>'won' from common.game_players
            where game_id = (select id from gwin) and user_id = 'ada11111-1111-1111-1111-111111111111'),
   'false', 'the out-scored human is recorded a loss');

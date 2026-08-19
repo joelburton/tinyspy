@@ -59,7 +59,7 @@
  *
  * The two knobs on the shared <Stats> grid are set here rather than there
  * because both exist for the FOUR-column shape: opt out of the 20rem cap the
- * two-column games want, and put a real floor between adjacent centred figures. */
+ * two-column games want, and put a real floor between adjacent centered figures. */
 .mobileStatus {
   width: var(--side);
   --stats-max-width: none;
@@ -119,7 +119,7 @@
   min-width: 0;
   min-height: 0;
   /* Tap-to-trace (BoardCol): each tile is a button. Smooth the state changes and
-   * kill the mobile tap-highlight (it paints a grey box that fights the tile). */
+   * kill the mobile tap-highlight (it paints a gray box that fights the tile). */
   transition: transform 80ms ease, background 80ms ease, color 80ms ease;
   -webkit-tap-highlight-color: transparent;
   /* Path-tracing is rapid repeated taps on adjacent tiles — exactly the gesture

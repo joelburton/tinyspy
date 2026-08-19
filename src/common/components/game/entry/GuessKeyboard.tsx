@@ -43,7 +43,7 @@ type Props = {
  * Shared by **wordle** (which tints keys with per-letter feedback via
  * `keyStates`) and **wordiply** (no tint). It is deliberately game-agnostic:
  * the keycap's own chrome is `--kbd-*` and the judged keys wear the shared
- * `--wordle-*` palette by name. It used to take those colours through a
+ * `--wordle-*` palette by name. It used to take those colors through a
  * `--kbd-correct`/`-present`/`-absent` seam a game could override — but the only
  * game that ever did set each one to the value its fallback already had, so the
  * seam's "game-agnostic default" was the wordle palette wearing a disguise. No

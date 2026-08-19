@@ -27,7 +27,7 @@ const NO_RANKS: ReadonlySet<CategoryRank> = new Set()
 /** The verdict's tone class, keyed by the tone its PILL wore — one entry per
  *  answer connections' own-guess pill can give: red "Incorrect", gold "One
  *  away!", orange "You already tried that". The mark never picks its own color;
- *  it wears the pill's, because the two are one message (docs/tile-feedback.md).
+ *  it wears the pill's, because the two are one message (plans/tile-feedback.md).
  *  A CORRECT guess has no entry: those four tiles become a band on the same
  *  render, so there is nothing left to mark. */
 const VERDICT_TONE = {
@@ -91,7 +91,7 @@ type Props = {
   /** ATTENTION, the server's move marker: the guess log's length. A band
    *  arriving is only news when a MOVE put it there — `replay_board` deletes the
    *  guesses, so a restart drops this instead of advancing it and the re-dealt
-   *  board says nothing (docs/tile-feedback.md → Read the cause). */
+   *  board says nothing (plans/tile-feedback.md → Read the cause). */
   moveCount?: number
   /** Was the newest guess mine? Then no flash: I picked those four tiles and the
    *  commit slot already told me they were right. The mark is for the teammates
@@ -125,7 +125,7 @@ type Props = {
  * tile height; connections doesn't yet). The `.board` wrapper is a shared shape
  * across games (no border/background today; the slot for a future framed board).
  *
- * Every mark on it is the SHARED vocabulary (docs/tile-feedback.md), and the
+ * Every mark on it is the SHARED vocabulary (plans/tile-feedback.md), and the
  * element each one lands on is what says how far it reaches. On a TILE: the
  * `.selected` border for a tile in the guess being built — worn whoever picked
  * it, because in coop the four tiles are one shared move — with `.peerPick`
@@ -304,7 +304,7 @@ export function Board({
                 inFlight && shared.dimInFlight,
                 // The answer fills the tile, in a PALE tier of its pill's tone.
                 // The background is free to take it: a connections tile carries
-                // no state colour — a decided one stops being a tile at all and
+                // no state color — a decided one stops being a tile at all and
                 // becomes part of a band.
                 isVerdict && shared.verdictFill,
                 isVerdict && verdict && VERDICT_TONE[verdict.tone],

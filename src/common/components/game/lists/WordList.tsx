@@ -20,8 +20,8 @@ import styles from './WordList.module.css'
  *   - **found** — a word someone found; `userId` colors its dot (the finder).
  *     `isBonus` adds a trailing '•'; `isPangram` bolds it (games without either
  *     concept just omit the flag).
- *   - **unfound** — a word nobody found, shown only post-terminal (a hollow grey
- *     ring + grey word). Carries `isBonus` too: the reveal covers **both** lists,
+ *   - **unfound** — a word nobody found, shown only post-terminal (a hollow gray
+ *     ring + gray word). Carries `isBonus` too: the reveal covers **both** lists,
  *     required and bonus, so the post-game artifact includes the interesting
  *     vocabulary nobody reached.
  *
@@ -91,7 +91,7 @@ type Props = {
  *
  *   - **Found words** lead with a filled disc in their finder's color, word in black.
  *   - **Unfound required words** (the post-terminal reveal) lead with a hollow ring in
- *     grey, word also grey — "here's what the team / field missed."
+ *     gray, word also gray — "here's what the team / field missed."
  *
  * Three flags compose on top: **pangram** (bold), **bonus** (a trailing '•'), and
  * **recently found** (a finder-color underline that fades after 5s — mid-game
@@ -213,7 +213,7 @@ export function WordList({
           ) : (
             shown.map((entry) => {
               // Unfound reveal entries — words nobody found, only ever
-              // post-terminal. Hollow grey ring + grey word.
+              // post-terminal. Hollow gray ring + gray word.
               if (entry.kind === 'unfound') {
                 return (
                   <li

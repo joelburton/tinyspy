@@ -524,11 +524,11 @@ nice-to-have, not shipped.
 The **track family**: one page column per BOARD, its 5×5 grid, then that board's swaps.
 
 The tiles use the shared 4-state encoding — **border and fill weight, not
-colour**. That's what makes waffle printable at all: its feedback is entirely
-green/yellow/grey, which a mono printer flattens to a single grey, and waffle
+color**. That's what makes waffle printable at all: its feedback is entirely
+green/yellow/gray, which a mono printer flattens to a single gray, and waffle
 without its feedback is a grid of unrelated letters. See
 [`pdf.md` → Backgrounds are white](../pdf.md#backgrounds-are-white) for the rule
-this is the agreed exception to, and why greys rather than hues keep it honest.
+this is the agreed exception to, and why grays rather than hues keep it honest.
 
 **Coop is one track** (a single shared board). **Compete is one per player at
 terminal**, and just yours during play — mid-game you hold nobody else's board OR swaps (both RLS-gated — see [The compete swap log](#the-compete-swap-log-and-why-it-is-private)),
@@ -537,7 +537,7 @@ three tracks per page; a fourth player spills onto a second page at the same siz
 
 The four **holes** print as nothing at all — not an empty box. They aren't
 un-guessed cells, they're not part of the puzzle, and a box there would invite
-someone to fill it in. The notches are how you recognise the waffle shape.
+someone to fill it in. The notches are how you recognize the waffle shape.
 
 A coop track's log names each swapper (one board, many hands); a compete track is
 one person's, so the rows don't repeat their name — the column heading says whose

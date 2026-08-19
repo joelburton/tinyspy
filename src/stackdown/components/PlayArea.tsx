@@ -60,7 +60,7 @@ const NO_TILES: ReadonlySet<number> = new Set()
  *     callbacks up (`onHint`/`onReveal`/`onEndGame`/`onConcede`/`onSelectTurn`).
  *
  * The load-bearing seam: BoardCol owns *editing*; PlayArea hands it *the board to
- * show*. That's what makes turn-history a drop-in (see docs/playarea-decomposition-plan.md).
+ * show*. That's what makes turn-history a drop-in (see docs/playarea.md).
  *
  * Clicking an exposed tile picks it onto the word; the fifth tile auto-submits via
  * `stackdown.submit_word`. Accepted words remove their tiles (the board updates via
@@ -120,7 +120,7 @@ export function PlayArea({
   const [submitting, setSubmitting] = useState(false)
 
   // ─── Turn-history viewer ──────────────────────────────────────
-  // The shared coordination state (docs/playarea-decomposition-plan.md): which log
+  // The shared coordination state (docs/playarea.md): which log
   // row is open on the board. Identified by the row's POSITION in the log, not its
   // seq (stackdown's seq is per-user — see lib/history). When set, PlayArea feeds
   // BoardCol that turn's historical snapshot + readOnly; BoardCol shows the yellow
@@ -394,7 +394,7 @@ export function PlayArea({
   // NOT idempotent — every call shelves the club's current game and starts
   // another, orphaning the last in the club list and toasting every peer.
   // Guarding the HANDLER covers all three triggers at once, which a `disabled`
-  // button could never do. `startingNewGame` then greys the button so a slow
+  // button could never do. `startingNewGame` then grays the button so a slow
   // network reads as "working" rather than "nothing happened".
   //
   // The MENU ITEM deliberately takes no `disabled`: its effect is built above
@@ -479,7 +479,7 @@ export function PlayArea({
         extra: [
           // The menu twins of the info column's two cheats. The row is what
           // NAMES those glyphs (docs/ui.md → the menu is the legend), so it's
-          // greyed rather than dropped once you can't ask: a disabled row still
+          // grayed rather than dropped once you can't ask: a disabled row still
           // teaches the lightbulb and the bare eye. The labels are the buttons'
           // richer tooltip copy, not their terse aria-labels — a menu has room
           // to say which word it acts on.

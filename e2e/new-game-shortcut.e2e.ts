@@ -63,7 +63,7 @@ test('“+” starts a new game, after confirming mid-play', async ({ browser })
  *
  * The setup dialog lives on ClubPage, so the shortcut hands off via
  * `?new=<gametype>` — the same route crosswords' own New game uses — and
- * cancelling simply leaves you on the club page.
+ * canceling simply leaves you on the club page.
  */
 test('“⌥+” confirms, then opens the setup dialog on the club page', async ({ browser }) => {
   const club = await createSoloClub('ngsp')

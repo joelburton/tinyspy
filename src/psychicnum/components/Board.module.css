@@ -51,7 +51,7 @@
  * hug game reads the same one. --cols is set inline. */
 .grid {
   /* WIDTH: the shared rectangular hug (`shared.hugRectWidth`, composed on this
-   * element in Board.tsx). This game keeps its own fill behaviour below. */
+   * element in Board.tsx). This game keeps its own fill behavior below. */
   flex: 1;
   min-height: 0;
   display: grid;
@@ -67,7 +67,7 @@
  * SATURATED outcome tones (`--outcome-*-fill-color`, the same green/red the
  * TurnLog outcome bars use), NOT the washed-out pastel `-bg` — so a decided
  * tile obviously carries the same green=good / red=bad message as a guess
- * outcome. No dimming/grey: the color IS the "already tried" signal and a record
+ * outcome. No dimming/gray: the color IS the "already tried" signal and a record
  * of found vs ruled out. The tile is also `disabled` once guessed, so it never
  * shows the hover ring. (In compete RLS scopes the viewer's board to their own
  * guesses, so this never leaks what opponents tried.) */
@@ -77,20 +77,20 @@
  * which is where dark ink belongs.
  *
  * The EDGE is the shared `-edge` tier: the fill stepped 16% darker, the same quiet
- * definition waffle and wordle give their coloured tiles. It was computed here
+ * definition waffle and wordle give their colored tiles. It was computed here
  * with `color-mix` until the palette sweep promoted the step to a named tier every
  * outcome family carries. Deliberately NOT the outcome family's `-strong` tone,
  * which is four steps down (400 → 800) and reads as a harsh ring rather than as an
  * edge. And note the fill here is `-border`, the 400 tone: the family's `-border`
  * name is about its role beside the pastel `-bg`, not about being an edge.
  *
- * Which channel is this borrowing? Border colour is spoken for by verdicts and by
+ * Which channel is this borrowing? Border color is spoken for by verdicts and by
  * peer selection, but neither can land on a DECIDED tile: it is inert, so nobody
  * can select it and nothing can be refused on it. The edge is free here precisely
  * because the tile is finished. And the marks that DO cover a decided tile —
  * attention, the in-flight dim — extend over the border box, so the edge never
  * peeks through them; a second of a hidden edge costs nothing, since it will be
- * back. See docs/tile-feedback.md. */
+ * back. See plans/tile-feedback.md. */
 .correct {
   --tile-bg-color: var(--outcome-won-fill-color);
   --tile-border-color: var(--outcome-won-edge-color);

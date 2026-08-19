@@ -77,7 +77,7 @@ function wordFromRack(rack: string, band: number): { word: string; score: number
  * RackAttack (scrabble) gallery states (docs/testing.md → The screenshot gallery).
  *
  * Placement is deliberately naive — the word goes on a free row, left to right,
- * without the centre-star or connectivity rules a player obeys. Those live in
+ * without the center-star or connectivity rules a player obeys. Those live in
  * the FE (`lib/play.ts`), not the server, so `play_word` accepts it; and the
  * gallery's question is "how does this LAYOUT look", which a tidy word on a row
  * answers as well as a legal one. Everything the server does police — the tiles

@@ -14,7 +14,7 @@ import styles from './BoardCol.module.css'
  * action up. Like the other games' BoardCol, it does NOT own game state: PlayArea
  * hands it **the board to render** (the live board OR a historical snapshot) + a
  * `readOnly` flag, which is what makes the turn-history viewer a drop-in. See
- * docs/playarea-decomposition-plan.md.
+ * docs/playarea.md.
  */
 export function BoardCol({
   mobileStatus,

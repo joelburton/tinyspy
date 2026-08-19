@@ -906,7 +906,7 @@ grant execute on function spellingbee.submit_word(uuid, text, int, boolean, bool
 -- opponents' found_words rows are RLS-hidden during play and become SELECT-able
 -- only at terminal, and the FE's useGame subscribes to found_words alone. On a
 -- non-submit_word terminal (timeout here) no found_words event fires on its own,
--- so peers never refetch and every opponent find renders as a grey "missed" row.
+-- so peers never refetch and every opponent find renders as a gray "missed" row.
 -- A no-op self-update fires the WAL events. (The header word lists ship at game
 -- start, so THAT needs no touch — but the per-player finds do.)
 

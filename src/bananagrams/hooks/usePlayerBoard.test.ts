@@ -70,7 +70,7 @@ describe('persistence', () => {
   it('debounces an autosave after a board edit', () => {
     vi.useFakeTimers()
     render({ tiles: 'A', initialBoard: EMPTY })
-    act(() => keyCfg.current.onLetter('A' as never)) // places 'A' at centre → board changes
+    act(() => keyCfg.current.onLetter('A' as never)) // places 'A' at center → board changes
     expect(mockRpc).not.toHaveBeenCalled() // not yet — it's debounced
     act(() => vi.advanceTimersByTime(800))
     expect(mockRpc).toHaveBeenCalledWith('save_player_board', {

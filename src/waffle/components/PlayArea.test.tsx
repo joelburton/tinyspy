@@ -503,7 +503,7 @@ describe('waffle PlayArea — turn-history viewer (coop)', () => {
 describe('waffle PlayArea — a swap in flight', () => {
   // The production complaint this started from: a slow submit_swap (1–2s) with
   // no feedback invites re-tapping the same two tiles, which queues the REVERSE
-  // swap. What it pins now is the whole sequence in docs/tile-feedback.md — the
+  // swap. What it pins now is the whole sequence in plans/tile-feedback.md — the
   // MOVE shows at once, its VERDICT does not, and the marks last until the
   // server's board arrives rather than until the RPC promise resolves (the reply
   // beats the refetch, so clearing on it would un-dim two colorless tiles).

@@ -567,7 +567,7 @@ export async function createSpellingbeeGame(
  * outer `abcdfghi` + center `e`, 16 required ISOGRAM words (clearing the ≥15
  * gate) — 10 four-letter + 5 five-letter + the 9-letter pangram `abcdefghi`
  * (+15) — plus one bonus word (`cadge`). Every word uses each of its letters
- * once and includes the centre `e`. Mirrors the pgTAP fixture. Returns id +
+ * once and includes the center `e`. Mirrors the pgTAP fixture. Returns id +
  * gametype for the URL.
  */
 export async function createWordwheelGame(

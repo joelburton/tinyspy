@@ -164,7 +164,7 @@
  *
  * It must clear before the reveal flip starts, or the flip plays under a dim —
  * which it does, because the row stops being pending the moment its colored row
- * lands. See docs/tile-feedback.md. */
+ * lands. See plans/tile-feedback.md. */
 
 .inFlight {
   --tile-bg-color: var(--wordle-gray-fill-color);
@@ -180,7 +180,7 @@
  * contiguous and aligned, so they are a GEOGRAPHIC unit — a real shape on the
  * board to draw around, with room to sit clear of the tiles rather than crowd
  * them. That is the test, and it is geography rather than count
- * (docs/tile-feedback.md → "A verdict may be drawn on a GEOGRAPHIC unit").
+ * (plans/tile-feedback.md → "A verdict may be drawn on a GEOGRAPHIC unit").
  * Judging several pieces at once doesn't earn a group mark by itself:
  * connections judges four tiles scattered across its grid, so it has no unit to
  * outline and colors each tile's border instead — which is the vocabulary's

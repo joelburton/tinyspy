@@ -61,7 +61,7 @@ export type TraceResult = {
  *
  *     THE LAST TILE IS NOT A SPECIAL CASE, and stopped being one on
  *     2026-08-14. Re-clicking it used to submit; now it takes that letter back
- *     like any other. The old behaviour put a destructive action under the
+ *     like any other. The old behavior put a destructive action under the
  *     cursor's most likely resting place — you reach for the next letter,
  *     clip the one you just placed, and a half-built word goes to the server.
  *     Submitting has two deliberate routes (Enter, the Submit button), so it

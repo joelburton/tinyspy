@@ -11,7 +11,7 @@ import { boardReady, settled } from './helpers/ready'
  * the rack — which the component tests (mocked useGame/db) can't reach.
  *
  * It's the before/after gate for the BoardCol decomposition
- * (docs/playarea-decomposition-plan.md): run it green on the current tree, then
+ * (docs/playarea.md): run it green on the current tree, then
  * decompose, then run it again.
  *
  * Solo coop club so the game doesn't presence-pause; the shared rack is pinned
@@ -79,7 +79,7 @@ test.describe('scrabble replay + new game', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await boardReady(page, page.locator('[data-board]'))
 
-    // Play CAT at the centre so there's a committed tile + a log row to wipe.
+    // Play CAT at the center so there's a committed tile + a log row to wipe.
     const center = page.locator('[data-cell][data-x="7"][data-y="7"]')
     await center.click()
     await page.keyboard.type('CAT')
@@ -94,7 +94,7 @@ test.describe('scrabble replay + new game', () => {
     await page.getByRole('menuitem', { name: 'Restart' }).click()
     await page.getByRole('button', { name: 'Restart', exact: true }).click()
 
-    // The centre square is empty again — the re-deal landed.
+    // The center square is empty again — the re-deal landed.
     await expect(center).not.toContainText('C', { timeout: 10000 })
     await ctx.close()
   })

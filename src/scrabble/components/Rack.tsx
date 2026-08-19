@@ -9,7 +9,7 @@ export type RackTile = { glyph: string; rackIdx: number }
 /**
  * The player's tile rack. Press-and-drag a tile onto the board to place it
  * (PlayArea runs the shared gesture); a plain tap toggles the tile's
- * selection for Exchange. Staged tiles show greyed; exchange-selected tiles
+ * selection for Exchange. Staged tiles show grayed; exchange-selected tiles
  * highlight. The container carries `data-zone="rack"` so a board tile
  * dragged back here is recalled.
  */

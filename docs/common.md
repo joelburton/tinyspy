@@ -201,7 +201,7 @@ The transitions that move a row between states:
 
 ### Manual end — every gametype's `end_game(target_game)`
 
-**Every gametype exposes a player-callable "stop the game" RPC** — almost always `<schema>.end_game(target_game uuid)`. It's the "we've played as much as we want — stop the game now" action: in spellingbee you've found the words you care about; in connections/Waffle the group agrees to call it. It is a first-class part of the game lifecycle, **not** a per-game extra, so the behaviour is uniform across the roster. [`spellingbee.end_game`](../supabase/sql/spellingbee.sql) is the reference implementation.
+**Every gametype exposes a player-callable "stop the game" RPC** — almost always `<schema>.end_game(target_game uuid)`. It's the "we've played as much as we want — stop the game now" action: in spellingbee you've found the words you care about; in connections/Waffle the group agrees to call it. It is a first-class part of the game lifecycle, **not** a per-game extra, so the behavior is uniform across the roster. [`spellingbee.end_game`](../supabase/sql/spellingbee.sql) is the reference implementation.
 
 **`end_game` is the COOP / solo stop. Compete games use [Concede](#concede--per-player-drop-out) instead** — a race doesn't want a mutual "we all stop, nobody loses". So a compete game's player-callable-stop slot is filled by `<schema>.concede`, not `end_game`: it drops just the caller out as a real loss while the others keep racing (and if the whole group wants out, each clicks Concede). `end_game` still exists on every gametype and is what coop shows; compete shows Concede.
 

@@ -203,7 +203,7 @@ revoke execute on function wordwheel._rank_idx(int, int) from public;
 -- 's'-words are ordinary candidates — no exclusion here.
 --
 -- Note this returns the pure SUBSET set (word letter-SET ⊆ puzzle
--- letter-set + centre) — `puzzle_mask` is the wheel's DISTINCT-letter
+-- letter-set + center) — `puzzle_mask` is the wheel's DISTINCT-letter
 -- mask, so this is a superset of the true answer key. It does NOT
 -- enforce tile multiplicity — that post-filter (per-letter counts of
 -- the word <= the wheel's tile counts) lives in the edge function,
@@ -437,8 +437,8 @@ begin
       using errcode = 'P0001',
       detail = 'board.center_letter must be exactly 1 character';
   end if;
-  -- The centre MAY also appear among the outer letters — that's just a wheel
-  -- with two tiles carrying the same letter, one of them the centre.
+  -- The center MAY also appear among the outer letters — that's just a wheel
+  -- with two tiles carrying the same letter, one of them the center.
   if b_center !~ '^[a-z]$' then
     raise exception 'bad-center-letter|'
       using errcode = 'P0001',
@@ -915,7 +915,7 @@ grant execute on function wordwheel.submit_word(uuid, text, int, boolean, boolea
 -- opponents' found_words rows are RLS-hidden during play and become SELECT-able
 -- only at terminal, and the FE's useGame subscribes to found_words alone. On a
 -- non-submit_word terminal (timeout here) no found_words event fires on its own,
--- so peers never refetch and every opponent find renders as a grey "missed" row.
+-- so peers never refetch and every opponent find renders as a gray "missed" row.
 -- A no-op self-update fires the WAL events. (The header word lists ship at game
 -- start, so THAT needs no touch — but the per-player finds do.)
 

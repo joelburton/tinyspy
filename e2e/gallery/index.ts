@@ -47,7 +47,7 @@ const LABEL: Record<Phase, string> = {
  * where the viewport stopped, which is the one thing you're looking for when
  * checking how close something sits to the bottom of a phone.
  *
- * So the link goes here instead: a black page with the image centred on it, so
+ * So the link goes here instead: a black page with the image centered on it, so
  * the boundary is unmissable. One page for all of them, taking the file as a
  * query param, rather than a generated wrapper per shot.
  */
@@ -177,15 +177,15 @@ export function renderIndex(
 <meta charset="utf-8">
 <title>PuzPuzPuz — game gallery</title>
 <style>
-  /* WHITE background, BLACK text. Every text colour on this page is #000 and
-     the page itself is #fff — no muted greys, no dimmed captions, no faded
+  /* WHITE background, BLACK text. Every text color on this page is #000 and
+     the page itself is #fff — no muted grays, no dimmed captions, no faded
      "secondary" text.
-     Grey-on-grey is a readability failure before it is a style, and a page
+     Gray-on-gray is a readability failure before it is a style, and a page
      whose entire job is "look carefully at these images and read what's under
      them" has no business making any of its labels harder to read than the
      rest. Structure is carried by weight, size, borders and spacing, which
      cost no contrast. If something here needs de-emphasising, change its SIZE
-     or WEIGHT — do not reach for grey. */
+     or WEIGHT — do not reach for gray. */
   :root { color-scheme: light; }
   body { margin: 0; padding: 1.5rem; background: #ffffff;
          font: 14px/1.4 system-ui, -apple-system, sans-serif; color: #000000; }

@@ -91,7 +91,7 @@ button.selected:hover:not(:disabled) {
  * when someone else claims. */
 
 /* The claimer's own three: a black veil, from the click until the hold ends.
- * Quiet on purpose. They know what they did, and colour would drag their eye
+ * Quiet on purpose. They know what they did, and color would drag their eye
  * back to a decision they have already made and moved on from — while its
  * LENGTH says the one thing they cannot know, which is how long the network is
  * taking. Drawn as an overlay so it darkens the symbols with the card, rather
@@ -134,7 +134,7 @@ button.card.arriving:hover:not(:disabled) {
     transition: none;
   }
 
-  /* The flash is a colour, not a motion — there is nothing here to still. */
+  /* The flash is a color, not a motion — there is nothing here to still. */
 }
 
 /* The shared <pattern> host: present in the DOM, occupying nothing. */

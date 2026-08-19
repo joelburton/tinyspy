@@ -27,11 +27,11 @@
 /* The placeholder has to read as an EXAMPLE, not as a board someone already
    typed — and this field's placeholder is uniquely able to be mistaken for one,
    since it's a full grid of letters in the same mono face as real input. The
-   browser default is a grey close enough to the text grey that it looked like
+   browser default is a gray close enough to the text gray that it looked like
    entered content.
  *
  * So it differs on three axes at once, not just tone: much lighter (a mix of
- * the muted grey into the field's own white, so it stays palette-derived rather
+ * the muted gray into the field's own white, so it stays palette-derived rather
  * than a new literal), italic, and without the tile letter-spacing — no board is
  * ever slanted or tight, so the shape alone says "example".
  *

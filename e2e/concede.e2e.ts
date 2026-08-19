@@ -6,7 +6,7 @@ import { signIn } from './helpers/session'
  * The per-player Concede flow — a whole-app common feature (common.concede +
  * game_players.conceded, shared via useStandardGameActions) across every compete
  * game. It's a REAL loss for the conceder while the others keep racing, so it's a
- * live-stack, multi-client behaviour the mocked unit tests can't cover: the RPC
+ * live-stack, multi-client behavior the mocked unit tests can't cover: the RPC
  * transition + the two clients diverging. Driven on a wordwheel compete game as a
  * representative; the flow is identical everywhere it's wired.
  *

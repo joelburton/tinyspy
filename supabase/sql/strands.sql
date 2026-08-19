@@ -36,7 +36,7 @@ grant usage on schema strands to authenticated;
 -- WHY THE CLUE IS ON THE SAFE SIDE (it was withheld until 2026-08-13). The
 -- picker offers 884 dates and nothing else, so it is easy to start a puzzle
 -- you have already played and only realise once the board is up. The clue is
--- what a person recognises a puzzle BY — it is already the game's title
+-- what a person recognizes a puzzle BY — it is already the game's title
 -- ("2025-06-15: Here's to him!", see create_game) and it is on screen from the
 -- first second of play, so a club's past games display it on the club page
 -- regardless.
@@ -332,7 +332,7 @@ grant select on strands.club_game_status to authenticated;
 --
 -- Match on `puzzle_date` rather than the soft `puzzle_id` FK, ascending so a
 -- club works forward in publication order. The label is the clue, which is
--- how a person recognises a strands puzzle — it is already the game's title,
+-- how a person recognizes a strands puzzle — it is already the game's title,
 -- and on screen from the first second of play.
 create or replace function strands.next_puzzle_for_club(seen_by uuid[])
 returns table(id uuid, puzzle_date date, label text)

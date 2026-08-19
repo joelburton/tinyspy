@@ -1,5 +1,5 @@
-/* The word wheel: 9 circular tiles — 1 centre (bigger, red) + 8 outer (warm
- * tile-2) evenly spaced on a ring, clockwise from the top. The centre tile is
+/* The word wheel: 9 circular tiles — 1 center (bigger, red) + 8 outer (warm
+ * tile-2) evenly spaced on a ring, clockwise from the top. The center tile is
  * used in every word, so it's the visual hub: larger radius (from the geometry)
  * and a saturated-red fill.
  *
@@ -37,7 +37,7 @@
   height: calc(300 * var(--u));
   overflow: visible;
 
-  /* Touch behaviour for the whole wheel — on the <svg>, not on the `.tile`
+  /* Touch behavior for the whole wheel — on the <svg>, not on the `.tile`
    * groups, because `touch-action` is IGNORED on an SVG child (a `<g>`
    * generates no CSS box, so the browser drops it silently). Without this,
    * spelling a word by tapping tiles quickly loses letters to iOS Safari's
@@ -50,14 +50,14 @@
 
 /* One tile = a clickable group (button semantics live in Tile.tsx via
  * role/tabindex/keydown). Hover dims the whole tile; press scales it about its OWN
- * centre — transform-box/-origin, since an SVG transform is otherwise about the
+ * center — transform-box/-origin, since an SVG transform is otherwise about the
  * viewBox origin. */
 .tile {
   cursor: pointer;
   transform-box: fill-box;
   transform-origin: center;
   transition: transform 80ms ease, filter 80ms ease;
-  /* Suppress the mobile browser's default tap-highlight — it paints a grey box
+  /* Suppress the mobile browser's default tap-highlight — it paints a gray box
    * over the tile's (square) BOUNDING BOX, which both looks wrong on a circle and
    * hides our own circular flash below. */
   -webkit-tap-highlight-color: transparent;
@@ -77,14 +77,14 @@
  * `pointer-events: none` makes it fully non-interactive (no hover, no press, no
  * click). The visual cue is a DARKENED BACKGROUND only (see `.tileShape` below) —
  * the gold border + the letter stay put, so the tile reads as "spent" rather than
- * greyed out. The tile re-enables the moment the letter leaves the word. */
+ * grayed out. The tile re-enables the moment the letter leaves the word. */
 .tile.disabled {
   cursor: default;
   pointer-events: none;
 }
-/* Darken only the fill (not the stroke): outer tiles → a darker tan, the centre
+/* Darken only the fill (not the stroke): outer tiles → a darker tan, the center
  * → a darker red. The `.center.disabled` rule outspecifies both `.center .tileShape`
- * (which sets the resting red) and the plain `.disabled` rule, so a used centre
+ * (which sets the resting red) and the plain `.disabled` rule, so a used center
  * gets the darker red rather than the outer tan. */
 .tile.disabled .tileShape {
   fill: var(--wordwheel-tile-used);
@@ -122,8 +122,8 @@
 
 /* The tile shape — the real fill + border. Outer tiles: warm tile-2 with its OWN
  * matching tile-family border (--tile-2-edge-color), so the border tracks the fill if
- * the shade changes; the centre is the saturated red on the SAME border as the
- * outer tiles, so all nine tiles read as one set and only the fill says "centre".
+ * the shade changes; the center is the saturated red on the SAME border as the
+ * outer tiles, so all nine tiles read as one set and only the fill says "center".
  * (A darker-red edge was tried and left commented out mid-tuning; the shared
  * border won, so its token is gone.) */
 .tileShape {
@@ -148,8 +148,8 @@
   user-select: none;
   pointer-events: none; /* clicks land on the circle/group, not the glyph */
 }
-/* The centre letter sits on the saturated-red fill — white reads cleanly where
- * black would fight the colour; the centre tile is also bigger, so bump the glyph. */
+/* The center letter sits on the saturated-red fill — white reads cleanly where
+ * black would fight the color; the center tile is also bigger, so bump the glyph. */
 .center .tileText {
   fill: var(--wordwheel-center-text);
   font-size: 40px;

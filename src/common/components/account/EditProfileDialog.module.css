@@ -4,7 +4,7 @@
   gap: 1.25rem;
 }
 
-/* A labelled field. Used for both the (read-only) username block and
+/* A labeled field. Used for both the (read-only) username block and
  * the color <fieldset> — the fieldset reset keeps them visually aligned. */
 .field {
   display: flex;

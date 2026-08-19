@@ -44,7 +44,7 @@ type Props = {
   cursor?: number
   /** Move the keyboard cursor to `index` — called when a button is CLICKED, so
    *  the mouse and the keyboard agree on "the selected item". Without it,
-   *  clicking a game and cancelling its setup dialog left the ring wherever it
+   *  clicking a game and canceling its setup dialog left the ring wherever it
    *  had been, and the next arrow key jumped somewhere unrelated. */
   onCursorTo?: (index: number) => void
 }
@@ -68,7 +68,7 @@ type Props = {
  *
  * Hover changes the border color to the accent so the affordance
  * still reads as clickable. Disabled state (when the club's member
- * count doesn't fit the gametype's range) greys the whole card and
+ * count doesn't fit the gametype's range) grays the whole card and
  * the tooltip explains *why* via `playerCountLabel`.
  */
 export function StartGameButtons({
@@ -92,7 +92,7 @@ export function StartGameButtons({
             ref={i === cursor ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
             onClick={() => {
               // Clicking IS selecting: leave the cursor on what you clicked, so
-              // cancelling the dialog returns you to it and the next arrow key
+              // canceling the dialog returns you to it and the next arrow key
               // steps from there rather than from wherever the ring last sat.
               onCursorTo?.(i)
               onStartSetup(g.gametype)
@@ -103,7 +103,7 @@ export function StartGameButtons({
             // the cursor and leaves a stray focus ring on one item — two rings in
             // the same accent, meaning different things, only one of which Enter
             // acts on. Preventing mousedown's default keeps focus where it
-            // belongs, so after clicking a game and cancelling its setup dialog
+            // belongs, so after clicking a game and canceling its setup dialog
             // the Up/Down cursor is still live instead of needing a Tab to come
             // back. `click` still fires — only the focus side effect is dropped.
             onMouseDown={(e) => e.preventDefault()}

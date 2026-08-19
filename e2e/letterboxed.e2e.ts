@@ -387,7 +387,7 @@ test.describe('letterboxed', () => {
 
   /**
    * The GHOST path: after a word is submitted its route stays on the board in
-   * grey, so everyone can see where the chain just went — in coop that's
+   * gray, so everyone can see where the chain just went — in coop that's
    * whoever played it (the chain is shared and arrives by realtime), in compete
    * your own (rivals' chains are column-shielded).
    *
@@ -400,7 +400,7 @@ test.describe('letterboxed', () => {
    *
    * Classes are matched by substring since CSS-module names are hashed.
    */
-  test('a submitted word leaves a grey ghost until the next word commits', async ({ browser }) => {
+  test('a submitted word leaves a gray ghost until the next word commits', async ({ browser }) => {
     const club = await createSoloClub('lbghost')
     const game = await createLetterboxedGame(club)
     const ctx = await browser.newContext()
@@ -420,7 +420,7 @@ test.describe('letterboxed', () => {
     await expect(page.getByRole('listitem').filter({ hasText: /^ADG/ }).first())
       .toBeVisible({ timeout: 10000 })
 
-    // The word is played: its route is on the board, in grey.
+    // The word is played: its route is on the board, in gray.
     await expect(ghost).toHaveCount(1)
     const points = await ghost.getAttribute('points')
     expect(points!.split(' '), 'the ghost traces all three letters').toHaveLength(3)
@@ -537,7 +537,7 @@ test.describe('letterboxed custom board', () => {
     await page.getByRole('button', { name: /SnakeBox/ }).first().click()
     await page.getByText('Board (optional)').click()
     // Typed WITH separators, the way the app writes it everywhere — the field
-    // keeps them and `cleanSides` strips them, which is the behaviour here.
+    // keeps them and `cleanSides` strips them, which is the behavior here.
     const written = rolled.match(/.{3}/g)!.join('-')
     const field = page.getByRole('textbox', { name: 'Custom board' })
     await field.fill(written)

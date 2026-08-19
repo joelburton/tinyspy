@@ -22,7 +22,7 @@
   --spellingbee-accent:        #f7da21;
   --spellingbee-hex-text:      #1a1a1a;
 
-  /* A darker-amber edge for the yellow accent — the centre hex's stroke
+  /* A darker-amber edge for the yellow accent — the center hex's stroke
    * (`Letters.module.css`), so the bright-yellow cell reads as outlined rather
    * than floating. (Was incidentally reusing the old
    * feedback-warning amber; now its own token, since that feedback palette is

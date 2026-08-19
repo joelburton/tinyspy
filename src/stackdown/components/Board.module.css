@@ -38,7 +38,7 @@
   line-height: 1;
   /* Touch (docs/mobile.md → tap-press feedback): stackdown's mahjong tiles are a
    * bespoke `.tile` (absolutely positioned, per-tile background), not the shared
-   * one — so they carry the same canonical treatment here: no grey tap-flash, no
+   * one — so they carry the same canonical treatment here: no gray tap-flash, no
    * double-tap-zoom/tap-delay, and the `:active` press-scale below. */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;

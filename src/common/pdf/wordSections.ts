@@ -24,7 +24,7 @@ export type WordSection = {
 /**
  * Split a flat word list into the sections a printout should show.
  *
- * Coop → one section, exactly the old behaviour.
+ * Coop → one section, exactly the old behavior.
  *
  * Compete → one per player IN ROSTER ORDER, so two printouts of the same game
  * agree and a player who found nothing still gets a section saying so (their

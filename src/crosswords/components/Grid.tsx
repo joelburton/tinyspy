@@ -67,7 +67,7 @@ type Props = {
    *  Mutually exclusive with `rebus` (typing wins over peeking). */
   peek: { row: number; col: number; value: string } | null
   /** The answer grid — used to fill blank cells with the revealed answer
-   *  (greyed). Null until the post-game "Reveal board" menu item fetches it
+   *  (grayed). Null until the post-game "Reveal board" menu item fetches it
    *  (mid-game the solution is shielded server-side). */
   solution: (string[] | null)[][] | null
   /** `${row}:${col}` → CSS color, for teammates' cursor frames (coop). */
@@ -138,7 +138,7 @@ export function Grid({
               number={t.number}
               fill={answer ?? liveFill}
               given={given}
-              // Grey means "this letter is the author's, not yours" — so it
+              // Gray means "this letter is the author's, not yours" — so it
               // marks the cells they left blank AND the ones they got wrong,
               // and leaves a letter they had right looking like theirs. That
               // makes the answer key double as a diff, for free.
@@ -242,7 +242,7 @@ type CellProps =
       number: number | null
       fill: string | null
       given: boolean
-      /** This fill is a terminal-revealed answer (greyed), not a user entry. */
+      /** This fill is a terminal-revealed answer (grayed), not a user entry. */
       answerReveal: boolean
       pencil: boolean
       revealed: boolean

@@ -15,7 +15,7 @@ const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
  *
  * This is the escape hatch the contract warns about, and it's the benign kind:
  * it READS a column RLS hides until terminal, and writes nothing. Every state
- * below is still produced by `submit_guess`, so the board, the colours and the
+ * below is still produced by `submit_guess`, so the board, the colors and the
  * verdict are all the ones a player would have produced. The alternative —
  * writing a "won" row directly — is what the contract forbids, because it can
  * build a game no player could have played.

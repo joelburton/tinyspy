@@ -1,7 +1,7 @@
 import type { jsPDF } from 'jspdf'
 import {
   BLACK,
-  DARK_GREY,
+  DARK_GRAY,
   drawHeader,
   drawSetup,
   fit,
@@ -26,21 +26,21 @@ import type { ConnectionsPrintModel, PrintBand, PrintTrack } from './model'
  *     player races their own copy.
  *
  * The board drawing is the interesting part either way. On screen a solved
- * category is a full-width coloured band; that translates directly, with two
+ * category is a full-width colored band; that translates directly, with two
  * deliberate changes for paper:
  *
- *  1. **A thick coloured border, not a fill.** A band's colour is a full-bleed
+ *  1. **A thick colored border, not a fill.** A band's color is a full-bleed
  *     background on screen. Four of those is an enormous amount of ink for a
  *     home printer, and `pdf.md`'s "backgrounds are white" rule already says
  *     don't. The border carries the same hue at a fraction of the cost.
- *  2. **A letter A–D in the top-left.** Colour alone can't be the signal —
- *     mono flattens all four ranks to one grey — and `pdf.md` requires a shape
+ *  2. **A letter A–D in the top-left.** Color alone can't be the signal —
+ *     mono flattens all four ranks to one gray — and `pdf.md` requires a shape
  *     or text carrying the same meaning. See `model.ts` for why A–D is a
  *     faithful stand-in rather than an arbitrary tag.
  */
 
 /**
- * Print variants of the four rank colours.
+ * Print variants of the four rank colors.
  *
  * The screen tokens (`--connections-rank-N`: `#f9df6d` `#a0c35a` `#b0c4ef`
  * `#ba81c5`) are tuned as pale FILLS behind black text. Stroked as a 2.5pt
@@ -108,7 +108,7 @@ function drawCompeteTrack(doc: jsPDF, t: PrintTrack, track: Track): number {
   y = drawBoard(doc, t, track.x, y, track.width)
 
   y += 12
-  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
   doc.text(fit(doc, t.result, track.width), track.x, y)
   y += 14
 
@@ -129,7 +129,7 @@ function drawBoard(doc: jsPDF, t: PrintTrack, x: number, y: number, w: number): 
 
 /**
  * One solved category: a bordered box holding its letter, name and four words.
- * No fill — the border is the whole colour budget.
+ * No fill — the border is the whole color budget.
  */
 function drawBand(
   doc: jsPDF,
@@ -143,7 +143,7 @@ function drawBand(
   doc.setLineWidth(BAND_BORDER_W).setDrawColor(r, g, bl).rect(x, y, w, s.bandH, 'S')
 
   // The letter, top-left INSIDE the border — the B&W-safe rank signal. Drawn in
-  // the band's own colour so it doubles as a swatch on a colour printer, but it
+  // the band's own color so it doubles as a swatch on a color printer, but it
   // reads perfectly well as a plain bold letter without one.
   doc.setFont('helvetica', 'bold').setFontSize(s.letterSize).setTextColor(r, g, bl)
   doc.text(b.letter, x + 7, y + s.bandH * 0.33)
@@ -159,8 +159,8 @@ function drawBand(
 
 /**
  * The tiles still in play, four to a row — bordered white boxes, matching the
- * screen's grid. Dark-grey borders, since an unsolved tile carries no rank and
- * so no colour. Returns the y below the block.
+ * screen's grid. Dark-gray borders, since an unsolved tile carries no rank and
+ * so no color. Returns the y below the block.
  */
 function drawTiles(
   doc: jsPDF,
@@ -171,7 +171,7 @@ function drawTiles(
   s: ReturnType<typeof sizesFor>,
 ): number {
   const cellW = w / COLS
-  doc.setLineWidth(0.6).setDrawColor(DARK_GREY)
+  doc.setLineWidth(0.6).setDrawColor(DARK_GRAY)
   // ONE size for every tile — the largest that fits the longest word, so the
   // grid reads evenly rather than each cell shrinking to its own content.
   doc.setFont('helvetica', 'bold').setFontSize(s.tileFontMax)
@@ -180,7 +180,7 @@ function drawTiles(
   tiles.forEach((t, i) => {
     const px = x + (i % COLS) * cellW
     const py = y + Math.floor(i / COLS) * s.tileH
-    doc.setDrawColor(DARK_GREY).rect(px, py, cellW, s.tileH, 'S')
+    doc.setDrawColor(DARK_GRAY).rect(px, py, cellW, s.tileH, 'S')
     doc.setFontSize(size).setTextColor(BLACK)
     doc.text(t, px + cellW / 2, py + s.tileH / 2 + size * 0.35, { align: 'center' })
   })
@@ -195,12 +195,12 @@ function drawGuessList(doc: jsPDF, t: PrintTrack, track: Track, y: number): numb
   doc.text('Guesses', track.x, y)
   let cy = y + 12
   if (!t.turns.length) {
-    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
     doc.text('None yet.', track.x, cy)
     return cy
   }
   t.turns.forEach((turn) => {
-    doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(DARK_GRAY)
     doc.text(String(turn.seq), track.x, cy)
     doc.setTextColor(BLACK)
     doc.text(fit(doc, turn.text, track.width - 14), track.x + 12, cy)

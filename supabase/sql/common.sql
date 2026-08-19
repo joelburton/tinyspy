@@ -607,7 +607,7 @@ revoke execute on function common.require_compete(text) from public;
 --
 -- KEEP THE NAME. It looks like a game codename in the shared layer — the one
 -- thing naming.md's headline rule forbids — but it isn't: "Wordle colors" is
--- the term of art for this green/yellow/grey scheme, which NYT Wordle made
+-- the term of art for this green/yellow/gray scheme, which NYT Wordle made
 -- famous and which waffle uses because it's the recognizable convention, not
 -- because it borrowed from our wordle. The name describes the OUTPUT, and a
 -- reader who has seen a Wordle grid knows exactly what comes back. Ratified

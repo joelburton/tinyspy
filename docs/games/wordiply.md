@@ -444,7 +444,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   the intersected `CoopTurnSetup` carries the opt-in turn-by-turn fields (`coop_style`,
   `first_turn_user_id`) documented in §4's turn-order note. No `target_rank`, no base
   band. `wordiplySetupError` = the difficulty band (1..6) **and** `customBaseError` (the
-  2–4 letter shape gate — §5b). `cleanBase` normalises a typed starter and is shared with
+  2–4 letter shape gate — §5b). `cleanBase` normalizes a typed starter and is shared with
   the form so the two can't drift. Both manifests default `difficulty 5`; the coop default
   seeds `coop_style: 'free-for-all'`; **neither seeds `custom_base`** — blank means random.
 - **`lib/scoring.ts`** — `lengthScore(longest, maxLen)`, `letterCount(lengths)`,
@@ -454,7 +454,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   **"Starter (optional)"** `<SetupSection>` (the player-chosen base — §5b; its summary
   carries the value, e.g. `Starter: MOTH`) + `<TimerField>` + the shared `<CoopStyleField>`
   (the coop free-for-all vs turn-by-turn picker, which also seeds `first_turn_user_id`).
-  No rank picker, no base band. The field is labelled **Starter**, not "base": the schema
+  No rank picker, no base band. The field is labeled **Starter**, not "base": the schema
   says `base` but every player-facing string in this game says starter.
 - **`hooks/useGame.ts`** — subscribe to `wordiply.guesses` (+ `wordiply.games` for the
   replay/terminal touch), fetch `games_state` + guesses; derive per-track length score +
@@ -498,7 +498,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   a conceded compete player (the others race on) gets the `LocalTerminalRow` "You conceded"
   + the below-board out-of-race pill —
   then the **`<SetupDisclosure>`** (difficulty band, timer), then the **asked-for reveal**
-  ("Best possible word: **HANGARS** (7)" — full-colour, no card; it grows the column when
+  ("Best possible word: **HANGARS** (7)" — full-color, no card; it grows the column when
   opened and gives the space back when closed, a blessed exception to
   [ui.md → Layout stability](../ui.md#layout-stability)) and, in compete, the
   **`<OpponentReveal>`** (`components/OpponentReveal.tsx`): each opponent's actual guessed
@@ -598,7 +598,7 @@ Two details that fall out of the log carrying rejects:
   up with anyway — `#3` means "the third thing that happened".
 - **Accepted vs rejected reads in black and white** without a mark, because the text
   already says it (`HANGARS (7)` vs `ARQQQQQ — not a word`). psychicnum needs drawn
-  ✓/✗ shapes because its meaning is colour-only; this doesn't. Keep it that way.
+  ✓/✗ shapes because its meaning is color-only; this doesn't. Keep it that way.
 
 In **compete** the log is sorted **by player (self first), then by time** rather than
 interleaved chronologically — the tracks are parallel races, so a time-ordered mix

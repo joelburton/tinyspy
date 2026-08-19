@@ -4,7 +4,7 @@ import { createSoloClub, createWordleGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * The on-screen keyboard's colours, resting and hovered.
+ * The on-screen keyboard's colors, resting and hovered.
  *
  * Browser-only, and unusually worth the cost: every one of these values is a
  * COMPUTED style, so jsdom can't see any of it — and the three bugs this spec was
@@ -17,12 +17,12 @@ import { signIn } from './helpers/session'
  * fill re-sets that token — and this spec is what keeps it fixed.
  *
  * It asserts against the TOKENS rather than against literal hexes, by resolving
- * each token in the page and comparing. So retuning the palette (which the colour
+ * each token in the page and comparing. So retuning the palette (which the color
  * sweep did twice while this was being written) can't break the spec, and the
  * spec can't quietly pin a value nobody meant to freeze.
  *
  * It never prints the answer: the target is read as the superuser only to pick a
- * guess that yields all three colours, and only the guess is logged.
+ * guess that yields all three colors, and only the guess is logged.
  */
 
 const psql = (sql: string): string[] =>
@@ -36,7 +36,7 @@ const psql = (sql: string): string[] =>
     .filter(Boolean)
 
 /**
- * wordle's colouring, duplicate-aware: greens first, then each remaining letter
+ * wordle's coloring, duplicate-aware: greens first, then each remaining letter
  * takes a yellow only if the target still has an unspent copy of it.
  *
  * The naive version (does the target CONTAIN this letter?) is wrong on repeats —
@@ -45,7 +45,7 @@ const psql = (sql: string): string[] =>
  * and fail on the rest. The server is still the authority: this only picks a
  * likely guess, and the assertions read the tones off the keyboard.
  */
-function colour(target: string, guess: string): string[] {
+function color(target: string, guess: string): string[] {
   const out = Array(guess.length).fill('gray')
   const spare: Record<string, number> = {}
   for (let i = 0; i < guess.length; i++) {
@@ -62,7 +62,7 @@ function colour(target: string, guess: string): string[] {
   return out
 }
 
-/** A legal guess that scores at least one of each colour against the hidden target. */
+/** A legal guess that scores at least one of each color against the hidden target. */
 function pickTricolorGuess(gameId: string): string {
   const [target, band] = psql(
     `select target, legal_guess from wordle.games where id = '${gameId}';`,
@@ -72,10 +72,10 @@ function pickTricolorGuess(gameId: string): string {
       `and word <> '${target}' limit 4000;`,
   )
   for (const w of words) {
-    const tones = new Set(colour(target, w))
+    const tones = new Set(color(target, w))
     if (tones.size === 3) return w
   }
-  throw new Error('no legal word scores all three colours against this target')
+  throw new Error('no legal word scores all three colors against this target')
 }
 
 test('the keyboard wears the right fill and ink, resting and hovered', async ({ browser }) => {
@@ -94,7 +94,7 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
   for (const ch of guess) await page.keyboard.press(ch)
   await page.keyboard.press('Enter')
   // The reveal flip is staggered per tile; the keys tint when the row lands. Poll
-  // on the tone CLASSES rather than on a colour, so this wait can't be the one
+  // on the tone CLASSES rather than on a color, so this wait can't be the one
   // place in the spec that pins a literal value.
   await expect
     .poll(async () =>
@@ -135,9 +135,9 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
     return { resting, hovered }
   }
 
-  // Which letter earned which colour, read off the KEYS themselves — the server's
+  // Which letter earned which color, read off the KEYS themselves — the server's
   // answer, not a recomputation of it. (Not off the tiles: a freshly-revealed row
-  // wears the flip animation's class rather than its colour class, since
+  // wears the flip animation's class rather than its color class, since
   // `animation-fill-mode: both` freezes the final frame.)
   const byTone = await page.evaluate(() => {
     const out: Record<string, string> = {}
@@ -160,7 +160,7 @@ test('the keyboard wears the right fill and ink, resting and hovered', async ({ 
   const white = await token('--ink-on-dark-color')
   const darkInk = await token('--kbd-key-ink-color')
 
-  // A JUDGED key wears its wordle colour, resting AND hovered — the hover must not
+  // A JUDGED key wears its wordle color, resting AND hovered — the hover must not
   // repaint a key that has a fill of its own.
   for (const [tone, letter] of Object.entries(byTone)) {
     const fill = await token(`--wordle-${tone}-fill-color`)

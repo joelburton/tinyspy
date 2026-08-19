@@ -20,7 +20,7 @@ import { signIn } from './helpers/session'
 
 /**
  * Board-geometry before/after guard for CSS refactors that MUST be pixel-for-
- * pixel no-ops. A behavioural e2e can't prove that — "board doesn't reflow
+ * pixel no-ops. A behavioral e2e can't prove that — "board doesn't reflow
  * across states" holds both before and after the change. What proves a no-op is
  * a DIRECT before/after comparison of each board's rendered geometry.
  *

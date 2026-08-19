@@ -7,7 +7,7 @@ import { signIn } from './helpers/session'
  * A coop game created with setup.coop_style='turns' rotates the guess through the
  * players; the FE gates input on whose turn it is and shows a shared
  * TurnStatusLine ("Your turn" / "Waiting for ● Name…"). This is a live-stack,
- * two-client behaviour the mocked unit tests can't cover: the server turn pointer
+ * two-client behavior the mocked unit tests can't cover: the server turn pointer
  * advancing over realtime, and both clients flipping their gate in response.
  *
  * Two players, BOTH connected (so the game isn't presence-paused). Alice goes

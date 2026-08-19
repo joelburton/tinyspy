@@ -225,7 +225,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     expect(items.map((i) => i.id)).toEqual([
       // help + chat are `buildGameMenu`'s framing pair, above every game's own
       // sections: chat has a header bubble and a `/` shortcut, and this row is
-      // the labelled twin that writes that shortcut down (gameMenu.ts).
+      // the labeled twin that writes that shortcut down (gameMenu.ts).
       'help', 'chat',
       'pencil', 'enter-rebus', 'collapse-rebuses',
       'note', 'explain', 'scratchpad', 'print', 'download-ipuz', 'print-solution',
@@ -348,7 +348,7 @@ describe('crosswords PlayArea — ⌥ shortcuts (keyed on e.code, dead-key safe)
     await act(async () => { row.onClick() })
   }
 
-  it('revealing the whole GRID asks first — and cancelling writes nothing', async () => {
+  it('revealing the whole GRID asks first — and canceling writes nothing', async () => {
     lastCtx = makeCtx()
     render(<PlayArea {...lastCtx} />)
     h.rpc.mockClear()

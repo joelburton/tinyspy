@@ -71,7 +71,7 @@ SHELL := /bin/bash
 #
 # Only targets that TALK to a database demand it (they all go through
 # $(PRELUDE), which refuses when ENV is unset). `help`, `dev-*`, `test-*`,
-# `_audit` and the local-pinned artefact builders don't care and don't ask.
+# `_audit` and the local-pinned artifact builders don't care and don't ask.
 ENV ?=
 LOCAL_DB_URL := postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
@@ -254,7 +254,7 @@ all-tries: g-boggle-trie g-scrabble-trie ## both edge-function word bundles
 # that would grow the library every time the generator was touched. It's
 # .PHONY and explicit. The FILE rule below has no prerequisites, so make
 # builds it only when it's actually missing, which is the
-# generate-if-absent behaviour `g-stackdown-puzzles` wants.
+# generate-if-absent behavior `g-stackdown-puzzles` wants.
 # Reads the lexicon LOCALLY and writes a local file, whatever ENV says —
 # same pinning as the tries, and for the same reason: depending on the
 # per-ENV stamp would make `ENV=prod` import 283k words into prod first,
@@ -415,7 +415,7 @@ db-seed: ## local only: the dev personas + clubs (seed.dev.sql)
 # A name the environment might already own is a trap, so it doesn't get used.
 #
 # The same trap caught COLOR for real: npm exports COLOR ('0'/'1', its own
-# colour-support flag) into every script it runs, so the value handed to
+# color-support flag) into every script it runs, so the value handed to
 # `npm run` was overwritten before the script read it. The flag you type is
 # still COLOR=… — it's passed along under PLAYER_COLOR, which npm doesn't own.
 #

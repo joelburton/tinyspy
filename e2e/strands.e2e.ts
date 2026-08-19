@@ -143,7 +143,7 @@ test.describe('strands play loop', () => {
 
     // THE SHIELD: every games_state row delivered so far carried a null
     // solution. The column grant is pinned server-side by rls_test; this is the
-    // client-side half, and it catches a `_solution_for` that stopped honouring
+    // client-side half, and it catches a `_solution_for` that stopped honoring
     // the is_terminal gate — which no SQL-shape test would notice.
     expect(solutionsSeen.length).toBeGreaterThan(0)
     expect(solutionsSeen.every((s) => s === null)).toBe(true)
@@ -166,7 +166,7 @@ test.describe('strands play loop', () => {
     // "on the screen" are different things now.
     await expect(page.locator('[class*="tileMissed"]')).toHaveCount(0)
 
-    // Now ask for it: the missed words draw on the board, greyed…
+    // Now ask for it: the missed words draw on the board, grayed…
     await page.getByRole('button', { name: /^Reveal/i }).first().click()
     await expect(cell(page, unfound.coords[0])).toHaveClass(/tileMissed/, { timeout: 10000 })
 

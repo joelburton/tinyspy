@@ -31,7 +31,7 @@ export type PrintTurn = {
    *  has no word, and the printed column would otherwise show a blank line
    *  where every other row carries text. */
   word: string
-  /** Drives the leading glyph: the non-colour encoding of the verdict.
+  /** Drives the leading glyph: the non-color encoding of the verdict.
    *  `hint` is the fifth mark and the only one that isn't a verdict. */
   mark: 'best' | 'find' | 'ok' | 'no' | 'hint'
   /** The trailing note, only where the glyph doesn't already say it. */
@@ -42,7 +42,7 @@ export type PrintTurn = {
  * One player's page-column: their board's found words, their log, their result.
  *
  * Coop is a single shared track — the team has one board — so `who` is null
- * there and the column simply isn't labelled with a name.
+ * there and the column simply isn't labeled with a name.
  */
 export type PrintTrack = {
   who: string | null
@@ -70,7 +70,7 @@ const MARK: Record<GuessResult, PrintTurn['mark']> = {
 }
 
 /** …and the note, only where the glyph doesn't already carry it. On screen the
- *  COLOUR distinguishes a theme word from a valid one; on paper the glyph does,
+ *  COLOR distinguishes a theme word from a valid one; on paper the glyph does,
  *  so the same three rejections keep their reason and the finds stay bare. */
 const NOTE: Partial<Record<GuessResult, string>> = {
   duplicate: 'already found',

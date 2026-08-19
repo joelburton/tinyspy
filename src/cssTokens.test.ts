@@ -186,7 +186,7 @@ describe('button shape and treatment are separate', () => {
 
   const PAINT = /(^|;)\s*(background|color|border-color)\s*:/
 
-  it('.button paints nothing — no background, colour or border-colour', () => {
+  it('.button paints nothing — no background, color or border-color', () => {
     const body = ruleBody('.button')
     const paints = body
       .split(';')
@@ -194,7 +194,7 @@ describe('button shape and treatment are separate', () => {
       .filter((d) => PAINT.test(`;${d}`))
     expect(
       paints,
-      `\`.button\` is the SHAPE only. Colour belongs to \`.primary\` / \`.secondary\`, ` +
+      `\`.button\` is the SHAPE only. Color belongs to \`.primary\` / \`.secondary\`, ` +
         `or an unmarked \`.button\` silently means one of them:\n${paints.join('\n')}`,
     ).toEqual([])
   })
@@ -234,7 +234,7 @@ describe('button shape and treatment are separate', () => {
     }
     expect(
       offenders,
-      `A \`.button\` with no treatment is a shape with no colour. Add \`primary\` ` +
+      `A \`.button\` with no treatment is a shape with no color. Add \`primary\` ` +
         `(filled) or \`secondary\` (outline):\n${offenders.join('\n')}`,
     ).toEqual([])
   })
@@ -277,14 +277,14 @@ describe('the chrome tones are complete', () => {
 })
 
 /**
- * Guard: a colour may only appear in a custom-property DEFINITION.
+ * Guard: a color may only appear in a custom-property DEFINITION.
  *
- * "No magic numbers, make a named constant", applied to colour. A literal at a
+ * "No magic numbers, make a named constant", applied to color. A literal at a
  * use site can't be discussed, reused, or themed — and the exception set is much
  * smaller here than it is in code: `#fff` and `#000` look like primitives and
  * aren't (white is a decision; crosswords' grid used raw `#fff` / `#000` / `#333`
  * for three separate ones). Nor does "used once, so inline is fine" apply: a
- * second theme needs a PLACE to intervene, and a colour with no name is a colour
+ * second theme needs a PLACE to intervene, and a color with no name is a color
  * no theme can reach.
  *
  * It catches expressions too — a `color-mix()` at a use site is the same problem
@@ -293,7 +293,7 @@ describe('the chrome tones are complete', () => {
  * It is necessary and not sufficient. `--crosswords-wrong: #d33` passes cleanly
  * and is exactly the drift the 2026-08-17 audit found: a machine can catch a
  * magic number, but only a person catches a bad name. The human half — brand, or
- * a UI colour that belongs in common? — is asked per game as each converts
+ * a UI color that belongs in common? — is asked per game as each converts
  * (docs/ui.md → The color system).
  */
 describe('no unnamed colors', () => {
@@ -306,7 +306,7 @@ describe('no unnamed colors', () => {
     const offenders: string[] = []
     for (const f of walk(SRC, ['.css'])) {
       const css = stripComments(readFileSync(f, 'utf8'))
-        // An SVG data-URI carries %23rrggbb, which is a colour inside a URL
+        // An SVG data-URI carries %23rrggbb, which is a color inside a URL
         // rather than a declaration of one.
         .replace(/url\([^)]*\)/g, 'url()')
       // Declarations, not lines: a value legitimately wraps (connections' peer
@@ -331,7 +331,7 @@ describe('no unnamed colors', () => {
   })
 
   /**
-   * And a COMPONENT may not hold a colour value at all — only a reference.
+   * And a COMPONENT may not hold a color value at all — only a reference.
    *
    * This is the blind spot of the rule above, stated as its own rule. `--x: #fff`
    * IS a custom-property definition, so it passes cleanly, and twelve boards used
@@ -340,12 +340,12 @@ describe('no unnamed colors', () => {
    * SLOT but no NAME, and a second theme could reach nine of the whites and not
    * the other twelve.
    *
-   * So: values live in a `theme.css` — common's if the colour is shared, the
+   * So: values live in a `theme.css` — common's if the color is shared, the
    * game's if it is brand — and a `.module.css` references them. That is the
    * audit preference docs/ui.md → The color system states, made checkable now that
    * it is true everywhere but one deliberate exception.
    *
-   * SHADOWS ARE NOT COLOURS and are exempt: a shadow is a composite of geometry
+   * SHADOWS ARE NOT COLORS and are exempt: a shadow is a composite of geometry
    * and an alpha black, and the same doc says a component may keep its own where
    * it is close-but-not-equal to the shared one, with a note. The keyboard's two
    * are exactly that — a keycap sits closer to the page than a tile does, and
@@ -354,7 +354,7 @@ describe('no unnamed colors', () => {
    */
   const VALUE_IN_A_COMPONENT = new Set([
     // A layout-debugging affordance, transparent at rest, kept on purpose and
-    // documented at the declaration. It is a knob rather than a colour: the
+    // documented at the declaration. It is a knob rather than a color: the
     // whole point is to raise its alpha by hand while working on the column.
     '--board-col-debug-tint-color',
   ])
@@ -384,7 +384,7 @@ describe('no unnamed colors', () => {
   /**
    * And no `var()` may fall back to a COLOR.
    *
-   * ui.md already forbids colour fallbacks; this is what makes that true, and it
+   * ui.md already forbids color fallbacks; this is what makes that true, and it
    * catches what the guard above structurally cannot: a fallback hiding INSIDE a
    * token definition, where the property starts with `--` and the rule above
    * looks away. A hex fallback drifts silently from the token it shadows (we
@@ -393,7 +393,7 @@ describe('no unnamed colors', () => {
    * masking three aliases, and the same missing token painted wordiply's keyboard
    * entirely from fallbacks).
    *
-   * Deliberately COLOUR-only. A size fallback can be legitimate — `--client-width`
+   * Deliberately COLOR-only. A size fallback can be legitimate — `--client-width`
    * is measured by JS and genuinely does not exist before the first paint, so
    * `var(--client-width, 100vw)` is the honest thing to write. The per-game knobs
    * with rem defaults are a different question (a default declaration and the

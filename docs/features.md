@@ -260,8 +260,8 @@ hint as PICTURES of the cards. It is the one game with no print-and-play value
 at all: its board is a shuffle that turns over every few seconds, so a printed
 one is a photograph of a moment nobody can return to.
 (PP + SB print one TRACK PER BOARD like WN/SS — coop is one column, compete one
-per player — and move their colour encodings onto shape/weight, since on a mono
-printer two hues are one grey: PP's purple/gold becomes line weight + dashing,
+per player — and move their color encodings onto shape/weight, since on a mono
+printer two hues are one gray: PP's purple/gold becomes line weight + dashing,
 SB's covered-letter green becomes a heavy black ring + bold glyph.)
 
 ## Player-tunable difficulty
@@ -272,7 +272,7 @@ A smaller DECK instead of a dictionary band:  HT (junior — shading dropped, 27
   words / more escape routes off an awkward tail letter, so a HIGHER band makes
   them easier. SB also has the par + extra_words cap — see Move/guess budget.)
 Hand-pick the board's letters instead of a random one:  FB MW MC
-  (FB/MW take a centre + the others; MC takes the whole grid, written as the
+  (FB/MW take a center + the others; MC takes the whole grid, written as the
   recap prints it. MW also has a "unique letters only" board constraint.)
 Every one of the three ALSO prints the board's letters in its setup recap,
 random or hand-picked, so a board you liked can be copied into the next game.

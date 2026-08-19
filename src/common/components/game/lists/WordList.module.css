@@ -5,8 +5,8 @@
  * across games (docs/ui.md → "Consistency across games").
  *
  * Each row leads with a circle marker carrying the attribution — a filled ● in
- * the finder's color for found words, a hollow ○ in grey for post-terminal missed
- * words — while the word text stays black (found) / grey (missed). The
+ * the finder's color for found words, a hollow ○ in gray for post-terminal missed
+ * words — while the word text stays black (found) / gray (missed). The
  * recently-found state adds a thick finder-color underline that fades after 5s. */
 
 .wrapper {
@@ -80,7 +80,7 @@
 }
 
 /* Missed words (post-terminal reveal) swap in the hollow variant — the ring,
- * not the text color, is the "missed" signal. Lighter (divider grey) than the
+ * not the text color, is the "missed" signal. Lighter (divider gray) than the
  * muted word text so the ring reads as a faint marker, not a second emphasis. */
 .dotUnfound {
   --dot-ring: var(--page-divider-color);
@@ -101,7 +101,7 @@
   text-decoration-thickness: 1px;
 }
 
-/* Pangram — emphasized by font-weight (a found one, or a missed one in grey).
+/* Pangram — emphasized by font-weight (a found one, or a missed one in gray).
  * Games without pangrams (boggle) simply never set the row's `isPangram`. */
 .pangram {
   font-weight: 700;
@@ -139,7 +139,7 @@
 
 /* Unfound required words (the post-terminal reveal — what the team / field
  * missed). The hollow ○ ring (.dotUnfound) is the primary signal; the word also
- * goes medium grey to stay de-emphasized next to the black found words. */
+ * goes medium gray to stay de-emphasized next to the black found words. */
 .unfound {
   color: var(--page-text-muted-color);
 }

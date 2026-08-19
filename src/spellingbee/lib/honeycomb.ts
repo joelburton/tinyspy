@@ -26,8 +26,8 @@ export const HEX_VERTS: ReadonlyArray<readonly [number, number]> = [
   [0, 0.5],
 ]
 
-/** Each hex drawn slightly smaller than its cell (inset toward the centre) so the gaps
- *  between adjacent hexes read a touch bigger. Centres/positions are unchanged. */
+/** Each hex drawn slightly smaller than its cell (inset toward the center) so the gaps
+ *  between adjacent hexes read a touch bigger. Centers/positions are unchanged. */
 export const HEX_SHRINK = 0.97
 
 /** Each hex's top-left, in RENDER order: center → top → upper-right → lower-right →

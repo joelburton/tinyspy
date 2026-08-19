@@ -20,7 +20,7 @@ export function buildGameMenu(opts: {
   menu: Pick<MenuApi, 'openHelp' | 'requestBackToClub'>
   mode: 'coop' | 'compete'
   isTerminal: boolean
-  /** Compete only: a conceded player has already dropped out — grey the item. */
+  /** Compete only: a conceded player has already dropped out — gray the item. */
   conceded?: boolean
   /** Fires the game's `end_game` RPC (the neutral, whole-table give-up).
    *  Coop shows it as the mode's exit; compete ignores it unless
@@ -82,7 +82,7 @@ export function buildGameMenu(opts: {
         },
         {
           // Chat has a bubble in the header and a `/` shortcut, and the menu row
-          // exists for BOTH: it's the labelled twin every other action has (the
+          // exists for BOTH: it's the labeled twin every other action has (the
           // bubble is an icon like the rest), and it's where the shortcut gets
           // advertised — the shortcut column is the only place `/` is written
           // down in the app.

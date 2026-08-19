@@ -21,8 +21,8 @@
  *   - `word_counts`  — [n1..n6]: the number of REQUIRED-quality words (american,
  *                      not slang, slur 0, crude 0) at difficulty EXACTLY band k
  *                      whose per-letter counts FIT the multiset (each letter used
- *                      no more times than it has tiles), len>=4, CENTRE-AGNOSTIC
- *                      (a real board fixes one centre, so this over-counts — it's
+ *                      no more times than it has tiles), len>=4, CENTER-AGNOSTIC
+ *                      (a real board fixes one center, so this over-counts — it's
  *                      a richness proxy). The required set for a game at required
  *                      band R is sum(word_counts[1..R]).
  *   - `has_rare_letters` — the diverse-builder weighting flag.
@@ -180,7 +180,7 @@ function main() {
 
   // Per seed, count the fitting words by band → word_counts[0..5] for bands
   // 1..6, via submask enumeration over the mask groups.
-  console.log('Counting fitting words per seed (centre-agnostic, per band)...')
+  console.log('Counting fitting words per seed (center-agnostic, per band)...')
   const rows: SeedRow[] = []
   const distBuckets = [0, 0, 0, 0, 0, 0] // seed count by required-words tier, for reporting
   const keptAtDifficulty: number[] = []
@@ -234,7 +234,7 @@ function main() {
     `Kept ${rows.length} / ${seedDifficulty.size} seeds` +
       ` (>= ${MIN_REQUIRED_WORDS_COUNT} required words at their own difficulty band).`,
   )
-  console.log(`  seed word-count distribution (centre-agnostic total, buckets of 25): ${distBuckets.join(' / ')}`)
+  console.log(`  seed word-count distribution (center-agnostic total, buckets of 25): ${distBuckets.join(' / ')}`)
   // The gate report: how comfortably do seeds clear (or miss) the ≥15 floor
   // at their own band? Read this to decide whether 15 is still the right gate.
   console.log(`  required-at-own-band percentiles — kept:    ${percentiles(keptAtDifficulty)}`)

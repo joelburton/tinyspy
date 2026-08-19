@@ -16,15 +16,15 @@ exclusion until 2026-08-02 — see the note under the table for what changed.)
 | bananagrams | ✅ | track family — a board + word list per player, **two** columns (the board is wide) |
 | boggle | ✅ | word-list family |
 | codenamesduet | ✅ | turn-log family — three facts per tile, all carried by drawn marks (see below) |
-| connections | ✅ | **both families, by mode**: coop = turn-log (shared board + newspaper flow); compete = track family — per player: their earned bands, their unsolved tiles as the plain grid, their score, their log (the full answer prints once, on the viewer's track). Bands everywhere are coloured **borders** + an A–D letter (see below) |
+| connections | ✅ | **both families, by mode**: coop = turn-log (shared board + newspaper flow); compete = track family — per player: their earned bands, their unsolved tiles as the plain grid, their score, their log (the full answer prints once, on the viewer's track). Bands everywhere are colored **borders** + an A–D letter (see below) |
 | crosswords | ✅ | its own third body family (a whole-cloth ported printer); the only game with **two** print items — the puzzle and a separate answer key |
 | setgame | ✅ | **the log, and only the log** — per-player totals, then every claim and hint in one sequence, each row a PICTURE of its three cards. There is no print-and-play here: a setgame board is a shuffle that turns over every few seconds, so a printed one is a photograph of a moment nobody can return to; what survives the game is what happened. Writing the sets out instead ("2 red striped diamonds · …") is three lines of prose per turn and unreadable down a column, so this printer draws its own two-column flow rather than composing `drawTurnLog` — the column *geometry* is still shared (`twoColGeom`). Cards print in the palette the game was played with; the colorblind one's L\* 46 / 61 / 70 is close enough to this doc's three-shade ramp to survive a mono printer. See **Shading on paper** below |
-| letterboxed | ✅ | **track family** — one track per board (coop one, compete one per player); a covered letter is a heavy black ring + bold glyph, an untouched one a thin grey ring; the chain as a numbered list |
+| letterboxed | ✅ | **track family** — one track per board (coop one, compete one per player); a covered letter is a heavy black ring + bold glyph, an untouched one a thin gray ring; the chain as a numbered list |
 | psychicnum | ✅ | **both families, by mode**: coop = turn-log (one shared board + the newspaper flow); compete = track family (a board with the player's OWN ✓/✗, their score line and their guess list per track — a merged board is a lie when every player races their own copy) |
 | scrabble | ✅ | turn-log family |
 | spellingbee | ✅ | word-list family |
 | stackdown | ✅ | track family — a board per player; the stack drawn in layer order, white fill IS the occlusion |
-| strands | ✅ | **track family** — one track per board; colour encoded as shape |
+| strands | ✅ | **track family** — one track per board; color encoded as shape |
 | waffle | ✅ | **track family** — one column per board; the 4-state tile encoding |
 | wordiply | ✅ | turn-log family — the only printer with **no board**: its page *is* the log |
 | wordle | ✅ | **track family** — board + QWERTY keyboard + guesses, per player |
@@ -34,8 +34,8 @@ exclusion until 2026-08-02 — see the note under the table for what changed.)
 are *board progressions* a single snapshot can't represent. That reasoning was about
 the BOARD, and it turned out to be answerable: a wordle grid already IS its own
 history — six rows of what you tried and what came back — and a waffle board plus its
-swap log says the same. What actually blocked them was the **colour**: their feedback
-is entirely green/yellow/grey, which a mono printer flattens to one grey, and the games
+swap log says the same. What actually blocked them was the **color**: their feedback
+is entirely green/yellow/gray, which a mono printer flattens to one gray, and the games
 are meaningless without it. The 4-state tile encoding below solves that, so the
 exclusion no longer holds.
 
@@ -51,9 +51,9 @@ atoms and each game composes them with its OWN board renderer + a plain-data mod
 
 | module | used by | what it does |
 |---|---|---|
-| `common/pdf/tiles.ts` | wordle, waffle | `drawTile` / `drawTileLegend` — the four Wordle-style letter states as **border + fill weight** rather than colour (see the exception note below) |
+| `common/pdf/tiles.ts` | wordle, waffle | `drawTile` / `drawTileLegend` — the four Wordle-style letter states as **border + fill weight** rather than color (see the exception note below) |
 | `common/pdf/columns.ts` | wordle, waffle, strands | `drawInTracks` — lays a page out as N side-by-side player tracks, capped at 3 per page, spilling onto further pages |
-| `common/pdf/marks.ts` | psychicnum, codenamesduet | `drawCheck` / `drawCross` / `drawDash` — the ✓ / ✗ / – outcome marks, DRAWN from line segments because jsPDF's core fonts are WinAnsi and have no such glyphs. Each takes a centre + size, so the caller owns placement (a cell corner, a keycard inset) |
+| `common/pdf/marks.ts` | psychicnum, codenamesduet | `drawCheck` / `drawCross` / `drawDash` — the ✓ / ✗ / – outcome marks, DRAWN from line segments because jsPDF's core fonts are WinAnsi and have no such glyphs. Each takes a center + size, so the caller owns placement (a cell corner, a keycard inset) |
 | `common/pdf/frame.ts` | **all** | the shade constants, `PrintHeader` base model, `newPrintDoc`, `drawHeader`, `drawSetup`, `fit`, `savePrint` |
 | `common/pdf/turnLog.ts` | scrabble, psychicnum, wordiply, connections, codenamesduet | `twoColGeom` + `drawTurnLog` — the newspaper 2-column `# / Player / <move>` flow (the only per-game difference is the move-column label) |
 | `common/pdf/wordColumns.ts` | boggle, spellingbee, wordwheel | `drawWordColumns` — the balanced N-column alphabetical word list; per-word flags `bonus` (a dot) and `pangram` (bold) let each game opt in, and a `found: null` row is a bare word (no score/finder — every bananagrams row) |
@@ -68,30 +68,30 @@ with a board-drawing callback (word-list family), and `savePrint`.
 A printout is not the app on paper. The screen is a live, tinted, dark-on-color
 surface; a **printout is ink on white**, and it must read on a **black-and-white**
 printer as well as a color one. So the look is deliberately plain: white paper, black
-text, a few grey lines, and color used *only* where it carries meaning.
+text, a few gray lines, and color used *only* where it carries meaning.
 
-## Shades — the whole palette is three greys
+## Shades — the whole palette is three grays
 
 Everything that isn't **explicitly colored** (see below) is drawn in exactly one of
-three greyscale values. No other greys. jsPDF's single-argument `setTextColor(n)` /
-`setDrawColor(n)` is a **0–255 greyscale level — `0` = black, `255` = white** (NOT 0–100).
-So a value in the middle is a *medium-dark* grey, and "barely there" lives near the top
-(≈`230`). Tune against the on-screen PDF; a physical printer darkens greys further (dot
+three grayscale values. No other grays. jsPDF's single-argument `setTextColor(n)` /
+`setDrawColor(n)` is a **0–255 grayscale level — `0` = black, `255` = white** (NOT 0–100).
+So a value in the middle is a *medium-dark* gray, and "barely there" lives near the top
+(≈`230`). Tune against the on-screen PDF; a physical printer darkens grays further (dot
 gain), so calibrate line values on an actual printout.
 
 | name | value | used for |
 |---|---|---|
 | **black** | `0` | all real text — titles, data, the turn log, section headings, board words, setup values. The default; most things are black. |
-| **dark-grey** | `70` | **real-but-secondary marks** — the **board grid** and the one place text is a label rather than data (a table's `# / Player / …` column headers). Clearly visible, a step down from black, because these still carry the structure. |
-| **medium-grey** | `180` | **minor lines only** — the thin dividers between turn rows, the rule under a table header. Faint on purpose (they just separate; they aren't content). |
+| **dark-gray** | `70` | **real-but-secondary marks** — the **board grid** and the one place text is a label rather than data (a table's `# / Player / …` column headers). Clearly visible, a step down from black, because these still carry the structure. |
+| **medium-gray** | `180` | **minor lines only** — the thin dividers between turn rows, the rule under a table header. Faint on purpose (they just separate; they aren't content). |
 
 Rule of thumb: **use black unless a thing is *specifically* not important.** Board content
-+ its grid + real labels are black or dark-grey; only genuinely-minor separators (row
-dividers) get the light medium-grey. Small ≠ unimportant: a small date in the corner is
++ its grid + real labels are black or dark-gray; only genuinely-minor separators (row
+dividers) get the light medium-gray. Small ≠ unimportant: a small date in the corner is
 still black.
 
-Define these once per module (`const BLACK = 0`, `DARK_GREY = 70`, `MEDIUM_GREY = 180`)
-and reference them by name, so the palette is legible and can't drift. (The exact grey
+Define these once per module (`const BLACK = 0`, `DARK_GRAY = 70`, `MEDIUM_GRAY = 180`)
+and reference them by name, so the palette is legible and can't drift. (The exact gray
 values are tunable — calibrate to taste against a printout — but the *roles* are fixed.)
 
 ## Color is for meaning, never decoration
@@ -102,7 +102,7 @@ not be the *only* signal, because the page may print in black-and-white:
 - ✓ **good** — a correct/success mark, green.
 - ✗ **bad** — a wrong/miss mark, red.
 
-Because a mono printer flattens green and red to the same grey, **the meaning must also
+Because a mono printer flattens green and red to the same gray, **the meaning must also
 be carried by shape or text** — a drawn ✓ vs ✗, or the words "Correct" / "Incorrect".
 Color alone never distinguishes an outcome. (Helvetica has no ✓/✗ glyphs, so they're
 drawn from line segments.)
@@ -118,7 +118,7 @@ row, or a panel unless a filled background is *specifically agreed* to communica
 something (and even then, prefer a mark or a shade over a fill). In particular:
 
 - **No alternate-row ("zebra") shading** in tables — separate rows with a thin
-  medium-grey rule instead.
+  medium-gray rule instead.
 - **No outcome fills** on tiles — the ✓/✗ mark alone says correct vs miss.
 
 **The agreed exception: Wordle-style letter tiles** (`common/pdf/tiles.ts`, used by
@@ -131,10 +131,10 @@ border-and-fill weight, read as an intensity ordering, darkest = best:
 |---|---|
 | not used yet | **no border at all** — an empty slot, not a result |
 | not in word | border only, white inside |
-| wrong place | light grey fill |
-| right place | dark grey fill, white letter |
+| wrong place | light gray fill |
+| right place | dark gray fill, white letter |
 
-Using **greys rather than hues** is what keeps this honest: a colour printer and a
+Using **grays rather than hues** is what keeps this honest: a color printer and a
 mono one produce the same page, so there's no signal that can be lost. This is the
 same "unless a filled background is specifically agreed to communicate something"
 carve-out scrabble's premium squares use — deliberate, and narrow.
@@ -251,7 +251,7 @@ Three rules hold the shape:
   that appeared only on hand-picked boards would be exactly the half nobody needs
   to copy), and like the roster it's the most useful line on a record you keep,
   since nothing else says WHICH board this was. The key is the shared
-  `BOARD_KEY`; each game formats its own value (`A-CHIROT` for the centre-letter
+  `BOARD_KEY`; each game formats its own value (`A-CHIROT` for the center-letter
   pair, `ABCD EFGH IJKL MNOP` for the grid). Derived numbers still belong in Help
   — this is an exception, not a loophole.
 - **Every row carries the setup `key` it describes**, which nothing renders. A
@@ -312,15 +312,15 @@ even after the game ended. It now opens at terminal like every other compete
 game's private table. See docs/games/bananagrams.md.
 
 **Body family 1 — turn-log games (`turnLog.ts`; scrabble, psychicnum, wordiply, connections, codenamesduet).**
-connections is the worked example of the colour rules two sections up. A solved
-category is a full-bleed coloured band on screen; on paper it becomes a **thick
-coloured border** (four full-width fills is an enormous amount of ink, and
+connections is the worked example of the color rules two sections up. A solved
+category is a full-bleed colored band on screen; on paper it becomes a **thick
+colored border** (four full-width fills is an enormous amount of ink, and
 "backgrounds are white" already forbids it) plus a **letter A–D in the top-left**.
-The letter is the load-bearing half: mono flattens all four rank hues to one grey,
+The letter is the load-bearing half: mono flattens all four rank hues to one gray,
 so it's the only thing left saying which category was which. It's a faithful
 stand-in rather than an arbitrary tag — rank 0–3 IS the difficulty order the
-colour encodes — and it does double duty in the turn log, where a correct guess
-is labelled by the letter of the band it solved. The screen tokens are re-darkened
+color encodes — and it does double duty in the turn log, where a correct guess
+is labeled by the letter of the band it solved. The screen tokens are re-darkened
 for print (`BORDER_RGB`): they're tuned as pale fills and nearly vanish stroked as
 a line.
 
@@ -339,7 +339,7 @@ part of how its board is drawn, wherever that board sits.)
 **codenamesduet** is the densest case: three independent facts share every tile —
 what HAPPENED on it, what it is on *your* key, and (at terminal) what it is on
 your partner's. All three become the same three drawn marks (✓ agent / – bystander
-/ ✗ assassin), separated by POSITION rather than colour: the outcome top-left,
+/ ✗ assassin), separated by POSITION rather than color: the outcome top-left,
 your key bottom-left, your partner's top-right, matching the screen's corners. The
 two bystander triangles survive too, because a word your partner burned is still
 yours to guess while one you burned is locked — an asymmetry you need when
@@ -404,7 +404,7 @@ today (plan decision 7). The layout is crossplay's 12-unit grid: the puzzle grid
 title block above it (title left, author/copyright stacked right — **not** `frame.ts`'s
 `Brand: title` + date header), then the Across/Down **clues flowed into balanced columns**
 with continuation pages when they overflow. The cell renderer preserves blocks, circles
-(8% inset), shading, given underlines, pencil-as-italic-grey, and current fills;
+(8% inset), shading, given underlines, pencil-as-italic-gray, and current fills;
 `revealed`/`wrong` are ignored ("print shows the puzzle, not grading"). The answer-key
 generator (`generateSolutionPdf`, `src/crosswords/pdf/solution.ts`) was **ported too**:
 it shares the puzzle printer's title + grid geometry but fills every open cell with the
@@ -413,7 +413,7 @@ the template it already holds), the answer key needs the shielded solution, so t
 fetches it via the `crosswords.export_solution` RPC and passes it in — fine under the
 friends-only trust model (see [crosswords.md §7](games/crosswords.md)). It already went
 through crossplay's own design process (`crossplay/docs/print-design.md`) and is already
-greyscale, so it lands within the *spirit* of this doc without adopting its letterforms or
+grayscale, so it lands within the *spirit* of this doc without adopting its letterforms or
 `frame`/`Setup` conventions.
 
 This is a documented **deliberate difference**, not drift: a future consistency pass must

@@ -17,7 +17,7 @@
 --
 -- This isn't a live exposure under RLS + friends-only — most of these helpers
 -- are pure math, and the ones that mutate are still gated by the RLS on the
--- tables they touch. It's a defence-in-depth convention, and the reason to
+-- tables they touch. It's a defense-in-depth convention, and the reason to
 -- pin it is that the default is BACKWARDS: forgetting the revoke silently
 -- widens the surface, and nothing else in the suite would notice. 27 helpers
 -- had drifted this way by 2026-08-02, including `scrabble._finish`, which

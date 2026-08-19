@@ -12,7 +12,7 @@
  * The vocabulary's own marks are all shared (common PlayArea.module.css):
  * `.selected`, `.dimInFlight`, `.attentionFlash` on a tile, and
  * `.dimNotYourTurn` / `.yourTurnFlash` on the grid. What is left in this file is
- * what only waffle can say. See docs/tile-feedback.md.
+ * what only waffle can say. See plans/tile-feedback.md.
  */
 
 /* Board wrapper: hugs the square grid (the grid carries the definite `--side`

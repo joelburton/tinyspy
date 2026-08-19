@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { wordFitsWheel } from './tiles'
 
-/** A wheel with a doubled 'e' tile (centre + an outer e) and single tiles for
+/** A wheel with a doubled 'e' tile (center + an outer e) and single tiles for
  *  b, a, d, c, f, g, h — the shape the PlayArea tests use. */
 const counts = new Map<string, number>([
   ['e', 2],

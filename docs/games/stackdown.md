@@ -586,8 +586,8 @@ a win (docs/ui.md → Terminal results; `replay_board` re-runs this very stack, 
 an answer left on screen would make Restart theater, and `onRestarted` puts it
 away), and the print model refuses to emit it before then regardless — so neither a lost-game printout nor a future
 schema change can quietly put the answer on paper. The log prints all three submission kinds, with the
-valid/invalid/cheat distinction carried in **text** rather than colour, since a
-mono printer flattens the outcome bar's green and red to one grey.
+valid/invalid/cheat distinction carried in **text** rather than color, since a
+mono printer flattens the outcome bar's green and red to one gray.
 
 ## 7. Deferred
 
@@ -601,7 +601,7 @@ mono printer flattens the outcome bar's green and red to one grey.
   because you didn't see them type it. But it means the mark's audience is
   "everyone except the person who acted", which is the opposite of how every
   other verdict in the vocabulary works — decide it when stackdown converts
-  ([tile-feedback.md](../tile-feedback.md) → Roster).
+  ([tile-feedback.md](../../plans/tile-feedback.md) → Roster).
 
 - **A disabled board paints nothing, on purpose.** `<Board>` takes both
   `disabled` and `waiting`, and only `waiting` fades: a board is also disabled at

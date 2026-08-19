@@ -4,7 +4,7 @@
  * The renderer is smoke-tested by `e2e/connections-print.e2e.ts`; what's pinned
  * here is the judgment — above all the **A–D letter**, which is the only thing
  * telling a black-and-white reader which category was which once the band
- * colours have all flattened to the same grey; and **whose bands belong on
+ * colors have all flattened to the same gray; and **whose bands belong on
  * whose board** — compete splits into one track per player, the full answer
  * prints once (on the viewer's track), and a rival's track shows only what
  * they earned.

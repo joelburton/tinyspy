@@ -93,12 +93,12 @@ export function useScratchpad(
     }
 
     const room = `scratchpad:${gameId}`
-    let cancelled = false
+    let canceled = false
 
     function join() {
       // Guards the deferred path only: the effect can tear down again while
       // the previous channel is still leaving.
-      if (cancelled) return
+      if (canceled) return
       const ch = supabase.channel(room)
       ch.on(
         'postgres_changes',
@@ -151,7 +151,7 @@ export function useScratchpad(
 
     return () => {
       active = false
-      cancelled = true
+      canceled = true
       const ch = channelRef.current
       channelRef.current = null
       if (!ch) return // torn down before our turn to join came round

@@ -337,7 +337,7 @@ export function PlayArea({
   // turn's guesses, with those cells ringed history-yellow). Keyed by turn_number
   // — one clue per turn, a stable game-wide ordinal (like scrabble's seq). Feature
   // added on the still-monolithic PlayArea ahead of the BoardCol/InfoCol
-  // decomposition; see docs/playarea-decomposition-plan.md.
+  // decomposition; see docs/playarea.md.
   // Destructured (not `viewer.x`) to match the other games' PlayAreas and to keep
   // the effect deps honest: `exitViewing` is a stable useCallback, so the effect
   // below re-arms only when `viewing` flips.
@@ -434,7 +434,7 @@ export function PlayArea({
   // NOT idempotent — every call shelves the club's current game and starts
   // another, orphaning the last in the club list and toasting every peer.
   // Guarding the HANDLER covers all three triggers at once, which a `disabled`
-  // button could never do. `startingNewGame` then greys the button so a slow
+  // button could never do. `startingNewGame` then grays the button so a slow
   // network reads as "working" rather than "nothing happened".
   //
   // The MENU ITEM deliberately takes no `disabled`: its effect is built above

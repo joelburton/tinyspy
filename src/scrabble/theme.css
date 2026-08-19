@@ -31,14 +31,14 @@ body.scrabble-dragging {
   cursor: grabbing;
 
   /* ── Premium-square ink + board chrome, named during the palette sweep ────
-   * The premium letters are the board's printed notation, one colour per premium
+   * The premium letters are the board's printed notation, one color per premium
    * type; the shadows are this board's own depth. Values unchanged. */
   /* The DOUBLE squares carry dark ink of their own hue; the TRIPLE squares are
      saturated enough to carry white, which they take from the shared ink token.
-     The centre star is a double-word, so it inks like one. */
+     The center star is a double-word, so it inks like one. */
   --scrabble-dw-ink-color:   #7a3b34;
   --scrabble-dl-ink-color:   #2c4f6b;
-  /* A plain square's ink — the muted green-grey the premium labels are read
+  /* A plain square's ink — the muted green-gray the premium labels are read
      against. */
   --scrabble-cell-ink-color: #6b8378;
   --scrabble-cell-inner-shadow: inset 0 -2px 0 rgb(0 0 0 / 12%);

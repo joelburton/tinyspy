@@ -29,7 +29,7 @@
  * the event). Contrast stackdown, which showed the pre-move board because a cleared
  * word's tiles vanish.
  *
- * See docs/games/waffle.md and docs/playarea-decomposition-plan.md.
+ * See docs/games/waffle.md and docs/playarea.md.
  */
 import { coord } from './waffle'
 import { computeColors } from './colors'

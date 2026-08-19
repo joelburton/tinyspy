@@ -22,7 +22,7 @@ export {
   //     next word, psychicnum's answer word. One item, while the game is live.
   //   IconReveal (boxed View) — post-game "show me the whole solution". The box
   //     is the magnitude signal: same eye, but framed, so it reads as MORE
-  //     without needing a caption (and still reads as more in greyscale).
+  //     without needing a caption (and still reads as more in grayscale).
   //   IconHideSolution (EyeOff) — the SAME button as IconReveal, showing its
   //     other face. The reveal is a local, reversible view (docs/ui.md →
   //     Terminal results), so the control that opened the solution is the one
@@ -154,8 +154,8 @@ export {
   // rather than for that game ("the best find" / "a find" / "accepted" /
   // "rejected"), so any word game's log can reuse the same four.
   //
-  // They exist because colour alone can't carry this everywhere it needs to go:
-  // the log is printed to PDF in three shades of grey (docs/pdf.md), where a
+  // They exist because color alone can't carry this everywhere it needs to go:
+  // the log is printed to PDF in three shades of gray (docs/pdf.md), where a
   // purple word and a gold word are the same ink. A glyph survives that, and it
   // gives the row a fixed left column so the words still line up.
   //
@@ -168,7 +168,7 @@ export {
   // remove THIS ITEM from a list, in place (letterboxed's × on the chain's
   // last word). Same lucide glyph as IconWordNo, aliased separately because
   // the purpose is different — one marks a verdict, the other is an action.
-  // As an SVG it is centred by its own box; the × TEXT glyph is not.
+  // As an SVG it is centered by its own box; the × TEXT glyph is not.
   X as IconRemove,
   // The mobile page switch (GamePage header). A right-hand panel opening /
   // closing IS the gesture — the info column slides in from the right — so the

@@ -23,7 +23,7 @@ const NO_TILES: ReadonlySet<number> = new Set()
  * does NOT own the game state — `PlayArea` hands it **the board to render** (the
  * live board OR a historical snapshot) plus `readOnly`; that split is what makes the
  * turn-history viewer a drop-in (viewing a past turn is just "render this snapshot,
- * readOnly", no reopening of the input path). See docs/playarea-decomposition-plan.md.
+ * readOnly", no reopening of the input path). See docs/playarea.md.
  *
  * State ownership across the seam:
  *   - Owned here: the red ambiguous-tile flash (a typed letter matched >1 exposed

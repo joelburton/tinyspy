@@ -28,7 +28,7 @@ import { signIn } from './helpers/session'
  * the browser what it actually computed does.
  *
  * So this walks from each game's real tap target up its ancestor chain (which
- * is how the browser resolves a touch's effective behaviour) and requires a
+ * is how the browser resolves a touch's effective behavior) and requires a
  * `touch-action` on some element that can actually carry one. It catches both
  * failure modes at once: the rule that's missing (wordwheel, strands) and the
  * rule that's present but inert (spellingbee).
@@ -60,13 +60,13 @@ const TAPPED_BOARDS = [
 /**
  * Ask the BROWSER whether this element's taps are protected: walk up from it,
  * the way touch-action resolution does, and report the first ancestor with a
- * non-`auto` value that the browser will honour. SVG children are skipped
+ * non-`auto` value that the browser will honor. SVG children are skipped
  * precisely because they're where a declaration goes to die.
  */
 async function touchActionFor(page: Page, selector: string) {
   return page.locator(selector).first().evaluate((el) => {
     const declared: string[] = []
-    let honoured: string | null = null
+    let honored: string | null = null
     for (let cur: Element | null = el; cur; cur = cur.parentElement) {
       const value = getComputedStyle(cur).touchAction
       if (!value || value === 'auto') continue
@@ -74,9 +74,9 @@ async function touchActionFor(page: Page, selector: string) {
       // its descendants (<g>, <circle>, <polygon>…) do not.
       const inert = cur instanceof SVGElement && !(cur instanceof SVGSVGElement)
       declared.push(`${cur.tagName.toLowerCase()}=${value}${inert ? ' (INERT: svg child)' : ''}`)
-      if (!inert && honoured === null) honoured = `${cur.tagName.toLowerCase()}=${value}`
+      if (!inert && honored === null) honored = `${cur.tagName.toLowerCase()}=${value}`
     }
-    return { tag: el.tagName.toLowerCase(), honoured, declared }
+    return { tag: el.tagName.toLowerCase(), honored, declared }
   })
 }
 
@@ -93,15 +93,15 @@ for (const game of TAPPED_BOARDS) {
     const target = page.locator(game.target).first()
     await expect(target, `no tap target matched \`${game.target}\``).toBeVisible({ timeout: 25000 })
 
-    const { tag, honoured, declared } = await touchActionFor(page, game.target)
+    const { tag, honored, declared } = await touchActionFor(page, game.target)
     expect(
-      honoured,
+      honored,
       `<${tag}> taps are not protected from double-tap zoom. ` +
         (declared.length
-          ? `touch-action IS declared (${declared.join(', ')}) — but not anywhere the browser honours it.`
+          ? `touch-action IS declared (${declared.join(', ')}) — but not anywhere the browser honors it.`
           : 'No touch-action on the element or any ancestor.'),
     ).not.toBeNull()
-    expect(honoured).toMatch(/manipulation|none/)
+    expect(honored).toMatch(/manipulation|none/)
 
     await ctx.close()
   })

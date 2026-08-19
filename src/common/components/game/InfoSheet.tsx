@@ -27,7 +27,7 @@ type Props = {
  */
 export function InfoSheet({ open, onClose, children }: Props) {
   // Escape closes the open sheet — the keyboard-tablet expectation (a supported
-  // class). This is the CHEAP HALF of dialog behaviour; the full treatment
+  // class). This is the CHEAP HALF of dialog behavior; the full treatment
   // (move focus into the sheet on open + restore on close, trap Tab, dismiss by
   // tapping outside) is deliberately deferred — see docs/deferred.md → Mobile.
   // The listener is bound only while open, so it never competes with

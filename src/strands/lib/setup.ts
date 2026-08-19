@@ -14,7 +14,7 @@ export type StrandsSetup = CoopTurnSetup & {
    *  collects it. Absence is how `create_game` is told to derive the next
    *  puzzle none of the selected players has played
    *  (`strands.next_puzzle_for_club`). It stays in the type because the RPC
-   *  still honours an explicit id, which is what the pgTAP and e2e fixtures
+   *  still honors an explicit id, which is what the pgTAP and e2e fixtures
    *  pin their assertions to. */
   puzzleId?: string
   /**

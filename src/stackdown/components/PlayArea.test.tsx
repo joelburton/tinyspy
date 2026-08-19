@@ -190,7 +190,7 @@ describe('stackdown PlayArea — hint', () => {
 })
 
 /**
- * Turn-history viewer (docs/playarea-decomposition-plan.md, Phase A). Clicking a
+ * Turn-history viewer (docs/playarea.md). Clicking a
  * log row replays that turn's board; a keystroke / click returns to live. These
  * prove the cross-column seam is wired right — the snapshot logic itself is
  * unit-tested in lib/history.test.ts. Eight uniquely-lettered tiles so we can
@@ -302,7 +302,7 @@ describe('stackdown PlayArea — the game menu names the cheat glyphs', () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('reveal_next_word', { target_game: 'g1' }))
   })
 
-  it('greys the pair at terminal — disabled, never dropped, so the glyph still reads', () => {
+  it('grays the pair at terminal — disabled, never dropped, so the glyph still reads', () => {
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
     render(<PlayArea {...ctx} />)
     const items = menuItems(ctx)

@@ -28,7 +28,7 @@ type Props = {
  * waffle renders its OWN `<tr>` rows (the shared layer no longer owns row shape;
  * `<TurnLogItem>` is retired — docs/playarea.md → Turn log), composing the
  * shared `<TurnLogBar>` + content classes. A swap has no win/lose verdict, so
- * every row's outcome bar is `neutral` (grey, like psychicnum's hint rows).
+ * every row's outcome bar is `neutral` (gray, like psychicnum's hint rows).
  *
  * One `<tr>`, four real `<td>` columns (so they align down the log — never stacked
  * divs, which throw away the column alignment the table exists for): the outcome

@@ -59,7 +59,7 @@ pathlib.Path(full_path).write_text(
 )
 
 # 0.72 keeps the glyph's bounding box (66% wide × 82% tall, near-centered) inside
-# the maskable safe circle: its far corner sits 0.543·SIZE from centre, and
+# the maskable safe circle: its far corner sits 0.543·SIZE from center, and
 # 0.543 × 0.72 = 0.39 ≤ the 0.40 radius the spec guarantees.
 SCALE = 0.72
 off = SIZE * (1 - SCALE) / 2

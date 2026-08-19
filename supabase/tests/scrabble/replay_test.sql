@@ -34,7 +34,7 @@ create temp table g1 on commit drop as
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop');
 reset role;
 
--- Rig a known rack + play CAT through the centre, then end the game: that
+-- Rig a known rack + play CAT through the center, then end the game: that
 -- leaves tiles on the board, a play row, a non-zero score, a rewritten title
 -- and a terminal game — the full state a replay must undo.
 select pg_temp.sc_coop((select id from g1), array['C','A','T','X','Y','Z','Q'],

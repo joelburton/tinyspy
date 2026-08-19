@@ -18,7 +18,7 @@ test.describe('waffle replay board', () => {
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
-    // The scramble is `bacdef.g.hijklmn.o.pqrstu`; tiles are buttons labelled
+    // The scramble is `bacdef.g.hijklmn.o.pqrstu`; tiles are buttons labeled
     // "<LETTER> (<color>)". Wait for the board, then make one swap (D↔E) — a
     // non-solving move that leaves the game in play and logs turn #1.
     await expect(page.getByRole('button', { name: /^B \(/ })).toBeVisible({ timeout: 15000 })

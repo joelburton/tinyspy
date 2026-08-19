@@ -37,7 +37,7 @@ type Props = {
    *  so there's nothing left to uncover)? The control goes inert and says so. */
   solutionAlreadyShown: boolean
   /** The theme words, SPANGRAM FIRST — non-null only while the solution is
-   *  showing, since this is the same secret the board's grey lines are. The
+   *  showing, since this is the same secret the board's gray lines are. The
    *  board draws paths and never spells anything out, so without this the
    *  reveal makes you read the words off the grid letter by letter. */
   solutionWords: string[] | null
@@ -222,7 +222,7 @@ export function InfoCol({
         {/* ── The words themselves ── the other half of the reveal, and the
             half the board can't give you: a path shows you WHERE a word is,
             never what it says. Spangram first (it's the one that names the
-            theme), each click-to-define. Comes and goes with the board's grey
+            theme), each click-to-define. Comes and goes with the board's gray
             lines — one toggle, one secret — which is why it grows and shrinks
             here (a blessed exception to docs/ui.md → Layout stability). */}
         {solutionWords && (

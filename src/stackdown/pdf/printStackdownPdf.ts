@@ -1,5 +1,5 @@
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GREY, drawHeader, drawSetup, fit, newPrintDoc, savePrint } from '../../common/pdf/frame'
+import { BLACK, DARK_GRAY, drawHeader, drawSetup, fit, newPrintDoc, savePrint } from '../../common/pdf/frame'
 import { drawInTracks, type Track } from '../../common/pdf/columns'
 import { letterCorner, type Tile } from '../lib/board'
 import type { PrintTrack, StackdownPrintModel } from './model'
@@ -68,7 +68,7 @@ function drawTrack(doc: jsPDF, t: PrintTrack, track: Track): number {
     ? drawStack(doc, t.tiles, track.x, y, track.width) + 12
     : drawCleared(doc, track.x, y) + 12
 
-  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
   doc.text(fit(doc, t.result, track.width), track.x, y)
   y += 14
 
@@ -81,12 +81,12 @@ function drawWordList(doc: jsPDF, t: PrintTrack, track: Track, y: number): numbe
   doc.text('Words', track.x, y)
   let cy = y + 12
   if (!t.turns.length) {
-    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
     doc.text('None yet.', track.x, cy)
     return cy
   }
   t.turns.forEach((turn) => {
-    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
     doc.text(String(turn.seq), track.x, cy)
     doc.setTextColor(BLACK)
     // Coop's one board is worked by everyone, so its log names who played each
@@ -122,7 +122,7 @@ function drawStack(doc: jsPDF, tiles: Tile[], x0: number, y0: number, colW: numb
     const px = x0 + t.x * step
     const py = y0 + t.y * step
     // Filled white + a border: the fill hides whatever this tile covers.
-    doc.setFillColor(255, 255, 255).setDrawColor(DARK_GREY).rect(px, py, tile, tile, 'FD')
+    doc.setFillColor(255, 255, 255).setDrawColor(DARK_GRAY).rect(px, py, tile, tile, 'FD')
 
     // Same corner rule as the screen: a covered tile tucks its letter into a
     // quadrant nothing sits over, so it stays readable under the overlap.

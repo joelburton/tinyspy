@@ -118,24 +118,24 @@ Chat / pause / timer are inherited via `<GamePage>` / `useCommonGame`. **End gam
 The **track family**: one page column per BOARD, its grid, the QWERTY keyboard beneath it, then that board's guesses.
 
 The tiles use the shared 4-state encoding — **border and fill weight, not
-colour**. That's what makes wordle printable at all: its feedback is entirely
-green/yellow/grey, which a mono printer flattens to a single grey, and wordle
+color**. That's what makes wordle printable at all: its feedback is entirely
+green/yellow/gray, which a mono printer flattens to a single gray, and wordle
 without its feedback is a list of five-letter words. See
 [`pdf.md` → Backgrounds are white](../pdf.md#backgrounds-are-white) for the rule
-this is the agreed exception to, and why greys rather than hues keep it honest.
+this is the agreed exception to, and why grays rather than hues keep it honest.
 
 **Coop is one track** (a single shared board). **Compete is one per player at
 terminal**, and just yours during play — mid-game you hold nobody else's guesses (RLS),
 so an opponent column would be an empty grid rather than information. Capped at
 three tracks per page; a fourth player spills onto a second page at the same size.
 
-The keyboard prints in its **on-screen QWERTY shape**, three centred rows, rather
-than a denser A–Z run: it's the layout your eye already knows, so you recognise the
+The keyboard prints in its **on-screen QWERTY shape**, three centered rows, rather
+than a denser A–Z run: it's the layout your eye already knows, so you recognize the
 pattern instead of hunting for each letter. A letter never tried has no state and
 draws as the borderless blank.
 
 The guess list prints **plain words, no tile treatment**: the grid above already
-carries every colour, and repeating it in the log would be noise.
+carries every color, and repeating it in the log would be noise.
 
 The **answer is terminal-only**, twice over — the FE only holds `target` post-game,
 and the model refuses to emit it before terminal regardless.
@@ -159,7 +159,7 @@ and the model refuses to emit it before terminal regardless.
   the component). The treatment is the open part: it has to read as inactive
   without dulling the very letter colors it exists to show — the same tension
   the board's own game-over mark had, and the reason that one ended up a frame
-  rather than a dim. See [tile-feedback.md](../tile-feedback.md) → "An input
+  rather than a dim. See [tile-feedback.md](../../plans/tile-feedback.md) → "An input
   surface that is also a READOUT stays visible when the game ends", where the
   general rule now lives: ask whether an input surface is *only* an input. A
   rack you can no longer play says nothing once the game is over; a keyboard

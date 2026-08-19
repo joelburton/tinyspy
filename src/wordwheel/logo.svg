@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- wordwheel logo: the word wheel, mirroring the on-screen board. A large
-     saturated-red centre tile ringed by eight warm-neutral outer tiles, each with
-     a thick gold border (the tile-5-border token) and each TANGENT to the centre +
+     saturated-red center tile ringed by eight warm-neutral outer tiles, each with
+     a thick gold border (the tile-5-border token) and each TANGENT to the center +
      its neighbours (the same tangency the board geometry uses). The tiles sit
      directly on a dark rounded-rect card — no inner ground, matching the board's
-     no-tray look. Colours are inlined from the theme (tile-2 fill, tile-5-border
-     stroke, wordwheel-accent centre); SVG files can't read CSS custom properties.
+     no-tray look. Colors are inlined from the theme (tile-2 fill, tile-5-border
+     stroke, wordwheel-accent center); SVG files can't read CSS custom properties.
      (NOTE: XML comments must not contain a double hyphen, so token names here are
      written without their leading dashes; a stray one makes the whole SVG invalid
      XML and it silently fails to render as an img / ?url import.) -->
@@ -54,7 +54,7 @@
      id="rect1"
      style="fill:none" />
   <!-- Eight outer tiles (warm neutral, thick gold border), clockwise from the top,
-       tangent to the centre + each other. -->
+       tangent to the center + each other. -->
   <g
      fill="#f6efdf"
      stroke="#d2b060"
@@ -101,7 +101,7 @@
        r="227"
        id="circle8" />
   </g>
-  <!-- Centre hub (saturated red, same thick gold border), drawn last so it reads crisp. -->
+  <!-- Center hub (saturated red, same thick gold border), drawn last so it reads crisp. -->
   <circle
      cx="1000"
      cy="1000"

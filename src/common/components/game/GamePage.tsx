@@ -383,7 +383,7 @@ export function GamePage({
         // so it doesn't matter whether you reach for the shift.
         //
         // The dialog lives on ClubPage, so this hands off with `?new=<gametype>`
-        // — the same route crosswords' own New game uses. Cancelling it just
+        // — the same route crosswords' own New game uses. Canceling it just
         // leaves you on the club page, which is a fine place to be.
         e.preventDefault()
         void (async () => {

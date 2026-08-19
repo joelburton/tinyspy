@@ -37,7 +37,7 @@ function shuffled<T>(arr: readonly T[]): T[] {
  * channel is also written by InfoCol's End / Concede — so PlayArea passes the entry
  * primitives (`word` / `onChange` / `onSubmit` / `localPill` / …) DOWN and this column
  * renders them (a thin-input game, like boggle/connections). See
- * docs/playarea-decomposition-plan.md.
+ * docs/playarea.md.
  */
 export function BoardCol({
   // ── Mobile-only status block (above the board) ──

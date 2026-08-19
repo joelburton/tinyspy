@@ -7,7 +7,7 @@ import styles from './PlayArea.module.css'
  *
  * Here it exists for one letter: the SEED, the mandatory first letter carried
  * over from the previous word's ending. It renders in the board's accent green,
- * the same colour the current letter on the board is filled with, because it is
+ * the same color the current letter on the board is filled with, because it is
  * not a character the player typed — Backspace won't remove it, and a letter
  * that ignores Backspace should not look like the ones that don't.
  */

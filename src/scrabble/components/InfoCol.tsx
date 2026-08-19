@@ -41,13 +41,13 @@ const rating = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1))
  * readout → OpponentStrip → action row → help → setup disclosure → Moves log. Every
  * mutation is a named callback up (`onEndGame`/`onConcede`/`onSelectTurn`); PlayArea
  * owns the RPCs + coordination. Prop names match the other games' columns for the
- * same idea (docs/playarea-decomposition-plan.md).
+ * same idea (docs/playarea.md).
  */
 export function InfoCol({
   // Props are grouped by the region they drive (mirroring the render order below), so
   // "what is this prop for?" is answerable by eye; the `// ── … ──` headers on the type
   // block below name each group. Names are shared with the other games' columns for the
-  // same idea — see docs/playarea-decomposition-plan.md.
+  // same idea — see docs/playarea.md.
   isCompete,
   myTurn,
   over,

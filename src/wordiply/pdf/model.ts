@@ -51,7 +51,7 @@ const REJECT_LABEL: Record<NonNullable<GuessRow['reason']>, string> = {
  * A guess as one printed line. Accepted words carry their length; rejects carry
  * why instead.
  *
- * **This has to read in black and white.** Colour is the only thing separating
+ * **This has to read in black and white.** Color is the only thing separating
  * an accepted row from a rejected one on screen (the outcome bar), and a mono
  * printer flattens that — the psychicnum printer draws ✓/✗ shapes for exactly
  * this reason. Here the text already says it (`— not a word`), so no mark is

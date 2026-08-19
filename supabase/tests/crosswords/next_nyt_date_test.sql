@@ -88,7 +88,7 @@ select id from crosswords.create_game(
 
 -- Back to the superuser to read `puzzle_date`: it is deliberately NOT in
 -- crosswords.games's column grant. Nothing client-side needs it — the walk is
--- a definer function, and the colour overlay that used to read it went with
+-- a definer function, and the color overlay that used to read it went with
 -- the calendar — so the grant stays as tight as it was.
 reset role;
 select set_config('request.jwt.claims', '', true);

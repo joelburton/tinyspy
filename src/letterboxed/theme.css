@@ -1,4 +1,4 @@
-/* letterboxed's (SnakeBox's) colour tokens. Loaded with this game's chunk
+/* letterboxed's (SnakeBox's) color tokens. Loaded with this game's chunk
  * (imported from PlayArea.tsx) so they only ship when letterboxed is played.
  *
  * SnakeBox's identity is the CHAIN — a word threads from side to side and the
@@ -6,11 +6,11 @@
  * belongs to the line rather than to the letters.
  *
  *   --letterboxed-accent      The chain line + the currently-selected letter.
- *                             The one "brand" colour.
+ *                             The one "brand" color.
  *   --letterboxed-used        A letter already covered by the chain. Reads as
  *                             "done" without competing with the live path.
  *   --letterboxed-ghost       The last SUBMITTED word's path, still on the
- *                             board until you commit to a next letter. Grey on
+ *                             board until you commit to a next letter. Gray on
  *                             purpose: a move already made must not read as the
  *                             line you're drawing now, and the accent green is
  *                             spoken for. Same idea as strands' `missed` track —
@@ -21,12 +21,12 @@
  *   --letterboxed-seed        The carried-over first letter in the entry box —
  *                             the one character Backspace won't remove. The
  *                             accent green is the right IDEA but too light at
- *                             glyph weight: a filled circle carries a colour
+ *                             glyph weight: a filled circle carries a color
  *                             that a few thin strokes don't, so this is the
  *                             saturated green-800 the outcome palette uses.
  *
  * Two-vocabularies rule (docs/ui.md): tokens are named by letterboxed's
- * vocabulary (`box`, `tile`, `used`, `accent`) rather than literal colours.
+ * vocabulary (`box`, `tile`, `used`, `accent`) rather than literal colors.
  */
 :root {
   --letterboxed-accent:     #3f9d5c;

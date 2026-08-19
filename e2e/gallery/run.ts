@@ -421,7 +421,7 @@ async function main() {
               }
             }
             // EVERY state is printed, on the desktop pass — not a per-game
-            // judgement about what deserves paper. A printout is a code path
+            // judgment about what deserves paper. A printout is a code path
             // with its own layout in every state, and the empty and mid-game
             // ones are where its bugs live. Once, not once per viewport: a PDF
             // is the same document whatever the browser window is.

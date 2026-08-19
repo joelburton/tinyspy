@@ -89,7 +89,7 @@ export function GameTurnLog({
             {/* `partial` is the shared amber bar, and it is what stackdown
                 already flags a logged help request with — a hint is neither a
                 find nor a failure, but it is not NOTHING either, which is what
-                the neutral grey said. */}
+                the neutral gray said. */}
             <TurnLogBar outcome={event.kind === 'claim' ? 'won' : 'near'} />
             <TurnLogNumber
               n={index + 1}

@@ -7,7 +7,7 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * box), not a bespoke round control. Default aria-label "Fit to screen".
  *
  * Icon-only by default (it floats over the board where a text label wouldn't
- * fit); pass `iconOnly={false}` for a labelled form if a game ever wants one.
+ * fit); pass `iconOnly={false}` for a labeled form if a game ever wants one.
  */
 export function ZoomFitButton({ label = 'Fit to screen', iconOnly = true, ...rest }: PurposeButtonProps) {
   return <ActionButton icon={IconZoomFit} label={label} iconOnly={iconOnly} {...rest} />

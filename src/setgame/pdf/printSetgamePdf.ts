@@ -1,5 +1,5 @@
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GREY, drawHeader, drawSetup, newPrintDoc, savePrint } from '../../common/pdf/frame'
+import { BLACK, DARK_GRAY, drawHeader, drawSetup, newPrintDoc, savePrint } from '../../common/pdf/frame'
 import { twoColGeom } from '../../common/pdf/turnLog'
 import { decode, type Card } from '../lib/cards'
 import { CARD_BOX, SYMBOL_ASPECT, SYMBOL_BOX } from '../lib/shapes'
@@ -34,7 +34,7 @@ import type { PrintTurn, SetgamePrintModel } from './model'
  * Color is MEANING here and can't be moved onto shape or line weight, since
  * both are already attributes. The cards print in whatever palette the game was
  * played with, and a table that chose the colorblind-safe one also gets a
- * printout whose greyscale lightnesses are evenly spaced (L* 46 / 61 / 70) —
+ * printout whose grayscale lightnesses are evenly spaced (L* 46 / 61 / 70) —
  * close to this doc's three-shade ramp, so it survives a mono printer.
  */
 
@@ -160,7 +160,7 @@ function drawCard(doc: jsPDF, card: Card, x: number, y: number, palette: Palette
 
 /** `#12  [card][card][card]   joel`, or a hint's one to three. */
 function drawTurn(doc: jsPDF, turn: PrintTurn, x: number, y: number, palette: Palette) {
-  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
   doc.text(`#${turn.n}`, x, y + CARD.h / 2 + 3)
 
   let cardX = x + 20
@@ -224,7 +224,7 @@ export function printSetgamePdf(m: SetgamePrintModel): void {
   }
 
   if (m.turns.length === 0) {
-    doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(DARK_GRAY)
     doc.text('No turns yet.', leftX, y)
     y += ROW_H
   }

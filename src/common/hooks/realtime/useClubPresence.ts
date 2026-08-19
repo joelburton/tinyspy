@@ -52,13 +52,13 @@ export function useClubPresence(
   useEffect(() => {
     if (!clubHandle) return // no subscription; the hook returns [] below
     const room = `club:${clubHandle}`
-    let cancelled = false
+    let canceled = false
     let ch: RealtimeChannel | null = null
 
     function join() {
-      // The cancelled guard matters only on the deferred path below: this
+      // The canceled guard matters only on the deferred path below: this
       // effect can be torn down again while the previous channel is leaving.
-      if (cancelled) return
+      if (canceled) return
       const joined = supabase.channel(room, {
         config: { presence: { key: selfId } },
       })
@@ -97,7 +97,7 @@ export function useClubPresence(
     else join()
 
     return () => {
-      cancelled = true
+      canceled = true
       if (!ch) return // torn down before our turn to join came round
       try {
         void ch.untrack()

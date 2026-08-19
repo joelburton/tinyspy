@@ -19,11 +19,11 @@
  * pickup ring) stays per-game.
  *
  * ── WHY THE NAMES CARRY THE GAME ─────────────────────────────────────────
- * The colour words are deliberate — "wordle green" is a phrase people say, and
+ * The color words are deliberate — "wordle green" is a phrase people say, and
  * a semantic name like `correct` would have to be translated back on every
  * read. The PREFIX is what keeps that honest: it says whose green this is. A
  * pink-mode wordle still has a wordle green, and "green" on its own is already
- * taken elsewhere in this codebase — it is a PLAYER'S IDENTITY COLOUR
+ * taken elsewhere in this codebase — it is a PLAYER'S IDENTITY COLOR
  * (common.profiles.color, memberColor.ts), which has nothing to do with
  * letters.
  *

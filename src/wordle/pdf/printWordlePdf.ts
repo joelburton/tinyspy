@@ -1,5 +1,5 @@
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GREY, drawHeader, drawSetup, fit, newPrintDoc, savePrint } from '../../common/pdf/frame'
+import { BLACK, DARK_GRAY, drawHeader, drawSetup, fit, newPrintDoc, savePrint } from '../../common/pdf/frame'
 import { drawInTracks, type Track } from '../../common/pdf/columns'
 import { drawTile, drawTileLegend } from '../../common/pdf/tiles'
 import type { TileColor } from '../../common/lib/color/tileColor'
@@ -14,13 +14,13 @@ import type { PrintTrack, WordlePrintModel } from './model'
  * under another player's grid. See `common/pdf/columns.ts`.
  *
  * The four tile states are the shared `common/pdf/tiles` encoding (border and
- * fill weight, not colour), which is the whole reason this game is printable at
- * all: on a mono printer green/yellow/grey are one grey, and wordle without its
+ * fill weight, not color), which is the whole reason this game is printable at
+ * all: on a mono printer green/yellow/gray are one gray, and wordle without its
  * feedback is just a list of words.
  *
  * The keyboard prints in its **on-screen QWERTY shape**, three rows, because
  * that's the layout your eye already knows — an A-Z run would be denser but you'd
- * have to hunt for each letter instead of recognising the pattern.
+ * have to hunt for each letter instead of recognizing the pattern.
  */
 
 const KEY_ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'] as const
@@ -72,7 +72,7 @@ function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WordlePrintModel)
   })
 
   y += 6
-  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
   doc.text(fit(doc, t.result, track.width), track.x, y)
   y += 12
 
@@ -91,7 +91,7 @@ function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WordlePrintModel)
 }
 
 /**
- * The QWERTY keyboard, three rows, each centred like the on-screen one. A letter
+ * The QWERTY keyboard, three rows, each centered like the on-screen one. A letter
  * never tried has no state and draws as the blank (borderless) tile, so what you
  * see is exactly "these are still untouched".
  */
@@ -108,7 +108,7 @@ function drawKeyboard(
   let cy = y
   KEY_ROWS.forEach((row) => {
     const rowW = row.length * key + (row.length - 1) * gap
-    const startX = track.x + (track.width - rowW) / 2 // centred, as on screen
+    const startX = track.x + (track.width - rowW) / 2 // centered, as on screen
     ;[...row].forEach((ch, i) => {
       drawTile(doc, {
         x: startX + i * (key + gap),
@@ -125,19 +125,19 @@ function drawKeyboard(
 
 /**
  * That board's guesses, as plain words — no tile treatment, since the grid above
- * already carries every colour and repeating it here would be noise.
+ * already carries every color and repeating it here would be noise.
  */
 function drawGuessList(doc: jsPDF, t: PrintTrack, track: Track, y: number): number {
   doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
   doc.text('Guesses', track.x, y)
   let cy = y + 12
   if (!t.turns.length) {
-    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
     doc.text('None yet.', track.x, cy)
     return cy
   }
   t.turns.forEach((turn) => {
-    doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(DARK_GRAY)
     doc.text(String(turn.seq), track.x, cy)
     doc.setTextColor(BLACK)
     doc.text(fit(doc, turn.text, track.width - 14), track.x + 12, cy)

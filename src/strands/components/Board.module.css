@@ -7,7 +7,7 @@
  *
  * Both are absolutely positioned in `.board`, whose 6/8 aspect-ratio is what
  * keeps the two in register at any size — the SVG scales with the box and the
- * grid divides the same box evenly, so cell centres coincide by construction
+ * grid divides the same box evenly, so cell centers coincide by construction
  * rather than by arithmetic.
  *
  * NOTE the deliberate absence of tile borders. Every other grid game in the
@@ -80,7 +80,7 @@
   stroke: var(--strands-active);
 }
 
-/* Words nobody found, at the reveal. Grey and drawn UNDER the found paths, so
+/* Words nobody found, at the reveal. Gray and drawn UNDER the found paths, so
  * the post-game board reads "here's what you got, and here's what was there"
  * rather than putting the misses on equal footing with the finds. */
 .lineMissed {
@@ -104,7 +104,7 @@
 }
 
 /* The "click me again to submit" marker on the most recent tile. A ring
- * OUTSIDE the disc rather than a colour change, so it reads as an extra
+ * OUTSIDE the disc rather than a color change, so it reads as an extra
  * affordance rather than a different kind of selection. */
 .discLastRing {
   fill: none;
@@ -156,7 +156,7 @@
   /* Finding a word here is a rapid run of taps across adjacent letters, so opt
    * out of double-tap-to-zoom and its tap delay — the same treatment the shared
    * `.tile` gives every other tapped board (common/PlayArea.module.css), which
-   * these bespoke tiles never picked up. Plus the grey tap-flash, which paints
+   * these bespoke tiles never picked up. Plus the gray tap-flash, which paints
    * a rectangle over a round disc. */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
@@ -180,7 +180,7 @@
   cursor: default;
   /* Override the global `button:disabled { opacity: 0.5 }`. These are LETTERS,
    * not a control whose unavailability needs signalling — and at terminal the
-   * whole board is disabled, which greyed out the finished puzzle exactly when
+   * whole board is disabled, which grayed out the finished puzzle exactly when
    * it becomes the thing everyone wants to read. */
   opacity: 1;
 }
@@ -209,8 +209,8 @@
   color: var(--strands-on-disc);
 }
 
-/* A hinted-but-unfound letter keeps normal text colour — the ring around it is
- * the signal, and recolouring the letter would imply it was already found. */
+/* A hinted-but-unfound letter keeps normal text color — the ring around it is
+ * the signal, and recoloring the letter would imply it was already found. */
 .tileHinted {
   color: var(--page-text-color);
 }

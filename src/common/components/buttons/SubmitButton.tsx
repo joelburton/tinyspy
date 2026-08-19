@@ -6,7 +6,7 @@ import { ActionButton, type PurposeButtonProps } from './ActionButton'
  * glyph, see icons.ts) at the primary weight. Default label "Submit"; pass
  * `label` to deviate, `iconOnly` for the no-text form.
  *
- * Kept deliberately thin for now. When we wire submit behaviour (a `submitting`
+ * Kept deliberately thin for now. When we wire submit behavior (a `submitting`
  * state that swaps the label to "Submitting…" and auto-disables), it lands HERE
  * — the file already exists and every call site already routes through it.
  */

@@ -92,7 +92,7 @@ test.describe('club page list filters', () => {
     // Siblings collapse: ONE option covers wordle_coop + wordle_compete, so
     // the options are the FAMILIES listed (plus "All games"), by baseGametype.
     // <FilterSelect>, not a <select>: options exist only while the list is open,
-    // and are labelled with each family's BRAND (manifest.name).
+    // and are labeled with each family's BRAND (manifest.name).
     await select.click()
     const options = await select.locator('xpath=../div').getByRole('button').allInnerTexts()
     expect(options).toEqual(['All games', 'SyrupSwap', 'WordNerd'])

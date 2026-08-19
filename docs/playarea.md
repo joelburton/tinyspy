@@ -244,7 +244,7 @@ The contract for the capture model:
   ownership is gated on `useGameHasKeyboard` (no
   `<input>`/`<textarea>`/`<select>`/contenteditable focused), the *same*
   condition under which `useGlobalKeyHandler` routes keys to the game. So **caret
-  visible ⟺ keyboard-owned AND non-empty**: an empty box shows only its grey
+  visible ⟺ keyboard-owned AND non-empty**: an empty box shows only its gray
   placeholder (which already says "type here"), and the caret never duels with the
   chat box's cursor. The non-empty gate lives in the shared `<EntryBox>`, so it's
   uniform, not a per-game choice.
@@ -435,7 +435,7 @@ One vocabulary, settled 2026-08-02:
 The aggregate leads and is normally the default; the per-player entries are for
 pulling one thread out — "which clues did I give?", "just my own scrabble plays",
 "how did moth spend their psychicnum budget?". **Players are named by handle,
-including you.** An earlier version labelled the viewer "You", which made your own
+including you.** An earlier version labeled the viewer "You", which made your own
 row read as a different *kind* of thing from everyone else's; a list of handles is
 one list. You're still ordered first.
 
@@ -480,7 +480,7 @@ The shared **`<WordList>`** (`common/components/game/lists/WordList.tsx`) is the
 alphabetical counterpart to the turn log, worn by the three word-hunt games —
 spellingbee, wordwheel, boggle. A column-major grid in a fixed-height card; each
 row leads with a **circle marker** carrying attribution (a filled ● in the finder's
-color for a find, a hollow ○ in grey for a missed word), with the word itself plain
+color for a find, a hollow ○ in gray for a missed word), with the word itself plain
 black so identity rides the disc, not the text ([ui.md → Player identity](ui.md)).
 
 ### The reveal covers BOTH shipped lists
@@ -928,7 +928,7 @@ already knew. Drift here causes real head-scratching.
   - **Deliberate, documented divergences** (same idea, different name because the
     meaning genuinely differs): `viewingIndex` (log position — stackdown/waffle) vs
     `viewingSeq` (stable turn `seq` — scrabble, which `boardUpToSeq` indexes by);
-    `greenTiles`/`green` (a viewed turn's played-word ring, coloured green — stackdown)
+    `greenTiles`/`green` (a viewed turn's played-word ring, colored green — stackdown)
     vs `highlight` (a viewed swap's neutral cell ring — waffle). Both aliases of the
     shared history hook's neutral `viewingId`.
   - **Snapshot ownership is NOT uniform, on purpose.** stackdown/waffle compute the

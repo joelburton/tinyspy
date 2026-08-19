@@ -1,8 +1,8 @@
 import type { jsPDF } from 'jspdf'
 import {
   BLACK,
-  DARK_GREY,
-  MEDIUM_GREY,
+  DARK_GRAY,
+  MEDIUM_GRAY,
   drawHeader,
   newPrintDoc,
   savePrint,
@@ -81,7 +81,7 @@ function drawReveal(
   doc.setFont('helvetica', 'bold').setFontSize(REVEAL_SIZE).setTextColor(BLACK)
   doc.text(m.reveal.word, x, baseline)
   const w = doc.getTextWidth(m.reveal.word)
-  doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(DARK_GREY)
+  doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(DARK_GRAY)
   doc.text(`${m.reveal.length} letters`, x + w + 8, baseline)
   // A LARGER gap after the block than inside it (label→word is 16), so the
   // reveal reads as its own thing rather than running into whatever follows.
@@ -108,12 +108,12 @@ function drawScores(
 
   const scoreX = x + colW * 0.55
   const letterX = x + colW * 0.82
-  doc.setFont('helvetica', 'bold').setFontSize(8).setTextColor(DARK_GREY)
+  doc.setFont('helvetica', 'bold').setFontSize(8).setTextColor(DARK_GRAY)
   doc.text('Player', x, cy)
   doc.text('Length', scoreX, cy)
   doc.text('Letters', letterX, cy)
   cy += 4
-  doc.setLineWidth(0.4).setDrawColor(MEDIUM_GREY).line(x, cy, x + colW, cy)
+  doc.setLineWidth(0.4).setDrawColor(MEDIUM_GRAY).line(x, cy, x + colW, cy)
   cy += 11
 
   m.scores.forEach((s) => {

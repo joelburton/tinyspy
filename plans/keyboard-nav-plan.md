@@ -2,7 +2,7 @@
 
 **A PLAN, not a description.** It is here to be built and then deleted: the
 durable parts (the marks, the channels, the grammar) fold into
-[tile-feedback.md](tile-feedback.md) and [keyboard-shortcuts.md](keyboard-shortcuts.md)
+[tile-feedback.md](tile-feedback.md) and [keyboard-shortcuts.md](../docs/keyboard-shortcuts.md)
 as each game lands, and this file goes away when the last one does.
 
 The feature: **arrow keys move a cursor over a board's pieces, `Space` selects,
@@ -50,7 +50,7 @@ One grammar for all five games, and for the home/club lists as far as it applies
 safety property, and it is worth the asymmetry it creates with the mouse:
 
 - Three of the five commit on a *click* today — codenamesduet and psychicnum on the
-  first pick, waffle on the second. Those keep their mouse behaviour exactly.
+  first pick, waffle on the second. Those keep their mouse behavior exactly.
 - **The mouse's confirmation is spatial; the keyboard's has to be temporal.**
   Getting a pointer onto a tile is deliberate aiming, so a click can safely
   commit. Arrow-stepping has no aim — you can be one cell off from where you think
@@ -73,9 +73,9 @@ channels applied to a fourth question ("where am I?").
 
 | radius / property | mark | channel |
 |---|---|---|
-| border **colour** | **the cursor** — where the keyboard is pointing | new: position-by-input |
+| border **color** | **the cursor** — where the keyboard is pointing | new: position-by-input |
 | border **width** | my selection (thick) | existing |
-| **inset ring**, member colour | a peer is holding this piece | existing in connections + crosswords; to be named |
+| **inset ring**, member color | a peer is holding this piece | existing in connections + crosswords; to be named |
 | background **shade** | where my move currently *ends* (strands' tail, letterboxed's chain) | state |
 
 Four consequences of that table:
@@ -83,14 +83,14 @@ Four consequences of that table:
 - **The look already exists.** `HomePage.module.css` draws the list cursor as
   `outline: 2px solid var(--chrome-action-color)` inset — so the app already teaches
   "thin blue ring = where the keyboard is pointing", and the boards should adopt it
-  rather than invent one. It gets **its own token** initialised to the accent, so
+  rather than invent one. It gets **its own token** initialized to the accent, so
   the meaning has one value app-wide and can move away from
   `--member-blue-dot-color` (currently the same hex) without touching a call site.
-- **Cursor and selection compose** — width says "in my move", colour says "I am
+- **Cursor and selection compose** — width says "in my move", color says "I am
   here", and neither needs to know about the other. A selected-and-cursored tile
   is a thick blue edge, which is what we want and not a special case.
 - **The peer ring nests inside both.** connections draws it as
-  `inset 0 0 0 4px <member colour>` and crosswords as `.peerFrame`; because it sits
+  `inset 0 0 0 4px <member color>` and crosswords as `.peerFrame`; because it sits
   *inside* the edge, moth's ring and my cursor show at once and neither overrides
   the other. It lives on `box-shadow`, which the channel table gives to hover —
   not a collision (hover is an *outer* shadow and a shadow list carries both) but
@@ -98,7 +98,7 @@ Four consequences of that table:
 - **The move's end is STATE, not a cursor.** In strands, arrowing over a different
   letter must not change the tail — only submitting does. So "where my word
   currently ends" is a property of the move in progress, drawn as a shade of the
-  state colour, and it settles the position channel the doc left open: crosswords'
+  state color, and it settles the position channel the doc left open: crosswords'
   keyboard cursor is a *cursor*; strands' last-tapped letter and letterboxed's
   chain end are *move state*.
 
@@ -167,7 +167,7 @@ work here".
 
 **No DOM focus on a board, ever.** A focused tile is promoted to `:focus-visible`
 by the next keystroke and the ring sticks; that is the whole focus-sweep family of
-bugs ([reference: the board focus rule](ui.md)). The cursor is React state and a
+bugs ([reference: the board focus rule](../docs/ui.md)). The cursor is React state and a
 rendered mark, with keys captured at the window.
 
 ## Two prerequisites, landing first
@@ -195,7 +195,7 @@ only worth paying for in a race.
 **waffle first**: already converted, and it exercises both hard parts at once —
 absent coordinates (its holes) and a selection that must stop auto-committing
 (today the second click *is* the swap; the keyboard needs to hold two selections
-and wait for `Enter`). That is the one real behaviour change the feature asks of a
+and wait for `Enter`). That is the one real behavior change the feature asks of a
 game, and the mouse keeps its current two-click swap.
 
 Then **psychicnum** (after its prerequisite), **connections** (peer rings + a
@@ -230,7 +230,7 @@ relevant and never touches the mouse experience.
   index, hide the mark, ignore the keys — it returns where you left it.
 - **The history viewer wins the first keypress.** Every one of these games exits
   the viewer on any key today, so an arrow while viewing returns to live and the
-  next arrow moves. Existing behaviour; leave it.
+  next arrow moves. Existing behavior; leave it.
 - **`Space` toggles**, so a second press deselects — matching waffle's
   tap-the-same-tile-to-cancel and connections' toggle.
 - **No scroll-into-view.** The no-scroll invariant means the whole board is always

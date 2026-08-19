@@ -16,7 +16,7 @@ import type { RevealWord } from './revealWords'
  *     still match the others. In coop each word has a single finder (`submit_word`
  *     rejects a word anyone already found), so both are no-ops there.
  *  2. **Found-vs-unfound.** A found word shadows its reveal entry — we never show a
- *     word as both found-in-color AND missed-in-grey.
+ *     word as both found-in-color AND missed-in-gray.
  *
  * `revealWords` is the caller's whole missed set — **required AND bonus** — each
  * entry flagged with which list it came from. The builder doesn't care which; it

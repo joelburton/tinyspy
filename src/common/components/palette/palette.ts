@@ -329,11 +329,11 @@ export const FAMILIES: Family[] = [
     name: 'Wordle letters',
     bucket: 'wordle',
     note:
-      'The letter-judgement palette, shared by wordle and waffle. Color words on ' +
+      'The letter-judgment palette, shared by wordle and waffle. Color words on ' +
       'purpose, against the semantic-names rule: "wordle green" is a phrase ' +
       'people say, and the `wordle-` prefix is what keeps it honest in a theme ' +
       'swap. (`--wordle-blank-fill-color` is not a member — it says there is no ' +
-      'letter here yet, which is not a judgement.)',
+      'letter here yet, which is not a judgment.)',
     variants: ['fill', 'edge', 'ink'],
     members: [
       {

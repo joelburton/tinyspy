@@ -89,7 +89,7 @@ test.describe('stackdown word entry', () => {
     await expect(filledSlots(page)).toHaveCount(3)
 
     // Clicking a filled slot returns that tile AND every tile after it — the
-    // pre-existing behaviour, deliberately unchanged by the button work, so
+    // pre-existing behavior, deliberately unchanged by the button work, so
     // clicking the first slot empties the row.
     await filledSlots(page).first().click()
     await expect(filledSlots(page)).toHaveCount(0)

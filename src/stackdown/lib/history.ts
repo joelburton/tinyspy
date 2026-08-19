@@ -30,7 +30,7 @@
  * want, because we then ring those tiles green ("this is the word this turn
  * played"), the same green scrabble uses for a turn's placements.
  *
- * See docs/games/stackdown.md for the rules and docs/playarea-decomposition-plan.md
+ * See docs/games/stackdown.md for the rules and docs/playarea.md
  * for why turn-history is the feature driving the PlayArea decomposition.
  */
 

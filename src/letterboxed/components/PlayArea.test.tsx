@@ -141,13 +141,13 @@ describe('letterboxed PlayArea — the game menu is the icon legend', () => {
     expect(items.has('spoiler')).toBe(false)
   })
 
-  it('names the terminal Reveal solution — greyed while the game is live', () => {
+  it('names the terminal Reveal solution — grayed while the game is live', () => {
     const live = makeCtx()
     render(<PlayArea {...live} />)
     const reveal = menuItems(live).get('reveal')
     expect(reveal?.label).toBe('Reveal solution')
     expect(reveal?.icon).toBeTruthy()
-    // Present-but-disabled, not absent: a greyed row still teaches its glyph.
+    // Present-but-disabled, not absent: a grayed row still teaches its glyph.
     // Terminal-only, so a player who dropped out can't spoil a live race.
     expect(reveal?.disabled).toBe(true)
 

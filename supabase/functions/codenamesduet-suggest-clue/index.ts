@@ -92,7 +92,7 @@ serve(async (req) => {
 
     const ctx = data as ClueContext
     if (!ctx.greens || ctx.greens.length === 0) {
-      // The FE greys the suggest button once every agent is revealed, so this
+      // The FE grays the suggest button once every agent is revealed, so this
       // re-check is "impossible" — key only, no copy; it renders as a fault.
       return json({ error: 'no-unrevealed-agents|' }, 400)
     }

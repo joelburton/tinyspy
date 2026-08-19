@@ -20,7 +20,9 @@ import { describe, expect, it } from 'vitest'
 
 const ROOT = process.cwd()
 
-/** Markdown we own. Everything under `docs/`, plus the two root files. */
+/** Markdown we own: `docs/` (reference), `plans/` (in-progress work), and the
+ *  two root files. Plans link into docs and vice versa, so both trees are
+ *  checked — a plan with a dangling link is still a dangling link. */
 function markdownFiles(): string[] {
   const out: string[] = []
   const walk = (dir: string) => {
@@ -31,6 +33,7 @@ function markdownFiles(): string[] {
     }
   }
   walk(join(ROOT, 'docs'))
+  walk(join(ROOT, 'plans'))
   for (const f of ['CLAUDE.md', 'README.md']) {
     const p = join(ROOT, f)
     if (existsSync(p)) out.push(p)

@@ -35,7 +35,7 @@ type Props = {
  * drift by font).
  *
  * Presentational and self-resolving: callers pass the color NAME off a
- * `Member` and the component resolves both CSS vars — except on a coloured
+ * `Member` and the component resolves both CSS vars — except on a colored
  * surface, where the ring turns white (`onColor`). Size rides `--dot-size`
  * (em-relative default, so an inline dot tracks its text).
  */

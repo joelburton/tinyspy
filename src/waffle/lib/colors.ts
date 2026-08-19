@@ -11,7 +11,7 @@
  * Because there are now two copies of this subtle algorithm, `colors.test.ts`
  * pins the TS port against **the exact vectors from the pgTAP `colors_test.sql`
  * oracle** — if the SQL ever changes, that test catches the drift. See
- * docs/playarea-decomposition-plan.md (turn-history rollout) and
+ * docs/playarea.md (turn-history rollout) and
  * docs/games/waffle.md → "Color feedback".
  */
 import { WORDS, lettersAt, HOLE, CELLS } from './waffle'

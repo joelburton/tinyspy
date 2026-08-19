@@ -45,7 +45,7 @@ export function Controls({
       <div className={styles.group} role="group" aria-label="Fill with pen or pencil">
         <span className={styles.label}>Fill:</span>
         {/* Pencil = tentative. The glyph borrows the grid's pencilled-entry look
-            exactly (grey + italic, Grid.module.css `.pencil`), so the toggle
+            exactly (gray + italic, Grid.module.css `.pencil`), so the toggle
             previews what typing will produce. */}
         <button
           type="button"
@@ -58,7 +58,7 @@ export function Controls({
         >
           P
         </button>
-        {/* Pen = committed. Bold ink-blue against the pencil's grey italic. */}
+        {/* Pen = committed. Bold ink-blue against the pencil's gray italic. */}
         <button
           type="button"
           className={cls(styles.btn, styles.penBtn, !pencil && styles.btnOn)}

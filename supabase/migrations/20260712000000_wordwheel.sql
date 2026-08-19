@@ -2,12 +2,12 @@
 -- wordwheel — Guardian-Word-Wheel-style word finder (MooseWheel)
 -- ============================================================
 --
--- A wheel of NINE letters (1 centre + 8 outer) — a MULTISET, so the
+-- A wheel of NINE letters (1 center + 8 outer) — a MULTISET, so the
 -- same letter may appear on two tiles. Players form words from the
 -- tiles, each tile SPENDABLE ONCE per word (a word may use a letter
 -- as many times as there are tiles carrying it — the key difference
 -- from spellingbee, which allows unbounded reuse), and every word
--- must use the centre tile (⇒ contain the centre letter; "the centre
+-- must use the center tile (⇒ contain the center letter; "the center
 -- is spent first" is an FE display convention, not a separate rule).
 -- The pangram — a word using all nine tiles, i.e. any 9-letter word
 -- that fits the multiset — earns a +15 bonus. The word list is
@@ -105,8 +105,8 @@ create schema if not exists wordwheel;
 -- [n1..n6] where nk = the number of REQUIRED-quality words (american,
 -- not slang, slur 0, crude 0) at difficulty EXACTLY band k whose
 -- per-letter counts FIT this multiset (each letter used no more times
--- than it has tiles), len >= 4 — CENTRE-AGNOSTIC (a real board fixes
--- one centre, so this slightly over-counts, but it's a richness
+-- than it has tiles), len >= 4 — CENTER-AGNOSTIC (a real board fixes
+-- one center, so this slightly over-counts, but it's a richness
 -- proxy). A future "board must have >= N words" gate can filter seeds
 -- on this with no build-time rescan. See import-wordwheel-pangrams.ts
 -- + docs/games/wordwheel.md.
@@ -126,7 +126,7 @@ create table wordwheel.pangrams (
   -- common.words.letter_mask.
   mask             bigint generated always as (common.word_letter_mask(letters)) stored,
   difficulty       int not null,         -- min band of a required-quality 9-letter word with this multiset
-  word_counts      jsonb not null,       -- [n1..n6]: required words fitting the multiset at each band (centre-agnostic)
+  word_counts      jsonb not null,       -- [n1..n6]: required words fitting the multiset at each band (center-agnostic)
   has_rare_letters boolean not null      -- weighting tier for the diverse builder
 );
 
@@ -170,12 +170,12 @@ create table wordwheel.games (
   club_handle text not null references common.clubs(handle) on delete cascade,
   -- 8 lowercase outer letters — duplicates allowed (the wheel is a
   -- multiset; the same letter may sit on two tiles, and may also
-  -- repeat the centre). No order significance on the SQL side (the
+  -- repeat the center). No order significance on the SQL side (the
   -- FE shuffles for display). char(8) is a width assertion —
   -- wider/narrower strings raise a type error at insert time,
   -- catching bad input early.
   outer_letters char(8) not null,
-  -- The mandatory center letter (the red centre circle). Single
+  -- The mandatory center letter (the red center circle). Single
   -- lowercase character; may also appear among outer_letters.
   center_letter char(1) not null,
   -- Cached at create-game time from the wordlists. Pure

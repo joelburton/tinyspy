@@ -351,7 +351,7 @@ begin
   end if;
   b_base_len := char_length(b_base);
 
-  -- The builder must have honoured the request. A board whose base isn't the
+  -- The builder must have honored the request. A board whose base isn't the
   -- one the player asked for is a builder bug, and this is the only place that
   -- can catch it — every downstream reader (title, board, scoring) trusts
   -- board.base, and the player would simply be handed a different game than

@@ -2,22 +2,22 @@
  * (imported from PlayArea.tsx) so they only ship when wordwheel
  * is being played.
  *
- * Word wheel's visual identity is the wheel: a saturated-red centre tile (the
+ * Word wheel's visual identity is the wheel: a saturated-red center tile (the
  * letter used in EVERY word) ringed by warm neutral outer tiles.
  *
  *   --wordwheel-tile         The resting outer-tile fill. Soft warm neutral
  *                            (the shared tile-2 ramp).
  *   --wordwheel-tile-text    Near-black glyph on the light outer tiles.
- *   --wordwheel-accent       The centre tile fill — a moderately-saturated red,
+ *   --wordwheel-accent       The center tile fill — a moderately-saturated red,
  *                            the single "used in every word" cue. Also the
  *                            achieved-tier fill on the RankBar.
- *   --wordwheel-center-text  White glyph on the red centre tile (black would
+ *   --wordwheel-center-text  White glyph on the red center tile (black would
  *                            fight the saturated fill).
  *   --wordwheel-tile-used    A used (already-in-the-word) outer tile's darkened
  *                            FILL. We darken only the background — the gold border
  *                            + the letter stay put — so a used tile reads as
  *                            "spent" without dimming the whole tile.
- *   --wordwheel-accent-used  The centre tile's darkened fill, same idea.
+ *   --wordwheel-accent-used  The center tile's darkened fill, same idea.
  *
  * Two-vocabularies rule (see docs/ui.md): tokens use semantic
  * names tied to wordwheel's vocabulary (`tile`, `accent`) rather
@@ -28,7 +28,7 @@
   --wordwheel-tile:          var(--tile-2-color); /* the shared warm ramp */
   --wordwheel-tile-text:     #1a1a1a;
 
-  /* Moderately-saturated red — the centre tile. */
+  /* Moderately-saturated red — the center tile. */
   --wordwheel-accent:        #d6494f;
   --wordwheel-center-text:   #ffffff;
 

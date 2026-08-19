@@ -136,7 +136,7 @@ export function TurnLogBar({
  * broken box across those rows, and a per-row hover lights only half the turn. A
  * single small handle stays crisp no matter how many rows a turn spans — so every
  * history game hangs its click + outline here, and they all read identically. See
- * docs/playarea-decomposition-plan.md.
+ * docs/playarea.md.
  *
  * **A `<span>`, not a `<button>`, on purpose.** A focused button re-fires its click
  * on Space — so pressing Space to leave the viewer (the shared "any key exits")

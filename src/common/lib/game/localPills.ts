@@ -23,7 +23,7 @@ import type { GenericFeedbackMsg, GenericFeedbackTone } from '../games'
  * pill in the app: a standing condition filed as a message, so a keystroke wiped
  * it and the player lost the only statement of their own status. It was possible
  * to file it wrong because `permanent` had no name — it was spelled as a styling
- * choice (`variant: 'fill'`) beside a behaviour choice.
+ * choice (`variant: 'fill'`) beside a behavior choice.
  *
  * Before this file that contract lived only as ~25 copies-by-convention across
  * the ten games (three of them in per-game `lib/` builders that cross-referenced

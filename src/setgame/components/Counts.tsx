@@ -2,7 +2,7 @@ import { Fragment } from 'react'
 import styles from './PlayArea.module.css'
 
 /**
- * The game's readouts, as one labelled number each, joined by bullets.
+ * The game's readouts, as one labeled number each, joined by bullets.
  *
  * Rendered on **two surfaces** — the info column's state line on desktop, and
  * the mobile status bar above the board — which is why it is a component rather

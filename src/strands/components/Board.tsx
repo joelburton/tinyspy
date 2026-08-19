@@ -3,7 +3,7 @@ import { cls } from '../../common/lib/util/cls'
 import history from '../../common/components/game/lists/historyViewer.module.css'
 import styles from './Board.module.css'
 
-/** A found word, as the board needs it: where it runs, and which colour. */
+/** A found word, as the board needs it: where it runs, and which color. */
 export type FoundPath = { path: Coord[]; isSpangram: boolean }
 
 type Props = {
@@ -12,7 +12,7 @@ type Props = {
   found: FoundPath[]
   /** The trace being built right now, in click order. */
   trace: readonly Coord[]
-  /** Words NOBODY found, drawn only once the solution is revealed: grey, so the
+  /** Words NOBODY found, drawn only once the solution is revealed: gray, so the
    *  post-game board shows what was missed without competing with what was
    *  found. Empty during play. */
   missed?: Coord[][]
@@ -49,9 +49,9 @@ type Props = {
  * carries every theme word's polyline plus the live trace — so this is a real
  * drawing layer, not a decoration. Discs are drawn in the same SVG as the lines
  * rather than as DOM elements, which is what guarantees a line always passes
- * UNDER its discs and both stay centred on the cell at any board size.
+ * UNDER its discs and both stay centered on the cell at any board size.
  *
- * The SVG works in **cell units** (`viewBox="0 0 6 8"`), so a cell centre is
+ * The SVG works in **cell units** (`viewBox="0 0 6 8"`), so a cell center is
  * exactly `(col + 0.5, row + 0.5)` and every radius/width below is a fraction of
  * a cell. No pixel maths, no resize observer: the board scales with its box and
  * the geometry follows for free.
@@ -78,7 +78,7 @@ export function Board({
   }
   const missedKeys = new Set(missed.flat().map(coordKey))
 
-  /** Cell centre in viewBox units. */
+  /** Cell center in viewBox units. */
   const cx = (c: number) => c + 0.5
   const cy = (r: number) => r + 0.5
   const points = (path: readonly Coord[]) =>

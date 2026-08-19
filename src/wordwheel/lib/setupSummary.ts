@@ -15,7 +15,7 @@ import type { WordwheelSetup } from './setup'
  * The `Letters` row is the documented board-identity exception (setupRows.ts →
  * BOARD_KEY): it prints the wheel this game was actually built on, random or
  * hand-picked, in the same `A-BCDEFGHI` shape the dialog's custom-letters
- * fields take back — nine tiles, centre first. It leads, right under the
+ * fields take back — nine tiles, center first. It leads, right under the
  * roster.
  */
 export function setupRows(
@@ -35,7 +35,7 @@ export function setupRows(
     rows.push({ key: 'target_rank', label: 'Target rank', value: RANKS[setup.target_rank] ?? '?' })
   }
   if (setup.unique_letters) {
-    // Labelled for the dialog's own section ("Board constraints"), not "Letters":
+    // Labeled for the dialog's own section ("Board constraints"), not "Letters":
     // the `Letters` row above now names the wheel itself, and two rows sharing a
     // label would read as one fact contradicting itself.
     rows.push({ key: 'unique_letters', label: 'Board constraint', value: 'unique letters only' })

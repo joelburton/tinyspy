@@ -25,7 +25,7 @@
  * pick it was, `.dimInFlight` while the guess is with the server,
  * `.verdictFill` when the answer lands, `.attentionFlash` on a band that landed
  * under a teammate's hands, and the three board-scope marks (the not-your-turn
- * dim, the your-turn flash, the game-over frame). See docs/tile-feedback.md.
+ * dim, the your-turn flash, the game-over frame). See plans/tile-feedback.md.
  */
 
 /* The info column's width — game-specific (the shared scaffold has no default, so
@@ -236,9 +236,9 @@
 }
 
 /* WHOSE pick this is — a border drawn INSIDE the tile's own border, in that
- * player's colour, which arrives as an inline `--peer-color`. Drawn for every
+ * player's color, which arrives as an inline `--peer-color`. Drawn for every
  * pick on a shared board including my own; solo and in compete, for none (see
- * Board.tsx, and docs/tile-feedback.md → Identity).
+ * Board.tsx, and plans/tile-feedback.md → Identity).
  *
  * It lived in common until the palette sweep, on the theory that identity is a
  * shared channel. The channel is; this GEOMETRY isn't — connections is the only
@@ -249,7 +249,7 @@
  * ── Why two inset layers ─────────────────────────────────────────────────────
  * The first is a SPACER. An inset `box-shadow` always starts at the piece's inner
  * edge, so a border can't simply be moved inward — it is drawn by painting a
- * wider band in the player's colour and then covering the outer part of it with
+ * wider band in the player's color and then covering the outer part of it with
  * the tile's own fill. What survives is a band of `-width` sitting `-inset`
  * inside the edge, which is what keeps it a separate mark from the thick black
  * selection border rather than a two-tone edge. The spacer takes `--tile-bg-color`
@@ -260,7 +260,7 @@
  * `box-shadow` is a LIST, and the tile's depth already occupies it. Setting a
  * bare inset border would silently drop that depth — a picked tile would go flat
  * and stop lifting on hover, which is how this arrived here in the first place
- * (the colour was set inline and lost both). So it composes WITH each shadow, and
+ * (the color was set inline and lost both). So it composes WITH each shadow, and
  * the hover/press pair restate their own beside it. */
 .peerPick {
   --peer-band:

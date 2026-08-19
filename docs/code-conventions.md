@@ -81,7 +81,7 @@ grant  execute on function <schema>.<fn>(<types>) to authenticated;  -- ONLY if 
 
 The **grant** is for functions the *caller* executes: player-facing RPCs, plus the few helpers reached through an RLS policy or a `security_invoker` view. A policy runs as the invoker, so `common.is_club_member` genuinely needs it — revoke it without granting and every club-scoped SELECT fails. Everything else is called from inside a `security definer` function, which runs as the owner and needs **no grant at all**; a `_`-prefixed helper with a grant should be able to name the view or policy that forces it.
 
-Pinned by `tests/common/function_grants_test.sql`, which fails if any function in an app schema is executable by PUBLIC. That guard exists because forgetting the revoke *silently widens* the surface — 27 helpers had drifted this way before the 2026-08-02 sweep, `scrabble._finish` (which unconditionally terminates a game) among them. Not a live exposure under RLS + friends-only, but defence in depth is cheap when the check is one query.
+Pinned by `tests/common/function_grants_test.sql`, which fails if any function in an app schema is executable by PUBLIC. That guard exists because forgetting the revoke *silently widens* the surface — 27 helpers had drifted this way before the 2026-08-02 sweep, `scrabble._finish` (which unconditionally terminates a game) among them. Not a live exposure under RLS + friends-only, but defense in depth is cheap when the check is one query.
 
 ### Migration filenames
 
@@ -369,7 +369,7 @@ per-client data channels use. Open and close it through
 
 ```ts
 const pending = channelLeaving(room)   // null on the fast path
-if (pending) void pending.then(join)   // join() must guard on a `cancelled` flag
+if (pending) void pending.then(join)   // join() must guard on a `canceled` flag
 else join()
 // …and in the cleanup: releaseChannel(ch), never supabase.removeChannel(ch)
 ```
@@ -433,7 +433,7 @@ src/common/components/chat/FloatingChat.module.css
 
 Six rules that are otherwise only discoverable by reading the code:
 
-1. **No `var()` fallbacks.** Write `var(--token)`, never `var(--token, #ccc)`. We own the whole custom-property namespace, so a missing token is always a bug — and a fallback can only ever *mask* that bug while drifting out of sync with the real value. [`src/cssTokens.test.ts`](../src/cssTokens.test.ts) is the safety net, and it guards **both directions**: every `var()` reference resolves to a definition, and every definition has a reader. A token that's a deliberate vocabulary slot with no caller yet goes in that test's `VOCABULARY_COMPLETENESS` list — which is where the "keep the grid complete" policy is enforced rather than argued. (The `var(--client-width, 100vw)` idiom in `common/` is a different thing: an opt-in *parameter* default, not a colour fallback.)
+1. **No `var()` fallbacks.** Write `var(--token)`, never `var(--token, #ccc)`. We own the whole custom-property namespace, so a missing token is always a bug — and a fallback can only ever *mask* that bug while drifting out of sync with the real value. [`src/cssTokens.test.ts`](../src/cssTokens.test.ts) is the safety net, and it guards **both directions**: every `var()` reference resolves to a definition, and every definition has a reader. A token that's a deliberate vocabulary slot with no caller yet goes in that test's `VOCABULARY_COMPLETENESS` list — which is where the "keep the grid complete" policy is enforced rather than argued. (The `var(--client-width, 100vw)` idiom in `common/` is a different thing: an opt-in *parameter* default, not a color fallback.)
 2. **Desktop-first: `@media (--mobile)` blocks override the base rule**, never the reverse. See [`ui.md`](ui.md#audience-and-platform-desktop-first) — a `min-width` media query means a rule got written backwards.
 3. **A component that renders on two surfaces keeps the roomier one as its base rule.** The compressed variant is an override scoped to the surface — e.g. `[data-mobile-status] .stats { … }`, keyed off the attribute `<MobileStatusBar>` already stamps. No media query needed (the bar doesn't exist on desktop) and no `compact` prop to thread through call sites. Writing it the other way round leaks the phone's budget onto a desktop that has room to spare; see [`mobile.md`](mobile.md).
 4. **State classes win by re-setting tokens, not by out-cascading.** A state (`.achieved`, `.dropOk`) should set `--tile-bg-color` and let the base rule consume it, rather than restating `background` at higher specificity.

@@ -127,9 +127,9 @@ export function coopRows(
 }
 
 /**
- * The board of a CENTRE-LETTER game — freebee's honeycomb and MooseWheel's
+ * The board of a CENTER-LETTER game — freebee's honeycomb and MooseWheel's
  * wheel, both "one letter every word must use, plus the others". Reads
- * `A-CHIROT`: the centre, a dash, then the rest.
+ * `A-CHIROT`: the center, a dash, then the rest.
  *
  * Shared because the two games format it identically and the dash is load-
  * bearing — it's the shape their setup dialogs' own summary line uses
@@ -146,7 +146,7 @@ export function coopRows(
  *     seven letters printed two ways — and the game's own TITLE (`E·ABCDFG`)
  *     alphabetizes, which put two spellings of one board on a single PDF.
  *
- * Sorting is lossless here: both boards are a centre plus a *multiset* of
+ * Sorting is lossless here: both boards are a center plus a *multiset* of
  * others (no outer position means anything), so a sort keeps the board exactly
  * — including a MooseWheel duplicate, which sorts next to its twin.
  *

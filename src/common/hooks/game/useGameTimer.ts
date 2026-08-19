@@ -73,17 +73,17 @@ export function useGameTimer({
   // immediately rather than flashing 0 before the driver's first
   // round-trip lands.
   useEffect(() => {
-    let cancelled = false
+    let canceled = false
     void commonDb
       .from('timers')
       .select('ticks')
       .eq('game_id', gameId)
       .maybeSingle()
       .then(({ data }) => {
-        if (!cancelled && data) setTicks((t) => mergeTicks(t, data.ticks))
+        if (!canceled && data) setTicks((t) => mergeTicks(t, data.ticks))
       })
     return () => {
-      cancelled = true
+      canceled = true
     }
   }, [gameId])
 
@@ -93,19 +93,19 @@ export function useGameTimer({
   // is the whole pause+idle mechanism — no ticks accrue.
   useEffect(() => {
     if (!running || paused || mode.kind === 'none') return
-    let cancelled = false
+    let canceled = false
     const drive = () => {
       void commonDb
         .rpc('tick_timer', { target_game: gameId })
         .then(({ data, error }) => {
-          if (cancelled || error || typeof data !== 'number') return
+          if (canceled || error || typeof data !== 'number') return
           setTicks((t) => mergeTicks(t, data))
         })
     }
     drive() // immediately, then once a second
     const id = setInterval(drive, 1000)
     return () => {
-      cancelled = true
+      canceled = true
       clearInterval(id)
     }
   }, [gameId, mode.kind, paused, running])

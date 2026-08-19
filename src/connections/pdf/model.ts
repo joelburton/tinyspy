@@ -10,14 +10,14 @@ import type { GuessRow, MatchedCategory } from '../hooks/useGame'
  * Two judgments live here.
  *
  * **What a category band has to carry on paper.** On screen a band is
- * identified by its fill colour — NYT's yellow/green/blue/purple for rank 0–3.
+ * identified by its fill color — NYT's yellow/green/blue/purple for rank 0–3.
  * Print can't lean on that twice over: a full-bleed fill is far too much ink,
- * and a mono printer flattens all four to the same grey. So a printed band is a
- * thick coloured BORDER plus a **letter A–D**, and the letter is the
+ * and a mono printer flattens all four to the same gray. So a printed band is a
+ * thick colored BORDER plus a **letter A–D**, and the letter is the
  * load-bearing one — it's the only signal that survives a black-and-white
  * printer. A–D is a faithful stand-in rather than an arbitrary label: rank 0–3
  * IS the difficulty order (yellow easiest → purple hardest), which is exactly
- * what the colour encodes.
+ * what the color encodes.
  *
  * **Whose bands belong on whose board.** Compete players race their OWN copy
  * of the puzzle — own solved categories, own mistake budget, own log — so the
@@ -34,7 +34,7 @@ export const RANK_LETTER: Record<CategoryRank, string> = { 0: 'A', 1: 'B', 2: 'C
 /** One solved (or end-of-game revealed) category, as printed. */
 export type PrintBand = {
   rank: CategoryRank
-  /** A–D. The B&W-safe stand-in for the band colour. */
+  /** A–D. The B&W-safe stand-in for the band color. */
   letter: string
   name: string
   tiles: string[]

@@ -49,7 +49,7 @@ export function Board({
   const points = useMemo(() => pathPoints(word, nodes), [word, nodes])
 
   /**
-   * The GHOST: the last submitted word's path, in grey, so everyone can see
+   * The GHOST: the last submitted word's path, in gray, so everyone can see
    * where the chain just went — in coop that's whoever played it, since the
    * chain is shared and arrives by realtime; in compete `chain` is your own
    * (rivals' are column-shielded), so it's your own last word and can't leak.

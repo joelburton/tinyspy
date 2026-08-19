@@ -24,7 +24,7 @@
  * shows the pre-move, fuller board).
  *
  * Pure (no React / supabase) + unit-tested, parallel to the other games' lib/history.
- * See docs/playarea-decomposition-plan.md for why turn-history drives the decomposition.
+ * See docs/playarea.md for why turn-history drives the decomposition.
  */
 import type { GuessRow, WordRow } from '../hooks/useBoard'
 

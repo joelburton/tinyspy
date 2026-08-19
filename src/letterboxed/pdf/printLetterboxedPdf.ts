@@ -1,8 +1,8 @@
 import type { jsPDF } from 'jspdf'
 import {
   BLACK,
-  DARK_GREY,
-  MEDIUM_GREY,
+  DARK_GRAY,
+  MEDIUM_GRAY,
   drawHeader,
   drawSetup,
   fit,
@@ -22,10 +22,10 @@ import type { LetterboxedPrintModel, PrintTrack } from './model'
  * shared `common/pdf/columns` lays out up to three per page (see its header for
  * why three).
  *
- * ── Marking a covered letter without colour ──────────────────────────────────
+ * ── Marking a covered letter without color ──────────────────────────────────
  * On screen a covered letter is a pale green fill. On a mono printer that is the
- * same grey as everything else, so the encoding moves onto WEIGHT: a covered
- * letter gets a heavy black ring and a bold glyph, an untouched one a thin grey
+ * same gray as everything else, so the encoding moves onto WEIGHT: a covered
+ * letter gets a heavy black ring and a bold glyph, an untouched one a thin gray
  * ring and normal weight. That survives a photocopier, which is the test
  * docs/pdf.md sets.
  */
@@ -65,7 +65,7 @@ function drawTrack(
 
   let y = drawBoard(doc, m.sides, new Set(t.covered), track, track.top + 10) + 12
 
-  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
   doc.text(fit(doc, t.result, track.width), track.x, y)
   y += 14
 
@@ -104,7 +104,7 @@ function drawBoard(
   const x0 = track.x + r
   const at = (f: number) => f * box
 
-  doc.setDrawColor(MEDIUM_GREY).setLineWidth(0.6)
+  doc.setDrawColor(MEDIUM_GRAY).setLineWidth(0.6)
   doc.rect(x0, top, box, box)
 
   // Clockwise from the top-left, matching the screen: side 0 across the top,
@@ -122,10 +122,10 @@ function drawBoard(
 
   nodes.forEach((n) => {
     const on = covered.has(n.ch)
-    // Weight, not colour: a heavy black ring is "covered", a thin grey one
+    // Weight, not color: a heavy black ring is "covered", a thin gray one
     // isn't. Both survive a mono printer, where the screen's two greens don't.
     doc.setFillColor(255, 255, 255)
-    doc.setDrawColor(on ? BLACK : MEDIUM_GREY).setLineWidth(on ? 1.4 : 0.5)
+    doc.setDrawColor(on ? BLACK : MEDIUM_GRAY).setLineWidth(on ? 1.4 : 0.5)
     doc.circle(n.cx, n.cy, r, 'FD')
     doc
       .setFont('helvetica', on ? 'bold' : 'normal')
@@ -143,7 +143,7 @@ function drawChain(doc: jsPDF, t: PrintTrack, track: Track, y: number): number {
   doc.text('Chain', track.x, y)
   let cy = y + 12
   if (!t.chain.length) {
-    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
     doc.text('No words yet.', track.x, cy)
     return cy
   }
@@ -152,7 +152,7 @@ function drawChain(doc: jsPDF, t: PrintTrack, track: Track, y: number): number {
     // Numbered rather than arrowed: the order is the point, and a printed list
     // already reads top-to-bottom. (An arrow would also need to be '->' here —
     // core fonts are WinAnsi; see docs/pdf.md.)
-    doc.setTextColor(DARK_GREY)
+    doc.setTextColor(DARK_GRAY)
     doc.text(String(i + 1), track.x, cy)
     doc.setTextColor(BLACK)
     doc.text(fit(doc, w.toUpperCase(), track.width - 14), track.x + 12, cy)
@@ -170,12 +170,12 @@ function drawMoves(doc: jsPDF, t: PrintTrack, track: Track, y: number): number {
   doc.text('Moves', track.x, y)
   let cy = y + 12
   if (!t.turns.length) {
-    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(DARK_GRAY)
     doc.text('None yet.', track.x, cy)
     return cy
   }
   t.turns.forEach((turn) => {
-    doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(DARK_GRAY)
     doc.text(String(turn.seq), track.x, cy)
     doc.setTextColor(BLACK)
     doc.text(fit(doc, turn.text, track.width - 14), track.x + 12, cy)

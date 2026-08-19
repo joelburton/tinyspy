@@ -38,7 +38,7 @@ function shuffled<T>(arr: readonly T[]): T[] {
  * channel is also written by InfoCol's End / Concede — so PlayArea passes the entry
  * primitives (`word` / `onChange` / `onSubmit` / `localPill` / …) DOWN and this column
  * renders them (a thin-input game, like boggle/connections). See
- * docs/playarea-decomposition-plan.md.
+ * docs/playarea.md.
  */
 export function BoardCol({
   // ── Mobile-only status block (above the board) ──
@@ -80,7 +80,7 @@ export function BoardCol({
   /** The board's outer letters (a string) — the local shuffle rearranges this. */
   outerLetters: string
   centerLetter: string
-  /** Per-letter tile counts of the whole wheel (centre + outers), lower-cased —
+  /** Per-letter tile counts of the whole wheel (center + outers), lower-cased —
    *  the wheel is a multiset, so `<TypedWord>`'s illegal dim needs counts, not a
    *  set (a letter is legal as many times as it has tiles). */
   letterCounts: Map<string, number>
@@ -130,7 +130,7 @@ export function BoardCol({
 
   // Per-letter counts of the typed word (lower-cased). Each tile is SPENT per
   // use, so the wheel dims one same-letter tile per occurrence typed (the
-  // centre first — see Wheel's spend order).
+  // center first — see Wheel's spend order).
   const typedCounts = useMemo(() => {
     const m = new Map<string, number>()
     for (const ch of word.toLowerCase()) m.set(ch, (m.get(ch) ?? 0) + 1)
@@ -210,7 +210,7 @@ export function BoardCol({
             // tiles — the same characters <TypedWord> dims). Editing stays live;
             // only Submit + Enter are inert, so "FOOD" on a wheel without F/O
             // can't submit and read as "not a word". A word that DOES fit but is
-            // missing the centre / isn't in the list stays submittable — that
+            // missing the center / isn't in the list stays submittable — that
             // reject carries a genuinely useful reason.
             submitDisabled={!wordFitsWheel(word, letterCounts)}
             onDismissPill={clearLocalFeedback}

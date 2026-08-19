@@ -130,16 +130,16 @@ export function PlayArea({
 
   // My remaining guesses, and from it the "can I still act?" gate. Both live up
   // here — above the early returns — for the same reason `myConceded` does: the
-  // game-menu effect below needs them to grey the Hint / Spoiler rows in step
+  // game-menu effect below needs them to gray the Hint / Spoiler rows in step
   // with the InfoCol buttons they name. `playerBudgets` is [] until the fetch
-  // lands, so a pre-load menu reads "no guesses left" and the pair is greyed;
+  // lands, so a pre-load menu reads "no guesses left" and the pair is grayed;
   // the row still shows its glyph, which is the point of it being there.
   const selfBudget =
     playerBudgets.find((p) => p.user_id === session.user.id)
       ?.guesses_remaining ?? 0
   // Did I find all three? (Same row, read up here because the reveal below
   // needs it — `playerBudgets` is [] until the fetch lands, which is exactly
-  // why the reveal derives rather than initialises from it.)
+  // why the reveal derives rather than initializes from it.)
   const iFoundThemAll =
     (playerBudgets.find((p) => p.user_id === session.user.id)?.found_secrets_count ?? 0)
     >= SECRET_COUNT
@@ -232,7 +232,7 @@ export function PlayArea({
         extra: [
           // The menu twins of the info column's two help buttons. The row is
           // what NAMES those glyphs (docs/ui.md → the menu is the legend), so
-          // it's greyed rather than dropped when you can't ask: a disabled row
+          // it's grayed rather than dropped when you can't ask: a disabled row
           // still teaches the lightbulb and the bare eye.
           {
             items: [
@@ -462,7 +462,7 @@ export function PlayArea({
   // NOT idempotent — every call shelves the club's current game and starts
   // another, orphaning the last in the club list and toasting every peer.
   // Guarding the HANDLER covers all three triggers at once, which a `disabled`
-  // button could never do. `startingNewGame` then greys the button so a slow
+  // button could never do. `startingNewGame` then grays the button so a slow
   // network reads as "working" rather than "nothing happened".
   //
   // The MENU ITEM deliberately takes no `disabled`: its effect is built above
@@ -552,7 +552,7 @@ export function PlayArea({
   const guessesUsed = totalGuesses - selfBudget
 
   // (canGuess, and the Hint / Spoiler handlers behind it, are hoisted above the
-  // early returns so the game menu can name and grey them in step with the
+  // early returns so the game menu can name and gray them in step with the
   // InfoCol buttons — see the actionsRef block.)
 
   // (endGame / handleConcede are hoisted above the early returns — see the

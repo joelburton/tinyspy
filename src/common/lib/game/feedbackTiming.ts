@@ -12,7 +12,7 @@
  * JS value is what removes the class, so it must be at least the CSS one — a
  * shorter value cuts the animation off mid-fade.
  *
- * See docs/tile-feedback.md.
+ * See plans/tile-feedback.md.
  */
 
 /** A piece wearing the attention wash: "this changed, look here". */

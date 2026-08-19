@@ -171,7 +171,7 @@ Guardian / Upload):
   server backstop — the real inline puzzle always rides as the separate `board`
   arg, so it's never wanted in the persisted setup regardless of what the FE sends.
 - **The NYT tab picks a WEEKDAY** (2026-08-13), not a date — a dropdown of
-  Monday…Sunday, each labelled with what it means (`Monday — easiest`,
+  Monday…Sunday, each labeled with what it means (`Monday — easiest`,
   `Saturday — hardest`, `Sunday — big (21×21), medium`). An NYT crossword's day
   IS its difficulty, so that is the choice a solver actually wants to make, and
   it's the one thing here that's a standing club preference: `setup.weekday`
@@ -384,7 +384,7 @@ sizing).
   grid isn't the solution, and what the answer was is the whole reason to look).
   The player's own verdict marks go with it: a cell showing the author's letter
   drops its red wrong-triangle, since that verdict was about a letter no longer
-  on screen. Grey means "this letter is the author's, not yours", so it marks
+  on screen. Gray means "this letter is the author's, not yours", so it marks
   the blanks AND the corrections and leaves anything they had right looking like
   theirs — the answer key doubles as a diff, for free. It's a **local,
   reversible**
@@ -561,10 +561,10 @@ This is the **canonical deferred register** for crosswords — distilled from th
 ### Deliberate leaves / standing flags
 Recorded decisions, not bugs — surfaced in the reviews and left as-is for a possible
 future cleanup pass:
-- **The clue-list greys deliberately diverge from crossplay — don't "correct" them.**
+- **The clue-list grays deliberately diverge from crossplay — don't "correct" them.**
   `--crosswords-row-hover` / `-row-rule` / `-clue-num` (and the `-clue-label`,
   `-rebus-bg` pair) are a cool **slate** family that exists in neither `~/src/crossplay`
-  nor this app's neutral greys. Two of them replaced a source value outright: the
+  nor this app's neutral grays. Two of them replaced a source value outright: the
   clue-row hover was crossplay's `#eef3fa`, and the clue number was its `#444`. That
   divergence almost certainly arrived by substitution during the port rather than by
   design — but Joel likes the result and **ratified it (2026-08-01)**, which is the

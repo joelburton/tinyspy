@@ -480,7 +480,7 @@ wrong at the other.
 768px portrait tablet — so the same component read as a page on one device and a
 drawer on the other. Five games (spellingbee, boggle, crosswords, wordiply,
 wordwheel) opted out of that with a `wide` prop just to get the full width their
-word lists needed. Going full-bleed picks one behaviour and **retired `wide`
+word lists needed. Going full-bleed picks one behavior and **retired `wide`
 entirely** — the prop, its CSS rule, and all five call sites. The drop shadow
 went with it (a page doesn't cast a shadow onto itself), and `.infoCol`'s
 `border-left` + `padding-left` are suppressed below the breakpoint: that divider
@@ -587,7 +587,7 @@ mobile pass is now composing them, not copy-paste:
   *closed* mobile sheet is `visibility: hidden` (not just slid off-canvas), so a
   keyboard user can't Tab into the invisible info column; the *open* one is a
   `role="dialog"` + `aria-modal` that **Escape** dismisses — the cheap half of
-  dialog behaviour (focus-trap + tap-outside are a recorded cut, see
+  dialog behavior (focus-trap + tap-outside are a recorded cut, see
   [deferred.md](deferred.md)). The dialog role is gated on `open`, which is only
   ever true on mobile, so desktop's always-visible info column is never
   mis-announced as a modal. `useInfoSheet` also **resets `isOpen` when the
@@ -631,7 +631,7 @@ to be only as wide as its content, which crushed the word columns to one row eac
 on a phone, and the fix was a `wide` prop opting those games into `width: 100%`.
 **That prop is gone**: every sheet is full-width now (see
 [The two mobile pages](#the-two-mobile-pages)), so what five games opted into is
-simply the behaviour. What remains from that work is the part that wasn't about
+simply the behavior. What remains from that work is the part that wasn't about
 width — the sheet is a flex column whose child (the `<InfoCol>`) stretches to
 full height (`flex: 1 1 auto; min-height: 0`), so the WordList fills it and its
 columns get their natural height. The
@@ -647,7 +647,7 @@ info column, so a desktop board shows the same column count it always did.
   hive tile**: a one-shot hex-shaped white flash (`.hexFlash`, keyed by a bumping
   nonce so re-tapping the SAME tile replays it) on top of the `:active` press —
   and `-webkit-tap-highlight-color: transparent` on the `<g>`, since the browser's
-  default tap-highlight paints a grey box over the hex's square bounding box that
+  default tap-highlight paints a gray box over the hex's square bounding box that
   both looks wrong and hid our flash. Guarded by
   [`spellingbee-mobile.e2e.ts`](../e2e/spellingbee-mobile.e2e.ts).
 - **boggle** — the square tile grid fills the phone (`mobileFill`'s `--avail-w`;
@@ -874,7 +874,7 @@ clearing), costing no layout since the slot already exists. See
 
 ### Tap feedback — one canonical treatment
 
-spellingbee + boggle grew bespoke tap feedback first (grey-flash suppression + an
+spellingbee + boggle grew bespoke tap feedback first (gray-flash suppression + an
 `:active` press on their own tiles); that treatment is now **canonical on the
 shared surfaces**, so every tap game matches instead of a handful. The shared
 `.tile` (in [`PlayArea.module.css`](../src/common/components/game/PlayArea.module.css)
@@ -882,7 +882,7 @@ shared surfaces**, so every tap game matches instead of a handful. The shared
 on-screen-keyboard `.key` (in [`GuessKeyboard.module.css`](../src/common/components/game/entry/GuessKeyboard.module.css)
 — wordle + wordiply) each carry three things:
 
-- `-webkit-tap-highlight-color: transparent` — kill the browser's default grey
+- `-webkit-tap-highlight-color: transparent` — kill the browser's default gray
   tap box, which paints a rectangle that fights the tile fill;
 - a **designed press** — tiles scale down (`:active` → `scale(0.96)`), keys
   *darken* instead (a scale would jitter on gap-tight keys);
@@ -898,7 +898,7 @@ Safari's gesture heuristics (recorded in [deferred.md](deferred.md)).
 > `<polygon>` generates no CSS box, so the browser drops the declaration
 > silently — it computes fine, it just never applies. On an SVG board the rule
 > must go on the **`<svg>` root** (or an HTML ancestor); one declaration there
-> covers every tile, because a touch's effective behaviour is resolved by
+> covers every tile, because a touch's effective behavior is resolved by
 > walking up from the element it hit.
 >
 > This is not theoretical: spellingbee shipped `touch-action: manipulation` on

@@ -74,7 +74,7 @@ so the gate can't key on any per-player doneness (`compete_test.sql` pins both
 halves). Whether a player is *looking* at the answer is their own display choice
 in the FE ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
 a local, reversible `RevealButton`, nothing autorevealed, nothing shared. The
-reveal has **two halves, one toggle**: the unfound words draw as grey lines on
+reveal has **two halves, one toggle**: the unfound words draw as gray lines on
 the board, and the info column names them as text (`Words: <spangram> …`,
 spangram first, each click-to-define). The column half is not decoration — the
 board draws *paths* and never spells anything out, so without it a reveal makes
@@ -138,7 +138,7 @@ deploy).
 
 | table | purpose |
 |---|---|
-| `puzzles` | The imported NYT archive. `source_id` (puzzle number), `puzzle_date` (unique), `board` (8 rows of 6), `clue`, and the shielded `solution`. Only `(id, source_id, puzzle_date, clue)` are granted to `authenticated` — enough for the setup dialog to name the puzzle it's offering, not enough to study tomorrow's board. The clue joined that list on 2026-08-13: it's how a person recognises a puzzle (it's the game's own title, and on screen from the first second), so withholding it mostly meant starting one you'd already played. It was never a cheating control either — studying ahead only ever needed starting the puzzle, revealing, and deleting the game. |
+| `puzzles` | The imported NYT archive. `source_id` (puzzle number), `puzzle_date` (unique), `board` (8 rows of 6), `clue`, and the shielded `solution`. Only `(id, source_id, puzzle_date, clue)` are granted to `authenticated` — enough for the setup dialog to name the puzzle it's offering, not enough to study tomorrow's board. The clue joined that list on 2026-08-13: it's how a person recognizes a puzzle (it's the game's own title, and on screen from the first second), so withholding it mostly meant starting one you'd already played. It was never a cheating control either — studying ahead only ever needed starting the puzzle, revealing, and deleting the game. |
 | `games` | One playthrough. Follows the [library-puzzle provenance rule](../common.md#library-puzzle-games-provenance-not-dependency): everything needed to play *and* identify the game is copied on, and `puzzle_id` is a soft FK (`on delete set null`), so the archive can be re-imported freely. Carries the three setup knobs, denormalized because they're immutable and read on every move. |
 | `players` | One row per player: the hint economy (`hint_points`, `hints_spent`, `active_hint_coords`) plus `solved` / `solved_at`. The **same shape in both modes** — coop moves every row in lock-step (the pool is shared), compete moves only the actor's (see [Compete](#8-compete)). Mid-race a rival's private fields are nulled by `players_state`. |
 | `events` | The append-only log — **one table, not two**, and not two *kinds* of table either. `kind` discriminates a **guess** (a submitted path, carrying `word` + `result`) from a **hint** (a cashed token, carrying neither). Found theme words are the projection `result in ('theme','spangram')`; credited hint words are the distinct `hint_word` set. Only state that can't be derived lives as columns — on `players`, above. |
@@ -299,7 +299,7 @@ hands back the earliest puzzle none of the *selected players* has played, in
 `common/components/fields/NextPuzzleField` — one read-only line, `date: clue`.
 
 The clue survives as that line's label, which is where it belonged: it is how a
-person recognises a strands puzzle (it is the game's own title, and on screen
+person recognizes a strands puzzle (it is the game's own title, and on screen
 from the first second of play). The slot keeps a fixed height so the three
 `SetupSection`s and the timer below it can't jump when the RPC lands.
 
@@ -363,7 +363,7 @@ no keyboard, so the Submit button is now the ONLY way to send a word (before
 the row existed, submitting meant re-clicking the last letter; that gesture is
 gone, which is what promoted this button from convenience to necessity). The row **shares its fixed-height slot with the verdict pill** (you're
 either building a word or reading what the last one did), which is `<EntryRow>`'s
-own behaviour; stackdown, whose pill has a separate reserved row, is the odd one
+own behavior; stackdown, whose pill has a separate reserved row, is the odd one
 out.
 
 **Bare letters, no tile boxes** — a documented departure from the
@@ -372,7 +372,7 @@ a box around it reads as noise; the board instead gets one frame at its edge,
 because without it the letters float in the page.
 
 The path layer is **one SVG under the letters**, in cell units
-(`viewBox="0 0 6 8"`), so a cell centre is exactly `(col+0.5, row+0.5)` and every
+(`viewBox="0 0 6 8"`), so a cell center is exactly `(col+0.5, row+0.5)` and every
 radius is a fraction of a cell — no pixel maths, no resize observer. Discs are
 drawn in the same SVG as the lines, which is what guarantees a line passes *under*
 its discs at any size.
@@ -381,17 +381,17 @@ its discs at any size.
 word), check (valid word), X (rejected) — from the shared icon registry, named
 for the outcome rather than for this game so another word game's log can reuse
 them. Two jobs: an eye running down the log sorts finds from misses without
-reading a word, and it is the NON-COLOUR encoding of the same fact, which the
-PDF printer will need — [pdf.md](../pdf.md) prints in three shades of grey,
+reading a word, and it is the NON-COLOR encoding of the same fact, which the
+PDF printer will need — [pdf.md](../pdf.md) prints in three shades of gray,
 where purple and gold are the same ink. The glyph sits in a FIXED-width slot, so
 words start at the same x whichever mark precedes them, and it tints with its
 word so the two can never disagree about a row.
 
-**Colours**, and each says one thing: purple = a found theme word, gold = the
-spangram, light purple = the live trace, grey = a word nobody found (drawn at the
+**Colors**, and each says one thing: purple = a found theme word, gold = the
+spangram, light purple = the live trace, gray = a word nobody found (drawn at the
 reveal). Green belongs to the hint bar and the `valid word` pill. The turn log
-uses *darker text variants* of purple and gold — a colour tuned as a disc fill
-under white letters is not the same colour that reads as 15px type on a white row.
+uses *darker text variants* of purple and gold — a color tuned as a disc fill
+under white letters is not the same color that reads as 15px type on a white row.
 
 **Pills speak the shared word-game format** — `WORD — body`, word first and in
 caps, which is `useWordSubmit`'s `line()` convention. strands can't use that hook
@@ -421,17 +421,17 @@ does have a different board over the same letters, and a merged column would
 file one player's words under another's grid. Same reasoning wordle and waffle
 print by.
 
-Printing a board whose meaning is COLOUR needs the encoding to move to **shape**
-(pdf.md — colour only for meaning, never as the only carrier):
+Printing a board whose meaning is COLOR needs the encoding to move to **shape**
+(pdf.md — color only for meaning, never as the only carrier):
 
 | on screen | on paper |
 |---|---|
-| purple disc + line (theme word) | a solid grey line through the letters |
+| purple disc + line (theme word) | a solid gray line through the letters |
 | gold (the spangram) | the same line, drawn **heavier** |
-| grey (a missed word, at the reveal) | a **dashed** line |
+| gray (a missed word, at the reveal) | a **dashed** line |
 
 Letters print black throughout, over a **white knock-out disc** on every traced
-cell — the mono equivalent of the on-screen coloured disc, and the reason a
+cell — the mono equivalent of the on-screen colored disc, and the reason a
 connector doesn't run straight through the glyph it connects. Circling every
 found tile instead would ink most of the page: the hidden words tile the board
 exactly, so a solved board is entirely covered.
@@ -439,7 +439,7 @@ exactly, so a solved board is entirely covered.
 The log's verdict glyphs are the vector marks from `common/pdf/marks` (a filled
 square for a find, bigger for the spangram, ✓ for a valid word, ✗ for a
 rejection) — jsPDF's core fonts are WinAnsi, so a unicode star or trophy would
-not render at all. That non-colour encoding is why the on-screen glyphs were
+not render at all. That non-color encoding is why the on-screen glyphs were
 added when they were.
 
 The shield applies here too, and needs no separate rule: missed words come from

@@ -268,7 +268,7 @@ export function ClubPage({ handle, session }: Props) {
   const [requestedGametype] = useState(
     () => new URLSearchParams(window.location.search).get('new'),
   )
-  // Set once the intent has been acted on (opened then cancelled/started), so
+  // Set once the intent has been acted on (opened then canceled/started), so
   // the derived value below stops re-opening the dialog.
   const [requestConsumed, setRequestConsumed] = useState(false)
   // The dialog's manifest: an explicit Start-button click wins; otherwise the
@@ -287,7 +287,7 @@ export function ClubPage({ handle, session }: Props) {
    *  Hand focus back to the start list. The dialog autofocuses a field inside
    *  itself, so when it unmounts the focus it held dies with it and lands on
    *  <body> — which blanks `focusedList` and with it the Up/Down cursor, so
-   *  cancelling a setup used to cost a Tab press to get the keyboard back.
+   *  canceling a setup used to cost a Tab press to get the keyboard back.
    *  Returning focus to the list container restores the cursor exactly where it
    *  was (the index is kept in state, not derived from focus). */
   const closeSetup = useCallback(() => {

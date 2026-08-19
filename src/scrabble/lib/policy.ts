@@ -68,7 +68,7 @@ export type StrengthKnobs = {
 }
 
 /** The five shipped levels, weakest → strongest. `best` is the current
- *  full-strength suggester behaviour (all knobs off). Tuned by the self-play
+ *  full-strength suggester behavior (all knobs off). Tuned by the self-play
  *  sweep (docs/scrabble-ai-strength.md) to an evenly-spaced mean-score ladder
  *  — ≈455 / 580 / 715 / 840 / 912 points per coop game (N=40). Retuning means
  *  re-running the sweep, deliberately. */

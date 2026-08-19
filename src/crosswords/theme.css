@@ -18,8 +18,8 @@
   --crosswords-header-border: #d1d5db;
 
   /* Clue-list rows + the active-clue readout. These are a cool slate family
-     rather than the app's neutral greys, and that is DELIBERATE — see
-     docs/games/crosswords.md → "The clue-list greys". Named here (rather than
+     rather than the app's neutral grays, and that is DELIBERATE — see
+     docs/games/crosswords.md → "The clue-list grays". Named here (rather than
      left as literals in three modules) so the palette is findable and the
      cssTokens guard covers them; the values are unchanged. */
   --crosswords-row-hover: #f1f5f9;
@@ -36,21 +36,21 @@
   --crosswords-fill: #111;
   --crosswords-pencil: #555;
   /* Ink blue — used ONLY by the Fill toggle's "pen" glyph, to read as a pen
-     against the pencil's grey italic. Grid entries themselves are
+     against the pencil's gray italic. Grid entries themselves are
      `--crosswords-fill` near-black however they were typed; the distinction
      exists in the toggle, not on the board. */
   --crosswords-pen: #1a4fd6;
   /* "You got this wrong", on a game surface — which is what `--outcome-lost-*`
      means, in a red of its own that nothing chose deliberately. Whether this is
-     brand (crosswords' check-mark red) or a UI colour that belongs in common is
+     brand (crosswords' check-mark red) or a UI color that belongs in common is
      UNDECIDED, and belongs to this game's tile-feedback conversion, where the
-     mark itself gets looked at. See docs/tile-feedback.md → the roster. */
+     mark itself gets looked at. See plans/tile-feedback.md → the roster. */
   --crosswords-wrong: #d33;
   --crosswords-revealed: #00a3d9;
 
   /* ── Grid chrome, named during the palette sweep ──────────────────────────
    * The printed puzzle's own markings rather than anyone's progress — a black
-   * block is a fact about the grid. Values unchanged; whether the greys should
+   * block is a fact about the grid. Values unchanged; whether the grays should
    * be the shared page tokens is crosswords' conversion to decide. */
   --crosswords-rule-color:       #333333;
   --crosswords-block-fill-color: #000000;

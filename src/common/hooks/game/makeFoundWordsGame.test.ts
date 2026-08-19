@@ -6,7 +6,7 @@
  *     or the word lists re-download on every teammate submission);
  *   - found_words refetches through useRealtimeRefetch, subscribing to BOTH
  *     found_words AND games (the games line is the replay_board realtime touch),
- *     and honouring the mounted() guard.
+ *     and honoring the mounted() guard.
  *
  * supabase's schema-scoped chain and useRealtimeRefetch are mocked; the test
  * drives the captured `load` directly (the real hook runs it on mount/subscribe).
@@ -154,7 +154,7 @@ describe('makeFoundWordsGame — found_words realtime', () => {
     expect(result.current.rowsLoaded).toBe(true)
   })
 
-  it('honours the mounted() guard — a superseded load never commits', async () => {
+  it('honors the mounted() guard — a superseded load never commits', async () => {
     rowsResult.value = [
       { game_id: 'g1', user_id: 'u1', word: 'bead', points: 1, is_pangram: false, is_bonus: false, found_at: 't1' },
     ]

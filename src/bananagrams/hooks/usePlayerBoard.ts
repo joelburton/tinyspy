@@ -28,7 +28,7 @@ import { isEditableField } from '../../common/hooks/input/useGameHasKeyboard'
 
 /**
  * bananagrams' player-board **interaction engine** — the cross-column state and
- * behaviour that `<PlayerBoard>` used to hold inline, lifted into a hook.
+ * behavior that `<PlayerBoard>` used to hold inline, lifted into a hook.
  *
  * Why a hook (and not the roster's `BoardCol` + `InfoCol` split): bananagrams is the
  * documented exception where the board and the hand are NOT independently-owned
@@ -38,7 +38,7 @@ import { isEditableField } from '../../common/hooks/input/useGameHasKeyboard'
  * BOARD state; the keyboard cursor types onto the board but checks the hand; Peel /
  * rotate read board + hand. So the engine can't be split by column — it lives here as
  * ONE unit, and the two thin VIEWS (`<BoardArena>` / `<HandCard>`) render what it
- * returns. See docs/games/bananagrams.md + docs/playarea-decomposition-plan.md.
+ * returns. See docs/games/bananagrams.md + docs/playarea.md.
  *
  * The board model (unchanged from the old inline version): this owns only the `board`
  * (seeded once from `initialBoard`); the HAND is DERIVED from the server-owned `tiles`
@@ -175,7 +175,7 @@ export type PlayerBoardEngine = {
    *  says — that option governs when the server ENFORCES words, not whether you
    *  may ask about your own board. */
   doWordCheck: () => Promise<void>
-  /** A Check-words round trip is in flight (greys its button). */
+  /** A Check-words round trip is in flight (grays its button). */
   checking: boolean
 }
 

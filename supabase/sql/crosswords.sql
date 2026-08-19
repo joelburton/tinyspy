@@ -537,7 +537,7 @@ begin
   );
 
   -- `puzzle_date` is the NYT day this game came from, and ONLY that: it is
-  -- what the setup dialog's calendar colours by (club_nyt_status below), and
+  -- what the setup dialog's calendar colors by (club_nyt_status below), and
   -- the NYT tab is the only source that picks by date. `setup.date` is the
   -- field that tab writes; a library / upload / Guardian start leaves it
   -- absent, so this lands NULL and the calendar never sees the row. The cast

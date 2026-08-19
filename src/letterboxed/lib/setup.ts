@@ -32,7 +32,7 @@ export type LetterboxedSetup = CoopTurnSetup & {
   legal_band: number
   /**
    * An OPTIONAL player-chosen board: twelve distinct letters, stored
-   * normalised (lowercase, no separators — `cleanSides`) in the same
+   * normalized (lowercase, no separators — `cleanSides`) in the same
    * clockwise-from-top-left order `letterboxed.games.sides` uses. Blank/absent
    * means the usual random board — the edge function samples a seed as it
    * always has. Set it and the builder plays exactly this board, which is how

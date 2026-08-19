@@ -92,7 +92,7 @@ Green (agent contacted) and assassin are **global** — true for both players th
 | Turn alternates clue-giver, but a finished seat is skipped | `_end_turn` sets `games.current_clue_giver` to the alternation candidate only if that seat still has an unfound `'G'` on its key; otherwise the current giver keeps it |
 | Reveal label comes from the clue-giver's view | `submit_guess` picks `games.key_card_a` or `games.key_card_b` based on `current_clue_giver`, indexes by position |
 | Neutral is per-direction (partner can still guess) | `submit_guess` sets `words.neutral_a` / `neutral_b` for the *guesser's* seat (not global `revealed_as`); the "already resolved" check blocks only that seat |
-| Both players hit a word as neutral → dead for both | `neutral_a AND neutral_b` (the FE greys it for both) |
+| Both players hit a word as neutral → dead for both | `neutral_a AND neutral_b` (the FE grays it for both) |
 | Sudden death on turns = 0 | `_end_turn` flips `play_state = 'sudden_death'` when `turns_remaining` hits 0 |
 | Sudden-death reveal uses partner's view | `submit_guess` picks the `key_card_*` column for the seat *opposite* to the caller |
 | Win: 15 greens revealed | `submit_guess` counts global `revealed_as = 'G'` after every green reveal |
@@ -453,7 +453,7 @@ A **win** additionally pops the shared `<CelebrationDialog>` (title "You win! �
 
 The board sits on the shared `.tile` / `--tile-*` system ([ui.md → Interactive tile states](../ui.md#interactive-tile-states)): each cell re-sets the `--tile-*` tokens for its state rather than fighting the shared `.tile` rule. The **revealed** states use codenamesduet's own result palette (`--codenamesduet-{agent,neutral,assassin}`, see `theme.css`): agent = green, assassin = red, and **neutral/bystander = a warm tan (`#b4986e`)**.
 
-The **never-selected** (unrevealed) cell is a **deliberate exception** to the project default. Every other game leaves an untouched tile at the shared resting beige (`--tile-bg-color`, `#f0e6d2`) — codenamesduet does **not**, because that beige is close enough to the neutral tan that an unrevealed beige tile would read as "already guessed neutral." So an unrevealed cell instead uses a **lighter, greyer warm off-white** (`#f4f1ec` fill / `#e6e1d7` border): still in the tile-color family (a hint of warmth, not flat grey), but clearly "not touched yet" against the tan. It's set on `.bgWhite` in `Board.module.css`. This is the one place we override the standard tile color; the default elsewhere stays the shared beige.
+The **never-selected** (unrevealed) cell is a **deliberate exception** to the project default. Every other game leaves an untouched tile at the shared resting beige (`--tile-bg-color`, `#f0e6d2`) — codenamesduet does **not**, because that beige is close enough to the neutral tan that an unrevealed beige tile would read as "already guessed neutral." So an unrevealed cell instead uses a **lighter, grayer warm off-white** (`#f4f1ec` fill / `#e6e1d7` border): still in the tile-color family (a hint of warmth, not flat gray), but clearly "not touched yet" against the tan. It's set on `.bgWhite` in `Board.module.css`. This is the one place we override the standard tile color; the default elsewhere stays the shared beige.
 
 ### Feedback: header pill (peer) vs local flash (you), and sudden death
 
@@ -561,14 +561,14 @@ the left column, the clue log beneath.
 it deliberately shows MORE than the app: the board hides your own key while
 you're mid-guess (it's a distraction there), and the print always shows it.
 
-Three independent facts share every tile, and none may lean on colour — a mono
-printer flattens the palette to one grey. So each becomes a drawn mark (✓ agent /
+Three independent facts share every tile, and none may lean on color — a mono
+printer flattens the palette to one gray. So each becomes a drawn mark (✓ agent /
 – bystander / ✗ assassin from [`common/pdf/marks.ts`](../../src/common/pdf/marks.ts)),
 separated by **position**, matching the screen's corners:
 
 | corner | fact |
 |---|---|
-| top-left mark (+ the tile's border colour) | what HAPPENED here (contacted / assassin / burned / untouched). Drawn largest of the three — it's what you scan the grid for |
+| top-left mark (+ the tile's border color) | what HAPPENED here (contacted / assassin / burned / untouched). Drawn largest of the three — it's what you scan the grid for |
 | bottom-left inset | **your** key. Small on purpose: a reference you consult, kept out of the word's way |
 | top-right inset | your **partner's** key — terminal only |
 

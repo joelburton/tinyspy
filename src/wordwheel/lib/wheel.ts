@@ -4,7 +4,7 @@
  * jsPDF circles). Keeping it here means the two renderings can never drift.
  *
  * Word wheel's board is one central tile (used in every word) ringed by eight outer
- * tiles — circles, not spellingbee's hexagons. The centre tile is drawn LARGER (a
+ * tiles — circles, not spellingbee's hexagons. The center tile is drawn LARGER (a
  * separate radius) and, on screen, filled a saturated red; the eight outer tiles sit
  * on a ring evenly spaced, clockwise from the top.
  *
@@ -18,32 +18,32 @@
 export const BOX_W = 300
 export const BOX_H = 300
 
-/** How many outer tiles ring the centre. Word wheel has exactly eight. */
+/** How many outer tiles ring the center. Word wheel has exactly eight. */
 const OUTER_COUNT = 8
 
-/** Distance from the wheel centre to each outer tile's centre. Chosen so the
+/** Distance from the wheel center to each outer tile's center. Chosen so the
  *  outermost edge (RING_R + OUTER_R) sits inside the 150-unit half-box. */
 const RING_R = 105
 
 /**
- * The tiles TOUCH — both each other and the centre. Two tangency conditions fix
+ * The tiles TOUCH — both each other and the center. Two tangency conditions fix
  * the radii from RING_R (no gaps, no guesswork):
  *
- *   • Adjacent outer tiles are tangent: their centres are a chord
+ *   • Adjacent outer tiles are tangent: their centers are a chord
  *     2·RING_R·sin(π/8) apart, so touching means OUTER_R = RING_R·sin(π/8).
- *   • Each outer tile is tangent to the centre tile: the centre-to-outer
+ *   • Each outer tile is tangent to the center tile: the center-to-outer
  *     distance is RING_R, so touching means CENTER_R = RING_R − OUTER_R.
  *
- * That makes the centre ≈1.6× an outer tile — the "used in every word" hub reads
+ * That makes the center ≈1.6× an outer tile — the "used in every word" hub reads
  * as the biggest tile while every tile kisses its neighbours + the hub.
  */
 export const OUTER_R = RING_R * Math.sin(Math.PI / OUTER_COUNT)
 export const CENTER_R = RING_R - OUTER_R
 
 /**
- * Each tile's centre + radius, in RENDER order: index 0 is the (mandatory) centre
+ * Each tile's center + radius, in RENDER order: index 0 is the (mandatory) center
  * tile, then the eight outer tiles clockwise from the top (12 o'clock). The board
- * and PDF both map `[centreLetter, ...outerLetters]` onto this array, so a Shuffle
+ * and PDF both map `[centerLetter, ...outerLetters]` onto this array, so a Shuffle
  * of the outer letters visibly rotates them through these eight seats.
  */
 export const TILE_POSITIONS: ReadonlyArray<{ cx: number; cy: number; r: number }> =

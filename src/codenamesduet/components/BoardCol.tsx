@@ -34,7 +34,7 @@ import styles from './BoardCol.module.css'
  * makes the turn-history viewer a drop-in. Feedback lifts to PlayArea (its `onError`
  * / `clearLocalFeedback` write the shared below-board channel, which InfoCol's End
  * also writes), and the AI-suggestion dialog state lives in PlayArea (it must mount
- * high in the tree). See docs/playarea-decomposition-plan.md.
+ * high in the tree). See docs/playarea.md.
  */
 export function BoardCol({
   // ── Mobile-only status strip (above the board) ──

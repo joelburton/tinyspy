@@ -7,26 +7,26 @@ import type { jsPDF } from 'jspdf'
  * core fonts are WinAnsi, so the characters simply don't exist to print. Each
  * mark is therefore a couple of line segments.
  *
- * **Why they exist at all:** [`pdf.md`](../../../docs/pdf.md) forbids colour
+ * **Why they exist at all:** [`pdf.md`](../../../docs/pdf.md) forbids color
  * being the only signal, because a mono printer flattens green and red to the
- * same grey. A mark carries the meaning by SHAPE, and colour is then a bonus on
- * a colour printer rather than the thing you depend on.
+ * same gray. A mark carries the meaning by SHAPE, and color is then a bonus on
+ * a color printer rather than the thing you depend on.
  *
  * Extracted from psychicnum's printer when codenamesduet became the second
  * consumer. The signature changed in the move: psychicnum drew "in this cell's
  * top-right corner", but codenamesduet needs a mark inside a small keycard
- * inset, so these take an explicit **centre and size** and let the caller decide
+ * inset, so these take an explicit **center and size** and let the caller decide
  * where that is. One mark vocabulary, positioned by whoever owns the layout.
  */
 
-/** Every mark is drawn inside a `size`-square box centred on (cx, cy). */
+/** Every mark is drawn inside a `size`-square box centered on (cx, cy). */
 export type MarkOpts = {
-  /** Centre of the mark, in points. */
+  /** Center of the mark, in points. */
   cx: number
   cy: number
   /** Box side, in points. The mark fills most of it. */
   size: number
-  /** Stroke colour. Meaning must survive without it — see above. */
+  /** Stroke color. Meaning must survive without it — see above. */
   color: [number, number, number]
   /** Stroke weight; defaults to a size-proportional value that stays visible
    *  at the ~6pt sizes a keycard inset uses. */
@@ -37,8 +37,8 @@ export type MarkOpts = {
 export function drawCheck({ cx, cy, size, color, weight }: MarkOpts, doc: jsPDF): void {
   const s = size
   doc.setDrawColor(...color).setLineWidth(weight ?? Math.max(0.5, s * 0.16))
-  // Down-right into the V, then up-right to the tip. Started left-of-centre and
-  // slightly high so the finished tick sits optically centred in its box.
+  // Down-right into the V, then up-right to the tip. Started left-of-center and
+  // slightly high so the finished tick sits optically centered in its box.
   doc.lines(
     [
       [s * 0.28, s * 0.3],

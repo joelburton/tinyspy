@@ -300,7 +300,7 @@ button.floatingRotate {
 }
 
 /* ---- drag ghost ----
- * The LOOK only; the pointer-following mechanics (fixed + centre-translate +
+ * The LOOK only; the pointer-following mechanics (fixed + center-translate +
  * tilt) come from the shared common/components/game/dragGhost.module.css,
  * composed alongside this. */
 .ghost {

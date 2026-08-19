@@ -32,7 +32,7 @@ export interface HistoryViewer<Id> {
  * adds (which past turn, if any, is open on the board) plus the affordances to
  * enter/leave it. Shared by every game whose board can replay past turns (scrabble,
  * stackdown, waffle, …); extracted once turn-history reached three games (the rule
- * of three — see docs/playarea-decomposition-plan.md).
+ * of three — see docs/playarea.md).
  *
  * What stays per-game (deliberately NOT here): how a snapshot is COMPUTED from the
  * viewed id (each game's `lib/history` — the board shape differs per game, and it's

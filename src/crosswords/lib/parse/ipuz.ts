@@ -97,7 +97,7 @@ function parseStyle(style: unknown, where: string): { circled: boolean; shaded: 
       }
     } else if (key === 'color') {
       // Any cell-background color becomes "shaded" (rendered with our
-      // standard light-grey overlay). The author's specific color is
+      // standard light-gray overlay). The author's specific color is
       // intentionally dropped — per-cell color palettes would multiply
       // the design surface for very little gain, and most real puzzles
       // use shading only as a theme marker (same role as circles).

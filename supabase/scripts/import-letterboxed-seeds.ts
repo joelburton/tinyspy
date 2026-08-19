@@ -85,7 +85,7 @@ const hasDoubledLetter = (w: string): boolean => {
 /**
  * Can these twelve letters be split into four sides of three so that BOTH
  * solution words stay playable? Adjacent letters in a word must land on
- * different sides, which is a graph-colouring question: nodes are the twelve
+ * different sides, which is a graph-coloring question: nodes are the twelve
  * letters, an edge joins any two that are consecutive somewhere in either word,
  * and we need four independent sets of exactly three.
  *

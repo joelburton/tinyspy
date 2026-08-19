@@ -1,21 +1,21 @@
 import type { jsPDF } from 'jspdf'
 import type { TileColor } from '../lib/color/tileColor'
-import { BLACK, DARK_GREY, MEDIUM_GREY } from './frame'
+import { BLACK, DARK_GRAY, MEDIUM_GRAY } from './frame'
 
 /**
  * The printed form of a **Wordle-style letter tile** — the four states wordle
  * and waffle share (`common/lib/color/tileColor`).
  *
- * On screen these are four colours. On paper they can't be, because the whole
+ * On screen these are four colors. On paper they can't be, because the whole
  * point of a printout is that it survives a black-and-white printer, and green /
- * yellow / grey flatten to nearly the same grey. So the four states are carried
+ * yellow / gray flatten to nearly the same gray. So the four states are carried
  * by **border and fill weight** instead — an ordering you can read as intensity,
  * darkest = best:
  *
  *   blank  (not used yet)  → no border at all. An empty slot, not a result.
  *   gray   (not in word)   → border only, white inside. Tried, and it's out.
- *   yellow (wrong place)   → light grey fill. Present but misplaced.
- *   green  (right place)   → dark grey fill, white letter. The strongest mark.
+ *   yellow (wrong place)   → light gray fill. Present but misplaced.
+ *   green  (right place)   → dark gray fill, white letter. The strongest mark.
  *
  * ─── This is a deliberate exception to "backgrounds are white" ───────────
  * [`pdf.md`](../../../docs/pdf.md) says don't fill tiles, and says outcome
@@ -24,11 +24,11 @@ import { BLACK, DARK_GREY, MEDIUM_GREY } from './frame'
  * content, and a mark next to it at this size is unreadable. The four states are
  * also the entire game rather than a decoration, which is exactly the "unless a
  * filled background is specifically agreed to communicate something" case the
- * rule carves out. Using **greys rather than hues** keeps it honest by
- * construction: what you see on a colour printer is what you see on a mono one.
+ * rule carves out. Using **grays rather than hues** keeps it honest by
+ * construction: what you see on a color printer is what you see on a mono one.
  */
 
-/** One tile's box. `size` is the side; the letter is centred. */
+/** One tile's box. `size` is the side; the letter is centered. */
 export type TileBox = {
   x: number
   y: number
@@ -67,22 +67,22 @@ export function drawTile(doc: jsPDF, t: TileBox): void {
   if (state === 'wordleYellow' || state === 'wordleGreen') {
     const level = state === 'wordleGreen' ? GREEN_FILL : YELLOW_FILL
     doc.setFillColor(level, level, level)
-    doc.setDrawColor(DARK_GREY).setLineWidth(0.6)
+    doc.setDrawColor(DARK_GRAY).setLineWidth(0.6)
     doc.rect(x, y, size, size, 'FD')
   } else if (state === 'wordleGray') {
-    doc.setDrawColor(DARK_GREY).setLineWidth(0.6)
+    doc.setDrawColor(DARK_GRAY).setLineWidth(0.6)
     doc.rect(x, y, size, size, 'S')
   } else if (t.outlineBlank) {
     // A slot still to fill — lighter than a played tile's border so the grid
     // reads as "three rows played, three to go" at a glance.
-    doc.setDrawColor(MEDIUM_GREY).setLineWidth(0.5)
+    doc.setDrawColor(MEDIUM_GRAY).setLineWidth(0.5)
     doc.rect(x, y, size, size, 'S')
   }
   // An un-outlined 'blank' draws no box at all.
 
   if (!t.letter.trim()) return
   // White on the dark fill, black everywhere else — the only place the letter's
-  // own colour carries anything, and it's a contrast decision, not a code.
+  // own color carries anything, and it's a contrast decision, not a code.
   const fontSize = size * 0.58
   doc.setFont('helvetica', 'bold').setFontSize(fontSize)
   if (state === 'wordleGreen') doc.setTextColor(255, 255, 255)
@@ -111,7 +111,7 @@ export function drawTileLegend(
   let cx = x
   items.forEach(([state, label]) => {
     drawTile(doc, { x: cx, y: y - size + 2, size, letter: '', state })
-    doc.setFont('helvetica', 'normal').setFontSize(7.5).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'normal').setFontSize(7.5).setTextColor(DARK_GRAY)
     doc.text(label, cx + size + 3, y)
     cx += size + 3 + doc.getTextWidth(label) + 10
   })

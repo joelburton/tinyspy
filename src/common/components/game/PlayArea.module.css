@@ -163,7 +163,7 @@
   position: relative;
   /* Debug tint so the board column's bounds (and the gaps between tiles) are
    * visible during layout work: raise the alpha to see the column. Deliberately
-   * kept — do NOT remove until Joel asks. Named because every colour is named,
+   * kept — do NOT remove until Joel asks. Named because every color is named,
    * which also means the knob is now findable instead of buried in a rule. */
   --board-col-debug-tint-color: rgb(40 120 255 / 0%);
   background: var(--board-col-debug-tint-color);
@@ -353,7 +353,7 @@
   flex-wrap: nowrap;
 }
 
-/* A labelled action button in the info-column action row. The icon+label look
+/* A labeled action button in the info-column action row. The icon+label look
  * comes from the global `.icon-button` class (composed via cls() at the call
  * site); this is just the action-row MODIFIER. NATURAL WIDTH (`flex: 0 0 auto`),
  * NOT stretched to equal sizes: seeing each button's full icon + label matters
@@ -404,7 +404,7 @@
 
 /* ─── The feedback marks ─────────────────────────────────────────────────
  * The vocabulary's transient marks, defined ONCE here and worn by any game that
- * needs them — see docs/tile-feedback.md. Each says one thing, and the ELEMENT
+ * needs them — see plans/tile-feedback.md. Each says one thing, and the ELEMENT
  * it lands on says what that thing applies to: `.dimInFlight` on a tile means
  * that piece was sent, on a board means the whole move was; `.dimNotYourTurn` on
  * a board means you cannot act at all. Same mark, same strength, different noun.
@@ -426,7 +426,7 @@
   content: '';
   position: absolute;
   /* Out over the BORDER, not just the face. `inset: 0` lands on the padding box,
-   * which leaves the tile's edge undimmed — and an edge that carries any colour
+   * which leaves the tile's edge undimmed — and an edge that carries any color
    * then shows straight through the mark. A mark on a piece covers the piece. */
   inset: calc(-1 * var(--tile-border-width));
   border-radius: inherit;
@@ -470,8 +470,8 @@
  * guessed" is a warning, "one away" is a near miss.
  *
  * ── The forms, and when each is available ───────────────────────────────────
- * On a PIECE WHOSE BACKGROUND IS FREE — no state colour on it — the verdict
- * fills it (`.verdictFill` below) with the colour that answer wears everywhere
+ * On a PIECE WHOSE BACKGROUND IS FREE — no state color on it — the verdict
+ * fills it (`.verdictFill` below) with the color that answer wears everywhere
  * else, at full strength. That is the strongest way to say "these, together"
  * about several pieces at once, and against a board of warm beige tiles it has to
  * be unmistakably red / orange / gold to be read as an answer at all: the
@@ -480,8 +480,8 @@
  * What keeps it from reading as PERMANENT is its lifetime rather than its shade —
  * it is gone on the next click, and the pill beside it is saying the same thing
  * for the same length of time.
- * Where the background is NOT free, the verdict takes the border colour instead —
- * see docs/tile-feedback.md, which owns the choice.
+ * Where the background is NOT free, the verdict takes the border color instead —
+ * see plans/tile-feedback.md, which owns the choice.
  *
  * `.verdictRing` is the other form, and it is available only where the judged
  * pieces form a GEOGRAPHIC unit — wordle's refused word is a contiguous row, a
@@ -519,7 +519,7 @@
 
 /* Each tone carries both forms: `--verdict-tone` for a ring around a group (the
  * legible-on-white 800 tier, since a ring is a thin line on the page), and
- * `--verdict-fill` for a piece — the 400 tier, WHICH IS THE COLOUR THAT ANSWER'S
+ * `--verdict-fill` for a piece — the 400 tier, WHICH IS THE COLOR THAT ANSWER'S
  * TURN-LOG BAR ALREADY WEARS. That is the point of it: a wrong guess is one red,
  * whether you meet it on the board now or in the log a minute later, and neither
  * place is free to pick its own shade. Same family, two tiers, one meaning. */
@@ -666,7 +666,7 @@
 /* INK FOLLOWS THE BACKGROUND IT SITS ON. While the wash is up the tile is yellow,
  * so its label takes the dark ink — a decided tile's white letters on this yellow
  * measure about 1.5:1, which is a word you cannot read on the one occasion the
- * board is pointing at it. Ink returns to the state's own colour when the class
+ * board is pointing at it. Ink returns to the state's own color when the class
  * comes off, which is the same moment the wash finishes fading.
  *
  * Not a violation of "ink = tried vs untried": ink's job is to be legible against
@@ -739,7 +739,7 @@
  * a state class (a result fill, the selected state) overrides by re-setting a
  * token on the same element — robust against stylesheet insertion order, unlike
  * trying to out-cascade another module. See docs/ui.md → "Interactive tile
- * states" and docs/tile-feedback.md. */
+ * states" and plans/tile-feedback.md. */
 .tileFace {
   width: 100%;
   height: 100%;
@@ -756,7 +756,7 @@
    * able to thicken the edge by re-setting a property on the same element rather
    * than by out-cascading this shorthand from another module (which would depend
    * on stylesheet order). Every tile is `box-sizing: border-box`, so a thicker
-   * border eats inward and nothing reflows. See docs/tile-feedback.md. */
+   * border eats inward and nothing reflows. See plans/tile-feedback.md. */
   border: var(--tile-border-width) solid var(--tile-border-color);
   border-radius: var(--radius-md);
   box-shadow: var(--tile-shadow);
@@ -770,9 +770,9 @@
  * carries no box of its own, so this class is exactly "and you can act on it". */
 .tile {
   cursor: pointer;
-  /* Touch behaviour, canonical for every interactive-tile game (psychicnum,
+  /* Touch behavior, canonical for every interactive-tile game (psychicnum,
    * connections, waffle, codenamesduet — docs/mobile.md → tap-press feedback):
-   *   - kill the browser's default grey tap-flash, which paints a rectangle
+   *   - kill the browser's default gray tap-flash, which paints a rectangle
    *     that fights the tile fill;
    *   - `touch-action: manipulation` opts out of double-tap-to-zoom and its
    *     ~300ms tap delay, so rapid repeated taps stay crisp;
@@ -817,7 +817,7 @@
 /* Hover is a DROP SHADOW, and nothing else — a deepened shadow over the tile's
  * resting one; the tile's own geometry does not move. Subtle on purpose: you know where your own pointer is, so hover's whole job is
  * to say the surface is alive. That frees the background for state and attention,
- * which have nowhere else to go. See docs/tile-feedback.md. */
+ * which have nowhere else to go. See plans/tile-feedback.md. */
 .tile:hover:not(:disabled) {
   box-shadow: var(--tile-hover-shadow);
   /* …and the piece RISES while its shadow falls away. The two are one gesture: the
@@ -833,7 +833,7 @@
    * risk for the same visual pixel.
    *
    * Two pixels: enough to see against a shadow that moved four, and still nothing
-   * a packed grid can notice. See docs/tile-feedback.md. */
+   * a packed grid can notice. See plans/tile-feedback.md. */
   transform: translateY(-2px);
 }
 
@@ -846,7 +846,7 @@
  * the shadow back to the contact one — a pressed tile with a floating shadow is
  * the same contradiction as a lifted tile with a glued one, in reverse.
  *
- * `transform` being a single property is what makes cancelling automatic, and also
+ * `transform` being a single property is what makes canceling automatic, and also
  * the trap: a press rule that forgot to restate the translate would leave a
  * hovered tile dropping and shrinking at once, reading as a lurch.
  *
@@ -881,7 +881,7 @@
  * whatever state put there, because on most boards it is already spoken for and
  * state has nowhere else to go; the border does. `box-sizing: border-box` means
  * the thicker edge eats inward — the tile does not grow and the grid does not
- * move. See docs/tile-feedback.md.
+ * move. See plans/tile-feedback.md.
  *
  * Selected qualifies `.tile` rather than standing alone, so it beats the game
  * class that set the resting edge on specificity instead of on stylesheet order:

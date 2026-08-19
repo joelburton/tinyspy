@@ -9,7 +9,7 @@
  *
  * `-secondary-color` is NOT `-primary-color`. They are different values on
  * purpose: the primary is what a filled button is painted with, the secondary is
- * that colour taken down far enough to carry small text on white. Orange is the
+ * that color taken down far enough to carry small text on white. Orange is the
  * case that settles it — a fillable orange can't be read as type, and a readable
  * orange can't be used as a fill (theme.css → FIVE VALUES PER TONE). The
  * secondary paints the border and the label both, because a border in one shade

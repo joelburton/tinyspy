@@ -36,7 +36,7 @@ misbehaving. `gmake help` lists every target.
 guess about which database you meant, and `gmake deploy` once meant `ENV=local`:
 it wiped the local database via `db-schema` and pushed to production anyway.
 Anything that talks to a database now refuses without `ENV`; `help`, `dev-*`,
-`test-*`, `_audit` and the local-pinned artefact builders don't care and don't
+`test-*`, `_audit` and the local-pinned artifact builders don't care and don't
 ask. Every writing target echoes its resolved target (password masked) first.
 
 **Two doors into prod, picked for you.** `db.<ref>.supabase.co` is **IPv6-only**,

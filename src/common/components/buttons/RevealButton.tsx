@@ -61,7 +61,7 @@ export function RevealButton({
       // technically true — you can't hide what the win put there, and you can't
       // show what's already shown — but a player who never pressed Reveal has
       // no "on" state for EyeOff to be the "off" of, so the struck-through eye
-      // reads as a state they don't recognise. The plain eye, greyed, says the
+      // reads as a state they don't recognize. The plain eye, grayed, says the
       // thing they'd expect: showing the solution isn't available, because it's
       // already here.
       icon={revealed && !alreadyShown ? IconHideSolution : IconReveal}

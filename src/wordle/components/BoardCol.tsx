@@ -29,7 +29,7 @@ import styles from './BoardCol.module.css'
  * feedback lifts to PlayArea (its `showLocalFeedback` / `clearLocalFeedback` write the
  * shared below-board channel, which InfoCol's End / Concede also write), and the
  * fully-resolved below-board pill comes down as `localPill`. See
- * docs/playarea-decomposition-plan.md.
+ * docs/playarea.md.
  */
 /** How long the rejected row keeps its amber ring — a touch past the shake, so
  *  the mark is still there when the movement stops. */

@@ -9,9 +9,9 @@
  * the sequence (which is what the history viewer indexes by), and that it says
  * "Hint used" rather than leaving the word slot blank.
  *
- * NOT covered: the per-outcome colours and the glyph. With CSS Modules the class
+ * NOT covered: the per-outcome colors and the glyph. With CSS Modules the class
  * names are hashed and Vitest runs with `css: false`, so asserting a variant
- * class is meaningless; the bar colour and the lightbulb are a visual contract
+ * class is meaningless; the bar color and the lightbulb are a visual contract
  * checked in the browser.
  */
 

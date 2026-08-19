@@ -67,7 +67,7 @@ export type CandidateRow = {
 // Constants (the board-quality knobs)
 // ───────────────────────────────────────────────────────────
 
-/** The nine wheel letters (one centre + eight outer). */
+/** The nine wheel letters (one center + eight outer). */
 export const WHEEL_SIZE = 9
 /** Overlap cap with the previous board, in letters out of 9. The wheel
  *  analog of spellingbee's 4-of-7 (~57%); 5-of-9 is ~56%. */
@@ -113,7 +113,7 @@ export function tileCounts(letters: string): Uint8Array {
 }
 
 /** The tile-spend rule: a word fits the wheel iff each letter occurs no more
- *  times than the wheel has tiles for it. (Containing the centre is checked
+ *  times than the wheel has tiles for it. (Containing the center is checked
  *  upstream by candidate_words.) */
 export function fitsTiles(word: string, wheel: Uint8Array): boolean {
   const used = new Uint8Array(26)
@@ -163,7 +163,7 @@ export function lengthScore(word: string): number {
   return word.length === 4 ? 1 : word.length
 }
 
-/** Given the wheel letters + centre, partition the candidate words into the
+/** Given the wheel letters + center, partition the candidate words into the
  *  required set + the bonus set (legal − required) and tally the required
  *  totals.
  *
@@ -213,10 +213,10 @@ export function buildBoard(
 }
 
 /** Validate a custom (player-specified) letter set, or null if it's fine.
- *  Mirrors wordwheel.create_game's letter rules: a single centre + eight
+ *  Mirrors wordwheel.create_game's letter rules: a single center + eight
  *  outer letters, lowercase a–z — DUPLICATES ALLOWED (the wheel is a
  *  multiset; a repeated letter just means two tiles carry it, and the
- *  centre may repeat an outer). Unlike spellingbee, 's' is allowed (a tile
+ *  center may repeat an outer). Unlike spellingbee, 's' is allowed (a tile
  *  per use makes it ordinary). Both inputs are already lowercased/trimmed
  *  by the caller. */
 // Returns the fe-error-key for the failed rule, or null when the letters are

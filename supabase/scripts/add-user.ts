@@ -91,7 +91,7 @@ const ANON_KEY =
 
 const EMAIL = (process.env.EMAIL ?? '').trim().toLowerCase()
 const HANDLE = (process.env.HANDLE ?? '').trim().toLowerCase()
-// PLAYER_COLOR, not COLOR: npm sets COLOR ('0'/'1', its own colour-support
+// PLAYER_COLOR, not COLOR: npm sets COLOR ('0'/'1', its own color-support
 // flag) in the environment of every script it runs, which overwrites whatever
 // the Makefile passed. The symptom was `not a valid player color: 0`. Same
 // rule as HANDLE-not-USERNAME — don't name a variable something the tooling

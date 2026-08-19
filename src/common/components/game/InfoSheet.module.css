@@ -36,7 +36,7 @@
      * screen anyway (390px) but on a portrait tablet left the board half-visible
      * beside it, so the same component read as a page on one device and a drawer
      * on another. Going full width picks one, and it's what retired the `wide`
-     * opt-out that five games needed to get this behaviour anyway. */
+     * opt-out that five games needed to get this behavior anyway. */
     width: 100%;
     z-index: 40;
     background: var(--page-surface-color);

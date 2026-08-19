@@ -92,7 +92,7 @@
 }
 
 /* Terminal reveal — the longest possible word. NO card: it's critical
- * information, so it reads as plain full-colour text, not a boxed aside. */
+ * information, so it reads as plain full-color text, not a boxed aside. */
 .reveal {
   margin-top: 0.5rem;
   display: flex;

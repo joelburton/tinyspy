@@ -1,5 +1,5 @@
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GREY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
+import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
 import type { WordSection } from '../../common/pdf/wordSections'
 import { drawWordListBody } from '../../common/pdf/wordListBody'
 import { BOX_H, BOX_W, TILE_POSITIONS } from '../lib/wheel'
@@ -10,9 +10,9 @@ import { BOX_H, BOX_W, TILE_POSITIONS } from '../lib/wheel'
  * shape with a different board: all that's wordwheel-specific is the **wheel** — the
  * 9-circle board drawn from the same `lib/wheel.ts` geometry the on-screen board uses.
  *
- * On the clean-printable page we can't lean on the on-screen red centre tile (the
- * palette is three-shade greyscale — colour only for meaning; see docs/pdf.md), so the
- * centre tile is distinguished the two ways that survive greyscale: it's LARGER (from
+ * On the clean-printable page we can't lean on the on-screen red center tile (the
+ * palette is three-shade grayscale — color only for meaning; see docs/pdf.md), so the
+ * center tile is distinguished the two ways that survive grayscale: it's LARGER (from
  * the geometry) and drawn with a thicker border.
  *
  * The word list uses both `wordColumns` per-row flags: `pangram` → bold (wordwheel's
@@ -54,7 +54,7 @@ export function printWordwheelPdf(m: WordwheelPrintModel): void {
 }
 
 /** Draw the 9-circle wheel at (x0, y0), `scale` mapping wheel-units → points. Each tile
- *  is a white (paper-backed) circle with a dark-grey border; the center tile (index 0)
+ *  is a white (paper-backed) circle with a dark-gray border; the center tile (index 0)
  *  is bigger and gets a thicker border — its distinctions on the white page. */
 function drawWheel(doc: jsPDF, outer: string[], center: string, x0: number, y0: number, scale: number): void {
   const letters = [center, ...outer]
@@ -63,9 +63,9 @@ function drawWheel(doc: jsPDF, outer: string[], center: string, x0: number, y0: 
     const cx = x0 + pos.cx * scale
     const cy = y0 + pos.cy * scale
     const r = pos.r * scale
-    doc.setDrawColor(DARK_GREY).setLineWidth(i === 0 ? CENTER_BORDER_W : OUTER_BORDER_W)
+    doc.setDrawColor(DARK_GRAY).setLineWidth(i === 0 ? CENTER_BORDER_W : OUTER_BORDER_W)
     doc.circle(cx, cy, r, 'S')
-    // Letter centred in the tile — the centre glyph scaled to its bigger radius.
+    // Letter centered in the tile — the center glyph scaled to its bigger radius.
     const fs = r * 0.9
     doc.setFont('helvetica', 'bold').setFontSize(fs).setTextColor(BLACK)
     doc.text(letter.toUpperCase(), cx, cy + fs * 0.35, { align: 'center' })

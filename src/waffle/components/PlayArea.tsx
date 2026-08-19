@@ -54,7 +54,7 @@ import { useSingleFlight } from '../../common/hooks/ui/useSingleFlight'
  * Mode is read from `game.mode`. Moves go through `waffle.submit_swap`; board/colors
  * update via the realtime refetch in `useGame` (Pattern A) — a live swap needs no
  * optimistic local state. Turn-history (coop only) replays past boards, coloring them
- * on the FE (see lib/history + lib/colors). See docs/playarea-decomposition-plan.md.
+ * on the FE (see lib/history + lib/colors). See docs/playarea.md.
  *
  * **Feedback split** (docs/deferred.md → Feedback channels): the player's OWN errors
  * (a rejected swap, a failed End) flash LOCALLY in BoardCol's below-board slot; the
@@ -187,7 +187,7 @@ export function PlayArea({
   )
 
   // ─── A swap in flight ──────────────────────────────────
-  // The move is shown at once; its verdict is not (docs/tile-feedback.md → "What
+  // The move is shown at once; its verdict is not (plans/tile-feedback.md → "What
   // the dim does NOT excuse"). The moment you drop a tile, the two letters trade
   // places on your board, the two cells go UNJUDGED — their old color was
   // invalidated by the move and the new one is the server's to give, so they show
@@ -255,7 +255,7 @@ export function PlayArea({
   // is already looking at the answer and the swap would put back an identical
   // board. MY solve, not the game's verdict — a compete racer who ran out of
   // swaps never got there. (`playerStates` is [] on the first render, which is
-  // exactly why the reveal derives this rather than initialising from it.)
+  // exactly why the reveal derives this rather than initializing from it.)
   const iSolved =
     playerStates.find((p) => p.user_id === session.user.id)?.solved === true
   const {
@@ -363,7 +363,7 @@ export function PlayArea({
   // NOT idempotent — every call shelves the club's current game and starts
   // another, orphaning the last in the club list and toasting every peer.
   // Guarding the HANDLER covers all three triggers at once, which a `disabled`
-  // button could never do. `startingNewGame` then greys the button so a slow
+  // button could never do. `startingNewGame` then grays the button so a slow
   // network reads as "working" rather than "nothing happened".
   //
   // The MENU ITEM deliberately takes no `disabled`: its effect is built above

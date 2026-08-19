@@ -48,7 +48,7 @@ export function isHole(pos: number): boolean {
  * swap the moment you make it rather than waiting for the server to say so (a
  * board that doesn't move reads as a swap that didn't happen). What it cannot
  * compute is what the swap SCORED — that needs the solution — so the two cells
- * show no color until the server answers. See docs/tile-feedback.md.
+ * show no color until the server answers. See plans/tile-feedback.md.
  */
 export function swapCells(board: string, a: number, b: number): string {
   const cells = board.split('')

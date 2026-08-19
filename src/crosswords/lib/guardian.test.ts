@@ -34,7 +34,7 @@ const down = (number: number, x: number, y: number, solution: string, clue = 'c'
  * A 3×3 puzzle with three crossing entries:
  *   1-across CAT (0,0)→(2,0)   1-down COD (0,0)→(0,2)   3-down TOE (2,0)→(2,2)
  * so (0,0) starts both 1a+1d (shared number 1) and (2,0) starts 3d while being
- * the interior end of 1a (number 3). The centre column stays blocks.
+ * the interior end of 1a (number 3). The center column stays blocks.
  */
 const crossing = () =>
   makeData({ entries: [across(1, 0, 0, 'CAT'), down(1, 0, 0, 'COD'), down(3, 2, 0, 'TOE')] })
@@ -44,10 +44,10 @@ describe('convertGuardianPuzzle — grid', () => {
     const { meta, solution } = convertGuardianPuzzle(crossing())
     const kinds = meta.cells.map((row) => row.map((c) => (c.kind === 'cell' ? '.' : '#')).join(''))
     // Row 0 full (CAT); rows 1-2 keep only col 0 (COD) and col 2 (TOE) — the
-    // centre column has no entry through it.
+    // center column has no entry through it.
     expect(kinds).toEqual(['...', '.#.', '.#.'])
     expect(meta.cells[1]![0]!.kind).toBe('cell') // 1-down O
-    expect(meta.cells[1]![1]!.kind).toBe('block') // centre — no entry
+    expect(meta.cells[1]![1]!.kind).toBe('block') // center — no entry
     expect(meta.cells[1]![2]!.kind).toBe('cell') // 3-down O
     // Solution letters land row-major.
     expect(solution[0]).toEqual([['C'], ['A'], ['T']])

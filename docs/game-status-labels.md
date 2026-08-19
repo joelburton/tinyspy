@@ -63,8 +63,8 @@ hand-maintained: those expressions live in SQL, out of reach of the FE.
 | waffle **coop** | `'New game'`, then **the correct words so far** (first 3, alphabetical) | `ARENA-EAGER-TOTEM` |
 | waffle **compete** | `'New compete'` while racing (a leader's words would leak progress) → at terminal, **the correct words on the furthest player's own board** — never the solution's, so an unsolved race isn't spoiled | `ARENA-EAGER-TOTEM` |
 | wordiply | the base, uppercased | `ARM` |
-| spellingbee | centre·outer letters | `A·BCDEFG` |
-| wordwheel | centre·outer letters | `A·BCDEFGH` |
+| spellingbee | center·outer letters | `A·BCDEFG` |
+| wordwheel | center·outer letters | `A·BCDEFGH` |
 | crosswords | puzzle title (fallback `Crossword`) | `NYT Sat 8/1/26: Untitled` |
 | connections | the puzzle's date + **the first two tiles** | `2026-07-04: APPLE-BANANA` |
 | strands | the puzzle's date + **the clue** | `2024-03-04: Better said than done` |
@@ -263,6 +263,6 @@ OUTCOME (why) · other · facts
   curated Wordle answer list — rendered `dict "Wordle"`.
 
 Every label is an exhaustive `switch` whose `default` returns the raw play_state, so an
-unrecognised state renders visibly wrong rather than quietly claiming the game is live.
+unrecognized state renders visibly wrong rather than quietly claiming the game is live.
 `UNKNOWN_READS_AS_LIVE` in [`gameStatusLabels.test.ts`](../src/gameStatusLabels.test.ts)
 is now empty and guards against a regression.

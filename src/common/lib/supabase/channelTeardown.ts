@@ -41,7 +41,7 @@ import { rtLog } from './realtimeDiag'
  *
  * The create side stays synchronous in the common case (nothing pending), so
  * a first mount joins on the spot; only a genuine re-create waits. Whoever
- * defers MUST guard with a cancelled flag — the effect can be torn down again
+ * defers MUST guard with a canceled flag — the effect can be torn down again
  * before its turn arrives.
  *
  * **Not for suffixed channels.** They can never collide by name, so they gain

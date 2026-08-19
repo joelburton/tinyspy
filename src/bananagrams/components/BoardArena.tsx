@@ -17,7 +17,7 @@ import styles from './PlayerBoard.module.css'
 /**
  * bananagrams' board-column VIEW — a FIXED 25×25 scroll arena. The grid never resizes
  * (you navigate with the zoom slider + scrollbars), so placing a tile never shifts the
- * view. Purely presentational: `usePlayerBoard` owns all the state/behaviour and hands
+ * view. Purely presentational: `usePlayerBoard` owns all the state/behavior and hands
  * this the render inputs + the one pointer callback. It is NOT a `BoardCol` (it owns no
  * input — bananagrams' input engine spans both columns; see usePlayerBoard).
  *

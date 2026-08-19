@@ -45,7 +45,7 @@ const NO_TILES: ReadonlySet<string> = new Set()
  * it **the board to render** (live OR a `snap` snapshot) + `viewing`, which is what
  * makes the turn-history viewer a drop-in. Own-guess feedback lifts to PlayArea (its
  * `showLocalFeedback` / `clearLocalFeedback` write the shared below-board channel,
- * which InfoCol's End / Concede also write). See docs/playarea-decomposition-plan.md.
+ * which InfoCol's End / Concede also write). See docs/playarea.md.
  */
 export function BoardCol({
   // ── Board to render (live OR a historical snapshot — PlayArea picks via `snap`) ──
@@ -161,13 +161,13 @@ export function BoardCol({
   const [localOrder, setLocalOrder] = useState<string[] | null>(null)
   // The four tiles of a guess that is OUT — they wear the shared in-flight dim
   // until the server answers. It is what earns the right not to guess the answer
-  // locally: "sent, waiting" is honest, where colouring them now would be
+  // locally: "sent, waiting" is honest, where coloring them now would be
   // inventing a verdict we'd have to take back.
   const [inFlightTiles, setInFlightTiles] = useState<ReadonlySet<string>>(NO_TILES)
   // The verdict ring on the tiles of my last guess, in the tone its PILL wears —
   // the two are one message arriving in two places, so they share a lifetime as
   // well as a color: both last until my next action (a tile click, or dismissing
-  // the pill). See docs/tile-feedback.md → Every mark has a lifetime.
+  // the pill). See plans/tile-feedback.md → Every mark has a lifetime.
   const [verdict, setVerdict] = useState<BoardVerdict | null>(null)
   // Bumped per verdict so the ring's shake replays on a repeat (Board keys the
   // ringed tiles on it). A ref, not state: it is read while setting state and
@@ -196,7 +196,7 @@ export function BoardCol({
   //
   // Read during render, so the mark and the board it is about land in one commit —
   // and read off the LOG rather than `onRestarted`, which fires only on the client
-  // that clicked it. See docs/tile-feedback.md → "Check what a RESTART does".
+  // that clicked it. See plans/tile-feedback.md → "Check what a RESTART does".
   const newestGuess = guesses.length > 0 ? guesses[guesses.length - 1] : null
   const [seenGuess, setSeenGuess] = useState({
     count: guesses.length,

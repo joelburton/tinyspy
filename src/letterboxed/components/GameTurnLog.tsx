@@ -27,7 +27,7 @@ import styles from './PlayArea.module.css'
  * staggered down the log; as a column they line up, which is most of why the
  * shared log is a `<table>` rather than a list of rows.
  *
- * Bar colours are `barFor` below.
+ * Bar colors are `barFor` below.
  *
  * Retreats appear at all because `letterboxed.events` is an append-only stream
  * rather than a table rows get deleted from — "what did we already try?" is
@@ -128,7 +128,7 @@ export function GameTurnLog({
 }
 
 /**
- * The row's bar colour.
+ * The row's bar color.
  *
  * A PLAYED WORD IS `good` — green. Getting a legal word onto this board is the
  * achievement here: it has to be a real word, fit the twelve letters, cross a

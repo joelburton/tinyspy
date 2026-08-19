@@ -1,5 +1,5 @@
 -- ============================================================
--- crosswords.games.puzzle_date — what the NYT calendar colours by
+-- crosswords.games.puzzle_date — what the NYT calendar colors by
 -- ============================================================
 -- The setup dialog's NYT tab becomes a drawn calendar showing which dates
 -- this club has already played (the shape connections + strands use), and
@@ -13,7 +13,7 @@
 -- date but falls back to the literal string 'nyt' when the response has no
 -- `publicationDate`, and which for a LIBRARY puzzle is that puzzle's own
 -- source id. Keying a feature to a field with two other meanings is how you
--- get a calendar that quietly mis-colours. connections.games and
+-- get a calendar that quietly mis-colors. connections.games and
 -- strands.games both denormalize `puzzle_date` for this same reason.
 --
 -- WHY A FORWARD MIGRATION rather than an edit to 20260706000000_crosswords
@@ -28,7 +28,7 @@ alter table crosswords.games
   add column if not exists puzzle_date date;
 
 comment on column crosswords.games.puzzle_date is
-  'NYT publication date this game was imported from; NULL for library, upload and Guardian starts. Set by crosswords.create_game from setup.date. Read by crosswords.club_nyt_status to colour the setup calendar.';
+  'NYT publication date this game was imported from; NULL for library, upload and Guardian starts. Set by crosswords.create_game from setup.date. Read by crosswords.club_nyt_status to color the setup calendar.';
 
 -- The calendar's read is "this club's games, by date", so the club leads.
 -- Partial: only NYT games carry a date, and they are the minority of rows.

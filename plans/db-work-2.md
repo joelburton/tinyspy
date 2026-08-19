@@ -1,7 +1,7 @@
 # Database work queue (second sweep)
 
 The first queue (`db-work.md`, 2026-08-02 → 08-03) collected DB-touching items
-from [`deferred.md`](deferred.md) only. This one is the **whole-docs sweep**:
+from [`deferred.md`](../docs/deferred.md) only. This one is the **whole-docs sweep**:
 every `## Deferred`, `## Open decisions`, `### Open questions` and `## TODO`
 across `docs/` and `docs/games/`, filtered to what would touch a migration.
 
@@ -13,14 +13,14 @@ empties, delete this file.
 The reason to care about the list at all is the alpha prior in
 [`CLAUDE.md`](../CLAUDE.md): baselines are still editable and `db-reset` wipes
 everything, so schema work is free right now and stops being free when we leave
-alpha ([`deferred.md → To discuss`](deferred.md#to-discuss)).
+alpha ([`deferred.md → To discuss`](../docs/deferred.md#to-discuss)).
 
 **Nothing here is urgent, and nothing here is decided-and-unbuilt.** The sweep
 turned up one real constraint (the club-name cap), one set of unratified rules
 (wordiply's — ratified, no code change), one column worth reserving ahead of its
 feature (`common.profiles.theme`), and one helper worth building
 (bananagrams' `check_board`) — all shipped 2026-08-03. Both boggle items are now
-[won't-do](games/boggle.md#12-wont-do), decided the same day: a boggle twin of
+[won't-do](../docs/games/boggle.md#12-wont-do), decided the same day: a boggle twin of
 the check helper (bananagrams' check has an objective answer, boggle's would only
 be a hint) and word-list freshness via Storage (`gmake deploy-funcs` already
 regenerates the bundled asset, and the bundle is the faster option anyway).
@@ -30,7 +30,7 @@ this file is a reason to hold the alpha schema freeze.
 
 | # | item | owner doc | the DB change |
 |---|---|---|---|
-| 1 | crosswords dictionary-puzzle bulk import | [crosswords.md → §9](games/crosswords.md#9-deferred) | data, not schema — but it's the trigger for the picker bound |
+| 1 | crosswords dictionary-puzzle bulk import | [crosswords.md → §9](../docs/games/crosswords.md#9-deferred) | data, not schema — but it's the trigger for the picker bound |
 
 ---
 
@@ -60,7 +60,7 @@ open item in its own doc, and none of it touches the database:
   deliberately not done).
 - **crosswords** — first-visit help auto-open, ⌥M, NYT dedup, the scratchpad
   lock races (all FE/Broadcast; the doc notes the races *"can't corrupt the
-  DB"*), and the clue-list greys + revealed-grid-still-wins standing flags,
+  DB"*), and the clue-list grays + revealed-grid-still-wins standing flags,
   which are ratified decisions rather than work.
 - **mobile.md** — the feedback-copy length audit, the two open breakpoint
   questions, and the two owed on-device checks.

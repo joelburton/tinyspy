@@ -111,7 +111,7 @@ export function CelebrationDialog({
               primary and never offers two. Same rule as every other dialog
               (docs/ui.md → Dialog buttons): the thing you're being offered is
               filled, the way out is the outline. A celebration with only a
-              grey outline button undersells itself. */}
+              gray outline button undersells itself. */}
           <button
             type="button"
             ref={primary ? undefined : focusRef}

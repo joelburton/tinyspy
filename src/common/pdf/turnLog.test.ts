@@ -3,7 +3,7 @@
  * pure page geometry — the board renderer and the log both derive their column
  * width from it, so it must stay exact. drawTurnLog owns the hand-managed
  * two-column-then-paginate cursor (PDF libs paginate by page, not column); we
- * pin the two behaviours a per-game printer can't see going wrong: the
+ * pin the two behaviors a per-game printer can't see going wrong: the
  * empty-log placeholder and that a long log spills onto new pages.
  */
 

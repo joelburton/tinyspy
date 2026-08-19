@@ -67,11 +67,11 @@ Deno.test('buildBoard: partitions required vs bonus, tallies required only', () 
   eq(board.bonus_words.length, 1, 'one bonus word')
   eq(board.bonus_words[0].points, 5, "'acned' scores 5 as a bonus word")
   eq(board.outer_letters, 'cabdon', 'outer letters echoed')
-  eq(board.center_letter, 'e', 'centre echoed')
+  eq(board.center_letter, 'e', 'center echoed')
 })
 
 Deno.test('buildBoard: a word using ALL seven letters is a pangram (+10)', () => {
-  // Puzzle 'cabdon' + centre 'e' = {a,b,c,d,e,n,o}. 'beacond' uses exactly
+  // Puzzle 'cabdon' + center 'e' = {a,b,c,d,e,n,o}. 'beacond' uses exactly
   // those seven → mask equals the puzzle mask → pangram.
   const puzzle = 'beacond' // letters {a,b,c,d,e,n,o}
   eq(letterMask(puzzle), letterMask('cabdon' + 'e'), 'sanity: same 7-letter set')
@@ -123,7 +123,7 @@ Deno.test('validateCustomLetters: rejects s, duplicates, and wrong counts', () =
   eq(
     validateCustomLetters('s', 'cabdon'),
     'bad-custom-center|',
-    "'s' centre rejected",
+    "'s' center rejected",
   )
   eq(
     validateCustomLetters('e', 'cabdos'),

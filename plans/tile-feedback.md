@@ -1,16 +1,16 @@
 # Tile + board feedback — the target vocabulary
 
-**This is a DESIGN TARGET, not a description of the code.** Every other doc in
-`docs/` describes what is; this one describes what we agreed the play surfaces
-*should* say, so that an audit has something to check each game against.
+**This is a DESIGN TARGET, not a description of the code.** `docs/` describes
+what is; this plan describes what we agreed the play surfaces *should* say, so
+that an audit has something to check each game against.
 
 **Where we are: 4 of 16 games converted** (wordle, waffle, psychicnum, connections) — see
 [Roster](#roster--which-games-are-converted), which is the place to start a
 session and the place to record finishing one. The channels and rules below are
 settled and live in shared code; what remains is applying them game by game.
 
-It lives on its own for now. Once the audit is done and the games have been
-brought into line, this folds into [ui.md](ui.md) as part of the visual language
+Once the audit is done and the games have been
+brought into line, this folds into [ui.md](../docs/ui.md) as part of the visual language
 and this file goes away.
 
 Scope: the marks a **tile** and a **board** can wear during play. Not the
@@ -62,7 +62,7 @@ lets "selected *and* just rejected" render without deciding which wins.
 
 **On an INERT piece the border is free, and state may take it.** A decided tile —
 psychicnum's guessed word, waffle's finished board — cannot be selected and cannot
-have an action refused on it, so neither claimant on border colour can ever appear
+have an action refused on it, so neither claimant on border color can ever appear
 there. That is what lets a decided tile wear a darker edge of its own fill as
 quiet definition without competing with anything.
 
@@ -86,10 +86,10 @@ your turn — never for being permanently spent.
 
 ### Identity: who did this to this tile
 
-A shared board raises a question no state colour can answer — **which of us
+A shared board raises a question no state color can answer — **which of us
 decided this?** — and it is answered by the app's existing identity mark: a
-player-coloured `<Dot>`, the same disc the turn log and the opponent strip use, so
-a colour means one person everywhere it appears.
+player-colored `<Dot>`, the same disc the turn log and the opponent strip use, so
+a color means one person everywhere it appears.
 
 It is a **permanent attribution**, which is what separates it from the
 peer-selection border (someone is doing something here, now) and from attention
@@ -246,7 +246,7 @@ our tiles are composites, so the overlays do most of the work.
 indistinguishable from fading toward the background, which is exactly the
 chrome-disabled look that game pieces must not have.
 
-### Attention is a judgement about what the viewer already knows
+### Attention is a judgment about what the viewer already knows
 
 Not "who acted". Two questions, asked of each viewer, and a mark is owed only
 when both answers are no:
@@ -256,7 +256,7 @@ when both answers are no:
 
 Which means marks have an **audience** — the player who acted and everyone else
 may see different things for the same event — and that working out that audience
-is a judgement call per mark, not a rule that can be run mechanically.
+is a judgment call per mark, not a rule that can be run mechanically.
 
 Three worked cases:
 
@@ -307,7 +307,7 @@ it converts.
 
 ### Revealing the answer is a STATE CHANGE, not a mark
 
-A game's state colours say what is TRUE about a piece, and asking to see the
+A game's state colors say what is TRUE about a piece, and asking to see the
 answer changes what you know rather than what the board is. So a revealed secret
 takes the state it has always had — psychicnum's unfound secrets simply go green,
 the same green a found one wears — instead of acquiring a ring, a badge, or a hue
@@ -330,7 +330,7 @@ A change **appended into empty space announces itself**; a change **substituted
 in place does not**. That is the mechanical half of the first question above:
 
 - setgame substitutes cards where they sat → needs the mark badly.
-- waffle recolours tiles that were already there → needs it.
+- waffle recolors tiles that were already there → needs it.
 - wordle appends a guess row into blank space → nothing to mark.
 
 ### Is the background already spoken for?
@@ -396,13 +396,13 @@ Three conditions, all of them load-bearing:
 - **The background must be genuinely free on that piece, at that moment.**
   Per-tile and per-moment, as the audit below says: connections' tiles carry no
   state (a decided one stops being a tile and becomes part of a band), so it
-  qualifies; a waffle tile, coloured by its last swap, does not, and its verdict
-  would take the border colour instead.
+  qualifies; a waffle tile, colored by its last swap, does not, and its verdict
+  would take the border color instead.
 - **Attention must not land on the same piece.** Attention is also a background
   mark, and one channel cannot say "look here" and "that was wrong" at once.
   connections is safe by construction: attention lands on the arriving BAND,
   verdicts on tiles.
-- **It is the colour that answer already wears elsewhere — specifically, its
+- **It is the color that answer already wears elsewhere — specifically, its
   TURN-LOG BAR's.** Not a separately chosen shade, and not a lighter cousin of
   one: a wrong guess is one red, whether you meet it on the board now or in the
   log a minute later. That is the outcome family's 400-level `-border` tier (the
@@ -413,8 +413,8 @@ Three conditions, all of them load-bearing:
   read as "a slightly different beige". **The ink then follows the fill**: white
   on the red, dark on the orange and the gold, which is where each stays legible.
 
-**A temporary verdict and a permanent one are the SAME colour**, and the
-temptation to separate them by tier has to be resisted for two reasons. Colour
+**A temporary verdict and a permanent one are the SAME color**, and the
+temptation to separate them by tier has to be resisted for two reasons. Color
 matching is doing real work — a player learns one red — and, more sharply, **the
 outcome palette is a gradient**: red for errors, orange for warnings, gold for a
 near miss, sitting close together by hue. Lightening any of them walks it toward
@@ -456,13 +456,13 @@ judged. Nobody did anything wrong. It is a statement about the INPUT, and it is
 true before you act and stays true after.
 
 Both games draw it today as a red border, which is wrong twice over: red is an
-outcome colour and this is not an outcome, and if anything the message is closer
+outcome color and this is not an outcome, and if anything the message is closer
 to a caution than to a failure. The rules it will have to follow, when those games
 convert:
 
-- **Not an outcome colour.** It needs a colour of its own, outside the won / lost /
-  near / warning families, precisely so it can never be read as a judgement of a
-  move (see [ui.md → The color system](ui.md#the-color-system), which reserves the
+- **Not an outcome color.** It needs a color of its own, outside the won / lost /
+  near / warning families, precisely so it can never be read as a judgment of a
+  move (see [ui.md → The color system](../docs/ui.md#the-color-system), which reserves the
   question).
 - **Never a fill.** A filled tile reads as a verdict, and that is the one thing
   this must not say. An edge or a ring, leaving the piece itself untouched.
@@ -561,7 +561,7 @@ looked like one thing. They are two, and separating them answers all three:
 
 - **The CURSOR is where my INPUT is pointing.** It moves as I look around, commits
   nothing, and belongs to the keyboard: crosswords' cell cursor, and the arrow
-  cursor the five board games are getting (docs/keyboard-nav-plan.md). It takes
+  cursor the five board games are getting (plans/keyboard-nav-plan.md). It takes
   **border color**, which is free because the two other claimants on that channel
   can't co-occur with it — a verdict lands on a submitted action, and a peer's
   presence is an inset ring.
@@ -619,7 +619,7 @@ another stylesheet. That is what lets a game layer its own result fills over the
 shared tile without specificity fights, and it is how any new mark should be
 added.
 
-## Colours
+## Colors
 
 | color | means | where |
 |---|---|---|
@@ -718,7 +718,7 @@ Cross-cutting, not owned by any one game:
 |---|---|
 | history viewer | DONE — the shared frame was yellow; it is now the blue `--view-history-color`, so yellow means only "attention" |
 | in-flight marks | was "missing in all but three games"; now shared (`.dimInFlight`) and worn by the four converted ones. Still absent everywhere else |
-| identity, transient | DONE as a CHANNEL, local as an implementation — connections draws `.peerPick`, an inset border in the picker's colour held clear of the selection edge. It lived in common until the palette sweep and moved into connections: one user, and crosswords' peer cursor will differ in inset and thickness, so promote on evidence |
+| identity, transient | DONE as a CHANNEL, local as an implementation — connections draws `.peerPick`, an inset border in the picker's color held clear of the selection edge. It lived in common until the palette sweep and moved into connections: one user, and crosswords' peer cursor will differ in inset and thickness, so promote on evidence |
 | the shared tile | see the next section — nine boards still roll their own |
 
 ### The color question each conversion inherits
@@ -726,7 +726,7 @@ Cross-cutting, not owned by any one game:
 The 2026-08-17 color census measured every stylesheet against the nearest shared
 token and deliberately **answered almost nothing**: collapsing a lookalike needs
 certainty, not a hex match, and certainty needs the game on screen
-([ui.md → The color system](ui.md#the-color-system)). So each conversion inherits
+([ui.md → The color system](../docs/ui.md#the-color-system)). So each conversion inherits
 one question. **Nothing here is a to-do** — it is what to look at when that game's
 turn comes.
 
@@ -1023,7 +1023,7 @@ lands.
 
 It is the one channel almost nothing implements, so it is additive rather than a
 migration — and it buys something concrete: **it is what earns you the right not
-to guess the answer.** Colouring a wordle row locally before the server replies
+to guess the answer.** Coloring a wordle row locally before the server replies
 means inventing a verdict and reconciling it when the real one disagrees. Dimming
 it instead says "sent, waiting" honestly, costs one class, and never has to be
 undone.

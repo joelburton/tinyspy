@@ -10,7 +10,7 @@
  * affordance inert rather than accepting it and reporting "not a word" — which
  * read as "FOOD isn't in the dictionary" when the real problem is the letters
  * aren't on the wheel. (`<TypedWord>` dims those characters for the same reason;
- * this collapses that per-character judgement to the whole-word question the
+ * this collapses that per-character judgment to the whole-word question the
  * submit gate needs.)
  */
 export function wordFitsWheel(word: string, letterCounts: Map<string, number>): boolean {

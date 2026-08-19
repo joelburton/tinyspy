@@ -4,7 +4,7 @@
 error-message design was found to be wrong in a way that can't be patched: not a
 list of miscategorized entries, but a shape that makes miscategorizing them the
 default. Nothing here is scheduled. When the work lands, whatever survives of it
-moves into [ui.md](ui.md) and [code-conventions.md](code-conventions.md) and this
+moves into [ui.md](../docs/ui.md) and [code-conventions.md](../docs/code-conventions.md) and this
 file goes away.
 
 Found during the 2026-08-18 color sprint, while asking a much smaller question

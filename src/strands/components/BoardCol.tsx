@@ -56,7 +56,7 @@ type Props = {
  *
  * The **move row and the pill share one fixed-height slot** because they are
  * mutually exclusive in time — you are either building a word or reading what
- * the last one did. (That swap is `<EntryRow>`'s own behaviour; stackdown, whose
+ * the last one did. (That swap is `<EntryRow>`'s own behavior; stackdown, whose
  * pill has a separate reserved row, is the odd one out.) Fixed height because
  * the slot empties between traces, and a collapsing row would bounce the board
  * on every submission (the no-reflow rule).

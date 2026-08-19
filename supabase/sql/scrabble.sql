@@ -813,7 +813,7 @@ begin
   -- ─── Dictionary check (the only server-side validation) ──
   -- Legal iff difficulty <= the band for the word's LENGTH (dict_2 for
   -- 2-letter words, dict_3plus for 3+) AND valid in american OR british
-  -- (permissive — both `color` and `colour` are legal). Words are stored
+  -- (permissive — both `color` and `color` are legal). Words are stored
   -- lowercase; the FE's words are uppercase board letters.
   select array_agg(w) into bad_words
     from unnest(p_words) w

@@ -11,7 +11,7 @@ import styles from './PlayerBoard.module.css'
 
 /**
  * bananagrams' play surface — the thin coordinator of the two columns. It calls the
- * `usePlayerBoard` engine (all the cross-column state + behaviour: the FIXED 25×25
+ * `usePlayerBoard` engine (all the cross-column state + behavior: the FIXED 25×25
  * arena, the drag gesture, the keyboard cursor, zoom/scroll, autosave, the derived
  * hand, Peel) and lays out its two VIEWS side by side:
  *
@@ -24,7 +24,7 @@ import styles from './PlayerBoard.module.css'
  * drag, the derived hand is a function of board state, and the keyboard cursor spans
  * both. So the input engine can't be split by column — it lives in ONE hook
  * (`usePlayerBoard`) and the two columns are thin VIEWS over it. See
- * docs/games/bananagrams.md + docs/playarea-decomposition-plan.md.
+ * docs/games/bananagrams.md + docs/playarea.md.
  *
  * This owns the two-column layout; the OUTER coordinator (`PlayArea`) owns the game
  * data, the peel/dump/concede RPCs, the local-feedback channel, and the terminal

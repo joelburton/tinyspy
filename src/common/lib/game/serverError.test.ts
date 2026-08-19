@@ -107,7 +107,7 @@ describe('failureMessage', () => {
     expect(msg.fault).toBeUndefined()
   })
 
-  it('honours a copy entry that is news rather than a failure', () => {
+  it('honors a copy entry that is news rather than a failure', () => {
     withCopy('already-ended', { text: () => 'Game over', tone: 'info' })
     expect(failureMessage({ message: 'already-ended|', code: 'P0001' }, 'word').tone).toBe('info')
   })

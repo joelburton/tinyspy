@@ -108,12 +108,12 @@ export function usePeerCursors(
     if (!enabled) return
     const timers = fillTimers.current
     const room = `crosswords:cursors:${gameId}`
-    let cancelled = false
+    let canceled = false
 
     function join() {
       // Guards the deferred path only — the effect can tear down again while
       // the previous channel is still leaving.
-      if (cancelled) return
+      if (canceled) return
       const ch = supabase.channel(room, {
         config: { presence: { key: myId } },
       })
@@ -165,7 +165,7 @@ export function usePeerCursors(
     else join()
 
     return () => {
-      cancelled = true
+      canceled = true
       const ch = channelRef.current
       channelRef.current = null
       for (const t of timers.values()) clearTimeout(t)

@@ -34,7 +34,7 @@ Use this when you're about to write a test:
 | A component renders the right text given props | Vitest | `GameTurnLog` renders a turn row from props |
 | Cross-component integration in the browser | manual smoke test | "Start a game, send a clue, see it appear in partner's window" |
 
-The grey zone is **business logic at the boundary**: things like "if the game just ended, the FE shows the play-again button." That's a state-derivation question, and lives at whichever layer owns the derivation. Currently those derivations live in pure helpers (`src/codenamesduet/lib/phase.ts`), so they're FE-tested. Don't replicate them as pgTAP assertions.
+The gray zone is **business logic at the boundary**: things like "if the game just ended, the FE shows the play-again button." That's a state-derivation question, and lives at whichever layer owns the derivation. Currently those derivations live in pure helpers (`src/codenamesduet/lib/phase.ts`), so they're FE-tested. Don't replicate them as pgTAP assertions.
 
 ### What we don't test
 
@@ -315,14 +315,14 @@ already take these parameters.
 
 **One `lost` per mode, and prefer the game's OWN losing condition** — out of
 guesses, out of time, stack not cleared. A concede or a manual stop is *shell*
-behaviour that renders near-identically in all sixteen games, so spending the slot
+behavior that renders near-identically in all sixteen games, so spending the slot
 on it shows you the shared chrome sixteen times and the game's real defeat screen
 never. Fall back to concede only where a game has no natural loss, and note it on
 the cell so the sheet says why.
 
 **Every state gets printed** — one PDF per game × mode × phase, on the desktop
 pass (a PDF is the same document whatever the window size). This replaced an
-earlier per-game judgement about what deserves paper, which asked *"would a player
+earlier per-game judgment about what deserves paper, which asked *"would a player
 print this?"* when the question is *"is this a code path whose layout could
 break?"* The empty and mid-game printouts are where the bugs are. PDFs are kept as
 PDFs and linked, not rasterised and not embedded: a page render at legible DPI is

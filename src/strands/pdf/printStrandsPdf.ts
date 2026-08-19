@@ -1,8 +1,8 @@
 import type { jsPDF } from 'jspdf'
 import {
   BLACK,
-  DARK_GREY,
-  MEDIUM_GREY,
+  DARK_GRAY,
+  MEDIUM_GRAY,
   drawHeader,
   drawSetup,
   fit,
@@ -23,12 +23,12 @@ import type { PrintTrack, PrintTurn, StrandsPrintModel } from './model'
  * column would file one player's words under another's grid. Same reasoning
  * wordle and waffle print by.
  *
- * ─── Printing a board whose meaning is COLOUR ──────────────
+ * ─── Printing a board whose meaning is COLOR ──────────────
  * On screen a found word is a purple disc-and-line and the spangram is gold. On
- * a mono printer those are one grey, so the encoding moves to **shape**
- * (docs/pdf.md — colour only for meaning, and never as the only carrier):
+ * a mono printer those are one gray, so the encoding moves to **shape**
+ * (docs/pdf.md — color only for meaning, and never as the only carrier):
  *
- *   found theme word   a solid grey line through the letters
+ *   found theme word   a solid gray line through the letters
  *   the spangram       the same line, drawn HEAVIER — one word, one emphasis
  *   a missed word      a DASHED line, so "we didn't get this" reads instantly
  *                      as a different kind of mark rather than a paler one
@@ -80,7 +80,7 @@ function drawTrack(doc: jsPDF, m: StrandsPrintModel, t: PrintTrack, track: Track
     doc.text(fit(doc, t.who, track.width), track.x, y)
     y += 12
   }
-  doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(DARK_GREY)
+  doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(DARK_GRAY)
   doc.text(t.summary, track.x, y)
   y += 10
 
@@ -94,8 +94,8 @@ function drawTrack(doc: jsPDF, m: StrandsPrintModel, t: PrintTrack, track: Track
  * Three passes, and the middle one is the whole trick: **lines, then a white
  * knock-out disc per traced cell, then letters**. Without the disc a connector
  * runs straight through the glyph it's connecting, which on paper is far worse
- * than on screen — print has no colour separation to rescue it. The disc is the
- * mono equivalent of the on-screen coloured disc: same shape doing the same job
+ * than on screen — print has no color separation to rescue it. The disc is the
+ * mono equivalent of the on-screen colored disc: same shape doing the same job
  * of giving the letter a clean field to sit in.
  */
 function drawBoard(
@@ -112,8 +112,8 @@ function drawBoard(
   // ── Paths first ──
   for (const w of t.words) {
     if (w.coords.length < 2) continue
-    // doc.setDrawColor(w.missed ? MEDIUM_GREY : DARK_GREY)
-    doc.setDrawColor(DARK_GREY)
+    // doc.setDrawColor(w.missed ? MEDIUM_GRAY : DARK_GRAY)
+    doc.setDrawColor(DARK_GRAY)
     doc.setLineWidth(w.isSpangram ? SPANGRAM_W : LINE_W)
     // A dash pattern is the missed encoding. Reset it after, or every later
     // stroke on the page inherits it — jsPDF's line-dash is document state, not
@@ -150,7 +150,7 @@ function drawBoard(
 /** The verdict glyph. Vector marks, not glyphs: jsPDF core fonts are WinAnsi,
  *  so a star or trophy character would simply not render. */
 function drawMark(doc: jsPDF, mark: PrintTurn['mark'], x: number, y: number): void {
-  const o = { cx: x + 3, cy: y - 2.5, size: 6, color: [DARK_GREY, DARK_GREY, DARK_GREY] as [number, number, number] }
+  const o = { cx: x + 3, cy: y - 2.5, size: 6, color: [DARK_GRAY, DARK_GRAY, DARK_GRAY] as [number, number, number] }
   if (mark === 'no') {
     drawCross(o, doc)
     return
@@ -166,7 +166,7 @@ function drawMark(doc: jsPDF, mark: PrintTurn['mark'], x: number, y: number): vo
     // reads as "nothing was scored here" beside the filled squares of a find —
     // which is exactly what a spent hint is. (Drawn, like the squares below,
     // rather than typed: core fonts are WinAnsi, so ○ isn't available.)
-    doc.setDrawColor(DARK_GREY, DARK_GREY, DARK_GREY).setLineWidth(0.5)
+    doc.setDrawColor(DARK_GRAY, DARK_GRAY, DARK_GRAY).setLineWidth(0.5)
     doc.circle(o.cx, o.cy, 1.9, 'S')
     return
   }
@@ -185,12 +185,12 @@ function drawLog(doc: jsPDF, turns: PrintTurn[], track: Track, top: number): num
   doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
   doc.text('Turns', track.x, y)
   y += 4
-  doc.setDrawColor(MEDIUM_GREY).setLineWidth(0.4)
+  doc.setDrawColor(MEDIUM_GRAY).setLineWidth(0.4)
   doc.line(track.x, y, track.x + track.width, y)
   y += 10
 
   if (!turns.length) {
-    doc.setFont('helvetica', 'italic').setFontSize(8.5).setTextColor(DARK_GREY)
+    doc.setFont('helvetica', 'italic').setFontSize(8.5).setTextColor(DARK_GRAY)
     doc.text('No words yet.', track.x + WORD_X, y)
     return y + ROW_H
   }
@@ -198,7 +198,7 @@ function drawLog(doc: jsPDF, turns: PrintTurn[], track: Track, top: number): num
   for (const t of turns) {
     drawMark(doc, t.mark, track.x + MARK_X, y)
     doc.setFont('helvetica', t.mark === 'no' ? 'normal' : 'bold').setFontSize(8.5)
-    doc.setTextColor(t.mark === 'no' ? DARK_GREY : BLACK)
+    doc.setTextColor(t.mark === 'no' ? DARK_GRAY : BLACK)
     const note = t.note ? ` — ${t.note}` : ''
     doc.text(fit(doc, `${t.word}${note}`, track.width - WORD_X), track.x + WORD_X, y)
     y += ROW_H

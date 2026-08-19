@@ -35,7 +35,7 @@ export type Phase =
    *
    * **One per mode, and prefer the game's OWN losing condition** — out of
    * guesses, out of time, stack not cleared. A concede or a manual stop is
-   * SHELL behaviour that renders near-identically in all fifteen games, so
+   * SHELL behavior that renders near-identically in all fifteen games, so
    * spending the slot on it means the sheet shows you the shared chrome
    * fifteen times and the game's real defeat screen never.
    *

@@ -1,6 +1,6 @@
 /**
  * What each of setgame's two readout surfaces shows, and how its hint control is
- * labelled.
+ * labeled.
  *
  * Plain functions rather than part of `components/Counts.tsx`, because a file
  * that exports both a component and a function breaks Fast Refresh for itself
@@ -8,7 +8,7 @@
  * makes, for the same reason.
  */
 
-/** One labelled number, as `<Counts>` wants it. */
+/** One labeled number, as `<Counts>` wants it. */
 export type CountItem = { label: string; value: number }
 
 /**

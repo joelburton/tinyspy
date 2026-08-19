@@ -5,11 +5,11 @@
  * A near-twin of spellingbee-build-board. Word wheel is a targeted fork of
  * spellingbee; this file differs in exactly the ways the game does:
  *
- *   • NINE letters (one centre + eight outer), not seven — and the wheel
+ *   • NINE letters (one center + eight outer), not seven — and the wheel
  *     is a MULTISET: the same letter may sit on two tiles.
  *   • Each tile is SPENT per use — a word may use a letter only as many
  *     times as it has tiles. candidate_words returns the pure subset set
- *     (letter-SET ⊆ wheel + contains centre); we post-filter here to
+ *     (letter-SET ⊆ wheel + contains center); we post-filter here to
  *     words whose per-letter counts FIT the wheel's tile counts.
  *     See docs/games/wordwheel.md.
  *   • The pangram bonus is +15 (spellingbee's is +10). A pangram uses
@@ -39,12 +39,12 @@
  *           (≤5 distinct letters shared).
  *        b. Weighted sample: rare-letter seeds (has_rare_letters) get a
  *           3× weight boost for fair representation.
- *   4. Pick the centre letter uniformly from the seed's DISTINCT letters
- *      (two duplicate tiles as centre would make the identical board),
- *      trying centres until one clears the word gate.
+ *   4. Pick the center letter uniformly from the seed's DISTINCT letters
+ *      (two duplicate tiles as center would make the identical board),
+ *      trying centers until one clears the word gate.
  *   5. Query common.words (via candidate_words) for every legal word
  *      whose letter-set is a subset of the puzzle mask AND uses the
- *      centre; post-filter to words fitting the wheel's tile counts;
+ *      center; post-filter to words fitting the wheel's tile counts;
  *      compute points (length score + 15 if pangram).
  *   6. Call wordwheel.create_game(...) — the RPC validates end-to-end
  *      and returns the new id.
@@ -109,7 +109,7 @@ type Setup = {
   required?: number
   legal?: number
   /** Optional custom board — the player's own letters. `custom_center` = the
-   *  centre letter, `custom_letters` = the eight other letters. When both are set
+   *  center letter, `custom_letters` = the eight other letters. When both are set
    *  (and valid) we build a board from exactly these letters instead of sampling
    *  a random pangram seed. Both create_game and this function re-validate. */
   custom_center?: string
@@ -131,18 +131,18 @@ type Setup = {
  *  lower than spellingbee's 30 because spending a tile per use yields fewer
  *  words than unbounded reuse. */
 const MIN_REQUIRED_WORDS_COUNT = 15
-/** How many seeds to try when a sampled seed has NO centre that clears the
- *  word gate. A seed is gated at import to ≥15 required words centre-agnostically
- *  at its own difficulty, but a specific centre can fall short; re-sample the
- *  seed only if none of its (distinct) centres clear the gate. */
+/** How many seeds to try when a sampled seed has NO center that clears the
+ *  word gate. A seed is gated at import to ≥15 required words center-agnostically
+ *  at its own difficulty, but a specific center can fall short; re-sample the
+ *  seed only if none of its (distinct) centers clear the gate. */
 const MAX_SEED_ATTEMPTS = 25
 
 // ───────────────────────────────────────────────────────────
 // Sampling (impure — uses Math.random)
 // ───────────────────────────────────────────────────────────
 
-/** Fisher–Yates shuffle of a copy — used to try a seed's 9 candidate centres
- *  in random order (so repeated boards on the same seed vary their centre). */
+/** Fisher–Yates shuffle of a copy — used to try a seed's 9 candidate centers
+ *  in random order (so repeated boards on the same seed vary their center). */
 function shuffled<T>(arr: T[]): T[] {
   const out = [...arr]
   for (let i = out.length - 1; i > 0; i--) {
@@ -232,10 +232,10 @@ async function fetchPreviousMask(
 }
 
 /** Fetches every legal word that uses only puzzle letters AND contains the
- *  centre letter, via wordwheel.candidate_words. The bitmask intersection
+ *  center letter, via wordwheel.candidate_words. The bitmask intersection
  *  (and wordwheel's difficulty/dialect/length slice of common.words) runs
  *  server-side, so the response is only the matching rows (well under
- *  max_rows). One round-trip per centre tried.
+ *  max_rows). One round-trip per center tried.
  *
  *  This is the pure SUBSET set — it still contains words demanding more of a
  *  letter than the wheel has tiles; buildBoard() drops those. */
@@ -325,7 +325,7 @@ serve(async (req) => {
         return json({ error: `no-required-words|${requiredBand}|` }, 400)
       }
     } else {
-      // ─── Random board: sample a pangram seed + centre ────────────────────
+      // ─── Random board: sample a pangram seed + center ────────────────────
       // 1. Read the previous board (for overlap cap)
       const previousMask = await fetchPreviousMask(supabase, targetClub)
       console.log(`previousMask: ${previousMask === null ? 'none' : previousMask.toString()}`)
@@ -364,16 +364,16 @@ serve(async (req) => {
       }
       const weighted = buildWeightedPool(eligible)
 
-      // 3-4. Sample a seed AND a centre that clears the word gate.
+      // 3-4. Sample a seed AND a center that clears the word gate.
       // A seed's import-time gate is over its whole 9-tile multiset, but the
-      // puzzle only counts words that CONTAIN THE CENTRE. So a poorly-chosen
-      // centre can land a real board below the ≥15 gate even though the
-      // multiset is fine. Fix: try the seed's centres in random order and keep
+      // puzzle only counts words that CONTAIN THE CENTER. So a poorly-chosen
+      // center can land a real board below the ≥15 gate even though the
+      // multiset is fine. Fix: try the seed's centers in random order and keep
       // the first that clears the gate; re-sample the seed only if NONE do.
-      // Centres are the seed's DISTINCT letters: picking either of two
-      // duplicate tiles as centre makes the identical board (same centre
+      // Centers are the seed's DISTINCT letters: picking either of two
+      // duplicate tiles as center makes the identical board (same center
       // letter, same outer multiset), so trying both would be wasted work —
-      // and sampling tile-uniformly would bias centres toward duplicated
+      // and sampling tile-uniformly would bias centers toward duplicated
       // letters for no gameplay payoff.
       for (
         let seedAttempt = 0;
@@ -386,7 +386,7 @@ serve(async (req) => {
         for (const center of shuffled([...new Set(letters)])) {
           const centerBit = 1n << BigInt(center.charCodeAt(0) - 97)
           const candidates = await fetchCandidateWords(supabase, mask, centerBit, requiredBand, legalBand)
-          // replace() removes exactly ONE occurrence — a duplicated centre
+          // replace() removes exactly ONE occurrence — a duplicated center
           // leaves its twin among the outer tiles, as it should.
           const cand = buildBoard(letters.replace(center, ''), center, candidates)
           if (cand.required_words_count >= MIN_REQUIRED_WORDS_COUNT) {

@@ -8,7 +8,7 @@ import {
   type Cell,
   type PremiumType,
 } from '../lib/board'
-import { BLACK, DARK_GREY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
+import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '../../common/pdf/frame'
 import { drawTurnLog, twoColGeom, type TurnRow } from '../../common/pdf/turnLog'
 
 /**
@@ -75,7 +75,7 @@ export function printScrabblePdf(m: ScrabblePrintModel): void {
     ly = drawRack(doc, m.rack, leftX, ly + 6) + 26
   }
 
-  // ── Moves: the shared newspaper turn flow (labelled "Move") ──
+  // ── Moves: the shared newspaper turn flow (labeled "Move") ──
   drawTurnLog(pd, { startY: ly, moveLabel: 'Move', rows: m.moves, setup: m.setup, mode: m.mode })
 
   savePrint(pd, m, 'scrabble')
@@ -91,7 +91,7 @@ function drawBoard(doc: jsPDF, board: Cell[], x0: number, y0: number, cell: numb
       const placed = board[idx]
       // Border weight is set per cell (a mark can bump the line width). A placed tile
       // gets a thicker frame (TILE_BORDER_W) so it stands out from the empty cells.
-      doc.setDrawColor(DARK_GREY)
+      doc.setDrawColor(DARK_GRAY)
       if (placed) {
         doc.setLineWidth(TILE_BORDER_W).setFillColor(...TILE_FILL).rect(px, py, cell, cell, 'FD')
         drawTileGlyph(doc, placed.l, LETTER_VALUES[placed.l] ?? 0, px, py, cell, placed.b)
@@ -103,7 +103,7 @@ function drawBoard(doc: jsPDF, board: Cell[], x0: number, y0: number, cell: numb
         if (prem === 'none') doc.rect(px, py, cell, cell, 'S')
         else doc.setFillColor(...PREMIUM_STYLE[prem].fill).rect(px, py, cell, cell, 'FD')
         if (idx === CENTER) {
-          doc.setFillColor(DARK_GREY, DARK_GREY, DARK_GREY).circle(px + cell / 2, py + cell / 2, cell * 0.16, 'F')
+          doc.setFillColor(DARK_GRAY, DARK_GRAY, DARK_GRAY).circle(px + cell / 2, py + cell / 2, cell * 0.16, 'F')
         } else if (prem !== 'none') {
           doc.setFont('helvetica', 'bold').setFontSize(cell * 0.34).setTextColor(BLACK)
           doc.text(PREMIUM_STYLE[prem].label, px + cell / 2, py + cell / 2 + cell * 0.12, { align: 'center' })
@@ -119,12 +119,12 @@ function drawRack(doc: jsPDF, rack: string[], x0: number, y0: number): number {
   const gap = 6
   rack.forEach((letter, i) => {
     const px = x0 + i * (rt + gap)
-    doc.setFillColor(...TILE_FILL).setLineWidth(TILE_BORDER_W).setDrawColor(DARK_GREY)
+    doc.setFillColor(...TILE_FILL).setLineWidth(TILE_BORDER_W).setDrawColor(DARK_GRAY)
     doc.rect(px, y0, rt, rt, 'FD')
     if (letter === '?') {
       // An undecided blank — a faint "?" where its letter will go (matches the
       // on-screen rack), and no value.
-      doc.setFont('helvetica', 'bold').setFontSize(rt * LETTER_RATIO).setTextColor(DARK_GREY)
+      doc.setFont('helvetica', 'bold').setFontSize(rt * LETTER_RATIO).setTextColor(DARK_GRAY)
       doc.text('?', px + rt / 2, y0 + rt / 2 + rt * LETTER_RATIO * 0.35, { align: 'center' })
     } else {
       drawTileGlyph(doc, letter, LETTER_VALUES[letter] ?? 0, px, y0, rt)

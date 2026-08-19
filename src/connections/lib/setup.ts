@@ -11,7 +11,7 @@ import type { CoopTurnSetup } from '../../common/components/fields/CoopStyleFiel
  *     and OPTIONAL because the dialog no longer collects it: absence is how
  *     `create_game` is told to derive the next puzzle none of the selected
  *     players has played (`connections.next_puzzle_for_club`). It stays in
- *     the type because the RPC still honours an explicit id, which is what
+ *     the type because the RPC still honors an explicit id, which is what
  *     the pgTAP and e2e fixtures pin their assertions to.
  *   - `timer` — wall-clock mode. Per-game rather than per-
  *     gametype because Joel wants groups to pick their own
