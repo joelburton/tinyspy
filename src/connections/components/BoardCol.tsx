@@ -258,7 +258,7 @@ export function BoardCol({
       showLocalFeedback(failureMessage(error, 'guess'))
       // The server refused the move outright, so the four tiles are still sitting
       // there un-played — ring them in the error tone the pill took.
-      markVerdict(sent, 'error')
+      markVerdict(sent, 'lost')
       return
     }
     // Own-result flash in the commit slot, then clear the selection in EVERY case:
@@ -270,13 +270,13 @@ export function BoardCol({
     // ring: a correct guess's four tiles collapse into a band on this very render,
     // so a mark on them would have nothing to land on.
     if (outcome.kind === 'correct') {
-      showLocalFeedback(stickyPill('success', 'Correct'))
+      showLocalFeedback(stickyPill('won', 'Correct'))
     } else if (outcome.kind === 'oneAway') {
       showLocalFeedback(stickyPill('near', 'One away!'))
       markVerdict(sent, 'near')
     } else {
-      showLocalFeedback(stickyPill('error', 'Incorrect'))
-      markVerdict(sent, 'error')
+      showLocalFeedback(stickyPill('lost', 'Incorrect'))
+      markVerdict(sent, 'lost')
     }
     sendClear()
   }

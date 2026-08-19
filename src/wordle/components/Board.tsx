@@ -45,7 +45,7 @@ type Props = {
   rejectNonce?: number
   /** Which tone that rejection carries — the SAME tone as its pill, so the two
    *  halves of one message agree. */
-  rejectTone?: 'error' | 'warning'
+  rejectTone?: 'lost' | 'warning'
   /** The game is finished, and how it ended — the board takes a band in that
    *  outcome's gray (neutral for a game merely ended), null while it's live. The
    *  same mark waffle wears; see docs/tile-feedback.md. */
@@ -83,7 +83,7 @@ export function Board({
   viewing = false,
   highlightRow = -1,
   rejectNonce = 0,
-  rejectTone = 'error',
+  rejectTone = 'lost',
   gameOver = null,
   notMyTurn = false,
   myTurnJustStarted = false,
@@ -147,7 +147,7 @@ export function Board({
                 rejectNonce > 0 && isActive && shared.verdictRing,
                 rejectNonce > 0 &&
                   isActive &&
-                  (rejectTone === 'warning' ? shared.verdictWarning : shared.verdictError),
+                  (rejectTone === 'warning' ? shared.verdictWarning : shared.verdictLost),
               )}
               role="row"
             >

@@ -358,7 +358,7 @@ describe('wordwheel PlayArea — coop peer narration (global header)', () => {
     rerender(<PlayArea {...ctx} />)
     const msg = vi.mocked(ctx.globalFeedback.show).mock.calls.at(-1)![0]
     expect(nodeText(msg.text)).toBe('moth found BEAD +1')
-    expect(msg.tone).toBe('success')
+    expect(msg.tone).toBe('won')
   })
 
   it('adds the pangram flourish for a peer pangram', () => {

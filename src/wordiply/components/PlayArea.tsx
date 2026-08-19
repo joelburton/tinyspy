@@ -352,7 +352,7 @@ export function PlayArea(ctx: GamePageCtx) {
       if (r.user_id === session.user.id) return null
       const member = players.find((p) => p.user_id === r.user_id)
       return {
-        tone: 'success',
+        tone: 'won',
         // No verb: the dot names who, the word is the news, the count is its
         // length. "played" earned no room in a ~26-char header pill.
         text: (

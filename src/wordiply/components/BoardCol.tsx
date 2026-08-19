@@ -86,7 +86,7 @@ export function BoardCol({
   useArrowHistory({ recall: lastWord, onChange, enabled: !entryDisabled })
 
   // Drop success feedback (the row shows the word + length); keep soft rejects.
-  const rejectPill = localPill && localPill.tone !== 'success' ? localPill : null
+  const rejectPill = localPill && localPill.tone !== 'won' ? localPill : null
 
   return (
     <div className={cls(shared.boardCol, styles.boardCol)}>

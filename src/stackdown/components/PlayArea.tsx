@@ -252,7 +252,7 @@ export function PlayArea({
         showFlash([...res.word.toUpperCase()], 'won')
       } else {
         clearWord() // invalid → the tiles return to the board
-        showLocalFeedback(`Not a word: ${res.word.toUpperCase()}`, 'error')
+        showLocalFeedback(`Not a word: ${res.word.toUpperCase()}`, 'lost')
       }
     },
     [gameId, clearWord, commitWord, showFlash, showLocalFeedback, clearLocalFeedback],
@@ -556,8 +556,8 @@ export function PlayArea({
       // "tried X" (not "tried X — not a word"): the header pill fits ~26 chars on
       // a phone and ellipsises silently, and the error tone already says it failed.
       return valid
-        ? { tone: 'success', text: <>{who} found {word}</>, mode: { kind: 'timed' } }
-        : { tone: 'error', text: <>{who} tried {word}</>, mode: { kind: 'timed' } }
+        ? { tone: 'won', text: <>{who} found {word}</>, mode: { kind: 'timed' } }
+        : { tone: 'lost', text: <>{who} tried {word}</>, mode: { kind: 'timed' } }
     },
     globalFeedback,
   })

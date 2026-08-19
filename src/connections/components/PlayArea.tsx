@@ -230,7 +230,7 @@ export function PlayArea({
         // before it ellipsises. The solved band appears on the reader's own
         // board at the same moment, so naming it here says nothing new.
         return {
-          tone: 'success',
+          tone: 'won',
           text: (
             <>
               <ActorDot actor={member} fallback="Someone" /> found category
@@ -240,7 +240,7 @@ export function PlayArea({
         }
       }
       return {
-        tone: g.result === 'oneAway' ? 'near' : 'error',
+        tone: g.result === 'oneAway' ? 'near' : 'lost',
         text: (
           <>
             <ActorDot actor={member} fallback="Someone" />{' '}

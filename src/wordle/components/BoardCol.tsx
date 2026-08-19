@@ -109,7 +109,7 @@ export function BoardCol({
   const [rejectNonce, setRejectNonce] = useState(0)
   /** The tone of the last rejection — mirrors the pill's, so the ring and the
    *  pill never disagree about how bad it was. */
-  const [rejectTone, setRejectTone] = useState<'error' | 'warning'>('error')
+  const [rejectTone, setRejectTone] = useState<'lost' | 'warning'>('lost')
   // The accepted-but-not-yet-rendered guess: kept on the board (uncolored) from the
   // moment we submit until its colored server row arrives via realtime, so the letters
   // don't blink out during the round-trip. The row then flips in place. Cleared on
@@ -217,9 +217,9 @@ export function BoardCol({
       // (`notAWord`) reads as an error; the rest are non-error nudges (warning).
       if (res.result === 'notAWord') {
         setPending(null)
-        setRejectTone('error')
+        setRejectTone('lost')
         setRejectNonce((n) => n + 1)
-        showLocalFeedback(stickyPill('error', 'Not in word list'))
+        showLocalFeedback(stickyPill('lost', 'Not in word list'))
         return
       }
       if (res.result === 'duplicate') {

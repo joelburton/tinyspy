@@ -463,7 +463,7 @@ describe('wordle PlayArea — peer narration (global header)', () => {
     expect(feedback.show).toHaveBeenCalledTimes(1)
     expect(nodeText(feedback.show.mock.calls[0][0].text)).toBe('moth solved it')
     // Green — a solve is a solve regardless of whose (tone follows the event).
-    expect(feedback.show.mock.calls[0][0].tone).toBe('success')
+    expect(feedback.show.mock.calls[0][0].tone).toBe('won')
   })
 })
 

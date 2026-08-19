@@ -74,17 +74,17 @@ function pillFor(r: SubmitResult) {
   const line = (body: string) => `${r.word.toUpperCase()} — ${body}`
   switch (r.result) {
     case 'spangram':
-      return stickyPill('success', line('spangram'))
+      return stickyPill('won', line('spangram'))
     case 'theme':
-      return stickyPill('success', line('theme'))
+      return stickyPill('won', line('theme'))
     case 'hint_word':
-      return stickyPill('success', line(r.hint_points >= r.hint_cost ? 'hint earned' : 'valid word'))
+      return stickyPill('won', line(r.hint_points >= r.hint_cost ? 'hint earned' : 'valid word'))
     case 'duplicate':
       return stickyPill('warning', line('already found'))
     case 'too_short':
       return stickyPill('warning', line('too short'))
     default:
-      return stickyPill('error', line('not a word'))
+      return stickyPill('lost', line('not a word'))
   }
 }
 
@@ -380,7 +380,7 @@ export function PlayArea(ctx: GamePageCtx) {
             // than a choice to make — so it gets words.
             showLocalFeedback(
               stickyPill(
-                'error',
+                'lost',
                 trace.length
                   ? `No “${e.key.toUpperCase()}” next to that letter`
                   : `No “${e.key.toUpperCase()}” left on the board`,

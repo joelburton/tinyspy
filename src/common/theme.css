@@ -696,19 +696,48 @@
      rather than a second literal. Left as one value until we can see both wanting
      different things. */
   --tile-hover-shadow:             2px 6px 12px rgb(0 0 0 / 32%);
-  /* The feedback pill's TINTS — its tone at 18% over the surface, worn by a
-     PERMANENT pill (a transient one stays white). Named rather than computed at
-     the use site, and worth a look later: the outcome families already have a
-     `-wash` tier for exactly this job, at a different value, so one of the two is
-     redundant. Deciding which is a pixel change, so it is not this sweep's. */
+  /* ── PILL ─────────────────────────────────────────────────────────────────
+     The feedback pill: `-color` is its whole border (the left side just thicker),
+     `-tint-color` the background a PERMANENT pill wears — a transient one stays
+     white. Two variants on every tone.
+
+     THE TONES ARE THE OUTCOME FAMILIES, PLUS TWO. Five of the seven are aliases
+     of the outcome ink, because a pill reporting a won game and a board showing
+     one are the same message arriving in two places; them diverging would be the
+     bug. The pill vocabulary used to say `success` / `error` for `won` / `lost`,
+     which put a silent rename one line deep in a CSS rule.
+
+     The two extras are the pill saying something rather than adjudicating
+     something, which a board never does:
+
+       error — a real failure, not a bad move: a lost connection, a service that
+               did not answer. Takes the FAULT red, deliberately a step angrier
+               than the loss red, because "your move was refused" and "this did
+               not work" must not look identical.
+       info  — news. Its own blue, a copy of the action blue rather than an alias:
+               an informational pill and a button you can press are different
+               messages that agree today.
+
+     Note what the tints are mixed FROM: the outcome FILL (the 400 tier), not the
+     ink the border wears. Worth a look later — the outcome families now carry a
+     `-wash` tier for exactly this job at a different value, so one of the two is
+     redundant, and deciding which moves pixels. */
+  --pill-won-color:           var(--outcome-won-ink-color);
   --pill-won-tint-color:      color-mix(in oklab, var(--outcome-won-fill-color) 18%, var(--page-surface-color));
+  --pill-lost-color:          var(--outcome-lost-ink-color);
   --pill-lost-tint-color:     color-mix(in oklab, var(--outcome-lost-fill-color) 18%, var(--page-surface-color));
-  --pill-warning-tint-color:  color-mix(in oklab, var(--outcome-warning-fill-color) 18%, var(--page-surface-color));
+  --pill-near-color:          var(--outcome-near-ink-color);
   --pill-near-tint-color:     color-mix(in oklab, var(--outcome-near-fill-color) 18%, var(--page-surface-color));
-  /* `info` has no outcome family behind it — it is the pill saying something
-     rather than adjudicating something — so it carries its own tone, a copy of
-     the action blue. The tint is mixed FROM that tone, which is an alias and the
-     right kind: a tint of a colour must follow the colour it is a tint of. */
+  --pill-warning-color:       var(--outcome-warning-ink-color);
+  --pill-warning-tint-color:  color-mix(in oklab, var(--outcome-warning-fill-color) 18%, var(--page-surface-color));
+  /* Neutral has no tone to carry recognition, so the BORDER does the whole job of
+     saying "this is a feedback pill" — and its tint is the plain surface, on
+     purpose: the one pill that says nothing should look like it. Written as a
+     cell rather than left out, so the family stays a rectangle. */
+  --pill-neutral-color:       var(--outcome-neutral-ink-color);
+  --pill-neutral-tint-color:  var(--page-surface-color);
+  --pill-error-color:         var(--chrome-fault-color);
+  --pill-error-tint-color:    color-mix(in oklab, var(--pill-error-color) 8%, var(--page-surface-color));
   --pill-info-color:          #1976d2;
   --pill-info-tint-color:     color-mix(in oklab, var(--pill-info-color) 8%, var(--page-surface-color));
 

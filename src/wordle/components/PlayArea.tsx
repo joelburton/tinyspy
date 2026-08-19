@@ -208,7 +208,7 @@ export function PlayArea({
       if (id === session.user.id) return null // my own solve → terminal handling
       const member = memberById(members, id)
       return {
-        tone: 'success',
+        tone: 'won',
         text: (
           <>
             <ActorDot actor={member} fallback="Someone" /> solved it

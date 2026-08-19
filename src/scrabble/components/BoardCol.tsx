@@ -594,7 +594,7 @@ export function BoardCol({
     // error pill in the commit slot and stop here. (`ev.error` is evaluatePlay's
     // own FE-authored sentence — gameplay validation copy, not server text.)
     if (!ev.valid) {
-      showLocalFeedback({ tone: 'error', text: ev.error })
+      showLocalFeedback({ tone: 'lost', text: ev.error })
       return
     }
     setSubmitting(true)
@@ -633,7 +633,7 @@ export function BoardCol({
       setStaged([])
       setSelected(new Set())
       const words = ev.words.map((w) => w.word).join(' · ')
-      showLocalFeedback({ tone: 'success', text: `${words} +${ev.score}${ev.bingo ? ' 🎉' : ''}` })
+      showLocalFeedback({ tone: 'won', text: `${words} +${ev.score}${ev.bingo ? ' 🎉' : ''}` })
     } else if (res.result === 'stale') {
       lastActionRef.current = prevAction // no commit — un-claim
       pendingDrawRef.current = prevDraw
@@ -641,7 +641,7 @@ export function BoardCol({
     } else if (res.result === 'invalid') {
       lastActionRef.current = prevAction // no commit — un-claim
       pendingDrawRef.current = prevDraw
-      showLocalFeedback({ tone: 'error', text: `No: ${(res.bad_words ?? []).join(', ').toUpperCase()}` })
+      showLocalFeedback({ tone: 'lost', text: `No: ${(res.bad_words ?? []).join(', ').toUpperCase()}` })
       // Red-flash the NEW cells in each rejected word (match the server's
       // bad_words back to the words evaluatePlay read off the board).
       const bad = new Set((res.bad_words ?? []).map((w) => w.toUpperCase()))
@@ -678,7 +678,7 @@ export function BoardCol({
     } else {
       setSelected(new Set())
       pendingDrawRef.current = res.drawn?.length ?? tiles.length
-      showLocalFeedback({ tone: 'success', text: `Swapped ${tiles.length}` })
+      showLocalFeedback({ tone: 'won', text: `Swapped ${tiles.length}` })
     }
   }, [game.version, selected, actingRack, gameId, showLocalFeedback])
 

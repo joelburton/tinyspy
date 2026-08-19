@@ -255,7 +255,7 @@ export function PlayArea(ctx: GamePageCtx) {
       if (isSet(next[0], next[1], next[2])) {
         void submitClaim(next)
       } else {
-        showLocalFeedback(stickyPill('error', 'Not a set'))
+        showLocalFeedback(stickyPill('lost', 'Not a set'))
       }
     },
     [active, selected, submitClaim, showLocalFeedback, clearLocalFeedback],
@@ -466,7 +466,7 @@ export function PlayArea(ctx: GamePageCtx) {
       if (c.user_id === selfId) return null
       const member = players.find((p) => p.user_id === c.user_id)
       return {
-        tone: 'success',
+        tone: 'won',
         text: (
           <>
             <ActorDot actor={member} fallback="A teammate" /> found a set

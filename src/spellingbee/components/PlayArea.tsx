@@ -414,7 +414,7 @@ export function PlayArea(ctx: GamePageCtx) {
       if (r.user_id === session.user.id) return null // own word → in-body pill
       const member = players.find((p) => p.user_id === r.user_id)
       return {
-        tone: 'success',
+        tone: 'won',
         // A pangram leads with the label + the bee, so the headline reads before
         // the word does — and so the line fits the header pill's ~26 phone
         // characters, which "found WORD +14 — pangram! 🐝" did not.

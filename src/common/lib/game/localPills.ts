@@ -48,8 +48,9 @@ export function stickyPill(tone: GenericFeedbackTone, text: string): GenericFeed
 
 /**
  * The permanent below-board **terminal verdict** pill: **fill** (lightened-tone,
- * reads as final) + sticky (never auto/user-dismissed). Maps the game's
- * won/lost/neutral outcome tone to the feedback palette; the caller owns the
+ * reads as final) + sticky (never auto/user-dismissed). The game's outcome tone
+ * IS the pill's tone — no translation, since the pill vocabulary took the
+ * outcome names in 2026-08; the caller owns the
  * content so it can pass `over.verdict`, `over.message`, or a custom line. A
  * ReactNode, not just a string, because a verdict can carry a WIDGET —
  * spellingbee's "● alice won at "Genius"" leads with the winner's identity dot,
@@ -57,7 +58,7 @@ export function stickyPill(tone: GenericFeedbackTone, text: string): GenericFeed
  */
 export function terminalPill(tone: OutcomeTone, text: ReactNode): GenericFeedbackMsg {
   return {
-    tone: tone === 'won' ? 'success' : tone === 'lost' ? 'error' : 'neutral',
+    tone,
     text,
     mode: { kind: 'permanent' },
   }

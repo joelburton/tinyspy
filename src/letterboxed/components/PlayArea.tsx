@@ -156,7 +156,7 @@ export function PlayArea(ctx: GamePageCtx) {
     const word = (tailLetter(chain) ?? '') + draft
     const bad = rejectReason(word, { sides, chain, playable, maxWords })
     if (bad) {
-      showLocalFeedback(stickyPill('error', bad))
+      showLocalFeedback(stickyPill('lost', bad))
       return
     }
     setBusy(true)
@@ -181,7 +181,7 @@ export function PlayArea(ctx: GamePageCtx) {
     const wordsLeft = maxWords - (chain.length + 1)
     if (wordsLeft > 0) {
       showLocalFeedback({
-        tone: 'success',
+        tone: 'won',
         text: `${word.toUpperCase()} — ${wordsLeft} ${wordsLeft === 1 ? 'word' : 'words'} left`,
         mode: { kind: 'timed' },
       })
@@ -511,7 +511,7 @@ export function PlayArea(ctx: GamePageCtx) {
               `undid ${e.word?.toUpperCase() ?? 'the last word'}`
             : 'cleared the chain'
       return {
-        tone: e.kind === 'played' ? 'success' : 'info',
+        tone: e.kind === 'played' ? 'won' : 'info',
         text: (
           <>
             <ActorDot actor={member} fallback="A teammate" /> {what}

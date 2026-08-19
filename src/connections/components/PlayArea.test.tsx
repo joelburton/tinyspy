@@ -396,7 +396,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
     // The answer arrives: the dim lifts and the verdict fills the same four
     // tiles in the tone its pill wears — "Incorrect" is an error in both places.
     await waitFor(() => expect(tile('a').className).toMatch(/verdictFill/))
-    expect(tile('a').className).toMatch(/verdictError/)
+    expect(tile('a').className).toMatch(/verdictLost/)
     expect(tile('a').className).not.toMatch(/dimInFlight/)
     expect(screen.getByText('Incorrect')).toBeInTheDocument()
   })

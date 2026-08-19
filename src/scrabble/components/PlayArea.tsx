@@ -275,7 +275,7 @@ export function PlayArea({
       ? players.find((m) => m.user_id === latest.user_id)
       : aiMemberOfSeat(latest.seat)
     globalFeedback.show({
-      tone: latest.kind === 'word' ? 'success' : 'neutral',
+      tone: latest.kind === 'word' ? 'won' : 'neutral',
       dot: colorVarFor(actor?.color),
       text: peerMoveText(actor?.username ?? 'Someone', latest),
       mode: { kind: 'timed' },

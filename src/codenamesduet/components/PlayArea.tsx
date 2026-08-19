@@ -185,7 +185,7 @@ function useTurnPill(args: {
     if (inSuddenDeath) {
       key = 'sudden-death'
       node = 'Sudden death: wrong loses'
-      tone = 'error'
+      tone = 'lost'
     } else {
       modeKind = 'sticky'
       // What the peer is doing — the phrase WITHOUT their name (the ActorDot

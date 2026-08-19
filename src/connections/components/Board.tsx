@@ -31,7 +31,7 @@ const NO_RANKS: ReadonlySet<CategoryRank> = new Set()
  *  A CORRECT guess has no entry: those four tiles become a band on the same
  *  render, so there is nothing left to mark. */
 const VERDICT_TONE = {
-  error: shared.verdictError,
+  lost: shared.verdictLost,
   warning: shared.verdictWarning,
   near: shared.verdictNear,
 } as const

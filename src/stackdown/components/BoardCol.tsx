@@ -181,7 +181,7 @@ export function BoardCol({
       if (matches.length === 1) {
         onTileClick(matches[0].id)
       } else if (matches.length === 0) {
-        showLocalFeedback(`No “${letter}” tile is on top`, 'error')
+        showLocalFeedback(`No “${letter}” tile is on top`, 'lost')
       } else {
         // Ambiguous — point out the candidates with a brief red outline.
         flashTiles(matches.map((m) => m.id))

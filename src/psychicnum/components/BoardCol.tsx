@@ -209,7 +209,7 @@ export function BoardCol({
     setPending('')
     // Client-side board-word check for snappy feedback; the server re-validates.
     if (!words.includes(guess)) {
-      showLocalFeedback(stickyPill('error', 'Not on the board'))
+      showLocalFeedback(stickyPill('lost', 'Not on the board'))
       return
     }
     setSubmitting(true)
@@ -230,7 +230,7 @@ export function BoardCol({
     }
     showLocalFeedback(
       stickyPill(
-        data === 'won' || data === 'correct' ? 'success' : 'error',
+        data === 'won' || data === 'correct' ? 'won' : 'lost',
         data === 'won' || data === 'correct' ? 'Correct' : 'Incorrect',
       ),
     )

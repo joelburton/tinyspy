@@ -13,7 +13,7 @@ import { useLocalFeedback, LOCAL_FEEDBACK_DISMISS_MS } from './useLocalFeedback'
 import type { GenericFeedbackMsg } from '../../lib/games'
 
 const timed = (text: string, ms?: number): GenericFeedbackMsg => ({
-  tone: 'success',
+  tone: 'won',
   text,
   mode: { kind: 'timed', ...(ms !== undefined ? { ms } : {}) },
 })

@@ -76,18 +76,18 @@ describe('GenericFeedbackPill — tap to dismiss', () => {
     // The look is no longer an independent knob — this is what makes the old
     // "transient message wearing the permanent background" bug unsayable.
     const { container, rerender } = render(
-      <GenericFeedbackPill msg={msg({ tone: 'success' })} onClose={vi.fn()} />,
+      <GenericFeedbackPill msg={msg({ tone: 'won' })} onClose={vi.fn()} />,
     )
     const cls = () => container.querySelector('[class*="pill"]')!.className
     expect(cls(), 'sticky is a message → outlined').toMatch(/outline/)
 
-    rerender(<GenericFeedbackPill msg={msg({ tone: 'success', mode: { kind: 'timed' } })} onClose={vi.fn()} />)
+    rerender(<GenericFeedbackPill msg={msg({ tone: 'won', mode: { kind: 'timed' } })} onClose={vi.fn()} />)
     expect(cls(), 'timed is a message → outlined').toMatch(/outline/)
 
-    rerender(<GenericFeedbackPill msg={msg({ tone: 'success', mode: { kind: 'manual' } })} onClose={vi.fn()} />)
+    rerender(<GenericFeedbackPill msg={msg({ tone: 'won', mode: { kind: 'manual' } })} onClose={vi.fn()} />)
     expect(cls(), 'manual is a message → outlined').toMatch(/outline/)
 
-    rerender(<GenericFeedbackPill msg={msg({ tone: 'success', mode: { kind: 'permanent' } })} onClose={vi.fn()} />)
+    rerender(<GenericFeedbackPill msg={msg({ tone: 'won', mode: { kind: 'permanent' } })} onClose={vi.fn()} />)
     expect(cls(), 'permanent is a condition → keeps its tone fill').not.toMatch(/outline/)
   })
 })

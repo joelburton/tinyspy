@@ -523,7 +523,7 @@
  * TURN-LOG BAR ALREADY WEARS. That is the point of it: a wrong guess is one red,
  * whether you meet it on the board now or in the log a minute later, and neither
  * place is free to pick its own shade. Same family, two tiers, one meaning. */
-.verdictError {
+.verdictLost {
   --verdict-tone: var(--outcome-lost-ink-color);
   --verdict-fill: var(--outcome-lost-fill-color);
   --verdict-ink: var(--ink-on-dark-color);

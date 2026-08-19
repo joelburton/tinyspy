@@ -67,47 +67,53 @@
 /* Tone variants. Each colors the WHOLE border (all four sides; the left is just
  * thicker — the accent bar) + the fill background (a tone tint used by permanent
  * pills; the `.outline` modifier below drops it back to white for transient
- * pills). success/error/near use the OUTCOME palette (won-green / lost-red /
- * near-gold) — the same colors as the board and the turn-log bars — so "won"
- * reads green everywhere, not blue, and "one away" reads as the gold its log bar
- * already wears. warning is the one tone that ISN'T an outcome, and takes the
- * orange of its own family. All use the saturated `-strong` (800) tier so they
- * stay legible.
+ * pills). Every one reads a `--pill-*` pair and nothing else: the values live in
+ * theme.css → PILL, which is where five of them are aliased to the outcome inks
+ * and where the two that aren't say why.
+ *
+ * The class names ARE the outcome names, and that is the point. They were
+ * `success` and `error` until 2026-08-18, painted from `won` and `lost` — one
+ * concept under two names, with the translation buried in a CSS rule.
  */
 
-.success {
-  border-color: var(--outcome-won-ink-color);
+.won {
+  border-color: var(--pill-won-color);
   background: var(--pill-won-tint-color);
 }
 
-.error {
-  border-color: var(--outcome-lost-ink-color);
+.lost {
+  border-color: var(--pill-lost-color);
   background: var(--pill-lost-tint-color);
-}
-
-/* ORANGE — the "important, but not good/bad" tone (a hint was asked for, an
- * opponent made progress, you can't do that yet). Distinct from success/error so
- * it never reads as a result — and, since 2026-08-17, distinct from `near`
- * below, which IS one. */
-.warning {
-  border-color: var(--outcome-warning-ink-color);
-  background: var(--pill-warning-tint-color);
 }
 
 /* near — a near miss (connections' "one away"), in the GOLD its turn-log bar
  * wears. It is a result, not a caution: "you were close" and "you can't do that"
  * are different messages and no longer the same color. */
 .near {
-  border-color: var(--outcome-near-ink-color);
+  border-color: var(--pill-near-color);
   background: var(--pill-near-tint-color);
 }
 
+/* ORANGE — the "important, but not good/bad" tone (a hint was asked for, an
+ * opponent made progress, you can't do that yet). Distinct from won/lost so it
+ * never reads as a result — and, since 2026-08-17, distinct from `near` above,
+ * which IS one. */
+.warning {
+  border-color: var(--pill-warning-color);
+  background: var(--pill-warning-tint-color);
+}
+
 .neutral {
-  /* No tone color to carry recognition, so the BORDER itself must read as "this
-   * is a feedback pill" — a dark grey (not the pale surface border) on all sides
-   * incl. the left bar. */
-  border-color: var(--page-text-muted-color);
-  background: var(--page-surface-color);
+  border-color: var(--pill-neutral-color);
+  background: var(--pill-neutral-tint-color);
+}
+
+/* error — the failure that ISN'T a move: a lost connection, a service that
+ * didn't answer, a key nobody wrote words for. A step angrier than `lost`,
+ * because a refused move and a broken thing must not look the same. */
+.error {
+  border-color: var(--pill-error-color);
+  background: var(--pill-error-tint-color);
 }
 
 .info {

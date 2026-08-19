@@ -161,7 +161,7 @@ export function PlayArea({
           // reads as in both modes (docs/ui.md → Feedback pill: tone follows the
           // event). Adverse to me in compete, but the tone names the event, not my stake.
           globalFeedback.show({
-            tone: 'success',
+            tone: 'won',
             text: (
               <>
                 <ActorDot actor={member} fallback="Someone" /> solved it

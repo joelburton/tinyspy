@@ -130,7 +130,7 @@ export function PlayArea(ctx: GamePageCtx) {
     const res = data as { result: string; invalid_cells: number[] } | null
     if (res?.result === 'illegal') {
       showLocalFeedback({
-        tone: 'error',
+        tone: 'lost',
         text: 'Fix the highlighted tiles before peeling — every word must be real and the grid one connected piece.',
         mode: { kind: 'sticky' },
       })
@@ -148,12 +148,12 @@ export function PlayArea(ctx: GamePageCtx) {
     (r: BananagramsCheckResult) => {
       const msg =
         r.kind === 'clean'
-          ? { tone: 'success' as const, text: 'Every word checks out, and the grid is one piece.' }
+          ? { tone: 'won' as const, text: 'Every word checks out, and the grid is one piece.' }
           : r.kind === 'empty'
             ? { tone: 'info' as const, text: 'Nothing on the board to check yet.' }
             : r.kind === 'invalid'
               ? {
-                  tone: 'error' as const,
+                  tone: 'lost' as const,
                   text: `${r.count} tile${r.count === 1 ? '' : 's'} highlighted — either not a real word, or not joined to the grid.`,
                 }
               : { tone: 'error' as const, text: `Check failed: ${r.message}` }

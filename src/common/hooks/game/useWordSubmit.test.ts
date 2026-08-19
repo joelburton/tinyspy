@@ -61,7 +61,7 @@ describe('useWordSubmit', () => {
 
     expect(cfg.commit).toHaveBeenCalledTimes(1)
     expect(cfg.commit).toHaveBeenCalledWith(APPLE)
-    expect(result.current.localFeedback?.tone).toBe('success')
+    expect(result.current.localFeedback?.tone).toBe('won')
     expect(result.current.localFeedback?.text).toBe('APPLE — +5')
     expect(result.current.word).toBe('') // box cleared
     expect(result.current.lastWord).toBe('apple')
@@ -180,7 +180,7 @@ describe('useWordSubmit', () => {
     type('qqqq')
     await submit()
     expect(cfg.commit).not.toHaveBeenCalled()
-    expect(result.current.localFeedback?.tone).toBe('error')
+    expect(result.current.localFeedback?.tone).toBe('lost')
     expect(result.current.localFeedback?.text).toBe('QQQQ — not on board')
   })
 
@@ -228,6 +228,6 @@ describe('useWordSubmit', () => {
     type('apple')
     await submit()
     expect(commit).toHaveBeenCalledTimes(2)
-    expect(result.current.localFeedback?.tone).toBe('success')
+    expect(result.current.localFeedback?.tone).toBe('won')
   })
 })

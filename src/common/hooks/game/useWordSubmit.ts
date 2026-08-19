@@ -208,7 +208,7 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     }
 
     if (!entry) {
-      showPill(stickyPill('error', line(w, c.explainReject(w))))
+      showPill(stickyPill('lost', line(w, c.explainReject(w))))
       // One reason for both misses the lookup can't tell apart (not in the
       // list vs doesn't fit the board); the SERVER re-derives which, since it
       // owns the structural rules and this hook doesn't know them.
@@ -222,7 +222,7 @@ export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
     // right after the word.
     pendingRef.current.add(w)
     const body = `${entry.isPangram ? 'pangram ' : ''}+${entry.points}`
-    showPill(stickyPill('success', line(w, body, entry.isBonus)))
+    showPill(stickyPill('won', line(w, body, entry.isBonus)))
 
     // The commit lost: free the word so it can be retried, and say why in the
     // words TypeScript owns. `failureMessage` decides the LOOK too — a rule the

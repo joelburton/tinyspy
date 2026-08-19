@@ -390,7 +390,7 @@ export function PlayArea(ctx: GamePageCtx) {
       const wow = r.word.length >= 7
       const label = wordWithBonusDot(r.word, r.is_bonus)
       return {
-        tone: 'success',
+        tone: 'won',
         // A long find leads with the flourish (spellingbee's "pangram 🐝 WORD
         // +14" shape) so the headline reads before the word does — and so the
         // line fits the header pill's ~26 phone characters.
