@@ -13,7 +13,12 @@
   /* The game's blue ACCENT — zoom slider, icons, dump-armed state, done button.
      (The keyboard-entry cursor moved to the shared --mark-grid-cursor-color.) */
   --bananagrams-cursor: #4aa3ff;
-  --bananagrams-error: #d84a4a; /* the in-game error red (hand-miss flash) */
+  /* The in-game error red (the hand-miss flash) — a second red beside
+     `--outcome-lost-*`, saying much the same thing in a value nothing chose
+     deliberately. Brand, or a UI colour that belongs in common? UNDECIDED, and
+     it belongs to this game's tile-feedback conversion, where the flash itself
+     gets looked at. See docs/tile-feedback.md → the roster. */
+  --bananagrams-error: #d84a4a;
   --bananagrams-grid-edge: #8893a3; /* thick outer border = the real edge of the arena */
 }
 

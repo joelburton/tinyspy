@@ -4,8 +4,9 @@ import infoPanel from '../infoPanel.module.css'
 import styles from './TurnLog.module.css'
 import history from './historyViewer.module.css'
 
-/** The outcome a row's left bar paints. Shared across games:
- *  good (won/correct), bad (lost/wrong), partial (near/one-away), neutral. */
+/** The outcome a row's left bar paints — the outcome families, by name, shared
+ *  across games: `won` (a correct move), `lost` (a wrong one), `near` (one away),
+ *  `neutral` (a move nothing can adjudicate). */
 export type TurnOutcome = 'won' | 'lost' | 'near' | 'neutral'
 
 /**

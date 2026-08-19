@@ -40,6 +40,11 @@
      `--crosswords-fill` near-black however they were typed; the distinction
      exists in the toggle, not on the board. */
   --crosswords-pen: #1a4fd6;
+  /* "You got this wrong", on a game surface — which is what `--outcome-lost-*`
+     means, in a red of its own that nothing chose deliberately. Whether this is
+     brand (crosswords' check-mark red) or a UI colour that belongs in common is
+     UNDECIDED, and belongs to this game's tile-feedback conversion, where the
+     mark itself gets looked at. See docs/tile-feedback.md → the roster. */
   --crosswords-wrong: #d33;
   --crosswords-revealed: #00a3d9;
 
