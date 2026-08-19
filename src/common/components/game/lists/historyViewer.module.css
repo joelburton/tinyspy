@@ -1,20 +1,24 @@
 /*
  * History-view appearance — the shared "you're looking at a past turn, not the
  * live board" marker, worn identically by every game that supports turn-history
- * replay (scrabble, stackdown, …). One yellow token (`--view-history-color`,
- * overridable per-overlay via `--viewer-accent` — see `.sharePreview`) drives
- * three coordinated signifiers so the viewer reads the same everywhere:
+ * replay (scrabble, stackdown, …). One token (`--view-history-color`, the muted
+ * blue, overridable per-overlay via `--viewer-accent` — see `.sharePreview`)
+ * drives three coordinated signifiers so the viewer reads the same everywhere:
  *
- *   .frame        — a yellow outline around the whole board
- *   .viewedNumber — a yellow outline on the "#N" handle whose turn is open (the
+ *   .frame        — a blue outline around the whole board
+ *   .viewedNumber — a blue outline on the "#N" handle whose turn is open (the
  *                   shared <TurnLogNumber> control that opens a turn on the board)
  *   .banner       — an opaque overlay (with .bannerLabel + .bannerExit) covering the
  *                   below-board input area with the turn's description and a ✕
  *
- * Yellow (not an outcome green/red) on purpose: viewing history is neutral — a
- * pass or a rejected word is no success, so a green frame would mislead. (The
- * word a turn PLAYED is highlighted separately, in each game's own green, by that
- * game — that's a different signal from "you're in the viewer".)
+ * NOT an outcome green/red, on purpose: viewing history is neutral — a pass or a
+ * rejected word is no success, so a green frame would mislead. (The word a turn
+ * PLAYED is highlighted separately, in each game's own green, by that game —
+ * that's a different signal from "you're in the viewer".)
+ *
+ * Not yellow either: yellow has one job at both scopes — ATTENTION, "this just
+ * changed" — and a frame that persists for as long as you browse is the
+ * opposite of news.
  *
  * What stays GAME-SPECIFIC and is deliberately NOT here: WHICH element wears the
  * board frame (each Board applies `.frame` to its own board box) and the HEIGHT of
@@ -23,7 +27,7 @@
  * (`.bannerHost` below). See docs/playarea.md.
  */
 
-/* Board frame: a yellow outline around the board. An outline (not a border) so it
+/* Board frame: a blue outline around the board. An outline (not a border) so it
  * layers outside the board's own frame without resizing it. Applied by each game's
  * Board alongside its own board class while viewing.
  *
@@ -52,7 +56,7 @@
   --viewer-accent: var(--view-share-preview-color);
 }
 
-/* The "#N" turn handle whose turn is currently open in the viewer — a yellow ring
+/* The "#N" turn handle whose turn is currently open in the viewer — a blue ring
  * around the number (mirrors the board `.frame`), applied by the shared
  * <TurnLogNumber>. A small positive offset sits the ring just outside the number
  * chip. Replaces an earlier whole-row outline: many games render a turn as several
@@ -81,7 +85,7 @@
  * turn (the game's input stays mounted underneath, so an in-progress entry
  * survives). `inset: 0` fills the parent, which each game sizes and makes a
  * positioning context. Opaque surface fill (so it hides the input) + normal text
- * (colored-on-colored was unreadable) + a yellow border. The whole banner is a
+ * (colored-on-colored was unreadable) + a blue border. The whole banner is a
  * click-to-exit target; the ✕ (pinned far right) also exits. */
 .banner {
   position: absolute;
