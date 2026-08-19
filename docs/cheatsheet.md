@@ -39,6 +39,16 @@ Anything that talks to a database now refuses without `ENV`; `help`, `dev-*`,
 `test-*`, `_audit` and the local-pinned artefact builders don't care and don't
 ask. Every writing target echoes its resolved target (password masked) first.
 
+**Two doors into prod, picked for you.** `db.<ref>.supabase.co` is **IPv6-only**,
+so on a network without working IPv6 (most café and hotel wifi) it fails with
+`could not translate host name … nodename nor servname provided` — which looks
+like a DNS outage and is really "no usable address family". Every `ENV=prod`
+target probes that host and falls back to the **session pooler**
+(`aws-N-<region>.pooler.supabase.com:5432`, discovered from the Management API),
+so nothing needs remembering when you change networks. The announce line names
+the route it took. Force one with `DB_ROUTE=direct` / `DB_ROUTE=pooler`; both
+doors are the same database, so the knob can't send a write somewhere else.
+
 **Troubleshooting.** The supabase CLI ends its errors with *"Try rerunning the
 command with `--debug`"* — which does **not** work through make: `gmake …
 --debug` hands the flag to make, whose `--debug` means something else. Use:
@@ -46,6 +56,7 @@ command with `--debug`"* — which does **not** work through make: `gmake …
 | | |
 |---|---|
 | `DEBUG=1` | passes `--debug` to the supabase CLI — the verbose API/HTTP trace that hint meant |
+| `DB_ROUTE=direct` | force the direct (IPv6) host instead of letting the probe choose; `pooler` forces the other way |
 | `gmake --trace …` | make's side: each recipe line with the target and prerequisite that triggered it. The one for "why did that rebuild, or not" |
 | `gmake -n …` | print without running (`_audit` check 1 keeps this honest) |
 

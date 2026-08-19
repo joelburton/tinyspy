@@ -67,7 +67,7 @@ source "$SECRETS_FILE"
 # Checked here rather than per-step: every step that touches the
 # Management API needs jq, and every data step needs psql, so a
 # missing one should fail before anything starts.
-for _tool in jq psql curl; do
+for _tool in jq psql curl pg_isready; do
   if ! command -v "$_tool" >/dev/null 2>&1; then
     echo "ERROR: $_tool is required for hosted deploys." >&2
     echo "       macOS: brew install jq libpq   (add libpq's bin to PATH)" >&2
@@ -224,34 +224,129 @@ fetch_api_keys() {
   save_credentials
 }
 
-# The psql connection string the bulk loaders and db-sql use.
-# DIRECT connection, built from the DB password unless the secrets
-# file pinned one (use the Session pooler string there if the direct
-# host is unreachable on your network). The password is URL-encoded
-# so a special character can't break the URI.
+# ── reaching the hosted database ────────────────────────────────
+# There are two doors into the same Postgres, and which one works
+# depends on the NETWORK you are sitting on:
 #
-# The DB password is NOT recoverable for an existing project — it's
-# hashed, and the dashboard reveal is one-shot — so this is the one
-# field you must carry yourself.
+#   direct  db.<ref>.supabase.co   — IPv6 ONLY. Supabase moved direct
+#           connections off IPv4; a network without working IPv6 can't
+#           resolve it to anything usable, and getaddrinfo reports
+#           "nodename nor servname provided" — which reads like a DNS
+#           outage and is really "no usable address family".
+#   pooler  aws-N-<region>.pooler.supabase.com — has IPv4. Same database,
+#           reached through Supavisor.
+#
+# Home networks with ISP IPv6 take the direct door; café and hotel wifi
+# usually can't. Rather than make that your problem, `auto` (the default)
+# probes and picks. Force one with DB_ROUTE on the gmake command line:
+#
+#   gmake db-psql ENV=prod DB_ROUTE=pooler
+#
+# Both doors are the same database, so a wrong guess here can't send a
+# write somewhere unexpected — which is why this knob is allowed to read
+# the environment where SUPABASE_DB_URL deliberately isn't.
+DB_ROUTE="${DB_ROUTE:-auto}"
+DB_ROUTE_USED=""
+
+# Can we open a TCP connection to the direct host?
+#
+# A PROBE rather than a check for a global IPv6 address, because the
+# address is not the question: café wifi that hands out IPv6 which then
+# routes nowhere passes an address check and hangs on the real connection.
+# ~0.3s either way, against prod targets that already spend a round trip
+# fetching API keys.
+#
+# pg_isready exit codes: 0 accepting, 1 rejecting (a server IS there —
+# paused, restarting, too many connections), 2 no response, 3 bad params.
+# Only 2 and 3 mean "this door isn't reachable"; a rejecting server is a
+# problem the pooler would not fix and must not be papered over with a
+# silent reroute.
+direct_reachable() {
+  pg_isready -h "db.${PROJECT_REF}.supabase.co" -p 5432 -t 3 >/dev/null 2>&1
+  local rc=$?
+  [[ $rc -eq 0 || $rc -eq 1 ]]
+}
+
+# The SESSION-pooler connection string, discovered rather than guessed.
+#
+# Both halves have to come from the API: the host carries a region AND a
+# cluster number (`aws-1-us-west-1`, where `aws-0-us-west-1` also resolves
+# and rejects the tenant with a baffling error), and the pooler's user is
+# `postgres.<ref>`, not `postgres`.
+#
+# THE PORT IS OURS, NOT THE API'S. That endpoint reports 6543 — the
+# TRANSACTION pooler, which has no session state and would break pg_dump,
+# pg_restore and anything holding an advisory lock. Session mode is the
+# same host on 5432, and that is what db-backup and db-restore need.
+pooler_db_url() {
+  require_project
+  local cfg host user db enc
+  cfg=$(api "https://api.supabase.com/v1/projects/${PROJECT_REF}/config/database/pooler") || {
+    echo "ERROR: couldn't fetch the pooler configuration for ${PROJECT_REF}." >&2
+    echo "       The direct host is unreachable from this network, so there is" >&2
+    echo "       no other way in. Check the Management API token." >&2
+    exit 1
+  }
+  host=$(jq -r 'map(select(.database_type == "PRIMARY")) | .[0].db_host // empty' <<< "$cfg")
+  user=$(jq -r 'map(select(.database_type == "PRIMARY")) | .[0].db_user // empty' <<< "$cfg")
+  db=$(jq -r   'map(select(.database_type == "PRIMARY")) | .[0].db_name // empty' <<< "$cfg")
+  if [[ -z "$host" || -z "$user" || -z "$db" ]]; then
+    echo "ERROR: the pooler configuration for ${PROJECT_REF} named no PRIMARY host." >&2
+    exit 1
+  fi
+  enc=$(jq -rn --arg p "$DB_PASSWORD" '$p|@uri')
+  printf 'postgresql://%s:%s@%s:5432/%s' "$user" "$enc" "$host" "$db"
+}
+
+# The psql connection string the bulk loaders and db-sql use, built from
+# the DB password unless the secrets file pinned one. A pinned value WINS
+# and is never probed — pinning is a deliberate act, and second-guessing it
+# would make the one escape hatch unreliable.
+#
+# The password is URL-encoded so a special character can't break the URI.
+# It is NOT recoverable for an existing project — hashed, and the dashboard
+# reveal is one-shot — so it is the one field you must carry yourself.
 derive_db_url() {
   require_project
-  if [[ -z "$SUPABASE_DB_URL" ]]; then
-    if [[ -z "$DB_PASSWORD" ]]; then
-      echo "ERROR: DB_PASSWORD is required to reach the hosted database." >&2
-      echo "       Project Settings → Database → Reset database password" >&2
-      echo "       (one-shot reveal), then set it in $SECRETS_FILE." >&2
-      exit 1
-    fi
-    local enc
-    enc=$(jq -rn --arg p "$DB_PASSWORD" '$p|@uri')
-    SUPABASE_DB_URL="postgresql://postgres:${enc}@db.${PROJECT_REF}.supabase.co:5432/postgres"
+  if [[ -n "$SUPABASE_DB_URL" ]]; then
+    DB_ROUTE_USED="pinned in $SECRETS_FILE"
+    export SUPABASE_DB_URL
+    return
   fi
+  if [[ -z "$DB_PASSWORD" ]]; then
+    echo "ERROR: DB_PASSWORD is required to reach the hosted database." >&2
+    echo "       Project Settings → Database → Reset database password" >&2
+    echo "       (one-shot reveal), then set it in $SECRETS_FILE." >&2
+    exit 1
+  fi
+  local enc direct
+  enc=$(jq -rn --arg p "$DB_PASSWORD" '$p|@uri')
+  direct="postgresql://postgres:${enc}@db.${PROJECT_REF}.supabase.co:5432/postgres"
+  case "$DB_ROUTE" in
+    direct) SUPABASE_DB_URL="$direct";           DB_ROUTE_USED="direct (forced)" ;;
+    pooler) SUPABASE_DB_URL=$(pooler_db_url);    DB_ROUTE_USED="session pooler (forced)" ;;
+    auto)
+      if direct_reachable; then
+        SUPABASE_DB_URL="$direct";               DB_ROUTE_USED="direct"
+      else
+        SUPABASE_DB_URL=$(pooler_db_url)
+        DB_ROUTE_USED="session pooler (direct host unreachable — no IPv6 route?)"
+      fi ;;
+    *)
+      echo "ERROR: DB_ROUTE must be auto, direct or pooler (got '$DB_ROUTE')." >&2
+      exit 1 ;;
+  esac
   export SUPABASE_DB_URL
 }
 
 # Announce the target before any step writes anything — the one
 # habit that keeps a partial deploy from hitting the wrong database.
+#
+# The ROUTE is announced too, because the two doors have different failure
+# modes and "which one am I on" should never need working out from a
+# hostname you half-read.
 announce_target() {
   echo "    project : ${PROJECT_REF}"
   if [[ -n "$SUPABASE_DB_URL" ]]; then echo "    database: $(mask "$SUPABASE_DB_URL")"; fi
+  if [[ -n "$DB_ROUTE_USED" ]]; then echo "    route   : ${DB_ROUTE_USED}"; fi
 }
