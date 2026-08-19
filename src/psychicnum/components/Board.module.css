@@ -94,13 +94,13 @@
 .correct {
   --tile-bg-color: var(--outcome-won-fill-color);
   --tile-border-color: var(--outcome-won-edge-color);
-  --tile-ink-color: #fff;
+  --tile-ink-color: var(--ink-on-dark-color);
 }
 
 .incorrect {
   --tile-bg-color: var(--outcome-lost-fill-color);
   --tile-border-color: var(--outcome-lost-edge-color);
-  --tile-ink-color: #fff;
+  --tile-ink-color: var(--ink-on-dark-color);
 }
 
 /* Positioning context for the identity dot below. (The shared in-flight dim and

@@ -114,19 +114,19 @@
 .bgNeutral {
   --tile-bg-color: var(--codenamesduet-neutral);
   --tile-border-color: var(--codenamesduet-neutral);
-  --tile-ink-color: #fff;
+  --tile-ink-color: var(--ink-on-dark-color);
 }
 .bgAgent {
   --tile-bg-color: var(--codenamesduet-agent);
   --tile-border-color: var(--codenamesduet-agent);
-  --tile-ink-color: #fff;
+  --tile-ink-color: var(--ink-on-dark-color);
 }
 .bgAssassin {
   /* Real Duet uses black for the assassin; we use red because "red = wrong
    * pick" reads more obviously on screen than "black = ominous." */
   --tile-bg-color: var(--codenamesduet-assassin);
   --tile-border-color: var(--codenamesduet-assassin);
-  --tile-ink-color: #fff;
+  --tile-ink-color: var(--ink-on-dark-color);
 }
 
 /* Pending (the guess RPC is in flight): an accent ring, distinct from the shared

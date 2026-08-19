@@ -330,6 +330,57 @@ describe('no unnamed colors', () => {
   })
 
   /**
+   * And a COMPONENT may not hold a colour value at all — only a reference.
+   *
+   * This is the blind spot of the rule above, stated as its own rule. `--x: #fff`
+   * IS a custom-property definition, so it passes cleanly, and twelve boards used
+   * exactly that shape to write a raw white into `--tile-ink-color` while
+   * `--ink-on-dark-color` sat in theme.css meaning the same thing. The value had a
+   * SLOT but no NAME, and a second theme could reach nine of the whites and not
+   * the other twelve.
+   *
+   * So: values live in a `theme.css` — common's if the colour is shared, the
+   * game's if it is brand — and a `.module.css` references them. That is the
+   * audit preference docs/colors-refinement.md records, made checkable now that
+   * it is true everywhere but one deliberate exception.
+   *
+   * SHADOWS ARE NOT COLOURS and are exempt: a shadow is a composite of geometry
+   * and an alpha black, and the same doc says a component may keep its own where
+   * it is close-but-not-equal to the shared one, with a note. The keyboard's two
+   * are exactly that — a keycap sits closer to the page than a tile does, and
+   * collapsing them onto the tile's would be the silent restyle the collapse rule
+   * warns about.
+   */
+  const VALUE_IN_A_COMPONENT = new Set([
+    // A layout-debugging affordance, transparent at rest, kept on purpose and
+    // documented at the declaration. It is a knob rather than a colour: the
+    // whole point is to raise its alpha by hand while working on the column.
+    '--board-col-debug-tint-color',
+  ])
+
+  it('a component module references colors, never holds one', () => {
+    const offenders: string[] = []
+    for (const f of walk(SRC, ['.css'])) {
+      if (!f.endsWith('.module.css')) continue
+      const css = stripComments(readFileSync(f, 'utf8')).replace(/url\([^)]*\)/g, 'url()')
+      for (const chunk of css.split(/[;{}]/)) {
+        const i = chunk.indexOf(':')
+        if (i < 0) continue
+        const prop = chunk.slice(0, i).trim()
+        const value = chunk.slice(i + 1).trim()
+        if (!prop.startsWith('--') || prop.endsWith('-shadow')) continue
+        if (VALUE_IN_A_COMPONENT.has(prop)) continue
+        if (COLOR.test(value)) offenders.push(`${rel(f)}  ${prop}: ${value.slice(0, 50)}`)
+      }
+    }
+    expect(
+      offenders,
+      `A color VALUE in a component module. Move it to a theme.css and reference ` +
+        `it — or, if the value already has a name there, use that name:\n${offenders.join('\n')}`,
+    ).toEqual([])
+  })
+
+  /**
    * And no `var()` may fall back to a COLOR.
    *
    * ui.md already forbids colour fallbacks; this is what makes that true, and it

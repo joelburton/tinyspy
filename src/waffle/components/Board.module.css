@@ -117,17 +117,17 @@
 .wordleGreen {
   --tile-bg-color: var(--wordle-green-fill-color);
   --tile-border-color: var(--wordle-green-edge-color);
-  --tile-ink-color: #fff;
+  --tile-ink-color: var(--ink-on-dark-color);
 }
 .wordleYellow {
   --tile-bg-color: var(--wordle-yellow-fill-color);
   --tile-border-color: var(--wordle-yellow-edge-color);
-  --tile-ink-color: #fff;
+  --tile-ink-color: var(--ink-on-dark-color);
 }
 .wordleGray {
   --tile-bg-color: var(--wordle-gray-fill-color);
   --tile-border-color: var(--wordle-gray-edge-color);
-  --tile-ink-color: #fff;
+  --tile-ink-color: var(--ink-on-dark-color);
 }
 /* Not a played state: a waffle tile always has a color once the board loads,
  * and a hole is a `.hole` span rather than a tile. `.blank` is only what a tile
@@ -155,7 +155,7 @@
 .inFlight {
   --tile-bg-color: var(--wordle-gray-fill-color);
   --tile-border-color: var(--wordle-gray-edge-color);
-  --tile-ink-color: #fff;
+  --tile-ink-color: var(--ink-on-dark-color);
 }
 
 /* Turn-history: the two cells the viewed swap moved. Ringed in the shared

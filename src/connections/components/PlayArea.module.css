@@ -156,17 +156,17 @@
 .viewedTile_correct {
   --tile-bg-color: var(--outcome-won-fill-color);
   --tile-border-color: var(--outcome-won-ink-color);
-  --tile-ink-color: #fff;
+  --tile-ink-color: var(--ink-on-dark-color);
 }
 .viewedTile_oneAway {
   --tile-bg-color: var(--outcome-near-fill-color);
   --tile-border-color: var(--outcome-near-ink-color);
-  --tile-ink-color: #fff;
+  --tile-ink-color: var(--ink-on-dark-color);
 }
 .viewedTile_wrong {
   --tile-bg-color: var(--outcome-lost-fill-color);
   --tile-border-color: var(--outcome-lost-ink-color);
-  --tile-ink-color: #fff;
+  --tile-ink-color: var(--ink-on-dark-color);
 }
 
 /* Coop "Mistakes remaining ●●●○" — left-justified on the input row below the
