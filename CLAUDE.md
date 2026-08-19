@@ -58,6 +58,13 @@ This **overrides** the general agent default of "no comments unless strictly nec
 
 See [docs/code-conventions.md → Code clarity & docstrings](docs/code-conventions.md#code-clarity--docstrings) for the concrete rules this implies — what to document, what doesn't belong, and the model examples.
 
+## A question is a question
+
+When Joel asks a question, answer the question. Do not assume that because he
+asked something, it's confusing, or should change, or that you should commit to
+phrasing it differently in the future. A question is just that: a question.
+Answer it and don't change things.
+
 ## Audience — friends, not strangers
 
 This is a venue for groups of friends to play games together. It is **not** a public matchmaking platform.
