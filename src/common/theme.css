@@ -712,12 +712,26 @@
   --pill-info-color:          #1976d2;
   --pill-info-tint-color:     color-mix(in oklab, var(--pill-info-color) 8%, var(--page-surface-color));
 
-  /* A toast's left stripe. Cosmetic — the message text carries the meaning — and
-     three copies rather than reaching into the button and outcome palettes for
-     values a toast has no relationship to. */
-  --toast-info-stripe-color:      #1976d2;
+  /* A toast's left stripe — the whole of a toast's colour; the message text
+     carries the meaning. All three are ALIASES: a toast is chrome, and it says
+     the same things chrome says, so it must not be possible for the app to have
+     two blues for "here is some information" or two reds for "something broke".
+     They were three copies until 2026-08-18, byte-identical to these three and
+     free to drift apart for no reason anyone would have chosen.
+
+     `error` points at FAULT, not at destructive — the two share a hex and are
+     deliberately separate names, and a toast is always "something broke" rather
+     than "this will delete something".
+
+     SUCCESS IS THE EXCEPTION, and stays a copy: chrome has no success tone —
+     it grades how consequential an ACTION is (do it / careful / irreversible /
+     get out), and "it worked" is a result, not an action. The green matching
+     `--outcome-won-ink-color` is a coincidence rather than a dependency: a toast
+     saying an import finished is not a game being won, and tuning the colour of
+     winning must not reach into the chat. */
+  --toast-info-stripe-color:      var(--chrome-action-primary-color);
   --toast-success-stripe-color:   #2e7d32;
-  --toast-error-stripe-color:     #b71c1c;
+  --toast-error-stripe-color:     var(--chrome-fault-color);
 
   /* ── ELEVATION (chrome) ───────────────────────────────────────────────────
      Shadows for things that FLOAT above the page — menus, popovers, dialogs.
