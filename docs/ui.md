@@ -420,6 +420,192 @@ Reserving a column while deferring the feature is deliberate and worth distingui
 
 Everything else about the feature stays YAGNI. **Don't pre-engineer the mechanism.**
 
+## The color system
+
+Every color in the app has a **name**, and every name says which **bucket** it
+belongs to. The palette grew a family at a time until nobody could say how many
+colors the app had; the sweep that fixed that (2026-08-17/18) left the naming
+scheme and the rules below, and a page you can look at.
+
+### The grammar
+
+```
+--<bucket>-<thing>-<modifier>-<quality>
+   outcome     lost      fill      color
+   member      purple    dot       color
+   tile        selected  border    width
+```
+
+**The bucket comes first, and it is load-bearing**: it makes a cross-bucket
+borrow look wrong at the call site. `--chrome-destructive-primary-color` in a
+button reads as correct; `--outcome-lost-fill-color` in a button reads as a
+mistake — which is exactly the error the audit kept finding. A leading `--color-`
+would bury the bucket in the middle, where the eye skips it.
+
+**The quality comes last, even for colors** — a closed set (`-color`, `-width`,
+`-radius`, `-gap`, `-duration`, `-shadow`) so we don't grow `-size` / `-thickness`
+/ `-time` as synonyms. Saying it costs the least informative word about sixty
+times and buys two things: nothing has an implicit default you have to know, and
+`grep -- '-color:'` enumerates the whole palette. The evidence it matters is in
+the file: `--tile-border-width` sits beside `--tile-selected-border-color`, and
+only the suffix tells you which is which.
+
+**Scales are the exception and stay quality-first.** `--radius-sm / -md / -lg` is
+not a thing with qualities; the quality *is* the thing. Stated so nobody "fixes"
+`--radius-md` into `--md-radius`.
+
+### The buckets
+
+| bucket | what it answers |
+|---|---|
+| `outcome-*` | how a move or a game went — won · lost · near · warning · neutral |
+| `gamelist-*` | the state of a game as an object in a list (club cards, the crossword picker) |
+| `chrome-*` | controls: the four tones, plus fault / cursor / link / caret / badge / disabled |
+| `pill-*` | the feedback pill's seven tones |
+| `toast-*` | a toast's left stripe |
+| `view-*` | what you are looking at — history, share-preview |
+| `mark-*` | the board-feedback vocabulary ([tile-feedback.md](tile-feedback.md)) — dims, attention, flash durations, the grid cursor |
+| `member-*` | player identity, one per value of `common.profiles.color` |
+| `gamemode-*` | coop vs compete |
+| `page-*`, `control-*` | page furniture and form chrome |
+| `tile-*`, `kbd-*`, `rank-*` | the warm tile ramp, the on-screen keyboard, the word-rank ladder |
+| `wordle-*` | the letter-judgement palette, shared by wordle and waffle |
+| per-game | **brand** colors, in that game's own `theme.css` |
+
+`wordle-*` is the one family named for colors rather than meanings, deliberately:
+"wordle green" is a phrase people say, so the name is read at speed where
+`-correct-` would have to be translated. The prefix is what keeps it honest — a
+pink-mode wordle still has a *wordle green* — and it disambiguates in code, where
+plain `green` is already a **player's identity color**. See
+[`tileColor.ts`](../src/common/lib/color/tileColor.ts), whose values are also the
+CSS class names, which is why the prefix lives in the type and not only in the
+stylesheet.
+
+### A family is a complete grid
+
+A family is a set of MEMBERS that each carry the same set of VARIANTS. The
+variant list differs per family — the tile ramp's two look nothing like the chrome
+tones' five — but **within one family it is the same list for every member,
+always.** A member missing a variant means the family isn't one.
+
+That includes cells nothing consumes yet. A family picked at one sitting is picked
+by one formula; a value derived alone in two years, next to the one button that
+needed it, is reasoned about differently and drifts out of family. `quiet` is the
+case that proves it — it spent months as an outline-only tone on a claim that was
+true of *Cancel the button* and false of *quiet the tone*, which made
+`tone="quiet" weight="primary"` paint itself blue.
+
+**We reserve cells, not concepts.** Filling a grid completes a formula already
+chosen; adding a *member* invents a meaning, and that waits for a real use.
+
+**[`/palette`](../src/common/components/palette/palette.ts) is how this holds.**
+It renders every family, members × variants, and it ships (unlinked, no session
+needed) so you can look at a family side by side when tuning one. It is also the
+mechanism: it references every token, so a reserved cell has a reader and the
+dead-token guard keeps its teeth everywhere else; and a token deleted out from
+under it becomes a phantom reference, which the same guard fails on. Its data file
+spells every token out in full inside `var(…)` — a name built from a template
+collapses to a prefix in the scanner and stops guarding anything.
+
+### The five outcome variants
+
+| variant | for |
+|---|---|
+| **`-ink`** | text, and thin lines on a light ground: a pill's border, a verdict word, an outline ring. Must stay recognizably ITS color when thin |
+| **`-fill`** | filling a piece: a verdict tile, a turn-log outcome bar. The tier a player meets most often |
+| **`-edge`** | the border on a piece wearing `-fill`. Quiet definition, not a ring: barely darker than the fill it edges |
+| **`-terminal-frame`** | the band around a board that is no longer a live position. Big areas, so it reads as a band without shouting the outcome at full saturation |
+| **`-wash`** | a much lighter version of the same message |
+
+**Role names, not lightness names**, for the same reason tokens are semantic:
+`-pale` becomes the *darkest* thing on screen the moment a dark theme lands.
+
+**A decided piece takes `-fill`, not `-wash`** — the result palette at full
+saturation, so the decided color carries the same message as the game's other
+outcome signals. psychicnum once used the pale tier and it read as a weaker,
+different signal from its own guess outcomes.
+
+### Every color has a NAME
+
+**A color literal or expression may appear only in a `--…:` line** — never at a
+use site. This is "no magic numbers, make a named constant", with a much smaller
+self-evident-value exception: `#fff` looks like a primitive and isn't (white is a
+design decision), while `transparent`, `currentColor` and `inherit` carry no
+decision at all. It covers expressions too — a `color-mix()` at a use site is the
+same problem wearing a function.
+
+**And a component module may reference a color, never hold one.** Values live in a
+`theme.css` — common's when shared, the game's when brand. This is the first
+rule's blind spot stated as its own rule: `--tile-ink-color: #fff` *is* a `--…:`
+line, so it passes cleanly, and twelve boards used exactly that shape to write a
+raw white while `--ink-on-dark-color` sat in the theme meaning the same thing. The
+value had a slot but no name, and a second theme would have reached nine of the
+whites and silently left twelve behind. Shadows are exempt: a shadow is geometry
+plus an alpha black, and a component may keep its own where it is
+close-but-not-equal to the shared one, with a note.
+
+Necessary, not sufficient: `--crosswords-wrong: #d33` passes cleanly and is
+exactly the drift the audit found. A machine catches a magic number; only a person
+catches a bad name.
+
+### Alias when it's a dependency, copy when it's a coincidence
+
+An alias is right when *the two differing would be a bug*.
+`--gamelist-won-color: var(--outcome-won-fill-color)` is the canonical case: a
+game shown as won on the club page and a game won on the board say the identical
+thing. That holds even though one is a 4px stripe and the other a whole tile face
+— **a rendering difference does not make a coincidence.** If a thin stripe needed
+a lighter green to read, that is a variant within the won family, not a licence to
+decouple.
+
+A copy is right when two messages merely agree today. `--chrome-fault-color` and
+`--chrome-destructive-primary-color` are one red, but "this will delete something"
+and "something broke" are different sentences, and either is free to move.
+
+**A COPY KEEPS THE SAME HEX.** Copying decouples the *name*; it never means
+inventing another shade. Without that half the rule reads backwards and inflates
+the palette it exists to shrink. Two names on one value is usually right, and it
+keeps a future theme at 100 colors to change rather than 200.
+
+**So the default is COPY, and an alias has to earn itself**, because the two
+mistakes aren't symmetric: a forgotten copy mints a stray hex, which is one grep
+away from being noticed; a wrong alias silently moves something you weren't
+looking at, in a part of the app you had no reason to open.
+
+"Uncertain" means uncertain about the MESSAGE, not the value. If you're reaching
+for an alias because a hex already exists, that's the coincidence case.
+
+### The rest
+
+- **No cross-bucket borrowing.** A control does not use an outcome color; a game
+  list does not use a chrome color. Where the hexes agree, that is what aliasing
+  (or copying) is for. The prefixes make a violation visible in review.
+- **Hand-picked or computed — both named, and the choice has a test.** Does the
+  value need to *track its source automatically*, or to be *right per hue*? An
+  `-edge` is a small relative step and computes cleanly; an `-ink` is hand-picked,
+  because gold text on white needs far more darkening than red to reach the same
+  legibility, and oklab equalizes lightness rather than legibility. A hand-picked
+  value carries its reason in the token's comment.
+- **Collapsing a lookalike onto a shared token needs CERTAINTY, not a hex match.**
+  The value matches, *and* the role matches, *and* nothing claims a reason for it
+  being its own thing. Otherwise leave it — named, but unmoved — and let the
+  decision happen when that game is on screen. A wrong collapse is invisible until
+  someone plays that game and finds a color they can't explain.
+
+### What's machine-checked
+
+[`src/cssTokens.test.ts`](../src/cssTokens.test.ts) fails when: a `var()` names a
+token nothing defines; a defined token has no reader; a chrome tone is short one
+of its five values, or any tone token says "fill"; a color literal sits outside a
+`--…:` line; a component module holds a color value; a `var()` falls back to a
+color; or a `cursor: pointer` out-ranks the disabled cursor.
+[`palette.test.ts`](../src/common/components/palette/palette.test.ts) fails when a
+family stops being a rectangle, and
+[`tileColor.test.ts`](../src/common/lib/color/tileColor.test.ts) fails when a
+stylesheet indexed by a `TileColor` doesn't define every class — which no
+rendering test can catch, since `css: false` in vitest means a CSS module is a
+proxy that fabricates any class name asked of it.
+
 ## Two vocabularies
 
 A token or class goes one of two places, and the two don't mix.
@@ -743,9 +929,9 @@ reason (below).
 
 | token | role |
 |---|---|
-| `--tile-1-color` … `--tile-5-color` (+ `-border`) | the ramp, lightest → darkest |
+| `--tile-1-color` … `--tile-5-color` (+ `-edge-color`) | the ramp, lightest → darkest |
 | `--tile-3-color` = `--tile-bg-color` | **the normal tile** — what most games use at rest |
-| `--tile-disabled-color` (+ `-border`) | a darker shade **past** the ramp, for "disabled / missing / spent" (e.g. a scrabble rack tile already on the board) |
+| `--tile-disabled-color` (+ `-edge-color`) | a darker shade **past** the ramp, for "disabled / missing / spent" (e.g. a scrabble rack tile already on the board) |
 | `--mark-attention-tile-color` | a **translucent warm-yellow OVERLAY** — stack it over any shade (`background: linear-gradient(var(--mark-attention-tile-color), var(--mark-attention-tile-color)), <fill>`) to mark a tile "lighter + more yellow" without leaving the family (scrabble's just-placed / turn-viewer tiles) |
 | `--mark-grid-cursor-color` | the shared keyboard/crossword **entry-cursor** ring (orange-brown, deliberately not red/blue since scrabble's premium squares use those) — scrabble, bananagrams |
 
@@ -774,12 +960,10 @@ mutually exclusive with the selected dark-fill (a decided tile is `disabled`, so
 it's never both).
 
 The fill is the game's **result palette at full saturation**, not a washed-out
-pastel — the decided color should obviously carry the *same message* as the
-game's other outcome signals. So psychicnum's decided tiles use the saturated
-`--outcome-*-fill-color` green/red (the exact tone the TurnLog outcome bars
-use), and connections' use the four saturated rank colors of the bands. (An
-earlier psychicnum used the pale `--outcome-*-wash-color` tier, which read as a
-different, weaker signal than its own guess outcomes — fixed.)
+pastel — psychicnum's decided tiles use `--outcome-*-fill-color` (the exact tone
+the TurnLog outcome bars use), and connections' use the four saturated rank
+colors of the bands. The rule and the reason live in
+[The five outcome variants](#the-five-outcome-variants).
 
 A *transient* flash (a brief pop on a just-made move) is a different thing —
 prefer the permanent fill when the result is durable.
@@ -789,8 +973,8 @@ resting fill (the default for an untouched tile everywhere) assumes a game's
 *result* colors read as distinct from it. codenamesduet is the one deliberate
 exception: its neutral (bystander) result is a warm tan (`#b4986e`) close enough
 to the beige that an unrevealed beige tile would read as "guessed neutral," so it
-sets never-revealed tiles to a lighter, greyer warm off-white (`#f4f1ec`) — still
-in the tile-color family, just clearly distinct from the tan. Default everywhere
+sets never-revealed tiles to `--tile-1-color`, the lightest shade of the ramp —
+still in the tile family, just clearly distinct from the tan. Default everywhere
 else stays the shared beige; deviate only when a result color forces it. See
 [codenamesduet.md → Board tile colors](games/codenamesduet.md#board-tile-colors).
 

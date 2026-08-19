@@ -17,7 +17,7 @@
  *
  * The tones are CHROME's, not the outcome palette's: a control saying "this is
  * irreversible" is a different question from a game saying "you lost", even
- * where the two hexes agree today (docs/colors-refinement.md).
+ * where the two hexes agree today (docs/ui.md → The color system).
  *
  * ALL FOUR tones get a class, quiet included. It is the default in theme.css, so
  * a quiet SECONDARY would work without one — but the default primary slots are

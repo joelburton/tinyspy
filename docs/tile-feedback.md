@@ -462,7 +462,7 @@ convert:
 
 - **Not an outcome colour.** It needs a colour of its own, outside the won / lost /
   near / warning families, precisely so it can never be read as a judgement of a
-  move (see [colors-refinement.md](colors-refinement.md), which reserves the
+  move (see [ui.md → The color system](ui.md#the-color-system), which reserves the
   question).
 - **Never a fill.** A filled tile reads as a verdict, and that is the one thing
   this must not say. An edge or a ring, leaving the piece itself untouched.
@@ -720,6 +720,27 @@ Cross-cutting, not owned by any one game:
 | in-flight marks | was "missing in all but three games"; now shared (`.dimInFlight`) and worn by the four converted ones. Still absent everywhere else |
 | identity, transient | DONE as a CHANNEL, local as an implementation — connections draws `.peerPick`, an inset border in the picker's colour held clear of the selection edge. It lived in common until the palette sweep and moved into connections: one user, and crosswords' peer cursor will differ in inset and thickness, so promote on evidence |
 | the shared tile | see the next section — nine boards still roll their own |
+
+### The color question each conversion inherits
+
+The 2026-08-17 color census measured every stylesheet against the nearest shared
+token and deliberately **answered almost nothing**: collapsing a lookalike needs
+certainty, not a hex match, and certainty needs the game on screen
+([ui.md → The color system](ui.md#the-color-system)). So each conversion inherits
+one question. **Nothing here is a to-do** — it is what to look at when that game's
+turn comes.
+
+| game | the question |
+|---|---|
+| **codenamesduet** | the clearest *do not collapse*: `--codenamesduet-agent` is byte-identical to `--outcome-won-ink-color` and `-agent-key` to the fill. They are the KEYCARD vocabulary, not outcomes, and the identical hex is what makes collapsing tempting and wrong. Confirm and say so in the token |
+| **crosswords** | the biggest register — header/row grays, a cursor a hair off the old active border, clue-num and pencil grays that are control grays. Plus `--crosswords-wrong`, marked in the token: brand, or the shared outcome red? |
+| **scrabble** | the premium-square palette is brand and stays. `--scrabble-tile-selected` `#ffd24d` sits near the attention yellow — is a selected rack tile *attention*, or its own thing? |
+| **setgame** | `-leaving-bg` / `-arriving-bg` / `-held-veil` are the pre-vocabulary ancestors of attention and the in-flight dim. They fold in here, not before |
+| **strands** | `--strands-missed` and `--strands-hint-ring` are UI grays wearing brand names — they would not change if strands' purple changed. Candidates for common; its purples are genuinely brand |
+| **bananagrams** | its tile palette sits *near* the warm ramp without being it. `--bananagrams-error` is marked in the token, and the drop-target greens are the prospective-verdict colors this vocabulary will want |
+| **spellingbee + wordwheel** | near-twins by design: one accent is byte-identical to a shared rank fill, the other a red near `--member-red-dot-color`, and both carry `-used` / `-edge` variants that look like the `-edge` tier by another name. **One decision covering both**, at whichever converts first |
+| **letterboxed** | **may a `-wash` fill a game piece?** Its already-used letter is the only piece wearing one, and the entire wash tier rests on that single consumer. The likely answer is yes — a way to tint a piece with a very subtle outcome color — but it is undecided |
+| **boggle · wordiply · stackdown** | nothing to decide. One brand color each, or (stackdown) none at all |
 
 ## Per-game check: is this board's tile the SHARED tile?
 

@@ -136,11 +136,12 @@ describe('CSS custom-property tokens', () => {
 /**
  * Guard: the four chrome tones are a COMPLETE GRID, named for their treatment.
  *
- * Two decisions live here because prose couldn't hold them. Both were made, both
- * were written down in docs/colors-refinement.md, and both were then quietly
- * undone by a later pass that renamed its way past them — after which the doc got
- * a "superseded" banner to match the code rather than the code being brought back
- * to the decision. A test is the version of a decision that argues back.
+ * Two decisions live here because prose couldn't hold them. Both were agreed,
+ * both were written down, and both were quietly undone by a later pass that
+ * renamed its way past them — after which the doc was stamped "superseded" to
+ * match the code, rather than the code being brought back to the decision. A test
+ * is the version of a decision that argues back. The rules themselves are in
+ * docs/ui.md → The color system.
  *
  * ONE — every tone carries all five values, whether or not anything reads them
  * yet. A family picked at one sitting is picked by one formula; a value derived
@@ -293,7 +294,7 @@ describe('the chrome tones are complete', () => {
  * and is exactly the drift the 2026-08-17 audit found: a machine can catch a
  * magic number, but only a person catches a bad name. The human half — brand, or
  * a UI colour that belongs in common? — is asked per game as each converts
- * (docs/colors-refinement.md).
+ * (docs/ui.md → The color system).
  */
 describe('no unnamed colors', () => {
   // Values that carry no design decision, so naming them would be noise.
@@ -341,7 +342,7 @@ describe('no unnamed colors', () => {
    *
    * So: values live in a `theme.css` — common's if the colour is shared, the
    * game's if it is brand — and a `.module.css` references them. That is the
-   * audit preference docs/colors-refinement.md records, made checkable now that
+   * audit preference docs/ui.md → The color system states, made checkable now that
    * it is true everywhere but one deliberate exception.
    *
    * SHADOWS ARE NOT COLOURS and are exempt: a shadow is a composite of geometry

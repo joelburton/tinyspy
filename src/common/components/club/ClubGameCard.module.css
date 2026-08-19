@@ -276,7 +276,7 @@
  * It used to fill itself with the LOST outcome's wash and edge — an outcome
  * palette on a control, for a button where nobody has lost anything. It is now
  * the plain destructive treatment every other irreversible control wears: the
- * tone on the text and the border, no fill (docs/colors-refinement.md). */
+ * tone on the text and the border, no fill (docs/ui.md → The color system). */
 .deleteButtonActive {
   opacity: 1;
   width: auto;

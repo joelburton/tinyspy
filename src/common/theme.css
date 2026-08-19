@@ -62,7 +62,7 @@
 
      Hover changes the BACKGROUND and nothing else — no lift, no shadow, because
      depth belongs to game pieces. That is also why neither hover token says
-     "-bg-": it would repeat a constant. See docs/colors-refinement.md. */
+     "-bg-": it would repeat a constant. See docs/ui.md → The color system. */
 
   /* FIVE VALUES PER TONE — all four tones, always, whether or not anything reads
      them yet. Every one is derived from the primary in oklab, so a tone can never
@@ -316,7 +316,7 @@
      cells are RESERVED — do not delete them as dead CSS.
 
      The mapping from a per-gametype play_state to an outcome family is each
-     game's own responsibility. See docs/colors-refinement.md. */
+     game's own responsibility. See docs/ui.md → The color system. */
   --outcome-won-ink-color:            #2e7d32;  /* green 800 */
   --outcome-won-fill-color:           #66bb6a;  /* green 400 */
   --outcome-won-edge-color:           #569d59;  /* the fill, 16% toward black */
@@ -587,7 +587,7 @@
   /* ── ON-SCREEN KEYBOARD (the shared <GuessKeyboard>: wordle + wordiply) ───
      The keycap's own chrome. The JUDGED keys are not here — they wear the
      `--wordle-*` palette below, by name, because that is whose judgement they are
-     showing (docs/colors-refinement.md).
+     showing (docs/ui.md → The color system).
 
      ⌫ is JUST A KEY: it used to wear a darker edge to read as a control rather
      than a letter, and that distinction turned out not to be worth making — it is
@@ -772,7 +772,7 @@
      Only the values four or more places already agreed on are shared here. Where
      a component's shadow is close-but-not-equal it keeps its own local token and
      a note, because collapsing on similarity is how you silently restyle a
-     surface nobody was looking at (docs/colors-refinement.md). */
+     surface nobody was looking at (docs/ui.md → The color system). */
   --shadow-popover:           0 8px 24px rgb(0 0 0 / 18%);
   /* A dialog sits further off the page than a menu does. */
   --shadow-dialog:            0 12px 48px rgb(0 0 0 / 35%);
@@ -782,7 +782,7 @@
      similarity: the notice is deliberately fainter (8%), the floating panel
      lighter than a menu (12%), and a toast heavier and tighter (0 4px 16px/30%).
      Each is one edit away from joining the family if someone decides they should.
-     See docs/colors-refinement.md → collapsing needs certainty, not similarity. */
+     See docs/ui.md → The color system (collapsing needs certainty, not similarity). */
   --shadow-notice:            0 8px 24px rgb(0 0 0 / 8%);
   --shadow-panel:             0 8px 24px rgb(0 0 0 / 12%);
   --shadow-toast:             0 4px 16px rgb(0 0 0 / 30%);
