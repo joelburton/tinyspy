@@ -535,7 +535,7 @@ describe('waffle PlayArea — a swap in flight', () => {
     expect(tiles[0].className).toMatch(/dimInFlight/)
     expect(tiles[1].className).toMatch(/dimInFlight/)
     // A tile nobody touched keeps its color.
-    expect(tiles[2].className).toMatch(/green/)
+    expect(tiles[2].className).toMatch(/wordleGreen/)
 
     // The did-I-misclick re-tap (same two tiles — the reverse swap) is dropped.
     await user.click(tiles[0])

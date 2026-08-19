@@ -15,11 +15,11 @@ import type { TileColor } from '../../common/lib/color/tileColor'
  */
 export function revealVar(c: TileColor): string | undefined {
   switch (c) {
-    case 'green':
+    case 'wordleGreen':
       return 'var(--wordle-green-fill-color)'
-    case 'yellow':
+    case 'wordleYellow':
       return 'var(--wordle-yellow-fill-color)'
-    case 'gray':
+    case 'wordleGray':
       return 'var(--wordle-gray-fill-color)'
     default:
       return undefined
@@ -41,11 +41,11 @@ export function revealVar(c: TileColor): string | undefined {
  */
 export function revealBorderVar(c: TileColor): string | undefined {
   switch (c) {
-    case 'green':
+    case 'wordleGreen':
       return 'var(--wordle-green-edge-color)'
-    case 'yellow':
+    case 'wordleYellow':
       return 'var(--wordle-yellow-edge-color)'
-    case 'gray':
+    case 'wordleGray':
       return 'var(--wordle-gray-edge-color)'
     default:
       return undefined
@@ -57,11 +57,11 @@ export function revealBorderVar(c: TileColor): string | undefined {
  *  gray). Higher = stronger. */
 export function colorRank(c: TileColor): number {
   switch (c) {
-    case 'green':
+    case 'wordleGreen':
       return 3
-    case 'yellow':
+    case 'wordleYellow':
       return 2
-    case 'gray':
+    case 'wordleGray':
       return 1
     default:
       return 0

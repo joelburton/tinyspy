@@ -51,7 +51,7 @@ describe('buildWordlePrintModel — the target is a secret', () => {
 describe('buildWordlePrintModel — the board', () => {
   it('maps the server colour codes to tile states', () => {
     const m = buildWordlePrintModel({ ...base, guesses: [g({ guess: 'slate', colors: 'xgyxg' })] })
-    expect(m.tracks[0].rows[0].states).toEqual(['gray', 'green', 'yellow', 'gray', 'green'])
+    expect(m.tracks[0].rows[0].states).toEqual(['wordleGray', 'wordleGreen', 'wordleYellow', 'wordleGray', 'wordleGreen'])
     expect(m.tracks[0].rows[0].letters).toEqual(['S', 'L', 'A', 'T', 'E'])
   })
 
@@ -70,7 +70,7 @@ describe('buildWordlePrintModel — the keyboard', () => {
       guesses: [g({ guess: 'aaaaa', colors: 'xxxxx' }), g({ guess: 'aaaaa', colors: 'gxxxx' })],
     })
     // Grey then green → green wins (colorRank), not "last one seen".
-    expect(m.tracks[0].keys.get('A')).toBe('green')
+    expect(m.tracks[0].keys.get('A')).toBe('wordleGreen')
   })
 
   it('never pools one player’s letters into another’s keyboard', () => {
@@ -83,7 +83,7 @@ describe('buildWordlePrintModel — the keyboard', () => {
       ],
     })
     const [mine, theirs] = m.tracks
-    expect(mine.keys.get('S')).toBe('green')
+    expect(mine.keys.get('S')).toBe('wordleGreen')
     // moth never played S — pooling would have handed them my deduction.
     expect(theirs.keys.has('S')).toBe(false)
   })

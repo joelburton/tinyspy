@@ -64,12 +64,12 @@ const GREEN_FILL = 105
 export function drawTile(doc: jsPDF, t: TileBox): void {
   const { x, y, size, state } = t
 
-  if (state === 'yellow' || state === 'green') {
-    const level = state === 'green' ? GREEN_FILL : YELLOW_FILL
+  if (state === 'wordleYellow' || state === 'wordleGreen') {
+    const level = state === 'wordleGreen' ? GREEN_FILL : YELLOW_FILL
     doc.setFillColor(level, level, level)
     doc.setDrawColor(DARK_GREY).setLineWidth(0.6)
     doc.rect(x, y, size, size, 'FD')
-  } else if (state === 'gray') {
+  } else if (state === 'wordleGray') {
     doc.setDrawColor(DARK_GREY).setLineWidth(0.6)
     doc.rect(x, y, size, size, 'S')
   } else if (t.outlineBlank) {
@@ -85,7 +85,7 @@ export function drawTile(doc: jsPDF, t: TileBox): void {
   // own colour carries anything, and it's a contrast decision, not a code.
   const fontSize = size * 0.58
   doc.setFont('helvetica', 'bold').setFontSize(fontSize)
-  if (state === 'green') doc.setTextColor(255, 255, 255)
+  if (state === 'wordleGreen') doc.setTextColor(255, 255, 255)
   else doc.setTextColor(BLACK)
   doc.text(t.letter.toUpperCase(), x + size / 2, y + size / 2 + fontSize * 0.35, {
     align: 'center',
@@ -104,9 +104,9 @@ export function drawTileLegend(
   size = 9,
 ): number {
   const items: [TileColor, string][] = [
-    ['gray', 'not in word'],
-    ['yellow', 'wrong place'],
-    ['green', 'right place'],
+    ['wordleGray', 'not in word'],
+    ['wordleYellow', 'wrong place'],
+    ['wordleGreen', 'right place'],
   ]
   let cx = x
   items.forEach(([state, label]) => {

@@ -6,8 +6,8 @@ import { colorRank } from './colors'
 
 describe('colorRank', () => {
   it('orders green > yellow > gray > blank (for the keyboard merge)', () => {
-    expect(colorRank('green')).toBeGreaterThan(colorRank('yellow'))
-    expect(colorRank('yellow')).toBeGreaterThan(colorRank('gray'))
-    expect(colorRank('gray')).toBeGreaterThan(colorRank('blank'))
+    expect(colorRank('wordleGreen')).toBeGreaterThan(colorRank('wordleYellow'))
+    expect(colorRank('wordleYellow')).toBeGreaterThan(colorRank('wordleGray'))
+    expect(colorRank('wordleGray')).toBeGreaterThan(colorRank('blank'))
   })
 })

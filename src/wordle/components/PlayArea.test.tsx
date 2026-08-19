@@ -115,6 +115,34 @@ describe('wordle PlayArea — render smoke', () => {
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
   })
 
+  /**
+   * The wiring from a server code to a class key: SLATE against `xxgyx` is s·l
+   * gray, a GREEN, t YELLOW, e gray, and all three judged states must reach the
+   * DOM at both scopes — the board tile and the key for the same letter.
+   *
+   * What it does NOT prove is that those classes EXIST in the stylesheets.
+   * `vitest.config.ts` sets `css: false`, so a CSS module is a proxy that
+   * fabricates `_<key>_<hash>` for whatever key is asked of it — rename
+   * `.wordleYellow` out of the stylesheet and this still passes, which was
+   * checked rather than assumed. That half is guarded statically, against the
+   * files themselves, in common/lib/color/tileColor.test.ts.
+   */
+  it('routes each judged code to its class key, on the board and the keyboard', () => {
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
+      { user_id: 'u1', seq: 0, guess: 'slate', colors: 'xxgyx', is_correct: false },
+    ])
+    render(<PlayArea {...makeCtx()} />)
+    const painted = [...screen.getByRole('grid', { name: /board/i }).querySelectorAll('*')]
+      .map((el) => el.className)
+      .join(' ')
+    expect(painted).toMatch(/wordleGreen/)
+    expect(painted).toMatch(/wordleYellow/)
+    expect(painted).toMatch(/wordleGray/)
+    // The keyboard reads the same vocabulary — `Exclude<TileColor, 'blank'>`.
+    expect(screen.getByRole('button', { name: /^a$/i }).className).toMatch(/wordleGreen/)
+    expect(screen.getByRole('button', { name: /^t$/i }).className).toMatch(/wordleYellow/)
+  })
+
   it('renders the terminal state without crashing', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)

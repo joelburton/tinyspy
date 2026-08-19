@@ -1,24 +1,23 @@
 import { cls } from '../../../lib/util/cls'
+import type { TileColor } from '../../../lib/color/tileColor'
 import styles from './GuessKeyboard.module.css'
 
 const ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'] as const
 
 /**
- * Per-letter feedback tint for a key — a generic three-strength vocabulary
- * (wordle's green / yellow / gray, which is the palette these keys wear). A game that
- * has no per-letter feedback (e.g. wordiply) simply passes no `keyStates`
- * and every key stays neutral.
+ * Per-letter feedback tint for a key: the three JUDGED states of the wordle
+ * palette, which is the palette these keys wear and say so by name. A game with
+ * no per-letter feedback (wordiply) passes no `keyStates` and every key stays
+ * neutral; a non-wordle game that ever tints keys adds its own classes rather
+ * than borrowing these, because "gray" here means *not in the word* — a claim
+ * only a wordle-family game can make.
+ *
+ * Derived from `TileColor` rather than restated, so a key and the board tile
+ * above it can never drift into two vocabularies. Excluding `blank` is the
+ * whole difference between them: a tile can be unjudged, a tinted key cannot —
+ * an untried letter simply carries no tone.
  */
-export type KeyTone = 'green' | 'yellow' | 'gray'
-
-/** Tone → the class that paints it. The keyboard wears the WORDLE palette, and
- *  says so: a non-wordle game tinting keys would add its own classes rather than
- *  borrow these (docs/colors-refinement.md). */
-const TONE_CLASS: Record<KeyTone, string> = {
-  green: styles.wordleGreen,
-  yellow: styles.wordleYellow,
-  gray: styles.wordleGray,
-}
+export type KeyTone = Exclude<TileColor, 'blank'>
 
 type Props = {
   onKey: (letter: string) => void
@@ -88,7 +87,7 @@ export function GuessKeyboard({
               <button
                 key={ch}
                 type="button"
-                className={cls(styles.key, tone && TONE_CLASS[tone])}
+                className={cls(styles.key, tone && styles[tone])}
                 onClick={() => onKey(ch)}
                 disabled={disabled}
                 aria-label={ch}

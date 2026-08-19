@@ -37,13 +37,13 @@
   background: var(--wordle-gray-fill-color);
 }
 
-.green {
+.wordleGreen {
   background: var(--wordle-green-fill-color);
 }
-.yellow {
+.wordleYellow {
   background: var(--wordle-yellow-fill-color);
 }
-.gray {
+.wordleGray {
   background: var(--wordle-gray-fill-color);
 }
 .blank {

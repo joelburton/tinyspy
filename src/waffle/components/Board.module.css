@@ -114,17 +114,17 @@
  * that share these colors share their definition too. It is also what makes
  * SELECTION legible below: a picked-up tile thickens this edge, which needs the
  * edge to be a different color from the fill in the first place. */
-.green {
+.wordleGreen {
   --tile-bg-color: var(--wordle-green-fill-color);
   --tile-border-color: var(--wordle-green-edge-color);
   --tile-ink-color: #fff;
 }
-.yellow {
+.wordleYellow {
   --tile-bg-color: var(--wordle-yellow-fill-color);
   --tile-border-color: var(--wordle-yellow-edge-color);
   --tile-ink-color: #fff;
 }
-.gray {
+.wordleGray {
   --tile-bg-color: var(--wordle-gray-fill-color);
   --tile-border-color: var(--wordle-gray-edge-color);
   --tile-ink-color: #fff;

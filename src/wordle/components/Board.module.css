@@ -133,15 +133,15 @@
  * and codenamesduet use). The border is a slightly DARKER shade of the fill rather
  * than the fill itself — the quiet definition every other surface in this app has,
  * instead of a flat block of color. */
-.green {
+.wordleGreen {
   --tile-bg-color: var(--wordle-green-fill-color);
   --tile-border-color: var(--wordle-green-edge-color);
 }
-.yellow {
+.wordleYellow {
   --tile-bg-color: var(--wordle-yellow-fill-color);
   --tile-border-color: var(--wordle-yellow-edge-color);
 }
-.gray {
+.wordleGray {
   --tile-bg-color: var(--wordle-gray-fill-color);
   --tile-border-color: var(--wordle-gray-edge-color);
 }
