@@ -406,7 +406,7 @@ This rule applies *within each namespace separately*. `--codenamesduet-agent` is
 
 Reference tokens as `var(--page-surface-color)`, never `var(--page-surface-color, #fff)`. We own the entire custom-property namespace, so a fallback can't guard against a third-party theme not setting the token — it can only *mask* one of our own bugs: a typo, or a rename that didn't land everywhere. Worse, the fallback silently drifts (we found `var(--page-text-color, #1a1a1b)` against a real token of `#1a1a1a`), so the day the token *does* fail to resolve you get a subtly-wrong color, not a visible failure.
 
-The safety net is build-time, not a fallback: [`src/cssTokens.test.ts`](../src/cssTokens.test.ts) fails if any `var(--x)` references a token that isn't defined in a stylesheet or set inline from a component. That's the "make missing tokens obnoxious-pink" instinct done one better — it screams in CI before the bug can ship, instead of hoping someone looks at the affected pixel. A missing token is always a bug here; treat the test going red as a real failure, not noise.
+The safety net is build-time, not a fallback: [`src/guards/cssTokens.test.ts`](../src/guards/cssTokens.test.ts) fails if any `var(--x)` references a token that isn't defined in a stylesheet or set inline from a component. That's the "make missing tokens obnoxious-pink" instinct done one better — it screams in CI before the bug can ship, instead of hoping someone looks at the affected pixel. A missing token is always a bug here; treat the test going red as a real failure, not noise.
 
 ### Light theme is the default
 
@@ -594,7 +594,7 @@ for an alias because a hex already exists, that's the coincidence case.
 
 ### What's machine-checked
 
-[`src/cssTokens.test.ts`](../src/cssTokens.test.ts) fails when: a `var()` names a
+[`src/guards/cssTokens.test.ts`](../src/guards/cssTokens.test.ts) fails when: a `var()` names a
 token nothing defines; a defined token has no reader; a chrome tone is short one
 of its five values, or any tone token says "fill"; a color literal sits outside a
 `--…:` line; a component module holds a color value; a `var()` falls back to a
@@ -1068,7 +1068,7 @@ default.* `.button` first carried the shape **and** the filled paint, which made
 `-fill-color` had one layer down. It also cost a cascade dependency, since
 `.secondary` only won by being declared after `.button` at equal weight; now
 exactly one treatment rule matches and nothing overrides anything.
-[`cssTokens.test.ts`](../src/cssTokens.test.ts) holds all three parts: `.button`
+[`cssTokens.test.ts`](../src/guards/cssTokens.test.ts) holds all three parts: `.button`
 declares no color, each treatment declares all of background + border + label,
 and no markup carries `.button` without naming a treatment.
 
@@ -1418,7 +1418,7 @@ that a filled quiet button would out-shout its neighbour, which is a claim about
 one USE promoted into a fact about the TONE — and it made `tone="quiet"` +
 `weight="primary"` silently paint action-blue. Cancel wants the outline because
 **secondary is the right treatment there**, which says nothing about the tone. Two
-guards in [`cssTokens.test.ts`](../src/cssTokens.test.ts) hold the grid and the
+guards in [`cssTokens.test.ts`](../src/guards/cssTokens.test.ts) hold the grid and the
 naming: every tone carries all five, and no tone token may say "fill" — the axis
 is primary/secondary, and the property is always a background. Action-row
 buttons size to their **own icon + label** (`flex: 0 0 auto`), left-aligned — they do

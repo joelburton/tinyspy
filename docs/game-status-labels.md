@@ -264,5 +264,5 @@ OUTCOME (why) · other · facts
 
 Every label is an exhaustive `switch` whose `default` returns the raw play_state, so an
 unrecognized state renders visibly wrong rather than quietly claiming the game is live.
-`UNKNOWN_READS_AS_LIVE` in [`gameStatusLabels.test.ts`](../src/gameStatusLabels.test.ts)
+`UNKNOWN_READS_AS_LIVE` in [`gameStatusLabels.test.ts`](../src/guards/gameStatusLabels.test.ts)
 is now empty and guards against a regression.

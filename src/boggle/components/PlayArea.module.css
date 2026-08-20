@@ -78,7 +78,7 @@
  * column (--avail-w) or the height above the input row (--avail-h). RAISE it
  * (or drop the term) to let the board grow; LOWER it for smaller tiles. A real
  * defined value rather than a commented-out knob + var() fallback, so the token
- * isn't "phantom" (see src/cssTokens.test.ts). Relative units (rem). */
+ * isn't "phantom" (see src/guards/cssTokens.test.ts). Relative units (rem). */
 .boardCol {
   --max-tile-size: 6rem; /* cap = --cols × 6rem + gaps (≈ 32rem at 5×5) */
   --grid-gap: 10px;

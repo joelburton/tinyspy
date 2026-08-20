@@ -27,7 +27,7 @@
  *   → { id }  ·  → { error: fe-error-key, code?: SQLSTATE } (400/401/422/500/502)
  *
  * Errors are fe-error-keys (docs/supabase.md → Server errors; guarded by
- * src/edgeFnErrorKeys.test.ts). Player-reachable, with ERROR_COPY: nyt-auth|
+ * src/guards/edgeFnErrorKeys.test.ts). Player-reachable, with ERROR_COPY: nyt-auth|
  * (the pasted cookie was rejected), nyt-no-puzzle|date|, nyt-fetch| (NYT down
  * or answering garbage). The rest — bad-request, the cookie-jar config
  * problems, create_game's no-row — are copyless faults; a create_game raise

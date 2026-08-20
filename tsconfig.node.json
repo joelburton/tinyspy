@@ -22,7 +22,7 @@
   },
   "include": [
     "vite.config.ts",
-    "src/cssTokens.test.ts",
+    "src/guards/cssTokens.test.ts",
     "src/crosswords/lib/importFile.test.ts",
     // The ambient `declare module 'puzjs'` the upload parser needs — it isn't
     // auto-loaded here (this project lists files explicitly, unlike the app).

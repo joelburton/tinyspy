@@ -15,7 +15,7 @@
  * board grows to the largest square that fits (bounded by --avail-w beside the info
  * column and --avail-h above the rack row). LOWER it (e.g. 2.6rem) to cap tile size.
  * A real value (not a commented-out knob + var() fallback) so the token isn't
- * "phantom" (src/cssTokens.test.ts). Relative units (rem). */
+ * "phantom" (src/guards/cssTokens.test.ts). Relative units (rem). */
 .boardCol {
   --max-tile-size: 999rem; /* effectively uncapped; lower (e.g. 2.6rem) to cap */
   --grid-gap: 2px;

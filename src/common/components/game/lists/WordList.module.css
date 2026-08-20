@@ -43,7 +43,7 @@
    * means the row count is derived from it + the box height. */
   --wl-row-height: 26px;
   /* Column WIDTH as a real defined token (not a `var(--x, fallback)`, which
-   * src/cssTokens.test.ts flags as phantom — see Board.module.css's same note): a
+   * src/guards/cssTokens.test.ts flags as phantom — see Board.module.css's same note): a
    * game/layout can override it, but the default lives here as a concrete value. */
   --wl-col-width: 10.5rem;
   display: grid;

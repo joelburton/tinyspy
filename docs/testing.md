@@ -402,11 +402,47 @@ Getting here surfaced TWO ways a hole can lie, both worth remembering:
 
 ## Repo-wide invariant guards
 
-A couple of tests guard an invariant across ALL schemas/games from a
-hand-maintained registry, so a new game is covered automatically (or forces a
-one-line update) instead of each game needing its own copy:
+Most tests here sit beside their subject — `waffle/lib/colors.test.ts` next to
+`colors.ts`. A guard has no such subject: it sweeps the whole repository, so
+there is nothing to co-locate with. **Those live in `src/guards/`.** They used
+to accrete at the root of `src/` for exactly that reason, which made the
+folder-of-folders look like a folder-of-loose-files.
 
-- **`src/schemaExposure.e2e.test.ts`** (Vitest) — every registered game schema is
+A guard reads the repo off disk (`process.cwd()`-relative, so the CWD is the
+repo root, not the test's folder) and/or imports the game registry, so a new
+game is covered automatically — or forces a one-line update — instead of each
+game needing its own copy. The full set:
+
+| guard | what it sweeps |
+|---|---|
+| `cssTokens` | every stylesheet + `.tsx` in `src/` — token defined ⇄ token read |
+| `noRawServerMessage` | every call site in `src/` — no server `error.message` into a UI sink |
+| `logos` | every `src/<game>/logo.svg` parses as standalone XML |
+| `setupRows` | every game's `lib/setupSummary.ts` (via `import.meta.glob`) |
+| `gameStatusLabels` | every manifest's `labelFor`; regenerates [game-status-labels.md](game-status-labels.md) |
+| `deployLists` | `supabase/config.toml`, `supabase/deploy/env.sh`, `Makefile` vs the registry |
+| `edgeFnErrorKeys` | every `json({ error: … })` in `supabase/functions/` |
+| `serverErrorKeys` | `supabase/sql/` + `supabase/functions/` keys vs `ERROR_COPY` |
+| `schemaExposure.e2e` | the running PostgREST stack, per registered schema |
+| `docLinks` | `docs/`, `plans/`, `CLAUDE.md`, `README.md` link targets |
+
+Two placement notes for a new guard:
+
+- **Paths must be `process.cwd()`-based**, not `__dirname`/file-relative. Both
+  kinds existed when the folder was created and only the file-relative ones
+  broke on the move — `import.meta.glob` is file-relative too, and its keys
+  carry the pattern verbatim (`../<game>/lib/setupSummary.ts`), so a lookup
+  built from the old prefix silently matches nothing.
+- **`tsconfig` placement is per-file, not per-folder.** A guard that imports
+  app code (`games.ts`, a manifest, `common/`) has to stay in the *app*
+  project — moving it to `tsconfig.node.json` drags the browser half of the app
+  into a project with no `dom` lib, no `jsx`, and no `vite/client`. Only a
+  guard that reads the repo and imports nothing from `src/` can live there
+  (today: `cssTokens`).
+
+Three of them in more detail:
+
+- **`src/guards/schemaExposure.e2e.test.ts`** (Vitest) — every registered game schema is
   reachable through PostgREST (the `[api] schemas` exposure that a `db reset`
   doesn't re-read). Derived from the game registry, so a new game is covered for
   free.
@@ -418,7 +454,7 @@ one-line update) instead of each game needing its own copy:
   (live updates die) and an extra one (replication overhead). **Update its
   `expected` list when a hook adds or drops a `postgres_changes` subscription**
   (re-derive with `grep -rn "table:" src`).
-- **`src/docLinks.test.ts`** (Vitest) — every relative markdown link across
+- **`src/guards/docLinks.test.ts`** (Vitest) — every relative markdown link across
   `docs/`, `CLAUDE.md`, and `README.md` resolves: the file exists and a
   `#fragment` matches a real heading. The docs are the cross-linked half of this
   codebase, and a renamed heading breaks a link that still *looks* right in the

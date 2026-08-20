@@ -34,7 +34,7 @@ import type { LetterboxedSetup } from './setup'
  * board worth re-sharing is usually one the game chose.
  *
  * The roster still leads, as it does in every game's recap
- * (`src/setupRows.test.ts` pins that for all of them).
+ * (`src/guards/setupRows.test.ts` pins that for all of them).
  *
  * `sides` is a parameter rather than something read out of `setup` because it
  * lives on the game row — a rolled board never touches the setup blob at all.

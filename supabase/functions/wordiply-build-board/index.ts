@@ -60,7 +60,7 @@
  *   → { error: fe-error-key, code?: SQLSTATE }  (400/401/403/500)
  *
  * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
- * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
+ * guarded by src/guards/edgeFnErrorKeys.test.ts): the FE owns every player-facing
  * word. Two are player-REACHABLE, and only on the custom path — you can type
  * ING (base-too-common) or YAKS (base-too-narrow) — so both carry copy in
  * errorCopy.ts and land on the setup dialog's own error line. The rest

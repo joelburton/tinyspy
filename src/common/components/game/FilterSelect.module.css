@@ -77,7 +77,7 @@
 /* Elevation idiom copied from Menu's popover / DefinitionPopover: surface +
  * border + soft shadow, and the same 1500 tier — above page content, below
  * chat. A literal, not a token: the repo has no z-index scale in theme.css and
- * bans `var()` fallbacks (src/cssTokens.test.ts fails on phantom tokens). */
+ * bans `var()` fallbacks (src/guards/cssTokens.test.ts fails on phantom tokens). */
 /* The list hangs from the trigger's RIGHT edge and opens leftward, always.
  * These filters are only ever placed at the right end of a heading row or
  * column, so right-anchoring is the one correct behavior and not worth a prop

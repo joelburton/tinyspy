@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { games } from './games'
+import { games } from '../games'
 
 /**
  * Every registered game reaches its tables / RPCs through PostgREST via

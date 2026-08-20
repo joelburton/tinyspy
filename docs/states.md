@@ -112,7 +112,7 @@ thing twice. A terminal write states both: `play_state = 'lost_compete'` with
 
 The rule, checkable at a glance: **no `outcome` value may also be a `play_state`
 value.** Pinned by the vocabulary-disjointness test in
-`src/gameStatusLabels.test.ts` (which sweeps this table against the reachable
+`src/guards/gameStatusLabels.test.ts` (which sweeps this table against the reachable
 play_states in its CASES matrix). The whole roster's vocabulary today:
 
 | outcome | the cause it names |

@@ -28,7 +28,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const FUNCTIONS_DIR = join(__dirname, '..', 'supabase', 'functions')
+const FUNCTIONS_DIR = join(__dirname, '..', '..', 'supabase', 'functions')
 
 /** Not yet converted to fe-error-keys. EMPTY as of 2026-08-12 — all thirteen
  *  functions are converted and under enforcement. Stays here as the door for

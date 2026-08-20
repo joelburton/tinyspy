@@ -13,7 +13,7 @@
  *     no width cap  → --max-tile-width: 999rem
  *     no height cap → --max-tile-height: 999rem
  * Don't comment a knob OUT: the token must stay defined, or the calc below breaks
- * and the phantom-token guard (src/cssTokens.test.ts) fails. Example caps:
+ * and the phantom-token guard (src/guards/cssTokens.test.ts) fails. Example caps:
  *     --max-tile-width: 8rem;
  *     --max-tile-height: 12rem;                                                */
 .board {

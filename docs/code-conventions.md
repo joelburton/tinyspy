@@ -433,7 +433,7 @@ src/common/components/chat/FloatingChat.module.css
 
 Six rules that are otherwise only discoverable by reading the code:
 
-1. **No `var()` fallbacks.** Write `var(--token)`, never `var(--token, #ccc)`. We own the whole custom-property namespace, so a missing token is always a bug — and a fallback can only ever *mask* that bug while drifting out of sync with the real value. [`src/cssTokens.test.ts`](../src/cssTokens.test.ts) is the safety net, and it guards **both directions**: every `var()` reference resolves to a definition, and every definition has a reader. A token that's a deliberate vocabulary slot with no caller yet goes in that test's `VOCABULARY_COMPLETENESS` list — which is where the "keep the grid complete" policy is enforced rather than argued. (The `var(--client-width, 100vw)` idiom in `common/` is a different thing: an opt-in *parameter* default, not a color fallback.)
+1. **No `var()` fallbacks.** Write `var(--token)`, never `var(--token, #ccc)`. We own the whole custom-property namespace, so a missing token is always a bug — and a fallback can only ever *mask* that bug while drifting out of sync with the real value. [`src/guards/cssTokens.test.ts`](../src/guards/cssTokens.test.ts) is the safety net, and it guards **both directions**: every `var()` reference resolves to a definition, and every definition has a reader. A token that's a deliberate vocabulary slot with no caller yet goes in that test's `VOCABULARY_COMPLETENESS` list — which is where the "keep the grid complete" policy is enforced rather than argued. (The `var(--client-width, 100vw)` idiom in `common/` is a different thing: an opt-in *parameter* default, not a color fallback.)
 2. **Desktop-first: `@media (--mobile)` blocks override the base rule**, never the reverse. See [`ui.md`](ui.md#audience-and-platform-desktop-first) — a `min-width` media query means a rule got written backwards.
 3. **A component that renders on two surfaces keeps the roomier one as its base rule.** The compressed variant is an override scoped to the surface — e.g. `[data-mobile-status] .stats { … }`, keyed off the attribute `<MobileStatusBar>` already stamps. No media query needed (the bar doesn't exist on desktop) and no `compact` prop to thread through call sites. Writing it the other way round leaks the phone's budget onto a desktop that has room to spare; see [`mobile.md`](mobile.md).
 4. **State classes win by re-setting tokens, not by out-cascading.** A state (`.achieved`, `.dropOk`) should set `--tile-bg-color` and let the base rule consume it, rather than restating `background` at higher specificity.
@@ -637,7 +637,7 @@ carry the flag: prefer `(msg: GenericFeedbackMsg) => void`. `showError` in
 arriving through End / Concede / Restart still wears a pill.
 
 **This is enforced, because being careful wasn't enough.**
-[`noRawServerMessage.test.ts`](../src/noRawServerMessage.test.ts) fails on any
+[`noRawServerMessage.test.ts`](../src/guards/noRawServerMessage.test.ts) fails on any
 `error.message` read that isn't a log, isn't feeding `failureText` /
 `failureMessage`, and isn't in its short justified allowlist. It exists because
 five games shipped briefly showing `no-guesses-left|` as a red pill: their SQL

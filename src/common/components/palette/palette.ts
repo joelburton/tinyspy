@@ -14,7 +14,7 @@
  * A family is picked at one sitting, by one formula, and that includes cells
  * nothing consumes yet: a value derived alone in two years, next to the one
  * button that needed it, is reasoned about differently and drifts out of family.
- * `src/cssTokens.test.ts` fails on a token nobody reads — correctly, since a
+ * `src/guards/cssTokens.test.ts` fails on a token nobody reads — correctly, since a
  * token nobody reads is usually a rename that half-landed. This page reads them,
  * so the guard keeps its teeth everywhere else while the reserved cells survive.
  *

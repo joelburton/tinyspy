@@ -30,7 +30,7 @@
  *   → { id }   ·   → { error: fe-error-key, code?: SQLSTATE } (400/401/422/500)
  *
  * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
- * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
+ * guarded by src/guards/edgeFnErrorKeys.test.ts): the FE owns every player-facing
  * word. Two are player-reachable and carry ERROR_COPY: `no-board-fits|`
  * (unsatisfiable constraint pickers) and `no-required-words|<band>|` (a custom
  * board with nothing to find — SQL's key reused, as freebee does). The rest

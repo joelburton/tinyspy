@@ -53,7 +53,7 @@ Two operational invariants ride on this:
   `supabase/config.toml` `[api] schemas`, and that config is only read at
   `supabase start` — a `db reset` does NOT re-apply it. A missing/unapplied
   schema fails every request with `PGRST106`.
-  [`src/schemaExposure.e2e.test.ts`](../src/schemaExposure.e2e.test.ts)
+  [`src/guards/schemaExposure.e2e.test.ts`](../src/guards/schemaExposure.e2e.test.ts)
   probes every registered game's schema over real HTTP to pin this.
   **The hosted project has its own copy of this list**: `EXPOSED_SCHEMAS` in
   `supabase/deploy/env.sh`, applied by `gmake project-config-api` — config.toml
@@ -482,10 +482,10 @@ refused, so they can only fire against a broken client.
   dictionary rejection returns `{result:'invalid', bad_words}` and stackdown's
   exhausted cheats return `null`; neither appears in this system at all, and
   both are the better design.
-- Guarded by [`serverErrorKeys.test.ts`](../src/serverErrorKeys.test.ts): prose
+- Guarded by [`serverErrorKeys.test.ts`](../src/guards/serverErrorKeys.test.ts): prose
   in a raise FAILS, copy for a key nothing raises FAILS, and the covered /
   uncovered split is printed on every run.
-- And by [`noRawServerMessage.test.ts`](../src/noRawServerMessage.test.ts): a
+- And by [`noRawServerMessage.test.ts`](../src/guards/noRawServerMessage.test.ts): a
   call site that renders `error.message` instead of classifying it FAILS. That
   bypass is invisible without a guard — it defeats the copy table, the fault
   styling and the log together, while looking like perfectly ordinary code.
@@ -520,10 +520,10 @@ contract SQL raises follow, extended over the second server surface:
 - **A rule saying "no" is still an ANSWER, not an error** — crosswords'
   explain-clue returns `{ reason: 'unsolved' }` on a 200 and the FE narrates
   it; that shape is preferred over minting a key wherever it fits.
-- Guarded by [`edgeFnErrorKeys.test.ts`](../src/edgeFnErrorKeys.test.ts):
+- Guarded by [`edgeFnErrorKeys.test.ts`](../src/guards/edgeFnErrorKeys.test.ts):
   every `json({ error: … })` literal must be key-shaped; non-literal values
   need a per-expression justification (never a per-file exemption).
-  [`serverErrorKeys.test.ts`](../src/serverErrorKeys.test.ts) collects keys
+  [`serverErrorKeys.test.ts`](../src/guards/serverErrorKeys.test.ts) collects keys
   from BOTH sources, so edge-only keys with copy aren't orphans.
 - **Fault surfaces vs pill surfaces**: gameplay actions classify via
   `failureMessage` (expected keys → pills); actions with no ordinary way to

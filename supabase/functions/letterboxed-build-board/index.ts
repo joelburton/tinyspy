@@ -64,7 +64,7 @@
  *   → { error: fe-error-key, code?: SQLSTATE }  (400/401/500)
  *
  * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
- * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
+ * guarded by src/guards/edgeFnErrorKeys.test.ts): the FE owns every player-facing
  * word. THREE are player-reachable, and only on the custom path — you can
  * mistype a board (unknown-board / unverified-board) or set the dictionary
  * below what its solution needs (board-needs-band) — so all three carry copy

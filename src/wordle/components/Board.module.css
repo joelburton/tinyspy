@@ -8,7 +8,7 @@
    * Square tiles, so width is the only knob. Relative units (rem). To REMOVE
    * the cap, SET it to 999rem (the calc term goes huge → the grid fills
    * --avail-w). Don't comment it out — the phantom-token guard
-   * (src/cssTokens.test.ts) needs it defined. */
+   * (src/guards/cssTokens.test.ts) needs it defined. */
   --max-tile-width: 3.7rem;
   --grid-gap: 0.35rem;
   --cols: 5;

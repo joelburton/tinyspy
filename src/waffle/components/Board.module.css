@@ -26,7 +26,7 @@
  * so the board tops out at 512px rather than filling all the space beside the
  * info column. RAISE it (or drop the whole term) to let the board grow larger;
  * LOWER it for smaller tiles. Defined outright (not a `var(--x, fallback)`
- * knob) so the token isn't "phantom" — see src/cssTokens.test.ts. Relative
+ * knob) so the token isn't "phantom" — see src/guards/cssTokens.test.ts. Relative
  * units (rem). */
 .board {
   --max-tile-size: 6rem; /* cap = 5×6rem + 4×0.5rem gap = 32rem (512px) */

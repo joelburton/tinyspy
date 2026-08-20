@@ -40,7 +40,7 @@ import { setgameCoopGame, setgameCompeteGame } from './setgame/manifest'
  * listed schemas; a missing one makes every request fail with
  * `Invalid schema: <game>`) — and restart the stack so PostgREST
  * re-reads it (`supabase stop && supabase start`; a `db reset` does
- * NOT re-read `[api]`). `src/schemaExposure.e2e.test.ts` guards this.
+ * NOT re-read `[api]`). `src/guards/schemaExposure.e2e.test.ts` guards this.
  * Removing a game = delete the folder, delete the line(s) below, drop
  * its Postgres schema. Nothing else in the codebase names a specific
  * game directly (the shell iterates this list; common code stays

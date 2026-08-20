@@ -40,7 +40,7 @@
  *   → { error: fe-error-key, code?: SQLSTATE }  (400/401/403/500)
  *
  * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
- * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
+ * guarded by src/guards/edgeFnErrorKeys.test.ts): the FE owns every player-facing
  * word. This function's own keys are all "impossible without an FE bug or a
  * broken environment" (bad-band / no-candidate-words / board-attempts-
  * exhausted / edge-internal), so none carry copy — they render as faults.

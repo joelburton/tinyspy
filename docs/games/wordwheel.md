@@ -445,7 +445,7 @@ entry's `is_pangram` was already the authority everywhere.)
   wheel whose center is duplicated, one occurrence spends the **center first** (the
   outer twin stays clickable), the second spends the twin, and backspace frees the
   twin before the center. Plus the `not enough tiles` reject reason.
-- **`src/logos.test.ts`** (repo-wide) — asserts every game's `logo.svg` parses as valid
+- **`src/guards/logos.test.ts`** (repo-wide) — asserts every game's `logo.svg` parses as valid
   standalone XML. Added after the wordwheel logo shipped once with a `--` (double
   hyphen) in an XML comment, which is illegal and made the file fail to render as an
   `<img>`.

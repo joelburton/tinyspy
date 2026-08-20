@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { games } from './games'
+import { games } from '../games'
 
 /**
  * The hand-maintained lists that have to name every game — checked against the

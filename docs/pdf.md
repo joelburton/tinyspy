@@ -263,7 +263,7 @@ Three rules hold the shape:
 Fourteen games have one. **crosswords is the documented exception**: it never had a
 recap on either surface — no `<SetupDisclosure>`, and its PDF is the whole-cloth ported
 printer with no Setup block — so there was nothing to unify, and adding one would be new
-UI rather than a sweep. `src/setupRows.test.ts` names it explicitly, so the exception is
+UI rather than a sweep. `src/guards/setupRows.test.ts` names it explicitly, so the exception is
 a decision on record rather than a game the guard forgot.
 
 The sweep that introduced this found what a hand-kept convention hides: bananagrams'

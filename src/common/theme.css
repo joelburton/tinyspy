@@ -79,7 +79,7 @@
      one sitting is picked by one formula, where a value chosen alone in two years
      would be reasoned about differently and quietly break the set. So a cell with
      no reader today is still written today. (The same rule the outcome families
-     get — src/cssTokens.test.ts guards both.)
+     get — src/guards/cssTokens.test.ts guards both.)
 
      THE CENTRAL CORRECTION, and the one worth not losing: -primary-hover and
      -secondary are SEPARATE steps down from the primary. They were one value
@@ -1161,7 +1161,7 @@ button:disabled {
   padding: 0.4rem 0.65rem;
   /* Width and style only — the COLOR is the treatment's, below. Split into
      longhands rather than `border: 1px solid transparent` so this rule really
-     does declare no color, which is what src/cssTokens.test.ts checks. */
+     does declare no color, which is what src/guards/cssTokens.test.ts checks. */
   border-width: 1px;
   border-style: solid;
 }

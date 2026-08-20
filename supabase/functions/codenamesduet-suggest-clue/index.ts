@@ -15,7 +15,7 @@
  *      user to review + edit before submitting.
  *
  * Errors are fe-error-keys (`key|detail|` — docs/supabase.md → Server errors;
- * guarded by src/edgeFnErrorKeys.test.ts): the FE owns every player-facing
+ * guarded by src/guards/edgeFnErrorKeys.test.ts): the FE owns every player-facing
  * word. With ERROR_COPY (shown in the clue dialog's message area):
  * ai-clue-declined|, ai-truncated|, ai-malformed|. Copyless faults:
  * bad-request / not-authenticated / no-unrevealed-agents / ai-unconfigured /

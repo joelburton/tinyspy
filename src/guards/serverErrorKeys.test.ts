@@ -23,7 +23,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { ERROR_COPY } from './common/lib/game/errorCopy'
+import { ERROR_COPY } from '../common/lib/game/errorCopy'
 
 const SQL_DIR = 'supabase/sql'
 const FN_DIR = 'supabase/functions'

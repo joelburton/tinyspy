@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { games as GAMES } from './games'
-import { ROSTER_KEY, type SetupRow } from './common/lib/game/setupRows'
-import type { Member } from './common/lib/games'
+import { games as GAMES } from '../games'
+import { ROSTER_KEY, type SetupRow } from '../common/lib/game/setupRows'
+import type { Member } from '../common/lib/games'
 
 /**
  * The roster-wide guard on setup recaps (docs/pdf.md → Setup rows).
@@ -29,7 +29,7 @@ import type { Member } from './common/lib/games'
 /** Modules keyed by game folder — the folder is the manifest's `schema`. */
 const MODULES = import.meta.glob<{
   setupRows: (setup: never, mode: 'coop' | 'compete', players: Member[], ...rest: never[]) => SetupRow[]
-}>('./*/lib/setupSummary.ts', { eager: true })
+}>('../*/lib/setupSummary.ts', { eager: true })
 
 /** Games with NO setup recap on either surface — nothing to unify. */
 const NO_RECAP: Record<string, string> = {
@@ -121,13 +121,13 @@ const BY_SCHEMA = new Map(GAMES.map((g) => [g.schema, g]))
 describe('setup recaps', () => {
   it('every game either has a summary module or is a documented exception', () => {
     const missing = [...BY_SCHEMA.keys()].filter(
-      (schema) => !MODULES[`./${schema}/lib/setupSummary.ts`] && !NO_RECAP[schema],
+      (schema) => !MODULES[`../${schema}/lib/setupSummary.ts`] && !NO_RECAP[schema],
     )
     expect(missing, 'add <game>/lib/setupSummary.ts, or document it in NO_RECAP').toEqual([])
   })
 
   for (const [schema, manifest] of BY_SCHEMA) {
-    const mod = MODULES[`./${schema}/lib/setupSummary.ts`]
+    const mod = MODULES[`../${schema}/lib/setupSummary.ts`]
     if (!mod) continue
 
     describe(schema, () => {

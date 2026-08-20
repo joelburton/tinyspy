@@ -11,7 +11,7 @@
 -- wordwheel) once the Realtime image began enforcing the rule.
 --
 -- This is the single, registry-driven guard for that invariant across
--- the whole app — the model is src/schemaExposure.e2e.test.ts, which
+-- the whole app — the model is src/guards/schemaExposure.e2e.test.ts, which
 -- probes every registered schema through PostgREST. The `expected`
 -- VALUES list below IS the registry: one row per (schema, table) the FE
 -- subscribes to. It is maintained BY HAND to mirror the TS channel

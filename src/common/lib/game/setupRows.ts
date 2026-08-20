@@ -42,7 +42,7 @@ import { timerLabel } from './timerLabel'
  *
  * It's an exception to "controls only", not a loophole in it: a derived number
  * (a word count, a par) still belongs in Help. The test at
- * `src/setupRows.test.ts` doesn't police extra rows, so this costs no opt-out —
+ * `src/guards/setupRows.test.ts` doesn't police extra rows, so this costs no opt-out —
  * but the games' `custom_*` setup keys DO carry a `NOT_A_ROW` entry there,
  * because the override itself isn't the row; the board it produced is.
  */

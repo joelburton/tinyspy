@@ -28,5 +28,11 @@
   // project stays browser-only and app code still can't import `fs` by
   // accident. cssTokens is a CSS meta-test; importFile reads .puz/.ipuz
   // fixtures to exercise the crosswords upload parser.
-  "exclude": ["src/cssTokens.test.ts", "src/crosswords/lib/importFile.test.ts"]
+  //
+  // NOTE this is per-FILE, not the whole `src/guards/` folder, and has to be:
+  // a guard that imports app code (`games.ts`, a manifest, `common/`) pulls
+  // the browser half of the app into this project, which has neither `dom`
+  // nor `jsx` nor `vite/client`. Only a guard that reads the repo and imports
+  // NOTHING from `src/` can live there.
+  "exclude": ["src/guards/cssTokens.test.ts", "src/crosswords/lib/importFile.test.ts"]
 }
