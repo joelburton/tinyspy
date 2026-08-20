@@ -35,8 +35,8 @@ against the system's is work done to be undone. From here, each game takes its
 | | |
 |---|---|
 | started | 2026-08-20 |
-| step | **0, 1, 2 done**; **3 in progress** — the derivation is measured and written (§4.2, §4.3, §4.4). Next: build `palette.css` / `themes.css` / `semantics.css` |
-| blocked on | nothing |
+| step | **0, 1, 2 done**; **3 in progress** — the three-layer model is settled and written (§4.2, §4.3, §4.4). A first attempt built a general-purpose palette and was scrapped; §4.6 records why. Next: build `themes/daylight.css` / `semantic.css` / `fixed.css` |
+| blocked on | two shape questions inside §4.3, both cheap: is `warning` orange or amber, and is `disabled` a sixth role. Both change the theme file's shape, so both come first |
 
 ## 2. Acceptance tests
 
@@ -49,7 +49,7 @@ from its output.
 |---|---|---|---|
 | distinct hexes in `src/` | **171** | ≤ 120 | **below ~120 means investigate, not celebrate**: some of the current set may carry distinctions nobody knew were there |
 | …**written exactly once** | **156** | — | the sharpest number here. Nearly every hex is its own hand-picked decision, which is what makes "~170 decisions → ~25" a real claim rather than a hopeful one |
-| color-token definitions holding a **value** | **260** | ~50 | the palette layer's raw material |
+| color-token definitions holding a **value** | **260** | ~50 | the role layer's raw material — eight families × five-ish roles, plus grounds |
 | …holding a **reference** | **182** | grows | already correctly shaped — the discipline is real, the *count* is the problem |
 | distinct tokens | **375** | should **fall** | if it holds steady while module CSS shrinks, the "tokens substituted for classes" reading was wrong |
 | files holding a hex | **14** | 1 + brand anchors | not 17 — psychicnum's and stackdown's hold none |
@@ -103,7 +103,13 @@ description of what we converged on, not a guess.
 needed. A thin count of consumers today reflects that neither had a reachable
 name, which is this document's whole diagnosis and not evidence against a role.
 
-The two brakes still govern any *sixth*: **would two unrelated meanings reach for
+**Five is where the census landed, not a number defended in advance.** *It is not
+a sin to add a role — we just discuss it first*, and the discussion is the two
+brakes below rather than a burden of proof. `cursor` has since passed them (§4.3)
+and `disabled` is a live candidate. Read this section as a description, not a
+moratorium.
+
+The two brakes govern any *sixth*: **would two unrelated meanings reach for
 it?** and **does it derive, or is it one judgment per hue?** So far `edge` derives
 outright (*the fill, 16% toward `--polarity-away`* — one operation, **eight**
 applications, zero decisions per hue), and `ink` is the expensive one, being where
@@ -121,10 +127,14 @@ Each token is **parts separated by hyphens**, and the hyphen means that and
 nothing else:
 
 ```
---<family>-<member>-<role>-color      --outcome-lost-dullframe-color
---<hue>-<role>                        --red-ink                    (palette layer)
+--<family>-<role>                     --red-ink                    (theme: role → hex)
+--<family>-<member>-<role>-color      --outcome-lost-ink-color     (semantic: meaning → role)
 --<game>-<part>-<role>-color          --spellingbee-hex-fill-color (brand)
 ```
+
+The first two are the two layers of §4.3, and the shape says which is which: a
+name with a MEMBER in it expresses a meaning and holds a `var()`; a name without
+one is a role and holds the hex.
 
 ##### Only the ENDS are parsed, and only they must be one word
 
@@ -370,8 +380,8 @@ originally named**, and the two additions are the finding.
 
 | bucket | holds | example | where it ends up |
 |---|---|---|---|
-| **palette** | a color VALUE | `--red-fill` | `palette.css`, plus per-game `brand.css` |
-| **semantic** | a reference expressing meaning | `--outcome-lost-fill-color` | `semantics.css` |
+| **role** | a color VALUE | `--red-fill` | `themes/<theme>.css`, plus per-game `brand.css`. Exempt values (member, wordle) go to `fixed.css` |
+| **semantic** | a reference expressing meaning | `--outcome-lost-fill-color` | `semantic.css` |
 | **component / brand** | a reference scoped to one place | `--codenamesduet-assassin-color` | its own file |
 | **standard-look** | a non-color design value | a radius, an opacity | mostly **dissolves into named classes** (§5.5) |
 | **contract slot** ⚠️ | nothing — a space a game fills in | `--info-col-width`, `--grid-gap` | stays a token; needs a guard |
@@ -447,166 +457,332 @@ confirmed by counting.** That is the strongest evidence so far that the rule is
 cut along a real joint — and it means step 3 inherits far less mess than the
 171-hexes headline suggests.
 
-### 4.2 — polarity vs theme, and what each decides
+### 4.2 — SETTLED: a theme IS a polarity
 
-**A theme picks VALUES. A polarity picks a DIRECTION.** They are separate because
-almost every rule in this app is written as a direction and stored as a value —
-*"the fill, 16% toward black"*, *"8% over white"*, *"never dim a game piece toward
-the page"* — and every one of those sentences is wrong on a dark page while the
-hex it produced is merely wrong-looking. Splitting them is what makes the
-midnight spike (§7, step 3b) a day rather than a rewrite.
+`daylight` and `cupcake` are light. `midnight` is dark. **There is no theme ×
+polarity cross product** — a theme faces one way, says so, and that statement is
+what every directional rule in the app reads. One file per theme, and no theme
+ever ships in two polarities.
 
-**Polarity is STATED, never inferred.** CSS cannot branch on "is this page's
-lightness above 0.5", and we would not want it to: a theme knows which way it
-faces, and saying so out loud is one line.
-
-| | polarity decides | a theme decides |
-|---|---|---|
-| what it is | which way is *away from the page* | what the page, the ink and each role actually are |
-| how many exist | two, forever | as many as we like |
-| written as | `--polarity-away` / `--polarity-toward` | a block of anchor bindings |
-| moves what | every derivation with a direction in it | every value |
-
-Two tokens carry the whole of it:
+**Why it is stated and never inferred.** CSS cannot branch on *"is this page's
+lightness above 0.5"*, and we would not want it to. A theme knows which way it
+faces; saying so is one line, and inferring it is a rule that goes wrong exactly
+once, silently, in whichever theme sits nearest the middle.
 
 ```css
-/* daylight — a light page */
---polarity-away:   var(--gray-00);   /* black:  away from the page */
---polarity-toward: var(--gray-100);  /* white:  toward it */
+/* daylight — a light theme */
+--polarity-away:   #000;   /* away from the page */
+--polarity-toward: #fff;   /* toward it */
 ```
 
-and a dark theme swaps the two. Then `edge` — *the fill, taken toward away* —
-darkens on daylight and **lightens** on midnight, from one unchanged line. That
-is the entire mechanism, and it is why the role set (§3.1) is worth the trouble:
-`wash · fill · edge · ink · dullframe` are all defined relative to the page, so
-all five follow polarity for free.
+A dark theme swaps those two lines, and every rule written as a DIRECTION
+follows. That is the whole mechanism, and it is why the role set (§3.1) is worth
+the trouble: `wash · fill · edge · ink · dullframe` are all defined relative to
+the page, so all five follow polarity from one definition.
 
-**`--stronger` / `--weaker` (§3.3) are these two wearing an alpha**, and nothing
-more: `--stronger` is a translucent `--polarity-away`, `--weaker` a translucent
-`--polarity-toward`. The three mark dims (in-flight, not-your-turn, game-over)
-become strengths of `--stronger` and stop being three hard-coded blacks. This is
-also where **§6.5's inversion lands**: *never dim a game piece toward the page*
-is enforceable once the two have separate names, because a game piece may read
-`--stronger` and may not read `--weaker`.
+**This is the split the sprint exists for.** Almost every color rule in this app
+was written as a direction and stored as a value — *"the fill, 16% toward
+black"*, *"8% over white"*, *"never dim a game piece toward the page"*. Every one
+of those sentences is WRONG on a dark page, while the hex it produced is merely
+wrong-looking. A hex you can find; a sentence that is quietly backwards you
+cannot.
 
-**What a theme is NOT allowed to move**: the fixed families (§4.5's
-`--wordlelike-*`) and the palette's own physical facts — a gray stop named for
-its lightness is that lightness in every theme. A theme re-points; it does not
-re-define. See §4.3.
+**§6.5's inversion lands here.** *Never dim a game piece toward the page* becomes
+enforceable rather than aspirational: a game piece may move toward
+`--polarity-away` and may not move toward `--polarity-toward`, because fading
+toward the background is the chrome-disabled look a piece must never have.
 
-**Where each lives.** `--polarity-*` is declared inside the theme block in
-`themes.css`, beside `color-scheme`, because a theme that forgot to state its
-polarity would silently inherit the previous one's — which is the
-`--info-col-width` failure mode with the whole page as its blast radius.
+**A note on §3.3.** `--stronger` / `--weaker` were settled as the away-from-page
+overlay before polarity had tokens of its own. With `--polarity-away` and
+`--polarity-toward` written down, `--stronger` is that first token wearing an
+alpha and `--weaker` the second — so the pair may not need to exist as separate
+names at all. Left open until something reads them; two names for one value is
+the thing this document is against.
 
-### 4.3 — the anchors, and what derives from them
+### 4.3 — SETTLED: three layers — role, meaning, and the exempt
 
-**Measured 2026-08-20**, by resolving every color-valued definition in
-`common/theme.css` into OKLCH and testing each documented derivation against the
-value it claims to produce. The findings are below; two of them are corrections
-to prose that has been wrong for a while.
+```css
+/* themes/daylight.css — ROLE → HEX. One file per theme. */
+--red-fill: #ef5350;
+--red-ink:  #c62828;
 
-#### The rule that makes step 3 safe
+/* semantic.css — MEANING → ROLE. Theme-invariant. */
+--outcome-lost-ink-color: var(--red-ink);
+--pill-lost-color:        var(--red-ink);
 
-> **A value becomes a derivation only when the derivation reproduces today's hex
-> BYTE FOR BYTE. Otherwise it stays a hex, with the formula in a comment.**
+/* fixed.css — HEX, no role, no theme. */
+--member-blue-dot-color: #1976d2;
+```
 
-Step 3's exit criterion is *nothing looks different*, and a derivation that is
-"visually identical" is a pixel change we chose not to look at. The rule is
-mechanical, so the sprint's first structural pass cannot smuggle a redesign in
-under it — and the redesign, where one is wanted, becomes its own visible diff
-later.
+#### The semantic layer is NOT a pass-through
 
-**The instrument** is a computed-token snapshot, not the screenshot gallery:
-headless Chrome loads the app, sets `color: var(--x)` on a probe element for
-every color token in turn, and reads back the resolved `rgb()`. Run before and
-after; the two lists must be identical. That resolves `var()` chains,
-`color-mix()` and `oklch()` the way the browser really does, which no
-reimplementation of oklab in Node can promise.
+It looks like one, and the objection is worth answering head-on because the
+answer is the reason this sprint exists.
 
-#### Nine hues, plus gray, plus one ramp
+> **What varies is which red "our red" is. What must NEVER vary is that a pill
+> reporting a loss and a turn-log bar showing one are the SAME red.**
 
-The answer to §12's *"how many hues"*, counted rather than guessed. Every color
-value in `common/theme.css` sorted into OKLCH hue buckets:
+That second fact is a decision, it is made once, and `semantic.css` is the one
+line where it lives. Delete the layer and it stops being stated anywhere: six
+consumers each write `var(--red-ink)`, and re-deciding *"lost is maroon now"*
+means finding every consumer of `--red-ink` and sorting the ones that mean
+**lost** from the ones that mean **destructive** — which is precisely the drift
+the 171 hexes are made of.
 
-| family | hue | who lives there |
-|---|---:|---|
-| `red` | 26.7° | lost, destructive, fault, member-red |
-| `orange` | 48.1° | caution, **warning's ink**, member-brown (the same hue at ⅓ the chroma) |
-| `amber` | 69.8° | **warning's fill/edge/wash**, near, the grid cursor, the current-game stripe, member-orange |
-| `yellow` | 93° | attention (both scopes), the rank bar, the suspended stripe, `--wordlelike-yellow`, member-yellow |
-| `green` | 144.2° | won, the success toast, `--wordlelike-green`, member-green |
-| `teal` | 180.4° | the co-op mode pill — one consumer |
-| `blue` | 253.3° | action, cursor, caret, link, badge, the definable ring, the info pill, member-blue; history sits 4° off at 249.3° |
-| `purple` | 312° | the compete mode pill, member-purple |
-| `pink` | 4° | member-pink — one consumer |
-| `gray` | — | 22 distinct stops across 43 tokens |
-| `sand` | 88° | the tile ramp — a POSITION ramp, not a role family (§4.4) |
+**The test for whether a semantic name earns its line: more than one consumer.**
+Same shape as §5.2's promote-on-the-second-write. A meaning with exactly one
+consumer can let its class reach for the role directly.
 
-**The warm bucket is THREE families, not two** — which §12 guessed at and got
-half right. Orange (48°) and amber (70°) are 21° apart and the separation is
-deliberate: `theme.css` argues it at length under `--chrome-caution-primary-color`
-(*"that rotation is the entire difference between caution and highlighter"*).
-Yellow (93°) is a third, and the low-chroma sand ramp is a fourth thing again.
+#### A ROLE must never become a nickname for a hue
 
-**Gray is the one family named by MEASUREMENT rather than by role**, and the
-exception is earned: a neutral has no second axis, so *how light* is the entire
-question. `--gray-98`, `--gray-22`, `--gray-00` — the number is OKLCH lightness
-×100, a physical fact that no theme may move, which is exactly what lets a theme
-re-point `--page-bg-color` from `--gray-98` to `--gray-12` and change nothing
-else. It also does §6.2's notice-don't-forbid job for free: `--gray-97`,
-`--gray-96` and `--gray-95` sitting on three adjacent lines is the report.
+The sharpest brake in this document, and the one that catches the mistake that
+otherwise rebuilds Tailwind by accident:
 
-*(This is the one place the plan's own objection to lightness names — "a dark
-theme would make `pale` the darkest thing on screen" — does not bite. `pale` is a
-judgment about a page; `98` is a measurement of a color.)*
+> **If several unrelated meanings all reach for `--blue-fill`, then `fill` has
+> stopped meaning "filling a piece" and started meaning "the blue" — a nickname
+> for a hex, wearing a role's clothes.**
 
-#### What derives, and what does not
+This is §3.1's brake for *adding* a role, run backwards. A role earns its name by
+saying what a color DOES; the moment it is the only blue with a name, every blue
+thing points at it and the name goes hollow.
+
+**The eight blues are the worked example.** All eight were `#1976d2` written out
+by hand. Sorted by what they actually do:
+
+| | role | why |
+|---|---|---|
+| action (a filled button) | **`--blue-fill`** | the only one that fills anything |
+| link · badge · definable ring · info pill | **`--blue-ink`** | §3.1's ink is *"text, and thin lines on a light ground: a pill's border, a verdict word, an outline ring"* — all four are exactly that |
+| link-hover | — | a transformation of ink, not a name |
+| cursor · caret | **a role candidate** — see below | |
+| member-blue | **none — it is exempt** | see below |
+
+Four semantic names on `--blue-ink` is fine, because all four really are ink.
+Eight on `--blue-fill` would not have been.
+
+#### Adding a role is a CONVERSATION, not a battle
+
+The brake above stops a role going hollow. It is not a moratorium, and §3.1's
+*"the two brakes still govern any sixth"* should not be read as one:
+
+> **It is not a sin to add a role. We just discuss it first.**
+
+Five is where the census landed, not a number anyone defended in advance. The
+discussion is short and it is the two brakes: *would two unrelated meanings reach
+for it*, and *does it derive, or is it one judgment per hue*. A candidate that
+passes both is a role.
+
+**And a translucent overlay is not the universal answer.** Several things this
+document treats as derivations — a hover, a dim, a wash — work because laying a
+translucent `--polarity-away` over whatever is underneath is genuinely what the
+effect means. That is a real trick and it carries a lot. It will not carry
+everything.
+
+**`disabled` is the standing candidate**, and §6.5 already holds the evidence
+without having drawn the conclusion: *"`--tile-disabled-color` cannot be one
+token. A delta frozen into an absolute is correct for exactly one starting point;
+the tile ramp has five."* An opacity is the same claim in a different costume —
+it says *disabled is what any color looks like at 75%*, which is a guess that
+happens to hold for chrome and demonstrably does not hold for a game piece, where
+fading toward the page is the one thing a piece must not do. If it needs a value
+per family rather than an operation over all of them, it is a role.
+
+Owed before the theme files are written, since a sixth role changes their shape.
+
+#### CURSOR is a real role, on evidence
+
+*"Where the keyboard is pointing"* looked like it should fold into `ink` — a
+caret is a thin line, a focus ring is an outline ring, and §3.1's ink covers
+both. What makes it a role instead is that **it already exists in two hues**:
+`--chrome-cursor-color` is blue, and `--mark-grid-cursor-color` is amber,
+deliberately so, because scrabble's premium squares are already red and blue and
+a cursor has to stand out ON them. One job, two hues, needing a cell in each
+family — that is the definition of a role.
+
+**Open, and it is §3.1's second brake: does it derive?** The blue cursor is
+exactly the action blue. The amber one sits darker AND duller than amber's fill,
+by no operation any other role uses. If it turns out to be one judgment per hue,
+it is an expensive role and worth re-testing.
+
+#### Classes or tokens? Three tests, in order
+
+The chrome buttons are already headed for classes (`.primary` / `.secondary`
+plus a tone class); the question is how far that generalizes. In order:
+
+1. **Does shared CSS need the value injected by someone who does not know the
+   meaning? → it MUST stay a token slot.** The shared `.tile` reads only
+   `--tile-bg-color`, so a game restyles by re-setting a token rather than
+   out-cascading common's stylesheet. There is no class-based equivalent that
+   does not reintroduce the specificity fights §3.2 just removed. Member colors
+   are the same case for a different reason: the DB stores a NAME and `<Dot>`
+   builds `var(--member-${name}-dot-color)` at runtime, so the token name IS the
+   mapping.
+2. **Does the meaning paint several properties together? → a class.** A pill's
+   border and tint, a button's fill and border and ink, a turn-log outcome bar.
+   As tokens that is three names re-typed at every consumer; as a class it is one
+   name and the bundle is defined once — §5's pattern argument arriving at the
+   color layer.
+3. **Otherwise, whichever is fewer names.**
+
+**The semantic layer survives either way.** Even where the consumer is a class,
+the class reads `--outcome-lost-ink-color` rather than `--red-ink`, for the
+reason above.
+
+#### The role families
+
+Named for the color, because a family is a hue's worth of roles. Which meanings
+each carries, from the census:
+
+| family | carries |
+|---|---|
+| `red` | lost · destructive · fault |
+| `green` | won · success |
+| `blue` | action · link · badge · info · the definable ring · the cursor |
+| `amber` | near · attention · the rank ladder · the grid cursor · the current game |
+| `orange` | caution · warning |
+| `neutral` | the neutral outcome · the quiet tone |
+| `teal` | co-op |
+| `purple` | compete |
+
+**Rectangular, all of them, including teal and purple.** Ten cells serving two
+consumers today is the reservation policy working, not waste: the next *"two
+distinct colors not already overloaded by buttons or outcomes"* problem will
+reach for them, and a half-built family is how that gets solved with a fresh hex
+instead.
+
+**Two shapes are unsettled and want deciding before the files are written:**
+
+- **Is `warning` orange or amber?** Today it is BOTH — its ink sits at hue 48.1°
+  and its fill at 69.6°, a 21° rotation inside one family, with the ink at
+  caution's hue rather than its own fill's. That was a curiosity under the old
+  model and is a decision under this one, because a meaning maps to exactly one
+  family.
+- **Are `amber` and `yellow` one family or two?** `near` (a result) and
+  `attention` (look here) are different meanings, and near/warning were split
+  deliberately in 2026-08-17. Whether they need different HUES is the question.
+
+#### `neutral` is the gray family; `--gray-*` is the chrome grounds
+
+RULED 2026-08-20, and it settles the neutral-vs-gray question by giving each half
+its own name:
+
+- **`neutral`** — the role family, keeping the name it has today. Gray behaving
+  like a color: a neutral outcome bar is FILLED gray the way a lost bar is filled
+  red. Takes the usual roles. `--outcome-neutral-ink-color: var(--neutral-ink)`.
+- **`--gray-*`** — the pure chrome grounds. The page, a surface, its border, its
+  hover, a control's well and edges, body ink, a divider. Role names under a gray
+  family name.
+
+They overlap in hex today (`#555555` is both `control-text-muted` and neutral's
+dullframe) and must be free to move apart, because they are different jobs on
+different axes.
+
+#### The grounds are named JOBS — not a ramp
+
+Eleven grounds sitting on one lightness axis look like a ramp, and building one
+would repeat the mistake **orange already taught us**:
+
+> `-primary-hover` and `-secondary` were one value once. Orange proved they
+> cannot be: a background orange is too light to read as text, and darkened far
+> enough to read it is far too strong to fill a button with. **Different jobs,
+> different steps** — small step, big step.
+
+The same argument kills the ground ramp. A border must DELINEATE at 1px against
+what is inside it and outside it; a hover only has to be perceptible. Same
+direction, unrelated constraints, and no fixed proportion between them that would
+survive a theme change.
+
+**What survives is only the DIRECTION.** Every ground moves away from the page,
+which is what makes them flip correctly under polarity. The magnitude is per-job.
+
+**So the fix for *"every time we reached for gray we made a bespoke number"* is
+not a ramp.** The flaw is that they were invented AT THE POINT OF USE rather than
+chosen as a set. Choose them together with each job named, and the genuine
+duplicates fall out while the rest stay legitimately distinct. Measured, the
+duplicates are about four:
+
+```
+#aaaaaa entry-illegal  vs  #b0b0b0 control-border-strong     (ΔL 0.019)
+#8a8a8a divider        vs  #8b8f91 wordle-gray               (ΔL 0.014)
+#6b6b6b text-muted     vs  #737373 the quiet tone            (ΔL 0.028)
+#555555 control-muted  vs  #616161 neutral's ink             (ΔL 0.043)
+```
+
+So the collapse is real and it is **21 → ~15, not 21 → 5.** Most of those grays
+are distinct named jobs that already work.
+
+**`control-bg` and `surface` are exactly two roles**, and they are the case that
+proves the rule: identical hex today, different jobs, and on a dark theme they
+move in OPPOSITE directions — an input well goes darker than its card, a card
+goes lighter than its page. Same value, two names, never collapsed.
+
+#### `fixed.css` — colors exempt from the whole system
+
+**Member colors and the wordle vocabulary point at nothing but a hex, and are not
+themed.** The exemption is principled rather than a carve-out: everyone arrives
+already knowing what wordle green means, and a member's color is their identity.
+Re-theming either breaks the one thing it is for.
+
+**No member color points at a role.** Which turns up a bug rather than a
+convention: `--member-blue-dot-color` is `#1976d2` today, byte-identical to the
+action blue, so a member's dot IS the action color. That is a regrettable
+coincidence to be fixed by picking a distinct member blue — not documented as
+sharing.
+
+Two edges to settle when the file is written:
+
+- **Is `blank` in or out?** Green, yellow and gray are imported vocabulary.
+  `--wordle-blank-fill-color` is the UN-evaluated tile, and nobody arrives
+  knowing what an empty wordle tile looks like. If it is out it follows the theme
+  like any other surface; if it is in, a dark theme gets a light-gray tile on a
+  dark board.
+- **Member borders flip on polarity**, which makes the member set the one fixed
+  thing that is not fully fixed: eight blessed dots that never move plus eight
+  rings that do. Whether a ring is a chosen hex per polarity or a derivation off
+  the dot is the difference between 16 hexes and 8.
+
+#### What derives — measured 2026-08-20
+
+Every documented derivation was tested against the value it claims to produce, by
+resolving it in a real browser rather than by reimplementing oklab.
 
 | tier | count | derives? | the operation |
 |---|---:|---|---|
 | chrome `-primary-hover` | 4 | ✅ **exact** | the primary, oklab lightness −0.05 |
 | chrome `-secondary` | 4 | ✅ **exact** | the primary, oklab lightness −0.115 |
-| chrome `-secondary-hover` | 4 | ✅ **exact** | `color-mix(in oklab, <primary> 8%, var(--page-surface-color))` |
-| chrome `-primary-ink` | 4 | ✅ | one gray stop |
-| outcome + `--wordlelike-*` `-edge` | 8 | ✅ **exact** | `color-mix(in srgb, <fill> 84%, var(--polarity-away))` |
-| outcome `-wash` | 5 | ⚠️ 3 of 5 | a mix with `var(--page-surface-color)` — see below |
-| outcome `-dullframe` | 5 | ⚠️ | `oklch()` at the family hue, but only with each one's own measured L and C |
-| outcome `-ink` | 5 | ❌ | see below |
+| chrome `-secondary-hover` | 4 | ✅ **exact** | `color-mix(in oklab, <primary> 8%, <surface>)` |
+| `-edge` | 8 | ✅ **exact** | `color-mix(in srgb, <fill> 84%, var(--polarity-away))` |
+| `-wash` | 5 | ⚠️ 3 of 5 | a mix with the surface, at three different recipes |
+| `-dullframe` | 5 | ⚠️ | `oklch()` at the family hue, each with its own measured L and C |
+| `-ink` | 5 | ❌ | the step from the fill runs 0.037 → 0.306 |
 | member `-border` | 8 | ❌ | the seeded formula reproduces one of the eight |
-| the sand ramp | 12 | ❌ | §4.4 |
+| the tile ramp | 12 | ❌ | §4.4 |
 
-**The chrome tones are the demonstration.** All sixteen derived values reproduce
-byte-for-byte from their four anchors — the family really was picked at one
-sitting by one formula, exactly as `theme.css` claims, and twelve hexes come out
-of the file for nothing. Anything the sprint does elsewhere is measured against
-this: it is what a family that was derived rather than accumulated looks like.
+**The chrome tones are the demonstration**: all sixteen derived values reproduce
+byte-for-byte from four anchors. That family really was picked at one sitting by
+one formula, and it is what a family that was DERIVED rather than accumulated
+looks like. Everything else is measured against it.
+
+**A theme therefore states what it CHOSE, and the derivations live once.** Eight
+families × five roles, written out per theme, is the *"two parallel lists of
+identical names is a drift machine"* problem at one copy per theme. Written once,
+*"edge is the fill taken toward away"* survives a polarity flip automatically;
+written per theme it gets re-decided, and the third time it gets re-decided
+differently.
 
 ##### Correction: `-edge` is an sRGB multiply, not an oklab mix
 
-`theme.css` says *"the fill, 16% toward black"* and this plan repeats it in §3.1
-as the case that *"derives outright"*. The claim is right and the space is
-wrong — the operation is a plain multiply on the sRGB bytes, which is
-`color-mix(in **srgb**, <fill> 84%, black)`. Done in oklab the same 16% lands
-somewhere else and visibly so: won's edge would come out `#4f9452` against the
-real `#569d59`. Every one of the eight matched the sRGB reading exactly and none
-matched the oklab one.
+`theme.css` says *"the fill, 16% toward black"* and §3.1 repeated it. The claim is
+right and the SPACE is wrong: the operation is a plain multiply on the sRGB
+bytes. All eight consumers match that exactly; none match the oklab reading, which
+would give won `#4f9452` against the real `#569d59`.
 
-**But the two spaces matter less than that makes them sound**, and the numbers
-are the point — measured across all eight fills:
+**But the two spaces matter less than that makes them sound.** Measured across
+all eight: sRGB is ΔL −0.086…−0.101 at −13% chroma; oklab is ΔL −0.110…−0.130 at
+−16%. Both hold hue. They differ in **step size, not character** — oklab at 88%
+lands on sRGB's step.
 
-| | ΔL | Δ chroma | Δ hue |
-|---|---|---|---|
-| sRGB 84% (**ships**) | −0.086 … −0.101 | **−13%**, uniformly | ≤ 0.1° |
-| oklab 84% | −0.110 … −0.130 | **−16%**, uniformly | ≤ 0.3° |
-
-Both hold hue. Both desaturate. They differ in **step size, not in character** —
-oklab at 88% would land on sRGB's step. So "which space" is very nearly a
-non-question, and a first pass at this section claimed a categorical difference
-(*"it holds chroma where an oklab step drains it"*) that the measurement does not
-support. The fix is to the prose only.
-
-##### The question the edge measurement actually raises
+##### The question the edge measurement actually raises — OWED AT 3b
 
 A third operation is the one §3.1's own definition describes — *"`edge` is the
 boundary of a fill, **at that fill's own saturation**"*, said explicitly against
@@ -617,146 +793,82 @@ oklch(L − 0.084, C, H)     — hold chroma and hue, move lightness only
 ```
 
 Today's edge drains 13% of chroma, so that contrast is weaker than the doc
-claims. Two things follow:
+claims. It is also **the only candidate symmetric under polarity**: a mix toward
+white desaturates by 10–19% depending on hue, because a light fill has less
+headroom, so neither mix generalizes.
 
-- **It would move pixels**, by 0.008–0.026 of oklab distance — at or above the
-  *"reads as the same color"* threshold for four of the eight. So it fails §4.3's
-  byte-for-byte rule and cannot be part of step 3.
-- **It is the only one of the three that survives polarity.** Under midnight,
-  `edge` means *toward white*, and a mix toward white desaturates by **10–19%
-  depending on hue** — not uniformly, because a light fill has less headroom.
-  Neither mix generalizes; `L ± 0.084, hold C and H` is symmetric by
-  construction.
+**RULED 2026-08-20: hold what ships, decide at 3b.** Today's edges look right in
+light mode and the dark theme is what will tell us. Watch for the larger
+possibility while there — that `edge` is **two roles masquerading as one**, since
+*"the boundary of this fill"* and *"the same fill, darker"* only coincide on a
+light page.
 
-**So: step 3 ships the sRGB multiply**, written as
-`color-mix(in srgb, <fill> 84%, var(--polarity-away))`, which reproduces every
-one of the eight exactly. **The L-only form goes on 3b's docket**, where a dark
-theme will show whether the mix-toward-white behavior is tolerable. If it is not,
-the L-only form is the fix and the small daylight change comes with it.
+##### Two findings that are about the design, not the mechanics
 
-`--outcome-neutral-edge-color` is exempt from all of this: at hue-free gray every
-candidate is the same operation, so it follows midnight correctly whichever wins.
-
-##### `-wash` is not a family, it is five separate decisions
-
-Three of the five reproduce exactly as a mix with the surface — won at 37%
-oklab, warning at 35% sRGB, neutral at 15% oklab — which is already three
-different recipes. **Lost and near reproduce as nothing**: they are Material's
-100-level swatches, and Material's ramps rotate, so `--outcome-lost-wash-color`
-sits **14° off** its own family's hue and `--outcome-near-wash-color` **18° off**.
-
-They stay hexes. But the wash tier is the one the *theme* most wants to derive —
-a wash is by definition close to the page, so a wash frozen as a hex is a wash
-that will be wrong on midnight, and this is the first thing step 3b should look
-at. Recorded, not fixed.
-
-##### The two findings that are about the design, not the mechanics
-
-- **The `warning` family is not one hue.** Its ink sits at 48.1° and its fill at
-  69.6° — a 21° rotation *inside a single family*, and its ink is at the caution
-  orange's hue rather than its own fill's. That is very likely why chrome kept
-  reaching into warning before it had an orange of its own. Notice-don't-forbid
-  (§6.2): fixing it moves pixels, so it is a later conversation.
 - **`--outcome-near-ink-color` is barely an ink.** It sits 0.037 of lightness
-  below its fill where every other family's ink is 0.115 to 0.306 below. This is
-  the gold problem §3.1 predicted would live in `ink`, measured: gold cannot go
-  dark without ceasing to be gold, so `near`'s ink stopped short and the family's
-  one shared operation broke there.
-
-#### What a theme file therefore contains
-
-Small, which is the point and is step 3b's real test:
-
-```css
-[data-theme='midnight'] {
-  color-scheme: dark;
-  --polarity-away:   var(--gray-100);
-  --polarity-toward: var(--gray-00);
-  --page-bg-color:      var(--gray-12);
-  --page-surface-color: var(--gray-18);
-  --page-text-color:    var(--gray-92);
-  /* …and the dozen other grounds. No hue is re-picked here. */
-}
-```
-
-The palette is **absolute and theme-invariant**: a gray at lightness 0.98 is that
-gray in every theme, and a red at hue 27° is that red. **A theme re-points; it
-does not re-define.** Where midnight needs a red the palette does not carry, the
-palette gains a stop — it never gets overwritten inside a theme block, because a
-token whose value depends on which theme is mounted is a token nobody can reason
-about from its name.
+  below its fill where every other family's ink is 0.115 to 0.306 below. Gold
+  cannot go dark without ceasing to be gold, so the family's one shared operation
+  broke exactly where §3.1 predicted it would.
+- **`-wash` is not a family.** Three of five reproduce as a mix with the surface
+  — won at 37% oklab, warning at 35% sRGB, neutral at 15% oklab, already three
+  recipes. Lost and near reproduce as nothing: they are Material 100s, and
+  Material's ramps rotate, so they sit 14° and 18° off their own families' hues.
+  The wash is also the tier a theme most wants to derive, since a wash is by
+  definition close to the page — so a wash frozen as a hex is the first thing 3b
+  should look at.
 
 #### RULED 2026-08-20: "copy, don't alias" is retired as a default
 
-`theme.css` argues three separate times that two names agreeing on a hex should
-each write the hex out — *"two names on one hex keeps a future theme at 100
-colors instead of 200, while an alias claims the two must move together"* — which
-is why `#1976d2` appears eight times and `#ffffff` fifteen.
+`theme.css` argues three times that two names agreeing on a hex should each write
+it out — which is why `#1976d2` appears eight times and `#ffffff` fifteen.
 
 **That advice predates [css-philosophy.md](css-philosophy.md) and does not carry
-forward as a rule.** It may still be the right call in a specific spot; it is no
-longer the thing to assume. Every copy gets decided on its own merits as we reach
-it, and the burden is now symmetric rather than resting on whoever wants to share.
+forward as a rule.** It may still be right in a specific spot; it is no longer
+the thing to assume, and the burden is now symmetric rather than resting on
+whoever wants to share.
 
-**And the replacement is NOT a rule either.** A tidy formulation was on offer — *a
-semantic token references a palette entry, never a sibling semantic token* — and
-it is deliberately not being blessed. It wants examples in situ first: the cases
-that matter (the eight blues, the fifteen whites, the two greens, the toast
-stripes that are already aliases) differ enough from each other that a rule
-written before looking at them would be a rule written from a hunch. **We work
-them case by case through steps 5–9 and let the pattern declare itself** — which
-is the same discipline §5.2 applies to patterns, applied to references.
+The three-layer model mostly dissolves the question anyway: the eight blues stop
+being eight hexes and become semantic names on two roles, each still re-pointable
+alone — which was the property the old rule was protecting.
 
-What that means concretely for step 3: the palette gets built, and a semantic
-token pointing at it is judged one at a time. The count of hexes that survive is
-an OUTPUT of that pass, not a target set in advance.
+### 4.4 — the tile family
 
-### 4.4 — the position ramp, alongside the role ramps
-
-The five roles (§3.1) answer *what is this painting*. The tile ramp answers a
-different question — *how far down the stack is this* — and the difference is
-why it takes numbers where everything else takes names.
+Not a hue family, not `sand`, and not made of the five roles. The tile ramp is
+its own shape and the reason is §4.4's whole content:
 
 ```
---sand-1 … --sand-5      lightest → darkest, plus a sixth beyond the ramp
+--tile-1 … --tile-5, plus --tile-disabled     each with a matching edge
 ```
 
-**A position ramp's number is its meaning.** stackdown reads depth 0–3 straight
-off shades 2–5; scrabble's placed-not-committed tile is shade 1; the everyday
-resting tile every other game uses is shade 3. Nothing here would be improved by
-a role name, because there is no role — `--sand-4` is *one step deeper than
-`--sand-3`*, and that ordering is the entire content.
+**Members are POSITIONS, and the position is the meaning.** stackdown reads stack
+depth 0–3 straight off shades 2–5; scrabble's placed-not-committed tile is shade
+1; the everyday resting tile is shade 3. Nothing here would be improved by a role
+name, because there is no role — shade 4 is *one step deeper than shade 3*, and
+that ordering is the entire content. It is the app's one POSITION ramp.
 
-**It is one hue at two moving parameters.** Measured across the twelve values
-(six shades and six edges): hue holds at 87–90° while lightness falls from 0.976
-to 0.662 and chroma **rises** from 0.011 to 0.107. That co-movement is what makes
-it read as one material getting thicker rather than as a gray ramp with a tint —
-and it is why a naive `color-mix` with white does not reproduce it (tried: the
-best single-anchor fit misses the deep end by 0.027 of lightness).
+**One hue at two moving parameters.** Measured across all twelve values: hue holds
+at 87–90° while lightness falls from 0.976 to 0.662 and chroma **rises** from
+0.011 to 0.107. That co-movement is what makes it read as one material getting
+thicker rather than as a gray ramp with a tint, and it is why a single-anchor
+`color-mix` with white does not reproduce it — the best fit misses the deep end
+by 0.027 of lightness. So the twelve stay chosen values.
 
-**So the twelve stay hexes**, and that is the byte-for-byte rule (§4.3) doing its
-job rather than a failure. `theme.css` already says they were *"hand-tuned along a
-lightness ramp"*; the measurement agrees, and the sprint does not get to quietly
-replace a hand-tuned ramp with a formula that is nearly it.
+**A tile's edge is NOT the `edge` ROLE.** The correction the edge measurement
+turned up as a side effect: the eight outcome and wordle-like edges are their
+fill × 0.84 in sRGB, and **not one of the six tile edges is**. A tile edge more
+than DOUBLES its shade's chroma while dropping 0.09 of lightness — it is the ramp
+continued three or four stops further down, not a darkened fill.
 
-**A tile edge is NOT the `-edge` role.** This is the correction §4.3's edge
-finding turns up as a side effect: the eight outcome and wordlelike edges are
-their fill × 0.84, and **not one of the six tile edges is**. `--tile-3-color`'s
-edge more than doubles its chroma while dropping 0.09 of lightness — it is the
-ramp continued two stops further down, not a darkened fill. So the tile family's
-second column is *the same ramp, offset*, and calling it `edge` was reading a role
-name onto a position.
+So `theme.css`'s claim that the outcome edges take *"the step the warm tile ramp
+takes between a shade and its border"* is backwards on both halves. The two ramps
+are not aligned to a common step, and forcing them would move pixels for nothing.
 
-`theme.css`'s claim that the outcome edges take *"the step the warm tile ramp
-takes between a shade and its border"* is therefore backwards on both halves. The
-name it should carry is `--sand-<n>-edge` only in the sense that it is what a
-shade's border wears; what it IS, is `--sand-<n+2>`-ish. Left as its own column
-rather than collapsed onto the ramp, because the two ramps are not aligned to a
-common step and forcing them would move pixels.
+**Which leaves a naming question owed:** if a tile's second column is called
+`edge` and the role `edge` is a different operation, one of the two names is
+wrong. Deciding it is cheap and belongs with whichever converts first.
 
-**Where it lives**: `palette.css`, next to the hue families, as its own block
-with the ordering stated. It is a palette-layer fact — a game reaches it through
-the `--tile-*` contract slots (§4.1), never by name.
+**Where it lives**: the theme file, as its own block. A game reaches it through
+the `--tile-*` contract slots (§4.1), never by position name.
 
 ### 4.5 — SETTLED: where a game's brand color lives
 
@@ -820,13 +932,27 @@ should not be an easy one:
 A family that fails the second test is two games that merely look alike, and
 those keep their own tokens.
 
-**It lives in the palette's fixed-anchor block**, alongside anything else no
-theme may move. That needs no exception to the location rule: it is a
-palette-layer line in the palette's own file, which is the plainest possible
-case. (An earlier draft of this section had wordle's hex living in
-`wordle/theme.css` and leaned on *the layers are roles, not files* to permit it.
-That argument is sound and still covers spellingbee's per-theme gold — it is just
-not needed here.)
+**It lives in `fixed.css`** (§4.3, §4.6), and the reason is stronger than
+"somewhere shared":
+
+> **A wordle color points at nothing but a hex, and is NOT THEMED.** Same rule as
+> the member colors. The exemption is principled rather than a carve-out —
+> everyone arrives already knowing what wordle green means, so re-theming it
+> breaks the one thing it is for.
+
+That also means it takes no role. `--wordlelike-green-fill-color` is a hex, full
+stop; it is not `--green-fill` under another name and must never be pointed at
+one, because `--green-fill` moves from theme to theme and this may not.
+
+(An earlier draft had wordle's hex living in `wordle/theme.css` and leaned on
+*the layers are roles, not files* to permit it. That argument is sound and still
+covers spellingbee's per-theme gold — it is just not needed here.)
+
+**One boundary owed: is `blank` in or out?** Green, yellow and gray are imported
+vocabulary. `--wordle-blank-fill-color` is the UN-evaluated tile, and nobody
+arrives knowing what an empty wordle tile looks like. Out, and it follows the
+theme like any other surface; in, and a dark theme gets a light-gray tile sitting
+on a dark board.
 
 #### What is left in wordle's own file, and why it is the demonstration
 
@@ -881,12 +1007,13 @@ The shape; exact names settle at step 3. Everything here is **eager and global**
 
 ```
 common/
-  palette.css       hexes. The ONLY file holding one, plus the fixed families
-                    no theme may move (--wordlelike-*)
-  themes.css        the anchors, one block per theme; polarity stated, not
-                    inferred. One file, not one per theme — two parallel lists
-                    of identical names is a drift machine
-  semantics.css     meaning → var(). Theme-invariant, holds no value
+  themes/           ROLE → HEX. One file per theme, and a theme is ONE
+    daylight.css    polarity (§4.2), so there is no theme × polarity grid.
+    midnight.css    Holds the role families, the --gray-* grounds, and the
+    cupcake.css     tile ramp. States its own polarity.
+  semantic.css      MEANING → ROLE. Theme-invariant, holds no value
+  fixed.css         HEX, no role, no theme: member colors + the wordle
+                    vocabulary. Exempt because their value IS their meaning
   base.css          element resets, body, box-sizing — the true globals
   utilities.css     the small global set: muted, card, error, definable
   patterns/         shared modules, cut by PATTERN and never by container
@@ -897,9 +1024,29 @@ common/
   brand.css         --<game>-* tokens. Nothing else
 ```
 
+**There is NO `palette.css`**, and the absence is a decision rather than an
+omission. A first pass at step 3 built one — 77 stops named `--red-1`,
+`--pink-2`, `--sand-9`, with meaning applied afterward through a mapping layer —
+and it was the wrong shape in a way worth recording, because it is the shape this
+problem defaults to:
+
+> **That is Tailwind's model: publish colors, let consumers decide what they are
+> for. We already know what every color in this app is for. That is what roles
+> ARE.** There is no need for "green in general"; there is a need for green in
+> these roles.
+
+Two symptoms made it obvious. Sorting by MEASURED HUE rather than by meaning put
+the warning family's ink under `orange` and its fill under `amber` — a family
+split in half by a census. And the families came out ragged (blue 4 stops, orange
+3), which is not a finding about the design; it is proof of counting hexes
+instead of building families. **A family is rectangular, always.**
+
+The layer it was trying to justify — `--green-ink: var(--green-2)` — is
+indirection that buys nothing. The hex belongs at the role.
+
 **`theme.css` disappears as a name at both levels**, and that is the point: a
 file called *theme* holding standard look is how the two got conflated. "Theme"
-now means daylight / cupcake and nothing else.
+now means daylight / midnight / cupcake and nothing else.
 
 **Why `<game>/brand.css` rather than `game.css`:** 13 of the 16 per-game files
 are already nothing but `:root { …tokens }`, and `brand` is the same forcing
@@ -1078,7 +1225,7 @@ criterion is a step we cannot finish.
 | **0** | baseline + census ✅ **2026-08-20** | §2 and §9 filled from `scripts/css-baseline.mjs` |
 | **1** | this doc + the decisions ✅ **2026-08-20** | §3 settled: the role set, the one-word rule, modules-vs-global, brand-color location, `--stronger`/`--weaker`. Done *before* step 0 in wall-clock; the two are independent |
 | **2** | classify ✅ **2026-08-20** | all 561 definitions sorted — §4.1. Needed **six** buckets, not four; turned up 15 contract slots nobody declares; the §4.5 audit came back clean but for wordle. No files moved |
-| **3** | build the files | palette + polarity + `daylight` exist; everything resolves; nothing looks different |
+| **3** | build the files | `themes/daylight.css` + `semantic.css` + `fixed.css` exist and every token resolves. **NOT "nothing looks different" any more** — see below |
 | **3b** | the **midnight spike** | a throwaway dark theme renders the homepage and one game. **This is step 3's acceptance test** — the distance-from-page claim only fails in a dark polarity. If it takes a week, the split is wrong, and we learn that here rather than at game sixteen. Kept behind a flag or deleted |
 | **4** | shallow whole-app pattern pass | the top ~10 patterns **named**, app-wide, before any surface is deep-converted. Done by reading rendered surfaces, **never by grepping class names** — local names hide shared patterns, so searching by local name reproduces the bug |
 | **5** | homepage | the rehearsal: lowest blast radius, proves the mechanics |
@@ -1088,6 +1235,32 @@ criterion is a step we cannot finish.
 | **9** | per game — CSS pass, then tf pass | see §8. psychicnum first, as the control |
 | **10** | assets | see §10 |
 | **11** | fold + delete | durable rules into `docs/ui.md` and `docs/code-conventions.md`; the guard allowlist empties; this doc goes |
+
+### Step 3 no longer means "nothing looks different"
+
+It did, and the change is deliberate. The byte-for-byte rule was written to stop
+a structural pass smuggling a redesign in under it, which is still a good
+instinct — but §4.3's gray finding is a case where **the current values are the
+bug**. Twenty-one grays exist because each was invented at the point of use;
+reproducing all twenty-one faithfully preserves the flaw the sprint is here to
+fix. Same for the four near-duplicate pairs, and for the member blue that is
+byte-identical to the action blue.
+
+So the instrument changes job rather than being retired:
+
+> **`scripts/css-token-snapshot.mjs` stops PROVING nothing moved and starts
+> REPORTING exactly what moved, so every change is one we looked at.**
+
+It resolves all 204 shared tokens in a real browser and diffs before against
+after. A moved value is now a line to review, not a failure — but an
+*unexplained* moved value still is, which is the whole point of having the list.
+The screenshot gallery (§11) stays the second net for anything the token list
+cannot see.
+
+Two things that have NOT changed: a derivation still has to reproduce its value
+exactly where we are not deliberately re-deciding it (the eight edges, the
+sixteen chrome variants), and the edge operation itself is explicitly held at
+today's values until 3b (§4.3).
 
 ## 8. How a game is done
 
@@ -1211,13 +1384,29 @@ will have shown which ones actually fail. So: all of it, once, at the end.
 
 - **§6.4** device density — owed before step 5
 - **§6.2** whether the shrinking allowlist is the right guard mechanism
-- ~~**How many hues**~~ — **ANSWERED 2026-08-20 (§4.3): nine, plus gray, plus the
-  sand ramp.** The warm bucket is three families (orange 48° · amber 70° ·
-  yellow 93°) and the sand ramp is a fourth thing, not a hue family at all
+- ~~**How many hues**~~ — **the wrong question**, and asking it is what produced
+  the scrapped palette (§4.6). The count that matters is FAMILIES, and a family
+  is defined by the meanings it carries, not by where a census puts its hue.
+  Today: red · green · blue · amber · orange · neutral · teal · purple (§4.3)
 - ~~**Whether `-edge` is a role or a derivation of `-fill`**~~ — **ANSWERED
   (§4.3): a derivation, at a flat 16% for all eight consumers.** It stays a named
   role. The tile ramp's second column is NOT this operation and is not this role
   (§4.4)
+- **BLOCKING step 3 — is `warning` orange or amber?** Today it is both: ink at
+  48.1°, fill at 69.6°. Under the three-layer model a meaning maps to exactly one
+  family, so this stops being a curiosity and becomes a fork (§4.3)
+- **BLOCKING step 3 — is `disabled` a sixth role?** An opacity claims *disabled
+  is what any color looks like at 75%*, which holds for chrome and demonstrably
+  does not for a game piece (§6.5 has the evidence). A sixth role changes every
+  theme file's shape, so it is owed before they are written (§4.3)
+- **Are `amber` and `yellow` one family or two?** `near` and `attention` are
+  different meanings; whether they need different hues is the question (§4.3)
+- **Does `cursor` derive, or is it one judgment per hue?** It passed the first
+  brake on evidence — it already exists in blue and amber — but the amber one
+  matches no operation the other roles use (§4.3)
+- **Is wordle's `blank` inside the fixed vocabulary or a themed surface?** (§4.5)
+- **Member borders under polarity** — a chosen hex per theme, or a derivation off
+  the dot? The difference is 16 hexes against 8 (§4.3)
 - **NEW, and owed at 3b — which edge operation.** sRGB and oklab differ only in
   step size (−13% vs −16% chroma), so that pair is nearly a non-question. The
   live one is whether `edge` should hold chroma outright (`oklch(L−0.084, C, H)`),
