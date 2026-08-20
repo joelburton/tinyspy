@@ -1,5 +1,12 @@
 # CSS philosophy — what we share, and why we haven't
 
+> 📓 **REASONING ARCHIVE, as of 2026-08-20.** The executable plan is
+> [css-system.md](css-system.md), which cites sections of this file rather than
+> restating them. This one is kept in full and on purpose: it is where the
+> arguments live, including the ones that lost. The note below is how it was
+> written and still describes its standing — nothing here is blessed by being
+> here; a thing is settled when css-system.md says so.
+
 > 🚧 **A LIVE CONVERSATION, not a decision.** Nothing here is blessed, nothing
 > here has been applied, and no code or other doc has been changed on its basis.
 > It exists so the reasoning survives the session it happened in — which is

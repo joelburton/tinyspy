@@ -4,7 +4,13 @@
 what is; this plan describes what we agreed the play surfaces *should* say, so
 that an audit has something to check each game against.
 
-**Where we are: 1 of 16 games at tf2.** The sprint restarted after the color and
+**PAUSED 2026-08-20, behind [css-system.md](css-system.md).** The CSS restructure
+resets what a game's stylesheet looks like underneath this sprint, so converting a
+board now and again afterwards is work done to be undone. From here on each game
+takes its **CSS pass and its tile-feedback pass back to back, in that order**,
+while it is loaded in your head.
+
+**Where we are: 0 of 16 games at tf2.** The sprint restarted after the color and
 button mini-sprints changed the ground underneath it, so every game — including
 the four converted in the first round — needs a pass against the current
 framework. Games carry a **tf level**; see
@@ -671,7 +677,7 @@ brought into line with. It is an epoch marker, not a count of passes:
 |---|---|
 | **tf0** | no round of tile-feedback work yet. The board predates this vocabulary entirely |
 | **tf1** | passed in the FIRST round (2026-08-16/17), **before** the color and button mini-sprints. Structurally converted — it wears the shared channels — but its colors and any button it owns were settled against rules that have since changed |
-| **tf2** | passed in THIS round, against the current framework. The finish line |
+| **tf2** | passed in THIS round, against the current framework **and on top of that game's css-system pass**. The finish line |
 
 A game goes **straight to tf2** whatever it started as. tf0 → tf2 is a full
 conversion; tf1 → tf2 is a re-pass, and should be much lighter — the channels are
@@ -683,7 +689,7 @@ is a fact about history, not a destination.
 
 ### Where each game stands
 
-**1 of 16 at tf2** — 12 at tf0, 3 at tf1, 1 at tf2 (psychicnum).
+**0 of 16 at tf2** — 12 at tf0, 4 at tf1.
 
 The order is chosen by which decisions a game forces, not by size: in the first
 round wordle needed the fewest, waffle moved the framework into shared code,
@@ -694,7 +700,7 @@ the background. Pick the next one up from the "forces" column.
 |---|---|---|---|
 | **wordle** | tf1 | 2026-08-16, board marks 08-17 | first through: the in-flight dim, the verdict ring in its pill's tone, hover-as-shadow, blue history, the keyboard as a control surface. Then the four board-scope marks + the keyboard withdrawn at terminal. It went first because it needed the fewest decisions — no selection, no hint, no cursor |
 | **waffle** | tf1 | 2026-08-17 | the framework INTO common: selection as a black border, the shared in-flight dim, the move shown optimistically with its verdict withheld, attention gated on the swap log, both turn marks, the game-over frame. No verdict mark and none needed — the only refused swap is one a teammate beat you to, and their swap arriving is what you want to see |
-| **psychicnum** | **tf2** ✅ 2026-08-20 | 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). Self-attention deliberately off: one tile changes and the in-flight dim already pointed at it. **At tf2:** the ring-around-a-TILE for the viewed turn moved OUTSIDE the tile — `outline-offset: -3px` → `+2px`, keeping its 3px weight. It only ever lands on a decided tile, so inset it had been drawing blue over saturated green/red at 1.88:1 / 1.28:1; outside it sits on the board background and simply reads. Two things the try-it-and-look loop settled: **flush (offset 0) is not enough** — it reads as a fat border, the gap is what makes it a ring — and **thinning it to 2px is not either**, since off the tile it loses the fill behind it and a hairline disappears. So: same weight, real gap. It overlaps the board frame on edge tiles (that frame starts 3px out and `.grid` has no padding); accepted, because separating them means moving shared chrome every game wears. Also: white-on-green blessed (see the floor's exception above), and seven dead token/color names cleared out of its prose |
+| **psychicnum** | tf1 | 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). Self-attention deliberately off: one tile changes and the in-flight dim already pointed at it. **Marked tf2 on 2026-08-20 and reset to tf1 the same day**: the pass fixed a real thing but stopped short of a re-conversion once css-system was chosen to go first, so it is owed a proper tf2 after its CSS pass. What that day settled stands. The ring-around-a-TILE for the viewed turn moved OUTSIDE the tile — `outline-offset: -3px` → `+2px`, keeping its 3px weight. It only ever lands on a decided tile, so inset it had been drawing blue over saturated green/red at 1.88:1 / 1.28:1; outside it sits on the board background and simply reads. Two things the try-it-and-look loop settled: **flush (offset 0) is not enough** — it reads as a fat border, the gap is what makes it a ring — and **thinning it to 2px is not either**, since off the tile it loses the fill behind it and a hairline disappears. So: same weight, real gap. It overlaps the board frame on edge tiles (that frame starts 3px out and `.grid` has no padding); accepted, because separating them means moving shared chrome every game wears. Also: white-on-green blessed (see the floor's exception above), and seven dead token/color names cleared out of its prose |
 | **connections** | tf1 | 2026-08-17 | the **identity mark** as a named shared channel (`.peerRing`) — and, on the way, the rule that identity is drawn for EVERYONE on a shared board or for nobody, which the permanent dot already said and the ring contradicted. Also: the first verdict on the BACKGROUND (its tiles carry no state, so it was free), the first mark whose lifetime ends because someone ELSE acted, and the split that came out of it — a board mark dies when the board moves, its pill does not. Its bands are inert pieces wearing the shared tile face, and they flash for a teammate's solve |
 | codenamesduet | tf0 | — | the keycard's `.triPeer` / `.triMine` triangles (which are the game, not attribution), and a board where only one seat can act. **Chrome borrow to settle:** its tile outline is painted with the action BUTTON's blue (`Board.module.css:135`) |
 | setgame | tf0 | — | its own in-flight + arriving/leaving marks predate all of this and are the richest set anywhere; `--setgame-*` tokens want folding into the shared ones. Selection is a `box-shadow` ring and must become a border |
@@ -991,7 +997,7 @@ contrast, ask what the ink is already carrying.**
 
 ### The floor has one BLESSED exception: white on the outcome green
 
-Ruled 2026-08-20, at psychicnum's tf2 pass, and recorded here so it is not
+Ruled 2026-08-20, at psychicnum's pass, and recorded here so it is not
 re-derived at every game that borrows the pair. **White ink on
 `--outcome-won-fill-color` (`#66bb6a`) measures 2.36:1 and stays.** Judged on
 screen and it reads fine; the number is below the 3:1 floor below and that is

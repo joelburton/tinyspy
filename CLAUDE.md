@@ -59,10 +59,11 @@ A plan is a working document for a sprint: the agreed design, the evidence, and 
 
 | file | the work |
 |---|---|
-| [plans/tile-feedback.md](plans/tile-feedback.md) | **The design target for tile/board feedback** — one channel per meaning, with a per-game conversion roster tracked by **tf level** (tf0 untouched · tf1 done in round 1, pre color+buttons · tf2 done against the current framework; every game ends at tf2). Start a session there. Folds into ui.md once the games conform |
+| [plans/css-system.md](plans/css-system.md) | **The active sprint** — one palette in one place, a theme/polarity-ready structure, and named patterns. Start a session there. Runs BEFORE tile-feedback; each game takes its CSS pass and its tf pass back to back |
+| [plans/tile-feedback.md](plans/tile-feedback.md) | **The design target for tile/board feedback** — one channel per meaning, with a per-game conversion roster tracked by **tf level** (tf0 untouched · tf1 done in round 1, pre color+buttons · tf2 done against the current framework, on top of that game's CSS pass; every game ends at tf2). **PAUSED behind css-system.md.** Folds into ui.md once the games conform |
 | [plans/keyboard-nav-plan.md](plans/keyboard-nav-plan.md) | Arrow-key navigation of board pieces for the five games where clicking pieces IS the move; two prerequisites land first |
 | [plans/error-copy-sprint.md](plans/error-copy-sprint.md) | **Not scheduled**: the error-message redesign — why `ERROR_COPY` is wrong in shape, with the evidence; don't extend the table meanwhile |
-| [plans/css-philosophy.md](plans/css-philosophy.md) | **A live conversation, shelved**: what CSS we share and why we haven't — nothing in it applied yet |
+| [plans/css-philosophy.md](plans/css-philosophy.md) | **The reasoning archive** behind css-system.md: what CSS we share and why we haven't. Kept in full — the plan cites it rather than restating it |
 | [plans/db-work-2.md](plans/db-work-2.md) | The queue of DB-touching deferred items (whole-docs sweep); delete it when it empties |
 
 

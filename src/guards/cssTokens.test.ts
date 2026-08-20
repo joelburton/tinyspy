@@ -51,23 +51,38 @@ function scanTokens() {
   const codeFiles = walk(SRC, ['.tsx', '.ts']).filter((f) => !f.endsWith('.test.ts'))
 
   // name → first file that defines it (for a useful failure message).
+  //
+  // TOKEN spells what may appear in a custom-property name, and it is wider than
+  // it looks like it should be — do not narrow it back to [a-z0-9-]:
+  //
+  //   UPPERCASE  a multi-word part is camelCased (--mark-gameOver-dim-color),
+  //              matching the 345 camelCase class names already in src/. CSS
+  //              custom properties are case-SENSITIVE, unlike the rest of CSS,
+  //              which is what makes that a stable name rather than a typo.
+  //   UNDERSCORE a leading --_ marks a name private to one file
+  //              (--_cardGap), the CSS answer to a local variable.
+  //
+  // Both conventions are plans/css-system.md §3.1. A narrower class does not
+  // reject them — it makes them INVISIBLE here, so a typo'd --_crdGap would
+  // never fail this guard. That is the failure mode to protect against.
+  const TOKEN = String.raw`--[a-zA-Z0-9_-]+`
   const defined = new Map<string, string>()
   const define = (name: string, f: string) => {
     if (!defined.has(name)) defined.set(name, rel(f))
   }
   // Declared in a stylesheet.
   for (const f of cssFiles)
-    for (const m of stripComments(readFileSync(f, 'utf8')).matchAll(/(--[a-z0-9-]+)\s*:/g))
+    for (const m of stripComments(readFileSync(f, 'utf8')).matchAll(new RegExp(`(${TOKEN})\\s*:`, 'g')))
       define(m[1], f)
   // Set inline from a component (quoted style key).
   for (const f of codeFiles)
-    for (const m of stripComments(readFileSync(f, 'utf8')).matchAll(/['"](--[a-z0-9-]+)['"]/g))
+    for (const m of stripComments(readFileSync(f, 'utf8')).matchAll(new RegExp(`['\"](${TOKEN})['\"]`, 'g')))
       define(m[1], f)
 
   // name → first file that reads it via var().
   const refs = new Map<string, string>()
   for (const f of [...cssFiles, ...codeFiles])
-    for (const m of stripComments(readFileSync(f, 'utf8')).matchAll(/var\(\s*(--[a-z0-9-]+)/g))
+    for (const m of stripComments(readFileSync(f, 'utf8')).matchAll(new RegExp(`var\\(\\s*(${TOKEN})`, 'g')))
       if (!refs.has(m[1])) refs.set(m[1], rel(f))
 
   return { defined, refs }
@@ -403,7 +418,7 @@ describe('no unnamed colors', () => {
     const offenders: string[] = []
     for (const f of [...walk(SRC, ['.css']), ...walk(SRC, ['.tsx', '.ts'])]) {
       const src = stripComments(readFileSync(f, 'utf8'))
-      for (const m of src.matchAll(/var\(\s*--[a-z0-9-]+\s*,([^)]*)\)/g)) {
+      for (const m of src.matchAll(/var\(\s*--[a-zA-Z0-9_-]+\s*,([^)]*)\)/g)) {
         if (COLOR.test(m[1])) offenders.push(`${rel(f)}  ${m[0].slice(0, 70)}`)
       }
     }

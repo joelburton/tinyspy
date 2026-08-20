@@ -42,7 +42,7 @@ def dist(a, b):
 # common tokens with literal hex values
 common = {}
 for line in strip_comments(open('src/common/theme.css').read()).splitlines():
-    m = re.match(r'\s*(--[a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{3,8})\s*;', line)
+    m = re.match(r'\s*(--[a-zA-Z0-9_-]+)\s*:\s*(#[0-9a-fA-F]{3,8})\s*;', line)
     if m: common[m.group(1)] = m.group(2)
 
 def nearest(h):

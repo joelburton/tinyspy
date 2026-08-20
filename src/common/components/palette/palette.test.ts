@@ -50,7 +50,7 @@ describe('every color family is complete', () => {
   it('every cell is a var() reference, spelled out in full', () => {
     const bad = FAMILIES.flatMap((f) =>
       f.members.flatMap((m) =>
-        m.cells.filter((c) => !/^var\(--[a-z0-9-]+\)$/.test(c)).map((c) => `${f.name} → ${c}`),
+        m.cells.filter((c) => !/^var\(--[a-zA-Z0-9_-]+\)$/.test(c)).map((c) => `${f.name} → ${c}`),
       ),
     )
     // The literal spelling is the mechanism, not a style: a name built from a
