@@ -35,7 +35,7 @@ against the system's is work done to be undone. From here, each game takes its
 | | |
 |---|---|
 | started | 2026-08-20 |
-| step | **0, 1, 2 done**; **3 in progress** — the three-layer model is settled and written (§4.2, §4.3, §4.4). A first attempt built a general-purpose palette and was scrapped; §4.6 records why. Next: build `themes/daylight.css` / `semantic.css` / `fixed.css` |
+| step | **0, 1, 2 done**; **3 next** — every decision is settled and written (§4.2–§4.6). Step 3 now RELOCATES ONLY: build `polarity/light.css` / `themes/daylight.css` / `semantic.css` / `fixed.css` and move not one value. The gray collapse is its own pass (3b) |
 | blocked on | nothing. The family set, the theme/polarity file chain and the pseudo-role question all settled 2026-08-20 (§4.2, §4.3) |
 
 ## 2. Acceptance tests
@@ -832,7 +832,7 @@ all eight: sRGB is ΔL −0.086…−0.101 at −13% chroma; oklab is ΔL −0.1
 −16%. Both hold hue. They differ in **step size, not character** — oklab at 88%
 lands on sRGB's step.
 
-##### The question the edge measurement actually raises — OWED AT 3b
+##### The question the edge measurement actually raises — OWED AT 3c
 
 A third operation is the one §3.1's own definition describes — *"`edge` is the
 boundary of a fill, **at that fill's own saturation**"*, said explicitly against
@@ -847,7 +847,7 @@ claims. It is also **the only candidate symmetric under polarity**: a mix toward
 white desaturates by 10–19% depending on hue, because a light fill has less
 headroom, so neither mix generalizes.
 
-**RULED 2026-08-20: hold what ships, decide at 3b.** Today's edges look right in
+**RULED 2026-08-20: hold what ships, decide at 3c.** Today's edges look right in
 light mode and the dark theme is what will tell us. Watch for the larger
 possibility while there — that `edge` is **two roles masquerading as one**, since
 *"the boundary of this fill"* and *"the same fill, darker"* only coincide on a
@@ -864,7 +864,7 @@ light page.
   recipes. Lost and near reproduce as nothing: they are Material 100s, and
   Material's ramps rotate, so they sit 14° and 18° off their own families' hues.
   The wash is also the tier a theme most wants to derive, since a wash is by
-  definition close to the page — so a wash frozen as a hex is the first thing 3b
+  definition close to the page — so a wash frozen as a hex is the first thing 3c
   should look at.
 
 #### RULED 2026-08-20: "copy, don't alias" is retired as a default
@@ -1060,7 +1060,7 @@ common/
   polarity/         DIRECTION, and the derivations that depend on it.
     light.css       NO hexes. "away is black"; edge darkens; a ground's
     dark.css        hover moves away from the page. Tiny, and the file
-                    step 3b is really testing
+                    step 3c is really testing
   themes/           ROLE → HEX
     daylight.css    the standard light theme: complete
     cupcake.css     opinionated; SUBCLASSES daylight, ~20 overrides
@@ -1110,11 +1110,11 @@ catches midnight forgetting one.
 ##### Why the polarity layer is its own file, and holds no hex
 
 Split by KIND, not by convenience, and the argument is specific to us rather than
-general taste: **the directional layer is exactly what step 3b tests.** With
+general taste: **the directional layer is exactly what step 3c tests.** With
 direction and values in one file, a failed midnight spike cannot tell you which
 failed — *"the derivation is backwards"* and *"that hex is wrong on a dark page"*
 look identical from outside. Keeping direction in its own small file is what
-makes 3b's result readable.
+makes 3c's result readable.
 
 The two also have different lifetimes: direction is structural and stops changing
 once it is right; values are taste and change forever.
@@ -1320,8 +1320,9 @@ criterion is a step we cannot finish.
 | **0** | baseline + census ✅ **2026-08-20** | §2 and §9 filled from `scripts/css-baseline.mjs` |
 | **1** | this doc + the decisions ✅ **2026-08-20** | §3 settled: the role set, the one-word rule, modules-vs-global, brand-color location, `--stronger`/`--weaker`. Done *before* step 0 in wall-clock; the two are independent |
 | **2** | classify ✅ **2026-08-20** | all 561 definitions sorted — §4.1. Needed **six** buckets, not four; turned up 15 contract slots nobody declares; the §4.5 audit came back clean but for wordle. No files moved |
-| **3** | build the files | `themes/daylight.css` + `semantic.css` + `fixed.css` exist and every token resolves. **NOT "nothing looks different" any more** — see below |
-| **3b** | the **midnight spike** | a throwaway dark theme renders the homepage and one game. **This is step 3's acceptance test** — the distance-from-page claim only fails in a dark polarity. If it takes a week, the split is wrong, and we learn that here rather than at game sixteen. Kept behind a flag or deleted |
+| **3** | build the files — **RELOCATE ONLY** | `polarity/light.css` + `themes/daylight.css` + `semantic.css` + `fixed.css` exist, every token resolves, and **not one value moves**. The token snapshot must come back clean at both viewports |
+| **3b** | the **gray sweep** | the ~4 near-duplicate grays collapse and the member blue stops being the action blue. Every diff in the snapshot is intentional and reviewed one at a time |
+| **3c** | the **midnight spike** | a throwaway dark theme renders the homepage and one game. **This is the acceptance test for the POLARITY split** — the distance-from-page claim only fails in a dark polarity. If it takes a week, the split is wrong, and we learn that here rather than at game sixteen. Kept behind a flag or deleted |
 | **4** | shallow whole-app pattern pass | the top ~10 patterns **named**, app-wide, before any surface is deep-converted. Done by reading rendered surfaces, **never by grepping class names** — local names hide shared patterns, so searching by local name reproduces the bug |
 | **5** | homepage | the rehearsal: lowest blast radius, proves the mechanics |
 | **6** | dialogs + forms | the first real win — many near-identical instances, and where this conversation started |
@@ -1331,31 +1332,35 @@ criterion is a step we cannot finish.
 | **10** | assets | see §10 |
 | **11** | fold + delete | durable rules into `docs/ui.md` and `docs/code-conventions.md`; the guard allowlist empties; this doc goes |
 
-### Step 3 no longer means "nothing looks different"
+### Step 3 splits in two, so that one pass has NO intended changes
 
-It did, and the change is deliberate. The byte-for-byte rule was written to stop
-a structural pass smuggling a redesign in under it, which is still a good
-instinct — but §4.3's gray finding is a case where **the current values are the
-bug**. Twenty-one grays exist because each was invented at the point of use;
-reproducing all twenty-one faithfully preserves the flaw the sprint is here to
-fix. Same for the four near-duplicate pairs, and for the member blue that is
-byte-identical to the action blue.
+Joel's sequencing, and it is a signal-to-noise argument. Restructuring and
+re-deciding at once means a review where some diffs are wanted and some are bugs,
+and no way to tell which is which. Split, and each pass gets one job:
 
-So the instrument changes job rather than being retired:
+| | what moves | what a diff means |
+|---|---|---|
+| **step 3** | files only — every token relocates, **no value changes** | **a bug, always.** The snapshot must be clean |
+| **step 3b** | gray values only | **intentional, always.** Every line gets looked at |
 
-> **`scripts/css-token-snapshot.mjs` stops PROVING nothing moved and starts
-> REPORTING exactly what moved, so every change is one we looked at.**
+**Step 3 relocates EVERYTHING, including the chrome grays.** Not "non-gray
+first": moving the whole structure and changing nothing is what makes step 3b's
+diff readable, because by then the only thing left that can move is a value.
+`neutral` comes along in step 3 too — its five cells relocate byte-for-byte, and
+two of them (`-edge`, `-wash`) reproduce exactly as derivations.
 
-It resolves all 204 shared tokens in a real browser and diffs before against
-after. A moved value is now a line to review, not a failure — but an
-*unexplained* moved value still is, which is the whole point of having the list.
-The screenshot gallery (§11) stays the second net for anything the token list
-cannot see.
+**What step 3b then does**: collapse the four measured near-duplicates (§4.3),
+and give member-blue a value that is not byte-identical to the action blue. That
+is a short, entirely deliberate list.
+
+**Colors are NOT tinkered with in either pass.** `near` sitting 3.9° from
+`warning` is real and is not fixed here — retuning color while restructuring is
+how neither gets finished. The structure is what makes the later tinkering cheap,
+which is the whole trade.
 
 Two things that have NOT changed: a derivation still has to reproduce its value
-exactly where we are not deliberately re-deciding it (the eight edges, the
-sixteen chrome variants), and the edge operation itself is explicitly held at
-today's values until 3b (§4.3).
+exactly (the eight edges, the sixteen chrome variants), and the edge operation is
+explicitly held at today's values until the midnight spike (§4.3).
 
 ## 8. How a game is done
 
@@ -1461,16 +1466,58 @@ near-whites that will fail on a dark page. None of it is visible to any guard.
 
 **Not done game by game.** Doing one logo at each game's pass means arguing about
 a tree sixteen times while the forest is the point. It is also the lowest-risk
-part of the sprint — nothing here breaks a layout — and the midnight spike (3b)
+part of the sprint — nothing here breaks a layout — and the midnight spike (3c)
 will have shown which ones actually fail. So: all of it, once, at the end.
 
 ## 11. The safety net
 
-- **The screenshot gallery** (`gmake gallery`, 411 tiles, complete) is built
-  before and after each surface, and the images diffed. That turns "eyeball
-  sixteen games carefully" from a thing to remember into a thing that fails
-  loudly.
-- **What it does not cover**: hover, press, focus, in-flight, drag. Those still
+### ⚠️ CORRECTED 2026-08-20: the gallery cannot be diffed
+
+An earlier draft of this section said the gallery is *"built before and after each
+surface, and the images diffed"*, turning careful eyeballing into *"a thing that
+fails loudly"*. **That is false, and it was never true.**
+
+**Measured**: two consecutive `gmake gallery GAME=psychicnum` runs with ZERO code
+change between them produced **0 of 20 byte-identical tiles**, differing by
+**1.2% to 6.4% of pixels**. The gallery plays real games — throwaway clubs,
+random personas, whatever numbers the board generates — so its output is
+nondeterministic by construction. The Makefile says as much and was right:
+
+> *"NOT a test, and deliberately not wired into `test`: it asserts nothing, so it
+> can't pass or fail. It answers 'do these fifteen games look like one app?',
+> which only a person answers."*
+
+So the gallery stays exactly what it is: **the human pass.** It is what you look
+at to see whether sixteen games still read as one app, and it cannot be the
+machine check that a restructure changed nothing.
+
+*(Making it deterministic — seeded boards, fixed personas — would be genuinely
+valuable and is its own project. It must not block this one.)*
+
+### What actually checks a structural pass
+
+**`scripts/css-token-snapshot.mjs`.** It resolves every shared token in a real
+browser and diffs before against after, and it IS deterministic — verified by
+running it twice against an unchanged tree for a clean result, then by planting a
+moved hex, a renamed token and a new one and watching it name all three.
+
+**It is a COMPLETE check for step 3 precisely because step 3 moves nothing but
+token definitions.** A `:root` custom-property declaration does not compete on
+cascade order the way a class rule does, so relocating one — each name declared
+exactly once — cannot change which declaration wins. The moment a pass starts
+moving class rules (step 4 onward), that stops being true and the check stops
+being sufficient.
+
+**One gap to close before step 3 runs**: the snapshot probes at one viewport, and
+`@media (--phone)` re-declares `--page-padding-x` / `--page-padding-y`. For a
+token that is overridden, FILE ORDER genuinely matters — a base declaration that
+lands after the media query loses. So the snapshot must probe at both a desktop
+and a phone width, or it is blind to exactly the case where relocation can break
+something.
+
+### The rest of the net
+
+- **What no snapshot covers**: hover, press, focus, in-flight, drag. Those still
   need a person, and they are exactly where tile-feedback's marks live — which is
   another reason the two passes are back to back.
 - **One commit per surface**, so a bad surface reverts alone.
@@ -1478,6 +1525,10 @@ will have shown which ones actually fail. So: all of it, once, at the end.
 ## 12. Open questions
 
 - **§6.4** device density — owed before step 5
+- **Should the gallery be made DETERMINISTIC?** Measured 2026-08-20: two runs
+  with no code change differ on 1.2–6.4% of pixels, because it plays real games
+  with random personas and boards (§11). Seeded boards + fixed personas would
+  turn it into a real before/after check. Worth doing; must not block this sprint
 - **§6.2** whether the shrinking allowlist is the right guard mechanism
 - ~~**How many hues**~~ — **the wrong question**, and asking it is what produced
   the scrapped palette (§4.6). The count that matters is FAMILIES, and a family
@@ -1505,18 +1556,18 @@ will have shown which ones actually fail. So: all of it, once, at the end.
 - **Is wordle's `blank` inside the fixed vocabulary or a themed surface?** (§4.5)
 - **Member borders under polarity** — a chosen hex per theme, or a derivation off
   the dot? The difference is 16 hexes against 8 (§4.3)
-- **NEW, and owed at 3b — which edge operation.** sRGB and oklab differ only in
+- **NEW, and owed at 3c — which edge operation.** sRGB and oklab differ only in
   step size (−13% vs −16% chroma), so that pair is nearly a non-question. The
   live one is whether `edge` should hold chroma outright (`oklch(L−0.084, C, H)`),
   which is what §3.1's definition of the role says and the only candidate that is
   symmetric under polarity — a mix toward white desaturates by 10–19% depending
   on hue. Costs a small daylight pixel change, so it cannot ride step 3 (§4.3).
-  **Ruled 2026-08-20: hold what ships, decide at 3b** — today's edges look right
+  **Ruled 2026-08-20: hold what ships, decide at 3c** — today's edges look right
   in light mode, and the dark theme is what will tell us. Watch for the larger
   possibility while there: that `edge` is **two roles masquerading as one**, since
   "the boundary of this fill" and "the same fill, darker" only coincide on a
   light page
-- **NEW — does the `-wash` tier get re-derived at 3b?** Three of five reproduce
+- **NEW — does the `-wash` tier get re-derived at 3c?** Three of five reproduce
   as a mix with the page; the other two are off-hue Material 100s. A wash frozen
   as a hex is the tier most likely to be wrong on a dark page (§4.3)
 - **NEW — the `warning` family spans 21° of hue** and `near`'s ink is barely
