@@ -36,7 +36,7 @@ against the system's is work done to be undone. From here, each game takes its
 |---|---|
 | started | 2026-08-20 |
 | step | **0, 1, 2 done**; **3 in progress** — the three-layer model is settled and written (§4.2, §4.3, §4.4). A first attempt built a general-purpose palette and was scrapped; §4.6 records why. Next: build `themes/daylight.css` / `semantic.css` / `fixed.css` |
-| blocked on | two shape questions inside §4.3, both cheap: is `warning` orange or amber, and is `disabled` a sixth role. Both change the theme file's shape, so both come first |
+| blocked on | nothing. The family set, the theme/polarity file chain and the pseudo-role question all settled 2026-08-20 (§4.2, §4.3) |
 
 ## 2. Acceptance tests
 
@@ -572,35 +572,58 @@ discussion is short and it is the two brakes: *would two unrelated meanings reac
 for it*, and *does it derive, or is it one judgment per hue*. A candidate that
 passes both is a role.
 
-**And a translucent overlay is not the universal answer.** Several things this
-document treats as derivations — a hover, a dim, a wash — work because laying a
-translucent `--polarity-away` over whatever is underneath is genuinely what the
-effect means. That is a real trick and it carries a lot. It will not carry
-everything.
+##### PSEUDO-ROLES — SETTLED 2026-08-20: `disabled` and `hover` are in
 
-**`disabled` is the standing candidate**, and §6.5 already holds the evidence
-without having drawn the conclusion: *"`--tile-disabled-color` cannot be one
-token. A delta frozen into an absolute is correct for exactly one starting point;
-the tile ramp has five."* An opacity is the same claim in a different costume —
-it says *disabled is what any color looks like at 75%*, which is a guess that
-happens to hold for chrome and demonstrably does not hold for a game piece, where
-fading toward the page is the one thing a piece must not do. If it needs a value
-per family rather than an operation over all of them, it is a role.
+They are in the vocabulary, and the question I had been treating as blocking —
+*is `disabled` a sixth role, given that it is implemented as an opacity?* — was
+the wrong question. It confused **what we can ask for** with **how it gets made**:
 
-Owed before the theme files are written, since a sixth role changes their shape.
+> **The family is `red-fill`, `red-ink`, `red-edge`, `red-disabled`,
+> `red-hover`, … and you may ask for any of them without knowing which are a
+> chosen hex and which are an operation over one.**
+
+That some are produced by laying a translucent `--polarity-away` over the ground
+and others are picked by hand is interesting, and it matters *when implementing*.
+It does not belong in the vocabulary, and it must not show on the swatch page:
+looking at *"our colors are our roles"* should show a complete grid, not a grid
+with holes where the implementation happens to be clever.
+
+**Call the derived ones PSEUDO-ROLES** when the distinction is actually needed —
+which is in the polarity layer (§4.2), where the operation lives, and almost
+nowhere else.
+
+##### Where the pseudo-role abstraction leaks
+
+Worth stating precisely, because it is the one place it does:
+
+**A translucent overlay flattens into a real color only when you know the
+ground.** `--red-disabled` over a known page is `color-mix(…, var(--red-fill) 75%,
+var(--page-bg-color))` — a genuine color, addressable, swatchable. Over an
+UNKNOWN ground it cannot be flattened, and must stay an actual overlay drawn on
+top.
+
+That is §6.5's standing note, arrived at from the other direction:
+*"`--tile-disabled-color` cannot be one token. A delta frozen into an absolute is
+correct for exactly one starting point; the tile ramp has five."* A tile sits on a
+board whose color the token cannot know, which is exactly the unknown-ground
+case.
+
+So: **chrome gets a flattened `-disabled` per family; a game piece keeps an
+overlay.** Same name, two implementations, and the vocabulary is unaffected —
+which is the whole point of the ruling.
 
 #### CURSOR is a real role, on evidence
 
 *"Where the keyboard is pointing"* looked like it should fold into `ink` — a
 caret is a thin line, a focus ring is an outline ring, and §3.1's ink covers
 both. What makes it a role instead is that **it already exists in two hues**:
-`--chrome-cursor-color` is blue, and `--mark-grid-cursor-color` is amber,
+`--chrome-cursor-color` is blue, and `--mark-grid-cursor-color` is yellow,
 deliberately so, because scrabble's premium squares are already red and blue and
 a cursor has to stand out ON them. One job, two hues, needing a cell in each
 family — that is the definition of a role.
 
 **Open, and it is §3.1's second brake: does it derive?** The blue cursor is
-exactly the action blue. The amber one sits darker AND duller than amber's fill,
+exactly the action blue. The yellow one sits darker AND duller than yellow's fill,
 by no operation any other role uses. If it turns out to be one judgment per hue,
 it is an expensive role and worth re-testing.
 
@@ -628,38 +651,65 @@ plus a tone class); the question is how far that generalizes. In order:
 the class reads `--outcome-lost-ink-color` rather than `--red-ink`, for the
 reason above.
 
-#### The role families
-
-Named for the color, because a family is a hue's worth of roles. Which meanings
-each carries, from the census:
+#### The role families — SETTLED 2026-08-20
 
 | family | carries |
 |---|---|
 | `red` | lost · destructive · fault |
+| `orange` | **caution · warning** |
+| `yellow` | near · attention · the rank ladder · the grid cursor · the current game |
 | `green` | won · success |
 | `blue` | action · link · badge · info · the definable ring · the cursor |
-| `amber` | near · attention · the rank ladder · the grid cursor · the current game |
-| `orange` | caution · warning |
-| `neutral` | the neutral outcome · the quiet tone |
 | `teal` | co-op |
 | `purple` | compete |
+| `neutral` | the neutral outcome · the quiet tone |
+
+##### A family is named with a color you can VISUALIZE, instantly
+
+The rule behind the table, and it retires three names an earlier draft used:
+
+> **`amber`, `sand` and `slate` are out. Nobody visualizes "amber" quickly.**
+> Red, orange, yellow, green, blue, purple, teal, gray — the names a person
+> already has.
+
+That is not decoration. A family name is read constantly, by someone deciding
+which family a new meaning belongs to, and a name that needs a beat of thought
+makes that decision worse every single time.
+
+**`warning` is ORANGE**, which settles the "21° of hue inside one family"
+question by dissolving it. Its ink at 48.1° and its fill at 69.6° are both orange
+— the internal spread is what the family's shape looks like, not a defect. It
+looked like a defect only because a census had bucketed the two ends under
+different labels.
+
+##### A theme may retune a family; it may NOT re-hue it out of recognition
+
+The constraint that follows, and it is the one real limit on what a theme can do:
+
+> **horror's orange and cupcake's orange will differ. Both must still land under a
+> broad umbrella of ORANGE** — otherwise *"how do I play this game"* is lost.
+
+A player learns the vocabulary once. A theme that made warning green would not be
+a theme, it would be a different game. So a family's hue has a band, and a theme
+moves within it.
+
+##### One consequence worth measuring before the files are written
+
+If `warning` is orange and `near` is yellow, **their fills have to actually
+diverge** — and today they barely do. `--outcome-near-fill-color` sits at 73.5°
+and `--outcome-warning-fill-color` at 69.6°: **3.9° apart**, which is the same
+color. The 2026-08-17 split that separated "one away" from "you already tried
+that" gave them different NAMES and left them nearly the same hue.
+
+So the family assignment turns a naming split into a real one. That moves pixels,
+deliberately, and it is exactly the kind of change step 3 now exists to surface
+rather than suppress.
 
 **Rectangular, all of them, including teal and purple.** Ten cells serving two
 consumers today is the reservation policy working, not waste: the next *"two
 distinct colors not already overloaded by buttons or outcomes"* problem will
 reach for them, and a half-built family is how that gets solved with a fresh hex
 instead.
-
-**Two shapes are unsettled and want deciding before the files are written:**
-
-- **Is `warning` orange or amber?** Today it is BOTH — its ink sits at hue 48.1°
-  and its fill at 69.6°, a 21° rotation inside one family, with the ink at
-  caution's hue rather than its own fill's. That was a curiosity under the old
-  model and is a decision under this one, because a meaning maps to exactly one
-  family.
-- **Are `amber` and `yellow` one family or two?** `near` (a result) and
-  `attention` (look here) are different meanings, and near/warning were split
-  deliberately in 2026-08-17. Whether they need different HUES is the question.
 
 #### `neutral` is the gray family; `--gray-*` is the chrome grounds
 
@@ -1007,10 +1057,14 @@ The shape; exact names settle at step 3. Everything here is **eager and global**
 
 ```
 common/
-  themes/           ROLE → HEX. One file per theme, and a theme is ONE
-    daylight.css    polarity (§4.2), so there is no theme × polarity grid.
-    midnight.css    Holds the role families, the --gray-* grounds, and the
-    cupcake.css     tile ramp. States its own polarity.
+  polarity/         DIRECTION, and the derivations that depend on it.
+    light.css       NO hexes. "away is black"; edge darkens; a ground's
+    dark.css        hover moves away from the page. Tiny, and the file
+                    step 3b is really testing
+  themes/           ROLE → HEX
+    daylight.css    the standard light theme: complete
+    cupcake.css     opinionated; SUBCLASSES daylight, ~20 overrides
+    midnight.css    dark: complete
   semantic.css      MEANING → ROLE. Theme-invariant, holds no value
   fixed.css         HEX, no role, no theme: member colors + the wordle
                     vocabulary. Exempt because their value IS their meaning
@@ -1024,6 +1078,47 @@ common/
   brand.css         --<game>-* tokens. Nothing else
 ```
 
+#### A theme declares its CHAIN, and loads it — SETTLED 2026-08-20
+
+```
+daylight  →  polarity/light.css + daylight.css
+cupcake   →  polarity/light.css + daylight.css + cupcake.css
+midnight  →  polarity/dark.css  + midnight.css
+```
+
+**Subclassing is right, and the reason is honesty about what a theme is.** If
+cupcake really is *"daylight, but pinker"*, then twenty lines is the truthful
+file and restating a hundred is eighty lines of lie. Inheriting a retuned green
+is the CORRECT behavior for a theme derived from another, not a drift hazard.
+
+**But the base must load because a theme ASKED for it — never as the
+unconditional default.** That constraint is the whole safety of the scheme. Put
+daylight on a bare `:root` and make midnight `[data-theme='midnight']`, and
+midnight must override every single role; any one it forgets resolves silently to
+daylight's light hex on a dark page. That is worse than §6.1's undefined-token
+failure, because it resolves to something PLAUSIBLE rather than to nothing.
+
+Under the chain, midnight never loads daylight at all, so there is nothing to
+leak. Subclassing stays available to whatever wants it, and the polarity file is
+the base for whatever does not.
+
+**The completeness check changes shape with it**: not *"every theme declares
+every role"* but **"every theme RESOLVES every role"** — which
+`scripts/css-token-snapshot.mjs` already does, run once per theme. That is what
+catches midnight forgetting one.
+
+##### Why the polarity layer is its own file, and holds no hex
+
+Split by KIND, not by convenience, and the argument is specific to us rather than
+general taste: **the directional layer is exactly what step 3b tests.** With
+direction and values in one file, a failed midnight spike cannot tell you which
+failed — *"the derivation is backwards"* and *"that hex is wrong on a dark page"*
+look identical from outside. Keeping direction in its own small file is what
+makes 3b's result readable.
+
+The two also have different lifetimes: direction is structural and stops changing
+once it is right; values are taste and change forever.
+
 **There is NO `palette.css`**, and the absence is a decision rather than an
 omission. A first pass at step 3 built one — 77 stops named `--red-1`,
 `--pink-2`, `--sand-9`, with meaning applied afterward through a mapping layer —
@@ -1036,7 +1131,7 @@ problem defaults to:
 > these roles.
 
 Two symptoms made it obvious. Sorting by MEASURED HUE rather than by meaning put
-the warning family's ink under `orange` and its fill under `amber` — a family
+the warning family's ink under one bucket and its fill under another — a family
 split in half by a census. And the families came out ragged (blue 4 stops, orange
 3), which is not a finding about the design; it is proof of counting hexes
 instead of building families. **A family is rectangular, always.**
@@ -1387,22 +1482,25 @@ will have shown which ones actually fail. So: all of it, once, at the end.
 - ~~**How many hues**~~ — **the wrong question**, and asking it is what produced
   the scrapped palette (§4.6). The count that matters is FAMILIES, and a family
   is defined by the meanings it carries, not by where a census puts its hue.
-  Today: red · green · blue · amber · orange · neutral · teal · purple (§4.3)
+  **SETTLED 2026-08-20: red · orange · yellow · green · blue · teal · purple ·
+  neutral**, each named with a color you can visualize instantly — which is why
+  `amber`, `sand` and `slate` are out (§4.3)
 - ~~**Whether `-edge` is a role or a derivation of `-fill`**~~ — **ANSWERED
   (§4.3): a derivation, at a flat 16% for all eight consumers.** It stays a named
   role. The tile ramp's second column is NOT this operation and is not this role
   (§4.4)
-- **BLOCKING step 3 — is `warning` orange or amber?** Today it is both: ink at
-  48.1°, fill at 69.6°. Under the three-layer model a meaning maps to exactly one
-  family, so this stops being a curiosity and becomes a fork (§4.3)
-- **BLOCKING step 3 — is `disabled` a sixth role?** An opacity claims *disabled
-  is what any color looks like at 75%*, which holds for chrome and demonstrably
-  does not for a game piece (§6.5 has the evidence). A sixth role changes every
-  theme file's shape, so it is owed before they are written (§4.3)
-- **Are `amber` and `yellow` one family or two?** `near` and `attention` are
-  different meanings; whether they need different hues is the question (§4.3)
+- ~~**Is `warning` orange or amber?**~~ — **SETTLED: orange.** The 21° spread
+  between its ink and its fill is the family's shape, not a defect (§4.3)
+- ~~**Is `disabled` a sixth role?**~~ — **SETTLED: yes, and so is `hover`.** They
+  are PSEUDO-ROLES: in the vocabulary and on the swatch page like any other,
+  while the polarity layer decides whether each is a chosen hex or an operation
+  (§4.3)
+- **NEW, and it moves pixels — `near` and `warning` are 3.9° apart.** Assigning
+  warning to orange and near to yellow means their fills have to actually
+  diverge, where the 2026-08-17 split gave them different names and left them
+  nearly the same color (§4.3)
 - **Does `cursor` derive, or is it one judgment per hue?** It passed the first
-  brake on evidence — it already exists in blue and amber — but the amber one
+  brake on evidence — it already exists in blue and yellow — but the yellow one
   matches no operation the other roles use (§4.3)
 - **Is wordle's `blank` inside the fixed vocabulary or a themed surface?** (§4.5)
 - **Member borders under polarity** — a chosen hex per theme, or a derivation off
