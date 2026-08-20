@@ -35,7 +35,7 @@ against the system's is work done to be undone. From here, each game takes its
 | | |
 |---|---|
 | started | 2026-08-20 |
-| step | **0, 1, 2 done** — decisions settled (§3), baseline measured (§2, §9), tokens classified (§4.1). Next: **step 3, build the files** |
+| step | **0, 1, 2 done**; **3 in progress** — the derivation is measured and written (§4.2, §4.3, §4.4). Next: build `palette.css` / `themes.css` / `semantics.css` |
 | blocked on | nothing |
 
 ## 2. Acceptance tests
@@ -105,9 +105,15 @@ name, which is this document's whole diagnosis and not evidence against a role.
 
 The two brakes still govern any *sixth*: **would two unrelated meanings reach for
 it?** and **does it derive, or is it one judgment per hue?** So far `edge` derives
-outright (*"the fill, 16% toward black"*, identically across all five outcome
-members and the tile ramp — one operation, six applications, zero decisions per
-hue), and `ink` is the expensive one, being where the gold problem lives.
+outright (*the fill, 16% toward `--polarity-away`* — one operation, **eight**
+applications, zero decisions per hue), and `ink` is the expensive one, being where
+the gold problem lives.
+
+> **Measured 2026-08-20 and corrected on two counts: the operation is in sRGB,
+> not oklab, and the TILE RAMP is not one of the eight.** See §4.3 and §4.4. The
+> eight are the five outcome members plus the three `--wordlelike-*` judgments,
+> and all eight reproduce byte-for-byte. `ink`'s expense is measured too: its
+> step from the fill runs from 0.037 to 0.306, so it is not one operation at all.
 
 #### The token grammar
 
@@ -352,12 +358,6 @@ See §10.
 
 ## 4. The layers
 
-*(4.2–4.4 still TBD — they are the derivation work, done at step 3.)*
-
-- 4.2 polarity vs theme — what each decides
-- 4.3 the anchors, and what derives from them
-- 4.4 the position ramp (tiles) alongside the role ramps
-
 ### 4.1 — SETTLED: the layers, and what each holds
 
 **Step 2's output, 2026-08-20.** Every one of the 561 token definitions was
@@ -446,6 +446,317 @@ what this codebase already does, with one exception we found by reasoning and th
 confirmed by counting.** That is the strongest evidence so far that the rule is
 cut along a real joint — and it means step 3 inherits far less mess than the
 171-hexes headline suggests.
+
+### 4.2 — polarity vs theme, and what each decides
+
+**A theme picks VALUES. A polarity picks a DIRECTION.** They are separate because
+almost every rule in this app is written as a direction and stored as a value —
+*"the fill, 16% toward black"*, *"8% over white"*, *"never dim a game piece toward
+the page"* — and every one of those sentences is wrong on a dark page while the
+hex it produced is merely wrong-looking. Splitting them is what makes the
+midnight spike (§7, step 3b) a day rather than a rewrite.
+
+**Polarity is STATED, never inferred.** CSS cannot branch on "is this page's
+lightness above 0.5", and we would not want it to: a theme knows which way it
+faces, and saying so out loud is one line.
+
+| | polarity decides | a theme decides |
+|---|---|---|
+| what it is | which way is *away from the page* | what the page, the ink and each role actually are |
+| how many exist | two, forever | as many as we like |
+| written as | `--polarity-away` / `--polarity-toward` | a block of anchor bindings |
+| moves what | every derivation with a direction in it | every value |
+
+Two tokens carry the whole of it:
+
+```css
+/* daylight — a light page */
+--polarity-away:   var(--gray-00);   /* black:  away from the page */
+--polarity-toward: var(--gray-100);  /* white:  toward it */
+```
+
+and a dark theme swaps the two. Then `edge` — *the fill, taken toward away* —
+darkens on daylight and **lightens** on midnight, from one unchanged line. That
+is the entire mechanism, and it is why the role set (§3.1) is worth the trouble:
+`wash · fill · edge · ink · dullframe` are all defined relative to the page, so
+all five follow polarity for free.
+
+**`--stronger` / `--weaker` (§3.3) are these two wearing an alpha**, and nothing
+more: `--stronger` is a translucent `--polarity-away`, `--weaker` a translucent
+`--polarity-toward`. The three mark dims (in-flight, not-your-turn, game-over)
+become strengths of `--stronger` and stop being three hard-coded blacks. This is
+also where **§6.5's inversion lands**: *never dim a game piece toward the page*
+is enforceable once the two have separate names, because a game piece may read
+`--stronger` and may not read `--weaker`.
+
+**What a theme is NOT allowed to move**: the fixed families (§4.5's
+`--wordlelike-*`) and the palette's own physical facts — a gray stop named for
+its lightness is that lightness in every theme. A theme re-points; it does not
+re-define. See §4.3.
+
+**Where each lives.** `--polarity-*` is declared inside the theme block in
+`themes.css`, beside `color-scheme`, because a theme that forgot to state its
+polarity would silently inherit the previous one's — which is the
+`--info-col-width` failure mode with the whole page as its blast radius.
+
+### 4.3 — the anchors, and what derives from them
+
+**Measured 2026-08-20**, by resolving every color-valued definition in
+`common/theme.css` into OKLCH and testing each documented derivation against the
+value it claims to produce. The findings are below; two of them are corrections
+to prose that has been wrong for a while.
+
+#### The rule that makes step 3 safe
+
+> **A value becomes a derivation only when the derivation reproduces today's hex
+> BYTE FOR BYTE. Otherwise it stays a hex, with the formula in a comment.**
+
+Step 3's exit criterion is *nothing looks different*, and a derivation that is
+"visually identical" is a pixel change we chose not to look at. The rule is
+mechanical, so the sprint's first structural pass cannot smuggle a redesign in
+under it — and the redesign, where one is wanted, becomes its own visible diff
+later.
+
+**The instrument** is a computed-token snapshot, not the screenshot gallery:
+headless Chrome loads the app, sets `color: var(--x)` on a probe element for
+every color token in turn, and reads back the resolved `rgb()`. Run before and
+after; the two lists must be identical. That resolves `var()` chains,
+`color-mix()` and `oklch()` the way the browser really does, which no
+reimplementation of oklab in Node can promise.
+
+#### Nine hues, plus gray, plus one ramp
+
+The answer to §12's *"how many hues"*, counted rather than guessed. Every color
+value in `common/theme.css` sorted into OKLCH hue buckets:
+
+| family | hue | who lives there |
+|---|---:|---|
+| `red` | 26.7° | lost, destructive, fault, member-red |
+| `orange` | 48.1° | caution, **warning's ink**, member-brown (the same hue at ⅓ the chroma) |
+| `amber` | 69.8° | **warning's fill/edge/wash**, near, the grid cursor, the current-game stripe, member-orange |
+| `yellow` | 93° | attention (both scopes), the rank bar, the suspended stripe, `--wordlelike-yellow`, member-yellow |
+| `green` | 144.2° | won, the success toast, `--wordlelike-green`, member-green |
+| `teal` | 180.4° | the co-op mode pill — one consumer |
+| `blue` | 253.3° | action, cursor, caret, link, badge, the definable ring, the info pill, member-blue; history sits 4° off at 249.3° |
+| `purple` | 312° | the compete mode pill, member-purple |
+| `pink` | 4° | member-pink — one consumer |
+| `gray` | — | 22 distinct stops across 43 tokens |
+| `sand` | 88° | the tile ramp — a POSITION ramp, not a role family (§4.4) |
+
+**The warm bucket is THREE families, not two** — which §12 guessed at and got
+half right. Orange (48°) and amber (70°) are 21° apart and the separation is
+deliberate: `theme.css` argues it at length under `--chrome-caution-primary-color`
+(*"that rotation is the entire difference between caution and highlighter"*).
+Yellow (93°) is a third, and the low-chroma sand ramp is a fourth thing again.
+
+**Gray is the one family named by MEASUREMENT rather than by role**, and the
+exception is earned: a neutral has no second axis, so *how light* is the entire
+question. `--gray-98`, `--gray-22`, `--gray-00` — the number is OKLCH lightness
+×100, a physical fact that no theme may move, which is exactly what lets a theme
+re-point `--page-bg-color` from `--gray-98` to `--gray-12` and change nothing
+else. It also does §6.2's notice-don't-forbid job for free: `--gray-97`,
+`--gray-96` and `--gray-95` sitting on three adjacent lines is the report.
+
+*(This is the one place the plan's own objection to lightness names — "a dark
+theme would make `pale` the darkest thing on screen" — does not bite. `pale` is a
+judgment about a page; `98` is a measurement of a color.)*
+
+#### What derives, and what does not
+
+| tier | count | derives? | the operation |
+|---|---:|---|---|
+| chrome `-primary-hover` | 4 | ✅ **exact** | the primary, oklab lightness −0.05 |
+| chrome `-secondary` | 4 | ✅ **exact** | the primary, oklab lightness −0.115 |
+| chrome `-secondary-hover` | 4 | ✅ **exact** | `color-mix(in oklab, <primary> 8%, var(--page-surface-color))` |
+| chrome `-primary-ink` | 4 | ✅ | one gray stop |
+| outcome + `--wordlelike-*` `-edge` | 8 | ✅ **exact** | `color-mix(in srgb, <fill> 84%, var(--polarity-away))` |
+| outcome `-wash` | 5 | ⚠️ 3 of 5 | a mix with `var(--page-surface-color)` — see below |
+| outcome `-dullframe` | 5 | ⚠️ | `oklch()` at the family hue, but only with each one's own measured L and C |
+| outcome `-ink` | 5 | ❌ | see below |
+| member `-border` | 8 | ❌ | the seeded formula reproduces one of the eight |
+| the sand ramp | 12 | ❌ | §4.4 |
+
+**The chrome tones are the demonstration.** All sixteen derived values reproduce
+byte-for-byte from their four anchors — the family really was picked at one
+sitting by one formula, exactly as `theme.css` claims, and twelve hexes come out
+of the file for nothing. Anything the sprint does elsewhere is measured against
+this: it is what a family that was derived rather than accumulated looks like.
+
+##### Correction: `-edge` is an sRGB multiply, not an oklab mix
+
+`theme.css` says *"the fill, 16% toward black"* and this plan repeats it in §3.1
+as the case that *"derives outright"*. The claim is right and the space is
+wrong — the operation is a plain multiply on the sRGB bytes, which is
+`color-mix(in **srgb**, <fill> 84%, black)`. Done in oklab the same 16% lands
+somewhere else and visibly so: won's edge would come out `#4f9452` against the
+real `#569d59`. Every one of the eight matched the sRGB reading exactly and none
+matched the oklab one.
+
+**But the two spaces matter less than that makes them sound**, and the numbers
+are the point — measured across all eight fills:
+
+| | ΔL | Δ chroma | Δ hue |
+|---|---|---|---|
+| sRGB 84% (**ships**) | −0.086 … −0.101 | **−13%**, uniformly | ≤ 0.1° |
+| oklab 84% | −0.110 … −0.130 | **−16%**, uniformly | ≤ 0.3° |
+
+Both hold hue. Both desaturate. They differ in **step size, not in character** —
+oklab at 88% would land on sRGB's step. So "which space" is very nearly a
+non-question, and a first pass at this section claimed a categorical difference
+(*"it holds chroma where an oklab step drains it"*) that the measurement does not
+support. The fix is to the prose only.
+
+##### The question the edge measurement actually raises
+
+A third operation is the one §3.1's own definition describes — *"`edge` is the
+boundary of a fill, **at that fill's own saturation**"*, said explicitly against
+`dullframe`, which is the deliberately desaturated one:
+
+```
+oklch(L − 0.084, C, H)     — hold chroma and hue, move lightness only
+```
+
+Today's edge drains 13% of chroma, so that contrast is weaker than the doc
+claims. Two things follow:
+
+- **It would move pixels**, by 0.008–0.026 of oklab distance — at or above the
+  *"reads as the same color"* threshold for four of the eight. So it fails §4.3's
+  byte-for-byte rule and cannot be part of step 3.
+- **It is the only one of the three that survives polarity.** Under midnight,
+  `edge` means *toward white*, and a mix toward white desaturates by **10–19%
+  depending on hue** — not uniformly, because a light fill has less headroom.
+  Neither mix generalizes; `L ± 0.084, hold C and H` is symmetric by
+  construction.
+
+**So: step 3 ships the sRGB multiply**, written as
+`color-mix(in srgb, <fill> 84%, var(--polarity-away))`, which reproduces every
+one of the eight exactly. **The L-only form goes on 3b's docket**, where a dark
+theme will show whether the mix-toward-white behavior is tolerable. If it is not,
+the L-only form is the fix and the small daylight change comes with it.
+
+`--outcome-neutral-edge-color` is exempt from all of this: at hue-free gray every
+candidate is the same operation, so it follows midnight correctly whichever wins.
+
+##### `-wash` is not a family, it is five separate decisions
+
+Three of the five reproduce exactly as a mix with the surface — won at 37%
+oklab, warning at 35% sRGB, neutral at 15% oklab — which is already three
+different recipes. **Lost and near reproduce as nothing**: they are Material's
+100-level swatches, and Material's ramps rotate, so `--outcome-lost-wash-color`
+sits **14° off** its own family's hue and `--outcome-near-wash-color` **18° off**.
+
+They stay hexes. But the wash tier is the one the *theme* most wants to derive —
+a wash is by definition close to the page, so a wash frozen as a hex is a wash
+that will be wrong on midnight, and this is the first thing step 3b should look
+at. Recorded, not fixed.
+
+##### The two findings that are about the design, not the mechanics
+
+- **The `warning` family is not one hue.** Its ink sits at 48.1° and its fill at
+  69.6° — a 21° rotation *inside a single family*, and its ink is at the caution
+  orange's hue rather than its own fill's. That is very likely why chrome kept
+  reaching into warning before it had an orange of its own. Notice-don't-forbid
+  (§6.2): fixing it moves pixels, so it is a later conversation.
+- **`--outcome-near-ink-color` is barely an ink.** It sits 0.037 of lightness
+  below its fill where every other family's ink is 0.115 to 0.306 below. This is
+  the gold problem §3.1 predicted would live in `ink`, measured: gold cannot go
+  dark without ceasing to be gold, so `near`'s ink stopped short and the family's
+  one shared operation broke there.
+
+#### What a theme file therefore contains
+
+Small, which is the point and is step 3b's real test:
+
+```css
+[data-theme='midnight'] {
+  color-scheme: dark;
+  --polarity-away:   var(--gray-100);
+  --polarity-toward: var(--gray-00);
+  --page-bg-color:      var(--gray-12);
+  --page-surface-color: var(--gray-18);
+  --page-text-color:    var(--gray-92);
+  /* …and the dozen other grounds. No hue is re-picked here. */
+}
+```
+
+The palette is **absolute and theme-invariant**: a gray at lightness 0.98 is that
+gray in every theme, and a red at hue 27° is that red. **A theme re-points; it
+does not re-define.** Where midnight needs a red the palette does not carry, the
+palette gains a stop — it never gets overwritten inside a theme block, because a
+token whose value depends on which theme is mounted is a token nobody can reason
+about from its name.
+
+#### RULED 2026-08-20: "copy, don't alias" is retired as a default
+
+`theme.css` argues three separate times that two names agreeing on a hex should
+each write the hex out — *"two names on one hex keeps a future theme at 100
+colors instead of 200, while an alias claims the two must move together"* — which
+is why `#1976d2` appears eight times and `#ffffff` fifteen.
+
+**That advice predates [css-philosophy.md](css-philosophy.md) and does not carry
+forward as a rule.** It may still be the right call in a specific spot; it is no
+longer the thing to assume. Every copy gets decided on its own merits as we reach
+it, and the burden is now symmetric rather than resting on whoever wants to share.
+
+**And the replacement is NOT a rule either.** A tidy formulation was on offer — *a
+semantic token references a palette entry, never a sibling semantic token* — and
+it is deliberately not being blessed. It wants examples in situ first: the cases
+that matter (the eight blues, the fifteen whites, the two greens, the toast
+stripes that are already aliases) differ enough from each other that a rule
+written before looking at them would be a rule written from a hunch. **We work
+them case by case through steps 5–9 and let the pattern declare itself** — which
+is the same discipline §5.2 applies to patterns, applied to references.
+
+What that means concretely for step 3: the palette gets built, and a semantic
+token pointing at it is judged one at a time. The count of hexes that survive is
+an OUTPUT of that pass, not a target set in advance.
+
+### 4.4 — the position ramp, alongside the role ramps
+
+The five roles (§3.1) answer *what is this painting*. The tile ramp answers a
+different question — *how far down the stack is this* — and the difference is
+why it takes numbers where everything else takes names.
+
+```
+--sand-1 … --sand-5      lightest → darkest, plus a sixth beyond the ramp
+```
+
+**A position ramp's number is its meaning.** stackdown reads depth 0–3 straight
+off shades 2–5; scrabble's placed-not-committed tile is shade 1; the everyday
+resting tile every other game uses is shade 3. Nothing here would be improved by
+a role name, because there is no role — `--sand-4` is *one step deeper than
+`--sand-3`*, and that ordering is the entire content.
+
+**It is one hue at two moving parameters.** Measured across the twelve values
+(six shades and six edges): hue holds at 87–90° while lightness falls from 0.976
+to 0.662 and chroma **rises** from 0.011 to 0.107. That co-movement is what makes
+it read as one material getting thicker rather than as a gray ramp with a tint —
+and it is why a naive `color-mix` with white does not reproduce it (tried: the
+best single-anchor fit misses the deep end by 0.027 of lightness).
+
+**So the twelve stay hexes**, and that is the byte-for-byte rule (§4.3) doing its
+job rather than a failure. `theme.css` already says they were *"hand-tuned along a
+lightness ramp"*; the measurement agrees, and the sprint does not get to quietly
+replace a hand-tuned ramp with a formula that is nearly it.
+
+**A tile edge is NOT the `-edge` role.** This is the correction §4.3's edge
+finding turns up as a side effect: the eight outcome and wordlelike edges are
+their fill × 0.84, and **not one of the six tile edges is**. `--tile-3-color`'s
+edge more than doubles its chroma while dropping 0.09 of lightness — it is the
+ramp continued two stops further down, not a darkened fill. So the tile family's
+second column is *the same ramp, offset*, and calling it `edge` was reading a role
+name onto a position.
+
+`theme.css`'s claim that the outcome edges take *"the step the warm tile ramp
+takes between a shade and its border"* is therefore backwards on both halves. The
+name it should carry is `--sand-<n>-edge` only in the sense that it is what a
+shade's border wears; what it IS, is `--sand-<n+2>`-ish. Left as its own column
+rather than collapsed onto the ramp, because the two ramps are not aligned to a
+common step and forcing them would move pixels.
+
+**Where it lives**: `palette.css`, next to the hue families, as its own block
+with the ordering stated. It is a palette-layer fact — a game reaches it through
+the `--tile-*` contract slots (§4.1), never by name.
 
 ### 4.5 — SETTLED: where a game's brand color lives
 
@@ -900,10 +1211,30 @@ will have shown which ones actually fail. So: all of it, once, at the end.
 
 - **§6.4** device density — owed before step 5
 - **§6.2** whether the shrinking allowlist is the right guard mechanism
-- **How many hues**, and whether the 48-strong warm bucket is two families (a
-  real orange plus the cream/sand tile ramp) rather than one
-- **Whether `-edge` is a role or a derivation of `-fill`** — it stays a named role
-  either way; open is whether the 16% varies per hue
+- ~~**How many hues**~~ — **ANSWERED 2026-08-20 (§4.3): nine, plus gray, plus the
+  sand ramp.** The warm bucket is three families (orange 48° · amber 70° ·
+  yellow 93°) and the sand ramp is a fourth thing, not a hue family at all
+- ~~**Whether `-edge` is a role or a derivation of `-fill`**~~ — **ANSWERED
+  (§4.3): a derivation, at a flat 16% for all eight consumers.** It stays a named
+  role. The tile ramp's second column is NOT this operation and is not this role
+  (§4.4)
+- **NEW, and owed at 3b — which edge operation.** sRGB and oklab differ only in
+  step size (−13% vs −16% chroma), so that pair is nearly a non-question. The
+  live one is whether `edge` should hold chroma outright (`oklch(L−0.084, C, H)`),
+  which is what §3.1's definition of the role says and the only candidate that is
+  symmetric under polarity — a mix toward white desaturates by 10–19% depending
+  on hue. Costs a small daylight pixel change, so it cannot ride step 3 (§4.3).
+  **Ruled 2026-08-20: hold what ships, decide at 3b** — today's edges look right
+  in light mode, and the dark theme is what will tell us. Watch for the larger
+  possibility while there: that `edge` is **two roles masquerading as one**, since
+  "the boundary of this fill" and "the same fill, darker" only coincide on a
+  light page
+- **NEW — does the `-wash` tier get re-derived at 3b?** Three of five reproduce
+  as a mix with the page; the other two are off-hue Material 100s. A wash frozen
+  as a hex is the tier most likely to be wrong on a dark page (§4.3)
+- **NEW — the `warning` family spans 21° of hue** and `near`'s ink is barely
+  darker than its fill (§4.3). Both move pixels to fix, so both are conversations
+  rather than sprint work
 - **What `css-philosophy.md` becomes** when this ships. It is reasoning about
   decided design, which fits neither `plans/` (work in flight) nor `docs/`
   (what is). Joel wants it kept. Decide at step 11
