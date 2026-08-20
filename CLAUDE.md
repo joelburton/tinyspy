@@ -59,7 +59,7 @@ A plan is a working document for a sprint: the agreed design, the evidence, and 
 
 | file | the work |
 |---|---|
-| [plans/tile-feedback.md](plans/tile-feedback.md) | **The design target for tile/board feedback** — one channel per meaning, with a per-game conversion roster. Start a session there. Folds into ui.md once the games conform |
+| [plans/tile-feedback.md](plans/tile-feedback.md) | **The design target for tile/board feedback** — one channel per meaning, with a per-game conversion roster tracked by **tf level** (tf0 untouched · tf1 done in round 1, pre color+buttons · tf2 done against the current framework; every game ends at tf2). Start a session there. Folds into ui.md once the games conform |
 | [plans/keyboard-nav-plan.md](plans/keyboard-nav-plan.md) | Arrow-key navigation of board pieces for the five games where clicking pieces IS the move; two prerequisites land first |
 | [plans/error-copy-sprint.md](plans/error-copy-sprint.md) | **Not scheduled**: the error-message redesign — why `ERROR_COPY` is wrong in shape, with the evidence; don't extend the table meanwhile |
 | [plans/css-philosophy.md](plans/css-philosophy.md) | **A live conversation, shelved**: what CSS we share and why we haven't — nothing in it applied yet |

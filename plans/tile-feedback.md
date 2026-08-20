@@ -4,7 +4,10 @@
 what is; this plan describes what we agreed the play surfaces *should* say, so
 that an audit has something to check each game against.
 
-**Where we are: 4 of 16 games converted** (wordle, waffle, psychicnum, connections) — see
+**Where we are: 0 of 16 games at tf2.** The sprint restarted after the color and
+button mini-sprints changed the ground underneath it, so every game — including
+the four converted in the first round — needs a pass against the current
+framework. Games carry a **tf level**; see
 [Roster](#roster--which-games-are-converted), which is the place to start a
 session and the place to record finishing one. The channels and rules below are
 settled and live in shared code; what remains is applying them game by game.
@@ -659,29 +662,52 @@ frame.
 
 ## Roster — which games are converted
 
-**4 of 16 done.** The order is chosen by which decisions a game forces, not by
-size: wordle needed the fewest, waffle moved the framework into shared code,
+### tf levels
+
+A game's **tf level** says which generation of this framework its board has been
+brought into line with. It is an epoch marker, not a count of passes:
+
+| level | meaning |
+|---|---|
+| **tf0** | no round of tile-feedback work yet. The board predates this vocabulary entirely |
+| **tf1** | passed in the FIRST round (2026-08-16/17), **before** the color and button mini-sprints. Structurally converted — it wears the shared channels — but its colors and any button it owns were settled against rules that have since changed |
+| **tf2** | passed in THIS round, against the current framework. The finish line |
+
+A game goes **straight to tf2** whatever it started as. tf0 → tf2 is a full
+conversion; tf1 → tf2 is a re-pass, and should be much lighter — the channels are
+already worn, so what is being checked is the color question below, any button
+the game owns, and whatever the first round got wrong before the rules firmed up.
+**The sprint is done when all sixteen read tf2.** Nothing is expected to stop at
+tf1 ever again; the level exists to say "this was done under the old rules", which
+is a fact about history, not a destination.
+
+### Where each game stands
+
+**0 of 16 at tf2** — 12 at tf0, 4 at tf1.
+
+The order is chosen by which decisions a game forces, not by size: in the first
+round wordle needed the fewest, waffle moved the framework into shared code,
 psychicnum brought identity, connections made identity a rule and put a verdict on
 the background. Pick the next one up from the "forces" column.
 
-| game | status | what it forced / what it will force |
-|---|---|---|
-| **wordle** | ✅ 2026-08-16, board marks 08-17 | first through: the in-flight dim, the verdict ring in its pill's tone, hover-as-shadow, blue history, the keyboard as a control surface. Then the four board-scope marks + the keyboard withdrawn at terminal. It went first because it needed the fewest decisions — no selection, no hint, no cursor |
-| **waffle** | ✅ 2026-08-17 | the framework INTO common: selection as a black border, the shared in-flight dim, the move shown optimistically with its verdict withheld, attention gated on the swap log, both turn marks, the game-over frame. No verdict mark and none needed — the only refused swap is one a teammate beat you to, and their swap arriving is what you want to see |
-| **psychicnum** | ✅ 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). Self-attention deliberately off: one tile changes and the in-flight dim already pointed at it |
-| **connections** | ✅ 2026-08-17 | the **identity mark** as a named shared channel (`.peerRing`) — and, on the way, the rule that identity is drawn for EVERYONE on a shared board or for nobody, which the permanent dot already said and the ring contradicted. Also: the first verdict on the BACKGROUND (its tiles carry no state, so it was free), the first mark whose lifetime ends because someone ELSE acted, and the split that came out of it — a board mark dies when the board moves, its pill does not. Its bands are inert pieces wearing the shared tile face, and they flash for a teammate's solve |
-| codenamesduet | — | the keycard's `.triPeer` / `.triMine` triangles (which are the game, not attribution), and a board where only one seat can act. **Chrome borrow to settle:** its tile outline is painted with the action BUTTON's blue (`Board.module.css:135`) |
-| setgame | — | its own in-flight + arriving/leaving marks predate all of this and are the richest set anywhere; `--setgame-*` tokens want folding into the shared ones. Selection is a `box-shadow` ring and must become a border |
-| stackdown | — | the ambiguous-letter mark — a red border *and* a red ring today, and the first user of the **UI-problem** channel above: it is not a verdict, so it loses the outcome red and never becomes a fill. Plus a board whose pieces OVERLAP — and **the verdict flash only fires for half the players**: a teammate's rejected word flashes their letters red, your OWN invalid word gets the pill alone. Decide whether that is right (the tiles do come straight back, which is its own answer) when the game converts. **Chrome borrows to settle:** both its tile border and its filled entry slot are painted with the action BUTTON's blue (`Board.module.css:85`, `WordEntry.module.css:31`) |
-| strands | — | the same ambiguous-letter treatment (see stackdown), the earned hint economy (the **hint** channel's first real user), the move-end state mark, and a history-viewer ring still drawn in gold from when the viewer was yellow — it takes the shared blue like every other game's. Plus: **the hint button should almost certainly become filled always.** It is outline-when-unusable and filled-when-ready today, which was a real decision made when `disabled` meant a 0.5 fade — too faint to tell apart without changing the treatment as well, so the two states were made to differ in KIND. Disabled is 0.75 now and reads on its own, so the special case has outlived its reason; trust the ordinary disabled look and let the button be one thing |
-| letterboxed | — | a board whose primary mark is a LINE between cells, not a tile fill |
-| scrabble | — | premium squares (puzzle notation vs progress), the drag-and-drop prospective verdict (`.dropOk` / `.dropNo`), and the share-preview frame |
-| bananagrams | — | drag-and-drop, its own grid cursor, and the one documented desktop-only layout. **Chrome borrow to settle:** the dashed dump zone takes the action BUTTON's blue for both text and border (`PlayerBoard.module.css:281-282`) — and a dashed outline is the HINT channel, so the treatment wants a look too |
-| crosswords | — | printed notation on the cell (circles, shades, break marks), `.peerFrame`, and the position channel's other half |
-| boggle | — | packed tiles where a hover shadow may not read; its own tile |
-| spellingbee | — | hexes: not squares, packed edge to edge, and `.hexFlash`'s replay-on-repeat lifetime |
-| wordwheel | — | same hexes, same questions |
-| wordiply | — | OPEN: at terminal its verdict pill takes over the KEYBOARD's space, where wordle leaves that space empty and keeps the verdict above. Not worth categorising until its turn |
+| game | tf | round 1 | what it forced / what it will force |
+|---|---|---|---|
+| **wordle** | tf1 | 2026-08-16, board marks 08-17 | first through: the in-flight dim, the verdict ring in its pill's tone, hover-as-shadow, blue history, the keyboard as a control surface. Then the four board-scope marks + the keyboard withdrawn at terminal. It went first because it needed the fewest decisions — no selection, no hint, no cursor |
+| **waffle** | tf1 | 2026-08-17 | the framework INTO common: selection as a black border, the shared in-flight dim, the move shown optimistically with its verdict withheld, attention gated on the swap log, both turn marks, the game-over frame. No verdict mark and none needed — the only refused swap is one a teammate beat you to, and their swap arriving is what you want to see |
+| **psychicnum** | tf1 | 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). Self-attention deliberately off: one tile changes and the in-flight dim already pointed at it |
+| **connections** | tf1 | 2026-08-17 | the **identity mark** as a named shared channel (`.peerRing`) — and, on the way, the rule that identity is drawn for EVERYONE on a shared board or for nobody, which the permanent dot already said and the ring contradicted. Also: the first verdict on the BACKGROUND (its tiles carry no state, so it was free), the first mark whose lifetime ends because someone ELSE acted, and the split that came out of it — a board mark dies when the board moves, its pill does not. Its bands are inert pieces wearing the shared tile face, and they flash for a teammate's solve |
+| codenamesduet | tf0 | — | the keycard's `.triPeer` / `.triMine` triangles (which are the game, not attribution), and a board where only one seat can act. **Chrome borrow to settle:** its tile outline is painted with the action BUTTON's blue (`Board.module.css:135`) |
+| setgame | tf0 | — | its own in-flight + arriving/leaving marks predate all of this and are the richest set anywhere; `--setgame-*` tokens want folding into the shared ones. Selection is a `box-shadow` ring and must become a border |
+| stackdown | tf0 | — | the ambiguous-letter mark — a red border *and* a red ring today, and the first user of the **UI-problem** channel above: it is not a verdict, so it loses the outcome red and never becomes a fill. Plus a board whose pieces OVERLAP — and **the verdict flash only fires for half the players**: a teammate's rejected word flashes their letters red, your OWN invalid word gets the pill alone. Decide whether that is right (the tiles do come straight back, which is its own answer) when the game converts. **Chrome borrows to settle:** both its tile border and its filled entry slot are painted with the action BUTTON's blue (`Board.module.css:85`, `WordEntry.module.css:31`) |
+| strands | tf0 | — | the same ambiguous-letter treatment (see stackdown), the earned hint economy (the **hint** channel's first real user), the move-end state mark, and a history-viewer ring still drawn in gold from when the viewer was yellow — it takes the shared blue like every other game's. Plus: **the hint button should almost certainly become filled always.** It is outline-when-unusable and filled-when-ready today, which was a real decision made when `disabled` meant a 0.5 fade — too faint to tell apart without changing the treatment as well, so the two states were made to differ in KIND. Disabled is 0.75 now and reads on its own, so the special case has outlived its reason; trust the ordinary disabled look and let the button be one thing |
+| letterboxed | tf0 | — | a board whose primary mark is a LINE between cells, not a tile fill |
+| scrabble | tf0 | — | premium squares (puzzle notation vs progress), the drag-and-drop prospective verdict (`.dropOk` / `.dropNo`), and the share-preview frame |
+| bananagrams | tf0 | — | drag-and-drop, its own grid cursor, and the one documented desktop-only layout. **Chrome borrow to settle:** the dashed dump zone takes the action BUTTON's blue for both text and border (`PlayerBoard.module.css:281-282`) — and a dashed outline is the HINT channel, so the treatment wants a look too |
+| crosswords | tf0 | — | printed notation on the cell (circles, shades, break marks), `.peerFrame`, and the position channel's other half |
+| boggle | tf0 | — | packed tiles where a hover shadow may not read; its own tile |
+| spellingbee | tf0 | — | hexes: not squares, packed edge to edge, and `.hexFlash`'s replay-on-repeat lifetime |
+| wordwheel | tf0 | — | same hexes, same questions |
+| wordiply | tf0 | — | OPEN: at terminal its verdict pill takes over the KEYBOARD's space, where wordle leaves that space empty and keeps the verdict above. Not worth categorising until its turn |
 
 ### The sanity check: a converted game should have LESS CSS
 
@@ -696,7 +722,9 @@ had** — the board-scope marks, an identity dot, an in-flight dim — and a war
 when it is a special case. Measure rules and declarations rather than lines; this
 repo's comment density would drown the signal.
 
-Where the first three landed (against `788193d0`, the branch point):
+Where the four tf1 games landed in round 1 (against `788193d0`, the branch
+point). A tf1 → tf2 re-pass should barely move these numbers — it is a color and
+button check, not a re-conversion — so a big swing there is worth explaining:
 
 | game | rules | declarations | |
 |---|---|---|---|
@@ -707,9 +735,9 @@ Where the first three landed (against `788193d0`, the branch point):
 
 And the aggregate, stated honestly so nobody quotes the check as already proven:
 common grew a lot on the way here (`PlayArea.module.css` 34 → 66 rules), because
-the whole shared framework was built while only three games were converted. The
-check is **per game, after its conversion**; the repo-wide total only turns
-positive as the remaining thirteen amortise what is already there. Each further
+the whole shared framework was built while only those four games were converted.
+The check is **per game, after its conversion**; the repo-wide total only turns
+positive as the twelve tf0 games amortise what is already there. Each further
 game should add roughly nothing to common and take something out of itself.
 
 Cross-cutting, not owned by any one game:
@@ -717,7 +745,7 @@ Cross-cutting, not owned by any one game:
 | | departure |
 |---|---|
 | history viewer | DONE — the shared frame was yellow; it is now the blue `--view-history-color`, so yellow means only "attention" |
-| in-flight marks | was "missing in all but three games"; now shared (`.dimInFlight`) and worn by the four converted ones. Still absent everywhere else |
+| in-flight marks | was "missing in all but three games"; now shared (`.dimInFlight`) and worn by the four tf1 games. Still absent from all twelve tf0 boards |
 | identity, transient | DONE as a CHANNEL, local as an implementation — connections draws `.peerPick`, an inset border in the picker's color held clear of the selection edge. It lived in common until the palette sweep and moved into connections: one user, and crosswords' peer cursor will differ in inset and thickness, so promote on evidence |
 | the shared tile | see the next section — nine boards still roll their own |
 
@@ -729,6 +757,16 @@ certainty, not a hex match, and certainty needs the game on screen
 ([ui.md → The color system](../docs/ui.md#the-color-system)). So each conversion inherits
 one question. **Nothing here is a to-do** — it is what to look at when that game's
 turn comes.
+
+**The table below covers the twelve tf0 games only.** The census was written when
+the four tf1 games were already converted, so it never recorded a question for
+them — and their re-pass is mostly a color check, which makes that a real gap
+rather than a tidy omission. Ask the question fresh, with the game on screen, at
+each tf1 → tf2 pass; the census's own rule applies (a hex match is not certainty).
+Two things are already known to be worth looking at there: psychicnum and
+connections both gained identity marks in player colors, and wordle's keyboard is
+chrome carrying game state — the one surface the "chrome fades, game pieces don't"
+rule splits down the middle.
 
 | game | the question |
 |---|---|
