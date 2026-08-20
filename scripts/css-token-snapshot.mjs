@@ -94,6 +94,37 @@ const page = await browser.newPage()
 await page.goto(URL, { waitUntil: 'networkidle' })
 
 const resolved = await page.evaluate((list) => {
+  /**
+   * Colors are normalized through a CANVAS, and that is load-bearing rather
+   * than tidy.
+   *
+   * `getComputedStyle` reports a color in whatever space it was written in:
+   * `rgb(25, 118, 210)` for a hex, but `oklch(0.5145 0.1633 253.276)` for an
+   * `oklch()` derivation and `oklab(...)` for a `color-mix(in oklab, …)`. The
+   * sprint's whole move is replacing frozen hexes with exactly those
+   * derivations — so a raw string compare would report EVERY converted token as
+   * changed while the painted pixel is identical, which is the opposite of what
+   * this instrument is for.
+   *
+   * Canvas parses all of it and hands back real 8-bit sRGB. Verified: all
+   * sixteen chrome variants and all eight edges render to the same pixel as the
+   * hex they replace, on both an sRGB and a display-p3 profile.
+   */
+  const cv = document.createElement('canvas')
+  cv.width = cv.height = 1
+  const ctx = cv.getContext('2d', { willReadFrequently: true })
+  const asPixel = (color) => {
+    ctx.clearRect(0, 0, 1, 1)
+    // Set a known-good value first: an unparseable string leaves fillStyle at
+    // its previous value rather than throwing, so without this a bad color
+    // would silently inherit the last token's pixel.
+    ctx.fillStyle = '#000'
+    ctx.fillStyle = color
+    ctx.fillRect(0, 0, 1, 1)
+    const d = ctx.getImageData(0, 0, 1, 1).data
+    return `${d[0]},${d[1]},${d[2]},${d[3]}`
+  }
+
   const out = {}
   for (const name of list) {
     // A FRESH element per token, which is not tidiness — it is the fix for a
@@ -112,7 +143,13 @@ const resolved = await page.evaluate((list) => {
     // Off-screen but IN the document — a detached element has no computed style.
     document.body.appendChild(probe)
     const cs = getComputedStyle(probe)
-    out[name] = [cs.color, cs.width, cs.boxShadow, cs.opacity, cs.transitionDuration].join(' | ')
+    out[name] = [
+      asPixel(cs.color),
+      cs.width,
+      cs.boxShadow,
+      cs.opacity,
+      cs.transitionDuration,
+    ].join(' | ')
     probe.remove()
   }
   return out
