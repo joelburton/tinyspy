@@ -4,7 +4,7 @@
 what is; this plan describes what we agreed the play surfaces *should* say, so
 that an audit has something to check each game against.
 
-**Where we are: 0 of 16 games at tf2.** The sprint restarted after the color and
+**Where we are: 1 of 16 games at tf2.** The sprint restarted after the color and
 button mini-sprints changed the ground underneath it, so every game — including
 the four converted in the first round — needs a pass against the current
 framework. Games carry a **tf level**; see
@@ -683,7 +683,7 @@ is a fact about history, not a destination.
 
 ### Where each game stands
 
-**0 of 16 at tf2** — 12 at tf0, 4 at tf1.
+**1 of 16 at tf2** — 12 at tf0, 3 at tf1, 1 at tf2 (psychicnum).
 
 The order is chosen by which decisions a game forces, not by size: in the first
 round wordle needed the fewest, waffle moved the framework into shared code,
@@ -694,7 +694,7 @@ the background. Pick the next one up from the "forces" column.
 |---|---|---|---|
 | **wordle** | tf1 | 2026-08-16, board marks 08-17 | first through: the in-flight dim, the verdict ring in its pill's tone, hover-as-shadow, blue history, the keyboard as a control surface. Then the four board-scope marks + the keyboard withdrawn at terminal. It went first because it needed the fewest decisions — no selection, no hint, no cursor |
 | **waffle** | tf1 | 2026-08-17 | the framework INTO common: selection as a black border, the shared in-flight dim, the move shown optimistically with its verdict withheld, attention gated on the swap log, both turn marks, the game-over frame. No verdict mark and none needed — the only refused swap is one a teammate beat you to, and their swap arriving is what you want to see |
-| **psychicnum** | tf1 | 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). Self-attention deliberately off: one tile changes and the in-flight dim already pointed at it |
+| **psychicnum** | **tf2** ✅ 2026-08-20 | 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). Self-attention deliberately off: one tile changes and the in-flight dim already pointed at it. **At tf2:** the ring-around-a-TILE for the viewed turn moved OUTSIDE the tile — `outline-offset: -3px` → `+2px`, keeping its 3px weight. It only ever lands on a decided tile, so inset it had been drawing blue over saturated green/red at 1.88:1 / 1.28:1; outside it sits on the board background and simply reads. Two things the try-it-and-look loop settled: **flush (offset 0) is not enough** — it reads as a fat border, the gap is what makes it a ring — and **thinning it to 2px is not either**, since off the tile it loses the fill behind it and a hairline disappears. So: same weight, real gap. It overlaps the board frame on edge tiles (that frame starts 3px out and `.grid` has no padding); accepted, because separating them means moving shared chrome every game wears. Also: white-on-green blessed (see the floor's exception above), and seven dead token/color names cleared out of its prose |
 | **connections** | tf1 | 2026-08-17 | the **identity mark** as a named shared channel (`.peerRing`) — and, on the way, the rule that identity is drawn for EVERYONE on a shared board or for nobody, which the permanent dot already said and the ring contradicted. Also: the first verdict on the BACKGROUND (its tiles carry no state, so it was free), the first mark whose lifetime ends because someone ELSE acted, and the split that came out of it — a board mark dies when the board moves, its pill does not. Its bands are inert pieces wearing the shared tile face, and they flash for a teammate's solve |
 | codenamesduet | tf0 | — | the keycard's `.triPeer` / `.triMine` triangles (which are the game, not attribution), and a board where only one seat can act. **Chrome borrow to settle:** its tile outline is painted with the action BUTTON's blue (`Board.module.css:135`) |
 | setgame | tf0 | — | its own in-flight + arriving/leaving marks predate all of this and are the richest set anywhere; `--setgame-*` tokens want folding into the shared ones. Selection is a `box-shadow` ring and must become a border |
@@ -730,7 +730,7 @@ button check, not a re-conversion — so a big swing there is worth explaining:
 |---|---|---|---|
 | waffle | 24 → **12** | 50 → **41** | plus its `theme.css` deleted outright |
 | wordle | 19 → 21 | 59 → 59 | a wash: lost `.busy` + the reject ring, gained `.letter` + `.inFlight` |
-| psychicnum | 6 → 7 | 26 → 31 | grew, and legitimately: it GAINED the identity dot. Its `theme.css` went too |
+| psychicnum | 6 → 7 | 26 → 31 | grew, and legitimately: it GAINED the identity dot. Its `theme.css` was EMPTIED (0 non-comment lines), not deleted — the file stays for structural parity with codenamesduet's and connections' |
 | connections | 23 → **17** | 67 → **56** | the first conversion that only SUBTRACTED: out went the wrong-guess shake + its keyframes + its reduced-motion block, and the band stopped re-declaring the tile box it now composes |
 
 And the aggregate, stated honestly so nobody quotes the check as already proven:
@@ -988,6 +988,28 @@ It nearly got spent: three of the key states carried white ink below the 3:1
 contrast floor, and the obvious fix — dark ink on the light ones — would have
 raised every number and destroyed the signal. **Before changing a color for
 contrast, ask what the ink is already carrying.**
+
+### The floor has one BLESSED exception: white on the outcome green
+
+Ruled 2026-08-20, at psychicnum's tf2 pass, and recorded here so it is not
+re-derived at every game that borrows the pair. **White ink on
+`--outcome-won-fill-color` (`#66bb6a`) measures 2.36:1 and stays.** Judged on
+screen and it reads fine; the number is below the 3:1 floor below and that is
+accepted.
+
+The pairing is not psychicnum's alone — connections wears the same two tokens
+(`PlayArea.module.css:157-159`), and any game putting white on the outcome green
+inherits this ruling rather than re-opening it. For contrast, the neighbouring
+values, so nobody re-measures:
+
+| fill | white ink | dark ink |
+|---|---|---|
+| `--outcome-won-fill-color` `#66bb6a` | **2.36:1** — blessed | 7.36:1 |
+| `--outcome-lost-fill-color` `#ef5350` | 3.49:1 | 4.99:1 |
+
+What this does **not** license: it is one blessed pair, not a general permission
+to ignore the floor. The rule below still holds everywhere else, and the reason
+it holds is unchanged.
 
 ### A state color that carries white ink has a floor, and it constrains the palette
 

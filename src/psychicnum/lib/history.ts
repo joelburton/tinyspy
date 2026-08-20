@@ -28,7 +28,7 @@ export interface TurnSnapshot {
   /** Guessed words → was-it-a-secret, as of the END of the viewed turn — feed
    *  straight to `<Board results>`. */
   results: Map<string, boolean>
-  /** The board word this turn's guess decided — ring it history-yellow (it already
+  /** The board word this turn's guess decided — ring it history-blue (it already
    *  wears its green/red outcome color). Null for a hint / reveal turn (no tile). */
   highlightWord: string | null
   /** A short, name-free turn label for the viewer banner (the log row shows *who*). */

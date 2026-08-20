@@ -296,7 +296,7 @@ export function BoardCol({
         <div className={cls(shared.moveAreaOrLocalFeedback, viewing && history.bannerHost)}>
           {/* Turn-viewer banner — while inspecting a past turn it overlays this slot
               (the entry / pill stays mounted underneath, its capture frozen). Opaque
-              surface + yellow border = the shared "viewing history" marker; the
+              surface + blue border = the shared "viewing history" marker; the
               description names the turn. Click anywhere / the ✕ exits. */}
           {viewing && viewingDescription && (
             <div className={history.banner} onClick={onExitViewing} title="Click to exit">

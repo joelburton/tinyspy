@@ -661,7 +661,7 @@ focus steps per hue, and you are back at seventeen greens by a tidier route. Thi
 matters for sizing the set: counting states suggests five-plus roles, counting
 destinations probably suggests four or five.
 
-### Hover flips direction between themes — and so does an existing RULE
+### Hover flips direction between polarities — and so does an existing RULE
 
 Light mode darkens on hover; dark mode lightens. That is the real convention, not
 a quirk: Material formalizes it as a *state layer*, a translucent overlay in the

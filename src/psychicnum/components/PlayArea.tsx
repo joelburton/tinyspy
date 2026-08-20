@@ -387,7 +387,7 @@ export function PlayArea({
 
   // ─── Turn-history viewer ───────────────────────────────
   // Click a turn-log #N to replay that turn's board (the tiles decided up to that
-  // turn, with that turn's guessed tile ringed history-yellow). Keyed by log
+  // turn, with that turn's guessed tile ringed history-blue). Keyed by log
   // position (guesses have no per-turn ordinal). Exit is intrinsic to the hook (a
   // click anywhere / the banner ✕); a keystroke also exits — the entry's capture is
   // frozen while viewing (see `disabled` below), so exitOnKey has the keys to itself.

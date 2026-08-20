@@ -5,11 +5,13 @@
  * The game is deliberately minimal (see CLAUDE.md — toy game,
  * on the chopping block post-beta), and its palette currently
  * piggybacks entirely on common/theme.css: the guess-outcome
- * left-border strip uses `--outcome-{won,lost,near}-
- * border`, the placeholder text uses `--page-text-muted-color`, the
- * surface tokens come from the global palette, and the board's
- * marks are the shared ones (plans/tile-feedback.md). Nothing
- * here — the file exists for structural parity with
+ * strip down a turn-log row is the SHARED TurnLog's `.barInner_*`
+ * (common/components/game/lists/TurnLog.module.css), drawn with
+ * `--outcome-{won,lost,near}-fill-color`; the placeholder text uses
+ * `--page-text-muted-color`, the surface tokens come from the global
+ * palette, and the board's marks are the shared ones
+ * (plans/tile-feedback.md). Nothing here — the file exists for
+ * structural parity with
  * codenamesduet/theme.css and connections/theme.css so a reader
  * scanning the per-game folders sees the same shape across
  * all three.

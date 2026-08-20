@@ -26,11 +26,11 @@ type Props = {
   /** Pick a word tile. Omitted when the board is non-interactive (terminal, the
    *  viewer is out of guesses, or viewing history) — tiles render inert then. */
   onPick?: (word: string) => void
-  /** Turn-history: render read-only under the yellow viewer frame (a past turn's
+  /** Turn-history: render read-only under the blue viewer frame (a past turn's
    *  board). Off during live play. */
   viewing?: boolean
   /** Turn-history: the word the viewed turn's guess decided — ring its tile
-   *  history-yellow (over its green/red outcome color). Null / omitted when live. */
+   *  history-blue (just OUTSIDE the tile, clear of its green/red fill). Null / omitted when live. */
   highlightWord?: string | null
   /** WHO decided each tile — its guesser's identity dot, in the bottom-right
    *  corner. Null outside coop: in compete you only ever see your own guesses, so
@@ -130,7 +130,7 @@ export function Board({
       // computed in CSS from the --max-tile-* caps. See Board.module.css.
       style={{ ['--cols' as string]: cols, ['--rows' as string]: rows }}
     >
-      {/* While viewing a past turn the shared yellow `.frame` rings the board AND
+      {/* While viewing a past turn the shared history-blue `.frame` rings the board AND
           makes it click-through (pointer-events: none) so a click anywhere returns
           to the live board (useHistoryViewer's document listener). */}
       <div

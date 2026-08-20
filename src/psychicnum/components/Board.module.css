@@ -77,12 +77,18 @@
  * which is where dark ink belongs.
  *
  * The EDGE is the shared `-edge` tier: the fill stepped 16% darker, the same quiet
- * definition waffle and wordle give their colored tiles. It was computed here
- * with `color-mix` until the palette sweep promoted the step to a named tier every
- * outcome family carries. Deliberately NOT the outcome family's `-strong` tone,
- * which is four steps down (400 → 800) and reads as a harsh ring rather than as an
- * edge. And note the fill here is `-border`, the 400 tone: the family's `-border`
- * name is about its role beside the pastel `-bg`, not about being an edge.
+ * definition waffle and wordle give their colored tiles. It was computed right here
+ * as `color-mix(… 84%, #000)` until the palette sweep promoted that exact step to a
+ * named tier every outcome family carries — so this board is where `-edge` came
+ * from, and (today) still its only consumer. Deliberately NOT the family's `-ink`
+ * tone, which is four steps down (400 → 800) and reads as a harsh ring rather than
+ * as an edge; `-ink` is what the feedback pills wear.
+ *
+ * The fill is `-fill`, the 400 tone. That tier used to be called `-border`, which
+ * was a misnomer — it was a background in twelve of its fourteen uses (turn-log
+ * bars, pill tints, tile fills) and an actual border in two — so the sweep renamed
+ * it to match its job. `-border` did NOT become `-edge`; the value kept working and
+ * got an honest name, while `-edge` was minted alongside it.
  *
  * Which channel is this borrowing? Border color is spoken for by verdicts and by
  * peer selection, but neither can land on a DECIDED tile: it is inert, so nobody
@@ -147,14 +153,42 @@
   z-index: 1;
 }
 
-/* Turn-history: the tile the VIEWED past turn guessed — the shared history-yellow
+/* Turn-history: the tile the VIEWED past turn guessed — the shared history BLUE
  * (`--view-history-color`), the same signal the board frame + viewed log #N wear.
- * An inset outline so it rings just inside the tile edge, over its green/red fill.
+ *
+ * OUTSIDE the tile, like every other history ring in the app (the board `.frame`
+ * and the log's `#N` handle both use a positive offset). It was inset until
+ * 2026-08-20, drawn over the tile's own fill — and this ring only ever lands on a
+ * DECIDED tile, since a past turn's guess is by definition guessed. That put blue
+ * on saturated green or red at 1.88:1 and 1.28:1, so the one mark whose whole job
+ * is "this is the tile that turn played" was drawn on the surface where it read
+ * worst. Outside, it sits on the board background and simply reads.
+ *
+ * It rides 2px OFF the tile, not flush against it. Flush (offset 0) technically
+ * clears the fill but reads as a thicker border rather than as a ring — the gap
+ * is what makes it a separate mark.
+ *
+ * It keeps its original 3px WEIGHT. Thinner reads as a hairline once the ring is
+ * off the tile and no longer backed by the fill — the offset costs it presence,
+ * so the width has to hold.
+ *
+ * Two neighbours to know about:
+ *   - The next TILE is never a problem: the grid gap is 0.5rem (8px) and only one
+ *     tile is ever `.viewed`, so this ring stops 3px short of it.
+ *   - The BOARD FRAME is. It is an outline on `.grid` at `outline-offset: 3px`,
+ *     width 4px — the 3–7px band just outside the grid — and `.grid` has no
+ *     padding, so edge tiles sit flush against it. This ring occupies 2–5px, so on
+ *     an edge tile the two blues overlap. There is no way out at this scale: the
+ *     frame starts 3px out, so any ring with a visible gap AND enough weight to
+ *     read runs into it. Fixing it properly means moving the frame outward, which
+ *     is shared chrome every game wears — deliberately not done for one game's sake.
+ *     (Padding `.grid` while viewing would also buy room, and is ruled out: it
+ *     resizes tiles on a state change — docs/ui.md → no reflow on state change.)
  *
  * (This is the board's only tile-level ring now. The terminal answer key used to
  * add a second one in a neon green of its own; revealing a secret simply turns it
  * green today — the reveal is a state change, not a mark. See PlayArea.) */
 .viewed {
   outline: 3px solid var(--view-history-color);
-  outline-offset: -3px;
+  outline-offset: 2px;
 }
