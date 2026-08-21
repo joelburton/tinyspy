@@ -16,3 +16,28 @@
   --stackdown-tile-edge-color: rgb(0 0 0 / 20%);
   --stackdown-tile-shadow:     0 0.4cqi 0.8cqi rgb(0 0 0 / 28%);
 }
+
+/* ⚠️ TEMPORARY EXPERIMENT — how strong CAN a shadow be on a dark page?
+ *
+ * The answer is bounded, and the bound is the page: a shadow only darkens what
+ * is under it, so the most it can ever say is the page's own lightness. Against
+ * daylight's #fafafa a 30% black makes a perceptual step of 26. Against
+ * midnight's page, taken all the way to pure black — which is what this is —
+ * the ceiling is about 19.
+ *
+ * So this is not "a stronger shadow", it is THE strongest shadow, with the
+ * geometry left exactly as it is so only the alpha is under test. If the depth
+ * still does not read here, no amount of tuning will get it, and the answer has
+ * to be a lighter cue instead (a ground the piece stands on, or
+ * lightness-as-hover — plans/css-system-2.md §19).
+ *
+ * Scoped to the dark theme by the attribute `loadTheme()` stamps on <html>. The
+ * attribute is available under BOTH themes even though only one chain loads,
+ * which is what makes a theme-conditional experiment possible without loading
+ * two themes at once.
+ *
+ * DELETE THIS once the depth question is settled. It is a measurement, not a
+ * design. */
+html[data-theme='midnight'] {
+  --stackdown-tile-shadow: 0 0.4cqi 0.8cqi rgb(0 0 0 / 100%);
+}

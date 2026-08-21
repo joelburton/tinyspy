@@ -30,41 +30,41 @@
      themes people actually live in are hued, and a hued dark reads as
      a considered surface where a neutral one reads as an absence.
 
-     It is also LIFTED, from L* 5.5 to L* 11.8, and that half is about
-     shadows: a shadow can only darken what is under it, so the page's
-     own lightness is the ceiling on how much a shadow can ever say.
-     Lifting the page roughly triples the room — a 30% black makes a
-     perceptual step of 4.6 here against 1.9 at #121212.
+     It is also LIFTED — L* 18.9, where Material's near-black is 5.5 —
+     and that half is entirely about shadows. A shadow can only DARKEN
+     what is under it, so the page's own lightness is the ceiling on
+     how much a shadow can ever say: at L* 5.5 the most a shadow could
+     ever do, taken all the way to pure black, was a step of 5.5, and
+     here it is 18.9. Daylight's is 26.
 
-     ⚠️ Triple is still not enough. Daylight's step is 26. Even at this
-     lightness the CEILING — a shadow all the way to pure black — is
-     11.8, so a darkening shadow can never carry on a dark page what it
-     carries on a light one, at any alpha. That is a fact about the
-     page rather than about the value, and it is why the depth question
-     needs a lighter cue (a raised ground, or lightness-as-hover) and
-     not a stronger shadow. See plans/css-system-2.md §19.
+     So this is a page chosen against a number rather than by eye: high
+     enough that a shadow can carry roughly three quarters of what it
+     carries on white, low enough to still read as a dark room. Below
+     about L* 15 the depth cue is simply not available at any alpha,
+     which is a fact about the page and not about the shadow. See
+     plans/css-system-2.md §19.
 
      COOL all the way up, so the family holds together, and the warm
      tile ramp is deliberately left warm against it — a board of wood
      on a slate table. The surface is LIGHTER than the page, as it is
      in daylight: that relationship survives the flip even though both
      values move. */
-  --page-bg-color:                #1a1f2b;
-  --page-surface-color:           #232936;
-  --page-surface-border-color:    #39414f;
-  --page-surface-hover-color:     #2e3543;
+  --page-bg-color:                #262e3f;
+  --page-surface-color:           #2f394c;
+  --page-surface-border-color:    #454f63;
+  --page-surface-hover-color:     #3a4459;
   --page-text-color:              #e8eaee;
   --page-text-muted-color:        #99a0ad;
-  --page-divider-color:           #6d7482;
+  --page-divider-color:           #7b8391;
 
   /* ══ FIELD ══════════════════════════════════════════════════════
      A field sits at the page's own darkness rather than the card's, so
      it reads as a well rather than a raised panel. The placeholder
      formula is unchanged from daylight and still works, because it is
      stated relative to the field's own fill. */
-  --field-fill-color:             #151a24;
-  --field-edge-color:             #454e5e;
-  --field-strong-edge-color:      #67707f;
+  --field-fill-color:             #1f2532;
+  --field-edge-color:             #505b6e;
+  --field-strong-edge-color:      #727d8f;
   --field-muted-ink-color:        #a4abb8;
   --field-placeholder-ink-color:  color-mix(in oklab, var(--page-text-muted-color) 50%, var(--field-fill-color));
 
@@ -418,7 +418,7 @@
      library is unplayed, and the unplayed stripe should recede into
      the page whichever page it is. The ROLE is "recede"; the value is
      whatever recedes here — which is the page's own hue, a step up. */
-  --gamelist-unplayed-color:   #262c39;
+  --gamelist-unplayed-color:   #333c4d;
 
   /* ══ GAMEMODE ═══════════════════════════════════════════════════
      The 800-level tones daylight uses are unreadable on dark, so both
