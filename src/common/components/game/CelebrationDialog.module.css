@@ -72,6 +72,13 @@
   80%      { transform: translateY(0) rotate(-4deg); }
 }
 
+/* ⚠️ An <h2> rendering at h1's size. `1.5rem` is exactly what base.css gives
+   h1, and h2's declared size is 1.25rem — so this is the one place the level
+   and the size disagree. It may be earned: a celebration's title is the loudest
+   thing on screen at that moment. But it should be a decision, and today it is
+   a leftover from when h2's browser default was also 1.5rem. Settle it at the
+   dialogs pass (plans/css-system-2.md step 7): either drop to the h2 size, or
+   keep it and say why here. */
 .title {
   margin: 0.2rem 0 0.3rem;
   font-size: 1.5rem;

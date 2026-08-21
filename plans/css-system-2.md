@@ -442,6 +442,11 @@ sites to one, and `text-transform` on a shared badge would render "Co-op" as
 "CO-OP"). `<ModePill>` still holds its own copy; it reads the class at step 8.
 
 **Owed, noted in the code rather than fixed (Joel, 2026-08-21):**
+`CelebrationDialog`'s `.title` is an `<h2>` at `1.5rem` — exactly h1's declared
+size, where h2 is `1.25rem`. The one place a level and its size disagree, and a
+leftover from when h2's browser default was also `1.5rem`. It may be earned (a
+celebration's title is the loudest thing on screen at that moment) but it should
+be a decision — **step 7**.
 `CelebrationDialog`'s `.button:focus-visible` is a local copy of the shared
 focus ring — nothing about being in that dialog should make a button's ring
 differ from a form's, so it goes at **step 7**. And `<ShuffleButton>` **should
