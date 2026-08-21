@@ -36,9 +36,9 @@ export function ModePill({ mode, soloClub = false, aiOpponent = false }: Props) 
     // compete WITHOUT an AI is "compete for 1" (a race with nobody to beat):
     // effectively coop, so it stays pill-less like coop does.
     if (mode !== 'compete' || !aiOpponent) return null
-    return <span className={cls(styles.pill, styles.compete)}>AI Compete</span>
+    return <span className={cls('badge', styles.compete)}>AI Compete</span>
   }
   return (
-    <span className={cls(styles.pill, styles[mode])}>{MODE_LABEL[mode]}</span>
+    <span className={cls('badge', styles[mode])}>{MODE_LABEL[mode]}</span>
   )
 }

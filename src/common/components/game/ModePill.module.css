@@ -1,20 +1,8 @@
-/* Small mode chip — see ModePill.tsx. An outlined pill: transparent
- * background, with the border + text both in the mode color (via
- * currentColor), so it reads as a subtle tag beside the gametype name
- * rather than a filled chip. Colors from theme.css (--gamemode-*-ink-color);
- * .coop / .compete set `color`, and the border inherits it. */
-.pill {
-  display: inline-block;
-  font-size: 0.7rem;
-  font-weight: 700;
-  line-height: 1.4;
-  padding: 0.05rem 0.4rem;
-  border: 1px solid currentColor;
-  border-radius: var(--radius-sm);
-  vertical-align: middle;
-  white-space: nowrap;
-}
-
+/* The mode pill IS the shared `.badge` (common/patterns/badge.css) — a
+ * one-word label saying what KIND of thing this is, the same job "Solo" does on
+ * a club row. The badge paints no color, so all that's left here is which color
+ * each mode takes. Deliberately outside the won/lost/active outcome palette, so
+ * a mode never reads as a result. */
 .coop {
   color: var(--gamemode-coop-ink-color);
 }

@@ -25,11 +25,8 @@
 
 /* Deliberately NOT named `.button`: ClubPage's keyboard e2e finds the start
  * buttons by `[class*="_button_"]` and a filter button would join that set. */
-.modeOption {
-  font-size: 0.8rem;
-  padding: 0.25rem 0.55rem;
-  cursor: pointer;
-}
+/* The size is the shared `button-small`; what's left is this control's own
+ * behavior. (`cursor` is already the bare <button>'s.) */
 
 /* The option carries `.button`, whose filled accent + white IS the selected
  * look — so (exactly like the mobile tab bar) only the UNselected option is
