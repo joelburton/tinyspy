@@ -416,6 +416,22 @@
      pill reported and a board never did, and became an outcome for the
      same reason: a move can break rather than lose.
 
+     THREE CELLS, and `ink` is the new one. Every tone's ink is the
+     page's own text color today — a pill has always been read as black
+     words inside a colored outline, and nothing about that is changing
+     here. It becomes a CELL rather than an inheritance for two reasons.
+
+     One: it is the pill's third real channel, and leaving it unnamed
+     meant the family looked like it had two. A pill paints a border, a
+     background and a word; two of those had names and the third was
+     whatever the pill happened to inherit from wherever it was mounted.
+
+     Two: the value cannot stay shared forever. The washes are pale
+     enough that black reads on all seven today, but a family whose
+     tint darkens — or a dark theme, where the whole question inverts —
+     needs a per-tone answer, and the place to put it should already
+     exist. Seven cells now, one value, no pixel moved.
+
      THE TINTS ARE THE IRREGULAR PART. Five mix at 18% and two at 8%,
      which is what ships today and is preserved here rather than
      normalized — evening them up moves pixels on real pills, and this
@@ -442,6 +458,17 @@
   --pill-neutral-tint-color:  var(--page-surface-color);
   --pill-noted-tint-color:    color-mix(in oklab, var(--outcomes-noted-base-color) 8%, var(--page-surface-color));
   --pill-error-tint-color:    color-mix(in oklab, var(--outcomes-error-base-color) 8%, var(--page-surface-color));
+
+  /* One value, seven cells. Not an alias chain and not a single shared
+     token: each tone owns its ink so any one of them can move alone,
+     which is the whole reason for writing the column out. */
+  --pill-won-ink-color:       var(--page-text-color);
+  --pill-lost-ink-color:      var(--page-text-color);
+  --pill-near-ink-color:      var(--page-text-color);
+  --pill-warning-ink-color:   var(--page-text-color);
+  --pill-neutral-ink-color:   var(--page-text-color);
+  --pill-noted-ink-color:     var(--page-text-color);
+  --pill-error-ink-color:     var(--page-text-color);
 
   /* ══ TILE ═══════════════════════════════════════════════════════
      The warm tile ramp — the canonical look every game's word / letter

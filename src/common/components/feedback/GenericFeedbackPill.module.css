@@ -79,11 +79,13 @@
 .won {
   border-color: var(--pill-won-color);
   background: var(--pill-won-tint-color);
+  color: var(--pill-won-ink-color);
 }
 
 .lost {
   border-color: var(--pill-lost-color);
   background: var(--pill-lost-tint-color);
+  color: var(--pill-lost-ink-color);
 }
 
 /* near — a near miss (connections' "one away"), in the GOLD its turn-log bar
@@ -92,6 +94,7 @@
 .near {
   border-color: var(--pill-near-color);
   background: var(--pill-near-tint-color);
+  color: var(--pill-near-ink-color);
 }
 
 /* ORANGE — the "important, but not good/bad" tone (a hint was asked for, an
@@ -101,11 +104,13 @@
 .warning {
   border-color: var(--pill-warning-color);
   background: var(--pill-warning-tint-color);
+  color: var(--pill-warning-ink-color);
 }
 
 .neutral {
   border-color: var(--pill-neutral-color);
   background: var(--pill-neutral-tint-color);
+  color: var(--pill-neutral-ink-color);
 }
 
 /* error — the failure that ISN'T a move: a lost connection, a service that
@@ -114,11 +119,13 @@
 .error {
   border-color: var(--pill-error-color);
   background: var(--pill-error-tint-color);
+  color: var(--pill-error-ink-color);
 }
 
 .noted {
   border-color: var(--pill-noted-color);
   background: var(--pill-noted-tint-color);
+  color: var(--pill-noted-ink-color);
 }
 
 /* Outline = the TRANSIENT look: drop the fill tint back to a plain white surface,

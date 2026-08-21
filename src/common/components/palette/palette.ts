@@ -413,12 +413,15 @@ export const FAMILIES: Family[] = [
       'and by alias — a pill reporting a won game and a board showing one are one ' +
       'message. It got there by promoting the two the pill used to own: `info` ' +
       'became the outcome `noted`, and `error` became an outcome once a move ' +
-      'could break rather than lose. This family mints no color of its own; the ' +
-      'tints are the irregular part, five at 18% and two at 8%.',
-    variants: ['color', 'tint'],
+      'could break rather than lose. This family mints no color of its own. The ' +
+      'ink is one value in seven cells — a pill is black words in a colored ' +
+      'outline today, and the cells exist so that need not stay true. The tints ' +
+      'are the irregular part: five at 18% and two at 8%.',
+    variants: ['color', 'tint', 'ink'],
     formulas: {
       color: 'the outcome ink, aliased',
       tint: 'the outcome base 18% over the card, in oklab',
+      ink: "the page's own text color — one value, seven cells, so any one can move alone",
       'noted/tint': 'the outcome base 8% over the card — the irregular pair',
       'error/tint': 'the outcome base 8% over the card — the irregular pair',
       'neutral/tint': 'the plain surface — the one pill that says nothing looks like it',
@@ -426,31 +429,59 @@ export const FAMILIES: Family[] = [
     members: [
       {
         name: 'won',
-        cells: ['var(--pill-won-color)', 'var(--pill-won-tint-color)'],
+        cells: [
+          'var(--pill-won-color)',
+          'var(--pill-won-tint-color)',
+          'var(--pill-won-ink-color)',
+        ],
       },
       {
         name: 'lost',
-        cells: ['var(--pill-lost-color)', 'var(--pill-lost-tint-color)'],
+        cells: [
+          'var(--pill-lost-color)',
+          'var(--pill-lost-tint-color)',
+          'var(--pill-lost-ink-color)',
+        ],
       },
       {
         name: 'near',
-        cells: ['var(--pill-near-color)', 'var(--pill-near-tint-color)'],
+        cells: [
+          'var(--pill-near-color)',
+          'var(--pill-near-tint-color)',
+          'var(--pill-near-ink-color)',
+        ],
       },
       {
         name: 'warning',
-        cells: ['var(--pill-warning-color)', 'var(--pill-warning-tint-color)'],
+        cells: [
+          'var(--pill-warning-color)',
+          'var(--pill-warning-tint-color)',
+          'var(--pill-warning-ink-color)',
+        ],
       },
       {
         name: 'neutral',
-        cells: ['var(--pill-neutral-color)', 'var(--pill-neutral-tint-color)'],
+        cells: [
+          'var(--pill-neutral-color)',
+          'var(--pill-neutral-tint-color)',
+          'var(--pill-neutral-ink-color)',
+        ],
       },
       {
         name: 'noted',
-        cells: ['var(--pill-noted-color)', 'var(--pill-noted-tint-color)'],
+        cells: [
+          'var(--pill-noted-color)',
+          'var(--pill-noted-tint-color)',
+          'var(--pill-noted-ink-color)',
+        ],
       },
       {
         name: 'error',
-        cells: ['var(--pill-error-color)', 'var(--pill-error-tint-color)'],
+        cells: [
+          'var(--pill-error-color)',
+          'var(--pill-error-tint-color)',
+          'var(--pill-error-ink-color)',
+        ],
       },
     ],
   },

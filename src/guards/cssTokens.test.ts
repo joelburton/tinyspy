@@ -272,7 +272,7 @@ describe('the color families are complete rectangles', () => {
     {
       bucket: 'pill',
       families: ['won', 'lost', 'near', 'warning', 'neutral', 'noted', 'error'],
-      variants: ['color', 'tint-color'],
+      variants: ['color', 'tint-color', 'ink-color'],
       where: 'themes/daylight.css → PILL',
     },
   ]
