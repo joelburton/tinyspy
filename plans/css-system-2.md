@@ -386,6 +386,16 @@ times in 24 files doing two unrelated jobs**:
   / `.tile`, `bananagrams` ×4, and `ClubPage.body` (a ROW splitting sideways).
   That is board geometry and stays with the games.
 
+**`.frame` is the element this lands on, and it wants renaming at the same
+time** (Joel, 2026-08-21). All three pages already declare one — GamePage
+`display:flex` + column + `gap: 1rem`, Home and Club the same plus `width:
+100%`, and only the BOUND differs (none / `max-height` / `height`). But the word
+is taken: `frame` means "a rectangle drawn around a board" in four places
+(`historyViewer.frame`, `PlayArea.gameOverFrame`, crosswords' `.peerFrame`,
+bananagrams' `.boardFrame`), and that is the documented sense. Rename the
+page-level one — `.page` is the candidate — when the bound is settled, so the
+element is touched once.
+
 Naming is unsettled and is the other reason to wait: the relay is "a flex column
 that lets a height bound through instead of stopping it", and neither
 `.passes-height` nor anything mechanism-shaped (`.min-height-zero`) is good

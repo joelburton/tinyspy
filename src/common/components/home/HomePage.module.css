@@ -50,11 +50,15 @@
   color: var(--chrome-badge-color);
 }
 
-/* The page frame — chrome strip on top, the content card below. Home is the
- * one page whose body is a centered `.card`, so this exists purely to give the
- * header somewhere to live OUTSIDE it: inside, the header inherited the card's
- * 2rem padding and its border, so it read as page content and lined up with
- * nothing else in the app.
+/* The page frame — chrome strip on top, the content card below.
+ *
+ * Plenty of pages are a centered `.card`: login, claim-a-handle, create-club,
+ * the palette, and every loading / error state. Home is the only one that
+ * pairs a card body with a PAGE HEADER — the others are pre-auth or have no
+ * menu — and that pairing is the whole reason this exists, to give the header
+ * somewhere to live OUTSIDE the card. Inside, it inherited the card's 2rem
+ * padding and its border, so it read as page content and lined up with nothing
+ * else in the app.
  *
  * MAX-height, where ClubPage's frame takes a fixed `height` — and the
  * difference is the point (docs/ui.md → "Page-height fits the viewport"). Home

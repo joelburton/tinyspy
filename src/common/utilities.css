@@ -19,9 +19,11 @@
 
 /* ---------- Surfaces and text ---------- */
 
-/* The page-card surface used by HomePage, LoginScreen, ClubPage,
-   CreateClubPage. Cross-cutting enough to live globally rather
-   than be duplicated in each component's module. */
+/* The page-card surface — a centered white panel a whole screen sits in.
+   Thirteen uses across nine files: LoginScreen, ClaimHandleScreen,
+   CreateClubPage, HomePage, PalettePage, and every "Loading…" / error state
+   (App, ClubPage, GamePage, PlayAreaErrorBoundary). Cross-cutting enough to
+   live globally rather than be duplicated in each component's module. */
 .card {
   background: var(--page-surface-color);
   border: 1px solid var(--page-surface-border-color);
