@@ -336,6 +336,23 @@ that says so; ClubPage's was the two-column region and is now `.columns`, which
 names the thing rather than the slot. The same test catches `.wrapper`,
 `.content` and `.card` when they're doing a specific job.
 
+**A component's own module may use short names; a CONSUMER's may not.** Inside
+`FilterSelect.module.css` the file *is* the subject, so `.label`, `.option`,
+`.dot` and `.popover` all read as "of the filter select". In a 200-line page
+module about lists, columns, tabs and filters, `.label` reads as "label of…
+something" and you have to go find out. So a class a consumer passes INTO a
+shared component names the component: `.filterSelectLabel`, not `.label`.
+
+A name that already carries its own subject is fine unqualified — `.closedSelect`
+says what it is from either side, which is why the same name is used in
+`FilterSelect.module.css` and in the club page's module: two locals on one
+element, and the match is what says so.
+
+Measured 2026-08-21: `<Dot>` is the common case — ten consumer modules style it
+as a bare `.dot`, while others already qualify (`greetingDot`, `playerDot`,
+`rosterDot`, `actorDot`, `itemDot`, `bonusDot`). Same for `<ShuffleButton>`
+(`.rackShuffle`, `.floatingRotate` — good) and `<MoveRow>` (`.moveRow`).
+
 **Don't give a local class a global's bare name.** `styles.button` beside
 `'button'` on the same element are two unrelated classes that look like one; a
 modifier should say what it modifies (`.saveButton`, not `.button`).

@@ -442,6 +442,12 @@ sites to one, and `text-transform` on a shared badge would render "Co-op" as
 "CO-OP"). `<ModePill>` still holds its own copy; it reads the class at step 8.
 
 **Owed, noted in the code rather than fixed (Joel, 2026-08-21):**
+**Ten consumer modules style `<Dot>` as a bare `.dot`** — a component's own
+module may use short names because the file is the subject; a consumer's may
+not (docs/code-conventions.md → "A component's own module may use short
+names"). Rename at each surface's pass; the qualified form already exists in
+half the app (`greetingDot`, `playerDot`, `rosterDot`, `actorDot`, `itemDot`,
+`bonusDot`).
 **Nine `.body` classes want real names** — a class called `.body` says "body of
 what?" and reads as the page's `<body>`. All nine mean "a panel's content area,
 as opposed to its header": `FloatingPanel`, `GameScratchpad`, `SetupSection`,
