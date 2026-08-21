@@ -299,6 +299,22 @@ html {
 
 body {
   margin: 0;
+  /* THE PAGE'S OWN GROUND, and until 2026-08-20 nothing painted it.
+     `--page-bg-color` existed, was documented as "off-white so pure-white cards
+     have a subtle ground", and was read by exactly two components — so what you
+     actually saw behind every screen was the USER AGENT's canvas.
+
+     In light mode that is white, which is close enough to #fafafa that the bug
+     survived years of looking at it. The midnight spike is what exposed it: a
+     dark theme put near-white text on a page whose background was still the
+     browser's, and the only reason it did not render unreadable is that Chrome's
+     dark canvas happens to be #121212 — the same value midnight had picked.
+     A token that is right by coincidence is a token that is not being used.
+
+     Painting it here costs one visible change in daylight: the page goes from
+     #ffffff to #fafafa, which is the ground the cards were always designed to
+     sit on. */
+  background: var(--page-bg-color);
   /* `svh` (small viewport height), NOT `vh`: on mobile Safari `100vh` is the
      toolbar-HIDDEN height (taller than what's visible), so a `100vh` page runs
      under the toolbar and forces a scroll — fatal for our never-scroll pages,

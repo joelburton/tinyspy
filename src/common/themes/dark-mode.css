@@ -1,0 +1,22 @@
+/* ============================================================
+ * dark-mode.css — ONLY what is true of every DARK theme.
+ *
+ * The mirror of light-mode.css, and it exists for the same reason:
+ * midnight loads this, a future `horror` would load it too, and a
+ * theme declares its chain rather than inheriting one by accident.
+ *
+ * Also nearly empty, which is the second half of a finding rather
+ * than a coincidence. Almost everything that felt like "dark mode"
+ * turned out to be a VALUE, and values are midnight's job.
+ * ============================================================ */
+
+:root {
+  /* The dark twin of light-mode.css's declaration, and `only` for the
+     same reason: it stops Chrome Android / Samsung Internet applying
+     their own auto-darkening on top of ours, which would double-invert
+     a page that is already dark. The <meta name="color-scheme"> in
+     index.html behaves like an author rule placed before all other
+     author CSS, so it must be changed with this if a theme picker ever
+     ships — today the meta says light and this file is behind a flag. */
+  color-scheme: only dark;
+}
