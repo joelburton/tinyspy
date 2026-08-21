@@ -103,6 +103,11 @@
   font-weight: 600;
 }
 
+/* ⚠️ THIS SHOULDN'T BE HERE (Joel, 2026-08-21): a celebration's buttons are
+   buttons, and nothing about being in this dialog should make their focus ring
+   differ from the one a form's buttons get. It's a local copy of the shared
+   ring, and the shared version should own it. Fix when the dialogs get their
+   pass (plans/css-system-2.md step 7), not here. */
 .button:focus-visible {
   outline: 2px solid var(--chrome-cursor-color);
   outline-offset: 2px;

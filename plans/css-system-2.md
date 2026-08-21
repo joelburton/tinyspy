@@ -397,6 +397,16 @@ in `currentColor` so the caller sets `color` alone. "Solo" on a club row and
 sites to one, and `text-transform` on a shared badge would render "Co-op" as
 "CO-OP"). `<ModePill>` still holds its own copy; it reads the class at step 8.
 
+**Owed, noted in the code rather than fixed (Joel, 2026-08-21):**
+`CelebrationDialog`'s `.button:focus-visible` is a local copy of the shared
+focus ring — nothing about being in that dialog should make a button's ring
+differ from a form's, so it goes at **step 7**. And `<ShuffleButton>` **should
+never take focus at all**: game stuff doesn't get real focus, which is why board
+tiles and readouts don't (docs/keyboard-shortcuts.md). Its `:focus { outline:
+none }` already says a click leaves no ring; `:focus-visible` then puts one back
+for a keyboard that has ⌥Z anyway. Nine call sites, and the fix is removing the
+tab stop rather than restyling the ring — **at the shuffle games' passes**.
+
 **Shipped at step 6: `<PageHeader>`** (`components/chrome/PageHeader.tsx`) — a
 COMPONENT, not a class, and the correction is the lesson: it was half-built as
 `patterns/page-header.css` before Joel asked whether a shared component already

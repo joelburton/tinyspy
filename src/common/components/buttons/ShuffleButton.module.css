@@ -40,6 +40,17 @@
   cursor: not-allowed;
 }
 
+/* ⚠️ THIS BUTTON SHOULD NEVER TAKE FOCUS AT ALL (Joel, 2026-08-21): game stuff
+   doesn't get real focus, which is why board tiles and readouts don't either
+   (docs/keyboard-shortcuts.md — tiles stopped being focus targets in every
+   game). The `:focus { outline: none }` below already says half of it — a
+   CLICK must leave no ring — and then `:focus-visible` puts one back for the
+   keyboard, which is the case that shouldn't exist here: ⌥Z is the shuffle,
+   and tabbing to the control is not how anyone reaches it.
+
+   Left as-is for now. Fix it where the shuffle games get their pass, not here
+   — it is nine call sites and the right change is removing the tab stop, not
+   restyling the ring. */
 .shuffle:focus {
   outline: none;
 }
