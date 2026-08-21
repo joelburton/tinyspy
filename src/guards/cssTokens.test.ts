@@ -673,3 +673,66 @@ describe('no unnamed colors', () => {
     ).toEqual([])
   })
 })
+
+/**
+ * Guard: a module never restyles a shared class app-wide.
+ *
+ * `:global()` is CSS-Modules syntax the build strips — `:global(.item-row)`
+ * ships as plain `.item-row`. So a rule written inside `ClubPage.module.css`
+ * can silently restyle the homepage, and nothing about where it sits suggests
+ * that. The filename creates a false sense of containment.
+ *
+ * The rule is about the selector's SUBJECT — its rightmost compound, which is
+ * the thing actually being styled:
+ *
+ *     :global(.item-row) { … }              subject global, unscoped   ✗ leaks
+ *     .gamesList :global(.item-row) { … }   scoped by a local ancestor ✓
+ *     :global(.dragging) .row { … }         subject is local           ✓
+ *
+ * The scoped form is legitimate and worth having — it also lands at (0,2,0),
+ * so it beats a pattern's (0,1,0) on WEIGHT rather than on stylesheet load
+ * order, which is what a bare local override quietly relies on today.
+ *
+ * Prefer a local class on the element even so: an override that sits on the
+ * element it affects is visible next to everything else about that element,
+ * and having to write it is useful friction — it makes you ask whether the
+ * pattern wants a variant instead.
+ */
+describe('a module never restyles a shared class app-wide', () => {
+  it('every `:global()` subject is scoped by a local class', () => {
+    const offenders: string[] = []
+    for (const f of walk(SRC, ['.css']).filter((f) => f.endsWith('.module.css'))) {
+      const css = stripComments(readFileSync(f, 'utf8'))
+      // Selector = everything before a `{` that isn't an at-rule or a
+      // declaration. Good enough: we only need the ones mentioning :global.
+      for (const m of css.matchAll(/(^|[}{;])\s*([^{}@;]*?)\s*\{/g)) {
+        const selectorList = m[2]
+        if (!selectorList.includes(':global')) continue
+        for (const selector of selectorList.split(',').map((s) => s.trim())) {
+          if (!selector.includes(':global')) continue
+          // The SUBJECT is the last compound — split on descendant/child/
+          // sibling combinators, outside of any parens.
+          const compounds = selector.split(/\s*[>+~]\s*|\s+(?![^(]*\))/)
+          const subject = compounds[compounds.length - 1] ?? ''
+          if (!subject.includes(':global')) continue // subject is local — fine
+          // Subject is global: require a local class somewhere to its left.
+          const before = compounds.slice(0, -1).join(' ')
+          const hasLocalAncestor = /\.[A-Za-z_][\w-]*/.test(
+            before.replace(/:global\([^)]*\)/g, ''),
+          )
+          if (!hasLocalAncestor) {
+            const line = css.slice(0, m.index).split('\n').length
+            offenders.push(`${rel(f)}:${line}  ${selector}`)
+          }
+        }
+      }
+    }
+    expect(
+      offenders,
+      `A \`:global()\` subject with no local ancestor is styled EVERYWHERE, not ` +
+        `just on this surface — the module it sits in gives it no scope at all. ` +
+        `Scope it (\`.myList :global(.item-row)\`) or, better, put a local class ` +
+        `on the element:\n${offenders.join('\n')}`,
+    ).toEqual([])
+  })
+})

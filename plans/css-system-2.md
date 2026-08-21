@@ -653,6 +653,7 @@ Three things the reading turned up that are not patterns:
 | rectangular families | a test per bucket that every member carries every variant |
 | contract slots | new, **at step 9**: every game mounting a component defines the slots it reads. Must check per MOUNT POINT — repo-wide "is it defined anywhere" is what the phantom-token guard already does, and it passes all fifteen (§9) |
 | `no dead tokens` | **the hazard.** Reserved cells look dead. `palette.ts` / `PalettePage.tsx` is written to BE the reader that keeps them alive — verify that mechanism before relying on it |
+| `:global()` | **SHIPPED 2026-08-21.** A `:global()` subject with no local ancestor styles every surface; the module it sits in gives it no scope. Verified by planting all three cases |
 | class defined ≠ referenced | both directions; neither a bare global string nor `styles.typo` fails loudly |
 
 A repo-wide guard can't switch on until the last game converts, so the location

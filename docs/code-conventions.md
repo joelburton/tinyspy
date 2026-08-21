@@ -297,6 +297,41 @@ A game's main screen is `PlayArea.tsx` whether it has a literal grid (codenamesd
 
 **File name matches component name; folder context disambiguates same-named components across games.** `src/connections/components/PlayArea.tsx` exports `PlayArea`; `src/codenamesduet/components/PlayArea.tsx` also exports `PlayArea`. Same rule for `SetupForm.tsx` — the folder tells you which game's PlayArea or SetupForm you're looking at, the file/export name stays role-named. No `ConnectionsPlayArea` / `CodenamesduetSetupForm` prefixes anywhere.
 
+### A module styles its own elements
+
+CSS Modules is a **build-time** rename, not a browser feature: `.row` in a
+`*.module.css` ships as `._row_1f3ab_18`, and `styles.row` is that string. The
+scoping is just uniqueness of names — nothing enforces it.
+
+`:global()` opts out of the rename, and the build strips it entirely, so
+`:global(.item-row) { … }` written inside `ClubPage.module.css` ships as plain
+`.item-row` and restyles the homepage too. Where the rule sits gives it no scope
+at all.
+
+The rule is about the selector's **subject** — its rightmost compound, which is
+what actually gets styled:
+
+```css
+:global(.item-row)            { … }   /* ✗ styles every item-row in the app */
+.gamesList :global(.item-row) { … }   /* ✓ scoped by a local ancestor      */
+:global(.dragging) .row       { … }   /* ✓ subject is local                */
+```
+
+A guard in [`cssTokens.test.ts`](../src/guards/cssTokens.test.ts) fails on the
+first form.
+
+**Prefer a local class on the element even where the scoped form is legal.** An
+override that sits on the element it affects is visible next to everything else
+about that element, and having to write it is useful friction — it makes you ask
+whether the shared pattern wants a variant instead. The scoped form's one real
+advantage is specificity: `.gamesList :global(.item-row)` is (0,2,0) and beats a
+pattern's (0,1,0) on weight, where a bare local class ties at (0,1,0) and wins
+only because module CSS loads after `patterns/`.
+
+**Don't give a local class a global's bare name.** `styles.button` beside
+`'button'` on the same element are two unrelated classes that look like one; a
+modifier should say what it modifies (`.saveButton`, not `.button`).
+
 ### Shared vs game-specific
 
 Two-rule heuristic for deciding where a piece of UI / logic lives:
