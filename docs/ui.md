@@ -1067,8 +1067,14 @@ setup dialog — all the same shape, and it's the shared `.item-list` /
   outcome bar and is a different thing entirely; don't reach for the turn-log
   bar vocabulary here.
 
+**The menu is not one of these.** It looks the same and isn't: a menu is a set
+of *actions* you pick from and it closes; a list is a set of *places* that stay
+put. So the menu keeps menu names and doesn't compose `.item-row` — a menu isn't
+a kind of item list, it resembles one. If the two turn out to share code, the
+shared thing gets its own name and both read it.
+
 Converted so far: the homepage's clubs list. Still to come: clubpage's games +
-start-a-game lists, crosswords' setup puzzle chooser, the menu's items.
+start-a-game lists, and crosswords' setup puzzle chooser.
 
 ## Mode pills
 

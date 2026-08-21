@@ -81,8 +81,16 @@
        reachable for free, and the row is an "accidental" button — it takes the
        neutral element, never `.button` (docs/ui.md).
 
-   Rows not yet converted: clubpage's games + start-a-game lists, crosswords'
-   setup puzzle chooser, the menu's items.
+   Rows not yet converted: clubpage's games + start-a-game lists, and
+   crosswords' setup puzzle chooser.
+
+   NOT the menu, which looks like this and is not one. A menu is a set of
+   ACTIONS you pick from and it closes; a list is a set of PLACES that stay put.
+   Nothing here should be named `item-*` on the menu's behalf, and the menu
+   should not compose these classes: a menu is not a kind of item list, it
+   resembles one (plans/css-system-2.md §7 — compose on IS-A, never on
+   LOOKS-LIKE). If the two end up sharing code, the shared thing gets its own
+   name and both read it.
 
    Like `.button`, this declares what the element would otherwise supply, so
    the choice above stays about behavior rather than styling. */

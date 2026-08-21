@@ -335,7 +335,7 @@ The top ten, in the order they should be built:
 | 1 | **Field** | a label with its control, and the explanatory line under it | `SelectField.field/.label` · `WordEditDialog.field` · `EditProfileDialog.field/.label` · `setupForm` | component + module |
 | 2 | **Choice row** / **choice group** | a radio or checkbox with its label, inline; and a wrapping row of them | `setupForm.radio/.radioRow/.checkRow` · `TimerField.radio/.timerRow` (verbatim copy) · `EditClubDialog.gameRow` · `WordEditDialog.check` | component + module |
 | 3 | **Text input** | the typed-in field: fill, edge, radius, padding, the 16px touch floor that stops iOS zooming | `WordLookupDialog.input` · `AnagramDialog.input` (byte-identical) · `WordEditDialog.field input` · `TimerField.timerInput` | element rule + one class |
-| 4 | **List** / **list row** | a stack of rows, divided, one hover, last divider suppressed | `HomePage.clubsList/.clubItem` · `ClubGameCard.row` · `Menu.popover/.item` · `AnagramDialog.list/.row` · `WordList` | shared module |
+| 4 | **List** / **list row** | a stack of rows, divided, one hover, last divider suppressed | `HomePage.clubsList/.clubItem` · `ClubGameCard.row` · `AnagramDialog.list/.row` · `WordList` · crosswords' setup chooser — **not the menu**, see below | shared module |
 | 5 | **Section** | a bordered group under a heading | `setupForm.fieldset` · `SetupSection.section/.summary` · `EditClubDialog.games/.gamesLegend` · `infoPanel.box/.heading` | component + module |
 | 6 | **Section header** | a heading with its action opposite | `HomePage.sectionHeader` · `infoPanel.headerRow` · `Menu.header/.headerTitle/.headerLine` | shared module |
 | 7 | **Overlay surface** | a surface floating above the page — surface, edge, radius, shadow | `Menu.popover` + `.flyout` · `Toast.toast` · `FloatingPanel.shell` · `DefinitionPopover` | shared module |
@@ -371,7 +371,16 @@ behavior** — `<a>` when the row navigates to a URL (middle-click / cmd-click a
 real behavior a `<button>` can't fake), `<button>` otherwise, and today's six
 lists vary mostly by accident; and **a game's corner flag is not an outcome
 bar** — it is deliberately more prominent and a different thing, so the two
-never merge. The two-line density variant waits for its first consumer
+never merge.
+
+**The MENU is not a list** (Joel, 2026-08-21), and the step-5 reading had it
+filed as one on the strength of looking identical. A menu is a set of ACTIONS
+you pick from and it closes; a list is a set of PLACES that stay put. It keeps
+menu names and does not compose `.item-row` — §7's compose on IS-A, never on
+LOOKS-LIKE, which the pattern list itself broke first time out. If the two end
+up sharing code, the shared thing gets its own name and both read it. **The
+same question is owed to every other row-shaped thing on the list** before it
+converts. The two-line density variant waits for its first consumer
 (clubpage) rather than shipping unused. Crosswords' setup chooser is drifted on
 three values (`6px` not `--radius-md`, its own hover and rule colors) and Joel
 ruled that unintended — it converts at its own pass.
