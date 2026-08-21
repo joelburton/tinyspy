@@ -264,12 +264,10 @@
  * tokens: body padding, each game's --avail-w board math, and the
  * club/card frame heights.
  *
- * The one DEVICE-DENSITY declaration in the shared layer. The mobile
- * breakpoint changes real spacing, which is neither a theme nor a
- * standard look, and plans/css-system-2.md §9 owes that kind of rule a
- * home before the pattern pass — or the modules we are emptying will
- * fill back up with it. Parked here because this is where the values
- * it overrides live. */
+ * It sits here because a device override belongs in the same file as the
+ * rule it overrides, directly under it — so a pattern and its phone
+ * tweak never live apart, and moving one moves both. There is no
+ * density stylesheet and no density tokens. */
 @media (--phone) {
   :root {
     --page-padding-x: 0.25rem;

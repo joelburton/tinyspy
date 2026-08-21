@@ -322,6 +322,54 @@ Two boundary rules, because both edges leak:
    classes read families directly instead of via twenty pass-through tokens.
 3. **Otherwise, whichever is fewer names.**
 
+### The named patterns — step 5, read 2026-08-21
+
+Read off rendered surfaces (homepage · dialogs · forms + fields · clubpage ·
+menus · toasts · chat · shared game chrome), then counted. Counts are
+declarations across all 172 CSS files under `src/`.
+
+The top ten, in the order they should be built:
+
+| # | pattern | what it is | read in | lives |
+|---|---|---|---|---|
+| 1 | **Field** | a label with its control, and the explanatory line under it | `SelectField.field/.label` · `WordEditDialog.field` · `EditProfileDialog.field/.label` · `setupForm` | component + module |
+| 2 | **Choice row** / **choice group** | a radio or checkbox with its label, inline; and a wrapping row of them | `setupForm.radio/.radioRow/.checkRow` · `TimerField.radio/.timerRow` (verbatim copy) · `EditClubDialog.gameRow` · `WordEditDialog.check` | component + module |
+| 3 | **Text input** | the typed-in field: fill, edge, radius, padding, the 16px touch floor that stops iOS zooming | `WordLookupDialog.input` · `AnagramDialog.input` (byte-identical) · `WordEditDialog.field input` · `TimerField.timerInput` | element rule + one class |
+| 4 | **List** / **list row** | a stack of rows, divided, one hover, last divider suppressed | `HomePage.clubsList/.clubItem` · `ClubGameCard.row` · `Menu.popover/.item` · `AnagramDialog.list/.row` · `WordList` | shared module |
+| 5 | **Section** | a bordered group under a heading | `setupForm.fieldset` · `SetupSection.section/.summary` · `EditClubDialog.games/.gamesLegend` · `infoPanel.box/.heading` | component + module |
+| 6 | **Section header** | a heading with its action opposite | `HomePage.sectionHeader` · `infoPanel.headerRow` · `Menu.header/.headerTitle/.headerLine` | shared module |
+| 7 | **Overlay surface** | a surface floating above the page — surface, edge, radius, shadow | `Menu.popover` + `.flyout` · `Toast.toast` · `FloatingPanel.shell` · `DefinitionPopover` | shared module |
+| 8 | **Scroll region** | the box that scrolls inside a fixed parent: `flex: 1 1 auto` + `min-height: 0` + `overflow-y: auto` | 48 × `min-height: 0`, 22 × `overflow-y: auto` | utility |
+| 9 | **Focus ring** | 13 sites, all `2px solid var(--chrome-cursor-color)`, at three offsets (−1px, −2px, +2px) | `Menu` ×2 · `SelectField` · 3 dialogs · `HomePage.kbCursor` · `ClubGameCard.kbCursor` | utility |
+| 10 | **Disabled control** | 11 × `cursor: not-allowed`, opacity spread over 0.45 / 0.5 / 0.55 / 0.6 | `Menu.itemDisabled` · `SelectField` · `TimerField` · `AnagramDialog` · `WordEditDialog` | utility |
+
+Below the line, real but smaller: the **action row** (`.modalActions`, plus a
+second pinned-to-bottom variant in `WordEditDialog.actions`), the **badge**
+(`HomePage.soloBadge` · `ModePill.pill`), the **corner close button**
+(`Toast.close` · `FloatingPanel.closeButton` · `ClubGameCard.deleteButton`), the
+**empty state** (`WordList.empty` · `TurnLog.turnLogEmpty`), and **transition
+timing** (30 declarations at 80 / 100 / 120 / 160ms).
+
+Three things the reading turned up that are not patterns:
+
+- **`.card` and `.actions` each name two different things.** Global `.card` is
+  the page card (homepage, login, club, create-club); `ClubGameCard.card` is a
+  game row in a list. Global `.actions` is a COLUMN of buttons with a top
+  margin; `.modalActions` is an end-aligned ROW. Same word, different thing,
+  in both cases.
+- **`.muted` and `.error` already exist globally and are re-typed anyway** — 65
+  declarations of `color: var(--page-text-muted-color)` and local `.error` rules
+  in `WordEditDialog` + `AnagramDialog`. Whatever the pattern pass ships, the
+  existing utilities are evidence that shipping it is not the same as adopting
+  it.
+- **Three token vocabularies paint a 1px line**, and the theme means them
+  differently — `--page-surface-border-color` `#e2e2e2` (37 uses),
+  `--field-edge-color` `#cfcfcf` (13), `--page-divider-color` `#8a8a8a` (10) —
+  but the usage crosses: `HomePage.clubsList` draws a list container in the
+  FIELD edge, `ClubGameCard.row` draws a row divider in it, and `infoPanel.box`
+  draws a 2px border in the DIVIDER gray. Settle per surface at its pass, not
+  here.
+
 ## 8. The buckets
 
 - **chrome** — the non-game UI. **boardCol** — the board and what sits above and
@@ -389,14 +437,36 @@ Two boundary rules, because both edges leak:
   `--tile-font-max` `--tile-font-min`. A game that mounts the component and
   forgets one gets an undefined property and a dead declaration. The existing
   phantom-token guard passes them because each IS defined — in *some* game.
+
+  **Measured 2026-08-21: nothing is broken today.** Nine are read with a
+  fallback, so a missing value is harmless. Six are read bare, and every game
+  mounting the reader sets all of them:
+
+  | slot | read by | mounted by |
+  |---|---|---|
+  | `--cols` `--max-tile-width` `--grid-gap` | `.hugRectWidth`, `common/components/game/PlayArea.module.css:189` | codenamesduet · wordle · connections · psychicnum |
+  | `--board-units-w/h/cap` `--max-board-size` | `foundWordsPlayArea.module.css:88-92` | spellingbee · wordwheel |
+  | `--rank-text` | `RankBar.module.css:51,132` · `Stats.module.css:64` | spellingbee · wordwheel |
+
+  psychicnum sets `--cols` inline on the parent (`Board.tsx:131`) rather than in
+  a CSS file; it inherits, so it counts. **The guard lands at step 9**, when
+  this CSS is open anyway.
 - **Not every token is a design decision.** Six kinds, and two aren't tokens in
   spirit: a **contract slot** is a blank a game fills in (`--tile-bg-color`,
   `--grid-gap`), and **local math** is arithmetic (`--cols`, `--side`). Neither
   is a color, so the game-prefix rule doesn't apply to them.
-- **Device density.** The mobile breakpoint changes real spacing, which is
-  neither theme nor standard look. `common/breakpoints.css` exists. **A position
-  is owed before step 5**, or mobile density gets re-scattered into the modules
-  we are emptying.
+- **Device density — SETTLED 2026-08-21.** The mobile breakpoint changes real
+  spacing, which is neither theme nor standard look. **A device override lives in
+  the same file as the rule it overrides, directly under it.** When a pattern
+  moves to a shared module its phone tweak moves with it; a pattern is never
+  split across two files. No density stylesheet, no density tokens.
+  `common/breakpoints.css` stays what it is — the `@custom-media` names, injected
+  everywhere by PostCSS, so any file can write `@media (--phone)`.
+
+  The existing case already obeys this: `--page-padding-x/y` are declared in
+  `base.css` and overridden a few lines below in the same file. Measured
+  2026-08-21: 52 `@media` blocks across 39 CSS files (20 `--mobile`, 9 `--phone`,
+  6 `--touch`), and most are layout — the two-column collapse — not density.
 - **Owed to tile-feedback:** the dim-up rule wants restating in light-mode
   language, and `--tile-disabled-color` cannot be one token — a delta frozen into
   an absolute is right for exactly one starting point, and the tile ramp has five.
@@ -407,7 +477,7 @@ Two boundary rules, because both edges leak:
 |---|---|
 | `no unnamed colors` | sharpens into a LOCATION rule: a hex appears only in a theme file or a game's `brand.css` |
 | rectangular families | a test per bucket that every member carries every variant |
-| contract slots | new: every game mounting a component defines the slots it reads |
+| contract slots | new, **at step 9**: every game mounting a component defines the slots it reads. Must check per MOUNT POINT — repo-wide "is it defined anywhere" is what the phantom-token guard already does, and it passes all fifteen (§9) |
 | `no dead tokens` | **the hazard.** Reserved cells look dead. `palette.ts` / `PalettePage.tsx` is written to BE the reader that keeps them alive — verify that mechanism before relying on it |
 | class defined ≠ referenced | both directions; neither a bare global string nor `styles.typo` fails loudly |
 
@@ -470,11 +540,11 @@ the scanner counts it as a reference and reserved cells stay alive.
 | 2 | ~~build the theme~~ **DONE 2026-08-20** | Five files, not three: `themes/light-mode.css`, `themes/daylight.css`, `fixed.css`, `base.css` (element resets + every non-color value, including depth), `utilities.css` (the global classes). `theme.css` is deleted. 98 renames across 386 sites in 72 files. Verified at 1280 and 390: 200 of 204 baseline tokens pixel-identical, the four movers being `terminalFrame` (§6) |
 | 3 | rebuild `/palette` | **swatch half DONE 2026-08-20** — every family is a rectangle of squares with its formula printed under each cell. The in-situ half is DEFERRED, not skipped: it was built by hand, was wrong about the pill in three ways at once, and got reverted. It returns when the demos can render the REAL components (§11) |
 | 4 | ~~the **midnight spike**~~ **DONE 2026-08-21** | The split holds; all 161 roles answered, one chain, nothing undefined. Kept behind `?theme=midnight`. Dark mode is NOT part of this sprint — everything learned is [dark-mode.md](dark-mode.md), and §19 keeps the one-line summary |
-| 5 | shallow whole-app pattern pass | the top ~10 patterns NAMED, app-wide, by reading rendered surfaces |
+| 5 | ~~shallow whole-app pattern pass~~ **DONE 2026-08-21** | Ten patterns named, plus five below the line, in §7 → "The named patterns". Read off the rendered surfaces, then counted. Also settled: device density (§9), and three findings that are name collisions rather than patterns |
 | 6 | homepage | the rehearsal: lowest blast radius |
 | 7 | dialogs + forms | the first real win — many near-identical instances |
 | 8 | clubpage + remaining non-game chrome | |
-| 9 | shared game chrome | `common/components/game/` — 258 rules, and every game sits on it |
+| 9 | shared game chrome | `common/components/game/` — 258 rules, and every game sits on it. Also: the **contract-slot guard**, checked per mount point (§9, §10) |
 | 10 | per game — CSS pass, then tile-feedback pass, back to back | psychicnum first, as the control |
 | 11 | assets | 17 game logos carry baked color; the wordmark and favicon carry near-whites that fail on a dark page. All of it at once, at the end — doing one per game argues about a tree sixteen times |
 | 12 | fold + delete | durable rules into `docs/ui.md` and `docs/code-conventions.md`; the allowlist empties; this doc goes |
