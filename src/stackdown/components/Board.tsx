@@ -21,7 +21,7 @@ const PAD = 26
  * (its depth drops). Clamped at 4 — the fixed 30-tile geometry is 4 layers deep.
  */
 function depthColor(depth: number): string {
-  return `var(--tile-${1 + Math.min(depth, 3)}-color)`
+  return `var(--tile-${1 + Math.min(depth, 3)}-fill-color)`
 }
 
 const align = (c: number) => (c < 0 ? 'flex-start' : c > 0 ? 'flex-end' : 'center')

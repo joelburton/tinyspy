@@ -85,7 +85,32 @@ function scanTokens() {
     for (const m of stripComments(readFileSync(f, 'utf8')).matchAll(new RegExp(`var\\(\\s*(${TOKEN})`, 'g')))
       if (!refs.has(m[1])) refs.set(m[1], rel(f))
 
-  return { defined, refs }
+  /**
+   * Token names BUILT BY INTERPOLATION — `var(--tile-${n}-fill-color)`.
+   *
+   * Captured as the pair around the hole (prefix `--tile-`, suffix
+   * `-fill-color`) rather than as a prefix alone, and that is the whole point
+   * of this pass. The prefix on its own vouches for far too much: `--tile-` is
+   * happily satisfied by `--tile-slot-ink-color`, so a stale
+   * `var(--tile-${n}-color)` — the exact shape a 2026-08-20 rename left behind
+   * in stackdown — passed every guard here while painting nothing, because an
+   * undefined custom property invalidates its declaration in silence. Stackdown's
+   * tiles were transparent in both themes and it took someone opening the game
+   * on a dark page to see it.
+   *
+   * With both ends, the reference is checkable: SOME defined token must match
+   * `prefix + one segment + suffix`. That is as strong as this can get without
+   * knowing the interpolation's domain, and it is strong enough — it is what
+   * distinguishes `--tile-<n>-fill-color` from `--tile-<n>-color`.
+   */
+  const dynamic: { prefix: string; suffix: string; file: string }[] = []
+  for (const f of codeFiles)
+    for (const m of stripComments(readFileSync(f, 'utf8')).matchAll(
+      /var\(\s*(--[a-zA-Z0-9_-]*)\$\{[^}]*\}([a-zA-Z0-9_-]*)\s*\)/g,
+    ))
+      dynamic.push({ prefix: m[1], suffix: m[2], file: rel(f) })
+
+  return { defined, refs, dynamic }
 }
 
 describe('CSS custom-property tokens', () => {
@@ -105,6 +130,27 @@ describe('CSS custom-property tokens', () => {
     expect(phantom, `Undefined CSS token(s) referenced via var():\n${phantom.join('\n')}`).toEqual(
       [],
     )
+  })
+
+  it('every interpolated var(--x-${…}-y) can name a real token', () => {
+    const { defined, dynamic } = scanTokens()
+
+    const broken = dynamic
+      .filter(({ prefix, suffix }) => {
+        const shape = new RegExp(
+          `^${prefix.replace(/-/g, '\\-')}[a-zA-Z0-9]+${suffix.replace(/-/g, '\\-')}$`,
+        )
+        return ![...defined.keys()].some((d) => shape.test(d))
+      })
+      .map(({ prefix, suffix, file }) => `${prefix}\${…}${suffix}  (in ${file})`)
+
+    expect(
+      broken,
+      `A token name built by interpolation that no defined token can match. The ` +
+        `usual cause is a rename that moved the literal names and left the ` +
+        `template behind — nothing fails at runtime, the declaration just stops ` +
+        `painting:\n${broken.join('\n')}`,
+    ).toEqual([])
   })
 
   /**
