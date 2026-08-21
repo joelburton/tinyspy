@@ -82,7 +82,7 @@
  * leading as a start-list row's title (StartGameButtons/.title), so the two
  * panels' rows are the same object seen twice; only .active scales it up.
  * word-break since some gametypes generate long titles. */
-.title {
+.gameTitle {
   font-weight: 600;
   font-size: 1rem;
   line-height: 1.2;
@@ -129,7 +129,7 @@
  * titles that run long — connections' three words, scrabble's opening
  * three — wrapped to a second line and shoved the callout's own height
  * around; it's prominent enough from its border and its position. */
-.standalone .title {
+.standalone .gameTitle {
   font-size: 1.25rem;
 }
 

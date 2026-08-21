@@ -944,8 +944,8 @@ export function ClubPage({ handle, session }: Props) {
       {/* Club title — a full-width row spanning both body columns.
           The "Club:" / "Solo Club:" prefix says what kind of venue
           this page is (solo = the '='-prefixed one-member club). */}
-      <div className={styles.titleBlock}>
-        <h1 className={styles.title}>
+      <div className={styles.clubNameBlock}>
+        <h1 className={styles.clubName}>
           {soloClub ? 'Solo Club: ' : 'Club: '}
           {club.name}
         </h1>

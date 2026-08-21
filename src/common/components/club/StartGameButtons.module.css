@@ -42,7 +42,7 @@
   gap: 0.4rem;
 }
 
-.title {
+.gametypeName {
   font-weight: 600;
   font-size: 1rem;
   color: var(--page-text-color);

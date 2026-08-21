@@ -117,7 +117,7 @@ export function StartGameButtons({
             <GameLogo gametype={g.gametype} />
             <span className={styles.content}>
               <span className={styles.titleRow}>
-                <span className={styles.title}>{g.name}</span>
+                <span className={styles.gametypeName}>{g.name}</span>
                 <ModePill mode={g.mode} soloClub={soloClub} aiOpponent={g.aiOpponent} />
               </span>
               <span className={styles.meta}>

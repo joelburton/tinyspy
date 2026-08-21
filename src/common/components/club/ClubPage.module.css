@@ -26,10 +26,10 @@
 }
 
 
-/* Everything below the (full-width) header — the title row + the
- * two-column body — sits in a centered content well so the columns
- * don't sprawl on a wide desktop. ~1000px, in rems. */
-.titleBlock,
+/* Everything below the (full-width) header — the club's name and the two
+ * columns — sits in a centered content well so the columns don't sprawl on a
+ * wide desktop. ~1000px, in rems. */
+.clubNameBlock,
 .columns {
   width: 100%;
   max-width: 62.5rem;
@@ -93,11 +93,11 @@
 /* Club title block — a full-width row of the .frame column (between
  * the header and the two-column body), so the "Club: <name>" heading
  * spans both columns rather than living inside the left one. */
-.titleBlock {
+.clubNameBlock {
   flex-shrink: 0;
 }
 
-.title {
+.clubName {
   margin: 0;
   /* The 20-character cap on club names (common.clubs.name) keeps a realistic
    * name on one line at 390px — but a capped name can still be ONE unbroken

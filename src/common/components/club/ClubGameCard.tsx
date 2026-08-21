@@ -204,7 +204,7 @@ export function ClubGameCard({
           <GameLogo gametype={gametype} />
           <div className={styles.content}>
             <div className={styles.titleRow}>
-              {title && <span className={styles.title}>{title}</span>}
+              {title && <span className={styles.gameTitle}>{title}</span>}
               {manifest && (
                 <ModePill mode={manifest.mode} soloClub={soloClub} aiOpponent={manifest.aiOpponent} />
               )}
