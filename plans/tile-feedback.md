@@ -550,6 +550,36 @@ detects motion better than color, which is exactly the attention problem.
 as feedback or as a layout glitch on a screen the board fills, both need
 checking before we lean on it.
 
+### ⚠️ UNRESOLVED: does hover lift, or only deepen its shadow?
+
+**Three sources disagree, and one of them disagrees with itself.** Noted
+2026-08-21 during the midnight spike; decide it when the first game takes its
+tf2 pass, and make all three say the same thing.
+
+| | says |
+|---|---|
+| this doc's channel table | **box-shadow** — one channel, no mention of movement |
+| this doc, "Depth belongs to game pieces" | "the resting shadow, **the hover lift**, the press shrink" |
+| `PlayArea.module.css`, the comment above the rule | "Hover is a DROP SHADOW, **and nothing else** — the tile's own geometry does not move" |
+| `PlayArea.module.css`, the rule itself | `box-shadow` **and** `transform: translateY(-2px)` |
+| `PlayArea.module.css`, the comment INSIDE the rule | "the piece RISES while its shadow falls away… that gap IS elevation" |
+
+So the shipped behavior is **shadow + a 2px lift**, and connections and wordle
+have both worn it since they converted. The contradictory header comment arrived
+with waffle's conversion (`ac590210`) and has been wrong ever since; nothing
+downstream acted on it, which is why it survived.
+
+The argument for the pair is in the rule's own inner comment and is a good one:
+a tile that moves while its shadow stays glued underneath reads as a *slide*, and
+a shadow that deepens under a tile that has not moved reads as a claim the tile
+is not making. The argument against is this doc's table, which is otherwise
+strict about one channel per meaning.
+
+**A dark theme raises the stakes**, which is why this surfaced now: on a dark page
+a darkening shadow is capped by the page's own lightness (css-system-2 §19), so
+if hover is shadow-only it may not carry there at all — and the lift, which costs
+nothing on any background, might be the half doing the work.
+
 ### Hover may need more than a shadow on packed boards
 
 A drop-shadow works because it reads as elevation against the surface around the

@@ -48,12 +48,6 @@
   transition: transform 80ms ease;
 }
 
-/* Press feedback — a brief scale-down on tap of an exposed (interactive) tile,
- * matching the shared tile + boggle/spellingbee. Covered tiles are :disabled. */
-.tile:not(:disabled):active {
-  transform: scale(0.94);
-}
-
 /* Brief red outline shown when a typed letter is ambiguous (more than one
  * exposed tile bears it) — PlayArea adds this class for ~0.9s to point out
  * the candidates. The red ring (box-shadow) is the always-visible signal;
@@ -88,7 +82,35 @@
  * pass. It was a blue border (`--button-normal-primary-color`), which is a
  * CONTROL color on a game piece, and it also made stackdown useless for the one
  * question being asked of it: does a shadow read as hover on a dark page.
+ *
+ * The pair matches what the CONVERTED games do — connections and wordle wear the
+ * shared `.tile` hover, which deepens the shadow AND rises. The two are one
+ * gesture: the piece goes up while its shadow falls away, and the widening gap
+ * between them is what elevation IS. A tile that moves without its shadow moving
+ * reads as a slide; a shadow that deepens under a tile that stays put reads as a
+ * claim the tile is not making.
+ *
+ * The rise is `transform` and nothing else, deliberately, for the reason the
+ * shared rule gives: it is paint-only, so no board re-measures. Here that
+ * matters more than most — every stackdown tile is absolutely positioned by
+ * inline percentages of the canvas, and anything that touched `top` would fight
+ * the layout it is drawn from.
+ *
  * Restore or replace when stackdown takes its real tf pass. */
 .tile:not(:disabled):hover {
   box-shadow: var(--stackdown-tile-hover-shadow);
+  transform: translateY(-0.5cqi);
+}
+
+/* Press feedback — a brief scale-down on tap of an exposed (interactive) tile,
+ * matching the shared tile + boggle/spellingbee. Covered tiles are :disabled.
+ *
+ * DECLARED AFTER THE HOVER, and that is load-bearing rather than tidy: the two
+ * selectors have identical specificity and both set `transform`, so source order
+ * is the only thing deciding which one a moused press gets — and a mouse is
+ * always hovering what it presses. With this rule first, hover won and the press
+ * feedback was dead on every desktop click. The shared tile orders them this way
+ * for the same reason. */
+.tile:not(:disabled):active {
+  transform: scale(0.94);
 }
