@@ -1,5 +1,14 @@
 # The CSS system — the executable plan
 
+
+OUTDATED: here for history. Please read css-system-2.
+
+
+
+
+
+
+
 > **STEPS 0–2 DONE, 2026-08-20.** Decisions settled (§3), baseline measured
 > (§2, §9), every token classified (§4.1). What remains unwritten — §4.2–4.4 and
 > the pattern list — is step 3–4 *work*, not decisions waiting on anyone.
